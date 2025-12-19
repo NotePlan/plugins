@@ -35,7 +35,7 @@ type RenderItemProps = {
   handleComboChange?: (key: string, e: any) => void,
   handleSaveInput?: (key: string, newValue: string) => void,
   showSaveButton?: boolean,
-  inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
+  inputRef?: ?{ current: null | HTMLInputElement }, // Add inputRef prop type
   indent?: boolean,
   className?: string,
   disabled?: boolean, // Add disabled prop
@@ -188,18 +188,22 @@ export function renderItem({
                   })
                 : []
             }
-            value={item.value || ''}
-            onChange={(selectedOption: Option | null) => {
+            value={item.value || item.default || ''}
+            onChange={(selectedOption: Option) => {
               if (selectedOption && typeof selectedOption.value === 'string') {
                 const value = selectedOption.value
-                item.key && handleFieldChange(item.key, value)
-                item.key && handleComboChange(item.key, value)
+                // Don't submit placeholder (empty value)
+                if (value !== '') {
+                  item.key && handleFieldChange(item.key, value)
+                  item.key && handleComboChange(item.key, value)
+                }
               }
             }}
             inputRef={inputRef}
             compactDisplay={item.compactDisplay || false}
             noWrapOptions={item.noWrapOptions || true}
             isEditable={item.isEditable || false}
+            placeholder={item.placeholder}
           />
         )
       case 'text':
@@ -283,15 +287,35 @@ export function renderItem({
             }}
           />
         )
-      case 'button-group':
+      case 'button-group': {
+        // Normalize options to ensure they're in the format { label, value, isDefault }
+        const normalizedButtonOptions: Array<{ label: string, value: string, isDefault?: boolean }> = item.options
+          ? item.options.map((option: string | { label: string, value: string, isDefault?: boolean }) => {
+              if (typeof option === 'string') {
+                return { label: option, value: option }
+              } else if (option && typeof option === 'object' && 'label' in option && 'value' in option) {
+                const normalized: { label: string, value: string, isDefault?: boolean } = {
+                  label: option.label || option.value || '',
+                  value: option.value || '',
+                }
+                if (option.isDefault) {
+                  normalized.isDefault = true
+                }
+                return normalized
+              }
+              return { label: '', value: '' }
+            })
+          : []
         return (
           <ButtonGroup
             key={`btn-group${index}`}
-            options={item.options || []}
+            options={normalizedButtonOptions}
             disabled={disabled}
             onClick={(value) => {
               if (item.key) {
-                handleButtonClick(item.key, value)
+                const key = item.key
+                handleButtonClick(key, value)
+                handleFieldChange(key, value)
               } else {
                 console.error('Button group item is missing a key')
               }
@@ -299,6 +323,7 @@ export function renderItem({
             vertical={item.vertical}
           />
         )
+      }
       case 'calendarpicker': {
         const selectedDate = item.selectedDate || null
         const numberOfMonths = item.numberOfMonths || 1

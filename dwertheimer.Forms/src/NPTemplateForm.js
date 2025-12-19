@@ -2,7 +2,7 @@
 
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
-import { log, logError, logDebug, timer, clo, JSP, logInfo } from '@helpers/dev'
+import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { showMessage } from '@helpers/userInput'
@@ -10,10 +10,13 @@ import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
 import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
+import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} Form Entry React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
 const REACT_WINDOW_TITLE = 'Form View' // change this to what you want window title to display
+const FORMBUILDER_WINDOW_ID = `${pluginJson['plugin.id']} Form Builder React Window`
 
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
@@ -234,6 +237,531 @@ export function getPluginData(argObj: Object): { [string]: mixed } {
  * @param {any} data - the relevant sent from the React Window (could be anything the plugin needs to act on the actionType)
  * @author @dwertheimer
  */
+/**
+ * Open FormBuilder for creating/editing form fields
+ * @param {string} templateTitle - Optional template title to edit
+ * @returns {Promise<void>}
+ */
+export async function openFormBuilder(templateTitle?: string): Promise<void> {
+  try {
+    logDebug(pluginJson, `openFormBuilder: Starting, templateTitle="${templateTitle || ''}"`)
+    let selectedTemplate
+    let formFields: Array<Object> = []
+    let templateNote = null
+
+    if (templateTitle?.trim().length) {
+      logDebug(pluginJson, `openFormBuilder: Using provided templateTitle`)
+      const options = await NPTemplating.getTemplateList('template-form')
+      const chosenOpt = options.find((option) => option.label === templateTitle)
+      if (chosenOpt) {
+        selectedTemplate = chosenOpt.value
+        logDebug(pluginJson, `openFormBuilder: Found template, selectedTemplate="${selectedTemplate}"`)
+      } else {
+        logError(pluginJson, `openFormBuilder: Could not find template with title "${templateTitle}"`)
+      }
+    } else {
+      logDebug(pluginJson, `openFormBuilder: Asking user to choose or create template`)
+      // Ask user to choose or create a new template
+      const createNew = await CommandBar.showOptions(['Create New Form Template', 'Edit Existing Template'], 'Form Builder', 'Choose an option')
+      clo(createNew, `openFormBuilder: User selected option`)
+      // $FlowFixMe[incompatible-type] - showOptions returns number index
+      if (createNew.value === 'Create New Form Template') {
+        logDebug(pluginJson, `openFormBuilder: User chose to create new template`)
+        // Create new template
+        const newTitle = await CommandBar.textPrompt('New Form Template', 'Enter template title:', '')
+        logDebug(pluginJson, `openFormBuilder: User entered title: "${String(newTitle)}"`)
+        if (!newTitle || typeof newTitle === 'boolean') {
+          logDebug(pluginJson, `openFormBuilder: User cancelled or empty title, returning`)
+          return
+        }
+
+        // Create folder path: @Templates/Forms/{form name}
+        const formFolderPath = `@Templates/Forms/${newTitle}`
+        logDebug(pluginJson, `openFormBuilder: Creating form in folder "${formFolderPath}"`)
+
+        logDebug(pluginJson, `openFormBuilder: Creating new note with title "${newTitle}" in ${formFolderPath} folder`)
+        // Create new note in Forms subfolder
+        const filename = DataStore.newNote(newTitle, formFolderPath)
+        logDebug(pluginJson, `openFormBuilder: DataStore.newNote returned filename: "${filename || 'null'}"`)
+        if (!filename) {
+          logError(pluginJson, `openFormBuilder: Failed to create template "${newTitle}"`)
+          await showMessage(`Failed to create template "${newTitle}"`)
+          return
+        }
+        logDebug(pluginJson, `openFormBuilder: Created new template "${newTitle}" with filename: ${filename}`)
+        templateNote = await getNoteByFilename(filename)
+        logDebug(pluginJson, `openFormBuilder: getNoteByFilename returned: ${templateNote ? 'note found' : 'null'}`)
+        if (!templateNote) {
+          logError(pluginJson, `openFormBuilder: Could not find note with filename: ${filename}`)
+          await showMessage(`Failed to open newly created template "${newTitle}"`)
+          return
+        }
+        logDebug(pluginJson, `openFormBuilder: Setting frontmatter for new template`)
+
+        // Ask if they want to create a receiving template
+        const createReceiving = await CommandBar.showOptions(['Yes, create receiving template', 'No, skip for now'], 'Form Builder', 'Create receiving template for form output?')
+        let receivingTemplateTitle = ''
+
+        if (createReceiving?.value === 'Yes, create receiving template' || createReceiving.index === 0) {
+          const receivingTitle = `${newTitle} Processing Template`
+          logDebug(pluginJson, `openFormBuilder: Creating receiving template "${receivingTitle}" in ${formFolderPath}`)
+          const receivingFilename = DataStore.newNote(receivingTitle, formFolderPath)
+
+          if (receivingFilename) {
+            const receivingNote = await getNoteByFilename(receivingFilename)
+            if (receivingNote) {
+              // Set frontmatter for receiving template
+              updateFrontMatterVars(receivingNote, {
+                type: 'forms-processor',
+              })
+
+              // Add basic template content with placeholders for all fields
+              // We'll create a simple template that includes all field keys
+              // (Field keys will be added when form fields are saved)
+              const basicContent = `## Content from form will be inserted here`
+              receivingNote.appendParagraph(basicContent, 'text')
+
+              receivingTemplateTitle = receivingTitle
+              logDebug(pluginJson, `openFormBuilder: Created receiving template "${receivingTitle}" with filename: ${receivingFilename}`)
+            }
+          }
+        }
+
+        // Set initial frontmatter
+        updateFrontMatterVars(templateNote, {
+          type: 'template-form',
+          receivingTemplateTitle: receivingTemplateTitle,
+          windowTitle: newTitle,
+          formTitle: newTitle,
+        })
+        selectedTemplate = filename
+        logDebug(pluginJson, `openFormBuilder: Set frontmatter and selectedTemplate = ${selectedTemplate}, receivingTemplateTitle = "${receivingTemplateTitle}"`)
+        // $FlowFixMe[incompatible-type] - showOptions returns number index
+      } else if (createNew.index === 1 || createNew.value === 'Edit Existing Template') {
+        logDebug(pluginJson, `openFormBuilder: User chose to edit existing template`)
+        // Edit existing
+        selectedTemplate = await NPTemplating.chooseTemplate('template-form')
+        logDebug(pluginJson, `openFormBuilder: User selected existing template: "${selectedTemplate || 'none'}"`)
+      } else {
+        logDebug(pluginJson, `openFormBuilder: User cancelled, returning`)
+        return // cancelled
+      }
+    }
+
+    if (!selectedTemplate) {
+      logError(pluginJson, 'openFormBuilder: No template selected, cannot open FormBuilder')
+      await showMessage('No template selected. Cannot open Form Builder.')
+      return
+    }
+
+    logDebug(pluginJson, `openFormBuilder: Opening FormBuilder for template: ${selectedTemplate}`)
+
+    // Get template note if we don't already have it
+    if (!templateNote) {
+      logDebug(pluginJson, `openFormBuilder: Getting template note for filename: ${selectedTemplate}`)
+      templateNote = await getNoteByFilename(selectedTemplate)
+      logDebug(pluginJson, `openFormBuilder: getNoteByFilename returned: ${templateNote ? 'note found' : 'null'}`)
+    }
+
+    if (templateNote) {
+      logDebug(pluginJson, `openFormBuilder: Checking for existing formfields code blocks`)
+      const codeBlocks = getCodeBlocksOfType(templateNote, 'formfields')
+      logDebug(pluginJson, `openFormBuilder: Found ${codeBlocks.length} formfields code blocks`)
+      if (codeBlocks.length > 0) {
+        const formFieldsString = codeBlocks[0].code
+        if (formFieldsString) {
+          try {
+            formFields = parseObjectString(formFieldsString) || []
+            logDebug(pluginJson, `openFormBuilder: Loaded ${formFields.length} existing form fields`)
+          } catch (error) {
+            logError(pluginJson, `openFormBuilder: error parsing form fields: ${error.message}`)
+          }
+        }
+      } else {
+        logDebug(pluginJson, `openFormBuilder: No existing formfields code blocks found, starting with empty array`)
+      }
+    } else {
+      logWarn(pluginJson, `openFormBuilder: templateNote is null, will start with empty form fields`)
+    }
+
+    logDebug(
+      pluginJson,
+      `openFormBuilder: About to call openFormBuilderWindow with ${formFields.length} fields, templateFilename="${selectedTemplate}", templateTitle="${templateNote?.title || ''}"`,
+    )
+    await openFormBuilderWindow({
+      formFields,
+      templateFilename: selectedTemplate,
+      templateTitle: templateNote?.title || '',
+    })
+    logDebug(pluginJson, `openFormBuilder: openFormBuilderWindow call completed`)
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
+/**
+ * Opens the FormBuilder React window
+ * @param {Object} argObj - Contains formFields, templateFilename, templateTitle
+ * @returns {Promise<void>}
+ */
+async function openFormBuilderWindow(argObj: Object): Promise<void> {
+  try {
+    logDebug(pluginJson, `openFormBuilderWindow: Starting`)
+    clo(argObj, `openFormBuilderWindow: argObj`)
+
+    // Make sure we have np.Shared plugin which has the core react code
+    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true)
+    logDebug(pluginJson, `openFormBuilderWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
+
+    const startTime = new Date()
+    const ENV_MODE = 'development'
+    // Get receiving template title from the template note
+    let receivingTemplateTitle = ''
+    if (argObj.templateFilename) {
+      const templateNote = await getNoteByFilename(argObj.templateFilename)
+      if (templateNote) {
+        receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle || ''
+      }
+    }
+
+    // Get all frontmatter values from the template note
+    let windowTitle = ''
+    let formTitle = ''
+    let allowEmptySubmit = false
+    let hideDependentItems = false
+    let width: ?number = undefined
+    let height: ?number = undefined
+    let isNewForm = false
+
+    if (argObj.templateFilename) {
+      const templateNote = await getNoteByFilename(argObj.templateFilename)
+      if (templateNote) {
+        windowTitle = templateNote.frontmatterAttributes?.windowTitle || ''
+        formTitle = templateNote.frontmatterAttributes?.formTitle || ''
+        allowEmptySubmit = templateNote.frontmatterAttributes?.allowEmptySubmit === 'true' || templateNote.frontmatterAttributes?.allowEmptySubmit === true
+        hideDependentItems = templateNote.frontmatterAttributes?.hideDependentItems === 'true' || templateNote.frontmatterAttributes?.hideDependentItems === true
+        // Parse width and height as numbers if they exist
+        const widthStr = templateNote.frontmatterAttributes?.width
+        const heightStr = templateNote.frontmatterAttributes?.height
+        if (widthStr) {
+          width = typeof widthStr === 'number' ? widthStr : parseInt(String(widthStr), 10)
+        }
+        if (heightStr) {
+          height = typeof heightStr === 'number' ? heightStr : parseInt(String(heightStr), 10)
+        }
+      }
+    } else {
+      // No templateFilename means this is a new form
+      isNewForm = true
+    }
+
+    const data: PassedData = {
+      pluginData: {
+        platform: NotePlan.environment.platform,
+        formFields: argObj.formFields || [],
+        templateFilename: argObj.templateFilename || '',
+        templateTitle: argObj.templateTitle || '',
+        receivingTemplateTitle: receivingTemplateTitle,
+        windowTitle: windowTitle,
+        formTitle: formTitle,
+        allowEmptySubmit: allowEmptySubmit,
+        hideDependentItems: hideDependentItems,
+        width: width,
+        height: height,
+        isNewForm: isNewForm,
+      },
+      title: 'Form Builder',
+      logProfilingMessage: false,
+      debug: ENV_MODE === 'development',
+      ENV_MODE,
+      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormBuilderAction' },
+      componentPath: `../dwertheimer.Forms/react.c.FormBuilderView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
+      startTime,
+    }
+    logDebug(pluginJson, `openFormBuilderWindow: Created data object, about to open React window`)
+
+    const cssTagsString = `
+      <link rel="stylesheet" href="../np.Shared/css.w3.css">
+      <link href="../np.Shared/fontawesome.css" rel="stylesheet">
+      <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
+
+    const windowOptions = {
+      savedFilename: `../../${pluginJson['plugin.id']}/formbuilder_output.html`,
+      headerTags: cssTagsString,
+      windowTitle: data.title,
+      width: 1200,
+      height: 800,
+      customId: FORMBUILDER_WINDOW_ID,
+      reuseUsersWindowRect: true,
+      shouldFocus: true,
+      generalCSSIn: generateCSSFromTheme(),
+      postBodyScript: `
+        <script type="text/javascript" >
+        // Set DataStore.settings so default logDebug etc. logging works in React
+        // This setting comes from ${pluginJson['plugin.id']}
+        let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        </script>
+      `,
+    }
+
+    logDebug(pluginJson, `===== openFormBuilderWindow Calling React after ${timer(startTime)} =====`)
+    logDebug(pluginJson, `openFormBuilderWindow: About to invoke 'openReactWindow' command on np.Shared plugin`)
+    clo(windowOptions, `openFormBuilderWindow: windowOptions`)
+
+    const result = await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
+    logDebug(pluginJson, `openFormBuilderWindow: invokePluginCommandByName returned: ${result ? 'success' : 'null/undefined'}`)
+    logDebug(pluginJson, `openFormBuilderWindow: Window should now be open. It's all React from this point forward`)
+  } catch (error) {
+    logError(pluginJson, `openFormBuilderWindow: Error occurred: ${JSP(error)}`)
+    logError(pluginJson, error)
+    await showMessage(`Error opening Form Builder: ${error.message || String(error)}`)
+  }
+}
+
+/**
+ * Handle FormBuilder actions (save, cancel)
+ * @param {string} actionType - The action type ('save' or 'cancel')
+ * @param {any} data - The data sent from FormBuilder
+ * @returns {Promise<any>}
+ */
+export async function onFormBuilderAction(actionType: string, data: any = null): Promise<any> {
+  try {
+    logDebug(pluginJson, `onFormBuilderAction received actionType="${actionType}"`)
+    clo(data, `onFormBuilderAction data=`)
+
+    // The data structure from React is: { type: 'save'|'cancel', fields: [...], templateFilename: ..., templateTitle: ... }
+    // actionType will be "onFormBuilderAction" (the command name), and the actual action is in data.type
+    const actualActionType = data?.type
+    logDebug(pluginJson, `onFormBuilderAction: actualActionType="${actualActionType}"`)
+
+    // Get the template filename from the data passed from React, or fall back to reactWindowData
+    const templateFilename = data?.templateFilename
+    const reactWindowData = await getGlobalSharedData(FORMBUILDER_WINDOW_ID)
+    const fallbackTemplateFilename = reactWindowData?.pluginData?.templateFilename || ''
+    const finalTemplateFilename = templateFilename || fallbackTemplateFilename
+
+    logDebug(pluginJson, `onFormBuilderAction: templateFilename="${finalTemplateFilename}"`)
+
+    if (actualActionType === 'save' && data?.fields) {
+      // Parse fields if they're strings (shouldn't happen, but just in case)
+      let fieldsToSave = data.fields
+      if (Array.isArray(fieldsToSave) && fieldsToSave.length > 0 && typeof fieldsToSave[0] === 'string') {
+        logWarn(pluginJson, `onFormBuilderAction: Fields are strings, attempting to parse`)
+        fieldsToSave = fieldsToSave.map((field) => {
+          try {
+            return typeof field === 'string' ? JSON.parse(field) : field
+          } catch (e) {
+            logError(pluginJson, `onFormBuilderAction: Error parsing field: ${e.message}`)
+            return field
+          }
+        })
+      }
+
+      logDebug(pluginJson, `onFormBuilderAction: Saving ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
+      clo(fieldsToSave, `onFormBuilderAction: fieldsToSave`)
+
+      await saveFormFieldsToTemplate(finalTemplateFilename, fieldsToSave)
+
+      // Save frontmatter if provided
+      if (data?.frontmatter) {
+        await saveFrontmatterToTemplate(finalTemplateFilename, data.frontmatter)
+      }
+
+      // Check if we should update the receiving template
+      const templateNote = await getNoteByFilename(finalTemplateFilename)
+      if (templateNote) {
+        const receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle
+        if (receivingTemplateTitle) {
+          const updateReceiving = await CommandBar.showOptions(['Yes, update receiving template', 'No, skip'], 'Form Builder', 'Update receiving template with new field keys?')
+
+          if (updateReceiving?.value === 'Yes, update receiving template' || updateReceiving?.index === 0) {
+            await updateReceivingTemplateWithFields(receivingTemplateTitle, fieldsToSave)
+          }
+        }
+      }
+
+      closeWindowFromCustomId(FORMBUILDER_WINDOW_ID)
+    } else if (actualActionType === 'cancel') {
+      logDebug(pluginJson, `onFormBuilderAction: User cancelled, closing window`)
+      closeWindowFromCustomId(FORMBUILDER_WINDOW_ID)
+    } else if (actualActionType === 'openForm' && data?.templateTitle) {
+      logDebug(pluginJson, `onFormBuilderAction: Opening form with templateTitle="${data.templateTitle}"`)
+      await getTemplateFormData(data.templateTitle)
+    } else {
+      logWarn(pluginJson, `onFormBuilderAction: Unknown actualActionType="${actualActionType}" or missing fields/data`)
+      logWarn(pluginJson, `onFormBuilderAction: data.keys=${Object.keys(data || {}).join(', ')}`)
+    }
+
+    return {}
+  } catch (error) {
+    logError(pluginJson, `onFormBuilderAction error: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Save frontmatter to template
+ * @param {string} templateFilename - The template filename
+ * @param {Object} frontmatter - The frontmatter object
+ * @returns {Promise<void>}
+ */
+async function saveFrontmatterToTemplate(templateFilename: string, frontmatter: Object): Promise<void> {
+  try {
+    if (!templateFilename) {
+      await showMessage('No template filename provided. Cannot save frontmatter.')
+      return
+    }
+
+    const templateNote = await getNoteByFilename(templateFilename)
+    if (!templateNote) {
+      await showMessage(`Template not found: ${templateFilename}`)
+      return
+    }
+
+    // Update frontmatter
+    updateFrontMatterVars(templateNote, frontmatter)
+    logDebug(pluginJson, `saveFrontmatterToTemplate: Saved frontmatter to template`)
+  } catch (error) {
+    logError(pluginJson, `saveFrontmatterToTemplate error: ${JSP(error)}`)
+    await showMessage(`Error saving frontmatter: ${error.message}`)
+  }
+}
+
+/**
+ * Save form fields to template as formfields code block
+ * @param {string} templateFilename - The template filename
+ * @param {Array<Object>} fields - The form fields array
+ * @returns {Promise<void>}
+ */
+async function saveFormFieldsToTemplate(templateFilename: string, fields: Array<Object>): Promise<void> {
+  try {
+    if (!templateFilename) {
+      await showMessage('No template filename provided. Cannot save form fields.')
+      return
+    }
+
+    const templateNote = await getNoteByFilename(templateFilename)
+    if (!templateNote) {
+      await showMessage(`Template not found: ${templateFilename}`)
+      return
+    }
+
+    // Convert fields to JSON string (pretty printed, but without quotes on keys where possible)
+    // We'll create a more readable format similar to the example
+    const jsonString = formatFormFieldsAsCodeBlock(fields)
+
+    // Get existing code blocks
+    const codeBlocks = getCodeBlocksOfType(templateNote, 'formfields')
+
+    if (codeBlocks.length > 0 && codeBlocks[0].paragraphs.length > 0) {
+      // Replace existing formfields code block
+      const firstPara = codeBlocks[0].paragraphs[0]
+      const lastPara = codeBlocks[0].paragraphs[codeBlocks[0].paragraphs.length - 1]
+      const startIndex = firstPara.lineIndex
+      const endIndex = lastPara.lineIndex
+
+      // Get all paragraphs
+      const paras = templateNote.paragraphs
+      const beforeParas = paras.filter((p) => p.lineIndex < startIndex)
+      const afterParas = paras.filter((p) => p.lineIndex > endIndex)
+
+      // Build new content
+      const beforeContent = paras.length > 0 ? beforeParas.map((p) => p.rawContent).join('\n') : ''
+      const afterContent = afterParas.map((p) => p.rawContent).join('\n')
+
+      const newCodeBlock = `\`\`\`formfields\n${jsonString}\n\`\`\``
+      templateNote.content = `${beforeContent}\n${newCodeBlock}\n${afterContent}`
+    } else {
+      // Add new code block at the end
+      const newCodeBlock = `\n\n\`\`\`formfields\n${jsonString}\n\`\`\``
+      templateNote.appendParagraph(newCodeBlock, 'text')
+    }
+
+    await showMessage(`Form fields saved to template "${templateNote.title || templateFilename}"`)
+    logDebug(pluginJson, `saveFormFieldsToTemplate: Saved ${fields.length} fields to template`)
+  } catch (error) {
+    logError(pluginJson, `saveFormFieldsToTemplate error: ${JSP(error)}`)
+    await showMessage(`Error saving form fields: ${error.message}`)
+  }
+}
+
+/**
+ * Format form fields array as code block JSON (more readable format)
+ * @param {Array<Object>} fields - The form fields
+ * @returns {string} - Formatted JSON string
+ */
+function formatFormFieldsAsCodeBlock(fields: Array<Object>): string {
+  // Use JSON.stringify with indentation, but we'll clean it up for readability
+  const json = JSON.stringify(fields, null, 2)
+  // Replace quoted keys with unquoted keys where appropriate (for cleaner look)
+  // Actually, let's keep it as standard JSON since it needs to be parseable
+  return json
+}
+
+/**
+ * Update receiving template with field keys from form fields
+ * Adds template variables for each field key at the end of the template
+ * @param {string} receivingTemplateTitle - The title of the receiving template
+ * @param {Array<Object>} fields - The form fields array
+ * @returns {Promise<void>}
+ */
+async function updateReceivingTemplateWithFields(receivingTemplateTitle: string, fields: Array<Object>): Promise<void> {
+  try {
+    logDebug(pluginJson, `updateReceivingTemplateWithFields: Starting for template "${receivingTemplateTitle}"`)
+
+    // Find the receiving template
+    const templateList = await NPTemplating.getTemplateList('forms-processor')
+    const receivingTemplate = templateList.find((t) => t.label === receivingTemplateTitle)
+
+    if (!receivingTemplate) {
+      logError(pluginJson, `updateReceivingTemplateWithFields: Could not find receiving template "${receivingTemplateTitle}"`)
+      await showMessage(`Could not find receiving template "${receivingTemplateTitle}"`)
+      return
+    }
+
+    const receivingNote = await getNoteByFilename(receivingTemplate.value)
+    if (!receivingNote) {
+      logError(pluginJson, `updateReceivingTemplateWithFields: Could not open receiving template note`)
+      await showMessage(`Could not open receiving template "${receivingTemplateTitle}"`)
+      return
+    }
+
+    // Extract field keys (only fields that have keys)
+    const fieldKeys = fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key)
+
+    logDebug(pluginJson, `updateReceivingTemplateWithFields: Found ${fieldKeys.length} field keys to add`)
+
+    // Create new body content with all field keys as template variables
+    // Replace ALL body content (everything after frontmatter)
+    const newBodyContent = `## Form Fields\n### Available form field variables:\n${fieldKeys.map((key) => `**${key}:** <%- ${key} %>`).join('\n')}`
+
+    // Find where the active part of the note starts (after frontmatter)
+    const startOfActive = findStartOfActivePartOfNote(receivingNote)
+    logDebug(pluginJson, `updateReceivingTemplateWithFields: startOfActive=${startOfActive}`)
+
+    const allParas = receivingNote.paragraphs
+
+    // Remove all paragraphs from startOfActive to the end
+    if (startOfActive < allParas.length) {
+      // Keep paragraphs from 0 to startOfActive - 1 (preserves frontmatter)
+      receivingNote.paragraphs = allParas.slice(0, startOfActive)
+      // Add new body content after frontmatter
+      receivingNote.appendParagraph(newBodyContent, 'text')
+    } else {
+      // No existing body content, just append
+      receivingNote.appendParagraph(newBodyContent, 'text')
+    }
+
+    await receivingNote.updateParagraphs(receivingNote.paragraphs)
+    logDebug(pluginJson, `updateReceivingTemplateWithFields: Updated receiving template with ${fieldKeys.length} field keys`)
+    await showMessage(`Updated receiving template "${receivingTemplateTitle}" with ${fieldKeys.length} field keys`)
+  } catch (error) {
+    logError(pluginJson, `updateReceivingTemplateWithFields error: ${JSP(error)}`)
+    await showMessage(`Error updating receiving template: ${error.message}`)
+  }
+}
+
 export async function onFormSubmitFromHTMLView(actionType: string, data: any = null): Promise<any> {
   try {
     logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)

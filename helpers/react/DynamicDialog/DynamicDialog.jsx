@@ -74,6 +74,7 @@ export type TSettingItem = {
   required?: boolean, // for input fields, require the field to be filled out
   validationType?: 'email' | 'number' | 'date-interval', // for input fields, validate the input
   isEditable?: boolean, // for dropdown-select, allow the user to edit the value
+  placeholder?: string, // for dropdown-select, placeholder text when no value is selected
 }
 
 export type TDynamicDialogProps = {
@@ -322,29 +323,34 @@ const DynamicDialog = ({
       </div>
       <div className="dynamic-dialog-content thin-scrollbar" style={dialogStyle?.content}>
         {children}
-        {items.map((item, index) => (
-          <div key={`ddc-${index}`}>
-            {(!item.key || shouldRenderItem(item)) &&
-              renderItem({
-                index,
-                item: {
-                  ...item,
-                  type: item.type,
-                  value: typeof item.key === 'undefined' ? '' : updatedSettings[item.key] ?? '',
-                  checked: typeof item.key === 'undefined' ? false : updatedSettings[item.key] === true,
-                },
-                disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
-                indent: Boolean(item.dependsOnKey),
-                handleFieldChange,
-                handleButtonClick, // Pass handleButtonClick
-                labelPosition,
-                showSaveButton: false, // Do not show save button
-                inputRef: item.type === 'combo' || item.type === 'dropdown-select' ? dropdownRef : { current: null }, // Assign ref to the dropdown input
-                className: '', // for future use
-              })}
-            {item.description && <div className="item-description">{item.description}</div>}
-          </div>
-        ))}
+        {items.map((item, index) => {
+          const renderItemProps: any = {
+            index,
+            item: {
+              ...item,
+              type: item.type,
+              value: typeof item.key === 'undefined' ? '' : updatedSettings[item.key] ?? '',
+              checked: typeof item.key === 'undefined' ? false : updatedSettings[item.key] === true,
+            },
+            disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
+            indent: Boolean(item.dependsOnKey),
+            handleFieldChange,
+            handleButtonClick, // Pass handleButtonClick
+            labelPosition,
+            showSaveButton: false, // Do not show save button
+            className: '', // for future use
+          }
+          if (item.type === 'combo' || item.type === 'dropdown-select') {
+            renderItemProps.inputRef = dropdownRef
+          }
+          return (
+            <div key={`ddc-${index}`}>
+              {(!item.key || shouldRenderItem(item)) && renderItem(renderItemProps)}
+              {/* Don't render description for heading type since renderItem already renders it */}
+              {item.description && item.type !== 'heading' && <div className="item-description">{item.description}</div>}
+            </div>
+          )
+        })}
       </div>
     </dialog>
   )

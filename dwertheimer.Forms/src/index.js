@@ -17,6 +17,8 @@
 
 export { getTemplateFormData } from './NPTemplateForm'
 export { onFormSubmitFromHTMLView } from './NPTemplateForm'
+export { openFormBuilder } from './NPTemplateForm'
+export { onFormBuilderAction } from './NPTemplateForm'
 
 // FETCH mocking for offline testing
 // If you want to use external server calls in your plugin, it can be useful to mock the server responses

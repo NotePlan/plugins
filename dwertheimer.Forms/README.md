@@ -565,6 +565,21 @@ Replace `jgclark%20Project%20Form` with your form template title (URL-encoded).
 
 > **Tip:** Instead of manually creating x-callback-url links, consider using the [np.CallbackURLs](../np.CallbackURLs/README.md) plugin to create callback links with a user-friendly wizard. This plugin helps you build these URLs correctly without having to URL-encode template names manually.
 
+## Form Builder
+
+Instead of manually writing JSON code blocks, you can use the visual Form Builder to create and edit form fields:
+
+1. **Command**: `/📝 Forms: Form Builder` (or `/builder` or `/buildform`)
+2. Choose to create a new form template or edit an existing one
+3. Use the visual interface to:
+   - Add fields by clicking "+ Add Field" and selecting a field type
+   - Drag fields to reorder them
+   - Click on a field to edit its properties (label, description, default value, etc.)
+   - Delete fields you don't need
+4. Click "Save Form" to save your form fields as a JSON codeblock in the template
+
+The Form Builder makes it much easier to create forms without needing to write JSON manually.
+
 ## Tips and Best Practices
 
 1. **Use descriptive keys**: Field keys become variable names in your processing template, so use clear, descriptive names
