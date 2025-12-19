@@ -2,7 +2,6 @@
 
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
-import { stripDoubleQuotes } from '../../np.Templating/lib/utils/stringUtils'
 import { createProcessingTemplate, varsInForm, varsCodeBlockType } from './ProcessingTemplate'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
@@ -11,7 +10,7 @@ import { showMessage } from '@helpers/userInput'
 import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
 import { getCodeBlocksOfType, replaceCodeBlockContent } from '@helpers/codeBlocks'
-import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
+import { parseObjectString, validateObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
 import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 
