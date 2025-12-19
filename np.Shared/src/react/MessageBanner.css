@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------ */
 /* Message Banner CSS */
-/* Last updated 2025-12-16 by @jgclark */
+/* Last updated 2025-12-17 by @jgclark */
 /* ------------------------------------------------------------------ */
 
 html {
@@ -8,75 +8,66 @@ html {
   --info-color: green;
   --warn-color: orange;
   --error-color: red;
-	--bg-info-color: color-mix(in oklch, var(--bg-main-color, white), var(--info-color) 20%);
-	--bg-warn-color: color-mix(in oklch, var(--bg-main-color, white), var(--warn-color) 20%);
-	--bg-error-color: color-mix(in oklch, var(--bg-main-color, white), var(--error-color) 20%); 
-	--fg-info-color: color-mix(in oklch, var(--fg-main-color, black), var(--info-color) 40%);
-	--fg-warn-color: color-mix(in oklch, var(--fg-main-color, black), var(--warn-color) 40%);
-	--fg-error-color: color-mix(in oklch, var(--fg-main-color, black), var(--error-color) 40%);
+	--bg-info-color: color-mix(in oklch, var(--bg-main-color, white), var(--info-color) 10%);
+	--bg-warn-color: color-mix(in oklch, var(--bg-main-color, white), var(--warn-color) 10%);
+	--bg-error-color: color-mix(in oklch, var(--bg-main-color, white), var(--error-color) 10%); 
+	--fg-info-color: color-mix(in oklch, var(--fg-main-color, black), var(--info-color) 85%);
+	--fg-warn-color: color-mix(in oklch, var(--fg-main-color, black), var(--warn-color) 80%);
+	--fg-error-color: color-mix(in oklch, var(--fg-main-color, black), var(--error-color) 85%);
 }
 
 .banner-panel {
   margin: 0rem;
-  padding: 0.6rem 1.2rem;
+  width: 100%;
+  border-width: 0px 0px 0px 6px;
+  border-style: solid;
   display: grid;
-  width: 100%; /* FIXME: not working as expected */
   grid-template-columns: fit-content(100%) 1fr fit-content(100%);
   gap: 0.6rem;
   justify-items: left;
   align-items: center;
-  border-radius: 8px;
   font-size: 1.0rem;
-  border-width: 1px;
-  border-style: solid;
+  padding: 0.6rem 1.1rem;
 
   /* Hide animation: fade and move up */
-  /* max-height: 0; */
   opacity: 0;
   transform: translateY(-1rem);
   transition:
-    /* max-height 0.3s cubic-bezier(0.4, 0, 1, 1), */
     opacity 0.2s cubic-bezier(0.4, 0, 1, 1),
     transform 0.25s cubic-bezier(0.4, 0, 1, 1);
   overflow: hidden;
 }
 .banner-panel.banner-panel--visible {
   /* Show animation: fade and drop down */
-  max-height: 500px; /* large enough to accommodate any content */
   opacity: 1;
   transform: translateY(0);
   transition:
-    /* max-height 0.35s cubic-bezier(0.24, 0.8, 0.47, 1), */
     opacity 0.25s cubic-bezier(0.24, 0.8, 0.47, 1),
-    transform 0.30s cubic-bezier(0.24, 0.8, 0.47, 1);
+    transform 0.35s cubic-bezier(0.24, 0.8, 0.47, 1);
   overflow: unset;
 }
 
 .border-info {
-  border-color: var(--fg-info-color);
+  background-color: var(--fg-info-color);
 }
 .border-warn {
-  border-color: var(--fg-warn-color);
+  background-color: var(--fg-warn-color);
 }
 .border-error {
-  border-color: var(--fg-error-color);
+  background-color: var(--fg-error-color);
 }
 
 .color-info {
-  color: var(--fg-info-color);
   background-color: var(--bg-info-color);
+  color: var(--fg-info-color);
 }
 .color-warn {
-  color: var(--fg-warn-color);
   background-color: var(--bg-warn-color);
+  color: var(--fg-warn-color);
 }
 .color-error {
-  color: var(--fg-error-color);
   background-color: var(--bg-error-color);
-}
-
-.banner-panel-leftbar {
-  border-left: 6px solid currentcolor;
+  color: var(--fg-error-color);
 }
 
 .banner-message-text {

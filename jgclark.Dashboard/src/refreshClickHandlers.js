@@ -132,9 +132,11 @@ export async function incrementallyRefreshSomeSections(
     return handlerResult(true)
   }
   catch (error) {
-    await setPluginData({ refreshing: false }, `Error in incrementallyRefreshSomeSections; will try to close modal spinner`)
+    // try to close the modal spinner
+    await setPluginData({ refreshing: false }, `Error in incrementallyRefreshSomeSections; closing modal spinner`)
     logError('incrementallyRefreshSomeSections', error)
-    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Error in incrementallyRefreshSomeSections: ${error.message}`)
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Error in incrementallyRefreshSomeSections: ${error.message}`, 'ERROR')
+
     return handlerResult(false)
   }
 }

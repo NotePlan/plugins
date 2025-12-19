@@ -443,12 +443,6 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
       ENV_MODE,
       startTime,
       windowID: WEBVIEW_WINDOW_ID,
-      initialBanner: {
-        msg: 'jgclark testing the warning banner',
-        color: 'w3-pale-red', // optional
-        border: 'w3-border-red', // optional
-        icon: 'fa-regular fa-circle-exclamation', // optional
-      },
     }
     logDebug('getInitialDataForReactWindow', `<<<<< Finished`)
     return dataToPass

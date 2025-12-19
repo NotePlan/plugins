@@ -10,7 +10,7 @@ import { WEBVIEW_WINDOW_ID } from './constants'
 import { handlerResult, setPluginData } from './dashboardHelpers'
 import type { MessageDataObject, TBridgeClickHandlerResult } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { sendBannerMessageV2 } from '@helpers/HTMLView'
+import { sendBannerMessage } from '@helpers/HTMLView'
 
 /********************************************************************************
  *                                   HANDLERS
@@ -33,16 +33,16 @@ export async function handleBannerTestClick(
     logInfo('handleBannerTestClick', `actionType: ${actionType}`)
     switch (actionType) {
       case 'testBannerInfo':
-        await sendBannerMessageV2(WEBVIEW_WINDOW_ID, `Showing info banner: current sections are ${String(sectionCodes)}`, 'INFO', 5000)
+        await sendBannerMessage(WEBVIEW_WINDOW_ID, `Showing info banner: current sections are ${String(sectionCodes)}`, 'INFO', 5000)
         break
       case 'testBannerError':
-        await sendBannerMessageV2(WEBVIEW_WINDOW_ID, `Test error banner`, 'ERROR')
+        await sendBannerMessage(WEBVIEW_WINDOW_ID, `Test error banner`, 'ERROR')
         break
       case 'testBannerWarning':
-        await sendBannerMessageV2(WEBVIEW_WINDOW_ID, `Test warning banner`, 'WARN')
+        await sendBannerMessage(WEBVIEW_WINDOW_ID, `Test warning banner`, 'WARN')
         break
       case 'testRemoveBanner':
-        await sendBannerMessageV2(WEBVIEW_WINDOW_ID, ``, 'REMOVE')
+        await sendBannerMessage(WEBVIEW_WINDOW_ID, ``, 'REMOVE')
         break
       default:
         logError('handleBannerTestClick', `Unknown actionType: ${actionType}`)
@@ -52,7 +52,7 @@ export async function handleBannerTestClick(
   }
   catch (error) {
     logError('handleBannerTestClick', error.message)
-    await sendBannerMessageV2(WEBVIEW_WINDOW_ID, `Error in handleBannerTestClick: ${error.message}`, 'ERROR')
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Error in handleBannerTestClick: ${error.message}`, 'ERROR')
     return handlerResult(false)
   }
 }

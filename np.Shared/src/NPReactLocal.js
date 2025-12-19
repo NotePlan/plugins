@@ -49,6 +49,7 @@ export async function onMessageFromHTMLView(incoming: string): Promise<any> {
     await sendBannerMessage(
       pluginJson['plugin.id'],
       `np.Shared successfully received and executed command onMessageFromHTMLView(). This message is coming from NotePlan and confirms bilateral communications are functional. Use the function 'onMessageFromHTMLView' in the plugin you are building to do something useful.`,
+      'INFO',
     )
     return {} // return blank to keep NotePlan from throwing an error
   } catch (error) {

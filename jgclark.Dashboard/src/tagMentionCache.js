@@ -19,7 +19,7 @@ import type { TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { CaseInsensitiveSet, percent } from '@helpers/general'
-import { sendBannerMessageV2 } from '@helpers/HTMLView'
+import { sendBannerMessage } from '@helpers/HTMLView'
 import { getFrontmatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { findNotesMatchingHashtagOrMention, getNotesChangedInInterval } from '@helpers/NPnote'
 import { caseInsensitiveArrayIncludes, caseInsensitiveMatch, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
@@ -280,7 +280,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     logDebug('generateTagMentionCache', `- something requested a forced cache rebuild`)
 
     // add a banner to say what we're doing
-    await sendBannerMessageV2(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)}${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' in all open items' : ''}`, 'INFO')
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)}${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' in all open items' : ''}`, 'INFO')
 
     // Start background thread
     await CommandBar.onAsyncThread()
@@ -288,10 +288,10 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     // Get all notes to scan
     const allCalNotes = DataStore.calendarNotes
     const allRegularNotes = DataStore.projectNotes.filter((note) => !note.filename.startsWith('@'))
-    logTimer('generateTagMentionCache', startTime, `- processing ${allCalNotes.length} calendar notes + ${allRegularNotes.length} regular notes ...`)
+    logTimer('generateTagMentionCache', startTime, `- processing ${allCalNotes.length} calendar + ${allRegularNotes.length} regular notes ...`)
 
     // add a banner to say what we're doing
-    await sendBannerMessageV2(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)} from ${String(allCalNotes.length)} calendar notes + ${String(allRegularNotes.length)} regular notes`, 'INFO')
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)} from ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes`, 'INFO')
 
     // Iterate over all notes and get all open paras with tags and mentions
     // First, get all calendar notes ...
@@ -342,7 +342,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     logTimer('generateTagMentionCache', startTime, `- after saving to mentionTagCacheFile`)
 
     // add a banner to say what we've done
-    await sendBannerMessageV2(WEBVIEW_WINDOW_ID, `Tag/mention cache found ${String(totalFoundItems)} matching open items in ${String(totalMatchingNotes)} notes`, 'INFO', 4000)
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Tag/mention cache found ${String(totalFoundItems)} matching open items in ${String(totalMatchingNotes)} notes`, 'INFO', 4000)
 
     // Clear the preference that was set to trigger a regeneration
     clearTagMentionCacheGenerationPref()

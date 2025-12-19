@@ -1,14 +1,12 @@
 /**
  * Warning/message banner at top of page
  * Send a SHOW_BANNER message from the plugin with the following payload:
- * @param { warn, msg, color, border, hide, icon } props
+ * @param { type, msg, color, border, hide, icon, timeout } props
  * @returns
  */
 
 import { useEffect, useState } from 'react'
 import './MessageBanner.css'
-
-// TODO: remove 'warn' parameter, as its not really being used
 
 export function MessageBanner(props) {
   const [shouldRender, setShouldRender] = useState(false)
@@ -16,7 +14,7 @@ export function MessageBanner(props) {
 
   // Effect to handle the visibility of the banner, to allow for animation
   useEffect(() => {
-    if (props.warn && props.msg) {
+    if (props.msg) {
       // Show: add to DOM and then make visible
       setShouldRender(true)
       // Use setTimeout to ensure DOM is ready before adding visible class
@@ -29,21 +27,23 @@ export function MessageBanner(props) {
       }, 350) // Match the longest transition duration (max-height: 0.35s)
       return () => clearTimeout(timer)
     }
-  }, [props.warn, props.msg, shouldRender])
+  }, [props.type, props.msg, props.timeout, shouldRender])
 
   if (!shouldRender) {
     return null
   }
 
   const visibleClass = isVisible ? 'banner-panel--visible' : ''
-  const className = `banner-panel ${visibleClass} ${props.border ? 'banner-panel-leftbar' : ''} ${props.border ?? 'w3-border-red'} ${props.color ?? 'w3-pale-red'}`
+  const iconClass = props.icon + ' fa-lg'
+  const className = `banner-panel ${visibleClass} ${props.border ?? ''} ${props.color ?? ''}`
+
   if (!/BANNER_TEST/.test(props.msg)) window.scrollTo(0, 0)
   return (
     <div className={className}>
-      <div><i className={props.icon}></i></div>
+      <div><i className={iconClass}></i></div>
       <div className="banner-message-text">{props.msg}</div>
       <div onClick={() => props.hide()} className="banner-close-button">
-        X
+        <i className="fa-solid fa-circle-xmark"></i>
       </div>
     </div>
   )

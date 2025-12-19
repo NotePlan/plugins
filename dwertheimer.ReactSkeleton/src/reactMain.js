@@ -95,7 +95,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any = null
         reactWindowData = await handleSubmitButtonClick(data, reactWindowData) //update the data to send it back to the React Window
         break
       default:
-        await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`)
+        await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`, 'ERROR')
         break
     }
     if (reactWindowData) {
@@ -127,9 +127,9 @@ export async function updateReactWindowData(actionType: string, data: any = null
 }
 
 /**
- * An example handler function that is called when someone clicks a button in the React Window
+ * An example handler function that is called when someone clicks a button in the React Window.
  * When someone clicks a "Submit" button in the React Window, it calls the router (onMessageFromHTMLView)
- * which sees the actionType === "onSubmitClick" so it routes to this function for processing
+ * which sees the actionType === "onSubmitClick" so it routes to this function for processing.
  * @param {any} data - the data sent from the React Window for the action 'onSubmitClick'
  * @param {any} reactWindowData - the current data in the React Window
  * @returns {any} - the updated data to send back to the React Window
@@ -141,6 +141,8 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
     `Plugin received an actionType: "onSubmitClick" command with data:<br/>${JSON.stringify(
       data,
     )}.<br/>Plugin then fired this message over the bridge to the React window and changed the data in the React window.`,
+    'INFO',
+    2000,
   )
   clo(reactWindowData, `handleSubmitButtonClick: reactWindowData BEFORE update`)
   // change the data in the React window for the row that was clicked (just an example)
