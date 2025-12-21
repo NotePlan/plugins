@@ -889,6 +889,48 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
             </>
           ) : null}
 
+          {editedField.type === 'textarea' ? (
+            <>
+              <div className="field-editor-row">
+                <label>Default Value:</label>
+                <textarea
+                  value={editedField.default || ''}
+                  onChange={(e) => updateField({ default: e.target.value })}
+                  placeholder="Default value (multi-line)"
+                  rows={3}
+                />
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input type="checkbox" checked={editedField.required || false} onChange={(e) => updateField({ required: e.target.checked })} />
+                  Required field
+                </label>
+              </div>
+              <div className="field-editor-row">
+                <label>Minimum Rows:</label>
+                <input
+                  type="number"
+                  value={editedField.minRows || 3}
+                  onChange={(e) => updateField({ minRows: parseInt(e.target.value, 10) || 3 })}
+                  min="1"
+                  max="20"
+                />
+                <div className="field-editor-help">Starting height of the textarea (default: 3)</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Maximum Rows:</label>
+                <input
+                  type="number"
+                  value={editedField.maxRows || 10}
+                  onChange={(e) => updateField({ maxRows: parseInt(e.target.value, 10) || 10 })}
+                  min="1"
+                  max="50"
+                />
+                <div className="field-editor-help">Maximum height before scrolling (default: 10)</div>
+              </div>
+            </>
+          ) : null}
+
           {editedField.type === 'number' ? (
             <>
               <div className="field-editor-row">
