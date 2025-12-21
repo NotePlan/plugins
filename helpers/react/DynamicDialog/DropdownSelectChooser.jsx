@@ -87,7 +87,7 @@ export function DropdownSelectChooser({
     showArrow: true, // Show down arrow on the right
     fieldType: 'dropdown-select-chooser',
     debugLogging: true, // Enable debug logging to verify maxResults
-    maxResults: 20,
+    maxResults: 25,
     inputMaxLength: 60,
     dropdownMaxLength: 80,
     getOptionIcon: showIndicatorOptionProp
@@ -109,16 +109,7 @@ export function DropdownSelectChooser({
 
   return (
     <div className="dropdown-select-chooser-container" data-field-type="dropdown-select-chooser">
-      <SearchableChooser
-        label={label}
-        value={displayValue}
-        disabled={disabled}
-        compactDisplay={compactDisplay}
-        placeholder={placeholder}
-        showValue={showValue}
-        config={config}
-      />
+      <SearchableChooser label={label} value={displayValue} disabled={disabled} compactDisplay={compactDisplay} placeholder={placeholder} showValue={showValue} config={config} />
     </div>
   )
 }
-

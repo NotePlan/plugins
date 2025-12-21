@@ -211,7 +211,7 @@ export function NoteChooser({
     iconClass: 'fa-file-lines',
     fieldType: 'note-chooser',
     debugLogging: true,
-    maxResults: 10,
+    maxResults: 25,
     inputMaxLength: 100, // Large value - CSS handles most truncation based on actual width
     dropdownMaxLength: 80, // Large value for dropdown - only truncate very long items
     getOptionIcon: (note: NoteOption) => getNoteDecoration(note).icon,

@@ -340,7 +340,7 @@ export function FolderChooser({
     iconClass: 'fa-folder',
     fieldType: 'folder-chooser',
     debugLogging: true,
-    maxResults: 10,
+    maxResults: 25,
     inputMaxLength: 100,
     dropdownMaxLength: 80,
     // Add Option-click support for creating subfolders

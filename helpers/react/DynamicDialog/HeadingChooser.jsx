@@ -139,7 +139,7 @@ export function HeadingChooser({
     iconClass: null, // No icon for heading chooser
     fieldType: 'heading-chooser',
     debugLogging: false,
-    maxResults: 20,
+    maxResults: 25,
     inputMaxLength: 60,
     dropdownMaxLength: 80,
   }

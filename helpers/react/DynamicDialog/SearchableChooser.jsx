@@ -14,26 +14,26 @@ export type ChooserConfig = {
   // Data and filtering
   items: Array<any>,
   filterFn: (item: any, searchTerm: string) => boolean,
-  
+
   // Display
   getDisplayValue: (item: any) => string, // Gets the value to display in the input
   getOptionText: (item: any) => string, // Gets the text to show in dropdown options
   getOptionTitle: (item: any) => string, // Gets the title/tooltip for dropdown options
   truncateDisplay: (text: string, maxLength: number) => string, // Function to truncate display text
-  
+
   // Selection
   onSelect: (item: any) => void, // Called when an item is selected
-  
+
   // Empty states
   emptyMessageNoItems: string,
   emptyMessageNoMatch: string,
-  
+
   // Styling
   classNamePrefix: string, // Prefix for CSS classes (e.g., 'folder-chooser', 'note-chooser')
   iconClass?: ?string, // FontAwesome icon class (e.g., 'fa-folder', 'fa-file-lines') - optional, if not provided, no icon is shown
   fieldType: string, // Data attribute for field type (e.g., 'folder-chooser', 'note-chooser')
   showArrow?: boolean, // If true, show a down arrow instead of icon (default: false)
-  
+
   // Optional
   debugLogging?: boolean,
   maxResults?: number, // Max items to show in dropdown (default: 10)
@@ -87,7 +87,7 @@ export function SearchableChooser({
     iconClass,
     fieldType,
     debugLogging = false,
-    maxResults = 10,
+    maxResults = 25,
     inputMaxLength = 40,
     dropdownMaxLength = 50,
     onOptionClick,
@@ -293,10 +293,8 @@ export function SearchableChooser({
 
   // Only apply JavaScript truncation for very long items (>inputMaxLength)
   // For shorter items, let CSS handle truncation based on actual width
-  const truncatedDisplayValue = displayValue && displayValue.length > inputMaxLength 
-    ? truncateDisplay(displayValue, inputMaxLength) 
-    : (displayValue || '')
-  
+  const truncatedDisplayValue = displayValue && displayValue.length > inputMaxLength ? truncateDisplay(displayValue, inputMaxLength) : displayValue || ''
+
   if (debugLogging && displayValue) {
     console.log(`${fieldType}: displayValue="${displayValue}", length=${displayValue.length}`)
     console.log(`${fieldType}: truncatedDisplayValue="${truncatedDisplayValue}", length=${truncatedDisplayValue.length}`)
@@ -335,21 +333,21 @@ export function SearchableChooser({
         {isOpen && (
           <div className={`${classNamePrefix}-dropdown`} style={{ display: 'block' }}>
             {filteredItems.length === 0 ? (
-              <div className={`${classNamePrefix}-empty`}>
-                {items.length === 0 ? emptyMessageNoItems : `${emptyMessageNoMatch} "${searchTerm}"`}
-              </div>
+              <div className={`${classNamePrefix}-empty`}>{items.length === 0 ? emptyMessageNoItems : `${emptyMessageNoMatch} "${searchTerm}"`}</div>
             ) : (
               filteredItems.slice(0, maxResults).map((item: any, index: number) => {
                 const optionText = getOptionText(item)
                 // Only apply JavaScript truncation for very long items (>dropdownMaxLength)
                 // For shorter items, let CSS handle truncation based on actual width
-                const truncatedText = optionText.length > dropdownMaxLength
-                  ? truncateDisplay(optionText, dropdownMaxLength)
-                  : optionText
+                const truncatedText = optionText.length > dropdownMaxLength ? truncateDisplay(optionText, dropdownMaxLength) : optionText
                 const optionTitle = getOptionTitle(item)
                 if (debugLogging && index < 3) {
                   const jsTruncated = optionText.length > dropdownMaxLength
-                  console.log(`${fieldType}: Dropdown option[${index}]: original="${optionText}", length=${optionText.length}, truncated="${truncatedText}", length=${truncatedText.length}, maxLength=${dropdownMaxLength}, jsTruncated=${String(jsTruncated)}`)
+                  console.log(
+                    `${fieldType}: Dropdown option[${index}]: original="${optionText}", length=${optionText.length}, truncated="${truncatedText}", length=${
+                      truncatedText.length
+                    }, maxLength=${dropdownMaxLength}, jsTruncated=${String(jsTruncated)}`,
+                  )
                 }
                 const optionIcon = getOptionIcon ? getOptionIcon(item) : null
                 const optionColor = getOptionColor ? getOptionColor(item) : null
@@ -382,16 +380,16 @@ export function SearchableChooser({
                           }}
                         />
                       )}
-                    {showOptionClickHint && optionClickIcon && (
-                      <i
-                        className={`fa-solid fa-${optionClickIcon}`}
-                        style={{
-                          marginRight: '0.5rem',
-                          color: 'var(--tint-color, #0066cc)',
-                        }}
-                        title={optionClickHint || 'Option-click for action'}
-                      />
-                    )}
+                      {showOptionClickHint && optionClickIcon && (
+                        <i
+                          className={`fa-solid fa-${optionClickIcon}`}
+                          style={{
+                            marginRight: '0.5rem',
+                            color: 'var(--tint-color, #0066cc)',
+                          }}
+                          title={optionClickHint || 'Option-click for action'}
+                        />
+                      )}
                       <span
                         className={`${classNamePrefix}-option-text`}
                         style={{
@@ -401,11 +399,7 @@ export function SearchableChooser({
                         {truncatedText}
                       </span>
                     </span>
-                    {optionShortDesc && (
-                      <span className={`${classNamePrefix}-option-right`}>
-                        {optionShortDesc}
-                      </span>
-                    )}
+                    {optionShortDesc && <span className={`${classNamePrefix}-option-right`}>{optionShortDesc}</span>}
                   </div>
                 )
               })
@@ -423,4 +417,3 @@ export function SearchableChooser({
 }
 
 export default SearchableChooser
-
