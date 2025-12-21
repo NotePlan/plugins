@@ -63,6 +63,7 @@ export function FolderChooser({
   const [createInParent, setCreateInParent] = useState(false)
   const [teamspaces, setTeamspaces] = useState<Array<{ id: string, title: string }>>([])
   const [teamspacesLoaded, setTeamspacesLoaded] = useState<boolean>(false)
+  const [closeDropdownAfterCreate, setCloseDropdownAfterCreate] = useState<boolean>(false)
 
   // Load teamspaces if needed for decoration
   const loadTeamspaces = async () => {

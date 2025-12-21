@@ -55,6 +55,7 @@ export type SearchableChooserProps = {
   placeholder?: string,
   showValue?: boolean, // If true, display the selected value below the input
   config: ChooserConfig,
+  closeDropdown?: boolean, // If true, force close the dropdown (resets after closing)
 }
 
 /**
