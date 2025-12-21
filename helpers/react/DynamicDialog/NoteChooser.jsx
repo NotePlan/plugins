@@ -77,12 +77,23 @@ const getNoteDecoration = (note: NoteOption): { icon: string, color: string, sho
   const color = possTeamspaceDetails.isTeamspace || note.isTeamspaceNote ? TEAMSPACE_ICON_COLOR : userSetIconColor || folderIconDetails.color
 
   // Short description: folder display name for regular notes (using shared helper)
-  const shortDescription = note.type === 'Notes' || !note.type ? getFolderDisplayName(getFolderFromFilename(note.filename) || '') : ''
+  // But only if the title doesn't already contain the folder path (to avoid duplication)
+  let shortDescription = null
+  if (note.type === 'Notes' || !note.type) {
+    const folder = getFolderFromFilename(note.filename) || ''
+    const folderWithoutSlash = folder.replace(/^\/+|\/+$/g, '') // Remove leading/trailing slashes
+    const titleContainsFolder = folderWithoutSlash && (note.title.includes(folderWithoutSlash) || note.title.includes(folder))
+    
+    // Only show short description if title doesn't already contain the folder path
+    if (!titleContainsFolder) {
+      shortDescription = getFolderDisplayName(folder) || null
+    }
+  }
 
   return {
     icon: userSetIcon || folderIconDetails.icon,
     color,
-    shortDescription: shortDescription || null,
+    shortDescription,
   }
 }
 
