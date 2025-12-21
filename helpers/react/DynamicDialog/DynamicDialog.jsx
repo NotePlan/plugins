@@ -157,6 +157,8 @@ const DynamicDialog = ({
   folders = [],
   notes = [],
   requestFromPlugin,
+  onFoldersChanged,
+  onNotesChanged,
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || []

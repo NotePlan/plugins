@@ -81,6 +81,7 @@ export function renderItem({
   requestFromPlugin, // For native folder chooser
   updatedSettings, // For heading-chooser to watch note-chooser field
   onFoldersChanged, // Callback to reload folders after creating a new folder
+  onNotesChanged, // Callback to reload notes after creating a new note
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
