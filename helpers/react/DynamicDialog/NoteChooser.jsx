@@ -11,7 +11,6 @@ import { logDebug } from '@helpers/react/reactDev.js'
 import { TEAMSPACE_ICON_COLOR, defaultNoteIconDetails, noteIconsToUse } from '@helpers/NPnote.js'
 import { getFolderFromFilename, getFolderDisplayName } from '@helpers/folders.js'
 import { parseTeamspaceFilename } from '@helpers/teamspace.js'
-import { getDisplayTitleAndPathForRegularNote, displayTitleWithRelDate } from '@helpers/NPdateTime.js'
 import './NoteChooser.css'
 
 export type NoteOption = {
@@ -142,14 +141,18 @@ export function NoteChooser({
     getDisplayValue: (note: NoteOption) => note.title,
     getOptionText: (note: NoteOption) => {
       // For personal/project notes, show "path / title" format to match native chooser
-      // For calendar notes, show just the title (or date with relative date)
+      // For calendar notes, show just the title
       if (note.type === 'Notes' || !note.type) {
-        // Use the native function to get "path / title" format
-        // Cast NoteOption to CoreNoteFields-compatible object
-        return getDisplayTitleAndPathForRegularNote((note: any))
+        // Get folder path from filename
+        const folder = getFolderFromFilename(note.filename)
+        // Format as "path / title" (or just "title" if folder is root)
+        if (folder === '/' || !folder) {
+          return note.title
+        }
+        return `${folder} / ${note.title}`
       } else if (note.type === 'Calendar') {
-        // For calendar notes, show title with relative date if applicable
-        return displayTitleWithRelDate((note: any), true, false)
+        // For calendar notes, show just the title (which should already include date info)
+        return note.title
       }
       // Fallback to just title
       return note.title
