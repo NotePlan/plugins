@@ -203,12 +203,6 @@ export function FolderChooser({
     }
   }
 
-  const handleCreateInFolder = (parentFolderPath: string) => {
-    setParentFolder(parentFolderPath)
-    setCreateInParent(true)
-    setShowCreateDialog(true)
-  }
-
   // Handle selecting "New Folder" option
   const handleNewFolderClick = () => {
     setShowCreateDialog(true)
