@@ -145,6 +145,26 @@ export function renderItem({
             className={className}
           />
         )
+      case 'textarea':
+        return (
+          <ExpandableTextarea
+            key={`textarea${index}`}
+            label={thisLabel}
+            value={item.value || item.default || ''}
+            onChange={(e) => {
+              if (item.key) {
+                handleFieldChange(item.key, e.target.value)
+              }
+            }}
+            disabled={disabled}
+            placeholder={item.placeholder || ''}
+            compactDisplay={item.compactDisplay || false}
+            className={indent ? 'indent' : ''}
+            minRows={item.minRows || 3}
+            maxRows={item.maxRows || 10}
+            required={item.required || false}
+          />
+        )
       case 'number':
         return (
           <InputBox
