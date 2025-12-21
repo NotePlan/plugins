@@ -542,7 +542,7 @@ export function renderItem({
             <div className="form-state-viewer-content">
               <pre className="form-state-viewer-json">{formStateJson}</pre>
             </div>
-            {item.description && <div className="field-editor-help">{item.description}</div>}
+            {/* Description is rendered by DynamicDialog.jsx, don't render it here to avoid duplication */}
           </div>
         )
       }
