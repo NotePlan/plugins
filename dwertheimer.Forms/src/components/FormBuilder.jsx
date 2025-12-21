@@ -1106,9 +1106,7 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
                       </option>
                     ))}
                 </select>
-                <div className="field-editor-help">
-                  If specified, headings will be loaded dynamically from the selected note. Otherwise, use static headings below.
-                </div>
+                <div className="field-editor-help">If specified, headings will be loaded dynamically from the selected note. Otherwise, use static headings below.</div>
               </div>
               <div className="field-editor-row">
                 <label>Static Headings (if not depending on note):</label>

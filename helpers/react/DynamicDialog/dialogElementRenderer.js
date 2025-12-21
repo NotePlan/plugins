@@ -12,7 +12,7 @@ import React from 'react'
 import { JsonEditor } from 'json-edit-react'
 import Switch from './Switch.jsx'
 import InputBox from './InputBox.jsx'
-import DropdownSelect from './DropdownSelect.jsx'
+import { DropdownSelectChooser } from './DropdownSelectChooser.jsx'
 import TextComponent from './TextComponent.jsx'
 import ThemedSelect from './ThemedSelect.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
@@ -48,6 +48,7 @@ type RenderItemProps = {
   folders?: Array<string>, // For folder-chooser
   notes?: Array<{ title: string, filename: string }>, // For note-chooser
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // For native folder chooser
+  updatedSettings?: { [key: string]: any }, // For heading-chooser to watch note-chooser field
 }
 
 /**
@@ -76,7 +77,7 @@ export function renderItem({
   folders = [], // For folder-chooser
   notes = [], // For note-chooser
   requestFromPlugin, // For native folder chooser
-  updatedSettings = {}, // For heading-chooser to watch note-chooser field
+  updatedSettings, // For heading-chooser to watch note-chooser field
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -181,45 +182,49 @@ export function renderItem({
           </div>
         )
       }
-      case 'dropdown-select':
+      case 'dropdown-select': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const normalizedOptions: Array<Option> =
+          item.options && Array.isArray(item.options)
+            ? item.options.map((option: string | Option) => {
+                if (typeof option === 'string') {
+                  return { label: option, value: option }
+                } else if (option && typeof option === 'object' && 'label' in option && 'value' in option) {
+                  const normalized: Option = {
+                    label: option.label || option.value || '',
+                    value: option.value || '',
+                  }
+                  if (option.isDefault) {
+                    normalized.isDefault = true
+                  }
+                  return normalized
+                } else {
+                  return { label: '', value: '' } // Fallback for invalid options
+                }
+              })
+            : []
         return (
           <div data-field-type="dropdown-select">
-            <DropdownSelect
-              disabled={disabled}
-              key={`cmb${index}`}
-              label={thisLabel}
-              fixedWidth={item.fixedWidth}
-              options={
-                item.options
-                  ? item.options.map((option) => {
-                      if (typeof option === 'string') {
-                        return { label: option, value: option }
-                      } else if (option && typeof option === 'object' && 'label' in option && 'value' in option) {
-                        return option
-                      }
-                      return { label: '', value: '' } // Fallback for invalid options
-                    })
-                  : []
-              }
+            <DropdownSelectChooser
+              key={`dropdown-select${index}`}
+              label={label}
+              options={normalizedOptions}
               value={item.value || item.default || ''}
-              onChange={(selectedOption: Option) => {
-                if (selectedOption && typeof selectedOption.value === 'string') {
-                  const value = selectedOption.value
-                  // Don't submit placeholder (empty value)
-                  if (value !== '') {
-                    item.key && handleFieldChange(item.key, value)
-                    item.key && handleComboChange(item.key, value)
-                  }
+              onChange={(value: string) => {
+                // Don't submit placeholder (empty value)
+                if (value !== '') {
+                  item.key && handleFieldChange(item.key, value)
+                  item.key && handleComboChange(item.key, value)
                 }
               }}
-              inputRef={inputRef}
-              compactDisplay={item.compactDisplay || false}
-              noWrapOptions={item.noWrapOptions || true}
-              isEditable={item.isEditable || false}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
               placeholder={item.placeholder}
             />
           </div>
         )
+      }
       case 'text':
         return <TextComponent disabled={disabled} key={`text${index}`} textType={item.textType || 'description'} label={thisLabel} />
       case 'separator':
@@ -460,7 +465,7 @@ export function renderItem({
 
         // Get note filename from the dependsOnNoteKey field if specified
         let noteFilename = null
-        if (dependsOnNoteKey && updatedSettings) {
+        if (dependsOnNoteKey && updatedSettings && typeof updatedSettings === 'object') {
           const noteValue = updatedSettings[dependsOnNoteKey]
           if (noteValue && typeof noteValue === 'string') {
             noteFilename = noteValue

@@ -1,0 +1,38 @@
+/* DropdownSelectChooser Component Styles */
+
+.dropdown-select-chooser-container {
+  width: 100%;
+}
+
+.dropdown-select-chooser-container .dropdown-select-chooser-input {
+  width: 100%;
+}
+
+.dropdown-select-chooser-container .dropdown-select-chooser-dropdown {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.dropdown-select-chooser-container .dropdown-select-chooser-option {
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dropdown-select-chooser-container .dropdown-select-chooser-option:hover {
+  background-color: var(--bg-alt-color, #f5f5f5);
+}
+
+.dropdown-select-chooser-container .dropdown-select-chooser-option.selected {
+  background-color: var(--tint-color, #007aff);
+  color: white;
+}
+
+.dropdown-select-chooser-container .dropdown-select-chooser-icon {
+  color: var(--item-icon-color, #007aff);
+  width: 1rem;
+  text-align: center;
+}
+
