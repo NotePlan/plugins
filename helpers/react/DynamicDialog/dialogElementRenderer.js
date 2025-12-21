@@ -185,11 +185,11 @@ export function renderItem({
       case 'dropdown-select': {
         const label = item.label || ''
         const compactDisplay = item.compactDisplay || false
-        const normalizedOptions: Array<Option> =
+        const normalizedOptions: Array<string | Option> =
           item.options && Array.isArray(item.options)
             ? item.options.map((option: string | Option) => {
                 if (typeof option === 'string') {
-                  return { label: option, value: option }
+                  return option
                 } else if (option && typeof option === 'object' && 'label' in option && 'value' in option) {
                   const normalized: Option = {
                     label: option.label || option.value || '',
@@ -209,7 +209,7 @@ export function renderItem({
             <DropdownSelectChooser
               key={`dropdown-select${index}`}
               label={label}
-              options={normalizedOptions}
+              options={(normalizedOptions: Array<string | any>)}
               value={item.value || item.default || ''}
               onChange={(value: string) => {
                 // Don't submit placeholder (empty value)
