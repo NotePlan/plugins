@@ -13,7 +13,7 @@
  */
 
 import pluginJson from '../plugin.json'
-import { getAllNotesAsOptions } from './noteHelpers'
+import { getAllNotesAsOptions, getRelativeNotesAsOptions } from './noteHelpers'
 import { logDebug, logError, logInfo } from '@helpers/dev'
 import { getFoldersMatching } from '@helpers/folders'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
@@ -125,27 +125,104 @@ export function getFolders(params: { excludeTrash?: boolean } = {}): RequestResp
 }
 
 /**
- * Get list of project notes (excludes calendar notes)
+ * Get list of notes with filtering options
  * @param {Object} params - Request parameters
  * @param {boolean} params.includeCalendarNotes - Include calendar notes (default: false)
+ * @param {boolean} params.includePersonalNotes - Include personal/project notes (default: true)
+ * @param {boolean} params.includeRelativeNotes - Include relative notes like <today>, <thisweek>, etc. (default: false)
+ * @param {boolean} params.includeTeamspaceNotes - Include teamspace notes (default: true)
  * @returns {RequestResponse}
  */
-export function getNotes(params: { includeCalendarNotes?: boolean } = {}): RequestResponse {
+export function getNotes(
+  params: {
+    includeCalendarNotes?: boolean,
+    includePersonalNotes?: boolean,
+    includeRelativeNotes?: boolean,
+    includeTeamspaceNotes?: boolean,
+  } = {},
+): RequestResponse {
   const startTime: number = Date.now()
   try {
-    logDebug(pluginJson, `[DIAG] getNotes START: includeCalendarNotes=${String(params.includeCalendarNotes ?? false)}`)
+    const includeCalendarNotes = params.includeCalendarNotes ?? false
+    const includePersonalNotes = params.includePersonalNotes ?? true
+    const includeRelativeNotes = params.includeRelativeNotes ?? false
+    const includeTeamspaceNotes = params.includeTeamspaceNotes ?? true
 
+    logDebug(
+      pluginJson,
+      `[DIAG] getNotes START: includeCalendarNotes=${String(includeCalendarNotes)}, includePersonalNotes=${String(includePersonalNotes)}, includeRelativeNotes=${String(
+        includeRelativeNotes,
+      )}, includeTeamspaceNotes=${String(includeTeamspaceNotes)}`,
+    )
+
+    const allNotes: Array<any> = []
+
+    // Get all notes (project + calendar if requested) in one call, then filter
     const processStartTime: number = Date.now()
-    const notes = getAllNotesAsOptions(params.includeCalendarNotes ?? false)
+    const allNotesFromStore = getAllNotesAsOptions(includeCalendarNotes, true) // Get all notes with decoration
     const processElapsed: number = Date.now() - processStartTime
-    logDebug(pluginJson, `[DIAG] getNotes PROCESS: elapsed=${processElapsed}ms, processed=${notes.length} notes`)
+    logDebug(pluginJson, `[DIAG] getNotes STORE: elapsed=${processElapsed}ms, found=${allNotesFromStore.length} total notes from store`)
+
+    // Filter notes based on options
+    for (const note of allNotesFromStore) {
+      // Check if note is a calendar note
+      const isCalendarNote = note.type === 'Calendar'
+
+      // Check if note is a teamspace note
+      const isTeamspaceNote = note.isTeamspaceNote === true
+
+      // Determine if this note should be included
+      let shouldInclude = false
+
+      // Check calendar vs personal
+      if (isCalendarNote) {
+        shouldInclude = includeCalendarNotes
+      } else {
+        shouldInclude = includePersonalNotes
+      }
+
+      // Check teamspace
+      if (shouldInclude && !includeTeamspaceNotes && isTeamspaceNote) {
+        shouldInclude = false
+      }
+
+      if (shouldInclude) {
+        allNotes.push(note)
+      }
+    }
+
+    logDebug(pluginJson, `[DIAG] getNotes FILTERED: ${allNotes.length} notes after filtering (from ${allNotesFromStore.length} total)`)
+
+    // Get relative notes (like <today>, <thisweek>, etc.)
+    if (includeRelativeNotes) {
+      const processStartTime: number = Date.now()
+      const relativeNotes = getRelativeNotesAsOptions(true) // Include decoration
+      const processElapsed: number = Date.now() - processStartTime
+      logDebug(pluginJson, `[DIAG] getNotes RELATIVE: elapsed=${processElapsed}ms, found=${relativeNotes.length} relative notes`)
+      allNotes.push(...relativeNotes)
+    }
+
+    // Re-sort all notes together by changedDate (most recent first), but put relative notes at the top
+    allNotes.sort((a: any, b: any) => {
+      // Relative notes (those with filename starting with '<') should appear first
+      const aIsRelative = typeof a.filename === 'string' && a.filename.startsWith('<')
+      const bIsRelative = typeof b.filename === 'string' && b.filename.startsWith('<')
+
+      if (aIsRelative && !bIsRelative) return -1
+      if (!aIsRelative && bIsRelative) return 1
+
+      // For non-relative notes, sort by changedDate (most recent first)
+      const aDate = typeof a.changedDate === 'number' ? a.changedDate : 0
+      const bDate = typeof b.changedDate === 'number' ? b.changedDate : 0
+      return bDate - aDate
+    })
 
     const totalElapsed: number = Date.now() - startTime
-    logDebug(pluginJson, `[DIAG] getNotes COMPLETE: totalElapsed=${totalElapsed}ms, found=${notes.length} notes`)
+    logDebug(pluginJson, `[DIAG] getNotes COMPLETE: totalElapsed=${totalElapsed}ms, found=${allNotes.length} total notes`)
 
     return {
       success: true,
-      data: notes,
+      data: allNotes,
     }
   } catch (error) {
     const totalElapsed: number = Date.now() - startTime

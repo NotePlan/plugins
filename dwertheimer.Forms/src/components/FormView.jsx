@@ -195,8 +195,22 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     try {
       setLoadingNotes(true)
       logDebug('FormView', 'Loading notes on demand...')
+
+      // Collect note-chooser options from all note-chooser fields
+      // If multiple note-chooser fields exist, use the most permissive options (union of all options)
+      const noteChooserFields = formFields.filter((field) => field.type === 'note-chooser')
+      const includeCalendarNotes = noteChooserFields.some((field) => field.includeCalendarNotes === true)
+      const includePersonalNotes = noteChooserFields.every((field) => field.includePersonalNotes !== false) // Default to true
+      const includeRelativeNotes = noteChooserFields.some((field) => field.includeRelativeNotes === true)
+      const includeTeamspaceNotes = noteChooserFields.every((field) => field.includeTeamspaceNotes !== false) // Default to true
+
       // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-      const notesData = await requestFromPlugin('getNotes', {})
+      const notesData = await requestFromPlugin('getNotes', {
+        includeCalendarNotes,
+        includePersonalNotes,
+        includeRelativeNotes,
+        includeTeamspaceNotes,
+      })
       if (Array.isArray(notesData)) {
         setNotes(notesData)
         setNotesLoaded(true)
@@ -211,7 +225,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     } finally {
       setLoadingNotes(false)
     }
-  }, [notesLoaded, loadingNotes, needsNotes, requestFromPlugin])
+  }, [notesLoaded, loadingNotes, needsNotes, requestFromPlugin, formFields])
 
   // Listen for RESPONSE messages from Root and resolve pending requests
   useEffect(() => {

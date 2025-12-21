@@ -92,6 +92,11 @@ export type TSettingItem = {
   defaultHeading?: string, // for heading-chooser, default heading value if none selected
   optionAddTopAndBottom?: boolean, // for heading-chooser, whether to add "top of note" and "bottom of note" options (default: true)
   includeArchive?: boolean, // for heading-chooser, whether to include headings in Archive section (default: false)
+  // note-chooser options
+  includeCalendarNotes?: boolean, // for note-chooser, include calendar notes (default: false)
+  includePersonalNotes?: boolean, // for note-chooser, include personal/project notes (default: true)
+  includeRelativeNotes?: boolean, // for note-chooser, include relative notes like <today>, <thisweek>, etc. (default: false)
+  includeTeamspaceNotes?: boolean, // for note-chooser, include teamspace notes (default: true)
   staticHeadings?: Array<string>, // for heading-chooser, static list of headings (if not depending on a note)
 }
 

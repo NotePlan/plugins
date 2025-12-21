@@ -9,6 +9,7 @@
 
 import { getNoteDecoration } from '@helpers/NPnote'
 import { logDebug } from '@helpers/dev'
+import { getRelativeDates } from '@helpers/NPdateTime'
 
 /**
  * Type definition for note options used in React components
@@ -135,4 +136,110 @@ export function getAllNotesAsOptions(includeCalendarNotes: boolean = false, incl
   })
 
   return notes
+}
+
+/**
+ * Convert relative date relName to TemplateRunner format
+ * Maps relative date names like "today", "this week", "next week" to TemplateRunner format like "<today>", "<thisweek>", "<nextweek>"
+ * @param {string} relName - The relative date name from getRelativeDates (e.g., "today", "this week", "next week")
+ * @returns {?string} The TemplateRunner format (e.g., "<today>", "<thisweek>", "<nextweek>") or null if no mapping
+ */
+function relNameToTemplateRunnerFormat(relName: string): ?string {
+  const mapping: { [key: string]: string } = {
+    today: '<today>',
+    'this week': '<thisweek>',
+    'next week': '<nextweek>',
+    'last week': '<lastweek>',
+    'this month': '<thismonth>',
+    'next month': '<nextmonth>',
+    'last month': '<lastmonth>',
+    'this quarter': '<thisquarter>',
+    'next quarter': '<nextquarter>',
+    'last quarter': '<lastquarter>',
+  }
+  return mapping[relName.toLowerCase()] || null
+}
+
+/**
+ * Get relative notes as NoteOption format for React components
+ * Uses getRelativeDates() and converts to NoteOption format with TemplateRunner-compatible values
+ * @param {boolean} includeDecoration - Whether to include decoration info (default: false)
+ * @returns {Array<NoteOption>} Array of relative note options
+ */
+export function getRelativeNotesAsOptions(includeDecoration: boolean = false): Array<NoteOption> {
+  try {
+    const relativeDates = getRelativeDates(true) // Use ISO daily dates
+    const relativeNotes: Array<NoteOption> = []
+
+    for (const rd of relativeDates) {
+      if (!rd.relName || !rd.dateStr) {
+        continue
+      }
+
+      // Convert relName to TemplateRunner format
+      const templateRunnerValue = relNameToTemplateRunnerFormat(rd.relName)
+      if (!templateRunnerValue) {
+        // Skip if no mapping exists (e.g., "yesterday", "tomorrow", "in 2 days", etc.)
+        // Only include the main ones that TemplateRunner supports
+        continue
+      }
+
+      // Create a NoteOption for this relative date
+      const option: NoteOption = {
+        title: rd.relName, // Display name (e.g., "today", "this week")
+        filename: templateRunnerValue, // TemplateRunner format (e.g., "<today>", "<thisweek>")
+        type: 'Calendar', // Relative dates are calendar notes
+        frontmatterAttributes: {},
+        isTeamspaceNote: false,
+        teamspaceID: null,
+        teamspaceTitle: null,
+        changedDate: null, // Relative dates don't have a changedDate
+      }
+
+      // Optionally add decoration (calendar icon)
+      if (includeDecoration) {
+        option.decoration = {
+          icon: 'calendar-star',
+          color: 'gray-500',
+          shortDescription: rd.dateStr, // Show the actual date string as short description
+        }
+      }
+
+      relativeNotes.push(option)
+    }
+
+    // Also add special options that TemplateRunner supports
+    const specialOptions: Array<{ relName: string, templateValue: string }> = [
+      { relName: 'Current Note', templateValue: '<current>' },
+      { relName: 'Choose Note', templateValue: '<choose>' },
+    ]
+
+    for (const special of specialOptions) {
+      const option: NoteOption = {
+        title: special.relName,
+        filename: special.templateValue,
+        type: 'Notes', // These are note selection options, not calendar notes
+        frontmatterAttributes: {},
+        isTeamspaceNote: false,
+        teamspaceID: null,
+        teamspaceTitle: null,
+        changedDate: null,
+      }
+
+      if (includeDecoration) {
+        option.decoration = {
+          icon: 'file-lines',
+          color: 'gray-500',
+          shortDescription: null,
+        }
+      }
+
+      relativeNotes.push(option)
+    }
+
+    return relativeNotes
+  } catch (error) {
+    logDebug('noteHelpers', `Failed to get relative notes: ${error.message}`)
+    return []
+  }
 }

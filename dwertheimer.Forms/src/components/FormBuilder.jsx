@@ -1085,6 +1085,73 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
             </>
           )}
 
+          {editedField.type === 'note-chooser' && (
+            <>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { includePersonalNotes?: boolean }).includePersonalNotes !== false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includePersonalNotes = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Include Personal Notes (default: on)
+                </label>
+                <div className="field-editor-help">Include personal/project notes in the list</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { includeCalendarNotes?: boolean }).includeCalendarNotes || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includeCalendarNotes = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Include Calendar Notes
+                </label>
+                <div className="field-editor-help">Include calendar notes (daily, weekly, monthly, etc.) in the list</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { includeRelativeNotes?: boolean }).includeRelativeNotes || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includeRelativeNotes = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Include Relative Notes
+                </label>
+                <div className="field-editor-help">
+                  Include relative notes like &lt;today&gt;, &lt;thisweek&gt;, &lt;nextweek&gt;, &lt;current&gt;, &lt;choose&gt;. These are compatible with TemplateRunner.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { includeTeamspaceNotes?: boolean }).includeTeamspaceNotes !== false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includeTeamspaceNotes = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Include Teamspace Notes (default: on)
+                </label>
+                <div className="field-editor-help">Include teamspace notes in the list</div>
+              </div>
+            </>
+          )}
+
           {editedField.type === 'heading-chooser' && (
             <>
               <div className="field-editor-row">
@@ -1123,7 +1190,7 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
                   placeholder="Enter one heading per line&#10;Tasks&#10;Projects&#10;Archive"
                   rows={5}
                 />
-                <div className="field-editor-help">Enter headings one per line. Only used if "Depends On Note Field" is not set.</div>
+                <div className="field-editor-help">Enter headings one per line. Only used if &quot;Depends On Note Field&quot; is not set.</div>
               </div>
               <div className="field-editor-row">
                 <label>Default Heading:</label>
@@ -1150,7 +1217,7 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
                       setEditedField(updated)
                     }}
                   />
-                  Include "Top of note" and "Bottom of note" options
+                  Include &quot;Top of note&quot; and &quot;Bottom of note&quot; options
                 </label>
               </div>
               <div className="field-editor-row">
