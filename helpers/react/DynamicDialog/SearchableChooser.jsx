@@ -53,6 +53,7 @@ export type SearchableChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
+  showValue?: boolean, // If true, display the selected value below the input
   config: ChooserConfig,
 }
 
@@ -69,6 +70,7 @@ export function SearchableChooser({
   disabled = false,
   compactDisplay = false,
   placeholder = 'Type to search...',
+  showValue = false,
   config,
 }: SearchableChooserProps): React$Node {
   const {
@@ -408,6 +410,11 @@ export function SearchableChooser({
           </div>
         )}
       </div>
+      {showValue && value && (
+        <div className={`${classNamePrefix}-value-display`} style={{ marginTop: '0.25rem', fontSize: '0.85em', color: 'var(--gray-500, #666)', fontFamily: 'Menlo, monospace' }}>
+          <strong>Value:</strong> {value}
+        </div>
+      )}
     </div>
   )
 }

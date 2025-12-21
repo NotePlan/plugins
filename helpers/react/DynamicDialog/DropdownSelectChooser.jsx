@@ -28,6 +28,7 @@ export type DropdownSelectChooserProps = {
   compactDisplay?: boolean,
   placeholder?: string,
   showIndicatorOptionProp?: string, // Property name to determine if an indicator should be shown
+  showValue?: boolean, // If true, display the selected value below the input
 }
 
 /**
@@ -52,6 +53,7 @@ export function DropdownSelectChooser({
   compactDisplay = false,
   placeholder = 'Type to search...',
   showIndicatorOptionProp,
+  showValue = false,
 }: DropdownSelectChooserProps): React$Node {
   // Normalize options to DropdownOption format
   const normalizedOptions: Array<DropdownOption> = useMemo(() => {
@@ -113,6 +115,7 @@ export function DropdownSelectChooser({
         disabled={disabled}
         compactDisplay={compactDisplay}
         placeholder={placeholder}
+        showValue={showValue}
         config={config}
       />
     </div>

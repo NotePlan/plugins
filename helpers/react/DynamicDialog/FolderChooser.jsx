@@ -29,6 +29,7 @@ export type FolderChooserProps = {
   includeFolderPath?: boolean,
   excludeTeamspaces?: boolean,
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>,
+  showValue?: boolean, // If true, display the selected value below the input
 }
 
 /**
@@ -51,6 +52,7 @@ export function FolderChooser({
   includeFolderPath = true,
   excludeTeamspaces = false,
   requestFromPlugin,
+  showValue = false,
 }: FolderChooserProps): React$Node {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -383,7 +385,7 @@ export function FolderChooser({
 
   return (
     <>
-      <SearchableChooser label={label} value={value} disabled={disabled} compactDisplay={compactDisplay} placeholder={placeholder} config={config} />
+      <SearchableChooser label={label} value={value} disabled={disabled} compactDisplay={compactDisplay} placeholder={placeholder} showValue={showValue} config={config} />
       {includeNewFolderOption && (
         <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
           Click &quot;New Folder&quot; to create a folder. Hold Option (⌥) and click on any folder to create a subfolder inside it.

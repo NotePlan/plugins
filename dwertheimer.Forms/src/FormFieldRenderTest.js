@@ -84,6 +84,7 @@ export async function testFormFieldRender(): Promise<void> {
         key: 'testDropdown',
         options: ['Option 1', 'Option 2', 'Option 3', 'Option 4', 'Option 5', 'Long Option Name That Might Be Truncated'],
         placeholder: 'Select an option',
+        showValue: true, // Show the selected value for debugging
         description: 'Searchable dropdown select field (now uses SearchableChooser)',
       },
       {
@@ -96,12 +97,14 @@ export async function testFormFieldRender(): Promise<void> {
         key: 'testFolder',
         includeNewFolderOption: true,
         startFolder: 'Projects',
+        showValue: true, // Show the selected value for debugging
         description: 'Loads folders dynamically when form opens',
       },
       {
         type: 'note-chooser',
         label: 'Note Chooser (Default)',
         key: 'testNote',
+        showValue: true, // Show the selected value for debugging
         description: 'Default: Personal notes + Teamspace notes (no calendar, no relative)',
       },
       {
@@ -180,6 +183,7 @@ export async function testFormFieldRender(): Promise<void> {
         key: 'testHeadingStatic',
         staticHeadings: ['Tasks', 'Projects', 'Archive', 'Done'],
         defaultHeading: 'Tasks',
+        showValue: true, // Show the selected value for debugging
         description: 'Static heading chooser with predefined headings',
       },
       {
@@ -189,6 +193,7 @@ export async function testFormFieldRender(): Promise<void> {
         dependsOnNoteKey: 'testNote',
         defaultHeading: 'Tasks',
         optionAddTopAndBottom: true,
+        showValue: true, // Show the selected value for debugging
         includeArchive: false,
         description: 'Dynamic heading chooser that loads headings from the selected note above',
       },

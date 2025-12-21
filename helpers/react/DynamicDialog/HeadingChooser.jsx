@@ -28,6 +28,7 @@ export type HeadingChooserProps = {
   defaultHeading?: ?string, // Default heading to use if none selected
   optionAddTopAndBottom?: boolean, // Whether to include "top of note" and "bottom of note" options
   includeArchive?: boolean, // Whether to include headings in Archive section
+  showValue?: boolean, // If true, display the selected value below the input
 }
 
 /**
@@ -49,6 +50,7 @@ export function HeadingChooser({
   defaultHeading,
   optionAddTopAndBottom = true,
   includeArchive = false,
+  showValue = false,
 }: HeadingChooserProps): React$Node {
   const [headings, setHeadings] = useState<Array<string>>(staticHeadings)
   const [loading, setLoading] = useState<boolean>(false)
@@ -150,6 +152,7 @@ export function HeadingChooser({
         disabled={disabled || loading}
         compactDisplay={compactDisplay}
         placeholder={loading ? 'Loading headings...' : placeholder}
+        showValue={showValue}
         config={config}
       />
     </div>

@@ -221,6 +221,7 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder}
+              showValue={item.showValue ?? false}
             />
           </div>
         )
@@ -443,6 +444,7 @@ export function renderItem({
               includeFolderPath={folderChooserOptions.includeFolderPath}
               excludeTeamspaces={folderChooserOptions.excludeTeamspaces}
               requestFromPlugin={requestFromPlugin}
+              showValue={item.showValue ?? false}
             />
           </div>
         )
@@ -477,6 +479,7 @@ export function renderItem({
               includeRelativeNotes={item.includeRelativeNotes ?? false}
               includeTeamspaceNotes={item.includeTeamspaceNotes ?? true}
               placeholder={item.placeholder || 'Type to search notes...'}
+              showValue={item.showValue ?? false}
             />
           </div>
         )
@@ -522,6 +525,7 @@ export function renderItem({
               defaultHeading={defaultHeading}
               optionAddTopAndBottom={optionAddTopAndBottom}
               includeArchive={includeArchive}
+              showValue={item.showValue ?? false}
             />
           </div>
         )

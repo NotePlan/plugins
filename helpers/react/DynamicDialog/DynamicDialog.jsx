@@ -98,6 +98,8 @@ export type TSettingItem = {
   includePersonalNotes?: boolean, // for note-chooser, include personal/project notes (default: true)
   includeRelativeNotes?: boolean, // for note-chooser, include relative notes like <today>, <thisweek>, etc. (default: false)
   includeTeamspaceNotes?: boolean, // for note-chooser, include teamspace notes (default: true)
+  // showValue option for SearchableChooser-based fields
+  showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
   staticHeadings?: Array<string>, // for heading-chooser, static list of headings (if not depending on a note)
 }
 

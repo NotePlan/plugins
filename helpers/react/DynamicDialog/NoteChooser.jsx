@@ -37,6 +37,7 @@ export type NoteChooserProps = {
   includePersonalNotes?: boolean, // Include personal/project notes (default: true)
   includeRelativeNotes?: boolean, // Include relative notes like <today>, <thisweek>, etc. (default: false)
   includeTeamspaceNotes?: boolean, // Include teamspace notes (default: true)
+  showValue?: boolean, // If true, display the selected value below the input
 }
 
 /**
@@ -97,6 +98,7 @@ export function NoteChooser({
   includePersonalNotes = true,
   includeRelativeNotes = false,
   includeTeamspaceNotes = true,
+  showValue = false,
 }: NoteChooserProps): React$Node {
   // Filter notes based on this field's options
   const filteredNotes = useMemo(() => {
@@ -145,16 +147,24 @@ export function NoteChooser({
       if (note.type === 'Notes' || !note.type) {
         // Get folder path from filename
         const folder = getFolderFromFilename(note.filename)
+        // Log detailed info for debugging
+        logDebug('NoteChooser', `getOptionText: filename="${note.filename}", title="${note.title}", extractedFolder="${folder}"`)
+        
         // Format as "path / title" (or just "title" if folder is root)
         if (folder === '/' || !folder) {
+          logDebug('NoteChooser', `getOptionText: root folder, returning title only: "${note.title}"`)
           return note.title
         }
-        return `${folder} / ${note.title}`
+        const result = `${folder} / ${note.title}`
+        logDebug('NoteChooser', `getOptionText: formatted result: "${result}"`)
+        return result
       } else if (note.type === 'Calendar') {
         // For calendar notes, show just the title (which should already include date info)
+        logDebug('NoteChooser', `getOptionText: calendar note, returning title: "${note.title}"`)
         return note.title
       }
       // Fallback to just title
+      logDebug('NoteChooser', `getOptionText: fallback, returning title: "${note.title}"`)
       return note.title
     },
     getOptionTitle: (note: NoteOption) => {
@@ -177,7 +187,7 @@ export function NoteChooser({
     getOptionShortDescription: (note: NoteOption) => getNoteDecoration(note).shortDescription,
   }
 
-  return <SearchableChooser label={label} value={value} disabled={disabled} compactDisplay={compactDisplay} placeholder={placeholder} config={config} />
+  return <SearchableChooser label={label} value={value} disabled={disabled} compactDisplay={compactDisplay} placeholder={placeholder} showValue={showValue} config={config} />
 }
 
 export default NoteChooser
