@@ -16,6 +16,9 @@ import DropdownSelect from './DropdownSelect.jsx'
 import TextComponent from './TextComponent.jsx'
 import ThemedSelect from './ThemedSelect.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
+import FolderChooser from './FolderChooser.jsx'
+import NoteChooser from './NoteChooser.jsx'
+import { HeadingChooser } from './HeadingChooser.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import type { Option } from './DropdownSelect.jsx'
 import { Button, ButtonGroup } from './ButtonComponents.jsx'
@@ -42,6 +45,9 @@ type RenderItemProps = {
   handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
   visible?: boolean, // Add visible prop
   buttonText?: string, // Add buttonText prop
+  folders?: Array<string>, // For folder-chooser
+  notes?: Array<{ title: string, filename: string }>, // For note-chooser
+  requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // For native folder chooser
 }
 
 /**
@@ -67,6 +73,10 @@ export function renderItem({
   buttonText,
   visible,
   handleButtonClick = (key, value) => {}, // Add handleButtonClick prop
+  folders = [], // For folder-chooser
+  notes = [], // For note-chooser
+  requestFromPlugin, // For native folder chooser
+  updatedSettings = {}, // For heading-chooser to watch note-chooser field
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -152,59 +162,63 @@ export function renderItem({
         )
       case 'combo': {
         return (
-          <ThemedSelect
-            disabled={disabled}
-            key={`cmb${index}`}
-            options={item.options ? item.options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option)) : []} // Normalize options to ensure they are in { label, value } format
-            value={item.value || item.default || undefined} // Ensure value is not undefined
-            onChange={(selectedOption) => {
-              const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
-              item.key && handleFieldChange(item.key, value)
-              item.key && handleComboChange(item.key, value) // Pass the selected option
-            }}
-            inputRef={inputRef} // Pass inputRef
-            compactDisplay={item.compactDisplay || false}
-            label={item.label || ''}
-            noWrapOptions={item.noWrapOptions || false}
-          />
+          <div data-field-type="combo">
+            <ThemedSelect
+              disabled={disabled}
+              key={`cmb${index}`}
+              options={item.options ? item.options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option)) : []} // Normalize options to ensure they are in { label, value } format
+              value={item.value || item.default || undefined} // Ensure value is not undefined
+              onChange={(selectedOption) => {
+                const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
+                item.key && handleFieldChange(item.key, value)
+                item.key && handleComboChange(item.key, value) // Pass the selected option
+              }}
+              inputRef={inputRef} // Pass inputRef
+              compactDisplay={item.compactDisplay || false}
+              label={item.label || ''}
+              noWrapOptions={item.noWrapOptions || false}
+            />
+          </div>
         )
       }
       case 'dropdown-select':
         return (
-          <DropdownSelect
-            disabled={disabled}
-            key={`cmb${index}`}
-            label={thisLabel}
-            fixedWidth={item.fixedWidth}
-            options={
-              item.options
-                ? item.options.map((option) => {
-                    if (typeof option === 'string') {
-                      return { label: option, value: option }
-                    } else if (option && typeof option === 'object' && 'label' in option && 'value' in option) {
-                      return option
-                    }
-                    return { label: '', value: '' } // Fallback for invalid options
-                  })
-                : []
-            }
-            value={item.value || item.default || ''}
-            onChange={(selectedOption: Option) => {
-              if (selectedOption && typeof selectedOption.value === 'string') {
-                const value = selectedOption.value
-                // Don't submit placeholder (empty value)
-                if (value !== '') {
-                  item.key && handleFieldChange(item.key, value)
-                  item.key && handleComboChange(item.key, value)
-                }
+          <div data-field-type="dropdown-select">
+            <DropdownSelect
+              disabled={disabled}
+              key={`cmb${index}`}
+              label={thisLabel}
+              fixedWidth={item.fixedWidth}
+              options={
+                item.options
+                  ? item.options.map((option) => {
+                      if (typeof option === 'string') {
+                        return { label: option, value: option }
+                      } else if (option && typeof option === 'object' && 'label' in option && 'value' in option) {
+                        return option
+                      }
+                      return { label: '', value: '' } // Fallback for invalid options
+                    })
+                  : []
               }
-            }}
-            inputRef={inputRef}
-            compactDisplay={item.compactDisplay || false}
-            noWrapOptions={item.noWrapOptions || true}
-            isEditable={item.isEditable || false}
-            placeholder={item.placeholder}
-          />
+              value={item.value || item.default || ''}
+              onChange={(selectedOption: Option) => {
+                if (selectedOption && typeof selectedOption.value === 'string') {
+                  const value = selectedOption.value
+                  // Don't submit placeholder (empty value)
+                  if (value !== '') {
+                    item.key && handleFieldChange(item.key, value)
+                    item.key && handleComboChange(item.key, value)
+                  }
+                }
+              }}
+              inputRef={inputRef}
+              compactDisplay={item.compactDisplay || false}
+              noWrapOptions={item.noWrapOptions || true}
+              isEditable={item.isEditable || false}
+              placeholder={item.placeholder}
+            />
+          </div>
         )
       case 'text':
         return <TextComponent disabled={disabled} key={`text${index}`} textType={item.textType || 'description'} label={thisLabel} />
@@ -306,10 +320,13 @@ export function renderItem({
               return { label: '', value: '' }
             })
           : []
+        // Get current value from item.value or item.default
+        const currentValue = item.value || item.default || ''
         return (
           <ButtonGroup
             key={`btn-group${index}`}
             options={normalizedButtonOptions}
+            selectedValue={currentValue}
             disabled={disabled}
             onClick={(value) => {
               if (item.key) {
@@ -355,6 +372,123 @@ export function renderItem({
               label={label}
               visible={(item: any).visible}
               size={(item: any).size ?? 0.75}
+            />
+          </div>
+        )
+      }
+      case 'folder-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        const folderChooserOptions = {
+          includeArchive: (item: any).includeArchive,
+          includeNewFolderOption: (item: any).includeNewFolderOption,
+          startFolder: (item: any).startFolder,
+          includeFolderPath: (item: any).includeFolderPath,
+          excludeTeamspaces: (item: any).excludeTeamspaces,
+        }
+
+        logDebug('dialogElementRenderer', `folder-chooser: folders=${folders?.length || 0}, label=${label}, currentValue="${currentValue}", options=${JSON.stringify(folderChooserOptions)}`)
+
+        const handleFolderChange = (folder: string) => {
+          logDebug('dialogElementRenderer', `folder-chooser: handleFolderChange called with folder="${folder}"`)
+          if (item.key) {
+            handleFieldChange(item.key, folder)
+          }
+        }
+
+        return (
+          <div data-field-type="folder-chooser">
+            <FolderChooser
+              key={`folder-chooser${index}`}
+              label={label}
+              value={currentValue}
+              folders={folders || []}
+              onChange={handleFolderChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={item.placeholder || 'Type to search folders...'}
+              includeArchive={folderChooserOptions.includeArchive}
+              includeNewFolderOption={folderChooserOptions.includeNewFolderOption}
+              startFolder={folderChooserOptions.startFolder}
+              includeFolderPath={folderChooserOptions.includeFolderPath}
+              excludeTeamspaces={folderChooserOptions.excludeTeamspaces}
+              requestFromPlugin={requestFromPlugin}
+            />
+          </div>
+        )
+      }
+      case 'note-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+
+        const handleNoteChange = (noteTitle: string, noteFilename: string) => {
+          if (item.key) {
+            // Store both title and filename - using filename as the value for consistency
+            // but you could also store as an object: { title: noteTitle, filename: noteFilename }
+            handleFieldChange(item.key, noteFilename)
+            // If you want to store title separately, you could use a compound key like `${item.key}Title`
+            // For now, we'll store filename as the value
+          }
+        }
+
+        return (
+          <div data-field-type="note-chooser">
+            <NoteChooser
+              key={`note-chooser${index}`}
+              label={label}
+              value={currentValue}
+              notes={notes}
+              onChange={handleNoteChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={item.placeholder || 'Type to search notes...'}
+            />
+          </div>
+        )
+      }
+      case 'heading-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        const dependsOnNoteKey = item.dependsOnNoteKey
+        const defaultHeading = item.defaultHeading
+        const optionAddTopAndBottom = item.optionAddTopAndBottom ?? true
+        const includeArchive = item.includeArchive ?? false
+        const staticHeadings = item.staticHeadings || []
+
+        // Get note filename from the dependsOnNoteKey field if specified
+        let noteFilename = null
+        if (dependsOnNoteKey && updatedSettings) {
+          const noteValue = updatedSettings[dependsOnNoteKey]
+          if (noteValue && typeof noteValue === 'string') {
+            noteFilename = noteValue
+          }
+        }
+
+        const handleHeadingChange = (heading: string) => {
+          if (item.key) {
+            handleFieldChange(item.key, heading)
+          }
+        }
+
+        return (
+          <div data-field-type="heading-chooser">
+            <HeadingChooser
+              key={`heading-chooser${index}`}
+              label={label}
+              value={currentValue}
+              headings={staticHeadings}
+              noteFilename={noteFilename}
+              requestFromPlugin={requestFromPlugin}
+              onChange={handleHeadingChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={item.placeholder || 'Type to search headings...'}
+              defaultHeading={defaultHeading}
+              optionAddTopAndBottom={optionAddTopAndBottom}
+              includeArchive={includeArchive}
             />
           </div>
         )

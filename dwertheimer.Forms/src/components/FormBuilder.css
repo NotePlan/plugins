@@ -253,16 +253,22 @@
 
 /* Override DynamicDialog positioning when in preview pane */
 .form-preview-window-content .dynamic-dialog {
-  position: relative;
-  top: auto;
-  left: auto;
-  transform: none;
-  width: 100%;
-  max-width: 100%;
-  box-shadow: none;
-  border: none;
-  border-radius: 0;
-  margin: 0;
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
+
+.form-preview-window-content .dynamic-dialog .dynamic-dialog-content {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 .empty-state {

@@ -4,9 +4,12 @@
 // Visual form builder for creating and editing form field definitions
 //--------------------------------------------------------------------------
 
-import React, { useState, useEffect, useMemo, type Node } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, type Node } from 'react'
+import { useAppContext } from './AppContext.jsx'
 import { type TSettingItem, type TSettingItemType } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
+import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { stripDoubleQuotes } from '@helpers/stringTransforms'
 import './FormBuilder.css'
 
 type FormBuilderProps = {
@@ -41,6 +44,9 @@ const FIELD_TYPES: Array<FieldTypeOption> = [
   // combo is not available because of missing NP_Theme in showHTMLV2 (and maybe doesn't work reliably anyway)
   //   { value: 'combo', label: 'Combo', description: 'Advanced dropdown with search' },
   { value: 'calendarpicker', label: 'Date Picker', description: 'Date selection calendar' },
+  { value: 'folder-chooser', label: 'Folder Chooser', description: 'Searchable folder selector' },
+  { value: 'note-chooser', label: 'Note Chooser', description: 'Searchable note selector' },
+  { value: 'heading-chooser', label: 'Heading Chooser', description: 'Select a heading from a note (static or dynamic based on note-chooser)' },
   { value: 'heading', label: 'Heading', description: 'Section heading' },
   { value: 'separator', label: 'Separator', description: 'Horizontal line' },
   { value: 'button', label: 'Button', description: 'Clickable button' },
@@ -74,35 +80,123 @@ export function FormBuilder({
   const [showAddField, setShowAddField] = useState<boolean>(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
   const [isSaved, setIsSaved] = useState<boolean>(!isNewForm)
-  const [frontmatter, setFrontmatter] = useState<{ [key: string]: any }>({
-    receivingTemplateTitle: receivingTemplateTitle || '',
-    windowTitle: windowTitle || '',
-    formTitle: formTitle || '',
-    allowEmptySubmit: allowEmptySubmit || false,
-    hideDependentItems: hideDependentItems || false,
-    width: width,
-    height: height,
+  const [folders, setFolders] = useState<Array<string>>([])
+  const [notes, setNotes] = useState<Array<{ title: string, filename: string }>>([])
+  const [foldersLoaded, setFoldersLoaded] = useState<boolean>(false)
+  const [notesLoaded, setNotesLoaded] = useState<boolean>(false)
+  const [loadingFolders, setLoadingFolders] = useState<boolean>(false)
+  const [loadingNotes, setLoadingNotes] = useState<boolean>(false)
+  const [frontmatter, setFrontmatter] = useState<{ [key: string]: any }>(() => {
+    // Strip quotes from initial values to prevent saving quoted values
+    return {
+      receivingTemplateTitle: stripDoubleQuotes(receivingTemplateTitle || '') || '',
+      windowTitle: stripDoubleQuotes(windowTitle || '') || '',
+      formTitle: stripDoubleQuotes(formTitle || '') || '',
+      allowEmptySubmit: allowEmptySubmit || false,
+      hideDependentItems: hideDependentItems || false,
+      width: width,
+      height: height,
+    }
   })
+
+  // Get requestFromPlugin from context
+  const { requestFromPlugin } = useAppContext()
+
+  // Check if form has folder-chooser or note-chooser fields
+  const needsFolders = useMemo(() => fields.some((field) => field.type === 'folder-chooser'), [fields])
+  const needsNotes = useMemo(() => fields.some((field) => field.type === 'note-chooser'), [fields])
+
+  // Load folders on demand when needed
+  const loadFolders = useCallback(async () => {
+    if (foldersLoaded || loadingFolders || !needsFolders) return
+
+    try {
+      setLoadingFolders(true)
+      logDebug('FormBuilder', 'Loading folders on demand...')
+      // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
+      const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true })
+      if (Array.isArray(foldersData)) {
+        setFolders(foldersData)
+        setFoldersLoaded(true)
+        logDebug('FormBuilder', `Loaded ${foldersData.length} folders`)
+      } else {
+        logError('FormBuilder', `Failed to load folders: Invalid response format`)
+        setFoldersLoaded(true) // Set to true to prevent infinite retries
+      }
+    } catch (error) {
+      logError('FormBuilder', `Error loading folders: ${error.message}`)
+      setFoldersLoaded(true) // Set to true to prevent infinite retries
+    } finally {
+      setLoadingFolders(false)
+    }
+  }, [foldersLoaded, loadingFolders, needsFolders])
+
+  // Load notes on demand when needed
+  const loadNotes = useCallback(async () => {
+    if (notesLoaded || loadingNotes || !needsNotes) return
+
+    try {
+      setLoadingNotes(true)
+      logDebug('FormBuilder', 'Loading notes on demand...')
+      // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
+      const notesData = await requestFromPlugin('getNotes', {})
+      if (Array.isArray(notesData)) {
+        setNotes(notesData)
+        setNotesLoaded(true)
+        logDebug('FormBuilder', `Loaded ${notesData.length} notes`)
+      } else {
+        logError('FormBuilder', `Failed to load notes: Invalid response format`)
+        setNotesLoaded(true) // Set to true to prevent infinite retries
+      }
+    } catch (error) {
+      logError('FormBuilder', `Error loading notes: ${error.message}`)
+      setNotesLoaded(true) // Set to true to prevent infinite retries
+    } finally {
+      setLoadingNotes(false)
+    }
+  }, [notesLoaded, loadingNotes, needsNotes])
+
+  // Load folders/notes automatically when fields change and they're needed
+  useEffect(() => {
+    if (needsFolders && !foldersLoaded && !loadingFolders) {
+      loadFolders()
+    }
+  }, [needsFolders, foldersLoaded, loadingFolders, loadFolders])
+
+  useEffect(() => {
+    if (needsNotes && !notesLoaded && !loadingNotes) {
+      loadNotes()
+    }
+  }, [needsNotes, notesLoaded, loadingNotes, loadNotes])
 
   // Sync frontmatter when props change (e.g., when receivingTemplateTitle is set after template creation)
   useEffect(() => {
     if (receivingTemplateTitle && receivingTemplateTitle !== frontmatter.receivingTemplateTitle) {
       setFrontmatter((prev) => ({
         ...prev,
-        receivingTemplateTitle: receivingTemplateTitle,
+        receivingTemplateTitle: stripDoubleQuotes(receivingTemplateTitle || '') || '',
       }))
     }
-  }, [receivingTemplateTitle])
+  }, [receivingTemplateTitle, frontmatter.receivingTemplateTitle])
 
-  // Helper function to strip surrounding double quotes from frontmatter values
-  const stripQuotes = (value: string): string => {
-    if (!value || typeof value !== 'string') return value || ''
-    // Remove surrounding double quotes if present
-    if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
-      return value.slice(1, -1)
-    }
-    return value
-  }
+  // Initialize frontmatter with stripped quotes to prevent saving quoted values
+  useEffect(() => {
+    setFrontmatter((prev) => {
+      const updated = { ...prev }
+      // Strip quotes from string values in frontmatter
+      let hasChanges = false
+      Object.keys(updated).forEach((key) => {
+        if (typeof updated[key] === 'string') {
+          const stripped = stripDoubleQuotes(updated[key])
+          if (stripped !== updated[key]) {
+            updated[key] = stripped
+            hasChanges = true
+          }
+        }
+      })
+      return hasChanges ? updated : prev
+    })
+  }, []) // Only run once on mount
 
   //----------------------------------------------------------------------
   // Drag and Drop Handlers
@@ -168,7 +262,9 @@ export function FormBuilder({
   }
 
   const handleFrontmatterChange = (key: string, value: any) => {
-    setFrontmatter((prev) => ({ ...prev, [key]: value }))
+    // Strip quotes from string values before saving
+    const cleanedValue = typeof value === 'string' ? stripDoubleQuotes(value) : value
+    setFrontmatter((prev) => ({ ...prev, [key]: cleanedValue }))
     setHasUnsavedChanges(true)
   }
 
@@ -433,13 +529,13 @@ export function FormBuilder({
             <div className="form-preview-container">
               <div className="form-preview-window">
                 <div className="form-preview-window-titlebar">
-                  <span className="form-preview-window-title">{stripQuotes(frontmatter.windowTitle) || 'Form Window'}</span>
+                  <span className="form-preview-window-title">{stripDoubleQuotes(frontmatter.windowTitle || '') || 'Form Window'}</span>
                 </div>
                 <div className="form-preview-window-content">
                   <DynamicDialog
                     isOpen={true}
                     isModal={false}
-                    title={stripQuotes(frontmatter.formTitle) || 'Form Heading'}
+                    title={stripDoubleQuotes(frontmatter.formTitle || '') || 'Form Heading'}
                     items={fields}
                     hideHeaderButtons={true}
                     onSave={() => {}}
@@ -448,6 +544,9 @@ export function FormBuilder({
                     style={{ width: '100%', maxWidth: '100%', margin: 0 }}
                     allowEmptySubmit={frontmatter.allowEmptySubmit || false}
                     hideDependentItems={frontmatter.hideDependentItems || false}
+                    folders={folders}
+                    notes={notes}
+                    requestFromPlugin={requestFromPlugin}
                   />
                 </div>
               </div>
@@ -901,6 +1000,175 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
                   </label>
                 </div>
               )}
+            </>
+          )}
+
+          {editedField.type === 'folder-chooser' && (
+            <>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { includeArchive?: boolean }).includeArchive || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includeArchive = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Include Archive folder
+                </label>
+                <div className="field-editor-help">Include the Archive folder in the list of available folders</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { includeNewFolderOption?: boolean }).includeNewFolderOption || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includeNewFolderOption = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Allow creating new folders
+                </label>
+                <div className="field-editor-help">
+                  Add a &quot;New Folder&quot; option that allows users to create a new folder and select it. On macOS, users can also Option-click on a parent folder to create a
+                  new subfolder.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>Start Folder (limit to subfolder):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { startFolder?: string }).startFolder || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).startFolder = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., /Projects"
+                />
+                <div className="field-editor-help">Folder to start the list in (e.g., to limit folders to a specific subfolder). Leave empty to show all folders.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { includeFolderPath?: boolean }).includeFolderPath ?? true}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includeFolderPath = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Show full folder path
+                </label>
+                <div className="field-editor-help">Show the folder path (or most of it), not just the last folder name, to give more context</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { excludeTeamspaces?: boolean }).excludeTeamspaces || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).excludeTeamspaces = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Exclude Teamspaces
+                </label>
+                <div className="field-editor-help">Exclude teamspace folders from the list of folders</div>
+              </div>
+            </>
+          )}
+
+          {editedField.type === 'heading-chooser' && (
+            <>
+              <div className="field-editor-row">
+                <label>Depends On Note Field (optional):</label>
+                <select
+                  value={((editedField: any): { dependsOnNoteKey?: string }).dependsOnNoteKey || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).dependsOnNoteKey = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                >
+                  <option value="">None (use static headings)</option>
+                  {allFields
+                    .filter((f) => f.key && f.type === 'note-chooser' && f.key !== editedField.key)
+                    .map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label || f.key} ({f.key})
+                      </option>
+                    ))}
+                </select>
+                <div className="field-editor-help">
+                  If specified, headings will be loaded dynamically from the selected note. Otherwise, use static headings below.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>Static Headings (if not depending on note):</label>
+                <textarea
+                  value={((editedField: any): { staticHeadings?: Array<string> }).staticHeadings?.join('\n') || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).staticHeadings = e.target.value
+                      .split('\n')
+                      .map((h) => h.trim())
+                      .filter((h) => h.length > 0)
+                    setEditedField(updated)
+                  }}
+                  placeholder="Enter one heading per line&#10;Tasks&#10;Projects&#10;Archive"
+                  rows={5}
+                />
+                <div className="field-editor-help">Enter headings one per line. Only used if "Depends On Note Field" is not set.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Default Heading:</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { defaultHeading?: string }).defaultHeading || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).defaultHeading = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., Tasks"
+                />
+                <div className="field-editor-help">Default heading to use if none is selected</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { optionAddTopAndBottom?: boolean }).optionAddTopAndBottom ?? true}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).optionAddTopAndBottom = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Include "Top of note" and "Bottom of note" options
+                </label>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { includeArchive?: boolean }).includeArchive ?? false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includeArchive = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Include headings in Archive section
+                </label>
+              </div>
             </>
           )}
 

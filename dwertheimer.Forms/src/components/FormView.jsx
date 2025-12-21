@@ -31,11 +31,11 @@ type Props = {
  *                             IMPORTS
  ****************************************************************************************************************************/
 
-import React, { useEffect, type Node } from 'react'
+import React, { useEffect, useRef, useState, useCallback, useMemo, type Node } from 'react'
 import { type PassedData } from '../NPTemplateForm.js'
 import { AppProvider } from './AppContext.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog'
-import { clo, logDebug } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
 import './FormView.css'
 
 /****************************************************************************************************************************
@@ -67,6 +67,203 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   // destructure all the startup data we expect from the plugin
   const { pluginData } = data
   const formFields = pluginData.formFields || []
+
+  // Map to store pending requests for request/response pattern
+  // Key: correlationId, Value: { resolve, reject, timeoutId }
+  const pendingRequestsRef = useRef<Map<string, { resolve: (data: any) => void, reject: (error: Error) => void, timeoutId: any }>>(new Map())
+
+  // State for dynamically loaded folders and notes (loaded on demand, not pre-loaded)
+  const [folders, setFolders] = useState<Array<string>>([])
+  const [notes, setNotes] = useState<Array<{ title: string, filename: string }>>([])
+  const [foldersLoaded, setFoldersLoaded] = useState<boolean>(false)
+  const [notesLoaded, setNotesLoaded] = useState<boolean>(false)
+  const [loadingFolders, setLoadingFolders] = useState<boolean>(false)
+  const [loadingNotes, setLoadingNotes] = useState<boolean>(false)
+
+  // Check if form has folder-chooser or note-chooser fields
+  const needsFolders = useMemo(() => formFields.some((field) => field.type === 'folder-chooser'), [formFields])
+  const needsNotes = useMemo(() => formFields.some((field) => field.type === 'note-chooser'), [formFields])
+
+  /**
+   * Request data from the plugin using request/response pattern
+   * Returns a Promise that resolves with the response data or rejects with an error
+   * @param {string} command - The command/request type (e.g., 'getFolders', 'getNotes')
+   * @param {any} dataToSend - Request parameters
+   * @param {number} timeout - Timeout in milliseconds (default: 10000)
+   * @returns {Promise<any>}
+   */
+  const requestFromPlugin = (command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
+    if (!command) throw new Error('requestFromPlugin: command must be called with a string')
+
+    const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const requestStartTime = performance.now()
+    const pendingCount = pendingRequestsRef.current.size
+
+    logDebug('FormView', `[DIAG] requestFromPlugin START: command="${command}", correlationId="${correlationId}", pendingRequests=${pendingCount}`)
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const pending = pendingRequestsRef.current.get(correlationId)
+        if (pending) {
+          pendingRequestsRef.current.delete(correlationId)
+          const elapsed = performance.now() - requestStartTime
+          logDebug('FormView', `[DIAG] requestFromPlugin TIMEOUT: command="${command}", correlationId="${correlationId}", elapsed=${elapsed.toFixed(2)}ms`)
+          reject(new Error(`Request timeout: ${command}`))
+        }
+      }, timeout)
+
+      pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
+
+      // Use requestAnimationFrame to yield to browser before dispatching
+      requestAnimationFrame(() => {
+        const dispatchElapsed = performance.now() - requestStartTime
+        logDebug(
+          'FormView',
+          `[DIAG] requestFromPlugin DISPATCH: command="${command}", correlationId="${correlationId}", pendingRequests=${
+            pendingRequestsRef.current.size
+          }, dispatchElapsed=${dispatchElapsed.toFixed(2)}ms`,
+        )
+
+        const requestData = {
+          ...dataToSend,
+          __correlationId: correlationId,
+          __requestType: 'REQUEST',
+        }
+
+        // Dispatch the request
+        requestAnimationFrame(() => {
+          const dispatchAfterRAFElapsed = performance.now() - requestStartTime
+          logDebug(
+            'FormView',
+            `[DIAG] requestFromPlugin DISPATCH AFTER RAF: command="${command}", correlationId="${correlationId}", dispatchElapsed=${dispatchAfterRAFElapsed.toFixed(2)}ms`,
+          )
+          dispatch('SEND_TO_PLUGIN', [command, requestData], `WebView: requestFromPlugin: ${String(command)}`)
+        })
+      })
+    })
+      .then((result) => {
+        const elapsed = performance.now() - requestStartTime
+        logDebug(
+          'FormView',
+          `[DIAG] requestFromPlugin RESOLVED: command="${command}", correlationId="${correlationId}", elapsed=${elapsed.toFixed(2)}ms, pendingRequests=${
+            pendingRequestsRef.current.size
+          }`,
+        )
+        return result
+      })
+      .catch((error) => {
+        const elapsed = performance.now() - requestStartTime
+        logDebug(
+          'FormView',
+          `[DIAG] requestFromPlugin REJECTED: command="${command}", correlationId="${correlationId}", elapsed=${elapsed.toFixed(2)}ms, error="${error.message}", pendingRequests=${
+            pendingRequestsRef.current.size
+          }`,
+        )
+        throw error
+      })
+  }
+
+  // Load folders on demand when needed (matching FormBuilder pattern)
+  const loadFolders = useCallback(async () => {
+    if (foldersLoaded || loadingFolders || !needsFolders) return
+
+    try {
+      setLoadingFolders(true)
+      logDebug('FormView', 'Loading folders on demand...')
+      // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
+      const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true })
+      if (Array.isArray(foldersData)) {
+        setFolders(foldersData)
+        setFoldersLoaded(true)
+        logDebug('FormView', `Loaded ${foldersData.length} folders`)
+      } else {
+        logError('FormView', `Failed to load folders: Invalid response format`)
+        setFoldersLoaded(true) // Set to true to prevent infinite retries
+      }
+    } catch (error) {
+      logError('FormView', `Error loading folders: ${error.message}`)
+      setFoldersLoaded(true) // Set to true to prevent infinite retries
+    } finally {
+      setLoadingFolders(false)
+    }
+  }, [foldersLoaded, loadingFolders, needsFolders, requestFromPlugin])
+
+  // Load notes on demand when needed (matching FormBuilder pattern)
+  const loadNotes = useCallback(async () => {
+    if (notesLoaded || loadingNotes || !needsNotes) return
+
+    try {
+      setLoadingNotes(true)
+      logDebug('FormView', 'Loading notes on demand...')
+      // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
+      const notesData = await requestFromPlugin('getNotes', {})
+      if (Array.isArray(notesData)) {
+        setNotes(notesData)
+        setNotesLoaded(true)
+        logDebug('FormView', `Loaded ${notesData.length} notes`)
+      } else {
+        logError('FormView', `Failed to load notes: Invalid response format`)
+        setNotesLoaded(true) // Set to true to prevent infinite retries
+      }
+    } catch (error) {
+      logError('FormView', `Error loading notes: ${error.message}`)
+      setNotesLoaded(true) // Set to true to prevent infinite retries
+    } finally {
+      setLoadingNotes(false)
+    }
+  }, [notesLoaded, loadingNotes, needsNotes, requestFromPlugin])
+
+  // Listen for RESPONSE messages from Root and resolve pending requests
+  useEffect(() => {
+    const handleResponse = (event: MessageEvent) => {
+      const responseStartTime = performance.now()
+      const { data: eventData } = event
+      // $FlowFixMe[incompatible-type] - eventData can be various types
+      if (eventData && typeof eventData === 'object' && eventData.type === 'RESPONSE' && eventData.payload) {
+        // $FlowFixMe[prop-missing] - payload structure is validated above
+        const payload = eventData.payload
+        if (payload && typeof payload === 'object' && payload.correlationId && typeof payload.correlationId === 'string') {
+          const { correlationId, success, data: responseData, error } = payload
+          const pending = pendingRequestsRef.current.get(correlationId)
+          if (pending) {
+            const resolveStartTime = performance.now()
+            pendingRequestsRef.current.delete(correlationId)
+            clearTimeout(pending.timeoutId)
+            const successStr = typeof success === 'boolean' ? String(success) : 'unknown'
+            logDebug(
+              'FormView',
+              `[DIAG] handleResponse RESOLVING: correlationId="${correlationId}", success=${successStr}, pendingRequests=${pendingRequestsRef.current.size}, handlerElapsed=${(
+                performance.now() - responseStartTime
+              ).toFixed(2)}ms`,
+            )
+
+            // Use requestAnimationFrame to yield before resolving
+            requestAnimationFrame(() => {
+              const resolveElapsed = performance.now() - resolveStartTime
+              logDebug('FormView', `[DIAG] handleResponse RESOLVING AFTER RAF: correlationId="${correlationId}", resolveElapsed=${resolveElapsed.toFixed(2)}ms`)
+              if (success) {
+                pending.resolve(responseData)
+              } else {
+                pending.reject(new Error(error || 'Request failed'))
+              }
+            })
+          } else {
+            logDebug('FormView', `[DIAG] handleResponse UNKNOWN: correlationId="${correlationId}" not found in pending requests`)
+          }
+        }
+      }
+    }
+
+    window.addEventListener('message', handleResponse)
+    return () => {
+      window.removeEventListener('message', handleResponse)
+      // Clean up any pending requests on unmount
+      pendingRequestsRef.current.forEach((pending) => {
+        clearTimeout(pending.timeoutId)
+      })
+      pendingRequestsRef.current.clear()
+    }
+  }, [])
 
   /****************************************************************************************************************************
    *                             HANDLERS
@@ -106,6 +303,19 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
     }
   }, [data])
+
+  // Load folders/notes automatically when fields change and they're needed (matching FormBuilder pattern)
+  useEffect(() => {
+    if (needsFolders && !foldersLoaded && !loadingFolders) {
+      loadFolders()
+    }
+  }, [needsFolders, foldersLoaded, loadingFolders, loadFolders])
+
+  useEffect(() => {
+    if (needsNotes && !notesLoaded && !loadingNotes) {
+      loadNotes()
+    }
+  }, [needsNotes, notesLoaded, loadingNotes, loadNotes])
 
   /****************************************************************************************************************************
    *                             FUNCTIONS
@@ -195,10 +405,22 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
    * WHICH IS OPENED WHEN reactData.dynamicDialog.isOpen is set to true
    * which happens when the useEffect() in this FormView.jsx file opens the dialog on page load
    */
+  // Diagnostic: Log render timing
+  useEffect(() => {
+    const renderStartTime = performance.now()
+    logDebug('FormView', `[DIAG] FormView RENDER START: formFields=${formFields.length}, folders=${folders.length}, notes=${notes.length}`)
+
+    requestAnimationFrame(() => {
+      const renderElapsed = performance.now() - renderStartTime
+      logDebug('FormView', `[DIAG] FormView RENDER AFTER RAF: elapsed=${renderElapsed.toFixed(2)}ms`)
+    })
+  })
+
   return (
     <AppProvider
       sendActionToPlugin={sendActionToPlugin}
       sendToPlugin={sendToPlugin}
+      requestFromPlugin={requestFromPlugin}
       dispatch={dispatch}
       pluginData={pluginData}
       updatePluginData={updatePluginData}
@@ -216,6 +438,9 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
             onCancel={handleCancel}
             allowEmptySubmit={isTrueString(pluginData.allowEmptySubmit)}
             hideDependentItems={isTrueString(pluginData.hideDependentItems)}
+            folders={folders}
+            notes={notes}
+            requestFromPlugin={requestFromPlugin}
           />
         </div>
         {/* end of replace */}

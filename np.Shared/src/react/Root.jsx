@@ -76,6 +76,10 @@ export function Root(/* props: Props */): Node {
   // $FlowFixMe
   const tempSavedClicksRef = useRef<Array<TAnyObject>>([]) // temporarily store the clicks in the webview
 
+  // Map to store pending requests for request/response pattern
+  // Key: correlationId, Value: { resolve, reject, timeoutId }
+  const pendingRequestsRef = useRef<Map<string, { resolve: (data: any) => void, reject: (error: Error) => void, timeoutId: any }>>(new Map())
+
   // NP does not destroy windows on close. So if we have an autorefresh sending requests to NP, it will run forever
   // So we do a check in sendToHTMLWindow to see if the window is still open
   if (npData?.NPWindowID === false) {
@@ -118,7 +122,7 @@ export function Root(/* props: Props */): Node {
    */
   // eslint-disable-next-line no-unused-vars
   const dispatch = (action: string, data: any, actionDescriptionForLog?: string): void => {
-    const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
+    // const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
     // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
     const event = new MessageEvent('message', { data: { type: action, payload: data } })
     onMessageReceived(event)
@@ -270,6 +274,24 @@ export function Root(/* props: Props */): Node {
             case 'SEND_TO_PLUGIN':
               sendToPlugin(payload)
               break
+            case 'RESPONSE':
+              // Handle response from plugin for request/response pattern
+              {
+                const { correlationId, success, data, error } = payload
+                const pending = pendingRequestsRef.current.get(correlationId)
+                if (pending) {
+                  pendingRequestsRef.current.delete(correlationId)
+                  clearTimeout(pending.timeoutId)
+                  if (success) {
+                    pending.resolve(data)
+                  } else {
+                    pending.reject(new Error(error || 'Request failed'))
+                  }
+                } else {
+                  logDebug(`Root`, `RESPONSE received for unknown correlationId: ${correlationId}`)
+                }
+              }
+              break
             case 'RETURN_VALUE' /* function called returned a value */:
               // $FlowIgnore
               // setMessageFromPlugin(payload)
@@ -375,7 +397,14 @@ export function Root(/* props: Props */): Node {
     // the name of this function is important. it corresponds with the Bridge call in the HTMLView
     // I don't recommend changing this function name here or in the bridge
     window.addEventListener('message', onMessageReceived)
-    return () => window.removeEventListener('message', onMessageReceived)
+    return () => {
+      window.removeEventListener('message', onMessageReceived)
+      // Clean up any pending requests on unmount
+      pendingRequestsRef.current.forEach((pending) => {
+        clearTimeout(pending.timeoutId)
+      })
+      pendingRequestsRef.current.clear()
+    }
   }, [])
 
   /**

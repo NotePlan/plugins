@@ -33,11 +33,11 @@ type TFolderIcon = {
 
 const pluginJson = 'NPnote.js'
 
-const TEAMSPACE_ICON_COLOR = 'green-800'
+export const TEAMSPACE_ICON_COLOR = 'green-800'
 
 // Define icons to use in decorated CommandBar options
-const defaultNoteIconDetails = { icon: 'file-lines', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 }
-const noteIconsToUse: Array<TFolderIcon> = [
+export const defaultNoteIconDetails = { icon: 'file-lines', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 }
+export const noteIconsToUse: Array<TFolderIcon> = [
   { firstLevelFolder: '<DAY>', icon: 'calendar-star', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
   { firstLevelFolder: '<WEEK>', icon: 'calendar-week', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
   { firstLevelFolder: '<MONTH>', icon: 'calendar-range', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
@@ -50,7 +50,6 @@ const noteIconsToUse: Array<TFolderIcon> = [
 
 // For speed, pre-compute the relative dates
 const relativeDates = getRelativeDates(true) // use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
-
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -102,32 +101,7 @@ export async function chooseNoteV2(
    */
 
   // Start with titles of regular notes
-  const opts: Array<TCommandBarOptionObject> = sortedNoteList.map((note) => {
-    // Show titles with relative dates, but without path
-    const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
-
-    // Work out which icon to use for this note
-    const FMAttributes = note.frontmatterAttributes
-    const userSetIcon = FMAttributes && FMAttributes['icon']
-    const userSetIconColor = FMAttributes && FMAttributes['icon-color'] // Note: this is a tailwind color name, not a hex code
-    // Note: Teamspace notes are currently (v3.18) only regular or calendar notes, not @Templates, @Archive or @Trash.
-
-    let noteTypeForIcon = getFolderFromFilename(note.filename).split('/')[0]
-    if (note.type === 'Calendar') {
-      noteTypeForIcon = (dt.isDailyNote(note)) ? '<DAY>' : (dt.isWeeklyNote(note)) ? '<WEEK>' : (dt.isMonthlyNote(note)) ? '<MONTH>' : (dt.isQuarterlyNote(note)) ? '<QUARTER>' : '<YEAR>'
-    }
-    const folderIconDetails = noteIconsToUse.find((details) => details.firstLevelFolder === noteTypeForIcon) ?? defaultNoteIconDetails
-    return {
-      text: displayTitleWithRelDate(note, true, false),
-      icon: userSetIcon ? userSetIcon : folderIconDetails.icon,
-      // Note: icon-color isn't used by NP in CommandBar. If we want to stick to that approach then here's the line:
-      // color: possTeamspaceDetails.isTeamspace ? TEAMSPACE_ICON_COLOR : folderIconDetails.color,
-      color: (possTeamspaceDetails.isTeamspace) ? TEAMSPACE_ICON_COLOR : userSetIconColor ? userSetIconColor : folderIconDetails.color,
-      shortDescription: note.type === 'Notes' ? getFolderDisplayName(getFolderFromFilename(note.filename) ?? '') : '',
-      alpha: folderIconDetails.alpha ?? 0.7,
-      darkAlpha: folderIconDetails.darkAlpha ?? 0.7,
-    }
-  })
+  const opts: Array<TCommandBarOptionObject> = sortedNoteList.map((note) => getNoteDecoration(note))
 
   // If wanted, add future calendar notes to the list, where not already present
   if (includeFutureCalendarNotes) {
@@ -219,6 +193,39 @@ export async function chooseNoteV2(
 
   // logDebug('chooseNoteV2', `-> ${noteToReturn ? noteToReturn.filename : '(none)'}`)
   return noteToReturn
+}
+
+/**
+ * Get decoration details for a note (icon, color, text, shortDescription)
+ * This is extracted from chooseNoteV2 to be reusable in React components
+ * @param {TNote} note - The note to get decoration for
+ * @returns {TCommandBarOptionObject} Decoration object with icon, color, text, shortDescription, alpha, darkAlpha
+ */
+export function getNoteDecoration(note: TNote): TCommandBarOptionObject {
+  // Show titles with relative dates, but without path
+  const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
+
+  // Work out which icon to use for this note
+  const FMAttributes = note.frontmatterAttributes
+  const userSetIcon = FMAttributes && FMAttributes['icon']
+  const userSetIconColor = FMAttributes && FMAttributes['icon-color'] // Note: this is a tailwind color name, not a hex code
+  // Note: Teamspace notes are currently (v3.18) only regular or calendar notes, not @Templates, @Archive or @Trash.
+
+  let noteTypeForIcon = getFolderFromFilename(note.filename).split('/')[0]
+  if (note.type === 'Calendar') {
+    noteTypeForIcon = dt.isDailyNote(note) ? '<DAY>' : dt.isWeeklyNote(note) ? '<WEEK>' : dt.isMonthlyNote(note) ? '<MONTH>' : dt.isQuarterlyNote(note) ? '<QUARTER>' : '<YEAR>'
+  }
+  const folderIconDetails = noteIconsToUse.find((details) => details.firstLevelFolder === noteTypeForIcon) ?? defaultNoteIconDetails
+  return {
+    text: displayTitleWithRelDate(note, true, false),
+    icon: userSetIcon ? userSetIcon : folderIconDetails.icon,
+    // Note: icon-color isn't used by NP in CommandBar. If we want to stick to that approach then here's the line:
+    // color: possTeamspaceDetails.isTeamspace ? TEAMSPACE_ICON_COLOR : folderIconDetails.color,
+    color: possTeamspaceDetails.isTeamspace ? TEAMSPACE_ICON_COLOR : userSetIconColor ? userSetIconColor : folderIconDetails.color,
+    shortDescription: note.type === 'Notes' ? getFolderDisplayName(getFolderFromFilename(note.filename) ?? '') : '',
+    alpha: folderIconDetails.alpha ?? 0.7,
+    darkAlpha: folderIconDetails.darkAlpha ?? 0.7,
+  }
 }
 
 //-------------------------------------------------------------------------------
@@ -990,7 +997,7 @@ export function findNotesMatchingHashtagOrMention(
         return isHashtag
           ? caseInsensitiveArrayIncludes(item, correctedHashtags)
           : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-          caseInsensitiveArrayIncludes(item, n.mentions)
+            caseInsensitiveArrayIncludes(item, n.mentions)
       })
     } else {
       notesWithItem = notesInFolder.filter((n) => {
@@ -1139,7 +1146,7 @@ export function findNotesMatchingHashtagOrMentionFromList(
         return isHashtag
           ? caseInsensitiveArrayIncludes(item, correctedHashtags)
           : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-          caseInsensitiveArrayIncludes(item, n.mentions)
+            caseInsensitiveArrayIncludes(item, n.mentions)
       })
     } else {
       projectNotesWithItem = projectNotesInFolder.filter((n) => {
@@ -1148,7 +1155,7 @@ export function findNotesMatchingHashtagOrMentionFromList(
         return isHashtag
           ? caseInsensitiveArrayIncludes(item, correctedHashtags)
           : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-          caseInsensitiveArrayIncludes(item, n.mentions)
+            caseInsensitiveArrayIncludes(item, n.mentions)
       })
     }
     if (projectNotesWithItem.length > 0) {
@@ -1230,7 +1237,10 @@ export function getHeadingsFromNote(
       if (headingParas.length > 0) {
         headingStrings.push(`➕#️⃣ (first insert new heading at the end of the note)`)
       } else {
-        logDebug('NPnote/getHeadingsFromNote', `No headings found in note ${note.filename}. So not adding 'insert new heading at the end of the note' option as well as 'first insert new heading...' option.`)
+        logDebug(
+          'NPnote/getHeadingsFromNote',
+          `No headings found in note ${note.filename}. So not adding 'insert new heading at the end of the note' option as well as 'first insert new heading...' option.`,
+        )
       }
     }
     logDebug('NPnote/getHeadingsFromNote', `After adding 'insert new heading...' options, headingStrings: ${String(headingStrings)}`)

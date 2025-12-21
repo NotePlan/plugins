@@ -17,8 +17,9 @@
 
 export { getTemplateFormData } from './NPTemplateForm'
 export { onFormSubmitFromHTMLView } from './NPTemplateForm'
-export { openFormBuilder } from './NPTemplateForm'
+export { openFormBuilder, testRequestHandlers } from './NPTemplateForm'
 export { onFormBuilderAction } from './NPTemplateForm'
+export { testFormFieldRender } from './FormFieldRenderTest'
 export { createProcessingTemplate } from './ProcessingTemplate'
 
 // FETCH mocking for offline testing

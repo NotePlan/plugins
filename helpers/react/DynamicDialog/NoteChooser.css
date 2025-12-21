@@ -1,0 +1,107 @@
+/* NoteChooser Component Styles */
+
+.note-chooser-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.note-chooser-container.compact {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.note-chooser-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  color: var(--text-color, #333);
+}
+
+.note-chooser-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.note-chooser-input {
+  width: 100%;
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: var(--input-bg, #fff);
+  color: var(--text-color, #333);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* CSS truncation for normal cases, JS truncation for very long items */
+}
+
+.note-chooser-input:focus {
+  outline: none;
+  border-color: var(--primary-color, #0066cc);
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.note-chooser-input:disabled {
+  background-color: var(--disabled-bg, #f5f5f5);
+  color: var(--disabled-text, #999);
+  cursor: not-allowed;
+}
+
+.note-chooser-icon {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--icon-color, #666);
+  pointer-events: none;
+  transition: transform 0.2s;
+}
+
+.note-chooser-icon.open {
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.note-chooser-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: var(--dropdown-bg, #fff);
+  border: 1px solid var(--border-color, #ddd);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: -1px;
+}
+
+.note-chooser-option {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  color: var(--text-color, #333);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* CSS truncation for normal cases, JS truncation for very long items */
+}
+
+.note-chooser-option:hover {
+  background-color: var(--hover-bg, #f5f5f5);
+}
+
+.note-chooser-option:last-child {
+  border-bottom: none;
+}
+
+.note-chooser-empty {
+  padding: 0.5rem 0.75rem;
+  color: var(--text-muted, #999);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+

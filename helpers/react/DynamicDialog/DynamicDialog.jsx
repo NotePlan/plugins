@@ -46,6 +46,9 @@ export type TSettingItemType =
   | 'calendarpicker'
   | 'hidden'
   | 'orderingPanel'
+  | 'folder-chooser'
+  | 'note-chooser'
+  | 'heading-chooser'
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -78,6 +81,18 @@ export type TSettingItem = {
   placeholder?: string, // for dropdown-select, placeholder text when no value is selected
   buttonText?: string, // for calendarpicker and button, text to display on button
   visible?: boolean, // for calendarpicker, whether calendar is shown by default
+  // folder-chooser options (matching chooseFolder function parameters)
+  includeArchive?: boolean, // for folder-chooser, include the Archive folder in the list
+  includeNewFolderOption?: boolean, // for folder-chooser, add a 'New Folder' option that allows creating a new folder
+  startFolder?: string, // for folder-chooser, folder to start the list in (e.g. to limit folders to a specific subfolder)
+  includeFolderPath?: boolean, // for folder-chooser, show the folder path (or most of it), not just the last folder name
+  excludeTeamspaces?: boolean, // for folder-chooser, exclude teamspace folders from the list
+  // heading-chooser options
+  dependsOnNoteKey?: string, // for heading-chooser, the key of a note-chooser field to get headings from dynamically
+  defaultHeading?: string, // for heading-chooser, default heading value if none selected
+  optionAddTopAndBottom?: boolean, // for heading-chooser, whether to add "top of note" and "bottom of note" options (default: true)
+  includeArchive?: boolean, // for heading-chooser, whether to include headings in Archive section (default: false)
+  staticHeadings?: Array<string>, // for heading-chooser, static list of headings (if not depending on a note)
 }
 
 export type TDynamicDialogProps = {
@@ -100,6 +115,9 @@ export type TDynamicDialogProps = {
   hideHeaderButtons?: boolean, // hide the header buttons (cancel and submit) if you want to add your own buttons
   externalChangesMade?: boolean, // New prop to accept external changesMade state
   setChangesMade?: (changesMade: boolean) => void, // New prop to allow external components to update changesMade
+  folders?: Array<string>, // For folder-chooser field types
+  notes?: Array<{ title: string, filename: string }>, // For note-chooser field types
+  requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Optional function to call plugin commands (for native folder chooser)
 }
 
 //--------------------------------------------------------------------------
@@ -125,6 +143,9 @@ const DynamicDialog = ({
   hideHeaderButtons = false,
   externalChangesMade,
   setChangesMade: externalSetChangesMade,
+  folders = [],
+  notes = [],
+  requestFromPlugin,
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || []
@@ -199,8 +220,26 @@ const DynamicDialog = ({
     }
   }
 
+  // Field types that should consume Enter key (prevent form submission)
+  // These are fields where Enter has a specific meaning (e.g., selecting an option)
+  const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'dropdown-select', 'combo']
+
   const handleEnterKey = (event: KeyboardEvent) => {
     if (event.key === 'Enter' && submitOnEnter) {
+      // Check if the focused element is within a field that consumes Enter key
+      const activeElement = document.activeElement
+      if (activeElement instanceof HTMLElement) {
+        // Look for the closest parent with data-field-type attribute
+        const fieldContainer = activeElement.closest('[data-field-type]')
+        if (fieldContainer instanceof HTMLElement) {
+          const fieldType = fieldContainer.getAttribute('data-field-type')
+          if (fieldType && ENTER_CONSUMING_FIELD_TYPES.includes(fieldType)) {
+            // This field type consumes Enter, don't submit the form
+            return
+          }
+        }
+      }
+
       event.preventDefault() // Prevent default action if needed
       handleSave() // see the note below about why we use the ref inside of handleSave
     }
@@ -342,6 +381,10 @@ const DynamicDialog = ({
             labelPosition,
             showSaveButton: false, // Do not show save button
             className: '', // for future use
+            folders, // Pass folders for folder-chooser
+            notes, // Pass notes for note-chooser
+            requestFromPlugin, // Pass requestFromPlugin for native folder chooser
+            updatedSettings, // Pass updatedSettings for heading-chooser to watch note-chooser field
           }
           if (item.type === 'combo' || item.type === 'dropdown-select') {
             renderItemProps.inputRef = dropdownRef

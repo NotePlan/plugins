@@ -38,7 +38,16 @@ const CalendarPicker = ({
   leaveOpen,
   size = 0.75,
 }: Props): React$Node => {
-  const [selectedDate, setSelectedDate] = useState<Date | void>(startingSelectedDate)
+  // Ensure startingSelectedDate is a Date object if provided
+  const normalizeDate = (date: Date | void | string | number): Date | void => {
+    if (!date) return undefined
+    if (date instanceof Date) return date
+    // Try to convert string or number to Date
+    const parsed = new Date(date)
+    return isNaN(parsed.getTime()) ? undefined : parsed
+  }
+
+  const [selectedDate, setSelectedDate] = useState<Date | void>(normalizeDate(startingSelectedDate))
   const [isOpen, setIsOpen] = useState(visible ?? true)
 
   const handleDateChange = (date: Date) => {
@@ -61,8 +70,22 @@ const CalendarPicker = ({
     }
   }, [reset])
 
+  // Update selectedDate when startingSelectedDate changes
+  useEffect(() => {
+    if (startingSelectedDate) {
+      setSelectedDate(normalizeDate(startingSelectedDate))
+    }
+  }, [startingSelectedDate])
+
   // If visible is true and no buttonText, don't show button at all - just show the calendar
   const showButton = !(visible && !buttonText)
+
+  // Safely format date for display
+  const formatDateForDisplay = (date: Date | void): string => {
+    if (!date) return ''
+    if (!(date instanceof Date) || isNaN(date.getTime())) return ''
+    return date.toLocaleDateString()
+  }
 
   return (
     <>
@@ -70,7 +93,7 @@ const CalendarPicker = ({
         <button className="PCButton" title="Open calendar to pick a specific day" onClick={toggleDatePicker}>
           <i className="fa-solid fa-calendar-alt pad-left pad-right"></i>
           {buttonText && <span className="calendar-picker-button-text">{buttonText}</span>}
-          {!isOpen && selectedDate && <span className="calendar-picker-label">: {selectedDate?.toLocaleDateString()}</span>}
+          {!isOpen && selectedDate && <span className="calendar-picker-label">: {formatDateForDisplay(selectedDate)}</span>}
         </button>
       )}
       {isOpen && (

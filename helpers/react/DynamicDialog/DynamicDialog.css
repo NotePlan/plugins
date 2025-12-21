@@ -39,8 +39,8 @@
         border-radius: 8px;
         max-height: 90vh;
         font-size: 95%;
-        /* overflow-y: auto; */
-        overflow-y: visible;
+        overflow-y: auto;
+        /* overflow-y: visible; - changed back to auto to restore scrollbars when content exceeds max-height */
     }
 
     /* Style for the dialog buttons container */

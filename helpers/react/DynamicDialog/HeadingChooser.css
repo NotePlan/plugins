@@ -1,0 +1,38 @@
+/* HeadingChooser Component Styles */
+
+.heading-chooser-container {
+  width: 100%;
+}
+
+.heading-chooser-container .heading-chooser-input {
+  width: 100%;
+}
+
+.heading-chooser-container .heading-chooser-dropdown {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.heading-chooser-container .heading-chooser-option {
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.heading-chooser-container .heading-chooser-option:hover {
+  background-color: var(--bg-alt-color, #f5f5f5);
+}
+
+.heading-chooser-container .heading-chooser-option.selected {
+  background-color: var(--tint-color, #007aff);
+  color: white;
+}
+
+.heading-chooser-container .heading-chooser-icon {
+  color: var(--item-icon-color, #007aff);
+  width: 1rem;
+  text-align: center;
+}
+

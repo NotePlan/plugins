@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+For NotePlan code, never use require statements. Use import statements at the top of the file -- never inline/dynamically import modules. Rollup will not process them correctly.
+You should not ever try to build the code with "npm run build" -- this will not work. The programmer will have to use Rollup to build the code. There is separate tooling for this described in @README.md.

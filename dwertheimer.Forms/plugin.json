@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.Forms",
   "plugin.name": "📝 Forms",
-  "plugin.version": "1.0.4",
-  "plugin.lastUpdateInfo": "Added Form Builder",
+  "plugin.version": "1.0.5",
+  "plugin.lastUpdateInfo": "Added folder-chooser and note-chooser field types with smart path truncation",
   "plugin.description": "Dynamic Forms for NotePlan using Templating -- fill out a form and have the data sent to a template for processing",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles": ["react.c.FormView.bundle.dev.js", "react.c.FormBuilderView.bundle.dev.js"],
@@ -98,6 +98,24 @@
       "name": "Forms: Update Plugin Settings",
       "description": "Preferences",
       "jsFunction": "editSettings"
+    },
+    {
+      "name": "Test Request Handlers",
+      "alias": [
+        "testhandlers",
+        "testrequests"
+      ],
+      "description": "Test request handlers directly (without React)",
+      "jsFunction": "testRequestHandlers"
+    },
+    {
+      "name": "Form Field Render Test",
+      "alias": [
+        "testfields",
+        "fieldtest"
+      ],
+      "description": "Open a test form with all DynamicDialog field types to verify rendering",
+      "jsFunction": "testFormFieldRender"
     }
   ],
   "plugin.settings": [

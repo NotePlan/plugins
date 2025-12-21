@@ -2,7 +2,9 @@
 
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
+// Note: getAllNotesAsOptions is no longer used here - FormView loads notes dynamically via requestFromPlugin
 import { createProcessingTemplate, varsInForm, varsCodeBlockType } from './ProcessingTemplate'
+import { handleRequest, testRequestHandlers } from './requestHandlers'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
@@ -13,6 +15,7 @@ import { getCodeBlocksOfType, replaceCodeBlockContent } from '@helpers/codeBlock
 import { parseObjectString, validateObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
 import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
+// Note: getFoldersMatching is no longer used here - FormView loads folders dynamically via requestFromPlugin
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} Form Entry React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
@@ -189,8 +192,11 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
  */
 export function createWindowInitData(argObj: Object): PassedData {
   const startTime = new Date()
+  logDebug(pluginJson, `createWindowInitData: ENTRY - argObj keys: ${Object.keys(argObj || {}).join(', ')}`)
   // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
   const pluginData = getPluginData(argObj)
+  const foldersArray = Array.isArray(pluginData.folders) ? pluginData.folders : []
+  logDebug(pluginJson, `createWindowInitData: After getPluginData - folders.length=${foldersArray.length}`)
   const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
   const dataToPass: PassedData = {
     pluginData,
@@ -216,8 +222,39 @@ export function createWindowInitData(argObj: Object): PassedData {
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
 export function getPluginData(argObj: Object): { [string]: mixed } {
-  // you would want to gather some data from your plugin
+  logDebug(pluginJson, `getPluginData: ENTRY - argObj keys: ${Object.keys(argObj || {}).join(', ')}`)
+
+  // Check if form fields include folder-chooser or note-chooser
+  const formFields = argObj.formFields || []
+  logDebug(pluginJson, `getPluginData: Checking ${formFields.length} form fields for folder-chooser/note-chooser`)
+
+  // Log field types for debugging
+  const fieldTypes = formFields.map((f) => f.type).filter(Boolean)
+  logDebug(pluginJson, `getPluginData: Field types found: ${fieldTypes.join(', ')}`)
+
+  const needsFolders = formFields.some((field) => field.type === 'folder-chooser')
+  const needsNotes = formFields.some((field) => field.type === 'note-chooser')
+
+  logDebug(pluginJson, `getPluginData: needsFolders=${String(needsFolders)}, needsNotes=${String(needsNotes)}`)
+
   const pluginData = { platform: NotePlan.environment.platform, ...argObj }
+
+  // Always initialize folders and notes arrays as empty
+  // Both FormView and FormBuilder now load folders/notes dynamically via requestFromPlugin
+  // This is more consistent and allows for better error handling and on-demand loading
+  pluginData.folders = []
+  pluginData.notes = []
+
+  if (needsFolders) {
+    logDebug(pluginJson, `getPluginData: Folder-chooser field detected - folders will be loaded dynamically by FormView`)
+  }
+  if (needsNotes) {
+    logDebug(pluginJson, `getPluginData: Note-chooser field detected - notes will be loaded dynamically by FormView`)
+  }
+
+  const foldersArray = Array.isArray(pluginData.folders) ? pluginData.folders : []
+  const notesArray = Array.isArray(pluginData.notes) ? pluginData.notes : []
+  logDebug(pluginJson, `getPluginData: EXIT - pluginData keys: ${Object.keys(pluginData).join(', ')}, folders.length=${foldersArray.length}, notes.length=${notesArray.length}`)
   return pluginData // this could be any object full of data you want to pass to the window
 }
 
@@ -479,8 +516,9 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
     if (argObj.templateFilename) {
       const templateNote = await getNoteByFilename(argObj.templateFilename)
       if (templateNote) {
-        windowTitle = templateNote.frontmatterAttributes?.windowTitle || ''
-        formTitle = templateNote.frontmatterAttributes?.formTitle || ''
+        // Strip quotes from frontmatter values if present
+        windowTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.windowTitle || '') || ''
+        formTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.formTitle || '') || ''
         allowEmptySubmit = templateNote.frontmatterAttributes?.allowEmptySubmit === 'true' || templateNote.frontmatterAttributes?.allowEmptySubmit === true
         hideDependentItems = templateNote.frontmatterAttributes?.hideDependentItems === 'true' || templateNote.frontmatterAttributes?.hideDependentItems === true
         // Parse width and height as numbers if they exist
@@ -574,6 +612,32 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
     logDebug(pluginJson, `onFormBuilderAction received actionType="${actionType}"`)
     clo(data, `onFormBuilderAction data=`)
 
+    // Check if this is a request that needs a response
+    if (data?.__requestType === 'REQUEST' && data?.__correlationId) {
+      try {
+        logDebug(pluginJson, `onFormBuilderAction: Handling REQUEST type="${actionType}" with correlationId="${data.__correlationId}"`)
+        const result = await handleRequest(actionType, data)
+
+        // Send response back to React
+        sendToHTMLWindow(FORMBUILDER_WINDOW_ID, 'RESPONSE', {
+          correlationId: data.__correlationId,
+          success: result.success,
+          data: result.data,
+          error: result.message,
+        })
+        return {}
+      } catch (error) {
+        logError(pluginJson, `onFormBuilderAction: Error handling REQUEST: ${error.message}`)
+        sendToHTMLWindow(FORMBUILDER_WINDOW_ID, 'RESPONSE', {
+          correlationId: data.__correlationId,
+          success: false,
+          data: null,
+          error: error.message || 'Unknown error',
+        })
+        return {}
+      }
+    }
+
     // The data structure from React is: { type: 'save'|'cancel', fields: [...], templateFilename: ..., templateTitle: ... }
     // actionType will be "onFormBuilderAction" (the command name), and the actual action is in data.type
     const actualActionType = data?.type
@@ -664,6 +728,7 @@ async function saveFrontmatterToTemplate(templateFilename: string, frontmatter: 
     }
 
     // Convert all frontmatter values to strings (updateFrontMatterVars expects strings)
+    // Strip any quotes that might have been added
     const frontmatterAsStrings: { [string]: string } = {}
     Object.keys(frontmatter).forEach((key) => {
       const value = frontmatter[key]
@@ -674,8 +739,11 @@ async function saveFrontmatterToTemplate(templateFilename: string, frontmatter: 
         frontmatterAsStrings[key] = String(value)
       } else if (typeof value === 'number') {
         frontmatterAsStrings[key] = String(value)
+      } else if (typeof value === 'string') {
+        // Strip quotes from string values
+        frontmatterAsStrings[key] = stripDoubleQuotes(value)
       } else {
-        frontmatterAsStrings[key] = String(value)
+        frontmatterAsStrings[key] = stripDoubleQuotes(String(value))
       }
     })
 
@@ -803,9 +871,37 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
   try {
     logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
     clo(data, `Plugin onMessageFromHTMLView data=`)
+
+    // Check if this is a request that needs a response
+    if (data?.__requestType === 'REQUEST' && data?.__correlationId) {
+      try {
+        logDebug(pluginJson, `onFormSubmitFromHTMLView: Handling REQUEST type="${actionType}" with correlationId="${data.__correlationId}"`)
+        const result = await handleRequest(actionType, data)
+
+        // Send response back to React
+        sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'RESPONSE', {
+          correlationId: data.__correlationId,
+          success: result.success,
+          data: result.data,
+          error: result.message,
+        })
+        return {}
+      } catch (error) {
+        logError(pluginJson, `onFormSubmitFromHTMLView: Error handling REQUEST: ${error.message}`)
+        sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'RESPONSE', {
+          correlationId: data.__correlationId,
+          success: false,
+          data: null,
+          error: error.message || 'Unknown error',
+        })
+        return {}
+      }
+    }
+
+    // Existing fire-and-forget handling
     let returnValue = null
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
-    clo(reactWindowData, `Plugin onMessageFromHTMLView reactWindowData=`)
+    // clo(reactWindowData, `Plugin onMessageFromHTMLView reactWindowData=`)
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     switch (actionType) {
       /* best practice here is not to actually do the processing but to call a function based on what the actionType was sent by React */
@@ -929,10 +1025,15 @@ export async function openFormWindow(argObj: Object): Promise<void> {
     logDebug(`===== openReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
     logDebug(pluginJson, `openReactWindow invoking window. openReactWindow stopping here. It's all React from this point forward`)
     clo(windowOptions, `openReactWindow windowOptions object passed`)
-    clo(data, `openReactWindow data object passed`)
+    // clo(data, `openReactWindow data object passed`) // this is a lot of data
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
 }
+
+/**
+ * Export testRequestHandlers for direct testing
+ */
+export { testRequestHandlers }
