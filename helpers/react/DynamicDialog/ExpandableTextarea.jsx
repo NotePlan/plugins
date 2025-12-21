@@ -71,7 +71,7 @@ export function ExpandableTextarea({
   }
 
   return (
-    <div className={`expandable-textarea-container ${compactDisplay ? 'compact' : ''} ${className}`}>
+    <div className={`expandable-textarea-container ${compactDisplay ? 'compact' : ''} ${className}`} data-field-type="textarea">
       {label && <label className="expandable-textarea-label">{label}</label>}
       <textarea
         ref={textareaRef}
