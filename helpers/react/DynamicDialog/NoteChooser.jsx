@@ -82,12 +82,11 @@ const getNoteDecoration = (note: NoteOption): { icon: string, color: string, sho
   // (because the path will already be visible in the main text)
   // We intentionally don't show short description to avoid duplicating the folder path
   // which is already shown in the option text as "path / title"
-  const shortDescription: ?string = null
 
   return {
     icon: userSetIcon || folderIconDetails.icon,
     color,
-    shortDescription,
+    shortDescription: null, // Intentionally null - folder path is already in option text
   }
 }
 
