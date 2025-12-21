@@ -70,6 +70,7 @@
 }
 
 /* Arrow - use .{prefix}-arrow */
+.searchable-chooser-input-wrapper .searchable-chooser-arrow,
 .searchable-chooser-arrow {
   position: absolute;
   right: 0.75rem;
@@ -79,8 +80,10 @@
   pointer-events: none;
   transition: transform 0.2s;
   font-size: 0.75rem;
+  z-index: 1;
 }
 
+.searchable-chooser-input-wrapper .searchable-chooser-arrow.open,
 .searchable-chooser-arrow.open {
   transform: translateY(-50%) rotate(180deg);
 }

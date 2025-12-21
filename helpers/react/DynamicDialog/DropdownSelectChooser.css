@@ -30,9 +30,24 @@
   color: white;
 }
 
-.dropdown-select-chooser-container .dropdown-select-chooser-icon {
-  color: var(--item-icon-color, #007aff);
-  width: 1rem;
-  text-align: center;
+/* Ensure arrow is positioned inside the input wrapper */
+.dropdown-select-chooser-input-wrapper {
+  position: relative;
+}
+
+.dropdown-select-chooser-arrow {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--icon-color, #666);
+  pointer-events: none;
+  transition: transform 0.2s;
+  font-size: 0.75rem;
+  z-index: 1;
+}
+
+.dropdown-select-chooser-arrow.open {
+  transform: translateY(-50%) rotate(180deg);
 }
 
