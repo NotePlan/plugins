@@ -73,6 +73,7 @@ export function SearchableChooser({
   placeholder = 'Type to search...',
   showValue = false,
   config,
+  closeDropdown = false,
 }: SearchableChooserProps): React$Node {
   const {
     items,
