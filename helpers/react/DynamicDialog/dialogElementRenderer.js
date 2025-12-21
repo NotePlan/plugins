@@ -502,6 +502,22 @@ export function renderItem({
           </div>
         )
       }
+      case 'form-state-viewer': {
+        // Read-only field that displays the current form state as JSON
+        // This is useful for testing/debugging to see what values will be submitted
+        const formState = updatedSettings || {}
+        const formStateJson = JSON.stringify(formState, null, 2)
+
+        return (
+          <div data-field-type="form-state-viewer" className="form-state-viewer-container">
+            {item.label && <label className="input-box-label">{item.label}</label>}
+            <div className="form-state-viewer-content">
+              <pre className="form-state-viewer-json">{formStateJson}</pre>
+            </div>
+            {item.description && <div className="field-editor-help">{item.description}</div>}
+          </div>
+        )
+      }
       default:
         return null
     }

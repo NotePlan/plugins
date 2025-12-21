@@ -248,6 +248,33 @@
         outline: none; /* Remove any outline on focus */
         box-shadow: none; /* Remove any potential box-shadow on focus */
     }
+
+    /* Style for form-state-viewer (read-only JSON display of form state) */
+    .form-state-viewer-container {
+        width: 100%;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--divider-color);
+    }
+
+    .form-state-viewer-content {
+        background-color: var(--bg-alt-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 4px;
+        padding: 0.75rem;
+        max-height: 400px;
+        overflow-y: auto;
+        font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+        font-size: 0.8rem;
+        line-height: 1.4;
+    }
+
+    .form-state-viewer-json {
+        margin: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        color: var(--fg-main-color);
+    }
         
     /* Make number boxes a little narrower */
     .input-box-input-number {

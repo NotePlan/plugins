@@ -240,6 +240,15 @@ export async function testFormFieldRender(): Promise<void> {
         value: 'hidden-value',
         description: 'Hidden field (not visible but included in form data)',
       },
+      {
+        type: 'separator',
+        label: 'Form State Viewer',
+      },
+      {
+        type: 'form-state-viewer',
+        label: 'Current Form State (Live Preview)',
+        description: 'This shows the current values of all form fields as they will be submitted. Scroll down to see this section update in real-time as you change field values above.',
+      },
       // Note: 'orderingPanel' is not included as it's typically used in specific contexts
       // and may require special setup. Add it if needed for testing.
     ]
