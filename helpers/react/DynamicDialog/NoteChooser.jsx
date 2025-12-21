@@ -203,11 +203,25 @@ export function NoteChooser({
 
       return shouldInclude
     })
-  }, [notes, includeCalendarNotes, includePersonalNotes, includeRelativeNotes, includeTeamspaceNotes])
+  }, [notes, includeCalendarNotes, includePersonalNotes, includeRelativeNotes, includeTeamspaceNotes, folderFilter])
+
+  // Add "New Note" option to items if includeNewNoteOption is true
+  const itemsWithNewNote = useMemo(() => {
+    if (!includeNewNoteOption) {
+      return filteredNotes
+    }
+    // Add a special "New Note" option at the beginning
+    const newNoteOption: NoteOption = {
+      title: '➕ New Note',
+      filename: '__NEW_NOTE__',
+      type: 'Notes',
+    }
+    return [newNoteOption, ...filteredNotes]
+  }, [filteredNotes, includeNewNoteOption])
 
   // Configure the generic SearchableChooser for notes
   const config: ChooserConfig = {
-    items: filteredNotes,
+    items: itemsWithNewNote,
     filterFn: (note: NoteOption, searchTerm: string) => {
       const term = searchTerm.toLowerCase()
       return note.title.toLowerCase().includes(term) || note.filename.toLowerCase().includes(term)
