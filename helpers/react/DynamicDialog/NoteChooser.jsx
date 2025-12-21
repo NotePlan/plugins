@@ -40,7 +40,7 @@ export type NoteChooserProps = {
   showValue?: boolean, // If true, display the selected value below the input
   includeNewNoteOption?: boolean, // If true, add a 'New Note' option that allows creating a new note
   dependsOnFolderKey?: string, // Key of a folder-chooser field to filter notes by folder
-  folderFilter?: string, // Current folder value from dependsOnFolderKey field (for filtering notes)
+  folderFilter?: ?string, // Current folder value from dependsOnFolderKey field (for filtering notes) - can be null
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request note creation from plugin
   onNotesChanged?: () => void, // Callback to request note list reload after creating a note
 }
