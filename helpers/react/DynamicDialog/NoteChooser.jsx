@@ -233,6 +233,10 @@ export function NoteChooser({
       return note.title
     },
     getOptionText: (note: NoteOption) => {
+      // Handle "New Note" option
+      if (note.filename === '__NEW_NOTE__') {
+        return '➕ New Note'
+      }
       // For personal/project notes, show "path / title" format to match native chooser
       // For calendar notes, show just the title
       if (note.type === 'Notes' || !note.type) {
