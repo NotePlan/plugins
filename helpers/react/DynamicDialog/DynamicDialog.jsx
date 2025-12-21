@@ -393,7 +393,8 @@ const DynamicDialog = ({
             folders, // Pass folders for folder-chooser
             notes, // Pass notes for note-chooser
             requestFromPlugin, // Pass requestFromPlugin for native folder chooser
-            updatedSettings, // Pass updatedSettings for heading-chooser to watch note-chooser field
+            updatedSettings, // Pass updatedSettings for heading-chooser to watch note-chooser field, and for form-state-viewer
+            onFoldersChanged, // Pass onFoldersChanged to reload folders after creating a new folder
           }
           if (item.type === 'combo' || item.type === 'dropdown-select') {
             renderItemProps.inputRef = dropdownRef
