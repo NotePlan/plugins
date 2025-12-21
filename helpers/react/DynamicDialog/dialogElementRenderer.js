@@ -49,6 +49,7 @@ type RenderItemProps = {
   notes?: Array<NoteOption>, // For note-chooser
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // For native folder chooser
   updatedSettings?: { [key: string]: any }, // For heading-chooser to watch note-chooser field
+  onFoldersChanged?: () => void, // Callback to reload folders after creating a new folder
 }
 
 /**
@@ -78,6 +79,7 @@ export function renderItem({
   notes = [], // For note-chooser
   requestFromPlugin, // For native folder chooser
   updatedSettings, // For heading-chooser to watch note-chooser field
+  onFoldersChanged, // Callback to reload folders after creating a new folder
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -445,6 +447,7 @@ export function renderItem({
               excludeTeamspaces={folderChooserOptions.excludeTeamspaces}
               requestFromPlugin={requestFromPlugin}
               showValue={item.showValue ?? false}
+              onFoldersChanged={onFoldersChanged}
             />
           </div>
         )

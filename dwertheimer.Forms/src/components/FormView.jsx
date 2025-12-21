@@ -189,6 +189,29 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     }
   }, [foldersLoaded, loadingFolders, needsFolders, requestFromPlugin])
 
+  // Reload folders (used after creating a new folder)
+  const reloadFolders = useCallback(async () => {
+    try {
+      setLoadingFolders(true)
+      setFoldersLoaded(false) // Reset to allow reload
+      logDebug('FormView', 'Reloading folders after folder creation...')
+      const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true })
+      if (Array.isArray(foldersData)) {
+        setFolders(foldersData)
+        setFoldersLoaded(true)
+        logDebug('FormView', `Reloaded ${foldersData.length} folders`)
+      } else {
+        logError('FormView', `Failed to reload folders: Invalid response format`)
+        setFoldersLoaded(true)
+      }
+    } catch (error) {
+      logError('FormView', `Error reloading folders: ${error.message}`)
+      setFoldersLoaded(true)
+    } finally {
+      setLoadingFolders(false)
+    }
+  }, [requestFromPlugin])
+
   // Load notes on demand when needed (matching FormBuilder pattern)
   const loadNotes = useCallback(async () => {
     if (notesLoaded || loadingNotes || !needsNotes) return
@@ -461,6 +484,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
             folders={folders}
             notes={notes}
             requestFromPlugin={requestFromPlugin}
+            onFoldersChanged={reloadFolders}
           />
         </div>
         {/* end of replace */}

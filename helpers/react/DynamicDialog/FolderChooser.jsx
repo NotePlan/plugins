@@ -30,6 +30,7 @@ export type FolderChooserProps = {
   excludeTeamspaces?: boolean,
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>,
   showValue?: boolean, // If true, display the selected value below the input
+  onFoldersChanged?: () => void, // Callback to request folder list reload after creating a folder
 }
 
 /**
@@ -53,6 +54,7 @@ export function FolderChooser({
   excludeTeamspaces = false,
   requestFromPlugin,
   showValue = false,
+  onFoldersChanged,
 }: FolderChooserProps): React$Node {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -165,21 +167,33 @@ export function FolderChooser({
 
       const fullPath = parentFolderPath === '/' || parentFolderPath === '' ? folderName : `${parentFolderPath}/${folderName}`
 
-      const response = await requestFromPlugin('createFolder', {
+      // requestFromPlugin resolves with just the data (folder path) on success, or rejects on error
+      const createdFolder = await requestFromPlugin('createFolder', {
         folderPath: fullPath,
       })
 
-      if (response && response.success && response.data) {
-        const createdFolder = response.data
+      if (createdFolder && typeof createdFolder === 'string') {
         logDebug('FolderChooser', `Successfully created folder: "${createdFolder}"`)
-        onChange(createdFolder)
+        
+        // Close the dialog and clear form
         setShowCreateDialog(false)
         setNewFolderName('')
         setParentFolder('')
         setCreateInParent(false)
+        
+        // Request folder list reload so the new folder appears
+        if (onFoldersChanged) {
+          onFoldersChanged()
+        }
+        
+        // Select the newly created folder
+        // Use setTimeout to ensure folders are reloaded first
+        setTimeout(() => {
+          onChange(createdFolder)
+        }, 100)
       } else {
-        logError('FolderChooser', `Failed to create folder: ${response?.error || 'Unknown error'}`)
-        alert(`Failed to create folder: ${response?.error || 'Unknown error'}`)
+        logError('FolderChooser', `Failed to create folder: Invalid response format`)
+        alert(`Failed to create folder: Invalid response format`)
       }
     } catch (error) {
       logError('FolderChooser', `Error creating folder: ${error.message}`)
