@@ -50,6 +50,7 @@ export type TSettingItemType =
   | 'note-chooser'
   | 'heading-chooser'
   | 'form-state-viewer' // Read-only field that displays current form state as JSON
+  | 'textarea' // Expandable textarea field
 
 export type TSettingItem = {
   type: TSettingItemType,
