@@ -53,12 +53,12 @@ export function ExpandableTextarea({
     if (textarea) {
       // Reset height to auto to get the correct scrollHeight
       textarea.style.height = 'auto'
-      
+
       // Calculate the number of lines
       const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight, 10) || 20
       const lines = textarea.value.split('\n').length
       const calculatedRows = Math.max(minRows, Math.min(maxRows, lines))
-      
+
       // Set height based on calculated rows
       textarea.style.height = `${calculatedRows * lineHeight}px`
     }
@@ -93,4 +93,3 @@ export function ExpandableTextarea({
 }
 
 export default ExpandableTextarea
-
