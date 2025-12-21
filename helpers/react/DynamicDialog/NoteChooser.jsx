@@ -139,7 +139,19 @@ export function NoteChooser({
       return note.title.toLowerCase().includes(term) || note.filename.toLowerCase().includes(term)
     },
     getDisplayValue: (note: NoteOption) => note.title,
-    getOptionText: (note: NoteOption) => note.title,
+    getOptionText: (note: NoteOption) => {
+      // For personal/project notes, show "path / title" format to match native chooser
+      // For calendar notes, show just the title (or date with relative date)
+      if (note.type === 'Notes' || !note.type) {
+        // Use the native function to get "path / title" format
+        return getDisplayTitleAndPathForRegularNote(note)
+      } else if (note.type === 'Calendar') {
+        // For calendar notes, show title with relative date if applicable
+        return displayTitleWithRelDate(note, true, false)
+      }
+      // Fallback to just title
+      return note.title
+    },
     getOptionTitle: (note: NoteOption) => {
       const decoration = getNoteDecoration(note)
       return decoration.shortDescription ? `${note.filename} - ${decoration.shortDescription}` : note.filename
