@@ -126,6 +126,7 @@ export type TDynamicDialogProps = {
   folders?: Array<string>, // For folder-chooser field types
   notes?: Array<{ title: string, filename: string }>, // For note-chooser field types
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Optional function to call plugin commands (for native folder chooser)
+  onFoldersChanged?: () => void, // Callback to reload folders after creating a new folder
 }
 
 //--------------------------------------------------------------------------
