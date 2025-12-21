@@ -258,7 +258,8 @@ export async function testFormFieldRender(): Promise<void> {
         includeRelativeNotes: false,
         includeTeamspaceNotes: true,
         showValue: true,
-        description: 'This note chooser filters by folder AND allows creating new notes in that folder. Select a folder above, then click "➕ New Note" in the dropdown to create a note in that folder.',
+        description:
+          'This note chooser filters by folder AND allows creating new notes in that folder. Select a folder above, then click "➕ New Note" in the dropdown to create a note in that folder.',
       },
       {
         type: 'heading-chooser',

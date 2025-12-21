@@ -184,7 +184,32 @@ export function NoteChooser({
       // Check if note is a relative note (filename starts with '<')
       const isRelativeNote = typeof note.filename === 'string' && note.filename.startsWith('<')
 
-      // Determine if this note should be included
+      // Filter by folder if folderFilter is provided
+      if (folderFilter && !isRelativeNote) {
+        // Get the folder path from the note's filename
+        const noteFolder = getFolderFromFilename(note.filename)
+        
+        // Normalize folder paths for comparison
+        // Remove trailing slashes and ensure consistent format
+        const normalizeFolder = (folder: string): string => {
+          if (folder === '/') return '/'
+          return folder.replace(/\/+$/, '') // Remove trailing slashes
+        }
+        
+        const normalizedFilter = normalizeFolder(folderFilter)
+        const normalizedNoteFolder = normalizeFolder(noteFolder)
+        
+        // Check if note is in the selected folder
+        // For exact match or if note folder starts with filter folder + '/'
+        const folderMatches = normalizedNoteFolder === normalizedFilter || 
+                           normalizedNoteFolder.startsWith(normalizedFilter + '/')
+        
+        if (!folderMatches) {
+          return false // Exclude notes not in the selected folder
+        }
+      }
+
+      // Determine if this note should be included based on type
       let shouldInclude = false
 
       // Check calendar vs personal vs relative
