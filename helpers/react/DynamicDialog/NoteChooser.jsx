@@ -223,6 +223,10 @@ export function NoteChooser({
   const config: ChooserConfig = {
     items: itemsWithNewNote,
     filterFn: (note: NoteOption, searchTerm: string) => {
+      // Always show "New Note" option if it exists, regardless of search term
+      if (note.filename === '__NEW_NOTE__') {
+        return true
+      }
       const term = searchTerm.toLowerCase()
       return note.title.toLowerCase().includes(term) || note.filename.toLowerCase().includes(term)
     },
