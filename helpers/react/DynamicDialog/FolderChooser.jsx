@@ -174,18 +174,18 @@ export function FolderChooser({
 
       if (createdFolder && typeof createdFolder === 'string') {
         logDebug('FolderChooser', `Successfully created folder: "${createdFolder}"`)
-        
+
         // Close the dialog and clear form
         setShowCreateDialog(false)
         setNewFolderName('')
         setParentFolder('')
         setCreateInParent(false)
-        
+
         // Request folder list reload so the new folder appears
         if (onFoldersChanged) {
           onFoldersChanged()
         }
-        
+
         // Select the newly created folder
         // Use setTimeout to ensure folders are reloaded first
         setTimeout(() => {
