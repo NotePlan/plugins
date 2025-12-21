@@ -110,6 +110,9 @@ export function SearchableChooser({
   // Debug logging
   useEffect(() => {
     if (debugLogging) {
+      console.log(`${fieldType}: maxResults=${maxResults}, filteredItems.length=${filteredItems.length}`)
+    }
+    if (debugLogging) {
       console.log(`${fieldType}: Component mounted/updated: items=${items?.length || 0}, isOpen=${String(isOpen)}, filteredItems=${filteredItems.length}`)
       if (items && items.length > 0) {
         console.log(`${fieldType}: First few items:`, items.slice(0, 5).map(getDisplayValue).join(', '))

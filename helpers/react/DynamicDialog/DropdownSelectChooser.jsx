@@ -86,7 +86,7 @@ export function DropdownSelectChooser({
     iconClass: null, // Use arrow instead of icon
     showArrow: true, // Show down arrow on the right
     fieldType: 'dropdown-select-chooser',
-    debugLogging: false,
+    debugLogging: true, // Enable debug logging to verify maxResults
     maxResults: 20,
     inputMaxLength: 60,
     dropdownMaxLength: 80,
