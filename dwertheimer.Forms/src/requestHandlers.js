@@ -157,41 +157,48 @@ export function getNotes(
 
     const allNotes: Array<any> = []
 
-    // Get all notes (project + calendar if requested) in one call, then filter
+    // Get project notes and calendar notes separately, then filter
     const processStartTime: number = Date.now()
-    const allNotesFromStore = getAllNotesAsOptions(includeCalendarNotes, true) // Get all notes with decoration
-    const processElapsed: number = Date.now() - processStartTime
-    logDebug(pluginJson, `[DIAG] getNotes STORE: elapsed=${processElapsed}ms, found=${allNotesFromStore.length} total notes from store`)
+    
+    // Get project notes (personal notes)
+    if (includePersonalNotes) {
+      const projectNotes = getAllNotesAsOptions(false, true) // Don't include calendar notes here
+      const processElapsed: number = Date.now() - processStartTime
+      logDebug(pluginJson, `[DIAG] getNotes PROJECT: elapsed=${processElapsed}ms, found=${projectNotes.length} project notes`)
 
-    // Filter notes based on options
-    for (const note of allNotesFromStore) {
-      // Check if note is a calendar note
-      const isCalendarNote = note.type === 'Calendar'
-
-      // Check if note is a teamspace note
-      const isTeamspaceNote = note.isTeamspaceNote === true
-
-      // Determine if this note should be included
-      let shouldInclude = false
-
-      // Check calendar vs personal
-      if (isCalendarNote) {
-        shouldInclude = includeCalendarNotes
-      } else {
-        shouldInclude = includePersonalNotes
+      // Filter teamspace notes if needed
+      for (const note of projectNotes) {
+        const isTeamspaceNote = note.isTeamspaceNote === true
+        if (includeTeamspaceNotes || !isTeamspaceNote) {
+          allNotes.push(note)
+        }
       }
-
-      // Check teamspace
-      if (shouldInclude && !includeTeamspaceNotes && isTeamspaceNote) {
-        shouldInclude = false
-      }
-
-      if (shouldInclude) {
-        allNotes.push(note)
-      }
+      logDebug(pluginJson, `[DIAG] getNotes PROJECT FILTERED: ${allNotes.length} personal notes after teamspace filter`)
     }
 
-    logDebug(pluginJson, `[DIAG] getNotes FILTERED: ${allNotes.length} notes after filtering (from ${allNotesFromStore.length} total)`)
+    // Get calendar notes if requested
+    if (includeCalendarNotes) {
+      const calendarStartTime: number = Date.now()
+      const calendarNotes = getAllNotesAsOptions(true, true) // Include calendar notes
+      const calendarElapsed: number = Date.now() - calendarStartTime
+      logDebug(pluginJson, `[DIAG] getNotes CALENDAR: elapsed=${calendarElapsed}ms, found=${calendarNotes.length} calendar notes`)
+
+      // Filter teamspace notes if needed, and only include calendar notes (not project notes)
+      for (const note of calendarNotes) {
+        const isCalendarNote = note.type === 'Calendar'
+        const isTeamspaceNote = note.isTeamspaceNote === true
+        
+        // Only include if it's actually a calendar note (not a project note that got mixed in)
+        if (isCalendarNote) {
+          if (includeTeamspaceNotes || !isTeamspaceNote) {
+            allNotes.push(note)
+          }
+        }
+      }
+      logDebug(pluginJson, `[DIAG] getNotes CALENDAR FILTERED: ${allNotes.length} total notes after calendar filter`)
+    }
+
+    logDebug(pluginJson, `[DIAG] getNotes FILTERED: ${allNotes.length} notes after filtering`)
 
     // Get relative notes (like <today>, <thisweek>, etc.)
     if (includeRelativeNotes) {

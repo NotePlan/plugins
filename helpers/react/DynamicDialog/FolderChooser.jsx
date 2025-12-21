@@ -240,6 +240,50 @@ export function FolderChooser({
     return parts.length > 0 ? parts[parts.length - 1] : '/'
   }
 
+  // Format folder display for selected value - includes teamspace info or truncated path
+  const formatFolderDisplayForSelected = (folder: string): string => {
+    // Handle teamspace folders - include teamspace name
+    if (folder.startsWith('%%NotePlanCloud%%')) {
+      const teamspaceDetails = parseTeamspaceFilename(folder)
+      const teamspace = teamspaces.find((ts) => ts.id === teamspaceDetails.teamspaceID)
+      const teamspaceName = teamspace ? teamspace.title : 'Teamspace'
+
+      if (teamspaceDetails.filepath === '/') {
+        // Teamspace root folder
+        return teamspaceName
+      } else {
+        // Teamspace subfolder - filter out UUIDs and show teamspace name + path
+        let cleanPath = teamspaceDetails.filepath
+        const pathParts = cleanPath.split('/').filter(Boolean)
+        const filteredParts = pathParts.filter((part) => !RE_UUID.test(part))
+        cleanPath = filteredParts.length > 0 ? filteredParts.join(' / ') : '/'
+
+        // If path is long, truncate it but keep teamspace name
+        if (cleanPath.length > 30) {
+          const lastPart = filteredParts.length > 0 ? filteredParts[filteredParts.length - 1] : '/'
+          return `${teamspaceName} / ... / ${lastPart}`
+        } else {
+          return `${teamspaceName} / ${cleanPath}`
+        }
+      }
+    }
+
+    // Regular folder handling - if path is long, truncate it
+    if (folder === '/') {
+      return '/'
+    }
+    const parts = folder.split('/').filter(Boolean)
+    if (parts.length > 2 && folder.length > 40) {
+      // Show first part + ... + last part for long paths
+      return `${parts[0]} / ... / ${parts[parts.length - 1]}`
+    }
+    // Show full path if not too long, or just last part if includeFolderPath is false
+    if (includeFolderPath) {
+      return folder
+    }
+    return parts.length > 0 ? parts[parts.length - 1] : '/'
+  }
+
   // Prepare folder list with "New Folder" option if needed
   const folderListWithNewOption = useMemo(() => {
     const list = [...filteredFolders]
@@ -264,7 +308,8 @@ export function FolderChooser({
       if (item === '__NEW_FOLDER__') {
         return '➕ New Folder'
       }
-      return formatFolderDisplay(item)
+      // Use formatFolderDisplayForSelected for selected values to show more context
+      return formatFolderDisplayForSelected(item)
     },
     getOptionText: (item: string) => {
       if (item === '__NEW_FOLDER__') {
