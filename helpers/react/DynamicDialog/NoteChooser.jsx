@@ -11,6 +11,7 @@ import { logDebug } from '@helpers/react/reactDev.js'
 import { TEAMSPACE_ICON_COLOR, defaultNoteIconDetails, noteIconsToUse } from '@helpers/NPnote.js'
 import { getFolderFromFilename, getFolderDisplayName } from '@helpers/folders.js'
 import { parseTeamspaceFilename } from '@helpers/teamspace.js'
+import { getDisplayTitleAndPathForRegularNote, displayTitleWithRelDate } from '@helpers/NPdateTime.js'
 import './NoteChooser.css'
 
 export type NoteOption = {
