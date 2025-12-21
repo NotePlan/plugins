@@ -9,8 +9,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    min-width: 30ch;
-    max-width: 50ch;
+    width: 90vw;
+    max-width: 90vw;
+    height: 90vh;
+    max-height: 90vh;
     border: none;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     /* z-index: 1000; */
@@ -18,10 +20,15 @@
     border-radius: 8px;
     transition: opacity 0.2s ease-out;
     /* overflow: hidden; commented out to allow for dropdowns to show */
+    display: flex;
+    flex-direction: column;
 
     /* Narrow for simpler confirmation dialogs */
     &.confirmation {
         width: max(20rem, 50%);
+        max-width: max(20rem, 50%);
+        height: auto;
+        max-height: auto;
     }
 
     /* Show the settings dialog with transition */
