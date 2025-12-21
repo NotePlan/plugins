@@ -145,10 +145,11 @@ export function NoteChooser({
       // For calendar notes, show just the title (or date with relative date)
       if (note.type === 'Notes' || !note.type) {
         // Use the native function to get "path / title" format
-        return getDisplayTitleAndPathForRegularNote(note)
+        // Cast NoteOption to CoreNoteFields-compatible object
+        return getDisplayTitleAndPathForRegularNote((note: any))
       } else if (note.type === 'Calendar') {
         // For calendar notes, show title with relative date if applicable
-        return displayTitleWithRelDate(note, true, false)
+        return displayTitleWithRelDate((note: any), true, false)
       }
       // Fallback to just title
       return note.title
