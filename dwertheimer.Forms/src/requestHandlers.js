@@ -326,6 +326,58 @@ export function createFolder(params: { folderPath: string }): RequestResponse {
 }
 
 /**
+ * Create a new note
+ * @param {Object} params - Request parameters
+ * @param {string} params.noteTitle - Title of the new note
+ * @param {string} params.folder - Folder path to create the note in (default: '/')
+ * @returns {RequestResponse}
+ */
+export function createNote(params: { noteTitle: string, folder?: string }): RequestResponse {
+  const startTime: number = Date.now()
+  try {
+    const { noteTitle, folder = '/' } = params
+
+    if (!noteTitle || !noteTitle.trim()) {
+      return {
+        success: false,
+        message: 'Note title is required',
+        data: null,
+      }
+    }
+
+    logDebug(pluginJson, `[DIAG] createNote START: noteTitle="${noteTitle}", folder="${folder}"`)
+
+    // Create the note using DataStore.newNote
+    const filename = DataStore.newNote(noteTitle.trim(), folder)
+
+    if (filename) {
+      const totalElapsed: number = Date.now() - startTime
+      logDebug(pluginJson, `[DIAG] createNote COMPLETE: totalElapsed=${totalElapsed}ms, filename="${filename}"`)
+      return {
+        success: true,
+        data: filename,
+      }
+    } else {
+      const totalElapsed: number = Date.now() - startTime
+      logError(pluginJson, `[DIAG] createNote ERROR: totalElapsed=${totalElapsed}ms, DataStore.newNote returned null`)
+      return {
+        success: false,
+        message: 'Failed to create note: DataStore.newNote returned null',
+        data: null,
+      }
+    }
+  } catch (error) {
+    const totalElapsed: number = Date.now() - startTime
+    logError(pluginJson, `[DIAG] createNote ERROR: totalElapsed=${totalElapsed}ms, error="${error.message}"`)
+    return {
+      success: false,
+      message: `Failed to create note: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
  * Get headings from a note
  * @param {Object} params - Request parameters
  * @param {string} params.noteFilename - Filename of the note to get headings from
