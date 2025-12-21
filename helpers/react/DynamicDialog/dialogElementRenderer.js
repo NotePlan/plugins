@@ -50,6 +50,7 @@ type RenderItemProps = {
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // For native folder chooser
   updatedSettings?: { [key: string]: any }, // For heading-chooser to watch note-chooser field
   onFoldersChanged?: () => void, // Callback to reload folders after creating a new folder
+  onNotesChanged?: () => void, // Callback to reload notes after creating a new note
 }
 
 /**
