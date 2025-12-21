@@ -69,6 +69,22 @@
   transform: translateY(-50%) rotate(90deg);
 }
 
+/* Arrow - use .{prefix}-arrow */
+.searchable-chooser-arrow {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--icon-color, #666);
+  pointer-events: none;
+  transition: transform 0.2s;
+  font-size: 0.75rem;
+}
+
+.searchable-chooser-arrow.open {
+  transform: translateY(-50%) rotate(180deg);
+}
+
 /* Dropdown - use .{prefix}-dropdown */
 .searchable-chooser-dropdown {
   position: absolute;

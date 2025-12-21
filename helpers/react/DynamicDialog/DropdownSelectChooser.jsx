@@ -81,7 +81,8 @@ export function DropdownSelectChooser({
     emptyMessageNoItems: 'No options available',
     emptyMessageNoMatch: 'No options match your search',
     classNamePrefix: 'dropdown-select-chooser',
-    iconClass: 'fa-list',
+    iconClass: null, // Use arrow instead of icon
+    showArrow: true, // Show down arrow on the right
     fieldType: 'dropdown-select-chooser',
     debugLogging: false,
     maxResults: 20,

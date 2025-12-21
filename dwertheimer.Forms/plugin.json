@@ -109,7 +109,7 @@
       "jsFunction": "testRequestHandlers"
     },
     {
-      "name": "Form Field Render Test",
+      "name": "All Form Fields Render Test",
       "alias": [
         "testfields",
         "fieldtest"

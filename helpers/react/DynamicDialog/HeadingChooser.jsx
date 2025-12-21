@@ -134,7 +134,7 @@ export function HeadingChooser({
     emptyMessageNoItems: loading ? 'Loading headings...' : 'No headings available',
     emptyMessageNoMatch: 'No headings match your search',
     classNamePrefix: 'heading-chooser',
-    iconClass: 'fa-heading',
+    iconClass: null, // No icon for heading chooser
     fieldType: 'heading-chooser',
     debugLogging: false,
     maxResults: 20,

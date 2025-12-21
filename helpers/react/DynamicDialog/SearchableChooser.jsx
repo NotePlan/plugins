@@ -30,8 +30,9 @@ export type ChooserConfig = {
   
   // Styling
   classNamePrefix: string, // Prefix for CSS classes (e.g., 'folder-chooser', 'note-chooser')
-  iconClass: string, // FontAwesome icon class (e.g., 'fa-folder', 'fa-file-lines')
+  iconClass?: ?string, // FontAwesome icon class (e.g., 'fa-folder', 'fa-file-lines') - optional, if not provided, no icon is shown
   fieldType: string, // Data attribute for field type (e.g., 'folder-chooser', 'note-chooser')
+  showArrow?: boolean, // If true, show a down arrow instead of icon (default: false)
   
   // Optional
   debugLogging?: boolean,
@@ -93,6 +94,7 @@ export function SearchableChooser({
     getOptionIcon,
     getOptionColor,
     getOptionShortDescription,
+    showArrow = false,
   } = config
 
   const [isOpen, setIsOpen] = useState<boolean>(false)
@@ -311,7 +313,11 @@ export function SearchableChooser({
           disabled={disabled}
           title={displayValue || placeholder}
         />
-        <i className={`fa-solid ${iconClass} ${classNamePrefix}-icon ${isOpen ? 'open' : ''}`}></i>
+        {showArrow ? (
+          <i className={`fa-solid fa-chevron-down ${classNamePrefix}-arrow ${isOpen ? 'open' : ''}`}></i>
+        ) : iconClass ? (
+          <i className={`fa-solid ${iconClass} ${classNamePrefix}-icon ${isOpen ? 'open' : ''}`}></i>
+        ) : null}
         {isOpen && (
           <div className={`${classNamePrefix}-dropdown`} style={{ display: 'block' }}>
             {filteredItems.length === 0 ? (
