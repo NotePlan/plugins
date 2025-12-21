@@ -239,7 +239,17 @@ export function renderItem({
           </>
         )
       case 'json': {
-        const jsonString = item.value || item.default || '{}'
+        // JsonEditor returns objects, but we need a string for validation
+        // Convert to string if it's an object, otherwise use as-is
+        let jsonString = item.value || item.default || '{}'
+        if (typeof jsonString !== 'string') {
+          // If it's an object/array, stringify it
+          try {
+            jsonString = JSON.stringify(jsonString, null, 2)
+          } catch (error) {
+            jsonString = '{}'
+          }
+        }
         const validationErrors = validateObjectString(jsonString)
         if (validationErrors.length > 0) {
           logError('JSON Validation Errors:', validationErrors.join('\n'))
@@ -277,7 +287,21 @@ export function renderItem({
             <JsonEditor
               data={dataToUse}
               setData={(updatedData) => {
-                item.key && handleFieldChange(item.key, updatedData)
+                // JsonEditor returns an object, but we need to store it as a string
+                // Convert to JavaScript object notation string (not JSON, as parseObjectString expects unquoted keys)
+                if (item.key) {
+                  try {
+                    // Convert object to string representation that parseObjectString can handle
+                    const jsonString = JSON.stringify(updatedData, null, 2)
+                      .replace(/"([^"]+)":/g, '$1:') // Remove quotes from keys
+                      .replace(/:\s*"([^"]*)"/g, ': "$1"') // Keep quotes on string values
+                    handleFieldChange(item.key, jsonString)
+                  } catch (error) {
+                    logError('JsonEditor', `Error converting data to string: ${error.message}`)
+                    // Fallback: just stringify as JSON
+                    handleFieldChange(item.key, JSON.stringify(updatedData, null, 2))
+                  }
+                }
               }}
               rootFontSize="10pt"
               collapse={2}
@@ -448,10 +472,10 @@ export function renderItem({
               onChange={handleNoteChange}
               disabled={disabled}
               compactDisplay={compactDisplay}
-              includeCalendarNotes={item.includeCalendarNotes}
-              includePersonalNotes={item.includePersonalNotes}
-              includeRelativeNotes={item.includeRelativeNotes}
-              includeTeamspaceNotes={item.includeTeamspaceNotes}
+              includeCalendarNotes={item.includeCalendarNotes ?? false}
+              includePersonalNotes={item.includePersonalNotes ?? true}
+              includeRelativeNotes={item.includeRelativeNotes ?? false}
+              includeTeamspaceNotes={item.includeTeamspaceNotes ?? true}
               placeholder={item.placeholder || 'Type to search notes...'}
             />
           </div>
