@@ -191,9 +191,18 @@ export function SearchableChooser({
       e.preventDefault() // Prevent form submission
       e.stopPropagation() // Stop event from bubbling to DynamicDialog
       handleItemSelect(filteredItems[0])
-    } else if (e.key === 'Escape') {
-      setIsOpen(false)
-      setSearchTerm('')
+    } else if (e.key === 'Escape' || e.key === 'Esc') {
+      // Close dropdown on ESC, but only if it's open
+      if (isOpen) {
+        e.preventDefault() // Prevent default behavior
+        e.stopPropagation() // Stop event from bubbling to DynamicDialog (preventing window close)
+        setIsOpen(false)
+        setSearchTerm('')
+        // Blur the input to remove focus
+        if (inputRef.current) {
+          inputRef.current.blur()
+        }
+      }
     }
   }
 

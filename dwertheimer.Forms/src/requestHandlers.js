@@ -159,7 +159,7 @@ export function getNotes(
 
     // Get project notes and calendar notes separately, then filter
     const processStartTime: number = Date.now()
-    
+
     // Get project notes (personal notes)
     if (includePersonalNotes) {
       const projectNotes = getAllNotesAsOptions(false, true) // Don't include calendar notes here
@@ -187,7 +187,7 @@ export function getNotes(
       for (const note of calendarNotes) {
         const isCalendarNote = note.type === 'Calendar'
         const isTeamspaceNote = note.isTeamspaceNote === true
-        
+
         // Only include if it's actually a calendar note (not a project note that got mixed in)
         if (isCalendarNote) {
           if (includeTeamspaceNotes || !isTeamspaceNote) {
