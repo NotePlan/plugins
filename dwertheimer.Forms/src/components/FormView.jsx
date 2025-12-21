@@ -35,6 +35,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo, type Node } f
 import { type PassedData } from '../NPTemplateForm.js'
 import { AppProvider } from './AppContext.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog'
+import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
 import './FormView.css'
 
@@ -74,7 +75,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
 
   // State for dynamically loaded folders and notes (loaded on demand, not pre-loaded)
   const [folders, setFolders] = useState<Array<string>>([])
-  const [notes, setNotes] = useState<Array<{ title: string, filename: string }>>([])
+  const [notes, setNotes] = useState<Array<NoteOption>>([])
   const [foldersLoaded, setFoldersLoaded] = useState<boolean>(false)
   const [notesLoaded, setNotesLoaded] = useState<boolean>(false)
   const [loadingFolders, setLoadingFolders] = useState<boolean>(false)
@@ -196,8 +197,8 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       setLoadingNotes(true)
       logDebug('FormView', 'Loading notes on demand...')
 
-      // Collect note-chooser options from all note-chooser fields
-      // If multiple note-chooser fields exist, use the most permissive options (union of all options)
+      // Load all notes with all options enabled (union of all field options)
+      // Each NoteChooser component will filter the notes client-side based on its own options
       const noteChooserFields = formFields.filter((field) => field.type === 'note-chooser')
       const includeCalendarNotes = noteChooserFields.some((field) => field.includeCalendarNotes === true)
       const includePersonalNotes = noteChooserFields.every((field) => field.includePersonalNotes !== false) // Default to true
@@ -205,6 +206,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       const includeTeamspaceNotes = noteChooserFields.every((field) => field.includeTeamspaceNotes !== false) // Default to true
 
       // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
+      // We load with union of all options, then each NoteChooser filters client-side
       const notesData = await requestFromPlugin('getNotes', {
         includeCalendarNotes,
         includePersonalNotes,

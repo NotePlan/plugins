@@ -27,11 +27,16 @@ export type NoteOption = {
 export type NoteChooserProps = {
   label?: string,
   value?: string, // The note title or filename
-  notes: Array<NoteOption>, // Array of note options with title and filename
+  notes: Array<NoteOption>, // Array of note options with title and filename (all notes, will be filtered)
   onChange: (noteTitle: string, noteFilename: string) => void,
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
+  // Filter options - each NoteChooser filters the notes array based on its own options
+  includeCalendarNotes?: boolean, // Include calendar notes (default: false)
+  includePersonalNotes?: boolean, // Include personal/project notes (default: true)
+  includeRelativeNotes?: boolean, // Include relative notes like <today>, <thisweek>, etc. (default: false)
+  includeTeamspaceNotes?: boolean, // Include teamspace notes (default: true)
 }
 
 /**
@@ -88,10 +93,47 @@ export function NoteChooser({
   disabled = false,
   compactDisplay = false,
   placeholder = 'Type to search notes...',
+  includeCalendarNotes = false,
+  includePersonalNotes = true,
+  includeRelativeNotes = false,
+  includeTeamspaceNotes = true,
 }: NoteChooserProps): React$Node {
+  // Filter notes based on this field's options
+  const filteredNotes = useMemo(() => {
+    return notes.filter((note) => {
+      // Check if note is a calendar note
+      const isCalendarNote = note.type === 'Calendar'
+
+      // Check if note is a teamspace note
+      const isTeamspaceNote = note.isTeamspaceNote === true
+
+      // Check if note is a relative note (filename starts with '<')
+      const isRelativeNote = typeof note.filename === 'string' && note.filename.startsWith('<')
+
+      // Determine if this note should be included
+      let shouldInclude = false
+
+      // Check calendar vs personal vs relative
+      if (isRelativeNote) {
+        shouldInclude = includeRelativeNotes
+      } else if (isCalendarNote) {
+        shouldInclude = includeCalendarNotes
+      } else {
+        shouldInclude = includePersonalNotes
+      }
+
+      // Check teamspace
+      if (shouldInclude && !includeTeamspaceNotes && isTeamspaceNote) {
+        shouldInclude = false
+      }
+
+      return shouldInclude
+    })
+  }, [notes, includeCalendarNotes, includePersonalNotes, includeRelativeNotes, includeTeamspaceNotes])
+
   // Configure the generic SearchableChooser for notes
   const config: ChooserConfig = {
-    items: notes,
+    items: filteredNotes,
     filterFn: (note: NoteOption, searchTerm: string) => {
       const term = searchTerm.toLowerCase()
       return note.title.toLowerCase().includes(term) || note.filename.toLowerCase().includes(term)

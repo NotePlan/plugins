@@ -17,7 +17,7 @@ import TextComponent from './TextComponent.jsx'
 import ThemedSelect from './ThemedSelect.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import FolderChooser from './FolderChooser.jsx'
-import NoteChooser from './NoteChooser.jsx'
+import NoteChooser, { type NoteOption } from './NoteChooser.jsx'
 import { HeadingChooser } from './HeadingChooser.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import type { Option } from './DropdownSelect.jsx'
@@ -46,7 +46,7 @@ type RenderItemProps = {
   visible?: boolean, // Add visible prop
   buttonText?: string, // Add buttonText prop
   folders?: Array<string>, // For folder-chooser
-  notes?: Array<{ title: string, filename: string }>, // For note-chooser
+  notes?: Array<NoteOption>, // For note-chooser
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // For native folder chooser
   updatedSettings?: { [key: string]: any }, // For heading-chooser to watch note-chooser field
 }
@@ -448,6 +448,10 @@ export function renderItem({
               onChange={handleNoteChange}
               disabled={disabled}
               compactDisplay={compactDisplay}
+              includeCalendarNotes={item.includeCalendarNotes}
+              includePersonalNotes={item.includePersonalNotes}
+              includeRelativeNotes={item.includeRelativeNotes}
+              includeTeamspaceNotes={item.includeTeamspaceNotes}
               placeholder={item.placeholder || 'Type to search notes...'}
             />
           </div>
