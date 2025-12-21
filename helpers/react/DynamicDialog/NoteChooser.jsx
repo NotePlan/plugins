@@ -155,6 +155,18 @@ export function NoteChooser({
           logDebug('NoteChooser', `getOptionText: root folder, returning title only: "${note.title}"`)
           return note.title
         }
+        
+        // Check if the title already contains the folder path to avoid duplication
+        // Some notes (like folder links) have titles that include the folder path
+        const folderWithoutSlash = folder.replace(/^\/+|\/+$/g, '') // Remove leading/trailing slashes
+        const titleContainsFolder = note.title.includes(folderWithoutSlash) || note.title.includes(folder)
+        
+        if (titleContainsFolder) {
+          // Title already contains folder path, just return the title
+          logDebug('NoteChooser', `getOptionText: title already contains folder path, returning title only: "${note.title}"`)
+          return note.title
+        }
+        
         const result = `${folder} / ${note.title}`
         logDebug('NoteChooser', `getOptionText: formatted result: "${result}"`)
         return result
