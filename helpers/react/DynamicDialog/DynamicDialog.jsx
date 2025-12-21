@@ -98,6 +98,8 @@ export type TSettingItem = {
   includePersonalNotes?: boolean, // for note-chooser, include personal/project notes (default: true)
   includeRelativeNotes?: boolean, // for note-chooser, include relative notes like <today>, <thisweek>, etc. (default: false)
   includeTeamspaceNotes?: boolean, // for note-chooser, include teamspace notes (default: true)
+  includeNewNoteOption?: boolean, // for note-chooser, add a 'New Note' option that allows creating a new note
+  dependsOnFolderKey?: string, // for note-chooser, key of a folder-chooser field to filter notes by folder
   // showValue option for SearchableChooser-based fields
   showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
   staticHeadings?: Array<string>, // for heading-chooser, static list of headings (if not depending on a note)
@@ -395,6 +397,7 @@ const DynamicDialog = ({
             requestFromPlugin, // Pass requestFromPlugin for native folder chooser
             updatedSettings, // Pass updatedSettings for heading-chooser to watch note-chooser field, and for form-state-viewer
             onFoldersChanged, // Pass onFoldersChanged to reload folders after creating a new folder
+            onNotesChanged, // Pass onNotesChanged to reload notes after creating a new note
           }
           if (item.type === 'combo' || item.type === 'dropdown-select') {
             renderItemProps.inputRef = dropdownRef

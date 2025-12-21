@@ -4,10 +4,10 @@
 // Allows users to select a note by typing to filter choices
 //--------------------------------------------------------------------------
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
 import { truncateText } from '@helpers/react/reactUtils.js'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { TEAMSPACE_ICON_COLOR, defaultNoteIconDetails, noteIconsToUse } from '@helpers/NPnote.js'
 import { getFolderFromFilename, getFolderDisplayName } from '@helpers/folders.js'
 import { parseTeamspaceFilename } from '@helpers/teamspace.js'
@@ -38,6 +38,11 @@ export type NoteChooserProps = {
   includeRelativeNotes?: boolean, // Include relative notes like <today>, <thisweek>, etc. (default: false)
   includeTeamspaceNotes?: boolean, // Include teamspace notes (default: true)
   showValue?: boolean, // If true, display the selected value below the input
+  includeNewNoteOption?: boolean, // If true, add a 'New Note' option that allows creating a new note
+  dependsOnFolderKey?: string, // Key of a folder-chooser field to filter notes by folder
+  folderFilter?: string, // Current folder value from dependsOnFolderKey field (for filtering notes)
+  requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request note creation from plugin
+  onNotesChanged?: () => void, // Callback to request note list reload after creating a note
 }
 
 /**
@@ -103,8 +108,71 @@ export function NoteChooser({
   includeRelativeNotes = false,
   includeTeamspaceNotes = true,
   showValue = false,
+  includeNewNoteOption = false,
+  dependsOnFolderKey,
+  folderFilter,
+  requestFromPlugin,
+  onNotesChanged,
 }: NoteChooserProps): React$Node {
-  // Filter notes based on this field's options
+  const [isCreatingNote, setIsCreatingNote] = useState(false)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [newNoteTitle, setNewNoteTitle] = useState('')
+
+  // Handle creating a new note
+  const handleCreateNote = async (noteTitle: string, folder: string = '/') => {
+    if (!requestFromPlugin || !noteTitle || !noteTitle.trim()) {
+      logError('NoteChooser', 'Cannot create note: missing title or requestFromPlugin')
+      return
+    }
+
+    try {
+      setIsCreatingNote(true)
+      logDebug('NoteChooser', `Creating note "${noteTitle}" in "${folder || '/'}"`)
+
+      // requestFromPlugin resolves with just the data (filename) on success, or rejects on error
+      const createdFilename = await requestFromPlugin('createNote', {
+        noteTitle: noteTitle.trim(),
+        folder: folder || '/',
+      })
+
+      if (createdFilename && typeof createdFilename === 'string') {
+        logDebug('NoteChooser', `Successfully created note: "${createdFilename}"`)
+
+        // Close the dialog and clear form
+        setShowCreateDialog(false)
+        setNewNoteTitle('')
+
+        // Request note list reload so the new note appears
+        if (onNotesChanged) {
+          onNotesChanged()
+        }
+
+        // Select the newly created note
+        // Use setTimeout to ensure notes are reloaded first
+        setTimeout(() => {
+          // Get the note title from the filename
+          const noteTitleFromFilename = createdFilename.split('/').pop()?.replace(/\.md$/, '') || noteTitle.trim()
+          onChange(noteTitleFromFilename, createdFilename)
+        }, 100)
+      } else {
+        logError('NoteChooser', `Failed to create note: Invalid response format`)
+        alert(`Failed to create note: Invalid response format`)
+      }
+    } catch (error) {
+      logError('NoteChooser', `Error creating note: ${error.message}`)
+      alert(`Error creating note: ${error.message}`)
+    } finally {
+      setIsCreatingNote(false)
+    }
+  }
+
+  // Handle selecting "New Note" option
+  const handleNewNoteClick = () => {
+    setShowCreateDialog(true)
+    setNewNoteTitle('')
+  }
+
+  // Filter notes based on this field's options and folder filter
   const filteredNotes = useMemo(() => {
     return notes.filter((note) => {
       // Check if note is a calendar note
@@ -144,7 +212,12 @@ export function NoteChooser({
       const term = searchTerm.toLowerCase()
       return note.title.toLowerCase().includes(term) || note.filename.toLowerCase().includes(term)
     },
-    getDisplayValue: (note: NoteOption) => note.title,
+    getDisplayValue: (note: NoteOption) => {
+      if (note.filename === '__NEW_NOTE__') {
+        return '➕ New Note'
+      }
+      return note.title
+    },
     getOptionText: (note: NoteOption) => {
       // For personal/project notes, show "path / title" format to match native chooser
       // For calendar notes, show just the title
@@ -188,7 +261,13 @@ export function NoteChooser({
       return decoration.shortDescription ? `${note.filename} - ${decoration.shortDescription}` : note.filename
     },
     truncateDisplay: truncateText,
-    onSelect: (note: NoteOption) => onChange(note.title, note.filename),
+    onSelect: (note: NoteOption) => {
+      if (note.filename === '__NEW_NOTE__') {
+        handleNewNoteClick()
+      } else {
+        onChange(note.title, note.filename)
+      }
+    },
     emptyMessageNoItems: 'No notes found',
     emptyMessageNoMatch: 'No notes match',
     classNamePrefix: 'note-chooser',

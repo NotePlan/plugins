@@ -456,6 +456,16 @@ export function renderItem({
         const label = item.label || ''
         const compactDisplay = item.compactDisplay || false
         const currentValue = item.value || item.default || ''
+        const dependsOnFolderKey = item.dependsOnFolderKey
+
+        // Get folder value from the dependsOnFolderKey field if specified
+        let folderFilter = null
+        if (dependsOnFolderKey && updatedSettings && typeof updatedSettings === 'object') {
+          const folderValue = updatedSettings[dependsOnFolderKey]
+          if (folderValue && typeof folderValue === 'string') {
+            folderFilter = folderValue
+          }
+        }
 
         const handleNoteChange = (noteTitle: string, noteFilename: string) => {
           if (item.key) {
@@ -481,6 +491,11 @@ export function renderItem({
               includePersonalNotes={item.includePersonalNotes ?? true}
               includeRelativeNotes={item.includeRelativeNotes ?? false}
               includeTeamspaceNotes={item.includeTeamspaceNotes ?? true}
+              includeNewNoteOption={item.includeNewNoteOption ?? false}
+              dependsOnFolderKey={dependsOnFolderKey}
+              folderFilter={folderFilter}
+              requestFromPlugin={requestFromPlugin}
+              onNotesChanged={onNotesChanged}
               placeholder={item.placeholder || 'Type to search notes...'}
               showValue={item.showValue ?? false}
             />

@@ -400,6 +400,8 @@ export function handleRequest(requestType: string, params: Object = {}): Request
         return createFolder(params)
       case 'getHeadings':
         return getHeadings(params)
+      case 'createNote':
+        return createNote(params)
       default:
         logError(pluginJson, `handleRequest: Unknown request type: "${requestType}"`)
         return {

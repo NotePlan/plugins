@@ -212,6 +212,44 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     }
   }, [requestFromPlugin])
 
+  // Reload notes (used after creating a new note)
+  const reloadNotes = useCallback(async () => {
+    if (!needsNotes) return
+
+    try {
+      setLoadingNotes(true)
+      setNotesLoaded(false) // Reset to allow reload
+      logDebug('FormView', 'Reloading notes after note creation...')
+
+      // Collect note-chooser options from all note-chooser fields (same as loadNotes)
+      const noteChooserFields = formFields.filter((field) => field.type === 'note-chooser')
+      const includeCalendarNotes = noteChooserFields.some((field) => field.includeCalendarNotes === true)
+      const includePersonalNotes = noteChooserFields.some((field) => field.includePersonalNotes === true)
+      const includeRelativeNotes = noteChooserFields.some((field) => field.includeRelativeNotes === true)
+      const includeTeamspaceNotes = noteChooserFields.some((field) => field.includeTeamspaceNotes === true)
+
+      const notesData = await requestFromPlugin('getNotes', {
+        includeCalendarNotes,
+        includePersonalNotes,
+        includeRelativeNotes,
+        includeTeamspaceNotes,
+      })
+      if (Array.isArray(notesData)) {
+        setNotes(notesData)
+        setNotesLoaded(true)
+        logDebug('FormView', `Reloaded ${notesData.length} notes`)
+      } else {
+        logError('FormView', `Failed to reload notes: Invalid response format`)
+        setNotesLoaded(true)
+      }
+    } catch (error) {
+      logError('FormView', `Error reloading notes: ${error.message}`)
+      setNotesLoaded(true)
+    } finally {
+      setLoadingNotes(false)
+    }
+  }, [needsNotes, formFields, requestFromPlugin])
+
   // Load notes on demand when needed (matching FormBuilder pattern)
   const loadNotes = useCallback(async () => {
     if (notesLoaded || loadingNotes || !needsNotes) return
@@ -485,6 +523,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
             notes={notes}
             requestFromPlugin={requestFromPlugin}
             onFoldersChanged={reloadFolders}
+            onNotesChanged={reloadNotes}
           />
         </div>
         {/* end of replace */}
