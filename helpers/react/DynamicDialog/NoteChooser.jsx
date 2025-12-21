@@ -80,24 +80,9 @@ const getNoteDecoration = (note: NoteOption): { icon: string, color: string, sho
   // But only if the title doesn't already contain the folder path (to avoid duplication)
   // Also, don't show short description if we're adding the folder path to the option text
   // (because the path will already be visible in the main text)
-  let shortDescription = null
-  if (note.type === 'Notes' || !note.type) {
-    const folder = getFolderFromFilename(note.filename) || ''
-    const folderWithoutSlash = folder.replace(/^\/+|\/+$/g, '') // Remove leading/trailing slashes
-    const titleContainsFolder = folderWithoutSlash && (note.title.includes(folderWithoutSlash) || note.title.includes(folder))
-    
-    // Only show short description if:
-    // 1. Title doesn't already contain the folder path (to avoid duplication)
-    // 2. We're NOT adding the folder path to the option text (because it's root or title contains it)
-    //    - If folder is root, we show just the title, so no short description needed
-    //    - If title contains folder, we show just the title, so no short description needed
-    //    - Otherwise, we show "path / title", so the path is already visible, no short description needed
-    // So we should never show the folder path as a short description when we're formatting as "path / title"
-    // The short description is meant for other metadata, not for duplicating the folder path
-    // For now, we'll only show short description if the title already contains the folder (edge case)
-    // In practice, we probably shouldn't show folder path as short description at all
-    // since it's either in the option text or redundant
-  }
+  // We intentionally don't show short description to avoid duplicating the folder path
+  // which is already shown in the option text as "path / title"
+  const shortDescription: ?string = null
 
   return {
     icon: userSetIcon || folderIconDetails.icon,
