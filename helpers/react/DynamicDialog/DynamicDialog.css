@@ -44,9 +44,10 @@
         background-color: var(--bg-mid-color);
         padding: 0.75rem 0.6rem;
         border-radius: 8px;
-        max-height: 90vh;
-        font-size: 95%;
+        flex: 1;
         overflow-y: auto;
+        font-size: 95%;
+        min-height: 0; /* Allow flex item to shrink below content size */
         /* overflow-y: visible; - changed back to auto to restore scrollbars when content exceeds max-height */
     }
 
