@@ -104,6 +104,9 @@ export type TSettingItem = {
   // showValue option for SearchableChooser-based fields
   showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
   staticHeadings?: Array<string>, // for heading-chooser, static list of headings (if not depending on a note)
+  // textarea options
+  minRows?: number, // for textarea, minimum number of rows (default: 3)
+  maxRows?: number, // for textarea, maximum number of rows before scrolling (default: 10)
 }
 
 export type TDynamicDialogProps = {
