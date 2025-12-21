@@ -201,9 +201,13 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       // Each NoteChooser component will filter the notes client-side based on its own options
       const noteChooserFields = formFields.filter((field) => field.type === 'note-chooser')
       const includeCalendarNotes = noteChooserFields.some((field) => field.includeCalendarNotes === true)
-      const includePersonalNotes = noteChooserFields.every((field) => field.includePersonalNotes !== false) // Default to true
+      // Include personal notes if ANY field wants them (union logic - load all that might be needed)
+      // Since personal notes default to true, we include them if any field has it true or undefined
+      const includePersonalNotes = noteChooserFields.some((field) => field.includePersonalNotes !== false) // At least one field wants them
       const includeRelativeNotes = noteChooserFields.some((field) => field.includeRelativeNotes === true)
-      const includeTeamspaceNotes = noteChooserFields.every((field) => field.includeTeamspaceNotes !== false) // Default to true
+      // Include teamspace notes if ANY field wants them (union logic - load all that might be needed)
+      // Since teamspace notes default to true, we include them if any field has it true or undefined
+      const includeTeamspaceNotes = noteChooserFields.some((field) => field.includeTeamspaceNotes !== false) // At least one field wants them
 
       // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
       // We load with union of all options, then each NoteChooser filters client-side
