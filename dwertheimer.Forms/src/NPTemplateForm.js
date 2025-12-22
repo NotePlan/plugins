@@ -1400,7 +1400,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         delete formValuesForRendering.__isJSON__
 
         const templateRunnerArgs: { [string]: any } = {
-          newNoteTitle: renderedNewNoteTitle, // Use rendered title (template tags replaced with form values)
+          newNoteTitle: cleanedNewNoteTitle, // TemplateRunner will render this with form values in handleNewNoteCreation
           templateBody: finalTemplateBody, // TemplateRunner will render this with form values in handleNewNoteCreation
           ...formValuesForRendering, // Spread form values so TemplateRunner can render template tags like <%- field1 %>
         }
