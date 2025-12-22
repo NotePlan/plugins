@@ -809,8 +809,9 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
         let { noteTitle, shouldOpenInEditor } = extractTitleAndShouldOpenSettings(frontmatterAttributes, openInEditor)
         
         // Render noteTitle (getNoteTitled) with form values if it contains template tags
-        // Special values like <today>, <current>, <choose>, <select> will be preserved and handled by handleNoteSelection
-        if (noteTitle && typeof noteTitle === 'string' && noteTitle.includes('<%') && !/<today>|<current>|<choose>|<select>|<thisweek>|<nextweek>/i.test(noteTitle)) {
+        // Special values like <today>, <current>, <choose>, <select> will be preserved and handled by handleNoteSelection after rendering
+        // This allows combinations like "<%- field1 %> <today>" to work correctly
+        if (noteTitle && typeof noteTitle === 'string' && noteTitle.includes('<%')) {
           try {
             noteTitle = await NPTemplating.render(noteTitle, data)
             const isError = /Template Rendering Error/.test(noteTitle)
@@ -819,7 +820,7 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
               await showMessage('Template Render Error Encountered when rendering note title. Stopping.')
               return
             }
-            // Clean up rendered title: trim (but preserve special values)
+            // Clean up rendered title: trim (special values like <today> will be handled by handleNoteSelection)
             noteTitle = noteTitle.trim()
             logDebug(pluginJson, `templateRunnerExecute rendered noteTitle with template tags`)
           } catch (error) {
