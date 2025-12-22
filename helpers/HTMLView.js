@@ -5,9 +5,7 @@
 // Last updated 2025-05-31 by @jgclark
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
-import {
-  hasFrontMatter
-} from '@helpers/NPFrontMatter'
+import { hasFrontMatter } from '@helpers/NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
 import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
@@ -101,7 +99,6 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
 `
 }
 
-
 /**
  * Convert a note's content to HTML and include any images as base64
  * @param {string} content
@@ -164,22 +161,22 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       tasklists: true,
       metadata: false, // otherwise metadata is swallowed
       requireSpaceBeforeHeadingText: true,
-      simpleLineBreaks: true // Makes this GFM style. TODO: make an option?
+      simpleLineBreaks: true, // Makes this GFM style. TODO: make an option?
     }
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
     body = `<style>img { background: white; max-width: 100%; max-height: 100%; }</style>${body}` // fix for bug in showdown
-    
+
     const imgTagRegex = /<img src=\"(.*?)\"/g
     const matches = [...body.matchAll(imgTagRegex)]
     const noteDirPath = getFolderFromFilename(note.filename)
-    
+
     for (const match of matches) {
       const imagePath = match[1]
       try {
         // Handle both absolute and relative paths
         let fullPath = `../../../Notes/${noteDirPath}/${decodeURI(imagePath)}`
-        if(fullPath.endsWith('.drawing')) {
+        if (fullPath.endsWith('.drawing')) {
           fullPath = fullPath.replace('.drawing', '.png')
         }
         const data = await DataStore.loadData(fullPath, false)
@@ -237,13 +234,11 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       modifiedLines.push(line)
     }
     return modifiedLines.join('\n')
-
   } catch (error) {
     logError('getNoteContentAsHTML', error.message)
     return '<conversion error>'
   }
 }
-
 
 /**
  * This function creates the webkit console.log/error handler for HTML messages to get back to NP console.log
@@ -566,7 +561,23 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
   try {
     const screenWidth = NotePlan.environment.screenWidth
     const screenHeight = NotePlan.environment.screenHeight
-    logDebug('HTMLView / showHTMLV2', `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'} for screen dimensions ${screenWidth}x${screenHeight}`)
+    logDebug(
+      'HTMLView / showHTMLV2',
+      `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'} for screen dimensions ${screenWidth}x${screenHeight}`,
+    )
+
+    // Add NP_THEME to preBodyScript if includeCSSAsJS is true (same logic as showHTMLWindow)
+    if (opts.includeCSSAsJS) {
+      const preBody: Array<Object> = opts.preBodyScript ? (Array.isArray(opts.preBodyScript) ? opts.preBodyScript : [opts.preBodyScript]) : []
+      const theme = getThemeJS(true, true)
+      if (theme.values) {
+        const themeName = theme.name ?? '<unknown>'
+        const themeJSONStr = JSON.stringify(theme.values, null, 4) ?? '<empty>'
+        preBody.push(`/* Basic Theme as JS for CSS-in-JS use in scripts \n  Created from theme: "${themeName}" */\n  const NP_THEME=${themeJSONStr}\n`)
+        logDebug('HTMLView / showHTMLV2', `Saving NP_THEME in JavaScript`)
+      }
+      opts.preBodyScript = preBody
+    }
 
     // Assemble the parts of the HTML into a single string
     const fullHTMLStr = assembleHTMLParts(body, opts)
@@ -589,8 +600,8 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       let winOptions = {}
 
       // Calculate width and height first (needed for centering calculation)
-      const width = opts.width ?? (screenWidth - (opts.paddingWidth ?? 0) * 2)
-      const height = opts.height ?? (screenHeight - (opts.paddingHeight ?? 0) * 2)
+      const width = opts.width ?? screenWidth - (opts.paddingWidth ?? 0) * 2
+      const height = opts.height ?? screenHeight - (opts.paddingHeight ?? 0) * 2
 
       // First set to the values set in the opts object, using x/y/w/h if available, or if not, then use paddingWidth/paddingHeight to fill the screen other than this padding.
       // For centering: if x/y not provided, center the window on screen
@@ -608,7 +619,6 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
         const storedRect = getStoredWindowRect(cId)
         if (storedRect) {
-
           winOptions = {
             x: storedRect.x,
             y: storedRect.y,
@@ -963,18 +973,18 @@ export function convertBoldAndItalicToHTML(input: string): string {
 // of the form `![📅](2023-01-13 18:00:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Contact X about Y:::#63DA38)`
 export function simplifyNPEventLinksForHTML(input: string): string {
   try {
-  let output = input
-  const captures = output.match(RE_EVENT_LINK)
-  if (captures) {
-    clo(captures, 'results from NP event link matches:')
-    // Matches come in threes (plus full match), so process four at a time
-    for (let c = 0; c < captures.length; c = c + 3) {
-      const eventLink = captures[c]
-      const eventTitle = captures[c + 1]
-      const eventColor = captures[c + 2]
-      output = output.replace(eventLink, `<i class="fa-light fa-calendar" style="color: ${eventColor}"></i> <span class="event-link">${eventTitle}</span>`)
+    let output = input
+    const captures = output.match(RE_EVENT_LINK)
+    if (captures) {
+      clo(captures, 'results from NP event link matches:')
+      // Matches come in threes (plus full match), so process four at a time
+      for (let c = 0; c < captures.length; c = c + 3) {
+        const eventLink = captures[c]
+        const eventTitle = captures[c + 1]
+        const eventColor = captures[c + 2]
+        output = output.replace(eventLink, `<i class="fa-light fa-calendar" style="color: ${eventColor}"></i> <span class="event-link">${eventTitle}</span>`)
+      }
     }
-  }
     // logDebug('simplifyNPEventLinksForHTML', `{${input}} -> {${output}}`)
     return output
   } catch (error) {
@@ -987,16 +997,16 @@ export function simplifyNPEventLinksForHTML(input: string): string {
 // (This also helps remove false positives for ! priority indicator)
 export function simplifyInlineImagesForHTML(input: string): string {
   try {
-  let output = input
-  const captures = output.match(/!\[image\]\([^\)]+\)/g)
-  if (captures) {
-    // clo(captures, 'results from embedded image match:')
-    for (const capture of captures) {
-      // logDebug(`simplifyInlineImagesForHTML`, capture)
-      output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
-      // logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
+    let output = input
+    const captures = output.match(/!\[image\]\([^\)]+\)/g)
+    if (captures) {
+      // clo(captures, 'results from embedded image match:')
+      for (const capture of captures) {
+        // logDebug(`simplifyInlineImagesForHTML`, capture)
+        output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
+        // logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
+      }
     }
-  }
     // logDebug('simplifyInlineImagesForHTML', `{${input}} -> {${output}}`)
     return output
   } catch (error) {
@@ -1025,8 +1035,14 @@ export function convertHashtagsToHTML(input: string): string {
       // logDebug('convertHashtagsToHTML', `results from hashtag matches: ${String(matches)}`)
       for (const match of matches) {
         // logDebug('convertHashtagsToHTML', `- match: ${String(match)}`)
-        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output) || isTermAColorStyleDefinition(match, output)
-        ) { continue }
+        if (
+          isTermInNotelinkOrURI(match, output) ||
+          isTermInMarkdownPath(match, output) ||
+          isTermInEventLinkHiddenPart(match, output) ||
+          isTermAColorStyleDefinition(match, output)
+        ) {
+          continue
+        }
         output = output.replace(match, `<span class="hashtag">${match}</span>`)
       }
     }
@@ -1038,9 +1054,8 @@ export function convertHashtagsToHTML(input: string): string {
   }
 }
 
-
 function isTermAColorStyleDefinition(term: string, input: string): boolean {
-  const RE_CSS_STYLE_DEFINITION = new RegExp(`style="color:\\s*${term}"`, "i")
+  const RE_CSS_STYLE_DEFINITION = new RegExp(`style="color:\\s*${term}"`, 'i')
   return RE_CSS_STYLE_DEFINITION.test(input)
 }
 
@@ -1057,7 +1072,7 @@ export function convertMentionsToHTML(input: string): string {
     // regex from @EduardMe's file
     // const RE_MENTION_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/, 'g')
     // regex from @EduardMe's file, without [:punct:]
-    // const RE_MENTION_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/, 'g') 
+    // const RE_MENTION_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/, 'g')
     // now copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
     const RE_MENTION_G = new RegExp(/\B@((?![\p{N}_]+(?:$|\s|\b))(?:[\p{L}\p{M}\p{N}_\/\-]{1,60})(\(.*?\))?)/, 'gu')
     const matches = input.match(RE_MENTION_G)
@@ -1065,7 +1080,9 @@ export function convertMentionsToHTML(input: string): string {
       // logDebug('convertMentionsToHTML', `results from mention matches: ${String(matches)}`)
       for (const match of matches) {
         // logDebug('convertMentionsToHTML', `- match: ${String(match)}`)
-        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output)) { continue }
+        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output)) {
+          continue
+        }
         output = output.replace(match, `<span class="attag">${match}</span>`)
       }
     }
