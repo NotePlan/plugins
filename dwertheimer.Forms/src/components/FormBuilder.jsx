@@ -473,7 +473,10 @@ export function FormBuilder({
                 </label>
               </div>
               <div className="frontmatter-field">
-                <label>Window Size:</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  Window Size:
+                  <InfoIcon text="The size of the popup window that holds the form. Minimum size is 200x200 pixels. Leave empty to use default size." />
+                </label>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Width:</label>
@@ -481,7 +484,15 @@ export function FormBuilder({
                       type="number"
                       value={frontmatter.width || ''}
                       onChange={(e) => handleFrontmatterChange('width', e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                      onBlur={(e) => {
+                        const value = e.target.value ? parseInt(e.target.value, 10) : undefined
+                        if (value !== undefined && value < 200) {
+                          alert('Window width must be at least 200 pixels. Please enter a value of 200 or greater, or leave it empty.')
+                          handleFrontmatterChange('width', undefined) // Clear invalid value
+                        }
+                      }}
                       placeholder="e.g., 750"
+                      min="200"
                       style={{ width: '100%', padding: '0.5rem' }}
                     />
                   </div>
@@ -491,13 +502,21 @@ export function FormBuilder({
                       type="number"
                       value={frontmatter.height || ''}
                       onChange={(e) => handleFrontmatterChange('height', e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                      onBlur={(e) => {
+                        const value = e.target.value ? parseInt(e.target.value, 10) : undefined
+                        if (value !== undefined && value < 200) {
+                          alert('Window height must be at least 200 pixels. Please enter a value of 200 or greater, or leave it empty.')
+                          handleFrontmatterChange('height', undefined) // Clear invalid value
+                        }
+                      }}
                       placeholder="e.g., 750"
+                      min="200"
                       style={{ width: '100%', padding: '0.5rem' }}
                     />
                   </div>
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                  Note: You will need to open the form to see the window size settings take effect.
+                  Note: You will need to open the form to see the window size settings take effect. Minimum size is 200x200 pixels.
                 </div>
               </div>
               <ProcessingMethodSection
