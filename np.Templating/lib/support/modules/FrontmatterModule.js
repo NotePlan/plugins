@@ -62,7 +62,10 @@ export default class FrontmatterModule {
       // fmData.body = fmData.body.replace(/---/gi, '*****')
 
       // Add debug logging
-      logDebug(pluginJson, `FrontmatterModule.parse: Extracted body with ${fmData?.body?.length || 0} chars: "${(fmData?.body || '').substring(0, 200)}..."`)
+      logDebug(
+        pluginJson,
+        `FrontmatterModule.parse: Extracted body with ${fmData?.body?.length || 0} chars: "${fmData?.body.trim() === '' ? '' : (fmData?.body.trim() || '').substring(0, 200)}..."`,
+      )
       logDebug(pluginJson, `FrontmatterModule.parse: Extracted attributes: ${JSON.stringify(fmData?.attributes || {})}`)
 
       return fmData

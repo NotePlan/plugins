@@ -165,8 +165,12 @@ export function isAChildPara(thisPara: TParagraph, thisNote: TNote): boolean {
   try {
     const timer = new Date()
     const thisLineIndex = thisPara.lineIndex
-    const allParas = thisNote.paragraphs
+    const allParas = thisNote.paragraphs ?? []
     // logDebug('isAChildPara', `thisLineIndex: ${String(thisLineIndex)}, allParas: ${String(allParas.length)}`)
+    if (allParas.length === 0) {
+      logWarn('isAChildPara', `-> no note paras found for '${thisNote.filename}'. Ignore this if running in demo mode.`)
+      return false
+    }
 
     // V2 Method (noticeably faster than original version)
     // Note: not fully tested, as test data isn't set up for .children().

@@ -464,7 +464,7 @@ export function WebView({ data, dispatch }: Props): Node {
                 key={row.id}
                 /* contentEditable={true} */
                 onInput={(e) => handleEditableContentChange({ id: row.id, field: 'content', value: e.currentTarget.innerHTML })}
-                style={{ maxWidth: '100vw', paddingLeft: 30, paddingRight: 50 }}
+                style={{ maxWidth: '100%', paddingLeft: 30, paddingRight: 50 }}
                 onBlur={() => {}}
               >
                 {row.content}
@@ -678,7 +678,7 @@ export function WebView({ data, dispatch }: Props): Node {
   return (
     <>
       {/* {SelectedItemComponent} */}
-      <div style={{ maxWidth: '100vw', width: '100vw' }}>
+      <div style={{ maxWidth: '100%', width: '100%' }}>
         <DataTable
           title={
             <div className="w3-row">

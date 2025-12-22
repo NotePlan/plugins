@@ -31,11 +31,11 @@ type Props = {
  ****************************************************************************************************************************/
 
 import React, { useEffect, type Node } from 'react'
-import { clo, logDebug, timer } from '@helpers/react/reactDev'
 import { type PassedData } from '../../reactMain.js'
 import { AppProvider } from './AppContext.jsx'
 import CompositeLineExample from './CompositeLineExample.jsx'
 import Button from './Button.jsx'
+import { clo, logDebug, timer } from '@helpers/react/reactDev'
 /**
  * Root element for the Plugin's React Tree
  * @param {any} data
@@ -206,7 +206,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     >
       <div className={`webview ${pluginData.platform || ''}`}>
         {/* replace all this code with your own component(s) */}
-        <div style={{ maxWidth: '100vw', width: '100vw' }}>
+        <div style={{ maxWidth: '100%', width: '100%' }}>
           <Button onClick={scrambleLines} className="w3-light-blue">
             Randomize Lines Locally in React (without calling Plugin)
           </Button>

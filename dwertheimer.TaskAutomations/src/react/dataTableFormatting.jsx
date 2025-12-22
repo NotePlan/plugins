@@ -214,7 +214,7 @@ const customTableStyles = {
   },
   pagination: {
     style: {
-      maxWidth: '100vw',
+      maxWidth: '100%',
       position: 'fixed',
       left: 0,
       bottom: 0,

@@ -4,16 +4,15 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.Forms",
   "plugin.name": "📝 Forms",
-  "plugin.version": "1.0.2",
+  "plugin.version": "1.0.3",
   "plugin.lastUpdateInfo": "First release",
-  "plugin.description": "Dynamic Forms for NotePlan",
+  "plugin.description": "Dynamic Forms for NotePlan using Templating -- fill out a form and have the data sent to a template for processing",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles": ["react.c.FormView.bundle.dev.js"],
   "plugin.dependsOn": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/CHANGELOG.md",
-  "plugin.hidden": true,
   "plugin.commands": [
     {
       "note": "================== COMMMANDS ========================"

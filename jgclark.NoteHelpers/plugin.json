@@ -7,9 +7,9 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "1.2.5",
+  "plugin.version": "1.3.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "1.2.5: Fix regression in folder chooser.\n1.2.4: Small improvements to 'jump to heading' and 'jump to note heading' commands.\n1.2.3: Fix to 'move note' command for iOS/iPadOS.\n1.2.2: Fix regression in folder picker.\n1.2.1: Allow 'delete note' command to run on Teamspace notes. Stop 'inconsistent file name' commands from running on Teamspace notes. Bug fixes.\n1.2.0: improvements to displays in 'jump to heading' and 'jump to note heading' commands, and include Teamspace notes. Improvements to 'inconsistent file name' commands.\n1.1.1: add initial support for Teamspaces + bug fix.\n1.1.0: new 'list published notes' command.\n1.1.0: added 'write modified' command to write the modified date to frontmatter (on each save). Can be run by hand or can be included as a trigger using the 'add trigger to note' command. Small improvements to \"new note from selection\".\n1.0.0: move '/new note from ...' commands here from Filer plugin, and revived '/new note' command.",
+  "plugin.lastUpdateInfo": "1.3.0: New 'duplicate note' command.\n1.2.5: Fix regression in folder chooser.\n1.2.4: Small improvements to 'jump to heading' and 'jump to note heading' commands.\n1.2.3: Fix to 'move note' command for iOS/iPadOS.\n1.2.2: Fix regression in folder picker.\n1.2.1: Allow 'delete note' command to run on Teamspace notes. Stop 'inconsistent file name' commands from running on Teamspace notes. Bug fixes.\n1.2.0: improvements to displays in 'jump to heading' and 'jump to note heading' commands, and include Teamspace notes. Improvements to 'inconsistent file name' commands.\n1.1.1: add initial support for Teamspaces + bug fix.\n1.1.0: new 'list published notes' command.\n1.1.0: added 'write modified' command to write the modified date to frontmatter (on each save). Can be run by hand or can be included as a trigger using the 'add trigger to note' command. Small improvements to \"new note from selection\".\n1.0.0: move '/new note from ...' commands here from Filer plugin, and revived '/new note' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -51,6 +51,14 @@
       "description": "Delete the current note (moves to Trash)",
       "jsFunction": "trashNote",
       "parameters": []
+    },
+    {
+      "name": "duplicate note",
+      "alias": [
+        "dupe"
+      ],
+      "description": "Duplicate the current note, allowing the user to specify a new title and folder",
+      "jsFunction": "duplicateNote"
     },
     {
       "name": "enable heading links",

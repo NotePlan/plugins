@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.3] 2025-12-18 @dwertheimer
+
+- Add readme with basic instructions
+
 ## [1.0.2] 2025-03-06 @dwertheimer
 
 - Add validation for reserved fields (will log a warning if a reserved field is used)

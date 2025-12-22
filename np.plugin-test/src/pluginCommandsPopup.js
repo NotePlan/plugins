@@ -113,9 +113,9 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
  */
 export async function openReactPluginCommandsWindow() {
   try {
-    logDebug(pluginJson, `testReactWindow starting up`)
+    logDebug(pluginJson, `openReactWindow starting up`)
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
-    // logDebug(pluginJson, `testReactWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
+    // logDebug(pluginJson, `openReactWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
     const data = await getDataObjectForReactView()
     // Note the first tag below uses the w3.css scaffolding for basic UI elements. You can delete that line if you don't want to use it
     // w3.css reference: https://www.w3schools.com/w3css/defaulT.asp
@@ -130,9 +130,9 @@ export async function openReactPluginCommandsWindow() {
       includeCSSAsJS: true /* don't want CSS because we are doing this page non-themed */,
       generalCSSIn: ' ' /* don't want CSS because we are doing this page non-themed, needs to be non '' */,
     }
-    logDebug(`===== testReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
-    logDebug(pluginJson, `testReactWindow invoking window. testReactWindow stopping here. It's all React from this point forward`)
-    // clo(data, `testReactWindow data object passed`)
+    logDebug(`===== openReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
+    logDebug(pluginJson, `openReactWindow invoking window. openReactWindow stopping here. It's all React from this point forward`)
+    // clo(data, `openReactWindow data object passed`)
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
   } catch (error) {
     logError(pluginJson, JSP(error))

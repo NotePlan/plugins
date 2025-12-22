@@ -34,6 +34,7 @@ let thisFilename: string = `${thisDateStr}.md`
 export const openTodayItems: Array<TSectionItem> = [
   {
     ID: '0-0',
+    sectionCode: 'DT',
     itemType: 'open',
     para: {
       noteType: 'Calendar',
@@ -50,6 +51,7 @@ export const openTodayItems: Array<TSectionItem> = [
   },
   {
     ID: '0-1',
+    sectionCode: 'DT',
     itemType: 'open',
     para: {
       noteType: 'Calendar',
@@ -65,6 +67,7 @@ export const openTodayItems: Array<TSectionItem> = [
   },
   {
     ID: '0-2',
+    sectionCode: 'DT',
     itemType: 'checklist',
     para: {
       noteType: 'Calendar',
@@ -80,6 +83,7 @@ export const openTodayItems: Array<TSectionItem> = [
   },
   {
     ID: '0-3',
+    sectionCode: 'DT',
     itemType: 'checklist',
     para: {
       noteType: 'Calendar',
@@ -95,6 +99,7 @@ export const openTodayItems: Array<TSectionItem> = [
   },
   {
     ID: '0-4',
+    sectionCode: 'DT',
     itemType: 'checklist',
     para: {
       noteType: 'Calendar',
@@ -110,6 +115,7 @@ export const openTodayItems: Array<TSectionItem> = [
   },
   {
     ID: '0-5',
+    sectionCode: 'DT',
     itemType: 'open',
     teamspaceTitle: 'Repair Café',
     para: {
@@ -128,6 +134,7 @@ export const openTodayItems: Array<TSectionItem> = [
 export const refTodayItems: Array<TSectionItem> = [
   {
     ID: '1-0',
+    sectionCode: 'DT',
     itemType: 'open',
     para: {
       type: 'open',
@@ -145,6 +152,7 @@ export const refTodayItems: Array<TSectionItem> = [
   },
   {
     ID: '1-1',
+    sectionCode: 'DT',
     itemType: 'open',
     teamspaceTitle: 'Repair Café',
     para: {
@@ -162,6 +170,7 @@ export const refTodayItems: Array<TSectionItem> = [
   },
   {
     ID: '1-2',
+    sectionCode: 'DT',
     teamspaceTitle: 'Repair Café',
     itemType: 'open',
     para: {
@@ -188,6 +197,7 @@ thisFilename = `${thisDateStr}.md`
 export const openYesterdayParas: Array<TSectionItem> = [
   {
     ID: '2-0',
+    sectionCode: 'DY',
     itemType: 'open',
     para: {
       type: 'open',
@@ -204,6 +214,7 @@ export const openYesterdayParas: Array<TSectionItem> = [
   },
   {
     ID: '2-1',
+    sectionCode: 'DY',
     itemType: 'open',
     para: {
       type: 'open',
@@ -220,6 +231,7 @@ export const openYesterdayParas: Array<TSectionItem> = [
   },
   {
     ID: '2-2',
+    sectionCode: 'DY',
     itemType: 'checklist',
     para: {
       type: 'checklist',
@@ -234,9 +246,10 @@ export const openYesterdayParas: Array<TSectionItem> = [
       indents: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
+  // $FlowFixMe[prop-missing] children function is extra
   {
     ID: '2-3',
+    sectionCode: 'DY',
     itemType: 'open',
     para: {
       type: 'open',
@@ -254,9 +267,9 @@ export const openYesterdayParas: Array<TSectionItem> = [
       indents: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     ID: '2-4',
+    sectionCode: 'DY',
     itemType: 'open',
     para: {
       type: 'open',
@@ -275,9 +288,11 @@ export const openYesterdayParas: Array<TSectionItem> = [
   },
 
 ]
+
 export const refYesterdayParas: Array<TSectionItem> = [
   {
     ID: '2-6',
+    sectionCode: 'DY',
     itemType: 'open',
     para: {
       noteType: 'Notes',
@@ -353,6 +368,7 @@ export const refYesterdayParas: Array<TSectionItem> = [
   // },
   {
     ID: '2-10',
+    sectionCode: 'DY',
     parentID: '2-7',
     itemType: 'open',
     para: {
@@ -376,8 +392,9 @@ const tomorrow = new moment().add(1, 'days').toDate()
 thisDateStr = moment(tomorrow).format('YYYYMMDD')
 thisFilename = `${thisDateStr}.md`
 export const openTomorrowParas: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '4-0',
+    sectionCode: 'DO',
     itemType: 'open',
     para: {
       type: 'open',
@@ -400,9 +417,10 @@ export const refTomorrowParas: Array<TSectionItem> = []
 const weekDateStr = getNPWeekStr(today)
 thisFilename = `${weekDateStr}.md`
 export const openWeekParas: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
+  // $FlowFixMe[prop-missing] children function is extra
   {
     ID: '6-0',
+    sectionCode: 'W',
     parentID: '',
     itemType: 'open',
     para: {
@@ -422,6 +440,7 @@ export const openWeekParas: Array<TSectionItem> = [
   },
   {
     ID: '6-1',
+    sectionCode: 'W',
     parentID: '6-0',
     itemType: 'open',
     para: {
@@ -440,6 +459,7 @@ export const openWeekParas: Array<TSectionItem> = [
   },
   {
     ID: '6-2',
+    sectionCode: 'W',
     itemType: 'open',
     parentID: '6-1',
     para: {
@@ -458,6 +478,7 @@ export const openWeekParas: Array<TSectionItem> = [
   },
   {
     ID: '6-3',
+    sectionCode: 'W',
     parentID: '6-0',
     itemType: 'open',
     para: {
@@ -477,6 +498,7 @@ export const openWeekParas: Array<TSectionItem> = [
   // $FlowFixMe[prop-missing] children function is extra
   {
     ID: '6-4',
+    sectionCode: 'W',
     parentID: '',
     itemType: 'checklist',
     para: {
@@ -497,8 +519,9 @@ export const openWeekParas: Array<TSectionItem> = [
 ]
 
 export const refWeekParas: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '7-0',
+    sectionCode: 'W',
     itemType: 'checklist',
     para: {
       type: 'checklist',
@@ -513,8 +536,9 @@ export const refWeekParas: Array<TSectionItem> = [
       indents: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '7-1',
+    sectionCode: 'W',
     itemType: 'open',
     para: {
       type: 'open',
@@ -530,8 +554,9 @@ export const refWeekParas: Array<TSectionItem> = [
       indents: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '7-2',
+    sectionCode: 'W',
     itemType: 'checklist',
     para: {
       type: 'checklist',
@@ -553,8 +578,9 @@ export const refWeekParas: Array<TSectionItem> = [
 const monthDateStr = getNPMonthStr(today)
 thisFilename = `${monthDateStr}.md`
 export const openMonthParas: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '8-0',
+    sectionCode: 'M',
     itemType: 'open',
     para: {
       type: 'open',
@@ -570,8 +596,9 @@ export const openMonthParas: Array<TSectionItem> = [
   },
 ]
 export const refMonthParas: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '8-1',
+    sectionCode: 'M',
     itemType: 'open',
     para: {
       type: 'open',
@@ -595,6 +622,7 @@ export const tagParasFromNote: Array<TSectionItem> = [
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'checklist',
+    sectionCode: 'TAG',
     para: {
       type: 'checklist',
       noteType: 'Notes',
@@ -610,6 +638,7 @@ export const tagParasFromNote: Array<TSectionItem> = [
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'open',
+    sectionCode: 'TAG',
     para: {
       type: 'open',
       noteType: 'Notes',
@@ -625,6 +654,7 @@ export const tagParasFromNote: Array<TSectionItem> = [
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'open',
+    sectionCode: 'TAG',
     para: {
       type: 'checklist',
       noteType: 'Notes',
@@ -642,15 +672,14 @@ export const tagParasFromNote: Array<TSectionItem> = [
 //-----------------------------------------------------------
 // Demo data for Saved Search section
 
-// $FlowIgnore[prop-missing] demo data
 export const savedSearch1 = {
   name: "'Prepare' Saved Search",
   rep: 'prepare',
   items: [
-    // $FlowIgnore[prop-missing] ID gets added later
     {
       itemType: 'open',
       ID: '22-0',
+      sectionCode: 'SAVEDSEARCH',
       para: {
         type: 'open',
         noteType: 'Calendar',
@@ -661,14 +690,13 @@ export const savedSearch1 = {
         prefix: '* ',
         priority: 0,
         blockId: '^q9jzj4',
-        // changedDate: new Date('2023-03-02T00:00:00.000Z'),
         indents: 0,
       },
     },
-    // $FlowIgnore[prop-missing] ID gets added later
     {
       itemType: 'open',
       ID: '22-1',
+      sectionCode: 'SAVEDSEARCH',
       para: {
         noteType: 'Calendar',
         type: 'open',
@@ -683,10 +711,10 @@ export const savedSearch1 = {
         indents: 0,
       },
     },
-    // $FlowIgnore[prop-missing] ID gets added later
     {
       itemType: 'open',
       ID: '22-2',
+      sectionCode: 'SAVEDSEARCH',
       para: {
         type: 'open',
         noteType: 'Notes',
@@ -696,7 +724,6 @@ export const savedSearch1 = {
         content: 'prepare service for 5/3 >2023-03-02',
         rawContent: 'prepare service for 5/3 >2023-03-02',
         prefix: '* ',
-        // changedDate: new Date('2023-03-02T00:00:00.000Z'),
         priority: 0,
         hasChild: true,
         children: () => [{ content: 'plan Something Different for 5/3', indents: 1 }],

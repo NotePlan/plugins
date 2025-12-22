@@ -156,12 +156,12 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
  * Plugin Entry Point for "Test React Window"
  * @author @dwertheimer
  */
-export async function testReactWindow(): Promise<void> {
+export async function openReactWindow(): Promise<void> {
   try {
-    logDebug(pluginJson, `testReactWindow starting up`)
+    logDebug(pluginJson, `openReactWindow starting up`)
     // make sure we have the np.Shared plugin which has the core react code and some basic CSS
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
-    logDebug(pluginJson, `testReactWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
+    logDebug(pluginJson, `openReactWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindow()
 
@@ -187,9 +187,9 @@ export async function testReactWindow(): Promise<void> {
         </script>
       `,
     }
-    logDebug(`===== testReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
-    logDebug(pluginJson, `testReactWindow invoking window. testReactWindow stopping here. It's all React from this point forward`)
-    clo(data, `testReactWindow data object passed`)
+    logDebug(`===== openReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
+    logDebug(pluginJson, `openReactWindow invoking window. openReactWindow stopping here. It's all React from this point forward`)
+    clo(data, `openReactWindow data object passed`)
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
   } catch (error) {
