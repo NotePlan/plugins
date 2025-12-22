@@ -1228,6 +1228,22 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
           return null
         }
 
+        // Render newNoteTitle with form values if it contains template tags
+        let renderedNewNoteTitle = cleanedNewNoteTitle
+        if (cleanedNewNoteTitle.includes('<%')) {
+          try {
+            // Render the template tag with form values
+            renderedNewNoteTitle = await NPTemplating.render(cleanedNewNoteTitle, { data: formValues }, { frontmatterProcessed: true })
+            // Clean up the rendered result (trim, remove newlines)
+            renderedNewNoteTitle = renderedNewNoteTitle.replace(/\n/g, ' ').trim()
+            logDebug(pluginJson, `handleSubmitButtonClick: Rendered newNoteTitle from "${cleanedNewNoteTitle}" to "${renderedNewNoteTitle}"`)
+          } catch (error) {
+            logError(pluginJson, `handleSubmitButtonClick: Error rendering newNoteTitle: ${JSP(error)}`)
+            await showMessage(`Error rendering note title: ${error.message || String(error)}`)
+            return null
+          }
+        }
+
         // Use templateBody from frontmatter if provided, otherwise build from form values
         const finalTemplateBody =
           templateBody ||
@@ -1238,7 +1254,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
 
         // Build frontmatter object for TemplateRunner
         const templateRunnerArgs: { [string]: any } = {
-          newNoteTitle: cleanedNewNoteTitle, // Use cleaned title (no newlines, trimmed)
+          newNoteTitle: renderedNewNoteTitle, // Use rendered title (template tags replaced with form values)
           templateBody: finalTemplateBody,
         }
 
