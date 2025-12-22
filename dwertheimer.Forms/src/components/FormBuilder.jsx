@@ -126,8 +126,8 @@ export function FormBuilder({
   const needsNotes = useMemo(() => fields.some((field) => field.type === 'note-chooser'), [fields])
 
   // Load folders on demand when needed (for form fields OR processing method sections)
-  const loadFolders = useCallback(async () => {
-    if (foldersLoaded || loadingFolders) return
+  const loadFolders = useCallback(async (forceReload: boolean = false) => {
+    if ((foldersLoaded && !forceReload) || loadingFolders) return
 
     try {
       setLoadingFolders(true)
