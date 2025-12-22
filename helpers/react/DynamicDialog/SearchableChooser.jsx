@@ -263,12 +263,12 @@ export function SearchableChooser({
   // This ensures we show the label (e.g., note title) rather than the value (e.g., filename)
   let displayValue = value || ''
   let isManualEntryValue = false
-  
+
   // Check if current value is a manual entry
   if (allowManualEntry && displayValue && isManualEntry) {
     isManualEntryValue = isManualEntry(displayValue, items)
   }
-  
+
   if (displayValue && items && items.length > 0 && !isManualEntryValue) {
     if (debugLogging) {
       console.log(`${fieldType}: Looking up display value for stored value: "${value}"`)
@@ -380,7 +380,17 @@ export function SearchableChooser({
               <div className={`${classNamePrefix}-empty`}>
                 {items.length === 0 ? emptyMessageNoItems : `${emptyMessageNoMatch} "${searchTerm}"`}
                 {allowManualEntry && searchTerm.trim() && (
-                  <div className={`${classNamePrefix}-manual-entry-hint`} style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: 'var(--bg-alt-color, #f5f5f5)', borderRadius: '4px', fontSize: '0.85em', color: 'var(--gray-600, #666)' }}>
+                  <div
+                    className={`${classNamePrefix}-manual-entry-hint`}
+                    style={{
+                      marginTop: '0.5rem',
+                      padding: '0.5rem',
+                      backgroundColor: 'var(--bg-alt-color, #f5f5f5)',
+                      borderRadius: '4px',
+                      fontSize: '0.85em',
+                      color: 'var(--gray-600, #666)',
+                    }}
+                  >
                     Press Enter to use &quot;{searchTerm.trim()}&quot; as {manualEntryIndicator.toLowerCase()}
                   </div>
                 )}

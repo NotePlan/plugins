@@ -319,6 +319,46 @@ export function ProcessingMethodSection({
           </div>
         </>
       )}
+      
+      {/* Debug JSON Viewer */}
+      <div className="frontmatter-field" style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color, #ddd)' }}>
+        <label style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>Debug: Frontmatter Values (JSON)</label>
+        <div
+          style={{
+            backgroundColor: 'var(--bg-alt-color, #f5f5f5)',
+            border: '1px solid var(--border-color, #ddd)',
+            borderRadius: '4px',
+            padding: '0.75rem',
+            fontFamily: 'Menlo, monospace',
+            fontSize: '0.8em',
+            maxHeight: '300px',
+            overflowY: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}
+        >
+          {JSON.stringify(
+            {
+              processingMethod: frontmatter.processingMethod,
+              getNoteTitled: frontmatter.getNoteTitled,
+              getNoteFilename: frontmatter.getNoteFilename,
+              location: frontmatter.location,
+              writeUnderHeading: frontmatter.writeUnderHeading,
+              replaceNoteContents: frontmatter.replaceNoteContents,
+              createMissingHeading: frontmatter.createMissingHeading,
+              newNoteTitle: frontmatter.newNoteTitle,
+              newNoteFolder: frontmatter.newNoteFolder,
+              formProcessorTitle: frontmatter.formProcessorTitle,
+              receivingTemplateTitle: frontmatter.receivingTemplateTitle,
+            },
+            null,
+            2,
+          )}
+        </div>
+        <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+          Current frontmatter values for debugging. This shows what will be saved.
+        </div>
+      </div>
     </>
   )
 }
