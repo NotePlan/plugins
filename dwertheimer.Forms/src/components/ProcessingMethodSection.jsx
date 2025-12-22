@@ -23,6 +23,8 @@ export type ProcessingMethodSectionProps = {
   templateTitle: string,
   showTagInserter: boolean,
   setShowTagInserter: (show: boolean) => void,
+  tagInserterMode: 'field' | 'date' | 'both',
+  setTagInserterMode: (mode: 'field' | 'date' | 'both') => void,
   tagInserterInputRef: ?HTMLInputElement | ?HTMLTextAreaElement,
   setTagInserterInputRef: (ref: ?HTMLInputElement | ?HTMLTextAreaElement) => void,
   tagInserterFieldKey: string, // Track which field is being edited ('newNoteTitle' or 'templateBody')
@@ -46,6 +48,8 @@ export function ProcessingMethodSection({
   templateTitle,
   showTagInserter,
   setShowTagInserter,
+  tagInserterMode,
+  setTagInserterMode,
   tagInserterInputRef,
   setTagInserterInputRef,
   tagInserterFieldKey,
@@ -223,6 +227,7 @@ export function ProcessingMethodSection({
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
+                    setTagInserterMode('field')
                     setShowTagInserter(true)
                   }}
                   style={{
@@ -242,6 +247,7 @@ export function ProcessingMethodSection({
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
+                    setTagInserterMode('date')
                     setShowTagInserter(true)
                   }}
                   style={{
@@ -307,6 +313,7 @@ export function ProcessingMethodSection({
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
+                    setTagInserterMode('field')
                     setShowTagInserter(true)
                   }}
                   style={{
@@ -317,7 +324,7 @@ export function ProcessingMethodSection({
                     borderRadius: '3px',
                     cursor: 'pointer',
                   }}
-                  title="Insert field variable or date format"
+                  title="Insert field variable"
                 >
                   + Field
                 </button>
@@ -326,6 +333,7 @@ export function ProcessingMethodSection({
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
+                    setTagInserterMode('date')
                     setShowTagInserter(true)
                   }}
                   style={{
@@ -489,6 +497,7 @@ export function ProcessingMethodSection({
           }}
           fieldKeys={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key || '')}
           showDateFormats={true}
+          mode={tagInserterMode}
         />
       )}
     </>

@@ -94,6 +94,7 @@ export function FormBuilder({
   const [showTagInserter, setShowTagInserter] = useState<boolean>(false)
   const [tagInserterInputRef, setTagInserterInputRef] = useState<?HTMLInputElement | ?HTMLTextAreaElement>(null)
   const [tagInserterFieldKey, setTagInserterFieldKey] = useState<string>('')
+  const [tagInserterMode, setTagInserterMode] = useState<'field' | 'date' | 'both'>('both')
   const [frontmatter, setFrontmatter] = useState<{ [key: string]: any }>(() => {
     // Strip quotes from initial values to prevent saving quoted values
     const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''
@@ -502,6 +503,8 @@ export function FormBuilder({
                 setTagInserterInputRef={setTagInserterInputRef}
                 tagInserterFieldKey={tagInserterFieldKey}
                 setTagInserterFieldKey={setTagInserterFieldKey}
+                tagInserterMode={tagInserterMode}
+                setTagInserterMode={setTagInserterMode}
                 fields={fields}
               />
             </div>

@@ -13,7 +13,7 @@ export type TemplateTagOption = {
   label: string,
   value: string,
   description?: string,
-  category?: string,
+  category?: ?string, // Can be null to hide category
 }
 
 export type TemplateTagInserterProps = {
@@ -22,6 +22,7 @@ export type TemplateTagInserterProps = {
   onInsert: (tag: string) => void,
   fieldKeys?: Array<string>, // Available form field keys for <%- fieldKey %>
   showDateFormats?: boolean, // Show date format options
+  mode?: 'field' | 'date' | 'both', // Mode: 'field' = only fields, 'date' = only dates, 'both' = both (default)
 }
 
 /**
@@ -36,6 +37,7 @@ export function TemplateTagInserter({
   onInsert,
   fieldKeys = [],
   showDateFormats = true,
+  mode = 'both',
 }: TemplateTagInserterProps): React$Node {
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -43,35 +45,42 @@ export function TemplateTagInserter({
   const options: Array<TemplateTagOption> = useMemo(() => {
     const opts: Array<TemplateTagOption> = []
 
-    // Add field keys
-    if (fieldKeys.length > 0) {
+    // Add field keys (only if mode is 'field' or 'both')
+    if ((mode === 'field' || mode === 'both') && fieldKeys.length > 0) {
       fieldKeys.forEach((key) => {
         opts.push({
-          label: `Field: ${key}`,
+          label: key,
           value: `<%- ${key} %>`,
           description: `Insert value of form field "${key}"`,
-          category: 'Form Fields',
+          category: null, // Don't show category for fields
         })
       })
     }
 
-    // Add date formats
-    if (showDateFormats) {
+    // Add date formats (only if mode is 'date' or 'both')
+    if ((mode === 'date' || mode === 'both') && showDateFormats) {
       const dateFormats = [
-        { label: 'Date: YYYY-MM-DD', value: `<%- date.format("YYYY-MM-DD") %>`, description: 'ISO date format' },
-        { label: 'Date: MM/DD/YYYY', value: `<%- date.format("MM/DD/YYYY") %>`, description: 'US date format' },
-        { label: 'Date: DD/MM/YYYY', value: `<%- date.format("DD/MM/YYYY") %>`, description: 'European date format' },
-        { label: 'Date: YYYY-MM-DD HH:mm', value: `<%- date.format("YYYY-MM-DD HH:mm") %>`, description: 'Date and time' },
-        { label: 'Date: MMMM Do, YYYY', value: `<%- date.format("MMMM Do, YYYY") %>`, description: 'Long date format' },
-        { label: 'Date: dddd', value: `<%- date.format("dddd") %>`, description: 'Day of week' },
-        { label: 'Date: MMMM', value: `<%- date.format("MMMM") %>`, description: 'Month name' },
-        { label: 'Date: YYYY', value: `<%- date.format("YYYY") %>`, description: 'Year' },
+        { format: 'YYYY-MM-DD', example: '2024-12-22', description: 'ISO date format' },
+        { format: 'MM/DD/YYYY', example: '12/22/2024', description: 'US date format' },
+        { format: 'DD/MM/YYYY', example: '22/12/2024', description: 'European date format' },
+        { format: 'YYYY-MM-DD HH:mm', example: '2024-12-22 14:30', description: 'Date and time' },
+        { format: 'MMMM Do, YYYY', example: 'December 22nd, 2024', description: 'Long date format' },
+        { format: 'dddd', example: 'Sunday', description: 'Day of week' },
+        { format: 'MMMM', example: 'December', description: 'Month name' },
+        { format: 'YYYY', example: '2024', description: 'Year' },
       ]
-      opts.push(...dateFormats.map((df) => ({ ...df, category: 'Date Formats' })))
+      opts.push(
+        ...dateFormats.map((df) => ({
+          label: `${df.format} (${df.example})`,
+          value: `<%- date.format("${df.format}") %>`,
+          description: df.description,
+          category: null, // Don't show category for dates
+        })),
+      )
     }
 
     return opts
-  }, [fieldKeys, showDateFormats])
+  }, [fieldKeys, showDateFormats, mode])
 
   // Configure the SearchableChooser
   const config: ChooserConfig = {
@@ -103,7 +112,7 @@ export function TemplateTagInserter({
     maxResults: 25,
     inputMaxLength: 60,
     dropdownMaxLength: 80,
-    getOptionShortDescription: (option: TemplateTagOption) => option.category || null,
+    getOptionShortDescription: (option: TemplateTagOption) => null, // Don't show category
   }
 
   if (!isOpen) return null
