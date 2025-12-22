@@ -91,16 +91,16 @@ export function ProcessingMethodSection({
             <div style={{ position: 'relative' }}>
               <ExpandableTextarea
                 ref={(ref) => {
-                  if (ref && !tagInserterInputRef) {
+                  if (ref) {
                     setTagInserterInputRef(ref)
                   }
                 }}
                 value={frontmatter.templateBody || ''}
                 onChange={(e) => onFrontmatterChange('templateBody', e.target.value)}
-                onFocus={() => {
-                  const activeElement = document.activeElement
-                  if (activeElement instanceof HTMLTextAreaElement) {
-                    setTagInserterInputRef(activeElement)
+                onFocus={(e) => {
+                  const target = e.target
+                  if (target instanceof HTMLTextAreaElement) {
+                    setTagInserterInputRef(target)
                   }
                 }}
                 placeholder="Enter template body with tags like <%- fieldKey %> or <%- date.format(&quot;YYYY-MM-DD&quot;) %>"
