@@ -1178,9 +1178,15 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
             .join('\n')
 
         // Build frontmatter object for TemplateRunner
+        // Spread formValues into templateRunnerArgs so they're available for rendering template tags in templateBody
+        // Filter out __isJSON__ flag as it's not needed for rendering
+        const formValuesForRendering = { ...formValues }
+        delete formValuesForRendering.__isJSON__
+
         const templateRunnerArgs: { [string]: any } = {
           getNoteTitled,
           templateBody: finalTemplateBody,
+          ...formValuesForRendering, // Spread form values so template tags like <%- field1 %> can access them
         }
 
         // Handle location options
@@ -1253,9 +1259,15 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
             .join('\n')
 
         // Build frontmatter object for TemplateRunner
+        // Spread formValues into templateRunnerArgs so they're available for rendering template tags in templateBody
+        // Filter out __isJSON__ flag as it's not needed for rendering
+        const formValuesForRendering = { ...formValues }
+        delete formValuesForRendering.__isJSON__
+
         const templateRunnerArgs: { [string]: any } = {
           newNoteTitle: renderedNewNoteTitle, // Use rendered title (template tags replaced with form values)
           templateBody: finalTemplateBody,
+          ...formValuesForRendering, // Spread form values so template tags like <%- field1 %> can access them
         }
 
         // Set folder - use '/' for root folder if empty, otherwise use the specified folder
