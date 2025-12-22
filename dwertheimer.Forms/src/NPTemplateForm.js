@@ -209,9 +209,34 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
       return
     }
 
+    // Preserve newNoteTitle and templateBody before renderFrontmatter
+    // These contain template tags that reference form field values (e.g., <%- field1 %>)
+    // which don't exist yet when opening the form - they should only be rendered when the form is submitted
+    const preservedNewNoteTitle = templateFrontmatterAttributes?.newNoteTitle
+    const preservedTemplateBody = templateFrontmatterAttributes?.templateBody
+
     //TODO: we may not need this step, ask @codedungeon what he thinks
     // for now, we'll call renderFrontmatter() via DataStore.invokePluginCommandByName()
     const { _, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateData])
+
+    // Restore preserved fields that should not be rendered during form opening
+    // These will be rendered later when the form is submitted with actual form values
+    if (preservedNewNoteTitle !== undefined) {
+      frontmatterAttributes.newNoteTitle = preservedNewNoteTitle
+    }
+    // templateBody is loaded from codeblock separately, so preserve it if it exists
+    if (preservedTemplateBody !== undefined) {
+      frontmatterAttributes.templateBody = preservedTemplateBody
+    } else if (selectedTemplate) {
+      // Load templateBody from codeblock if not in frontmatter
+      const templateNote = await getNoteByFilename(selectedTemplate)
+      if (templateNote) {
+        const templateBodyFromCodeblock = await loadTemplateBodyFromTemplate(templateNote)
+        if (templateBodyFromCodeblock) {
+          frontmatterAttributes.templateBody = templateBodyFromCodeblock
+        }
+      }
+    }
 
     if (templateFrontmatterAttributes.formFields) {
       // yaml version of formFields
