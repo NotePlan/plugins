@@ -746,25 +746,36 @@ async function saveFrontmatterToTemplate(templateFilename: string, frontmatter: 
 
     // Convert all frontmatter values to strings (updateFrontMatterVars expects strings)
     // Strip any quotes that might have been added
+    // IMPORTANT: Skip empty string values to avoid writing "" to frontmatter
     const frontmatterAsStrings: { [string]: string } = {}
     Object.keys(frontmatter).forEach((key) => {
       const value = frontmatter[key]
-      // Convert to string, handling null/undefined
+      // Skip null, undefined, and empty strings - don't write them to frontmatter
       if (value === null || value === undefined) {
-        frontmatterAsStrings[key] = ''
-      } else if (typeof value === 'boolean') {
-        frontmatterAsStrings[key] = String(value)
+        // Skip - don't add to frontmatterAsStrings
+        return
+      }
+      
+      let stringValue: string = ''
+      if (typeof value === 'boolean') {
+        stringValue = String(value)
       } else if (typeof value === 'number') {
-        frontmatterAsStrings[key] = String(value)
+        stringValue = String(value)
       } else if (typeof value === 'string') {
         // Strip quotes from string values
-        frontmatterAsStrings[key] = stripDoubleQuotes(value)
+        stringValue = stripDoubleQuotes(value)
       } else {
-        frontmatterAsStrings[key] = stripDoubleQuotes(String(value))
+        stringValue = stripDoubleQuotes(String(value))
+      }
+      
+      // Only add non-empty string values to frontmatter
+      // This prevents writing empty quotes (""") to frontmatter
+      if (stringValue !== '') {
+        frontmatterAsStrings[key] = stringValue
       }
     })
 
-    // Update frontmatter
+    // Update frontmatter (only non-empty values will be written)
     updateFrontMatterVars(templateNote, frontmatterAsStrings)
     logDebug(pluginJson, `saveFrontmatterToTemplate: Saved frontmatter to template`)
   } catch (error) {
