@@ -895,6 +895,115 @@ async function saveFrontmatterToTemplate(templateFilename: string, frontmatter: 
 }
 
 /**
+ * Handle save request from React (request/response pattern)
+ * @param {Object} data - Request data containing fields, frontmatter, templateFilename, templateTitle
+ * @returns {Promise<{success: boolean, message?: string, data?: any}>}
+ */
+async function handleSaveRequest(data: any): Promise<{ success: boolean, message?: string, data?: any }> {
+  try {
+    // Get the template filename from the data passed from React, or fall back to reactWindowData
+    const templateFilename = data?.templateFilename
+    const reactWindowData = await getGlobalSharedData(FORMBUILDER_WINDOW_ID)
+    const fallbackTemplateFilename = reactWindowData?.pluginData?.templateFilename || ''
+    const finalTemplateFilename = templateFilename || fallbackTemplateFilename
+
+    if (!finalTemplateFilename) {
+      return {
+        success: false,
+        message: 'No template filename provided',
+        data: null,
+      }
+    }
+
+    if (!data?.fields) {
+      return {
+        success: false,
+        message: 'No fields provided to save',
+        data: null,
+      }
+    }
+
+    // Parse fields if they're strings (shouldn't happen, but just in case)
+    let fieldsToSave = data.fields
+    if (Array.isArray(fieldsToSave) && fieldsToSave.length > 0 && typeof fieldsToSave[0] === 'string') {
+      logWarn(pluginJson, `handleSaveRequest: Fields are strings, attempting to parse`)
+      fieldsToSave = fieldsToSave.map((field) => {
+        try {
+          return typeof field === 'string' ? JSON.parse(field) : field
+        } catch (e) {
+          logError(pluginJson, `handleSaveRequest: Error parsing field: ${e.message}`)
+          return field
+        }
+      })
+    }
+
+    logDebug(pluginJson, `handleSaveRequest: Saving ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
+
+    await saveFormFieldsToTemplate(finalTemplateFilename, fieldsToSave)
+
+    // Extract TemplateRunner processing variables from frontmatter
+    // These contain template tags and should be stored in codeblock, not frontmatter
+    const templateRunnerArgs: { [string]: any } = {}
+    const templateRunnerArgKeys = [
+      'newNoteTitle', // Contains template tags like <%- field1 %>
+      'getNoteTitled', // May contain special values like <today>, <current>
+      'location', // Write location setting
+      'writeUnderHeading', // Heading to write under
+      'replaceNoteContents', // Whether to replace note contents
+      'createMissingHeading', // Whether to create missing heading
+      'newNoteFolder', // Folder for new note
+    ]
+
+    // Extract TemplateRunner args from frontmatter
+    if (data?.frontmatter) {
+      templateRunnerArgKeys.forEach((key) => {
+        if (data.frontmatter[key] !== undefined) {
+          templateRunnerArgs[key] = data.frontmatter[key]
+        }
+      })
+    }
+
+    // Save templateBody to codeblock if provided
+    if (data?.frontmatter?.templateBody !== undefined) {
+      await saveTemplateBodyToTemplate(finalTemplateFilename, data.frontmatter.templateBody || '')
+    }
+
+    // Save TemplateRunner args to codeblock if any exist
+    if (Object.keys(templateRunnerArgs).length > 0) {
+      await saveTemplateRunnerArgsToTemplate(finalTemplateFilename, templateRunnerArgs)
+    }
+
+    // Save frontmatter if provided (but exclude TemplateRunner args and templateBody as they're in codeblocks)
+    if (data?.frontmatter) {
+      const frontmatterForSave = { ...data.frontmatter }
+      // Remove TemplateRunner args and templateBody from frontmatter
+      delete frontmatterForSave.templateBody
+      templateRunnerArgKeys.forEach((key) => {
+        delete frontmatterForSave[key]
+      })
+      await saveFrontmatterToTemplate(finalTemplateFilename, frontmatterForSave)
+    }
+
+    // Get template note for success message
+    const templateNote = await getNoteByFilename(finalTemplateFilename)
+    const templateTitle = templateNote?.title || finalTemplateFilename
+
+    return {
+      success: true,
+      message: `Form saved successfully to "${templateTitle}"`,
+      data: { templateFilename: finalTemplateFilename, templateTitle },
+    }
+  } catch (error) {
+    logError(pluginJson, `handleSaveRequest error: ${JSP(error)}`)
+    return {
+      success: false,
+      message: `Error saving form: ${error.message || String(error)}`,
+      data: null,
+    }
+  }
+}
+
+/**
  * Save form fields to template as formfields code block
  * @param {string} templateFilename - The template filename
  * @param {Array<Object>} fields - The form fields array
