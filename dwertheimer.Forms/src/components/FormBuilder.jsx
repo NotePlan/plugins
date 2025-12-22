@@ -151,8 +151,8 @@ export function FormBuilder({
   }, [foldersLoaded, loadingFolders, requestFromPlugin])
 
   // Load notes on demand when needed (for form fields OR processing method sections)
-  const loadNotes = useCallback(async () => {
-    if (notesLoaded || loadingNotes) return
+  const loadNotes = useCallback(async (forceReload: boolean = false) => {
+    if ((notesLoaded && !forceReload) || loadingNotes) return
 
     try {
       setLoadingNotes(true)
@@ -185,20 +185,28 @@ export function FormBuilder({
   useEffect(() => {
     const needsFoldersForFields = fields.some((field) => field.type === 'folder-chooser')
     const needsFoldersForProcessing = frontmatter.processingMethod === 'create-new'
-    if ((needsFoldersForFields || needsFoldersForProcessing) && !foldersLoaded && !loadingFolders) {
-      logDebug('FormBuilder', `Triggering loadFolders: needsFoldersForFields=${String(needsFoldersForFields)}, needsFoldersForProcessing=${String(needsFoldersForProcessing)}`)
-      loadFolders()
+    if (needsFoldersForFields || needsFoldersForProcessing) {
+      // Always load if needed, even if already loaded (in case processing method changed)
+      const shouldLoad = !foldersLoaded || (needsFoldersForProcessing && folders.length === 0)
+      if (shouldLoad && !loadingFolders) {
+        logDebug('FormBuilder', `Triggering loadFolders: needsFoldersForFields=${String(needsFoldersForFields)}, needsFoldersForProcessing=${String(needsFoldersForProcessing)}, folders.length=${folders.length}`)
+        loadFolders(needsFoldersForProcessing && folders.length === 0) // Force reload if processing section needs it and we have no data
+      }
     }
-  }, [needsFolders, foldersLoaded, loadingFolders, loadFolders, frontmatter.processingMethod, fields])
+  }, [needsFolders, foldersLoaded, loadingFolders, loadFolders, frontmatter.processingMethod, fields, folders.length])
 
   useEffect(() => {
     const needsNotesForFields = fields.some((field) => field.type === 'note-chooser')
     const needsNotesForProcessing = frontmatter.processingMethod === 'write-existing' || frontmatter.processingMethod === 'form-processor'
-    if ((needsNotesForFields || needsNotesForProcessing) && !notesLoaded && !loadingNotes) {
-      logDebug('FormBuilder', `Triggering loadNotes: needsNotesForFields=${String(needsNotesForFields)}, needsNotesForProcessing=${String(needsNotesForProcessing)}`)
-      loadNotes()
+    if (needsNotesForFields || needsNotesForProcessing) {
+      // Always load if needed, even if already loaded (in case processing method changed)
+      const shouldLoad = !notesLoaded || (needsNotesForProcessing && notes.length === 0)
+      if (shouldLoad && !loadingNotes) {
+        logDebug('FormBuilder', `Triggering loadNotes: needsNotesForFields=${String(needsNotesForFields)}, needsNotesForProcessing=${String(needsNotesForProcessing)}, notes.length=${notes.length}`)
+        loadNotes(needsNotesForProcessing && notes.length === 0) // Force reload if processing section needs it and we have no data
+      }
     }
-  }, [needsNotes, notesLoaded, loadingNotes, loadNotes, frontmatter.processingMethod, fields])
+  }, [needsNotes, notesLoaded, loadingNotes, loadNotes, frontmatter.processingMethod, fields, notes.length])
 
   // Sync frontmatter when props change (e.g., when receivingTemplateTitle is set after template creation)
   useEffect(() => {
