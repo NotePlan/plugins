@@ -11,7 +11,7 @@ import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { showMessage } from '@helpers/userInput'
 import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
-import { getCodeBlocksOfType, replaceCodeBlockContent } from '@helpers/codeBlocks'
+import { replaceCodeBlockContent, saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseObjectString, validateObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
 import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
@@ -123,9 +123,24 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
           )
           return
         }
-        const codeBlocks = getCodeBlocksOfType(note, 'formfields')
-        if (codeBlocks.length > 0) {
-          const formFieldsString = codeBlocks[0].code
+        // Use generalized helper function to load formFields
+        const loadedFormFields = await loadCodeBlockFromNote<Array<Object>>(selectedTemplate, 'formfields', pluginJson.id, parseObjectString)
+        if (loadedFormFields) {
+          formFields = loadedFormFields
+          if (!formFields) {
+            const formFieldsString: ?string = await loadCodeBlockFromNote<string>(selectedTemplate, 'formfields', pluginJson.id, null)
+            if (formFieldsString) {
+              const errors = validateObjectString(formFieldsString)
+              logError(pluginJson, `getTemplateFormData: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
+              logError(pluginJson, `getTemplateFormData: errors: ${errors.join('\n')}`)
+              return
+            }
+          }
+          clo(formFields, `🎅🏼 DBWDELETE NPTemplating.getTemplateFormData formFields=`)
+          logDebug(pluginJson, `🎅🏼 DBWDELETE NPTemplating.getTemplateFormData formFields=\n${JSON.stringify(formFields, null, 2)}`)
+        } else {
+          // Try to get raw string for error reporting
+          const formFieldsString: ?string = await loadCodeBlockFromNote<string>(selectedTemplate, 'formfields', pluginJson.id, null)
           if (formFieldsString) {
             try {
               formFields = parseObjectString(formFieldsString)
@@ -135,8 +150,6 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
                 logError(pluginJson, `getTemplateFormData: errors: ${errors.join('\n')}`)
                 return
               }
-              clo(formFields, `🎅🏼 DBWDELETE NPTemplating.getTemplateFormData formFields=`)
-              logDebug(pluginJson, `🎅🏼 DBWDELETE NPTemplating.getTemplateFormData formFields=\n${JSON.stringify(formFields, null, 2)}`)
             } catch (error) {
               const errors = validateObjectString(formFieldsString)
               await showMessage(
@@ -435,18 +448,11 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
 
     if (templateNote) {
       logDebug(pluginJson, `openFormBuilder: Checking for existing formfields code blocks`)
-      const codeBlocks = getCodeBlocksOfType(templateNote, 'formfields')
-      logDebug(pluginJson, `openFormBuilder: Found ${codeBlocks.length} formfields code blocks`)
-      if (codeBlocks.length > 0) {
-        const formFieldsString = codeBlocks[0].code
-        if (formFieldsString) {
-          try {
-            formFields = parseObjectString(formFieldsString) || []
-            logDebug(pluginJson, `openFormBuilder: Loaded ${formFields.length} existing form fields`)
-          } catch (error) {
-            logError(pluginJson, `openFormBuilder: error parsing form fields: ${error.message}`)
-          }
-        }
+      // Use generalized helper function to load formFields
+      const loadedFormFields = await loadCodeBlockFromNote<Array<Object>>(templateNote, 'formfields', pluginJson.id, parseObjectString)
+      if (loadedFormFields) {
+        formFields = loadedFormFields || []
+        logDebug(pluginJson, `openFormBuilder: Loaded ${formFields.length} existing form fields`)
       } else {
         logDebug(pluginJson, `openFormBuilder: No existing formfields code blocks found, starting with empty array`)
       }
@@ -532,7 +538,7 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
           height = typeof heightStr === 'number' ? heightStr : parseInt(String(heightStr), 10)
         }
         // Load templateBody from codeblock
-        templateBody = loadTemplateBodyFromTemplate(templateNote)
+        templateBody = await loadTemplateBodyFromTemplate(templateNote)
       }
     } else {
       // No templateFilename means this is a new form
@@ -775,31 +781,23 @@ async function saveFrontmatterToTemplate(templateFilename: string, frontmatter: 
  */
 async function saveFormFieldsToTemplate(templateFilename: string, fields: Array<Object>): Promise<void> {
   try {
-    if (!templateFilename) {
-      await showMessage('No template filename provided. Cannot save form fields.')
-      return
+    // Use generalized helper function
+    const success = await saveCodeBlockToNote(
+      templateFilename,
+      'formfields',
+      fields,
+      pluginJson.id,
+      formatFormFieldsAsCodeBlock, // Format function
+      true, // Show error messages to user
+    )
+
+    if (success) {
+      const templateNote = await getNoteByFilename(templateFilename)
+      if (templateNote) {
+        await showMessage(`Form fields saved to template "${templateNote.title || templateFilename}"`)
+        logDebug(pluginJson, `saveFormFieldsToTemplate: Saved ${fields.length} fields to template`)
+      }
     }
-
-    const templateNote = await getNoteByFilename(templateFilename)
-    if (!templateNote) {
-      await showMessage(`Template not found: ${templateFilename}`)
-      return
-    }
-
-    // Convert fields to JSON string (pretty printed, but without quotes on keys where possible)
-    // We'll create a more readable format similar to the example
-    const jsonString = formatFormFieldsAsCodeBlock(fields)
-
-    // Use the helper function to replace code block content (or add if it doesn't exist)
-    const success = replaceCodeBlockContent(templateNote, 'formfields', jsonString, pluginJson.id)
-    if (!success) {
-      logError(pluginJson, `saveFormFieldsToTemplate: Failed to replace code block content`)
-      await showMessage(`Error: Failed to save form fields to template`)
-      return
-    }
-
-    await showMessage(`Form fields saved to template "${templateNote.title || templateFilename}"`)
-    logDebug(pluginJson, `saveFormFieldsToTemplate: Saved ${fields.length} fields to template`)
   } catch (error) {
     logError(pluginJson, `saveFormFieldsToTemplate error: ${JSP(error)}`)
     await showMessage(`Error saving form fields: ${error.message}`)
@@ -827,25 +825,15 @@ function formatFormFieldsAsCodeBlock(fields: Array<Object>): string {
  */
 async function saveTemplateBodyToTemplate(templateFilename: string, templateBody: string): Promise<void> {
   try {
-    if (!templateFilename) {
-      logDebug(pluginJson, 'saveTemplateBodyToTemplate: No template filename provided, skipping')
-      return
-    }
-
-    const templateNote = await getNoteByFilename(templateFilename)
-    if (!templateNote) {
-      logError(pluginJson, `saveTemplateBodyToTemplate: Template not found: ${templateFilename}`)
-      return
-    }
-
-    // Use the helper function to replace code block content (or add if it doesn't exist)
-    const success = replaceCodeBlockContent(templateNote, templateBodyCodeBlockType, templateBody || '', pluginJson.id)
-    if (!success) {
-      logError(pluginJson, `saveTemplateBodyToTemplate: Failed to replace code block content`)
-      return
-    }
-
-    logDebug(pluginJson, `saveTemplateBodyToTemplate: Saved templateBody to template`)
+    // Use generalized helper function (no formatting needed for templateBody, it's already a string)
+    await saveCodeBlockToNote(
+      templateFilename,
+      templateBodyCodeBlockType,
+      templateBody || '',
+      pluginJson.id,
+      null, // No format function needed
+      false, // Don't show error messages to user (silent operation)
+    )
   } catch (error) {
     logError(pluginJson, `saveTemplateBodyToTemplate error: ${JSP(error)}`)
   }
@@ -853,19 +841,14 @@ async function saveTemplateBodyToTemplate(templateFilename: string, templateBody
 
 /**
  * Load templateBody from template code block
- * @param {CoreNoteFields} templateNote - The template note
- * @returns {string} - The template body content, or empty string if not found
+ * @param {CoreNoteFields | string} templateNoteOrFilename - The template note or filename
+ * @returns {Promise<string>} - The template body content, or empty string if not found
  */
-function loadTemplateBodyFromTemplate(templateNote: CoreNoteFields): string {
+async function loadTemplateBodyFromTemplate(templateNoteOrFilename: CoreNoteFields | string): Promise<string> {
   try {
-    const codeBlocks = getCodeBlocksOfType(templateNote, templateBodyCodeBlockType)
-    if (codeBlocks.length > 0) {
-      const templateBody = codeBlocks[0].code || ''
-      logDebug(pluginJson, `loadTemplateBodyFromTemplate: Loaded templateBody (${templateBody.length} chars)`)
-      return templateBody
-    }
-    logDebug(pluginJson, `loadTemplateBodyFromTemplate: No templateBody code block found`)
-    return ''
+    // Use generalized helper function (no parsing needed for templateBody, it's already a string)
+    const content = await loadCodeBlockFromNote<string>(templateNoteOrFilename, templateBodyCodeBlockType, pluginJson.id, null)
+    return content || ''
   } catch (error) {
     logError(pluginJson, `loadTemplateBodyFromTemplate error: ${JSP(error)}`)
     return ''

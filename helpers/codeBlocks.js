@@ -1,6 +1,7 @@
 // @flow
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
+import { getNoteByFilename } from '@helpers/note'
 
 export type CodeBlock = { type: string, code: string, paragraphs: Array<TParagraph> }
 
@@ -188,5 +189,131 @@ export function replaceCodeBlockContent(note: CoreNoteFields, codeBlockType: str
   } catch (error) {
     logError(pluginIdentifier, `replaceCodeBlockContent error: ${JSP(error)}`)
     return false
+  }
+}
+
+/**
+ * Save content to a codeblock in a note (generalized helper)
+ * Gets the note by filename, formats the content if needed, and saves it to the codeblock
+ * @param {string} noteFilename - The filename of the note
+ * @param {string} codeBlockType - The type/language of the code block (e.g., 'formfields', 'template:ignore templateBody')
+ * @param {string | any} content - The content to save (will be formatted if formatFn is provided)
+ * @param {string} pluginIdentifier - Optional identifier for logging (defaults to 'saveCodeBlockToNote')
+ * @param {?function} formatFn - Optional function to format the content before saving (e.g., JSON.stringify)
+ * @param {boolean} showMessageOnError - Whether to show user-facing error messages (default: false)
+ * @returns {Promise<boolean>} - true if save was successful, false otherwise
+ */
+export async function saveCodeBlockToNote(
+  noteFilename: string,
+  codeBlockType: string,
+  content: string | any,
+  pluginIdentifier: string = 'saveCodeBlockToNote',
+  formatFn?: ?(content: any) => string,
+  showMessageOnError: boolean = false,
+): Promise<boolean> {
+  try {
+    if (!noteFilename) {
+      logDebug(pluginIdentifier, 'saveCodeBlockToNote: No note filename provided, skipping')
+      return false
+    }
+
+    const note = await getNoteByFilename(noteFilename)
+    if (!note) {
+      const errorMsg = `Note not found: ${noteFilename}`
+      logError(pluginIdentifier, `saveCodeBlockToNote: ${errorMsg}`)
+      if (showMessageOnError) {
+        const { showMessage } = await import('@helpers/userInput')
+        await showMessage(errorMsg)
+      }
+      return false
+    }
+
+    // Format content if formatFn is provided
+    const formattedContent = formatFn ? formatFn(content) : content
+
+    // Use the helper function to replace code block content (or add if it doesn't exist)
+    const success = replaceCodeBlockContent(note, codeBlockType, formattedContent || '', pluginIdentifier)
+    if (!success) {
+      const errorMsg = `Failed to save codeblock "${codeBlockType}" to note`
+      logError(pluginIdentifier, `saveCodeBlockToNote: ${errorMsg}`)
+      if (showMessageOnError) {
+        const { showMessage } = await import('@helpers/userInput')
+        await showMessage(errorMsg)
+      }
+      return false
+    }
+
+    logDebug(pluginIdentifier, `saveCodeBlockToNote: Successfully saved codeblock "${codeBlockType}" to note "${displayTitle(note)}"`)
+    return true
+  } catch (error) {
+    const errorMsg = `Error saving codeblock: ${error.message}`
+    logError(pluginIdentifier, `saveCodeBlockToNote error: ${JSP(error)}`)
+    if (showMessageOnError) {
+      const { showMessage } = await import('@helpers/userInput')
+      await showMessage(errorMsg)
+    }
+    return false
+  }
+}
+
+/**
+ * Load content from a codeblock in a note (generalized helper)
+ * Can work with either a note object or a note filename
+ * @param {CoreNoteFields | string} noteOrFilename - Either a note object or a note filename
+ * @param {string} codeBlockType - The type/language of the code block (e.g., 'formfields', 'template:ignore templateBody')
+ * @param {string} pluginIdentifier - Optional identifier for logging (defaults to 'loadCodeBlockFromNote')
+ * @param {?function} parseFn - Optional function to parse the content after loading (e.g., JSON.parse, parseObjectString)
+ * @returns {Promise<?string | ?T>} - The content as a string, or parsed content if parseFn is provided, or null if not found
+ */
+export async function loadCodeBlockFromNote<T = string>(
+  noteOrFilename: CoreNoteFields | string,
+  codeBlockType: string,
+  pluginIdentifier: string = 'loadCodeBlockFromNote',
+  parseFn?: ?(content: string) => T,
+): Promise<?T> {
+  try {
+    let note: ?CoreNoteFields = null
+
+    // Handle both note object and filename
+    if (typeof noteOrFilename === 'string') {
+      note = await getNoteByFilename(noteOrFilename)
+      if (!note) {
+        logDebug(pluginIdentifier, `loadCodeBlockFromNote: Note not found: ${noteOrFilename}`)
+        return null
+      }
+    } else {
+      note = noteOrFilename
+    }
+
+    if (!note) {
+      logDebug(pluginIdentifier, 'loadCodeBlockFromNote: No note provided')
+      return null
+    }
+
+    const codeBlocks = getCodeBlocksOfType(note, codeBlockType)
+    if (codeBlocks.length > 0) {
+      const content = codeBlocks[0].code || ''
+      logDebug(pluginIdentifier, `loadCodeBlockFromNote: Loaded codeblock "${codeBlockType}" (${content.length} chars) from note "${displayTitle(note)}"`)
+
+      // Parse content if parseFn is provided
+      if (parseFn && content) {
+        try {
+          const parsed: T = parseFn(content)
+          return parsed
+        } catch (parseError) {
+          logError(pluginIdentifier, `loadCodeBlockFromNote: Error parsing content: ${parseError.message}`)
+          return null
+        }
+      }
+
+      // When no parseFn, return string (T defaults to string)
+      return (content: any)
+    }
+
+    logDebug(pluginIdentifier, `loadCodeBlockFromNote: No codeblock "${codeBlockType}" found in note "${displayTitle(note)}"`)
+    return null
+  } catch (error) {
+    logError(pluginIdentifier, `loadCodeBlockFromNote error: ${JSP(error)}`)
+    return null
   }
 }
