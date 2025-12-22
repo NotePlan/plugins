@@ -169,7 +169,7 @@ export function TemplateTagInserter({
     showArrow: true, // Show down arrow like a select
     fieldType: 'template-tag-inserter',
     debugLogging: false,
-    maxResults: 25,
+    maxResults: 100, // Show all date formats (we have ~34 date formats + field keys)
     inputMaxLength: 60,
     dropdownMaxLength: 80,
     getOptionShortDescription: (option: TemplateTagOption) => null, // Don't show category
