@@ -10,6 +10,7 @@ import { HeadingChooser } from '@helpers/react/DynamicDialog/HeadingChooser.jsx'
 import { FolderChooser } from '@helpers/react/DynamicDialog/FolderChooser.jsx'
 import { ExpandableTextarea } from '@helpers/react/DynamicDialog/ExpandableTextarea.jsx'
 import { TemplateTagInserter } from './TemplateTagInserter.jsx'
+import { InfoIcon } from '@helpers/react/InfoIcon.jsx'
 
 export type ProcessingMethodSectionProps = {
   processingMethod: string,
@@ -60,21 +61,24 @@ export function ProcessingMethodSection({
     <>
       {/* Show in Editor checkbox */}
       <div className="frontmatter-field">
-        <label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
           <input
             type="checkbox"
             checked={frontmatter.shouldOpenInEditor !== false}
             onChange={(e) => onFrontmatterChange('shouldOpenInEditor', e.target.checked)}
           />
-          Show in Editor on Submit
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            Show in Editor on Submit
+            <InfoIcon text="If checked, the target note will automatically open in the NotePlan editor after the form is submitted, allowing you to immediately see the results." />
+          </span>
         </label>
-        <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-          If checked, the note will be opened in the editor after form submission
-        </div>
       </div>
       
       <div className="frontmatter-field">
-        <label>Form Processing Method:</label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          Form Processing Method:
+          <InfoIcon text="Choose how form submissions should be processed: Write directly to an existing note, create a new note each time, or use a separate processing template for more complex logic." />
+        </label>
         <select
           value={processingMethod || 'write-existing'}
           onChange={(e) => onFrontmatterChange('processingMethod', e.target.value)}
@@ -95,7 +99,10 @@ export function ProcessingMethodSection({
       {processingMethod === 'write-existing' && (
         <>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-            <label>Target Note:</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Target Note:
+              <InfoIcon text="The note where form data will be written. You can select an existing note, or use special values like <today>, <current>, <thisweek>, <nextweek>, or <choose> to prompt the user each time." />
+            </label>
             <NoteChooser
               label=""
               value={frontmatter.getNoteTitled || ''}
@@ -119,7 +126,10 @@ export function ProcessingMethodSection({
             </div>
           </div>
           <div className="frontmatter-field">
-            <label>Write Location:</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Write Location:
+              <InfoIcon text="Where in the target note the content should be written: Append to the end, prepend to the beginning, write under a specific heading, or replace the entire note contents." />
+            </label>
             <select
               value={frontmatter.location || 'append'}
               onChange={(e) => {
@@ -189,7 +199,10 @@ export function ProcessingMethodSection({
             </>
           )}
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-            <label>Content to Insert:</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Content to Insert:
+              <InfoIcon text="The template content that will be written to the target note. Use template tags like <%- fieldKey %> to insert form field values, or <%- date.format('YYYY-MM-DD') %> for dates. Click +Field or +Date buttons to insert tags." />
+            </label>
             <div style={{ position: 'relative' }}>
               <ExpandableTextarea
                 ref={(ref) => {
@@ -275,7 +288,10 @@ export function ProcessingMethodSection({
       {processingMethod === 'create-new' && (
         <>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-            <label>New Note Title:</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              New Note Title:
+              <InfoIcon text="The title for the new note that will be created. You can use template tags like <%- fieldKey %> to dynamically generate the title based on form field values. The field expands to show long template tags." />
+            </label>
             <div style={{ position: 'relative' }}>
               <ExpandableTextarea
                 ref={(ref) => {
@@ -365,7 +381,10 @@ export function ProcessingMethodSection({
             </div>
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-            <label>Content to Insert:</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Content to Insert:
+              <InfoIcon text="The template content that will be used to create the new note. Use template tags like <%- fieldKey %> to insert form field values, or <%- date.format('YYYY-MM-DD') %> for dates. Click +Field or +Date buttons to insert tags." />
+            </label>
             <div style={{ position: 'relative' }}>
               <ExpandableTextarea
                 ref={(ref) => {
@@ -445,7 +464,10 @@ export function ProcessingMethodSection({
             </div>
           </div>
           <div className="frontmatter-field">
-            <label>Folder:</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Folder:
+              <InfoIcon text="The folder where the new note will be created. Leave empty to create the note in the root folder, or select a specific folder. You can also create a new folder by using Option-click on a folder." />
+            </label>
             <FolderChooser
               label=""
               value={frontmatter.newNoteFolder || ''}
@@ -472,7 +494,10 @@ export function ProcessingMethodSection({
       {processingMethod === 'form-processor' && (
         <>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-            <label>Processing Template:</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Processing Template:
+              <InfoIcon text="A separate template note that will process the form submission. This template should be in the @Templates/Forms directory and have type 'forms-processor'. The template receives the form data as JSON and can perform complex processing logic." />
+            </label>
             <NoteChooser
               label=""
               value={frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''}

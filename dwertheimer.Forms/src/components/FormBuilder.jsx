@@ -12,6 +12,7 @@ import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { stripDoubleQuotes } from '@helpers/stringTransforms'
+import { InfoIcon } from '@helpers/react/InfoIcon.jsx'
 import './FormBuilder.css'
 
 type FormBuilderProps = {
@@ -428,7 +429,10 @@ export function FormBuilder({
             </div>
             <div className="frontmatter-editor">
               <div className="frontmatter-field">
-                <label>Window Title:</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  Window Title:
+                  <InfoIcon text="The title that appears in the window bar when the form is opened. This is what users will see in the window title bar." />
+                </label>
                 <input
                   type="text"
                   value={frontmatter.windowTitle || ''}
@@ -438,7 +442,10 @@ export function FormBuilder({
                 />
               </div>
               <div className="frontmatter-field">
-                <label>Form Heading:</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  Form Heading:
+                  <InfoIcon text="The main heading that appears at the top of the form. This is the primary title users will see when they open the form." />
+                </label>
                 <input
                   type="text"
                   value={frontmatter.formTitle || ''}
@@ -450,13 +457,19 @@ export function FormBuilder({
               <div className="frontmatter-field">
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={frontmatter.allowEmptySubmit || false} onChange={(e) => handleFrontmatterChange('allowEmptySubmit', e.target.checked)} />
-                  Allow Empty Submit
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    Allow Empty Submit
+                    <InfoIcon text="If checked, users can submit the form even if no fields are filled in. If unchecked, at least one field must have a value before the form can be submitted." />
+                  </span>
                 </label>
               </div>
               <div className="frontmatter-field">
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={frontmatter.hideDependentItems || false} onChange={(e) => handleFrontmatterChange('hideDependentItems', e.target.checked)} />
-                  Hide Dependent Items
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    Hide Dependent Items
+                    <InfoIcon text="If checked, fields that depend on other fields (using 'dependsOnKey') will be hidden until their dependency is satisfied. This creates a cleaner form interface by only showing relevant fields." />
+                  </span>
                 </label>
               </div>
               <div className="frontmatter-field">
