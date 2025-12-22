@@ -49,58 +49,59 @@ export const ExpandableTextarea = forwardRef<HTMLTextAreaElement, ExpandableText
   ): React$Node => {
     const [textareaValue, setTextareaValue] = useState(value)
     const internalTextareaRef = useRef<?HTMLTextAreaElement>(null)
+    // Use ref if provided, otherwise use internal ref
     const textareaRef = (ref: any) || internalTextareaRef
 
-  // Update internal state when value prop changes
-  useEffect(() => {
-    setTextareaValue(value)
-  }, [value])
+    // Update internal state when value prop changes
+    useEffect(() => {
+      setTextareaValue(value)
+    }, [value])
 
-  // Auto-resize textarea based on content
-  useEffect(() => {
-    const textarea = textareaRef.current
-    if (textarea) {
-      // Reset height to auto to get the correct scrollHeight
-      textarea.style.height = 'auto'
+    // Auto-resize textarea based on content
+    useEffect(() => {
+      const textarea = textareaRef && typeof textareaRef === 'object' && 'current' in textareaRef ? textareaRef.current : null
+      if (textarea) {
+        // Reset height to auto to get the correct scrollHeight
+        textarea.style.height = 'auto'
 
-      // Calculate the number of lines
-      const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight, 10) || 20
-      const lines = textarea.value.split('\n').length
-      const calculatedRows = Math.max(minRows, Math.min(maxRows, lines))
+        // Calculate the number of lines
+        const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight, 10) || 20
+        const lines = textarea.value.split('\n').length
+        const calculatedRows = Math.max(minRows, Math.min(maxRows, lines))
 
-      // Set height based on calculated rows
-      textarea.style.height = `${calculatedRows * lineHeight}px`
+        // Set height based on calculated rows
+        textarea.style.height = `${calculatedRows * lineHeight}px`
+      }
+    }, [textareaValue, minRows, maxRows, textareaRef])
+
+    const handleChange = (e: any) => {
+      const newValue = e.target.value
+      setTextareaValue(newValue)
+      onChange(e)
     }
-  }, [textareaValue, minRows, maxRows])
 
-  const handleChange = (e: any) => {
-    const newValue = e.target.value
-    setTextareaValue(newValue)
-    onChange(e)
-  }
-
-  return (
-    <div className={`expandable-textarea-container ${compactDisplay ? 'compact' : ''} ${className}`} data-field-type="textarea">
-      {label && <label className="expandable-textarea-label">{label}</label>}
-      <textarea
-        ref={textareaRef}
-        className="expandable-textarea"
-        value={textareaValue}
-        onChange={handleChange}
-        disabled={disabled}
-        placeholder={placeholder}
-        required={required}
-        rows={minRows}
-        onFocus={onFocus}
-        style={{
-          minHeight: `${minRows * 20}px`, // Approximate line height
-          maxHeight: `${maxRows * 20}px`, // Maximum height before scrolling
-          overflowY: 'auto',
-          ...style,
-        }}
-      />
-    </div>
-  )
+    return (
+      <div className={`expandable-textarea-container ${compactDisplay ? 'compact' : ''} ${className}`} data-field-type="textarea">
+        {label && <label className="expandable-textarea-label">{label}</label>}
+        <textarea
+          ref={textareaRef}
+          className="expandable-textarea"
+          value={textareaValue}
+          onChange={handleChange}
+          disabled={disabled}
+          placeholder={placeholder}
+          required={required}
+          rows={minRows}
+          onFocus={onFocus}
+          style={{
+            minHeight: `${minRows * 20}px`, // Approximate line height
+            maxHeight: `${maxRows * 20}px`, // Maximum height before scrolling
+            overflowY: 'auto',
+            ...style,
+          }}
+        />
+      </div>
+    )
   },
 )
 
