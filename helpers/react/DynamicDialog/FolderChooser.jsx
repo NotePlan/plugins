@@ -405,7 +405,16 @@ export function FolderChooser({
 
   return (
     <>
-      <SearchableChooser label={label} value={value} disabled={disabled} compactDisplay={compactDisplay} placeholder={placeholder} showValue={showValue} config={config} closeDropdown={closeDropdown} />
+      <SearchableChooser
+        label={label}
+        value={value}
+        disabled={disabled}
+        compactDisplay={compactDisplay}
+        placeholder={placeholder}
+        showValue={showValue}
+        config={config}
+        closeDropdown={closeDropdown}
+      />
       {includeNewFolderOption && (
         <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
           Click &quot;New Folder&quot; to create a folder. Hold Option (⌥) and click on any folder to create a subfolder inside it.
