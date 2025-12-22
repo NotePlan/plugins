@@ -7,6 +7,7 @@
 import React, { useState, useMemo } from 'react'
 import SearchableChooser, { type ChooserConfig } from '@helpers/react/DynamicDialog/SearchableChooser'
 import { truncateText } from '@helpers/react/reactUtils.js'
+import moment from 'moment/min/moment-with-locales'
 import './TemplateTagInserter.css'
 
 export type TemplateTagOption = {
@@ -59,23 +60,82 @@ export function TemplateTagInserter({
 
     // Add date formats (only if mode is 'date' or 'both')
     if ((mode === 'date' || mode === 'both') && showDateFormats) {
+      // Use a sample date to generate locale-specific examples
+      // Use a date that shows various aspects: weekday, month, day, year, time
+      const sampleDate = moment('2024-12-22 14:30:45') // Sunday, December 22, 2024, 2:30 PM
+      
+      // Set locale from NotePlan environment if available
+      if (typeof NotePlan !== 'undefined' && NotePlan.environment) {
+        const userLocale = `${NotePlan.environment.languageCode || 'en'}${NotePlan.environment.regionCode ? `-${NotePlan.environment.regionCode}` : ''}`
+        moment.locale(userLocale)
+      }
+      
+      // Generate locale-specific examples for common date formats
       const dateFormats = [
-        { format: 'YYYY-MM-DD', example: '2024-12-22', description: 'ISO date format' },
-        { format: 'MM/DD/YYYY', example: '12/22/2024', description: 'US date format' },
-        { format: 'DD/MM/YYYY', example: '22/12/2024', description: 'European date format' },
-        { format: 'YYYY-MM-DD HH:mm', example: '2024-12-22 14:30', description: 'Date and time' },
-        { format: 'MMMM Do, YYYY', example: 'December 22nd, 2024', description: 'Long date format' },
-        { format: 'dddd', example: 'Sunday', description: 'Day of week' },
-        { format: 'MMMM', example: 'December', description: 'Month name' },
-        { format: 'YYYY', example: '2024', description: 'Year' },
+        // ISO and standard formats
+        { format: 'YYYY-MM-DD', description: 'ISO date format' },
+        { format: 'YYYY-MM-DD HH:mm', description: 'ISO date and time (24-hour)' },
+        { format: 'YYYY-MM-DD HH:mm:ss', description: 'ISO date and time with seconds' },
+        
+        // US date formats
+        { format: 'MM/DD/YYYY', description: 'US date format' },
+        { format: 'MM/DD/YY', description: 'US date format (short year)' },
+        { format: 'M/D/YYYY', description: 'US date format (no leading zeros)' },
+        
+        // European date formats
+        { format: 'DD/MM/YYYY', description: 'European date format' },
+        { format: 'DD/MM/YY', description: 'European date format (short year)' },
+        { format: 'D/M/YYYY', description: 'European date format (no leading zeros)' },
+        
+        // Long date formats
+        { format: 'MMMM Do, YYYY', description: 'Long date format (e.g., December 22nd, 2024)' },
+        { format: 'dddd, MMMM Do, YYYY', description: 'Full date with weekday' },
+        { format: 'MMMM Do', description: 'Month and day (e.g., December 22nd)' },
+        
+        // Time formats (12-hour with AM/PM)
+        { format: 'h:mm A', description: 'Time (12-hour with AM/PM)' },
+        { format: 'hh:mm A', description: 'Time (12-hour with AM/PM, leading zero)' },
+        { format: 'h:mm:ss A', description: 'Time with seconds (12-hour with AM/PM)' },
+        
+        // Time formats (24-hour)
+        { format: 'HH:mm', description: 'Time (24-hour)' },
+        { format: 'HH:mm:ss', description: 'Time with seconds (24-hour)' },
+        
+        // Date and time combinations
+        { format: 'MM/DD/YYYY h:mm A', description: 'US date and time (12-hour)' },
+        { format: 'MM/DD/YYYY HH:mm', description: 'US date and time (24-hour)' },
+        { format: 'DD/MM/YYYY h:mm A', description: 'European date and time (12-hour)' },
+        { format: 'DD/MM/YYYY HH:mm', description: 'European date and time (24-hour)' },
+        { format: 'MMMM Do, YYYY h:mm A', description: 'Long date and time (12-hour)' },
+        { format: 'MMMM Do, YYYY HH:mm', description: 'Long date and time (24-hour)' },
+        
+        // Individual components
+        { format: 'dddd', description: 'Day of week (full name)' },
+        { format: 'ddd', description: 'Day of week (abbreviated)' },
+        { format: 'MMMM', description: 'Month name (full)' },
+        { format: 'MMM', description: 'Month name (abbreviated)' },
+        { format: 'YYYY', description: 'Year (4 digits)' },
+        { format: 'YY', description: 'Year (2 digits)' },
+        { format: 'Do', description: 'Day of month with ordinal (e.g., 22nd)' },
+        { format: 'D', description: 'Day of month (no leading zero)' },
+        { format: 'DD', description: 'Day of month (with leading zero)' },
+        
+        // Week and quarter
+        { format: 'wo [week of] YYYY', description: 'Week number and year' },
+        { format: 'Qo [quarter] YYYY', description: 'Quarter and year' },
       ]
+      
       opts.push(
-        ...dateFormats.map((df) => ({
-          label: `${df.format} (${df.example})`,
-          value: `<%- date.format("${df.format}") %>`,
-          description: df.description,
-          category: null, // Don't show category for dates
-        })),
+        ...dateFormats.map((df) => {
+          // Generate locale-specific example using moment
+          const example = sampleDate.format(df.format)
+          return {
+            label: `${df.format} (${example})`,
+            value: `<%- date.format("${df.format}") %>`,
+            description: df.description,
+            category: null, // Don't show category for dates
+          }
+        }),
       )
     }
 
