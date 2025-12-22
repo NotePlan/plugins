@@ -1598,33 +1598,35 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
           </button>
         </div>
       </div>
-      <TemplateTagInserter
-        isOpen={showTagInserter}
-        onClose={() => setShowTagInserter(false)}
-        onInsert={(tag: string) => {
-          // Insert tag at cursor position
-          if (tagInserterInputRef) {
-            const input = tagInserterInputRef
-            const start = input.selectionStart || 0
-            const end = input.selectionEnd || 0
-            const currentValue = frontmatter.newNoteTitle || ''
-            const newValue = currentValue.substring(0, start) + tag + currentValue.substring(end)
-            handleFrontmatterChange('newNoteTitle', newValue)
-            // Set cursor position after inserted text
-            setTimeout(() => {
-              input.focus()
-              const newCursorPos = start + tag.length
-              input.setSelectionRange(newCursorPos, newCursorPos)
-            }, 0)
-          } else {
-            // Fallback: append to end
-            const current = frontmatter.newNoteTitle || ''
-            handleFrontmatterChange('newNoteTitle', `${current}${tag}`)
-          }
-        }}
-        fieldKeys={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key || '')}
-        showDateFormats={true}
-      />
+      {showTagInserter && (
+        <TemplateTagInserter
+          isOpen={showTagInserter}
+          onClose={() => setShowTagInserter(false)}
+          onInsert={(tag: string) => {
+            // Insert tag at cursor position
+            if (tagInserterInputRef) {
+              const input = tagInserterInputRef
+              const start = input.selectionStart || 0
+              const end = input.selectionEnd || 0
+              const currentValue = frontmatter.newNoteTitle || ''
+              const newValue = currentValue.substring(0, start) + tag + currentValue.substring(end)
+              handleFrontmatterChange('newNoteTitle', newValue)
+              // Set cursor position after inserted text
+              setTimeout(() => {
+                input.focus()
+                const newCursorPos = start + tag.length
+                input.setSelectionRange(newCursorPos, newCursorPos)
+              }, 0)
+            } else {
+              // Fallback: append to end
+              const current = frontmatter.newNoteTitle || ''
+              handleFrontmatterChange('newNoteTitle', `${current}${tag}`)
+            }
+          }}
+          fieldKeys={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key || '')}
+          showDateFormats={true}
+        />
+      )}
     </div>
   )
 }
