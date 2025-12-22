@@ -695,6 +695,10 @@ export function FormBuilder({
                       includeRelativeNotes={false}
                       includeTeamspaceNotes={true}
                       compactDisplay={true}
+                      requestFromPlugin={requestFromPlugin}
+                      onNotesChanged={() => {
+                        loadNotes()
+                      }}
                     />
                     <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
                       Select an existing processing template, or create a new one below
