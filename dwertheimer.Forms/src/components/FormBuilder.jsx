@@ -186,6 +186,7 @@ export function FormBuilder({
     const needsFoldersForFields = fields.some((field) => field.type === 'folder-chooser')
     const needsFoldersForProcessing = frontmatter.processingMethod === 'create-new'
     if ((needsFoldersForFields || needsFoldersForProcessing) && !foldersLoaded && !loadingFolders) {
+      logDebug('FormBuilder', `Triggering loadFolders: needsFoldersForFields=${String(needsFoldersForFields)}, needsFoldersForProcessing=${String(needsFoldersForProcessing)}`)
       loadFolders()
     }
   }, [needsFolders, foldersLoaded, loadingFolders, loadFolders, frontmatter.processingMethod, fields])
@@ -194,6 +195,7 @@ export function FormBuilder({
     const needsNotesForFields = fields.some((field) => field.type === 'note-chooser')
     const needsNotesForProcessing = frontmatter.processingMethod === 'write-existing' || frontmatter.processingMethod === 'form-processor'
     if ((needsNotesForFields || needsNotesForProcessing) && !notesLoaded && !loadingNotes) {
+      logDebug('FormBuilder', `Triggering loadNotes: needsNotesForFields=${String(needsNotesForFields)}, needsNotesForProcessing=${String(needsNotesForProcessing)}`)
       loadNotes()
     }
   }, [needsNotes, notesLoaded, loadingNotes, loadNotes, frontmatter.processingMethod, fields])
