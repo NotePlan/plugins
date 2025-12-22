@@ -458,7 +458,11 @@ export function FormBuilder({
           <button className="PCButton cancel-button" onClick={onCancel}>
             Cancel
           </button>
-          <button className={`PCButton save-button ${hasUnsavedChanges ? 'save-button-active' : 'save-button-disabled'}`} onClick={handleSave} disabled={!hasUnsavedChanges || isSaving}>
+          <button
+            className={`PCButton save-button ${hasUnsavedChanges ? 'save-button-active' : 'save-button-disabled'}`}
+            onClick={handleSave}
+            disabled={!hasUnsavedChanges || isSaving}
+          >
             {isSaving ? 'Saving...' : 'Save Form'}
           </button>
         </div>

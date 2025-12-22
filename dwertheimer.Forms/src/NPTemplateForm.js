@@ -690,7 +690,7 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
     if (data?.__requestType === 'REQUEST' && data?.__correlationId) {
       try {
         logDebug(pluginJson, `onFormBuilderAction: Handling REQUEST type="${actionType}" with correlationId="${data.__correlationId}"`)
-        
+
         // Handle save action as a special case (it's not in requestHandlers)
         const actualActionType = data?.type
         if (actualActionType === 'save') {
@@ -703,7 +703,7 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
           })
           return {}
         }
-        
+
         // For other request types, use the standard handleRequest
         const result = await handleRequest(actionType, data)
 
@@ -1185,12 +1185,26 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         }
 
         // Use templateBody from frontmatter if provided, otherwise build from form values
-        const finalTemplateBody =
+        let finalTemplateBody =
           templateBody ||
           Object.keys(formValues)
             .filter((key) => key !== '__isJSON__')
             .map((key) => `${key}: <%- ${key} %>`)
             .join('\n')
+
+        // Render templateBody with form values if it contains template tags
+        // This ensures template tags are rendered before being passed to templateRunner
+        if (finalTemplateBody && finalTemplateBody.includes('<%')) {
+          try {
+            // Render the template body with form values
+            finalTemplateBody = await NPTemplating.render(finalTemplateBody, { data: formValues }, { frontmatterProcessed: true })
+            logDebug(pluginJson, `handleSubmitButtonClick: Rendered templateBody with form values`)
+          } catch (error) {
+            logError(pluginJson, `handleSubmitButtonClick: Error rendering templateBody: ${JSP(error)}`)
+            await showMessage(`Error rendering template body: ${error.message || String(error)}`)
+            return null
+          }
+        }
 
         // Build frontmatter object for TemplateRunner
         // Spread formValues into templateRunnerArgs so they're available for rendering template tags in templateBody
@@ -1200,7 +1214,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
 
         const templateRunnerArgs: { [string]: any } = {
           getNoteTitled,
-          templateBody: finalTemplateBody,
+          templateBody: finalTemplateBody, // Use rendered template body (template tags replaced with form values)
           ...formValuesForRendering, // Spread form values so template tags like <%- field1 %> can access them
         }
 
@@ -1266,12 +1280,26 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         }
 
         // Use templateBody from frontmatter if provided, otherwise build from form values
-        const finalTemplateBody =
+        let finalTemplateBody =
           templateBody ||
           Object.keys(formValues)
             .filter((key) => key !== '__isJSON__')
             .map((key) => `${key}: <%- ${key} %>`)
             .join('\n')
+
+        // Render templateBody with form values if it contains template tags
+        // This ensures template tags are rendered before being passed to templateRunner
+        if (finalTemplateBody && finalTemplateBody.includes('<%')) {
+          try {
+            // Render the template body with form values
+            finalTemplateBody = await NPTemplating.render(finalTemplateBody, { data: formValues }, { frontmatterProcessed: true })
+            logDebug(pluginJson, `handleSubmitButtonClick: Rendered templateBody with form values`)
+          } catch (error) {
+            logError(pluginJson, `handleSubmitButtonClick: Error rendering templateBody: ${JSP(error)}`)
+            await showMessage(`Error rendering template body: ${error.message || String(error)}`)
+            return null
+          }
+        }
 
         // Build frontmatter object for TemplateRunner
         // Spread formValues into templateRunnerArgs so they're available for rendering template tags in templateBody
@@ -1281,7 +1309,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
 
         const templateRunnerArgs: { [string]: any } = {
           newNoteTitle: renderedNewNoteTitle, // Use rendered title (template tags replaced with form values)
-          templateBody: finalTemplateBody,
+          templateBody: finalTemplateBody, // Use rendered template body (template tags replaced with form values)
           ...formValuesForRendering, // Spread form values so template tags like <%- field1 %> can access them
         }
 
