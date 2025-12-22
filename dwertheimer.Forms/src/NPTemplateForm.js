@@ -1258,9 +1258,9 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
           templateBody: finalTemplateBody,
         }
 
-        if (newNoteFolder) {
-          templateRunnerArgs.folder = newNoteFolder
-        }
+        // Set folder - use '/' for root folder if empty, otherwise use the specified folder
+        // Don't pass null as DataStore.newNote treats null as the literal string "null"
+        templateRunnerArgs.folder = newNoteFolder && newNoteFolder.trim() ? newNoteFolder.trim() : '/'
 
         clo(templateRunnerArgs, `handleSubmitButtonClick: Using create-new, calling templateRunner with args`)
         await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
