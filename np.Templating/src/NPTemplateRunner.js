@@ -845,6 +845,28 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
 
         clo(data, `templateRunnerExecute before createTemplateWriteOptions, data=`)
         clo(frontmatterAttributes, `templateRunnerExecute before createTemplateWriteOptions, frontmatterAttributes=`)
+        
+        // Render writeUnderHeading with form values if it contains template tags
+        // Special values like <choose>, <select> will be preserved and handled by handleHeadingSelection after rendering
+        if (frontmatterAttributes.writeUnderHeading && typeof frontmatterAttributes.writeUnderHeading === 'string' && frontmatterAttributes.writeUnderHeading.includes('<%')) {
+          try {
+            frontmatterAttributes.writeUnderHeading = await NPTemplating.render(frontmatterAttributes.writeUnderHeading, data)
+            const isError = /Template Rendering Error/.test(frontmatterAttributes.writeUnderHeading)
+            if (isError) {
+              logError(pluginJson, `templateRunnerExecute template rendering error for writeUnderHeading`)
+              await showMessage('Template Render Error Encountered when rendering heading. Stopping.')
+              return
+            }
+            // Clean up rendered heading: trim (special values like <choose> will be handled by handleHeadingSelection)
+            frontmatterAttributes.writeUnderHeading = frontmatterAttributes.writeUnderHeading.trim()
+            logDebug(pluginJson, `templateRunnerExecute rendered writeUnderHeading with template tags`)
+          } catch (error) {
+            logError(pluginJson, `templateRunnerExecute error rendering writeUnderHeading: ${error.message}`)
+            await showMessage(`Error rendering heading: ${error.message || String(error)}`)
+            return
+          }
+        }
+        
         const writeOptions = createTemplateWriteOptions(frontmatterAttributes, shouldOpenInEditor)
 
         logDebug(pluginJson, `templateRunnerExecute isTodayNote:${String(isTodayNote)} isThisWeek:${String(isThisWeek)} isNextWeek:${String(isNextWeek)}`)
