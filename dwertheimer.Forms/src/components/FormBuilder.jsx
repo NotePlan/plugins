@@ -131,8 +131,8 @@ export function FormBuilder({
     
     // Merge TemplateRunner args from codeblock (these override defaults)
     // These contain template tags and should not be in frontmatter
-    const mergedFrontmatter = { ...baseFrontmatter }
-    Object.keys(templateRunnerArgs).forEach((key) => {
+    const mergedFrontmatter: { [key: string]: any } = { ...baseFrontmatter }
+    Object.keys(templateRunnerArgs).forEach((key: string) => {
       if (templateRunnerArgs[key] !== undefined) {
         mergedFrontmatter[key] = templateRunnerArgs[key]
       }
