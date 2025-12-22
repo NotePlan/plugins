@@ -63,7 +63,7 @@ export function FolderChooser({
   const [createInParent, setCreateInParent] = useState(false)
   const [teamspaces, setTeamspaces] = useState<Array<{ id: string, title: string }>>([])
   const [teamspacesLoaded, setTeamspacesLoaded] = useState<boolean>(false)
-  const [closeDropdownAfterCreate, setCloseDropdownAfterCreate] = useState<boolean>(false)
+  const [closeDropdown, setCloseDropdown] = useState<boolean>(false)
 
   // Load teamspaces if needed for decoration
   const loadTeamspaces = async () => {
@@ -187,10 +187,15 @@ export function FolderChooser({
           onFoldersChanged()
         }
 
-        // Select the newly created folder
-        // Use setTimeout to ensure folders are reloaded first
+        // Close the dropdown and select the newly created folder
+        setCloseDropdown(true) // Trigger dropdown close
+        // Use setTimeout to ensure folders are reloaded first, then select the folder
         setTimeout(() => {
           onChange(createdFolder)
+          // Reset closeDropdown after a brief delay to allow the dropdown to close
+          setTimeout(() => {
+            setCloseDropdown(false)
+          }, 200)
         }, 100)
       } else {
         logError('FolderChooser', `Failed to create folder: Invalid response format`)

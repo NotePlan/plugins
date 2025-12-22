@@ -108,6 +108,18 @@ export function SearchableChooser({
   const [hoveredIndex, setHoveredIndex] = useState<?number>(null)
   const containerRef = useRef<?HTMLDivElement>(null)
   const inputRef = useRef<?HTMLInputElement>(null)
+  const [closeDropdownTriggered, setCloseDropdownTriggered] = useState<boolean>(false)
+
+  // Handle closeDropdown prop - close dropdown when it becomes true
+  useEffect(() => {
+    if (closeDropdown && !closeDropdownTriggered) {
+      setIsOpen(false)
+      setCloseDropdownTriggered(true)
+    } else if (!closeDropdown && closeDropdownTriggered) {
+      // Reset the trigger when closeDropdown becomes false again
+      setCloseDropdownTriggered(false)
+    }
+  }, [closeDropdown, closeDropdownTriggered])
 
   // Debug logging
   useEffect(() => {
