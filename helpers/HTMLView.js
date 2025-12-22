@@ -588,12 +588,17 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       // Make a normal non-modal window
       let winOptions = {}
 
+      // Calculate width and height first (needed for centering calculation)
+      const width = opts.width ?? (screenWidth - (opts.paddingWidth ?? 0) * 2)
+      const height = opts.height ?? (screenHeight - (opts.paddingHeight ?? 0) * 2)
+
       // First set to the values set in the opts object, using x/y/w/h if available, or if not, then use paddingWidth/paddingHeight to fill the screen other than this padding.
+      // For centering: if x/y not provided, center the window on screen
       winOptions = {
-        x: opts.x ?? (screenWidth - (screenWidth - (opts.paddingWidth ?? 0) * 2)) / 2,
-        y: opts.y ?? (screenHeight - (screenHeight - (opts.paddingHeight ?? 0) * 2)) / 2,
-        width: opts.width ?? (screenWidth - (opts.paddingWidth ?? 0) * 2),
-        height: opts.height ?? (screenHeight - (opts.paddingHeight ?? 0) * 2),
+        x: opts.x ?? (screenWidth - width) / 2,
+        y: opts.y ?? (screenHeight - height) / 2,
+        width: width,
+        height: height,
         shouldFocus: opts.shouldFocus,
         id: cId, // don't need both ... but trying to work out which is the current one for the API
         windowId: cId,
