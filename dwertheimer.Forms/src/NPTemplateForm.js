@@ -949,22 +949,92 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
  * @returns {any} - the updated data to send back to the React Window
  */
 async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): Promise<PassedData | null> {
-  const { type, formValues, receivingTemplateTitle } = data //in our example, the button click just sends the index of the row clicked
+  const { type, formValues, processingMethod, receivingTemplateTitle } = data
   clo(data, `handleSubmitButtonClick: data BEFORE acting on it`)
   if (type === 'submit') {
     if (formValues) {
       formValues['__isJSON__'] = true // include a flag to indicate that the formValues are JSON for use in the Templating plugin later
-      if (!receivingTemplateTitle) {
-        await showMessage('No Template Name was Provided; You should set a receivingTemplateTitle in your template frontmatter. For now, we will prompt you to choose one.')
-        // TODO: prompt for a template name
-        // const template = (await NPTemplating.chooseTemplate('template-fragment', 'Choose Template Fragment', { templateGroupTemplatesByFolder: false }))
-        // receivingTemplateTitle = templateData.title
+      const shouldOpenInEditor = true // TODO: maybe templaterunner should derive this from a frontmatter field. but note that if newNoteTitle is set, it will always open. not set in underlying template
+
+      // Get processing method from data or fall back to form-processor for backward compatibility
+      const method = processingMethod || (receivingTemplateTitle ? 'form-processor' : 'write-existing')
+
+      if (method === 'form-processor') {
+        // Option C: Use Form Processor (existing behavior)
+        if (!receivingTemplateTitle) {
+          await showMessage('No Processing Template was Provided; You should set a processing template in your form settings.')
+          return null
+        }
+        const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, JSON.stringify(formValues)]
+        clo(argumentsToSend, `handleSubmitButtonClick: Using form-processor, calling templateRunner with arguments`)
+        await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
+      } else if (method === 'write-existing') {
+        // Option A: Write to Existing File
+        const { getNoteTitled, location, writeUnderHeading, replaceNoteContents, createMissingHeading } = data
+        if (!getNoteTitled) {
+          await showMessage('No target note was specified. Please set a target note in your form settings.')
+          return null
+        }
+
+        // Build template body from form values
+        const templateBody = Object.keys(formValues)
+          .filter((key) => key !== '__isJSON__')
+          .map((key) => `${key}: <%- ${key} %>`)
+          .join('\n')
+
+        // Build frontmatter object for TemplateRunner
+        const templateRunnerArgs: { [string]: any } = {
+          getNoteTitled,
+          templateBody,
+        }
+
+        if (replaceNoteContents) {
+          templateRunnerArgs.replaceNoteContents = true
+        } else {
+          if (location) {
+            templateRunnerArgs.location = location
+          }
+          if (writeUnderHeading) {
+            templateRunnerArgs.writeUnderHeading = writeUnderHeading
+            if (createMissingHeading !== undefined) {
+              templateRunnerArgs.createMissingHeading = createMissingHeading
+            }
+          }
+        }
+
+        clo(templateRunnerArgs, `handleSubmitButtonClick: Using write-existing, calling templateRunner with args`)
+        await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
+      } else if (method === 'create-new') {
+        // Option B: Create New Note
+        const { newNoteTitle, newNoteFolder } = data
+        if (!newNoteTitle) {
+          await showMessage('No new note title was specified. Please set a new note title in your form settings.')
+          return null
+        }
+
+        // Build template body from form values
+        const templateBody = Object.keys(formValues)
+          .filter((key) => key !== '__isJSON__')
+          .map((key) => `${key}: <%- ${key} %>`)
+          .join('\n')
+
+        // Build frontmatter object for TemplateRunner
+        const templateRunnerArgs: { [string]: any } = {
+          newNoteTitle,
+          templateBody,
+        }
+
+        if (newNoteFolder) {
+          templateRunnerArgs.folder = newNoteFolder
+        }
+
+        clo(templateRunnerArgs, `handleSubmitButtonClick: Using create-new, calling templateRunner with args`)
+        await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
+      } else {
+        logError(pluginJson, `handleSubmitButtonClick: Unknown processing method: ${method}`)
+        await showMessage(`Unknown processing method: ${method}`)
         return null
       }
-      const shouldOpenInEditor = true // TODO: maybe templaterunner should derive this from a frontmatter field. but note that if newNoteTitle is set, it will always open. not set in underlying template
-      const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, JSON.stringify(formValues)]
-      clo(argumentsToSend, `handleSubmitButtonClick: DataStore.invokePluginCommandByName('templateRunner', 'np.Templating' with arguments`)
-      await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
     } else {
       logError(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
     }

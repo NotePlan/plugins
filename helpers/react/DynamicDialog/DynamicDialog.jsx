@@ -25,6 +25,7 @@ import { renderItem } from './dialogElementRenderer'
 import './DynamicDialog.css' // Import the CSS file
 import Modal from '@helpers/react/Modal'
 import { logWarn, timer, logDebug, logError } from '@helpers/react/reactDev.js'
+import { type NoteOption } from './NoteChooser.jsx'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -130,7 +131,7 @@ export type TDynamicDialogProps = {
   externalChangesMade?: boolean, // New prop to accept external changesMade state
   setChangesMade?: (changesMade: boolean) => void, // New prop to allow external components to update changesMade
   folders?: Array<string>, // For folder-chooser field types
-  notes?: Array<{ title: string, filename: string }>, // For note-chooser field types
+  notes?: Array<NoteOption>, // For note-chooser field types
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Optional function to call plugin commands (for native folder chooser)
   onFoldersChanged?: () => void, // Callback to reload folders after creating a new folder
   onNotesChanged?: () => void, // Callback to reload notes after creating a new note

@@ -364,7 +364,21 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
 
   const handleSave = (formValues: Object) => {
     clo(formValues, 'DynamicDialog: handleSave: formValues')
-    sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, { type: 'submit', formValues, receivingTemplateTitle: pluginData['receivingTemplateTitle'] || '' })
+    sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, {
+      type: 'submit',
+      formValues,
+      processingMethod: pluginData['processingMethod'] || (pluginData['receivingTemplateTitle'] ? 'form-processor' : 'write-existing'),
+      receivingTemplateTitle: pluginData['receivingTemplateTitle'] || '',
+      // Option A: Write to existing file
+      getNoteTitled: pluginData['getNoteTitled'] || '',
+      location: pluginData['location'] || 'append',
+      writeUnderHeading: pluginData['writeUnderHeading'] || '',
+      replaceNoteContents: pluginData['replaceNoteContents'] || false,
+      createMissingHeading: pluginData['createMissingHeading'] !== false,
+      // Option B: Create new note
+      newNoteTitle: pluginData['newNoteTitle'] || '',
+      newNoteFolder: pluginData['newNoteFolder'] || '',
+    })
     closeDialog()
   }
 
@@ -522,8 +536,12 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
             folders={folders}
             notes={notes}
             requestFromPlugin={requestFromPlugin}
-            onFoldersChanged={reloadFolders}
-            onNotesChanged={reloadNotes}
+            onFoldersChanged={() => {
+              reloadFolders()
+            }}
+            onNotesChanged={() => {
+              reloadNotes()
+            }}
           />
         </div>
         {/* end of replace */}
