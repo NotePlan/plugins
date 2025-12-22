@@ -1086,7 +1086,9 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
       } else if (method === 'create-new') {
         // Option B: Create New Note
         const { newNoteTitle, newNoteFolder, templateBody } = data
-        if (!newNoteTitle) {
+        // Clean newNoteTitle: trim and remove any newlines (defensive)
+        const cleanedNewNoteTitle = newNoteTitle ? String(newNoteTitle).replace(/\n/g, ' ').trim() : ''
+        if (!cleanedNewNoteTitle) {
           await showMessage('No new note title was specified. Please set a new note title in your form settings.')
           return null
         }
@@ -1101,7 +1103,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
 
         // Build frontmatter object for TemplateRunner
         const templateRunnerArgs: { [string]: any } = {
-          newNoteTitle,
+          newNoteTitle: cleanedNewNoteTitle, // Use cleaned title (no newlines, trimmed)
           templateBody: finalTemplateBody,
         }
 

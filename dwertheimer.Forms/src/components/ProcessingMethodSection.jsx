@@ -277,33 +277,43 @@ export function ProcessingMethodSection({
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
             <label>New Note Title:</label>
             <div style={{ position: 'relative' }}>
-                <input
-                  ref={(ref) => {
-                    if (ref && !tagInserterInputRef) {
-                      setTagInserterInputRef(ref)
-                      setTagInserterFieldKey('newNoteTitle')
-                    }
-                  }}
-                  type="text"
-                  value={frontmatter.newNoteTitle || ''}
-                  onChange={(e) => onFrontmatterChange('newNoteTitle', e.target.value)}
-                  onFocus={() => {
-                    // Store the input ref when focused
-                    const activeElement = document.activeElement
-                    if (activeElement instanceof HTMLInputElement) {
-                      setTagInserterInputRef(activeElement)
-                      setTagInserterFieldKey('newNoteTitle')
-                    }
-                  }}
-                  placeholder="e.g., <%- noteTitle %> or Project: <%- projectName %>"
-                style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', paddingRight: '8rem' }}
+              <ExpandableTextarea
+                ref={(ref) => {
+                  if (ref) {
+                    setTagInserterInputRef(ref)
+                    setTagInserterFieldKey('newNoteTitle')
+                  }
+                }}
+                value={frontmatter.newNoteTitle || ''}
+                onChange={(e) => {
+                  // Strip newlines and trim the value
+                  const cleanedValue = e.target.value.replace(/\n/g, ' ').trim()
+                  onFrontmatterChange('newNoteTitle', cleanedValue)
+                }}
+                onFocus={(e) => {
+                  const target = e.target
+                  if (target instanceof HTMLTextAreaElement) {
+                    setTagInserterInputRef(target)
+                    setTagInserterFieldKey('newNoteTitle')
+                  }
+                }}
+                placeholder="e.g., <%- noteTitle %> or Project: <%- projectName %>"
+                minRows={2}
+                maxRows={5}
+                compactDisplay={false}
+                style={{ width: '100%', paddingRight: '8rem' }}
+                onKeyDown={(e) => {
+                  // Prevent Enter from creating newlines
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                  }
+                }}
               />
               <div
                 style={{
                   position: 'absolute',
                   right: '0.5rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
+                  top: '0.5rem',
                   display: 'flex',
                   gap: '0.25rem',
                 }}

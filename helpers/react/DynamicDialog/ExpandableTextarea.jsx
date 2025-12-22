@@ -21,6 +21,7 @@ export type ExpandableTextareaProps = {
   required?: boolean,
   style?: { [key: string]: any },
   onFocus?: (e: any) => void,
+  onKeyDown?: (e: any) => void,
   ref?: ?(ref: ?HTMLTextAreaElement) => void, // Callback ref
 }
 
@@ -43,6 +44,7 @@ export function ExpandableTextarea({
   required = false,
   style = {},
   onFocus,
+  onKeyDown,
   ref: refCallback,
 }: ExpandableTextareaProps): React$Node {
   const [textareaValue, setTextareaValue] = useState(value)
@@ -106,6 +108,7 @@ export function ExpandableTextarea({
         required={required}
         rows={minRows}
         onFocus={handleFocus}
+        onKeyDown={onKeyDown}
         style={Object.assign(
           {
             minHeight: `${minRows * 20}px`, // Approximate line height
