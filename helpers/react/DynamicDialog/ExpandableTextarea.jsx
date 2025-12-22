@@ -4,7 +4,7 @@
 // A textarea that starts small and expands as the user types
 //--------------------------------------------------------------------------
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, forwardRef } from 'react'
 import { logDebug } from '@helpers/react/reactDev.js'
 import './ExpandableTextarea.css'
 
@@ -19,6 +19,7 @@ export type ExpandableTextareaProps = {
   minRows?: number, // Minimum number of rows (default: 3)
   maxRows?: number, // Maximum number of rows before scrolling (default: 10)
   required?: boolean,
+  style?: { [key: string]: any },
 }
 
 /**
@@ -27,20 +28,26 @@ export type ExpandableTextareaProps = {
  * @param {ExpandableTextareaProps} props
  * @returns {React$Node}
  */
-export function ExpandableTextarea({
-  label,
-  value = '',
-  onChange,
-  disabled = false,
-  placeholder = '',
-  compactDisplay = false,
-  className = '',
-  minRows = 3,
-  maxRows = 10,
-  required = false,
-}: ExpandableTextareaProps): React$Node {
-  const [textareaValue, setTextareaValue] = useState(value)
-  const textareaRef = useRef<?HTMLTextAreaElement>(null)
+export const ExpandableTextarea = forwardRef<HTMLTextAreaElement, ExpandableTextareaProps>(
+  (
+    {
+      label,
+      value = '',
+      onChange,
+      disabled = false,
+      placeholder = '',
+      compactDisplay = false,
+      className = '',
+      minRows = 3,
+      maxRows = 10,
+      required = false,
+      style = {},
+    }: ExpandableTextareaProps,
+    ref: ?React$Ref<HTMLTextAreaElement>,
+  ): React$Node => {
+    const [textareaValue, setTextareaValue] = useState(value)
+    const internalTextareaRef = useRef<?HTMLTextAreaElement>(null)
+    const textareaRef: ?React$Ref<HTMLTextAreaElement> = ref || internalTextareaRef
 
   // Update internal state when value prop changes
   useEffect(() => {
@@ -90,6 +97,9 @@ export function ExpandableTextarea({
       />
     </div>
   )
-}
+  },
+)
+
+ExpandableTextarea.displayName = 'ExpandableTextarea'
 
 export default ExpandableTextarea

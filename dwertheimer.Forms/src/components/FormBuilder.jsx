@@ -90,7 +90,7 @@ export function FormBuilder({
   const [loadingFolders, setLoadingFolders] = useState<boolean>(false)
   const [loadingNotes, setLoadingNotes] = useState<boolean>(false)
   const [showTagInserter, setShowTagInserter] = useState<boolean>(false)
-  const [tagInserterInputRef, setTagInserterInputRef] = useState<?HTMLInputElement>(null)
+  const [tagInserterInputRef, setTagInserterInputRef] = useState<?HTMLInputElement | ?HTMLTextAreaElement>(null)
   const [frontmatter, setFrontmatter] = useState<{ [key: string]: any }>(() => {
     // Strip quotes from initial values to prevent saving quoted values
     const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''

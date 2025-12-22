@@ -41,6 +41,9 @@ export type NoteChooserProps = {
   includeNewNoteOption?: boolean, // If true, add a 'New Note' option that allows creating a new note
   dependsOnFolderKey?: string, // Key of a folder-chooser field to filter notes by folder
   folderFilter?: ?string, // Current folder value from dependsOnFolderKey field (for filtering notes) - can be null
+  startFolder?: ?string, // Start folder to filter notes (e.g., '@Templates/Forms')
+  filterByType?: ?string, // Filter notes by frontmatter type (e.g., 'forms-processor')
+  allowBackwardsCompatible?: boolean, // If true, allow notes that don't match filters if they match the current value
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request note creation from plugin
   onNotesChanged?: () => void, // Callback to request note list reload after creating a note
 }
@@ -111,6 +114,9 @@ export function NoteChooser({
   includeNewNoteOption = false,
   dependsOnFolderKey,
   folderFilter,
+  startFolder,
+  filterByType,
+  allowBackwardsCompatible = false,
   requestFromPlugin,
   onNotesChanged,
 }: NoteChooserProps): React$Node {
@@ -184,6 +190,37 @@ export function NoteChooser({
       // Check if note is a relative note (filename starts with '<')
       const isRelativeNote = typeof note.filename === 'string' && note.filename.startsWith('<')
 
+      // Backwards compatibility: if allowBackwardsCompatible and value matches this note, always include it
+      if (allowBackwardsCompatible && value) {
+        const noteMatchesValue = note.title === value || note.filename === value
+        if (noteMatchesValue) {
+          return true // Always include backwards-compatible matches
+        }
+      }
+
+      // Filter by startFolder if provided
+      if (startFolder && !isRelativeNote) {
+        const noteFolder = getFolderFromFilename(note.filename)
+        const normalizeFolder = (folder: string): string => {
+          if (folder === '/') return '/'
+          return folder.replace(/\/+$/, '')
+        }
+        const normalizedStart = normalizeFolder(startFolder)
+        const normalizedNoteFolder = normalizeFolder(noteFolder)
+        const folderMatches = normalizedNoteFolder === normalizedStart || normalizedNoteFolder.startsWith(normalizedStart + '/')
+        if (!folderMatches) {
+          return false
+        }
+      }
+
+      // Filter by type if filterByType is provided
+      if (filterByType && !isRelativeNote) {
+        const noteType = note.frontmatterAttributes?.type
+        if (noteType !== filterByType) {
+          return false
+        }
+      }
+
       // Filter by folder if folderFilter is provided
       if (folderFilter && !isRelativeNote) {
         // Get the folder path from the note's filename
@@ -228,7 +265,7 @@ export function NoteChooser({
 
       return shouldInclude
     })
-  }, [notes, includeCalendarNotes, includePersonalNotes, includeRelativeNotes, includeTeamspaceNotes, folderFilter])
+  }, [notes, includeCalendarNotes, includePersonalNotes, includeRelativeNotes, includeTeamspaceNotes, folderFilter, startFolder, filterByType, allowBackwardsCompatible, value])
 
   // Add "New Note" option to items if includeNewNoteOption is true
   const itemsWithNewNote = useMemo(() => {

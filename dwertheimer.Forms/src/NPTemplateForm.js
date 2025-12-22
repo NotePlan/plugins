@@ -954,7 +954,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
   if (type === 'submit') {
     if (formValues) {
       formValues['__isJSON__'] = true // include a flag to indicate that the formValues are JSON for use in the Templating plugin later
-      const shouldOpenInEditor = true // TODO: maybe templaterunner should derive this from a frontmatter field. but note that if newNoteTitle is set, it will always open. not set in underlying template
+      const shouldOpenInEditor = data.shouldOpenInEditor !== false // Default to true if not set
 
       // Get processing method from data or fall back to form-processor for backward compatibility
       const method = processingMethod || (receivingTemplateTitle ? 'form-processor' : 'write-existing')
@@ -970,22 +970,24 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
       } else if (method === 'write-existing') {
         // Option A: Write to Existing File
-        const { getNoteTitled, location, writeUnderHeading, createMissingHeading } = data
+        const { getNoteTitled, location, writeUnderHeading, createMissingHeading, templateBody } = data
         if (!getNoteTitled) {
           await showMessage('No target note was specified. Please set a target note in your form settings.')
           return null
         }
 
-        // Build template body from form values
-        const templateBody = Object.keys(formValues)
-          .filter((key) => key !== '__isJSON__')
-          .map((key) => `${key}: <%- ${key} %>`)
-          .join('\n')
+        // Use templateBody from frontmatter if provided, otherwise build from form values
+        const finalTemplateBody =
+          templateBody ||
+          Object.keys(formValues)
+            .filter((key) => key !== '__isJSON__')
+            .map((key) => `${key}: <%- ${key} %>`)
+            .join('\n')
 
         // Build frontmatter object for TemplateRunner
         const templateRunnerArgs: { [string]: any } = {
           getNoteTitled,
-          templateBody,
+          templateBody: finalTemplateBody,
         }
 
         // Handle location options
@@ -1025,22 +1027,24 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
       } else if (method === 'create-new') {
         // Option B: Create New Note
-        const { newNoteTitle, newNoteFolder } = data
+        const { newNoteTitle, newNoteFolder, templateBody } = data
         if (!newNoteTitle) {
           await showMessage('No new note title was specified. Please set a new note title in your form settings.')
           return null
         }
 
-        // Build template body from form values
-        const templateBody = Object.keys(formValues)
-          .filter((key) => key !== '__isJSON__')
-          .map((key) => `${key}: <%- ${key} %>`)
-          .join('\n')
+        // Use templateBody from frontmatter if provided, otherwise build from form values
+        const finalTemplateBody =
+          templateBody ||
+          Object.keys(formValues)
+            .filter((key) => key !== '__isJSON__')
+            .map((key) => `${key}: <%- ${key} %>`)
+            .join('\n')
 
         // Build frontmatter object for TemplateRunner
         const templateRunnerArgs: { [string]: any } = {
           newNoteTitle,
-          templateBody,
+          templateBody: finalTemplateBody,
         }
 
         if (newNoteFolder) {

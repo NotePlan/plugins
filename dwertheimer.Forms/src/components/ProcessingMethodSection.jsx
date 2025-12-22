@@ -8,6 +8,8 @@ import React from 'react'
 import { NoteChooser, type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { HeadingChooser } from '@helpers/react/DynamicDialog/HeadingChooser.jsx'
 import { FolderChooser } from '@helpers/react/DynamicDialog/FolderChooser.jsx'
+import { ExpandableTextarea } from '@helpers/react/DynamicDialog/ExpandableTextarea.jsx'
+import { TemplateTagInserter } from './TemplateTagInserter.jsx'
 
 export type ProcessingMethodSectionProps = {
   processingMethod: string,
@@ -21,8 +23,8 @@ export type ProcessingMethodSectionProps = {
   templateTitle: string,
   showTagInserter: boolean,
   setShowTagInserter: (show: boolean) => void,
-  tagInserterInputRef: ?HTMLInputElement,
-  setTagInserterInputRef: (ref: ?HTMLInputElement) => void,
+  tagInserterInputRef: ?HTMLInputElement | ?HTMLTextAreaElement,
+  setTagInserterInputRef: (ref: ?HTMLInputElement | ?HTMLTextAreaElement) => void,
   fields: Array<any>, // TSettingItem array
 }
 
@@ -48,6 +50,21 @@ export function ProcessingMethodSection({
 }: ProcessingMethodSectionProps): React$Node {
   return (
     <>
+      {/* Show in Editor checkbox */}
+      <div className="frontmatter-field">
+        <label>
+          <input
+            type="checkbox"
+            checked={frontmatter.shouldOpenInEditor !== false}
+            onChange={(e) => onFrontmatterChange('shouldOpenInEditor', e.target.checked)}
+          />
+          Show in Editor on Submit
+        </label>
+        <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+          If checked, the note will be opened in the editor after form submission
+        </div>
+      </div>
+      
       <div className="frontmatter-field">
         <label>Form Processing Method:</label>
         <select
@@ -69,6 +86,82 @@ export function ProcessingMethodSection({
       {/* Option A: Write to Existing File */}
       {processingMethod === 'write-existing' && (
         <>
+          <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
+            <label>Template Body:</label>
+            <div style={{ position: 'relative' }}>
+              <ExpandableTextarea
+                ref={(ref) => {
+                  if (ref && !tagInserterInputRef) {
+                    setTagInserterInputRef(ref)
+                  }
+                }}
+                value={frontmatter.templateBody || ''}
+                onChange={(e) => onFrontmatterChange('templateBody', e.target.value)}
+                onFocus={() => {
+                  const activeElement = document.activeElement
+                  if (activeElement instanceof HTMLTextAreaElement) {
+                    setTagInserterInputRef(activeElement)
+                  }
+                }}
+                placeholder="Enter template body with tags like <%- fieldKey %> or <%- date.format(&quot;YYYY-MM-DD&quot;) %>"
+                minRows={5}
+                maxRows={15}
+                compactDisplay={false}
+                style={{ width: '100%', paddingRight: '8rem' }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  right: '0.5rem',
+                  top: '0.5rem',
+                  display: 'flex',
+                  gap: '0.25rem',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setShowTagInserter(true)
+                  }}
+                  style={{
+                    fontSize: '0.75rem',
+                    padding: '0.25rem 0.5rem',
+                    backgroundColor: '#f0f0f0',
+                    border: '1px solid #ccc',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                  }}
+                  title="Insert field variable"
+                >
+                  + Field
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setShowTagInserter(true)
+                  }}
+                  style={{
+                    fontSize: '0.75rem',
+                    padding: '0.25rem 0.5rem',
+                    backgroundColor: '#f0f0f0',
+                    border: '1px solid #ccc',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                  }}
+                  title="Insert date format"
+                >
+                  + Date
+                </button>
+              </div>
+            </div>
+            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+              Use template tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%- date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates
+            </div>
+          </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
             <label>Target Note:</label>
             <NoteChooser
@@ -276,17 +369,19 @@ export function ProcessingMethodSection({
             <label>Processing Template:</label>
             <NoteChooser
               label=""
-              value={frontmatter.formProcessorTitle || ''}
+              value={frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''}
               notes={notes}
               onChange={(noteTitle: string, _noteFilename: string) => {
-                onFrontmatterChange('formProcessorTitle', noteTitle)
-                onFrontmatterChange('receivingTemplateTitle', noteTitle) // Keep for backward compatibility
+                onFrontmatterChange('receivingTemplateTitle', noteTitle)
               }}
               placeholder="Select processing template"
               includePersonalNotes={true}
               includeCalendarNotes={false}
               includeRelativeNotes={false}
               includeTeamspaceNotes={true}
+              startFolder="@Templates/Forms"
+              filterByType="forms-processor"
+              allowBackwardsCompatible={true}
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
               onNotesChanged={() => {
@@ -306,7 +401,6 @@ export function ProcessingMethodSection({
                   formTemplateTitle: templateTitle,
                 })
                 if (result && typeof result === 'string') {
-                  onFrontmatterChange('formProcessorTitle', result)
                   onFrontmatterChange('receivingTemplateTitle', result)
                 }
               }}
@@ -340,6 +434,7 @@ export function ProcessingMethodSection({
           {JSON.stringify(
             {
               processingMethod: frontmatter.processingMethod,
+              shouldOpenInEditor: frontmatter.shouldOpenInEditor,
               getNoteTitled: frontmatter.getNoteTitled,
               getNoteFilename: frontmatter.getNoteFilename,
               location: frontmatter.location,
@@ -348,7 +443,7 @@ export function ProcessingMethodSection({
               createMissingHeading: frontmatter.createMissingHeading,
               newNoteTitle: frontmatter.newNoteTitle,
               newNoteFolder: frontmatter.newNoteFolder,
-              formProcessorTitle: frontmatter.formProcessorTitle,
+              templateBody: frontmatter.templateBody,
               receivingTemplateTitle: frontmatter.receivingTemplateTitle,
             },
             null,
@@ -359,6 +454,54 @@ export function ProcessingMethodSection({
           Current frontmatter values for debugging. This shows what will be saved.
         </div>
       </div>
+      
+      {/* Template Tag Inserter Modal */}
+      {showTagInserter && (
+        <TemplateTagInserter
+          isOpen={showTagInserter}
+          onClose={() => setShowTagInserter(false)}
+          onInsert={(tag: string) => {
+            // Insert tag at cursor position
+            if (tagInserterInputRef) {
+              if (tagInserterInputRef instanceof HTMLInputElement) {
+                const input = tagInserterInputRef
+                const start = input.selectionStart || 0
+                const end = input.selectionEnd || 0
+                const currentValue = input.value || ''
+                const newValue = currentValue.substring(0, start) + tag + currentValue.substring(end)
+                // Determine which field to update based on the input's context
+                if (input.placeholder && input.placeholder.includes('New Note Title')) {
+                  onFrontmatterChange('newNoteTitle', newValue)
+                }
+                // Set cursor position after inserted text
+                setTimeout(() => {
+                  input.focus()
+                  const newCursorPos = start + tag.length
+                  input.setSelectionRange(newCursorPos, newCursorPos)
+                }, 0)
+              } else if (tagInserterInputRef instanceof HTMLTextAreaElement) {
+                const textarea = tagInserterInputRef
+                const start = textarea.selectionStart || 0
+                const end = textarea.selectionEnd || 0
+                const currentValue = textarea.value || ''
+                const newValue = currentValue.substring(0, start) + tag + currentValue.substring(end)
+                // Determine which field to update based on the textarea's context
+                if (textarea.placeholder && textarea.placeholder.includes('template body')) {
+                  onFrontmatterChange('templateBody', newValue)
+                }
+                // Set cursor position after inserted text
+                setTimeout(() => {
+                  textarea.focus()
+                  const newCursorPos = start + tag.length
+                  textarea.setSelectionRange(newCursorPos, newCursorPos)
+                }, 0)
+              }
+            }
+          }}
+          fieldKeys={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key || '')}
+          showDateFormats={true}
+        />
+      )}
     </>
   )
 }
