@@ -85,7 +85,9 @@ export function ProcessingMethodSection({
               includeTeamspaceNotes={true}
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
-              onNotesChanged={onLoadNotes}
+              onNotesChanged={() => {
+                onLoadNotes()
+              }}
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               Select a note or use special values: &lt;today&gt;, &lt;current&gt;, &lt;thisweek&gt;, &lt;nextweek&gt;, &lt;choose&gt;
@@ -303,7 +305,9 @@ export function ProcessingMethodSection({
               includeTeamspaceNotes={true}
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
-              onNotesChanged={onLoadNotes}
+              onNotesChanged={() => {
+                onLoadNotes()
+              }}
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               Select an existing processing template, or create a new one below
