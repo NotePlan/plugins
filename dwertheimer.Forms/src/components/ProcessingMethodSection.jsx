@@ -87,82 +87,6 @@ export function ProcessingMethodSection({
       {processingMethod === 'write-existing' && (
         <>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-            <label>Template Body:</label>
-            <div style={{ position: 'relative' }}>
-              <ExpandableTextarea
-                ref={(ref) => {
-                  if (ref) {
-                    setTagInserterInputRef(ref)
-                  }
-                }}
-                value={frontmatter.templateBody || ''}
-                onChange={(e) => onFrontmatterChange('templateBody', e.target.value)}
-                onFocus={(e) => {
-                  const target = e.target
-                  if (target instanceof HTMLTextAreaElement) {
-                    setTagInserterInputRef(target)
-                  }
-                }}
-                placeholder="Enter template body with tags like <%- fieldKey %> or <%- date.format(&quot;YYYY-MM-DD&quot;) %>"
-                minRows={5}
-                maxRows={15}
-                compactDisplay={false}
-                style={{ width: '100%', paddingRight: '8rem' }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '0.5rem',
-                  top: '0.5rem',
-                  display: 'flex',
-                  gap: '0.25rem',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setShowTagInserter(true)
-                  }}
-                  style={{
-                    fontSize: '0.75rem',
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: '#f0f0f0',
-                    border: '1px solid #ccc',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                  }}
-                  title="Insert field variable"
-                >
-                  + Field
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setShowTagInserter(true)
-                  }}
-                  style={{
-                    fontSize: '0.75rem',
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: '#f0f0f0',
-                    border: '1px solid #ccc',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                  }}
-                  title="Insert date format"
-                >
-                  + Date
-                </button>
-              </div>
-            </div>
-            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Use template tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%- date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates
-            </div>
-          </div>
-          <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
             <label>Target Note:</label>
             <NoteChooser
               label=""
@@ -256,6 +180,82 @@ export function ProcessingMethodSection({
               </div>
             </>
           )}
+          <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
+            <label>Content to Insert:</label>
+            <div style={{ position: 'relative' }}>
+              <ExpandableTextarea
+                ref={(ref) => {
+                  if (ref) {
+                    setTagInserterInputRef(ref)
+                  }
+                }}
+                value={frontmatter.templateBody || ''}
+                onChange={(e) => onFrontmatterChange('templateBody', e.target.value)}
+                onFocus={(e) => {
+                  const target = e.target
+                  if (target instanceof HTMLTextAreaElement) {
+                    setTagInserterInputRef(target)
+                  }
+                }}
+                placeholder="Enter content to insert with tags like <%- fieldKey %> or <%- date.format(&quot;YYYY-MM-DD&quot;) %>"
+                minRows={5}
+                maxRows={15}
+                compactDisplay={false}
+                style={{ width: '100%', paddingRight: '8rem' }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  right: '0.5rem',
+                  top: '0.5rem',
+                  display: 'flex',
+                  gap: '0.25rem',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setShowTagInserter(true)
+                  }}
+                  style={{
+                    fontSize: '0.75rem',
+                    padding: '0.25rem 0.5rem',
+                    backgroundColor: '#f0f0f0',
+                    border: '1px solid #ccc',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                  }}
+                  title="Insert field variable"
+                >
+                  + Field
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setShowTagInserter(true)
+                  }}
+                  style={{
+                    fontSize: '0.75rem',
+                    padding: '0.25rem 0.5rem',
+                    backgroundColor: '#f0f0f0',
+                    border: '1px solid #ccc',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                  }}
+                  title="Insert date format"
+                >
+                  + Date
+                </button>
+              </div>
+            </div>
+            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+              Use template tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%- date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates
+            </div>
+          </div>
         </>
       )}
 
