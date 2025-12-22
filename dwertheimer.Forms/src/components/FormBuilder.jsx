@@ -203,7 +203,8 @@ export function FormBuilder({
       const shouldLoad = !notesLoaded || (needsNotesForProcessing && notes.length === 0)
       if (shouldLoad && !loadingNotes) {
         logDebug('FormBuilder', `Triggering loadNotes: needsNotesForFields=${String(needsNotesForFields)}, needsNotesForProcessing=${String(needsNotesForProcessing)}, notes.length=${notes.length}`)
-        loadNotes(needsNotesForProcessing && notes.length === 0) // Force reload if processing section needs it and we have no data
+        const forceReload = needsNotesForProcessing && notes.length === 0
+        loadNotes(forceReload) // Force reload if processing section needs it and we have no data
       }
     }
   }, [needsNotes, notesLoaded, loadingNotes, loadNotes, frontmatter.processingMethod, fields, notes.length])
@@ -676,7 +677,7 @@ export function FormBuilder({
                       compactDisplay={true}
                       requestFromPlugin={requestFromPlugin}
                       onFoldersChanged={() => {
-                        loadFolders()
+                        loadFolders(true) // Force reload after creating folder
                       }}
                     />
                     <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
