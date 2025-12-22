@@ -57,6 +57,33 @@ export function ProcessingMethodSection({
   setTagInserterFieldKey,
   fields,
 }: ProcessingMethodSectionProps): React$Node {
+  // Helper function to handle tag inserter button clicks
+  const handleTagInserterButtonClick = (e: any, mode: 'field' | 'date', fieldKey: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // Ensure ref is set before opening modal
+    const activeElement = document.activeElement
+    if (activeElement instanceof HTMLTextAreaElement || activeElement instanceof HTMLInputElement) {
+      setTagInserterInputRef(activeElement)
+      setTagInserterFieldKey(fieldKey)
+    } else {
+      // Find the associated textarea/input (the one this button is next to)
+      const container = e.currentTarget.closest('.frontmatter-field')
+      const textarea = container?.querySelector('textarea')
+      const input = container?.querySelector('input[type="text"]')
+      if (textarea instanceof HTMLTextAreaElement) {
+        setTagInserterInputRef(textarea)
+        setTagInserterFieldKey(fieldKey)
+      } else if (input instanceof HTMLInputElement) {
+        setTagInserterInputRef(input)
+        setTagInserterFieldKey(fieldKey)
+      }
+    }
+    setTagInserterMode(mode)
+    setShowTagInserter(true)
+  }
+
   return (
     <>
       {/* Show in Editor checkbox */}
@@ -237,12 +264,7 @@ export function ProcessingMethodSection({
               >
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setTagInserterMode('field')
-                    setShowTagInserter(true)
-                  }}
+                  onClick={(e) => handleTagInserterButtonClick(e, 'field', 'templateBody')}
                   style={{
                     fontSize: '0.75rem',
                     padding: '0.25rem 0.5rem',
@@ -257,12 +279,7 @@ export function ProcessingMethodSection({
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setTagInserterMode('date')
-                    setShowTagInserter(true)
-                  }}
+                  onClick={(e) => handleTagInserterButtonClick(e, 'date', 'templateBody')}
                   style={{
                     fontSize: '0.75rem',
                     padding: '0.25rem 0.5rem',
@@ -336,12 +353,7 @@ export function ProcessingMethodSection({
               >
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setTagInserterMode('field')
-                    setShowTagInserter(true)
-                  }}
+                  onClick={(e) => handleTagInserterButtonClick(e, 'field', 'newNoteTitle')}
                   style={{
                     fontSize: '0.75rem',
                     padding: '0.25rem 0.5rem',
@@ -356,12 +368,7 @@ export function ProcessingMethodSection({
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setTagInserterMode('date')
-                    setShowTagInserter(true)
-                  }}
+                  onClick={(e) => handleTagInserterButtonClick(e, 'date', 'newNoteTitle')}
                   style={{
                     fontSize: '0.75rem',
                     padding: '0.25rem 0.5rem',
@@ -419,12 +426,7 @@ export function ProcessingMethodSection({
               >
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setTagInserterMode('field')
-                    setShowTagInserter(true)
-                  }}
+                  onClick={(e) => handleTagInserterButtonClick(e, 'field', 'templateBody')}
                   style={{
                     fontSize: '0.75rem',
                     padding: '0.25rem 0.5rem',
@@ -439,12 +441,7 @@ export function ProcessingMethodSection({
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setTagInserterMode('date')
-                    setShowTagInserter(true)
-                  }}
+                  onClick={(e) => handleTagInserterButtonClick(e, 'date', 'templateBody')}
                   style={{
                     fontSize: '0.75rem',
                     padding: '0.25rem 0.5rem',
