@@ -502,8 +502,22 @@ export function ProcessingMethodSection({
               label=""
               value={frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''}
               notes={notes}
-              onChange={(noteTitle: string, _noteFilename: string) => {
-                onFrontmatterChange('receivingTemplateTitle', noteTitle)
+              onChange={(noteTitle: string, noteFilename: string) => {
+                // Ensure we're setting the note title (not filename) to receivingTemplateTitle
+                const trimmedTitle = noteTitle ? noteTitle.trim() : ''
+                if (trimmedTitle) {
+                  onFrontmatterChange('receivingTemplateTitle', trimmedTitle)
+                  // Also clear formProcessorTitle if it exists and is different (for backward compatibility cleanup)
+                  if (frontmatter.formProcessorTitle && frontmatter.formProcessorTitle !== trimmedTitle) {
+                    onFrontmatterChange('formProcessorTitle', '')
+                  }
+                } else {
+                  // If empty, clear both
+                  onFrontmatterChange('receivingTemplateTitle', '')
+                  if (frontmatter.formProcessorTitle) {
+                    onFrontmatterChange('formProcessorTitle', '')
+                  }
+                }
               }}
               placeholder="Select processing template"
               includePersonalNotes={true}
