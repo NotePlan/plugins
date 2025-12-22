@@ -1401,8 +1401,8 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
 
         const templateRunnerArgs: { [string]: any } = {
           newNoteTitle: renderedNewNoteTitle, // Use rendered title (template tags replaced with form values)
-          templateBody: finalTemplateBody, // Use rendered template body (template tags replaced with form values)
-          ...formValuesForRendering, // Spread form values so template tags like <%- field1 %> can access them
+          templateBody: finalTemplateBody, // TemplateRunner will render this with form values in handleNewNoteCreation
+          ...formValuesForRendering, // Spread form values so TemplateRunner can render template tags like <%- field1 %>
         }
 
         // Set folder - use '/' for root folder if empty, otherwise use the specified folder
