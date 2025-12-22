@@ -13,6 +13,7 @@ import { HeadingChooser } from '@helpers/react/DynamicDialog/HeadingChooser.jsx'
 import { FolderChooser } from '@helpers/react/DynamicDialog/FolderChooser.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { stripDoubleQuotes } from '@helpers/stringTransforms'
+import { TemplateTagInserter } from './TemplateTagInserter.jsx'
 import './FormBuilder.css'
 
 type FormBuilderProps = {
@@ -90,6 +91,8 @@ export function FormBuilder({
   const [notesLoaded, setNotesLoaded] = useState<boolean>(false)
   const [loadingFolders, setLoadingFolders] = useState<boolean>(false)
   const [loadingNotes, setLoadingNotes] = useState<boolean>(false)
+  const [showTagInserter, setShowTagInserter] = useState<boolean>(false)
+  const [tagInserterInputRef, setTagInserterInputRef] = useState<?HTMLInputElement>(null)
   const [frontmatter, setFrontmatter] = useState<{ [key: string]: any }>(() => {
     // Strip quotes from initial values to prevent saving quoted values
     const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''
@@ -126,60 +129,66 @@ export function FormBuilder({
   const needsNotes = useMemo(() => fields.some((field) => field.type === 'note-chooser'), [fields])
 
   // Load folders on demand when needed (for form fields OR processing method sections)
-  const loadFolders = useCallback(async (forceReload: boolean = false) => {
-    if ((foldersLoaded && !forceReload) || loadingFolders) return
+  const loadFolders = useCallback(
+    async (forceReload: boolean = false) => {
+      if ((foldersLoaded && !forceReload) || loadingFolders) return
 
-    try {
-      setLoadingFolders(true)
-      logDebug('FormBuilder', 'Loading folders on demand...')
-      // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-      const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true })
-      if (Array.isArray(foldersData)) {
-        setFolders(foldersData)
-        setFoldersLoaded(true)
-        logDebug('FormBuilder', `Loaded ${foldersData.length} folders`)
-      } else {
-        logError('FormBuilder', `Failed to load folders: Invalid response format`)
+      try {
+        setLoadingFolders(true)
+        logDebug('FormBuilder', 'Loading folders on demand...')
+        // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
+        const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true })
+        if (Array.isArray(foldersData)) {
+          setFolders(foldersData)
+          setFoldersLoaded(true)
+          logDebug('FormBuilder', `Loaded ${foldersData.length} folders`)
+        } else {
+          logError('FormBuilder', `Failed to load folders: Invalid response format`)
+          setFoldersLoaded(true) // Set to true to prevent infinite retries
+        }
+      } catch (error) {
+        logError('FormBuilder', `Error loading folders: ${error.message}`)
         setFoldersLoaded(true) // Set to true to prevent infinite retries
+      } finally {
+        setLoadingFolders(false)
       }
-    } catch (error) {
-      logError('FormBuilder', `Error loading folders: ${error.message}`)
-      setFoldersLoaded(true) // Set to true to prevent infinite retries
-    } finally {
-      setLoadingFolders(false)
-    }
-  }, [foldersLoaded, loadingFolders, requestFromPlugin])
+    },
+    [foldersLoaded, loadingFolders, requestFromPlugin],
+  )
 
   // Load notes on demand when needed (for form fields OR processing method sections)
-  const loadNotes = useCallback(async (forceReload: boolean = false) => {
-    if ((notesLoaded && !forceReload) || loadingNotes) return
+  const loadNotes = useCallback(
+    async (forceReload: boolean = false) => {
+      if ((notesLoaded && !forceReload) || loadingNotes) return
 
-    try {
-      setLoadingNotes(true)
-      logDebug('FormBuilder', 'Loading notes on demand...')
-      // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-      // Load all note types for processing method sections
-      const notesData = await requestFromPlugin('getNotes', {
-        includePersonalNotes: true,
-        includeCalendarNotes: true,
-        includeRelativeNotes: true,
-        includeTeamspaceNotes: true,
-      })
-      if (Array.isArray(notesData)) {
-        setNotes(notesData)
-        setNotesLoaded(true)
-        logDebug('FormBuilder', `Loaded ${notesData.length} notes`)
-      } else {
-        logError('FormBuilder', `Failed to load notes: Invalid response format`)
+      try {
+        setLoadingNotes(true)
+        logDebug('FormBuilder', 'Loading notes on demand...')
+        // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
+        // Load all note types for processing method sections
+        const notesData = await requestFromPlugin('getNotes', {
+          includePersonalNotes: true,
+          includeCalendarNotes: true,
+          includeRelativeNotes: true,
+          includeTeamspaceNotes: true,
+        })
+        if (Array.isArray(notesData)) {
+          setNotes(notesData)
+          setNotesLoaded(true)
+          logDebug('FormBuilder', `Loaded ${notesData.length} notes`)
+        } else {
+          logError('FormBuilder', `Failed to load notes: Invalid response format`)
+          setNotesLoaded(true) // Set to true to prevent infinite retries
+        }
+      } catch (error) {
+        logError('FormBuilder', `Error loading notes: ${error.message}`)
         setNotesLoaded(true) // Set to true to prevent infinite retries
+      } finally {
+        setLoadingNotes(false)
       }
-    } catch (error) {
-      logError('FormBuilder', `Error loading notes: ${error.message}`)
-      setNotesLoaded(true) // Set to true to prevent infinite retries
-    } finally {
-      setLoadingNotes(false)
-    }
-  }, [notesLoaded, loadingNotes, requestFromPlugin])
+    },
+    [notesLoaded, loadingNotes, requestFromPlugin],
+  )
 
   // Load folders/notes automatically when fields change and they're needed, OR when processing method sections are shown
   useEffect(() => {
@@ -189,7 +198,12 @@ export function FormBuilder({
       // Always load if needed, even if already loaded (in case processing method changed)
       const shouldLoad = !foldersLoaded || (needsFoldersForProcessing && folders.length === 0)
       if (shouldLoad && !loadingFolders) {
-        logDebug('FormBuilder', `Triggering loadFolders: needsFoldersForFields=${String(needsFoldersForFields)}, needsFoldersForProcessing=${String(needsFoldersForProcessing)}, folders.length=${folders.length}`)
+        logDebug(
+          'FormBuilder',
+          `Triggering loadFolders: needsFoldersForFields=${String(needsFoldersForFields)}, needsFoldersForProcessing=${String(needsFoldersForProcessing)}, folders.length=${
+            folders.length
+          }`,
+        )
         loadFolders(needsFoldersForProcessing && folders.length === 0) // Force reload if processing section needs it and we have no data
       }
     }
@@ -202,7 +216,10 @@ export function FormBuilder({
       // Always load if needed, even if already loaded (in case processing method changed)
       const shouldLoad = !notesLoaded || (needsNotesForProcessing && notes.length === 0)
       if (shouldLoad && !loadingNotes) {
-        logDebug('FormBuilder', `Triggering loadNotes: needsNotesForFields=${String(needsNotesForFields)}, needsNotesForProcessing=${String(needsNotesForProcessing)}, notes.length=${notes.length}`)
+        logDebug(
+          'FormBuilder',
+          `Triggering loadNotes: needsNotesForFields=${String(needsNotesForFields)}, needsNotesForProcessing=${String(needsNotesForProcessing)}, notes.length=${notes.length}`,
+        )
         const forceReload = needsNotesForProcessing && notes.length === 0
         loadNotes(forceReload) // Force reload if processing section needs it and we have no data
       }
@@ -468,8 +485,8 @@ export function FormBuilder({
                   onChange={(e) => handleFrontmatterChange('processingMethod', e.target.value)}
                   style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
                 >
-                  <option value="write-existing">Write to Existing File</option>
-                  <option value="create-new">Create New Note</option>
+                  <option value="write-existing">Write to Existing Note</option>
+                  <option value="create-new">Create New Note on Each Submission</option>
                   <option value="form-processor">Use Form Processor Template</option>
                 </select>
                 <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
@@ -507,62 +524,69 @@ export function FormBuilder({
                     </div>
                   </div>
                   <div className="frontmatter-field">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={frontmatter.replaceNoteContents || false}
-                        onChange={(e) => handleFrontmatterChange('replaceNoteContents', e.target.checked)}
-                      />
-                      Replace entire note contents
-                    </label>
-                    <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                      If checked, the entire note will be replaced. Otherwise, use location/heading options below.
-                    </div>
+                    <label>Write Location:</label>
+                    <select
+                      value={frontmatter.location || 'prepend-under-heading'}
+                      onChange={(e) => {
+                        const newLocation = e.target.value
+                        handleFrontmatterChange('location', newLocation)
+                        // If replacing, set replaceNoteContents
+                        if (newLocation === 'replace') {
+                          handleFrontmatterChange('replaceNoteContents', true)
+                        } else {
+                          handleFrontmatterChange('replaceNoteContents', false)
+                        }
+                      }}
+                      style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+                    >
+                      <option value="prepend-under-heading">Prepend under Heading</option>
+                      <option value="append-under-heading">Append under Heading</option>
+                      <option value="replace">Replace entire note contents</option>
+                    </select>
                   </div>
-                  {!frontmatter.replaceNoteContents && (
+                  {(frontmatter.location === 'prepend-under-heading' || frontmatter.location === 'append-under-heading') && (
                     <>
                       <div className="frontmatter-field">
-                        <label>Write Location:</label>
-                        <select
-                          value={frontmatter.location || 'append'}
-                          onChange={(e) => handleFrontmatterChange('location', e.target.value)}
-                          style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                        >
-                          <option value="append">Append to note</option>
-                          <option value="prepend">Prepend to note</option>
-                          <option value="replace">Replace content under heading</option>
-                          <option value="cursor">Insert at cursor (Editor mode)</option>
-                          <option value="insert">Insert (default behavior)</option>
-                        </select>
-                      </div>
-                      <div className="frontmatter-field">
-                        <label>Write Under Heading (optional):</label>
+                        <label>Write Under Heading:</label>
                         {frontmatter.getNoteTitled ? (
-                          <HeadingChooser
-                            label=""
-                            value={frontmatter.writeUnderHeading || ''}
-                            noteFilename={notes.find((n: NoteOption) => n.title === frontmatter.getNoteTitled)?.filename}
-                            requestFromPlugin={requestFromPlugin}
-                            onChange={(heading: string) => {
-                              handleFrontmatterChange('writeUnderHeading', heading)
-                            }}
-                            placeholder="Select heading or leave empty"
-                            optionAddTopAndBottom={true}
-                            includeArchive={false}
-                            compactDisplay={true}
-                          />
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                            <div style={{ flex: 1 }}>
+                              <HeadingChooser
+                                label=""
+                                value={frontmatter.writeUnderHeading || ''}
+                                noteFilename={notes.find((n: NoteOption) => n.title === frontmatter.getNoteTitled)?.filename}
+                                requestFromPlugin={requestFromPlugin}
+                                onChange={(heading: string) => {
+                                  handleFrontmatterChange('writeUnderHeading', heading)
+                                }}
+                                placeholder="Select heading or enter manually"
+                                optionAddTopAndBottom={true}
+                                includeArchive={false}
+                                compactDisplay={true}
+                              />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <input
+                                type="text"
+                                value={frontmatter.writeUnderHeading || ''}
+                                onChange={(e) => handleFrontmatterChange('writeUnderHeading', e.target.value)}
+                                placeholder="Or enter heading name manually"
+                                style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+                              />
+                            </div>
+                          </div>
                         ) : (
                           <input
                             type="text"
                             value={frontmatter.writeUnderHeading || ''}
                             onChange={(e) => handleFrontmatterChange('writeUnderHeading', e.target.value)}
-                            placeholder="Enter heading name or leave empty"
+                            placeholder="Enter heading name (will be created if it doesn't exist)"
                             style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
                           />
                         )}
                         <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
                           {frontmatter.getNoteTitled
-                            ? 'Select a heading from the note, or enter a heading name manually'
+                            ? 'Select a heading from the note above, or enter a heading name manually below. The heading will be created if it doesn\'t exist.'
                             : 'Enter heading name. If note is selected above, you can choose from its headings.'}
                         </div>
                       </div>
@@ -588,9 +612,21 @@ export function FormBuilder({
                     <label>New Note Title:</label>
                     <div style={{ position: 'relative' }}>
                       <input
+                        ref={(ref) => {
+                          if (ref && !tagInserterInputRef) {
+                            setTagInserterInputRef(ref)
+                          }
+                        }}
                         type="text"
                         value={frontmatter.newNoteTitle || ''}
                         onChange={(e) => handleFrontmatterChange('newNoteTitle', e.target.value)}
+                        onFocus={() => {
+                          // Store the input ref when focused
+                          const activeElement = document.activeElement
+                          if (activeElement instanceof HTMLInputElement) {
+                            setTagInserterInputRef(activeElement)
+                          }
+                        }}
                         placeholder="e.g., <%- noteTitle %> or Project: <%- projectName %>"
                         style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', paddingRight: '8rem' }}
                       />
@@ -609,18 +645,7 @@ export function FormBuilder({
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            const current = frontmatter.newNoteTitle || ''
-                            const fieldKeys = fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key || '')
-                            if (fieldKeys.length === 0) {
-                              alert('No form fields available. Add fields to your form first.')
-                              return
-                            }
-                            const selectedKey = prompt(`Available field keys:\n${fieldKeys.join(', ')}\n\nEnter field key to insert:`, '')
-                            if (selectedKey && fieldKeys.includes(selectedKey)) {
-                              handleFrontmatterChange('newNoteTitle', `${current}<%- ${selectedKey} %>`)
-                            } else if (selectedKey) {
-                              alert(`Field key "${selectedKey}" not found. Available keys: ${fieldKeys.join(', ')}`)
-                            }
+                            setShowTagInserter(true)
                           }}
                           style={{
                             fontSize: '0.75rem',
@@ -630,7 +655,7 @@ export function FormBuilder({
                             borderRadius: '3px',
                             cursor: 'pointer',
                           }}
-                          title="Insert field variable"
+                          title="Insert field variable or date format"
                         >
                           + Field
                         </button>
@@ -639,11 +664,7 @@ export function FormBuilder({
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            const current = frontmatter.newNoteTitle || ''
-                            const dateFormat = prompt('Enter date format (e.g., YYYY-MM-DD, MM/DD/YYYY):', 'YYYY-MM-DD')
-                            if (dateFormat && dateFormat.trim()) {
-                              handleFrontmatterChange('newNoteTitle', `${current}<%- date.format(&quot;${dateFormat.trim()}&quot;) %>`)
-                            }
+                            setShowTagInserter(true)
                           }}
                           style={{
                             fontSize: '0.75rem',

@@ -1,0 +1,59 @@
+/* TemplateTagInserter Component Styles */
+
+.template-tag-inserter-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.template-tag-inserter-container {
+  background-color: var(--bg-main-color, #fff);
+  border-radius: 8px;
+  padding: 1rem;
+  min-width: 400px;
+  max-width: 600px;
+  max-height: 80vh;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.template-tag-inserter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.template-tag-inserter-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--fg-main-color, #333);
+}
+
+.template-tag-inserter-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--fg-main-color, #666);
+  cursor: pointer;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.template-tag-inserter-close:hover {
+  background-color: var(--bg-alt-color, #f5f5f5);
+}
+

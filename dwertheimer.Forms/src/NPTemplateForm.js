@@ -970,7 +970,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
       } else if (method === 'write-existing') {
         // Option A: Write to Existing File
-        const { getNoteTitled, location, writeUnderHeading, replaceNoteContents, createMissingHeading } = data
+        const { getNoteTitled, location, writeUnderHeading, createMissingHeading } = data
         if (!getNoteTitled) {
           await showMessage('No target note was specified. Please set a target note in your form settings.')
           return null
@@ -988,9 +988,27 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
           templateBody,
         }
 
-        if (replaceNoteContents) {
+        // Handle new location options
+        if (location === 'replace') {
           templateRunnerArgs.replaceNoteContents = true
+        } else if (location === 'prepend-under-heading') {
+          templateRunnerArgs.location = 'prepend'
+          if (writeUnderHeading) {
+            templateRunnerArgs.writeUnderHeading = writeUnderHeading
+            if (createMissingHeading !== undefined) {
+              templateRunnerArgs.createMissingHeading = createMissingHeading
+            }
+          }
+        } else if (location === 'append-under-heading') {
+          templateRunnerArgs.location = 'append'
+          if (writeUnderHeading) {
+            templateRunnerArgs.writeUnderHeading = writeUnderHeading
+            if (createMissingHeading !== undefined) {
+              templateRunnerArgs.createMissingHeading = createMissingHeading
+            }
+          }
         } else {
+          // Fallback for other location values
           if (location) {
             templateRunnerArgs.location = location
           }
