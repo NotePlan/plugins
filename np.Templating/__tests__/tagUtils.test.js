@@ -17,6 +17,7 @@ import {
   CODE_BLOCK_COMMENT_TAGS,
   TEMPLATE_MODULES,
 } from '../lib/core/tagUtils'
+import { tempSaveIgnoredCodeBlocks } from '../lib/rendering/templateProcessor'
 
 beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter)
@@ -213,6 +214,223 @@ also ignored
       const ignoredBlocks = getIgnoredCodeBlocks(template)
 
       expect(ignoredBlocks).toHaveLength(0)
+    })
+
+    it('should extract code blocks starting with template: ignore in first line', () => {
+      const template = `
+\`\`\`template: ignore
+This entire block should be ignored
+with multiple lines
+\`\`\`
+
+\`\`\`javascript
+regular code
+\`\`\`
+`
+      const ignoredBlocks = getIgnoredCodeBlocks(template)
+
+      expect(ignoredBlocks).toHaveLength(1)
+      expect(ignoredBlocks[0]).toContain('This entire block should be ignored')
+      expect(ignoredBlocks[0]).toContain('with multiple lines')
+    })
+
+    it('should extract code blocks with space before template: ignore', () => {
+      const template = `
+\`\`\` template: ignore
+Block with space before template
+\`\`\`
+`
+      const ignoredBlocks = getIgnoredCodeBlocks(template)
+
+      expect(ignoredBlocks).toHaveLength(1)
+      expect(ignoredBlocks[0]).toContain('Block with space before template')
+    })
+
+    it('should extract code blocks with template:ignore (no space after colon)', () => {
+      const template = `
+\`\`\`template:ignore
+Block without space after colon
+\`\`\`
+`
+      const ignoredBlocks = getIgnoredCodeBlocks(template)
+
+      expect(ignoredBlocks).toHaveLength(1)
+      expect(ignoredBlocks[0]).toContain('Block without space after colon')
+    })
+
+    it('should extract code blocks with multiple spaces around template: ignore', () => {
+      const template = `
+\`\`\`  template:  ignore
+Block with multiple spaces
+\`\`\`
+`
+      const ignoredBlocks = getIgnoredCodeBlocks(template)
+
+      expect(ignoredBlocks).toHaveLength(1)
+      expect(ignoredBlocks[0]).toContain('Block with multiple spaces')
+    })
+
+    it('should not extract code blocks where template: ignore is not in first line', () => {
+      const template = `
+\`\`\`javascript
+some code
+template: ignore
+more code
+\`\`\`
+`
+      const ignoredBlocks = getIgnoredCodeBlocks(template)
+
+      // This should not match because template: ignore is not in the first line
+      expect(ignoredBlocks).toHaveLength(0)
+    })
+
+    it('should handle mixed ignored code blocks (comments and template: ignore)', () => {
+      const template = `
+\`\`\`javascript
+// template: ignore
+ignored with comment
+\`\`\`
+
+\`\`\`template: ignore
+ignored with template directive
+\`\`\`
+
+\`\`\`templatejs
+/* template: ignore */
+also ignored
+\`\`\`
+`
+      const ignoredBlocks = getIgnoredCodeBlocks(template)
+
+      expect(ignoredBlocks).toHaveLength(3)
+      expect(ignoredBlocks[0]).toContain('ignored with comment')
+      expect(ignoredBlocks[1]).toContain('ignored with template directive')
+      expect(ignoredBlocks[2]).toContain('also ignored')
+    })
+  })
+
+  describe('tempSaveIgnoredCodeBlocks', () => {
+    it('should completely remove code blocks starting with template: ignore', () => {
+      const template = `Text before
+\`\`\`template: ignore
+This block should be completely removed
+with multiple lines
+\`\`\`
+Text after`
+      const result = tempSaveIgnoredCodeBlocks(template)
+
+      expect(result.templateData).not.toContain('template: ignore')
+      expect(result.templateData).not.toContain('This block should be completely removed')
+      expect(result.templateData).toContain('Text before')
+      expect(result.templateData).toContain('Text after')
+      expect(result.codeBlocks).toHaveLength(0) // Should not be stored
+    })
+
+    it('should remove code blocks with space before template: ignore', () => {
+      const template = `Before
+\`\`\` template: ignore
+Block with space
+\`\`\`
+After`
+      const result = tempSaveIgnoredCodeBlocks(template)
+
+      expect(result.templateData).not.toContain('template: ignore')
+      expect(result.templateData).not.toContain('Block with space')
+      expect(result.codeBlocks).toHaveLength(0)
+    })
+
+    it('should remove code blocks with template:ignore (no space after colon)', () => {
+      const template = `Before
+\`\`\`template:ignore
+No space after colon
+\`\`\`
+After`
+      const result = tempSaveIgnoredCodeBlocks(template)
+
+      expect(result.templateData).not.toContain('template:ignore')
+      expect(result.templateData).not.toContain('No space after colon')
+      expect(result.codeBlocks).toHaveLength(0)
+    })
+
+    it('should remove code blocks with multiple spaces around template: ignore', () => {
+      const template = `Before
+\`\`\`  template:  ignore
+Multiple spaces
+\`\`\`
+After`
+      const result = tempSaveIgnoredCodeBlocks(template)
+
+      expect(result.templateData).not.toContain('template:')
+      expect(result.templateData).not.toContain('Multiple spaces')
+      expect(result.codeBlocks).toHaveLength(0)
+    })
+
+    it('should keep code blocks with comment-style ignore (// template: ignore)', () => {
+      const template = `Before
+\`\`\`javascript
+// template: ignore
+This should be kept and protected
+\`\`\`
+After`
+      const result = tempSaveIgnoredCodeBlocks(template)
+
+      expect(result.templateData).toContain('__codeblock:0__')
+      expect(result.templateData).not.toContain('This should be kept and protected')
+      expect(result.codeBlocks).toHaveLength(1)
+      expect(result.codeBlocks[0]).toContain('This should be kept and protected')
+    })
+
+    it('should keep code blocks with comment-style ignore (/* template: ignore */)', () => {
+      const template = `Before
+\`\`\`javascript
+/* template: ignore */
+This should also be kept
+\`\`\`
+After`
+      const result = tempSaveIgnoredCodeBlocks(template)
+
+      expect(result.templateData).toContain('__codeblock:0__')
+      expect(result.codeBlocks).toHaveLength(1)
+      expect(result.codeBlocks[0]).toContain('This should also be kept')
+    })
+
+    it('should handle mixed blocks - remove template: ignore but keep comment-style ignores', () => {
+      const template = `Start
+\`\`\`template: ignore
+Remove this
+\`\`\`
+
+\`\`\`javascript
+// template: ignore
+Keep this
+\`\`\`
+
+\`\`\`template: ignore
+Remove this too
+\`\`\`
+End`
+      const result = tempSaveIgnoredCodeBlocks(template)
+
+      expect(result.templateData).not.toContain('Remove this')
+      expect(result.templateData).not.toContain('Remove this too')
+      expect(result.templateData).toContain('__codeblock:0__') // The comment-style ignore block
+      expect(result.templateData).toContain('Start')
+      expect(result.templateData).toContain('End')
+      expect(result.codeBlocks).toHaveLength(1) // Only the comment-style ignore block
+      expect(result.codeBlocks[0]).toContain('Keep this')
+    })
+
+    it('should remove newline following template: ignore code blocks', () => {
+      const template = `Line 1
+\`\`\`template: ignore
+Content
+\`\`\`
+Line 2`
+      const result = tempSaveIgnoredCodeBlocks(template)
+
+      // Should not have double newlines where the block was removed
+      expect(result.templateData).toMatch(/Line 1\s+Line 2/)
+      expect(result.codeBlocks).toHaveLength(0)
     })
   })
 
