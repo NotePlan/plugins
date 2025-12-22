@@ -81,8 +81,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   if (pluginData.platform === 'macOS') {
     useWatchForResizes(sendActionToPlugin)
   }
-  // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs)
-  const shortDelayTimerIsOn = logSettings._logLevel !== 'DEV'
+  // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs, and not in Demo mode)
+  const shortDelayTimerIsOn = logSettings._logLevel !== 'DEV' && !pluginData.demoMode
   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: shortDelayTimerIsOn })
 
   //----------------------------------------------------------------------
@@ -293,7 +293,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Render
   //----------------------------------------------------------------------
 
-  const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0
+  // Disable auto-update in Demo mode
+  const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0 && !pluginData.demoMode
 
   const showDebugPanel = (pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel) || false
   const testGroups = useMemo(() => getTestGroups(getContext), [getContext])
