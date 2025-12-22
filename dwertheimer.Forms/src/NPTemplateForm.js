@@ -988,7 +988,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
           templateBody,
         }
 
-        // Handle new location options
+        // Handle location options
         if (location === 'replace') {
           templateRunnerArgs.replaceNoteContents = true
         } else if (location === 'prepend-under-heading') {
@@ -1008,10 +1008,11 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
             }
           }
         } else {
-          // Fallback for other location values
+          // For other location values (append, prepend, cursor, insert)
           if (location) {
             templateRunnerArgs.location = location
           }
+          // Only set writeUnderHeading if it's provided (for backward compatibility)
           if (writeUnderHeading) {
             templateRunnerArgs.writeUnderHeading = writeUnderHeading
             if (createMissingHeading !== undefined) {

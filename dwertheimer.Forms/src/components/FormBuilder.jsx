@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useMemo, useCallback, type Node } from 'react'
 import { useAppContext } from './AppContext.jsx'
 import { TemplateTagInserter } from './TemplateTagInserter.jsx'
+import { ProcessingMethodSection } from './ProcessingMethodSection.jsx'
 import { type TSettingItem, type TSettingItemType } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { NoteChooser, type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
@@ -456,308 +457,49 @@ export function FormBuilder({
                 </label>
               </div>
               <div className="frontmatter-field">
-                <label>Window Width:</label>
-                <input
-                  type="number"
-                  value={frontmatter.width || ''}
-                  onChange={(e) => handleFrontmatterChange('width', e.target.value ? parseInt(e.target.value, 10) : undefined)}
-                  placeholder="e.g., 750"
-                  style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                />
-              </div>
-              <div className="frontmatter-field">
-                <label>Window Height:</label>
-                <input
-                  type="number"
-                  value={frontmatter.height || ''}
-                  onChange={(e) => handleFrontmatterChange('height', e.target.value ? parseInt(e.target.value, 10) : undefined)}
-                  placeholder="e.g., 750"
-                  style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                />
+                <label>Window Size:</label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Width:</label>
+                    <input
+                      type="number"
+                      value={frontmatter.width || ''}
+                      onChange={(e) => handleFrontmatterChange('width', e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                      placeholder="e.g., 750"
+                      style={{ width: '100%', padding: '0.5rem' }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Height:</label>
+                    <input
+                      type="number"
+                      value={frontmatter.height || ''}
+                      onChange={(e) => handleFrontmatterChange('height', e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                      placeholder="e.g., 750"
+                      style={{ width: '100%', padding: '0.5rem' }}
+                    />
+                  </div>
+                </div>
                 <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
                   Note: You will need to open the form to see the window size settings take effect.
                 </div>
               </div>
-              <div className="frontmatter-field">
-                <label>Form Processing Method:</label>
-                <select
-                  value={frontmatter.processingMethod || 'write-existing'}
-                  onChange={(e) => handleFrontmatterChange('processingMethod', e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                >
-                  <option value="write-existing">Write to Existing Note</option>
-                  <option value="create-new">Create New Note on Each Submission</option>
-                  <option value="form-processor">Use Form Processor Template</option>
-                </select>
-                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                  {frontmatter.processingMethod === 'write-existing' && 'Write form data directly to an existing note using TemplateRunner'}
-                  {frontmatter.processingMethod === 'create-new' && 'Create a new note with form data using TemplateRunner'}
-                  {frontmatter.processingMethod === 'form-processor' && 'Use a separate processing template to handle form submissions'}
-                </div>
-              </div>
-
-              {/* Option A: Write to Existing File */}
-              {frontmatter.processingMethod === 'write-existing' && (
-                <>
-                  <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-                    <label>Target Note:</label>
-                    <NoteChooser
-                      label=""
-                      value={frontmatter.getNoteTitled || ''}
-                      notes={notes}
-                      onChange={(noteTitle: string, _noteFilename: string) => {
-                        handleFrontmatterChange('getNoteTitled', noteTitle)
-                      }}
-                      placeholder="Select note or type <today>, <current>, <thisweek>, etc."
-                      includePersonalNotes={true}
-                      includeCalendarNotes={true}
-                      includeRelativeNotes={true}
-                      includeTeamspaceNotes={true}
-                      compactDisplay={true}
-                      requestFromPlugin={requestFromPlugin}
-                      onNotesChanged={() => {
-                        loadNotes()
-                      }}
-                    />
-                    <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                      Select a note or use special values: &lt;today&gt;, &lt;current&gt;, &lt;thisweek&gt;, &lt;nextweek&gt;, &lt;choose&gt;
-                    </div>
-                  </div>
-                  <div className="frontmatter-field">
-                    <label>Write Location:</label>
-                    <select
-                      value={frontmatter.location || 'prepend-under-heading'}
-                      onChange={(e) => {
-                        const newLocation = e.target.value
-                        handleFrontmatterChange('location', newLocation)
-                        // If replacing, set replaceNoteContents
-                        if (newLocation === 'replace') {
-                          handleFrontmatterChange('replaceNoteContents', true)
-                        } else {
-                          handleFrontmatterChange('replaceNoteContents', false)
-                        }
-                      }}
-                      style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                    >
-                      <option value="prepend-under-heading">Prepend under Heading</option>
-                      <option value="append-under-heading">Append under Heading</option>
-                      <option value="replace">Replace entire note contents</option>
-                    </select>
-                  </div>
-                  {(frontmatter.location === 'prepend-under-heading' || frontmatter.location === 'append-under-heading') && (
-                    <>
-                      <div className="frontmatter-field">
-                        <label>Write Under Heading:</label>
-                        {frontmatter.getNoteTitled ? (
-                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                            <div style={{ flex: 1 }}>
-                              <HeadingChooser
-                                label=""
-                                value={frontmatter.writeUnderHeading || ''}
-                                noteFilename={notes.find((n: NoteOption) => n.title === frontmatter.getNoteTitled)?.filename}
-                                requestFromPlugin={requestFromPlugin}
-                                onChange={(heading: string) => {
-                                  handleFrontmatterChange('writeUnderHeading', heading)
-                                }}
-                                placeholder="Select heading or enter manually"
-                                optionAddTopAndBottom={true}
-                                includeArchive={false}
-                                compactDisplay={true}
-                              />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <input
-                                type="text"
-                                value={frontmatter.writeUnderHeading || ''}
-                                onChange={(e) => handleFrontmatterChange('writeUnderHeading', e.target.value)}
-                                placeholder="Or enter heading name manually"
-                                style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <input
-                            type="text"
-                            value={frontmatter.writeUnderHeading || ''}
-                            onChange={(e) => handleFrontmatterChange('writeUnderHeading', e.target.value)}
-                            placeholder="Enter heading name (will be created if it doesn't exist)"
-                            style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                          />
-                        )}
-                        <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                          {frontmatter.getNoteTitled
-                            ? 'Select a heading from the note above, or enter a heading name manually below. The heading will be created if it doesn\'t exist.'
-                            : 'Enter heading name. If note is selected above, you can choose from its headings.'}
-                        </div>
-                      </div>
-                      <div className="frontmatter-field">
-                        <label>
-                          <input
-                            type="checkbox"
-                            checked={frontmatter.createMissingHeading !== false}
-                            onChange={(e) => handleFrontmatterChange('createMissingHeading', e.target.checked)}
-                          />
-                          Create heading if it doesn&apos;t exist
-                        </label>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-
-              {/* Option B: Create New Note */}
-              {frontmatter.processingMethod === 'create-new' && (
-                <>
-                  <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-                    <label>New Note Title:</label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        ref={(ref) => {
-                          if (ref && !tagInserterInputRef) {
-                            setTagInserterInputRef(ref)
-                          }
-                        }}
-                        type="text"
-                        value={frontmatter.newNoteTitle || ''}
-                        onChange={(e) => handleFrontmatterChange('newNoteTitle', e.target.value)}
-                        onFocus={() => {
-                          // Store the input ref when focused
-                          const activeElement = document.activeElement
-                          if (activeElement instanceof HTMLInputElement) {
-                            setTagInserterInputRef(activeElement)
-                          }
-                        }}
-                        placeholder="e.g., <%- noteTitle %> or Project: <%- projectName %>"
-                        style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', paddingRight: '8rem' }}
-                      />
-                      <div
-                        style={{
-                          position: 'absolute',
-                          right: '0.5rem',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          display: 'flex',
-                          gap: '0.25rem',
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setShowTagInserter(true)
-                          }}
-                          style={{
-                            fontSize: '0.75rem',
-                            padding: '0.25rem 0.5rem',
-                            backgroundColor: '#f0f0f0',
-                            border: '1px solid #ccc',
-                            borderRadius: '3px',
-                            cursor: 'pointer',
-                          }}
-                          title="Insert field variable or date format"
-                        >
-                          + Field
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setShowTagInserter(true)
-                          }}
-                          style={{
-                            fontSize: '0.75rem',
-                            padding: '0.25rem 0.5rem',
-                            backgroundColor: '#f0f0f0',
-                            border: '1px solid #ccc',
-                            borderRadius: '3px',
-                            cursor: 'pointer',
-                          }}
-                          title="Insert date format"
-                        >
-                          + Date
-                        </button>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                      Use template tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%- date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates
-                    </div>
-                  </div>
-                  <div className="frontmatter-field">
-                    <label>Folder:</label>
-                    <FolderChooser
-                      label=""
-                      value={frontmatter.newNoteFolder || ''}
-                      folders={folders}
-                      onChange={(folder: string) => {
-                        handleFrontmatterChange('newNoteFolder', folder)
-                      }}
-                      placeholder="Select folder (optional)"
-                      includeNewFolderOption={true}
-                      compactDisplay={true}
-                      requestFromPlugin={requestFromPlugin}
-                      onFoldersChanged={() => {
-                        loadFolders(true) // Force reload after creating folder
-                      }}
-                    />
-                    <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                      Leave empty for root folder, or use &lt;select&gt; to prompt each time
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Option C: Form Processor */}
-              {frontmatter.processingMethod === 'form-processor' && (
-                <>
-                  <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-                    <label>Processing Template:</label>
-                    <NoteChooser
-                      label=""
-                      value={frontmatter.formProcessorTitle || ''}
-                      notes={notes}
-                      onChange={(noteTitle: string, _noteFilename: string) => {
-                        handleFrontmatterChange('formProcessorTitle', noteTitle)
-                        handleFrontmatterChange('receivingTemplateTitle', noteTitle) // Keep for backward compatibility
-                      }}
-                      placeholder="Select processing template"
-                      includePersonalNotes={true}
-                      includeCalendarNotes={false}
-                      includeRelativeNotes={false}
-                      includeTeamspaceNotes={true}
-                      compactDisplay={true}
-                      requestFromPlugin={requestFromPlugin}
-                      onNotesChanged={() => {
-                        loadNotes()
-                      }}
-                    />
-                    <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                      Select an existing processing template, or create a new one below
-                    </div>
-                  </div>
-                  <div className="frontmatter-field">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        // This will be handled by the plugin - we'll need to add a request handler
-                        const result = await requestFromPlugin('createProcessingTemplate', {
-                          formTemplateTitle: templateTitle,
-                        })
-                        if (result && typeof result === 'string') {
-                          handleFrontmatterChange('formProcessorTitle', result)
-                          handleFrontmatterChange('receivingTemplateTitle', result)
-                        }
-                      }}
-                      className="PCButton"
-                      style={{ width: '100%', marginTop: '0.5rem' }}
-                    >
-                      Create New Processing Template
-                    </button>
-                    <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>Creates a new processing template and links it to this form</div>
-                  </div>
-                </>
-              )}
+              <ProcessingMethodSection
+                processingMethod={frontmatter.processingMethod || 'write-existing'}
+                frontmatter={frontmatter}
+                notes={notes}
+                folders={folders}
+                requestFromPlugin={requestFromPlugin}
+                onFrontmatterChange={handleFrontmatterChange}
+                onLoadNotes={loadNotes}
+                onLoadFolders={loadFolders}
+                templateTitle={templateTitle}
+                showTagInserter={showTagInserter}
+                setShowTagInserter={setShowTagInserter}
+                tagInserterInputRef={tagInserterInputRef}
+                setTagInserterInputRef={setTagInserterInputRef}
+                fields={fields}
+              />
             </div>
           </div>
         </div>
