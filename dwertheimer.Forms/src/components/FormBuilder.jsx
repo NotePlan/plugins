@@ -125,9 +125,9 @@ export function FormBuilder({
   const needsFolders = useMemo(() => fields.some((field) => field.type === 'folder-chooser'), [fields])
   const needsNotes = useMemo(() => fields.some((field) => field.type === 'note-chooser'), [fields])
 
-  // Load folders on demand when needed
+  // Load folders on demand when needed (for form fields OR processing method sections)
   const loadFolders = useCallback(async () => {
-    if (foldersLoaded || loadingFolders || !needsFolders) return
+    if (foldersLoaded || loadingFolders) return
 
     try {
       setLoadingFolders(true)
@@ -148,17 +148,23 @@ export function FormBuilder({
     } finally {
       setLoadingFolders(false)
     }
-  }, [foldersLoaded, loadingFolders, needsFolders])
+  }, [foldersLoaded, loadingFolders, requestFromPlugin])
 
-  // Load notes on demand when needed
+  // Load notes on demand when needed (for form fields OR processing method sections)
   const loadNotes = useCallback(async () => {
-    if (notesLoaded || loadingNotes || !needsNotes) return
+    if (notesLoaded || loadingNotes) return
 
     try {
       setLoadingNotes(true)
       logDebug('FormBuilder', 'Loading notes on demand...')
       // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-      const notesData = await requestFromPlugin('getNotes', {})
+      // Load all note types for processing method sections
+      const notesData = await requestFromPlugin('getNotes', {
+        includePersonalNotes: true,
+        includeCalendarNotes: true,
+        includeRelativeNotes: true,
+        includeTeamspaceNotes: true,
+      })
       if (Array.isArray(notesData)) {
         setNotes(notesData)
         setNotesLoaded(true)
@@ -173,20 +179,24 @@ export function FormBuilder({
     } finally {
       setLoadingNotes(false)
     }
-  }, [notesLoaded, loadingNotes, needsNotes])
+  }, [notesLoaded, loadingNotes, requestFromPlugin])
 
-  // Load folders/notes automatically when fields change and they're needed
+  // Load folders/notes automatically when fields change and they're needed, OR when processing method sections are shown
   useEffect(() => {
-    if (needsFolders && !foldersLoaded && !loadingFolders) {
+    const needsFoldersForFields = fields.some((field) => field.type === 'folder-chooser')
+    const needsFoldersForProcessing = frontmatter.processingMethod === 'create-new'
+    if ((needsFoldersForFields || needsFoldersForProcessing) && !foldersLoaded && !loadingFolders) {
       loadFolders()
     }
-  }, [needsFolders, foldersLoaded, loadingFolders, loadFolders])
+  }, [needsFolders, foldersLoaded, loadingFolders, loadFolders, frontmatter.processingMethod, fields])
 
   useEffect(() => {
-    if (needsNotes && !notesLoaded && !loadingNotes) {
+    const needsNotesForFields = fields.some((field) => field.type === 'note-chooser')
+    const needsNotesForProcessing = frontmatter.processingMethod === 'write-existing' || frontmatter.processingMethod === 'form-processor'
+    if ((needsNotesForFields || needsNotesForProcessing) && !notesLoaded && !loadingNotes) {
       loadNotes()
     }
-  }, [needsNotes, notesLoaded, loadingNotes, loadNotes])
+  }, [needsNotes, notesLoaded, loadingNotes, loadNotes, frontmatter.processingMethod, fields])
 
   // Sync frontmatter when props change (e.g., when receivingTemplateTitle is set after template creation)
   useEffect(() => {
@@ -449,7 +459,7 @@ export function FormBuilder({
                 >
                   <option value="write-existing">Write to Existing File</option>
                   <option value="create-new">Create New Note</option>
-                  <option value="form-processor">Use Form Processor</option>
+                  <option value="form-processor">Use Form Processor Template</option>
                 </select>
                 <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
                   {frontmatter.processingMethod === 'write-existing' && 'Write form data directly to an existing note using TemplateRunner'}
@@ -476,6 +486,10 @@ export function FormBuilder({
                       includeRelativeNotes={true}
                       includeTeamspaceNotes={true}
                       compactDisplay={true}
+                      requestFromPlugin={requestFromPlugin}
+                      onNotesChanged={() => {
+                        loadNotes()
+                      }}
                     />
                     <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
                       Select a note or use special values: &lt;today&gt;, &lt;current&gt;, &lt;thisweek&gt;, &lt;nextweek&gt;, &lt;choose&gt;
@@ -581,12 +595,20 @@ export function FormBuilder({
                       >
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
                             const current = frontmatter.newNoteTitle || ''
-                            const fieldKeys = fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key)
-                            const selectedKey = window.prompt(`Available field keys:\n${fieldKeys.join(', ')}\n\nEnter field key to insert:`, '')
+                            const fieldKeys = fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key || '')
+                            if (fieldKeys.length === 0) {
+                              alert('No form fields available. Add fields to your form first.')
+                              return
+                            }
+                            const selectedKey = prompt(`Available field keys:\n${fieldKeys.join(', ')}\n\nEnter field key to insert:`, '')
                             if (selectedKey && fieldKeys.includes(selectedKey)) {
                               handleFrontmatterChange('newNoteTitle', `${current}<%- ${selectedKey} %>`)
+                            } else if (selectedKey) {
+                              alert(`Field key "${selectedKey}" not found. Available keys: ${fieldKeys.join(', ')}`)
                             }
                           }}
                           style={{
@@ -603,11 +625,13 @@ export function FormBuilder({
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
                             const current = frontmatter.newNoteTitle || ''
-                            const dateFormat = window.prompt('Enter date format (e.g., YYYY-MM-DD, MM/DD/YYYY):', 'YYYY-MM-DD')
-                            if (dateFormat) {
-                              handleFrontmatterChange('newNoteTitle', `${current}<%- date.format(&quot;${dateFormat}&quot;) %>`)
+                            const dateFormat = prompt('Enter date format (e.g., YYYY-MM-DD, MM/DD/YYYY):', 'YYYY-MM-DD')
+                            if (dateFormat && dateFormat.trim()) {
+                              handleFrontmatterChange('newNoteTitle', `${current}<%- date.format(&quot;${dateFormat.trim()}&quot;) %>`)
                             }
                           }}
                           style={{
