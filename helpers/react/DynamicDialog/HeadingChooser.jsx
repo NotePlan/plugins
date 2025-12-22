@@ -66,6 +66,13 @@ export function HeadingChooser({
 
   // Load headings from note if noteFilename is provided and we have requestFromPlugin
   useEffect(() => {
+    // Reset loaded state when noteFilename changes
+    if (noteFilename) {
+      setLoaded(false)
+    }
+  }, [noteFilename])
+
+  useEffect(() => {
     if (noteFilename && requestFromPlugin && !loaded && !loading) {
       setLoading(true)
       logDebug('HeadingChooser', `Loading headings from note: ${noteFilename}`)

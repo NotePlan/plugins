@@ -129,9 +129,14 @@ export function ProcessingMethodSection({
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1 }}>
                       <HeadingChooser
+                        key={`heading-chooser-${frontmatter.getNoteTitled || ''}-${frontmatter.getNoteFilename || ''}-${notes.length}`}
                         label=""
                         value={frontmatter.writeUnderHeading || ''}
-                        noteFilename={notes.find((n: NoteOption) => n.title === frontmatter.getNoteTitled)?.filename}
+                        noteFilename={
+                          frontmatter.getNoteFilename ||
+                          notes.find((n: NoteOption) => n.title === frontmatter.getNoteTitled)?.filename ||
+                          null
+                        }
                         requestFromPlugin={requestFromPlugin}
                         onChange={(heading: string) => {
                           onFrontmatterChange('writeUnderHeading', heading)
