@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-11-13 for v2.3.0 by @jgclark
+// Last updated 2025-12-19 for v2.4.0 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -15,7 +15,7 @@ import CalendarPicker from './CalendarPicker.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
-import { clo, clof, JSP, logDebug, logInfo } from '@helpers/react/reactDev'
+import { clo, clof, JSP, logDebug, logInfo, logWarn } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
@@ -50,6 +50,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   const [animationClass, setAnimationClass] = useState('')
   const [resetCalendar, setResetCalendar] = useState(false) // used to reset the calendar during IP processing if the date picker is open
+  const [contentHasChanged, setContentHasChanged] = useState(false) // used to track if the content has changed
 
   //----------------------------------------------------------------------
   // Constants
@@ -57,6 +58,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
   const { ID, item, itemType, para, filename, title, content, noteType, sectionCodes, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
+  // logDebug('DialogForTaskItems', `ID=${String(ID)} / itemType=${String(itemType)} / filename=${String(filename)} / sectionCodes=${String(sectionCodes)} / para.content={${String(para?.content ?? 'n/a')}}`)
+  if (!filename || filename === '') { logWarn('DialogForTaskItems', `filename is undefined or empty`) }
 
   const { sendActionToPlugin, reactSettings, setReactSettings, dashboardSettings, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
@@ -193,6 +196,10 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // but might be the intermittent cache update issue returning children with the para when there are none
   para.hasChild ? clo(para, `DialogForTaskItems hasChild ${para.hasChild} para=`) : null
 
+  //----------------------------------------------------------------------
+  // Variables & Helpers
+  //----------------------------------------------------------------------
+
   // get the next index in the visibleItems array to process (default going forward) or go backwards (goBackwards = true)
   const getNextIPIndex = (goBackwards: boolean = false) => {
     const { visibleItems, currentIPIndex } = reactSettings?.interactiveProcessing || {}
@@ -221,13 +228,17 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // Trigger the 'zoom-in/out' effects when the component mounts and unmounts
   useLayoutEffect(() => {
-    showAnimations ? setAnimationClass('zoom-in') : null
+    if (showAnimations) {
+      setAnimationClass('zoom-in')
+    }
 
     // run before the component unmounts
     return () => {
-      showAnimations ? setAnimationClass('zoom-out') : null
+      if (showAnimations) {
+        setAnimationClass('zoom-out')
+      }
     }
-  }, [])
+  }, [showAnimations])
 
   //----------------------------------------------------------------------
   // Handlers
@@ -235,7 +246,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // handle a single item (and its children) being processed in interactive processing
   const handleIPItemProcessed = (skippedItem?: boolean = false, skipForward?: boolean = true) => {
-    logDebug(`DialogForTaskItems`, ` 🥸 handleIPItemProcessed calling handleIPItemProcessed`)
+    logDebug(`DialogForTaskItems`, `handleIPItemProcessed called with skippedItem=${String(skippedItem)}, skipForward=${String(skipForward)}`)
     // clo(reactSettings, `DialogForTaskItems: 🥸 handleIPItemProcessed calling handleIPItemProcessed; reactSettings=`)
     const { visibleItems, currentIPIndex } = reactSettings?.interactiveProcessing || {}
     if (!visibleItems) return
@@ -244,8 +255,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     if (!skippedItem) visibleItems[currentIPIndex].processed = true
     logDebug('DialogForTaskItems', `handleIPItemProcessed currentIPIndex=${String(currentIPIndex)}`)
     // check if there are children to skip over
-    if (!skippedItem && visibleItems[currentIPIndex].para?.hasChild && visibleItems.length > currentIPIndex) {
-      // also remove any children of the first item
+    if (!skippedItem && visibleItems[currentIPIndex].para?.hasChild) {
+    // remove any children of the first item
       for (let i = currentIPIndex + 1; i < visibleItems.length; i++) {
         const item = visibleItems[i]
         logDebug('useInteractiveProcessing', `- checking for children of '${item?.para?.content ?? 'n/a'}'`)
@@ -277,42 +288,58 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     }
   }
 
-  // handle the Enter key press (from the editable input box) to trigger the updateItemContent button click
+  // Handle the Enter key press (from the editable input box) to trigger the updateItemContent button click
   function handleEnterPress() {
     // $FlowIgnore[incompatible-call] can't manufacture a MouseEvent, but no details are actually needed, I think.
     handleButtonClick({}, 'updateItemContent', 'updateItemContent')
   }
 
+  // Handle the content change (from the editable input box) to set a flag that the content has changed
+  function handleContentChange(_updatedContent: string) {
+    setContentHasChanged(true)
+  }
+
+  // Handle button clicks to trigger its handler, and generally close the dialog
   function handleButtonClick(event: MouseEvent, controlStr: string, handlingFunction: string) {
-    const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(event) // Indicates whether a modifier key was pressed
+    const { metaKey } = extractModifierKeys(event) // Indicates whether ⌘-key was pressed
     // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
     const currentContent = para.content
-    logDebug(
-      `DialogForTaskItems handleButtonClick`,
-      `Button clicked on ID: ${ID} for controlStr: ${controlStr}, handlingFunction: ${handlingFunction}, itemType: ${itemType}, filename: ${filename}, metaKey: ${String(
-        metaKey,
-      )} altKey: ${String(altKey)} ctrlKey: ${String(ctrlKey)} shiftKey: ${String(shiftKey)}`,
-    )
-    // $FlowIgnore[prop-missing]
-    const updatedContent = inputRef?.current?.getValue() || ''
-    if (controlStr === 'update') {
-      logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
+    logDebug(`DialogForTaskItems/handleButtonClick`, `- button clicked on ID: ${ID} for controlStr: ${controlStr}, handlingFunction: ${handlingFunction}, itemType: ${itemType}, filename: ${filename}, contentHasChanged: ${String(contentHasChanged)}`)
+    if (contentHasChanged || controlStr === 'updateItemContent') {
+      // $FlowIgnore[prop-missing] Cursor says its getValue() not itemValue(). This change works.
+      const updatedContent = inputRef?.current?.getValue() || ''
+      // logDebug(`DialogForTaskItems/handleButtonClick`, ` - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
+      const dataToSend = {
+        ...detailsMessageObject,
+        actionType: 'updateItemContent',
+        controlStr: 'updateItemContent',
+        updatedContent: currentContent !== updatedContent ? updatedContent : '',
+        sectionCodes: sectionCodes,
+      }
+      sendActionToPlugin('updateItemContent', dataToSend, `Dialog requesting call to updateItemContent`, true)
+      setContentHasChanged(false)
+    }
+    else {
+      const dataToSend = {
+        ...detailsMessageObject,
+        actionType: handlingFunction,
+        controlStr: controlStr,
+        updatedContent: '',
+        sectionCodes: sectionCodes,
+      }
+
+      sendActionToPlugin(handlingFunction, dataToSend, `Dialog requesting call to ${handlingFunction}`, true)
     }
 
-    const dataToSend = {
-      ...detailsMessageObject,
-      actionType: handlingFunction,
-      controlStr: controlStr,
-      updatedContent: currentContent !== updatedContent ? updatedContent : '',
-      sectionCodes: sectionCodes,
+    // Don't close dialog yet if openNote button or one of the priority buttons clicked
+    if (controlStr === 'openNote' || controlStr.startsWith('pri')) {
+      return
     }
 
-    sendActionToPlugin(handlingFunction, dataToSend, `Dialog requesting call to ${handlingFunction}`, true)
-    if (controlStr === 'openNote' || controlStr.startsWith('pri') || controlStr === 'update') return //don't close dialog yet
-
-    // Start the zoom/flip-out animation
-    reactSettings?.interactiveProcessing ? null : setAnimationClass('zoom-out') //flip-out
-
+    // Otherwise, start the zoom/flip-out animation
+    if (!reactSettings?.interactiveProcessing) {
+      setAnimationClass('zoom-out') // flip-out
+    }
     // Dismiss dialog, unless meta key pressed
     if (!metaKey) {
       // Wait for zoom animation animation to finish before actually closing
@@ -320,7 +347,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         closeDialog(false)
       }, 300) // Match the duration of the animation
     } else {
-      console.log(`Option key pressed. Closing without animation.`)
+      logDebug('DialogForTaskItems', `Meta key pressed. Closing without animation.`)
       closeDialog(false)
     }
   }
@@ -359,7 +386,9 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       }
     }
     // logDebug('DialogForTaskItems closeDialog() calling setAnimationClass')
-    showAnimations ? setAnimationClass('zoom-out') : null
+    if (showAnimations) {
+      setAnimationClass('zoom-out')
+    }
     scheduleClose(showAnimations ? 300 : 0, forceClose) // Match the duration of the animation
   }
 
@@ -433,13 +462,13 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         <div className="dialogTitle">
           <div className="preText">From:</div>
           <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`}>
-              <div className="dialogItemNote" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
-                <ItemNoteLink
-                  item={item}
-                  thisSection={sectionCodes}
-                  alwaysShowNoteTitle={true}
+            <div className="dialogItemNote" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
+              <ItemNoteLink
+                item={item}
+                thisSection={sectionCodes}
+                alwaysShowNoteTitle={true}
                 suppressTeamspaceName={false}
-                />
+              />
             </div>
           </TooltipOnKeyPress>
           <div className="dialog-top-right">
@@ -462,7 +491,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
               </>
             )}
             <button className="closeButton" onClick={() => closeDialog(true)}>
-              <i className="fa-solid fa-square-xmark"></i>
+              <i className="fa-solid fa-circle-xmark"></i>
             </button>
           </div>
         </div>
@@ -480,6 +509,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
                 className="fullTextInput dialogItemContent"
                 useTextArea={pluginData.platform === 'iOS'}
                 onEnterPress={handleEnterPress}
+                onChange={handleContentChange}
                 autofocusMe={true}
               />
               <button
@@ -507,15 +537,14 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
                   {button.label}
                 </button>
               ))}
-              {/* $FlowIgnore */}
               <CalendarPicker
                 onSelectDate={handleDateSelect}
                 positionFunction={() => positionDialog(dialogRef)}
                 numberOfMonths={monthsToShow}
                 resetDateToDefault={resetCalendar}
-                startingSelectedDate={null}
+                startingSelectedDate={new Date()}
                 shouldStartOpen={shouldStartCalendarOpen}
-              />{' '}
+              />
               {/* TODO: when this does work, it needs copying to DialogForProjectItems as well */}
             </div>
 

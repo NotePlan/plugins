@@ -2,10 +2,10 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by Dialog component
-// Last updated 2025-04-06  for v2.2.0.a11
+// Last updated 2025-12-20  for v2.4.0 by @jgclark
 //--------------------------------------------------------------------------
 
-import React, { useRef, useEffect, useLayoutEffect, useState } from 'react'
+import React, { useRef, useLayoutEffect, useState } from 'react'
 // import type { ElementRef } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
@@ -14,7 +14,7 @@ import CalendarPicker from './CalendarPicker.jsx'
 import ProjectIcon from './ProjectIcon'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString, relativeDateFromNumber } from '@helpers/dateTime'
-import { clo, clof, JSP, logDebug, logInfo } from '@helpers/react/reactDev'
+import { clo, clof, JSP, logDebug, logInfo, logWarn } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
 
@@ -46,9 +46,12 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const lastProgressText = (thisItem.project?.lastProgressComment) ? `last: ${thisItem.project?.lastProgressComment}` : ''
   const { ID, itemType, filename, title, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
 
-  const { sendActionToPlugin, pluginData } = useAppContext()
+  const { sendActionToPlugin, pluginData, dashboardSettings } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
   const monthsToShow = (pluginData.platform === 'iOS') ? 1 : 2
+  const { enableInteractiveProcessingTransitions } = dashboardSettings || {}
+  // For project dialogs, always show animations (no interactive processing for projects)
+  const showAnimations = enableInteractiveProcessingTransitions !== false
 
   // We want to open the calendar picker if the meta key was pressed as this was dialog was being triggered.
   const shouldStartCalendarOpen = modifierKey // = boolean for whether metaKey pressed
@@ -75,7 +78,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   ]
 
   let projectButtons: Array<DialogButtonProps> = [
-    { label: 'Toggle Pause', controlStr: 'pause', 'description': 'Mark the project as paused', handlingFunction: 'togglePauseProject', icons: [{ className: 'fa-solid fa-circle-pause', position: 'left' }], notOnMobile: false },
+    { label: 'Toggle Pause', controlStr: 'pause', description: 'Mark the project as paused', handlingFunction: 'togglePauseProject', icons: [{ className: 'fa-solid fa-circle-pause', position: 'left' }], notOnMobile: false },
     { label: 'Complete', controlStr: 'complete', description: 'Add @completed(...) date to project metadata and remove from review lists', handlingFunction: 'completeProject', icons: [{ className: 'fa-solid fa-circle-check', position: 'left' }], notOnMobile: false },
     { label: 'Cancel', controlStr: 'cancel', description: 'Add @cancelled(...) date to project metadata and remove from review lists', handlingFunction: 'cancelProject', icons: [{ className: 'fa-solid fa-circle-xmark', position: 'left' }], notOnMobile: false },
     // TODO(later): I wanted this icon to be fa-solid fa-arrows-left-right-to-line, but it wasn't available when we made the build of icons.
@@ -100,7 +103,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     // logDebug(`DialogForProjectItems`, `AFTER POSITION detailsMessageObject`, detailsMessageObject)
   }, [])
 
-  function handleTitleClick(e:MouseEvent) { // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties 
+  function handleTitleClick(e: MouseEvent) { // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties 
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
     detailsMessageObject.actionType = 'showLineInEditorFromFilename'
     detailsMessageObject.modifierKey = modifierName
@@ -110,9 +113,10 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   // Handle the shared closing functionality
   const closeDialog = (forceClose: boolean = false) => {
     // Start the zoom-out animation
-    setAnimationClass('zoom-out')
-    scheduleClose(300, forceClose)  // Match the duration of the animation
-    // onClose(forceClose)
+    if (showAnimations) {
+      setAnimationClass('zoom-out')
+    }
+    scheduleClose(showAnimations ? 300 : 0, forceClose)  // Match the duration of the animation
   }
 
   const scheduleClose = (delay: number, forceClose: boolean = false) => {
@@ -148,26 +152,23 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
     sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, true)
 
-    // Start the zoom/flip-out animation
-    // setAnimationClass('zoom-out') //flip-out
-
-    // Dismiss dialog
-    // Wait for zoom animation animation to finish before actually closing
-    setTimeout(() => {
-      onClose(false)
-    }, 300) // Match the duration of the animation
-    // onClose(false)
+    // Dismiss dialog with animation
+    closeDialog(false)
   }
 
   useLayoutEffect(() => {
-    // Trigger the 'effect when the component mounts
-    setAnimationClass('zoom-in')
+    // Trigger the zoom-in effect when the component mounts
+    if (showAnimations) {
+      setAnimationClass('zoom-in')
+    }
 
     // run before the component unmounts
     return () => {
-      setAnimationClass('zoom-out')
+      if (showAnimations) {
+        setAnimationClass('zoom-out')
+      }
     }
-  }, [])
+  }, [showAnimations])
 
   return (
     <>
@@ -191,16 +192,16 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
           <TooltipOnKeyPress
             altKey={{ text: 'Open in Split View' }}
             metaKey={{ text: 'Open in Floating Window' }}
-            label={`Task Item Dialog for ${title}`}
+            label={`Project Item Dialog for ${title}`}
           >
-            <span className="dialogFileParts pad-left pad-right" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>            
+            <span className="dialogFileParts pad-left pad-right" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
               <span className="dialogItemNote" >{title}</span>
             </span>
             {reviewDetails}
           </TooltipOnKeyPress>
           <div className="dialog-top-right">
             <button className="closeButton" onClick={() => closeDialog(true)}>
-              <i className="fa-solid fa-square-xmark"></i>
+              <i className="fa-solid fa-circle-xmark"></i>
             </button>
           </div>
         </div>
