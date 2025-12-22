@@ -1000,7 +1000,7 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
         returnValue = await handleSubmitButtonClick(data, reactWindowData) //update the data to send it back to the React Window
         break
       default:
-        await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`)
+        await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`, 'ERROR')
         break
     }
     if (returnValue && returnValue !== reactWindowData) {

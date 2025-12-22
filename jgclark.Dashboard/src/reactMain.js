@@ -42,6 +42,13 @@ export type PassedData = {
   ENV_MODE?: 'development' | 'production',
   passThroughVars?: any /* any data you want to pass through to the React Window */,
   windowID?: string,
+  initialBanner?: {
+    // for debugging/testing the warning banner
+    msg: string,
+    color: string,
+    border: string,
+    icon: string,
+  },
 }
 
 // ------------------------------------------------------------
@@ -79,7 +86,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
       // logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo} / ${thisSettingType})`)
       // TEST: use helper to save settings from now on
       // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
-      const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: dashboardSettings })
+      const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: dashboardSettings })
       if (!res) {
         throw new Error(`saveSettings failed for setting '${key}:${value}'`)
       }
@@ -121,7 +128,7 @@ export async function setSettings(paramsIn: string): Promise<void> {
     logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)
     // TEST: use helper to save settings from now on
     // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
-    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) })
+    const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: JSON.stringify(dashboardSettings) })
     if (!res) {
       throw new Error(`saveSettings failed for params: '${paramsIn}'`)
     }
@@ -243,7 +250,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
 
     // TEST: use helper to save settings from now on
     // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
-    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) })
+    const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: JSON.stringify(dashboardSettings) })
     if (!res) {
       throw new Error(`saveSettings failed for sections '${limitToSections}'`)
     }
@@ -317,8 +324,8 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
           let DataStore = { settings: {_logLevel: "${DataStore?.settings?._logLevel}" } };
         </script>`,
       postBodyScript: ``,
-      paddingWidth: (platform === 'iPadOS') ? 32 : (platform === 'iOS') ? 0 : 0,
-      paddingHeight: (platform === 'iPadOS') ? 32 : (platform === 'iOS') ? 0 : 0,
+      paddingWidth: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,
+      paddingHeight: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,
     }
     logTimer('showDashboardReact', startTime, `===== Calling React =====`)
     // clo(data, `showDashboardReact data object passed`)
@@ -391,7 +398,7 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
     }
 
     // use our more reliable helper to save settings
-    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: newDashboardSettings })
+    const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: newDashboardSettings })
     if (!res) {
       throw new Error(`saveSettings failed`)
     }

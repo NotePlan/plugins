@@ -8,8 +8,13 @@
  * It is the parent of all other components on the page
  * dbw: Think about lightweight datastore https://blog.openreplay.com/lightweight-alternatives-to-redux/
 
-// globalSharedData is passed to window load time from the plugin, so you can use it for initial state
-*/
+ * globalSharedData is passed to window load time from the plugin, so you can use it for initial state.
+
+ * It uses css.w3.css for styling the Debug area, when whatever
+ main CSS for the plugin might not be available. 
+ * It is *not* recommended to use this for styling the plugin itself.
+ * For that please use the CSS provided converted from the NP Theme by the HTMLView.js functions.
+ */
 
 /****************************************************************************************************************************
  *                             GLOBAL VARS/FUNCTIONS
@@ -20,12 +25,6 @@ declare var WebView: any // No props specified, use an empty object or specific 
 declare function runPluginCommand(command: string, id: string, args: Array<any>): void
 declare function sendMessageToPlugin(Array<string | any>): void
 
-// type TWarning = {
-//   warn: boolean,
-//   msg?: string,
-//   color?: string,
-//   border?: string,
-// }
 /****************************************************************************************************************************
  *                             TYPES
  ****************************************************************************************************************************/
@@ -36,11 +35,10 @@ declare function sendMessageToPlugin(Array<string | any>): void
 
 import React, { useState, useEffect, Profiler, type Node, useRef } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
-
 // import { WebView } from './_Cmp-WebView.jsx' // we are assuming it's externally loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
-import { logDebug, formatReactError, JSP, clo, logError } from '@helpers/react/reactDev'
+import { logDebug, formatReactError, JSP, clo, logError, logInfo } from '@helpers/react/reactDev'
 
 const ROOT_DEBUG = false
 
@@ -69,7 +67,16 @@ export function Root(/* props: Props */): Node {
   const [npData, setNPData] = useState(globalSharedData) // set it from initial data
   const [reactSettings, setReactSettings] = useState({})
 
-  const [warning, setWarning] = useState({ warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red' })
+  // Initialize warning banner from globalSharedData if provided, otherwise default to hidden
+  const initialBannerMessage = {
+    type: globalSharedData?.initialBanner?.type || 'INFO',
+    msg: globalSharedData?.initialBanner?.msg || '',
+    timeout: globalSharedData?.initialBanner?.timeout || 0,
+    color: globalSharedData?.initialBanner?.color || '',
+    border: globalSharedData?.initialBanner?.border || '',
+    icon: globalSharedData?.initialBanner?.icon || '',
+      }
+  const [bannerMessage, setBannerMessage] = useState(initialBannerMessage)
   // const [setMessageFromPlugin] = useState({})
   const [history, setHistory] = useState([lastUpdated])
 
@@ -221,7 +228,7 @@ export function Root(/* props: Props */): Node {
    */
   const onMessageReceived = (event: MessageEvent) => {
     const { data } = event
-    // console.log(`Root: onMessageReceived ${event.type} data: ${JSON.stringify(data, null, 2)}`)
+    // logDebug('Root', `onMessageReceived ${event.type} data=${JSP(data, 2)}`)
     if (!shouldIgnoreMessage(event) && data) {
       // const str = JSON.stringify(event, null, 4)
       try {
@@ -263,13 +270,24 @@ export function Root(/* props: Props */): Node {
               break
             }
             case 'SHOW_BANNER':
-              logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it.`)
+              logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it. (timeout: ${payload.timeout ?? '-'})`)
               setNPData((prevData) => {
                 prevData.passThroughVars = prevData.passThroughVars ?? {}
                 prevData.passThroughVars.lastWindowScrollTop = 0
                 return { ...prevData, ...payload }
               })
-              showBanner(payload.msg, payload.color, payload.border)
+              showBanner(payload.type, payload.msg, payload.color, payload.border, payload.icon, payload.timeout)
+              // If timeout is a valid positive number, then start a timer to clear the message after the timeout period
+              if (typeof payload.timeout === 'number' && payload.timeout > 0 && !isNaN(payload.timeout)) {
+                logDebug(`Root`, ` onMessageReceived: Setting timeout to clear banner after ${payload.timeout}ms`)
+                setTimeout(() => {
+                  hideBanner()
+                }, payload.timeout)
+              }
+              break
+            case 'REMOVE_BANNER':
+              logInfo(`Root`, ` onMessageReceived: Removing banner`)
+              hideBanner()
               break
             case 'SEND_TO_PLUGIN':
               sendToPlugin(payload)
@@ -339,20 +357,23 @@ export function Root(/* props: Props */): Node {
   )
 
   /**
-   * Callback passed to child components that allows them to put a message in the banner
-   * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_BANNER', payload)
+   * Callback passed to child components that allows them to put a message in the banner.
+   * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_BANNER', payload).
+   * TODO: Hopefully can still remove the color/border/icon parameters, but leaving them in for now to avoid breaking changes.
    */
-  const showBanner = (msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red') => {
-    const warnObj = { warn: true, msg, color, border }
-    logDebug(`Root`, `showBanner zz: ${JSON.stringify(warnObj, null, 2)}`)
-    setWarning(warnObj)
+  const showBanner = (type: string, msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red', icon: string = 'fa-regular fa-circle-exclamation', timeout: number = 0) => {
+    const bannerMessage = { type, msg, timeout, color, border, icon }
+    logDebug(`Root`, `showBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
+    // $FlowFixMe - bannerMessage object matches the expected shape
+    setBannerMessage(bannerMessage)
   }
 
   /**
    * handle click on X on banner to hide it
    */
   const hideBanner = () => {
-    setWarning({ warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red' })
+    logDebug(`Root`, `hideBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
+    setBannerMessage({ type: 'REMOVE', level: 'REMOVE', msg: '', timeout: 0, color: '', border: '', icon: '' })
   }
 
   /**
@@ -368,14 +389,15 @@ export function Root(/* props: Props */): Node {
 
   /**
    * Profiling React Components
-   * @param {*} id
-   * @param {*} phase
-   * @param {*} actualDuration
-   * @param {*} baseDuration
-   * @param {*} startTime
-   * @param {*} commitTime
+   * @param {string} id
+   * @param {string} phase
+   * @param {number} actualDuration
+   * @param {number} baseDuration
+   * @param {number} startTime
+   * @param {number} commitTime
+   * @param {Set<any>} interactions
    */
-  function onRender(id: string, phase: string, actualDuration: number, baseDuration: number, startTime: number, commitTime: number, interactions: Set<any>) {
+  function onRender(id: string, phase: string, actualDuration: number, baseDuration: number, startTime: number, commitTime: number, interactions: Set<any>): void {
     // DBW: MOST OF THIS INFO IS NOT INTERESTING. ONLY THE PHASE IS
     // Much better data is available in the React Dev Tools but only when the page is open in a browser
     logDebug(
@@ -430,12 +452,12 @@ export function Root(/* props: Props */): Node {
       <div className="Root" onClickCapture={onClickCapture}>
         {logProfilingMessage ? (
           <Profiler id="MemoizedWebView" onRender={onRender}>
-            <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
+            <MessageBanner msg={bannerMessage.msg} type={bannerMessage.type} color={bannerMessage.color || ''} border={bannerMessage.border || ''} hide={hideBanner} icon={bannerMessage.icon || ''} />
             <MemoizedWebView dispatch={dispatch} data={npData} reactSettings={reactSettings} setReactSettings={setReactSettings} />
           </Profiler>
         ) : (
           <>
-            <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
+              <MessageBanner msg={bannerMessage.msg} type={bannerMessage.type} color={bannerMessage.color || ''} border={bannerMessage.border || ''} hide={hideBanner} icon={bannerMessage.icon || ''} />
             <MemoizedWebView data={npData} dispatch={dispatch} reactSettings={reactSettings} setReactSettings={setReactSettings} />
           </>
         )}

@@ -59,11 +59,12 @@ export async function getDataObjectForReactView(): Promise<PassedData> {
  * @param {any} reactWindowData - the current data in the React Window
  * @returns {any} - the updated data to send back to the React Window
  */
-async function handleSubmitButtonClick(data, reactWindowData) {
+async function handleSubmitButtonClick(data: any, reactWindowData: any): Promise<any> {
   const { index: clickedIndex } = data
   await sendBannerMessage(
-    pluginJson['plugin.id'],
+    pluginJson['plugin.id'], // TODO: needs to be WEBVIEW_WINDOW_ID instead?
     `Plugin received an actionType: "onSubmitClick" command with data:\n${JSON.stringify(data)}.\nPlugin then fired this message over the bridge to the React window.`,
+    'INFO',
   )
   // change the data in the React window for the row that was clicked (just an example)
   clo(reactWindowData, `handleSubmitButtonClick: reactWindowData BEFORE update`)
@@ -90,7 +91,11 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
         reactWindowData = await handleSubmitButtonClick(data, reactWindowData) //update the data to send it back to the React Window
         break
       default:
-        await sendBannerMessage(pluginJson['plugin.id'], `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`)
+        await sendBannerMessage(
+          // TODO: needs to be WEBVIEW_WINDOW_ID instead?
+          pluginJson['plugin.id'],
+          `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`,
+          'ERROR')
         break
     }
     if (reactWindowData) {

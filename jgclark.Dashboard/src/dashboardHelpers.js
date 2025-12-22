@@ -224,13 +224,19 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
     const timer = new Date()
 
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p: TParagraph) => {
+      if (!p) {
+        throw new Error(`p is undefined`)
+      }
+
       // WARNING: p.note appears to be null for Teamspace regular note paras. But .filename and .content are OK.
       // TODO(later): remove this workaround.
       const note = p.note ?? getNoteFromFilename(p.filename ?? '') ?? null
 
       if (note) {
         // Note: seems to be a quick operation (1ms), but leaving a timer for now to indicate if >10ms
-        const anyChildren = p.children() ?? []
+        // Changed: Check if p.children exists before calling
+        // $FlowIgnore[method-unbinding]
+        const anyChildren = (typeof p.children === 'function') ? (p.children() ?? []) : []
         const hasChild = anyChildren.length > 0
         const isAChild = isAChildPara(p, note)
 
@@ -254,10 +260,10 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         const startTime = getStartTimeObjFromParaContent(p.content)
         const startTimeStr = startTime ? getTimeStringFromHM(startTime.hours, startTime.mins) : 'none'
         const outputPara: TParagraphForDashboard = {
-          // $FlowIgnore[incompatible-type]
-          filename: p.filename,
-          // TODO(later): remove this workaround to fix regular teamspace paras.
-          noteType: p.noteType === 'teamspaceNote' ? 'Notes' : note.type,
+          filename: p?.filename ?? '',
+          // TEST: removing the following workaround to fix regular teamspace paras.
+          // noteType: p.noteType === 'teamspaceNote' ? 'Notes' : note.type,
+          noteType: p?.noteType ?? note?.type ?? 'Notes',
           // Get title, but don't add the 👥 icon and teamspace name for Teamspace notes. Fallback is to use the note.title, which will be ISO-8601 date for Calendar notes.
           title: note.type === 'Notes' ? displayTitle(note, false) : note.title,
           type: p.type,

@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { handleBannerTestClick } from './bannerClickHandlers'
 import {
   doAddItem,
   doAddItemToFuture,
@@ -367,6 +368,25 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         }
         break
       }
+
+      // TODO(later): remove these once we have a proper banner system
+      case 'testBannerInfo': {
+        result = await handleBannerTestClick({ actionType: 'testBannerInfo', sectionCodes: data.sectionCodes })
+        break
+      }
+      case 'testBannerError': {
+        result = await handleBannerTestClick({ actionType: 'testBannerError' })
+        break
+      }
+      case 'testBannerWarning': {
+        result = await handleBannerTestClick({ actionType: 'testBannerWarning' })
+        break
+      }
+      case 'testRemoveBanner': {
+        result = await handleBannerTestClick({ actionType: 'testRemoveBanner' })
+        break
+      }
+
       default: {
         result = {
           success: false,
@@ -410,7 +430,8 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       logDebug('processActionOnReturn', `-> failed handlerResult(false) ${handlerResult.errorMsg || ''}`)
       await sendBannerMessage(
         WEBVIEW_WINDOW_ID,
-        `Sorry; something's gone wrong for "${data.actionType}" ${handlerResult.errorMsg || ''}. This is normally caused by a changing a task in NotePlan since the last time the Dashboard was refreshed. There will be more details in the app's console log.`,
+        `Sorry; something's gone wrong for "${data.actionType}" ${handlerResult.errorMsg || ''}. This is most often caused by changing a task in NotePlan since the last time the Dashboard was refreshed. If it persists, please report it to the developer.`,
+        'WARN',
       )
       return
     }

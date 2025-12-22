@@ -2,6 +2,12 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.8.0] @jgclark 2025-12-18
+
+- Bring a better design to MessageBanner component
+- Update MessageBanner to take a 'type' (WARN, ERROR, INFO or REMOVE), and an optional timeout
+- Add separate MessageBanner.css, that removes this particular dependency on css.w3.css
+
 ## [0.7.5] @dwertheimer 2025-01-24
 
 - Remove DynamicDialog from Root (it was duplicating code and CSS)

@@ -31,7 +31,6 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
     // First need to escape any special characters in the search term
     const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = new RegExp(`${escapedSearchTerm}`, 'i') // = case insensitive match
-    logDebug('caseInsensitiveSubstringMatch', `re: ${re.toString()} / textToSearch: ${textToSearch} / ${String(re.test(textToSearch))}`)
     return re.test(textToSearch)
   } catch (error) {
     logError('paragraph/caseInsensitiveSubstringMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)

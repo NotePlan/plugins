@@ -11,7 +11,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.4.0.b2] ?
 - change name of trigger to `onEditorWillSave`, though the existing one will work for now.
-- dev: cursor fixing subtle bugs
+- dev: cursor fixing subtle bugs in demo data mode
+- dev: cursor improved code quality of DialogForTaskItems.jsx and DialogForProjectItems.jsx
 
 ## [2.4.0.b1] 2025-12-05
 - new "Spaces to Include" setting which controls which (Team)Spaces you wish to include, plus whether or not to include the Private "Space" (all notes not in a Space). This is applied per Perspective.

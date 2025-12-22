@@ -128,7 +128,7 @@ The display is **responsive**: change the width of the window, and it will chang
 
 The items are shown **sorted** first by increasing time (where there is a time block), then by decreasing priority. And it **de-duplicates** items that would appear twice in a list where the lines are sync'd together.
 
-There's a UI toggle "**Filter out lower-priority items?**". If this is on, then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed. Priority items are currently indicated by having `>>`, `!!!`, `!!` or `!` at the beginning of the item.
+There's a UI toggle "**Filter out lower-priority items?**". If this is on, then it works out the highest priority shown tasks from all sections, and then hides all the other items at lower priorities in all shown sections. (You mark priority on items in the usual way for NotePlan, by adding a `>>`, `!!!`, `!!` or `!` at the beginning of the item.)
 
 The top bar has a **count of tasks done today** (apart from on narrow windows and on iOS). This includes all those completed in project notes, not just from the calendar sections shown. Note: this requires having the NotePlan setting 'Todo > Append Completion Date' setting turned on, as otherwise we can't tell when a task is finished. (As @done(...) dates don't get appended to completed checklists, it's not possible to count completed checklists.) When you complete a task in a project note, it will be included the next time the Dashboard is refreshed, automatically on manually.
 

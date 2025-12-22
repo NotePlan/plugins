@@ -186,6 +186,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           tooltip: config.rescheduleNotMove
             ? '(Re)Schedule all open items from today to tomorrow. (Press ⌘-click to move instead.)'
             : 'Move all open items from today to tomorrow. (Press ⌘-click to (re)schedule instead.)',
+          // TODO: TEST: does this need a refresh? Will it be caught in other ways?
           actionParam: 'true' /* refresh afterwards */,
           postActionRefresh: ['DT', 'DO'], // refresh 2 sections afterwards
         },

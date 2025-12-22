@@ -360,9 +360,10 @@ TODO:Insert picture here
     import { sendBannerMessage } from '@helpers/HTMLView'
 
     await sendBannerMessage(
+      windowID,
       `this will display at the top of the screen`,
-      color: string = 'w3-pale-red', /* background color */
-      border: string = 'w3-border-red'
+      type: 'INFO', /* or WARN or ERROR */,
+      2000 /* optional; remove after 2,000ms */
     )
 
 

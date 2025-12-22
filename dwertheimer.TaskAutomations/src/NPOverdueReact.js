@@ -269,6 +269,7 @@ export async function dropdownChangeReceived(data: { rows: Array<any>, choice: s
           `NotePlan plugin TaskAutomations could not find the paragraph you were editing. This may be a bug. Or perhaps you edited the content in the note before making a change in the popup window? We need to be able to match lines of text, so you should generally do your editing in the popup window when if it is open. If you still think this is a bug, please report it to the developer.\nSearching for: ${JSON.stringify(
             row,
           )}`,
+          'WARN',
         )
       }
     }
