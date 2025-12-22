@@ -106,12 +106,14 @@ export function ExpandableTextarea({
         required={required}
         rows={minRows}
         onFocus={handleFocus}
-        style={{
-          minHeight: `${minRows * 20}px`, // Approximate line height
-          maxHeight: `${maxRows * 20}px`, // Maximum height before scrolling
-          overflowY: 'auto',
-          ...(style: any),
-        }}
+        style={Object.assign(
+          {
+            minHeight: `${minRows * 20}px`, // Approximate line height
+            maxHeight: `${maxRows * 20}px`, // Maximum height before scrolling
+            overflowY: 'auto',
+          },
+          style || {},
+        )}
       />
     </div>
   )
