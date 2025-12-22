@@ -45,6 +45,9 @@ export type ChooserConfig = {
   getOptionIcon?: (item: any) => ?string, // Optional function to get icon for option
   getOptionColor?: (item: any) => ?string, // Optional function to get color for option
   getOptionShortDescription?: (item: any) => ?string, // Optional function to get short description for option
+  allowManualEntry?: boolean, // If true, allow Enter key to accept typed text even if it doesn't match any item
+  manualEntryIndicator?: string, // Text to show when value is a manual entry (default: "✏️ Manual entry")
+  isManualEntry?: (value: string, items: Array<any>) => boolean, // Function to check if a value is a manual entry (not in items list)
 }
 
 export type SearchableChooserProps = {
@@ -99,6 +102,9 @@ export function SearchableChooser({
     getOptionColor,
     getOptionShortDescription,
     showArrow = false,
+    allowManualEntry = false,
+    manualEntryIndicator = '✏️ Manual entry',
+    isManualEntry,
   } = config
 
   const [isOpen, setIsOpen] = useState<boolean>(false)
@@ -347,7 +353,14 @@ export function SearchableChooser({
         {isOpen && (
           <div className={`${classNamePrefix}-dropdown`} style={{ display: 'block' }}>
             {filteredItems.length === 0 ? (
-              <div className={`${classNamePrefix}-empty`}>{items.length === 0 ? emptyMessageNoItems : `${emptyMessageNoMatch} "${searchTerm}"`}</div>
+              <div className={`${classNamePrefix}-empty`}>
+                {items.length === 0 ? emptyMessageNoItems : `${emptyMessageNoMatch} "${searchTerm}"`}
+                {allowManualEntry && searchTerm.trim() && (
+                  <div className={`${classNamePrefix}-manual-entry-hint`} style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: 'var(--bg-alt-color, #f5f5f5)', borderRadius: '4px', fontSize: '0.85em', color: 'var(--gray-600, #666)' }}>
+                    Press Enter to use &quot;{searchTerm.trim()}&quot; as {manualEntryIndicator.toLowerCase()}
+                  </div>
+                )}
+              </div>
             ) : (
               filteredItems.slice(0, maxResults).map((item: any, index: number) => {
                 const optionText = getOptionText(item)

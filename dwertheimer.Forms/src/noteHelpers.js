@@ -186,7 +186,7 @@ export function getRelativeNotesAsOptions(includeDecoration: boolean = false): A
 
       // Create a NoteOption for this relative date
       const option: NoteOption = {
-        title: rd.relName, // Display name (e.g., "today", "this week")
+        title: templateRunnerValue, // Display name (e.g., "today", "this week")
         filename: templateRunnerValue, // TemplateRunner format (e.g., "<today>", "<thisweek>")
         type: 'Calendar', // Relative dates are calendar notes
         frontmatterAttributes: {},

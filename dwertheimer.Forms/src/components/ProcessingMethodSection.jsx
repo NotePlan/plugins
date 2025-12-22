@@ -125,51 +125,30 @@ export function ProcessingMethodSection({
             <>
               <div className="frontmatter-field">
                 <label>Write Under Heading:</label>
-                {frontmatter.getNoteTitled ? (
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1 }}>
-                      <HeadingChooser
-                        key={`heading-chooser-${frontmatter.getNoteTitled || ''}-${frontmatter.getNoteFilename || ''}-${notes.length}`}
-                        label=""
-                        value={frontmatter.writeUnderHeading || ''}
-                        noteFilename={
-                          frontmatter.getNoteFilename ||
-                          notes.find((n: NoteOption) => n.title === frontmatter.getNoteTitled)?.filename ||
-                          null
-                        }
-                        requestFromPlugin={requestFromPlugin}
-                        onChange={(heading: string) => {
-                          onFrontmatterChange('writeUnderHeading', heading)
-                        }}
-                        placeholder="Select heading or enter manually"
-                        optionAddTopAndBottom={true}
-                        includeArchive={false}
-                        compactDisplay={true}
-                      />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <input
-                        type="text"
-                        value={frontmatter.writeUnderHeading || ''}
-                        onChange={(e) => onFrontmatterChange('writeUnderHeading', e.target.value)}
-                        placeholder="Or enter heading name manually"
-                        style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    value={frontmatter.writeUnderHeading || ''}
-                    onChange={(e) => onFrontmatterChange('writeUnderHeading', e.target.value)}
-                    placeholder="Enter heading name (will be created if it doesn't exist)"
-                    style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                  />
-                )}
+                <HeadingChooser
+                  key={`heading-chooser-${frontmatter.getNoteTitled || ''}-${frontmatter.getNoteFilename || ''}-${notes.length}`}
+                  label=""
+                  value={frontmatter.writeUnderHeading || ''}
+                  noteFilename={
+                    frontmatter.getNoteTitled
+                      ? frontmatter.getNoteFilename ||
+                        notes.find((n: NoteOption) => n.title === frontmatter.getNoteTitled)?.filename ||
+                        null
+                      : null
+                  }
+                  requestFromPlugin={requestFromPlugin}
+                  onChange={(heading: string) => {
+                    onFrontmatterChange('writeUnderHeading', heading)
+                  }}
+                  placeholder="Select heading or type to enter manually"
+                  optionAddTopAndBottom={true}
+                  includeArchive={false}
+                  compactDisplay={true}
+                />
                 <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
                   {frontmatter.getNoteTitled
-                    ? "Select a heading from the note above, or enter a heading name manually below. The heading will be created if it doesn't exist."
-                    : 'Enter heading name. If note is selected above, you can choose from its headings.'}
+                    ? "Select a heading from the note above, or type a heading name and press Enter to enter it manually. The heading will be created if it doesn't exist."
+                    : 'Type a heading name and press Enter to enter it manually. If a note is selected above, you can also choose from its headings.'}
                 </div>
               </div>
               <div className="frontmatter-field">

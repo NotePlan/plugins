@@ -135,10 +135,15 @@ export function HeadingChooser({
     },
     getOptionTitle: (option: HeadingOption) => option.displayText,
     truncateDisplay: truncateText,
-    onSelect: (option: HeadingOption) => {
-      // Remove markdown markers and return clean heading
-      const cleanHeading = option.heading.replace(/^#{1,5}\s*/, '')
-      onChange(cleanHeading)
+    onSelect: (option: HeadingOption | { __manualEntry__: boolean, value: string, display: string }) => {
+      // Handle both regular selections and manual entries
+      if (option && typeof option === 'object' && '__manualEntry__' in option && option.__manualEntry__) {
+        onChange(option.value)
+      } else {
+        // Remove markdown markers and return clean heading
+        const cleanHeading = (option: HeadingOption).heading.replace(/^#{1,5}\s*/, '')
+        onChange(cleanHeading)
+      }
     },
     emptyMessageNoItems: loading ? 'Loading headings...' : 'No headings available',
     emptyMessageNoMatch: 'No headings match your search',
@@ -149,6 +154,15 @@ export function HeadingChooser({
     maxResults: 25,
     inputMaxLength: 60,
     dropdownMaxLength: 80,
+    allowManualEntry: true,
+    manualEntryIndicator: '✏️ Manual entry',
+    isManualEntry: (value: string, items: Array<HeadingOption>) => {
+      // Check if value is not in the items list
+      return !items.some((item) => {
+        const cleanHeading = item.heading.replace(/^#{1,5}\s*/, '')
+        return cleanHeading === value || item.heading === value || item.displayText === value
+      })
+    },
   }
 
   return (
