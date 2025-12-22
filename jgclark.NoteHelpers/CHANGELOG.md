@@ -1,6 +1,9 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+## [1.3.0] - 2025-12-20
+- new **duplicate note** command: duplicates the currently-open note, and unlike the built-in command, it allows the user to specify a new title and folder for it.
+
 ## [1.2.5] - 2025-11-10
 - fix regression in folder chooser (thanks, @aleemshaun)
 
