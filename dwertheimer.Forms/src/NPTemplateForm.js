@@ -1301,19 +1301,11 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
             .map((key) => `${key}: <%- ${key} %>`)
             .join('\n')
 
-        // Render templateBody with form values if it contains template tags
-        // This ensures template tags are rendered before being passed to templateRunner
-        if (finalTemplateBody && finalTemplateBody.includes('<%')) {
-          try {
-            // Render the template body with form values
-            finalTemplateBody = await NPTemplating.render(finalTemplateBody, { data: formValues }, { frontmatterProcessed: true })
-            logDebug(pluginJson, `handleSubmitButtonClick: Rendered templateBody with form values`)
-          } catch (error) {
-            logError(pluginJson, `handleSubmitButtonClick: Error rendering templateBody: ${JSP(error)}`)
-            await showMessage(`Error rendering template body: ${error.message || String(error)}`)
-            return null
-          }
-        }
+        // NOTE: For 'write-existing', we do NOT pre-render templateBody here.
+        // TemplateRunner will render it at line 764 using renderTemplate(frontmatterBody, data).
+        // The form values are spread into templateRunnerArgs below so TemplateRunner can access them for rendering.
+        // Pre-rendering here would cause double-rendering, which is safe (already-rendered content with no <% tags
+        // will pass through unchanged), but unnecessary.
 
         // Build frontmatter object for TemplateRunner
         // Spread formValues into templateRunnerArgs so they're available for rendering template tags in templateBody
@@ -1323,8 +1315,8 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
 
         const templateRunnerArgs: { [string]: any } = {
           getNoteTitled,
-          templateBody: finalTemplateBody, // Use rendered template body (template tags replaced with form values)
-          ...formValuesForRendering, // Spread form values so template tags like <%- field1 %> can access them
+          templateBody: finalTemplateBody, // TemplateRunner will render this with form values at line 764
+          ...formValuesForRendering, // Spread form values so TemplateRunner can render template tags like <%- field1 %>
         }
 
         // Handle location options
@@ -1396,13 +1388,16 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
             .map((key) => `${key}: <%- ${key} %>`)
             .join('\n')
 
-        // Render templateBody with form values if it contains template tags
-        // This ensures template tags are rendered before being passed to templateRunner
+        // CRITICAL: For 'create-new', we MUST pre-render templateBody here because:
+        // 1. TemplateRunner calls handleNewNoteCreation at line 749 with passedTemplateBody (unrendered)
+        // 2. handleNewNoteCreation uses the content directly without rendering (lines 435-448)
+        // 3. The function returns early (line 759), so renderTemplate is never called
+        // 4. Therefore, if we don't pre-render, template tags will be written to the note unrendered
         if (finalTemplateBody && finalTemplateBody.includes('<%')) {
           try {
             // Render the template body with form values
             finalTemplateBody = await NPTemplating.render(finalTemplateBody, { data: formValues }, { frontmatterProcessed: true })
-            logDebug(pluginJson, `handleSubmitButtonClick: Rendered templateBody with form values`)
+            logDebug(pluginJson, `handleSubmitButtonClick: Rendered templateBody with form values for create-new method`)
           } catch (error) {
             logError(pluginJson, `handleSubmitButtonClick: Error rendering templateBody: ${JSP(error)}`)
             await showMessage(`Error rendering template body: ${error.message || String(error)}`)
