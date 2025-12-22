@@ -114,10 +114,20 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
       if (note) {
         const fm = note.frontmatterAttributes
         clo(fm, `getTemplateFormData fm=`)
-        
-        // Check processing method - only require receivingTemplateTitle for form-processor method
-        const processingMethod = fm?.processingMethod || (fm?.receivingTemplateTitle || fm?.receivingtemplatetitle ? 'form-processor' : 'write-existing')
-        
+
+        // Check processing method - determine from frontmatter or infer from receivingTemplateTitle (backward compatibility)
+        const processingMethod = fm?.processingMethod || (fm?.receivingTemplateTitle || fm?.receivingtemplatetitle ? 'form-processor' : null)
+
+        // If no processing method is set, require the user to set one
+        if (!processingMethod) {
+          await showMessage(
+            `Template "${
+              note.title || ''
+            }" does not have a "processingMethod" set in frontmatter. Please set the "processingMethod" field in your template frontmatter to one of: "write-existing", "create-new", or "form-processor".`,
+          )
+          return
+        }
+
         // Only require receivingTemplateTitle if processing method is 'form-processor'
         if (processingMethod === 'form-processor') {
           const receiver = fm && (fm.receivingTemplateTitle || fm.receivingtemplatetitle) // NP has a bug where it sometimes lowercases the frontmatter keys
@@ -178,14 +188,24 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
     clo(templateData, `getTemplateFormData templateData=`)
     clo(templateFrontmatterAttributes, `getTemplateFormData templateFrontmatterAttributes=`)
 
-    // Check processing method - only require receivingTemplateTitle for form-processor method
-    const processingMethod = templateFrontmatterAttributes?.processingMethod || 
-      (templateFrontmatterAttributes?.receivingTemplateTitle ? 'form-processor' : 'write-existing')
-    
+    // Check processing method - determine from frontmatter or infer from receivingTemplateTitle (backward compatibility)
+    const processingMethod = templateFrontmatterAttributes?.processingMethod || (templateFrontmatterAttributes?.receivingTemplateTitle ? 'form-processor' : null)
+
+    // If no processing method is set, require the user to set one
+    if (!processingMethod) {
+      logError(pluginJson, 'Template does not have a processingMethod set')
+      await showMessage(
+        'Template Form does not have a "processingMethod" set in frontmatter. Please set the "processingMethod" field in your template frontmatter to one of: "write-existing", "create-new", or "form-processor".',
+      )
+      return
+    }
+
     // Only require receivingTemplateTitle if processing method is 'form-processor'
     if (processingMethod === 'form-processor' && !templateFrontmatterAttributes?.receivingTemplateTitle) {
       logError(pluginJson, 'Template uses form-processor method but does not have a receivingTemplateTitle set')
-      await showMessage('Template Form uses "form-processor" processing method but does not have a "receivingTemplateTitle" field set. Please set the "receivingTemplateTitle" field in your template frontmatter, or change the processing method.')
+      await showMessage(
+        'Template Form uses "form-processor" processing method but does not have a "receivingTemplateTitle" field set. Please set the "receivingTemplateTitle" field in your template frontmatter, or change the processing method.',
+      )
       return
     }
 
