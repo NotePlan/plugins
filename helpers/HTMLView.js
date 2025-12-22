@@ -769,14 +769,24 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
  * @return {any} - the result of the runJavaScript call (should be unimportant in this case -- undefined is ok)
  * @author @dwertheimer
  */
-export async function sendToHTMLWindow(windowId: string, actionType: string, data: any = {}, updateInfo: string = ''): any {
+export async function sendToHTMLWindow(
+  windowId: string,
+  actionType: string,
+  data: any = {},
+  updateInfo: string = '',
+): Promise<any> {
   try {
     const windowExists = isHTMLWindowOpen(windowId)
     if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = undefined`)
     const windowIdToSend = windowExists ? windowId : undefined // for iphone/ipad you have to send undefined
     const dataWithUpdated = {
       ...data,
-      ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } },
+      ...{
+        lastUpdated: {
+          msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`,
+          date: new Date().toLocaleString()
+        },
+      },
       NPWindowID: windowExists ? windowId : undefined,
     }
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
@@ -879,14 +889,35 @@ export async function updateGlobalSharedData(windowId: string, data: any, mergeD
 }
 
 /**
- * Send a warning message to the HTML window (displays a warning message at the top of page)
+ * Send a warning message to the HTML window (displays a warning message at the top of page). Takes various parameters. Newer version that allows for more easier specifiation of message severity level.
  * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
  * @param {string} message - the message to be displayed
- * @param {string} color https://www.w3schools.com/w3css/w3css_colors.asp
- * @param {string} border (left vertical stripe border of box) https://www.w3schools.com/w3css/w3css_colors.asp
+ * @param {string} type - the type of the message: 'INFO', 'WARN', 'ERROR', or 'REMOVE'
+ * @param {number} timeout (optional) - the number of milliseconds to wait before the message disappears
  */
-export async function sendBannerMessage(windowId: string, message: string, color: string = 'w3-pale-red', border: string = 'w3-border-red'): Promise<any> {
-  return await sendToHTMLWindow(windowId, 'SHOW_BANNER', { warn: true, msg: message, color, border })
+export async function sendBannerMessage(windowId: string, message: string, type: string, timeout: number = NaN): Promise<any> {
+  logDebug(`sendBannerMessage`, `message: ${message}, type: ${type}, timeout: ${timeout}`)
+  if (type === 'REMOVE') {
+    return await sendToHTMLWindow(windowId, 'REMOVE_BANNER', {}, '')
+  }
+
+  let colorClass = 'color-error'
+  let borderClass = 'border-error'
+  let icon = 'fa-regular fa-circle-exclamation'
+  switch (type) {
+    case 'INFO':
+      colorClass = 'color-info'
+      borderClass = 'border-info'
+      icon = 'fa-regular fa-circle-info'
+      break
+    case 'WARN':
+      colorClass = 'color-warn'
+      borderClass = 'border-warn'
+      icon = 'fa-regular fa-triangle-exclamation'
+      break
+  }
+  logDebug(`sendBannerMessage`, `colorClass: ${colorClass}, borderClass: ${borderClass}, icon: ${icon}`)
+  return await sendToHTMLWindow(windowId, 'SHOW_BANNER', { type, msg: message, color: colorClass, border: borderClass, icon, timeout }, '')
 }
 
 /**

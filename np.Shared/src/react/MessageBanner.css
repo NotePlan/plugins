@@ -1,0 +1,80 @@
+/* ------------------------------------------------------------------ */
+/* Message Banner CSS */
+/* Last updated 2025-12-17 by @jgclark */
+/* ------------------------------------------------------------------ */
+
+html {
+  /* some subtle colouring */
+  --info-color: green;
+  --warn-color: orange;
+  --error-color: red;
+	--bg-info-color: color-mix(in oklch, var(--bg-main-color, white), var(--info-color) 10%);
+	--bg-warn-color: color-mix(in oklch, var(--bg-main-color, white), var(--warn-color) 10%);
+	--bg-error-color: color-mix(in oklch, var(--bg-main-color, white), var(--error-color) 10%); 
+	--fg-info-color: color-mix(in oklch, var(--fg-main-color, black), var(--info-color) 85%);
+	--fg-warn-color: color-mix(in oklch, var(--fg-main-color, black), var(--warn-color) 80%);
+	--fg-error-color: color-mix(in oklch, var(--fg-main-color, black), var(--error-color) 85%);
+}
+
+.banner-panel {
+  margin: 0rem;
+  width: 100%;
+  border-width: 0px 0px 0px 6px;
+  border-style: solid;
+  display: grid;
+  grid-template-columns: fit-content(100%) 1fr fit-content(100%);
+  gap: 0.6rem;
+  justify-items: left;
+  align-items: center;
+  font-size: 1.0rem;
+  padding: 0.6rem 1.1rem;
+
+  /* Hide animation: fade and move up */
+  opacity: 0;
+  transform: translateY(-1rem);
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 1, 1),
+    transform 0.25s cubic-bezier(0.4, 0, 1, 1);
+  overflow: hidden;
+}
+.banner-panel.banner-panel--visible {
+  /* Show animation: fade and drop down */
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.25s cubic-bezier(0.24, 0.8, 0.47, 1),
+    transform 0.35s cubic-bezier(0.24, 0.8, 0.47, 1);
+  overflow: unset;
+}
+
+.border-info {
+  background-color: var(--fg-info-color);
+}
+.border-warn {
+  background-color: var(--fg-warn-color);
+}
+.border-error {
+  background-color: var(--fg-error-color);
+}
+
+.color-info {
+  background-color: var(--bg-info-color);
+  color: var(--fg-info-color);
+}
+.color-warn {
+  background-color: var(--bg-warn-color);
+  color: var(--fg-warn-color);
+}
+.color-error {
+  background-color: var(--bg-error-color);
+  color: var(--fg-error-color);
+}
+
+.banner-message-text {
+  white-space: pre-wrap;
+}
+
+.banner-close-button {
+  justify-self: right;
+  color: var(--fg-main-color, black);
+}
