@@ -8,8 +8,8 @@ import React from 'react'
 import { NoteChooser, type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { HeadingChooser } from '@helpers/react/DynamicDialog/HeadingChooser.jsx'
 import { FolderChooser } from '@helpers/react/DynamicDialog/FolderChooser.jsx'
-import { ExpandableTextarea } from '@helpers/react/DynamicDialog/ExpandableTextarea.jsx'
 import { TemplateTagInserter } from './TemplateTagInserter.jsx'
+import { TemplateTagEditor } from './TemplateTagEditor.jsx'
 import { InfoIcon } from '@helpers/react/InfoIcon.jsx'
 
 export type ProcessingMethodSectionProps = {
@@ -231,15 +231,9 @@ export function ProcessingMethodSection({
               <InfoIcon text="The template content that will be written to the target note. Use template tags like <%- fieldKey %> to insert form field values, or <%- date.format('YYYY-MM-DD') %> for dates. Click +Field or +Date buttons to insert tags." />
             </label>
             <div style={{ position: 'relative' }}>
-              <ExpandableTextarea
-                ref={(ref) => {
-                  if (ref) {
-                    setTagInserterInputRef(ref)
-                    setTagInserterFieldKey('templateBody')
-                  }
-                }}
+              <TemplateTagEditor
                 value={frontmatter.templateBody || ''}
-                onChange={(e) => onFrontmatterChange('templateBody', e.target.value)}
+                onChange={(value) => onFrontmatterChange('templateBody', value)}
                 onFocus={(e) => {
                   const target = e.target
                   if (target instanceof HTMLTextAreaElement) {
@@ -250,16 +244,17 @@ export function ProcessingMethodSection({
                 placeholder="Enter content to insert with tags like <%- fieldKey %> or <%- date.format(&quot;YYYY-MM-DD&quot;) %>"
                 minRows={5}
                 maxRows={15}
-                compactDisplay={false}
-                style={{ width: '100%', paddingRight: '8rem' }}
+                fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+                style={{ paddingRight: '8rem' }}
               />
               <div
                 style={{
                   position: 'absolute',
                   right: '0.5rem',
-                  top: '0.5rem',
+                  top: '2.5rem', // Adjusted for toggle switch
                   display: 'flex',
                   gap: '0.25rem',
+                  zIndex: 10,
                 }}
               >
                 <button
@@ -310,17 +305,11 @@ export function ProcessingMethodSection({
               <InfoIcon text="The title for the new note that will be created. You can use template tags like <%- fieldKey %> to dynamically generate the title based on form field values. The field expands to show long template tags." />
             </label>
             <div style={{ position: 'relative' }}>
-              <ExpandableTextarea
-                ref={(ref) => {
-                  if (ref) {
-                    setTagInserterInputRef(ref)
-                    setTagInserterFieldKey('newNoteTitle')
-                  }
-                }}
+              <TemplateTagEditor
                 value={frontmatter.newNoteTitle || ''}
-                onChange={(e) => {
+                onChange={(value) => {
                   // Strip newlines and trim the value
-                  const cleanedValue = e.target.value.replace(/\n/g, ' ').trim()
+                  const cleanedValue = value.replace(/\n/g, ' ').trim()
                   onFrontmatterChange('newNoteTitle', cleanedValue)
                 }}
                 onFocus={(e) => {
@@ -333,14 +322,8 @@ export function ProcessingMethodSection({
                 placeholder="e.g., <%- noteTitle %> or Project: <%- projectName %>"
                 minRows={2}
                 maxRows={5}
-                compactDisplay={false}
-                style={{ width: '100%', paddingRight: '8rem' }}
-                onKeyDown={(e) => {
-                  // Prevent Enter from creating newlines
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                  }
-                }}
+                fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+                style={{ paddingRight: '8rem' }}
               />
               <div
                 style={{
@@ -393,15 +376,9 @@ export function ProcessingMethodSection({
               <InfoIcon text="The template content that will be used to create the new note. Use template tags like <%- fieldKey %> to insert form field values, or <%- date.format('YYYY-MM-DD') %> for dates. Click +Field or +Date buttons to insert tags." />
             </label>
             <div style={{ position: 'relative' }}>
-              <ExpandableTextarea
-                ref={(ref) => {
-                  if (ref) {
-                    setTagInserterInputRef(ref)
-                    setTagInserterFieldKey('templateBody')
-                  }
-                }}
+              <TemplateTagEditor
                 value={frontmatter.templateBody || ''}
-                onChange={(e) => onFrontmatterChange('templateBody', e.target.value)}
+                onChange={(value) => onFrontmatterChange('templateBody', value)}
                 onFocus={(e) => {
                   const target = e.target
                   if (target instanceof HTMLTextAreaElement) {
@@ -412,16 +389,17 @@ export function ProcessingMethodSection({
                 placeholder="Enter content to insert with tags like <%- fieldKey %> or <%- date.format(&quot;YYYY-MM-DD&quot;) %>"
                 minRows={5}
                 maxRows={15}
-                compactDisplay={false}
-                style={{ width: '100%', paddingRight: '8rem' }}
+                fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+                style={{ paddingRight: '8rem' }}
               />
               <div
                 style={{
                   position: 'absolute',
                   right: '0.5rem',
-                  top: '0.5rem',
+                  top: '2.5rem', // Adjusted for toggle switch
                   display: 'flex',
                   gap: '0.25rem',
+                  zIndex: 10,
                 }}
               >
                 <button
