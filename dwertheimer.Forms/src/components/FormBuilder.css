@@ -37,6 +37,27 @@
   gap: 0.25rem;
 }
 
+.save-message {
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+}
+
+.save-message-success {
+  color: #059669;
+  background-color: #d1fae5;
+}
+
+.save-message-error {
+  color: #dc2626;
+  background-color: #fee2e2;
+}
+
 .form-builder-actions {
   display: flex;
   gap: 0.5rem;

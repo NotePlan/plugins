@@ -690,6 +690,21 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
     if (data?.__requestType === 'REQUEST' && data?.__correlationId) {
       try {
         logDebug(pluginJson, `onFormBuilderAction: Handling REQUEST type="${actionType}" with correlationId="${data.__correlationId}"`)
+        
+        // Handle save action as a special case (it's not in requestHandlers)
+        const actualActionType = data?.type
+        if (actualActionType === 'save') {
+          const saveResult = await handleSaveRequest(data)
+          sendToHTMLWindow(FORMBUILDER_WINDOW_ID, 'RESPONSE', {
+            correlationId: data.__correlationId,
+            success: saveResult.success,
+            data: saveResult.data,
+            error: saveResult.message,
+          })
+          return {}
+        }
+        
+        // For other request types, use the standard handleRequest
         const result = await handleRequest(actionType, data)
 
         // Send response back to React
@@ -900,7 +915,7 @@ async function saveFormFieldsToTemplate(templateFilename: string, fields: Array<
     if (success) {
       const templateNote = await getNoteByFilename(templateFilename)
       if (templateNote) {
-        await showMessage(`Form fields saved to template "${templateNote.title || templateFilename}"`)
+        // await showMessage(`Form fields saved to template "${templateNote.title || templateFilename}"`)
         logDebug(pluginJson, `saveFormFieldsToTemplate: Saved ${fields.length} fields to template`)
       }
     }

@@ -28,7 +28,7 @@ type FormBuilderProps = {
   templateRunnerArgs?: { [key: string]: any }, // TemplateRunner processing variables (loaded from codeblock)
   isNewForm?: boolean,
   templateTitle?: string,
-  onSave: (fields: Array<TSettingItem>, frontmatter: { [key: string]: any }) => void,
+  onSave: (fields: Array<TSettingItem>, frontmatter: { [key: string]: any }) => Promise<{ success: boolean, message?: string }>,
   onCancel: () => void,
   onOpenForm?: (templateTitle: string) => void,
 }
@@ -335,10 +335,33 @@ export function FormBuilder({
     setHasUnsavedChanges(true)
   }
 
-  const handleSave = () => {
-    onSave(fields, frontmatter)
-    setHasUnsavedChanges(false)
-    setIsSaved(true)
+  const [saveMessage, setSaveMessage] = useState<?string>(null)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    setSaveMessage(null)
+    try {
+      const result = await onSave(fields, frontmatter)
+      if (result.success) {
+        setHasUnsavedChanges(false)
+        setIsSaved(true)
+        setSaveMessage(result.message || 'Form saved successfully')
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveMessage(null), 3000)
+      } else {
+        setSaveMessage(result.message || 'Failed to save form')
+        // Clear error message after 5 seconds
+        setTimeout(() => setSaveMessage(null), 5000)
+      }
+    } catch (error) {
+      logError('FormBuilder', `handleSave error: ${error.message}`)
+      setSaveMessage(error.message || 'Failed to save form')
+      // Clear error message after 5 seconds
+      setTimeout(() => setSaveMessage(null), 5000)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleFrontmatterChange = (key: string, value: any) => {
@@ -416,6 +439,11 @@ export function FormBuilder({
               ⚠️ Unsaved changes
             </span>
           )}
+          {saveMessage && (
+            <span className={`save-message ${saveMessage.includes('successfully') ? 'save-message-success' : 'save-message-error'}`} title={saveMessage}>
+              {saveMessage.includes('successfully') ? '✅' : '❌'} {saveMessage}
+            </span>
+          )}
         </div>
         <div className="form-builder-actions">
           {canOpenForm && (
@@ -430,8 +458,8 @@ export function FormBuilder({
           <button className="PCButton cancel-button" onClick={onCancel}>
             Cancel
           </button>
-          <button className={`PCButton save-button ${hasUnsavedChanges ? 'save-button-active' : 'save-button-disabled'}`} onClick={handleSave} disabled={!hasUnsavedChanges}>
-            Save Form
+          <button className={`PCButton save-button ${hasUnsavedChanges ? 'save-button-active' : 'save-button-disabled'}`} onClick={handleSave} disabled={!hasUnsavedChanges || isSaving}>
+            {isSaving ? 'Saving...' : 'Save Form'}
           </button>
         </div>
       </div>

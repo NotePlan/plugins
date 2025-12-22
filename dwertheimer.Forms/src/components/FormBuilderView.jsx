@@ -121,16 +121,22 @@ export function WebView({
     })
   }
 
-  const handleSave = (fields: Array<any>, frontmatter: any) => {
+  const handleSave = async (fields: Array<any>, frontmatter: any): Promise<{ success: boolean, message?: string }> => {
     clo(fields, 'FormBuilderView: handleSave fields')
     clo(frontmatter, 'FormBuilderView: handleSave frontmatter')
-    sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, {
-      type: 'save',
-      fields,
-      frontmatter,
-      templateFilename: pluginData.templateFilename || '',
-      templateTitle: pluginData.templateTitle || '',
-    })
+    try {
+      const result = await requestFromPlugin(onSubmitOrCancelCallFunctionNamed, {
+        type: 'save',
+        fields,
+        frontmatter,
+        templateFilename: pluginData.templateFilename || '',
+        templateTitle: pluginData.templateTitle || '',
+      })
+      return { success: true, message: result?.message || 'Form saved successfully' }
+    } catch (error) {
+      logError('FormBuilderView', `handleSave error: ${error.message}`)
+      return { success: false, message: error.message || 'Failed to save form' }
+    }
   }
 
   const handleCancel = () => {
