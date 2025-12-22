@@ -167,6 +167,7 @@ export function WebView({
             formTitle={formTitle}
             allowEmptySubmit={allowEmptySubmit}
             hideDependentItems={hideDependentItems}
+            templateRunnerArgs={pluginData.templateRunnerArgs || {}}
             width={width}
             height={height}
             templateBody={pluginData.templateBody || ''} // Load from codeblock

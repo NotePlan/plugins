@@ -3,7 +3,7 @@
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 // Note: getAllNotesAsOptions is no longer used here - FormView loads notes dynamically via requestFromPlugin
-import { createProcessingTemplate, varsInForm, varsCodeBlockType, templateBodyCodeBlockType } from './ProcessingTemplate'
+import { createProcessingTemplate, varsInForm, varsCodeBlockType, templateBodyCodeBlockType, templateRunnerArgsCodeBlockType } from './ProcessingTemplate'
 import { handleRequest, testRequestHandlers } from './requestHandlers'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
@@ -209,31 +209,26 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
       return
     }
 
-    // Preserve newNoteTitle and templateBody before renderFrontmatter
-    // These contain template tags that reference form field values (e.g., <%- field1 %>)
-    // which don't exist yet when opening the form - they should only be rendered when the form is submitted
-    const preservedNewNoteTitle = templateFrontmatterAttributes?.newNoteTitle
-    const preservedTemplateBody = templateFrontmatterAttributes?.templateBody
-
     //TODO: we may not need this step, ask @codedungeon what he thinks
     // for now, we'll call renderFrontmatter() via DataStore.invokePluginCommandByName()
     const { _, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateData])
 
-    // Restore preserved fields that should not be rendered during form opening
-    // These will be rendered later when the form is submitted with actual form values
-    if (preservedNewNoteTitle !== undefined) {
-      frontmatterAttributes.newNoteTitle = preservedNewNoteTitle
-    }
-    // templateBody is loaded from codeblock separately, so preserve it if it exists
-    if (preservedTemplateBody !== undefined) {
-      frontmatterAttributes.templateBody = preservedTemplateBody
-    } else if (selectedTemplate) {
-      // Load templateBody from codeblock if not in frontmatter
+    // Load TemplateRunner processing variables from codeblock (not frontmatter)
+    // These contain template tags that reference form field values and should not be processed during form opening
+    if (selectedTemplate) {
       const templateNote = await getNoteByFilename(selectedTemplate)
       if (templateNote) {
+        // Load templateBody from codeblock
         const templateBodyFromCodeblock = await loadTemplateBodyFromTemplate(templateNote)
         if (templateBodyFromCodeblock) {
           frontmatterAttributes.templateBody = templateBodyFromCodeblock
+        }
+        
+        // Load TemplateRunner args from codeblock
+        const templateRunnerArgs = await loadTemplateRunnerArgsFromTemplate(templateNote)
+        if (templateRunnerArgs) {
+          // Merge TemplateRunner args into frontmatterAttributes (overriding any from frontmatter)
+          Object.assign(frontmatterAttributes, templateRunnerArgs)
         }
       }
     }
@@ -596,6 +591,17 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
         }
         // Load templateBody from codeblock
         templateBody = await loadTemplateBodyFromTemplate(templateNote)
+        
+        // Load TemplateRunner args from codeblock (these contain template tags and should not be in frontmatter)
+        const templateRunnerArgs = await loadTemplateRunnerArgsFromTemplate(templateNote)
+        
+        // Merge TemplateRunner args into the data object that will be passed to FormBuilder
+        // These will override any values that might be in frontmatter
+        if (templateRunnerArgs) {
+          // Store TemplateRunner args in a separate object for FormBuilder to use
+          // FormBuilder will merge these into frontmatter state
+          Object.assign(argObj, { templateRunnerArgs })
+        }
       }
     } else {
       // No templateFilename means this is a new form
@@ -606,6 +612,7 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
       pluginData: {
         platform: NotePlan.environment.platform,
         formFields: argObj.formFields || [],
+        templateRunnerArgs: argObj.templateRunnerArgs || {}, // Pass TemplateRunner args to FormBuilder
         templateFilename: argObj.templateFilename || '',
         templateTitle: argObj.templateTitle || '',
         receivingTemplateTitle: receivingTemplateTitle,
@@ -738,16 +745,47 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
 
       await saveFormFieldsToTemplate(finalTemplateFilename, fieldsToSave)
 
+      // Extract TemplateRunner processing variables from frontmatter
+      // These contain template tags and should be stored in codeblock, not frontmatter
+      const templateRunnerArgs: { [string]: any } = {}
+      const templateRunnerArgKeys = [
+        'newNoteTitle', // Contains template tags like <%- field1 %>
+        'getNoteTitled', // May contain special values like <today>, <current>
+        'location', // Write location setting
+        'writeUnderHeading', // Heading to write under
+        'replaceNoteContents', // Whether to replace note contents
+        'createMissingHeading', // Whether to create missing heading
+        'newNoteFolder', // Folder for new note
+      ]
+
+      // Extract TemplateRunner args from frontmatter
+      if (data?.frontmatter) {
+        templateRunnerArgKeys.forEach((key) => {
+          if (data.frontmatter[key] !== undefined) {
+            templateRunnerArgs[key] = data.frontmatter[key]
+          }
+        })
+      }
+
       // Save templateBody to codeblock if provided
       if (data?.frontmatter?.templateBody !== undefined) {
         await saveTemplateBodyToTemplate(finalTemplateFilename, data.frontmatter.templateBody || '')
       }
 
-      // Save frontmatter if provided (but exclude templateBody as it's in codeblock)
+      // Save TemplateRunner args to codeblock if any exist
+      if (Object.keys(templateRunnerArgs).length > 0) {
+        await saveTemplateRunnerArgsToTemplate(finalTemplateFilename, templateRunnerArgs)
+      }
+
+      // Save frontmatter if provided (but exclude TemplateRunner args and templateBody as they're in codeblocks)
       if (data?.frontmatter) {
-        const frontmatterWithoutTemplateBody = { ...data.frontmatter }
-        delete frontmatterWithoutTemplateBody.templateBody
-        await saveFrontmatterToTemplate(finalTemplateFilename, frontmatterWithoutTemplateBody)
+        const frontmatterForSave = { ...data.frontmatter }
+        // Remove TemplateRunner args and templateBody from frontmatter
+        delete frontmatterForSave.templateBody
+        templateRunnerArgKeys.forEach((key) => {
+          delete frontmatterForSave[key]
+        })
+        await saveFrontmatterToTemplate(finalTemplateFilename, frontmatterForSave)
       }
 
       // Check if we should update the receiving template
@@ -920,6 +958,46 @@ async function loadTemplateBodyFromTemplate(templateNoteOrFilename: CoreNoteFiel
   } catch (error) {
     logError(pluginJson, `loadTemplateBodyFromTemplate error: ${JSP(error)}`)
     return ''
+  }
+}
+
+/**
+ * Load TemplateRunner args from template code block
+ * These are processing variables that contain template tags and should not be in frontmatter
+ * @param {CoreNoteFields | string} templateNoteOrFilename - The template note or filename
+ * @returns {Promise<?Object>} - The TemplateRunner args object, or null if not found
+ */
+async function loadTemplateRunnerArgsFromTemplate(templateNoteOrFilename: CoreNoteFields | string): Promise<?Object> {
+  try {
+    // Use generalized helper function to load and parse JSON
+    const content = await loadCodeBlockFromNote<Object>(templateNoteOrFilename, templateRunnerArgsCodeBlockType, pluginJson.id, parseObjectString)
+    return content || null
+  } catch (error) {
+    logError(pluginJson, `loadTemplateRunnerArgsFromTemplate error: ${JSP(error)}`)
+    return null
+  }
+}
+
+/**
+ * Save TemplateRunner args to template code block
+ * These are processing variables that contain template tags and should not be in frontmatter
+ * @param {string} templateFilename - The template filename
+ * @param {Object} templateRunnerArgs - The TemplateRunner args object to save
+ * @returns {Promise<void>}
+ */
+async function saveTemplateRunnerArgsToTemplate(templateFilename: string, templateRunnerArgs: Object): Promise<void> {
+  try {
+    // Use generalized helper function to save as JSON
+    await saveCodeBlockToNote(
+      templateFilename,
+      templateRunnerArgsCodeBlockType,
+      templateRunnerArgs || {},
+      pluginJson.id,
+      (obj) => JSON.stringify(obj, null, 2), // Format as JSON
+      false, // Don't show error messages to user (silent operation)
+    )
+  } catch (error) {
+    logError(pluginJson, `saveTemplateRunnerArgsToTemplate error: ${JSP(error)}`)
   }
 }
 

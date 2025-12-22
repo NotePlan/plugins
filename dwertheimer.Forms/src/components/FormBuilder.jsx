@@ -25,6 +25,7 @@ type FormBuilderProps = {
   width?: ?number,
   height?: ?number,
   templateBody?: string, // Load from codeblock
+  templateRunnerArgs?: { [key: string]: any }, // TemplateRunner processing variables (loaded from codeblock)
   isNewForm?: boolean,
   templateTitle?: string,
   onSave: (fields: Array<TSettingItem>, frontmatter: { [key: string]: any }) => void,
@@ -73,6 +74,7 @@ export function FormBuilder({
   width,
   height,
   templateBody = '', // Load from codeblock
+  templateRunnerArgs = {}, // TemplateRunner processing variables (loaded from codeblock)
   isNewForm = false,
   templateTitle = '',
   onSave,
@@ -101,7 +103,9 @@ export function FormBuilder({
     const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''
     // For backward compatibility: if receivingTemplateTitle exists, automatically use form-processor
     const defaultProcessingMethod = cleanedReceivingTemplateTitle ? 'form-processor' : 'write-existing'
-    return {
+    
+    // Base frontmatter with form configuration
+    const baseFrontmatter = {
       processingMethod: defaultProcessingMethod,
       receivingTemplateTitle: cleanedReceivingTemplateTitle,
       windowTitle: stripDoubleQuotes(windowTitle || '') || '',
@@ -110,13 +114,13 @@ export function FormBuilder({
       hideDependentItems: hideDependentItems || false,
       width: width,
       height: height,
-      // Option A: Write to existing file
+      // Option A: Write to existing file (defaults)
       getNoteTitled: '',
       location: 'append',
       writeUnderHeading: '',
       replaceNoteContents: false,
       createMissingHeading: true,
-      // Option B: Create new note
+      // Option B: Create new note (defaults)
       newNoteTitle: '',
       newNoteFolder: '',
       // Option C: Form processor
@@ -124,6 +128,16 @@ export function FormBuilder({
       // Template body (loaded from codeblock)
       templateBody: templateBody || '',
     }
+    
+    // Merge TemplateRunner args from codeblock (these override defaults)
+    // These contain template tags and should not be in frontmatter
+    const mergedFrontmatter = { ...baseFrontmatter }
+    Object.keys(templateRunnerArgs).forEach((key) => {
+      if (templateRunnerArgs[key] !== undefined) {
+        mergedFrontmatter[key] = templateRunnerArgs[key]
+      }
+    })
+    return mergedFrontmatter
   })
 
   // Get requestFromPlugin from context
