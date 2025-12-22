@@ -1294,7 +1294,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         }
 
         // Use templateBody from frontmatter if provided, otherwise build from form values
-        let finalTemplateBody =
+        const finalTemplateBody =
           templateBody ||
           Object.keys(formValues)
             .filter((key) => key !== '__isJSON__')
@@ -1381,29 +1381,17 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         }
 
         // Use templateBody from frontmatter if provided, otherwise build from form values
-        let finalTemplateBody =
+        const finalTemplateBody =
           templateBody ||
           Object.keys(formValues)
             .filter((key) => key !== '__isJSON__')
             .map((key) => `${key}: <%- ${key} %>`)
             .join('\n')
 
-        // CRITICAL: For 'create-new', we MUST pre-render templateBody here because:
-        // 1. TemplateRunner calls handleNewNoteCreation at line 749 with passedTemplateBody (unrendered)
-        // 2. handleNewNoteCreation uses the content directly without rendering (lines 435-448)
-        // 3. The function returns early (line 759), so renderTemplate is never called
-        // 4. Therefore, if we don't pre-render, template tags will be written to the note unrendered
-        if (finalTemplateBody && finalTemplateBody.includes('<%')) {
-          try {
-            // Render the template body with form values
-            finalTemplateBody = await NPTemplating.render(finalTemplateBody, { data: formValues }, { frontmatterProcessed: true })
-            logDebug(pluginJson, `handleSubmitButtonClick: Rendered templateBody with form values for create-new method`)
-          } catch (error) {
-            logError(pluginJson, `handleSubmitButtonClick: Error rendering templateBody: ${JSP(error)}`)
-            await showMessage(`Error rendering template body: ${error.message || String(error)}`)
-            return null
-          }
-        }
+        // NOTE: We do NOT pre-render templateBody here anymore.
+        // TemplateRunner now handles rendering in handleNewNoteCreation (for create-new) and renderTemplate (for write-existing).
+        // This ensures consistent behavior: TemplateRunner always renders templateBody, regardless of which path is taken.
+        // The form values are spread into templateRunnerArgs below so TemplateRunner can access them for rendering.
 
         // Build frontmatter object for TemplateRunner
         // Spread formValues into templateRunnerArgs so they're available for rendering template tags in templateBody

@@ -433,19 +433,40 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
         const note = await DataStore.projectNoteByFilename(filename)
         note && DataStore.updateCache(note, true) // try to update the note cache so functions called after this will see the new note
         if (note && content) {
-          logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation adding content to new note:${filename}; content:"${content}"`)
-          if (content.startsWith('--') && (content.includes('title: ') || content.includes('--\n#'))) {
+          // Render the content with form values if it contains template tags
+          // This ensures template tags are rendered before being written to the note
+          // This makes the behavior consistent with the write-existing path which renders at line 764
+          let renderedContent = content
+          if (content && content.includes('<%')) {
+            try {
+              renderedContent = await NPTemplating.render(content, data)
+              const isError = /Template Rendering Error/.test(renderedContent)
+              if (isError) {
+                logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation template rendering error for content`)
+                await showMessage('Template Render Error Encountered when creating new note. Stopping.')
+                return false
+              }
+              logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation rendered content with template tags`)
+            } catch (error) {
+              logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation error rendering content: ${error.message}`)
+              await showMessage(`Error rendering template content: ${error.message || String(error)}`)
+              return false
+            }
+          }
+
+          logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation adding content to new note:${filename}; content:"${renderedContent}"`)
+          if (renderedContent.startsWith('--') && (renderedContent.includes('title: ') || renderedContent.includes('--\n#'))) {
             // if the content has a frontmatter title or a double/triple dasy and a first-following line title,
             // then we should replace the entire note with the contents
             logDebug(
               pluginJson,
-              `NPTemplateRunner::handleNewNoteCreation template body has title specified; replacing entire note content with content from template:${filename}; content:"${content}"`,
+              `NPTemplateRunner::handleNewNoteCreation template body has title specified; replacing entire note content with content from template:${filename}; content:"${renderedContent}"`,
             )
             // replace double/triple dashes with triple dashes so they are treated as frontmatter
-            note.content = replaceDoubleDashes(content)
+            note.content = replaceDoubleDashes(renderedContent)
           } else {
-            logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation template body does not have title specified; appending content to note:${filename}; content:"${content}"`)
-            note.appendParagraph(content, 'text')
+            logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation template body does not have title specified; appending content to note:${filename}; content:"${renderedContent}"`)
+            note.appendParagraph(renderedContent, 'text')
           }
           // trying anything to force the cache to recognize this note by title soon after creation
           note && DataStore.updateCache(note, true) // try to update the note cache so functions called after this will see the new note
