@@ -41,12 +41,15 @@ export function quoteText(_text: string | number | boolean, quoteSpecialCharacte
     return String(text)
   }
   text = text.trim()
+  // Never quote empty strings - they should be written as empty (not quoted)
+  if (text === '') {
+    return ''
+  }
   const needsQuoting =
     text.includes(': ') ||
     /:$/.test(text) ||
     (quoteSpecialCharacters && /^#\S/.test(text)) ||
     (quoteSpecialCharacters && /^@/.test(text)) ||
-    text === '' ||
     RE_MARKDOWN_LINKS_CAPTURE_G.test(text) ||
     text.includes('>')
   const isWrappedInQuotes = /^".*"$/.test(text) // Check if already wrapped in quotes
@@ -971,9 +974,10 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       const value = newAttributes[key]
       logDebug('updateFrontMatterVars newAttributes', `key: ${key}, value: ${value}`)
       
-      // Skip null, undefined, and empty string values - don't write them to frontmatter
+      // Handle null/undefined - skip them (they won't be in normalizedNewAttributes, 
+      // so if deleteMissingAttributes is true, they will be deleted)
       if (value === null || value === undefined) {
-        return // Skip this key
+        return // Skip this key - allows deletion when deleteMissingAttributes is true
       }
       
       let normalizedValue: string
@@ -983,11 +987,8 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
         normalizedValue = value.trim()
       } else {
         const trimmedValue = value.trim()
-        // Skip empty strings - don't add them to normalizedNewAttributes
-        if (trimmedValue === '') {
-          return // Skip this key
-        }
-        // Only quote if the value actually needs quoting (quoteText will determine this)
+        // Empty strings are allowed - they will be written as empty (not quoted)
+        // quoteText will handle empty strings correctly (returns '' without quotes)
         normalizedValue = quoteText(trimmedValue)
       }
       
