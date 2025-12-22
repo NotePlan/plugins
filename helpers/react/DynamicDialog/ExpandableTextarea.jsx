@@ -110,7 +110,7 @@ export function ExpandableTextarea({
           minHeight: `${minRows * 20}px`, // Approximate line height
           maxHeight: `${maxRows * 20}px`, // Maximum height before scrolling
           overflowY: 'auto',
-          ...(style || {}),
+          ...(style: any),
         }}
       />
     </div>
