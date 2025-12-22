@@ -755,7 +755,7 @@ async function saveFrontmatterToTemplate(templateFilename: string, frontmatter: 
         // Skip - don't add to frontmatterAsStrings
         return
       }
-      
+
       let stringValue: string = ''
       if (typeof value === 'boolean') {
         stringValue = String(value)
@@ -767,7 +767,7 @@ async function saveFrontmatterToTemplate(templateFilename: string, frontmatter: 
       } else {
         stringValue = stripDoubleQuotes(String(value))
       }
-      
+
       // Only add non-empty string values to frontmatter
       // This prevents writing empty quotes (""") to frontmatter
       if (stringValue !== '') {

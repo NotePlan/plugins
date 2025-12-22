@@ -970,8 +970,29 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
     Object.keys(newAttributes).forEach((key: string) => {
       const value = newAttributes[key]
       logDebug('updateFrontMatterVars newAttributes', `key: ${key}, value: ${value}`)
+      
+      // Skip null, undefined, and empty string values - don't write them to frontmatter
+      if (value === null || value === undefined) {
+        return // Skip this key
+      }
+      
+      let normalizedValue: string
+      if (typeof value === 'object') {
+        normalizedValue = JSON.stringify(value)
+      } else if (key === 'triggers') {
+        normalizedValue = value.trim()
+      } else {
+        const trimmedValue = value.trim()
+        // Skip empty strings - don't add them to normalizedNewAttributes
+        if (trimmedValue === '') {
+          return // Skip this key
+        }
+        // Only quote if the value actually needs quoting (quoteText will determine this)
+        normalizedValue = quoteText(trimmedValue)
+      }
+      
       // $FlowIgnore
-      normalizedNewAttributes[key] = typeof value === 'object' ? JSON.stringify(value) : key === 'triggers' ? value.trim() : quoteText(value.trim())
+      normalizedNewAttributes[key] = normalizedValue
     })
 
     const { keysToAdd, keysToUpdate, keysToDelete } = determineAttributeChanges(existingAttributes, normalizedNewAttributes, deleteMissingAttributes)
