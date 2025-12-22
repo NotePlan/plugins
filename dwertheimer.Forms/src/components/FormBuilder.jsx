@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, type Node } from 'react'
 import { useAppContext } from './AppContext.jsx'
+import { TemplateTagInserter } from './TemplateTagInserter.jsx'
 import { type TSettingItem, type TSettingItemType } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { NoteChooser, type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
@@ -13,7 +14,6 @@ import { HeadingChooser } from '@helpers/react/DynamicDialog/HeadingChooser.jsx'
 import { FolderChooser } from '@helpers/react/DynamicDialog/FolderChooser.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { stripDoubleQuotes } from '@helpers/stringTransforms'
-import { TemplateTagInserter } from './TemplateTagInserter.jsx'
 import './FormBuilder.css'
 
 type FormBuilderProps = {
@@ -1598,6 +1598,33 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
           </button>
         </div>
       </div>
+      <TemplateTagInserter
+        isOpen={showTagInserter}
+        onClose={() => setShowTagInserter(false)}
+        onInsert={(tag: string) => {
+          // Insert tag at cursor position
+          if (tagInserterInputRef) {
+            const input = tagInserterInputRef
+            const start = input.selectionStart || 0
+            const end = input.selectionEnd || 0
+            const currentValue = frontmatter.newNoteTitle || ''
+            const newValue = currentValue.substring(0, start) + tag + currentValue.substring(end)
+            handleFrontmatterChange('newNoteTitle', newValue)
+            // Set cursor position after inserted text
+            setTimeout(() => {
+              input.focus()
+              const newCursorPos = start + tag.length
+              input.setSelectionRange(newCursorPos, newCursorPos)
+            }, 0)
+          } else {
+            // Fallback: append to end
+            const current = frontmatter.newNoteTitle || ''
+            handleFrontmatterChange('newNoteTitle', `${current}${tag}`)
+          }
+        }}
+        fieldKeys={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key || '')}
+        showDateFormats={true}
+      />
     </div>
   )
 }
