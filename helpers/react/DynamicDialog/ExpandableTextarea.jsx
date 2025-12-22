@@ -20,6 +20,7 @@ export type ExpandableTextareaProps = {
   maxRows?: number, // Maximum number of rows before scrolling (default: 10)
   required?: boolean,
   style?: { [key: string]: any },
+  onFocus?: (e: any) => void,
 }
 
 /**
@@ -42,12 +43,13 @@ export const ExpandableTextarea = forwardRef<HTMLTextAreaElement, ExpandableText
       maxRows = 10,
       required = false,
       style = {},
+      onFocus,
     }: ExpandableTextareaProps,
     ref: ?React$Ref<HTMLTextAreaElement>,
   ): React$Node => {
     const [textareaValue, setTextareaValue] = useState(value)
     const internalTextareaRef = useRef<?HTMLTextAreaElement>(null)
-    const textareaRef: ?React$Ref<HTMLTextAreaElement> = ref || internalTextareaRef
+    const textareaRef = (ref: any) || internalTextareaRef
 
   // Update internal state when value prop changes
   useEffect(() => {
@@ -89,10 +91,12 @@ export const ExpandableTextarea = forwardRef<HTMLTextAreaElement, ExpandableText
         placeholder={placeholder}
         required={required}
         rows={minRows}
+        onFocus={onFocus}
         style={{
           minHeight: `${minRows * 20}px`, // Approximate line height
           maxHeight: `${maxRows * 20}px`, // Maximum height before scrolling
           overflowY: 'auto',
+          ...style,
         }}
       />
     </div>
