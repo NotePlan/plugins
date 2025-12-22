@@ -437,17 +437,40 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
       return false
     }
   }
+  
+  // Render folder with form values if it contains template tags
+  // Special values like <select>, <choose>, <current> will be preserved and handled by templateNew/getFolder after rendering
+  let folder = data['folder'] || null
+  if (folder && typeof folder === 'string' && folder.includes('<%')) {
+    try {
+      folder = await NPTemplating.render(folder, data)
+      const isError = /Template Rendering Error/.test(folder)
+      if (isError) {
+        logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation template rendering error for folder`)
+        await showMessage('Template Render Error Encountered when rendering folder. Stopping.')
+        return false
+      }
+      // Clean up rendered folder: trim (special values like <select> will be handled by templateNew/getFolder)
+      folder = folder.trim()
+      logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation rendered folder with template tags`)
+    } catch (error) {
+      logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation error rendering folder: ${error.message}`)
+      await showMessage(`Error rendering folder: ${error.message || String(error)}`)
+      return false
+    }
+  }
+  
   if (newNoteTitle) {
     if (selectedTemplate) {
       // if form or template has a newNoteTitle field then we need to call templateNew
-      const argsArray = [selectedTemplate, data['folder'] || null, newNoteTitle, argObj]
+      const argsArray = [selectedTemplate, folder || null, newNoteTitle, argObj]
       logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation calling templateNew with args:${JSP(argsArray)} and template:${selectedTemplate}`)
       await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
       return true
     } else {
       // this could have been TR calling itself programmatically with newNoteTitle but no template
-      logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation calling DataStore.newNote with newNoteTitle:${newNoteTitle} and folder:${data['folder'] || null}`)
-      const filename = DataStore.newNote(newNoteTitle, data['folder'] || null)
+      logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation calling DataStore.newNote with newNoteTitle:${newNoteTitle} and folder:${folder || null}`)
+      const filename = DataStore.newNote(newNoteTitle, folder || null)
       if (filename) {
         logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation created note with title:"${newNoteTitle}"  in folder:"${data['folder'] || null}" filename:"${filename}"`)
         const note = await DataStore.projectNoteByFilename(filename)
