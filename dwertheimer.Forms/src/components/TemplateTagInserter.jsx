@@ -21,7 +21,8 @@ export type TemplateTagInserterProps = {
   isOpen: boolean,
   onClose: () => void,
   onInsert: (tag: string) => void,
-  fieldKeys?: Array<string>, // Available form field keys for <%- fieldKey %>
+  fieldKeys?: Array<string>, // Available form field keys for <%- fieldKey %> (deprecated - use fields instead)
+  fields?: Array<{ key: string, label?: string }>, // Available form fields with keys and labels
   showDateFormats?: boolean, // Show date format options
   mode?: 'field' | 'date' | 'both', // Mode: 'field' = only fields, 'date' = only dates, 'both' = both (default)
 }
@@ -37,6 +38,7 @@ export function TemplateTagInserter({
   onClose,
   onInsert,
   fieldKeys = [],
+  fields = [],
   showDateFormats = true,
   mode = 'both',
 }: TemplateTagInserterProps): React$Node {
@@ -47,15 +49,30 @@ export function TemplateTagInserter({
     const opts: Array<TemplateTagOption> = []
 
     // Add field keys (only if mode is 'field' or 'both')
-    if ((mode === 'field' || mode === 'both') && fieldKeys.length > 0) {
-      fieldKeys.forEach((key) => {
-        opts.push({
-          label: key,
-          value: `<%- ${key} %>`,
-          description: `Insert value of form field "${key}"`,
-          category: null, // Don't show category for fields
+    if (mode === 'field' || mode === 'both') {
+      // Prefer fields array over fieldKeys array (fields has label information)
+      if (fields.length > 0) {
+        fields.forEach((field) => {
+          const key = field.key || ''
+          const label = field.label || key
+          opts.push({
+            label: `${label} (${key})`, // Display format: "label (key)"
+            value: `<%- ${key} %>`,
+            description: `Insert value of form field "${label}"`,
+            category: null, // Don't show category for fields
+          })
         })
-      })
+      } else if (fieldKeys.length > 0) {
+        // Fallback to fieldKeys if fields not provided (backward compatibility)
+        fieldKeys.forEach((key) => {
+          opts.push({
+            label: key,
+            value: `<%- ${key} %>`,
+            description: `Insert value of form field "${key}"`,
+            category: null, // Don't show category for fields
+          })
+        })
+      }
     }
 
     // Add date formats (only if mode is 'date' or 'both')
@@ -140,7 +157,7 @@ export function TemplateTagInserter({
     }
 
     return opts
-  }, [fieldKeys, showDateFormats, mode])
+  }, [fieldKeys, fields, showDateFormats, mode])
 
   // Configure the SearchableChooser
   const config: ChooserConfig = {

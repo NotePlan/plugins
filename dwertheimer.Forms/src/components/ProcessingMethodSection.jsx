@@ -621,7 +621,7 @@ export function ProcessingMethodSection({
               }, 0)
             }
           }}
-          fieldKeys={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key || '')}
+          fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => ({ key: f.key || '', label: f.label }))}
           showDateFormats={true}
           mode={tagInserterMode}
         />

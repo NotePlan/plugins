@@ -103,7 +103,7 @@ export function FormBuilder({
     const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''
     // For backward compatibility: if receivingTemplateTitle exists, automatically use form-processor
     const defaultProcessingMethod = cleanedReceivingTemplateTitle ? 'form-processor' : 'write-existing'
-    
+
     // Base frontmatter with form configuration
     const baseFrontmatter = {
       processingMethod: defaultProcessingMethod,
@@ -128,7 +128,7 @@ export function FormBuilder({
       // Template body (loaded from codeblock)
       templateBody: templateBody || '',
     }
-    
+
     // Merge TemplateRunner args from codeblock (these override defaults)
     // These contain template tags and should not be in frontmatter
     const mergedFrontmatter: { [key: string]: any } = { ...baseFrontmatter }

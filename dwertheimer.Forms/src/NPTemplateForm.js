@@ -223,7 +223,7 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
         if (templateBodyFromCodeblock) {
           frontmatterAttributes.templateBody = templateBodyFromCodeblock
         }
-        
+
         // Load TemplateRunner args from codeblock
         const templateRunnerArgs = await loadTemplateRunnerArgsFromTemplate(templateNote)
         if (templateRunnerArgs) {
@@ -591,10 +591,10 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
         }
         // Load templateBody from codeblock
         templateBody = await loadTemplateBodyFromTemplate(templateNote)
-        
+
         // Load TemplateRunner args from codeblock (these contain template tags and should not be in frontmatter)
         const templateRunnerArgs = await loadTemplateRunnerArgsFromTemplate(templateNote)
-        
+
         // Merge TemplateRunner args into the data object that will be passed to FormBuilder
         // These will override any values that might be in frontmatter
         if (templateRunnerArgs) {
