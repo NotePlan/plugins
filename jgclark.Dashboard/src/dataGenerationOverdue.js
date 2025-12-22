@@ -68,7 +68,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
           ...item.para,
           note: {
             filename: item.para?.filename ?? 'test_filename.md',
-            title: item.para?.title ?? 'TEST Title',
+            title: item.para?.title ?? undefined,
             type: item.para?.noteType ?? 'Notes',
             changedDate: item.para?.changedDate ?? new Date('2023-07-06T00:00:00.000Z'),
             isTeamspace: false,
