@@ -10,6 +10,11 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 
 - Fix messaging in templateNew when templates not found
 - Enhanced `template: ignore` code block handling: Code blocks starting with ```template: ignore on the first line are now completely removed from templates (not just protected). Comment-style ignores (`// template: ignore` or `/* template: ignore */`) continue to be protected during processing and restored in the output. This allows template authors to include metadata or instructions that should not appear in the final rendered output.
+- **TemplateRunner rendering improvements**: TemplateRunner now consistently renders template tags in all fields before using them:
+  - `templateBody` is now rendered in `handleNewNoteCreation` (for create-new path) to ensure template tags are replaced with form values before being written to notes
+  - `newNoteTitle` is now rendered if it contains template tags before being used to create a new note
+  - `getNoteTitled` (noteTitle) is now rendered if it contains template tags, while preserving special values like `<today>`, `<current>`, `<choose>`, `<select>`, `<thisweek>`, `<nextweek>`
+  - This ensures consistent behavior across all TemplateRunner paths and prevents unrendered template tags from being written to notes
 
 ## [2.2.4] 2025-12-03 @dwertheimer
 - fix <default> templateLocale setting to allow for locale-specific date/time formatting

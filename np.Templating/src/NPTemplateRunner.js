@@ -416,7 +416,27 @@ export async function processFrontmatter(
  * @returns {boolean} true if new note was created and function should return
  */
 export async function handleNewNoteCreation(selectedTemplate: string, data: Object, argObj: Object, content: string = ''): Promise<boolean | string> {
-  const newNoteTitle = data['newNoteTitle'] || null
+  let newNoteTitle = data['newNoteTitle'] || null
+  // Render newNoteTitle with form values if it contains template tags
+  // This ensures template tags are rendered before being used to create the note
+  if (newNoteTitle && typeof newNoteTitle === 'string' && newNoteTitle.includes('<%')) {
+    try {
+      newNoteTitle = await NPTemplating.render(newNoteTitle, data)
+      const isError = /Template Rendering Error/.test(newNoteTitle)
+      if (isError) {
+        logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation template rendering error for newNoteTitle`)
+        await showMessage('Template Render Error Encountered when rendering note title. Stopping.')
+        return false
+      }
+      // Clean up rendered title: trim and remove any newlines (defensive)
+      newNoteTitle = newNoteTitle.replace(/\n/g, ' ').trim()
+      logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation rendered newNoteTitle with template tags`)
+    } catch (error) {
+      logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation error rendering newNoteTitle: ${error.message}`)
+      await showMessage(`Error rendering note title: ${error.message || String(error)}`)
+      return false
+    }
+  }
   if (newNoteTitle) {
     if (selectedTemplate) {
       // if form or template has a newNoteTitle field then we need to call templateNew
