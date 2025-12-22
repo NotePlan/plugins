@@ -25,6 +25,8 @@ export type ProcessingMethodSectionProps = {
   setShowTagInserter: (show: boolean) => void,
   tagInserterInputRef: ?HTMLInputElement | ?HTMLTextAreaElement,
   setTagInserterInputRef: (ref: ?HTMLInputElement | ?HTMLTextAreaElement) => void,
+  tagInserterFieldKey: string, // Track which field is being edited ('newNoteTitle' or 'templateBody')
+  setTagInserterFieldKey: (key: string) => void,
   fields: Array<any>, // TSettingItem array
 }
 
@@ -46,6 +48,8 @@ export function ProcessingMethodSection({
   setShowTagInserter,
   tagInserterInputRef,
   setTagInserterInputRef,
+  tagInserterFieldKey,
+  setTagInserterFieldKey,
   fields,
 }: ProcessingMethodSectionProps): React$Node {
   return (
@@ -187,6 +191,7 @@ export function ProcessingMethodSection({
                 ref={(ref) => {
                   if (ref) {
                     setTagInserterInputRef(ref)
+                    setTagInserterFieldKey('templateBody')
                   }
                 }}
                 value={frontmatter.templateBody || ''}
@@ -195,6 +200,7 @@ export function ProcessingMethodSection({
                   const target = e.target
                   if (target instanceof HTMLTextAreaElement) {
                     setTagInserterInputRef(target)
+                    setTagInserterFieldKey('templateBody')
                   }
                 }}
                 placeholder="Enter content to insert with tags like <%- fieldKey %> or <%- date.format(&quot;YYYY-MM-DD&quot;) %>"
@@ -265,23 +271,25 @@ export function ProcessingMethodSection({
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
             <label>New Note Title:</label>
             <div style={{ position: 'relative' }}>
-              <input
-                ref={(ref) => {
-                  if (ref && !tagInserterInputRef) {
-                    setTagInserterInputRef(ref)
-                  }
-                }}
-                type="text"
-                value={frontmatter.newNoteTitle || ''}
-                onChange={(e) => onFrontmatterChange('newNoteTitle', e.target.value)}
-                onFocus={() => {
-                  // Store the input ref when focused
-                  const activeElement = document.activeElement
-                  if (activeElement instanceof HTMLInputElement) {
-                    setTagInserterInputRef(activeElement)
-                  }
-                }}
-                placeholder="e.g., <%- noteTitle %> or Project: <%- projectName %>"
+                <input
+                  ref={(ref) => {
+                    if (ref && !tagInserterInputRef) {
+                      setTagInserterInputRef(ref)
+                      setTagInserterFieldKey('newNoteTitle')
+                    }
+                  }}
+                  type="text"
+                  value={frontmatter.newNoteTitle || ''}
+                  onChange={(e) => onFrontmatterChange('newNoteTitle', e.target.value)}
+                  onFocus={() => {
+                    // Store the input ref when focused
+                    const activeElement = document.activeElement
+                    if (activeElement instanceof HTMLInputElement) {
+                      setTagInserterInputRef(activeElement)
+                      setTagInserterFieldKey('newNoteTitle')
+                    }
+                  }}
+                  placeholder="e.g., <%- noteTitle %> or Project: <%- projectName %>"
                 style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', paddingRight: '8rem' }}
               />
               <div
@@ -462,40 +470,21 @@ export function ProcessingMethodSection({
           onClose={() => setShowTagInserter(false)}
           onInsert={(tag: string) => {
             // Insert tag at cursor position
-            if (tagInserterInputRef) {
-              if (tagInserterInputRef instanceof HTMLInputElement) {
-                const input = tagInserterInputRef
-                const start = input.selectionStart || 0
-                const end = input.selectionEnd || 0
-                const currentValue = input.value || ''
-                const newValue = currentValue.substring(0, start) + tag + currentValue.substring(end)
-                // Determine which field to update based on the input's context
-                if (input.placeholder && input.placeholder.includes('New Note Title')) {
-                  onFrontmatterChange('newNoteTitle', newValue)
-                }
-                // Set cursor position after inserted text
-                setTimeout(() => {
-                  input.focus()
-                  const newCursorPos = start + tag.length
-                  input.setSelectionRange(newCursorPos, newCursorPos)
-                }, 0)
-              } else if (tagInserterInputRef instanceof HTMLTextAreaElement) {
-                const textarea = tagInserterInputRef
-                const start = textarea.selectionStart || 0
-                const end = textarea.selectionEnd || 0
-                const currentValue = textarea.value || ''
-                const newValue = currentValue.substring(0, start) + tag + currentValue.substring(end)
-                // Determine which field to update based on the textarea's context
-                if (textarea.placeholder && textarea.placeholder.includes('template body')) {
-                  onFrontmatterChange('templateBody', newValue)
-                }
-                // Set cursor position after inserted text
-                setTimeout(() => {
-                  textarea.focus()
-                  const newCursorPos = start + tag.length
-                  textarea.setSelectionRange(newCursorPos, newCursorPos)
-                }, 0)
-              }
+            if (tagInserterInputRef && tagInserterFieldKey) {
+              const start = tagInserterInputRef.selectionStart || 0
+              const end = tagInserterInputRef.selectionEnd || 0
+              const currentValue = tagInserterInputRef.value || ''
+              const newValue = currentValue.substring(0, start) + tag + currentValue.substring(end)
+              
+              // Update the field based on the tracked field key
+              onFrontmatterChange(tagInserterFieldKey, newValue)
+              
+              // Set cursor position after inserted text
+              setTimeout(() => {
+                tagInserterInputRef.focus()
+                const newCursorPos = start + tag.length
+                tagInserterInputRef.setSelectionRange(newCursorPos, newCursorPos)
+              }, 0)
             }
           }}
           fieldKeys={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key || '')}

@@ -23,6 +23,7 @@ type FormBuilderProps = {
   hideDependentItems?: boolean,
   width?: ?number,
   height?: ?number,
+  templateBody?: string, // Load from codeblock
   isNewForm?: boolean,
   templateTitle?: string,
   onSave: (fields: Array<TSettingItem>, frontmatter: { [key: string]: any }) => void,
@@ -70,6 +71,7 @@ export function FormBuilder({
   hideDependentItems = false,
   width,
   height,
+  templateBody = '', // Load from codeblock
   isNewForm = false,
   templateTitle = '',
   onSave,
@@ -91,6 +93,7 @@ export function FormBuilder({
   const [loadingNotes, setLoadingNotes] = useState<boolean>(false)
   const [showTagInserter, setShowTagInserter] = useState<boolean>(false)
   const [tagInserterInputRef, setTagInserterInputRef] = useState<?HTMLInputElement | ?HTMLTextAreaElement>(null)
+  const [tagInserterFieldKey, setTagInserterFieldKey] = useState<string>('')
   const [frontmatter, setFrontmatter] = useState<{ [key: string]: any }>(() => {
     // Strip quotes from initial values to prevent saving quoted values
     const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''
@@ -116,6 +119,8 @@ export function FormBuilder({
       newNoteFolder: '',
       // Option C: Form processor
       formProcessorTitle: cleanedReceivingTemplateTitle, // Set to receivingTemplateTitle for backward compatibility
+      // Template body (loaded from codeblock)
+      templateBody: templateBody || '',
     }
   })
 
@@ -495,6 +500,8 @@ export function FormBuilder({
                 setShowTagInserter={setShowTagInserter}
                 tagInserterInputRef={tagInserterInputRef}
                 setTagInserterInputRef={setTagInserterInputRef}
+                tagInserterFieldKey={tagInserterFieldKey}
+                setTagInserterFieldKey={setTagInserterFieldKey}
                 fields={fields}
               />
             </div>

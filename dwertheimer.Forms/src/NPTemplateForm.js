@@ -3,7 +3,7 @@
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 // Note: getAllNotesAsOptions is no longer used here - FormView loads notes dynamically via requestFromPlugin
-import { createProcessingTemplate, varsInForm, varsCodeBlockType } from './ProcessingTemplate'
+import { createProcessingTemplate, varsInForm, varsCodeBlockType, templateBodyCodeBlockType } from './ProcessingTemplate'
 import { handleRequest, testRequestHandlers } from './requestHandlers'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
@@ -512,6 +512,7 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
     let width: ?number = undefined
     let height: ?number = undefined
     let isNewForm = false
+    let templateBody = ''
 
     if (argObj.templateFilename) {
       const templateNote = await getNoteByFilename(argObj.templateFilename)
@@ -530,6 +531,8 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
         if (heightStr) {
           height = typeof heightStr === 'number' ? heightStr : parseInt(String(heightStr), 10)
         }
+        // Load templateBody from codeblock
+        templateBody = loadTemplateBodyFromTemplate(templateNote)
       }
     } else {
       // No templateFilename means this is a new form
@@ -549,6 +552,7 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
         hideDependentItems: hideDependentItems,
         width: width,
         height: height,
+        templateBody: templateBody, // Load from codeblock
         isNewForm: isNewForm,
       },
       title: 'Form Builder',
@@ -671,9 +675,16 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
 
       await saveFormFieldsToTemplate(finalTemplateFilename, fieldsToSave)
 
-      // Save frontmatter if provided
+      // Save templateBody to codeblock if provided
+      if (data?.frontmatter?.templateBody !== undefined) {
+        await saveTemplateBodyToTemplate(finalTemplateFilename, data.frontmatter.templateBody || '')
+      }
+
+      // Save frontmatter if provided (but exclude templateBody as it's in codeblock)
       if (data?.frontmatter) {
-        await saveFrontmatterToTemplate(finalTemplateFilename, data.frontmatter)
+        const frontmatterWithoutTemplateBody = { ...data.frontmatter }
+        delete frontmatterWithoutTemplateBody.templateBody
+        await saveFrontmatterToTemplate(finalTemplateFilename, frontmatterWithoutTemplateBody)
       }
 
       // Check if we should update the receiving template
@@ -806,6 +817,59 @@ function formatFormFieldsAsCodeBlock(fields: Array<Object>): string {
   // Replace quoted keys with unquoted keys where appropriate (for cleaner look)
   // Actually, let's keep it as standard JSON since it needs to be parseable
   return json
+}
+
+/**
+ * Save templateBody to template as code block
+ * @param {string} templateFilename - The template filename
+ * @param {string} templateBody - The template body content
+ * @returns {Promise<void>}
+ */
+async function saveTemplateBodyToTemplate(templateFilename: string, templateBody: string): Promise<void> {
+  try {
+    if (!templateFilename) {
+      logDebug(pluginJson, 'saveTemplateBodyToTemplate: No template filename provided, skipping')
+      return
+    }
+
+    const templateNote = await getNoteByFilename(templateFilename)
+    if (!templateNote) {
+      logError(pluginJson, `saveTemplateBodyToTemplate: Template not found: ${templateFilename}`)
+      return
+    }
+
+    // Use the helper function to replace code block content (or add if it doesn't exist)
+    const success = replaceCodeBlockContent(templateNote, templateBodyCodeBlockType, templateBody || '', pluginJson.id)
+    if (!success) {
+      logError(pluginJson, `saveTemplateBodyToTemplate: Failed to replace code block content`)
+      return
+    }
+
+    logDebug(pluginJson, `saveTemplateBodyToTemplate: Saved templateBody to template`)
+  } catch (error) {
+    logError(pluginJson, `saveTemplateBodyToTemplate error: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Load templateBody from template code block
+ * @param {CoreNoteFields} templateNote - The template note
+ * @returns {string} - The template body content, or empty string if not found
+ */
+function loadTemplateBodyFromTemplate(templateNote: CoreNoteFields): string {
+  try {
+    const codeBlocks = getCodeBlocksOfType(templateNote, templateBodyCodeBlockType)
+    if (codeBlocks.length > 0) {
+      const templateBody = codeBlocks[0].code || ''
+      logDebug(pluginJson, `loadTemplateBodyFromTemplate: Loaded templateBody (${templateBody.length} chars)`)
+      return templateBody
+    }
+    logDebug(pluginJson, `loadTemplateBodyFromTemplate: No templateBody code block found`)
+    return ''
+  } catch (error) {
+    logError(pluginJson, `loadTemplateBodyFromTemplate error: ${JSP(error)}`)
+    return ''
+  }
 }
 
 /**

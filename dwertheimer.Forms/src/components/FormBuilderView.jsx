@@ -169,6 +169,7 @@ export function WebView({
             hideDependentItems={hideDependentItems}
             width={width}
             height={height}
+            templateBody={pluginData.templateBody || ''} // Load from codeblock
             isNewForm={isNewForm}
             templateTitle={templateTitle}
             onSave={handleSave}

@@ -97,6 +97,7 @@ export function TemplateTagInserter({
     emptyMessageNoMatch: 'No tags match your search',
     classNamePrefix: 'template-tag-inserter',
     iconClass: null,
+    showArrow: true, // Show down arrow like a select
     fieldType: 'template-tag-inserter',
     debugLogging: false,
     maxResults: 25,

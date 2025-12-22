@@ -8,6 +8,7 @@ import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 
 export const varsInForm = `# Variables in your form:`
 export const varsCodeBlockType = 'template:ignore form variables'
+export const templateBodyCodeBlockType = 'template:ignore templateBody'
 
 /**
  * Create a form processing template (standalone command or called from Form Builder)
