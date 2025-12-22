@@ -211,11 +211,23 @@ export function SearchableChooser({
   }
 
   const handleInputKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && filteredItems.length > 0) {
-      // Select first filtered result on Enter
+    if (e.key === 'Enter') {
       e.preventDefault() // Prevent form submission
       e.stopPropagation() // Stop event from bubbling to DynamicDialog
-      handleItemSelect(filteredItems[0])
+      if (filteredItems.length > 0) {
+        // Select first filtered result on Enter
+        handleItemSelect(filteredItems[0])
+      } else if (allowManualEntry && searchTerm.trim()) {
+        // Allow manual entry if enabled and there's text typed
+        // Create a special manual entry item
+        const manualEntryItem = { __manualEntry__: true, value: searchTerm.trim(), display: searchTerm.trim() }
+        onSelect(manualEntryItem)
+        setIsOpen(false)
+        setSearchTerm('')
+        if (inputRef.current) {
+          inputRef.current.blur()
+        }
+      }
     } else if (e.key === 'Escape' || e.key === 'Esc') {
       // Close dropdown on ESC, but only if it's open
       if (isOpen) {
@@ -250,7 +262,14 @@ export function SearchableChooser({
   // When displaying the selected value, try to find the item by value and use its display label
   // This ensures we show the label (e.g., note title) rather than the value (e.g., filename)
   let displayValue = value || ''
-  if (displayValue && items && items.length > 0) {
+  let isManualEntryValue = false
+  
+  // Check if current value is a manual entry
+  if (allowManualEntry && displayValue && isManualEntry) {
+    isManualEntryValue = isManualEntry(displayValue, items)
+  }
+  
+  if (displayValue && items && items.length > 0 && !isManualEntryValue) {
     if (debugLogging) {
       console.log(`${fieldType}: Looking up display value for stored value: "${value}"`)
       console.log(`${fieldType}: Items available: ${items.length}, first item type:`, typeof items[0])
@@ -336,15 +355,20 @@ export function SearchableChooser({
           id={`${classNamePrefix}-${label || 'default'}`}
           ref={inputRef}
           type="text"
-          className={`${classNamePrefix}-input`}
+          className={`${classNamePrefix}-input ${isManualEntryValue ? 'manual-entry' : ''}`}
           value={isOpen ? searchTerm : truncatedDisplayValue}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onKeyDown={handleInputKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          title={displayValue || placeholder}
+          title={isManualEntryValue ? `${displayValue} (${manualEntryIndicator})` : displayValue || placeholder}
         />
+        {isManualEntryValue && !isOpen && (
+          <span className={`${classNamePrefix}-manual-entry-indicator`} title={manualEntryIndicator}>
+            {manualEntryIndicator}
+          </span>
+        )}
         {showArrow ? (
           <i className={`fa-solid fa-chevron-down ${classNamePrefix}-arrow ${isOpen ? 'open' : ''}`}></i>
         ) : iconClass ? (
