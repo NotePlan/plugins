@@ -46,7 +46,7 @@ export const WANTED_PARA_TYPES: Array<string> = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? 
 // private functions
 
 function clearTagMentionCacheGenerationPref(): void {
-  logInfo('clearTagMentionCacheGenerationPref', `Clearing tag mention cache generation pref.`)
+  logDebug('clearTagMentionCacheGenerationPref', `Clearing tag mention cache generation pref.`)
   DataStore.setPreference(regenerateTagMentionCachePref, null)
 }
 
@@ -63,7 +63,7 @@ export function isTagMentionCacheAvailableForItem(item: string): boolean {
     const parsedCache = JSON.parse(cache) ?? {}
     const wantedItems = parsedCache.wantedItems ?? []
     const result = wantedItems.some((wanted) => caseInsensitiveMatch(item, wanted))
-    logInfo('isTagMentionCacheAvailableForItem', `-> ${item}: ${result}`)
+    logDebug('isTagMentionCacheAvailableForItem', `-> ${item}: ${result}`)
     return result
   } else {
     return false
@@ -86,7 +86,7 @@ export function scheduleTagMentionCacheGenerationIfTooOld(generatedAtStr: string
     logInfo('scheduleTagMentionCacheGenerationIfTooOld', `Tag mention cache is too old (${diffHours}hours), so scheduling a regeneration.`)
     scheduleTagMentionCacheGeneration()
   } else {
-    logInfo('scheduleTagMentionCacheGenerationIfTooOld', `Tag mention cache is not too old (${diffHours}hours).`)
+    logDebug('scheduleTagMentionCacheGenerationIfTooOld', `Tag mention cache is not too old (${diffHours}hours).`)
   }
 }
 
@@ -105,7 +105,7 @@ export async function updateTagMentionCacheIfTooOld(updatedAtStr: string): Promi
     await updateTagMentionCache()
     return true
   } else {
-    logInfo('updateTagMentionCacheIfTooOld', `Tag mention cache last update is not too old (${diffHours3SF}hours).`)
+    logDebug('updateTagMentionCacheIfTooOld', `Tag mention cache last update is not too old (${diffHours3SF}hours).`)
     return false
   }
 }

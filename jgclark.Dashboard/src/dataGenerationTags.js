@@ -45,7 +45,6 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
     const thisSectionCode = 'TAG'
     const thisTag = sectionDetail.sectionName
     logInfo('getTaggedSectionData', `------- Gathering Tag items for section ${sectionID}: ${thisTag} --------`)
-    // if (config.ignoreChecklistItems) logDebug('getTaggedSectionData', `Note: will filter out checklists`)
     let itemCount = 0
     let totalCount = 0
     const items: Array<TSectionItem> = []
@@ -58,7 +57,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
     const ignoreTermsMinusTagCSV: string = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
       .filter((t) => t !== thisTag)
       .join(',')
-    logInfo('getTaggedSectionData', `ignoreTermsMinusTag: ${ignoreTermsMinusTagCSV}  (was: ${config.ignoreItemsWithTerms})`)
+    logDebug('getTaggedSectionData', `ignoreTermsMinusTag: ${ignoreTermsMinusTagCSV}  (was: ${config.ignoreItemsWithTerms})`)
 
     if (useDemoData) {
       isHashtag = true
@@ -105,7 +104,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
           source = turnOnAPIComparison ? 'using CACHE + API' : 'using just CACHE'
         } else {
           // Use API
-          logInfo('getTaggedSectionData', `- using API only for ${thisTag}`)
+          logDebug('getTaggedSectionData', `- using API only for ${thisTag}`)
           // Note: this is slow (1-3ms per note, so 3-9s for 3250 notes).
           notesWithTag = findNotesMatchingHashtagOrMention(thisTag, true, true, true, [], WANTED_PARA_TYPES, '', false, true)
           // $FlowIgnore[unsafe-arithmetic]

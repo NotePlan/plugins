@@ -11,15 +11,23 @@
  */
 
 import fm from 'front-matter'
-// import { showMessage } from './userInput'
-const pluginJson = 'helpers/NPFrontMatter.js'
 import { clo, clof, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { RE_MARKDOWN_LINKS_CAPTURE_G } from '@helpers/regex'
 
+//----------------------------------------------------------------------------
+// Constants
+
 // Note: update these for each new trigger that gets added
 export type TriggerTypes = 'onEditorWillSave' | 'onOpen'
 export const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
+
+//----------------------------------------------------------------------------
+// Local variables
+
+const pluginJson = 'helpers/NPFrontMatter.js'
+
+//----------------------------------------------------------------------------
 
 /**
  * Frontmatter cannot have colons in the content (specifically ": " or ending in colon or values starting in @ or #), so we need to wrap that in quotes
