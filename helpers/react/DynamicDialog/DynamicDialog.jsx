@@ -111,6 +111,7 @@ export type TSettingItem = {
   maxRows?: number, // for textarea, maximum number of rows before scrolling (default: 10)
   // templatejs-block options
   executeTiming?: 'before' | 'after', // for templatejs-block, when to execute: before form fields render, or after (default: 'after')
+  templateJSContent?: string, // for templatejs-block, JavaScript content stored with the form (not rendered in preview)
 }
 
 export type TDynamicDialogProps = {

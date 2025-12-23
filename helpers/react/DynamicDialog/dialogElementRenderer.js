@@ -167,23 +167,8 @@ export function renderItem({
           />
         )
       case 'templatejs-block':
-        return (
-          <TemplateJSBlock
-            key={`templatejs-block${index}`}
-            label={thisLabel}
-            value={item.value || item.default || ''}
-            onChange={(newValue) => {
-              if (item.key) {
-                handleFieldChange(item.key, newValue)
-              }
-            }}
-            disabled={disabled}
-            placeholder={item.placeholder || '// Enter JavaScript code here\n// This code will be executed when the form is processed'}
-            compactDisplay={item.compactDisplay || false}
-            className={indent ? 'indent' : ''}
-            executeTiming={item.executeTiming || 'after'}
-          />
-        )
+        // TemplateJS blocks are edited in the Form Builder only and intentionally hidden in the DynamicDialog preview.
+        return null
       case 'number':
         return (
           <InputBox

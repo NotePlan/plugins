@@ -7,7 +7,7 @@ import React, { useEffect, useRef, type Node } from 'react'
 import { type PassedData } from '../NPTemplateForm.js'
 import { AppProvider } from './AppContext.jsx'
 import FormBuilder from './FormBuilder.jsx'
-import { clo, logDebug } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
 import './FormBuilder.css'
 
 type Props = {
@@ -38,6 +38,8 @@ export function WebView({
   const hideDependentItems = pluginData.hideDependentItems || false
   const width = pluginData.width
   const height = pluginData.height
+  const x = pluginData.x
+  const y = pluginData.y
   const isNewForm = pluginData.isNewForm || false
   const templateTitle = pluginData.templateTitle || ''
 
@@ -176,6 +178,8 @@ export function WebView({
             templateRunnerArgs={pluginData.templateRunnerArgs || {}}
             width={width}
             height={height}
+            x={x}
+            y={y}
             templateBody={pluginData.templateBody || ''} // Load from codeblock
             isNewForm={isNewForm}
             templateTitle={templateTitle}

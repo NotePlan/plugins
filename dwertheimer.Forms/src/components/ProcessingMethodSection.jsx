@@ -4,12 +4,12 @@
 // Handles the form processing method selection and related configuration
 //--------------------------------------------------------------------------
 
-import React from 'react'
+import React, { useState } from 'react'
+import { TemplateTagInserter } from './TemplateTagInserter.jsx'
+import { TemplateTagEditor } from './TemplateTagEditor.jsx'
 import { NoteChooser, type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { HeadingChooser } from '@helpers/react/DynamicDialog/HeadingChooser.jsx'
 import { FolderChooser } from '@helpers/react/DynamicDialog/FolderChooser.jsx'
-import { TemplateTagInserter } from './TemplateTagInserter.jsx'
-import { TemplateTagEditor } from './TemplateTagEditor.jsx'
 import { InfoIcon } from '@helpers/react/InfoIcon.jsx'
 
 export type ProcessingMethodSectionProps = {
@@ -57,11 +57,16 @@ export function ProcessingMethodSection({
   setTagInserterFieldKey,
   fields,
 }: ProcessingMethodSectionProps): React$Node {
+  const [tagInserterAnchorElement, setTagInserterAnchorElement] = useState<?HTMLElement>(null)
+
   // Helper function to handle tag inserter button clicks
   const handleTagInserterButtonClick = (e: any, mode: 'field' | 'date', fieldKey: string) => {
     e.preventDefault()
     e.stopPropagation()
-    
+
+    // Store the button element for positioning
+    const buttonElement = e.currentTarget instanceof HTMLElement ? e.currentTarget : null
+
     // Ensure ref is set before opening modal
     const activeElement = document.activeElement
     if (activeElement instanceof HTMLTextAreaElement || activeElement instanceof HTMLInputElement) {
@@ -81,26 +86,12 @@ export function ProcessingMethodSection({
       }
     }
     setTagInserterMode(mode)
+    setTagInserterAnchorElement(buttonElement)
     setShowTagInserter(true)
   }
 
   return (
     <>
-      {/* Show in Editor checkbox */}
-      <div className="frontmatter-field">
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={frontmatter.shouldOpenInEditor !== false}
-            onChange={(e) => onFrontmatterChange('shouldOpenInEditor', e.target.checked)}
-          />
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            Show in Editor on Submit
-            <InfoIcon text="If checked, the target note will automatically open in the NotePlan editor after the form is submitted, allowing you to immediately see the results." />
-          </span>
-        </label>
-      </div>
-      
       <div className="frontmatter-field">
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           Form Processing Method:
@@ -120,6 +111,19 @@ export function ProcessingMethodSection({
           {processingMethod === 'create-new' && 'Create a new note with form data using TemplateRunner'}
           {processingMethod === 'form-processor' && 'Use a separate processing template to handle form submissions'}
         </div>
+      </div>
+
+      {/* Show in Editor checkbox - label changes based on processing method */}
+      <div className="frontmatter-field">
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+          <input type="checkbox" checked={frontmatter.shouldOpenInEditor !== false} onChange={(e) => onFrontmatterChange('shouldOpenInEditor', e.target.checked)} />
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            {(processingMethod === 'write-existing' || !processingMethod) && 'Open target note in Editor on Submit'}
+            {processingMethod === 'create-new' && 'Open new note in Editor on Submit'}
+            {processingMethod === 'form-processor' && 'Open processed note in Editor on Submit'}
+            <InfoIcon text="If checked, the target note will automatically open in the NotePlan editor after the form is submitted, allowing you to immediately see the results." />
+          </span>
+        </label>
       </div>
 
       {/* Option A: Write to Existing File */}
@@ -192,11 +196,7 @@ export function ProcessingMethodSection({
                   label=""
                   value={frontmatter.writeUnderHeading || ''}
                   noteFilename={
-                    frontmatter.getNoteTitled
-                      ? frontmatter.getNoteFilename ||
-                        notes.find((n: NoteOption) => n.title === frontmatter.getNoteTitled)?.filename ||
-                        null
-                      : null
+                    frontmatter.getNoteTitled ? frontmatter.getNoteFilename || notes.find((n: NoteOption) => n.title === frontmatter.getNoteTitled)?.filename || null : null
                   }
                   requestFromPlugin={requestFromPlugin}
                   onChange={(heading: string) => {
@@ -215,11 +215,7 @@ export function ProcessingMethodSection({
               </div>
               <div className="frontmatter-field">
                 <label>
-                  <input
-                    type="checkbox"
-                    checked={frontmatter.createMissingHeading !== false}
-                    onChange={(e) => onFrontmatterChange('createMissingHeading', e.target.checked)}
-                  />
+                  <input type="checkbox" checked={frontmatter.createMissingHeading !== false} onChange={(e) => onFrontmatterChange('createMissingHeading', e.target.checked)} />
                   Create heading if it doesn&apos;t exist
                 </label>
               </div>
@@ -230,65 +226,75 @@ export function ProcessingMethodSection({
               Content to Insert:
               <InfoIcon text="The template content that will be written to the target note. Use template tags like <%- fieldKey %> to insert form field values, or <%- date.format('YYYY-MM-DD') %> for dates. Click +Field or +Date buttons to insert tags." />
             </label>
-            <div style={{ position: 'relative' }}>
-              <TemplateTagEditor
-                value={frontmatter.templateBody || ''}
-                onChange={(value) => onFrontmatterChange('templateBody', value)}
-                onFocus={(e) => {
-                  const target = e.target
-                  if (target instanceof HTMLTextAreaElement) {
-                    setTagInserterInputRef(target)
-                    setTagInserterFieldKey('templateBody')
-                  }
-                }}
-                placeholder="Enter content to insert with tags like <%- fieldKey %> or <%- date.format(&quot;YYYY-MM-DD&quot;) %>"
-                minRows={5}
-                maxRows={15}
-                fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
-                style={{ paddingRight: '8rem' }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '0.5rem',
-                  top: '2.5rem', // Adjusted for toggle switch
-                  display: 'flex',
-                  gap: '0.25rem',
-                  zIndex: 10,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={(e) => handleTagInserterButtonClick(e, 'field', 'templateBody')}
-                  style={{
-                    fontSize: '0.75rem',
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: '#f0f0f0',
-                    border: '1px solid #ccc',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                  }}
-                  title="Insert field variable"
-                >
-                  + Field
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => handleTagInserterButtonClick(e, 'date', 'templateBody')}
-                  style={{
-                    fontSize: '0.75rem',
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: '#f0f0f0',
-                    border: '1px solid #ccc',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                  }}
-                  title="Insert date format"
-                >
-                  + Date
-                </button>
-              </div>
-            </div>
+            <TemplateTagEditor
+              value={frontmatter.templateBody || ''}
+              onChange={(value) => onFrontmatterChange('templateBody', value)}
+              onFocus={(e) => {
+                const target = e.target
+                if (target instanceof HTMLTextAreaElement) {
+                  setTagInserterInputRef(target)
+                  setTagInserterFieldKey('templateBody')
+                }
+              }}
+              placeholder='Enter content to insert with tags like <%- fieldKey %> or <%- date.format("YYYY-MM-DD") %>'
+              minRows={5}
+              maxRows={15}
+              fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+              actionButtons={
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleTagInserterButtonClick(e, 'field', 'templateBody')
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: '#f0f0f0',
+                      border: '1px solid #ccc',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      zIndex: 100,
+                    }}
+                    title="Insert field variable"
+                  >
+                    + Field
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleTagInserterButtonClick(e, 'date', 'templateBody')
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: '#f0f0f0',
+                      border: '1px solid #ccc',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      zIndex: 100,
+                    }}
+                    title="Insert date format"
+                  >
+                    + Date
+                  </button>
+                </>
+              }
+            />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               Use template tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%- date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates
             </div>
@@ -304,68 +310,79 @@ export function ProcessingMethodSection({
               New Note Title:
               <InfoIcon text="The title for the new note that will be created. You can use template tags like <%- fieldKey %> to dynamically generate the title based on form field values. The field expands to show long template tags." />
             </label>
-            <div style={{ position: 'relative' }}>
-              <TemplateTagEditor
-                value={frontmatter.newNoteTitle || ''}
-                onChange={(value) => {
-                  // Strip newlines and trim the value
-                  const cleanedValue = value.replace(/\n/g, ' ').trim()
-                  onFrontmatterChange('newNoteTitle', cleanedValue)
-                }}
-                onFocus={(e) => {
-                  const target = e.target
-                  if (target instanceof HTMLTextAreaElement) {
-                    setTagInserterInputRef(target)
-                    setTagInserterFieldKey('newNoteTitle')
-                  }
-                }}
-                placeholder="e.g., <%- noteTitle %> or Project: <%- projectName %>"
-                minRows={2}
-                maxRows={5}
-                fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
-                style={{ paddingRight: '8rem' }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '0.5rem',
-                  top: '0.5rem',
-                  display: 'flex',
-                  gap: '0.25rem',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={(e) => handleTagInserterButtonClick(e, 'field', 'newNoteTitle')}
-                  style={{
-                    fontSize: '0.75rem',
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: '#f0f0f0',
-                    border: '1px solid #ccc',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                  }}
-                  title="Insert field variable"
-                >
-                  + Field
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => handleTagInserterButtonClick(e, 'date', 'newNoteTitle')}
-                  style={{
-                    fontSize: '0.75rem',
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: '#f0f0f0',
-                    border: '1px solid #ccc',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                  }}
-                  title="Insert date format"
-                >
-                  + Date
-                </button>
-              </div>
-            </div>
+            <TemplateTagEditor
+              value={frontmatter.newNoteTitle || ''}
+              onChange={(value) => {
+                // Strip newlines only (allow trailing spaces - trim on save)
+                const cleanedValue = value.replace(/\n/g, ' ')
+                onFrontmatterChange('newNoteTitle', cleanedValue)
+              }}
+              onFocus={(e) => {
+                const target = e.target
+                if (target instanceof HTMLTextAreaElement) {
+                  setTagInserterInputRef(target)
+                  setTagInserterFieldKey('newNoteTitle')
+                }
+              }}
+              placeholder="e.g., <%- noteTitle %> or Project: <%- projectName %>"
+              minRows={2}
+              maxRows={5}
+              fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+              actionButtons={
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleTagInserterButtonClick(e, 'field', 'newNoteTitle')
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: '#f0f0f0',
+                      border: '1px solid #ccc',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      zIndex: 100,
+                    }}
+                    title="Insert field variable"
+                  >
+                    + Field
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleTagInserterButtonClick(e, 'date', 'newNoteTitle')
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: '#f0f0f0',
+                      border: '1px solid #ccc',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      zIndex: 100,
+                    }}
+                    title="Insert date format"
+                  >
+                    + Date
+                  </button>
+                </>
+              }
+            />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               Use template tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%- date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates
             </div>
@@ -386,7 +403,7 @@ export function ProcessingMethodSection({
                     setTagInserterFieldKey('templateBody')
                   }
                 }}
-                placeholder="Enter content to insert with tags like <%- fieldKey %> or <%- date.format(&quot;YYYY-MM-DD&quot;) %>"
+                placeholder='Enter content to insert with tags like <%- fieldKey %> or <%- date.format("YYYY-MM-DD") %>'
                 minRows={5}
                 maxRows={15}
                 fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
@@ -404,7 +421,15 @@ export function ProcessingMethodSection({
               >
                 <button
                   type="button"
-                  onClick={(e) => handleTagInserterButtonClick(e, 'field', 'templateBody')}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleTagInserterButtonClick(e, 'field', 'templateBody')
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
                   style={{
                     fontSize: '0.75rem',
                     padding: '0.25rem 0.5rem',
@@ -412,6 +437,8 @@ export function ProcessingMethodSection({
                     border: '1px solid #ccc',
                     borderRadius: '3px',
                     cursor: 'pointer',
+                    position: 'relative',
+                    zIndex: 100,
                   }}
                   title="Insert field variable"
                 >
@@ -419,7 +446,15 @@ export function ProcessingMethodSection({
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => handleTagInserterButtonClick(e, 'date', 'templateBody')}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleTagInserterButtonClick(e, 'date', 'templateBody')
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
                   style={{
                     fontSize: '0.75rem',
                     padding: '0.25rem 0.5rem',
@@ -427,6 +462,8 @@ export function ProcessingMethodSection({
                     border: '1px solid #ccc',
                     borderRadius: '3px',
                     cursor: 'pointer',
+                    position: 'relative',
+                    zIndex: 100,
                   }}
                   title="Insert date format"
                 >
@@ -435,7 +472,8 @@ export function ProcessingMethodSection({
               </div>
             </div>
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Enter the template content that will be used to create the new note. Use tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%- date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates.
+              Enter the template content that will be used to create the new note. Use tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%-
+              date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates.
             </div>
           </div>
           <div className="frontmatter-field">
@@ -508,9 +546,7 @@ export function ProcessingMethodSection({
                 onLoadNotes()
               }}
             />
-            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Select an existing processing template, or create a new one below
-            </div>
+            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>Select an existing processing template, or create a new one below</div>
           </div>
           <div className="frontmatter-field">
             <button
@@ -533,7 +569,7 @@ export function ProcessingMethodSection({
           </div>
         </>
       )}
-      
+
       {/* Debug JSON Viewer */}
       <div className="frontmatter-field" style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color, #ddd)' }}>
         <label style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>Debug: Frontmatter Values (JSON)</label>
@@ -574,12 +610,16 @@ export function ProcessingMethodSection({
           Current frontmatter values for debugging. This shows what will be saved.
         </div>
       </div>
-      
+
       {/* Template Tag Inserter Modal */}
       {showTagInserter && (
         <TemplateTagInserter
           isOpen={showTagInserter}
-          onClose={() => setShowTagInserter(false)}
+          onClose={() => {
+            setShowTagInserter(false)
+            setTagInserterAnchorElement(null)
+          }}
+          anchorElement={tagInserterAnchorElement}
           onInsert={(tag: string) => {
             // Insert tag at cursor position
             if (tagInserterInputRef && tagInserterFieldKey) {
@@ -587,10 +627,10 @@ export function ProcessingMethodSection({
               const end = tagInserterInputRef.selectionEnd || 0
               const currentValue = tagInserterInputRef.value || ''
               const newValue = currentValue.substring(0, start) + tag + currentValue.substring(end)
-              
+
               // Update the field based on the tracked field key
               onFrontmatterChange(tagInserterFieldKey, newValue)
-              
+
               // Set cursor position after inserted text
               setTimeout(() => {
                 tagInserterInputRef.focus()
@@ -599,7 +639,9 @@ export function ProcessingMethodSection({
               }, 0)
             }
           }}
-          fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => ({ key: f.key || '', label: f.label }))}
+          fields={fields
+            .filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading' && f.type !== 'templatejs-block')
+            .map((f) => ({ key: f.key || '', label: f.label, type: f.type }))}
           showDateFormats={true}
           mode={tagInserterMode}
         />
@@ -609,4 +651,3 @@ export function ProcessingMethodSection({
 }
 
 export default ProcessingMethodSection
-

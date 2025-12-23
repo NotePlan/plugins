@@ -6,13 +6,14 @@
   justify-content: center;
   width: 1.2em;
   height: 1.2em;
-  margin-left: 0.25rem;
+  margin-left: 0.15rem;
   cursor: pointer;
   color: var(--tint-color, #007aff);
   font-size: 0.9em;
   vertical-align: middle;
   user-select: none;
   transition: opacity 0.2s ease;
+  opacity: 0.8;
 }
 
 .info-icon:hover {

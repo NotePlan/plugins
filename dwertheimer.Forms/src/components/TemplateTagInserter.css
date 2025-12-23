@@ -129,3 +129,50 @@
   background-color: var(--bg-alt-color, #f5f5f5);
 }
 
+/* Backdrop for dropdown mode */
+.template-tag-inserter-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: transparent;
+}
+
+/* Dropdown container */
+.template-tag-inserter-dropdown {
+  background: var(--bg-main-color, #fff);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.5rem;
+  max-height: 70vh;
+  min-height: 200px;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure SearchableChooser inside dropdown can expand */
+.template-tag-inserter-dropdown .template-tag-inserter-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: visible;
+}
+
+/* Allow the SearchableChooser dropdown list to expand properly */
+.template-tag-inserter-dropdown .template-tag-inserter-container .template-tag-inserter-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 50vh;
+  min-height: 150px;
+  overflow-y: auto;
+  z-index: 10001;
+}
+

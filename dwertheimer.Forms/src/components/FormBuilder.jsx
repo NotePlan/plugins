@@ -5,6 +5,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useState, useEffect, useMemo, useCallback, type Node } from 'react'
+import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { useAppContext } from './AppContext.jsx'
 import { ProcessingMethodSection } from './ProcessingMethodSection.jsx'
 import { type TSettingItem, type TSettingItemType } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
@@ -22,8 +23,10 @@ type FormBuilderProps = {
   formTitle?: string,
   allowEmptySubmit?: boolean,
   hideDependentItems?: boolean,
-  width?: ?number,
-  height?: ?number,
+  width?: ?number | ?string,
+  height?: ?number | ?string,
+  x?: ?number | ?string,
+  y?: ?number | ?string,
   templateBody?: string, // Load from codeblock
   templateRunnerArgs?: { [key: string]: any }, // TemplateRunner processing variables (loaded from codeblock)
   isNewForm?: boolean,
@@ -43,7 +46,6 @@ const FIELD_TYPES: Array<FieldTypeOption> = [
   { value: 'input', label: 'Text Input', description: 'Single-line text field' },
   { value: 'input-readonly', label: 'Read-only (display value) field', description: 'Display-only text field' },
   { value: 'textarea', label: 'Expandable Textarea', description: 'Multi-line text field that expands as you type' },
-  { value: 'templatejs-block', label: 'TemplateJS Block', description: 'JavaScript code block that executes during template processing' },
   { value: 'number', label: 'Number', description: 'Numeric input with increment/decrement' },
   { value: 'text', label: 'Text', description: 'Display-only text/instructions' },
   { value: 'switch', label: 'Switch', description: 'Toggle on/off' },
@@ -60,6 +62,7 @@ const FIELD_TYPES: Array<FieldTypeOption> = [
   { value: 'button-group', label: 'Button Group', description: 'Group of mutually exclusive selectable buttons (like a toggle group or radio buttons)' },
   { value: 'json', label: 'JSON Editor', description: 'JSON data editor' },
   { value: 'hidden', label: 'Hidden Field', description: 'Hidden data field' },
+  { value: 'templatejs-block', label: 'TemplateJS Block', description: 'JavaScript code block that executes during template processing' },
 ]
 
 //--------------------------------------------------------------------------
@@ -99,6 +102,7 @@ export function FormBuilder({
   const [tagInserterInputRef, setTagInserterInputRef] = useState<?HTMLInputElement | ?HTMLTextAreaElement>(null)
   const [tagInserterFieldKey, setTagInserterFieldKey] = useState<string>('')
   const [tagInserterMode, setTagInserterMode] = useState<'field' | 'date' | 'both'>('both')
+  const [showWindowSettings, setShowWindowSettings] = useState<boolean>(false)
   const [frontmatter, setFrontmatter] = useState<{ [key: string]: any }>(() => {
     // Strip quotes from initial values to prevent saving quoted values
     const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''
@@ -115,6 +119,8 @@ export function FormBuilder({
       hideDependentItems: hideDependentItems || false,
       width: width,
       height: height,
+      x: undefined,
+      y: undefined,
       // Option A: Write to existing file (defaults)
       getNoteTitled: '',
       location: 'append',
@@ -377,6 +383,7 @@ export function FormBuilder({
       type,
       key: type === 'separator' || type === 'heading' ? undefined : `field${fields.length + 1}`,
       label: type === 'separator' ? undefined : `${type} field`,
+      compactDisplay: type !== 'separator' && type !== 'heading' && type !== 'calendarpicker' ? true : undefined, // Default to compact display for most fields
     }
     let newField: TSettingItem = baseField
     if (type === 'switch') {
@@ -468,231 +475,321 @@ export function FormBuilder({
           </button>
         </div>
       </div>
-      <div className="form-builder-content">
-        <div className="form-builder-sidebar">
-          <div className="sidebar-section">
-            <div className="form-section-header">
-              <h3>Form Settings</h3>
-            </div>
-            <div className="frontmatter-editor">
-              <div className="frontmatter-field">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  Window Title:
-                  <InfoIcon text="The title that appears in the window bar when the form is opened. This is what users will see in the window title bar." />
-                </label>
-                <input
-                  type="text"
-                  value={frontmatter.windowTitle || ''}
-                  onChange={(e) => handleFrontmatterChange('windowTitle', e.target.value)}
-                  placeholder="Form Window"
-                  style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                />
-              </div>
-              <div className="frontmatter-field">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  Form Heading:
-                  <InfoIcon text="The main heading that appears at the top of the form. This is the primary title users will see when they open the form." />
-                </label>
-                <input
-                  type="text"
-                  value={frontmatter.formTitle || ''}
-                  onChange={(e) => handleFrontmatterChange('formTitle', e.target.value)}
-                  placeholder="Form Heading"
-                  style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                />
-              </div>
-              <div className="frontmatter-field">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={frontmatter.allowEmptySubmit || false} onChange={(e) => handleFrontmatterChange('allowEmptySubmit', e.target.checked)} />
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    Allow Empty Submit
-                    <InfoIcon text="If checked, users can submit the form even if no fields are filled in. If unchecked, at least one field must have a value before the form can be submitted." />
-                  </span>
-                </label>
-              </div>
-              <div className="frontmatter-field">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={frontmatter.hideDependentItems || false} onChange={(e) => handleFrontmatterChange('hideDependentItems', e.target.checked)} />
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    Hide Dependent Items
-                    <InfoIcon text="If checked, fields that depend on other fields (using 'dependsOnKey') will be hidden until their dependency is satisfied. This creates a cleaner form interface by only showing relevant fields." />
-                  </span>
-                </label>
-              </div>
-              <div className="frontmatter-field">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  Window Size:
-                  <InfoIcon text="The size of the popup window that holds the form. Minimum size is 200x200 pixels. Leave empty to use default size." />
-                </label>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Width:</label>
+      <div className="form-builder-content resizable">
+        <PanelGroup direction="horizontal" className="form-builder-panels">
+          <Panel defaultSize={25} minSize={15} order={1}>
+            <div className="form-builder-sidebar">
+              <div className="sidebar-section">
+                <div className="form-section-header">
+                  <h3>Form Settings</h3>
+                </div>
+                <div className="frontmatter-editor">
+                  <div className="frontmatter-field">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      Window Title:
+                      <InfoIcon text="The title that appears in the window bar when the form is opened. This is what users will see in the window title bar." />
+                    </label>
                     <input
-                      type="number"
-                      value={frontmatter.width || ''}
-                      onChange={(e) => handleFrontmatterChange('width', e.target.value ? parseInt(e.target.value, 10) : undefined)}
-                      onBlur={(e) => {
-                        const value = e.target.value ? parseInt(e.target.value, 10) : undefined
-                        if (value !== undefined && value < 200) {
-                          alert('Window width must be at least 200 pixels. Please enter a value of 200 or greater, or leave it empty.')
-                          handleFrontmatterChange('width', undefined) // Clear invalid value
-                        }
-                      }}
-                      placeholder="e.g., 750"
-                      min="200"
-                      style={{ width: '100%', padding: '0.5rem' }}
+                      type="text"
+                      value={frontmatter.windowTitle || ''}
+                      onChange={(e) => handleFrontmatterChange('windowTitle', e.target.value)}
+                      placeholder="Form Window"
+                      style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
                     />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Height:</label>
+                  <div className="frontmatter-field">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      Form Heading:
+                      <InfoIcon text="The main heading that appears at the top of the form. This is the primary title users will see when they open the form." />
+                    </label>
                     <input
-                      type="number"
-                      value={frontmatter.height || ''}
-                      onChange={(e) => handleFrontmatterChange('height', e.target.value ? parseInt(e.target.value, 10) : undefined)}
-                      onBlur={(e) => {
-                        const value = e.target.value ? parseInt(e.target.value, 10) : undefined
-                        if (value !== undefined && value < 200) {
-                          alert('Window height must be at least 200 pixels. Please enter a value of 200 or greater, or leave it empty.')
-                          handleFrontmatterChange('height', undefined) // Clear invalid value
-                        }
-                      }}
-                      placeholder="e.g., 750"
-                      min="200"
-                      style={{ width: '100%', padding: '0.5rem' }}
+                      type="text"
+                      value={frontmatter.formTitle || ''}
+                      onChange={(e) => handleFrontmatterChange('formTitle', e.target.value)}
+                      placeholder="Form Heading"
+                      style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
                     />
                   </div>
-                </div>
-                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                  Note: You will need to open the form to see the window size settings take effect. Minimum size is 200x200 pixels.
-                </div>
-              </div>
-              <ProcessingMethodSection
-                processingMethod={frontmatter.processingMethod || 'write-existing'}
-                frontmatter={frontmatter}
-                notes={notes}
-                folders={folders}
-                requestFromPlugin={requestFromPlugin}
-                onFrontmatterChange={handleFrontmatterChange}
-                onLoadNotes={loadNotes}
-                onLoadFolders={loadFolders}
-                templateTitle={templateTitle}
-                showTagInserter={showTagInserter}
-                setShowTagInserter={setShowTagInserter}
-                tagInserterInputRef={tagInserterInputRef}
-                setTagInserterInputRef={setTagInserterInputRef}
-                tagInserterFieldKey={tagInserterFieldKey}
-                setTagInserterFieldKey={setTagInserterFieldKey}
-                tagInserterMode={tagInserterMode}
-                setTagInserterMode={setTagInserterMode}
-                fields={fields}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="form-builder-main">
-          <div className="form-builder-editor">
-            <div className="form-section-header">
-              <h3>Form Fields</h3>
-              <button className="add-field-button-small" onClick={() => setShowAddField(true)}>
-                + Add Field
-              </button>
-            </div>
-            <div className="form-fields-list">
-              {fields.length === 0 ? (
-                <div className="empty-state">No fields yet. Click &quot;Add Field&quot; to get started.</div>
-              ) : (
-                fields.map((field, index) => {
-                  const isDragging = draggedIndex === index
-                  const isDragOver = dragOverIndex === index
-                  const showDropIndicator = isDragOver && draggedIndex != null && draggedIndex !== index
-                  const isDraggingDown = draggedIndex != null && typeof draggedIndex === 'number' && draggedIndex < index
-
-                  return (
-                    <React.Fragment key={`field-${index}`}>
-                      {showDropIndicator && !isDraggingDown && <div className="field-drop-indicator" />}
-                      <div
-                        className={`form-field-item ${isDragging ? 'dragging' : ''} ${editingIndex === index ? 'editing' : ''}`}
-                        draggable={true}
-                        onDragStart={(e) => handleDragStart(e, index)}
-                        onDragOver={(e) => handleDragOver(e, index)}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, index)}
-                        onDragEnd={handleDragEnd}
+                  <div className="frontmatter-field">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={frontmatter.allowEmptySubmit || false} onChange={(e) => handleFrontmatterChange('allowEmptySubmit', e.target.checked)} />
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        Allow Empty Submit
+                        <InfoIcon text="If checked, users can submit the form even if no fields are filled in. If unchecked, at least one field must have a value before the form can be submitted." />
+                      </span>
+                    </label>
+                  </div>
+                  <div className="frontmatter-field">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={frontmatter.hideDependentItems || false} onChange={(e) => handleFrontmatterChange('hideDependentItems', e.target.checked)} />
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        Hide Dependent Items
+                        <InfoIcon text="If checked, fields that depend on other fields (using 'dependsOnKey') will be hidden until their dependency is satisfied. This creates a cleaner form interface by only showing relevant fields." />
+                      </span>
+                    </label>
+                  </div>
+                  <div className="frontmatter-field">
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                      }}
+                      onClick={() => setShowWindowSettings(!showWindowSettings)}
+                    >
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          transition: 'transform 0.2s',
+                          transform: showWindowSettings ? 'rotate(90deg)' : 'rotate(0deg)',
+                          fontSize: '0.75rem',
+                          color: '#666',
+                        }}
                       >
-                        <div className="field-handle">
-                          <i className="fa-solid fa-grip-vertical"></i>
-                        </div>
-                        <div
-                          className="field-content"
-                          onClick={() => {
-                            // Don't open editor for separator - it has no editable properties
-                            if (field.type !== 'separator') {
-                              setEditingIndex(index)
-                            }
-                          }}
-                          style={{ cursor: field.type === 'separator' ? 'default' : 'pointer' }}
-                        >
-                          <div className="field-header">
-                            <span className="field-type-badge">{field.type}</span>
-                            <span className="field-label-preview">{field.label || field.key || ''}</span>
+                        ▶
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        Window Size & Position:
+                        <InfoIcon text="The size and position of the popup window. You can use pixels (e.g., 750) or percentages (e.g., 50%). Minimum size is 200x200 pixels. Leave empty to use defaults or center the window." />
+                      </span>
+                    </label>
+                    {showWindowSettings && (
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                          <div style={{ flex: '0 0 100px' }}>
+                            <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Width:</label>
+                            <input
+                              type="text"
+                              value={frontmatter.width || ''}
+                              onChange={(e) => handleFrontmatterChange('width', e.target.value || undefined)}
+                              onBlur={(e) => {
+                                const value = e.target.value.trim()
+                                if (value) {
+                                  const numValue = parseInt(value, 10)
+                                  if (isNaN(numValue) && !value.endsWith('%')) {
+                                    alert('Window width must be a number (e.g., 750) or a percentage (e.g., 50%).')
+                                    handleFrontmatterChange('width', undefined)
+                                  } else if (!value.endsWith('%') && numValue < 200) {
+                                    alert('Window width must be at least 200 pixels. Please enter a value of 200 or greater, or use a percentage.')
+                                    handleFrontmatterChange('width', undefined)
+                                  }
+                                }
+                              }}
+                              placeholder="750 or 50%"
+                              style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
+                            />
                           </div>
-                          {field.description && <div className="field-description-preview">{field.description}</div>}
-                          {field.key && (
-                            <div className="field-key-preview">
-                              <code>key: {field.key}</code>
-                            </div>
-                          )}
+                          <div style={{ flex: '0 0 100px' }}>
+                            <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Height:</label>
+                            <input
+                              type="text"
+                              value={frontmatter.height || ''}
+                              onChange={(e) => handleFrontmatterChange('height', e.target.value || undefined)}
+                              onBlur={(e) => {
+                                const value = e.target.value.trim()
+                                if (value) {
+                                  const numValue = parseInt(value, 10)
+                                  if (isNaN(numValue) && !value.endsWith('%')) {
+                                    alert('Window height must be a number (e.g., 750) or a percentage (e.g., 50%).')
+                                    handleFrontmatterChange('height', undefined)
+                                  } else if (!value.endsWith('%') && numValue < 200) {
+                                    alert('Window height must be at least 200 pixels. Please enter a value of 200 or greater, or use a percentage.')
+                                    handleFrontmatterChange('height', undefined)
+                                  }
+                                }
+                              }}
+                              placeholder="750 or 50%"
+                              style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
+                            />
+                          </div>
+                          <div style={{ flex: '0 0 100px' }}>
+                            <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>X:</label>
+                            <input
+                              type="text"
+                              value={frontmatter.x || ''}
+                              onChange={(e) => handleFrontmatterChange('x', e.target.value || undefined)}
+                              onBlur={(e) => {
+                                const value = e.target.value.trim()
+                                if (value) {
+                                  const numValue = parseInt(value, 10)
+                                  if (isNaN(numValue) && !value.endsWith('%')) {
+                                    alert('Window X position must be a number (e.g., 100) or a percentage (e.g., 25%).')
+                                    handleFrontmatterChange('x', undefined)
+                                  }
+                                }
+                              }}
+                              placeholder="100 or 25%"
+                              style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
+                            />
+                          </div>
+                          <div style={{ flex: '0 0 100px' }}>
+                            <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Y:</label>
+                            <input
+                              type="text"
+                              value={frontmatter.y || ''}
+                              onChange={(e) => handleFrontmatterChange('y', e.target.value || undefined)}
+                              onBlur={(e) => {
+                                const value = e.target.value.trim()
+                                if (value) {
+                                  const numValue = parseInt(value, 10)
+                                  if (isNaN(numValue) && !value.endsWith('%')) {
+                                    alert('Window Y position must be a number (e.g., 100) or a percentage (e.g., 25%).')
+                                    handleFrontmatterChange('y', undefined)
+                                  }
+                                }
+                              }}
+                              placeholder="100 or 25%"
+                              style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
+                            />
+                          </div>
                         </div>
-                        <div className="field-actions">
-                          {field.type !== 'separator' && (
-                            <button className="field-edit-button" onClick={() => setEditingIndex(editingIndex === index ? null : index)} title="Edit field">
-                              <i className="fa-solid fa-edit"></i>
-                            </button>
-                          )}
-                          <button className="field-delete-button" onClick={() => handleDeleteField(index)} title="Delete field">
-                            <i className="fa-solid fa-trash"></i>
-                          </button>
+                        <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                          Use pixels (e.g., 750) or percentages (e.g., 50%). Minimum Width x Height is 200 x 200 pixels. Leave empty to use defaults.
                         </div>
                       </div>
-                      {showDropIndicator && isDraggingDown && <div className="field-drop-indicator" />}
-                    </React.Fragment>
-                  )
-                })
-              )}
-            </div>
-          </div>
-          <div className="form-builder-preview">
-            <div className="form-section-header">
-              <h3>Preview</h3>
-            </div>
-            <div className="form-preview-container">
-              <div className="form-preview-window">
-                <div className="form-preview-window-titlebar">
-                  <span className="form-preview-window-title">{stripDoubleQuotes(frontmatter.windowTitle || '') || 'Form Window'}</span>
-                </div>
-                <div className="form-preview-window-content">
-                  <DynamicDialog
-                    isOpen={true}
-                    isModal={false}
-                    title={stripDoubleQuotes(frontmatter.formTitle || '') || 'Form Heading'}
-                    items={fields}
-                    hideHeaderButtons={true}
-                    onSave={() => {}}
-                    onCancel={() => {}}
-                    handleButtonClick={() => {}}
-                    style={{ width: '100%', maxWidth: '100%', margin: 0 }}
-                    allowEmptySubmit={frontmatter.allowEmptySubmit || false}
-                    hideDependentItems={frontmatter.hideDependentItems || false}
+                    )}
+                  </div>
+                  <ProcessingMethodSection
+                    processingMethod={frontmatter.processingMethod || 'write-existing'}
+                    frontmatter={frontmatter}
+                    notes={notes}
                     folders={folders}
-                    notes={(notes: any)} // NoteOption array - cast to any to avoid Flow invariant array type issues
                     requestFromPlugin={requestFromPlugin}
+                    onFrontmatterChange={handleFrontmatterChange}
+                    onLoadNotes={loadNotes}
+                    onLoadFolders={loadFolders}
+                    templateTitle={templateTitle}
+                    showTagInserter={showTagInserter}
+                    setShowTagInserter={setShowTagInserter}
+                    tagInserterInputRef={tagInserterInputRef}
+                    setTagInserterInputRef={setTagInserterInputRef}
+                    tagInserterFieldKey={tagInserterFieldKey}
+                    setTagInserterFieldKey={setTagInserterFieldKey}
+                    tagInserterMode={tagInserterMode}
+                    setTagInserterMode={setTagInserterMode}
+                    fields={fields}
                   />
+                </div>
+                {/* frontmatter-editor */}
+              </div>
+              {/* sidebar-section */}
+            </div>
+            {/* form-builder-sidebar */}
+          </Panel>
+          <PanelResizeHandle className="form-builder-resize-handle" />
+          <Panel defaultSize={40} minSize={20} order={2}>
+            <div className="form-builder-main">
+              <div className="form-builder-editor">
+                <div className="form-section-header">
+                  <h3>Form Fields</h3>
+                  <button className="add-field-button-small" onClick={() => setShowAddField(true)}>
+                    + Add Field
+                  </button>
+                </div>
+                <div className="form-fields-list">
+                  {fields.length === 0 ? (
+                    <div className="empty-state">No fields yet. Click &quot;Add Field&quot; to get started.</div>
+                  ) : (
+                    fields.map((field, index) => {
+                      const isDragging = draggedIndex === index
+                      const isDragOver = dragOverIndex === index
+                      const showDropIndicator = isDragOver && draggedIndex != null && draggedIndex !== index
+                      const isDraggingDown = draggedIndex != null && typeof draggedIndex === 'number' && draggedIndex < index
+
+                      return (
+                        <React.Fragment key={`field-${index}`}>
+                          {showDropIndicator && !isDraggingDown && <div className="field-drop-indicator" />}
+                          <div
+                            className={`form-field-item ${isDragging ? 'dragging' : ''} ${editingIndex === index ? 'editing' : ''}`}
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, index)}
+                            onDragOver={(e) => handleDragOver(e, index)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, index)}
+                            onDragEnd={handleDragEnd}
+                          >
+                            <div className="field-handle">
+                              <i className="fa-solid fa-grip-vertical"></i>
+                            </div>
+                            <div
+                              className="field-content"
+                              onClick={() => {
+                                // Don't open editor for separator - it has no editable properties
+                                if (field.type !== 'separator') {
+                                  setEditingIndex(index)
+                                }
+                              }}
+                              style={{ cursor: field.type === 'separator' ? 'default' : 'pointer' }}
+                            >
+                              <div className="field-header">
+                                <span className="field-type-badge">{field.type}</span>
+                                <span className="field-label-preview">{field.label || field.key || ''}</span>
+                              </div>
+                              {field.description && <div className="field-description-preview">{field.description}</div>}
+                              {field.key && (
+                                <div className="field-key-preview">
+                                  <code>key: {field.key}</code>
+                                </div>
+                              )}
+                            </div>
+                            <div className="field-actions">
+                              {field.type !== 'separator' && (
+                                <button className="field-edit-button" onClick={() => setEditingIndex(editingIndex === index ? null : index)} title="Edit field">
+                                  <i className="fa-solid fa-edit"></i>
+                                </button>
+                              )}
+                              <button className="field-delete-button" onClick={() => handleDeleteField(index)} title="Delete field">
+                                <i className="fa-solid fa-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                          {showDropIndicator && isDraggingDown && <div className="field-drop-indicator" />}
+                        </React.Fragment>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+              {/* form-builder-editor */}
+            </div>
+            {/* form-builder-main */}
+          </Panel>
+          <PanelResizeHandle className="form-builder-resize-handle" />
+          <Panel defaultSize={35} minSize={20} order={3}>
+            <div className="form-builder-preview">
+              <div className="form-section-header">
+                <h3>Preview</h3>
+              </div>
+              <div className="form-preview-container">
+                <div className="form-preview-window">
+                  <div className="form-preview-window-titlebar">
+                    <span className="form-preview-window-title">{stripDoubleQuotes(frontmatter.windowTitle || '') || 'Form Window'}</span>
+                  </div>
+                  <div className="form-preview-window-content">
+                    <DynamicDialog
+                      isOpen={true}
+                      isModal={false}
+                      title={stripDoubleQuotes(frontmatter.formTitle || '') || 'Form Heading'}
+                      items={fields}
+                      hideHeaderButtons={true}
+                      onSave={() => {}}
+                      onCancel={() => {}}
+                      handleButtonClick={() => {}}
+                      style={{ width: '100%', maxWidth: '100%', margin: 0 }}
+                      allowEmptySubmit={frontmatter.allowEmptySubmit || false}
+                      hideDependentItems={frontmatter.hideDependentItems || false}
+                      folders={folders}
+                      notes={(notes: any)} // NoteOption array - cast to any to avoid Flow invariant array type issues
+                      requestFromPlugin={requestFromPlugin}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </Panel>
+        </PanelGroup>
       </div>
 
       {showAddField && (
@@ -965,7 +1062,15 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
           {needsKey && (
             <div className="field-editor-row">
               <label>Key (variable name):</label>
-              <input type="text" value={editedField.key || ''} onChange={(e) => updateField({ key: e.target.value })} placeholder="e.g., projectName" />
+              <input
+                type="text"
+                value={editedField.key || ''}
+                onChange={(e) => {
+                  const newKey = e.target.value
+                  updateField({ key: newKey })
+                }}
+                placeholder="e.g., projectName"
+              />
               <div className="field-editor-help">This becomes the variable name in your template (so it&apos;s best to give it a descriptive name)</div>
             </div>
           )}
@@ -1049,6 +1154,38 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
                 <label>Maximum Rows:</label>
                 <input type="number" value={editedField.maxRows || 10} onChange={(e) => updateField({ maxRows: parseInt(e.target.value, 10) || 10 })} min="1" max="50" />
                 <div className="field-editor-help">Maximum height before scrolling (default: 10)</div>
+              </div>
+            </>
+          ) : null}
+
+          {editedField.type === 'templatejs-block' ? (
+            <>
+              <div className="field-editor-row">
+                <label>TemplateJS Code:</label>
+                <textarea
+                  value={((editedField: any): { templateJSContent?: string }).templateJSContent || ''}
+                  onChange={(e) => {
+                    updateField((({ templateJSContent: e.target.value }: any): Partial<TSettingItem>))
+                  }}
+                  placeholder="// Enter JavaScript to run for this form"
+                  rows={10}
+                  style={{ width: '100%', fontFamily: 'Menlo, monospace' }}
+                />
+                <div className="field-editor-help">
+                  Stored as plain text in the form definition. The form executor will wrap it in a <code>templateJS</code> code block at runtime.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>When to Execute:</label>
+                <select
+                  value={((editedField: any): { executeTiming?: 'before' | 'after' }).executeTiming || 'after'}
+                  onChange={(e) => updateField((({ executeTiming: (e.target.value: any) || 'after' }: any): Partial<TSettingItem>))}
+                  style={{ width: '100%', padding: '0.5rem' }}
+                >
+                  <option value="before">Before form fields render</option>
+                  <option value="after">After form fields render</option>
+                </select>
+                <div className="field-editor-help">Determines when this TemplateJS block runs during processing.</div>
               </div>
             </>
           ) : null}

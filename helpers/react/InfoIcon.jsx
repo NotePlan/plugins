@@ -31,15 +31,10 @@ export function InfoIcon({ text, position = 'top', className = '' }: InfoIconPro
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target
       if (!(target instanceof Node)) return
-      
+
       const icon = iconRef.current
       const tooltip = tooltipRef.current
-      if (
-        icon &&
-        tooltip &&
-        !icon.contains(target) &&
-        !tooltip.contains(target)
-      ) {
+      if (icon && tooltip && !icon.contains(target) && !tooltip.contains(target)) {
         setIsVisible(false)
       }
     }
@@ -57,7 +52,7 @@ export function InfoIcon({ text, position = 'top', className = '' }: InfoIconPro
     const iconRect = iconRef.current.getBoundingClientRect()
     const tooltip = tooltipRef.current
     if (!tooltip) return
-    
+
     const tooltipRect = tooltip.getBoundingClientRect()
 
     let top = 0
@@ -114,7 +109,7 @@ export function InfoIcon({ text, position = 'top', className = '' }: InfoIconPro
         aria-label="Show information"
         title="Click or hover for more information"
       >
-        ℹ️
+        ⓘ
       </span>
       {isVisible && (
         <div
@@ -133,4 +128,3 @@ export function InfoIcon({ text, position = 'top', className = '' }: InfoIconPro
 }
 
 export default InfoIcon
-

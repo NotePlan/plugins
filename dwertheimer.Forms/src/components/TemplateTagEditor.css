@@ -10,6 +10,23 @@
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.template-tag-editor-action-buttons {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.template-tag-editor-action-buttons button {
+  pointer-events: auto;
+  position: relative;
+  z-index: 10;
 }
 
 .template-tag-toggle-switch {
@@ -86,10 +103,12 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  position: relative;
 }
 
 /* Pill mode container */
 .template-tag-editor-pills-container {
+  position: relative;
   min-height: 3em;
   padding: 0.5rem;
   border: 1px solid var(--border-color, #ddd);
@@ -109,6 +128,8 @@
   gap: 0.25rem;
   align-items: center;
   min-height: 1.5em;
+  position: relative;
+  z-index: 2;
 }
 
 /* Pill styles */
@@ -122,6 +143,7 @@
   transition: all 0.2s ease;
   user-select: none;
   font-family: Menlo, monospace; /* Monospace for all pills */
+  position: relative;
 }
 
 .template-tag-pill-tag {
@@ -216,27 +238,53 @@
   color: var(--fg-main-color, #333);
 }
 
-/* Drop indicator line */
+/* Drop indicator line - vertical cursor */
 .template-tag-drop-indicator {
-  height: 2px;
+  width: 2px;
+  height: 1.5em;
   background-color: var(--tint-color, #007aff);
-  margin: 0.125rem 0;
+  margin: 0 0.125rem;
   border-radius: 1px;
   box-shadow: 0 0 4px rgba(0, 122, 255, 0.5);
-  width: 100%;
+  display: inline-block;
+  vertical-align: middle;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
 }
 
 /* Drop zone for between pills */
 .template-tag-drop-zone {
-  flex: 1;
-  min-height: 20px;
+  display: inline-block;
+  min-height: 1.5em;
   min-width: 4px;
   cursor: text; /* I-beam cursor */
   transition: background-color 0.2s ease;
+  vertical-align: middle;
+  position: relative;
 }
 
 .template-tag-drop-zone:hover {
   background-color: rgba(0, 122, 255, 0.1);
+}
+
+.template-tag-drop-zone::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: transparent;
+  transform: translateX(-50%);
+  transition: background-color 0.2s ease;
+}
+
+.template-tag-drop-zone:hover::before {
+  background-color: var(--tint-color, #007aff);
 }
 
 /* Empty state */
@@ -264,4 +312,14 @@
   outline: none;
   border-color: var(--tint-color, #007aff);
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+}
+
+/* Sync textarea - overlays pills container */
+.template-tag-editor-sync-textarea {
+  caret-color: var(--tint-color, #007aff);
+  color: transparent; /* Make text transparent so pills show through */
+}
+
+.template-tag-editor-sync-textarea::selection {
+  background-color: rgba(0, 122, 255, 0.2);
 }

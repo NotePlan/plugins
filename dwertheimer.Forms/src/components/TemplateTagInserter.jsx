@@ -4,7 +4,8 @@
 // A SearchableChooser-based component for inserting template tags into text fields
 //--------------------------------------------------------------------------
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import SearchableChooser, { type ChooserConfig } from '@helpers/react/DynamicDialog/SearchableChooser'
 import { truncateText } from '@helpers/react/reactUtils.js'
 import moment from 'moment/min/moment-with-locales'
@@ -22,9 +23,10 @@ export type TemplateTagInserterProps = {
   onClose: () => void,
   onInsert: (tag: string) => void,
   fieldKeys?: Array<string>, // Available form field keys for <%- fieldKey %> (deprecated - use fields instead)
-  fields?: Array<{ key: string, label?: string }>, // Available form fields with keys and labels
+  fields?: Array<{ key: string, label?: string, type?: string }>, // Available form fields with keys and labels
   showDateFormats?: boolean, // Show date format options
   mode?: 'field' | 'date' | 'both', // Mode: 'field' = only fields, 'date' = only dates, 'both' = both (default)
+  anchorElement?: ?HTMLElement, // Element to position dropdown relative to (button that was clicked)
 }
 
 /**
@@ -41,8 +43,52 @@ export function TemplateTagInserter({
   fields = [],
   showDateFormats = true,
   mode = 'both',
+  anchorElement,
 }: TemplateTagInserterProps): React$Node {
   const [searchTerm, setSearchTerm] = useState('')
+  const containerRef = useRef<?HTMLDivElement>(null)
+  const [position, setPosition] = useState<{ top: number, left: number } | null>(null)
+
+  // Position dropdown relative to anchor element and focus input
+  useEffect(() => {
+    if (isOpen && anchorElement) {
+      // Calculate position immediately (synchronously if possible)
+      const calculatePosition = () => {
+        if (anchorElement) {
+          try {
+            const rect = anchorElement.getBoundingClientRect()
+            // Use getBoundingClientRect which gives viewport-relative coordinates
+            // For fixed positioning, we don't need to add scroll offsets
+            setPosition({
+              top: rect.bottom + 4, // 4px gap below button (viewport coordinates)
+              left: rect.left, // viewport coordinates
+            })
+          } catch (error) {
+            // Fallback if getBoundingClientRect fails
+            console.error('Error calculating dropdown position:', error)
+            setPosition({ top: 0, left: 0 })
+          }
+        }
+      }
+
+      // Calculate immediately
+      calculatePosition()
+
+      // Also use requestAnimationFrame as fallback to ensure DOM is ready
+      requestAnimationFrame(() => {
+        calculatePosition()
+        // Focus the input after positioning - SearchableChooser uses id "template-tag-inserter-default"
+        setTimeout(() => {
+          const input = document.getElementById('template-tag-inserter-default')
+          if (input instanceof HTMLInputElement) {
+            input.focus()
+          }
+        }, 0)
+      })
+    } else {
+      setPosition(null)
+    }
+  }, [isOpen, anchorElement])
 
   // Build options list
   const options: Array<TemplateTagOption> = useMemo(() => {
@@ -52,16 +98,21 @@ export function TemplateTagInserter({
     if (mode === 'field' || mode === 'both') {
       // Prefer fields array over fieldKeys array (fields has label information)
       if (fields.length > 0) {
-        fields.forEach((field) => {
-          const key = field.key || ''
-          const label = field.label || key
-          opts.push({
-            label: `${label} (${key})`, // Display format: "label (key)"
-            value: `<%- ${key} %>`,
-            description: `Insert value of form field "${label}"`,
-            category: null, // Don't show category for fields
+        fields
+          .filter((field) => {
+            // Filter out templatejs-block fields - they shouldn't be insertable as template tags
+            return field.type !== 'templatejs-block'
           })
-        })
+          .forEach((field) => {
+            const key = field.key || ''
+            const label = field.label || key
+            opts.push({
+              label: `${label} (${key})`, // Display format: "label (key)"
+              value: `<%- ${key} %>`,
+              description: `Insert value of form field "${label}"`,
+              category: null, // Don't show category for fields
+            })
+          })
       } else if (fieldKeys.length > 0) {
         // Fallback to fieldKeys if fields not provided (backward compatibility)
         fieldKeys.forEach((key) => {
@@ -80,44 +131,44 @@ export function TemplateTagInserter({
       // Use a sample date to generate locale-specific examples
       // Use a date that shows various aspects: weekday, month, day, year, time
       const sampleDate = moment('2024-12-22 14:30:45') // Sunday, December 22, 2024, 2:30 PM
-      
+
       // Set locale from NotePlan environment if available
       if (typeof NotePlan !== 'undefined' && NotePlan.environment) {
         const userLocale = `${NotePlan.environment.languageCode || 'en'}${NotePlan.environment.regionCode ? `-${NotePlan.environment.regionCode}` : ''}`
         moment.locale(userLocale)
       }
-      
+
       // Generate locale-specific examples for common date formats
       const dateFormats = [
         // ISO and standard formats
         { format: 'YYYY-MM-DD', description: 'ISO date format' },
         { format: 'YYYY-MM-DD HH:mm', description: 'ISO date and time (24-hour)' },
         { format: 'YYYY-MM-DD HH:mm:ss', description: 'ISO date and time with seconds' },
-        
+
         // US date formats
         { format: 'MM/DD/YYYY', description: 'US date format' },
         { format: 'MM/DD/YY', description: 'US date format (short year)' },
         { format: 'M/D/YYYY', description: 'US date format (no leading zeros)' },
-        
+
         // European date formats
         { format: 'DD/MM/YYYY', description: 'European date format' },
         { format: 'DD/MM/YY', description: 'European date format (short year)' },
         { format: 'D/M/YYYY', description: 'European date format (no leading zeros)' },
-        
+
         // Long date formats
         { format: 'MMMM Do, YYYY', description: 'Long date format (e.g., December 22nd, 2024)' },
         { format: 'dddd, MMMM Do, YYYY', description: 'Full date with weekday' },
         { format: 'MMMM Do', description: 'Month and day (e.g., December 22nd)' },
-        
+
         // Time formats (12-hour with AM/PM)
         { format: 'h:mm A', description: 'Time (12-hour with AM/PM)' },
         { format: 'hh:mm A', description: 'Time (12-hour with AM/PM, leading zero)' },
         { format: 'h:mm:ss A', description: 'Time with seconds (12-hour with AM/PM)' },
-        
+
         // Time formats (24-hour)
         { format: 'HH:mm', description: 'Time (24-hour)' },
         { format: 'HH:mm:ss', description: 'Time with seconds (24-hour)' },
-        
+
         // Date and time combinations
         { format: 'MM/DD/YYYY h:mm A', description: 'US date and time (12-hour)' },
         { format: 'MM/DD/YYYY HH:mm', description: 'US date and time (24-hour)' },
@@ -125,7 +176,7 @@ export function TemplateTagInserter({
         { format: 'DD/MM/YYYY HH:mm', description: 'European date and time (24-hour)' },
         { format: 'MMMM Do, YYYY h:mm A', description: 'Long date and time (12-hour)' },
         { format: 'MMMM Do, YYYY HH:mm', description: 'Long date and time (24-hour)' },
-        
+
         // Individual components
         { format: 'dddd', description: 'Day of week (full name)' },
         { format: 'ddd', description: 'Day of week (abbreviated)' },
@@ -136,12 +187,12 @@ export function TemplateTagInserter({
         { format: 'Do', description: 'Day of month with ordinal (e.g., 22nd)' },
         { format: 'D', description: 'Day of month (no leading zero)' },
         { format: 'DD', description: 'Day of month (with leading zero)' },
-        
+
         // Week and quarter
         { format: 'wo [week of] YYYY', description: 'Week number and year' },
         { format: 'Qo [quarter] YYYY', description: 'Quarter and year' },
       ]
-      
+
       opts.push(
         ...dateFormats.map((df) => {
           // Generate locale-specific example using moment
@@ -194,6 +245,37 @@ export function TemplateTagInserter({
 
   if (!isOpen) return null
 
+  // If anchorElement is provided, always use dropdown positioning (even if position not calculated yet)
+  if (anchorElement) {
+    const dropdownContent = (
+      <>
+        {/* Backdrop to close on outside click */}
+        <div className="template-tag-inserter-backdrop" onClick={onClose} />
+        <div
+          ref={containerRef}
+          className="template-tag-inserter-dropdown"
+          style={{
+            position: 'fixed',
+            top: position ? `${position.top}px` : '0px',
+            left: position ? `${position.left}px` : '0px',
+            minWidth: '300px',
+            maxWidth: '500px',
+            zIndex: 10000,
+            opacity: position ? 1 : 0,
+            pointerEvents: position ? 'auto' : 'none',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <SearchableChooser label="" value="" disabled={false} compactDisplay={false} placeholder="Type to search template tags..." showValue={false} config={config} />
+        </div>
+      </>
+    )
+
+    // Use portal to render outside the normal DOM hierarchy to avoid clipping by parent containers
+    return typeof document !== 'undefined' && document.body ? createPortal(dropdownContent, document.body) : dropdownContent
+  }
+
+  // Fallback to modal overlay if no anchor element
   return (
     <div className="template-tag-inserter-overlay" onClick={onClose}>
       <div className="template-tag-inserter-container" onClick={(e) => e.stopPropagation()}>
@@ -203,19 +285,10 @@ export function TemplateTagInserter({
             ×
           </button>
         </div>
-        <SearchableChooser
-          label=""
-          value=""
-          disabled={false}
-          compactDisplay={false}
-          placeholder="Type to search template tags..."
-          showValue={false}
-          config={config}
-        />
+        <SearchableChooser label="" value="" disabled={false} compactDisplay={false} placeholder="Type to search template tags..." showValue={false} config={config} />
       </div>
     </div>
   )
 }
 
 export default TemplateTagInserter
-

@@ -255,6 +255,33 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
  * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin
  * @returns {PassedData} the React Data Window object
  */
+/**
+ * Parse a value that can be a number or percentage string
+ * @param {string|number|undefined} value - The value to parse (e.g., "750", "50%", or 750)
+ * @param {number} screenDimension - Screen dimension (width or height) for percentage calculation
+ * @returns {number|undefined} Parsed pixel value or undefined
+ */
+function parseWindowDimension(value: string | number | void, screenDimension: number): number | void {
+  if (value === undefined || value === null || value === '') {
+    return undefined
+  }
+
+  const strValue = String(value).trim()
+  if (strValue.endsWith('%')) {
+    const percentValue = parseFloat(strValue.slice(0, -1))
+    if (!isNaN(percentValue)) {
+      return Math.round((percentValue / 100) * screenDimension)
+    }
+  } else {
+    const numValue = parseInt(strValue, 10)
+    if (!isNaN(numValue)) {
+      return numValue
+    }
+  }
+
+  return undefined
+}
+
 export function createWindowInitData(argObj: Object): PassedData {
   const startTime = new Date()
   logDebug(pluginJson, `createWindowInitData: ENTRY - argObj keys: ${Object.keys(argObj || {}).join(', ')}`)
@@ -266,8 +293,8 @@ export function createWindowInitData(argObj: Object): PassedData {
   const dataToPass: PassedData = {
     pluginData,
     title: argObj?.formTitle || REACT_WINDOW_TITLE,
-    width: argObj?.width ? parseInt(argObj.width) : undefined,
-    height: argObj?.height ? parseInt(argObj.height) : undefined,
+    width: argObj?.width,
+    height: argObj?.height,
     logProfilingMessage: false,
     debug: false,
     ENV_MODE,
@@ -415,7 +442,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         const formEditLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Form%20Builder&arg0=${encodedTitle}`
 
         // Ask if they want to create a receiving template
-        const createReceiving = await CommandBar.showOptions(['Yes, create receiving template', 'No, skip for now'], 'Form Builder', 'Create receiving template for form output?')
+        // const createReceiving = await CommandBar.showOptions(['Yes, create receiving template', 'No, skip for now'], 'Form Builder', 'Create receiving template for form output?')
         // receivingTemplateTitle is declared in outer scope above
 
         if (createReceiving?.value === 'Yes, create receiving template' || createReceiving.index === 0) {
@@ -567,8 +594,10 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
     let formTitle = ''
     let allowEmptySubmit = false
     let hideDependentItems = false
-    let width: ?number = undefined
-    let height: ?number = undefined
+    let width: ?number | ?string = undefined
+    let height: ?number | ?string = undefined
+    let x: ?number | ?string = undefined
+    let y: ?number | ?string = undefined
     let isNewForm = false
     let templateBody = ''
 
@@ -580,14 +609,22 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
         formTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.formTitle || '') || ''
         allowEmptySubmit = templateNote.frontmatterAttributes?.allowEmptySubmit === 'true' || templateNote.frontmatterAttributes?.allowEmptySubmit === true
         hideDependentItems = templateNote.frontmatterAttributes?.hideDependentItems === 'true' || templateNote.frontmatterAttributes?.hideDependentItems === true
-        // Parse width and height as numbers if they exist
+        // Parse width, height, x, and y (can be numbers or percentage strings)
         const widthStr = templateNote.frontmatterAttributes?.width
         const heightStr = templateNote.frontmatterAttributes?.height
+        const xStr = templateNote.frontmatterAttributes?.x
+        const yStr = templateNote.frontmatterAttributes?.y
         if (widthStr) {
-          width = typeof widthStr === 'number' ? widthStr : parseInt(String(widthStr), 10)
+          width = typeof widthStr === 'number' ? widthStr : String(widthStr)
         }
         if (heightStr) {
-          height = typeof heightStr === 'number' ? heightStr : parseInt(String(heightStr), 10)
+          height = typeof heightStr === 'number' ? heightStr : String(heightStr)
+        }
+        if (xStr) {
+          x = typeof xStr === 'number' ? xStr : String(xStr)
+        }
+        if (yStr) {
+          y = typeof yStr === 'number' ? yStr : String(yStr)
         }
         // Load templateBody from codeblock
         templateBody = await loadTemplateBodyFromTemplate(templateNote)
@@ -622,6 +659,8 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
         hideDependentItems: hideDependentItems,
         width: width,
         height: height,
+        x: x,
+        y: y,
         templateBody: templateBody, // Load from codeblock
         isNewForm: isNewForm,
       },
@@ -1259,6 +1298,52 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
 // }
 
 /**
+ * Insert TemplateJS blocks into templateBody based on executeTiming
+ * @param {string} templateBody - The base template body
+ * @param {Array<Object>} formFields - The form fields array (may contain templatejs-block fields)
+ * @returns {string} - The templateBody with TemplateJS blocks inserted
+ */
+function insertTemplateJSBlocks(templateBody: string, formFields: Array<Object>): string {
+  if (!Array.isArray(formFields) || formFields.length === 0) {
+    return templateBody
+  }
+
+  const beforeBlocks: Array<string> = []
+  const afterBlocks: Array<string> = []
+
+  // Extract TemplateJS blocks from form fields
+  formFields.forEach((field) => {
+    if (field.type === 'templatejs-block' && field.templateJSContent && field.key) {
+      const code = String(field.templateJSContent).trim()
+      if (code) {
+        // Format as templatejs code block (no extra whitespace)
+        const codeBlock = `\`\`\`templatejs\n${code}\n\`\`\``
+        const executeTiming = field.executeTiming || 'after'
+        if (executeTiming === 'before') {
+          beforeBlocks.push(codeBlock)
+        } else {
+          afterBlocks.push(codeBlock)
+        }
+      }
+    }
+  })
+
+  // Build final templateBody: before blocks + original + after blocks
+  const parts: Array<string> = []
+  if (beforeBlocks.length > 0) {
+    parts.push(beforeBlocks.join('\n'))
+  }
+  if (templateBody.trim()) {
+    parts.push(templateBody)
+  }
+  if (afterBlocks.length > 0) {
+    parts.push(afterBlocks.join('\n'))
+  }
+
+  return parts.join('\n')
+}
+
+/**
  * When someone clicks a "Submit" button in the React Window, it calls the router (onMessageFromHTMLView)
  * which sees the actionType === "onSubmitClick" so it routes to this function for processing
  * @param {any} data - the data sent from the React Window for the action 'onSubmitClick'
@@ -1294,12 +1379,16 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         }
 
         // Use templateBody from frontmatter if provided, otherwise build from form values
-        const finalTemplateBody =
+        const baseTemplateBody =
           templateBody ||
           Object.keys(formValues)
             .filter((key) => key !== '__isJSON__')
             .map((key) => `${key}: <%- ${key} %>`)
             .join('\n')
+
+        // Insert TemplateJS blocks into templateBody based on executeTiming
+        const formFields = reactWindowData?.pluginData?.formFields || []
+        const finalTemplateBody = insertTemplateJSBlocks(baseTemplateBody, formFields)
 
         // NOTE: For 'write-existing', we do NOT pre-render templateBody here.
         // TemplateRunner will render it at line 764 using renderTemplate(frontmatterBody, data).
@@ -1370,12 +1459,16 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         // The form values are spread into templateRunnerArgs below so TemplateRunner can access them for rendering.
 
         // Use templateBody from frontmatter if provided, otherwise build from form values
-        const finalTemplateBody =
+        const baseTemplateBody =
           templateBody ||
           Object.keys(formValues)
             .filter((key) => key !== '__isJSON__')
             .map((key) => `${key}: <%- ${key} %>`)
             .join('\n')
+
+        // Insert TemplateJS blocks into templateBody based on executeTiming
+        const formFields = reactWindowData?.pluginData?.formFields || []
+        const finalTemplateBody = insertTemplateJSBlocks(baseTemplateBody, formFields)
 
         // NOTE: We do NOT pre-render templateBody here anymore.
         // TemplateRunner now handles rendering in handleNewNoteCreation (for create-new) and renderTemplate (for write-existing).
@@ -1446,12 +1539,23 @@ export async function openFormWindow(argObj: Object): Promise<void> {
       <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
+    // Parse window dimensions and position (support percentages)
+    const screenWidth = NotePlan.environment.screenWidth
+    const screenHeight = NotePlan.environment.screenHeight
+
+    const parsedWidth = parseWindowDimension(argObj?.width, screenWidth)
+    const parsedHeight = parseWindowDimension(argObj?.height, screenHeight)
+    const parsedX = parseWindowDimension(argObj?.x, screenWidth)
+    const parsedY = parseWindowDimension(argObj?.y, screenHeight)
+
     const windowOptions = {
       savedFilename: `../../${pluginJson['plugin.id']}/form_output.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
       windowTitle: argObj?.windowTitle || 'Form',
-      width: argObj?.width,
-      height: argObj?.height,
+      width: parsedWidth,
+      height: parsedHeight,
+      x: parsedX,
+      y: parsedY,
       customId: WEBVIEW_WINDOW_ID,
       shouldFocus: true /* focus window everyd time (set to false if you want a bg refresh) */,
       generalCSSIn: generateCSSFromTheme(), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
