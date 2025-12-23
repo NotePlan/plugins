@@ -43,6 +43,7 @@ const FIELD_TYPES: Array<FieldTypeOption> = [
   { value: 'input', label: 'Text Input', description: 'Single-line text field' },
   { value: 'input-readonly', label: 'Read-only (display value) field', description: 'Display-only text field' },
   { value: 'textarea', label: 'Expandable Textarea', description: 'Multi-line text field that expands as you type' },
+  { value: 'templatejs-block', label: 'TemplateJS Block', description: 'JavaScript code block that executes during template processing' },
   { value: 'number', label: 'Number', description: 'Numeric input with increment/decrement' },
   { value: 'text', label: 'Text', description: 'Display-only text/instructions' },
   { value: 'switch', label: 'Switch', description: 'Toggle on/off' },

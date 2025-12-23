@@ -52,6 +52,7 @@ export type TSettingItemType =
   | 'heading-chooser'
   | 'form-state-viewer' // Read-only field that displays current form state as JSON
   | 'textarea' // Expandable textarea field
+  | 'templatejs-block' // TemplateJS code block that executes JavaScript
 
 export type TSettingItem = {
   type: TSettingItemType,

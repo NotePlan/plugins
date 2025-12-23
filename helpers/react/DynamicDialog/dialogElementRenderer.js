@@ -20,6 +20,7 @@ import FolderChooser from './FolderChooser.jsx'
 import NoteChooser, { type NoteOption } from './NoteChooser.jsx'
 import { HeadingChooser } from './HeadingChooser.jsx'
 import { ExpandableTextarea } from './ExpandableTextarea.jsx'
+import { TemplateJSBlock } from './TemplateJSBlock.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import type { Option } from './DropdownSelect.jsx'
 import { Button, ButtonGroup } from './ButtonComponents.jsx'
@@ -163,6 +164,24 @@ export function renderItem({
             minRows={item.minRows || 3}
             maxRows={item.maxRows || 10}
             required={item.required || false}
+          />
+        )
+      case 'templatejs-block':
+        return (
+          <TemplateJSBlock
+            key={`templatejs-block${index}`}
+            label={thisLabel}
+            value={item.value || item.default || ''}
+            onChange={(newValue) => {
+              if (item.key) {
+                handleFieldChange(item.key, newValue)
+              }
+            }}
+            disabled={disabled}
+            placeholder={item.placeholder || '// Enter JavaScript code here\n// This code will be executed when the form is processed'}
+            compactDisplay={item.compactDisplay || false}
+            className={indent ? 'indent' : ''}
+            executeTiming={item.executeTiming || 'after'}
           />
         )
       case 'number':
