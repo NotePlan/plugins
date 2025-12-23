@@ -453,6 +453,7 @@ describe('sorting.js', () => {
    * getSortableTask()
    */
   describe('getSortableTask()' /* function */, () => {
+    const defaultPriority = 0
     test('should create basic task object', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content', filename: 'testFile.md', lineIndex: 15 })
       const result = s.getSortableTask(paragraph)
@@ -486,7 +487,7 @@ describe('sorting.js', () => {
     test('should not have exclamation mark priority', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
       const result = s.getSortableTask(paragraph)
-      expect(result).toHaveProperty('priority', -1)
+      expect(result).toHaveProperty('priority', defaultPriority)
       expect(result).toHaveProperty('exclamations', [])
     })
     test('should have parens priority', () => {
@@ -503,22 +504,24 @@ describe('sorting.js', () => {
   })
 
   describe('getNumericPriority()', () => {
+    const defaultPriority = 0
+    const noPriority = -1
     test('should return -1 for empty paragraph', () => {
       const paragraph = new Paragraph({ type: 'open', content: '', filename: 'testFile.md' })
       const result = s.getNumericPriority(s.getSortableTask(paragraph))
-      expect(result).toEqual(-1)
+      expect(result).toEqual(noPriority)
     })
 
     test('should return -1 from exclamation marks in words', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
       const result = s.getNumericPriority(s.getSortableTask(paragraph))
-      expect(result).toEqual(-1)
+      expect(result).toEqual(defaultPriority)
     })
 
     test('should return -1 from exclamation marks in words', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
       const result = s.getNumericPriority(s.getSortableTask(paragraph))
-      expect(result).toEqual(-1)
+      expect(result).toEqual(defaultPriority)
     })
 
     test('should return priority 3 from exclamation marks (even with 6 in line)', () => {
@@ -530,7 +533,7 @@ describe('sorting.js', () => {
     test('should return no priority from exclamation marks at end', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
       const result = s.getNumericPriority(s.getSortableTask(paragraph))
-      expect(result).toEqual(-1)
+      expect(result).toEqual(defaultPriority)
     })
 
     test('should return priority from parentheses', () => {
@@ -554,13 +557,13 @@ describe('sorting.js', () => {
     test('should return no priority from ending >>', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content >>', filename: 'testFile.md' })
       const result = s.getNumericPriority(s.getSortableTask(paragraph))
-      expect(result).toEqual(-1)
+      expect(result).toEqual(defaultPriority)
     })
 
     test('should return -1 for unknown priority', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content ??', filename: 'testFile.md' })
       const result = s.getNumericPriority(s.getSortableTask(paragraph))
-      expect(result).toEqual(-1)
+      expect(result).toEqual(defaultPriority)
     })
   })
 })

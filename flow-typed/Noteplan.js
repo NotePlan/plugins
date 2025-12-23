@@ -2049,6 +2049,7 @@ declare interface CoreNoteFields {
    * Note: @dbwertheimer says "Returns {} if no frontmatter stripes or if there are stripes but no attributes."
    * @returns {{[key: string]: string}}
    * Note: Available on Note from 3.5.0, but only on Editor from v3.16.3.
+   * WARNING: In mid-Dec 2025 @jgclark realised that this does not work for private or teamspace calendar notes. Use helper function getFrontmatterAttributes() instead, which works around this.
    * WARNING: The setter only works with macOS >= 14 and iOS >= 16, since below these versions, the frontmatter editor is not supported and the raw frontmatter is shown (if a user still calls this, a warning is logged).
    */
   +frontmatterAttributes: Object;

@@ -17,7 +17,7 @@ import {
 } from './dashboardHelpers'
 import { openTodayItems, refTodayItems, openTomorrowParas, refTomorrowParas, openYesterdayParas, refYesterdayParas } from './demoData'
 import { getTodaysDateUnhyphenated } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 import { isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
@@ -74,6 +74,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         // Note: now returns timeblocks (which may include just bullets) as well as tasks/checklists
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible, true)
         logDebug('getTodaySectionData', `getOpenItemParasForTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
+        // clof(sortedOrCombinedParas, `getTodaySectionData output`, ['content', 'filename', 'priority'])
 
         // Iterate and write items for first (or combined) section
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)

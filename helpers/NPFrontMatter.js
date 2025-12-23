@@ -128,12 +128,34 @@ export function noteHasFrontMatter(note: CoreNoteFields): boolean {
 }
 
 /**
- * Get all frontmatter attributes from a note (uses NP API note.frontmatterAttributes) or an empty object if the note has no front matter
- * NOTE: previously this returned false if the note had no front matter, but now it returns an empty object to correspond with the behavior of the NP API
+ * Get all frontmatter attributes from a note (uses NP API note.frontmatterAttributes) or an empty object if the note has no frontmatter.
+ * NOTE: previously this returned false if the note had no front matter, but now it returns an empty object to correspond with the behavior of the NP API.
+ * WARNING: In mid-Dec 2025 @jgclark realised that this does not work for private or teamspace calendar notes. So extended this to do a workaround for calendar notes.
+ * TODO(later): remove this workaround.
  * @param {TNote} note
  * @returns object of attributes or empty object if the note has no front matter
  */
-export const getFrontmatterAttributes = (note: CoreNoteFields): { [string]: string } => note.frontmatterAttributes || {}
+export function getFrontmatterAttributes(note: CoreNoteFields): { [string]: string } {
+  try {
+    let FMAttributes = {}
+    if (note.type === 'Notes') {
+      FMAttributes = note.frontmatterAttributes || {}
+    } else {
+      // TODO(later): remove this workaround
+      const FMParas = getFrontmatterParagraphs(note, false)
+      if (FMParas && FMParas.length > 0) {
+        FMAttributes = FMParas.map((p) => {
+          const [key, value] = p.content.split(':')
+          return { [key]: value }
+        }).reduce((acc, curr) => ({ ...acc, ...curr }), {})
+      }
+    }
+    return FMAttributes
+  } catch (err) {
+    logError('NPFrontMatter/getFrontmatterAttributes()', JSP(err))
+    return {}
+  }
+}
 
 /**
  * Gets the value of a given field ('attribute') from frontmatter if it exists

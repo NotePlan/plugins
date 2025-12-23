@@ -9,6 +9,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b3] 2025-12-23
+- you can now change the priority shown in the Dashboard of all open items in a note by specifying `note-priority-delta: N` attribute in the note's frontmatter. This adds `N` (or subtracts `-N`) to the relative priority, used when priority filtering is turned on. This is useful if you have a note where everything in it is important, for example a note about filing and paying taxes. This saves having to clutter the note with priority markers.  Note: This doesn't actually change the items, but just how they're displayed in the Dashboard.
+
 ## [2.4.0.b2] 2025-12-22
 - change name of trigger to `onEditorWillSave`, though the existing one will work for now.
 - dev: cursor fixing subtle bugs in demo data mode
