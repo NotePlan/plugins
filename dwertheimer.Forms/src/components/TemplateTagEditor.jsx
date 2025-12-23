@@ -128,12 +128,12 @@ function reconstructText(pills: Array<TemplateTagPill>): string {
 }
 
 /**
- * Replace spaces with visible space character for display
+ * Replace spaces with visible space indicator for display
  * @param {string} text - The text to process
- * @returns {string} Text with spaces replaced by U+2423 (␣)
+ * @returns {string} Text with spaces replaced by "[space]"
  */
 function displayTextWithSpaces(text: string): string {
-  return text.replace(/ /g, '\u2423') // U+2423 is the visible space character (␣)
+  return text.replace(/ /g, '[space]')
 }
 
 /**
@@ -249,11 +249,11 @@ export function TemplateTagEditor({
       e.preventDefault()
       e.stopPropagation()
       e.dataTransfer.dropEffect = 'move'
-      
+
       // Update drag over state for real-time feedback
       setDragOverIndex(index)
       setDragOverPosition(position)
-      
+
       // If dragging over a text pill, allow splitting it
       const pill = pills[index]
       if (pill && pill.type === 'text' && draggedPillId && draggedPillId !== pill.id) {
@@ -296,7 +296,7 @@ export function TemplateTagEditor({
       const newPills = [...pills]
       const draggedPill = newPills[draggedIndex]
       const dropPill = newPills[dropIndex]
-      
+
       if (!draggedPill) {
         setDraggedPillId(null)
         setDragOverIndex(null)
@@ -309,21 +309,21 @@ export function TemplateTagEditor({
         const rect = e.currentTarget.getBoundingClientRect()
         const midPoint = rect.left + rect.width / 2
         const actualPosition = e.clientX < midPoint ? 'before' : 'after'
-        
+
         // Remove dragged pill first
         newPills.splice(draggedIndex, 1)
-        
+
         // Adjust drop index if we removed an item before it
         const adjustedDropIndex = draggedIndex < dropIndex ? dropIndex - 1 : dropIndex
         const targetPill = newPills[adjustedDropIndex]
-        
+
         if (targetPill && targetPill.type === 'text') {
           // Split text pill at cursor position (approximate - use midpoint for now)
           const textContent = targetPill.content
           const splitPoint = Math.floor(textContent.length / 2)
           const beforeText = textContent.substring(0, splitPoint)
           const afterText = textContent.substring(splitPoint)
-          
+
           // Create new pills array with split text
           const splitPills: Array<TemplateTagPill> = []
           if (beforeText) {
@@ -343,7 +343,7 @@ export function TemplateTagEditor({
               label: afterText,
             })
           }
-          
+
           // Replace target pill with split pills
           newPills.splice(adjustedDropIndex, 1, ...splitPills)
         } else {
@@ -354,17 +354,17 @@ export function TemplateTagEditor({
       } else {
         // Normal drop - remove and reinsert
         newPills.splice(draggedIndex, 1)
-        
+
         // Calculate insert index
         let insertIndex = dropIndex
         if (draggedIndex < dropIndex) {
           insertIndex = dropIndex - 1
         }
-        
+
         if (position === 'after') {
           insertIndex += 1
         }
-        
+
         newPills.splice(insertIndex, 0, draggedPill)
       }
 
@@ -430,7 +430,7 @@ export function TemplateTagEditor({
           // Clicked on a pill or drop zone
           const midPoint = childLeft + (childRight - childLeft) / 2
           position = clickX < midPoint ? 'before' : 'after'
-          
+
           // Find the corresponding pill index
           const pillId = child.getAttribute('data-pill-id') || child.getAttribute('data-drop-zone-index')
           if (pillId) {
@@ -502,7 +502,9 @@ export function TemplateTagEditor({
             {showDropIndicatorBefore && <div className="template-tag-drop-indicator" />}
             <div
               data-pill-id={pill.id}
-              className={`template-tag-pill template-tag-pill-tag ${selectedPillId === pill.id ? 'template-tag-pill-selected' : ''} ${isDragging ? 'template-tag-pill-dragging' : ''}`}
+              className={`template-tag-pill template-tag-pill-tag ${selectedPillId === pill.id ? 'template-tag-pill-selected' : ''} ${
+                isDragging ? 'template-tag-pill-dragging' : ''
+              }`}
               onClick={(e) => {
                 e.stopPropagation()
                 handlePillClick(pill.id, e)
@@ -649,29 +651,29 @@ export function TemplateTagEditor({
                 {displayTextWithSpaces(pill.content)}
                 {showDropIndicatorAfter && <div className="template-tag-drop-indicator" />}
               </div>
-            {/* Drop zone for between pills - also clickable for text input */}
-            {index < pills.length - 1 && (
-              <div
-                data-drop-zone-index={index + 1}
-                className="template-tag-drop-zone"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  // Focus textarea and position cursor between pills
-                  const textarea = textareaRef.current
-                  if (textarea) {
-                    textarea.focus()
-                    let cursorPos = 0
-                    for (let i = 0; i <= index; i++) {
-                      cursorPos += pills[i].content.length
+              {/* Drop zone for between pills - also clickable for text input */}
+              {index < pills.length - 1 && (
+                <div
+                  data-drop-zone-index={index + 1}
+                  className="template-tag-drop-zone"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    // Focus textarea and position cursor between pills
+                    const textarea = textareaRef.current
+                    if (textarea) {
+                      textarea.focus()
+                      let cursorPos = 0
+                      for (let i = 0; i <= index; i++) {
+                        cursorPos += pills[i].content.length
+                      }
+                      textarea.setSelectionRange(cursorPos, cursorPos)
                     }
-                    textarea.setSelectionRange(cursorPos, cursorPos)
-                  }
-                }}
-                onDragOver={(e) => handleDragOver(index + 1, 'before', e)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(index + 1, dragOverPosition || 'before', e)}
-              />
-            )}
+                  }}
+                  onDragOver={(e) => handleDragOver(index + 1, 'before', e)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(index + 1, dragOverPosition || 'before', e)}
+                />
+              )}
             </React.Fragment>
           )
         }

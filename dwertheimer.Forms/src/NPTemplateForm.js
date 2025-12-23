@@ -378,7 +378,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
     let selectedTemplate
     let formFields: Array<Object> = []
     let templateNote = null
-    let receivingTemplateTitle: string = '' // Track receiving template title for newly created forms
+    const receivingTemplateTitle: string = '' // Track receiving template title for newly created forms
 
     if (templateTitle?.trim().length) {
       logDebug(pluginJson, `openFormBuilder: Using provided templateTitle`)
@@ -440,28 +440,6 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         const launchLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Open%20Template%20Form&arg0=${encodedTitle}`
         // Generate formEditLink URL to launch Form Builder
         const formEditLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Form%20Builder&arg0=${encodedTitle}`
-
-        // Ask if they want to create a receiving template
-        // const createReceiving = await CommandBar.showOptions(['Yes, create receiving template', 'No, skip for now'], 'Form Builder', 'Create receiving template for form output?')
-        // receivingTemplateTitle is declared in outer scope above
-
-        if (createReceiving?.value === 'Yes, create receiving template' || createReceiving.index === 0) {
-          logDebug(pluginJson, `openFormBuilder: Calling createProcessingTemplate with form template details`)
-          const result = await createProcessingTemplate({
-            formTemplateTitle: newTitle,
-            formTemplateFilename: filename,
-            suggestedProcessingTitle: `${newTitle} Processing Template`,
-            formLaunchLink: launchLink, // Pass the launch link to add to processing template frontmatter
-            formEditLink: formEditLink, // Pass the edit link to add to processing template frontmatter
-          })
-
-          if (result?.processingTitle) {
-            receivingTemplateTitle = result.processingTitle
-            logDebug(pluginJson, `openFormBuilder: Created receiving template "${receivingTemplateTitle}" via createProcessingTemplate`)
-          } else {
-            logDebug(pluginJson, `openFormBuilder: createProcessingTemplate returned no result, user may have cancelled`)
-          }
-        }
 
         // Set initial frontmatter including launchLink and formEditLink
         updateFrontMatterVars(templateNote, {
@@ -1372,13 +1350,14 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
       } else if (method === 'write-existing') {
         // Option A: Write to Existing File
-        const { getNoteTitled, location, writeUnderHeading, createMissingHeading, templateBody } = data
+        const { getNoteTitled, location, writeUnderHeading, createMissingHeading } = data
         if (!getNoteTitled) {
           await showMessage('No target note was specified. Please set a target note in your form settings.')
           return null
         }
 
-        // Use templateBody from frontmatter if provided, otherwise build from form values
+        // Get templateBody from reactWindowData (loaded from template codeblock) or from data, otherwise build from form values
+        const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
         const baseTemplateBody =
           templateBody ||
           Object.keys(formValues)
@@ -1445,7 +1424,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
       } else if (method === 'create-new') {
         // Option B: Create New Note
-        const { newNoteTitle, newNoteFolder, templateBody } = data
+        const { newNoteTitle, newNoteFolder } = data
         // Clean newNoteTitle: trim and remove any newlines (defensive)
         const cleanedNewNoteTitle = newNoteTitle ? String(newNoteTitle).replace(/\n/g, ' ').trim() : ''
         if (!cleanedNewNoteTitle) {
@@ -1458,7 +1437,8 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
         // This ensures consistent behavior: TemplateRunner always renders newNoteTitle, regardless of which path is taken.
         // The form values are spread into templateRunnerArgs below so TemplateRunner can access them for rendering.
 
-        // Use templateBody from frontmatter if provided, otherwise build from form values
+        // Get templateBody from reactWindowData (loaded from template codeblock) or from data, otherwise build from form values
+        const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
         const baseTemplateBody =
           templateBody ||
           Object.keys(formValues)

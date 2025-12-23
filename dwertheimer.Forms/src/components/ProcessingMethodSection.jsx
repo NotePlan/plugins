@@ -175,8 +175,8 @@ export function ProcessingMethodSection({
               }}
               style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
             >
-              <option value="append">Append to note</option>
-              <option value="prepend">Prepend to note</option>
+              <option value="append">Write at end of note</option>
+              <option value="prepend">Write at beginning of note</option>
               <option value="prepend-under-heading">Prepend under Heading</option>
               <option value="append-under-heading">Append under Heading</option>
               <option value="replace">Replace entire note contents</option>

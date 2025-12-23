@@ -524,7 +524,7 @@ export function FormBuilder({
                       <input type="checkbox" checked={frontmatter.hideDependentItems || false} onChange={(e) => handleFrontmatterChange('hideDependentItems', e.target.checked)} />
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         Hide Dependent Items
-                        <InfoIcon text="If checked, fields that depend on other fields (using 'dependsOnKey') will be hidden until their dependency is satisfied. This creates a cleaner form interface by only showing relevant fields." />
+                        <InfoIcon text="If checked, fields in your form that depend on other fields (using 'dependsOnKey') will be hidden until their dependency is satisfied. This creates a cleaner form interface by only showing relevant fields." />
                       </span>
                     </label>
                   </div>

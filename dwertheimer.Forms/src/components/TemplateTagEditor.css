@@ -137,7 +137,7 @@
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.5rem;
-  border-radius: 12px;
+  border-radius: 2px;
   font-size: 0.85rem;
   line-height: 1.4;
   transition: all 0.2s ease;
