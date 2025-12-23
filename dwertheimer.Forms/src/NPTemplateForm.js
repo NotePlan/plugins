@@ -488,7 +488,12 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
 
         // For other request types, use the standard handleRequest
         const result = await handleRequest(actionType, data)
-        logDebug(pluginJson, `onFormBuilderAction: handleRequest result for "${actionType}": success=${String(result.success)}, data type=${typeof result.data}, data="${result.data != null ? String(result.data) : 'null'}"`)
+        // Don't log the data if it's an object/array to avoid cluttering logs with [object Object]
+        const dataPreview = result.data != null ? (typeof result.data === 'object' ? `[object]` : String(result.data)) : 'null'
+        logDebug(
+          pluginJson,
+          `onFormBuilderAction: handleRequest result for "${actionType}": success=${String(result.success)}, data type=${typeof result.data}, data="${dataPreview}"`,
+        )
 
         // Send response back to React
         sendToHTMLWindow(FORMBUILDER_WINDOW_ID, 'RESPONSE', {

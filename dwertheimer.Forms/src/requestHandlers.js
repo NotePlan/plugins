@@ -14,15 +14,15 @@
 
 import pluginJson from '../plugin.json'
 import { getAllNotesAsOptions, getRelativeNotesAsOptions } from './noteHelpers'
+import { createProcessingTemplate } from './ProcessingTemplate'
+import { FORMBUILDER_WINDOW_ID } from './windowManagement'
 import { logDebug, logError, logInfo } from '@helpers/dev'
 import { getFoldersMatching } from '@helpers/folders'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { showMessage } from '@helpers/userInput'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 import { getNoteByFilename } from '@helpers/note'
-import { createProcessingTemplate } from './ProcessingTemplate'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
-import { FORMBUILDER_WINDOW_ID } from './windowManagement'
 
 /**
  * Standardized response type for all request handlers
@@ -442,7 +442,7 @@ export function getHeadings(params: { noteFilename: string, optionAddTopAndBotto
 async function handleCreateProcessingTemplate(params: Object): Promise<RequestResponse> {
   try {
     logDebug(pluginJson, `handleCreateProcessingTemplate: params=${JSON.stringify(params)}`)
-    
+
     const options = {
       formTemplateTitle: params.formTemplateTitle,
       formTemplateFilename: params.formTemplateFilename,
@@ -450,13 +450,13 @@ async function handleCreateProcessingTemplate(params: Object): Promise<RequestRe
       formLaunchLink: params.formLaunchLink,
       formEditLink: params.formEditLink,
     }
-    
+
     const result = await createProcessingTemplate(options)
-    
+
     if (result && result.processingTitle) {
       // Bring the Form Builder window back to the front
       focusHTMLWindowIfAvailable(FORMBUILDER_WINDOW_ID)
-      
+
       const processingTitle = result.processingTitle || ''
       return {
         success: true,
@@ -478,6 +478,40 @@ async function handleCreateProcessingTemplate(params: Object): Promise<RequestRe
     return {
       success: false,
       message: `Failed to create processing template: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
+ * Handle opening a note file in NotePlan Editor
+ * @param {Object} params - Request parameters
+ * @param {string} params.filename - The filename of the note to open
+ * @returns {RequestResponse}
+ */
+function handleOpenNote(params: { filename?: string }): RequestResponse {
+  try {
+    const filename = params?.filename
+    if (!filename) {
+      return {
+        success: false,
+        message: 'Filename is required',
+        data: null,
+      }
+    }
+
+    Editor.openNoteByFilename(filename)
+
+    return {
+      success: true,
+      message: `Opened note: ${filename}`,
+      data: filename,
+    }
+  } catch (error) {
+    logError(pluginJson, `handleOpenNote: Error: ${error.message}`)
+    return {
+      success: false,
+      message: `Failed to open note: ${error.message}`,
       data: null,
     }
   }

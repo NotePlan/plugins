@@ -4,9 +4,9 @@
 //--------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { type PassedData } from './NPTemplateForm.js'
 import { logError, logDebug, clo, JSP } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
-import { type PassedData } from './NPTemplateForm.js'
 
 /**
  * Insert TemplateJS blocks into templateBody based on executeTiming
@@ -219,4 +219,3 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
   }
   return reactWindowData
 }
-
