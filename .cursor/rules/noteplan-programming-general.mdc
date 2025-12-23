@@ -3,4 +3,4 @@ alwaysApply: true
 ---
 For NotePlan code, never use require statements. Use import statements at the top of the file -- never inline/dynamically import modules. Rollup will not process them correctly.
 You should not ever try to build the code with "npm run build" -- this will not work. The programmer will have to use Rollup to build the code. There is separate tooling for this described in @README.md.
-Always check the 
+NotePlan has global variables that are available to all plugins such as DataStore, CommandBar, Editor, and NotePlan. You can use these variables to access the NotePlan API. You do not need to import them.

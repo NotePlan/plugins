@@ -7,12 +7,10 @@
 //--------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { openFormWindow } from './NPTemplateForm'
+import { openFormWindow, WEBVIEW_WINDOW_ID } from './windowManagement.js'
 import { logInfo, logWarn, logError } from '@helpers/dev'
 import { isHTMLWindowOpen, focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
-
-const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} Form Entry React Window`
 
 /**
  * Form Field Render Test

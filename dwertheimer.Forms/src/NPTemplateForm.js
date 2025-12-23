@@ -3,24 +3,31 @@
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 // Note: getAllNotesAsOptions is no longer used here - FormView loads notes dynamically via requestFromPlugin
-import { createProcessingTemplate, varsInForm, varsCodeBlockType, templateBodyCodeBlockType, templateRunnerArgsCodeBlockType } from './ProcessingTemplate'
+import { createProcessingTemplate } from './ProcessingTemplate'
 import { handleRequest, testRequestHandlers } from './requestHandlers'
+import {
+  saveFormFieldsToTemplate,
+  saveTemplateBodyToTemplate,
+  loadTemplateBodyFromTemplate,
+  saveTemplateRunnerArgsToTemplate,
+  loadTemplateRunnerArgsFromTemplate,
+  updateReceivingTemplateWithFields,
+} from './templateIO.js'
+import { handleSubmitButtonClick, insertTemplateJSBlocks } from './formSubmission.js'
+import { openFormWindow, openFormBuilderWindow, createWindowInitData, getPluginData, parseWindowDimension, FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID } from './windowManagement.js'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
-import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { showMessage } from '@helpers/userInput'
 import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
-import { replaceCodeBlockContent, saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
-import { parseObjectString, validateObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
+import { validateObjectString, stripDoubleQuotes, parseObjectString } from '@helpers/stringTransforms'
 import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
-import { findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 // Note: getFoldersMatching is no longer used here - FormView loads folders dynamically via requestFromPlugin
 
-const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} Form Entry React Window` // will be used as the customId for your window
-// you can leave it like this or if you plan to open multiple windows, make it more specific per window
+// Import extracted modules
+
 const REACT_WINDOW_TITLE = 'Form View' // change this to what you want window title to display
-const FORMBUILDER_WINDOW_ID = `${pluginJson['plugin.id']} Form Builder React Window`
 
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
@@ -261,94 +268,7 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
  * @param {number} screenDimension - Screen dimension (width or height) for percentage calculation
  * @returns {number|undefined} Parsed pixel value or undefined
  */
-function parseWindowDimension(value: string | number | void, screenDimension: number): number | void {
-  if (value === undefined || value === null || value === '') {
-    return undefined
-  }
-
-  const strValue = String(value).trim()
-  if (strValue.endsWith('%')) {
-    const percentValue = parseFloat(strValue.slice(0, -1))
-    if (!isNaN(percentValue)) {
-      return Math.round((percentValue / 100) * screenDimension)
-    }
-  } else {
-    const numValue = parseInt(strValue, 10)
-    if (!isNaN(numValue)) {
-      return numValue
-    }
-  }
-
-  return undefined
-}
-
-export function createWindowInitData(argObj: Object): PassedData {
-  const startTime = new Date()
-  logDebug(pluginJson, `createWindowInitData: ENTRY - argObj keys: ${Object.keys(argObj || {}).join(', ')}`)
-  // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-  const pluginData = getPluginData(argObj)
-  const foldersArray = Array.isArray(pluginData.folders) ? pluginData.folders : []
-  logDebug(pluginJson, `createWindowInitData: After getPluginData - folders.length=${foldersArray.length}`)
-  const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
-  const dataToPass: PassedData = {
-    pluginData,
-    title: argObj?.formTitle || REACT_WINDOW_TITLE,
-    width: argObj?.width,
-    height: argObj?.height,
-    logProfilingMessage: false,
-    debug: false,
-    ENV_MODE,
-    returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormSubmitFromHTMLView' },
-    /* change the ID below to your plugin ID */
-    componentPath: `../dwertheimer.Forms/react.c.FormView.bundle.dev.js`,
-    startTime,
-  }
-  return dataToPass
-}
-
-/**
- * Gather data you want passed to the React Window (e.g. what you you will use to display)
- * You will likely use this function to pull together your starting window data
- * Must return an object, with any number of properties, however you cannot use the following reserved
- * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
- * @returns {[string]: mixed} - the data that your React Window will start with
- */
-export function getPluginData(argObj: Object): { [string]: mixed } {
-  logDebug(pluginJson, `getPluginData: ENTRY - argObj keys: ${Object.keys(argObj || {}).join(', ')}`)
-
-  // Check if form fields include folder-chooser or note-chooser
-  const formFields = argObj.formFields || []
-  logDebug(pluginJson, `getPluginData: Checking ${formFields.length} form fields for folder-chooser/note-chooser`)
-
-  // Log field types for debugging
-  const fieldTypes = formFields.map((f) => f.type).filter(Boolean)
-  logDebug(pluginJson, `getPluginData: Field types found: ${fieldTypes.join(', ')}`)
-
-  const needsFolders = formFields.some((field) => field.type === 'folder-chooser')
-  const needsNotes = formFields.some((field) => field.type === 'note-chooser')
-
-  logDebug(pluginJson, `getPluginData: needsFolders=${String(needsFolders)}, needsNotes=${String(needsNotes)}`)
-
-  const pluginData = { platform: NotePlan.environment.platform, ...argObj }
-
-  // Always initialize folders and notes arrays as empty
-  // Both FormView and FormBuilder now load folders/notes dynamically via requestFromPlugin
-  // This is more consistent and allows for better error handling and on-demand loading
-  pluginData.folders = []
-  pluginData.notes = []
-
-  if (needsFolders) {
-    logDebug(pluginJson, `getPluginData: Folder-chooser field detected - folders will be loaded dynamically by FormView`)
-  }
-  if (needsNotes) {
-    logDebug(pluginJson, `getPluginData: Note-chooser field detected - notes will be loaded dynamically by FormView`)
-  }
-
-  const foldersArray = Array.isArray(pluginData.folders) ? pluginData.folders : []
-  const notesArray = Array.isArray(pluginData.notes) ? pluginData.notes : []
-  logDebug(pluginJson, `getPluginData: EXIT - pluginData keys: ${Object.keys(pluginData).join(', ')}, folders.length=${foldersArray.length}, notes.length=${notesArray.length}`)
-  return pluginData // this could be any object full of data you want to pass to the window
-}
+// Window management functions are now imported from windowManagement.js
 
 /**
  * Router function that receives requests from the React Window and routes them to the appropriate function
@@ -412,8 +332,8 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
           logDebug(pluginJson, `openFormBuilder: Appended "Form" to title, new title: "${newTitle}"`)
         }
 
-        // Create folder path: @Templates/Forms/{form name}
-        const formFolderPath = `@Templates/Forms/${newTitle}`
+        // Create folder path: @Forms/{form name}
+        const formFolderPath = `@Forms/${newTitle}`
         logDebug(pluginJson, `openFormBuilder: Creating form in folder "${formFolderPath}"`)
 
         logDebug(pluginJson, `openFormBuilder: Creating new note with title "${newTitle}" in ${formFolderPath} folder`)
@@ -439,7 +359,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         const encodedTitle = encodeURIComponent(newTitle)
         const launchLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Open%20Template%20Form&arg0=${encodedTitle}`
         // Generate formEditLink URL to launch Form Builder
-        const formEditLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Form%20Builder&arg0=${encodedTitle}`
+        const formEditLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Form%20Builder/Editor&arg0=${encodedTitle}`
 
         // Set initial frontmatter including launchLink and formEditLink
         updateFrontMatterVars(templateNote, {
@@ -535,162 +455,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
   }
 }
 
-/**
- * Opens the FormBuilder React window
- * @param {Object} argObj - Contains formFields, templateFilename, templateTitle
- * @returns {Promise<void>}
- */
-async function openFormBuilderWindow(argObj: Object): Promise<void> {
-  try {
-    logDebug(pluginJson, `openFormBuilderWindow: Starting`)
-    clo(argObj, `openFormBuilderWindow: argObj`)
-
-    // Make sure we have np.Shared plugin which has the core react code
-    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true)
-    logDebug(pluginJson, `openFormBuilderWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
-
-    const startTime = new Date()
-    const ENV_MODE = 'development'
-    // Get receiving template title - use initialReceivingTemplateTitle if provided (for newly created forms),
-    // otherwise read from note's frontmatter (for existing forms)
-    let receivingTemplateTitle = ''
-    if (argObj.initialReceivingTemplateTitle) {
-      // For newly created forms, use the value we already have - no need to read from note
-      receivingTemplateTitle = argObj.initialReceivingTemplateTitle
-      logDebug(pluginJson, `openFormBuilderWindow: Using initialReceivingTemplateTitle="${receivingTemplateTitle}"`)
-    } else if (argObj.templateFilename) {
-      // For existing forms, read from note's frontmatter
-      const templateNote = await getNoteByFilename(argObj.templateFilename)
-      if (templateNote) {
-        receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle || ''
-        logDebug(pluginJson, `openFormBuilderWindow: Read receivingTemplateTitle="${receivingTemplateTitle}" from note frontmatter`)
-      }
-    }
-
-    // Get all frontmatter values from the template note
-    let windowTitle = ''
-    let formTitle = ''
-    let allowEmptySubmit = false
-    let hideDependentItems = false
-    let width: ?number | ?string = undefined
-    let height: ?number | ?string = undefined
-    let x: ?number | ?string = undefined
-    let y: ?number | ?string = undefined
-    let isNewForm = false
-    let templateBody = ''
-
-    if (argObj.templateFilename) {
-      const templateNote = await getNoteByFilename(argObj.templateFilename)
-      if (templateNote) {
-        // Strip quotes from frontmatter values if present
-        windowTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.windowTitle || '') || ''
-        formTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.formTitle || '') || ''
-        allowEmptySubmit = templateNote.frontmatterAttributes?.allowEmptySubmit === 'true' || templateNote.frontmatterAttributes?.allowEmptySubmit === true
-        hideDependentItems = templateNote.frontmatterAttributes?.hideDependentItems === 'true' || templateNote.frontmatterAttributes?.hideDependentItems === true
-        // Parse width, height, x, and y (can be numbers or percentage strings)
-        const widthStr = templateNote.frontmatterAttributes?.width
-        const heightStr = templateNote.frontmatterAttributes?.height
-        const xStr = templateNote.frontmatterAttributes?.x
-        const yStr = templateNote.frontmatterAttributes?.y
-        if (widthStr) {
-          width = typeof widthStr === 'number' ? widthStr : String(widthStr)
-        }
-        if (heightStr) {
-          height = typeof heightStr === 'number' ? heightStr : String(heightStr)
-        }
-        if (xStr) {
-          x = typeof xStr === 'number' ? xStr : String(xStr)
-        }
-        if (yStr) {
-          y = typeof yStr === 'number' ? yStr : String(yStr)
-        }
-        // Load templateBody from codeblock
-        templateBody = await loadTemplateBodyFromTemplate(templateNote)
-
-        // Load TemplateRunner args from codeblock (these contain template tags and should not be in frontmatter)
-        const templateRunnerArgs = await loadTemplateRunnerArgsFromTemplate(templateNote)
-
-        // Merge TemplateRunner args into the data object that will be passed to FormBuilder
-        // These will override any values that might be in frontmatter
-        if (templateRunnerArgs) {
-          // Store TemplateRunner args in a separate object for FormBuilder to use
-          // FormBuilder will merge these into frontmatter state
-          Object.assign(argObj, { templateRunnerArgs })
-        }
-      }
-    } else {
-      // No templateFilename means this is a new form
-      isNewForm = true
-    }
-
-    const data: PassedData = {
-      pluginData: {
-        platform: NotePlan.environment.platform,
-        formFields: argObj.formFields || [],
-        templateRunnerArgs: argObj.templateRunnerArgs || {}, // Pass TemplateRunner args to FormBuilder
-        templateFilename: argObj.templateFilename || '',
-        templateTitle: argObj.templateTitle || '',
-        receivingTemplateTitle: receivingTemplateTitle,
-        windowTitle: windowTitle,
-        formTitle: formTitle,
-        allowEmptySubmit: allowEmptySubmit,
-        hideDependentItems: hideDependentItems,
-        width: width,
-        height: height,
-        x: x,
-        y: y,
-        templateBody: templateBody, // Load from codeblock
-        isNewForm: isNewForm,
-      },
-      title: 'Form Builder',
-      logProfilingMessage: false,
-      debug: ENV_MODE === 'development',
-      ENV_MODE,
-      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormBuilderAction' },
-      componentPath: `../dwertheimer.Forms/react.c.FormBuilderView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
-      startTime,
-    }
-    logDebug(pluginJson, `openFormBuilderWindow: Created data object, about to open React window`)
-
-    const cssTagsString = `
-      <link rel="stylesheet" href="../np.Shared/css.w3.css">
-      <link href="../np.Shared/fontawesome.css" rel="stylesheet">
-      <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
-
-    const windowOptions = {
-      savedFilename: `../../${pluginJson['plugin.id']}/formbuilder_output.html`,
-      headerTags: cssTagsString,
-      windowTitle: data.title,
-      width: 1200,
-      height: 800,
-      customId: FORMBUILDER_WINDOW_ID,
-      reuseUsersWindowRect: true,
-      shouldFocus: true,
-      generalCSSIn: generateCSSFromTheme(),
-      postBodyScript: `
-        <script type="text/javascript" >
-        // Set DataStore.settings so default logDebug etc. logging works in React
-        // This setting comes from ${pluginJson['plugin.id']}
-        let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
-        </script>
-      `,
-    }
-
-    logDebug(pluginJson, `===== openFormBuilderWindow Calling React after ${timer(startTime)} =====`)
-    logDebug(pluginJson, `openFormBuilderWindow: About to invoke 'openReactWindow' command on np.Shared plugin`)
-    clo(windowOptions, `openFormBuilderWindow: windowOptions`)
-
-    const result = await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
-    logDebug(pluginJson, `openFormBuilderWindow: invokePluginCommandByName returned: ${result ? 'success' : 'null/undefined'}`)
-    logDebug(pluginJson, `openFormBuilderWindow: Window should now be open. It's all React from this point forward`)
-  } catch (error) {
-    logError(pluginJson, `openFormBuilderWindow: Error occurred: ${JSP(error)}`)
-    logError(pluginJson, error)
-    await showMessage(`Error opening Form Builder: ${error.message || String(error)}`)
-  }
-}
+// openFormBuilderWindow is now imported from windowManagement.js
 
 /**
  * Handle FormBuilder actions (save, cancel)
@@ -723,6 +488,7 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
 
         // For other request types, use the standard handleRequest
         const result = await handleRequest(actionType, data)
+        logDebug(pluginJson, `onFormBuilderAction: handleRequest result for "${actionType}": success=${String(result.success)}, data type=${typeof result.data}, data="${result.data != null ? String(result.data) : 'null'}"`)
 
         // Send response back to React
         sendToHTMLWindow(FORMBUILDER_WINDOW_ID, 'RESPONSE', {
@@ -733,12 +499,12 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
         })
         return {}
       } catch (error) {
-        logError(pluginJson, `onFormBuilderAction: Error handling REQUEST: ${error.message}`)
+        logError(pluginJson, `onFormBuilderAction: Error handling REQUEST: ${error.message || String(error)}`)
         sendToHTMLWindow(FORMBUILDER_WINDOW_ID, 'RESPONSE', {
           correlationId: data.__correlationId,
           success: false,
           data: null,
-          error: error.message || 'Unknown error',
+          error: error.message || String(error) || 'Unknown error',
         })
         return {}
       }
@@ -1026,180 +792,7 @@ async function handleSaveRequest(data: any): Promise<{ success: boolean, message
  * @param {Array<Object>} fields - The form fields array
  * @returns {Promise<void>}
  */
-async function saveFormFieldsToTemplate(templateFilename: string, fields: Array<Object>): Promise<void> {
-  try {
-    // Use generalized helper function
-    const success = await saveCodeBlockToNote(
-      templateFilename,
-      'formfields',
-      fields,
-      pluginJson.id,
-      formatFormFieldsAsCodeBlock, // Format function
-      true, // Show error messages to user
-    )
-
-    if (success) {
-      const templateNote = await getNoteByFilename(templateFilename)
-      if (templateNote) {
-        // await showMessage(`Form fields saved to template "${templateNote.title || templateFilename}"`)
-        logDebug(pluginJson, `saveFormFieldsToTemplate: Saved ${fields.length} fields to template`)
-      }
-    }
-  } catch (error) {
-    logError(pluginJson, `saveFormFieldsToTemplate error: ${JSP(error)}`)
-    await showMessage(`Error saving form fields: ${error.message}`)
-  }
-}
-
-/**
- * Format form fields array as code block JSON (more readable format)
- * @param {Array<Object>} fields - The form fields
- * @returns {string} - Formatted JSON string
- */
-function formatFormFieldsAsCodeBlock(fields: Array<Object>): string {
-  // Use JSON.stringify with indentation, but we'll clean it up for readability
-  const json = JSON.stringify(fields, null, 2)
-  // Replace quoted keys with unquoted keys where appropriate (for cleaner look)
-  // Actually, let's keep it as standard JSON since it needs to be parseable
-  return json
-}
-
-/**
- * Save templateBody to template as code block
- * @param {string} templateFilename - The template filename
- * @param {string} templateBody - The template body content
- * @returns {Promise<void>}
- */
-async function saveTemplateBodyToTemplate(templateFilename: string, templateBody: string): Promise<void> {
-  try {
-    // Use generalized helper function (no formatting needed for templateBody, it's already a string)
-    await saveCodeBlockToNote(
-      templateFilename,
-      templateBodyCodeBlockType,
-      templateBody || '',
-      pluginJson.id,
-      null, // No format function needed
-      false, // Don't show error messages to user (silent operation)
-    )
-  } catch (error) {
-    logError(pluginJson, `saveTemplateBodyToTemplate error: ${JSP(error)}`)
-  }
-}
-
-/**
- * Load templateBody from template code block
- * @param {CoreNoteFields | string} templateNoteOrFilename - The template note or filename
- * @returns {Promise<string>} - The template body content, or empty string if not found
- */
-async function loadTemplateBodyFromTemplate(templateNoteOrFilename: CoreNoteFields | string): Promise<string> {
-  try {
-    // Use generalized helper function (no parsing needed for templateBody, it's already a string)
-    const content = await loadCodeBlockFromNote<string>(templateNoteOrFilename, templateBodyCodeBlockType, pluginJson.id, null)
-    return content || ''
-  } catch (error) {
-    logError(pluginJson, `loadTemplateBodyFromTemplate error: ${JSP(error)}`)
-    return ''
-  }
-}
-
-/**
- * Load TemplateRunner args from template code block
- * These are processing variables that contain template tags and should not be in frontmatter
- * @param {CoreNoteFields | string} templateNoteOrFilename - The template note or filename
- * @returns {Promise<?Object>} - The TemplateRunner args object, or null if not found
- */
-async function loadTemplateRunnerArgsFromTemplate(templateNoteOrFilename: CoreNoteFields | string): Promise<?Object> {
-  try {
-    // Use generalized helper function to load and parse JSON
-    const content = await loadCodeBlockFromNote<Object>(templateNoteOrFilename, templateRunnerArgsCodeBlockType, pluginJson.id, parseObjectString)
-    return content || null
-  } catch (error) {
-    logError(pluginJson, `loadTemplateRunnerArgsFromTemplate error: ${JSP(error)}`)
-    return null
-  }
-}
-
-/**
- * Save TemplateRunner args to template code block
- * These are processing variables that contain template tags and should not be in frontmatter
- * @param {string} templateFilename - The template filename
- * @param {Object} templateRunnerArgs - The TemplateRunner args object to save
- * @returns {Promise<void>}
- */
-async function saveTemplateRunnerArgsToTemplate(templateFilename: string, templateRunnerArgs: Object): Promise<void> {
-  try {
-    // Use generalized helper function to save as JSON
-    await saveCodeBlockToNote(
-      templateFilename,
-      templateRunnerArgsCodeBlockType,
-      templateRunnerArgs || {},
-      pluginJson.id,
-      (obj) => JSON.stringify(obj, null, 2), // Format as JSON
-      false, // Don't show error messages to user (silent operation)
-    )
-  } catch (error) {
-    logError(pluginJson, `saveTemplateRunnerArgsToTemplate error: ${JSP(error)}`)
-  }
-}
-
-/**
- * Update receiving template with field keys from form fields
- * Adds template variables for each field key at the end of the template
- * @param {string} receivingTemplateTitle - The title of the receiving template
- * @param {Array<Object>} fields - The form fields array
- * @returns {Promise<void>}
- */
-async function updateReceivingTemplateWithFields(receivingTemplateTitle: string, fields: Array<Object>): Promise<void> {
-  try {
-    logDebug(pluginJson, `updateReceivingTemplateWithFields: Starting for template "${receivingTemplateTitle}"`)
-
-    // Find the receiving template
-    const templateList = await NPTemplating.getTemplateList('forms-processor')
-    const receivingTemplate = templateList.find((t) => {
-      // Strip double quotes from both sides for comparison
-      const templateLabel = stripDoubleQuotes(t.label)
-      const receivingTitle = stripDoubleQuotes(receivingTemplateTitle)
-      return templateLabel === receivingTitle
-    })
-
-    if (!receivingTemplate) {
-      logError(pluginJson, `updateReceivingTemplateWithFields: Could not find receiving template "${receivingTemplateTitle}"`)
-      await showMessage(`Could not find receiving template "${receivingTemplateTitle}"`)
-      return
-    }
-
-    const receivingNote = await getNoteByFilename(receivingTemplate.value)
-    if (!receivingNote) {
-      logError(pluginJson, `updateReceivingTemplateWithFields: Could not open receiving template note`)
-      await showMessage(`Could not open receiving template "${receivingTemplateTitle}"`)
-      return
-    }
-
-    // Extract fields that have keys (only fields that have keys, excluding separators and headings)
-    const fieldsWithKeys = fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')
-
-    logDebug(pluginJson, `updateReceivingTemplateWithFields: Found ${fieldsWithKeys.length} fields with keys to add`)
-
-    // Build the code block content: varsInForm followed by lines like "<label>: <%- key %>"
-    const codeBlockLines = [varsInForm]
-    for (const field of fieldsWithKeys) {
-      const label = field.label || field.key
-      codeBlockLines.push(`${label}: <%- ${field.key} %>`)
-    }
-    const codeBlockContent = codeBlockLines.join('\n')
-
-    // Use the helper function to replace code block content
-    const success = replaceCodeBlockContent(receivingNote, varsCodeBlockType, codeBlockContent, pluginJson.id)
-    if (!success) {
-      logError(pluginJson, `updateReceivingTemplateWithFields: Failed to replace code block content`)
-    }
-    logDebug(pluginJson, `updateReceivingTemplateWithFields: Updated receiving template with ${fieldsWithKeys.length} field variables`)
-    await showMessage(`Updated receiving template "${receivingTemplateTitle}" with ${fieldsWithKeys.length} field variables`)
-  } catch (error) {
-    logError(pluginJson, `updateReceivingTemplateWithFields error: ${JSP(error)}`)
-    await showMessage(`Error updating receiving template: ${error.message}`)
-  }
-}
+// Template I/O functions are now imported from templateIO.js
 
 export async function onFormSubmitFromHTMLView(actionType: string, data: any = null): Promise<any> {
   try {
@@ -1242,6 +835,10 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
       /* you would probably call a different function for each actionType */
       case 'onSubmitClick':
         returnValue = await handleSubmitButtonClick(data, reactWindowData) //update the data to send it back to the React Window
+        // Close the window after successful submission
+        if (returnValue !== null) {
+          closeWindowFromCustomId(WEBVIEW_WINDOW_ID)
+        }
         break
       default:
         await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`, 'ERROR')
@@ -1281,212 +878,7 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
  * @param {Array<Object>} formFields - The form fields array (may contain templatejs-block fields)
  * @returns {string} - The templateBody with TemplateJS blocks inserted
  */
-function insertTemplateJSBlocks(templateBody: string, formFields: Array<Object>): string {
-  if (!Array.isArray(formFields) || formFields.length === 0) {
-    return templateBody
-  }
-
-  const beforeBlocks: Array<string> = []
-  const afterBlocks: Array<string> = []
-
-  // Extract TemplateJS blocks from form fields
-  formFields.forEach((field) => {
-    if (field.type === 'templatejs-block' && field.templateJSContent && field.key) {
-      const code = String(field.templateJSContent).trim()
-      if (code) {
-        // Format as templatejs code block (no extra whitespace)
-        const codeBlock = `\`\`\`templatejs\n${code}\n\`\`\``
-        const executeTiming = field.executeTiming || 'after'
-        if (executeTiming === 'before') {
-          beforeBlocks.push(codeBlock)
-        } else {
-          afterBlocks.push(codeBlock)
-        }
-      }
-    }
-  })
-
-  // Build final templateBody: before blocks + original + after blocks
-  const parts: Array<string> = []
-  if (beforeBlocks.length > 0) {
-    parts.push(beforeBlocks.join('\n'))
-  }
-  if (templateBody.trim()) {
-    parts.push(templateBody)
-  }
-  if (afterBlocks.length > 0) {
-    parts.push(afterBlocks.join('\n'))
-  }
-
-  return parts.join('\n')
-}
-
-/**
- * When someone clicks a "Submit" button in the React Window, it calls the router (onMessageFromHTMLView)
- * which sees the actionType === "onSubmitClick" so it routes to this function for processing
- * @param {any} data - the data sent from the React Window for the action 'onSubmitClick'
- * @param {any} reactWindowData - the current data in the React Window
- * @returns {any} - the updated data to send back to the React Window
- */
-async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): Promise<PassedData | null> {
-  const { type, formValues, processingMethod, receivingTemplateTitle } = data
-  clo(data, `handleSubmitButtonClick: data BEFORE acting on it`)
-  if (type === 'submit') {
-    if (formValues) {
-      formValues['__isJSON__'] = true // include a flag to indicate that the formValues are JSON for use in the Templating plugin later
-      const shouldOpenInEditor = data.shouldOpenInEditor !== false // Default to true if not set
-
-      // Get processing method from data or fall back to form-processor for backward compatibility
-      const method = processingMethod || (receivingTemplateTitle ? 'form-processor' : 'write-existing')
-
-      if (method === 'form-processor') {
-        // Option C: Use Form Processor (existing behavior)
-        if (!receivingTemplateTitle) {
-          await showMessage('No Processing Template was Provided; You should set a processing template in your form settings.')
-          return null
-        }
-        const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, JSON.stringify(formValues)]
-        clo(argumentsToSend, `handleSubmitButtonClick: Using form-processor, calling templateRunner with arguments`)
-        await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
-      } else if (method === 'write-existing') {
-        // Option A: Write to Existing File
-        const { getNoteTitled, location, writeUnderHeading, createMissingHeading } = data
-        if (!getNoteTitled) {
-          await showMessage('No target note was specified. Please set a target note in your form settings.')
-          return null
-        }
-
-        // Get templateBody from reactWindowData (loaded from template codeblock) or from data, otherwise build from form values
-        const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
-        const baseTemplateBody =
-          templateBody ||
-          Object.keys(formValues)
-            .filter((key) => key !== '__isJSON__')
-            .map((key) => `${key}: <%- ${key} %>`)
-            .join('\n')
-
-        // Insert TemplateJS blocks into templateBody based on executeTiming
-        const formFields = reactWindowData?.pluginData?.formFields || []
-        const finalTemplateBody = insertTemplateJSBlocks(baseTemplateBody, formFields)
-
-        // NOTE: For 'write-existing', we do NOT pre-render templateBody here.
-        // TemplateRunner will render it at line 764 using renderTemplate(frontmatterBody, data).
-        // The form values are spread into templateRunnerArgs below so TemplateRunner can access them for rendering.
-        // Pre-rendering here would cause double-rendering, which is safe (already-rendered content with no <% tags
-        // will pass through unchanged), but unnecessary.
-
-        // Build frontmatter object for TemplateRunner
-        // Spread formValues into templateRunnerArgs so they're available for rendering template tags in templateBody
-        // Filter out __isJSON__ flag as it's not needed for rendering
-        const formValuesForRendering = { ...formValues }
-        delete formValuesForRendering.__isJSON__
-
-        const templateRunnerArgs: { [string]: any } = {
-          getNoteTitled,
-          templateBody: finalTemplateBody, // TemplateRunner will render this with form values at line 764
-          ...formValuesForRendering, // Spread form values so TemplateRunner can render template tags like <%- field1 %>
-        }
-
-        // Handle location options
-        if (location === 'replace') {
-          templateRunnerArgs.replaceNoteContents = true
-        } else if (location === 'prepend-under-heading') {
-          templateRunnerArgs.location = 'prepend'
-          if (writeUnderHeading) {
-            templateRunnerArgs.writeUnderHeading = writeUnderHeading
-            if (createMissingHeading !== undefined) {
-              templateRunnerArgs.createMissingHeading = createMissingHeading
-            }
-          }
-        } else if (location === 'append-under-heading') {
-          templateRunnerArgs.location = 'append'
-          if (writeUnderHeading) {
-            templateRunnerArgs.writeUnderHeading = writeUnderHeading
-            if (createMissingHeading !== undefined) {
-              templateRunnerArgs.createMissingHeading = createMissingHeading
-            }
-          }
-        } else {
-          // For other location values (append, prepend, cursor, insert)
-          if (location) {
-            templateRunnerArgs.location = location
-          }
-          // Only set writeUnderHeading if it's provided (for backward compatibility)
-          if (writeUnderHeading) {
-            templateRunnerArgs.writeUnderHeading = writeUnderHeading
-            if (createMissingHeading !== undefined) {
-              templateRunnerArgs.createMissingHeading = createMissingHeading
-            }
-          }
-        }
-
-        clo(templateRunnerArgs, `handleSubmitButtonClick: Using write-existing, calling templateRunner with args`)
-        await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
-      } else if (method === 'create-new') {
-        // Option B: Create New Note
-        const { newNoteTitle, newNoteFolder } = data
-        // Clean newNoteTitle: trim and remove any newlines (defensive)
-        const cleanedNewNoteTitle = newNoteTitle ? String(newNoteTitle).replace(/\n/g, ' ').trim() : ''
-        if (!cleanedNewNoteTitle) {
-          await showMessage('No new note title was specified. Please set a new note title in your form settings.')
-          return null
-        }
-
-        // NOTE: We do NOT pre-render newNoteTitle here anymore.
-        // TemplateRunner now handles rendering in handleNewNoteCreation.
-        // This ensures consistent behavior: TemplateRunner always renders newNoteTitle, regardless of which path is taken.
-        // The form values are spread into templateRunnerArgs below so TemplateRunner can access them for rendering.
-
-        // Get templateBody from reactWindowData (loaded from template codeblock) or from data, otherwise build from form values
-        const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
-        const baseTemplateBody =
-          templateBody ||
-          Object.keys(formValues)
-            .filter((key) => key !== '__isJSON__')
-            .map((key) => `${key}: <%- ${key} %>`)
-            .join('\n')
-
-        // Insert TemplateJS blocks into templateBody based on executeTiming
-        const formFields = reactWindowData?.pluginData?.formFields || []
-        const finalTemplateBody = insertTemplateJSBlocks(baseTemplateBody, formFields)
-
-        // NOTE: We do NOT pre-render templateBody here anymore.
-        // TemplateRunner now handles rendering in handleNewNoteCreation (for create-new) and renderTemplate (for write-existing).
-        // This ensures consistent behavior: TemplateRunner always renders templateBody, regardless of which path is taken.
-        // The form values are spread into templateRunnerArgs below so TemplateRunner can access them for rendering.
-
-        // Build frontmatter object for TemplateRunner
-        // Spread formValues into templateRunnerArgs so they're available for rendering template tags in templateBody
-        // Filter out __isJSON__ flag as it's not needed for rendering
-        const formValuesForRendering = { ...formValues }
-        delete formValuesForRendering.__isJSON__
-
-        const templateRunnerArgs: { [string]: any } = {
-          newNoteTitle: cleanedNewNoteTitle, // TemplateRunner will render this with form values in handleNewNoteCreation
-          templateBody: finalTemplateBody, // TemplateRunner will render this with form values in handleNewNoteCreation
-          ...formValuesForRendering, // Spread form values so TemplateRunner can render template tags like <%- field1 %>
-        }
-
-        // Set folder - use '/' for root folder if empty, otherwise use the specified folder
-        // Don't pass null as DataStore.newNote treats null as the literal string "null"
-        templateRunnerArgs.folder = newNoteFolder && newNoteFolder.trim() ? newNoteFolder.trim() : '/'
-
-        clo(templateRunnerArgs, `handleSubmitButtonClick: Using create-new, calling templateRunner with args`)
-        await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
-      } else {
-        logError(pluginJson, `handleSubmitButtonClick: Unknown processing method: ${method}`)
-        await showMessage(`Unknown processing method: ${method}`)
-        return null
-      }
-    } else {
-      logError(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
-    }
-  } else {
-    logDebug(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
-  }
-  closeWindowFromCustomId(WEBVIEW_WINDOW_ID)
-  return reactWindowData
-}
+// Form submission handling functions are now imported from formSubmission.js
 
 /**
  * Opens the HTML+React window; Called after the form data has been generated
@@ -1498,64 +890,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
  *  - height: string (optional) - the height of the form window
  * @author @dwertheimer
  */
-export async function openFormWindow(argObj: Object): Promise<void> {
-  try {
-    if (!argObj) {
-      logError(pluginJson, `openFormWindow: argObj is undefined`)
-      await showMessage('openFormWindow: no form fields were sent. Cannot continue. Make sure your template has a "formfields" codeblock.')
-      return
-    }
-    logDebug(pluginJson, `openFormWindow starting up`)
-    // get initial data to pass to the React Window
-    const data = await createWindowInitData(argObj)
-
-    // Note the first tag below uses the w3.css scaffolding for basic UI elements. You can delete that line if you don't want to use it
-    // w3.css reference: https://www.w3schools.com/w3css/defaulT.asp
-    // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
-    const cssTagsString = `
-      <link rel="stylesheet" href="../np.Shared/css.w3.css">
-      <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
-      <link href="../np.Shared/fontawesome.css" rel="stylesheet">
-      <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
-    // Parse window dimensions and position (support percentages)
-    const screenWidth = NotePlan.environment.screenWidth
-    const screenHeight = NotePlan.environment.screenHeight
-
-    const parsedWidth = parseWindowDimension(argObj?.width, screenWidth)
-    const parsedHeight = parseWindowDimension(argObj?.height, screenHeight)
-    const parsedX = parseWindowDimension(argObj?.x, screenWidth)
-    const parsedY = parseWindowDimension(argObj?.y, screenHeight)
-
-    const windowOptions = {
-      savedFilename: `../../${pluginJson['plugin.id']}/form_output.html` /* for saving a debug version of the html file */,
-      headerTags: cssTagsString,
-      windowTitle: argObj?.windowTitle || 'Form',
-      width: parsedWidth,
-      height: parsedHeight,
-      x: parsedX,
-      y: parsedY,
-      customId: WEBVIEW_WINDOW_ID,
-      shouldFocus: true /* focus window everyd time (set to false if you want a bg refresh) */,
-      generalCSSIn: generateCSSFromTheme(), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
-      postBodyScript: `
-        <script type="text/javascript" >
-        // Set DataStore.settings so default logDebug etc. logging works in React
-        let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
-        </script>
-      `,
-    }
-    logDebug(`===== openReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
-    logDebug(pluginJson, `openReactWindow invoking window. openReactWindow stopping here. It's all React from this point forward`)
-    clo(windowOptions, `openReactWindow windowOptions object passed`)
-    // clo(data, `openReactWindow data object passed`) // this is a lot of data
-    // now ask np.Shared to open the React Window with the data we just gathered
-    await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
+// openFormWindow is now imported from windowManagement.js
 
 /**
  * Export testRequestHandlers for direct testing

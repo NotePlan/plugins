@@ -128,12 +128,17 @@ function reconstructText(pills: Array<TemplateTagPill>): string {
 }
 
 /**
- * Replace spaces with visible space indicator for display
+ * Replace leading and trailing spaces with visible space indicator for display
+ * Only shows space indicators at the start or end of text, not in the middle
  * @param {string} text - The text to process
- * @returns {string} Text with spaces replaced by "[space]"
+ * @returns {string} Text with leading/trailing spaces replaced by "<space>"
  */
 function displayTextWithSpaces(text: string): string {
-  return text.replace(/ /g, '[space]')
+  // Match leading spaces and trailing spaces separately
+  // Leading spaces: ^\s+
+  // Trailing spaces: \s+$
+  // Middle spaces are left as-is
+  return text.replace(/^(\s+)/, (match) => '<space>'.repeat(match.length)).replace(/(\s+)$/, (match) => '<space>'.repeat(match.length))
 }
 
 /**

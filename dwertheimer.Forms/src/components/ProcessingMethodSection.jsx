@@ -22,6 +22,7 @@ export type ProcessingMethodSectionProps = {
   onLoadNotes: () => Promise<void>,
   onLoadFolders: (forceReload?: boolean) => Promise<void>,
   templateTitle: string,
+  templateFilename?: string,
   showTagInserter: boolean,
   setShowTagInserter: (show: boolean) => void,
   tagInserterMode: 'field' | 'date' | 'both',
@@ -47,6 +48,7 @@ export function ProcessingMethodSection({
   onLoadNotes,
   onLoadFolders,
   templateTitle,
+  templateFilename = '',
   showTagInserter,
   setShowTagInserter,
   tagInserterMode,
@@ -58,6 +60,21 @@ export function ProcessingMethodSection({
   fields,
 }: ProcessingMethodSectionProps): React$Node {
   const [tagInserterAnchorElement, setTagInserterAnchorElement] = useState<?HTMLElement>(null)
+  // Track the selected processing template filename so we can open it
+  const [selectedProcessingTemplateFilename, setSelectedProcessingTemplateFilename] = useState<string>('')
+
+  // Initialize selectedProcessingTemplateFilename from notes when receivingTemplateTitle is set
+  React.useEffect(() => {
+    const currentTitle = frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''
+    if (currentTitle && notes.length > 0) {
+      const matchingNote = notes.find((note: NoteOption) => note.title === currentTitle)
+      if (matchingNote && matchingNote.filename) {
+        setSelectedProcessingTemplateFilename(matchingNote.filename)
+      }
+    } else {
+      setSelectedProcessingTemplateFilename('')
+    }
+  }, [frontmatter.receivingTemplateTitle, frontmatter.formProcessorTitle, notes])
 
   // Helper function to handle tag inserter button clicks
   const handleTagInserterButtonClick = (e: any, mode: 'field' | 'date', fieldKey: string) => {
@@ -509,55 +526,122 @@ export function ProcessingMethodSection({
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               Processing Template:
-              <InfoIcon text="A separate template note that will process the form submission. This template should be in the @Templates/Forms directory and have type 'forms-processor'. The template receives the form data as JSON and can perform complex processing logic." />
+              <InfoIcon text="A separate template note that will process the form submission. This template should be in the @Forms directory and have type 'forms-processor'. The template receives the form data as JSON and can perform complex processing logic." />
             </label>
-            <NoteChooser
-              label=""
-              value={frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''}
-              notes={notes}
-              onChange={(noteTitle: string, noteFilename: string) => {
-                // Ensure we're setting the note title (not filename) to receivingTemplateTitle
-                const trimmedTitle = noteTitle ? noteTitle.trim() : ''
-                if (trimmedTitle) {
-                  onFrontmatterChange('receivingTemplateTitle', trimmedTitle)
-                  // Also clear formProcessorTitle if it exists and is different (for backward compatibility cleanup)
-                  if (frontmatter.formProcessorTitle && frontmatter.formProcessorTitle !== trimmedTitle) {
-                    onFrontmatterChange('formProcessorTitle', '')
-                  }
-                } else {
-                  // If empty, clear both
-                  onFrontmatterChange('receivingTemplateTitle', '')
-                  if (frontmatter.formProcessorTitle) {
-                    onFrontmatterChange('formProcessorTitle', '')
-                  }
-                }
-              }}
-              placeholder="Select processing template"
-              includePersonalNotes={true}
-              includeCalendarNotes={false}
-              includeRelativeNotes={false}
-              includeTeamspaceNotes={true}
-              startFolder="@Templates/Forms"
-              filterByType="forms-processor"
-              allowBackwardsCompatible={true}
-              compactDisplay={true}
-              requestFromPlugin={requestFromPlugin}
-              onNotesChanged={() => {
-                onLoadNotes()
-              }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ flex: 1 }}>
+                <NoteChooser
+                  label=""
+                  value={frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''}
+                  notes={notes}
+                  onChange={(noteTitle: string, noteFilename: string) => {
+                    // Ensure we're setting the note title (not filename) to receivingTemplateTitle
+                    const trimmedTitle = noteTitle ? noteTitle.trim() : ''
+                    setSelectedProcessingTemplateFilename(noteFilename || '')
+                    if (trimmedTitle) {
+                      onFrontmatterChange('receivingTemplateTitle', trimmedTitle)
+                      // Also clear formProcessorTitle if it exists and is different (for backward compatibility cleanup)
+                      if (frontmatter.formProcessorTitle && frontmatter.formProcessorTitle !== trimmedTitle) {
+                        onFrontmatterChange('formProcessorTitle', '')
+                      }
+                    } else {
+                      // If empty, clear both
+                      onFrontmatterChange('receivingTemplateTitle', '')
+                      if (frontmatter.formProcessorTitle) {
+                        onFrontmatterChange('formProcessorTitle', '')
+                      }
+                    }
+                  }}
+                  placeholder="Select processing template"
+                  includePersonalNotes={true}
+                  includeCalendarNotes={false}
+                  includeRelativeNotes={false}
+                  includeTeamspaceNotes={true}
+                  startFolder="@Forms"
+                  filterByType="forms-processor"
+                  allowBackwardsCompatible={true}
+                  compactDisplay={true}
+                  requestFromPlugin={requestFromPlugin}
+                  onNotesChanged={() => {
+                    onLoadNotes()
+                  }}
+                />
+              </div>
+              {selectedProcessingTemplateFilename && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await requestFromPlugin('openNote', {
+                        filename: selectedProcessingTemplateFilename,
+                      })
+                    } catch (error) {
+                      console.error('openNote: Error opening note:', error)
+                    }
+                  }}
+                  className="PCButton"
+                  style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                  title={`Open "${frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''}" in NotePlan`}
+                >
+                  Open
+                </button>
+              )}
+            </div>
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>Select an existing processing template, or create a new one below</div>
           </div>
           <div className="frontmatter-field">
             <button
               type="button"
               onClick={async () => {
-                // This will be handled by the plugin - we'll need to add a request handler
-                const result = await requestFromPlugin('createProcessingTemplate', {
-                  formTemplateTitle: templateTitle,
-                })
-                if (result && typeof result === 'string') {
-                  onFrontmatterChange('receivingTemplateTitle', result)
+                try {
+                  // This will be handled by the plugin - we'll need to add a request handler
+                  const result = await requestFromPlugin('createProcessingTemplate', {
+                    formTemplateTitle: templateTitle,
+                    formTemplateFilename: templateFilename,
+                  })
+                  console.log('createProcessingTemplate: Received result:', result, 'type:', typeof result, 'JSON:', JSON.stringify(result))
+                  let processingTitle = null
+                  let processingFilename = null
+
+                  if (result && typeof result === 'string') {
+                    // Backward compatibility: if result is just a string
+                    processingTitle = result
+                  } else if (result && typeof result === 'object') {
+                    // New format: result.data contains { processingTitle, processingFilename }
+                    if (result.data && typeof result.data === 'object' && result.data.processingTitle) {
+                      processingTitle = result.data.processingTitle
+                      processingFilename = result.data.processingFilename || null
+                    } else if (result.data && typeof result.data === 'string') {
+                      // Handle case where response might be wrapped in an object with just a string
+                      processingTitle = result.data
+                    } else if (result.processingTitle) {
+                      // Handle case where response includes both title and filename at top level
+                      processingTitle = result.processingTitle
+                      processingFilename = result.processingFilename || null
+                    }
+                  }
+
+                  if (processingTitle) {
+                    console.log('createProcessingTemplate: Updating receivingTemplateTitle to:', processingTitle, 'filename:', processingFilename)
+                    onFrontmatterChange('receivingTemplateTitle', processingTitle)
+                    if (processingFilename) {
+                      setSelectedProcessingTemplateFilename(processingFilename)
+                    }
+                    // Reload notes so the new processing template appears in the dropdown
+                    await onLoadNotes()
+                  } else {
+                    console.warn('createProcessingTemplate: Unexpected result format:', result, 'typeof:', typeof result, 'JSON:', JSON.stringify(result))
+                  }
+                } catch (error) {
+                  const errorMessage = error?.message || error?.toString() || String(error) || 'Unknown error'
+                  const errorStack = error?.stack || 'No stack trace'
+                  console.error('createProcessingTemplate: Error creating processing template:', {
+                    error,
+                    message: errorMessage,
+                    stack: errorStack,
+                    type: typeof error,
+                    stringified: JSON.stringify(error),
+                  })
                 }
               }}
               className="PCButton"

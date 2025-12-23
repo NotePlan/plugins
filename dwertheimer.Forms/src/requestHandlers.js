@@ -20,6 +20,9 @@ import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { showMessage } from '@helpers/userInput'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 import { getNoteByFilename } from '@helpers/note'
+import { createProcessingTemplate } from './ProcessingTemplate'
+import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
+import { FORMBUILDER_WINDOW_ID } from './windowManagement'
 
 /**
  * Standardized response type for all request handlers
@@ -432,12 +435,61 @@ export function getHeadings(params: { noteFilename: string, optionAddTopAndBotto
 }
 
 /**
+ * Handler for createProcessingTemplate request
+ * @param {Object} params - Request parameters (formTemplateTitle, formTemplateFilename, etc.)
+ * @returns {Promise<RequestResponse>}
+ */
+async function handleCreateProcessingTemplate(params: Object): Promise<RequestResponse> {
+  try {
+    logDebug(pluginJson, `handleCreateProcessingTemplate: params=${JSON.stringify(params)}`)
+    
+    const options = {
+      formTemplateTitle: params.formTemplateTitle,
+      formTemplateFilename: params.formTemplateFilename,
+      suggestedProcessingTitle: params.suggestedProcessingTitle,
+      formLaunchLink: params.formLaunchLink,
+      formEditLink: params.formEditLink,
+    }
+    
+    const result = await createProcessingTemplate(options)
+    
+    if (result && result.processingTitle) {
+      // Bring the Form Builder window back to the front
+      focusHTMLWindowIfAvailable(FORMBUILDER_WINDOW_ID)
+      
+      const processingTitle = result.processingTitle || ''
+      return {
+        success: true,
+        message: `Processing template "${processingTitle}" created successfully`,
+        data: {
+          processingTitle: processingTitle,
+          processingFilename: result.processingFilename,
+        },
+      }
+    } else {
+      return {
+        success: false,
+        message: 'Processing template creation was cancelled or failed',
+        data: null,
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, `handleCreateProcessingTemplate: Error: ${error.message}`)
+    return {
+      success: false,
+      message: `Failed to create processing template: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
  * Router function to handle requests from React
  * @param {string} requestType - The type of request (e.g., 'getFolders', 'getNotes', 'createFolder')
  * @param {Object} params - Request parameters
  * @returns {Promise<RequestResponse>}
  */
-export function handleRequest(requestType: string, params: Object = {}): RequestResponse {
+export async function handleRequest(requestType: string, params: Object = {}): Promise<RequestResponse> {
   try {
     logDebug(pluginJson, `handleRequest: requestType="${requestType}", params=${JSON.stringify(params)}`)
 
@@ -454,6 +506,10 @@ export function handleRequest(requestType: string, params: Object = {}): Request
         return getHeadings(params)
       case 'createNote':
         return createNote(params)
+      case 'createProcessingTemplate':
+        return await handleCreateProcessingTemplate(params)
+      case 'openNote':
+        return handleOpenNote(params)
       default:
         logError(pluginJson, `handleRequest: Unknown request type: "${requestType}"`)
         return {

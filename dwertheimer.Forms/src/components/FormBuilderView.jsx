@@ -66,6 +66,8 @@ export function WebView({
             } else {
               pending.reject(new Error(error || 'Request failed'))
             }
+          } else {
+            logDebug('FormBuilderView', `handleResponse: No pending request found for correlationId="${correlationId}"`)
           }
         }
       }
@@ -183,6 +185,7 @@ export function WebView({
             templateBody={pluginData.templateBody || ''} // Load from codeblock
             isNewForm={isNewForm}
             templateTitle={templateTitle}
+            templateFilename={pluginData.templateFilename || ''}
             onSave={handleSave}
             onCancel={handleCancel}
             onOpenForm={handleOpenForm}

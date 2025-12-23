@@ -5,6 +5,7 @@ import { showMessage } from '@helpers/userInput'
 import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
 import { ensureFrontmatter } from '@helpers/NPFrontMatter'
+import { getFolderFromFilename } from '@helpers/folders'
 
 export const varsInForm = `# Variables in your form:`
 export const varsCodeBlockType = 'template:ignore form variables'
@@ -36,6 +37,14 @@ export async function createProcessingTemplate(options?: {
     let formTemplateTitle = options?.formTemplateTitle || ''
     let formTemplateFilename = options?.formTemplateFilename || ''
     let suggestedProcessingTitle = options?.suggestedProcessingTitle || ''
+    
+    // Generate default suggested title based on form template title if not provided
+    if (!suggestedProcessingTitle && formTemplateTitle) {
+      // Remove "Form" from the end if present, then add "Processing Template"
+      const baseTitle = formTemplateTitle.replace(/\s+Form\s*$/i, '').trim()
+      suggestedProcessingTitle = `${baseTitle} Processing Template`
+      logDebug(pluginJson, `createProcessingTemplate: Generated suggested title "${suggestedProcessingTitle}" from form template "${formTemplateTitle}"`)
+    }
 
     // If called from Form Builder (with pre-filled options), skip the initial prompts
     if (!formTemplateTitle && !formTemplateFilename) {
@@ -63,23 +72,29 @@ export async function createProcessingTemplate(options?: {
       }
     }
 
-    // Ask for the processing template title (unless we already have a suggested one from Form Builder)
-    const processingTitle = suggestedProcessingTitle
-      ? suggestedProcessingTitle
-      : await CommandBar.textPrompt('Processing Template', 'Enter processing template title:', suggestedProcessingTitle || '')
+    // Ask for the processing template title (always prompt, but use suggestedProcessingTitle as default)
+    const processingTitle = await CommandBar.textPrompt(
+      'Processing Template',
+      'Enter processing template title:',
+      suggestedProcessingTitle || '',
+    )
 
     if (!processingTitle || typeof processingTitle === 'boolean') {
       logDebug(pluginJson, `createProcessingTemplate: User cancelled or empty title`)
       return { processingTitle: undefined, processingFilename: undefined }
     }
 
-    // Determine folder path
-    let folderPath = '@Templates/Forms'
-    if (formTemplateFilename && formTemplateTitle) {
-      // Put it in the same folder as the form template
-      const formFolderPath = `@Templates/Forms/${formTemplateTitle}`
-      folderPath = formFolderPath
-      logDebug(pluginJson, `createProcessingTemplate: Creating processing template in folder "${folderPath}"`)
+    // Determine folder path - use the same folder as the form template if provided
+    let folderPath = '@Forms'
+    if (formTemplateFilename) {
+      // Extract folder from the form template filename
+      const formFolder = getFolderFromFilename(formTemplateFilename)
+      if (formFolder && formFolder !== '/') {
+        folderPath = formFolder
+        logDebug(pluginJson, `createProcessingTemplate: Using form template folder "${folderPath}"`)
+      } else {
+        logDebug(pluginJson, `createProcessingTemplate: Form template is in root, using default folder "@Forms"`)
+      }
     }
 
     // Check if template already exists
@@ -255,20 +270,19 @@ Status: <%- status %>
 
     // Note: Form template frontmatter is updated by the caller (NPTemplateForm.js), so we don't update it here
     // to avoid duplicate receivingTemplateTitle entries
-    if (formTemplateFilename && formTemplateTitle) {
-      await showMessage(`Created processing template "${processingTitle}" and linked it to form template "${formTemplateTitle}"`)
-    } else {
-      await showMessage(`Created processing template "${processingTitle}"`)
+    // Only show message and open note if called standalone (not from Form Builder)
+    // When called from Form Builder, the React UI will handle the update
+    if (!formTemplateFilename) {
+      if (formTemplateTitle) {
+        await showMessage(`Created processing template "${processingTitle}" and linked it to form template "${formTemplateTitle}"`)
+      } else {
+        await showMessage(`Created processing template "${processingTitle}"`)
+      }
+      // Open the note in the Editor when called standalone
+      await Editor.openNoteByFilename(filename)
     }
 
     logDebug(pluginJson, `createProcessingTemplate: Successfully created processing template "${processingTitle}"`)
-
-    // Only open the note if called standalone (not from Form Builder)
-    // if (!options?.formTemplateFilename) {
-    // await Editor.openNoteByFilename(filename)
-    // }
-    // for now, always open the processing template note in the Editor
-    await Editor.openNoteByFilename(filename)
 
     return { processingTitle, processingFilename: filename }
   } catch (error) {
