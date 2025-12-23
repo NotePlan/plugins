@@ -5,24 +5,62 @@
   width: 100%;
 }
 
+/* Toggle Switch Styles */
 .template-tag-editor-toggle {
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
 }
 
-.template-tag-editor-toggle label {
+.template-tag-toggle-switch {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
-  font-size: 0.85rem;
-  color: var(--fg-secondary-color, #666);
+  user-select: none;
 }
 
-.template-tag-editor-toggle input[type="checkbox"] {
-  cursor: pointer;
+.template-tag-toggle-switch input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.template-tag-toggle-slider {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  background-color: var(--bg-alt-color, #ccc);
+  border-radius: 24px;
+  transition: background-color 0.3s ease;
+}
+
+.template-tag-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.template-tag-toggle-switch input[type="checkbox"]:checked + .template-tag-toggle-slider {
+  background-color: var(--tint-color, #007aff);
+}
+
+.template-tag-toggle-switch input[type="checkbox"]:checked + .template-tag-toggle-slider::before {
+  transform: translateX(20px);
+}
+
+.template-tag-toggle-label {
+  font-size: 0.85rem;
+  color: var(--fg-secondary-color, #666);
 }
 
 /* Raw mode textarea */
@@ -52,26 +90,15 @@
 
 /* Pill mode container */
 .template-tag-editor-pills-container {
+  min-height: 3em;
   padding: 0.5rem;
   border: 1px solid var(--border-color, #ddd);
   border-radius: 4px;
-  background-color: var(--bg-alt-color, #f9f9f9);
-  min-height: 2.5em;
-}
-
-.template-tag-editor-textarea {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--border-color, #ddd);
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: inherit;
   background-color: var(--bg-main-color, #fff);
-  color: var(--fg-main-color, #333);
+  cursor: text;
 }
 
-.template-tag-editor-textarea:focus {
-  outline: none;
+.template-tag-editor-pills-container:focus-within {
   border-color: var(--tint-color, #007aff);
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
 }
@@ -92,9 +119,9 @@
   border-radius: 12px;
   font-size: 0.85rem;
   line-height: 1.4;
-  cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
+  font-family: Menlo, monospace; /* Monospace for all pills */
 }
 
 .template-tag-pill-tag {
@@ -102,6 +129,11 @@
   color: white;
   font-weight: 500;
   border: 1px solid var(--tint-color, #007aff);
+  cursor: grab;
+}
+
+.template-tag-pill-tag:active {
+  cursor: text; /* I-beam cursor when dragging */
 }
 
 .template-tag-pill-tag:hover {
@@ -117,16 +149,31 @@
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
 }
 
+.template-tag-pill-tag.template-tag-pill-dragging {
+  opacity: 0.5;
+  cursor: text; /* I-beam cursor when dragging */
+}
+
 .template-tag-pill-text {
   background-color: var(--bg-alt-color, #f5f5f5);
   color: var(--fg-main-color, #333);
   border: 1px solid var(--border-color, #ddd);
-  cursor: text;
+  cursor: grab;
+  font-family: Menlo, monospace; /* Monospace for text pills */
+}
+
+.template-tag-pill-text:active {
+  cursor: text; /* I-beam cursor when dragging */
 }
 
 .template-tag-pill-text:hover {
   background-color: var(--bg-hover-color, #e8e8e8);
   border-color: var(--tint-color, #007aff);
+}
+
+.template-tag-pill-text.template-tag-pill-dragging {
+  opacity: 0.5;
+  cursor: text; /* I-beam cursor when dragging */
 }
 
 .template-tag-pill-text.template-tag-pill-editing {
@@ -135,6 +182,7 @@
   padding: 0.2rem 0.4rem;
   min-width: 100px;
   font-size: 0.85rem;
+  cursor: text;
 }
 
 .template-tag-pill-label {
@@ -168,21 +216,52 @@
   color: var(--fg-main-color, #333);
 }
 
+/* Drop indicator line */
+.template-tag-drop-indicator {
+  height: 2px;
+  background-color: var(--tint-color, #007aff);
+  margin: 0.125rem 0;
+  border-radius: 1px;
+  box-shadow: 0 0 4px rgba(0, 122, 255, 0.5);
+  width: 100%;
+}
+
+/* Drop zone for between pills */
+.template-tag-drop-zone {
+  flex: 1;
+  min-height: 20px;
+  min-width: 4px;
+  cursor: text; /* I-beam cursor */
+  transition: background-color 0.2s ease;
+}
+
+.template-tag-drop-zone:hover {
+  background-color: rgba(0, 122, 255, 0.1);
+}
+
 /* Empty state */
 .template-tag-editor-empty {
   padding: 0.5rem;
   color: var(--fg-secondary-color, #999);
   font-style: italic;
   font-size: 0.85rem;
+  font-family: Menlo, monospace;
 }
 
-/* Hidden sync textarea */
-.template-tag-editor-sync-textarea {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
+/* Textarea for editing (hidden in pill mode, visible for typing) */
+.template-tag-editor-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  font-family: Menlo, monospace; /* Monospace */
+  font-size: 0.9em;
+  background-color: var(--bg-main-color, #fff);
+  color: var(--fg-main-color, #333);
 }
 
+.template-tag-editor-textarea:focus {
+  outline: none;
+  border-color: var(--tint-color, #007aff);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+}

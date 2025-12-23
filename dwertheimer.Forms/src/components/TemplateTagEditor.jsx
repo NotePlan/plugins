@@ -147,6 +147,9 @@ export function TemplateTagEditor({
   const [selectedPillId, setSelectedPillId] = useState<?string>(null)
   const [editingTextIndex, setEditingTextIndex] = useState<?number>(null)
   const [editingTextValue, setEditingTextValue] = useState<string>('')
+  const [draggedPillId, setDraggedPillId] = useState<?string>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<?number>(null)
+  const [dragOverPosition, setDragOverPosition] = useState<'before' | 'after' | null>(null)
   const containerRef = useRef<?HTMLDivElement>(null)
   const textareaRef = useRef<?HTMLTextAreaElement>(null)
 
@@ -213,11 +216,92 @@ export function TemplateTagEditor({
     setSelectedPillId(pillId)
   }, [])
 
-  // Handle pill drag start (basic implementation - could be enhanced with drag-and-drop)
-  const handlePillDragStart = useCallback((pillId: string, e: SyntheticDragEvent<HTMLDivElement>) => {
+  // Handle drag start
+  const handleDragStart = useCallback((pillId: string, e: SyntheticDragEvent<HTMLDivElement>) => {
+    setDraggedPillId(pillId)
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', pillId)
-    setSelectedPillId(pillId)
+    // Set I-beam cursor
+    if (e.target instanceof HTMLElement) {
+      e.target.style.cursor = 'text'
+    }
+  }, [])
+
+  // Handle drag over
+  const handleDragOver = useCallback(
+    (index: number, position: 'before' | 'after', e: SyntheticDragEvent<HTMLDivElement>) => {
+      e.preventDefault()
+      e.stopPropagation()
+      e.dataTransfer.dropEffect = 'move'
+      setDragOverIndex(index)
+      setDragOverPosition(position)
+    },
+    [],
+  )
+
+  // Handle drag leave
+  const handleDragLeave = useCallback(() => {
+    setDragOverIndex(null)
+    setDragOverPosition(null)
+  }, [])
+
+  // Handle drop
+  const handleDrop = useCallback(
+    (dropIndex: number, e: SyntheticDragEvent<HTMLDivElement>) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      if (!draggedPillId) {
+        setDraggedPillId(null)
+        setDragOverIndex(null)
+        setDragOverPosition(null)
+        return
+      }
+
+      const draggedIndex = pills.findIndex((p) => p.id === draggedPillId)
+      if (draggedIndex === -1 || draggedIndex === dropIndex) {
+        setDraggedPillId(null)
+        setDragOverIndex(null)
+        setDragOverPosition(null)
+        return
+      }
+
+      const newPills = [...pills]
+      const draggedPill = newPills[draggedIndex]
+      if (draggedPill) {
+        // Remove dragged pill
+        newPills.splice(draggedIndex, 1)
+
+        // Calculate insert index based on position
+        let insertIndex = dropIndex
+        if (draggedIndex < dropIndex) {
+          // Dragging down - adjust for removed item
+          insertIndex = dropIndex
+        } else {
+          // Dragging up - no adjustment needed
+          insertIndex = dropIndex
+        }
+
+        // Insert at calculated position
+        newPills.splice(insertIndex, 0, draggedPill)
+      }
+
+      const newValue = reconstructText(newPills)
+      setPills(newPills)
+      onChange(newValue)
+
+      setDraggedPillId(null)
+      setDragOverIndex(null)
+      setDragOverPosition(null)
+    },
+    [draggedPillId, pills, onChange],
+  )
+
+  // Handle drag end
+  const handleDragEnd = useCallback(() => {
+    setDraggedPillId(null)
+    setDragOverIndex(null)
+    setDragOverPosition(null)
   }, [])
 
   // Handle raw mode toggle
@@ -238,8 +322,7 @@ export function TemplateTagEditor({
     [onChange],
   )
 
-  // Handle pill mode - we'll use a contentEditable approach or visible textarea
-  // For now, use a visible textarea that shows pills as visual overlay
+  // Handle pill mode textarea change
   const handlePillModeTextareaChange = useCallback(
     (e: SyntheticInputEvent<HTMLTextAreaElement>) => {
       const newValue = e.target.value
@@ -254,29 +337,48 @@ export function TemplateTagEditor({
   // Render pills
   const renderPills = useMemo(() => {
     return pills.map((pill, index) => {
+      const isDragging = draggedPillId === pill.id
+      const isDragOver = dragOverIndex === index
+      const showDropIndicatorBefore = isDragOver && dragOverPosition === 'before' && draggedPillId !== pill.id
+      const showDropIndicatorAfter = isDragOver && dragOverPosition === 'after' && draggedPillId !== pill.id
+
       if (pill.type === 'tag') {
         return (
-          <div
-            key={pill.id}
-            className={`template-tag-pill template-tag-pill-tag ${selectedPillId === pill.id ? 'template-tag-pill-selected' : ''}`}
-            onClick={(e) => handlePillClick(pill.id, e)}
-            draggable={true}
-            onDragStart={(e) => handlePillDragStart(pill.id, e)}
-            title={pill.content}
-          >
-            <span className="template-tag-pill-label">{pill.label}</span>
-            <button
-              type="button"
-              className="template-tag-pill-delete"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleDeletePill(pill.id)
-              }}
-              title="Delete tag"
+          <React.Fragment key={pill.id}>
+            {/* Drop indicator before */}
+            {showDropIndicatorBefore && <div className="template-tag-drop-indicator" />}
+            <div
+              className={`template-tag-pill template-tag-pill-tag ${selectedPillId === pill.id ? 'template-tag-pill-selected' : ''} ${isDragging ? 'template-tag-pill-dragging' : ''}`}
+              onClick={(e) => handlePillClick(pill.id, e)}
+              draggable={true}
+              onDragStart={(e) => handleDragStart(pill.id, e)}
+              onDragEnd={handleDragEnd}
+              title={pill.content}
+              style={{ cursor: isDragging ? 'text' : 'grab' }}
             >
-              ×
-            </button>
-          </div>
+              <span className="template-tag-pill-label">{pill.label}</span>
+              <button
+                type="button"
+                className="template-tag-pill-delete"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDeletePill(pill.id)
+                }}
+                title="Delete tag"
+              >
+                ×
+              </button>
+            </div>
+            {/* Drop indicator after */}
+            {showDropIndicatorAfter && <div className="template-tag-drop-indicator" />}
+            {/* Drop zone for between pills */}
+            <div
+              className="template-tag-drop-zone"
+              onDragOver={(e) => handleDragOver(index + 1, 'before', e)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(index + 1, e)}
+            />
+          </React.Fragment>
         )
       } else {
         // Text pill - editable
@@ -299,34 +401,78 @@ export function TemplateTagEditor({
                 }
               }}
               autoFocus={true}
+              style={{ fontFamily: 'Menlo, monospace' }}
             />
           )
         } else {
           return (
-            <div
-              key={pill.id}
-              className="template-tag-pill template-tag-pill-text"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleTextEdit(index)
-              }}
-              title="Click to edit text"
-            >
-              {pill.content}
-            </div>
+            <React.Fragment key={pill.id}>
+              {/* Drop indicator before */}
+              {showDropIndicatorBefore && <div className="template-tag-drop-indicator" />}
+              <div
+                className={`template-tag-pill template-tag-pill-text ${isDragging ? 'template-tag-pill-dragging' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleTextEdit(index)
+                }}
+                draggable={true}
+                onDragStart={(e) => handleDragStart(pill.id, e)}
+                onDragOver={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const midPoint = rect.left + rect.width / 2
+                  const position = e.clientX < midPoint ? 'before' : 'after'
+                  handleDragOver(index, position, e)
+                }}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(index, e)}
+                onDragEnd={handleDragEnd}
+                title="Click to edit text"
+                style={{ cursor: isDragging ? 'text' : 'grab', fontFamily: 'Menlo, monospace' }}
+              >
+                {pill.content}
+              </div>
+              {/* Drop indicator after */}
+              {showDropIndicatorAfter && <div className="template-tag-drop-indicator" />}
+              {/* Drop zone for between pills */}
+              <div
+                className="template-tag-drop-zone"
+                onDragOver={(e) => handleDragOver(index + 1, 'before', e)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(index + 1, e)}
+              />
+            </React.Fragment>
           )
         }
       }
     })
-  }, [pills, selectedPillId, editingTextIndex, editingTextValue, handlePillClick, handlePillDragStart, handleDeletePill, handleTextEdit, handleTextEditSave, handleTextEditCancel])
+  }, [
+    pills,
+    selectedPillId,
+    editingTextIndex,
+    editingTextValue,
+    draggedPillId,
+    dragOverIndex,
+    dragOverPosition,
+    handlePillClick,
+    handleDragStart,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleDragEnd,
+    handleDeletePill,
+    handleTextEdit,
+    handleTextEditSave,
+    handleTextEditCancel,
+  ])
 
   return (
     <div className={`template-tag-editor ${className}`} style={style} ref={containerRef}>
       {/* Toggle switch for raw mode */}
       <div className="template-tag-editor-toggle">
-        <label>
+        <label className="template-tag-toggle-switch">
           <input type="checkbox" checked={showRaw} onChange={handleRawToggle} />
-          <span>Show RAW template code</span>
+          <span className="template-tag-toggle-slider"></span>
+          <span className="template-tag-toggle-label">Show RAW template code</span>
         </label>
       </div>
 
@@ -340,29 +486,40 @@ export function TemplateTagEditor({
           onBlur={onBlur}
           placeholder={placeholder}
           rows={minRows}
-            style={Object.assign(
-              {
-                width: '100%',
-                minHeight: `${minRows * 1.5}em`,
-                maxHeight: `${maxRows * 1.5}em`,
-                resize: 'vertical',
-                fontFamily: 'Menlo, monospace',
-                fontSize: '0.9em',
-              },
-              style || {},
-            )}
+          style={Object.assign(
+            {
+              width: '100%',
+              minHeight: `${minRows * 1.5}em`,
+              maxHeight: `${maxRows * 1.5}em`,
+              resize: 'vertical',
+              fontFamily: 'Menlo, monospace',
+              fontSize: '0.9em',
+            },
+            style || {},
+          )}
           className="template-tag-editor-raw"
         />
       ) : (
-        /* Pill mode - show pills above a textarea for editing */
+        /* Pill mode - show pills only, with hidden textarea for typing */
         <div className="template-tag-editor-pills-wrapper">
           {/* Pills display */}
-          {pills.length > 0 && (
-            <div className="template-tag-editor-pills-container" onClick={() => setSelectedPillId(null)}>
+          <div
+            className="template-tag-editor-pills-container"
+            onClick={() => {
+              setSelectedPillId(null)
+              // Focus the hidden textarea when clicking in the container
+              if (textareaRef.current) {
+                textareaRef.current.focus()
+              }
+            }}
+          >
+            {pills.length > 0 ? (
               <div className="template-tag-editor-pills">{renderPills}</div>
-            </div>
-          )}
-          {/* Textarea for editing - shows parsed pills visually above */}
+            ) : (
+              <div className="template-tag-editor-empty">{placeholder || 'Start typing or use +Field/+Date buttons to add template tags'}</div>
+            )}
+          </div>
+          {/* Hidden textarea for syncing and adding new content - positioned absolutely to be invisible but functional */}
           <textarea
             ref={textareaRef}
             value={value}
@@ -373,14 +530,17 @@ export function TemplateTagEditor({
             rows={minRows}
             style={Object.assign(
               {
-                width: '100%',
-                minHeight: `${minRows * 1.5}em`,
-                maxHeight: `${maxRows * 1.5}em`,
-                resize: 'vertical',
+                position: 'absolute',
+                opacity: 0,
+                pointerEvents: 'none',
+                width: '1px',
+                height: '1px',
+                overflow: 'hidden',
+                fontFamily: 'Menlo, monospace',
               },
               style || {},
             )}
-            className="template-tag-editor-textarea"
+            className="template-tag-editor-sync-textarea"
           />
         </div>
       )}
@@ -389,4 +549,3 @@ export function TemplateTagEditor({
 }
 
 export default TemplateTagEditor
-
