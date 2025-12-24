@@ -95,6 +95,36 @@ export function ExpandableTextarea({
     }
   }
 
+  const handleKeyDown = (e: any) => {
+    // Allow Tab key to insert a tab character instead of moving focus
+    if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault()
+      const textarea = e.currentTarget
+      const start = textarea.selectionStart || 0
+      const end = textarea.selectionEnd || 0
+      const newValue = textareaValue.substring(0, start) + '\t' + textareaValue.substring(end)
+      setTextareaValue(newValue)
+      // Trigger onChange with synthetic event
+      const syntheticEvent = {
+        target: { value: newValue },
+        currentTarget: textarea,
+      }
+      onChange(syntheticEvent)
+      // Set cursor position after the inserted tab
+      setTimeout(() => {
+        textarea.focus()
+        const newCursorPos = start + 1
+        textarea.setSelectionRange(newCursorPos, newCursorPos)
+      }, 0)
+      return
+    }
+    // Allow all other keys including Enter to work normally
+    // Call custom onKeyDown if provided
+    if (onKeyDown) {
+      onKeyDown(e)
+    }
+  }
+
   return (
     <div className={`expandable-textarea-container ${compactDisplay ? 'compact' : ''} ${className}`} data-field-type="textarea">
       {label && <label className="expandable-textarea-label">{label}</label>}
@@ -108,7 +138,7 @@ export function ExpandableTextarea({
         required={required}
         rows={minRows}
         onFocus={handleFocus}
-        onKeyDown={onKeyDown}
+        onKeyDown={handleKeyDown}
         style={Object.assign(
           {
             minHeight: `${minRows * 20}px`, // Approximate line height

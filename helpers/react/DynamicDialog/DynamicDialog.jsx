@@ -248,8 +248,18 @@ const DynamicDialog = ({
   const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'dropdown-select', 'combo', 'textarea']
 
   const handleEnterKey = (event: KeyboardEvent) => {
+    // CMD+ENTER (or CTRL+ENTER on Windows/Linux) should always submit, bypassing ENTER_CONSUMING_FIELD_TYPES
+    const isCmdEnter = (event.metaKey || event.ctrlKey) && event.key === 'Enter'
+    
     if (event.key === 'Enter' && submitOnEnter) {
-      // Check if the focused element is within a field that consumes Enter key
+      // If CMD+ENTER, always submit regardless of field type
+      if (isCmdEnter) {
+        event.preventDefault()
+        handleSave()
+        return
+      }
+      
+      // For regular Enter, check if the focused element is within a field that consumes Enter key
       const activeElement = document.activeElement
       if (activeElement instanceof HTMLElement) {
         // Look for the closest parent with data-field-type attribute
@@ -425,7 +435,8 @@ const DynamicDialog = ({
       </div>
     </dialog>
   )
-  console.log(`DynamicDialog dialogcontents`, dialogContents)
+  // Debug logging (disabled for cleaner console output)
+  // console.log(`DynamicDialog dialogcontents`, dialogContents)
   return isModal ? (
     <Modal
       onClose={() => {

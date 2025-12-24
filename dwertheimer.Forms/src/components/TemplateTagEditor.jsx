@@ -129,16 +129,23 @@ function reconstructText(pills: Array<TemplateTagPill>): string {
 
 /**
  * Replace leading and trailing spaces with visible space indicator for display
+ * Also replaces newlines with <return> indicators
  * Only shows space indicators at the start or end of text, not in the middle
  * @param {string} text - The text to process
- * @returns {string} Text with leading/trailing spaces replaced by "<space>"
+ * @returns {string} Text with leading/trailing spaces replaced by "<space>" and newlines by "<return>"
  */
 function displayTextWithSpaces(text: string): string {
-  // Match leading spaces and trailing spaces separately
+  // First, replace all newlines with <return>
+  let processedText = text.replace(/\n/g, '<return>')
+
+  // Then replace leading spaces and trailing spaces separately
   // Leading spaces: ^\s+
   // Trailing spaces: \s+$
   // Middle spaces are left as-is
-  return text.replace(/^(\s+)/, (match) => '<space>'.repeat(match.length)).replace(/(\s+)$/, (match) => '<space>'.repeat(match.length))
+  processedText = processedText.replace(/^(\s+)/, (match) => '<space>'.repeat(match.length))
+  processedText = processedText.replace(/(\s+)$/, (match) => '<space>'.repeat(match.length))
+
+  return processedText
 }
 
 /**
@@ -705,7 +712,7 @@ export function TemplateTagEditor({
   ])
 
   return (
-    <div className={`template-tag-editor ${className}`} style={style} ref={containerRef}>
+    <div className={`template-tag-editor ${className}`} style={style} ref={containerRef} data-field-type="textarea">
       {/* Toggle switch for raw mode */}
       <div className="template-tag-editor-toggle">
         <label className="template-tag-toggle-switch">
@@ -740,6 +747,29 @@ export function TemplateTagEditor({
           onBlur={onBlur}
           placeholder={placeholder}
           rows={minRows}
+          onKeyDown={(e) => {
+            // Allow Tab key to insert a tab character instead of moving focus
+            if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+              e.preventDefault()
+              const textarea = e.currentTarget
+              const start = textarea.selectionStart || 0
+              const end = textarea.selectionEnd || 0
+              const newValue = `${value.substring(0, start)}\t${value.substring(end)}`
+              onChange(newValue)
+              // Set cursor position after the inserted tab
+              setTimeout(() => {
+                textarea.focus()
+                const newCursorPos = start + 1
+                textarea.setSelectionRange(newCursorPos, newCursorPos)
+              }, 0)
+            }
+            // Ensure Enter key works normally (creates newline in textarea)
+            // Stop propagation to prevent DynamicDialog from submitting the form
+            if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+              e.stopPropagation()
+              // Don't prevent default - let the textarea handle Enter naturally to create newline
+            }
+          }}
           style={Object.assign(
             {
               width: '100%',
@@ -761,12 +791,23 @@ export function TemplateTagEditor({
             ref={pillsContainerRef}
             className="template-tag-editor-pills-container"
             onClick={(e) => {
+              // Don't interfere with textarea clicks
+              if ((e.target: any) instanceof HTMLTextAreaElement) {
+                return
+              }
               setSelectedPillId(null)
               // Focus the hidden textarea when clicking in the container
               if (textareaRef.current) {
                 textareaRef.current.focus()
                 // Set cursor position based on click location
                 handleContainerClick(e)
+              }
+            }}
+            onKeyDown={(e) => {
+              // Don't interfere with textarea key events - let them bubble naturally
+              // But prevent container from handling Enter if textarea is focused
+              if (e.target instanceof HTMLTextAreaElement) {
+                return
               }
             }}
           >
@@ -785,6 +826,28 @@ export function TemplateTagEditor({
             onBlur={onBlur}
             placeholder={placeholder || 'Start typing or use +Field/+Date buttons to add template tags'}
             rows={minRows}
+            onKeyDown={(e) => {
+              // Allow Tab key to insert a tab character instead of moving focus
+              if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                e.preventDefault()
+                const textarea = e.currentTarget
+                const start = textarea.selectionStart || 0
+                const end = textarea.selectionEnd || 0
+                const newValue = `${value.substring(0, start)}\t${value.substring(end)}`
+                onChange(newValue)
+                // Set cursor position after the inserted tab
+                setTimeout(() => {
+                  textarea.focus()
+                  const newCursorPos = start + 1
+                  textarea.setSelectionRange(newCursorPos, newCursorPos)
+                }, 0)
+              }
+              // Ensure Enter key creates a newline - stop propagation to prevent parent handlers
+              if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                e.stopPropagation()
+                // Don't prevent default - let textarea handle Enter naturally to create newline
+              }
+            }}
             onMouseDown={(e) => {
               // Allow clicks on buttons to work - check if click is on a button
               const target = (e.target: any)

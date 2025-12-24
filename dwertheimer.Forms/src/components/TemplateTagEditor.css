@@ -182,6 +182,7 @@
   border: 1px solid var(--border-color, #ddd);
   cursor: grab;
   font-family: Menlo, monospace; /* Monospace for text pills */
+  white-space: pre-wrap; /* Preserve whitespace and newlines for display */
 }
 
 .template-tag-pill-text:active {

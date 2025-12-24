@@ -605,6 +605,9 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
 
       // First set to the values set in the opts object, using x/y/w/h if available, or if not, then use paddingWidth/paddingHeight to fill the screen other than this padding.
       // For centering: if x/y not provided, center the window on screen
+      // IMPORTANT: NotePlan's API uses bottom-left origin (y=0 is bottom of screen, window bottom at screen bottom)
+      // If opts.y is provided, it's already in bottom-left coordinates (from Forms plugin translation)
+      // If opts.y is not provided, we calculate center in bottom-left: (screenHeight - height) / 2
       winOptions = {
         x: opts.x ?? (screenWidth - width) / 2,
         y: opts.y ?? (screenHeight - height) / 2,
@@ -616,7 +619,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       }
       // Now override with saved x/y/w/h for this window if wanted, and if available
       if (opts.reuseUsersWindowRect && cId) {
-        // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
+        logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
         const storedRect = getStoredWindowRect(cId)
         if (storedRect) {
           winOptions = {
@@ -628,7 +631,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
             id: cId, // don't need both ... but trying to work out which is the current one for the API
             windowId: cId,
           }
-          logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
+          // logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
           // if (NotePlan.environment.platform !== 'macOS') {
           // const extraInfo = "<p>OS:" + NotePlan.environment.platform +
           //   " Type: " + (opts.makeModal ? 'Modal' : 'Floating') +
@@ -648,7 +651,6 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
           // }
         }
       }
-      // clo(winOptions, 'showHTMLV2 using winOptions:')
 
       // Test to see if requested window dimensions would exceed screen dimensions; if so reduce them accordingly
       logDebug('showHTMLV2', `- screen dimensions are ${String(screenWidth)} x ${String(screenHeight)} for device ${NotePlan.environment.machineName}`)
@@ -669,6 +671,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         winOptions.y = 0
       }
 
+      clo(winOptions, 'showHTMLV2 calling HTMLView.showWindowWithOptions with options:')
       const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions)
 
       // If wanted, also write this HTML to a file so we can work on it offline.
@@ -784,12 +787,7 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
  * @return {any} - the result of the runJavaScript call (should be unimportant in this case -- undefined is ok)
  * @author @dwertheimer
  */
-export async function sendToHTMLWindow(
-  windowId: string,
-  actionType: string,
-  data: any = {},
-  updateInfo: string = '',
-): Promise<any> {
+export async function sendToHTMLWindow(windowId: string, actionType: string, data: any = {}, updateInfo: string = ''): Promise<any> {
   try {
     const windowExists = isHTMLWindowOpen(windowId)
     if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = undefined`)
@@ -799,7 +797,7 @@ export async function sendToHTMLWindow(
       ...{
         lastUpdated: {
           msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`,
-          date: new Date().toLocaleString()
+          date: new Date().toLocaleString(),
         },
       },
       NPWindowID: windowExists ? windowId : undefined,

@@ -4,9 +4,13 @@ See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Sh
 
 ## [0.8.0] @jgclark 2025-12-18
 
+- Add request/response pattern for awaiting from React->Plugin->React
 - Bring a better design to MessageBanner component
 - Update MessageBanner to take a 'type' (WARN, ERROR, INFO or REMOVE), and an optional timeout
 - Add separate MessageBanner.css, that removes this particular dependency on css.w3.css
+- Add NP_THEME to showHTMLV2
+- Fix bug in window positioning math in showHTMLV2
+
 
 ## [0.7.5] @dwertheimer 2025-01-24
 

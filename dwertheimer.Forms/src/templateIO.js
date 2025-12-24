@@ -4,13 +4,41 @@
 //--------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { templateBodyCodeBlockType, templateRunnerArgsCodeBlockType, varsCodeBlockType, varsInForm } from './ProcessingTemplate'
 import { getNoteByFilename } from '@helpers/note'
 import { saveCodeBlockToNote, loadCodeBlockFromNote, replaceCodeBlockContent } from '@helpers/codeBlocks'
 import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
 import { logError, logDebug, JSP } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
-import { templateBodyCodeBlockType, templateRunnerArgsCodeBlockType, varsCodeBlockType, varsInForm } from './ProcessingTemplate'
 import NPTemplating from 'NPTemplating'
+
+/**
+ * Search DataStore.projectNotes for form templates (type: template-form)
+ * This searches all project notes, not just @Templates/*
+ * @returns {Array<{label: string, value: string}>} Array of {label: title, value: filename}
+ */
+export function getFormTemplateList(): Array<{ label: string, value: string }> {
+  const allNotes = DataStore.projectNotes
+  const formTemplates = []
+
+  for (const note of allNotes) {
+    const type = note.frontmatterAttributes?.type
+    if (type === 'template-form') {
+      const title = note.title || note.filename || ''
+      if (title) {
+        formTemplates.push({
+          label: title,
+          value: note.filename || '',
+        })
+      }
+    }
+  }
+
+  // Sort by title
+  formTemplates.sort((a, b) => a.label.localeCompare(b.label))
+
+  return formTemplates
+}
 
 /**
  * Format form fields array as code block JSON (more readable format)
@@ -192,4 +220,3 @@ export async function updateReceivingTemplateWithFields(receivingTemplateTitle: 
     await showMessage(`Error updating receiving template: ${error.message}`)
   }
 }
-

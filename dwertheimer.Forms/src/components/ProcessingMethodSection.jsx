@@ -19,7 +19,8 @@ export type ProcessingMethodSectionProps = {
   folders: Array<string>,
   requestFromPlugin: (command: string, dataToSend?: any, timeout?: number) => Promise<any>,
   onFrontmatterChange: (key: string, value: any) => void,
-  onLoadNotes: () => Promise<void>,
+  onLoadNotes: (forProcessingTemplates?: boolean) => Promise<void>,
+  loadingNotes?: boolean, // Loading state for notes
   onLoadFolders: (forceReload?: boolean) => Promise<void>,
   templateTitle: string,
   templateFilename?: string,
@@ -46,6 +47,7 @@ export function ProcessingMethodSection({
   requestFromPlugin,
   onFrontmatterChange,
   onLoadNotes,
+  loadingNotes = false,
   onLoadFolders,
   templateTitle,
   templateFilename = '',
@@ -166,8 +168,18 @@ export function ProcessingMethodSection({
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
               onNotesChanged={() => {
-                onLoadNotes()
+                onLoadNotes(false) // Load all note types for write-existing method
               }}
+              onOpen={() => {
+                // Lazy load notes when dropdown opens
+                // For write-existing, need all note types (including calendar/relative notes like <today>)
+                if (notes.length === 0) {
+                  onLoadNotes(false).catch((error) => {
+                    console.error('Error loading notes:', error)
+                  })
+                }
+              }}
+              isLoading={notes.length === 0 && loadingNotes}
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               Select a note or use special values: &lt;today&gt;, &lt;current&gt;, &lt;thisweek&gt;, &lt;nextweek&gt;, &lt;choose&gt;
@@ -563,8 +575,18 @@ export function ProcessingMethodSection({
                   compactDisplay={true}
                   requestFromPlugin={requestFromPlugin}
                   onNotesChanged={() => {
-                    onLoadNotes()
+                    onLoadNotes(true) // Load only project notes for processing templates (faster)
                   }}
+                  onOpen={() => {
+                    // Lazy load notes when dropdown opens
+                    // For processing templates, only need project notes (faster)
+                    if (notes.length === 0) {
+                      onLoadNotes(true).catch((error) => {
+                        console.error('Error loading notes:', error)
+                      })
+                    }
+                  }}
+                  isLoading={notes.length === 0 && loadingNotes}
                 />
               </div>
               {selectedProcessingTemplateFilename && (
@@ -628,7 +650,7 @@ export function ProcessingMethodSection({
                       setSelectedProcessingTemplateFilename(processingFilename)
                     }
                     // Reload notes so the new processing template appears in the dropdown
-                    await onLoadNotes()
+                    await onLoadNotes(true) // Load only project notes for processing templates
                   } else {
                     console.warn('createProcessingTemplate: Unexpected result format:', result, 'typeof:', typeof result, 'JSON:', JSON.stringify(result))
                   }

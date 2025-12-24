@@ -16,7 +16,8 @@ type FormSettingsProps = {
   notes: Array<NoteOption>,
   folders: Array<string>,
   requestFromPlugin: (command: string, data?: any) => Promise<any>,
-  onLoadNotes: (forceReload?: boolean) => Promise<void>,
+  onLoadNotes: (forceReload?: boolean, forProcessingTemplates?: boolean) => Promise<void>,
+  loadingNotes?: boolean,
   onLoadFolders: (forceReload?: boolean) => Promise<void>,
   templateTitle: string,
   templateFilename?: string,
@@ -38,6 +39,7 @@ export function FormSettings({
   folders,
   requestFromPlugin,
   onLoadNotes,
+  loadingNotes = false,
   onLoadFolders,
   templateTitle,
   templateFilename = '',
@@ -205,6 +207,7 @@ export function FormSettings({
             onFrontmatterChange={onFrontmatterChange}
             onLoadNotes={onLoadNotes}
             onLoadFolders={onLoadFolders}
+            loadingNotes={loadingNotes}
             templateTitle={templateTitle}
             templateFilename={templateFilename}
             showTagInserter={showTagInserter}

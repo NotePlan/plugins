@@ -527,7 +527,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
         <div style={{ maxWidth: '100vw', width: '100vw' }}>
           <DynamicDialog
             isOpen={true}
-            title={pluginData?.formTitle || 'Form Entry'}
+            title={pluginData?.formTitle || ''}
             items={formFields}
             onSave={handleSave}
             onCancel={handleCancel}

@@ -51,6 +51,8 @@ export function FormBuilder({
   hideDependentItems = false,
   width,
   height,
+  x,
+  y,
   templateBody = '', // Load from codeblock
   templateRunnerArgs = {}, // TemplateRunner processing variables (loaded from codeblock)
   isNewForm = false,
@@ -94,8 +96,8 @@ export function FormBuilder({
       hideDependentItems: hideDependentItems || false,
       width: width,
       height: height,
-      x: undefined,
-      y: undefined,
+      x: x, // Preserve string values like "center", "left", "right" or numeric/percentage values
+      y: y, // Preserve string values like "center", "top", "bottom" or numeric/percentage values
       // Option A: Write to existing file (defaults)
       getNoteTitled: '',
       location: 'append',
@@ -159,18 +161,19 @@ export function FormBuilder({
 
   // Load notes on demand when needed (for form fields OR processing method sections)
   const loadNotes = useCallback(
-    async (forceReload: boolean = false) => {
+    async (forceReload: boolean = false, forProcessingTemplates: boolean = false) => {
       if ((notesLoaded && !forceReload) || loadingNotes) return
 
       try {
         setLoadingNotes(true)
-        logDebug('FormBuilder', 'Loading notes on demand...')
+        logDebug('FormBuilder', `Loading notes on demand... (forProcessingTemplates=${String(forProcessingTemplates)})`)
         // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-        // Load all note types for processing method sections
+        // For processing templates, we only need project notes (not calendar notes) - this is much faster
+        // For form fields, we might need all note types
         const notesData = await requestFromPlugin('getNotes', {
           includePersonalNotes: true,
-          includeCalendarNotes: true,
-          includeRelativeNotes: true,
+          includeCalendarNotes: !forProcessingTemplates, // Skip calendar notes for processing templates (performance optimization)
+          includeRelativeNotes: !forProcessingTemplates, // Skip relative notes for processing templates
           includeTeamspaceNotes: true,
         })
         if (Array.isArray(notesData)) {
@@ -210,22 +213,16 @@ export function FormBuilder({
     }
   }, [needsFolders, foldersLoaded, loadingFolders, loadFolders, frontmatter.processingMethod, fields, folders.length])
 
+  // Load notes for form fields on mount (if needed)
+  // For processing templates, load notes lazily when dropdown opens (better UX)
   useEffect(() => {
     const needsNotesForFields = fields.some((field) => field.type === 'note-chooser')
-    const needsNotesForProcessing = frontmatter.processingMethod === 'write-existing' || frontmatter.processingMethod === 'form-processor'
-    if (needsNotesForFields || needsNotesForProcessing) {
-      // Always load if needed, even if already loaded (in case processing method changed)
-      const shouldLoad = !notesLoaded || (needsNotesForProcessing && notes.length === 0)
-      if (shouldLoad && !loadingNotes) {
-        logDebug(
-          'FormBuilder',
-          `Triggering loadNotes: needsNotesForFields=${String(needsNotesForFields)}, needsNotesForProcessing=${String(needsNotesForProcessing)}, notes.length=${notes.length}`,
-        )
-        const forceReload = needsNotesForProcessing && notes.length === 0
-        loadNotes(forceReload) // Force reload if processing section needs it and we have no data
-      }
+    if (needsNotesForFields && !notesLoaded && !loadingNotes) {
+      logDebug('FormBuilder', `Triggering loadNotes for form fields: needsNotesForFields=${String(needsNotesForFields)}`)
+      loadNotes(false, false) // Load all note types for form fields
     }
-  }, [needsNotes, notesLoaded, loadingNotes, loadNotes, frontmatter.processingMethod, fields, notes.length])
+    // Note: We no longer auto-load notes for processing templates - they load lazily when dropdown opens
+  }, [needsNotes, notesLoaded, loadingNotes, loadNotes, fields])
 
   // Sync frontmatter when props change (e.g., when receivingTemplateTitle is set after template creation)
   useEffect(() => {
@@ -459,7 +456,12 @@ export function FormBuilder({
               notes={notes}
               folders={folders}
               requestFromPlugin={requestFromPlugin}
-              onLoadNotes={loadNotes}
+              onLoadNotes={async (forProcessingTemplates?: boolean) => {
+                // Load notes - for processing templates, only project notes (faster)
+                // For write-existing method, need all note types (including calendar/relative notes)
+                await loadNotes(false, forProcessingTemplates === true) // Only skip calendar notes if explicitly for processing templates
+              }}
+              loadingNotes={loadingNotes}
               onLoadFolders={loadFolders}
               templateTitle={templateTitle}
               templateFilename={templateFilename}

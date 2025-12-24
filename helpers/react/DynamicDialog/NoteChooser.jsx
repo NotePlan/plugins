@@ -46,6 +46,8 @@ export type NoteChooserProps = {
   allowBackwardsCompatible?: boolean, // If true, allow notes that don't match filters if they match the current value
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request note creation from plugin
   onNotesChanged?: () => void, // Callback to request note list reload after creating a note
+  onOpen?: () => void, // Callback when dropdown opens (for lazy loading) - can be async internally
+  isLoading?: boolean, // If true, show loading indicator
 }
 
 /**
@@ -119,6 +121,8 @@ export function NoteChooser({
   allowBackwardsCompatible = false,
   requestFromPlugin,
   onNotesChanged,
+  onOpen,
+  isLoading = false,
 }: NoteChooserProps): React$Node {
   const [isCreatingNote, setIsCreatingNote] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -225,22 +229,21 @@ export function NoteChooser({
       if (folderFilter && !isRelativeNote) {
         // Get the folder path from the note's filename
         const noteFolder = getFolderFromFilename(note.filename)
-        
+
         // Normalize folder paths for comparison
         // Remove trailing slashes and ensure consistent format
         const normalizeFolder = (folder: string): string => {
           if (folder === '/') return '/'
           return folder.replace(/\/+$/, '') // Remove trailing slashes
         }
-        
+
         const normalizedFilter = normalizeFolder(folderFilter)
         const normalizedNoteFolder = normalizeFolder(noteFolder)
-        
+
         // Check if note is in the selected folder
         // For exact match or if note folder starts with filter folder + '/'
-        const folderMatches = normalizedNoteFolder === normalizedFilter || 
-                           normalizedNoteFolder.startsWith(normalizedFilter + '/')
-        
+        const folderMatches = normalizedNoteFolder === normalizedFilter || normalizedNoteFolder.startsWith(normalizedFilter + '/')
+
         if (!folderMatches) {
           return false // Exclude notes not in the selected folder
         }
@@ -310,24 +313,24 @@ export function NoteChooser({
         const folder = getFolderFromFilename(note.filename)
         // Log detailed info for debugging
         logDebug('NoteChooser', `getOptionText: filename="${note.filename}", title="${note.title}", extractedFolder="${folder}"`)
-        
+
         // Format as "path / title" (or just "title" if folder is root)
         if (folder === '/' || !folder) {
           logDebug('NoteChooser', `getOptionText: root folder, returning title only: "${note.title}"`)
           return note.title
         }
-        
+
         // Check if the title already contains the folder path to avoid duplication
         // Some notes (like folder links) have titles that include the folder path
         const folderWithoutSlash = folder.replace(/^\/+|\/+$/g, '') // Remove leading/trailing slashes
         const titleContainsFolder = note.title.includes(folderWithoutSlash) || note.title.includes(folder)
-        
+
         if (titleContainsFolder) {
           // Title already contains folder path, just return the title
           logDebug('NoteChooser', `getOptionText: title already contains folder path, returning title only: "${note.title}"`)
           return note.title
         }
-        
+
         const result = `${folder} / ${note.title}`
         logDebug('NoteChooser', `getOptionText: formatted result: "${result}"`)
         return result
@@ -357,7 +360,7 @@ export function NoteChooser({
     classNamePrefix: 'note-chooser',
     iconClass: 'fa-file-lines',
     fieldType: 'note-chooser',
-    debugLogging: true,
+    debugLogging: false,
     maxResults: 25,
     inputMaxLength: 100, // Large value - CSS handles most truncation based on actual width
     dropdownMaxLength: 80, // Large value for dropdown - only truncate very long items
@@ -366,8 +369,19 @@ export function NoteChooser({
     getOptionShortDescription: (note: NoteOption) => getNoteDecoration(note).shortDescription,
   }
 
-  return <SearchableChooser label={label} value={value} disabled={disabled} compactDisplay={compactDisplay} placeholder={placeholder} showValue={showValue} config={config} />
+  return (
+    <SearchableChooser
+      label={label}
+      value={value}
+      disabled={disabled}
+      compactDisplay={compactDisplay}
+      placeholder={placeholder}
+      showValue={showValue}
+      config={config}
+      onOpen={onOpen}
+      isLoading={isLoading}
+    />
+  )
 }
 
 export default NoteChooser
-

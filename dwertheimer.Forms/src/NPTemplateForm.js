@@ -12,9 +12,20 @@ import {
   saveTemplateRunnerArgsToTemplate,
   loadTemplateRunnerArgsFromTemplate,
   updateReceivingTemplateWithFields,
+  getFormTemplateList,
 } from './templateIO.js'
 import { handleSubmitButtonClick, insertTemplateJSBlocks } from './formSubmission.js'
-import { openFormWindow, openFormBuilderWindow, createWindowInitData, getPluginData, parseWindowDimension, FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID } from './windowManagement.js'
+import {
+  openFormWindow,
+  openFormBuilderWindow,
+  createWindowInitData,
+  getPluginData,
+  parseWindowDimension,
+  FORMBUILDER_WINDOW_ID,
+  WEBVIEW_WINDOW_ID,
+  getFormWindowId,
+  findFormWindowId,
+} from './windowManagement.js'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
@@ -105,15 +116,27 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
   try {
     let selectedTemplate // will be a filename
     if (templateTitle?.trim().length) {
-      const options = await NPTemplating.getTemplateList('template-form')
+      const options = getFormTemplateList()
       const chosenOpt = options.find((option) => option.label === templateTitle)
       if (chosenOpt) {
         // variable passed is a note title, but we need the filename
         selectedTemplate = chosenOpt.value
       }
     } else {
-      // ask the user for the template
-      selectedTemplate = await NPTemplating.chooseTemplate('template-form')
+      // ask the user for the template - use getFormTemplateList to show options
+      const options = getFormTemplateList()
+      if (options.length === 0) {
+        await showMessage('No form templates found. Please create a form template first.')
+        return
+      }
+      const choice = await CommandBar.showOptions(
+        options.map((opt) => opt.label),
+        'Select Form Template',
+        'Choose a form template to open:',
+      )
+      if (choice && choice.index >= 0 && choice.index < options.length) {
+        selectedTemplate = options[choice.index].value
+      }
     }
     let formFields: Array<Object> = []
     if (selectedTemplate) {
@@ -190,7 +213,22 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
         return
       }
     }
-    const templateData = await NPTemplating.getTemplateContent(selectedTemplate)
+
+    // Ensure we have a selectedTemplate before proceeding
+    if (!selectedTemplate) {
+      logError(pluginJson, 'getTemplateFormData: No template selected')
+      return
+    }
+
+    // Get the note directly (bypassing getTemplateContent which assumes @Templates folder)
+    const templateNote = await getNoteByFilename(selectedTemplate)
+    if (!templateNote) {
+      logError(pluginJson, `getTemplateFormData: could not find form template note: ${selectedTemplate}`)
+      return
+    }
+
+    // Get template content directly from note (not through getTemplateContent which assumes @Templates)
+    const templateData = templateNote.content || ''
     const templateFrontmatterAttributes = await NPTemplating.getTemplateAttributes(templateData)
     clo(templateData, `getTemplateFormData templateData=`)
     clo(templateFrontmatterAttributes, `getTemplateFormData templateFrontmatterAttributes=`)
@@ -222,8 +260,7 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
 
     // Load TemplateRunner processing variables from codeblock (not frontmatter)
     // These contain template tags that reference form field values and should not be processed during form opening
-    if (selectedTemplate) {
-      const templateNote = await getNoteByFilename(selectedTemplate)
+    if (templateNote) {
       if (templateNote) {
         // Load templateBody from codeblock
         const templateBodyFromCodeblock = await loadTemplateBodyFromTemplate(templateNote)
@@ -302,7 +339,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
 
     if (templateTitle?.trim().length) {
       logDebug(pluginJson, `openFormBuilder: Using provided templateTitle`)
-      const options = await NPTemplating.getTemplateList('template-form')
+      const options = getFormTemplateList()
       const chosenOpt = options.find((option) => option.label === templateTitle)
       if (chosenOpt) {
         selectedTemplate = chosenOpt.value
@@ -666,10 +703,15 @@ async function saveFrontmatterToTemplate(templateFilename: string, frontmatter: 
         stringValue = stripDoubleQuotes(String(value))
       }
 
-      // Only add non-empty string values to frontmatter
-      // This prevents writing empty quotes (""") to frontmatter
-      if (stringValue !== '') {
+      // Allow empty strings for specific fields that users may want to blank out (formTitle, windowTitle)
+      // For other fields, skip empty strings to avoid writing "" to frontmatter
+      const fieldsThatAllowEmpty = ['formTitle', 'windowTitle']
+      const shouldInclude = stringValue !== '' || fieldsThatAllowEmpty.includes(key)
+      if (shouldInclude) {
         frontmatterAsStrings[key] = stringValue
+        logDebug(pluginJson, `saveFrontmatterToTemplate: Including ${key}="${stringValue}" (empty string allowed: ${String(fieldsThatAllowEmpty.includes(key))})`)
+      } else {
+        logDebug(pluginJson, `saveFrontmatterToTemplate: Skipping ${key}="${stringValue}" (empty string not allowed for this field)`)
       }
     })
 
@@ -810,8 +852,24 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
         logDebug(pluginJson, `onFormSubmitFromHTMLView: Handling REQUEST type="${actionType}" with correlationId="${data.__correlationId}"`)
         const result = await handleRequest(actionType, data)
 
+        // Get window ID - try to find it from open windows or window data
+        let windowId = WEBVIEW_WINDOW_ID
+        try {
+          const tempWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+          if (tempWindowData?.pluginData?.windowId) {
+            windowId = tempWindowData.pluginData.windowId
+          } else if (tempWindowData?.pluginData?.formTitle) {
+            windowId = getFormWindowId(tempWindowData.pluginData.formTitle)
+          } else {
+            const foundId = findFormWindowId()
+            if (foundId) windowId = foundId
+          }
+        } catch (e) {
+          const foundId = findFormWindowId()
+          if (foundId) windowId = foundId
+        }
         // Send response back to React
-        sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'RESPONSE', {
+        sendToHTMLWindow(windowId, 'RESPONSE', {
           correlationId: data.__correlationId,
           success: result.success,
           data: result.data,
@@ -820,7 +878,23 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
         return {}
       } catch (error) {
         logError(pluginJson, `onFormSubmitFromHTMLView: Error handling REQUEST: ${error.message}`)
-        sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'RESPONSE', {
+        // Get window ID - try to find it from open windows or window data
+        let windowId = WEBVIEW_WINDOW_ID
+        try {
+          const tempWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+          if (tempWindowData?.pluginData?.windowId) {
+            windowId = tempWindowData.pluginData.windowId
+          } else if (tempWindowData?.pluginData?.formTitle) {
+            windowId = getFormWindowId(tempWindowData.pluginData.formTitle)
+          } else {
+            const foundId = findFormWindowId()
+            if (foundId) windowId = foundId
+          }
+        } catch (e) {
+          const foundId = findFormWindowId()
+          if (foundId) windowId = foundId
+        }
+        sendToHTMLWindow(windowId, 'RESPONSE', {
           correlationId: data.__correlationId,
           success: false,
           data: null,
@@ -831,8 +905,34 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
     }
 
     // Existing fire-and-forget handling
+    // Get the window ID by looking at open windows or from window data
+    // Try to find the window ID from open windows first, then fall back to getting it from window data
+    let windowId = WEBVIEW_WINDOW_ID // Default fallback
+    try {
+      // Try to get form title from window data to reconstruct window ID
+      const tempWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      if (tempWindowData?.pluginData?.windowId) {
+        windowId = tempWindowData.pluginData.windowId
+      } else if (tempWindowData?.pluginData?.formTitle) {
+        // Reconstruct window ID from form title
+        windowId = getFormWindowId(tempWindowData.pluginData.formTitle)
+      } else {
+        // Try to find window ID by looking at all open windows
+        const foundId = findFormWindowId()
+        if (foundId) {
+          windowId = foundId
+        }
+      }
+    } catch (e) {
+      // If we can't get the window data, try to find window ID from open windows
+      const foundId = findFormWindowId()
+      if (foundId) {
+        windowId = foundId
+      }
+      logDebug(pluginJson, `onFormSubmitFromHTMLView: Could not get window ID from window data, using: ${windowId}`)
+    }
     let returnValue = null
-    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
+    const reactWindowData = await getGlobalSharedData(windowId) // get the current data from the React Window
     // clo(reactWindowData, `Plugin onMessageFromHTMLView reactWindowData=`)
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     switch (actionType) {
@@ -842,17 +942,17 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
         returnValue = await handleSubmitButtonClick(data, reactWindowData) //update the data to send it back to the React Window
         // Close the window after successful submission
         if (returnValue !== null) {
-          closeWindowFromCustomId(WEBVIEW_WINDOW_ID)
+          closeWindowFromCustomId(windowId)
         }
         break
       default:
-        await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`, 'ERROR')
+        await sendBannerMessage(windowId, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`, 'ERROR')
         break
     }
     if (returnValue && returnValue !== reactWindowData) {
       const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
       clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
-      sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
+      sendToHTMLWindow(windowId, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
     }
     return {} // this return value is ignored but needs to exist or we get an error
   } catch (error) {

@@ -59,6 +59,8 @@ export type SearchableChooserProps = {
   showValue?: boolean, // If true, display the selected value below the input
   config: ChooserConfig,
   closeDropdown?: boolean, // If true, force close the dropdown (resets after closing)
+  onOpen?: () => void, // Callback when dropdown opens (for lazy loading) - can be async internally
+  isLoading?: boolean, // If true, show loading indicator
 }
 
 /**
@@ -77,6 +79,8 @@ export function SearchableChooser({
   showValue = false,
   config,
   closeDropdown = false,
+  onOpen,
+  isLoading = false,
 }: SearchableChooserProps): React$Node {
   const {
     items,
@@ -127,18 +131,18 @@ export function SearchableChooser({
     }
   }, [closeDropdown, closeDropdownTriggered])
 
-  // Debug logging
-  useEffect(() => {
-    if (debugLogging) {
-      console.log(`${fieldType}: maxResults=${maxResults}, filteredItems.length=${filteredItems.length}`)
-    }
-    if (debugLogging) {
-      console.log(`${fieldType}: Component mounted/updated: items=${items?.length || 0}, isOpen=${String(isOpen)}, filteredItems=${filteredItems.length}`)
-      if (items && items.length > 0) {
-        console.log(`${fieldType}: First few items:`, items.slice(0, 5).map(getDisplayValue).join(', '))
-      }
-    }
-  }, [items, isOpen, filteredItems.length, debugLogging, fieldType, getDisplayValue])
+  // Debug logging (disabled for cleaner console output)
+  // useEffect(() => {
+  //   if (debugLogging) {
+  //     console.log(`${fieldType}: maxResults=${maxResults}, filteredItems.length=${filteredItems.length}`)
+  //   }
+  //   if (debugLogging) {
+  //     console.log(`${fieldType}: Component mounted/updated: items=${items?.length || 0}, isOpen=${String(isOpen)}, filteredItems=${filteredItems.length}`)
+  //     if (items && items.length > 0) {
+  //       console.log(`${fieldType}: First few items:`, items.slice(0, 5).map(getDisplayValue).join(', '))
+  //     }
+  //   }
+  // }, [items, isOpen, filteredItems.length, debugLogging, fieldType, getDisplayValue])
 
   // Filter items based on search term
   useEffect(() => {
@@ -206,6 +210,9 @@ export function SearchableChooser({
   const handleInputFocus = () => {
     if (debugLogging) {
       console.log(`${fieldType}: Input focused, opening dropdown. items=${items.length}, filteredItems=${filteredItems.length}`)
+    }
+    if (!isOpen && onOpen) {
+      onOpen() // Trigger lazy loading callback
     }
     setIsOpen(true)
   }
@@ -334,14 +341,15 @@ export function SearchableChooser({
   // For shorter items, let CSS handle truncation based on actual width
   const truncatedDisplayValue = displayValue && displayValue.length > inputMaxLength ? truncateDisplay(displayValue, inputMaxLength) : displayValue || ''
 
-  if (debugLogging && displayValue) {
-    console.log(`${fieldType}: displayValue="${displayValue}", length=${displayValue.length}`)
-    console.log(`${fieldType}: truncatedDisplayValue="${truncatedDisplayValue}", length=${truncatedDisplayValue.length}`)
-    console.log(`${fieldType}: original value="${value}", truncateDisplay called with maxLength=${inputMaxLength}`)
-    const shouldTruncate = displayValue.length > inputMaxLength
-    const actuallyTruncated = truncatedDisplayValue !== displayValue
-    console.log(`${fieldType}: Should truncate: ${String(shouldTruncate)}, actually truncated: ${String(actuallyTruncated)}`)
-  }
+  // Debug logging (disabled for cleaner console output)
+  // if (debugLogging && displayValue) {
+  //   console.log(`${fieldType}: displayValue="${displayValue}", length=${displayValue.length}`)
+  //   console.log(`${fieldType}: truncatedDisplayValue="${truncatedDisplayValue}", length=${truncatedDisplayValue.length}`)
+  //   console.log(`${fieldType}: original value="${value}", truncateDisplay called with maxLength=${inputMaxLength}`)
+  //   const shouldTruncate = displayValue.length > inputMaxLength
+  //   const actuallyTruncated = truncatedDisplayValue !== displayValue
+  //   console.log(`${fieldType}: Should truncate: ${String(shouldTruncate)}, actually truncated: ${String(actuallyTruncated)}`)
+  // }
 
   return (
     <div className={`${classNamePrefix}-container ${compactDisplay ? 'compact' : ''}`} ref={containerRef} data-field-type={fieldType}>
@@ -376,7 +384,12 @@ export function SearchableChooser({
         ) : null}
         {isOpen && (
           <div className={`${classNamePrefix}-dropdown`} style={{ display: 'block' }}>
-            {filteredItems.length === 0 ? (
+            {isLoading ? (
+              <div className={`${classNamePrefix}-empty`} style={{ padding: '1rem', textAlign: 'center', color: 'var(--gray-600, #666)' }}>
+                <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
+                Loading notes...
+              </div>
+            ) : filteredItems.length === 0 ? (
               <div className={`${classNamePrefix}-empty`}>
                 {items.length === 0 ? emptyMessageNoItems : `${emptyMessageNoMatch} "${searchTerm}"`}
                 {allowManualEntry && searchTerm.trim() && (

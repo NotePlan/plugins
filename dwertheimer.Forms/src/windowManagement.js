@@ -17,6 +17,40 @@ export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} Form Entry React Wi
 const REACT_WINDOW_TITLE = 'Form View'
 
 /**
+ * Generate a unique window ID for a form window by concatenating WEBVIEW_WINDOW_ID with the form title
+ * This allows multiple form windows to be open simultaneously with different IDs
+ * @param {string} formTitle - The title of the form (optional, defaults to empty string)
+ * @returns {string} - The unique window ID
+ */
+export function getFormWindowId(formTitle?: string): string {
+  const titleSuffix = formTitle && formTitle.trim() ? ` ${formTitle.trim()}` : ''
+  return `${WEBVIEW_WINDOW_ID}${titleSuffix}`
+}
+
+/**
+ * Find the window ID for a form window by looking at all open HTML windows
+ * This is used when we receive a message from a window and need to find its ID
+ * @param {string} formTitle - The title of the form (optional)
+ * @returns {string | null} - The window ID if found, or null
+ */
+export function findFormWindowId(formTitle?: string): string | null {
+  const expectedId = getFormWindowId(formTitle)
+  // Look through all open HTML windows to find one matching our expected ID
+  for (const win of NotePlan.htmlWindows) {
+    if (win.customId === expectedId) {
+      return expectedId
+    }
+  }
+  // If not found, try the base WEBVIEW_WINDOW_ID for backward compatibility
+  for (const win of NotePlan.htmlWindows) {
+    if (win.customId === WEBVIEW_WINDOW_ID) {
+      return WEBVIEW_WINDOW_ID
+    }
+  }
+  return null
+}
+
+/**
  * Parse window dimension value (can be number, percentage string, special position value, or undefined)
  * @param {string | number | void} value - The dimension value
  * @param {number} screenDimension - The screen dimension (width or height) for percentage calculation
@@ -80,9 +114,15 @@ export function createWindowInitData(argObj: Object): PassedData {
   const foldersArray = Array.isArray(pluginData.folders) ? pluginData.folders : []
   logDebug(pluginJson, `createWindowInitData: After getPluginData - folders.length=${foldersArray.length}`)
   const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
+  const formTitle = argObj?.formTitle || ''
+  const windowId = getFormWindowId(formTitle)
   const dataToPass: PassedData = {
-    pluginData,
-    title: argObj?.formTitle || REACT_WINDOW_TITLE,
+    pluginData: {
+      ...pluginData,
+      windowId: windowId, // Store window ID in pluginData so we can retrieve it later
+      formTitle: formTitle, // Store form title for window ID reconstruction
+    },
+    title: formTitle || REACT_WINDOW_TITLE,
     width: argObj?.width,
     height: argObj?.height,
     logProfilingMessage: false,
@@ -175,7 +215,15 @@ export async function openFormWindow(argObj: Object): Promise<void> {
     const parsedHeight = parseWindowDimension(argObj?.height, screenHeight)
     // For X and Y positions, we need the window dimensions to calculate special values like "center", "left", "right", "top", "bottom"
     const parsedX = parseWindowDimension(argObj?.x, screenWidth, parsedWidth, 'x')
-    const parsedY = parseWindowDimension(argObj?.y, screenHeight, parsedHeight, 'y')
+    // IMPORTANT: NotePlan's API uses bottom-left origin (y=0 is bottom of screen, window bottom at screen bottom)
+    // We work with top-left origin (y=0 is top of screen) in our Forms code
+    // parseWindowDimension returns top-left coordinates, so convert to bottom-left:
+    // bottomLeft_y = screenHeight - windowHeight - topLeft_y
+    let parsedY = parseWindowDimension(argObj?.y, screenHeight, parsedHeight, 'y')
+    if (parsedY !== undefined && parsedY !== null && parsedHeight !== undefined && parsedHeight !== null) {
+      // Convert from top-left coordinate system to NotePlan's bottom-left coordinate system
+      parsedY = screenHeight - parsedHeight - parsedY
+    }
 
     const windowOptions = {
       savedFilename: `../../${pluginJson['plugin.id']}/form_output.html` /* for saving a debug version of the html file */,
@@ -185,7 +233,7 @@ export async function openFormWindow(argObj: Object): Promise<void> {
       height: parsedHeight,
       x: parsedX,
       y: parsedY,
-      customId: WEBVIEW_WINDOW_ID,
+      customId: getFormWindowId(argObj?.formTitle || argObj?.windowTitle),
       shouldFocus: true /* focus window everyd time (set to false if you want a bg refresh) */,
       generalCSSIn: generateCSSFromTheme(), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       postBodyScript: `
@@ -216,25 +264,38 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
     logDebug(pluginJson, `openFormBuilderWindow: Starting`)
     // clo(argObj, `openFormBuilderWindow: argObj`)
 
-    // Make sure we have np.Shared plugin which has the core react code
-    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true)
-    logDebug(pluginJson, `openFormBuilderWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
-
     const startTime = new Date()
     const ENV_MODE = 'development'
+
+    // Check if np.Shared is already installed before trying to install it
+    // This avoids unnecessary async work if it's already available
+    const npSharedInstalled = DataStore.isPluginInstalledByID('np.Shared')
+    if (!npSharedInstalled) {
+      logDebug(pluginJson, `openFormBuilderWindow: np.Shared not installed, installing...`)
+      await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true)
+      logDebug(pluginJson, `openFormBuilderWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
+    } else {
+      logDebug(pluginJson, `openFormBuilderWindow: np.Shared already installed, skipping installation check`)
+    }
+
     // Get receiving template title - use initialReceivingTemplateTitle if provided (for newly created forms),
     // otherwise read from note's frontmatter (for existing forms)
     let receivingTemplateTitle = ''
-    if (argObj.initialReceivingTemplateTitle) {
-      // For newly created forms, use the value we already have - no need to read from note
-      receivingTemplateTitle = argObj.initialReceivingTemplateTitle
-      logDebug(pluginJson, `openFormBuilderWindow: Using initialReceivingTemplateTitle="${receivingTemplateTitle}"`)
-    } else if (argObj.templateFilename) {
-      // For existing forms, read from note's frontmatter
-      const templateNote = await getNoteByFilename(argObj.templateFilename)
+    let templateNote = null
+
+    // Fetch the note once and reuse it (performance optimization)
+    if (argObj.templateFilename) {
+      templateNote = await getNoteByFilename(argObj.templateFilename)
       if (templateNote) {
-        receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle || ''
-        logDebug(pluginJson, `openFormBuilderWindow: Read receivingTemplateTitle="${receivingTemplateTitle}" from note frontmatter`)
+        if (argObj.initialReceivingTemplateTitle) {
+          // For newly created forms, use the value we already have - no need to read from note
+          receivingTemplateTitle = argObj.initialReceivingTemplateTitle
+          logDebug(pluginJson, `openFormBuilderWindow: Using initialReceivingTemplateTitle="${receivingTemplateTitle}"`)
+        } else {
+          // For existing forms, read from note's frontmatter
+          receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle || ''
+          logDebug(pluginJson, `openFormBuilderWindow: Read receivingTemplateTitle="${receivingTemplateTitle}" from note frontmatter`)
+        }
       }
     }
 
@@ -249,45 +310,45 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
     let y: ?number | ?string = undefined
     let isNewForm = false
     let templateBody = ''
+    let templateRunnerArgs = null
 
-    if (argObj.templateFilename) {
-      const templateNote = await getNoteByFilename(argObj.templateFilename)
-      if (templateNote) {
-        // Strip quotes from frontmatter values if present
-        windowTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.windowTitle || '') || ''
-        formTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.formTitle || '') || ''
-        allowEmptySubmit = templateNote.frontmatterAttributes?.allowEmptySubmit === 'true' || templateNote.frontmatterAttributes?.allowEmptySubmit === true
-        hideDependentItems = templateNote.frontmatterAttributes?.hideDependentItems === 'true' || templateNote.frontmatterAttributes?.hideDependentItems === true
-        // Parse width, height, x, and y (can be numbers or percentage strings)
-        const widthStr = templateNote.frontmatterAttributes?.width
-        const heightStr = templateNote.frontmatterAttributes?.height
-        const xStr = templateNote.frontmatterAttributes?.x
-        const yStr = templateNote.frontmatterAttributes?.y
-        if (widthStr) {
-          width = typeof widthStr === 'number' ? widthStr : String(widthStr)
-        }
-        if (heightStr) {
-          height = typeof heightStr === 'number' ? heightStr : String(heightStr)
-        }
-        if (xStr) {
-          x = typeof xStr === 'number' ? xStr : String(xStr)
-        }
-        if (yStr) {
-          y = typeof yStr === 'number' ? yStr : String(yStr)
-        }
-        // Load templateBody from codeblock
-        templateBody = await loadTemplateBodyFromTemplate(templateNote)
+    if (templateNote) {
+      // Strip quotes from frontmatter values if present
+      windowTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.windowTitle || '') || ''
+      formTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.formTitle || '') || ''
+      allowEmptySubmit = templateNote.frontmatterAttributes?.allowEmptySubmit === 'true' || templateNote.frontmatterAttributes?.allowEmptySubmit === true
+      hideDependentItems = templateNote.frontmatterAttributes?.hideDependentItems === 'true' || templateNote.frontmatterAttributes?.hideDependentItems === true
+      // Parse width, height, x, and y (can be numbers or percentage strings)
+      const widthStr = templateNote.frontmatterAttributes?.width
+      const heightStr = templateNote.frontmatterAttributes?.height
+      const xStr = templateNote.frontmatterAttributes?.x
+      const yStr = templateNote.frontmatterAttributes?.y
+      if (widthStr) {
+        width = typeof widthStr === 'number' ? widthStr : String(widthStr)
+      }
+      if (heightStr) {
+        height = typeof heightStr === 'number' ? heightStr : String(heightStr)
+      }
+      if (xStr !== undefined && xStr !== null && xStr !== '') {
+        x = typeof xStr === 'number' ? xStr : String(xStr)
+      }
+      if (yStr !== undefined && yStr !== null && yStr !== '') {
+        y = typeof yStr === 'number' ? yStr : String(yStr)
+      }
 
-        // Load TemplateRunner args from codeblock (these contain template tags and should not be in frontmatter)
-        const templateRunnerArgs = await loadTemplateRunnerArgsFromTemplate(templateNote)
+      // Load templateBody and TemplateRunner args in parallel (performance optimization)
+      // Start both promises to run in parallel, then await them
+      const templateBodyPromise = loadTemplateBodyFromTemplate(templateNote)
+      const templateRunnerArgsPromise = loadTemplateRunnerArgsFromTemplate(templateNote)
+      templateBody = await templateBodyPromise
+      templateRunnerArgs = await templateRunnerArgsPromise
 
-        // Merge TemplateRunner args into the data object that will be passed to FormBuilder
-        // These will override any values that might be in frontmatter
-        if (templateRunnerArgs) {
-          // Store TemplateRunner args in a separate object for FormBuilder to use
-          // FormBuilder will merge these into frontmatter state
-          Object.assign(argObj, { templateRunnerArgs })
-        }
+      // Merge TemplateRunner args into the data object that will be passed to FormBuilder
+      // These will override any values that might be in frontmatter
+      if (templateRunnerArgs) {
+        // Store TemplateRunner args in a separate object for FormBuilder to use
+        // FormBuilder will merge these into frontmatter state
+        Object.assign(argObj, { templateRunnerArgs })
       }
     } else {
       // No templateFilename means this is a new form
