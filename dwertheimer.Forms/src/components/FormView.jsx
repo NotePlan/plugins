@@ -362,11 +362,12 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     closeDialog()
   }
 
-  const handleSave = (formValues: Object) => {
+  const handleSave = (formValues: Object, windowId?: string) => {
     clo(formValues, 'DynamicDialog: handleSave: formValues')
     sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, {
       type: 'submit',
       formValues,
+      windowId: windowId || pluginData.windowId || '', // Pass windowId if available from DynamicDialog or pluginData
       processingMethod: pluginData['processingMethod'] || (pluginData['receivingTemplateTitle'] ? 'form-processor' : 'write-existing'),
       receivingTemplateTitle: pluginData['receivingTemplateTitle'] || '',
       // Option A: Write to existing file
@@ -536,6 +537,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
             folders={folders}
             notes={notes}
             requestFromPlugin={requestFromPlugin}
+            windowId={pluginData.windowId} // Pass windowId to DynamicDialog
             onFoldersChanged={() => {
               reloadFolders()
             }}

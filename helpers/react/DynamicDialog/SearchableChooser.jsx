@@ -14,26 +14,26 @@ export type ChooserConfig = {
   // Data and filtering
   items: Array<any>,
   filterFn: (item: any, searchTerm: string) => boolean,
-
+  
   // Display
   getDisplayValue: (item: any) => string, // Gets the value to display in the input
   getOptionText: (item: any) => string, // Gets the text to show in dropdown options
   getOptionTitle: (item: any) => string, // Gets the title/tooltip for dropdown options
   truncateDisplay: (text: string, maxLength: number) => string, // Function to truncate display text
-
+  
   // Selection
   onSelect: (item: any) => void, // Called when an item is selected
-
+  
   // Empty states
   emptyMessageNoItems: string,
   emptyMessageNoMatch: string,
-
+  
   // Styling
   classNamePrefix: string, // Prefix for CSS classes (e.g., 'folder-chooser', 'note-chooser')
   iconClass?: ?string, // FontAwesome icon class (e.g., 'fa-folder', 'fa-file-lines') - optional, if not provided, no icon is shown
   fieldType: string, // Data attribute for field type (e.g., 'folder-chooser', 'note-chooser')
   showArrow?: boolean, // If true, show a down arrow instead of icon (default: false)
-
+  
   // Optional
   debugLogging?: boolean,
   maxResults?: number, // Max items to show in dropdown (default: 10)
@@ -223,7 +223,7 @@ export function SearchableChooser({
       e.stopPropagation() // Stop event from bubbling to DynamicDialog
       if (filteredItems.length > 0) {
         // Select first filtered result on Enter
-        handleItemSelect(filteredItems[0])
+      handleItemSelect(filteredItems[0])
       } else if (allowManualEntry && searchTerm.trim()) {
         // Allow manual entry if enabled and there's text typed
         // Create a special manual entry item
@@ -240,8 +240,8 @@ export function SearchableChooser({
       if (isOpen) {
         e.preventDefault() // Prevent default behavior
         e.stopPropagation() // Stop event from bubbling to DynamicDialog (preventing window close)
-        setIsOpen(false)
-        setSearchTerm('')
+      setIsOpen(false)
+      setSearchTerm('')
         // Blur the input to remove focus
         if (inputRef.current) {
           inputRef.current.blur()
@@ -380,7 +380,7 @@ export function SearchableChooser({
         {showArrow ? (
           <i className={`fa-solid fa-chevron-down ${classNamePrefix}-arrow ${isOpen ? 'open' : ''}`}></i>
         ) : iconClass ? (
-          <i className={`fa-solid ${iconClass} ${classNamePrefix}-icon ${isOpen ? 'open' : ''}`}></i>
+        <i className={`fa-solid ${iconClass} ${classNamePrefix}-icon ${isOpen ? 'open' : ''}`}></i>
         ) : null}
         {isOpen && (
           <div className={`${classNamePrefix}-dropdown`} style={{ display: 'block' }}>
@@ -469,8 +469,8 @@ export function SearchableChooser({
                         style={{
                           color: optionColor ? `var(--${optionColor}, inherit)` : undefined,
                         }}
-                      >
-                        {truncatedText}
+                  >
+                    {truncatedText}
                       </span>
                     </span>
                     {optionShortDesc && <span className={`${classNamePrefix}-option-right`}>{optionShortDesc}</span>}

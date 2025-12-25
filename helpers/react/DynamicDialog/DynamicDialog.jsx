@@ -117,7 +117,7 @@ export type TSettingItem = {
 export type TDynamicDialogProps = {
   // optional props
   items?: Array<TSettingItem>, // generally required, but can be empty (e.g. for PerspectivesTable)
-  onSave?: (updatedSettings: { [key: string]: any }) => void,
+  onSave?: (updatedSettings: { [key: string]: any }, windowId?: string) => void, // Updated to accept optional windowId
   onCancel?: () => void,
   handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
   className?: string,
@@ -139,6 +139,7 @@ export type TDynamicDialogProps = {
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Optional function to call plugin commands (for native folder chooser)
   onFoldersChanged?: () => void, // Callback to reload folders after creating a new folder
   onNotesChanged?: () => void, // Callback to reload notes after creating a new note
+  windowId?: string, // Optional window ID to pass when submitting (for backward compatibility, will use fallback if not provided)
 }
 
 //--------------------------------------------------------------------------
@@ -146,6 +147,7 @@ export type TDynamicDialogProps = {
 //--------------------------------------------------------------------------
 
 const DynamicDialog = ({
+  windowId,
   children,
   title,
   items: passedItems,
@@ -250,15 +252,17 @@ const DynamicDialog = ({
   const handleEnterKey = (event: KeyboardEvent) => {
     // CMD+ENTER (or CTRL+ENTER on Windows/Linux) should always submit, bypassing ENTER_CONSUMING_FIELD_TYPES
     const isCmdEnter = (event.metaKey || event.ctrlKey) && event.key === 'Enter'
-    
+
     if (event.key === 'Enter' && submitOnEnter) {
       // If CMD+ENTER, always submit regardless of field type
       if (isCmdEnter) {
         event.preventDefault()
+        event.stopPropagation() // Prevent event from bubbling up
+        event.stopImmediatePropagation() // Prevent other handlers from firing
         handleSave()
         return
       }
-      
+
       // For regular Enter, check if the focused element is within a field that consumes Enter key
       const activeElement = document.activeElement
       if (activeElement instanceof HTMLElement) {
@@ -289,9 +293,9 @@ const DynamicDialog = ({
 
   const handleSave = () => {
     if (onSave) {
-      onSave(updatedSettingsRef.current) // we have to use the ref, because the state may be stale if the enter key event listener caused this to be called
+      onSave(updatedSettingsRef.current, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
     }
-    logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current })
+    logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current, windowId })
   }
 
   const handleDropdownOpen = () => {

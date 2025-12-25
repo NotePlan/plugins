@@ -34,6 +34,7 @@ type FormBuilderProps = {
   isNewForm?: boolean,
   templateTitle?: string,
   templateFilename?: string,
+  launchLink?: string, // Launch link URL for Form URL button
   onSave: (fields: Array<TSettingItem>, frontmatter: { [key: string]: any }) => Promise<{ success: boolean, message?: string }>,
   onCancel: () => void,
   onOpenForm?: (templateTitle: string) => void,
@@ -58,6 +59,7 @@ export function FormBuilder({
   isNewForm = false,
   templateTitle = '',
   templateFilename = '',
+  launchLink = '',
   onSave,
   onCancel,
   onOpenForm,
@@ -79,7 +81,6 @@ export function FormBuilder({
   const [tagInserterInputRef, setTagInserterInputRef] = useState<?HTMLInputElement | ?HTMLTextAreaElement>(null)
   const [tagInserterFieldKey, setTagInserterFieldKey] = useState<string>('')
   const [tagInserterMode, setTagInserterMode] = useState<'field' | 'date' | 'both'>('both')
-  const [showWindowSettings, setShowWindowSettings] = useState<boolean>(false)
   const [frontmatter, setFrontmatter] = useState<{ [key: string]: any }>(() => {
     // Strip quotes from initial values to prevent saving quoted values
     const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''
@@ -124,8 +125,92 @@ export function FormBuilder({
     return mergedFrontmatter
   })
 
-  // Get requestFromPlugin from context
-  const { requestFromPlugin } = useAppContext()
+  // Get requestFromPlugin and sendActionToPlugin from context
+  const { requestFromPlugin, dispatch } = useAppContext()
+
+  // Handle Form URL copy
+  const handleCopyFormUrl = async () => {
+    // Use launchLink from props (passed from pluginData) or from frontmatter
+    const urlToCopy = launchLink || frontmatter.launchLink
+    if (!urlToCopy) {
+      // Show toast message instead of alert
+      dispatch('SHOW_TOAST', {
+        type: 'WARN',
+        msg: 'No form URL available. Save the form first to generate a URL.',
+        timeout: 3000,
+      })
+      return
+    }
+    try {
+      // Use browser Clipboard API directly - no need for plugin round-trip
+      // $FlowFixMe[prop-missing] - navigator.clipboard may not be in Flow types
+      if (navigator.clipboard && typeof (navigator.clipboard: any).writeText === 'function') {
+        await (navigator.clipboard: any).writeText(urlToCopy)
+        dispatch('SHOW_TOAST', {
+          type: 'SUCCESS',
+          msg: 'Form URL copied to clipboard!',
+          timeout: 2000,
+        })
+      } else {
+        // Fallback for older browsers - use a temporary textarea element
+        const textarea = document.createElement('textarea')
+        textarea.value = urlToCopy
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        if (document.body) {
+          document.body.appendChild(textarea)
+          textarea.select()
+          try {
+            document.execCommand('copy')
+            dispatch('SHOW_TOAST', {
+              type: 'SUCCESS',
+              msg: 'Form URL copied to clipboard!',
+              timeout: 2000,
+            })
+          } catch (err) {
+            throw new Error('Clipboard copy failed')
+          } finally {
+            if (document.body) {
+              document.body.removeChild(textarea)
+            }
+          }
+        } else {
+          throw new Error('Document body not available')
+        }
+      }
+    } catch (error) {
+      dispatch('SHOW_TOAST', {
+        type: 'ERROR',
+        msg: `Error copying URL: ${error.message || String(error)}`,
+        timeout: 3000,
+      })
+    }
+  }
+
+  // Handle form duplication
+  const handleDuplicateForm = async () => {
+    if (!templateFilename || !templateTitle) {
+      alert('Cannot duplicate: form must be saved first.')
+      return
+    }
+    try {
+      const result = await requestFromPlugin('duplicateForm', {
+        templateFilename,
+        templateTitle,
+        receivingTemplateTitle: frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || '',
+      })
+      if (result.success) {
+        // Show success message and reload the new form
+        alert(result.message || 'Form duplicated successfully')
+        // The new form should be opened automatically by the plugin
+        // For now, we'll just show the message
+      } else {
+        alert(result.message || 'Failed to duplicate form')
+      }
+    } catch (error) {
+      alert(`Error duplicating form: ${error.message || String(error)}`)
+    }
+  }
 
   // Check if form has folder-chooser or note-chooser fields
   const needsFolders = useMemo(() => fields.some((field) => field.type === 'folder-chooser'), [fields])
@@ -314,30 +399,37 @@ export function FormBuilder({
     setHasUnsavedChanges(true)
   }
 
-  const [saveMessage, setSaveMessage] = useState<?string>(null)
   const [isSaving, setIsSaving] = useState<boolean>(false)
 
   const handleSave = async () => {
     setIsSaving(true)
-    setSaveMessage(null)
     try {
       const result = await onSave(fields, frontmatter)
       if (result.success) {
         setHasUnsavedChanges(false)
         setIsSaved(true)
-        setSaveMessage(result.message || 'Form saved successfully')
-        // Clear success message after 3 seconds
-        setTimeout(() => setSaveMessage(null), 3000)
+        // Show success toast with green color
+        dispatch('SHOW_TOAST', {
+          type: 'SUCCESS',
+          msg: result.message || 'Form saved successfully',
+          timeout: 3000,
+        })
       } else {
-        setSaveMessage(result.message || 'Failed to save form')
-        // Clear error message after 5 seconds
-        setTimeout(() => setSaveMessage(null), 5000)
+        // Show error toast
+        dispatch('SHOW_TOAST', {
+          type: 'ERROR',
+          msg: result.message || 'Failed to save form',
+          timeout: 5000,
+        })
       }
     } catch (error) {
       logError('FormBuilder', `handleSave error: ${error.message}`)
-      setSaveMessage(error.message || 'Failed to save form')
-      // Clear error message after 5 seconds
-      setTimeout(() => setSaveMessage(null), 5000)
+      // Show error toast
+      dispatch('SHOW_TOAST', {
+        type: 'ERROR',
+        msg: error.message || 'Failed to save form',
+        timeout: 5000,
+      })
     } finally {
       setIsSaving(false)
     }
@@ -414,18 +506,53 @@ export function FormBuilder({
       <div className="form-builder-header">
         <div className="form-builder-title-section">
           <h2 className="form-builder-title">Form Builder (beta)</h2>
-          {hasUnsavedChanges && (
-            <span className="unsaved-changes-message" title="You have unsaved changes. Click 'Save Form' to save your changes.">
-              ⚠️ Unsaved changes
-            </span>
-          )}
-          {saveMessage && (
-            <span className={`save-message ${saveMessage.includes('successfully') ? 'save-message-success' : 'save-message-error'}`} title={saveMessage}>
-              {saveMessage.includes('successfully') ? '✅' : '❌'} {saveMessage}
-            </span>
+          {templateTitle && (
+            <div style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <div
+                className="form-builder-document-name"
+                title={`Note: ${templateTitle}\nFilename: ${templateFilename || 'N/A'}\n(click to open in NotePlan Editor)`}
+                onClick={async () => {
+                  if (templateFilename) {
+                    try {
+                      await requestFromPlugin('openNote', { filename: templateFilename })
+                    } catch (error) {
+                      console.error('Error opening note:', error)
+                    }
+                  }
+                }}
+                style={{ cursor: templateFilename ? 'pointer' : 'default', fontSize: '0.875rem', color: 'var(--fg-secondary-color, #666)' }}
+              >
+                Form:{' '}
+                {(() => {
+                  const windowTitle = frontmatter.windowTitle || ''
+                  const formTitle = frontmatter.formTitle || templateTitle || ''
+                  // Only show both if they're different and both exist
+                  if (windowTitle && formTitle && windowTitle !== formTitle) {
+                    return `${windowTitle} | ${formTitle}`
+                  }
+                  // Otherwise show whichever one exists (or templateTitle as fallback)
+                  return windowTitle || formTitle || templateTitle
+                })()}
+              </div>
+              {hasUnsavedChanges && (
+                <span className="unsaved-changes-message" title="You have unsaved changes. Click 'Save Form' to save your changes.">
+                  ⚠️ Unsaved changes
+                </span>
+              )}
+            </div>
           )}
         </div>
         <div className="form-builder-actions">
+          {!isNewForm && templateFilename && (
+            <button className="PCButton" onClick={handleCopyFormUrl} title="Copy the form's callback URL to clipboard" style={{ marginRight: '0.5rem' }}>
+              Form URL
+            </button>
+          )}
+          {!isNewForm && templateFilename && (
+            <button className="PCButton" onClick={handleDuplicateForm} title="Create a duplicate of this form" style={{ marginRight: '0.5rem' }}>
+              Duplicate
+            </button>
+          )}
           {canOpenForm && (
             <button
               className="PCButton open-form-button"

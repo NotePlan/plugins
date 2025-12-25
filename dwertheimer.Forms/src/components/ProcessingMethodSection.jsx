@@ -117,12 +117,12 @@ export function ProcessingMethodSection({
           <InfoIcon text="Choose how form submissions should be processed: Write directly to an existing note, create a new note each time, or use a separate processing template for more complex logic." />
         </label>
         <select
-          value={processingMethod || 'write-existing'}
+          value={processingMethod || 'create-new'}
           onChange={(e) => onFrontmatterChange('processingMethod', e.target.value)}
           style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
         >
-          <option value="write-existing">Write to Existing Note</option>
           <option value="create-new">Create New Note on Each Submission</option>
+          <option value="write-existing">Write to Existing Note</option>
           <option value="form-processor">Use Form Processor Template</option>
         </select>
         <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>

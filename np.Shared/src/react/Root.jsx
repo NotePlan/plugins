@@ -37,6 +37,7 @@ import React, { useState, useEffect, Profiler, type Node, useRef } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 // import { WebView } from './_Cmp-WebView.jsx' // we are assuming it's externally loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
+import { Toast } from './Toast.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
 import { logDebug, formatReactError, JSP, clo, logError, logInfo } from '@helpers/react/reactDev'
 
@@ -77,6 +78,16 @@ export function Root(/* props: Props */): Node {
     icon: globalSharedData?.initialBanner?.icon || '',
       }
   const [bannerMessage, setBannerMessage] = useState(initialBannerMessage)
+  // Initialize toast message (default to hidden)
+  const initialToastMessage = {
+    type: 'INFO',
+    msg: '',
+    timeout: 0,
+    color: '',
+    border: '',
+    icon: '',
+  }
+  const [toastMessage, setToastMessage] = useState(initialToastMessage)
   // const [setMessageFromPlugin] = useState({})
   const [history, setHistory] = useState([lastUpdated])
 
@@ -289,6 +300,21 @@ export function Root(/* props: Props */): Node {
               logInfo(`Root`, ` onMessageReceived: Removing banner`)
               hideBanner()
               break
+            case 'SHOW_TOAST':
+              logDebug(`Root`, ` onMessageReceived: Showing toast (timeout: ${payload.timeout ?? '-'})`)
+              showToast(payload.type, payload.msg, payload.color, payload.border, payload.icon, payload.timeout)
+              // If timeout is a valid positive number, then start a timer to clear the message after the timeout period
+              if (typeof payload.timeout === 'number' && payload.timeout > 0 && !isNaN(payload.timeout)) {
+                logDebug(`Root`, ` onMessageReceived: Setting timeout to clear toast after ${payload.timeout}ms`)
+                setTimeout(() => {
+                  hideToast()
+                }, payload.timeout)
+              }
+              break
+            case 'REMOVE_TOAST':
+              logInfo(`Root`, ` onMessageReceived: Removing toast`)
+              hideToast()
+              break
             case 'SEND_TO_PLUGIN':
               sendToPlugin(payload)
               break
@@ -377,6 +403,60 @@ export function Root(/* props: Props */): Node {
   }
 
   /**
+   * Callback passed to child components that allows them to show a toast notification.
+   * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_TOAST', payload).
+   * If color/border/icon are not provided, they will be automatically determined from the type.
+   */
+  const showToast = (type: string, msg: string, color?: string, border?: string, icon?: string, timeout: number = 3000) => {
+    // If color/border/icon are not provided, determine them from the type
+    let colorClass = color
+    let borderClass = border
+    let iconClass = icon
+    
+    if (!colorClass || !borderClass || !iconClass) {
+      switch (type) {
+        case 'INFO':
+          colorClass = colorClass || 'color-info'
+          borderClass = borderClass || 'border-info'
+          iconClass = iconClass || 'fa-regular fa-circle-info'
+          break
+        case 'WARN':
+          colorClass = colorClass || 'color-warn'
+          borderClass = borderClass || 'border-warn'
+          iconClass = iconClass || 'fa-regular fa-triangle-exclamation'
+          break
+        case 'ERROR':
+          colorClass = colorClass || 'color-error'
+          borderClass = borderClass || 'border-error'
+          iconClass = iconClass || 'fa-regular fa-circle-exclamation'
+          break
+        case 'SUCCESS':
+          colorClass = colorClass || 'color-success'
+          borderClass = borderClass || 'border-success'
+          iconClass = iconClass || 'fa-regular fa-circle-check'
+          break
+        default:
+          colorClass = colorClass || 'color-info'
+          borderClass = borderClass || 'border-info'
+          iconClass = iconClass || 'fa-regular fa-circle-info'
+      }
+    }
+    
+    const toastMessage = { type, msg, timeout, color: colorClass, border: borderClass, icon: iconClass }
+    logDebug(`Root`, `showToast: ${JSON.stringify(toastMessage, null, 2)}`)
+    // $FlowFixMe - toastMessage object matches the expected shape
+    setToastMessage(toastMessage)
+  }
+
+  /**
+   * handle click on X on toast to hide it
+   */
+  const hideToast = () => {
+    logDebug(`Root`, `hideToast: ${JSON.stringify(toastMessage, null, 2)}`)
+    setToastMessage({ type: 'REMOVE', level: 'REMOVE', msg: '', timeout: 0, color: '', border: '', icon: '' })
+  }
+
+  /**
    * For debugging purposes, send a message to the plugin to test the comms bridge
    */
   const testCommsBridge = () => {
@@ -454,11 +534,13 @@ export function Root(/* props: Props */): Node {
           <Profiler id="MemoizedWebView" onRender={onRender}>
             <MessageBanner msg={bannerMessage.msg} type={bannerMessage.type} color={bannerMessage.color || ''} border={bannerMessage.border || ''} hide={hideBanner} icon={bannerMessage.icon || ''} />
             <MemoizedWebView dispatch={dispatch} data={npData} reactSettings={reactSettings} setReactSettings={setReactSettings} />
+            <Toast msg={toastMessage.msg} type={toastMessage.type} color={toastMessage.color || ''} border={toastMessage.border || ''} hide={hideToast} icon={toastMessage.icon || ''} />
           </Profiler>
         ) : (
           <>
               <MessageBanner msg={bannerMessage.msg} type={bannerMessage.type} color={bannerMessage.color || ''} border={bannerMessage.border || ''} hide={hideBanner} icon={bannerMessage.icon || ''} />
             <MemoizedWebView data={npData} dispatch={dispatch} reactSettings={reactSettings} setReactSettings={setReactSettings} />
+            <Toast msg={toastMessage.msg} type={toastMessage.type} color={toastMessage.color || ''} border={toastMessage.border || ''} hide={hideToast} icon={toastMessage.icon || ''} />
           </>
         )}
 

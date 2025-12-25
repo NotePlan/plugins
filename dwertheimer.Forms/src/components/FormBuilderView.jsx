@@ -22,13 +22,7 @@ type Props = {
  * Root element for the FormBuilder's React Tree
  * NOTE: Even though we have named this FormBuilderView.jsx, it is exported as WebView because that is what Root expects to load dynamically
  */
-export function WebView({
-  data,
-  dispatch,
-  reactSettings,
-  setReactSettings,
-  onSubmitOrCancelCallFunctionNamed = 'onFormBuilderAction',
-}: Props): Node {
+export function WebView({ data, dispatch, reactSettings, setReactSettings, onSubmitOrCancelCallFunctionNamed = 'onFormBuilderAction' }: Props): Node {
   const { pluginData } = data
   const formFields = pluginData.formFields || []
   const receivingTemplateTitle = pluginData.receivingTemplateTitle || ''
@@ -42,6 +36,8 @@ export function WebView({
   const y = pluginData.y
   const isNewForm = pluginData.isNewForm || false
   const templateTitle = pluginData.templateTitle || ''
+  const launchLink = pluginData.launchLink || ''
+  const templateFilename = pluginData.templateFilename || ''
 
   // Map to store pending requests for request/response pattern
   // Key: correlationId, Value: { resolve, reject, timeoutId }
@@ -55,19 +51,26 @@ export function WebView({
       if (eventData && typeof eventData === 'object' && eventData.type === 'RESPONSE' && eventData.payload) {
         // $FlowFixMe[prop-missing] - payload structure is validated above
         const payload = eventData.payload
-        if (payload && typeof payload === 'object' && payload.correlationId && typeof payload.correlationId === 'string') {
-          const { correlationId, success, data: responseData, error } = payload
-          const pending = pendingRequestsRef.current.get(correlationId)
-          if (pending) {
-            pendingRequestsRef.current.delete(correlationId)
-            clearTimeout(pending.timeoutId)
-            if (success) {
-              pending.resolve(responseData)
+        // $FlowFixMe[prop-missing] - payload structure is validated above
+        if (payload && typeof payload === 'object') {
+          const correlationId = (payload: any).correlationId
+          const success = (payload: any).success
+          logDebug('FormBuilderView', `handleResponse: Received RESPONSE with correlationId="${String(correlationId || '')}", success=${String(success || false)}`)
+          if (correlationId && typeof correlationId === 'string') {
+            const { data: responseData, error } = (payload: any)
+            const pending = pendingRequestsRef.current.get(correlationId)
+            if (pending) {
+              pendingRequestsRef.current.delete(correlationId)
+              clearTimeout(pending.timeoutId)
+              logDebug('FormBuilderView', `handleResponse: Resolving request for correlationId="${correlationId}", success=${String(success || false)}`)
+              if (success) {
+                pending.resolve(responseData)
+              } else {
+                pending.reject(new Error(error || 'Request failed'))
+              }
             } else {
-              pending.reject(new Error(error || 'Request failed'))
+              logDebug('FormBuilderView', `handleResponse: No pending request found for correlationId="${correlationId}"`)
             }
-          } else {
-            logDebug('FormBuilderView', `handleResponse: No pending request found for correlationId="${correlationId}"`)
           }
         }
       }
@@ -100,9 +103,9 @@ export function WebView({
    */
   const requestFromPlugin = (command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
     if (!command) throw new Error('requestFromPlugin: command must be called with a string')
-    
+
     const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    
+
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         if (pendingRequestsRef.current.has(correlationId)) {
@@ -110,16 +113,16 @@ export function WebView({
           reject(new Error(`Request timeout after ${timeout}ms: ${command}`))
         }
       }, timeout)
-      
+
       pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
-      
+
       // Send request with correlation ID and request type marker
       const requestData = {
         ...dataToSend,
         __correlationId: correlationId,
         __requestType: 'REQUEST',
       }
-      
+
       logDebug('FormBuilderView', `requestFromPlugin: Sending request "${command}" with correlationId="${correlationId}"`)
       dispatch('SEND_TO_PLUGIN', [command, requestData], `FormBuilderView: requestFromPlugin: ${String(command)}`)
     })
@@ -185,7 +188,8 @@ export function WebView({
             templateBody={pluginData.templateBody || ''} // Load from codeblock
             isNewForm={isNewForm}
             templateTitle={templateTitle}
-            templateFilename={pluginData.templateFilename || ''}
+            templateFilename={templateFilename}
+            launchLink={launchLink}
             onSave={handleSave}
             onCancel={handleCancel}
             onOpenForm={handleOpenForm}

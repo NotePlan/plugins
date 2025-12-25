@@ -16,13 +16,18 @@ import pluginJson from '../plugin.json'
 import { getAllNotesAsOptions, getRelativeNotesAsOptions } from './noteHelpers'
 import { createProcessingTemplate } from './ProcessingTemplate'
 import { FORMBUILDER_WINDOW_ID } from './windowManagement'
+import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, formatFormFieldsAsCodeBlock } from './templateIO'
 import { logDebug, logError, logInfo } from '@helpers/dev'
-import { getFoldersMatching } from '@helpers/folders'
+import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { showMessage } from '@helpers/userInput'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 import { getNoteByFilename } from '@helpers/note'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
+import { updateFrontMatterVars, ensureFrontmatter, endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
+import { saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
+import { parseObjectString } from '@helpers/stringTransforms'
+import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 
 /**
  * Standardized response type for all request handlers
@@ -518,6 +523,338 @@ function handleOpenNote(params: { filename?: string }): RequestResponse {
 }
 
 /**
+ * Handle copy form URL request - copies launchLink to clipboard
+ * @param {Object} params - Request parameters
+ * @param {string} params.launchLink - The launchLink URL to copy
+ * @returns {RequestResponse}
+ */
+function handleCopyFormUrl(params: { launchLink?: string }): RequestResponse {
+  try {
+    const { launchLink } = params
+    logDebug(pluginJson, `handleCopyFormUrl: launchLink="${String(launchLink || '')}"`)
+    if (!launchLink) {
+      logError(pluginJson, `handleCopyFormUrl: No launchLink provided in params`)
+      return {
+        success: false,
+        message: 'No launchLink provided',
+        data: null,
+      }
+    }
+    // Copy to clipboard
+    Clipboard.string = launchLink
+    logDebug(pluginJson, `handleCopyFormUrl: Successfully copied to clipboard, Clipboard.string="${Clipboard.string}"`)
+    return {
+      success: true,
+      message: 'Form URL copied to clipboard',
+      data: { launchLink },
+    }
+  } catch (error) {
+    logError(pluginJson, `handleCopyFormUrl: Error copying to clipboard: ${error.message || String(error)}`)
+    return {
+      success: false,
+      message: `Failed to copy URL: ${error.message || String(error)}`,
+      data: null,
+    }
+  }
+}
+
+/**
+ * Remove empty lines from a note's content
+ * Removes sequences of 2+ newlines, blank lines after frontmatter, and trailing blank lines
+ * @param {any} note - The note to clean up (CoreNoteFields)
+ * @returns {void}
+ */
+export function removeEmptyLinesFromNote(note: any): void {
+  if (!note) return
+
+  // Rebuild content from paragraphs
+  const contentParts = note.paragraphs.map((p) => p.rawContent)
+  let cleanedContent = contentParts.join('\n')
+
+  // Remove all blank lines: replace any sequence of 2+ newlines with a single newline
+  cleanedContent = cleanedContent.replace(/\n{2,}/g, '\n')
+  // Remove blank lines immediately after frontmatter (after the closing ---)
+  cleanedContent = cleanedContent.replace(/(---\n)\n+/g, '$1')
+  // Remove trailing blank lines
+  cleanedContent = cleanedContent.replace(/\n+$/, '')
+
+  note.content = cleanedContent
+  note.updateParagraphs(note.paragraphs)
+}
+
+/**
+ * Update form links in a note's body content under "Form Details" heading
+ * Uses replaceContentUnderHeading to replace or create the heading section
+ * @param {CoreNoteFields} note - The note to update
+ * @param {string} formTitle - The title of the form
+ * @param {string} launchLink - The launch link URL
+ * @param {string} formEditLink - The form edit link URL
+ * @param {string} processingTemplateLink - Optional processing template link URL
+ * @returns {Promise<void>}
+ */
+export async function updateFormLinksInNote(
+  note: any, // CoreNoteFields - note object with paragraphs and frontmatter
+  formTitle: string,
+  launchLink: string,
+  formEditLink: string,
+  processingTemplateLink?: string,
+): Promise<void> {
+  logDebug(pluginJson, `updateFormLinksInNote: [START] Called with formTitle: "${formTitle}"`)
+  logDebug(pluginJson, `updateFormLinksInNote: [START] Note content before (first 30 lines):\n${(note.content || '').split('\n').slice(0, 30).join('\n')}`)
+  logDebug(pluginJson, `updateFormLinksInNote: [START] Note has ${note.paragraphs.length} paragraphs`)
+
+  const links = [`- [open form](${launchLink})`, `- [edit form](${formEditLink})`]
+  if (processingTemplateLink) {
+    links.push(`- [open processing template](${processingTemplateLink})`)
+  }
+  // Use replaceContentUnderHeading to replace or create the "Form Details" section
+  // Note: The heading text includes the formTitle, but this is just for display in the body
+  const markdownContent = `## Form Details - ${formTitle}:\n${links.join('\n')}`
+  logDebug(pluginJson, `updateFormLinksInNote: [BEFORE] markdownContent to insert:\n${markdownContent}`)
+
+  // Find where the frontmatter ends to insert after it
+  // endOfFrontmatterLineIndex expects a note object, not just paragraphs
+  const endOfFM = endOfFrontmatterLineIndex(note)
+  logDebug(pluginJson, `updateFormLinksInNote: endOfFrontmatterLineIndex returned: ${endOfFM}`)
+
+  if (endOfFM != null && endOfFM >= 0) {
+    // We have frontmatter - insert after it
+    const insertionIndex = endOfFM + 1
+    logDebug(pluginJson, `updateFormLinksInNote: Will insert at index ${insertionIndex} (after frontmatter ending at ${endOfFM})`)
+
+    // Check if "Form Details" heading already exists
+    let headingIndex = -1
+    for (let i = insertionIndex; i < note.paragraphs.length; i++) {
+      const p = note.paragraphs[i]
+      if (p.type === 'title' && p.content.trim().startsWith('Form Details')) {
+        headingIndex = i
+        break
+      }
+    }
+
+    if (headingIndex >= 0) {
+      // Heading exists, remove content under it first
+      const { removeContentUnderHeading } = require('@helpers/NPParagraph')
+      removeContentUnderHeading(note, 'Form Details', false, false)
+      // Re-find the heading after removal
+      for (let i = insertionIndex; i < note.paragraphs.length; i++) {
+        const p = note.paragraphs[i]
+        if (p.type === 'title' && p.content.trim().startsWith('Form Details')) {
+          headingIndex = i
+          break
+        }
+      }
+      // Insert content after the heading
+      note.insertParagraph(links.join('\n'), headingIndex + 1, 'text')
+    } else {
+      // Heading doesn't exist, insert heading and content
+      // Use insertHeading with headingLevel 2 for ## heading
+      note.insertHeading(`Form Details - ${formTitle}:`, insertionIndex, 2)
+      note.insertParagraph(links.join('\n'), insertionIndex + 1, 'text')
+    }
+  } else {
+    // No frontmatter, use the standard method
+    logDebug(pluginJson, `updateFormLinksInNote: No frontmatter found, using replaceContentUnderHeading`)
+    await replaceContentUnderHeading(note, 'Form Details', markdownContent, false, 2)
+  }
+
+  logDebug(pluginJson, `updateFormLinksInNote: [AFTER] Note content after (first 30 lines):\n${(note.content || '').split('\n').slice(0, 30).join('\n')}`)
+  logDebug(pluginJson, `updateFormLinksInNote: [AFTER] Note has ${note.paragraphs.length} paragraphs`)
+}
+
+/**
+ * Handle duplicate form request - creates a copy of the form with a new name
+ * @param {Object} params - Request parameters
+ * @param {string} params.templateFilename - The current form template filename
+ * @param {string} params.templateTitle - The current form template title
+ * @param {string} params.receivingTemplateTitle - The receiving template title (if any)
+ * @returns {Promise<RequestResponse>}
+ */
+async function handleDuplicateForm(params: { templateFilename?: string, templateTitle?: string, receivingTemplateTitle?: string }): Promise<RequestResponse> {
+  try {
+    const { templateFilename, templateTitle, receivingTemplateTitle } = params
+    if (!templateFilename || !templateTitle) {
+      return {
+        success: false,
+        message: 'Template filename and title are required',
+        data: null,
+      }
+    }
+
+    // Prompt for new name (suggest current name + " copy")
+    const suggestedName = `${templateTitle} copy`
+    const newTitle = await CommandBar.textPrompt('Duplicate Form', 'Enter new form title:', suggestedName)
+    if (!newTitle || typeof newTitle === 'boolean') {
+      return {
+        success: false,
+        message: 'Duplicate cancelled',
+        data: null,
+      }
+    }
+
+    // Read the current form template
+    const sourceNote = await getNoteByFilename(templateFilename)
+    if (!sourceNote) {
+      return {
+        success: false,
+        message: `Could not find source form template: ${templateFilename}`,
+        data: null,
+      }
+    }
+
+    // Get folder from source template (use same folder as original, not a subfolder)
+    const sourceFolder = getFolderFromFilename(templateFilename) || '@Forms'
+
+    // Read all codeblocks from source
+    const formFields = await loadCodeBlockFromNote<Array<Object>>(sourceNote, 'formfields', pluginJson.id, parseObjectString)
+    const templateBody = await loadTemplateBodyFromTemplate(sourceNote)
+    const templateRunnerArgs = await loadTemplateRunnerArgsFromTemplate(sourceNote)
+
+    // Create new note with empty content (updateFormLinksInNote will add the heading and links)
+    const newNoteContent = ''
+
+    // Create new note in the same folder as the original (not inside the original's folder)
+    const newFilename = DataStore.newNoteWithContent(newNoteContent, sourceFolder, `${newTitle}.md`)
+    if (!newFilename) {
+      return {
+        success: false,
+        message: `Failed to create duplicate form "${newTitle}"`,
+        data: null,
+      }
+    }
+
+    const newNote = await getNoteByFilename(newFilename)
+    if (!newNote) {
+      return {
+        success: false,
+        message: `Created duplicate form but could not open it: ${newFilename}`,
+        data: null,
+      }
+    }
+
+    // Copy frontmatter using frontmatterAttributesArray to preserve order and all fields
+    const sourceFrontmatterArray = sourceNote.frontmatterAttributesArray || []
+    const encodedNewTitle = encodeURIComponent(newTitle)
+    const newLaunchLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Open%20Template%20Form&arg0=${encodedNewTitle}`
+    const newFormEditLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Form%20Builder/Editor&arg0=${encodedNewTitle}`
+
+    // Prepare frontmatter for new note copy all fields from source, updating title-related ones
+    const newFrontmatter: { [string]: string } = {}
+    const fieldsToUpdate = {
+      type: 'template-form',
+      windowTitle: newTitle,
+      formTitle: newTitle,
+      launchLink: newLaunchLink,
+      formEditLink: newFormEditLink,
+    }
+
+    // Copy all frontmatter fields from source, preserving order
+    for (const attr of sourceFrontmatterArray) {
+      const key = attr.key
+      // Skip title-related fields that we'll update
+      if (!['type', 'windowTitle', 'formTitle', 'launchLink', 'formEditLink', 'title'].includes(key)) {
+        newFrontmatter[key] = attr.value
+      }
+    }
+
+    // Add/update the title-related fields
+    Object.assign(newFrontmatter, fieldsToUpdate)
+
+    // Update frontmatter - ensure frontmatter exists first
+    ensureFrontmatter(newNote, true, newTitle)
+    updateFrontMatterVars(newNote, newFrontmatter)
+
+    // Update markdown links in body using replaceContentUnderHeading (works better than manual insertion)
+    await updateFormLinksInNote(newNote, newTitle, newLaunchLink, newFormEditLink)
+
+    // Copy codeblocks (these will be added after the heading)
+    if (formFields && Array.isArray(formFields) && formFields.length > 0) {
+      await saveCodeBlockToNote(newFilename, 'formfields', formFields, pluginJson.id, formatFormFieldsAsCodeBlock, false)
+    }
+    if (templateBody) {
+      await saveCodeBlockToNote(newFilename, 'template:ignore templateBody', templateBody, pluginJson.id, null, false)
+    }
+    if (templateRunnerArgs) {
+      await saveCodeBlockToNote(newFilename, 'template:ignore templateRunnerArgs', templateRunnerArgs, pluginJson.id, (obj) => JSON.stringify(obj, null, 2), false)
+    }
+
+    // Clean up: remove any duplicate title text and extra blank lines
+    const finalNote = await getNoteByFilename(newFilename)
+    if (finalNote) {
+      // Remove text paragraphs that are just the title (duplicates)
+      const titleText = newTitle.trim()
+      const cleanedParas = finalNote.paragraphs.filter((p) => {
+        // Keep frontmatter separators
+        if (p.type === 'separator') return true
+        // Remove text paragraphs that match the title exactly (these are unwanted duplicates)
+        if (p.type === 'text' && p.content.trim() === titleText) return false
+        return true
+      })
+
+      // Rebuild content without the duplicate title
+      const contentParts = cleanedParas.map((p) => p.rawContent)
+      finalNote.content = contentParts.join('\n')
+      finalNote.updateParagraphs(finalNote.paragraphs)
+
+      // Remove empty lines
+      removeEmptyLinesFromNote(finalNote)
+    }
+
+    // If there's a receiving template, duplicate it too
+    let newReceivingTemplateTitle = ''
+    if (receivingTemplateTitle) {
+      const receivingNote = await getNoteByFilename(receivingTemplateTitle)
+      if (receivingNote) {
+        // Create duplicate receiving template
+        const receivingFolder = getFolderFromFilename(receivingTemplateTitle) || sourceFolder
+        const newReceivingTitle = `${receivingTemplateTitle} copy`
+        const newReceivingContent = receivingNote.content || ''
+        const newReceivingFilename = DataStore.newNoteWithContent(newReceivingContent, receivingFolder, `${newReceivingTitle}.md`)
+        if (newReceivingFilename) {
+          const newReceivingNote = await getNoteByFilename(newReceivingFilename)
+          if (newReceivingNote) {
+            // Copy frontmatter from receiving template
+            const receivingFrontmatter = receivingNote.frontmatterAttributes || {}
+            const newReceivingFrontmatter: { [string]: string } = {}
+            Object.keys(receivingFrontmatter).forEach((key) => {
+              if (key !== 'title') {
+                newReceivingFrontmatter[key] = String(receivingFrontmatter[key])
+              }
+            })
+            updateFrontMatterVars(newReceivingNote, newReceivingFrontmatter)
+            newReceivingTemplateTitle = newReceivingTitle
+
+            // Update the form's receivingTemplateTitle
+            updateFrontMatterVars(newNote, { receivingTemplateTitle: newReceivingTemplateTitle })
+          }
+        }
+      }
+    }
+
+    // Open the new form in the Form Builder
+    const { openFormBuilder } = await import('./NPTemplateForm')
+    await openFormBuilder(newTitle)
+
+    return {
+      success: true,
+      message: `Form "${newTitle}" duplicated successfully`,
+      data: {
+        newTemplateFilename: newFilename,
+        newTemplateTitle: newTitle,
+        newReceivingTemplateTitle: newReceivingTemplateTitle || undefined,
+      },
+    }
+  } catch (error) {
+    logError(pluginJson, `handleDuplicateForm: Error: ${error.message}`)
+    return {
+      success: false,
+      message: `Failed to duplicate form: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
  * Router function to handle requests from React
  * @param {string} requestType - The type of request (e.g., 'getFolders', 'getNotes', 'createFolder')
  * @param {Object} params - Request parameters
@@ -544,6 +881,10 @@ export async function handleRequest(requestType: string, params: Object = {}): P
         return await handleCreateProcessingTemplate(params)
       case 'openNote':
         return handleOpenNote(params)
+      case 'copyFormUrl':
+        return handleCopyFormUrl(params)
+      case 'duplicateForm':
+        return await handleDuplicateForm(params)
       default:
         logError(pluginJson, `handleRequest: Unknown request type: "${requestType}"`)
         return {

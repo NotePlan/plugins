@@ -115,12 +115,23 @@ export function createWindowInitData(argObj: Object): PassedData {
   logDebug(pluginJson, `createWindowInitData: After getPluginData - folders.length=${foldersArray.length}`)
   const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
   const formTitle = argObj?.formTitle || ''
+  const templateTitle = argObj?.templateTitle || formTitle || ''
   const windowId = getFormWindowId(formTitle)
+
+  // Generate launchLink URL if we have a template title
+  let launchLink = ''
+  if (templateTitle) {
+    const encodedTitle = encodeURIComponent(templateTitle)
+    launchLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Open%20Template%20Form&arg0=${encodedTitle}`
+  }
+
   const dataToPass: PassedData = {
     pluginData: {
       ...pluginData,
       windowId: windowId, // Store window ID in pluginData so we can retrieve it later
       formTitle: formTitle, // Store form title for window ID reconstruction
+      templateTitle: templateTitle, // Store template title for URL generation
+      launchLink: launchLink, // Store launchLink for Form URL button
     },
     title: formTitle || REACT_WINDOW_TITLE,
     width: argObj?.width,
@@ -311,13 +322,23 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
     let isNewForm = false
     let templateBody = ''
     let templateRunnerArgs = null
+    let templateTitleForWindow = argObj.templateTitle || ''
+    let launchLink = '' // Will be generated or read from frontmatter
 
     if (templateNote) {
+      templateTitleForWindow = templateNote.title || templateTitleForWindow
       // Strip quotes from frontmatter values if present
       windowTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.windowTitle || '') || ''
       formTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.formTitle || '') || ''
       allowEmptySubmit = templateNote.frontmatterAttributes?.allowEmptySubmit === 'true' || templateNote.frontmatterAttributes?.allowEmptySubmit === true
       hideDependentItems = templateNote.frontmatterAttributes?.hideDependentItems === 'true' || templateNote.frontmatterAttributes?.hideDependentItems === true
+      // Read launchLink from frontmatter if available, otherwise generate it
+      launchLink = templateNote.frontmatterAttributes?.launchLink || ''
+      if (!launchLink && templateTitleForWindow) {
+        // Generate launchLink if not in frontmatter
+        const encodedTitle = encodeURIComponent(templateTitleForWindow)
+        launchLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Open%20Template%20Form&arg0=${encodedTitle}`
+      }
       // Parse width, height, x, and y (can be numbers or percentage strings)
       const widthStr = templateNote.frontmatterAttributes?.width
       const heightStr = templateNote.frontmatterAttributes?.height
@@ -373,8 +394,9 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
         y: y,
         templateBody: templateBody, // Load from codeblock
         isNewForm: isNewForm,
+        launchLink: launchLink, // Add launchLink to pluginData
       },
-      title: 'Form Builder',
+      title: templateTitleForWindow ? `Form Builder - ${templateTitleForWindow}` : 'Form Builder',
       logProfilingMessage: false,
       debug: false,
       ENV_MODE,

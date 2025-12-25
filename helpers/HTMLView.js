@@ -934,6 +934,48 @@ export async function sendBannerMessage(windowId: string, message: string, type:
 }
 
 /**
+ * Send a toast notification to the HTML window (displays a transient message in the top-right corner). Takes various parameters.
+ * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
+ * @param {string} message - the message to be displayed
+ * @param {string} type - the type of the message: 'INFO', 'WARN', 'ERROR', 'SUCCESS', or 'REMOVE'
+ * @param {number} timeout (optional) - the number of milliseconds to wait before the message disappears (default: 3000ms)
+ */
+export async function sendToastMessage(windowId: string, message: string, type: string = 'INFO', timeout: number = 3000): Promise<any> {
+  logDebug(`sendToastMessage`, `message: ${message}, type: ${type}, timeout: ${timeout}`)
+  if (type === 'REMOVE') {
+    return await sendToHTMLWindow(windowId, 'REMOVE_TOAST', {}, '')
+  }
+
+  let colorClass = 'color-info'
+  let borderClass = 'border-info'
+  let icon = 'fa-regular fa-circle-info'
+  switch (type) {
+    case 'INFO':
+      colorClass = 'color-info'
+      borderClass = 'border-info'
+      icon = 'fa-regular fa-circle-info'
+      break
+    case 'WARN':
+      colorClass = 'color-warn'
+      borderClass = 'border-warn'
+      icon = 'fa-regular fa-triangle-exclamation'
+      break
+    case 'ERROR':
+      colorClass = 'color-error'
+      borderClass = 'border-error'
+      icon = 'fa-regular fa-circle-exclamation'
+      break
+    case 'SUCCESS':
+      colorClass = 'color-success'
+      borderClass = 'border-info'
+      icon = 'fa-regular fa-circle-check'
+      break
+  }
+  logDebug(`sendToastMessage`, `colorClass: ${colorClass}, borderClass: ${borderClass}, icon: ${icon}`)
+  return await sendToHTMLWindow(windowId, 'SHOW_TOAST', { type, msg: message, color: colorClass, border: borderClass, icon, timeout }, '')
+}
+
+/**
  * add basic ***bolditalic*** styling
  * add basic **bold** or __bold__ styling
  * add basic *italic* or _italic_ styling

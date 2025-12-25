@@ -459,11 +459,13 @@ export function TemplateTagEditor({
         }
       }
 
-      // If clicked at the end, position cursor at the end of the text
+      // If clicked at the end (after last pill), position cursor at the end of the text
       if (clickedIndex === -1) {
-        if (textareaRef.current) {
+        const textarea = textareaRef.current
+        if (textarea) {
           const textLength = value.length
-          textareaRef.current.setSelectionRange(textLength, textLength)
+          textarea.focus()
+          textarea.setSelectionRange(textLength, textLength)
         }
       } else {
         // Calculate cursor position in the text
@@ -479,8 +481,9 @@ export function TemplateTagEditor({
           }
           cursorPos += pills[i].content.length
         }
-        if (textareaRef.current) {
-          textareaRef.current.setSelectionRange(cursorPos, cursorPos)
+        const textarea = textareaRef.current
+        if (textarea) {
+          textarea.setSelectionRange(cursorPos, cursorPos)
         }
       }
     },
@@ -812,7 +815,28 @@ export function TemplateTagEditor({
             }}
           >
             {pills.length > 0 ? (
-              <div className="template-tag-editor-pills">{renderPills}</div>
+              <>
+                <div className="template-tag-editor-pills">{renderPills}</div>
+                {/* Drop zone after last pill - allows clicking after the last item to type */}
+                <div
+                  data-drop-zone-index={pills.length}
+                  className="template-tag-drop-zone template-tag-drop-zone-end"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    // Focus textarea and position cursor at the end
+                    const textarea = textareaRef.current
+                    if (textarea) {
+                      textarea.focus()
+                      const textLength = value.length
+                      textarea.setSelectionRange(textLength, textLength)
+                    }
+                  }}
+                  onDragOver={(e) => handleDragOver(pills.length, 'before', e)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(pills.length, dragOverPosition || 'before', e)}
+                  style={{ minWidth: '20px', minHeight: '1.5em', display: 'inline-block' }}
+                />
+              </>
             ) : (
               <div className="template-tag-editor-empty">{placeholder || 'Start typing or use +Field/+Date buttons to add template tags'}</div>
             )}

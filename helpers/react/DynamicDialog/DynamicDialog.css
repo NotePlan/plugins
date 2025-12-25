@@ -46,9 +46,12 @@
         border-radius: 8px;
         flex: 1;
         overflow-y: auto;
+        overflow-x: hidden; /* Prevent horizontal scrollbars */
         font-size: 95%;
         min-height: 0; /* Allow flex item to shrink below content size */
         /* overflow-y: visible; - changed back to auto to restore scrollbars when content exceeds max-height */
+        box-sizing: border-box; /* Ensure padding is included in width calculation */
+        width: 100%; /* Ensure content doesn't exceed container width */
     }
 
     /* Style for the dialog buttons container */
@@ -195,6 +198,24 @@
         font-weight: 600;
         color: var(--fg-alt-color);
         /* flex-shrink: 0; */
+    }
+
+    /* Style for each dialog item */
+    .dynamic-dialog-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+        max-width: 100%; /* Prevent items from exceeding container width */
+    }
+    
+    /* Ensure all input elements within dialog items respect container width */
+    .dynamic-dialog-item input,
+    .dynamic-dialog-item textarea,
+    .dynamic-dialog-item select {
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     /* Style for input-box-container */

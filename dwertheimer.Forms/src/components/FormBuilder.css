@@ -23,6 +23,19 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex: 1;
+}
+
+.form-builder-document-name {
+  font-size: 0.875rem;
+  color: var(--fg-secondary-color, #666);
+  cursor: pointer;
+  user-select: none;
+}
+
+.form-builder-document-name:hover {
+  color: var(--tint-color, #007aff);
+  text-decoration: underline;
 }
 
 .form-builder-title {
@@ -64,6 +77,11 @@
 .form-builder-actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.form-builder-actions .PCButton {
+  padding-top: calc(4px + 2px) !important; /* Add 2px to default PCButton padding-top of 4px */
 }
 
 .form-builder-content {
@@ -267,7 +285,7 @@
 
 .form-preview-window {
   width: 100%;
-  max-width: 800px;
+  max-width: 800px; /* Default max-width, can be overridden by inline styles from frontmatter */
   background: var(--np-theme-background, #ffffff);
   border: 1px solid var(--np-theme-border, #e0e0e0);
   border-radius: 8px;
@@ -275,6 +293,9 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* Allow inline styles to override dimensions */
+  min-width: 200px; /* Minimum width for usability */
+  /* No min-height - respect the height from frontmatter exactly */
 }
 
 .form-preview-window-titlebar {
@@ -284,6 +305,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0; /* Don't shrink the titlebar */
 }
 
 .form-preview-window-title {
@@ -294,9 +316,11 @@
 }
 
 .form-preview-window-content {
-  flex: 1;
+  flex: 1 1 0; /* Grow and shrink, but start from 0 */
   position: relative;
   overflow: auto;
+  min-height: 0; /* Critical: allows flex child to shrink below content size */
+  max-height: 100%; /* Constrain to parent height */
 }
 
 /* Override DynamicDialog positioning when in preview pane */
@@ -308,15 +332,22 @@
   width: 100% !important;
   min-width: 0 !important;
   max-width: 100% !important;
+  max-height: 100% !important; /* Constrain dialog to content area */
   box-shadow: none !important;
   border: none !important;
   border-radius: 0 !important;
   margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important; /* Prevent dialog from expanding */
 }
 
 .form-preview-window-content .dynamic-dialog .dynamic-dialog-content {
   width: 100% !important;
   max-width: 100% !important;
+  overflow-y: auto !important; /* Allow scrolling within dialog content */
+  flex: 1 1 0 !important; /* Allow content to shrink */
+  min-height: 0 !important; /* Critical: allows flex child to shrink */
 }
 
 .empty-state {

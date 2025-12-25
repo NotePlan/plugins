@@ -241,11 +241,11 @@ export function renderItem({
               options={(normalizedOptions: Array<string | any>)}
               value={item.value || item.default || ''}
               onChange={(value: string) => {
-                // Don't submit placeholder (empty value)
-                if (value !== '') {
-                  item.key && handleFieldChange(item.key, value)
-                  item.key && handleComboChange(item.key, value)
-                }
+                  // Don't submit placeholder (empty value)
+                  if (value !== '') {
+                    item.key && handleFieldChange(item.key, value)
+                    item.key && handleComboChange(item.key, value)
+                  }
               }}
               disabled={disabled}
               compactDisplay={compactDisplay}

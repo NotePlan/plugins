@@ -268,6 +268,10 @@
   position: relative;
 }
 
+.template-tag-drop-zone-end {
+  min-width: 20px;
+}
+
 .template-tag-drop-zone:hover {
   background-color: rgba(0, 122, 255, 0.1);
 }
@@ -319,6 +323,12 @@
 .template-tag-editor-sync-textarea {
   caret-color: var(--tint-color, #007aff);
   color: transparent; /* Make text transparent so pills show through */
+  caret-shape: block; /* Show block cursor */
+}
+
+/* Ensure cursor is visible */
+.template-tag-editor-pills-container:focus-within .template-tag-editor-sync-textarea {
+  caret-color: var(--tint-color, #007aff);
 }
 
 .template-tag-editor-sync-textarea::selection {

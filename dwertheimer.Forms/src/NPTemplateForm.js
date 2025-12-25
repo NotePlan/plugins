@@ -3,8 +3,7 @@
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 // Note: getAllNotesAsOptions is no longer used here - FormView loads notes dynamically via requestFromPlugin
-import { createProcessingTemplate } from './ProcessingTemplate'
-import { handleRequest, testRequestHandlers } from './requestHandlers'
+import { handleRequest, testRequestHandlers, updateFormLinksInNote, removeEmptyLinesFromNote } from './requestHandlers'
 import {
   saveFormFieldsToTemplate,
   saveTemplateBodyToTemplate,
@@ -14,31 +13,19 @@ import {
   updateReceivingTemplateWithFields,
   getFormTemplateList,
 } from './templateIO.js'
-import { handleSubmitButtonClick, insertTemplateJSBlocks } from './formSubmission.js'
-import {
-  openFormWindow,
-  openFormBuilderWindow,
-  createWindowInitData,
-  getPluginData,
-  parseWindowDimension,
-  FORMBUILDER_WINDOW_ID,
-  WEBVIEW_WINDOW_ID,
-  getFormWindowId,
-  findFormWindowId,
-} from './windowManagement.js'
+import { handleSubmitButtonClick } from './formSubmission.js'
+import { openFormWindow, openFormBuilderWindow, FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID, getFormWindowId, findFormWindowId } from './windowManagement.js'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
 import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
 import { validateObjectString, stripDoubleQuotes, parseObjectString } from '@helpers/stringTransforms'
-import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { updateFrontMatterVars, ensureFrontmatter, noteHasFrontMatter, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 // Note: getFoldersMatching is no longer used here - FormView loads folders dynamically via requestFromPlugin
 
 // Import extracted modules
-
-const REACT_WINDOW_TITLE = 'Form View' // change this to what you want window title to display
 
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
@@ -390,6 +377,16 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
           await showMessage(`Failed to open newly created template "${newTitle}"`)
           return
         }
+
+        // LOG: Check note content immediately after creation
+        logDebug(pluginJson, `openFormBuilder: [STEP 1] Note content after creation (first 20 lines):\n${(templateNote.content || '').split('\n').slice(0, 20).join('\n')}`)
+        const hasFM1 = noteHasFrontMatter(templateNote)
+        logDebug(pluginJson, `openFormBuilder: [STEP 1] Note has frontmatter: ${String(hasFM1)}`)
+        if (hasFM1) {
+          const attrs = getFrontmatterAttributes(templateNote)
+          logDebug(pluginJson, `openFormBuilder: [STEP 1] Existing frontmatter attributes: ${JSON.stringify(attrs)}`)
+        }
+
         logDebug(pluginJson, `openFormBuilder: Setting frontmatter for new template`)
 
         // Generate launchLink URL (needed for both form and processing template)
@@ -398,7 +395,39 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         // Generate formEditLink URL to launch Form Builder
         const formEditLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Form%20Builder/Editor&arg0=${encodedTitle}`
 
+        // Ensure frontmatter exists with correct title FIRST (before updating other fields)
+        // This must be called before any other operations to ensure title is set correctly
+        logDebug(pluginJson, `openFormBuilder: [STEP 2] Calling ensureFrontmatter with title: "${newTitle}"`)
+        ensureFrontmatter(templateNote, true, newTitle)
+
+        // LOG: Check note content after ensureFrontmatter
+        logDebug(
+          pluginJson,
+          `openFormBuilder: [STEP 2] Note content after ensureFrontmatter (first 20 lines):\n${(templateNote.content || '').split('\n').slice(0, 20).join('\n')}`,
+        )
+        if (noteHasFrontMatter(templateNote)) {
+          const attrs = getFrontmatterAttributes(templateNote)
+          logDebug(pluginJson, `openFormBuilder: [STEP 2] Frontmatter attributes after ensureFrontmatter: ${JSON.stringify(attrs)}`)
+        }
+
         // Set initial frontmatter including launchLink and formEditLink
+        // Note: title is already set by ensureFrontmatter above
+        // Set default window settings: 25% width, 40% height, center, center
+        logDebug(
+          pluginJson,
+          `openFormBuilder: [STEP 3] Calling updateFrontMatterVars with: ${JSON.stringify({
+            type: 'template-form',
+            receivingTemplateTitle,
+            windowTitle: newTitle,
+            formTitle: newTitle,
+            launchLink,
+            formEditLink,
+            width: '25%',
+            height: '40%',
+            x: 'center',
+            y: 'center',
+          })}`,
+        )
         updateFrontMatterVars(templateNote, {
           type: 'template-form',
           receivingTemplateTitle: receivingTemplateTitle,
@@ -406,7 +435,22 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
           formTitle: newTitle,
           launchLink: launchLink,
           formEditLink: formEditLink,
+          width: '25%',
+          height: '40%',
+          x: 'center',
+          y: 'center',
         })
+
+        // LOG: Check note content after updateFrontMatterVars
+        logDebug(
+          pluginJson,
+          `openFormBuilder: [STEP 3] Note content after updateFrontMatterVars (first 20 lines):\n${(templateNote.content || '').split('\n').slice(0, 20).join('\n')}`,
+        )
+        if (noteHasFrontMatter(templateNote)) {
+          const attrs = getFrontmatterAttributes(templateNote)
+          logDebug(pluginJson, `openFormBuilder: [STEP 3] Frontmatter attributes after updateFrontMatterVars: ${JSON.stringify(attrs)}`)
+        }
+
         selectedTemplate = filename
         logDebug(pluginJson, `openFormBuilder: Set frontmatter and selectedTemplate = ${selectedTemplate}, receivingTemplateTitle = "${receivingTemplateTitle}"`)
 
@@ -417,11 +461,40 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
           processingTemplateLink = `noteplan://x-callback-url/openNote?noteTitle=${encodedProcessingTitle}`
         }
 
-        // Add markdown links to body content in format: "title [open form]() [edit form]() [open processing template]()"
-        const markdownLinks = `${newTitle}: [open form](${launchLink}) [edit form](${formEditLink})${
-          processingTemplateLink ? ` [open processing template](${processingTemplateLink})` : ''
-        }`
-        templateNote.appendParagraph(markdownLinks, 'text')
+        // Reload the note to ensure state is synchronized after updateFrontMatterVars
+        // This ensures paragraphs array and content are in sync before we try to insert body content
+        logDebug(pluginJson, `openFormBuilder: [STEP 3.5] Reloading note to sync state after updateFrontMatterVars`)
+        templateNote = await getNoteByFilename(filename)
+        if (!templateNote) {
+          logError(pluginJson, `openFormBuilder: Failed to reload note after updateFrontMatterVars`)
+          return
+        }
+        logDebug(pluginJson, `openFormBuilder: [STEP 3.5] Reloaded note has ${templateNote.paragraphs.length} paragraphs`)
+
+        // Update markdown links in body using helper function (AFTER frontmatter is set and note is reloaded)
+        logDebug(pluginJson, `openFormBuilder: [STEP 4] Calling updateFormLinksInNote with formTitle: "${newTitle}"`)
+        await updateFormLinksInNote(templateNote, newTitle, launchLink, formEditLink, processingTemplateLink)
+
+        // LOG: Check note content after updateFormLinksInNote
+        logDebug(
+          pluginJson,
+          `openFormBuilder: [STEP 4] Note content after updateFormLinksInNote (first 30 lines):\n${(templateNote.content || '').split('\n').slice(0, 30).join('\n')}`,
+        )
+        if (noteHasFrontMatter(templateNote)) {
+          const attrs = getFrontmatterAttributes(templateNote)
+          logDebug(pluginJson, `openFormBuilder: [STEP 4] Frontmatter attributes after updateFormLinksInNote: ${JSON.stringify(attrs)}`)
+        }
+
+        // Clean up empty lines after all operations
+        logDebug(pluginJson, `openFormBuilder: [STEP 5] Calling removeEmptyLinesFromNote`)
+        removeEmptyLinesFromNote(templateNote)
+
+        // LOG: Final note content
+        logDebug(pluginJson, `openFormBuilder: [STEP 5] FINAL note content (first 40 lines):\n${(templateNote.content || '').split('\n').slice(0, 40).join('\n')}`)
+        if (noteHasFrontMatter(templateNote)) {
+          const attrs = getFrontmatterAttributes(templateNote)
+          logDebug(pluginJson, `openFormBuilder: [STEP 5] FINAL frontmatter attributes: ${JSON.stringify(attrs)}`)
+        }
 
         // Reload the note to ensure frontmatter is up to date before opening FormBuilder
         templateNote = await getNoteByFilename(filename)
@@ -649,6 +722,20 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
     } else if (actualActionType === 'openForm' && data?.templateTitle) {
       logDebug(pluginJson, `onFormBuilderAction: Opening form with templateTitle="${data.templateTitle}"`)
       await getTemplateFormData(data.templateTitle)
+    } else if (actualActionType === 'duplicateForm' && data?.newTemplateFilename) {
+      // After duplicating, open the new form in Form Builder
+      logDebug(pluginJson, `onFormBuilderAction: Opening duplicated form with filename="${data.newTemplateFilename}"`)
+      const newNote = await getNoteByFilename(data.newTemplateFilename)
+      if (newNote) {
+        const loadedFormFields = await loadCodeBlockFromNote<Array<Object>>(newNote, 'formfields', pluginJson.id, parseObjectString)
+        const formFields = loadedFormFields || []
+        await openFormBuilderWindow({
+          formFields,
+          templateFilename: data.newTemplateFilename,
+          templateTitle: data.newTemplateTitle || newNote.title || '',
+          initialReceivingTemplateTitle: data.newReceivingTemplateTitle,
+        })
+      }
     } else {
       logWarn(pluginJson, `onFormBuilderAction: Unknown actualActionType="${actualActionType}" or missing fields/data`)
       logWarn(pluginJson, `onFormBuilderAction: data.keys=${Object.keys(data || {}).join(', ')}`)
@@ -814,9 +901,14 @@ async function handleSaveRequest(data: any): Promise<{ success: boolean, message
       await saveFrontmatterToTemplate(finalTemplateFilename, frontmatterForSave)
     }
 
-    // Get template note for success message
+    // Get template note for success message and cleanup
     const templateNote = await getNoteByFilename(finalTemplateFilename)
     const templateTitle = templateNote?.title || finalTemplateFilename
+
+    // Remove empty lines from the note
+    if (templateNote) {
+      removeEmptyLinesFromNote(templateNote)
+    }
 
     return {
       success: true,
@@ -904,37 +996,83 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
       }
     }
 
-    // Existing fire-and-forget handling
-    // Get the window ID by looking at open windows or from window data
-    // Try to find the window ID from open windows first, then fall back to getting it from window data
-    let windowId = WEBVIEW_WINDOW_ID // Default fallback
-    try {
-      // Try to get form title from window data to reconstruct window ID
-      const tempWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-      if (tempWindowData?.pluginData?.windowId) {
-        windowId = tempWindowData.pluginData.windowId
-      } else if (tempWindowData?.pluginData?.formTitle) {
-        // Reconstruct window ID from form title
-        windowId = getFormWindowId(tempWindowData.pluginData.formTitle)
-      } else {
-        // Try to find window ID by looking at all open windows
-        const foundId = findFormWindowId()
-        if (foundId) {
-          windowId = foundId
+    // Window ID lookup: Use windowId from data if provided (most reliable), otherwise use fallback strategies
+    let windowId = data?.windowId || ''
+    let reactWindowData = null
+
+    // If windowId was provided in data, use it directly
+    if (windowId) {
+      try {
+        reactWindowData = await getGlobalSharedData(windowId)
+        logDebug(pluginJson, `onFormSubmitFromHTMLView: Using windowId from data: ${windowId}`)
+      } catch (e) {
+        logDebug(pluginJson, `onFormSubmitFromHTMLView: Could not get window data with provided windowId: ${windowId}, falling back to search`)
+        windowId = '' // Reset to trigger fallback
+      }
+    }
+
+    // Fallback strategies if windowId not provided or lookup failed
+    if (!windowId || !reactWindowData) {
+      // Strategy 1: Try to find window by looking at all open windows (most reliable for dynamic IDs)
+      windowId = findFormWindowId() || WEBVIEW_WINDOW_ID
+
+      // Strategy 2: Try to get window data using the found/fallback window ID
+      try {
+        reactWindowData = await getGlobalSharedData(windowId)
+        // If we got window data, use the windowId from it if available (most reliable)
+        if (reactWindowData?.pluginData?.windowId) {
+          windowId = reactWindowData.pluginData.windowId
+          // Re-fetch with the correct window ID if different
+          if (windowId !== WEBVIEW_WINDOW_ID) {
+            try {
+              reactWindowData = await getGlobalSharedData(windowId)
+            } catch (e) {
+              logDebug(pluginJson, `onFormSubmitFromHTMLView: Could not re-fetch with corrected windowId: ${windowId}`)
+            }
+          }
+        } else if (reactWindowData?.pluginData?.formTitle) {
+          // Reconstruct window ID from form title if we have it
+          const reconstructedId = getFormWindowId(reactWindowData.pluginData.formTitle)
+          if (reconstructedId !== windowId) {
+            windowId = reconstructedId
+            try {
+              reactWindowData = await getGlobalSharedData(windowId)
+            } catch (e) {
+              logDebug(pluginJson, `onFormSubmitFromHTMLView: Could not fetch with reconstructed windowId: ${windowId}`)
+            }
+          }
+        }
+      } catch (e) {
+        // Strategy 3: Fallback - try base WEBVIEW_WINDOW_ID for backward compatibility
+        if (windowId !== WEBVIEW_WINDOW_ID) {
+          try {
+            const tempWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+            if (tempWindowData?.pluginData?.windowId) {
+              windowId = tempWindowData.pluginData.windowId
+              reactWindowData = await getGlobalSharedData(windowId)
+            } else if (tempWindowData) {
+              // Use base ID window data if available
+              windowId = WEBVIEW_WINDOW_ID
+              reactWindowData = tempWindowData
+            }
+          } catch (e2) {
+            logDebug(pluginJson, `onFormSubmitFromHTMLView: Could not get window data with base ID either`)
+          }
         }
       }
-    } catch (e) {
-      // If we can't get the window data, try to find window ID from open windows
-      const foundId = findFormWindowId()
-      if (foundId) {
-        windowId = foundId
-      }
-      logDebug(pluginJson, `onFormSubmitFromHTMLView: Could not get window ID from window data, using: ${windowId}`)
     }
+
     let returnValue = null
-    const reactWindowData = await getGlobalSharedData(windowId) // get the current data from the React Window
+    if (!reactWindowData) {
+      logError(pluginJson, `onFormSubmitFromHTMLView: Could not get window data for windowId: ${windowId}`)
+      return {}
+    }
     // clo(reactWindowData, `Plugin onMessageFromHTMLView reactWindowData=`)
-    if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
+    if (data.passThroughVars && reactWindowData.passThroughVars) {
+      reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
+    } else if (data.passThroughVars) {
+      reactWindowData.passThroughVars = { ...data.passThroughVars }
+    }
     switch (actionType) {
       /* best practice here is not to actually do the processing but to call a function based on what the actionType was sent by React */
       /* you would probably call a different function for each actionType */
