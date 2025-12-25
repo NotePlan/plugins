@@ -140,7 +140,7 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
           await showMessage(
             `Template "${
               note.title || ''
-            }" does not have a "processingMethod" set in frontmatter. Please set the "processingMethod" field in your template frontmatter to one of: "write-existing", "create-new", or "form-processor".`,
+            }" does not have a receivingTemplateTitle or processingMethod set. Please edit and save the form in the Form Builder or edit the frontmatter manually.`,
           )
           return
         }
@@ -227,7 +227,7 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
     if (!processingMethod) {
       logError(pluginJson, 'Template does not have a processingMethod set')
       await showMessage(
-        'Template Form does not have a "processingMethod" set in frontmatter. Please set the "processingMethod" field in your template frontmatter to one of: "write-existing", "create-new", or "form-processor".',
+        `Template does not have a receivingTemplateTitle or processingMethod set. Please edit and save the form in the Form Builder or edit the frontmatter manually.`,
       )
       return
     }

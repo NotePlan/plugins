@@ -16,8 +16,9 @@ import pluginJson from '../plugin.json'
 import { getAllNotesAsOptions, getRelativeNotesAsOptions } from './noteHelpers'
 import { createProcessingTemplate } from './ProcessingTemplate'
 import { FORMBUILDER_WINDOW_ID } from './windowManagement'
-import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, formatFormFieldsAsCodeBlock } from './templateIO'
-import { logDebug, logError, logInfo } from '@helpers/dev'
+import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, formatFormFieldsAsCodeBlock, getFormTemplateList } from './templateIO'
+import { openFormBuilder } from './NPTemplateForm'
+import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { showMessage } from '@helpers/userInput'
@@ -28,6 +29,10 @@ import { updateFrontMatterVars, ensureFrontmatter, endOfFrontmatterLineIndex } f
 import { saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseObjectString } from '@helpers/stringTransforms'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
+import { initPromisePolyfills, waitForCondition } from '@helpers/promisePolyfill'
+
+// Initialize Promise polyfills early
+initPromisePolyfills()
 
 /**
  * Standardized response type for all request handlers
@@ -732,6 +737,12 @@ async function handleDuplicateForm(params: { templateFilename?: string, template
       }
     }
 
+    // Update cache immediately after getting the note to ensure it's available
+    const cachedNote = DataStore.updateCache(newNote, true)
+    if (cachedNote) {
+      logDebug(pluginJson, `handleDuplicateForm: Updated cache for newly created note "${newTitle}"`)
+    }
+
     // Copy frontmatter using frontmatterAttributesArray to preserve order and all fields
     const sourceFrontmatterArray = sourceNote.frontmatterAttributesArray || []
     const encodedNewTitle = encodeURIComponent(newTitle)
@@ -778,6 +789,13 @@ async function handleDuplicateForm(params: { templateFilename?: string, template
       await saveCodeBlockToNote(newFilename, 'template:ignore templateRunnerArgs', templateRunnerArgs, pluginJson.id, (obj) => JSON.stringify(obj, null, 2), false)
     }
 
+    // Reload note after code blocks are saved to get latest content
+    const noteAfterCodeBlocks = await getNoteByFilename(newFilename)
+    if (noteAfterCodeBlocks) {
+      // Update cache after code blocks are saved
+      DataStore.updateCache(noteAfterCodeBlocks, true)
+    }
+
     // Clean up: remove any duplicate title text and extra blank lines
     const finalNote = await getNoteByFilename(newFilename)
     if (finalNote) {
@@ -798,6 +816,35 @@ async function handleDuplicateForm(params: { templateFilename?: string, template
 
       // Remove empty lines
       removeEmptyLinesFromNote(finalNote)
+
+      // Update cache to ensure the note is available in DataStore.projectNotes
+      // This is critical for getFormTemplateList() to find the newly created form
+      const updatedNote = DataStore.updateCache(finalNote, true)
+      if (updatedNote) {
+        logDebug(pluginJson, `handleDuplicateForm: Updated cache for note "${newTitle}"`)
+      } else {
+        logWarn(pluginJson, `handleDuplicateForm: Failed to update cache for note "${newTitle}"`)
+      }
+    }
+
+    // Wait for the note to be available in getFormTemplateList() before trying to open it
+    // This handles race conditions where the note was created but not yet in DataStore.projectNotes
+    logDebug(pluginJson, `handleDuplicateForm: Waiting for note "${newTitle}" to be available in cache...`)
+    const noteAvailable = await waitForCondition(
+      () => {
+        const options = getFormTemplateList()
+        const found = options.find((option) => option.label === newTitle)
+        if (found) {
+          logDebug(pluginJson, `handleDuplicateForm: Note "${newTitle}" is now available in cache`)
+          return true
+        }
+        return false
+      },
+      { maxWaitMs: 3000, checkIntervalMs: 100 },
+    )
+
+    if (!noteAvailable) {
+      logWarn(pluginJson, `handleDuplicateForm: Note "${newTitle}" not found in cache after waiting, but will try to open anyway`)
     }
 
     // If there's a receiving template, duplicate it too
@@ -832,7 +879,6 @@ async function handleDuplicateForm(params: { templateFilename?: string, template
     }
 
     // Open the new form in the Form Builder
-    const { openFormBuilder } = await import('./NPTemplateForm')
     await openFormBuilder(newTitle)
 
     return {
