@@ -76,6 +76,7 @@ export function Root(/* props: Props */): Node {
     color: globalSharedData?.initialBanner?.color || '',
     border: globalSharedData?.initialBanner?.border || '',
     icon: globalSharedData?.initialBanner?.icon || '',
+    floating: globalSharedData?.initialBanner?.floating || false,
       }
   const [bannerMessage, setBannerMessage] = useState(initialBannerMessage)
   // Initialize toast message (default to hidden)
@@ -281,13 +282,13 @@ export function Root(/* props: Props */): Node {
               break
             }
             case 'SHOW_BANNER':
-              logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it. (timeout: ${payload.timeout ?? '-'})`)
+              logDebug(`Root`, ` onMessageReceived: Showing banner${payload.floating ? ' (floating toast mode)' : ''}, so we need to scroll the page up to the top so user sees it. (timeout: ${payload.timeout ?? '-'})`)
               setNPData((prevData) => {
                 prevData.passThroughVars = prevData.passThroughVars ?? {}
                 prevData.passThroughVars.lastWindowScrollTop = 0
                 return { ...prevData, ...payload }
               })
-              showBanner(payload.type, payload.msg, payload.color, payload.border, payload.icon, payload.timeout)
+              showBanner(payload.type, payload.msg, payload.color, payload.border, payload.icon, payload.timeout, payload.floating)
               // If timeout is a valid positive number, then start a timer to clear the message after the timeout period
               if (typeof payload.timeout === 'number' && payload.timeout > 0 && !isNaN(payload.timeout)) {
                 logDebug(`Root`, ` onMessageReceived: Setting timeout to clear banner after ${payload.timeout}ms`)
@@ -386,9 +387,10 @@ export function Root(/* props: Props */): Node {
    * Callback passed to child components that allows them to put a message in the banner.
    * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_BANNER', payload).
    * TODO: Hopefully can still remove the color/border/icon parameters, but leaving them in for now to avoid breaking changes.
+   * @param {boolean} floating - if true, displays as a floating toast in top-right corner instead of banner at top
    */
-  const showBanner = (type: string, msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red', icon: string = 'fa-regular fa-circle-exclamation', timeout: number = 0) => {
-    const bannerMessage = { type, msg, timeout, color, border, icon }
+  const showBanner = (type: string, msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red', icon: string = 'fa-regular fa-circle-exclamation', timeout: number = 0, floating: boolean = false) => {
+    const bannerMessage = { type, msg, timeout, color, border, icon, floating }
     logDebug(`Root`, `showBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
     // $FlowFixMe - bannerMessage object matches the expected shape
     setBannerMessage(bannerMessage)
@@ -399,7 +401,7 @@ export function Root(/* props: Props */): Node {
    */
   const hideBanner = () => {
     logDebug(`Root`, `hideBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
-    setBannerMessage({ type: 'REMOVE', level: 'REMOVE', msg: '', timeout: 0, color: '', border: '', icon: '' })
+    setBannerMessage({ type: 'REMOVE', msg: '', timeout: 0, color: '', border: '', icon: '', floating: false })
   }
 
   /**
@@ -532,13 +534,13 @@ export function Root(/* props: Props */): Node {
       <div className="Root" onClickCapture={onClickCapture}>
         {logProfilingMessage ? (
           <Profiler id="MemoizedWebView" onRender={onRender}>
-            <MessageBanner msg={bannerMessage.msg} type={bannerMessage.type} color={bannerMessage.color || ''} border={bannerMessage.border || ''} hide={hideBanner} icon={bannerMessage.icon || ''} />
+            <MessageBanner msg={bannerMessage.msg} type={bannerMessage.type} color={bannerMessage.color || ''} border={bannerMessage.border || ''} hide={hideBanner} icon={bannerMessage.icon || ''} floating={bannerMessage.floating || false} />
             <MemoizedWebView dispatch={dispatch} data={npData} reactSettings={reactSettings} setReactSettings={setReactSettings} />
             <Toast msg={toastMessage.msg} type={toastMessage.type} color={toastMessage.color || ''} border={toastMessage.border || ''} hide={hideToast} icon={toastMessage.icon || ''} />
           </Profiler>
         ) : (
           <>
-              <MessageBanner msg={bannerMessage.msg} type={bannerMessage.type} color={bannerMessage.color || ''} border={bannerMessage.border || ''} hide={hideBanner} icon={bannerMessage.icon || ''} />
+              <MessageBanner msg={bannerMessage.msg} type={bannerMessage.type} color={bannerMessage.color || ''} border={bannerMessage.border || ''} hide={hideBanner} icon={bannerMessage.icon || ''} floating={bannerMessage.floating || false} />
             <MemoizedWebView data={npData} dispatch={dispatch} reactSettings={reactSettings} setReactSettings={setReactSettings} />
             <Toast msg={toastMessage.msg} type={toastMessage.type} color={toastMessage.color || ''} border={toastMessage.border || ''} hide={hideToast} icon={toastMessage.icon || ''} />
           </>
