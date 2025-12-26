@@ -14,26 +14,27 @@ export type ChooserConfig = {
   // Data and filtering
   items: Array<any>,
   filterFn: (item: any, searchTerm: string) => boolean,
-  
+  itemFilter?: ?(item: any) => boolean, // Optional function to filter items before search filtering (applied to all items regardless of search term)
+
   // Display
   getDisplayValue: (item: any) => string, // Gets the value to display in the input
   getOptionText: (item: any) => string, // Gets the text to show in dropdown options
   getOptionTitle: (item: any) => string, // Gets the title/tooltip for dropdown options
   truncateDisplay: (text: string, maxLength: number) => string, // Function to truncate display text
-  
+
   // Selection
   onSelect: (item: any) => void, // Called when an item is selected
-  
+
   // Empty states
   emptyMessageNoItems: string,
   emptyMessageNoMatch: string,
-  
+
   // Styling
   classNamePrefix: string, // Prefix for CSS classes (e.g., 'folder-chooser', 'note-chooser')
   iconClass?: ?string, // FontAwesome icon class (e.g., 'fa-folder', 'fa-file-lines') - optional, if not provided, no icon is shown
   fieldType: string, // Data attribute for field type (e.g., 'folder-chooser', 'note-chooser')
   showArrow?: boolean, // If true, show a down arrow instead of icon (default: false)
-  
+
   // Optional
   debugLogging?: boolean,
   maxResults?: number, // Max items to show in dropdown (default: 10)
@@ -49,22 +50,25 @@ export type ChooserConfig = {
   manualEntryIndicator?: string, // Text to show when value is a manual entry (default: "✏️ Manual entry")
   isManualEntry?: (value: string, items: Array<any>) => boolean, // Function to check if a value is a manual entry (not in items list)
   // Custom rendering
-  renderOption?: (item: any, helpers: {
-    index: number,
-    isHovered: boolean,
-    isSelected: boolean,
-    showOptionClickHint: boolean,
-    optionClickIcon: ?string,
-    optionClickHint?: ?string,
-    classNamePrefix: string,
-    fieldType: string,
-    handleItemSelect: (item: any, e: any) => void,
-    setHoveredIndex: (index: number | null) => void,
-    getOptionTitle: (item: any) => string,
-    getOptionIcon: (item: any) => ?string,
-    getOptionColor: (item: any) => ?string,
-    getOptionShortDescription: (item: any) => ?string,
-  }) => React$Node, // Optional function to completely customize option rendering
+  renderOption?: (
+    item: any,
+    helpers: {
+      index: number,
+      isHovered: boolean,
+      isSelected: boolean,
+      showOptionClickHint: boolean,
+      optionClickIcon: ?string,
+      optionClickHint?: ?string,
+      classNamePrefix: string,
+      fieldType: string,
+      handleItemSelect: (item: any, e: any) => void,
+      setHoveredIndex: (index: number | null) => void,
+      getOptionTitle: (item: any) => string,
+      getOptionIcon: (item: any) => ?string,
+      getOptionColor: (item: any) => ?string,
+      getOptionShortDescription: (item: any) => ?string,
+    },
+  ) => React$Node, // Optional function to completely customize option rendering
 }
 
 export type SearchableChooserProps = {
@@ -102,6 +106,7 @@ export function SearchableChooser({
   const {
     items,
     filterFn,
+    itemFilter,
     getDisplayValue,
     getOptionText,
     getOptionTitle,
@@ -162,15 +167,22 @@ export function SearchableChooser({
   //   }
   // }, [items, isOpen, filteredItems.length, debugLogging, fieldType, getDisplayValue])
 
-  // Filter items based on search term
+  // Filter items: first apply itemFilter (if provided), then apply search filter
   useEffect(() => {
+    // Apply itemFilter first (if provided) - this filters items regardless of search term
+    let preFilteredItems = items
+    if (itemFilter) {
+      preFilteredItems = items.filter((item: any) => itemFilter(item))
+    }
+
+    // Then apply search filter if there's a search term
     if (!searchTerm.trim()) {
-      setFilteredItems(items)
+      setFilteredItems(preFilteredItems)
     } else {
-      const filtered = items.filter((item: any) => filterFn(item, searchTerm))
+      const filtered = preFilteredItems.filter((item: any) => filterFn(item, searchTerm))
       setFilteredItems(filtered)
     }
-  }, [searchTerm, items, filterFn])
+  }, [searchTerm, items, filterFn, itemFilter])
 
   // Track Option/Alt key for Option-click functionality
   useEffect(() => {
@@ -257,15 +269,14 @@ export function SearchableChooser({
       }
       return
     }
-    
+
     if (e.key === 'Enter') {
       e.preventDefault() // Prevent form submission
       e.stopPropagation() // Stop event from bubbling to DynamicDialog
       // If an item is hovered/highlighted, select that one; otherwise select first
-      const itemToSelect = hoveredIndex != null && hoveredIndex >= 0 && hoveredIndex < filteredItems.length
-        ? filteredItems[hoveredIndex]
-        : filteredItems.length > 0 ? filteredItems[0] : null
-      
+      const itemToSelect =
+        hoveredIndex != null && hoveredIndex >= 0 && hoveredIndex < filteredItems.length ? filteredItems[hoveredIndex] : filteredItems.length > 0 ? filteredItems[0] : null
+
       if (itemToSelect) {
         handleItemSelect(itemToSelect)
       } else if (allowManualEntry && searchTerm.trim()) {
@@ -284,9 +295,9 @@ export function SearchableChooser({
       if (isOpen) {
         e.preventDefault() // Prevent default behavior
         e.stopPropagation() // Stop event from bubbling to DynamicDialog (preventing window close)
-      setIsOpen(false)
-      setSearchTerm('')
-      setHoveredIndex(null)
+        setIsOpen(false)
+        setSearchTerm('')
+        setHoveredIndex(null)
         // Blur the input to remove focus
         if (inputRef.current) {
           inputRef.current.blur()
@@ -432,22 +443,27 @@ export function SearchableChooser({
         {showArrow ? (
           <i className={`fa-solid fa-chevron-down ${classNamePrefix}-arrow ${isOpen ? 'open' : ''}`}></i>
         ) : iconClass ? (
-        <i className={`fa-solid ${iconClass} ${classNamePrefix}-icon ${isOpen ? 'open' : ''}`}></i>
+          <i className={`fa-solid ${iconClass} ${classNamePrefix}-icon ${isOpen ? 'open' : ''}`}></i>
         ) : null}
         {isOpen && (
-          <div 
-            className={`searchable-chooser-dropdown ${classNamePrefix}-dropdown`} 
+          <div
+            className={`searchable-chooser-dropdown ${classNamePrefix}-dropdown`}
             style={{ display: 'block' }}
             data-debug-isopen={String(isOpen)}
             data-debug-filtered-count={filteredItems.length}
             data-debug-items-count={items.length}
             data-debug-isloading={String(isLoading)}
           >
-            {debugLogging && console.log(`${fieldType}: Rendering dropdown, isOpen=${String(isOpen)}, isLoading=${String(isLoading)}, items.length=${items.length}, filteredItems.length=${filteredItems.length}`)}
+            {debugLogging &&
+              console.log(
+                `${fieldType}: Rendering dropdown, isOpen=${String(isOpen)}, isLoading=${String(isLoading)}, items.length=${items.length}, filteredItems.length=${
+                  filteredItems.length
+                }`,
+              )}
             {isLoading ? (
               <div className={`searchable-chooser-empty ${classNamePrefix}-empty`} style={{ padding: '1rem', textAlign: 'center', color: 'var(--gray-600, #666)' }}>
                 <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
-                {fieldType === 'event-chooser' ? 'Loading events...' : fieldType === 'folder-chooser' ? 'Loading folders...' : fieldType === 'space-chooser' ? 'Loading spaces...' : 'Loading notes...'}
+                Loading...
               </div>
             ) : filteredItems.length === 0 ? (
               <div className={`searchable-chooser-empty ${classNamePrefix}-empty`}>
@@ -475,112 +491,108 @@ export function SearchableChooser({
                   console.log(`${fieldType}: Rendering ${itemsToShow.length} options (filtered from ${filteredItems.length} total, maxResults=${maxResults})`)
                 }
                 return itemsToShow.map((item: any, index: number) => {
-                const optionText = getOptionText(item)
-                // Only apply JavaScript truncation for very long items (>dropdownMaxLength)
-                // For shorter items, let CSS handle truncation based on actual width
-                const truncatedText = optionText.length > dropdownMaxLength ? truncateDisplay(optionText, dropdownMaxLength) : optionText
-                const optionTitle = getOptionTitle(item)
-                if (debugLogging && index < 3) {
-                  const jsTruncated = optionText.length > dropdownMaxLength
-                  console.log(
-                    `${fieldType}: Dropdown option[${index}]: original="${optionText}", length=${optionText.length}, truncated="${truncatedText}", length=${
-                      truncatedText.length
-                    }, maxLength=${dropdownMaxLength}, jsTruncated=${String(jsTruncated)}`,
-                  )
-                }
-                const optionIcon = getOptionIcon ? getOptionIcon(item) : null
-                const optionColor = getOptionColor ? getOptionColor(item) : null
-                const optionShortDesc = getOptionShortDescription ? getOptionShortDescription(item) : null
-                const isHovered = hoveredIndex === index
-                const isSelected = hoveredIndex === index // For keyboard navigation highlighting
-                const showOptionClickHint: boolean = Boolean(optionKeyPressed && isHovered && !!onOptionClick)
-                const optionClickIcon = optionClickIconProp || 'plus'
-                const finalTitle = optionShortDesc ? `${optionTitle}${optionShortDesc ? ` - ${optionShortDesc}` : ''}` : optionTitle
+                  const optionText = getOptionText(item)
+                  // Only apply JavaScript truncation for very long items (>dropdownMaxLength)
+                  // For shorter items, let CSS handle truncation based on actual width
+                  const truncatedText = optionText.length > dropdownMaxLength ? truncateDisplay(optionText, dropdownMaxLength) : optionText
+                  const optionTitle = getOptionTitle(item)
+                  if (debugLogging && index < 3) {
+                    const jsTruncated = optionText.length > dropdownMaxLength
+                    console.log(
+                      `${fieldType}: Dropdown option[${index}]: original="${optionText}", length=${optionText.length}, truncated="${truncatedText}", length=${
+                        truncatedText.length
+                      }, maxLength=${dropdownMaxLength}, jsTruncated=${String(jsTruncated)}`,
+                    )
+                  }
+                  const optionIcon = getOptionIcon ? getOptionIcon(item) : null
+                  const optionColor = getOptionColor ? getOptionColor(item) : null
+                  const optionShortDesc = getOptionShortDescription ? getOptionShortDescription(item) : null
+                  const isHovered = hoveredIndex === index
+                  const isSelected = hoveredIndex === index // For keyboard navigation highlighting
+                  const showOptionClickHint: boolean = Boolean(optionKeyPressed && isHovered && !!onOptionClick)
+                  const optionClickIcon = optionClickIconProp || 'plus'
+                  const finalTitle = optionShortDesc ? `${optionTitle}${optionShortDesc ? ` - ${optionShortDesc}` : ''}` : optionTitle
 
-                // If custom renderOption is provided, use it
-                if (renderOption) {
+                  // If custom renderOption is provided, use it
+                  if (renderOption) {
+                    return (
+                      <div key={`${fieldType}-${index}`} onMouseEnter={() => setHoveredIndex(index)} onMouseLeave={() => setHoveredIndex(null)}>
+                        {renderOption(item, {
+                          index,
+                          isHovered,
+                          isSelected,
+                          showOptionClickHint: showOptionClickHint,
+                          optionClickIcon,
+                          optionClickHint: optionClickHint || undefined,
+                          classNamePrefix,
+                          fieldType,
+                          handleItemSelect,
+                          setHoveredIndex,
+                          getOptionTitle,
+                          getOptionIcon: getOptionIcon || (() => null),
+                          getOptionColor: getOptionColor || (() => null),
+                          getOptionShortDescription: getOptionShortDescription || (() => null),
+                        })}
+                      </div>
+                    )
+                  }
+
+                  // Default rendering
                   return (
                     <div
                       key={`${fieldType}-${index}`}
+                      className={`searchable-chooser-option ${classNamePrefix}-option ${showOptionClickHint ? 'option-click-hint' : ''} ${isSelected ? 'option-selected' : ''}`}
+                      onClick={(e) => handleItemSelect(item, e)}
                       onMouseEnter={() => setHoveredIndex(index)}
                       onMouseLeave={() => setHoveredIndex(null)}
+                      title={finalTitle}
+                      style={{
+                        cursor: showOptionClickHint ? 'pointer' : 'default',
+                        backgroundColor: isSelected ? 'var(--hover-bg, #f5f5f5)' : undefined,
+                      }}
                     >
-                      {renderOption(item, {
-                        index,
-                        isHovered,
-                        isSelected,
-                        showOptionClickHint: showOptionClickHint,
-                        optionClickIcon,
-                        optionClickHint: optionClickHint || undefined,
-                        classNamePrefix,
-                        fieldType,
-                        handleItemSelect,
-                        setHoveredIndex,
-                        getOptionTitle,
-                        getOptionIcon: getOptionIcon || (() => null),
-                        getOptionColor: getOptionColor || (() => null),
-                        getOptionShortDescription: getOptionShortDescription || (() => null),
-                      })}
-                    </div>
-                  )
-                }
-
-                // Default rendering
-                return (
-                  <div
-                    key={`${fieldType}-${index}`}
-                    className={`searchable-chooser-option ${classNamePrefix}-option ${showOptionClickHint ? 'option-click-hint' : ''} ${isSelected ? 'option-selected' : ''}`}
-                    onClick={(e) => handleItemSelect(item, e)}
-                    onMouseEnter={() => setHoveredIndex(index)}
-                    onMouseLeave={() => setHoveredIndex(null)}
-                    title={finalTitle}
-                    style={{
-                      cursor: showOptionClickHint ? 'pointer' : 'default',
-                      backgroundColor: isSelected ? 'var(--hover-bg, #f5f5f5)' : undefined,
-                    }}
-                  >
-                    <span className={`searchable-chooser-option-left ${classNamePrefix}-option-left`}>
-                      {optionIcon && (
-                        <i
-                          className={`fa-solid fa-${optionIcon}`}
+                      <span className={`searchable-chooser-option-left ${classNamePrefix}-option-left`}>
+                        {optionIcon && (
+                          <i
+                            className={`fa-solid fa-${optionIcon}`}
+                            style={{
+                              marginRight: '0.5rem',
+                              opacity: 0.7,
+                              color: optionColor ? `var(--${optionColor}, inherit)` : undefined,
+                            }}
+                          />
+                        )}
+                        {showOptionClickHint && optionClickIcon && (
+                          <i
+                            className={`fa-solid fa-${optionClickIcon}`}
+                            style={{
+                              marginRight: '0.5rem',
+                              color: 'var(--tint-color, #0066cc)',
+                            }}
+                            title={optionClickHint || 'Option-click for action'}
+                          />
+                        )}
+                        <span
+                          className={`searchable-chooser-option-text ${classNamePrefix}-option-text`}
                           style={{
-                            marginRight: '0.5rem',
-                            opacity: 0.7,
                             color: optionColor ? `var(--${optionColor}, inherit)` : undefined,
                           }}
-                        />
-                      )}
-                      {showOptionClickHint && optionClickIcon && (
-                        <i
-                          className={`fa-solid fa-${optionClickIcon}`}
+                        >
+                          {truncatedText}
+                        </span>
+                      </span>
+                      {optionShortDesc && (
+                        <span
+                          className={`searchable-chooser-option-right ${classNamePrefix}-option-right`}
                           style={{
-                            marginRight: '0.5rem',
-                            color: 'var(--tint-color, #0066cc)',
+                            color: optionColor ? `var(--${optionColor}, var(--gray-500, #666))` : undefined,
                           }}
-                          title={optionClickHint || 'Option-click for action'}
-                        />
+                        >
+                          {optionShortDesc}
+                        </span>
                       )}
-                      <span
-                        className={`searchable-chooser-option-text ${classNamePrefix}-option-text`}
-                        style={{
-                          color: optionColor ? `var(--${optionColor}, inherit)` : undefined,
-                        }}
-                      >
-                    {truncatedText}
-                      </span>
-                    </span>
-                    {optionShortDesc && (
-                      <span 
-                        className={`searchable-chooser-option-right ${classNamePrefix}-option-right`}
-                        style={{
-                          color: optionColor ? `var(--${optionColor}, var(--gray-500, #666))` : undefined,
-                        }}
-                      >
-                        {optionShortDesc}
-                      </span>
-                    )}
-                  </div>
-                )
+                    </div>
+                  )
                 })
               })()
             )}

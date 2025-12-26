@@ -13,6 +13,10 @@ import { getFolderFromFilename, getFolderDisplayName } from '@helpers/folders.js
 import { parseTeamspaceFilename, getFilenameWithoutTeamspaceID } from '@helpers/teamspace.js'
 import './NoteChooser.css'
 
+// Regex to match relative notes that are available in teamspaces (currently only daily and weekly)
+// This may change in the future as more relative note types become available in teamspaces
+const TEAMSPACES_INCLUDE_REGEX = /today|week/
+
 export type NoteOption = {
   title: string,
   filename: string,
@@ -276,17 +280,30 @@ export function NoteChooser({
       }
 
       // Filter by space if spaceFilter is provided
-      if (shouldInclude && spaceFilter !== null && spaceFilter !== undefined && !isRelativeNote) {
-        const noteTeamspaceID = note.teamspaceID || null
-        if (spaceFilter === '') {
-          // Private space filter - only include private notes (non-teamspace)
-          if (isTeamspaceNote) {
-            shouldInclude = false
+      if (shouldInclude && spaceFilter !== null && spaceFilter !== undefined) {
+        if (isRelativeNote) {
+          // For relative notes: only include if Private space (empty string) or if it matches teamspace regex
+          if (spaceFilter === '') {
+            // Private space - include all relative notes
+            shouldInclude = true
+          } else {
+            // Teamspace - only include relative notes that match the teamspace regex (e.g., <today>, <thisweek>)
+            const noteTitle = note.title || note.filename || ''
+            shouldInclude = TEAMSPACES_INCLUDE_REGEX.test(noteTitle)
           }
         } else {
-          // Specific teamspace filter - only include notes from that teamspace
-          if (spaceFilter !== noteTeamspaceID) {
-            shouldInclude = false
+          // For regular notes: filter by teamspace ID
+          const noteTeamspaceID = note.teamspaceID || null
+          if (spaceFilter === '') {
+            // Private space filter - only include private notes (non-teamspace)
+            if (isTeamspaceNote) {
+              shouldInclude = false
+            }
+          } else {
+            // Specific teamspace filter - only include notes from that teamspace
+            if (spaceFilter !== noteTeamspaceID) {
+              shouldInclude = false
+            }
           }
         }
       }
