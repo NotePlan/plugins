@@ -1,4 +1,7 @@
 // @flow
+//-----------------------------------------------------------------------------
+// Helpers for working with section headings
+//-----------------------------------------------------------------------------
 
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 
@@ -33,4 +36,34 @@ export function getHeadingHierarchyForThisPara(para: TParagraph): Array<string> 
   }
   // logDebug('getHeadingHierarchyForThisPara', `-> for line #${String(lineIndex)} in note ${noteFilename},  ${String(theseHeadings.length)} headings found: [${String(theseHeadings)}]`)
   return theseHeadings
+}
+
+/**
+ * Get the immediate parent heading for a paragraph, if any.
+ * Returns the heading paragraph or null if none is found.
+ * @param {TNote} note
+ * @param {TParagraph} para
+ */
+export function getCurrentHeading(note: CoreNoteFields, para: TParagraph): TParagraph | null {
+  if (para.lineIndex == null) return null
+  const paras = note.paragraphs
+  for (let i = para.lineIndex - 1; i >= 0; i--) {
+    const p = paras[i]
+    if (p.type === 'title') {
+      return p
+    }
+  }
+  return null
+}
+
+/**
+ * Checks if a title's heading level is lower than the specified level.
+ * @author @dwertheimer
+ * 
+ * @param {TParagraph} item - The title object to check.
+ * @param {number} level - The lowest heading level in the block.
+ * @return {boolean} True if the title's heading level is lower than the specified level, false otherwise.
+ */
+export function isTitleWithEqualOrLowerHeadingLevel(item: TParagraph, prevLowestLevel: number): boolean {
+  return item.type === 'title' && item.headingLevel <= prevLowestLevel
 }
