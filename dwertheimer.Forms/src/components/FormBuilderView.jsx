@@ -8,6 +8,7 @@ import { type PassedData } from '../NPTemplateForm.js'
 import { AppProvider } from './AppContext.jsx'
 import FormBuilder from './FormBuilder.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
+import { FORMBUILDER_WINDOW_ID } from '../windowManagement.js'
 import './FormBuilder.css'
 
 type Props = {
@@ -124,6 +125,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings, onSub
         ...dataToSend,
         __correlationId: correlationId,
         __requestType: 'REQUEST',
+        __windowId: pluginData?.windowId || FORMBUILDER_WINDOW_ID, // Include windowId in request for reliable response routing
       }
 
       logDebug('FormBuilderView', `requestFromPlugin: Sending request "${command}" with correlationId="${correlationId}"`)

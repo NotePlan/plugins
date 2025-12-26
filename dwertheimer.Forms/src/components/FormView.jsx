@@ -129,6 +129,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
           ...dataToSend,
           __correlationId: correlationId,
           __requestType: 'REQUEST',
+          __windowId: pluginData?.windowId || '', // Include windowId in request for reliable response routing
         }
 
         // Dispatch the request

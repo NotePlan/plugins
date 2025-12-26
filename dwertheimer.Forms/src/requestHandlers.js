@@ -483,6 +483,7 @@ export async function getEvents(
     }
 
     // Convert events to serializable format (Date objects to ISO strings)
+    // Include all CalendarItem properties for full event information
     const serializedEvents = filteredEvents.map((event: TCalendarItem) => ({
       id: event.id || '',
       title: event.title || '',
@@ -491,6 +492,17 @@ export async function getEvents(
       calendar: event.calendar || '',
       isAllDay: event.isAllDay || false,
       type: event.type || 'event',
+      isCompleted: event.isCompleted || false,
+      notes: event.notes || '',
+      url: event.url || '',
+      availability: event.availability ?? -1,
+      attendees: event.attendees || [],
+      attendeeNames: event.attendeeNames || [],
+      calendarItemLink: event.calendarItemLink || '',
+      location: event.location || '',
+      isCalendarWritable: event.isCalendarWritable || false,
+      isRecurring: event.isRecurring || false,
+      occurrences: event.occurrences ? event.occurrences.map((d: Date) => d.toISOString()) : [],
     }))
 
     // Sort events: all-day first, then by time
@@ -509,6 +521,7 @@ export async function getEvents(
     })
 
     // Convert reminders to serializable format and add to events
+    // Include all CalendarItem properties for full reminder information
     if (reminders.length > 0) {
       const serializedReminders = reminders.map((reminder: TCalendarItem) => ({
         id: reminder.id || '',
@@ -518,6 +531,17 @@ export async function getEvents(
         calendar: reminder.calendar || '',
         isAllDay: reminder.isAllDay || false,
         type: 'reminder', // Mark as reminder
+        isCompleted: reminder.isCompleted || false,
+        notes: reminder.notes || '',
+        url: reminder.url || '',
+        availability: reminder.availability ?? -1,
+        attendees: reminder.attendees || [],
+        attendeeNames: reminder.attendeeNames || [],
+        calendarItemLink: reminder.calendarItemLink || '',
+        location: reminder.location || '',
+        isCalendarWritable: reminder.isCalendarWritable || false,
+        isRecurring: reminder.isRecurring || false,
+        occurrences: reminder.occurrences ? reminder.occurrences.map((d: Date) => d.toISOString()) : [],
       }))
 
       // Sort reminders: all-day first, then by time

@@ -43,7 +43,7 @@ export function findFormWindowId(formTitle?: string): string | null {
       }
     }
   }
-  
+
   // Look through all open HTML windows to find one that starts with WEBVIEW_WINDOW_ID
   // This handles cases where we don't know the form title but need to find any form window
   for (const win of NotePlan.htmlWindows) {
@@ -52,7 +52,7 @@ export function findFormWindowId(formTitle?: string): string | null {
       return win.customId
     }
   }
-  
+
   // If not found, try the base WEBVIEW_WINDOW_ID for backward compatibility
   for (const win of NotePlan.htmlWindows) {
     if (win.customId === WEBVIEW_WINDOW_ID) {
@@ -128,7 +128,9 @@ export function createWindowInitData(argObj: Object): PassedData {
   const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
   const formTitle = argObj?.formTitle || ''
   const templateTitle = argObj?.templateTitle || formTitle || ''
-  const windowId = getFormWindowId(formTitle)
+  // Use the same logic as customId in windowOptions to ensure consistency
+  // This ensures windowId in pluginData matches the actual window customId
+  const windowId = getFormWindowId(argObj?.formTitle || argObj?.windowTitle || '')
 
   // Generate launchLink URL if we have a template title
   let launchLink = ''

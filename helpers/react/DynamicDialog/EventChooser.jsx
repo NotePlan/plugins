@@ -19,6 +19,17 @@ export type EventOption = {
   calendar: string,
   isAllDay: boolean,
   type: string, // 'event' or 'reminder'
+  isCompleted?: boolean,
+  notes?: string,
+  url?: string,
+  availability?: number,
+  attendees?: Array<string>,
+  attendeeNames?: Array<string>,
+  calendarItemLink?: string,
+  location?: string,
+  isCalendarWritable?: boolean,
+  isRecurring?: boolean,
+  occurrences?: Array<Date>,
 }
 
 export type EventChooserProps = {
@@ -47,6 +58,28 @@ export type EventChooserProps = {
  */
 function formatTime(date: Date): string {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+}
+
+/**
+ * Extract calendar color from calendarItemLink
+ * The color is at the end of the calendarItemLink string before the closing parenthesis
+ * Format: "![📅](...:::#FBE983)" where #FBE983 is the hex color
+ * @param {string} calendarItemLink - The calendarItemLink string from CalendarItem
+ * @returns {string | null} Hex color string (e.g., "#FBE983") or null if not found
+ */
+function extractCalendarColor(calendarItemLink: ?string): ?string {
+  if (!calendarItemLink || typeof calendarItemLink !== 'string') {
+    return null
+  }
+  
+  // Look for # followed by 6 hex digits before the closing parenthesis
+  // Pattern: # followed by 6 hex characters before )
+  const colorMatch = calendarItemLink.match(/#([0-9A-Fa-f]{6})\)$/)
+  if (colorMatch) {
+    return `#${colorMatch[1]}`
+  }
+  
+  return null
 }
 
 /**
@@ -248,6 +281,7 @@ export function EventChooser({
 
         if (Array.isArray(eventsData)) {
           // Convert events from plugin to EventOption format and sort by time
+          // Include all CalendarItem properties
           const eventOptions: Array<EventOption> = eventsData
             .map((event: any) => {
               // Plugin should return events with date/endDate as ISO strings that need to be converted to Date objects
@@ -259,6 +293,17 @@ export function EventChooser({
                 calendar: event.calendar || '',
                 isAllDay: event.isAllDay || false,
                 type: event.type || 'event',
+                isCompleted: event.isCompleted || false,
+                notes: event.notes || '',
+                url: event.url || '',
+                availability: event.availability ?? -1,
+                attendees: event.attendees || [],
+                attendeeNames: event.attendeeNames || [],
+                calendarItemLink: event.calendarItemLink || '',
+                location: event.location || '',
+                isCalendarWritable: event.isCalendarWritable || false,
+                isRecurring: event.isRecurring || false,
+                occurrences: event.occurrences ? event.occurrences.map((d: string) => new Date(d)) : [],
               }
             })
             .filter((event: EventOption) => event.id) // Only include events with IDs
@@ -308,10 +353,22 @@ export function EventChooser({
     }
   }, [targetDateString]) // Only depend on targetDateString, not requestFromPlugin to avoid infinite loops
 
+  // Handle both string (ID) and object (full event) values for backward compatibility
+  const currentEventId = useMemo(() => {
+    if (value) {
+      if (typeof value === 'string') {
+        return value // Backward compatibility: value is just the ID
+      } else if (value && typeof value === 'object' && value.id) {
+        return value.id // Value is full event object, extract ID
+      }
+    }
+    return null
+  }, [value])
+
   // Find default event if today and no value set
   const defaultEventId = useMemo(() => {
-    if (value) {
-      return value // Use provided value if set
+    if (currentEventId) {
+      return currentEventId // Use provided value if set
     }
     if (!isToday || events.length === 0) {
       return null
@@ -334,11 +391,11 @@ export function EventChooser({
     }
 
     return null
-  }, [value, isToday, events])
+  }, [currentEventId, isToday, events])
 
   // Auto-select default event if found and no value is set
   useEffect(() => {
-    if (defaultEventId && !value && events.length > 0) {
+    if (defaultEventId && !currentEventId && events.length > 0) {
       const defaultEvent = events.find((e) => e.id === defaultEventId)
       if (defaultEvent) {
         logDebug('EventChooser', `Auto-selecting default event: ${defaultEvent.title}`)
@@ -349,7 +406,7 @@ export function EventChooser({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultEventId, value, events.length])
+  }, [defaultEventId, currentEventId, events.length])
 
   // Configure the generic SearchableChooser for events
   const config: ChooserConfig = {
@@ -415,7 +472,21 @@ export function EventChooser({
     renderOption: (event: EventOption, helpers) => {
       const { isSelected, handleItemSelect, classNamePrefix, getOptionTitle } = helpers
       const calendarIcon = event.type === 'reminder' ? 'fa-bell' : 'fa-calendar'
-      const calendarColor = event.type === 'reminder' ? 'orange' : event.isAllDay ? 'blue' : 'gray'
+      
+      // Extract calendar color from calendarItemLink, fallback to default colors
+      const extractedColor = extractCalendarColor(event.calendarItemLink)
+      let calendarColor = 'gray' // Default fallback
+      let calendarColorStyle = null
+      
+      if (event.type === 'reminder') {
+        calendarColor = 'orange'
+      } else if (extractedColor) {
+        // Use the extracted hex color directly
+        calendarColorStyle = extractedColor
+      } else if (event.isAllDay) {
+        calendarColor = 'blue'
+      }
+      
       const timeDisplay = event.isAllDay ? 'All-day' : formatTime(event.date)
       const titleWrap = false // Can be made configurable later
       
@@ -450,7 +521,7 @@ export function EventChooser({
               <i
                 className={`fa-solid ${calendarIcon}`}
                 style={{
-                  color: `var(--${calendarColor}-500, var(--gray-500, #666))`,
+                  color: calendarColorStyle || `var(--${calendarColor}-500, var(--gray-500, #666))`,
                   fontSize: '0.9rem',
                 }}
                 title={event.calendar}
@@ -475,7 +546,7 @@ export function EventChooser({
   return (
     <SearchableChooser
       label={label}
-      value={value || defaultEventId || ''}
+      value={currentEventId || defaultEventId || ''}
       disabled={disabled}
       compactDisplay={compactDisplay}
       placeholder={placeholder}

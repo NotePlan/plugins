@@ -580,7 +580,14 @@ export function renderItem({
       case 'event-chooser': {
         const label = item.label || ''
         const compactDisplay = item.compactDisplay || false
-        const currentValue = item.value || item.default || ''
+        // Handle both string (ID) and object (full event) values for backward compatibility
+        const rawValue = item.value || item.default
+        const currentValue =
+          typeof rawValue === 'string'
+            ? rawValue
+            : rawValue && typeof rawValue === 'object' && rawValue.id
+              ? rawValue.id
+              : ''
         const eventDate = item.eventDate
         const dependsOnDateKey = item.dependsOnDateKey
 
@@ -604,8 +611,17 @@ export function renderItem({
 
         const handleEventChange = (eventId: string, event: any) => {
           if (item.key) {
-            // Store the event ID as the value
-            handleFieldChange(item.key, eventId)
+            // Store the full event object (with all CalendarItem properties) as the value
+            // Convert Date objects to ISO strings for JSON serialization
+            const serializedEvent = {
+              ...event,
+              date: event.date instanceof Date ? event.date.toISOString() : event.date,
+              endDate: event.endDate instanceof Date ? event.endDate.toISOString() : event.endDate,
+              occurrences: event.occurrences
+                ? event.occurrences.map((d: Date | string) => (d instanceof Date ? d.toISOString() : d))
+                : [],
+            }
+            handleFieldChange(item.key, serializedEvent)
           }
         }
 
