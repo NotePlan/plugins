@@ -1,60 +1,56 @@
 /* SearchableChooser Base Component Styles */
-/* These styles use CSS custom properties to allow customization via classNamePrefix */
+/* All choosers inherit from .searchable-chooser-base and use their specific prefix classes */
+/* This ensures consistent styling across all chooser components */
 
-/* Container - use .{prefix}-container */
-.searchable-chooser-container {
+/* Base container - applies to all choosers */
+.searchable-chooser-base {
   position: relative;
   width: 100%;
   margin-bottom: 0.75rem;
+  overflow: visible !important; /* Ensure dropdown is not clipped */
 }
 
-.searchable-chooser-container.compact {
+.searchable-chooser-base.compact {
   display: inline-flex;
   align-items: center;
   margin-bottom: 0;
 }
 
-/* Label - use .{prefix}-label */
-.searchable-chooser-label {
+/* All chooser containers inherit base styles - use both patterns for compatibility */
+.searchable-chooser-base[class*="-chooser-container"],
+[class*="-chooser-container"] {
+  /* Inherits from .searchable-chooser-base above */
+  position: relative;
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+[class*="-chooser-container"].compact {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+/* Label - matches any {prefix}-label within base */
+.searchable-chooser-base [class*="-chooser-label"],
+[class*="-chooser-label"] {
   display: block;
   margin-bottom: 0.25rem;
   font-weight: 500;
   color: var(--text-color, #333);
 }
 
-/* Input wrapper - use .{prefix}-input-wrapper */
-.searchable-chooser-input-wrapper {
+/* Input wrapper - matches any {prefix}-input-wrapper within base */
+.searchable-chooser-base [class*="-chooser-input-wrapper"],
+[class*="-chooser-input-wrapper"] {
   position: relative;
   width: 100%;
+  overflow: visible !important; /* Ensure dropdown is not clipped */
 }
 
-.searchable-chooser-input.manual-entry {
-  border-color: var(--tint-color, #007AFF);
-  background-color: var(--bg-alt-color, #f5f5f5);
-}
-
-.searchable-chooser-manual-entry-indicator {
-  position: absolute;
-  right: 2.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.75rem;
-  color: var(--tint-color, #007AFF);
-  pointer-events: none;
-  font-style: italic;
-}
-
-.searchable-chooser-manual-entry-hint {
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background-color: var(--bg-alt-color, #f5f5f5);
-  border-radius: 4px;
-  font-size: 0.85em;
-  color: var(--gray-600, #666);
-}
-
-/* Input - use .{prefix}-input */
-.searchable-chooser-input {
+/* Input - matches any {prefix}-input within base */
+.searchable-chooser-base [class*="-chooser-input"],
+[class*="-chooser-input"] {
   width: 100%;
   padding: 0.5rem 2.5rem 0.5rem 0.75rem;
   border: 1px solid var(--border-color, #ddd);
@@ -67,20 +63,52 @@
   text-overflow: ellipsis; /* CSS truncation for normal cases, JS truncation for very long items */
 }
 
-.searchable-chooser-input:focus {
+.searchable-chooser-base [class*="-chooser-input"]:focus,
+[class*="-chooser-input"]:focus {
   outline: none;
   border-color: var(--primary-color, #0066cc);
   box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
 }
 
-.searchable-chooser-input:disabled {
+.searchable-chooser-base [class*="-chooser-input"]:disabled,
+[class*="-chooser-input"]:disabled {
   background-color: var(--disabled-bg, #f5f5f5);
   color: var(--disabled-text, #999);
   cursor: not-allowed;
 }
 
-/* Icon - use .{prefix}-icon */
-.searchable-chooser-icon {
+.searchable-chooser-base [class*="-chooser-input"].manual-entry,
+[class*="-chooser-input"].manual-entry {
+  border-color: var(--tint-color, #007AFF);
+  background-color: var(--bg-alt-color, #f5f5f5);
+}
+
+/* Manual entry indicator */
+.searchable-chooser-base [class*="-chooser-manual-entry-indicator"],
+[class*="-chooser-manual-entry-indicator"] {
+  position: absolute;
+  right: 2.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--tint-color, #007AFF);
+  pointer-events: none;
+  font-style: italic;
+}
+
+.searchable-chooser-base [class*="-chooser-manual-entry-hint"],
+[class*="-chooser-manual-entry-hint"] {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: var(--bg-alt-color, #f5f5f5);
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: var(--gray-600, #666);
+}
+
+/* Icon - matches any {prefix}-icon within base */
+.searchable-chooser-base [class*="-chooser-icon"],
+[class*="-chooser-icon"] {
   position: absolute;
   right: 0.75rem;
   top: 50%;
@@ -90,13 +118,14 @@
   transition: transform 0.2s;
 }
 
-.searchable-chooser-icon.open {
+.searchable-chooser-base [class*="-chooser-icon"].open,
+[class*="-chooser-icon"].open {
   transform: translateY(-50%) rotate(90deg);
 }
 
-/* Arrow - use .{prefix}-arrow */
-.searchable-chooser-input-wrapper .searchable-chooser-arrow,
-.searchable-chooser-arrow {
+/* Arrow - matches any {prefix}-arrow within base */
+.searchable-chooser-base [class*="-chooser-arrow"],
+[class*="-chooser-arrow"] {
   position: absolute;
   right: 0.75rem;
   top: 50%;
@@ -108,13 +137,36 @@
   z-index: 1;
 }
 
-.searchable-chooser-input-wrapper .searchable-chooser-arrow.open,
-.searchable-chooser-arrow.open {
+.searchable-chooser-base [class*="-chooser-arrow"].open,
+[class*="-chooser-arrow"].open {
   transform: translateY(-50%) rotate(180deg);
 }
 
-/* Dropdown - use .{prefix}-dropdown */
+/* Dropdown - use direct class name for maximum compatibility */
 .searchable-chooser-dropdown {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: var(--dropdown-bg, #fff) !important;
+  border: 1px solid var(--border-color, #ddd) !important;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 99999 !important;
+  margin-top: -1px;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  min-height: 50px !important;
+}
+
+/* Also support attribute selector for backward compatibility */
+.searchable-chooser-base [class*="-chooser-dropdown"],
+[class*="-chooser-dropdown"] {
   position: absolute;
   top: 100%;
   left: 0;
@@ -130,9 +182,26 @@
   margin-top: -1px;
 }
 
-/* Option - use .{prefix}-option */
+/* Option - use direct class name for maximum compatibility */
 .searchable-chooser-option {
   padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  color: var(--text-color, #333);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* CSS truncation for normal cases, JS truncation for very long items */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Also support attribute selector for backward compatibility */
+.searchable-chooser-base [class*="-chooser-option"],
+[class*="-chooser-option"] {
+  padding: 0.25rem 0.75rem;
   cursor: pointer;
   border-bottom: 1px solid var(--border-color, #f0f0f0);
   color: var(--text-color, #333);
@@ -150,6 +219,17 @@
 .searchable-chooser-option-left {
   display: flex;
   align-items: center;
+  justify-content: flex-start; /* Left-align content */
+  flex: 1;
+  min-width: 0; /* Allow text truncation */
+  overflow: hidden;
+}
+
+.searchable-chooser-base [class*="-chooser-option-left"],
+[class*="-chooser-option-left"] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Left-align content */
   flex: 1;
   min-width: 0; /* Allow text truncation */
   overflow: hidden;
@@ -157,6 +237,13 @@
 
 /* Text within option left side */
 .searchable-chooser-option-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchable-chooser-base [class*="-chooser-option-text"],
+[class*="-chooser-option-text"] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -173,20 +260,87 @@
   text-align: right;
 }
 
-.searchable-chooser-option:hover {
+.searchable-chooser-base [class*="-chooser-option-right"],
+[class*="-chooser-option-right"] {
+  flex-shrink: 0;
+  margin-left: auto;
+  white-space: nowrap;
+  color: var(--gray-500, #666);
+  font-size: 0.9em;
+  opacity: 0.7;
+  text-align: right;
+}
+
+.searchable-chooser-option:hover,
+.searchable-chooser-base [class*="-chooser-option"]:hover,
+[class*="-chooser-option"]:hover {
   background-color: var(--hover-bg, #f5f5f5);
 }
 
-.searchable-chooser-option:last-child {
+.searchable-chooser-option:last-child,
+.searchable-chooser-base [class*="-chooser-option"]:last-child,
+[class*="-chooser-option"]:last-child {
   border-bottom: none;
 }
 
-.searchable-chooser-option.option-click-hint {
+/* Column-based layout support for custom rendering */
+.searchable-chooser-option-columns {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.25rem 0;
+}
+
+.searchable-chooser-option-column {
+  display: flex;
+  align-items: center;
+  min-width: 0; /* Allow truncation */
+}
+
+.searchable-chooser-option-column-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+}
+
+.searchable-chooser-option-column-time {
+  flex-shrink: 0;
+  min-width: 4rem;
+  text-align: right;
+  color: var(--gray-600, #666);
+  font-size: 0.85em;
+  padding-right: 0.5rem;
+}
+
+.searchable-chooser-option-column-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.searchable-chooser-option-column-title.truncate {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchable-chooser-option-column-title.wrap {
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.3;
+}
+
+.searchable-chooser-option.option-click-hint,
+.searchable-chooser-base [class*="-chooser-option"].option-click-hint,
+[class*="-chooser-option"].option-click-hint {
   background-color: var(--hover-bg, #f5f5f5);
   border-left: 3px solid var(--tint-color, #0066cc);
 }
 
-/* Empty state - use .{prefix}-empty */
+/* Empty state - use direct class name for maximum compatibility */
 .searchable-chooser-empty {
   padding: 0.5rem 0.75rem;
   color: var(--text-muted, #999);
@@ -194,3 +348,10 @@
   font-size: 0.9rem;
 }
 
+.searchable-chooser-base [class*="-chooser-empty"],
+[class*="-chooser-empty"] {
+  padding: 0.5rem 0.75rem;
+  color: var(--text-muted, #999);
+  font-style: italic;
+  font-size: 0.9rem;
+}

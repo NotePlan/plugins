@@ -10,6 +10,7 @@ import { TemplateTagEditor } from './TemplateTagEditor.jsx'
 import { NoteChooser, type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { HeadingChooser } from '@helpers/react/DynamicDialog/HeadingChooser.jsx'
 import { FolderChooser } from '@helpers/react/DynamicDialog/FolderChooser.jsx'
+import { SpaceChooser } from '@helpers/react/DynamicDialog/SpaceChooser.jsx'
 import { InfoIcon } from '@helpers/react/InfoIcon.jsx'
 
 export type ProcessingMethodSectionProps = {
@@ -148,6 +149,32 @@ export function ProcessingMethodSection({
       {/* Option A: Write to Existing File */}
       {processingMethod === 'write-existing' && (
         <>
+          <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Space:
+              <InfoIcon text="Select the Space (Private or Teamspace) where the target note should be located. Notes will be filtered to only show notes from the selected space." />
+            </label>
+            <SpaceChooser
+              label=""
+              value={frontmatter.space || ''}
+              onChange={(spaceId: string) => {
+                onFrontmatterChange('space', spaceId)
+                // Clear note selection when space changes to avoid confusion
+                onFrontmatterChange('getNoteTitled', '')
+                // Reload notes to reflect the new space filter (fire and forget)
+                onLoadNotes(false).catch((error) => {
+                  console.error('Error reloading notes after space change:', error)
+                })
+              }}
+              placeholder="Select space (Private or Teamspace)"
+              compactDisplay={true}
+              requestFromPlugin={requestFromPlugin}
+              showValue={false}
+            />
+            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+              {frontmatter.space ? 'Only notes from the selected space will be shown' : 'Private notes (default) - only private notes will be shown'}
+            </div>
+          </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               Target Note:
@@ -334,6 +361,30 @@ export function ProcessingMethodSection({
       {/* Option B: Create New Note */}
       {processingMethod === 'create-new' && (
         <>
+          <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Space:
+              <InfoIcon text="Select the Space (Private or Teamspace) where the new note should be created." />
+            </label>
+            <SpaceChooser
+              label=""
+              value={frontmatter.space || ''}
+              onChange={(spaceId: string) => {
+                onFrontmatterChange('space', spaceId)
+                // Reload notes to reflect the new space filter (for folder chooser if needed) (fire and forget)
+                onLoadNotes(false).catch((error) => {
+                  console.error('Error reloading notes after space change:', error)
+                })
+              }}
+              placeholder="Select space (Private or Teamspace)"
+              compactDisplay={true}
+              requestFromPlugin={requestFromPlugin}
+              showValue={false}
+            />
+            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+              {frontmatter.space ? 'New note will be created in the selected space' : 'Private notes (default) - new note will be created in Private space'}
+            </div>
+          </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               New Note Title:
@@ -535,6 +586,33 @@ export function ProcessingMethodSection({
       {/* Option C: Form Processor */}
       {processingMethod === 'form-processor' && (
         <>
+          <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Space:
+              <InfoIcon text="Select the Space (Private or Teamspace) where the processing template should be located. Templates will be filtered to only show templates from the selected space." />
+            </label>
+            <SpaceChooser
+              label=""
+              value={frontmatter.space || ''}
+              onChange={(spaceId: string) => {
+                onFrontmatterChange('space', spaceId)
+                // Clear template selection when space changes to avoid confusion
+                onFrontmatterChange('receivingTemplateTitle', '')
+                setSelectedProcessingTemplateFilename('')
+                // Reload notes to reflect the new space filter (fire and forget)
+                onLoadNotes(true).catch((error) => {
+                  console.error('Error reloading notes after space change:', error)
+                })
+              }}
+              placeholder="Select space (Private or Teamspace)"
+              compactDisplay={true}
+              requestFromPlugin={requestFromPlugin}
+              showValue={false}
+            />
+            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+              {frontmatter.space ? 'Only templates from the selected space will be shown' : 'Private notes (default) - only private templates will be shown'}
+            </div>
+          </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               Processing Template:

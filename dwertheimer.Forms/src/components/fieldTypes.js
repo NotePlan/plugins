@@ -25,6 +25,7 @@ export const FIELD_TYPES: Array<FieldTypeOption> = [
   { value: 'folder-chooser', label: 'Folder Chooser', description: 'Searchable folder selector' },
   { value: 'note-chooser', label: 'Note Chooser', description: 'Searchable note selector' },
   { value: 'heading-chooser', label: 'Heading Chooser', description: 'Select a heading from a note (static or dynamic based on note-chooser)' },
+  { value: 'event-chooser', label: 'Event Chooser', description: 'Select a calendar event for a specific date' },
   { value: 'heading', label: 'Heading', description: 'Section heading' },
   { value: 'separator', label: 'Separator', description: 'Horizontal line' },
   { value: 'button', label: 'Button', description: 'Clickable button' },

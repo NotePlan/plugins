@@ -454,6 +454,72 @@ export function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorP
             </>
           )}
 
+          {editedField.type === 'event-chooser' && (
+            <>
+              <div className="field-editor-row">
+                <label>Depends On Date Field (optional):</label>
+                <select
+                  value={((editedField: any): { dependsOnDateKey?: string }).dependsOnDateKey || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).dependsOnDateKey = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                >
+                  <option value="">None (use today or eventDate below)</option>
+                  {allFields
+                    .filter(
+                      (f) =>
+                        f.key &&
+                        (f.type === 'calendarpicker' || f.type === 'input') &&
+                        f.key !== editedField.key,
+                    )
+                    .map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label || f.key} ({f.key}) - {f.type}
+                      </option>
+                    ))}
+                </select>
+                <div className="field-editor-help">
+                  If specified, events will be loaded for the date from the selected field. The field can be a Date Picker (returns Date) or a text input with a date string (YYYY-MM-DD format). If not specified, events default to today.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>Default Date (optional, if not depending on field):</label>
+                <input
+                  type="text"
+                  value={(() => {
+                    const eventDate = ((editedField: any): { eventDate?: Date }).eventDate
+                    if (!eventDate) return ''
+                    if (eventDate instanceof Date) {
+                      return eventDate.toISOString().split('T')[0]
+                    }
+                    return String(eventDate)
+                  })()}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const dateStr = e.target.value
+                    if (dateStr) {
+                      const parsed = new Date(dateStr)
+                      if (!isNaN(parsed.getTime())) {
+                        ;(updated: any).eventDate = parsed
+                      } else {
+                        ;(updated: any).eventDate = undefined
+                      }
+                    } else {
+                      ;(updated: any).eventDate = undefined
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="YYYY-MM-DD (e.g., 2024-01-15)"
+                />
+                <div className="field-editor-help">
+                  Default date to load events for (if not depending on another field). Leave empty to use today. Format: YYYY-MM-DD
+                </div>
+              </div>
+            </>
+          )}
+
           {editedField.type === 'heading-chooser' && (
             <>
               <div className="field-editor-row">

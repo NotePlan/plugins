@@ -110,6 +110,8 @@ export function FormBuilder({
       newNoteFolder: '',
       // Option C: Form processor
       formProcessorTitle: cleanedReceivingTemplateTitle, // Set to receivingTemplateTitle for backward compatibility
+      // Space selection (empty string = Private, teamspace ID = Teamspace)
+      space: '', // Default to Private (empty string)
       // Template body (loaded from codeblock)
       templateBody: templateBody || '',
     }
@@ -260,6 +262,7 @@ export function FormBuilder({
           includeCalendarNotes: !forProcessingTemplates, // Skip calendar notes for processing templates (performance optimization)
           includeRelativeNotes: !forProcessingTemplates, // Skip relative notes for processing templates
           includeTeamspaceNotes: true,
+          space: frontmatter.space || '', // Filter by selected space (empty string = Private)
         })
         if (Array.isArray(notesData)) {
           setNotes(notesData)

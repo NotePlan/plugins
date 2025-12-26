@@ -4,3 +4,19 @@ alwaysApply: true
 For NotePlan code, never use require statements. Use import statements at the top of the file -- never inline/dynamically import modules. Rollup will not process them correctly.
 You should not ever try to build the code with "npm run build" -- this will not work. The programmer will have to use Rollup to build the code. There is separate tooling for this described in @README.md.
 NotePlan has global variables that are available to all plugins such as DataStore, CommandBar, Editor, and NotePlan. You can use these variables to access the NotePlan API. You do not need to import them.
+
+## Promise Polyfills
+
+NotePlan's JSContext may not have `Promise.resolve()` or `Promise.all()`. Use the polyfills in `@helpers/promisePolyfill.js`:
+
+- **Import**: `import { initPromisePolyfills, promiseResolve, promiseAll, waitForCondition, setTimeoutPolyfill } from '@helpers/promisePolyfill'`
+- **Initialize early**: Call `initPromisePolyfills()` at the top of your plugin file to add polyfills to the global Promise object
+- **Use directly**: `promiseResolve(value)`, `promiseAll(promises)`, `waitForCondition(condition, options)`, `setTimeoutPolyfill(callback, delayMs)`
+- **waitForCondition**: Useful for waiting for notes to appear in `DataStore.projectNotes` after creation/modification. Example:
+  ```javascript
+  const found = await waitForCondition(
+    () => getFormTemplateList().find(opt => opt.label === title) != null,
+    { maxWaitMs: 3000, checkIntervalMs: 100 }
+  )
+  ```
+- **Cache updates**: After creating or modifying notes, call `DataStore.updateCache(note, true)` to ensure the note is available in `DataStore.projectNotes` for searches.

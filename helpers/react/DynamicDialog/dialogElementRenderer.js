@@ -19,6 +19,7 @@ import CalendarPicker from './CalendarPicker.jsx'
 import FolderChooser from './FolderChooser.jsx'
 import NoteChooser, { type NoteOption } from './NoteChooser.jsx'
 import { HeadingChooser } from './HeadingChooser.jsx'
+import EventChooser from './EventChooser.jsx'
 import { ExpandableTextarea } from './ExpandableTextarea.jsx'
 import { TemplateJSBlock } from './TemplateJSBlock.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
@@ -571,6 +572,92 @@ export function renderItem({
               optionAddTopAndBottom={optionAddTopAndBottom}
               includeArchive={includeArchive}
               showValue={item.showValue ?? false}
+            />
+          </div>
+        )
+      }
+      case 'event-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        const eventDate = item.eventDate
+        const dependsOnDateKey = item.dependsOnDateKey
+
+        // Get date value from the dependsOnDateKey field if specified
+        let dateFromField = null
+        if (dependsOnDateKey && updatedSettings && typeof updatedSettings === 'object') {
+          const dateValue = updatedSettings[dependsOnDateKey]
+          if (dateValue !== null && dateValue !== undefined) {
+            dateFromField = dateValue
+            logDebug('dialogElementRenderer', `event-chooser: got date from ${dependsOnDateKey}: ${typeof dateValue === 'string' ? dateValue : dateValue instanceof Date ? dateValue.toISOString() : String(dateValue)}`)
+          }
+        }
+
+        const handleEventChange = (eventId: string, event: any) => {
+          if (item.key) {
+            // Store the event ID as the value
+            handleFieldChange(item.key, eventId)
+          }
+        }
+
+        return (
+          <div data-field-type="event-chooser">
+            <EventChooser
+              key={`event-chooser${index}`}
+              label={label}
+              value={currentValue}
+              date={eventDate}
+              dateFromField={dateFromField}
+              onChange={handleEventChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={item.placeholder || 'Type to search events...'}
+              showValue={item.showValue ?? false}
+              requestFromPlugin={requestFromPlugin}
+            />
+          </div>
+        )
+      }
+      case 'multi-select': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = Array.isArray(item.value) ? item.value : item.value ? [item.value] : []
+
+        const handleMultiSelectChange = (selectedValues: Array<string>) => {
+          if (item.key) {
+            handleFieldChange(item.key, selectedValues)
+          }
+        }
+
+        if (!item.multiSelectItems || !item.multiSelectGetLabel || !item.multiSelectGetValue) {
+          logError('dialogElementRenderer', 'multi-select: missing required props (multiSelectItems, multiSelectGetLabel, multiSelectGetValue)')
+          return <div>Error: multi-select field missing required configuration</div>
+        }
+
+        const config = {
+          items: item.multiSelectItems || [],
+          filterFn: item.multiSelectFilterFn,
+          getItemLabel: item.multiSelectGetLabel,
+          getItemValue: item.multiSelectGetValue,
+          getItemTitle: item.multiSelectGetTitle,
+          emptyMessageNoItems: item.multiSelectEmptyMessage || 'No items available',
+          emptyMessageNoMatch: item.multiSelectEmptyMessage || 'No items match',
+          classNamePrefix: 'multi-select',
+          fieldType: 'multi-select',
+          maxHeight: item.multiSelectMaxHeight || '200px',
+        }
+
+        return (
+          <div data-field-type="multi-select">
+            <MultiSelectChooser
+              key={`multi-select${index}`}
+              label={label}
+              value={currentValue}
+              onChange={handleMultiSelectChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={item.placeholder || 'Type to search...'}
+              config={config}
             />
           </div>
         )

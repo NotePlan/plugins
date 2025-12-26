@@ -48,6 +48,23 @@ export type ChooserConfig = {
   allowManualEntry?: boolean, // If true, allow Enter key to accept typed text even if it doesn't match any item
   manualEntryIndicator?: string, // Text to show when value is a manual entry (default: "✏️ Manual entry")
   isManualEntry?: (value: string, items: Array<any>) => boolean, // Function to check if a value is a manual entry (not in items list)
+  // Custom rendering
+  renderOption?: (item: any, helpers: {
+    index: number,
+    isHovered: boolean,
+    isSelected: boolean,
+    showOptionClickHint: boolean,
+    optionClickIcon: ?string,
+    optionClickHint?: ?string,
+    classNamePrefix: string,
+    fieldType: string,
+    handleItemSelect: (item: any, e: any) => void,
+    setHoveredIndex: (index: number | null) => void,
+    getOptionTitle: (item: any) => string,
+    getOptionIcon: (item: any) => ?string,
+    getOptionColor: (item: any) => ?string,
+    getOptionShortDescription: (item: any) => ?string,
+  }) => React$Node, // Optional function to completely customize option rendering
 }
 
 export type SearchableChooserProps = {
@@ -109,6 +126,7 @@ export function SearchableChooser({
     allowManualEntry = false,
     manualEntryIndicator = '✏️ Manual entry',
     isManualEntry,
+    renderOption,
   } = config
 
   const [isOpen, setIsOpen] = useState<boolean>(false)
@@ -218,12 +236,38 @@ export function SearchableChooser({
   }
 
   const handleInputKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
+    // Handle arrow key navigation when dropdown is open
+    if (isOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault()
+      e.stopPropagation()
+      const currentIndex = hoveredIndex != null ? hoveredIndex : -1
+      let newIndex: number
+      if (e.key === 'ArrowDown') {
+        newIndex = currentIndex < filteredItems.length - 1 ? currentIndex + 1 : 0
+      } else {
+        newIndex = currentIndex > 0 ? currentIndex - 1 : filteredItems.length - 1
+      }
+      setHoveredIndex(newIndex)
+      // Scroll the selected item into view
+      if (containerRef.current) {
+        const optionElements = containerRef.current.querySelectorAll(`.${classNamePrefix}-option`)
+        if (optionElements[newIndex]) {
+          optionElements[newIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      }
+      return
+    }
+    
     if (e.key === 'Enter') {
       e.preventDefault() // Prevent form submission
       e.stopPropagation() // Stop event from bubbling to DynamicDialog
-      if (filteredItems.length > 0) {
-        // Select first filtered result on Enter
-      handleItemSelect(filteredItems[0])
+      // If an item is hovered/highlighted, select that one; otherwise select first
+      const itemToSelect = hoveredIndex != null && hoveredIndex >= 0 && hoveredIndex < filteredItems.length
+        ? filteredItems[hoveredIndex]
+        : filteredItems.length > 0 ? filteredItems[0] : null
+      
+      if (itemToSelect) {
+        handleItemSelect(itemToSelect)
       } else if (allowManualEntry && searchTerm.trim()) {
         // Allow manual entry if enabled and there's text typed
         // Create a special manual entry item
@@ -242,6 +286,7 @@ export function SearchableChooser({
         e.stopPropagation() // Stop event from bubbling to DynamicDialog (preventing window close)
       setIsOpen(false)
       setSearchTerm('')
+      setHoveredIndex(null)
         // Blur the input to remove focus
         if (inputRef.current) {
           inputRef.current.blur()
@@ -303,6 +348,13 @@ export function SearchableChooser({
           console.log(`${fieldType}: Matched note item by filename: "${item.filename}" === "${displayValue}", title: "${item.title}"`)
         }
         return matches
+      } else if (item && typeof item === 'object' && 'id' in item) {
+        // It's an event object (or similar), match by id
+        const matches = item.id === displayValue
+        if (debugLogging && matches) {
+          console.log(`${fieldType}: Matched event item by id: "${item.id}" === "${displayValue}", title: "${item.title || ''}"`)
+        }
+        return matches
       }
       // For other object types, try to match by comparing getDisplayValue result
       // or by checking if the item itself is the value
@@ -352,7 +404,7 @@ export function SearchableChooser({
   // }
 
   return (
-    <div className={`${classNamePrefix}-container ${compactDisplay ? 'compact' : ''}`} ref={containerRef} data-field-type={fieldType}>
+    <div className={`searchable-chooser-base ${classNamePrefix}-container ${compactDisplay ? 'compact' : ''}`} ref={containerRef} data-field-type={fieldType}>
       {label && !compactDisplay && (
         <label className={`${classNamePrefix}-label`} htmlFor={`${classNamePrefix}-${label}`}>
           {label}
@@ -383,14 +435,22 @@ export function SearchableChooser({
         <i className={`fa-solid ${iconClass} ${classNamePrefix}-icon ${isOpen ? 'open' : ''}`}></i>
         ) : null}
         {isOpen && (
-          <div className={`${classNamePrefix}-dropdown`} style={{ display: 'block' }}>
+          <div 
+            className={`searchable-chooser-dropdown ${classNamePrefix}-dropdown`} 
+            style={{ display: 'block' }}
+            data-debug-isopen={String(isOpen)}
+            data-debug-filtered-count={filteredItems.length}
+            data-debug-items-count={items.length}
+            data-debug-isloading={String(isLoading)}
+          >
+            {debugLogging && console.log(`${fieldType}: Rendering dropdown, isOpen=${String(isOpen)}, isLoading=${String(isLoading)}, items.length=${items.length}, filteredItems.length=${filteredItems.length}`)}
             {isLoading ? (
-              <div className={`${classNamePrefix}-empty`} style={{ padding: '1rem', textAlign: 'center', color: 'var(--gray-600, #666)' }}>
+              <div className={`searchable-chooser-empty ${classNamePrefix}-empty`} style={{ padding: '1rem', textAlign: 'center', color: 'var(--gray-600, #666)' }}>
                 <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
                 Loading notes...
               </div>
             ) : filteredItems.length === 0 ? (
-              <div className={`${classNamePrefix}-empty`}>
+              <div className={`searchable-chooser-empty ${classNamePrefix}-empty`}>
                 {items.length === 0 ? emptyMessageNoItems : `${emptyMessageNoMatch} "${searchTerm}"`}
                 {allowManualEntry && searchTerm.trim() && (
                   <div
@@ -409,7 +469,12 @@ export function SearchableChooser({
                 )}
               </div>
             ) : (
-              filteredItems.slice(0, maxResults).map((item: any, index: number) => {
+              (() => {
+                const itemsToShow = filteredItems.slice(0, maxResults)
+                if (debugLogging) {
+                  console.log(`${fieldType}: Rendering ${itemsToShow.length} options (filtered from ${filteredItems.length} total, maxResults=${maxResults})`)
+                }
+                return itemsToShow.map((item: any, index: number) => {
                 const optionText = getOptionText(item)
                 // Only apply JavaScript truncation for very long items (>dropdownMaxLength)
                 // For shorter items, let CSS handle truncation based on actual width
@@ -427,23 +492,54 @@ export function SearchableChooser({
                 const optionColor = getOptionColor ? getOptionColor(item) : null
                 const optionShortDesc = getOptionShortDescription ? getOptionShortDescription(item) : null
                 const isHovered = hoveredIndex === index
-                const showOptionClickHint = optionKeyPressed && isHovered && onOptionClick
+                const isSelected = hoveredIndex === index // For keyboard navigation highlighting
+                const showOptionClickHint: boolean = Boolean(optionKeyPressed && isHovered && !!onOptionClick)
                 const optionClickIcon = optionClickIconProp || 'plus'
                 const finalTitle = optionShortDesc ? `${optionTitle}${optionShortDesc ? ` - ${optionShortDesc}` : ''}` : optionTitle
 
+                // If custom renderOption is provided, use it
+                if (renderOption) {
+                  return (
+                    <div
+                      key={`${fieldType}-${index}`}
+                      onMouseEnter={() => setHoveredIndex(index)}
+                      onMouseLeave={() => setHoveredIndex(null)}
+                    >
+                      {renderOption(item, {
+                        index,
+                        isHovered,
+                        isSelected,
+                        showOptionClickHint: showOptionClickHint,
+                        optionClickIcon,
+                        optionClickHint: optionClickHint || undefined,
+                        classNamePrefix,
+                        fieldType,
+                        handleItemSelect,
+                        setHoveredIndex,
+                        getOptionTitle,
+                        getOptionIcon: getOptionIcon || (() => null),
+                        getOptionColor: getOptionColor || (() => null),
+                        getOptionShortDescription: getOptionShortDescription || (() => null),
+                      })}
+                    </div>
+                  )
+                }
+
+                // Default rendering
                 return (
                   <div
                     key={`${fieldType}-${index}`}
-                    className={`${classNamePrefix}-option ${showOptionClickHint ? 'option-click-hint' : ''}`}
+                    className={`searchable-chooser-option ${classNamePrefix}-option ${showOptionClickHint ? 'option-click-hint' : ''} ${isSelected ? 'option-selected' : ''}`}
                     onClick={(e) => handleItemSelect(item, e)}
                     onMouseEnter={() => setHoveredIndex(index)}
                     onMouseLeave={() => setHoveredIndex(null)}
                     title={finalTitle}
                     style={{
                       cursor: showOptionClickHint ? 'pointer' : 'default',
+                      backgroundColor: isSelected ? 'var(--hover-bg, #f5f5f5)' : undefined,
                     }}
                   >
-                    <span className={`${classNamePrefix}-option-left`}>
+                    <span className={`searchable-chooser-option-left ${classNamePrefix}-option-left`}>
                       {optionIcon && (
                         <i
                           className={`fa-solid fa-${optionIcon}`}
@@ -465,18 +561,28 @@ export function SearchableChooser({
                         />
                       )}
                       <span
-                        className={`${classNamePrefix}-option-text`}
+                        className={`searchable-chooser-option-text ${classNamePrefix}-option-text`}
                         style={{
                           color: optionColor ? `var(--${optionColor}, inherit)` : undefined,
                         }}
-                  >
+                      >
                     {truncatedText}
                       </span>
                     </span>
-                    {optionShortDesc && <span className={`${classNamePrefix}-option-right`}>{optionShortDesc}</span>}
+                    {optionShortDesc && (
+                      <span 
+                        className={`searchable-chooser-option-right ${classNamePrefix}-option-right`}
+                        style={{
+                          color: optionColor ? `var(--${optionColor}, var(--gray-500, #666))` : undefined,
+                        }}
+                      >
+                        {optionShortDesc}
+                      </span>
+                    )}
                   </div>
                 )
-              })
+                })
+              })()
             )}
           </div>
         )}

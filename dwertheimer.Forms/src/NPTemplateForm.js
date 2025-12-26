@@ -18,6 +18,7 @@ import { openFormWindow, openFormBuilderWindow, FORMBUILDER_WINDOW_ID, WEBVIEW_W
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
+import { waitForCondition } from '@helpers/promisePolyfill'
 import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
 import { validateObjectString, stripDoubleQuotes, parseObjectString } from '@helpers/stringTransforms'
@@ -419,7 +420,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
             type: 'template-form',
             receivingTemplateTitle,
             windowTitle: newTitle,
-            formTitle: newTitle,
+            // formTitle: (not set - left blank for user to fill in)
             launchLink,
             formEditLink,
             width: '25%',
@@ -432,7 +433,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
           type: 'template-form',
           receivingTemplateTitle: receivingTemplateTitle,
           windowTitle: newTitle,
-          formTitle: newTitle,
+          // formTitle is left blank by default - user can fill it in later
           launchLink: launchLink,
           formEditLink: formEditLink,
           width: '25%',
@@ -489,21 +490,54 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         logDebug(pluginJson, `openFormBuilder: [STEP 5] Calling removeEmptyLinesFromNote`)
         removeEmptyLinesFromNote(templateNote)
 
-        // LOG: Final note content
-        logDebug(pluginJson, `openFormBuilder: [STEP 5] FINAL note content (first 40 lines):\n${(templateNote.content || '').split('\n').slice(0, 40).join('\n')}`)
-        if (noteHasFrontMatter(templateNote)) {
-          const attrs = getFrontmatterAttributes(templateNote)
-          logDebug(pluginJson, `openFormBuilder: [STEP 5] FINAL frontmatter attributes: ${JSON.stringify(attrs)}`)
+        // Update cache to ensure frontmatter is parsed and available
+        // This is critical for openFormBuilderWindow to read the frontmatter attributes
+        logDebug(pluginJson, `openFormBuilder: [STEP 5.5] Updating cache to refresh frontmatter attributes`)
+        const cachedNote = DataStore.updateCache(templateNote, true)
+        if (cachedNote) {
+          logDebug(pluginJson, `openFormBuilder: [STEP 5.5] Cache updated successfully`)
+        } else {
+          logWarn(pluginJson, `openFormBuilder: [STEP 5.5] Cache update returned null`)
         }
 
         // Reload the note to ensure frontmatter is up to date before opening FormBuilder
+        // This ensures frontmatterAttributes is populated from the updated cache
         templateNote = await getNoteByFilename(filename)
-        logDebug(pluginJson, `openFormBuilder: Reloaded template note after setting frontmatter`)
+        logDebug(pluginJson, `openFormBuilder: [STEP 6] Reloaded template note after cache update`)
+
+        // Wait for frontmatter attributes to be available (race condition fix)
+        // NotePlan may need a moment to parse the frontmatter after cache update
         if (templateNote) {
-          const reloadedReceivingTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle
-          logDebug(pluginJson, `openFormBuilder: After reload, frontmatter receivingTemplateTitle = "${reloadedReceivingTitle || 'NOT FOUND'}"`)
+          logDebug(pluginJson, `openFormBuilder: [STEP 6.5] Waiting for frontmatter attributes to be parsed...`)
+          const frontmatterAvailable = await waitForCondition(
+            async () => {
+              const reloadedNote = await getNoteByFilename(filename)
+              if (reloadedNote && reloadedNote.frontmatterAttributes) {
+                const hasWindowTitle = reloadedNote.frontmatterAttributes.windowTitle != null
+                const hasWidth = reloadedNote.frontmatterAttributes.width != null
+                if (hasWindowTitle && hasWidth) {
+                  logDebug(pluginJson, `openFormBuilder: [STEP 6.5] Frontmatter attributes are now available`)
+                  return true
+                }
+              }
+              return false
+            },
+            { maxWaitMs: 2000, checkIntervalMs: 50 },
+          )
+
+          if (frontmatterAvailable) {
+            // Reload one more time to get the fully parsed note
+            templateNote = await getNoteByFilename(filename)
+          }
+
+          const reloadedReceivingTitle = templateNote?.frontmatterAttributes?.receivingTemplateTitle
+          const reloadedWindowTitle = templateNote?.frontmatterAttributes?.windowTitle
+          const reloadedWidth = templateNote?.frontmatterAttributes?.width
+          logDebug(pluginJson, `openFormBuilder: [STEP 6] After reload, frontmatter receivingTemplateTitle = "${reloadedReceivingTitle || 'NOT FOUND'}"`)
+          logDebug(pluginJson, `openFormBuilder: [STEP 6] After reload, frontmatter windowTitle = "${reloadedWindowTitle || 'NOT FOUND'}"`)
+          logDebug(pluginJson, `openFormBuilder: [STEP 6] After reload, frontmatter width = "${reloadedWidth || 'NOT FOUND'}"`)
           if (!reloadedReceivingTitle && receivingTemplateTitle) {
-            logWarn(pluginJson, `openFormBuilder: WARNING - receivingTemplateTitle was set to "${receivingTemplateTitle}" but not found in reloaded note frontmatter!`)
+            logWarn(pluginJson, `openFormBuilder: [STEP 6] WARNING - receivingTemplateTitle was set to "${receivingTemplateTitle}" but not found in reloaded note frontmatter!`)
           }
         }
         // $FlowFixMe[incompatible-type] - showOptions returns number index

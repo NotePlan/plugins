@@ -30,6 +30,7 @@ import { saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseObjectString } from '@helpers/stringTransforms'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 import { initPromisePolyfills, waitForCondition } from '@helpers/promisePolyfill'
+import { keepTodayPortionOnly } from '@helpers/calendar.js'
 
 // Initialize Promise polyfills early
 initPromisePolyfills()
@@ -144,6 +145,7 @@ export function getFolders(params: { excludeTrash?: boolean } = {}): RequestResp
  * @param {boolean} params.includePersonalNotes - Include personal/project notes (default: true)
  * @param {boolean} params.includeRelativeNotes - Include relative notes like <today>, <thisweek>, etc. (default: false)
  * @param {boolean} params.includeTeamspaceNotes - Include teamspace notes (default: true)
+ * @param {string} params.space - Space ID to filter by (empty string = Private, teamspace ID = specific teamspace)
  * @returns {RequestResponse}
  */
 export function getNotes(
@@ -152,6 +154,7 @@ export function getNotes(
     includePersonalNotes?: boolean,
     includeRelativeNotes?: boolean,
     includeTeamspaceNotes?: boolean,
+    space?: string, // Space ID (empty string = Private, teamspace ID = specific teamspace)
   } = {},
 ): RequestResponse {
   const startTime: number = Date.now()
@@ -160,12 +163,13 @@ export function getNotes(
     const includePersonalNotes = params.includePersonalNotes ?? true
     const includeRelativeNotes = params.includeRelativeNotes ?? false
     const includeTeamspaceNotes = params.includeTeamspaceNotes ?? true
+    const spaceId = params.space ?? '' // Empty string = Private (default)
 
     logDebug(
       pluginJson,
       `[DIAG] getNotes START: includeCalendarNotes=${String(includeCalendarNotes)}, includePersonalNotes=${String(includePersonalNotes)}, includeRelativeNotes=${String(
         includeRelativeNotes,
-      )}, includeTeamspaceNotes=${String(includeTeamspaceNotes)}`,
+      )}, includeTeamspaceNotes=${String(includeTeamspaceNotes)}, space=${spaceId || 'Private'}`,
     )
 
     const allNotes: Array<any> = []
@@ -197,14 +201,27 @@ export function getNotes(
       logDebug(pluginJson, `[DIAG] getNotes CALENDAR: elapsed=${calendarElapsed}ms, found=${calendarNotes.length} calendar notes`)
 
       // Filter teamspace notes if needed, and only include calendar notes (not project notes)
+      // Also filter by space if specified
       for (const note of calendarNotes) {
         const isCalendarNote = note.type === 'Calendar'
         const isTeamspaceNote = note.isTeamspaceNote === true
+        const noteTeamspaceID = note.teamspaceID || null
 
         // Only include if it's actually a calendar note (not a project note that got mixed in)
         if (isCalendarNote) {
-          if (includeTeamspaceNotes || !isTeamspaceNote) {
-            allNotes.push(note)
+          // If space filter is specified, only include notes from that space
+          if (spaceId !== '') {
+            // Space filter is set - only include notes from that specific space
+            if (spaceId === noteTeamspaceID) {
+              allNotes.push(note)
+            }
+            // Skip notes that don't match the space filter
+          } else {
+            // No space filter (Private) - only include private notes (non-teamspace)
+            if (!isTeamspaceNote) {
+              allNotes.push(note)
+            }
+            // Skip teamspace notes when space filter is Private (empty string)
           }
         }
       }
@@ -250,6 +267,170 @@ export function getNotes(
     return {
       success: false,
       message: `Failed to get notes: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
+ * Get list of calendar events for a specific date
+ * @param {Object} params - Request parameters
+ * @param {string} params.dateString - Date string in YYYY-MM-DD format (optional, defaults to today)
+ * @param {string} params.date - ISO date string (optional, alternative to dateString)
+ * @returns {Promise<RequestResponse>}
+ */
+export async function getEvents(params: { dateString?: string, date?: string } = {}): Promise<RequestResponse> {
+  const startTime: number = Date.now()
+  try {
+    // Parse the date - prefer dateString (YYYY-MM-DD), fall back to date (ISO), or use today
+    let targetDate: Date
+    if (params.dateString) {
+      // Parse YYYY-MM-DD format
+      const [year, month, day] = params.dateString.split('-').map(Number)
+      targetDate = Calendar.dateFrom(year, month, day, 0, 0, 0)
+    } else if (params.date) {
+      // Parse ISO date string
+      targetDate = new Date(params.date)
+    } else {
+      // Default to today
+      targetDate = new Date()
+    }
+
+    if (isNaN(targetDate.getTime())) {
+      logError(pluginJson, `getEvents: Invalid date provided: dateString="${String(params.dateString || '')}", date="${String(params.date || '')}"`)
+      return {
+        success: false,
+        message: `Invalid date provided`,
+        data: null,
+      }
+    }
+
+    logDebug(pluginJson, `[DIAG] getEvents START: targetDate=${targetDate.toISOString()}`)
+
+    // Get start and end of day
+    const dayStart = Calendar.dateFrom(
+      targetDate.getFullYear(),
+      targetDate.getMonth() + 1, // Calendar.dateFrom uses 1-12 for months
+      targetDate.getDate(),
+      0,
+      0,
+      0,
+    )
+    const dayEnd = Calendar.dateFrom(targetDate.getFullYear(), targetDate.getMonth() + 1, targetDate.getDate(), 23, 59, 59)
+
+    // Fetch events for the day
+    const eventsStartTime: number = Date.now()
+    const calendarEvents: Array<TCalendarItem> = await Calendar.eventsBetween(dayStart, dayEnd)
+    const eventsElapsed: number = Date.now() - eventsStartTime
+    logDebug(pluginJson, `[DIAG] getEvents Calendar.eventsBetween: elapsed=${eventsElapsed}ms, found=${calendarEvents.length} events`)
+
+    // Filter to only events that are on this day
+    let filteredEvents = keepTodayPortionOnly(calendarEvents, targetDate)
+
+    // Filter by calendars if specified
+    if (params.calendars && Array.isArray(params.calendars) && params.calendars.length > 0) {
+      filteredEvents = filteredEvents.filter((event: TCalendarItem) => {
+        return params.calendars?.includes(event.calendar || '')
+      })
+      logDebug(pluginJson, `[DIAG] getEvents FILTERED BY CALENDARS: ${filteredEvents.length} events after calendar filter`)
+    }
+
+    // Get reminders if requested
+    let reminders: Array<TCalendarItem> = []
+    if (params.includeReminders === true) {
+      const remindersStartTime: number = Date.now()
+      if (params.reminderLists && Array.isArray(params.reminderLists) && params.reminderLists.length > 0) {
+        // Filter by reminder lists
+        reminders = await Calendar.remindersByLists(params.reminderLists)
+        logDebug(pluginJson, `[DIAG] getEvents remindersByLists: elapsed=${Date.now() - remindersStartTime}ms, found=${reminders.length} reminders`)
+      } else {
+        // Get reminders for today
+        reminders = await Calendar.remindersToday()
+        logDebug(pluginJson, `[DIAG] getEvents remindersToday: elapsed=${Date.now() - remindersStartTime}ms, found=${reminders.length} reminders`)
+      }
+
+      // Filter reminders to only those on this day
+      reminders = keepTodayPortionOnly(reminders, targetDate)
+      logDebug(pluginJson, `[DIAG] getEvents FILTERED REMINDERS: ${reminders.length} reminders after date filter`)
+    }
+
+    // Convert events to serializable format (Date objects to ISO strings)
+    const serializedEvents = filteredEvents.map((event: TCalendarItem) => ({
+      id: event.id || '',
+      title: event.title || '',
+      date: event.date ? event.date.toISOString() : new Date().toISOString(),
+      endDate: event.endDate ? event.endDate.toISOString() : null,
+      calendar: event.calendar || '',
+      isAllDay: event.isAllDay || false,
+      type: event.type || 'event',
+    }))
+
+    // Sort events: all-day first, then by time
+    serializedEvents.sort((a: any, b: any) => {
+      const aDate = new Date(a.date)
+      const bDate = new Date(b.date)
+      // Sort all-day events first, then by time
+      if (a.isAllDay && !b.isAllDay) return -1
+      if (!a.isAllDay && b.isAllDay) return 1
+      if (a.isAllDay && b.isAllDay) {
+        // Both all-day, sort by title
+        return a.title.localeCompare(b.title)
+      }
+      // Both timed, sort by start time
+      return aDate.getTime() - bDate.getTime()
+    })
+
+    // Convert reminders to serializable format and add to events
+    if (reminders.length > 0) {
+      const serializedReminders = reminders.map((reminder: TCalendarItem) => ({
+        id: reminder.id || '',
+        title: reminder.title || '',
+        date: reminder.date ? reminder.date.toISOString() : new Date().toISOString(),
+        endDate: reminder.endDate ? reminder.endDate.toISOString() : null,
+        calendar: reminder.calendar || '',
+        isAllDay: reminder.isAllDay || false,
+        type: 'reminder', // Mark as reminder
+      }))
+
+      // Sort reminders: all-day first, then by time
+      serializedReminders.sort((a: any, b: any) => {
+        const aDate = new Date(a.date)
+        const bDate = new Date(b.date)
+        if (a.isAllDay && !b.isAllDay) return -1
+        if (!a.isAllDay && b.isAllDay) return 1
+        if (a.isAllDay && b.isAllDay) {
+          return a.title.localeCompare(b.title)
+        }
+        return aDate.getTime() - bDate.getTime()
+      })
+
+      // Merge reminders with events, keeping all-day events first, then by time
+      serializedEvents.push(...serializedReminders)
+      serializedEvents.sort((a: any, b: any) => {
+        const aDate = new Date(a.date)
+        const bDate = new Date(b.date)
+        if (a.isAllDay && !b.isAllDay) return -1
+        if (!a.isAllDay && b.isAllDay) return 1
+        if (a.isAllDay && b.isAllDay) {
+          return a.title.localeCompare(b.title)
+        }
+        return aDate.getTime() - bDate.getTime()
+      })
+    }
+
+    const totalElapsed: number = Date.now() - startTime
+    logDebug(pluginJson, `[DIAG] getEvents COMPLETE: totalElapsed=${totalElapsed}ms, found=${serializedEvents.length} items (${filteredEvents.length} events, ${reminders.length} reminders)`)
+
+    return {
+      success: true,
+      data: serializedEvents,
+    }
+  } catch (error) {
+    const totalElapsed: number = Date.now() - startTime
+    logError(pluginJson, `[DIAG] getEvents ERROR: totalElapsed=${totalElapsed}ms, error="${error.message}"`)
+    return {
+      success: false,
+      message: `Failed to get events: ${error.message}`,
       data: null,
     }
   }
@@ -754,7 +935,7 @@ async function handleDuplicateForm(params: { templateFilename?: string, template
     const fieldsToUpdate = {
       type: 'template-form',
       windowTitle: newTitle,
-      formTitle: newTitle,
+      // formTitle is left blank by default - user can fill it in later (don't copy from source)
       launchLink: newLaunchLink,
       formEditLink: newFormEditLink,
     }
@@ -915,6 +1096,10 @@ export async function handleRequest(requestType: string, params: Object = {}): P
         return getFolders(params)
       case 'getNotes':
         return getNotes(params)
+      case 'getEvents':
+        return await getEvents(params)
+      case 'getAvailableCalendars':
+        return getAvailableCalendars(params)
       case 'getTeamspaces':
         return getTeamspaces(params)
       case 'createFolder':

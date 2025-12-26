@@ -50,9 +50,11 @@ export type TSettingItemType =
   | 'folder-chooser'
   | 'note-chooser'
   | 'heading-chooser'
+  | 'event-chooser' // Calendar event chooser
   | 'form-state-viewer' // Read-only field that displays current form state as JSON
   | 'textarea' // Expandable textarea field
   | 'templatejs-block' // TemplateJS code block that executes JavaScript
+  | 'multi-select' // Multi-select checkbox list
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -112,6 +114,9 @@ export type TSettingItem = {
   // templatejs-block options
   executeTiming?: 'before' | 'after', // for templatejs-block, when to execute: before form fields render, or after (default: 'after')
   templateJSContent?: string, // for templatejs-block, JavaScript content stored with the form (not rendered in preview)
+  // event-chooser options
+  eventDate?: Date, // for event-chooser, date to get events for (defaults to today)
+  dependsOnDateKey?: string, // for event-chooser, key of a date field (calendarpicker or text input) to get the date from dynamically
 }
 
 export type TDynamicDialogProps = {
@@ -247,7 +252,7 @@ const DynamicDialog = ({
 
   // Field types that should consume Enter key (prevent form submission)
   // These are fields where Enter has a specific meaning (e.g., selecting an option, creating new lines)
-  const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'dropdown-select', 'combo', 'textarea']
+  const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'space-chooser', 'dropdown-select', 'combo', 'textarea']
 
   const handleEnterKey = (event: KeyboardEvent) => {
     // CMD+ENTER (or CTRL+ENTER on Windows/Linux) should always submit, bypassing ENTER_CONSUMING_FIELD_TYPES
