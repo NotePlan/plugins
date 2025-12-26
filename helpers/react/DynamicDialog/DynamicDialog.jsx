@@ -117,6 +117,20 @@ export type TSettingItem = {
   // event-chooser options
   eventDate?: Date, // for event-chooser, date to get events for (defaults to today)
   dependsOnDateKey?: string, // for event-chooser, key of a date field (calendarpicker or text input) to get the date from dynamically
+  selectedCalendars?: Array<string>, // for event-chooser, array of calendar titles to filter events by (ignored if allCalendars=true)
+  allCalendars?: boolean, // for event-chooser, if true, include events from all calendars NotePlan can access (bypasses selectedCalendars)
+  calendarFilterRegex?: string, // for event-chooser, optional regex pattern to filter calendars after fetching (applied when allCalendars=true)
+  eventFilterRegex?: string, // for event-chooser, optional regex pattern to filter events by title after fetching
+  includeReminders?: boolean, // for event-chooser, if true, include reminders in the list
+  reminderLists?: Array<string>, // for event-chooser, optional array of reminder list titles to filter reminders by
+  // multi-select options
+  multiSelectItems?: Array<any>, // for multi-select, items for selection
+  multiSelectGetLabel?: (item: any) => string, // for multi-select, function to get label
+  multiSelectGetValue?: (item: any) => string, // for multi-select, function to get value
+  multiSelectGetTitle?: (item: any) => string, // for multi-select, function to get title
+  multiSelectFilterFn?: (item: any, searchTerm: string) => boolean, // for multi-select, filter function
+  multiSelectEmptyMessage?: string, // for multi-select, empty message
+  multiSelectMaxHeight?: string, // for multi-select, max height
 }
 
 export type TDynamicDialogProps = {

@@ -3,24 +3,158 @@
 // FieldEditor Component - Modal editor for editing individual form fields
 //--------------------------------------------------------------------------
 
-import React, { useState, useEffect, useMemo, type Node } from 'react'
-import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
+import React, { useState, useEffect, useMemo, useRef, type Node } from 'react'
 import { OptionsEditor } from './OptionsEditor.jsx'
+import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 
 type FieldEditorProps = {
   field: TSettingItem,
   allFields: Array<TSettingItem>,
   onSave: (field: TSettingItem) => void,
   onCancel: () => void,
+  requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Optional function to call plugin commands
 }
 
-export function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): Node {
+export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlugin }: FieldEditorProps): Node {
   const [editedField, setEditedField] = useState<TSettingItem>({ ...field })
+  const [calendars, setCalendars] = useState<Array<string>>([])
+  const [calendarsLoaded, setCalendarsLoaded] = useState<boolean>(false)
+  const [reminderLists, setReminderLists] = useState<Array<string>>([])
+  const [reminderListsLoaded, setReminderListsLoaded] = useState<boolean>(false)
+  const calendarsLoadingRef = useRef<boolean>(false)
+  const reminderListsLoadingRef = useRef<boolean>(false)
+  const requestFromPluginRef = useRef<typeof requestFromPlugin>(requestFromPlugin)
+
+  // Track previous field key to detect actual field changes
+  const prevFieldKeyRef = useRef<string | void>(field.key)
+
+  // Update ref when requestFromPlugin changes
+  useEffect(() => {
+    requestFromPluginRef.current = requestFromPlugin
+  }, [requestFromPlugin])
 
   // Update editedField when field prop changes (e.g., when editing a different field)
   useEffect(() => {
+    const fieldKeyChanged = prevFieldKeyRef.current !== field.key
+    console.log('[FieldEditor DIAG] field useEffect triggered:', {
+      prevKey: prevFieldKeyRef.current,
+      newKey: field.key,
+      keyChanged: fieldKeyChanged,
+      type: field.type,
+    })
+    prevFieldKeyRef.current = field.key
+
     setEditedField({ ...field })
+    // Only reset loaded states when field key actually changes (not just object reference)
+    if (fieldKeyChanged && field.type === 'event-chooser') {
+      console.log('[FieldEditor DIAG] field useEffect: resetting loaded states')
+      setCalendarsLoaded(false)
+      setReminderListsLoaded(false)
+      calendarsLoadingRef.current = false
+      reminderListsLoadingRef.current = false
+    }
   }, [field])
+
+  // Load calendars when editing event-chooser field
+  useEffect(() => {
+    const requestFn = requestFromPluginRef.current
+    console.log('[FieldEditor DIAG] calendars useEffect triggered:', {
+      type: editedField.type,
+      calendarsLoaded,
+      isLoading: calendarsLoadingRef.current,
+      hasRequestFn: !!requestFn,
+    })
+
+    // Only load if we're editing an event-chooser, haven't loaded yet, not currently loading, and have requestFromPlugin
+    if (editedField.type !== 'event-chooser' || calendarsLoaded || calendarsLoadingRef.current || !requestFn) {
+      console.log('[FieldEditor DIAG] calendars useEffect: skipping load (conditions not met)')
+      return
+    }
+
+    console.log('[FieldEditor DIAG] calendars useEffect: STARTING load')
+    let isMounted = true
+    calendarsLoadingRef.current = true
+
+    requestFn('getAvailableCalendars', { writeOnly: false })
+      .then((calendarsData) => {
+        console.log('[FieldEditor DIAG] calendars useEffect: received data, isMounted=', isMounted, 'data type=', Array.isArray(calendarsData) ? 'array' : typeof calendarsData)
+        if (isMounted && Array.isArray(calendarsData)) {
+          setCalendars(calendarsData)
+          setCalendarsLoaded(true)
+          console.log('[FieldEditor DIAG] calendars useEffect: set calendars and loaded flag')
+        }
+        calendarsLoadingRef.current = false
+      })
+      .catch((error) => {
+        console.error('[FieldEditor DIAG] calendars useEffect: ERROR loading calendars:', error)
+        if (isMounted) {
+          setCalendarsLoaded(true) // Set to true to prevent infinite retries
+        }
+        calendarsLoadingRef.current = false
+      })
+
+    return () => {
+      console.log('[FieldEditor DIAG] calendars useEffect: cleanup called')
+      isMounted = false
+      calendarsLoadingRef.current = false
+    }
+  }, [editedField.type, calendarsLoaded])
+
+  // Load reminder lists when editing event-chooser field and reminders are enabled
+  useEffect(() => {
+    const requestFn = requestFromPluginRef.current
+    const includeReminders = ((editedField: any): { includeReminders?: boolean }).includeReminders
+    console.log('[FieldEditor DIAG] reminderLists useEffect triggered:', {
+      type: editedField.type,
+      reminderListsLoaded,
+      isLoading: reminderListsLoadingRef.current,
+      hasRequestFn: !!requestFn,
+      includeReminders,
+    })
+
+    if (editedField.type !== 'event-chooser' || reminderListsLoaded || reminderListsLoadingRef.current || !requestFn || !includeReminders) {
+      console.log('[FieldEditor DIAG] reminderLists useEffect: skipping load (conditions not met)')
+      return
+    }
+
+    console.log('[FieldEditor DIAG] reminderLists useEffect: STARTING load')
+    let isMounted = true
+    reminderListsLoadingRef.current = true
+
+    requestFn('getAvailableReminderLists', {})
+      .then((listsData) => {
+        console.log('[FieldEditor DIAG] reminderLists useEffect: received data, isMounted=', isMounted, 'data type=', Array.isArray(listsData) ? 'array' : typeof listsData, 'length=', Array.isArray(listsData) ? listsData.length : 'N/A')
+        if (isMounted) {
+          if (Array.isArray(listsData)) {
+            setReminderLists(listsData)
+            setReminderListsLoaded(true)
+            console.log('[FieldEditor DIAG] reminderLists useEffect: set lists and loaded flag, count=', listsData.length)
+            if (listsData.length === 0) {
+              console.log('[FieldEditor DIAG] reminderLists useEffect: WARNING - received empty array, user may not have any reminder lists configured')
+            }
+          } else {
+            console.error('[FieldEditor DIAG] reminderLists useEffect: received non-array data:', typeof listsData, listsData)
+            setReminderLists([])
+            setReminderListsLoaded(true)
+          }
+        }
+        reminderListsLoadingRef.current = false
+      })
+      .catch((error) => {
+        console.error('[FieldEditor DIAG] reminderLists useEffect: ERROR loading reminder lists:', error)
+        if (isMounted) {
+          setReminderLists([])
+          setReminderListsLoaded(true) // Set to true to prevent infinite retries
+        }
+        reminderListsLoadingRef.current = false
+      })
+
+    return () => {
+      console.log('[FieldEditor DIAG] reminderLists useEffect: cleanup called')
+      isMounted = false
+      reminderListsLoadingRef.current = false
+    }
+  }, [editedField.type, reminderListsLoaded, ((editedField: any): { includeReminders?: boolean }).includeReminders])
 
   // Compute dependency options fresh each render based on current allFields
   const dependencyOptions = useMemo(() => {
@@ -468,12 +602,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorP
                 >
                   <option value="">None (use today or eventDate below)</option>
                   {allFields
-                    .filter(
-                      (f) =>
-                        f.key &&
-                        (f.type === 'calendarpicker' || f.type === 'input') &&
-                        f.key !== editedField.key,
-                    )
+                    .filter((f) => f.key && (f.type === 'calendarpicker' || f.type === 'input') && f.key !== editedField.key)
                     .map((f) => (
                       <option key={f.key} value={f.key}>
                         {f.label || f.key} ({f.key}) - {f.type}
@@ -481,7 +610,8 @@ export function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorP
                     ))}
                 </select>
                 <div className="field-editor-help">
-                  If specified, events will be loaded for the date from the selected field. The field can be a Date Picker (returns Date) or a text input with a date string (YYYY-MM-DD format). If not specified, events default to today.
+                  If specified, events will be loaded for the date from the selected field. The field can be a Date Picker (returns Date) or a text input with a date string
+                  (YYYY-MM-DD format). If not specified, events default to today.
                 </div>
               </div>
               <div className="field-editor-row">
@@ -513,10 +643,194 @@ export function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorP
                   }}
                   placeholder="YYYY-MM-DD (e.g., 2024-01-15)"
                 />
+                <div className="field-editor-help">Default date to load events for (if not depending on another field). Leave empty to use today. Format: YYYY-MM-DD</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { allCalendars?: boolean }).allCalendars || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).allCalendars = e.target.checked
+                      // If enabling all calendars, clear selected calendars
+                      if (e.target.checked) {
+                        ;(updated: any).selectedCalendars = undefined
+                      }
+                      setEditedField(updated)
+                    }}
+                  />
+                  All NotePlan Enabled Calendars
+                </label>
+                <div className="field-editor-help">If checked, include events from all calendars NotePlan has access to. This bypasses the calendar list below.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Calendars (optional):</label>
+                {!calendarsLoaded && requestFromPlugin ? (
+                  <div>Loading calendars...</div>
+                ) : calendars.length === 0 ? (
+                  <div>No calendars available</div>
+                ) : (
+                  <div className="field-editor-multiselect-wrapper">
+                    <div
+                      style={{
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        padding: '0.5rem',
+                        maxHeight: '150px',
+                        overflowY: 'auto',
+                        backgroundColor: '#fff',
+                      }}
+                    >
+                      {calendars.map((calendar) => {
+                        const selectedCalendars = ((editedField: any): { selectedCalendars?: Array<string> }).selectedCalendars || []
+                        const isChecked = selectedCalendars.includes(calendar)
+                        const allCalendars = ((editedField: any): { allCalendars?: boolean }).allCalendars || false
+                        return (
+                          <label key={calendar} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.25rem', opacity: allCalendars ? 0.5 : 1 }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              disabled={allCalendars}
+                              onChange={(e) => {
+                                const updated = { ...editedField }
+                                const current = ((updated: any): { selectedCalendars?: Array<string> }).selectedCalendars || []
+                                if (e.target.checked) {
+                                  ;(updated: any).selectedCalendars = [...current, calendar]
+                                } else {
+                                  ;(updated: any).selectedCalendars = current.filter((c) => c !== calendar)
+                                }
+                                setEditedField(updated)
+                              }}
+                              style={{ marginRight: '0.5rem' }}
+                            />
+                            <span>{calendar}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                    <div className="field-editor-help">
+                      Select which calendars to include events from. Leave all unchecked to include events from all calendars.
+                      <br />
+                      <strong>NOTE: Due to a bug in NotePlan&apos;s API, this list may be incomplete.</strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="field-editor-row">
+                <label>Calendar Filter Regex (optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { calendarFilterRegex?: string }).calendarFilterRegex || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const regexStr = e.target.value.trim()
+                    if (regexStr) {
+                      ;(updated: any).calendarFilterRegex = regexStr
+                    } else {
+                      ;(updated: any).calendarFilterRegex = undefined
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., ^Work|^Personal (regex pattern)"
+                />
                 <div className="field-editor-help">
-                  Default date to load events for (if not depending on another field). Leave empty to use today. Format: YYYY-MM-DD
+                  Optional regex pattern to filter calendars after fetching events. Applied when &quot;All NotePlan Enabled Calendars&quot; is enabled. Leave empty to include all
+                  calendars.
                 </div>
               </div>
+              <div className="field-editor-row">
+                <label>Event Filter Regex (optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { eventFilterRegex?: string }).eventFilterRegex || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const regexStr = e.target.value.trim()
+                    if (regexStr) {
+                      ;(updated: any).eventFilterRegex = regexStr
+                    } else {
+                      ;(updated: any).eventFilterRegex = undefined
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., Meeting|Standup"
+                />
+                <div className="field-editor-help">
+                  Optional regex pattern to filter events by title after fetching. Applied to all fetched events before display. Leave empty to include all events.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { includeReminders?: boolean }).includeReminders || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includeReminders = e.target.checked
+                      if (!e.target.checked) {
+                        ;(updated: any).reminderLists = undefined
+                      }
+                      setEditedField(updated)
+                      // Reset reminder lists loaded state to reload when re-enabled
+                      if (e.target.checked) {
+                        setReminderListsLoaded(false)
+                      }
+                    }}
+                  />
+                  Include Reminders
+                </label>
+                <div className="field-editor-help">Include reminders in the event list</div>
+              </div>
+              {((editedField: any): { includeReminders?: boolean }).includeReminders && (
+                <div className="field-editor-row">
+                  <label>Reminder Lists (optional):</label>
+                  {!reminderListsLoaded && requestFromPlugin ? (
+                    <div>Loading reminder lists...</div>
+                  ) : reminderLists.length === 0 ? (
+                    <div>No reminder lists available</div>
+                  ) : (
+                    <div className="field-editor-multiselect-wrapper">
+                      <div
+                        style={{
+                          border: '1px solid #ddd',
+                          borderRadius: '4px',
+                          padding: '0.5rem',
+                          maxHeight: '150px',
+                          overflowY: 'auto',
+                          backgroundColor: '#fff',
+                        }}
+                      >
+                        {reminderLists.map((list) => {
+                          const selectedLists = ((editedField: any): { reminderLists?: Array<string> }).reminderLists || []
+                          const isChecked = selectedLists.includes(list)
+                          return (
+                            <label key={list} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.25rem' }}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const updated = { ...editedField }
+                                  const current = ((updated: any): { reminderLists?: Array<string> }).reminderLists || []
+                                  if (e.target.checked) {
+                                    ;(updated: any).reminderLists = [...current, list]
+                                  } else {
+                                    ;(updated: any).reminderLists = current.filter((l) => l !== list)
+                                  }
+                                  setEditedField(updated)
+                                }}
+                                style={{ marginRight: '0.5rem' }}
+                              />
+                              <span>{list}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                      <div className="field-editor-help">Select which reminder lists to include. Leave all unchecked to include reminders from all lists.</div>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 

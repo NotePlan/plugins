@@ -659,10 +659,14 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
       }
     }
 
-    // The data structure from React is: { type: 'save'|'cancel', fields: [...], templateFilename: ..., templateTitle: ... }
+    // The data structure from React is: { type: 'save'|'cancel'|'openForm', fields: [...], templateFilename: ..., templateTitle: ... }
     // actionType will be "onFormBuilderAction" (the command name), and the actual action is in data.type
     const actualActionType = data?.type
     logDebug(pluginJson, `onFormBuilderAction: actualActionType="${actualActionType}"`)
+    logDebug(pluginJson, `onFormBuilderAction: data keys: ${Object.keys(data || {}).join(', ')}`)
+    if (actualActionType === 'openForm') {
+      logDebug(pluginJson, `onFormBuilderAction: openForm detected, data.templateTitle="${data?.templateTitle || 'MISSING'}"`)
+    }
 
     // Get the template filename from the data passed from React, or fall back to reactWindowData
     const templateFilename = data?.templateFilename
@@ -755,7 +759,14 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
       closeWindowFromCustomId(FORMBUILDER_WINDOW_ID)
     } else if (actualActionType === 'openForm' && data?.templateTitle) {
       logDebug(pluginJson, `onFormBuilderAction: Opening form with templateTitle="${data.templateTitle}"`)
-      await getTemplateFormData(data.templateTitle)
+      logDebug(pluginJson, `onFormBuilderAction: Calling getTemplateFormData with templateTitle="${data.templateTitle}"`)
+      try {
+        await getTemplateFormData(data.templateTitle)
+        logDebug(pluginJson, `onFormBuilderAction: getTemplateFormData completed successfully`)
+      } catch (error) {
+        logError(pluginJson, `onFormBuilderAction: Error in getTemplateFormData: ${error.message}`)
+        throw error
+      }
     } else if (actualActionType === 'duplicateForm' && data?.newTemplateFilename) {
       // After duplicating, open the new form in Form Builder
       logDebug(pluginJson, `onFormBuilderAction: Opening duplicated form with filename="${data.newTemplateFilename}"`)

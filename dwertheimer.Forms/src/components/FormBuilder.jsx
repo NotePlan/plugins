@@ -491,22 +491,35 @@ export function FormBuilder({
   }
 
   const handleOpenForm = () => {
+    logDebug('FormBuilder', `handleOpenForm: called, onOpenForm=${String(!!onOpenForm)}, templateTitle="${String(templateTitle)}"`)
     if (!onOpenForm || !templateTitle) {
+      logDebug('FormBuilder', `handleOpenForm: early return - onOpenForm=${String(!!onOpenForm)}, templateTitle=${String(!!templateTitle)}`)
       return
     }
 
     // Warn if there are unsaved changes
     if (hasUnsavedChanges) {
+      logDebug('FormBuilder', `handleOpenForm: hasUnsavedChanges=true, showing confirmation dialog`)
       const confirmed = window.confirm('You have unsaved changes. The form will open with the last saved version. Do you want to continue?')
       if (!confirmed) {
+        logDebug('FormBuilder', `handleOpenForm: user cancelled confirmation`)
         return
       }
     }
 
+    logDebug('FormBuilder', `handleOpenForm: calling onOpenForm with templateTitle="${templateTitle}"`)
     onOpenForm(templateTitle)
   }
 
   const canOpenForm = isSaved && !isNewForm && templateTitle && onOpenForm
+  
+  // Log canOpenForm calculation whenever dependencies change
+  useEffect(() => {
+    logDebug('FormBuilder', `canOpenForm calculation: isSaved=${String(isSaved)}, !isNewForm=${String(!isNewForm)}, templateTitle="${String(templateTitle)}", onOpenForm=${String(!!onOpenForm)}, result=${String(canOpenForm)}`)
+    if (!canOpenForm) {
+      logDebug('FormBuilder', `Open Form button will NOT render because: isSaved=${String(isSaved)}, isNewForm=${String(isNewForm)}, templateTitle="${String(templateTitle)}", onOpenForm=${String(!!onOpenForm)}`)
+    }
+  }, [isSaved, isNewForm, templateTitle, onOpenForm, canOpenForm])
 
   //----------------------------------------------------------------------
   // Render
@@ -563,15 +576,20 @@ export function FormBuilder({
               Duplicate
             </button>
           )}
-          {canOpenForm && (
+          {canOpenForm ? (
             <button
               className="PCButton open-form-button"
-              onClick={handleOpenForm}
+              onClick={(e) => {
+                logDebug('FormBuilder', `Open Form button clicked, event type: ${e.type}`)
+                e.preventDefault()
+                e.stopPropagation()
+                handleOpenForm()
+              }}
               title={hasUnsavedChanges ? 'Open form (you have unsaved changes - you will be warned)' : 'Open this form in a new window'}
             >
               Open Form
             </button>
-          )}
+          ) : null}
           <button className="PCButton cancel-button" onClick={onCancel}>
             Cancel
           </button>

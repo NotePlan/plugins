@@ -20,6 +20,7 @@ import FolderChooser from './FolderChooser.jsx'
 import NoteChooser, { type NoteOption } from './NoteChooser.jsx'
 import { HeadingChooser } from './HeadingChooser.jsx'
 import EventChooser from './EventChooser.jsx'
+import MultiSelectChooser from './MultiSelectChooser.jsx'
 import { ExpandableTextarea } from './ExpandableTextarea.jsx'
 import { TemplateJSBlock } from './TemplateJSBlock.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
@@ -593,6 +594,14 @@ export function renderItem({
           }
         }
 
+        // Get calendar and reminder settings from item
+        const selectedCalendars = item.selectedCalendars
+        const allCalendars = item.allCalendars || false
+        const calendarFilterRegex = item.calendarFilterRegex
+        const eventFilterRegex = item.eventFilterRegex
+        const includeReminders = item.includeReminders || false
+        const reminderLists = item.reminderLists
+
         const handleEventChange = (eventId: string, event: any) => {
           if (item.key) {
             // Store the event ID as the value
@@ -614,6 +623,12 @@ export function renderItem({
               placeholder={item.placeholder || 'Type to search events...'}
               showValue={item.showValue ?? false}
               requestFromPlugin={requestFromPlugin}
+              selectedCalendars={selectedCalendars}
+              allCalendars={allCalendars}
+              calendarFilterRegex={calendarFilterRegex}
+              eventFilterRegex={eventFilterRegex}
+              includeReminders={includeReminders}
+              reminderLists={reminderLists}
             />
           </div>
         )

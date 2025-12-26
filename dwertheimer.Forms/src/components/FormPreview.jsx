@@ -18,18 +18,31 @@ type FormPreviewProps = {
 }
 
 /**
- * Parse window dimension for preview (simplified version - doesn't need screen dimensions for preview)
+ * Parse window dimension for preview
+ * Converts percentages to pixel values based on actual window size for accurate preview
  * @param {string | number | void} value - The dimension value
- * @returns {string} - CSS value (px or % or undefined)
+ * @param {'width' | 'height'} dimensionType - Whether this is width or height
+ * @returns {string} - CSS value (px or undefined)
  */
-function parsePreviewDimension(value: ?(number | string)): ?string {
+function parsePreviewDimension(value: ?(number | string), dimensionType: 'width' | 'height'): ?string {
   if (typeof value === 'number') {
     return `${value}px`
   }
   if (typeof value === 'string') {
     const trimmedValue = value.trim()
-    // If it's already a percentage or has units, return as-is
-    if (trimmedValue.endsWith('%') || /^\d+px$/.test(trimmedValue)) {
+    // If it's a percentage, convert to pixels based on actual window size
+    if (trimmedValue.endsWith('%')) {
+      const percentValue = parseFloat(trimmedValue)
+      if (!isNaN(percentValue)) {
+        // Get actual window dimension
+        const windowDimension = dimensionType === 'width' ? window.innerWidth : window.innerHeight
+        // Calculate pixel value
+        const pixelValue = Math.round((percentValue / 100) * windowDimension)
+        return `${pixelValue}px`
+      }
+    }
+    // If it already has px units, return as-is
+    if (/^\d+px$/.test(trimmedValue)) {
       return trimmedValue
     }
     // If it's a plain number string, add px
@@ -37,21 +50,17 @@ function parsePreviewDimension(value: ?(number | string)): ?string {
     if (!isNaN(numValue)) {
       return `${numValue}px`
     }
-    // If it's a percentage without %, try to parse it
-    if (trimmedValue.match(/^\d+$/)) {
-      // Could be a percentage, but we'll treat it as pixels for preview
-      return `${trimmedValue}px`
-    }
   }
   return undefined
 }
 
 export function FormPreview({ frontmatter, fields, folders, notes, requestFromPlugin }: FormPreviewProps): Node {
   // Parse width and height from frontmatter for preview window dimensions
+  // Convert percentages to pixel values based on actual window size for accurate preview
   const windowStyle = useMemo(() => {
     const style: { [key: string]: string } = {}
-    const width = parsePreviewDimension(frontmatter.width)
-    const height = parsePreviewDimension(frontmatter.height)
+    const width = parsePreviewDimension(frontmatter.width, 'width')
+    const height = parsePreviewDimension(frontmatter.height, 'height')
     if (width) {
       style.width = width
       style.maxWidth = width

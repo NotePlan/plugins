@@ -3,7 +3,7 @@
 // FormBuilderView - React WebView wrapper for FormBuilder
 //--------------------------------------------------------------------------
 
-import React, { useEffect, useRef, type Node } from 'react'
+import React, { useEffect, useRef, useCallback, type Node } from 'react'
 import { type PassedData } from '../NPTemplateForm.js'
 import { AppProvider } from './AppContext.jsx'
 import FormBuilder from './FormBuilder.jsx'
@@ -90,18 +90,21 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings, onSub
   const sendActionToPlugin = (command: string, dataToSend: any) => {
     logDebug('FormBuilderView', `sendActionToPlugin: command="${command}"`)
     clo(dataToSend, `FormBuilderView: sendActionToPlugin dataToSend`)
+    logDebug('FormBuilderView', `sendActionToPlugin: About to dispatch SEND_TO_PLUGIN with command="${command}", data.type="${dataToSend?.type || 'MISSING'}"`)
     dispatch('SEND_TO_PLUGIN', [command, dataToSend], `FormBuilderView: ${command}`)
+    logDebug('FormBuilderView', `sendActionToPlugin: dispatch called for command="${command}"`)
   }
 
   /**
    * Request data from the plugin using request/response pattern
    * Returns a Promise that resolves with the response data or rejects with an error
+   * Memoized with useCallback to prevent recreation on every render (fixes infinite loop issues)
    * @param {string} command - The command/request type (e.g., 'getFolders', 'getNotes')
    * @param {any} dataToSend - Request parameters
    * @param {number} timeout - Timeout in milliseconds (default: 10000)
    * @returns {Promise<any>}
    */
-  const requestFromPlugin = (command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
+  const requestFromPlugin = useCallback((command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
     if (!command) throw new Error('requestFromPlugin: command must be called with a string')
 
     const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -126,7 +129,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings, onSub
       logDebug('FormBuilderView', `requestFromPlugin: Sending request "${command}" with correlationId="${correlationId}"`)
       dispatch('SEND_TO_PLUGIN', [command, requestData], `FormBuilderView: requestFromPlugin: ${String(command)}`)
     })
-  }
+  }, [dispatch])
 
   const handleSave = async (fields: Array<any>, frontmatter: any): Promise<{ success: boolean, message?: string }> => {
     clo(fields, 'FormBuilderView: handleSave fields')
@@ -151,10 +154,13 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings, onSub
   }
 
   const handleOpenForm = (templateTitle: string) => {
+    logDebug('FormBuilderView', `handleOpenForm: called with templateTitle="${templateTitle}"`)
+    logDebug('FormBuilderView', `handleOpenForm: onSubmitOrCancelCallFunctionNamed="${onSubmitOrCancelCallFunctionNamed}"`)
     sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, {
       type: 'openForm',
       templateTitle: templateTitle,
     })
+    logDebug('FormBuilderView', `handleOpenForm: sendActionToPlugin called`)
   }
 
   return (

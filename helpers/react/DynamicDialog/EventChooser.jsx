@@ -32,7 +32,10 @@ export type EventChooserProps = {
   placeholder?: string,
   showValue?: boolean, // If true, display the selected value below the input
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request events from plugin
-  selectedCalendars?: Array<string>, // Optional array of calendar titles to filter events by
+  selectedCalendars?: Array<string>, // Optional array of calendar titles to filter events by (ignored if allCalendars=true)
+  allCalendars?: boolean, // If true, include events from all calendars NotePlan can access
+  calendarFilterRegex?: string, // Optional regex pattern to filter calendars after fetching (applied when allCalendars=true)
+  eventFilterRegex?: string, // Optional regex pattern to filter events by title after fetching
   includeReminders?: boolean, // If true, include reminders in the list
   reminderLists?: Array<string>, // Optional array of reminder list titles to filter reminders by
 }
@@ -153,6 +156,9 @@ export function EventChooser({
   showValue = false,
   requestFromPlugin,
   selectedCalendars,
+  allCalendars = false,
+  calendarFilterRegex,
+  eventFilterRegex,
   includeReminders = false,
   reminderLists,
 }: EventChooserProps): React$Node {
@@ -167,13 +173,23 @@ export function EventChooser({
     if (dateFromField) {
       const parsed = parseDateFromField(dateFromField)
       if (parsed) {
+        logDebug('EventChooser', `[DIAG] Using dateFromField: ${parsed.toDateString()}, ISO: ${parsed.toISOString()}`)
         return parsed
       }
     }
-    return date || new Date()
+    const result = date || new Date()
+    logDebug('EventChooser', `[DIAG] Using date prop or today: ${result.toDateString()}, ISO: ${result.toISOString()}`)
+    return result
   }, [date, dateFromField])
   const targetDateString = useMemo(() => {
-    return targetDate.toISOString().split('T')[0] // YYYY-MM-DD format
+    // Format date in LOCAL timezone, not UTC (toISOString converts to UTC which can shift the date)
+    const year = targetDate.getFullYear()
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0') // Month is 0-indexed, pad to 2 digits
+    const day = String(targetDate.getDate()).padStart(2, '0')
+    const localDateString = `${year}-${month}-${day}`
+    const utcDateString = targetDate.toISOString().split('T')[0]
+    logDebug('EventChooser', `[DIAG] Date formatting: local=${localDateString}, UTC=${utcDateString}, targetDate=${targetDate.toDateString()}`)
+    return localDateString
   }, [targetDate])
   const isToday = useMemo(() => {
     const today = new Date()
@@ -212,14 +228,22 @@ export function EventChooser({
 
         // Convert targetDate to ISO string for the plugin
         const dateString = targetDateString
+        const utcDateString = targetDate.toISOString().split('T')[0]
 
-        logDebug('EventChooser', `Loading events for ${targetDate.toDateString()} (${dateString})`)
+        logDebug('EventChooser', `Loading events for ${targetDate.toDateString()} (local: ${dateString}, UTC: ${utcDateString})`)
 
         // Request events from plugin - the plugin will call Calendar.eventsBetween()
         // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
         const eventsData = await requestFromPlugin('getEvents', {
-          dateString, // Pass date as YYYY-MM-DD string
-          date: targetDate.toISOString(), // Also pass full ISO string for plugin to parse
+          dateString, // Pass date as YYYY-MM-DD string in LOCAL timezone (not UTC)
+          // Don't pass date as ISO string - it will be in UTC and cause timezone issues
+          // The plugin will use dateString (YYYY-MM-DD) which is already in local timezone
+          calendars: allCalendars ? undefined : selectedCalendars && selectedCalendars.length > 0 ? selectedCalendars : undefined,
+          allCalendars: allCalendars || undefined,
+          calendarFilterRegex: calendarFilterRegex || undefined,
+          eventFilterRegex: eventFilterRegex || undefined,
+          includeReminders: includeReminders || undefined,
+          reminderLists: reminderLists && reminderLists.length > 0 ? reminderLists : undefined,
         })
 
         if (Array.isArray(eventsData)) {
@@ -373,9 +397,15 @@ export function EventChooser({
     inputMaxLength: 100,
     dropdownMaxLength: 80,
     getOptionIcon: (event: EventOption) => {
+      if (event.type === 'reminder') {
+        return 'fa-bell'
+      }
       return event.isAllDay ? 'fa-calendar-day' : 'fa-clock'
     },
     getOptionColor: (event: EventOption) => {
+      if (event.type === 'reminder') {
+        return 'orange'
+      }
       return event.isAllDay ? 'blue' : null
     },
     getOptionShortDescription: (event: EventOption) => {
@@ -383,17 +413,32 @@ export function EventChooser({
     },
     // Custom rendering with column layout: icon | time | title
     renderOption: (event: EventOption, helpers) => {
-      const { isSelected, handleItemSelect, classNamePrefix } = helpers
-      const calendarIcon = 'fa-calendar'
-      const calendarColor = event.isAllDay ? 'blue' : 'gray'
+      const { isSelected, handleItemSelect, classNamePrefix, getOptionTitle } = helpers
+      const calendarIcon = event.type === 'reminder' ? 'fa-bell' : 'fa-calendar'
+      const calendarColor = event.type === 'reminder' ? 'orange' : event.isAllDay ? 'blue' : 'gray'
       const timeDisplay = event.isAllDay ? 'All-day' : formatTime(event.date)
       const titleWrap = false // Can be made configurable later
+      
+      // Build detailed tooltip with start/end times
+      const tooltipDetails = []
+      if (event.isAllDay) {
+        tooltipDetails.push('All-day event')
+      } else {
+        const startTime = event.date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })
+        tooltipDetails.push(`Starts: ${startTime}`)
+        if (event.endDate) {
+          const endTime = event.endDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })
+          tooltipDetails.push(`Ends: ${endTime}`)
+        }
+      }
+      tooltipDetails.push(`Calendar: ${event.calendar}`)
+      const fullTooltip = `${event.title} - ${tooltipDetails.join(', ')}`
 
       return (
         <div
           className={`searchable-chooser-option event-chooser-option ${isSelected ? 'option-selected' : ''}`}
           onClick={(e) => handleItemSelect(event, e)}
-          title={`${event.title} - Calendar: ${event.calendar}`}
+          title={fullTooltip}
           style={{
             backgroundColor: isSelected ? 'var(--hover-bg, #f5f5f5)' : undefined,
             cursor: 'pointer',
