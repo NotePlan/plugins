@@ -512,12 +512,22 @@ export function FormBuilder({
   }
 
   const canOpenForm = isSaved && !isNewForm && templateTitle && onOpenForm
-  
+
   // Log canOpenForm calculation whenever dependencies change
   useEffect(() => {
-    logDebug('FormBuilder', `canOpenForm calculation: isSaved=${String(isSaved)}, !isNewForm=${String(!isNewForm)}, templateTitle="${String(templateTitle)}", onOpenForm=${String(!!onOpenForm)}, result=${String(canOpenForm)}`)
+    logDebug(
+      'FormBuilder',
+      `canOpenForm calculation: isSaved=${String(isSaved)}, !isNewForm=${String(!isNewForm)}, templateTitle="${String(templateTitle)}", onOpenForm=${String(
+        !!onOpenForm,
+      )}, result=${String(canOpenForm)}`,
+    )
     if (!canOpenForm) {
-      logDebug('FormBuilder', `Open Form button will NOT render because: isSaved=${String(isSaved)}, isNewForm=${String(isNewForm)}, templateTitle="${String(templateTitle)}", onOpenForm=${String(!!onOpenForm)}`)
+      logDebug(
+        'FormBuilder',
+        `Open Form button will NOT render because: isSaved=${String(isSaved)}, isNewForm=${String(isNewForm)}, templateTitle="${String(templateTitle)}", onOpenForm=${String(
+          !!onOpenForm,
+        )}`,
+      )
     }
   }, [isSaved, isNewForm, templateTitle, onOpenForm, canOpenForm])
 

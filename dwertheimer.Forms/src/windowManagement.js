@@ -34,13 +34,25 @@ export function getFormWindowId(formTitle?: string): string {
  * @returns {string | null} - The window ID if found, or null
  */
 export function findFormWindowId(formTitle?: string): string | null {
-  const expectedId = getFormWindowId(formTitle)
-  // Look through all open HTML windows to find one matching our expected ID
-  for (const win of NotePlan.htmlWindows) {
-    if (win.customId === expectedId) {
-      return expectedId
+  // If formTitle is provided, look for exact match first
+  if (formTitle) {
+    const expectedId = getFormWindowId(formTitle)
+    for (const win of NotePlan.htmlWindows) {
+      if (win.customId === expectedId) {
+        return expectedId
+      }
     }
   }
+  
+  // Look through all open HTML windows to find one that starts with WEBVIEW_WINDOW_ID
+  // This handles cases where we don't know the form title but need to find any form window
+  for (const win of NotePlan.htmlWindows) {
+    if (win.customId && win.customId.startsWith(WEBVIEW_WINDOW_ID)) {
+      logDebug(pluginJson, `findFormWindowId: Found window with ID "${win.customId}"`)
+      return win.customId
+    }
+  }
+  
   // If not found, try the base WEBVIEW_WINDOW_ID for backward compatibility
   for (const win of NotePlan.htmlWindows) {
     if (win.customId === WEBVIEW_WINDOW_ID) {
