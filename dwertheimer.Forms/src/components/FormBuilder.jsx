@@ -220,14 +220,19 @@ export function FormBuilder({
 
   // Load folders on demand when needed (for form fields OR processing method sections)
   const loadFolders = useCallback(
-    async (forceReload: boolean = false) => {
+    async (forceReload: boolean = false, spaceOverride?: ?string) => {
       if ((foldersLoaded && !forceReload) || loadingFolders) return
 
       try {
         setLoadingFolders(true)
-        logDebug('FormBuilder', 'Loading folders on demand...')
+        // Use spaceOverride if provided, otherwise use frontmatter.space
+        const spaceToUse = spaceOverride !== null && spaceOverride !== undefined ? spaceOverride : frontmatter.space || ''
+        logDebug('FormBuilder', `Loading folders on demand... (space=${spaceToUse || 'Private'})`)
         // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-        const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true })
+        const foldersData = await requestFromPlugin('getFolders', {
+          excludeTrash: true,
+          space: spaceToUse, // Filter by selected space (empty string = Private)
+        })
         if (Array.isArray(foldersData)) {
           setFolders(foldersData)
           setFoldersLoaded(true)
@@ -243,17 +248,19 @@ export function FormBuilder({
         setLoadingFolders(false)
       }
     },
-    [foldersLoaded, loadingFolders, requestFromPlugin],
+    [foldersLoaded, loadingFolders, requestFromPlugin, frontmatter.space],
   )
 
   // Load notes on demand when needed (for form fields OR processing method sections)
   const loadNotes = useCallback(
-    async (forceReload: boolean = false, forProcessingTemplates: boolean = false) => {
+    async (forceReload: boolean = false, forProcessingTemplates: boolean = false, spaceOverride?: ?string) => {
       if ((notesLoaded && !forceReload) || loadingNotes) return
 
       try {
         setLoadingNotes(true)
-        logDebug('FormBuilder', `Loading notes on demand... (forProcessingTemplates=${String(forProcessingTemplates)})`)
+        // Use spaceOverride if provided, otherwise use frontmatter.space
+        const spaceToUse = spaceOverride !== null && spaceOverride !== undefined ? spaceOverride : frontmatter.space || ''
+        logDebug('FormBuilder', `Loading notes on demand... (forProcessingTemplates=${String(forProcessingTemplates)}, space=${spaceToUse || 'Private'})`)
         // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
         // For processing templates, we only need project notes (not calendar notes) - this is much faster
         // For form fields, we might need all note types
@@ -262,7 +269,7 @@ export function FormBuilder({
           includeCalendarNotes: !forProcessingTemplates, // Skip calendar notes for processing templates (performance optimization)
           includeRelativeNotes: !forProcessingTemplates, // Skip relative notes for processing templates
           includeTeamspaceNotes: true,
-          space: frontmatter.space || '', // Filter by selected space (empty string = Private)
+          space: spaceToUse, // Filter by selected space (empty string = Private)
         })
         if (Array.isArray(notesData)) {
           setNotes(notesData)
@@ -279,7 +286,7 @@ export function FormBuilder({
         setLoadingNotes(false)
       }
     },
-    [notesLoaded, loadingNotes, requestFromPlugin],
+    [notesLoaded, loadingNotes, requestFromPlugin, frontmatter.space],
   )
 
   // Load folders/notes automatically when fields change and they're needed, OR when processing method sections are shown
@@ -586,10 +593,12 @@ export function FormBuilder({
               notes={notes}
               folders={folders}
               requestFromPlugin={requestFromPlugin}
-              onLoadNotes={async (forProcessingTemplates?: boolean) => {
+              onLoadNotes={async (forProcessingTemplates?: boolean, forceReload?: boolean, spaceOverride?: ?string) => {
                 // Load notes - for processing templates, only project notes (faster)
                 // For write-existing method, need all note types (including calendar/relative notes)
-                await loadNotes(false, forProcessingTemplates === true) // Only skip calendar notes if explicitly for processing templates
+                // Force reload when space changes or when explicitly requested
+                // spaceOverride allows passing the new space value immediately (before state updates)
+                await loadNotes(forceReload === true, forProcessingTemplates === true, spaceOverride) // Only skip calendar notes if explicitly for processing templates
               }}
               loadingNotes={loadingNotes}
               onLoadFolders={loadFolders}
@@ -642,6 +651,7 @@ export function FormBuilder({
             }
           }}
           onCancel={() => setEditingIndex(null)}
+          requestFromPlugin={requestFromPlugin}
         />
       )}
     </div>

@@ -28,6 +28,7 @@ export type FolderChooserProps = {
   startFolder?: string,
   includeFolderPath?: boolean,
   excludeTeamspaces?: boolean,
+  spaceFilter?: ?string, // Space ID to filter by (empty string = Private, teamspace ID = specific teamspace, null/undefined = all spaces)
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>,
   showValue?: boolean, // If true, display the selected value below the input
   onFoldersChanged?: () => void, // Callback to request folder list reload after creating a folder
@@ -52,6 +53,7 @@ export function FolderChooser({
   startFolder,
   includeFolderPath = true,
   excludeTeamspaces = false,
+  spaceFilter,
   requestFromPlugin,
   showValue = false,
   onFoldersChanged,
@@ -147,13 +149,44 @@ export function FolderChooser({
       filtered = filtered.filter((folder) => !folder.startsWith('%%NotePlanCloud%%'))
     }
 
-    // Always include root folder
-    if (!filtered.includes('/')) {
+    // Filter by space if spaceFilter is provided
+    if (spaceFilter !== null && spaceFilter !== undefined) {
+      filtered = filtered.filter((folder: string) => {
+        // Root folder - only include for Private space
+        if (folder === '/') {
+          return spaceFilter === ''
+        }
+        
+        // Check if folder is a teamspace folder
+        if (folder.startsWith('%%NotePlanCloud%%')) {
+          const folderDetails = parseTeamspaceFilename(folder)
+          if (spaceFilter === '') {
+            // Private space filter - exclude all teamspace folders
+            return false
+          } else {
+            // Specific teamspace filter - only include folders from that teamspace
+            return spaceFilter === folderDetails.teamspaceID
+          }
+        } else {
+          // Regular folder (not teamspace)
+          if (spaceFilter === '') {
+            // Private space filter - include regular folders
+            return true
+          } else {
+            // Specific teamspace filter - exclude regular folders
+            return false
+          }
+        }
+      })
+    }
+
+    // Always include root folder (if space filter allows it)
+    if (!filtered.includes('/') && (spaceFilter === '' || spaceFilter === null || spaceFilter === undefined)) {
       filtered.unshift('/')
     }
 
     return filtered
-  }, [folders, startFolder, includeArchive, excludeTeamspaces])
+  }, [folders, startFolder, includeArchive, excludeTeamspaces, spaceFilter])
 
   // Handle creating a new folder
   const handleCreateFolder = async (folderName: string, parentFolderPath: string = '') => {

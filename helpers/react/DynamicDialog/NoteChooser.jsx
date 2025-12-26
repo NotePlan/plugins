@@ -10,7 +10,7 @@ import { truncateText } from '@helpers/react/reactUtils.js'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { TEAMSPACE_ICON_COLOR, defaultNoteIconDetails, noteIconsToUse } from '@helpers/NPnote.js'
 import { getFolderFromFilename, getFolderDisplayName } from '@helpers/folders.js'
-import { parseTeamspaceFilename } from '@helpers/teamspace.js'
+import { parseTeamspaceFilename, getFilenameWithoutTeamspaceID } from '@helpers/teamspace.js'
 import './NoteChooser.css'
 
 export type NoteOption = {
@@ -44,6 +44,7 @@ export type NoteChooserProps = {
   startFolder?: ?string, // Start folder to filter notes (e.g., '@Templates/Forms')
   filterByType?: ?string, // Filter notes by frontmatter type (e.g., 'forms-processor')
   allowBackwardsCompatible?: boolean, // If true, allow notes that don't match filters if they match the current value
+  spaceFilter?: ?string, // Space ID to filter by (empty string = Private, teamspace ID = specific teamspace, null/undefined = all spaces)
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request note creation from plugin
   onNotesChanged?: () => void, // Callback to request note list reload after creating a note
   onOpen?: () => void, // Callback when dropdown opens (for lazy loading) - can be async internally
@@ -70,7 +71,12 @@ const getNoteDecoration = (note: NoteOption): { icon: string, color: string, sho
   const userSetIconColor = FMAttributes['icon-color']
 
   // Determine note type for icon (using shared helper)
-  let noteTypeForIcon = getFolderFromFilename(note.filename).split('/')[0] || '/'
+  // For teamspace notes, strip the teamspace prefix first
+  let folderPath = getFolderFromFilename(note.filename)
+  if (possTeamspaceDetails.isTeamspace) {
+    folderPath = getFilenameWithoutTeamspaceID(folderPath) || '/'
+  }
+  let noteTypeForIcon = folderPath.split('/')[0] || '/'
   if (note.type === 'Calendar') {
     // Simplified calendar note type detection (could be enhanced to detect week/month/quarter/year)
     // For now, assume daily - could check filename pattern for more precision
@@ -86,17 +92,19 @@ const getNoteDecoration = (note: NoteOption): { icon: string, color: string, sho
   // Determine color (using shared constant for teamspace)
   const color = possTeamspaceDetails.isTeamspace || note.isTeamspaceNote ? TEAMSPACE_ICON_COLOR : userSetIconColor || folderIconDetails.color
 
-  // Short description: folder display name for regular notes (using shared helper)
-  // But only if the title doesn't already contain the folder path (to avoid duplication)
-  // Also, don't show short description if we're adding the folder path to the option text
-  // (because the path will already be visible in the main text)
-  // We intentionally don't show short description to avoid duplicating the folder path
-  // which is already shown in the option text as "path / title"
+  // Short description: show teamspace name if it's a teamspace note, otherwise show folder path
+  let shortDescription: ?string = null
+  if (possTeamspaceDetails.isTeamspace && note.teamspaceTitle) {
+    shortDescription = note.teamspaceTitle
+  } else if (folderPath && folderPath !== '/') {
+    // Show folder path as short description for non-teamspace notes
+    shortDescription = folderPath
+  }
 
   return {
     icon: userSetIcon || folderIconDetails.icon,
     color,
-    shortDescription: null, // Intentionally null - folder path is already in option text
+    shortDescription,
   }
 }
 
@@ -119,6 +127,7 @@ export function NoteChooser({
   startFolder,
   filterByType,
   allowBackwardsCompatible = false,
+  spaceFilter,
   requestFromPlugin,
   onNotesChanged,
   onOpen,
@@ -266,9 +275,25 @@ export function NoteChooser({
         shouldInclude = false
       }
 
+      // Filter by space if spaceFilter is provided
+      if (shouldInclude && spaceFilter !== null && spaceFilter !== undefined && !isRelativeNote) {
+        const noteTeamspaceID = note.teamspaceID || null
+        if (spaceFilter === '') {
+          // Private space filter - only include private notes (non-teamspace)
+          if (isTeamspaceNote) {
+            shouldInclude = false
+          }
+        } else {
+          // Specific teamspace filter - only include notes from that teamspace
+          if (spaceFilter !== noteTeamspaceID) {
+            shouldInclude = false
+          }
+        }
+      }
+
       return shouldInclude
     })
-  }, [notes, includeCalendarNotes, includePersonalNotes, includeRelativeNotes, includeTeamspaceNotes, folderFilter, startFolder, filterByType, allowBackwardsCompatible, value])
+  }, [notes, includeCalendarNotes, includePersonalNotes, includeRelativeNotes, includeTeamspaceNotes, folderFilter, startFolder, filterByType, allowBackwardsCompatible, value, spaceFilter])
 
   // Add "New Note" option to items if includeNewNoteOption is true
   const itemsWithNewNote = useMemo(() => {
@@ -309,14 +334,17 @@ export function NoteChooser({
       // For personal/project notes, show "path / title" format to match native chooser
       // For calendar notes, show just the title
       if (note.type === 'Notes' || !note.type) {
-        // Get folder path from filename
-        const folder = getFolderFromFilename(note.filename)
-        // Log detailed info for debugging
-        logDebug('NoteChooser', `getOptionText: filename="${note.filename}", title="${note.title}", extractedFolder="${folder}"`)
+        // Parse teamspace info to get clean folder path
+        const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
+        let folder = getFolderFromFilename(note.filename)
+        
+        // Strip teamspace prefix from folder path for display
+        if (possTeamspaceDetails.isTeamspace) {
+          folder = getFilenameWithoutTeamspaceID(folder) || '/'
+        }
 
         // Format as "path / title" (or just "title" if folder is root)
         if (folder === '/' || !folder) {
-          logDebug('NoteChooser', `getOptionText: root folder, returning title only: "${note.title}"`)
           return note.title
         }
 
@@ -327,20 +355,15 @@ export function NoteChooser({
 
         if (titleContainsFolder) {
           // Title already contains folder path, just return the title
-          logDebug('NoteChooser', `getOptionText: title already contains folder path, returning title only: "${note.title}"`)
           return note.title
         }
 
-        const result = `${folder} / ${note.title}`
-        logDebug('NoteChooser', `getOptionText: formatted result: "${result}"`)
-        return result
+        return `${folder} / ${note.title}`
       } else if (note.type === 'Calendar') {
         // For calendar notes, show just the title (which should already include date info)
-        logDebug('NoteChooser', `getOptionText: calendar note, returning title: "${note.title}"`)
         return note.title
       }
       // Fallback to just title
-      logDebug('NoteChooser', `getOptionText: fallback, returning title: "${note.title}"`)
       return note.title
     },
     getOptionTitle: (note: NoteOption) => {

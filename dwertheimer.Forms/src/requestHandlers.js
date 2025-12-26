@@ -12,6 +12,7 @@
  * @author @dwertheimer
  */
 
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { getAllNotesAsOptions, getRelativeNotesAsOptions } from './noteHelpers'
 import { createProcessingTemplate } from './ProcessingTemplate'
@@ -21,6 +22,7 @@ import { openFormBuilder } from './NPTemplateForm'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
+import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { showMessage } from '@helpers/userInput'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 import { getNoteByFilename } from '@helpers/note'
@@ -97,19 +99,52 @@ export async function testRequestHandlers(): Promise<void> {
  * @param {boolean} params.excludeTrash - Whether to exclude @Trash folder (default: true)
  * @returns {RequestResponse}
  */
-export function getFolders(params: { excludeTrash?: boolean } = {}): RequestResponse {
+export function getFolders(params: { excludeTrash?: boolean, space?: string } = {}): RequestResponse {
   const startTime: number = Date.now()
   try {
     logDebug(pluginJson, `[DIAG] getFolders START: excludeTrash=${String(params.excludeTrash ?? true)}`)
 
     const excludeTrash = params.excludeTrash ?? true
+    const spaceId = params.space ?? '' // Empty string = Private (default)
     const exclusions = excludeTrash ? ['@Trash'] : []
 
     // Get all folders except exclusions. Include special folders (@Templates, @Archive, etc.) and teamspaces, sorted
     const foldersStartTime: number = Date.now()
-    const folders = getFoldersMatching([], false, exclusions, false, true)
+    let folders = getFoldersMatching([], false, exclusions, false, true)
     const foldersElapsed: number = Date.now() - foldersStartTime
     logDebug(pluginJson, `[DIAG] getFolders getFoldersMatching: elapsed=${foldersElapsed}ms, found=${folders.length} folders`)
+
+    // Filter by space if specified
+    if (spaceId !== null && spaceId !== undefined) {
+      folders = folders.filter((folder: string) => {
+        // Root folder - only include for Private space
+        if (folder === '/') {
+          return spaceId === ''
+        }
+
+        // Check if folder is a teamspace folder
+        if (folder.startsWith('%%NotePlanCloud%%')) {
+          const folderDetails = parseTeamspaceFilename(folder)
+          if (spaceId === '') {
+            // Private space filter - exclude all teamspace folders
+            return false
+          } else {
+            // Specific teamspace filter - only include folders from that teamspace
+            return spaceId === folderDetails.teamspaceID
+          }
+        } else {
+          // Regular folder (not teamspace)
+          if (spaceId === '') {
+            // Private space filter - include regular folders
+            return true
+          } else {
+            // Specific teamspace filter - exclude regular folders
+            return false
+          }
+        }
+      })
+      logDebug(pluginJson, `[DIAG] getFolders FILTERED: ${folders.length} folders after space filter (space=${spaceId || 'Private'})`)
+    }
 
     const totalElapsed: number = Date.now() - startTime
     logDebug(pluginJson, `[DIAG] getFolders COMPLETE: totalElapsed=${totalElapsed}ms, found=${folders.length} folders`)
@@ -183,14 +218,30 @@ export function getNotes(
       const processElapsed: number = Date.now() - processStartTime
       logDebug(pluginJson, `[DIAG] getNotes PROJECT: elapsed=${processElapsed}ms, found=${projectNotes.length} project notes`)
 
-      // Filter teamspace notes if needed
+      // Filter teamspace notes if needed, and also filter by space if specified
       for (const note of projectNotes) {
         const isTeamspaceNote = note.isTeamspaceNote === true
+        const noteTeamspaceID = note.teamspaceID || null
+
+        // First check if we should include teamspace notes at all
         if (includeTeamspaceNotes || !isTeamspaceNote) {
-          allNotes.push(note)
+          // If space filter is specified, only include notes from that space
+          if (spaceId !== '') {
+            // Space filter is set - only include notes from that specific space
+            if (spaceId === noteTeamspaceID) {
+              allNotes.push(note)
+            }
+            // Skip notes that don't match the space filter
+          } else {
+            // No space filter (Private) - only include private notes (non-teamspace)
+            if (!isTeamspaceNote) {
+              allNotes.push(note)
+            }
+            // Skip teamspace notes when space filter is Private (empty string)
+          }
         }
       }
-      logDebug(pluginJson, `[DIAG] getNotes PROJECT FILTERED: ${allNotes.length} personal notes after teamspace filter`)
+      logDebug(pluginJson, `[DIAG] getNotes PROJECT FILTERED: ${allNotes.length} personal notes after teamspace and space filter`)
     }
 
     // Get calendar notes if requested
@@ -277,62 +328,139 @@ export function getNotes(
  * @param {Object} params - Request parameters
  * @param {string} params.dateString - Date string in YYYY-MM-DD format (optional, defaults to today)
  * @param {string} params.date - ISO date string (optional, alternative to dateString)
+ * @param {Array<string>} params.calendars - Optional array of calendar titles to filter by (ignored if allCalendars=true)
+ * @param {boolean} params.allCalendars - If true, include events from all calendars NotePlan can access (bypasses calendars filter)
+ * @param {string} params.calendarFilterRegex - Optional regex pattern to filter calendars after fetching (applied when allCalendars=true)
+ * @param {string} params.eventFilterRegex - Optional regex pattern to filter events by title after fetching
+ * @param {boolean} params.includeReminders - If true, include reminders (default: false)
+ * @param {Array<string>} params.reminderLists - Optional array of reminder list titles to filter reminders by
  * @returns {Promise<RequestResponse>}
  */
-export async function getEvents(params: { dateString?: string, date?: string } = {}): Promise<RequestResponse> {
+export async function getEvents(
+  params: {
+    dateString?: string,
+    date?: string,
+    calendars?: Array<string>,
+    allCalendars?: boolean,
+    calendarFilterRegex?: string,
+    eventFilterRegex?: string,
+    includeReminders?: boolean,
+    reminderLists?: Array<string>,
+  } = {},
+): Promise<RequestResponse> {
   const startTime: number = Date.now()
   try {
-    // Parse the date - prefer dateString (YYYY-MM-DD), fall back to date (ISO), or use today
-    let targetDate: Date
+    // Parse the date using moment.js for proper timezone handling
+    // Prefer dateString (YYYY-MM-DD), fall back to date (ISO), or use today
+    let targetMoment: any // moment.Moment type
+    let isToday = false
+
     if (params.dateString) {
-      // Parse YYYY-MM-DD format
-      const [year, month, day] = params.dateString.split('-').map(Number)
-      targetDate = Calendar.dateFrom(year, month, day, 0, 0, 0)
-    } else if (params.date) {
-      // Parse ISO date string
-      targetDate = new Date(params.date)
-    } else {
-      // Default to today
-      targetDate = new Date()
-    }
-
-    if (isNaN(targetDate.getTime())) {
-      logError(pluginJson, `getEvents: Invalid date provided: dateString="${String(params.dateString || '')}", date="${String(params.date || '')}"`)
-      return {
-        success: false,
-        message: `Invalid date provided`,
-        data: null,
+      // Parse YYYY-MM-DD format - moment handles this in local timezone
+      targetMoment = moment(params.dateString, 'YYYY-MM-DD', true) // strict parsing
+      if (!targetMoment.isValid()) {
+        logError(pluginJson, `getEvents: Invalid dateString provided: "${String(params.dateString)}"`)
+        return {
+          success: false,
+          message: `Invalid dateString provided`,
+          data: null,
+        }
       }
+    } else if (params.date) {
+      // Parse ISO date string - moment handles timezone conversion properly
+      targetMoment = moment(params.date)
+      if (!targetMoment.isValid()) {
+        logError(pluginJson, `getEvents: Invalid date provided: "${String(params.date)}"`)
+        return {
+          success: false,
+          message: `Invalid date provided`,
+          data: null,
+        }
+      }
+    } else {
+      // Default to today - use Calendar.eventsToday() for better accuracy
+      isToday = true
+      targetMoment = moment().startOf('day')
     }
 
-    logDebug(pluginJson, `[DIAG] getEvents START: targetDate=${targetDate.toISOString()}`)
+    // Normalize to start of day in local timezone using moment
+    targetMoment = targetMoment.startOf('day')
+    const targetDate: Date = targetMoment.toDate()
 
-    // Get start and end of day
-    const dayStart = Calendar.dateFrom(
-      targetDate.getFullYear(),
-      targetDate.getMonth() + 1, // Calendar.dateFrom uses 1-12 for months
-      targetDate.getDate(),
-      0,
-      0,
-      0,
+    logDebug(
+      pluginJson,
+      `[DIAG] getEvents START: targetDate=${targetDate.toISOString()}, isToday=${String(isToday)}, localDate=${targetMoment.format('YYYY-MM-DD')}, input dateString="${String(
+        params.dateString || '',
+      )}", input date="${String(params.date || '')}"`,
     )
-    const dayEnd = Calendar.dateFrom(targetDate.getFullYear(), targetDate.getMonth() + 1, targetDate.getDate(), 23, 59, 59)
 
-    // Fetch events for the day
+    // Get start and end of day using moment (handles timezone properly)
+    const dayStartMoment = targetMoment.clone().startOf('day')
+    const dayEndMoment = targetMoment.clone().endOf('day')
+
+    // Convert to Calendar.dateFrom format (extract components from moment in local timezone)
+    const year = dayStartMoment.year()
+    const month = dayStartMoment.month() + 1 // Calendar.dateFrom uses 1-12 for months, moment uses 0-11
+    const day = dayStartMoment.date()
+    const dayStart = Calendar.dateFrom(year, month, day, 0, 0, 0)
+    const dayEnd = Calendar.dateFrom(year, month, day, 23, 59, 59)
+
+    logDebug(pluginJson, `[DIAG] getEvents: Calendar.dateFrom params: year=${year}, month=${month}, day=${day}`)
+    logDebug(
+      pluginJson,
+      `[DIAG] getEvents: dayStart=${dayStart.toISOString()}, dayEnd=${dayEnd.toISOString()}, momentStart=${dayStartMoment.format()}, momentEnd=${dayEndMoment.format()}`,
+    )
+    logDebug(pluginJson, `[DIAG] getEvents: dayStart local=${dayStartMoment.format('YYYY-MM-DD HH:mm:ss')}, dayEnd local=${dayEndMoment.format('YYYY-MM-DD HH:mm:ss')}`)
+
+    // Fetch events for the day - use eventsToday() for today, eventsBetween() for other dates
     const eventsStartTime: number = Date.now()
-    const calendarEvents: Array<TCalendarItem> = await Calendar.eventsBetween(dayStart, dayEnd)
+    let calendarEvents: Array<TCalendarItem>
+    if (isToday) {
+      // Use eventsToday() for better accuracy when fetching today's events
+      calendarEvents = await Calendar.eventsToday()
+    } else {
+      calendarEvents = await Calendar.eventsBetween(dayStart, dayEnd)
+    }
     const eventsElapsed: number = Date.now() - eventsStartTime
     logDebug(pluginJson, `[DIAG] getEvents Calendar.eventsBetween: elapsed=${eventsElapsed}ms, found=${calendarEvents.length} events`)
 
     // Filter to only events that are on this day
     let filteredEvents = keepTodayPortionOnly(calendarEvents, targetDate)
 
-    // Filter by calendars if specified
-    if (params.calendars && Array.isArray(params.calendars) && params.calendars.length > 0) {
+    // Filter by calendars if specified (only if allCalendars is not enabled)
+    if (!params.allCalendars && params.calendars && Array.isArray(params.calendars) && params.calendars.length > 0) {
       filteredEvents = filteredEvents.filter((event: TCalendarItem) => {
         return params.calendars?.includes(event.calendar || '')
       })
       logDebug(pluginJson, `[DIAG] getEvents FILTERED BY CALENDARS: ${filteredEvents.length} events after calendar filter`)
+    }
+
+    // Apply calendar filter regex if specified (when allCalendars is enabled)
+    if (params.allCalendars && params.calendarFilterRegex && typeof params.calendarFilterRegex === 'string') {
+      try {
+        const calendarRegex = new RegExp(params.calendarFilterRegex)
+        const beforeCount = filteredEvents.length
+        filteredEvents = filteredEvents.filter((event: TCalendarItem) => {
+          return calendarRegex.test(event.calendar || '')
+        })
+        logDebug(pluginJson, `[DIAG] getEvents FILTERED BY CALENDAR REGEX: ${beforeCount} -> ${filteredEvents.length} events after regex filter`)
+      } catch (error) {
+        logError(pluginJson, `[DIAG] getEvents: Invalid calendarFilterRegex pattern: "${String(params.calendarFilterRegex)}", error: ${error.message}`)
+      }
+    }
+
+    // Apply event title filter regex if specified
+    if (params.eventFilterRegex && typeof params.eventFilterRegex === 'string') {
+      try {
+        const eventRegex = new RegExp(params.eventFilterRegex)
+        const beforeCount = filteredEvents.length
+        filteredEvents = filteredEvents.filter((event: TCalendarItem) => {
+          return eventRegex.test(event.title || '')
+        })
+        logDebug(pluginJson, `[DIAG] getEvents FILTERED BY EVENT REGEX: ${beforeCount} -> ${filteredEvents.length} events after regex filter`)
+      } catch (error) {
+        logError(pluginJson, `[DIAG] getEvents: Invalid eventFilterRegex pattern: "${String(params.eventFilterRegex)}", error: ${error.message}`)
+      }
     }
 
     // Get reminders if requested
@@ -419,7 +547,10 @@ export async function getEvents(params: { dateString?: string, date?: string } =
     }
 
     const totalElapsed: number = Date.now() - startTime
-    logDebug(pluginJson, `[DIAG] getEvents COMPLETE: totalElapsed=${totalElapsed}ms, found=${serializedEvents.length} items (${filteredEvents.length} events, ${reminders.length} reminders)`)
+    logDebug(
+      pluginJson,
+      `[DIAG] getEvents COMPLETE: totalElapsed=${totalElapsed}ms, found=${serializedEvents.length} items (${filteredEvents.length} events, ${reminders.length} reminders)`,
+    )
 
     return {
       success: true,
@@ -431,6 +562,79 @@ export async function getEvents(params: { dateString?: string, date?: string } =
     return {
       success: false,
       message: `Failed to get events: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
+ * Get list of available calendar titles
+ * NOTE: There is a known bug in NotePlan's Calendar.availableCalendarTitles() API that causes
+ * it to only return calendars with write access, even when writeOnly=false. This means the
+ * list may be incomplete and missing read-only calendars that NotePlan can still access events from.
+ * @param {Object} params - Request parameters
+ * @param {boolean} params.writeOnly - If true, only return calendars with write access (default: false)
+ * @returns {RequestResponse}
+ */
+export function getAvailableCalendars(params: { writeOnly?: boolean } = {}): RequestResponse {
+  const startTime: number = Date.now()
+  try {
+    const writeOnly = params.writeOnly ?? false
+    logDebug(pluginJson, `[DIAG] getAvailableCalendars START: writeOnly=${String(writeOnly)}`)
+
+    // NOTE: Bug in NotePlan API - availableCalendarTitles may only return writeable calendars
+    // even when writeOnly=false. This is why we offer "All NotePlan Enabled Calendars" option.
+    const calendars = Calendar.availableCalendarTitles(writeOnly || false)
+
+    const totalElapsed: number = Date.now() - startTime
+    logDebug(pluginJson, `[DIAG] getAvailableCalendars COMPLETE: totalElapsed=${totalElapsed}ms, found=${calendars.length} calendars`)
+
+    return {
+      success: true,
+      data: calendars,
+    }
+  } catch (error) {
+    const totalElapsed: number = Date.now() - startTime
+    logError(pluginJson, `[DIAG] getAvailableCalendars ERROR: totalElapsed=${totalElapsed}ms, error="${error.message}"`)
+    return {
+      success: false,
+      message: `Failed to get calendars: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
+ * Get list of available reminder list titles
+ * @param {Object} params - Request parameters (currently unused)
+ * @returns {RequestResponse}
+ */
+export function getAvailableReminderLists(_params: Object = {}): RequestResponse {
+  const startTime: number = Date.now()
+  try {
+    logDebug(pluginJson, `[DIAG] getAvailableReminderLists START`)
+
+    // NOTE: Calendar.availableReminderListTitles() may return an empty array if the user
+    // has no reminder lists configured in NotePlan. This is not an error condition.
+    const reminderLists = Calendar.availableReminderListTitles()
+
+    const totalElapsed: number = Date.now() - startTime
+    logDebug(pluginJson, `[DIAG] getAvailableReminderLists COMPLETE: totalElapsed=${totalElapsed}ms, found=${reminderLists.length} reminder lists`)
+
+    if (reminderLists.length === 0) {
+      logDebug(pluginJson, `[DIAG] getAvailableReminderLists: Empty result - user may not have any reminder lists configured in NotePlan`)
+    }
+
+    return {
+      success: true,
+      data: reminderLists,
+    }
+  } catch (error) {
+    const totalElapsed: number = Date.now() - startTime
+    logError(pluginJson, `[DIAG] getAvailableReminderLists ERROR: totalElapsed=${totalElapsed}ms, error="${error.message}"`)
+    return {
+      success: false,
+      message: `Failed to get reminder lists: ${error.message}`,
       data: null,
     }
   }
@@ -1100,6 +1304,8 @@ export async function handleRequest(requestType: string, params: Object = {}): P
         return await getEvents(params)
       case 'getAvailableCalendars':
         return getAvailableCalendars(params)
+      case 'getAvailableReminderLists':
+        return getAvailableReminderLists(params)
       case 'getTeamspaces':
         return getTeamspaces(params)
       case 'createFolder':

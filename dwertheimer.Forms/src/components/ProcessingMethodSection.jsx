@@ -20,9 +20,9 @@ export type ProcessingMethodSectionProps = {
   folders: Array<string>,
   requestFromPlugin: (command: string, dataToSend?: any, timeout?: number) => Promise<any>,
   onFrontmatterChange: (key: string, value: any) => void,
-  onLoadNotes: (forProcessingTemplates?: boolean) => Promise<void>,
+  onLoadNotes: (forProcessingTemplates?: boolean, forceReload?: boolean, spaceOverride?: ?string) => Promise<void>,
   loadingNotes?: boolean, // Loading state for notes
-  onLoadFolders: (forceReload?: boolean) => Promise<void>,
+  onLoadFolders: (forceReload?: boolean, spaceOverride?: ?string) => Promise<void>,
   templateTitle: string,
   templateFilename?: string,
   showTagInserter: boolean,
@@ -161,9 +161,13 @@ export function ProcessingMethodSection({
                 onFrontmatterChange('space', spaceId)
                 // Clear note selection when space changes to avoid confusion
                 onFrontmatterChange('getNoteTitled', '')
-                // Reload notes to reflect the new space filter (fire and forget)
-                onLoadNotes(false).catch((error) => {
+                // Reload notes and folders to reflect the new space filter (force reload to ensure fresh data)
+                // Pass spaceId directly to avoid reading stale frontmatter.space value
+                onLoadNotes(false, true, spaceId).catch((error) => {
                   console.error('Error reloading notes after space change:', error)
+                })
+                onLoadFolders(true, spaceId).catch((error) => {
+                  console.error('Error reloading folders after space change:', error)
                 })
               }}
               placeholder="Select space (Private or Teamspace)"
@@ -192,6 +196,7 @@ export function ProcessingMethodSection({
               includeCalendarNotes={true}
               includeRelativeNotes={true}
               includeTeamspaceNotes={true}
+              spaceFilter={frontmatter.space || ''}
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
               onNotesChanged={() => {
@@ -371,9 +376,12 @@ export function ProcessingMethodSection({
               value={frontmatter.space || ''}
               onChange={(spaceId: string) => {
                 onFrontmatterChange('space', spaceId)
-                // Reload notes to reflect the new space filter (for folder chooser if needed) (fire and forget)
-                onLoadNotes(false).catch((error) => {
+                // Reload notes and folders to reflect the new space filter (force reload)
+                onLoadNotes(false, true, spaceId).catch((error) => {
                   console.error('Error reloading notes after space change:', error)
+                })
+                onLoadFolders(true, spaceId).catch((error) => {
+                  console.error('Error reloading folders after space change:', error)
                 })
               }}
               placeholder="Select space (Private or Teamspace)"
@@ -570,6 +578,7 @@ export function ProcessingMethodSection({
               }}
               placeholder="Select folder (optional)"
               includeNewFolderOption={true}
+              spaceFilter={frontmatter.space || ''}
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
               onFoldersChanged={() => {
@@ -599,9 +608,13 @@ export function ProcessingMethodSection({
                 // Clear template selection when space changes to avoid confusion
                 onFrontmatterChange('receivingTemplateTitle', '')
                 setSelectedProcessingTemplateFilename('')
-                // Reload notes to reflect the new space filter (fire and forget)
-                onLoadNotes(true).catch((error) => {
+                // Reload notes and folders to reflect the new space filter (force reload to ensure fresh data)
+                // Pass spaceId directly to avoid reading stale frontmatter.space value
+                onLoadNotes(true, true, spaceId).catch((error) => {
                   console.error('Error reloading notes after space change:', error)
+                })
+                onLoadFolders(true, spaceId).catch((error) => {
+                  console.error('Error reloading folders after space change:', error)
                 })
               }}
               placeholder="Select space (Private or Teamspace)"
@@ -647,6 +660,7 @@ export function ProcessingMethodSection({
                   includeCalendarNotes={false}
                   includeRelativeNotes={false}
                   includeTeamspaceNotes={true}
+                  spaceFilter={frontmatter.space || ''}
                   startFolder="@Forms"
                   filterByType="forms-processor"
                   allowBackwardsCompatible={true}
