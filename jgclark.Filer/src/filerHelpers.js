@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Filer plugin.
 // Jonathan Clark
-// last updated 2025-11-24, for v1.3.4
+// last updated 2025-12-16, for v1.5.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -20,6 +20,8 @@ export type FilerConfig = {
   includeFromStartOfSection: boolean,
   allowNotePreambleBeforeHeading: boolean,
   useTightBlockDefinition: boolean,
+  recreateDoneSectionStructure: boolean,
+  onlyMoveCompletedWhenWholeSectionComplete: boolean,
   whereToAddInSection: string, // 'start' (default) or 'end'
   // justCompletedItems: boolean, // migrating to the next item
   typesToFile: string, // now a choice: all but incomplete tasks

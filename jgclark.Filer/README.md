@@ -17,6 +17,11 @@ This extends the first command, by also moving commands in the current paragraph
 
 From v0.7.0, you can turn on 'Use a tighter definition of when a Block finishes?' in the settings, which will stop the section at the next blank line, as well as next heading of the same level or higher, or the next horizontal line, or the start of the `## Done` or `## Cancelled` section.
 
+##  /move completed items to done section
+This is a more powerful version of NotePlan's built-in 'Move Completed to Bottom' menu action.  It has two settings, which reveal its additional powers:
+- Recreate existing section structure in Done section? (default: true)
+- Only move completed items when whole section is complete? (default: false)
+
 ## /quick move to <...> note
 These 4 commands each moves lines to the current weekly note, using the same selection strategy as /mp (see above). The move happens in the background, leaving you in the flow in your current note. (Available with weekly notes from NotePlan v3.6.)
 
