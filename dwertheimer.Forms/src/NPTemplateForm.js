@@ -979,20 +979,31 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
         const result = await handleRequest(actionType, data)
 
         // Get window ID - try to find it from open windows or window data
-        let windowId = WEBVIEW_WINDOW_ID
+        // For form entry windows, use findFormWindowId() first (most reliable)
+        let windowId = findFormWindowId() || WEBVIEW_WINDOW_ID
         try {
-          const tempWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+          // Try to get window data with the found ID
+          const tempWindowData = await getGlobalSharedData(windowId)
           if (tempWindowData?.pluginData?.windowId) {
             windowId = tempWindowData.pluginData.windowId
           } else if (tempWindowData?.pluginData?.formTitle) {
             windowId = getFormWindowId(tempWindowData.pluginData.formTitle)
-          } else {
-            const foundId = findFormWindowId()
-            if (foundId) windowId = foundId
           }
         } catch (e) {
-          const foundId = findFormWindowId()
-          if (foundId) windowId = foundId
+          // If that fails, try the base WEBVIEW_WINDOW_ID
+          try {
+            const tempWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+            if (tempWindowData?.pluginData?.windowId) {
+              windowId = tempWindowData.pluginData.windowId
+            } else if (tempWindowData?.pluginData?.formTitle) {
+              windowId = getFormWindowId(tempWindowData.pluginData.formTitle)
+            } else {
+              windowId = WEBVIEW_WINDOW_ID
+            }
+          } catch (e2) {
+            // Last resort: use the found ID or base ID
+            windowId = findFormWindowId() || WEBVIEW_WINDOW_ID
+          }
         }
         // Send response back to React
         sendToHTMLWindow(windowId, 'RESPONSE', {
@@ -1005,20 +1016,31 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
       } catch (error) {
         logError(pluginJson, `onFormSubmitFromHTMLView: Error handling REQUEST: ${error.message}`)
         // Get window ID - try to find it from open windows or window data
-        let windowId = WEBVIEW_WINDOW_ID
+        // For form entry windows, use findFormWindowId() first (most reliable)
+        let windowId = findFormWindowId() || WEBVIEW_WINDOW_ID
         try {
-          const tempWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+          // Try to get window data with the found ID
+          const tempWindowData = await getGlobalSharedData(windowId)
           if (tempWindowData?.pluginData?.windowId) {
             windowId = tempWindowData.pluginData.windowId
           } else if (tempWindowData?.pluginData?.formTitle) {
             windowId = getFormWindowId(tempWindowData.pluginData.formTitle)
-          } else {
-            const foundId = findFormWindowId()
-            if (foundId) windowId = foundId
           }
         } catch (e) {
-          const foundId = findFormWindowId()
-          if (foundId) windowId = foundId
+          // If that fails, try the base WEBVIEW_WINDOW_ID
+          try {
+            const tempWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+            if (tempWindowData?.pluginData?.windowId) {
+              windowId = tempWindowData.pluginData.windowId
+            } else if (tempWindowData?.pluginData?.formTitle) {
+              windowId = getFormWindowId(tempWindowData.pluginData.formTitle)
+            } else {
+              windowId = WEBVIEW_WINDOW_ID
+            }
+          } catch (e2) {
+            // Last resort: use the found ID or base ID
+            windowId = findFormWindowId() || WEBVIEW_WINDOW_ID
+          }
         }
         sendToHTMLWindow(windowId, 'RESPONSE', {
           correlationId: data.__correlationId,

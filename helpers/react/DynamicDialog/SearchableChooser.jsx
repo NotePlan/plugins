@@ -447,7 +447,7 @@ export function SearchableChooser({
             {isLoading ? (
               <div className={`searchable-chooser-empty ${classNamePrefix}-empty`} style={{ padding: '1rem', textAlign: 'center', color: 'var(--gray-600, #666)' }}>
                 <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
-                Loading notes...
+                {fieldType === 'event-chooser' ? 'Loading events...' : fieldType === 'folder-chooser' ? 'Loading folders...' : fieldType === 'space-chooser' ? 'Loading spaces...' : 'Loading notes...'}
               </div>
             ) : filteredItems.length === 0 ? (
               <div className={`searchable-chooser-empty ${classNamePrefix}-empty`}>
