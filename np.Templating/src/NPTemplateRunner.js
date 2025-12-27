@@ -437,7 +437,7 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
       return false
     }
   }
-  
+
   // Render folder with form values if it contains template tags
   // Special values like <select>, <choose>, <current> will be preserved and handled by templateNew/getFolder after rendering
   let folder = data['folder'] || null
@@ -459,7 +459,7 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
       return false
     }
   }
-  
+
   if (newNoteTitle) {
     if (selectedTemplate) {
       // if form or template has a newNoteTitle field then we need to call templateNew
@@ -508,7 +508,10 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
             // replace double/triple dashes with triple dashes so they are treated as frontmatter
             note.content = replaceDoubleDashes(renderedContent)
           } else {
-            logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation template body does not have title specified; appending content to note:${filename}; content:"${renderedContent}"`)
+            logDebug(
+              pluginJson,
+              `NPTemplateRunner::handleNewNoteCreation template body does not have title specified; appending content to note:${filename}; content:"${renderedContent}"`,
+            )
             note.appendParagraph(renderedContent, 'text')
           }
           // trying anything to force the cache to recognize this note by title soon after creation
@@ -830,7 +833,7 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
 
         // Extract note preferences
         let { noteTitle, shouldOpenInEditor } = extractTitleAndShouldOpenSettings(frontmatterAttributes, openInEditor)
-        
+
         // Render noteTitle (getNoteTitled) with form values if it contains template tags
         // Special values like <today>, <current>, <choose>, <select> will be preserved and handled by handleNoteSelection after rendering
         // This allows combinations like "<%- field1 %> <today>" to work correctly
@@ -868,7 +871,7 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
 
         clo(data, `templateRunnerExecute before createTemplateWriteOptions, data=`)
         clo(frontmatterAttributes, `templateRunnerExecute before createTemplateWriteOptions, frontmatterAttributes=`)
-        
+
         // Render writeUnderHeading with form values if it contains template tags
         // Special values like <choose>, <select> will be preserved and handled by handleHeadingSelection after rendering
         if (frontmatterAttributes.writeUnderHeading && typeof frontmatterAttributes.writeUnderHeading === 'string' && frontmatterAttributes.writeUnderHeading.includes('<%')) {
@@ -889,7 +892,7 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
             return
           }
         }
-        
+
         const writeOptions = createTemplateWriteOptions(frontmatterAttributes, shouldOpenInEditor)
 
         logDebug(pluginJson, `templateRunnerExecute isTodayNote:${String(isTodayNote)} isThisWeek:${String(isThisWeek)} isNextWeek:${String(isNextWeek)}`)

@@ -4,7 +4,7 @@
 // Routes requests from FormBrowserView React component to appropriate handlers
 //--------------------------------------------------------------------------
 
-import { getFormTemplates, getFormFields, handleSubmitForm, handleOpenFormBuilder, handleCreateNewForm } from './formBrowserHandlers'
+import { getFormTemplates, getFormFields, handleSubmitForm, handleOpenFormBuilder, handleCreateNewForm, handleOpenNoteByTitle } from './formBrowserHandlers'
 import { handleDuplicateForm } from './formBuilderHandlers' // For duplicate functionality
 import { handleRequest } from './requestHandlers' // For shared requests like getTeamspaces
 import { createRouter, type RequestResponse } from './routerUtils'
@@ -32,6 +32,8 @@ async function routeFormBrowserRequest(actionType: string, data: any): Promise<R
       return await handleCreateNewForm(data)
     case 'duplicateForm':
       return await handleDuplicateForm(data)
+    case 'openNote':
+      return await handleOpenNoteByTitle(data)
     default:
       // For shared requests (getTeamspaces, etc.), use the shared request handler
       return await handleRequest(actionType, data)

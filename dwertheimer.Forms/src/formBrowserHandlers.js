@@ -8,9 +8,9 @@ import pluginJson from '../plugin.json'
 import { openFormBuilder } from './NPTemplateForm'
 import { handleSubmitButtonClick } from './formSubmission'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
-import { parseObjectString } from '@helpers/stringTransforms'
+import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
 import { logDebug, logError } from '@helpers/dev'
-import { getNoteByFilename } from '@helpers/note'
+import { getNoteByFilename, getNote } from '@helpers/note'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { getFolderFromFilename } from '@helpers/folders'
 
@@ -193,9 +193,9 @@ export async function getFormFields(params: { templateFilename?: string } = {}):
  * @param {string} params.windowId - Optional window ID
  * @returns {RequestResponse}
  */
-export async function handleSubmitForm(params: { templateFilename?: string, formValues?: Object, windowId?: string } = {}): Promise<RequestResponse> {
+export async function handleSubmitForm(params: { templateFilename?: string, formValues?: Object, windowId?: string, keepOpenOnSubmit?: boolean } = {}): Promise<RequestResponse> {
   try {
-    const { templateFilename, formValues, windowId } = params
+    const { templateFilename, formValues, windowId, keepOpenOnSubmit } = params
     if (!templateFilename || !formValues) {
       return {
         success: false,
@@ -204,7 +204,7 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       }
     }
 
-    logDebug(pluginJson, `handleSubmitForm: templateFilename="${templateFilename}"`)
+    logDebug(pluginJson, `handleSubmitForm: templateFilename="${templateFilename}", keepOpenOnSubmit=${String(keepOpenOnSubmit || false)}`)
 
     // Get the template note to extract processing information
     const templateNote = await getNoteByFilename(templateFilename)
@@ -230,19 +230,20 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
 
     // Call the form submission handler
     // handleSubmitButtonClick expects (data, reactWindowData) but we'll create a minimal reactWindowData
+    // Strip quotes from string values that may have been stored with quotes in frontmatter
     const submitData = {
       type: 'submit',
       formValues,
       windowId: windowId || '',
       processingMethod,
-      receivingTemplateTitle: fm?.receivingTemplateTitle || '',
-      getNoteTitled: fm?.getNoteTitled || '',
+      receivingTemplateTitle: stripDoubleQuotes(fm?.receivingTemplateTitle || '') || '',
+      getNoteTitled: stripDoubleQuotes(fm?.getNoteTitled || '') || '',
       location: fm?.location || 'append',
-      writeUnderHeading: fm?.writeUnderHeading || '',
+      writeUnderHeading: stripDoubleQuotes(fm?.writeUnderHeading || '') || '',
       replaceNoteContents: fm?.replaceNoteContents || false,
       createMissingHeading: fm?.createMissingHeading !== false,
-      newNoteTitle: fm?.newNoteTitle || '',
-      newNoteFolder: fm?.newNoteFolder || '',
+      newNoteTitle: stripDoubleQuotes(fm?.newNoteTitle || '') || '',
+      newNoteFolder: stripDoubleQuotes(fm?.newNoteFolder || '') || '',
     }
 
     // Create minimal reactWindowData for handleSubmitButtonClick
@@ -261,10 +262,23 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
 
     // handleSubmitButtonClick returns PassedData | null, so check if it's not null
     if (result) {
+      // Determine note title based on processing method for success dialog
+      let noteTitle = ''
+      if (processingMethod === 'create-new') {
+        noteTitle = submitData.newNoteTitle || ''
+      } else if (processingMethod === 'write-existing') {
+        noteTitle = submitData.getNoteTitled || ''
+      }
+      // For form-processor, we don't know the note title, so leave it empty
+
       return {
         success: true,
         message: 'Form submitted successfully',
-        data: result,
+        data: {
+          ...result,
+          noteTitle,
+          processingMethod,
+        },
       }
     } else {
       return {
@@ -417,6 +431,53 @@ export async function handleOpenFormBuilder(params: { templateTitle?: string, in
     return {
       success: false,
       message: `Failed to open FormBuilder: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
+ * Handle opening a note by title from FormBrowserView
+ * @param {Object} params - Request parameters
+ * @param {string} params.noteTitle - The note title to open
+ * @returns {Promise<RequestResponse>}
+ */
+export async function handleOpenNoteByTitle(params: { noteTitle?: string } = {}): Promise<RequestResponse> {
+  try {
+    const { noteTitle } = params
+    if (!noteTitle) {
+      return {
+        success: false,
+        message: 'noteTitle is required',
+        data: null,
+      }
+    }
+
+    logDebug(pluginJson, `handleOpenNoteByTitle: noteTitle="${noteTitle}"`)
+
+    // Find note by title (getNote returns a Promise)
+    const note = await getNote(noteTitle)
+    if (!note) {
+      return {
+        success: false,
+        message: `Note not found: ${noteTitle}`,
+        data: null,
+      }
+    }
+
+    // Open the note in the editor
+    Editor.openNoteByFilename(note.filename || '')
+
+    return {
+      success: true,
+      message: 'Note opened successfully',
+      data: null,
+    }
+  } catch (error) {
+    logError(pluginJson, `handleOpenNoteByTitle: Error: ${error.message}`)
+    return {
+      success: false,
+      message: `Failed to open note: ${error.message}`,
       data: null,
     }
   }

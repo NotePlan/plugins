@@ -21,6 +21,7 @@ type FormPreviewProps = {
   allowEmptySubmit?: boolean,
   hidePreviewHeader?: boolean,
   hideWindowTitlebar?: boolean,
+  keepOpenOnSubmit?: boolean, // If true, don't close the window after submit (e.g., for Form Browser context)
 }
 
 /**
@@ -72,6 +73,7 @@ export function FormPreview({
   allowEmptySubmit = false,
   hidePreviewHeader = false,
   hideWindowTitlebar = false,
+  keepOpenOnSubmit = false,
 }: FormPreviewProps): Node {
   // Parse width and height from frontmatter for preview window dimensions
   // Convert percentages to pixel values based on actual window size for accurate preview
@@ -119,6 +121,7 @@ export function FormPreview({
               folders={folders}
               notes={(notes: any)} // NoteOption array - cast to any to avoid Flow invariant array type issues
               requestFromPlugin={requestFromPlugin}
+              keepOpenOnSubmit={keepOpenOnSubmit}
             />
           </div>
         </div>

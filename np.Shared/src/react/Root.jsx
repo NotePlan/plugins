@@ -39,6 +39,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { MessageBanner } from './MessageBanner.jsx'
 import { Toast } from './Toast.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
+import { SimpleDialog } from '@helpers/react/SimpleDialog'
 import { logDebug, formatReactError, JSP, clo, logError, logInfo } from '@helpers/react/reactDev'
 
 const ROOT_DEBUG = false
@@ -91,6 +92,8 @@ export function Root(/* props: Props */): Node {
   const [toastMessage, setToastMessage] = useState(initialToastMessage)
   // const [setMessageFromPlugin] = useState({})
   const [history, setHistory] = useState([lastUpdated])
+  const [showSimpleDialogTest, setShowSimpleDialogTest] = useState<boolean>(false)
+  const [simpleDialogExample, setSimpleDialogExample] = useState<number>(0)
 
   // $FlowFixMe
   const tempSavedClicksRef = useRef<Array<TAnyObject>>([]) // temporarily store the clicks in the webview
@@ -550,6 +553,77 @@ export function Root(/* props: Props */): Node {
               <MessageBanner msg={bannerMessage.msg} type={bannerMessage.type} color={bannerMessage.color || ''} border={bannerMessage.border || ''} hide={hideBanner} icon={bannerMessage.icon || ''} floating={bannerMessage.floating || false} />
             <MemoizedWebView data={npData} dispatch={dispatch} reactSettings={reactSettings} setReactSettings={setReactSettings} />
             <Toast msg={toastMessage.msg} type={toastMessage.type} color={toastMessage.color || ''} border={toastMessage.border || ''} hide={hideToast} icon={toastMessage.icon || ''} />
+            {showSimpleDialogTest && (() => {
+              // Cycle through different examples
+              const examples = [
+                {
+                  title: 'Example 1: Single OK Button (Default)',
+                  message: 'This is the simplest dialog with just a single OK button. This is the default when no buttons are specified.',
+                  buttonLabels: undefined, // Will use default OK button
+                },
+                {
+                  title: 'Example 2: OK/Cancel Buttons',
+                  message: 'This dialog uses buttonLabels with two buttons: Cancel and OK. The last button (OK) is automatically the default.',
+                  buttonLabels: ['Cancel', 'OK'],
+                },
+                {
+                  title: 'Example 3: Multiple Buttons',
+                  message: 'This dialog uses buttonLabels with multiple options. The last button is always the default. Try clicking different buttons!',
+                  buttonLabels: ['Cancel', 'Maybe', 'OK'],
+                },
+                {
+                  title: 'Example 4: Custom Buttons (Full Control)',
+                  message: 'This dialog uses the buttons prop for full control. You can specify which button is default. In this case, "Yes" is the default even though it\'s not last.',
+                  buttons: [
+                    { label: 'No', value: 'no', isDefault: false },
+                    { label: 'Yes', value: 'yes', isDefault: true },
+                    { label: 'Maybe', value: 'maybe', isDefault: false },
+                  ],
+                },
+                {
+                  title: 'Example 5: Wide Dialog',
+                  message: 'This dialog demonstrates custom width. The dialog is wider than the default square size.',
+                  buttonLabels: ['Cancel', 'OK'],
+                  width: '700px',
+                  maxWidth: '700px',
+                },
+              ]
+              const currentExample = examples[simpleDialogExample % examples.length]
+              return (
+                <SimpleDialog
+                  isOpen={showSimpleDialogTest}
+                  title={currentExample.title}
+                  message={currentExample.message}
+                  buttons={currentExample.buttons}
+                  buttonLabels={currentExample.buttonLabels}
+                  width={currentExample.width}
+                  maxWidth={currentExample.maxWidth}
+                  onButtonClick={(value) => {
+                    logDebug('Root', `SimpleDialog button clicked: ${value}, example: ${simpleDialogExample}`)
+                    // If OK/Yes button clicked, show next example
+                    const isDefaultButton = 
+                      value === 'ok' || 
+                      value === 'yes' || 
+                      (currentExample.buttonLabels && value === currentExample.buttonLabels[currentExample.buttonLabels.length - 1].toLowerCase().replace(/\s+/g, '-'))
+                    if (isDefaultButton) {
+                      // Update state to show next example - dialog will stay open because we return false
+                      setSimpleDialogExample((prev) => {
+                        const next = prev + 1
+                        logDebug('Root', `Cycling to next example: ${next}`)
+                        return next
+                      })
+                      // Return false to prevent dialog from closing - we want to show the next example
+                      return false
+                    } else {
+                      // Other buttons close the dialog (return undefined/true to allow close)
+                      setShowSimpleDialogTest(false)
+                      return true
+                    }
+                  }}
+                  onClose={() => setShowSimpleDialogTest(false)}
+                />
+              )
+            })()}
           </>
         )}
 
@@ -572,6 +646,12 @@ export function Root(/* props: Props */): Node {
             </div>
             <div className="w3-button w3-black" onClick={() => dispatch('SHOW_BANNER', { msg: 'Banner test succeeded' }, `banner test`)}>
               Local Banner Display Test
+            </div>
+            <div className="w3-button w3-black" onClick={() => {
+              setSimpleDialogExample(0)
+              setShowSimpleDialogTest(true)
+            }}>
+              Test SimpleDialog
             </div>
             <div className="w3-button w3-black" onClick={testCommsBridge}>
               Test Communication Bridge

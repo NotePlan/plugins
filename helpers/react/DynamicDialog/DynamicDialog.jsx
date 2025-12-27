@@ -159,6 +159,7 @@ export type TDynamicDialogProps = {
   onFoldersChanged?: () => void, // Callback to reload folders after creating a new folder
   onNotesChanged?: () => void, // Callback to reload notes after creating a new note
   windowId?: string, // Optional window ID to pass when submitting (for backward compatibility, will use fallback if not provided)
+  keepOpenOnSubmit?: boolean, // If true, don't close the window after submit (e.g., for Form Browser context)
 }
 
 //--------------------------------------------------------------------------
@@ -190,6 +191,7 @@ const DynamicDialog = ({
   requestFromPlugin,
   onFoldersChanged,
   onNotesChanged,
+  keepOpenOnSubmit = false, // Default to false (close on submit for backward compatibility)
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || []
@@ -312,9 +314,12 @@ const DynamicDialog = ({
 
   const handleSave = () => {
     if (onSave) {
+      // Pass keepOpenOnSubmit flag in windowId as a special marker, or pass it separately
+      // For now, we'll pass it as part of a special windowId format, or the caller can check the prop
+      // Actually, the caller (onSave) can access keepOpenOnSubmit via closure, so we don't need to pass it
       onSave(updatedSettingsRef.current, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
     }
-    logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current, windowId })
+    logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current, windowId, keepOpenOnSubmit })
   }
 
   const handleDropdownOpen = () => {

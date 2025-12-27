@@ -119,9 +119,12 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
 
     const returnValue = await handleSubmitButtonClick(data, reactWindowData)
 
-    // Close the window after successful submission
-    if (returnValue !== null) {
+    // Close the window after successful submission, unless keepOpenOnSubmit is true
+    // (e.g., for Form Browser context where we want to keep the browser open)
+    if (returnValue !== null && !data.keepOpenOnSubmit) {
       closeWindowFromCustomId(windowId)
+    } else if (returnValue !== null && data.keepOpenOnSubmit) {
+      logDebug(pluginJson, `handleFormSubmitAction: keepOpenOnSubmit=true, not closing window`)
     }
 
     // Update window data if it changed

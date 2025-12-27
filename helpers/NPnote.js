@@ -430,6 +430,7 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
  */
 export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
   try {
+    logDebug('NPnote/getNoteFromIdentifier', `-> getting note from identifier: ${noteIdentifierIn}`)
     let thisFilename = ''
     // TODO: Ideally move this to a function, for i18n. Moment library doesn't quite cover all of this. Could Chrono library help?
     const noteIdentifier =

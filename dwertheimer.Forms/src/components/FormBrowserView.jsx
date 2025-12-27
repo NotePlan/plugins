@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, type Node } f
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { AppProvider } from './AppContext.jsx'
 import { FormPreview } from './FormPreview.jsx'
+import { SimpleDialog } from '@helpers/react/SimpleDialog'
 import { SpaceChooser as SpaceChooserComponent } from '@helpers/react/DynamicDialog/SpaceChooser'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
@@ -162,6 +163,11 @@ export function FormBrowserView({
   const [loading, setLoading] = useState<boolean>(false)
   const [selectedIndex, setSelectedIndex] = useState<number>(-1)
   const formPreviewRef = useRef<?HTMLDivElement>(null)
+  // Ref to track if we're programmatically updating selection (to prevent useEffect from firing)
+  const isUpdatingSelectionRef = useRef<boolean>(false)
+  // Success dialog state
+  const [showSuccessDialog, setShowSuccessDialog] = useState<boolean>(false)
+  const [successDialogData, setSuccessDialogData] = useState<{ noteTitle?: string, processingMethod?: string } | null>(null)
 
   // Refs
   const filterInputRef = useRef<?HTMLInputElement>(null)
@@ -283,15 +289,52 @@ export function FormBrowserView({
   }, [templates, filterText])
 
   // Handle template selection
-  const handleTemplateSelect = useCallback((template: FormTemplate) => {
-    logDebug('FormBrowserView', `handleTemplateSelect: selecting template "${template.label}"`)
-    setSelectedTemplate(template)
-    // Don't reset selectedIndex - keep it for arrow navigation continuity
-    // setSelectedIndex(-1) // Reset selected index
-  }, [])
+  const handleTemplateSelect = useCallback(
+    (template: FormTemplate) => {
+      logDebug('FormBrowserView', `handleTemplateSelect: selecting template "${template.label}"`)
+      // Set flag to prevent useEffect from firing during this update
+      isUpdatingSelectionRef.current = true
+
+      // Update selectedIndex to match the selected template FIRST, before updating selectedTemplate
+      // This ensures they're in sync when the useEffect fires
+      const index = filteredTemplates.findIndex((t) => t.value === template.value)
+      if (index >= 0) {
+        logDebug('FormBrowserView', `handleTemplateSelect: found template at index ${index}, updating both selectedIndex and selectedTemplate`)
+        // Update both in the same render cycle
+        setSelectedIndex(index)
+        setSelectedTemplate(template)
+      } else {
+        logDebug('FormBrowserView', `handleTemplateSelect: template not found in filteredTemplates (length=${filteredTemplates.length}), searching in full templates list`)
+        // If not found in filtered list, try the full templates list
+        const fullIndex = templates.findIndex((t) => t.value === template.value)
+        if (fullIndex >= 0) {
+          logDebug('FormBrowserView', `handleTemplateSelect: found template at index ${fullIndex} in full templates list, but not in filtered list - template may be filtered out`)
+        }
+        // Still set the template even if index not found (user might have filtered it out)
+        setSelectedTemplate(template)
+        // Reset selectedIndex to -1 if template not in filtered list (so useEffect doesn't try to select wrong template)
+        setSelectedIndex(-1)
+      }
+
+      // Reset flag after state updates (use setTimeout to ensure state updates are processed)
+      // Use requestAnimationFrame to ensure React has processed the state updates
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          isUpdatingSelectionRef.current = false
+          logDebug('FormBrowserView', `handleTemplateSelect: reset isUpdatingSelectionRef flag`)
+        }, 50) // Small delay to ensure state updates complete
+      })
+    },
+    [filteredTemplates, templates],
+  )
 
   // Auto-select template when selectedIndex changes (for arrow navigation)
   useEffect(() => {
+    // Skip if we're in the middle of programmatically updating selection
+    if (isUpdatingSelectionRef.current) {
+      logDebug('FormBrowserView', `useEffect selectedIndex: skipping because isUpdatingSelectionRef.current is true`)
+      return
+    }
     logDebug(
       'FormBrowserView',
       `useEffect selectedIndex: selectedIndex=${selectedIndex}, filteredTemplates.length=${filteredTemplates.length}, current selectedTemplate=${
@@ -305,19 +348,20 @@ export function FormBrowserView({
         `useEffect selectedIndex: template at index ${selectedIndex} is "${template.label}", current selectedTemplate=${selectedTemplate?.label || 'null'}`,
       )
       if (template) {
-        // Always update selectedTemplate when selectedIndex changes (even if same template)
-        // This ensures the form loads/reloads when navigating with arrows
-        if (template.value !== selectedTemplate?.value) {
-          logDebug('FormBrowserView', `useEffect selectedIndex: calling handleTemplateSelect for "${template.label}" (different template)`)
-          handleTemplateSelect(template)
-        } else {
-          logDebug('FormBrowserView', `useEffect selectedIndex: same template already selected, but ensuring form is loaded`)
+        // Check if the template at selectedIndex already matches selectedTemplate
+        // If so, don't call handleTemplateSelect again (prevents duplicate requests)
+        if (template.value === selectedTemplate?.value) {
+          logDebug('FormBrowserView', `useEffect selectedIndex: template at index ${selectedIndex} already matches selectedTemplate, skipping handleTemplateSelect`)
           // Even if same template, make sure form fields are loaded (in case they weren't before)
           if (selectedTemplate && formFields.length === 0) {
             logDebug('FormBrowserView', `useEffect selectedIndex: formFields empty, triggering loadFormFields`)
             loadFormFields(selectedTemplate)
           }
+          return
         }
+        // Only call handleTemplateSelect if the template is different
+        logDebug('FormBrowserView', `useEffect selectedIndex: calling handleTemplateSelect for "${template.label}" (different template)`)
+        handleTemplateSelect(template)
       }
     } else {
       logDebug('FormBrowserView', `useEffect selectedIndex: selectedIndex out of range (${selectedIndex}) or no templates`)
@@ -478,20 +522,87 @@ export function FormBrowserView({
     (formValues: Object, windowId?: string) => {
       logDebug('FormBrowserView', 'Form submitted:', formValues)
       // Send to plugin for processing
+      // Include keepOpenOnSubmit flag so the plugin knows not to close the window
       if (requestFromPlugin) {
         requestFromPlugin('submitForm', {
+          keepOpenOnSubmit: true, // Tell plugin not to close the window
           templateFilename: selectedTemplate?.filename,
           formValues,
           windowId,
-        }).catch((error) => {
-          logError('FormBrowserView', `Error submitting form: ${error.message}`)
         })
+          .then((responseData) => {
+            logDebug('FormBrowserView', 'Form submission response:', responseData)
+            // Show success dialog with note information
+            if (responseData?.noteTitle || responseData?.processingMethod) {
+              setSuccessDialogData({
+                noteTitle: responseData.noteTitle || '',
+                processingMethod: responseData.processingMethod || '',
+              })
+              setShowSuccessDialog(true)
+            } else {
+              // Generic success message if no note info
+              setSuccessDialogData({
+                noteTitle: '',
+                processingMethod: '',
+              })
+              setShowSuccessDialog(true)
+            }
+            // Reset form after successful submission
+            handleCancel()
+          })
+          .catch((error) => {
+            logError('FormBrowserView', `Error submitting form: ${error.message}`)
+            // On error, show Toast notification but don't close the window
+            // The window should stay open so user can fix and retry
+            dispatch('SHOW_TOAST', {
+              type: 'ERROR',
+              msg: error.message || 'An error occurred while submitting the form',
+              timeout: 5000,
+            })
+            // Don't reset form on error - let user see what they entered
+          })
       }
-      // Reset after submit
-      handleCancel()
     },
     [selectedTemplate, requestFromPlugin, handleCancel],
   )
+
+  // Handle success dialog button clicks
+  const handleSuccessDialogButton = useCallback(
+    (value: string) => {
+      // value will be the button label converted to lowercase with hyphens (e.g., "open-note" for "Open Note")
+      if (value === 'open-note' && successDialogData?.noteTitle) {
+        const noteTitleToOpen = successDialogData.noteTitle
+        logDebug('FormBrowserView', `Opening note: "${noteTitleToOpen}"`)
+        if (requestFromPlugin) {
+          requestFromPlugin('openNote', {
+            noteTitle: noteTitleToOpen,
+          })
+            .then(() => {
+              logDebug('FormBrowserView', `Note opened successfully: "${noteTitleToOpen}"`)
+            })
+            .catch((error) => {
+              logError('FormBrowserView', `Error opening note: ${error.message}`)
+              // Show error toast
+              dispatch('SHOW_TOAST', {
+                type: 'ERROR',
+                msg: `Failed to open note: ${error.message}`,
+                timeout: 5000,
+              })
+            })
+        }
+      }
+      // Close dialog after any button click
+      setShowSuccessDialog(false)
+      setSuccessDialogData(null)
+    },
+    [successDialogData, requestFromPlugin, dispatch],
+  )
+
+  // Handle closing success dialog
+  const handleCloseSuccessDialog = useCallback(() => {
+    setShowSuccessDialog(false)
+    setSuccessDialogData(null)
+  }, [])
 
   // Handle new form button
   const handleNewForm = useCallback(() => {
@@ -680,6 +791,7 @@ export function FormBrowserView({
                         allowEmptySubmit={frontmatter.allowEmptySubmit || false}
                         hidePreviewHeader={true}
                         hideWindowTitlebar={true}
+                        keepOpenOnSubmit={true} // Don't close the window after submit in Form Browser
                       />
                     </div>
                   </div>
@@ -693,6 +805,22 @@ export function FormBrowserView({
           </PanelGroup>
         </div>
       </div>
+      {showSuccessDialog && (
+        <SimpleDialog
+          isOpen={showSuccessDialog}
+          title={successDialogData?.noteTitle ? 'Form Submitted Successfully' : 'Form Submission Complete'}
+          message={
+            successDialogData?.noteTitle
+              ? `Your form has been submitted and the note "${successDialogData.noteTitle}" has been ${
+                  successDialogData.processingMethod === 'create-new' ? 'created' : 'updated'
+                }. Would you like to open it?`
+              : 'Your form has been submitted successfully.'
+          }
+          buttonLabels={successDialogData?.noteTitle ? ['Stay Here', 'Open Note'] : undefined}
+          onButtonClick={handleSuccessDialogButton}
+          onClose={handleCloseSuccessDialog}
+        />
+      )}
     </AppProvider>
   )
 }
