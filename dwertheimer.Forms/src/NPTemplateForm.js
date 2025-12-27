@@ -662,6 +662,7 @@ export async function openFormBrowser(_showFloating: boolean = false): Promise<v
     const pluginData = {
       platform: NotePlan.environment.platform,
       windowId: windowId, // Store window ID in pluginData so React can send it in requests
+      showFloating: showFloating, // Pass showFloating flag so React knows whether to show header
     }
 
     // Create data object to pass to React
@@ -684,68 +685,33 @@ export async function openFormBrowser(_showFloating: boolean = false): Promise<v
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
 
-    if (showFloating) {
-      // Use showReactWindow (floating window)
-      logDebug(pluginJson, `openFormBrowser: Using showReactWindow (floating window)`)
-
-      const windowOptions = {
-        savedFilename: `../../${pluginJson['plugin.id']}/form_browser_output.html`,
-        headerTags: cssTagsString,
-        windowTitle: 'Form Browser',
-        width: 1200,
-        height: 800,
-        customId: windowId, // Use unique window ID instead of constant
-        shouldFocus: true,
-        generalCSSIn: generateCSSFromTheme(),
-        postBodyScript: `
-          <script type="text/javascript" >
-          // Set DataStore.settings so default logDebug etc. logging works in React
-          let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
-          </script>
-        `,
-      }
-
-      await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [dataToPass, windowOptions])
-    } else {
-      // Use showInMainWindow (main window)
-      logDebug(pluginJson, `openFormBrowser: Using showInMainWindow (main window)`)
-
-      // Generate HTML content for showInMainWindow
-      // We need to create an HTML page that loads the React bundle
-      const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  ${cssTagsString}
-  <style>
-    ${generateCSSFromTheme()}
-  </style>
-  <script type="text/javascript">
-    // Set DataStore.settings so default logDebug etc. logging works in React
-    let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
-    
-    // Global data for React to access
-    window.globalSharedData = ${JSON.stringify(dataToPass)};
-  </script>
-</head>
-<body>
-  <div id="root"></div>
-  <script src="../dwertheimer.Forms/react.c.FormBrowserView.bundle.dev.js"></script>
-</body>
-</html>
-      `.trim()
-
-      // $FlowFixMe[prop-missing] - showInMainWindow is available in NotePlan v3.20+
-      await HTMLView.showInMainWindow(htmlContent, 'Form Browser', {
-        splitView: false,
-        id: 'form-browser-main-window',
-        icon: 'fa-list',
-        iconColor: 'blue-500',
-        autoTopPadding: true,
-      })
+    // Use the same windowOptions for both floating and main window
+    const windowOptions = {
+      savedFilename: `../../${pluginJson['plugin.id']}/form_browser_output.html`,
+      headerTags: cssTagsString,
+      windowTitle: 'Form Browser',
+      width: 1200,
+      height: 800,
+      customId: windowId, // Use unique window ID instead of constant
+      shouldFocus: true,
+      generalCSSIn: generateCSSFromTheme(),
+      postBodyScript: `
+        <script type="text/javascript" >
+        // Set DataStore.settings so default logDebug etc. logging works in React
+        let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        </script>
+      `,
+      // Options for showInMainWindow (main window mode)
+      splitView: false,
+      icon: 'fa-list',
+      iconColor: 'blue-500',
+      autoTopPadding: true,
     }
+
+    // Choose the appropriate command based on whether it's floating or main window
+    const windowType = showFloating ? 'openReactWindow' : 'showInMainWindow'
+    logDebug(pluginJson, `openFormBrowser: Using ${windowType} (${showFloating ? 'floating' : 'main'} window)`)
+    await DataStore.invokePluginCommandByName(windowType, 'np.Shared', [dataToPass, windowOptions])
 
     logDebug(pluginJson, `openFormBrowser: Completed after ${timer(startTime)}`)
   } catch (error) {

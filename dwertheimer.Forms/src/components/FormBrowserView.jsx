@@ -539,10 +539,12 @@ export function FormBrowserView({
       setReactSettings={setReactSettings}
     >
       <div className="form-browser-container">
-        {/* Header */}
-        <div className="form-browser-header">
-          <h1 className="form-browser-title">Form Browser</h1>
-        </div>
+        {/* Header - only show if floating window */}
+        {pluginData?.showFloating && (
+          <div className="form-browser-header">
+            <h1 className="form-browser-title">Form Browser</h1>
+          </div>
+        )}
 
         {/* Content with resizable columns */}
         <div className="form-browser-content">
