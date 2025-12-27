@@ -4,7 +4,8 @@
 //--------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { type PassedData } from './NPTemplateForm.js'
+import { type PassedData } from './shared/types.js'
+import { FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID } from './shared/constants.js'
 import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate } from './templateIO.js'
 import { getNoteByFilename } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
@@ -12,8 +13,9 @@ import { logDebug, logError, timer, JSP, clo } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 import { stripDoubleQuotes } from '@helpers/stringTransforms'
 
-export const FORMBUILDER_WINDOW_ID = `${pluginJson['plugin.id']} Form Builder React Window`
-export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} Form Entry React Window`
+// Re-export constants for backward compatibility with other back-end files
+export { FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID }
+
 const REACT_WINDOW_TITLE = 'Form View'
 
 /**

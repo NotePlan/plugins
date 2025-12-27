@@ -32,7 +32,7 @@ type Props = {
  ****************************************************************************************************************************/
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, type Node } from 'react'
-import { type PassedData } from '../NPTemplateForm.js'
+import { type PassedData } from '../shared/types.js'
 import { AppProvider } from './AppContext.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'

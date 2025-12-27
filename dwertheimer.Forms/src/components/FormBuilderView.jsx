@@ -4,11 +4,11 @@
 //--------------------------------------------------------------------------
 
 import React, { useEffect, useRef, useCallback, type Node } from 'react'
-import { type PassedData } from '../NPTemplateForm.js'
+import { type PassedData } from '../shared/types.js'
 import { AppProvider } from './AppContext.jsx'
 import FormBuilder from './FormBuilder.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
-import { FORMBUILDER_WINDOW_ID } from '../windowManagement.js'
+import { FORMBUILDER_WINDOW_ID } from '../shared/constants.js'
 import './FormBuilder.css'
 
 type Props = {
