@@ -2,6 +2,14 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.8.3] @dwertheimer 2025-12-27
+
+- Refactor HTML generation code to eliminate duplication between `openReactWindow` and `showInMainWindow`
+- Extract shared HTML generation logic into `prepareReactWindowData` function
+- Create `assembleHTMLString` function for `showInMainWindow` to build complete HTML string
+- Update `addStringOrArrayItems` to properly handle `ScriptObj` types in addition to strings and arrays
+- Both window functions now use shared code, reducing maintenance burden and ensuring consistency
+
 ## [0.8.2] @dwertheimer 2025-12-27
 
 - Root bundle now includes React and ReactDOM internally (self-contained)
