@@ -9,7 +9,7 @@
 // const {sendActionToPlugin, sendToPlugin, dispatch, pluginData, reactSettings, updateReactSettings}  = useAppContext() // MUST BE inside the React component/function code, cannot be at the top of a file
 
 // @flow
-import React, { createContext, useContext, type Node } from 'react'
+import React, { createContext, useContext, useMemo, type Node } from 'react'
 
 /**
  * Type definitions for the application context.
@@ -59,8 +59,10 @@ const AppContext = createContext<AppContextType>(defaultContextValue)
 // Explicitly annotate the return type of AppProvider as a React element
 export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, requestFromPlugin, dispatch, pluginData, updatePluginData, reactSettings, setReactSettings }: Props): Node => {
 
-  // Provide the context value with all functions and state.
-  const contextValue: AppContextType = {
+  // Memoize the context value to prevent unnecessary re-renders of all consumers
+  // This ensures that functions like requestFromPlugin and dispatch maintain stable references
+  // Only recreate the context value when the actual props change
+  const contextValue: AppContextType = useMemo(() => ({
     sendActionToPlugin,
     sendToPlugin,
     requestFromPlugin,
@@ -69,7 +71,7 @@ export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, reques
     reactSettings,
     setReactSettings,
     updatePluginData,
-  }
+  }), [sendActionToPlugin, sendToPlugin, requestFromPlugin, dispatch, pluginData, reactSettings, setReactSettings, updatePluginData])
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
 }

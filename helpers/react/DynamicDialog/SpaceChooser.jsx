@@ -4,7 +4,7 @@
 // Allows users to select a Space (Teamspace or Private) by typing to filter choices
 //--------------------------------------------------------------------------
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { TEAMSPACE_FA_ICON } from '@helpers/teamspace.js'
@@ -48,17 +48,30 @@ export function SpaceChooser({
   const [spaces, setSpaces] = useState<Array<SpaceOption>>([])
   const [spacesLoaded, setSpacesLoaded] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const requestFromPluginRef = useRef<?(command: string, dataToSend?: any, timeout?: number) => Promise<any>>(requestFromPlugin)
+  const isLoadingRef = useRef<boolean>(false) // Track loading state to prevent concurrent loads
+
+  // Update ref when requestFromPlugin changes
+  useEffect(() => {
+    requestFromPluginRef.current = requestFromPlugin
+  }, [requestFromPlugin])
 
   // Load spaces (teamspaces) from plugin
   const loadSpaces = async () => {
-    if (spacesLoaded || !requestFromPlugin) return
+    const requestFn = requestFromPluginRef.current
+    if (spacesLoaded || !requestFn || isLoadingRef.current) {
+      logDebug('SpaceChooser', `[DIAG] loadSpaces: skipping (spacesLoaded=${String(spacesLoaded)}, hasRequestFn=${String(!!requestFn)}, isLoading=${String(isLoadingRef.current)})`)
+      return
+    }
 
     const loadStartTime = performance.now()
+    let isMounted = true
     try {
+      isLoadingRef.current = true
       setIsLoading(true)
       logDebug('SpaceChooser', `[DIAG] loadSpaces START`)
       // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-      const teamspacesData = await requestFromPlugin('getTeamspaces', {})
+      const teamspacesData = await requestFn('getTeamspaces', {})
       const loadElapsed = performance.now() - loadStartTime
       logDebug('SpaceChooser', `[DIAG] loadSpaces COMPLETE: elapsed=${loadElapsed.toFixed(2)}ms`)
 
@@ -69,56 +82,70 @@ export function SpaceChooser({
         isPrivate: true,
       }
 
-      if (Array.isArray(teamspacesData)) {
-        // Convert teamspaces to SpaceOption format
-        const teamspaceOptions: Array<SpaceOption> = teamspacesData.map((ts: { id: string, title: string }) => ({
-          id: ts.id,
-          title: ts.title || '(unknown)',
-          isPrivate: false,
-        }))
+      if (isMounted) {
+        if (Array.isArray(teamspacesData)) {
+          // Convert teamspaces to SpaceOption format
+          const teamspaceOptions: Array<SpaceOption> = teamspacesData.map((ts: { id: string, title: string }) => ({
+            id: ts.id,
+            title: ts.title || '(unknown)',
+            isPrivate: false,
+          }))
 
-        // Combine Private + Teamspaces
-        setSpaces([privateOption, ...teamspaceOptions])
-        setSpacesLoaded(true)
-        logDebug('SpaceChooser', `Loaded ${teamspaceOptions.length} teamspaces + Private`)
-        if (teamspaceOptions.length > 0) {
-          logDebug(
-            'SpaceChooser',
-            `Teamspaces:`,
-            teamspaceOptions.map((ts) => ({ id: ts.id, title: ts.title })),
-          )
+          // Combine Private + Teamspaces
+          setSpaces([privateOption, ...teamspaceOptions])
+          setSpacesLoaded(true)
+          logDebug('SpaceChooser', `Loaded ${teamspaceOptions.length} teamspaces + Private`)
+          if (teamspaceOptions.length > 0) {
+            logDebug(
+              'SpaceChooser',
+              `Teamspaces:`,
+              teamspaceOptions.map((ts) => ({ id: ts.id, title: ts.title })),
+            )
+          }
+        } else {
+          logError('SpaceChooser', `[DIAG] loadSpaces: Invalid response format, got:`, typeof teamspacesData, teamspacesData)
+          // Still set Private option even on error
+          setSpaces([privateOption])
+          setSpacesLoaded(true)
         }
-      } else {
-        logError('SpaceChooser', `[DIAG] loadSpaces: Invalid response format, got:`, typeof teamspacesData, teamspacesData)
-        // Still set Private option even on error
-        setSpaces([privateOption])
-        setSpacesLoaded(true)
       }
     } catch (error) {
       const loadElapsed = performance.now() - loadStartTime
       logError('SpaceChooser', `[DIAG] loadSpaces ERROR: elapsed=${loadElapsed.toFixed(2)}ms, error="${error.message}"`)
       // Still set Private option even on error
-      const privateOption: SpaceOption = {
-        id: '',
-        title: 'Private',
-        isPrivate: true,
+      if (isMounted) {
+        const privateOption: SpaceOption = {
+          id: '',
+          title: 'Private',
+          isPrivate: true,
+        }
+        setSpaces([privateOption])
+        setSpacesLoaded(true) // Set to true to prevent infinite retries on error
       }
-      setSpaces([privateOption])
-      setSpacesLoaded(true)
     } finally {
-      setIsLoading(false)
+      if (isMounted) {
+        setIsLoading(false)
+        isLoadingRef.current = false
+      }
     }
   }
 
   // Load spaces on mount
   useEffect(() => {
-    if (!spacesLoaded && requestFromPlugin) {
+    if (!spacesLoaded && !isLoadingRef.current && requestFromPluginRef.current) {
       // Use requestAnimationFrame to yield before making the request
       requestAnimationFrame(() => {
         loadSpaces()
       })
     }
-  }, [spacesLoaded, requestFromPlugin])
+
+    return () => {
+      // Cleanup: mark as not loading if component unmounts
+      isLoadingRef.current = false
+    }
+    // Only depend on spacesLoaded, not requestFromPlugin to avoid infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spacesLoaded])
 
   // Configure the SearchableChooser
   const config: ChooserConfig = {

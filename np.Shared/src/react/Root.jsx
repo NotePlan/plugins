@@ -33,7 +33,7 @@ declare function sendMessageToPlugin(Array<string | any>): void
  *                             IMPORTS
  ****************************************************************************************************************************/
 
-import React, { useState, useEffect, Profiler, type Node, useRef } from 'react'
+import React, { useState, useEffect, Profiler, type Node, useRef, useCallback, useMemo } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 // import { WebView } from './_Cmp-WebView.jsx' // we are assuming it's externally loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
@@ -134,111 +134,118 @@ export function Root(/* props: Props */): Node {
   }
 
   /**
-   * Dispatcher for child components to update the master data object or show a banner message.
-   * @param {'SET_TITLE'|'[SET|UPDATE]_DATA'|'SHOW_BANNER'} action - The action type to dispatch.
-   * @param {any} data - The data associated with the action.
-   * @param {string} [actionDescriptionForLog] - Optional description of the action for logging purposes.
+   * Send data back to the plugin to update the data in the plugin
+   * This could cause a refresh of the Webview if the plugin sends back new data, so we want to save any passthrough data first
+   * (for example, scroll position)
+   * This function should not be called directly by child components, but rather via the sendActionToPlugin()
+   * returnPluginCommand var with {command && id} should be sent in the initial data payload in HTML
+   * @param {Array<any>} args to send to NotePlan (typically an array with two items: ["actionName",{an object payload, e.g. row, field, value}])
+   * @example sendToPlugin({ choice: action, rows: selectedRows })
+   * Memoized with useCallback to ensure stable reference (needed for onMessageReceived dependency).
    */
-  // eslint-disable-next-line no-unused-vars
-  const dispatch = (action: string, data: any, actionDescriptionForLog?: string): void => {
-    // const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
-    // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
-    const event = new MessageEvent('message', { data: { type: action, payload: data } })
-    onMessageReceived(event)
-    // onMessageReceived({ data: { type: action, payload: data } }) // dispatch the message to the reducer
-  }
+  const sendToPlugin = React.useCallback(
+    ([action, data, additionalDetails = '']: [string, any, string]) => {
+      const returnPluginCommand = globalSharedData.returnPluginCommand || 'undefined'
+      if (returnPluginCommand === 'undefined' || !returnPluginCommand?.command || !returnPluginCommand?.id) {
+        throw 'returnPluginCommand variable is not passed correctly to set up comms bridge. Check your data object which you are sending to invoke React'
+      }
+      if (!returnPluginCommand?.command) throw 'returnPluginCommand.cmd is not defined in the intial data passed to the plugin'
+      if (!returnPluginCommand?.id) throw 'returnPluginCommand.id is not defined in the intial data passed to the plugin'
+      if (!action) throw new Error('sendToPlugin: command/action must be called with a string')
+      // logDebug(`Root`, ` sendToPlugin: ${JSON.stringify(action)} ${additionalDetails}`, action, data, additionalDetails)
+      if (!data) throw new Error('sendToPlugin: data must be called with an object')
+      // logDebug(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `)
+      const { command, id } = returnPluginCommand // this comes from the initial data passed to the plugin
+      runPluginCommand(command, id, [action, data, additionalDetails])
+    },
+    [globalSharedData],
+  )
 
   /**
-   * Ignore messages that have nothing to do with the plugin
-   * @param {Event} event
-   * @returns {boolean}
+   * Callback passed to child components that allows them to put a message in the banner.
+   * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_BANNER', payload).
+   * TODO: Hopefully can still remove the color/border/icon parameters, but leaving them in for now to avoid breaking changes.
+   * Memoized with useCallback to ensure stable reference (needed for onMessageReceived dependency).
+   * @param {boolean} floating - if true, displays as a floating toast in top-right corner instead of banner at top
    */
-  const shouldIgnoreMessage = (event: MessageEvent): boolean => {
-    const { /* origin, source, */ data } = event
-    // logDebug(
-    //   `Root: shouldIgnoreMessage origin=${origin} source=${source} data=${JSON.stringify(data)} data.source=${
-    //     data?.source
-    //   } /react-devtools/.test(data?.source=${/react-devtools/.test(data?.source)}}`,
-    // )
-    return (
-      (typeof data === 'string' && data?.startsWith('setImmediate$')) ||
-      (typeof data === 'object' && data?.hasOwnProperty('iframeSrc')) ||
-      (typeof data === 'object' && typeof data?.source === 'string' && /react-devtools/.test(data?.source))
-    )
-  }
+  const showBanner = useCallback((type: string, msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red', icon: string = 'fa-regular fa-circle-exclamation', timeout: number = 0, floating: boolean = false) => {
+    const bannerMessage = { type, msg, timeout, color, border, icon, floating }
+    logDebug(`Root`, `showBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
+    // $FlowFixMe - bannerMessage object matches the expected shape
+    setBannerMessage(bannerMessage)
+  }, []) // State setters are stable, no dependencies needed
 
   /**
-   * Replaces a stylesheet's content with a new stylesheet string.
-   * @param {string} oldName - The name or href of the stylesheet to be replaced.
-   * @param {string} newStyles - The new stylesheet string.
+   * handle click on X on banner to hide it
+   * Memoized with useCallback to ensure stable reference (needed for onMessageReceived dependency).
    */
-  function replaceStylesheetContent(oldName: string, newStyles: string) {
-    // Convert the styleSheets collection to an array
-    const styleSheetsArray = Array.from(document.styleSheets)
+  const hideBanner = useCallback(() => {
+    logDebug(`Root`, `hideBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
+    setBannerMessage({ type: 'REMOVE', msg: '', timeout: 0, color: '', border: '', icon: '', floating: false })
+  }, [bannerMessage]) // Depend on bannerMessage for logging, but setBannerMessage is stable
 
-    // TODO: trying to replace a stylesheet that was loaded as part of the HTML page
-    // yields error: "This CSSStyleSheet object was not constructed by JavaScript"
-    // So unless we change the way this works to install the initial stylesheet in the HTML page,
-    // this approach won't work, so for now, we are going to add it as another stylesheet
-    // Find the stylesheet with the specified name or href
-    const oldSheet = styleSheetsArray.find((sheet) => sheet && sheet.title === oldName)
-    let wasSaved = false
-    // $FlowIgnore
-    if (oldSheet && typeof oldSheet.replaceSync === 'function') {
-      // Use replaceSync to replace the stylesheet's content
-      logDebug(`Root`, `replaceStylesheetContent: found existing stylesheet "${oldName}" Will try to replace it.`)
-      try {
-        // $FlowIgnore
-        oldSheet.replaceSync(newStyles)
-        wasSaved = true
-      } catch (error) {
-        logError(`Root`, `Swapping "${oldName}" CSS Failed. replaceStylesheetContent: Error ${JSP(formatReactError(error))}`)
+  /**
+   * Callback passed to child components that allows them to show a toast notification.
+   * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_TOAST', payload).
+   * If color/border/icon are not provided, they will be automatically determined from the type.
+   * Memoized with useCallback to ensure stable reference (needed for onMessageReceived dependency).
+   */
+  const showToast = useCallback((type: string, msg: string, color?: string, border?: string, icon?: string, timeout: number = 3000) => {
+    // If color/border/icon are not provided, determine them from the type
+    let colorClass = color
+    let borderClass = border
+    let iconClass = icon
+    
+    if (!colorClass || !borderClass || !iconClass) {
+      switch (type) {
+        case 'INFO':
+          colorClass = colorClass || 'color-info'
+          borderClass = borderClass || 'border-info'
+          iconClass = iconClass || 'fa-regular fa-circle-info'
+          break
+        case 'WARN':
+          colorClass = colorClass || 'color-warn'
+          borderClass = borderClass || 'border-warn'
+          iconClass = iconClass || 'fa-regular fa-triangle-exclamation'
+          break
+        case 'ERROR':
+          colorClass = colorClass || 'color-error'
+          borderClass = borderClass || 'border-error'
+          iconClass = iconClass || 'fa-regular fa-circle-exclamation'
+          break
+        case 'SUCCESS':
+          colorClass = colorClass || 'color-success'
+          borderClass = borderClass || 'border-success'
+          iconClass = iconClass || 'fa-regular fa-circle-check'
+          break
+        default:
+          colorClass = colorClass || 'color-info'
+          borderClass = borderClass || 'border-info'
+          iconClass = iconClass || 'fa-regular fa-circle-info'
       }
     }
-    if (!wasSaved) {
-      // If the old stylesheet is not found, create a new one
-      const newStyle = document.createElement('style')
-      newStyle.title = oldName
-      newStyle.textContent = newStyles
-      document?.head?.appendChild(newStyle)
-      // Check to make sure it's there
-      testOutputStylesheets()
-      const styleElement = document.querySelector(`style[title="${oldName}"]`)
-      if (styleElement) {
-        logDebug('CHANGE_THEME replaceStylesheetContent: VERIFIED: CSS has been successfully added to the document')
-      } else {
-        logDebug("CHANGE_THEME replaceStylesheetContent: CSS has apparently NOT been added. Can't find it in the document")
-      }
-    }
-  }
+    
+    const toastMessage = { type, msg, timeout, color: colorClass, border: borderClass, icon: iconClass }
+    logDebug(`Root`, `showToast: ${JSON.stringify(toastMessage, null, 2)}`)
+    // $FlowFixMe - toastMessage object matches the expected shape
+    setToastMessage(toastMessage)
+  }, []) // State setters are stable, no dependencies needed
 
-  // Function to get the first 55 characters of each stylesheet's content
-  function testOutputStylesheets() {
-    const styleSheets = document.styleSheets
-    for (let i = 0; i < styleSheets.length; i++) {
-      const styleSheet = styleSheets[i]
-      try {
-        // $FlowIgnore
-        const rules = styleSheet.cssRules || styleSheet.rules
-        let cssText = ''
-        // $FlowIgnore
-        for (let j = 0; j < rules.length; j++) {
-          // $FlowIgnore
-          cssText += rules[j].cssText
-          if (cssText.length >= 55) break
-        }
-        logDebug(`CHANGE_THEME StyleSheet ${i}: "${styleSheet.title ?? ''}": ${cssText.substring(0, 55).replace(/\n/g, '')}`)
-      } catch (e) {
-        console.warn(`Unable to access stylesheet: ${styleSheet.href}`, e)
-      }
-    }
-  }
+  /**
+   * handle click on X on toast to hide it
+   * Memoized with useCallback to ensure stable reference (needed for onMessageReceived dependency).
+   */
+  const hideToast = useCallback(() => {
+    logDebug(`Root`, `hideToast: ${JSON.stringify(toastMessage, null, 2)}`)
+    setToastMessage({ type: 'REMOVE', level: 'REMOVE', msg: '', timeout: 0, color: '', border: '', icon: '' })
+  }, [toastMessage]) // Depend on toastMessage for logging, but setToastMessage is stable
 
   /**
    * This is effectively a reducer we will use to process messages from the plugin
    * And also from components down the tree, using the dispatch command
+   * Memoized with useCallback to ensure stable reference (needed for dispatch dependency)
    */
-  const onMessageReceived = (event: MessageEvent) => {
+  const onMessageReceived = useCallback((event: MessageEvent) => {
     const { data } = event
     // logDebug('Root', `onMessageReceived ${event.type} data=${JSP(data, 2)}`)
     if (!shouldIgnoreMessage(event) && data) {
@@ -353,110 +360,110 @@ export function Root(/* props: Props */): Node {
     } else {
       // logDebug(`Root`,` onMessageReceived: called but event.data is undefined: noop`)
     }
+  }, [showBanner, hideBanner, showToast, hideToast, sendToPlugin]) // Depend on memoized helper functions
+
+  /**
+   * Dispatcher for child components to update the master data object or show a banner message.
+   * Memoized with useCallback to ensure stable reference across renders (prevents infinite loops in child components).
+   * @param {'SET_TITLE'|'[SET|UPDATE]_DATA'|'SHOW_BANNER'} action - The action type to dispatch.
+   * @param {any} data - The data associated with the action.
+   * @param {string} [actionDescriptionForLog] - Optional description of the action for logging purposes.
+   */
+  // eslint-disable-next-line no-unused-vars
+  const dispatch = useCallback((action: string, data: any, actionDescriptionForLog?: string): void => {
+    // const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
+    // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
+    const event = new MessageEvent('message', { data: { type: action, payload: data } })
+    onMessageReceived(event)
+    // onMessageReceived({ data: { type: action, payload: data } }) // dispatch the message to the reducer
+  }, [onMessageReceived]) // Depend on onMessageReceived, which is now stable
+
+  /**
+   * Ignore messages that have nothing to do with the plugin
+   * @param {Event} event
+   * @returns {boolean}
+   */
+  const shouldIgnoreMessage = (event: MessageEvent): boolean => {
+    const { /* origin, source, */ data } = event
+    // logDebug(
+    //   `Root: shouldIgnoreMessage origin=${origin} source=${source} data=${JSON.stringify(data)} data.source=${
+    //     data?.source
+    //   } /react-devtools/.test(data?.source=${/react-devtools/.test(data?.source)}}`,
+    // )
+    return (
+      (typeof data === 'string' && data?.startsWith('setImmediate$')) ||
+      (typeof data === 'object' && data?.hasOwnProperty('iframeSrc')) ||
+      (typeof data === 'object' && typeof data?.source === 'string' && /react-devtools/.test(data?.source))
+    )
   }
 
   /**
-   * Send data back to the plugin to update the data in the plugin
-   * This could cause a refresh of the Webview if the plugin sends back new data, so we want to save any passthrough data first
-   * (for example, scroll position)
-   * This function should not be called directly by child components, but rather via the sendActionToPlugin()
-   * returnPluginCommand var with {command && id} should be sent in the initial data payload in HTML
-   * @param {Array<any>} args to send to NotePlan (typically an array with two items: ["actionName",{an object payload, e.g. row, field, value}])
-   * @example sendToPlugin({ choice: action, rows: selectedRows })
-   *
+   * Replaces a stylesheet's content with a new stylesheet string.
+   * @param {string} oldName - The name or href of the stylesheet to be replaced.
+   * @param {string} newStyles - The new stylesheet string.
    */
-  const sendToPlugin = React.useCallback(
-    ([action, data, additionalDetails = '']: [string, any, string]) => {
-      const returnPluginCommand = globalSharedData.returnPluginCommand || 'undefined'
-      if (returnPluginCommand === 'undefined' || !returnPluginCommand?.command || !returnPluginCommand?.id) {
-        throw 'returnPluginCommand variable is not passed correctly to set up comms bridge. Check your data object which you are sending to invoke React'
-      }
-      if (!returnPluginCommand?.command) throw 'returnPluginCommand.cmd is not defined in the intial data passed to the plugin'
-      if (!returnPluginCommand?.id) throw 'returnPluginCommand.id is not defined in the intial data passed to the plugin'
-      if (!action) throw new Error('sendToPlugin: command/action must be called with a string')
-      // logDebug(`Root`, ` sendToPlugin: ${JSON.stringify(action)} ${additionalDetails}`, action, data, additionalDetails)
-      if (!data) throw new Error('sendToPlugin: data must be called with an object')
-      // logDebug(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `)
-      const { command, id } = returnPluginCommand // this comes from the initial data passed to the plugin
-      runPluginCommand(command, id, [action, data, additionalDetails])
-    },
-    [globalSharedData],
-  )
+  function replaceStylesheetContent(oldName: string, newStyles: string) {
+    // Convert the styleSheets collection to an array
+    const styleSheetsArray = Array.from(document.styleSheets)
 
-  /**
-   * Callback passed to child components that allows them to put a message in the banner.
-   * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_BANNER', payload).
-   * TODO: Hopefully can still remove the color/border/icon parameters, but leaving them in for now to avoid breaking changes.
-   * @param {boolean} floating - if true, displays as a floating toast in top-right corner instead of banner at top
-   */
-  const showBanner = (type: string, msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red', icon: string = 'fa-regular fa-circle-exclamation', timeout: number = 0, floating: boolean = false) => {
-    const bannerMessage = { type, msg, timeout, color, border, icon, floating }
-    logDebug(`Root`, `showBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
-    // $FlowFixMe - bannerMessage object matches the expected shape
-    setBannerMessage(bannerMessage)
-  }
-
-  /**
-   * handle click on X on banner to hide it
-   */
-  const hideBanner = () => {
-    logDebug(`Root`, `hideBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
-    setBannerMessage({ type: 'REMOVE', msg: '', timeout: 0, color: '', border: '', icon: '', floating: false })
-  }
-
-  /**
-   * Callback passed to child components that allows them to show a toast notification.
-   * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_TOAST', payload).
-   * If color/border/icon are not provided, they will be automatically determined from the type.
-   */
-  const showToast = (type: string, msg: string, color?: string, border?: string, icon?: string, timeout: number = 3000) => {
-    // If color/border/icon are not provided, determine them from the type
-    let colorClass = color
-    let borderClass = border
-    let iconClass = icon
-    
-    if (!colorClass || !borderClass || !iconClass) {
-      switch (type) {
-        case 'INFO':
-          colorClass = colorClass || 'color-info'
-          borderClass = borderClass || 'border-info'
-          iconClass = iconClass || 'fa-regular fa-circle-info'
-          break
-        case 'WARN':
-          colorClass = colorClass || 'color-warn'
-          borderClass = borderClass || 'border-warn'
-          iconClass = iconClass || 'fa-regular fa-triangle-exclamation'
-          break
-        case 'ERROR':
-          colorClass = colorClass || 'color-error'
-          borderClass = borderClass || 'border-error'
-          iconClass = iconClass || 'fa-regular fa-circle-exclamation'
-          break
-        case 'SUCCESS':
-          colorClass = colorClass || 'color-success'
-          borderClass = borderClass || 'border-success'
-          iconClass = iconClass || 'fa-regular fa-circle-check'
-          break
-        default:
-          colorClass = colorClass || 'color-info'
-          borderClass = borderClass || 'border-info'
-          iconClass = iconClass || 'fa-regular fa-circle-info'
+    // TODO: trying to replace a stylesheet that was loaded as part of the HTML page
+    // yields error: "This CSSStyleSheet object was not constructed by JavaScript"
+    // So unless we change the way this works to install the initial stylesheet in the HTML page,
+    // this approach won't work, so for now, we are going to add it as another stylesheet
+    // Find the stylesheet with the specified name or href
+    const oldSheet = styleSheetsArray.find((sheet) => sheet && sheet.title === oldName)
+    let wasSaved = false
+    // $FlowIgnore
+    if (oldSheet && typeof oldSheet.replaceSync === 'function') {
+      // Use replaceSync to replace the stylesheet's content
+      logDebug(`Root`, `replaceStylesheetContent: found existing stylesheet "${oldName}" Will try to replace it.`)
+      try {
+        // $FlowIgnore
+        oldSheet.replaceSync(newStyles)
+        wasSaved = true
+      } catch (error) {
+        logError(`Root`, `Swapping "${oldName}" CSS Failed. replaceStylesheetContent: Error ${JSP(formatReactError(error))}`)
       }
     }
-    
-    const toastMessage = { type, msg, timeout, color: colorClass, border: borderClass, icon: iconClass }
-    logDebug(`Root`, `showToast: ${JSON.stringify(toastMessage, null, 2)}`)
-    // $FlowFixMe - toastMessage object matches the expected shape
-    setToastMessage(toastMessage)
+    if (!wasSaved) {
+      // If the old stylesheet is not found, create a new one
+      const newStyle = document.createElement('style')
+      newStyle.title = oldName
+      newStyle.textContent = newStyles
+      document?.head?.appendChild(newStyle)
+      // Check to make sure it's there
+      testOutputStylesheets()
+      const styleElement = document.querySelector(`style[title="${oldName}"]`)
+      if (styleElement) {
+        logDebug('CHANGE_THEME replaceStylesheetContent: VERIFIED: CSS has been successfully added to the document')
+      } else {
+        logDebug("CHANGE_THEME replaceStylesheetContent: CSS has apparently NOT been added. Can't find it in the document")
+      }
+    }
   }
 
-  /**
-   * handle click on X on toast to hide it
-   */
-  const hideToast = () => {
-    logDebug(`Root`, `hideToast: ${JSON.stringify(toastMessage, null, 2)}`)
-    setToastMessage({ type: 'REMOVE', level: 'REMOVE', msg: '', timeout: 0, color: '', border: '', icon: '' })
+  // Function to get the first 55 characters of each stylesheet's content
+  function testOutputStylesheets() {
+    const styleSheets = document.styleSheets
+    for (let i = 0; i < styleSheets.length; i++) {
+      const styleSheet = styleSheets[i]
+      try {
+        // $FlowIgnore
+        const rules = styleSheet.cssRules || styleSheet.rules
+        let cssText = ''
+        // $FlowIgnore
+        for (let j = 0; j < rules.length; j++) {
+          // $FlowIgnore
+          cssText += rules[j].cssText
+          if (cssText.length >= 55) break
+        }
+        logDebug(`CHANGE_THEME StyleSheet ${i}: "${styleSheet.title ?? ''}": ${cssText.substring(0, 55).replace(/\n/g, '')}`)
+      } catch (e) {
+        console.warn(`Unable to access stylesheet: ${styleSheet.href}`, e)
+      }
+    }
   }
+
 
   /**
    * For debugging purposes, send a message to the plugin to test the comms bridge
@@ -509,7 +516,7 @@ export function Root(/* props: Props */): Node {
       })
       pendingRequestsRef.current.clear()
     }
-  }, [])
+  }, [onMessageReceived]) // Depend on onMessageReceived, which is now stable
 
   /**
    * Save scrollbar position

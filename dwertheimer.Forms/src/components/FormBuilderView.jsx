@@ -43,6 +43,14 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings, onSub
   // Map to store pending requests for request/response pattern
   // Key: correlationId, Value: { resolve, reject, timeoutId }
   const pendingRequestsRef = useRef<Map<string, { resolve: (data: any) => void, reject: (error: Error) => void, timeoutId: any }>>(new Map())
+  
+  // Store windowId in a ref so requestFromPlugin doesn't need to depend on pluginData
+  const windowIdRef = useRef<?string>(pluginData?.windowId || FORMBUILDER_WINDOW_ID)
+  
+  // Update windowId ref when pluginData changes
+  useEffect(() => {
+    windowIdRef.current = pluginData?.windowId || FORMBUILDER_WINDOW_ID
+  }, [pluginData?.windowId])
 
   // Listen for RESPONSE messages from Root and resolve pending requests
   useEffect(() => {
@@ -100,6 +108,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings, onSub
    * Request data from the plugin using request/response pattern
    * Returns a Promise that resolves with the response data or rejects with an error
    * Memoized with useCallback to prevent recreation on every render (fixes infinite loop issues)
+   * Uses refs for windowId to avoid dependency on pluginData
    * @param {string} command - The command/request type (e.g., 'getFolders', 'getNotes')
    * @param {any} dataToSend - Request parameters
    * @param {number} timeout - Timeout in milliseconds (default: 10000)
@@ -121,17 +130,18 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings, onSub
       pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
 
       // Send request with correlation ID and request type marker
+      // Use ref for windowId to avoid dependency on pluginData
       const requestData = {
         ...dataToSend,
         __correlationId: correlationId,
         __requestType: 'REQUEST',
-        __windowId: pluginData?.windowId || FORMBUILDER_WINDOW_ID, // Include windowId in request for reliable response routing
+        __windowId: windowIdRef.current, // Include windowId in request for reliable response routing
       }
 
-      logDebug('FormBuilderView', `requestFromPlugin: Sending request "${command}" with correlationId="${correlationId}"`)
+      logDebug('FormBuilderView', `requestFromPlugin: Sending request "${command}" with correlationId="${correlationId}", windowId="${String(windowIdRef.current || '')}"`)
       dispatch('SEND_TO_PLUGIN', [command, requestData], `FormBuilderView: requestFromPlugin: ${String(command)}`)
     })
-  }, [dispatch])
+  }, [dispatch]) // Only depend on dispatch, which should be stable from useReducer
 
   const handleSave = async (fields: Array<any>, frontmatter: any): Promise<{ success: boolean, message?: string }> => {
     clo(fields, 'FormBuilderView: handleSave fields')
