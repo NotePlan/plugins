@@ -4,6 +4,13 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.6] 2025-12-19 @dwertheimer
+
+- UI improvements for template tag editor:
+  - Moved +Field and +Date buttons to the left side of the editor
+  - Moved "Show RAW template code" toggle switch to the right side
+  - Double-click any pill (tag or text) to switch to RAW mode
+
 ## [1.0.5] 2025-12-19 @dwertheimer
 
 - Add `folder-chooser` field type: Select folders from a searchable dropdown with smart path truncation (shows beginning and end of long paths with "..." in the middle)

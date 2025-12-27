@@ -536,6 +536,13 @@ export function TemplateTagEditor({
                   textarea.setSelectionRange(cursorPos, cursorPos)
                 }
               }}
+              onDoubleClick={(e) => {
+                e.stopPropagation()
+                // Turn on RAW mode when double-clicking a pill
+                if (!showRaw) {
+                  setShowRaw(true)
+                }
+              }}
               draggable={true}
               onDragStart={(e) => handleDragStart(pill.id, e)}
               onDragOver={(e) => {
@@ -643,10 +650,10 @@ export function TemplateTagEditor({
                 }}
                 onDoubleClick={(e) => {
                   e.stopPropagation()
-                  // Switch to raw editing mode for this pill
-                  setEditingPillId(pill.id)
-                  setEditingTextIndex(index)
-                  setEditingTextValue(pill.content)
+                  // Turn on RAW mode when double-clicking a pill
+                  if (!showRaw) {
+                    setShowRaw(true)
+                  }
                 }}
                 draggable={true}
                 onDragStart={(e) => handleDragStart(pill.id, e)}
@@ -702,6 +709,7 @@ export function TemplateTagEditor({
     draggedPillId,
     dragOverIndex,
     dragOverPosition,
+    showRaw,
     handlePillClick,
     handleDragStart,
     handleDragOver,
@@ -718,11 +726,6 @@ export function TemplateTagEditor({
     <div className={`template-tag-editor ${className}`} style={style} ref={containerRef} data-field-type="textarea">
       {/* Toggle switch for raw mode */}
       <div className="template-tag-editor-toggle">
-        <label className="template-tag-toggle-switch">
-          <input type="checkbox" checked={showRaw} onChange={handleRawToggle} />
-          <span className="template-tag-toggle-slider"></span>
-          <span className="template-tag-toggle-label">Show RAW template code</span>
-        </label>
         {actionButtons && (
           <div
             className="template-tag-editor-action-buttons"
@@ -738,6 +741,11 @@ export function TemplateTagEditor({
             {actionButtons}
           </div>
         )}
+        <label className="template-tag-toggle-switch">
+          <input type="checkbox" checked={showRaw} onChange={handleRawToggle} />
+          <span className="template-tag-toggle-slider"></span>
+          <span className="template-tag-toggle-label">Show RAW template code</span>
+        </label>
       </div>
 
       {/* Raw mode - simple textarea */}

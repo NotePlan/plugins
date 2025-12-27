@@ -480,85 +480,75 @@ export function ProcessingMethodSection({
               Content to Insert:
               <InfoIcon text="The template content that will be used to create the new note. Click +Field or +Date buttons to insert tags. Or use template tags like <%- fieldKey %> to insert form field values, or <%- date.format('YYYY-MM-DD') %> for dates." />
             </label>
-            <div style={{ position: 'relative' }}>
-              <TemplateTagEditor
-                value={frontmatter.templateBody || ''}
-                onChange={(value) => onFrontmatterChange('templateBody', value)}
-                onFocus={(e) => {
-                  const target = e.target
-                  if (target instanceof HTMLTextAreaElement) {
-                    setTagInserterInputRef(target)
-                    setTagInserterFieldKey('templateBody')
-                  }
-                }}
-                placeholder=""
-                minRows={5}
-                maxRows={15}
-                fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
-                style={{ paddingRight: '8rem' }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '0.5rem',
-                  top: '2.5rem', // Adjusted for toggle switch
-                  display: 'flex',
-                  gap: '0.25rem',
-                  zIndex: 10,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    handleTagInserterButtonClick(e, 'field', 'templateBody')
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                  }}
-                  style={{
-                    fontSize: '0.75rem',
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: '#f0f0f0',
-                    border: '1px solid #ccc',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    zIndex: 100,
-                  }}
-                  title="Insert field variable"
-                >
-                  + Field
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    handleTagInserterButtonClick(e, 'date', 'templateBody')
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                  }}
-                  style={{
-                    fontSize: '0.75rem',
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: '#f0f0f0',
-                    border: '1px solid #ccc',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    zIndex: 100,
-                  }}
-                  title="Insert date format"
-                >
-                  + Date
-                </button>
-              </div>
-            </div>
+            <TemplateTagEditor
+              value={frontmatter.templateBody || ''}
+              onChange={(value) => onFrontmatterChange('templateBody', value)}
+              onFocus={(e) => {
+                const target = e.target
+                if (target instanceof HTMLTextAreaElement) {
+                  setTagInserterInputRef(target)
+                  setTagInserterFieldKey('templateBody')
+                }
+              }}
+              placeholder=""
+              minRows={5}
+              maxRows={15}
+              fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+              actionButtons={
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleTagInserterButtonClick(e, 'field', 'templateBody')
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: '#f0f0f0',
+                      border: '1px solid #ccc',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      zIndex: 100,
+                    }}
+                    title="Insert field variable"
+                  >
+                    + Field
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleTagInserterButtonClick(e, 'date', 'templateBody')
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: '#f0f0f0',
+                      border: '1px solid #ccc',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      zIndex: 100,
+                    }}
+                    title="Insert date format"
+                  >
+                    + Date
+                  </button>
+                </>
+              }
+            />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               Enter the template content that will be used to create the new note. Use tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%-
               date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates.
