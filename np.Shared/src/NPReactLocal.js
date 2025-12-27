@@ -95,10 +95,11 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
 
     // put underscore in front of all requiredFiles filenames so they visually stay together in the plugin folder
     // the files live in the 'requiredFiles' folder in the plugin dev directory but are copied to the plugin root
-    // because NotePlan does not allow for subfolders in the plugin root
-    // used rollup to bundle react and react-dom into a single file
-    const reactJSmin = `<script src="../np.Shared/react.core.min.js"></script>`
-    const reactJSDev = `<script src="../np.Shared/react.core.dev.js"></script>`
+    // React and ReactDOM are now bundled into Root, so we don't need a separate react.core bundle
+    // Root will export React and ReactDOM as globals for other bundles to use
+    // Empty strings so react.core.dev.js is not loaded
+    const reactJSmin = ``
+    const reactJSDev = ``
 
     // was creating a separate bundle for each component but that was too slow with babel loading
     // so now we force there to be a rollup bundle of all components
@@ -169,7 +170,9 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
         [pluginToHTMLCommsBridge, ENV_MODE === 'development' ? ReactDevToolsImport : '', ENV_MODE === 'production' ? reactJSmin : reactJSDev, globalSharedDataScriptStr],
         preBS,
       ),
-      postBodyScript: addStringOrArrayItems([reactComponents, reactRootComponent, mountAppString], windowOptions.postBodyScript),
+      // Load order is critical: Root must load first to set React/ReactDOM as globals,
+      // then Forms bundle can use them as externals, then mountAppString can use createRoot
+      postBodyScript: addStringOrArrayItems([reactRootComponent, reactComponents, mountAppString], windowOptions.postBodyScript),
       customId: windowOptions.customId ?? pluginJson['plugin.id'],
     }
 
