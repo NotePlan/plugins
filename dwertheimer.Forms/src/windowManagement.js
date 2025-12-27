@@ -30,6 +30,30 @@ export function getFormWindowId(formTitle?: string): string {
 }
 
 /**
+ * Generate a unique window ID for a Form Builder window by concatenating FORMBUILDER_WINDOW_ID with the template title/filename
+ * This allows multiple Form Builder windows to be open simultaneously with different IDs
+ * @param {string} templateTitle - The title of the template (optional, defaults to empty string)
+ * @param {string} templateFilename - The filename of the template (optional, used as fallback if templateTitle not provided)
+ * @returns {string} - The unique window ID
+ */
+export function getFormBuilderWindowId(templateTitle?: string, templateFilename?: string): string {
+  const identifier = templateTitle && templateTitle.trim() ? templateTitle.trim() : templateFilename && templateFilename.trim() ? templateFilename.trim() : ''
+  const suffix = identifier ? ` ${identifier}` : ''
+  return `${FORMBUILDER_WINDOW_ID}${suffix}`
+}
+
+/**
+ * Generate a unique window ID for a Form Browser window
+ * This allows multiple Form Browser windows to be open simultaneously with different IDs
+ * @param {string} identifier - Optional identifier to make the window unique (e.g., 'floating', 'main', or a custom identifier)
+ * @returns {string} - The unique window ID
+ */
+export function getFormBrowserWindowId(identifier?: string): string {
+  const suffix = identifier && identifier.trim() ? ` ${identifier.trim()}` : ''
+  return `form-browser-window${suffix}`
+}
+
+/**
  * Find the window ID for a form window by looking at all open HTML windows
  * This is used when we receive a message from a window and need to find its ID
  * @param {string} formTitle - The title of the form (optional)
@@ -392,6 +416,9 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
       isNewForm = true
     }
 
+    // Generate unique window ID based on template title/filename
+    const windowId = getFormBuilderWindowId(templateTitleForWindow, argObj.templateFilename)
+
     const data: PassedData = {
       pluginData: {
         platform: NotePlan.environment.platform,
@@ -411,6 +438,7 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
         templateBody: templateBody, // Load from codeblock
         isNewForm: isNewForm,
         launchLink: launchLink, // Add launchLink to pluginData
+        windowId: windowId, // Store window ID in pluginData so React can send it in requests
       },
       title: templateTitleForWindow ? `Form Builder - ${templateTitleForWindow}` : 'Form Builder',
       logProfilingMessage: false,
@@ -435,7 +463,7 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
       windowTitle: data.title,
       width: 1200,
       height: 800,
-      customId: FORMBUILDER_WINDOW_ID,
+      customId: windowId, // Use unique window ID instead of constant
       reuseUsersWindowRect: true,
       shouldFocus: true,
       generalCSSIn: generateCSSFromTheme(),

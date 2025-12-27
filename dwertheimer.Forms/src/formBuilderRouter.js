@@ -1,0 +1,120 @@
+// @flow
+//--------------------------------------------------------------------------
+// Form Builder Router
+// Routes actions from FormBuilderView React component to appropriate handlers
+//--------------------------------------------------------------------------
+
+import { getGlobalSharedData } from '../../helpers/HTMLView'
+import pluginJson from '../plugin.json'
+import { handleRequest } from './requestHandlers' // For shared requests like getFolders, getNotes, getTeamspaces
+import { handleSaveRequest, handleCreateProcessingTemplate, handleOpenNote, handleCopyFormUrl, handleDuplicateForm } from './formBuilderHandlers'
+import { openFormBuilderWindow, FORMBUILDER_WINDOW_ID } from './windowManagement'
+import { getTemplateFormData } from './NPTemplateForm'
+import { createRouter, type RequestResponse } from './routerUtils'
+import { closeWindowFromCustomId } from '@helpers/NPWindows'
+import { getNoteByFilename } from '@helpers/note'
+import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
+import { parseObjectString } from '@helpers/stringTransforms'
+import { logDebug, logError, logWarn } from '@helpers/dev'
+
+/**
+ * Route request to appropriate handler based on action type
+ * @param {string} actionType - The action/command type
+ * @param {any} data - Request data
+ * @returns {Promise<RequestResponse>}
+ */
+async function routeFormBuilderRequest(actionType: string, data: any): Promise<RequestResponse> {
+  // Handle save action as a special case (it's not a standard request)
+  const actualActionType = data?.type
+  if (actualActionType === 'save') {
+    return await handleSaveRequest(data)
+  }
+
+  // Route to form builder specific handlers
+  switch (actionType) {
+    case 'createProcessingTemplate':
+      return await handleCreateProcessingTemplate(data)
+    case 'openNote':
+      return handleOpenNote(data)
+    case 'copyFormUrl':
+      return handleCopyFormUrl(data)
+    case 'duplicateForm':
+      return await handleDuplicateForm(data)
+    default:
+      // For shared requests (getFolders, getNotes, getTeamspaces, etc.), use the shared request handler
+      return await handleRequest(actionType, data)
+  }
+}
+
+/**
+ * Handle non-REQUEST actions (legacy action-based pattern)
+ * @param {string} actionType - The action type
+ * @param {any} data - Request data
+ * @returns {Promise<any>}
+ */
+async function handleFormBuilderNonRequestAction(actionType: string, data: any): Promise<any> {
+  // The data structure from React is: { type: 'save'|'cancel'|'openForm', fields: [...], templateFilename: ..., templateTitle: ... }
+  // actionType will be "onFormBuilderAction" (the command name), and the actual action is in data.type
+  const actualActionType = data?.type
+  logDebug(pluginJson, `onFormBuilderAction: actualActionType="${actualActionType}"`)
+  logDebug(pluginJson, `onFormBuilderAction: data keys: ${Object.keys(data || {}).join(', ')}`)
+  if (actualActionType === 'openForm') {
+    logDebug(pluginJson, `onFormBuilderAction: openForm detected, data.templateTitle="${data?.templateTitle || 'MISSING'}"`)
+  }
+
+  // Get the template filename from the data passed from React, or fall back to reactWindowData
+  const templateFilename = data?.templateFilename
+  const reactWindowData = await getGlobalSharedData(FORMBUILDER_WINDOW_ID)
+  const fallbackTemplateFilename = reactWindowData?.pluginData?.templateFilename || ''
+  const finalTemplateFilename = templateFilename || fallbackTemplateFilename
+
+  logDebug(pluginJson, `onFormBuilderAction: templateFilename="${finalTemplateFilename}"`)
+
+  if (actualActionType === 'cancel') {
+    logDebug(pluginJson, `onFormBuilderAction: User cancelled, closing window`)
+    closeWindowFromCustomId(FORMBUILDER_WINDOW_ID)
+  } else if (actualActionType === 'openForm' && data?.templateTitle) {
+    logDebug(pluginJson, `onFormBuilderAction: Opening form with templateTitle="${data.templateTitle}"`)
+    logDebug(pluginJson, `onFormBuilderAction: Calling getTemplateFormData with templateTitle="${data.templateTitle}"`)
+    try {
+      await getTemplateFormData(data.templateTitle)
+      logDebug(pluginJson, `onFormBuilderAction: getTemplateFormData completed successfully`)
+    } catch (error) {
+      logError(pluginJson, `onFormBuilderAction: Error in getTemplateFormData: ${error.message}`)
+      throw error
+    }
+  } else if (actualActionType === 'duplicateForm' && data?.newTemplateFilename) {
+    // After duplicating, open the new form in Form Builder
+    logDebug(pluginJson, `onFormBuilderAction: Opening duplicated form with filename="${data.newTemplateFilename}"`)
+    const newNote = await getNoteByFilename(data.newTemplateFilename)
+    if (newNote) {
+      const loadedFormFields = await loadCodeBlockFromNote<Array<Object>>(newNote, 'formfields', pluginJson.id, parseObjectString)
+      const formFields = loadedFormFields || []
+      await openFormBuilderWindow({
+        formFields,
+        templateFilename: data.newTemplateFilename,
+        templateTitle: data.newTemplateTitle || newNote.title || '',
+        initialReceivingTemplateTitle: data.newReceivingTemplateTitle,
+      })
+    }
+  } else {
+    logWarn(pluginJson, `onFormBuilderAction: Unknown actualActionType="${actualActionType}" or missing fields/data`)
+    logWarn(pluginJson, `onFormBuilderAction: data.keys=${Object.keys(data || {}).join(', ')}`)
+  }
+
+  return {}
+}
+
+/**
+ * Handle actions from FormBuilderView React component
+ * Routes requests to appropriate handlers and sends responses back
+ * @param {string} actionType - The action/command type
+ * @param {any} data - Request data with optional __requestType, __correlationId, __windowId
+ * @returns {Promise<any>}
+ */
+export const onFormBuilderAction: (actionType: string, data: any) => Promise<any> = createRouter({
+  routerName: 'onFormBuilderAction',
+  defaultWindowId: FORMBUILDER_WINDOW_ID,
+  routeRequest: routeFormBuilderRequest,
+  handleNonRequestAction: handleFormBuilderNonRequestAction,
+})

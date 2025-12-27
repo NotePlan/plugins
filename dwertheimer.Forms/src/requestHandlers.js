@@ -30,8 +30,10 @@ import { parseObjectString } from '@helpers/stringTransforms'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 import { initPromisePolyfills, waitForCondition } from '@helpers/promisePolyfill'
 import { keepTodayPortionOnly } from '@helpers/calendar.js'
-import { getFormTemplates, getFormFields, handleSubmitForm, handleOpenFormBuilder } from './formBrowserHandlers'
-import { handleCreateProcessingTemplate, handleOpenNote, handleCopyFormUrl, handleDuplicateForm } from './formBuilderHandlers'
+// Form-specific handlers are now in their respective handler files:
+// - formBrowserHandlers.js: getFormTemplates, getFormFields, handleSubmitForm, handleOpenFormBuilder
+// - formBuilderHandlers.js: handleCreateProcessingTemplate, handleOpenNote, handleCopyFormUrl, handleDuplicateForm
+// - formSubmitHandlers.js: handleFormSubmitAction, handleUnknownAction
 
 // Initialize Promise polyfills early
 initPromisePolyfills()
@@ -985,22 +987,10 @@ export async function handleRequest(requestType: string, params: Object = {}): P
         return getHeadings(params)
       case 'createNote':
         return createNote(params)
-      case 'createProcessingTemplate':
-        return await handleCreateProcessingTemplate(params)
-      case 'openNote':
-        return handleOpenNote(params)
-      case 'copyFormUrl':
-        return handleCopyFormUrl(params)
-      case 'duplicateForm':
-        return await handleDuplicateForm(params)
-      case 'getFormTemplates':
-        return getFormTemplates(params)
-      case 'getFormFields':
-        return await getFormFields(params)
-      case 'submitForm':
-        return await handleSubmitForm(params)
-      case 'openFormBuilder':
-        return await handleOpenFormBuilder(params)
+      // Form-specific handlers are now in their respective handler files:
+      // - formBrowserHandlers.js handles: getFormTemplates, getFormFields, submitForm, openFormBuilder
+      // - formBuilderHandlers.js handles: createProcessingTemplate, openNote, copyFormUrl, duplicateForm
+      // - formSubmitHandlers.js handles: onSubmitClick and other form submission actions
       default:
         logError(pluginJson, `handleRequest: Unknown request type: "${requestType}"`)
         return {

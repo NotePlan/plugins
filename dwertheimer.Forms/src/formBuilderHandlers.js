@@ -5,15 +5,26 @@
 //--------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { getGlobalSharedData } from '../../helpers/HTMLView'
 import { createProcessingTemplate } from './ProcessingTemplate'
 import { openFormBuilder } from './NPTemplateForm'
 import { FORMBUILDER_WINDOW_ID } from './windowManagement'
-import { formatFormFieldsAsCodeBlock, getFormTemplateList, loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate } from './templateIO'
+import {
+  formatFormFieldsAsCodeBlock,
+  getFormTemplateList,
+  loadTemplateBodyFromTemplate,
+  loadTemplateRunnerArgsFromTemplate,
+  saveFormFieldsToTemplate,
+  saveTemplateBodyToTemplate,
+  saveTemplateRunnerArgsToTemplate,
+  updateReceivingTemplateWithFields,
+} from './templateIO'
+import { removeEmptyLinesFromNote } from './requestHandlers'
 import { getNoteByFilename } from '@helpers/note'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
 import { updateFrontMatterVars, ensureFrontmatter, endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
-import { parseObjectString } from '@helpers/stringTransforms'
+import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 import { waitForCondition } from '@helpers/promisePolyfill'
 import { getFolderFromFilename } from '@helpers/folders'
@@ -379,6 +390,196 @@ export async function handleDuplicateForm(params: { templateFilename?: string, t
     return {
       success: false,
       message: `Failed to duplicate form: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
+ * Save frontmatter to template
+ * @param {string} templateFilename - The template filename
+ * @param {Object} frontmatter - The frontmatter object
+ * @returns {Promise<void>}
+ */
+export async function saveFrontmatterToTemplate(templateFilename: string, frontmatter: Object): Promise<void> {
+  try {
+    if (!templateFilename) {
+      await showMessage('No template filename provided. Cannot save frontmatter.')
+      return
+    }
+
+    const templateNote = await getNoteByFilename(templateFilename)
+    if (!templateNote) {
+      await showMessage(`Template not found: ${templateFilename}`)
+      return
+    }
+
+    // Convert all frontmatter values to strings (updateFrontMatterVars expects strings)
+    // Strip any quotes that might have been added
+    // IMPORTANT: Skip empty string values to avoid writing "" to frontmatter
+    const frontmatterAsStrings: { [string]: string } = {}
+    Object.keys(frontmatter).forEach((key) => {
+      const value = frontmatter[key]
+      // Skip null, undefined, and empty strings - don't write them to frontmatter
+      if (value === null || value === undefined) {
+        // Skip - don't add to frontmatterAsStrings
+        return
+      }
+
+      let stringValue: string = ''
+      if (typeof value === 'boolean') {
+        stringValue = String(value)
+      } else if (typeof value === 'number') {
+        stringValue = String(value)
+      } else if (typeof value === 'string') {
+        // Strip quotes from string values
+        stringValue = stripDoubleQuotes(value)
+      } else {
+        stringValue = stripDoubleQuotes(String(value))
+      }
+
+      // Allow empty strings for specific fields that users may want to blank out (formTitle, windowTitle)
+      // For other fields, skip empty strings to avoid writing "" to frontmatter
+      const fieldsThatAllowEmpty = ['formTitle', 'windowTitle']
+      const shouldInclude = stringValue !== '' || fieldsThatAllowEmpty.includes(key)
+      if (shouldInclude) {
+        frontmatterAsStrings[key] = stringValue
+        logDebug(pluginJson, `saveFrontmatterToTemplate: Including ${key}="${stringValue}" (empty string allowed: ${String(fieldsThatAllowEmpty.includes(key))})`)
+      } else {
+        logDebug(pluginJson, `saveFrontmatterToTemplate: Skipping ${key}="${stringValue}" (empty string not allowed for this field)`)
+      }
+    })
+
+    // Update frontmatter (only non-empty values will be written)
+    updateFrontMatterVars(templateNote, frontmatterAsStrings)
+    logDebug(pluginJson, `saveFrontmatterToTemplate: Saved frontmatter to template`)
+  } catch (error) {
+    logError(pluginJson, `saveFrontmatterToTemplate error: ${error.message || String(error)}`)
+    await showMessage(`Error saving frontmatter: ${error.message}`)
+  }
+}
+
+/**
+ * Handle save request from React (request/response pattern)
+ * @param {Object} data - Request data containing fields, frontmatter, templateFilename, templateTitle
+ * @returns {Promise<{success: boolean, message?: string, data?: any}>}
+ */
+export async function handleSaveRequest(data: any): Promise<{ success: boolean, message?: string, data?: any }> {
+  try {
+    // Get the template filename from the data passed from React, or fall back to reactWindowData
+    const templateFilename = data?.templateFilename
+    const reactWindowData = await getGlobalSharedData(FORMBUILDER_WINDOW_ID)
+    const fallbackTemplateFilename = reactWindowData?.pluginData?.templateFilename || ''
+    const finalTemplateFilename = templateFilename || fallbackTemplateFilename
+
+    if (!finalTemplateFilename) {
+      return {
+        success: false,
+        message: 'No template filename provided',
+        data: null,
+      }
+    }
+
+    if (!data?.fields) {
+      return {
+        success: false,
+        message: 'No fields provided to save',
+        data: null,
+      }
+    }
+
+    // Parse fields if they're strings (shouldn't happen, but just in case)
+    let fieldsToSave = data.fields
+    if (Array.isArray(fieldsToSave) && fieldsToSave.length > 0 && typeof fieldsToSave[0] === 'string') {
+      logWarn(pluginJson, `handleSaveRequest: Fields are strings, attempting to parse`)
+      fieldsToSave = fieldsToSave.map((field) => {
+        try {
+          return typeof field === 'string' ? JSON.parse(field) : field
+        } catch (e) {
+          logError(pluginJson, `handleSaveRequest: Error parsing field: ${e.message}`)
+          return field
+        }
+      })
+    }
+
+    logDebug(pluginJson, `handleSaveRequest: Saving ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
+
+    await saveFormFieldsToTemplate(finalTemplateFilename, fieldsToSave)
+
+    // Extract TemplateRunner processing variables from frontmatter
+    // These contain template tags and should be stored in codeblock, not frontmatter
+    const templateRunnerArgs: { [string]: any } = {}
+    const templateRunnerArgKeys = [
+      'newNoteTitle', // Contains template tags like <%- field1 %>
+      'getNoteTitled', // May contain special values like <today>, <current>
+      'location', // Write location setting
+      'writeUnderHeading', // Heading to write under
+      'replaceNoteContents', // Whether to replace note contents
+      'createMissingHeading', // Whether to create missing heading
+      'newNoteFolder', // Folder for new note
+    ]
+
+    // Extract TemplateRunner args from frontmatter
+    if (data?.frontmatter) {
+      templateRunnerArgKeys.forEach((key) => {
+        if (data.frontmatter[key] !== undefined) {
+          templateRunnerArgs[key] = data.frontmatter[key]
+        }
+      })
+    }
+
+    // Save templateBody to codeblock if provided
+    if (data?.frontmatter?.templateBody !== undefined) {
+      await saveTemplateBodyToTemplate(finalTemplateFilename, data.frontmatter.templateBody || '')
+    }
+
+    // Save TemplateRunner args to codeblock if any exist
+    if (Object.keys(templateRunnerArgs).length > 0) {
+      await saveTemplateRunnerArgsToTemplate(finalTemplateFilename, templateRunnerArgs)
+    }
+
+    // Save frontmatter if provided (but exclude TemplateRunner args and templateBody as they're in codeblocks)
+    if (data?.frontmatter) {
+      const frontmatterForSave = { ...data.frontmatter }
+      // Remove TemplateRunner args and templateBody from frontmatter
+      delete frontmatterForSave.templateBody
+      templateRunnerArgKeys.forEach((key) => {
+        delete frontmatterForSave[key]
+      })
+      await saveFrontmatterToTemplate(finalTemplateFilename, frontmatterForSave)
+    }
+
+    // Get template note for success message and cleanup
+    const templateNote = await getNoteByFilename(finalTemplateFilename)
+    const templateTitle = templateNote?.title || finalTemplateFilename
+
+    // Remove empty lines from the note
+    if (templateNote) {
+      removeEmptyLinesFromNote(templateNote)
+    }
+
+    // Check if we should update the receiving template
+    if (templateNote) {
+      const receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle
+      if (receivingTemplateTitle) {
+        const updateReceiving = await CommandBar.showOptions(['Yes, update receiving template', 'No, skip'], 'Form Builder', 'Update receiving template with new field keys?')
+
+        if (updateReceiving?.value === 'Yes, update receiving template' || updateReceiving?.index === 0) {
+          await updateReceivingTemplateWithFields(receivingTemplateTitle, fieldsToSave)
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `Form saved successfully to "${templateTitle}"`,
+      data: { templateFilename: finalTemplateFilename, templateTitle },
+    }
+  } catch (error) {
+    logError(pluginJson, `handleSaveRequest error: ${error.message || String(error)}`)
+    return {
+      success: false,
+      message: `Error saving form: ${error.message || String(error)}`,
       data: null,
     }
   }

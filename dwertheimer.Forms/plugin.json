@@ -26,6 +26,11 @@
       "description": "Open form for template data entry which will be sent to a template for processing. Generally invoked from an xcallback",
       "jsFunction": "getTemplateFormData",
       "arguments": [
+        {
+          "name": "templateTitle",
+          "type": "string",
+          "description": "Title of the template form to open (optional, if not provided user will be prompted to select)"
+        }
       ]
     },
     {
@@ -37,6 +42,11 @@
       "description": "Visual form builder to create and edit form field definitions without writing JSON manually",
       "jsFunction": "openFormBuilder",
       "arguments": [
+        {
+          "name": "templateTitle",
+          "type": "string",
+          "description": "Title of the template form to edit (optional, if not provided user will be prompted to create new or select existing)"
+        }
       ]
     },
     {
@@ -48,6 +58,11 @@
       "description": "Browse and select template forms in a two-column resizable layout",
       "jsFunction": "openFormBrowser",
       "arguments": [
+        {
+          "name": "showFloating",
+          "type": "boolean",
+          "description": "If true, opens as a floating window instead of main window (optional, defaults to false)"
+        }
       ]
     },
     {
@@ -77,6 +92,12 @@
       "name": "onFormBuilderAction",
       "description": "React FormBuilder Calling back to plugin",
       "jsFunction": "onFormBuilderAction",
+      "hidden": true
+    },
+    {
+      "name": "onFormBrowserAction",
+      "description": "React FormBrowser Calling back to plugin",
+      "jsFunction": "onFormBrowserAction",
       "hidden": true
     },
     {
