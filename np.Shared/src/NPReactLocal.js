@@ -2,7 +2,7 @@
 
 import pluginJson from '../plugin.json'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { showHTMLV2, showHTMLWindow, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage, generateScriptTags } from '@helpers/HTMLView'
+import { showHTMLV2, getThemeJS, type HtmlWindowOptions, sendBannerMessage, generateScriptTags } from '@helpers/HTMLView'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 
 const startTime = new Date()
@@ -35,6 +35,151 @@ const mountAppString = `
         `}
     </script>
 `
+
+/**
+ * Prepare React window data and HTML components (shared between openReactWindow and showInMainWindow)
+ * @param {any} globalData - Initial data to be sent to the HTML window
+ * @param {HtmlWindowOptions} windowOptions - Window options
+ * @returns {Object} - { globalSharedData, bodyHTML, generatedOptions, cssTags, themeJS }
+ */
+function prepareReactWindowData(
+  globalData: any,
+  windowOptions: HtmlWindowOptions,
+): {
+  globalSharedData: any,
+  bodyHTML: string,
+  generatedOptions: any,
+  cssTags: string,
+  themeJS: any,
+} {
+  if (!globalData) throw `prepareReactWindowData() globalData was null. This is required.`
+  let globalSharedData = globalData
+
+  globalSharedData = setEnv(globalSharedData) // set the build mode etc
+  globalSharedData.lastUpdated = { msg: 'Initial data load', date: new Date().toLocaleString() }
+
+  // Load all CSS files in the plugin.json file that end in '.css
+  const css: Array<string> = []
+
+  // Empty strings so react.core.dev.js is not loaded
+  const reactJSmin = ``
+  const reactJSDev = ``
+
+  if (!globalSharedData.componentPath?.length) logError("globalSharedData.componentPath is not set. cannot load your plugin's React components")
+  const componentsStr = `\t\t<script type="text/javascript" src="${globalSharedData.componentPath}"></script>\n`
+
+  const reactComponents = `     
+        ${componentsStr}
+      `
+
+  const cssTags = css.reduce((acc, cur) => {
+    return `${acc}\t\t<link rel="stylesheet" href="./${cur}">\n`
+  }, '\n')
+
+  const themeJS = getThemeJS()
+
+  const bodyHTML = `
+    <!-- Show loading spinner while React loads/renders -->
+    <div id="root">
+      <div id="spinner" class="container" style="background-color: ${themeJS?.values?.editor?.backgroundColor ?? '#ffffff'}">
+        <div class="loading" style="background-color: ${themeJS?.values?.editor?.tintColor ?? '#000000'}"></div>
+        <p class="loading-text">Searching & Preparing Your Data...</p>
+      </div>
+    </div>
+  `
+
+  // don't edit this next block, it's just a way to send the plugin data object to the HTML window
+  // at the time of the HTML window creation
+  // globalSharedData is a global variable in the HTML window
+  const globalSharedDataScriptStr = `
+      <script type="text/javascript" >
+        console.log('JS baked into page HTML: Setting globalSharedData');
+        globalSharedData = ${JSON.stringify(globalSharedData)};
+        // This setting comes from ${pluginJson['plugin.id']}
+        // if (typeof DataStore === 'undefined') {
+        //   let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        // }
+      </script>
+    `
+  // set up bridge to NP
+  const pluginToHTMLCommsBridge = `
+    <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
+    <script>
+      const receivingPluginID = "${pluginJson['plugin.id']}";
+      const onMessageFromPlugin = ()=>{}; // np.Shared/pluginToHTMLCommsBridge wants to see this function, but we don't use it in React because we will set up our own listener in Root
+    </script>
+    <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
+    `
+
+  const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.dev.js"></script>\n`
+  const preBS = (windowOptions.preBodyScript = windowOptions.preBodyScript || '')
+  const generatedOptions = {
+    includeCSSAsJS: windowOptions.includeCSSAsJS === false ? false : true,
+    headerTags: `${[cssTags].join('\n')}${windowOptions.headerTags || ''}` /* needs to be a string */,
+    preBodyScript: addStringOrArrayItems(
+      [pluginToHTMLCommsBridge, ENV_MODE === 'development' ? ReactDevToolsImport : '', ENV_MODE === 'production' ? reactJSmin : reactJSDev, globalSharedDataScriptStr],
+      preBS,
+    ),
+    // Load order is critical: Root must load first to set React/ReactDOM as globals,
+    // then Forms bundle can use them as externals, then mountAppString can use createRoot
+    postBodyScript: addStringOrArrayItems([reactRootComponent, reactComponents, mountAppString], windowOptions.postBodyScript),
+    customId: windowOptions.customId ?? pluginJson['plugin.id'],
+  }
+
+  return {
+    globalSharedData,
+    bodyHTML,
+    generatedOptions,
+    cssTags,
+    themeJS,
+  }
+}
+
+/**
+ * Assemble HTML string from prepared data (for use with HTMLView.showInMainWindow)
+ * @param {string} bodyHTML - The body HTML content
+ * @param {any} generatedOptions - Generated options with scripts, headerTags, etc.
+ * @param {HtmlWindowOptions} windowOptions - Original window options
+ * @returns {string} - Complete HTML string
+ */
+function assembleHTMLString(bodyHTML: string, generatedOptions: any, windowOptions: HtmlWindowOptions): string {
+  const fullHTML: Array<string> = []
+  fullHTML.push('<!DOCTYPE html>')
+  fullHTML.push('<html>')
+  fullHTML.push('<head>')
+  fullHTML.push(`<title>${windowOptions.windowTitle || 'React Window'}</title>`)
+  fullHTML.push('<meta charset="utf-8">')
+  fullHTML.push('<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, maximum-scale=1, viewport-fit=cover">')
+
+  // Add preBodyScript using generateScriptTags
+  // $FlowFixMe - generatedOptions.preBodyScript can be array/string/ScriptObj
+  const preScript = generateScriptTags((generatedOptions.preBodyScript: any) ?? '')
+  if (preScript !== '') {
+    fullHTML.push(preScript)
+  }
+
+  fullHTML.push(generatedOptions.headerTags || '')
+  fullHTML.push('<style type="text/css" title="Original Theme Styles">')
+  // If generalCSSIn is empty, generate it from the current theme
+  const generalCSS = windowOptions.generalCSSIn && windowOptions.generalCSSIn !== '' ? windowOptions.generalCSSIn : generateCSSFromTheme('')
+  fullHTML.push(generalCSS)
+  fullHTML.push(windowOptions.specificCSS || '')
+  fullHTML.push('</style>')
+  fullHTML.push('</head>')
+  fullHTML.push('<body>')
+  fullHTML.push(bodyHTML)
+
+  // Add postBodyScript using generateScriptTags
+  // $FlowFixMe - generatedOptions.postBodyScript can be array/string/ScriptObj
+  const postScript = generateScriptTags((generatedOptions.postBodyScript: any) ?? '')
+  if (postScript !== '') {
+    fullHTML.push(postScript)
+  }
+
+  fullHTML.push('</body>')
+  fullHTML.push('</html>')
+  return fullHTML.join('\n')
+}
 
 /**
  * onMessageFromHTMLView
@@ -71,112 +216,12 @@ export async function onMessageFromHTMLView(incoming: string): Promise<any> {
 export function openReactWindow(globalData: any = null, windowOptions?: HtmlWindowOptions = {}): boolean {
   try {
     logDebug(pluginJson, `NPReactLocal.openReactWindow Starting ...`)
-    // the first parameter sent is globalData -- some initial data we will add as a global 'globalSharedData' in the HTML window
-    // react will use this to populate the page
-    // that the plugin can write to and the HTML App can access
-    // we will try not to update this object directly, but instead
-    // use message passing
-    // should always have a lastUpdated field so we can see when the data was last updated on the HTML side
     if (!globalData) throw `NPReactLocal.openReactWindow() globalData was null. This is required. See the README`
-    let globalSharedData = globalData
 
-    globalSharedData = setEnv(globalSharedData) // set the build mode etc
+    // Prepare all React window data using shared function
+    const { bodyHTML, generatedOptions } = prepareReactWindowData(globalData, windowOptions)
 
-    /*************************************************************************
-     * YOU SHOULD NOT NEED TO EDIT ANYTHING BELOW THIS LINE
-     *************************************************************************/
-
-    globalSharedData.lastUpdated = { msg: 'Initial data load', date: new Date().toLocaleString() }
-
-    // Load all components in the plugin.json file that end in '.jsx
-    // const components = pluginJson['plugin.requiredFiles']?.filter((f) => f.endsWith('.jsx'))
-    // Load all CSS files in the plugin.json file that end in '.css
-    // const css = pluginJson['plugin.requiredFiles']?.filter((f) => f.endsWith('.css'))
-    const css: Array<string> = []
-
-    // put underscore in front of all requiredFiles filenames so they visually stay together in the plugin folder
-    // the files live in the 'requiredFiles' folder in the plugin dev directory but are copied to the plugin root
-    // React and ReactDOM are now bundled into Root, so we don't need a separate react.core bundle
-    // Root will export React and ReactDOM as globals for other bundles to use
-    // Empty strings so react.core.dev.js is not loaded
-    const reactJSmin = ``
-    const reactJSDev = ``
-
-    // was creating a separate bundle for each component but that was too slow with babel loading
-    // so now we force there to be a rollup bundle of all components
-    // const componentsStr =
-    //   ENV_MODE === 'production'
-    //     ? `\t\t<script type="text/javascript" src="${globalSharedData.componentPath}"></script>\n`
-    //     : components.reduce((acc, cur) => {
-    //         return `${acc}\t\t<script type="text/babel" src="./${cur}"></script>\n`
-    //       }, '\n')
-    if (!globalSharedData.componentPath?.length) logError("globalSharedData.componentPath is not set. cannot load your plugin's React components")
-    const componentsStr = `\t\t<script type="text/javascript" src="${globalSharedData.componentPath}"></script>\n`
-
-    // <script> logDebug("HTML JS","Root component loaded. There is no babel, so you cannot use JSX unless it's compiled by rollup."); </script>
-    const reactComponents = `     
-          ${componentsStr}
-        `
-
-    const cssTags = css.reduce((acc, cur) => {
-      return `${acc}\t\t<link rel="stylesheet" href="./${cur}">\n`
-    }, '\n')
-
-    const themeJS = getThemeJS()
-
-    const bodyHTML = `
-    <!-- Show loading spinner while React loads/renders -->
-    <div id="root">
-      <div id="spinner" class="container" style="background-color: ${themeJS?.values?.editor?.backgroundColor ?? '#ffffff'}">
-        <div class="loading" style="background-color: ${themeJS?.values?.editor?.tintColor ?? '#000000'}"></div>
-        <p class="loading-text">Searching & Preparing Your Data...</p>
-      </div>
-    </div>
-  `
-
-    // don't edit this next block, it's just a way to send the plugin data object to the HTML window
-    // at the time of the HTML window creation
-    // globalSharedData is a global variable in the HTML window
-    const globalSharedDataScriptStr = `
-      <script type="text/javascript" >
-        console.log('JS baked into page HTML: Setting globalSharedData');
-        globalSharedData = ${JSON.stringify(globalSharedData)};
-        // This setting comes from ${pluginJson['plugin.id']}
-        // if (typeof DataStore === 'undefined') {
-        //   let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
-        // }
-      </script>
-    `
-    // set up bridge to NP
-    const pluginToHTMLCommsBridge = `
-    <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
-    <script>
-      const receivingPluginID = "${pluginJson['plugin.id']}";
-      const onMessageFromPlugin = ()=>{}; // np.Shared/pluginToHTMLCommsBridge wants to see this function, but we don't use it in React because we will set up our own listener in Root
-    </script>
-    <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
-    `
-
-    const runPluginCommandFunction = getCallbackCodeString('runPluginCommand') // generic function to run any plugin command
-    const sendMessageToPluginFunction = `
-      const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
-    `
-
-    const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.dev.js"></script>\n`
-    const preBS = (windowOptions.preBodyScript = windowOptions.preBodyScript || '')
-    const generatedOptions = {
-      includeCSSAsJS: windowOptions.includeCSSAsJS === false ? false : true,
-      headerTags: `${[cssTags].join('\n')}${windowOptions.headerTags || ''}` /* needs to be a string */,
-      preBodyScript: addStringOrArrayItems(
-        [pluginToHTMLCommsBridge, ENV_MODE === 'development' ? ReactDevToolsImport : '', ENV_MODE === 'production' ? reactJSmin : reactJSDev, globalSharedDataScriptStr],
-        preBS,
-      ),
-      // Load order is critical: Root must load first to set React/ReactDOM as globals,
-      // then Forms bundle can use them as externals, then mountAppString can use createRoot
-      postBodyScript: addStringOrArrayItems([reactRootComponent, reactComponents, mountAppString], windowOptions.postBodyScript),
-      customId: windowOptions.customId ?? pluginJson['plugin.id'],
-    }
-
+    // Use showHTMLV2 which handles HTML assembly internally
     showHTMLV2(bodyHTML, { ...windowOptions, ...generatedOptions })
 
     logDebug(pluginJson, `openReactWindow: ---------------------------------------- HTML prep: ${timer(startTime)} | Total so far: ${timer(globalData.startTime)}`)
@@ -201,125 +246,13 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
 export function showInMainWindow(globalData: any = null, windowOptions?: HtmlWindowOptions = {}): boolean {
   try {
     logDebug(pluginJson, `NPReactLocal.showInMainWindow Starting ...`)
-    // the first parameter sent is globalData -- some initial data we will add as a global 'globalSharedData' in the HTML window
-    // react will use this to populate the page
-    // that the plugin can write to and the HTML App can access
-    // we will try not to update this object directly, but instead
-    // use message passing
-    // should always have a lastUpdated field so we can see when the data was last updated on the HTML side
     if (!globalData) throw `NPReactLocal.showInMainWindow() globalData was null. This is required. See the README`
-    let globalSharedData = globalData
 
-    globalSharedData = setEnv(globalSharedData) // set the build mode etc
+    // Prepare all React window data using shared function
+    const { bodyHTML, generatedOptions } = prepareReactWindowData(globalData, windowOptions)
 
-    /*************************************************************************
-     * YOU SHOULD NOT NEED TO EDIT ANYTHING BELOW THIS LINE
-     *************************************************************************/
-
-    globalSharedData.lastUpdated = { msg: 'Initial data load', date: new Date().toLocaleString() }
-
-    // Load all CSS files in the plugin.json file that end in '.css
-    const css: Array<string> = []
-
-    // Empty strings so react.core.dev.js is not loaded
-    const reactJSmin = ``
-    const reactJSDev = ``
-
-    if (!globalSharedData.componentPath?.length) logError("globalSharedData.componentPath is not set. cannot load your plugin's React components")
-    const componentsStr = `\t\t<script type="text/javascript" src="${globalSharedData.componentPath}"></script>\n`
-
-    const reactComponents = `     
-          ${componentsStr}
-        `
-
-    const cssTags = css.reduce((acc, cur) => {
-      return `${acc}\t\t<link rel="stylesheet" href="./${cur}">\n`
-    }, '\n')
-
-    const themeJS = getThemeJS()
-
-    const bodyHTML = `
-    <!-- Show loading spinner while React loads/renders -->
-    <div id="root">
-      <div id="spinner" class="container" style="background-color: ${themeJS?.values?.editor?.backgroundColor ?? '#ffffff'}">
-        <div class="loading" style="background-color: ${themeJS?.values?.editor?.tintColor ?? '#000000'}"></div>
-        <p class="loading-text">Searching & Preparing Your Data...</p>
-      </div>
-    </div>
-  `
-
-    // don't edit this next block, it's just a way to send the plugin data object to the HTML window
-    // at the time of the HTML window creation
-    // globalSharedData is a global variable in the HTML window
-    const globalSharedDataScriptStr = `
-      <script type="text/javascript" >
-        console.log('JS baked into page HTML: Setting globalSharedData');
-        globalSharedData = ${JSON.stringify(globalSharedData)};
-        // This setting comes from ${pluginJson['plugin.id']}
-      </script>
-    `
-    // set up bridge to NP
-    const pluginToHTMLCommsBridge = `
-    <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
-    <script>
-      const receivingPluginID = "${pluginJson['plugin.id']}";
-      const onMessageFromPlugin = ()=>{}; // np.Shared/pluginToHTMLCommsBridge wants to see this function, but we don't use it in React because we will set up our own listener in Root
-    </script>
-    <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
-    `
-
-    const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.dev.js"></script>\n`
-    const preBS = (windowOptions.preBodyScript = windowOptions.preBodyScript || '')
-    const generatedOptions = {
-      includeCSSAsJS: windowOptions.includeCSSAsJS === false ? false : true,
-      headerTags: `${[cssTags].join('\n')}${windowOptions.headerTags || ''}` /* needs to be a string */,
-      preBodyScript: addStringOrArrayItems(
-        [pluginToHTMLCommsBridge, ENV_MODE === 'development' ? ReactDevToolsImport : '', ENV_MODE === 'production' ? reactJSmin : reactJSDev, globalSharedDataScriptStr],
-        preBS,
-      ),
-      // Load order is critical: Root must load first to set React/ReactDOM as globals,
-      // then Forms bundle can use them as externals, then mountAppString can use createRoot
-      postBodyScript: addStringOrArrayItems([reactRootComponent, reactComponents, mountAppString], windowOptions.postBodyScript),
-      customId: windowOptions.customId ?? pluginJson['plugin.id'],
-    }
-
-    // Assemble the HTML parts into a full HTML string (similar to assembleHTMLParts but inline)
-    const fullHTML: Array<string> = []
-    fullHTML.push('<!DOCTYPE html>')
-    fullHTML.push('<html>')
-    fullHTML.push('<head>')
-    fullHTML.push(`<title>${windowOptions.windowTitle || 'React Window'}</title>`)
-    fullHTML.push('<meta charset="utf-8">')
-    fullHTML.push('<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, maximum-scale=1, viewport-fit=cover">')
-
-    // Add preBodyScript using generateScriptTags
-    // $FlowFixMe - generatedOptions.preBodyScript can be array/string/ScriptObj
-    const preScript = generateScriptTags((generatedOptions.preBodyScript: any) ?? '')
-    if (preScript !== '') {
-      fullHTML.push(preScript)
-    }
-
-    fullHTML.push(generatedOptions.headerTags || '')
-    fullHTML.push('<style type="text/css" title="Original Theme Styles">')
-    // If generalCSSIn is empty, generate it from the current theme
-    const generalCSS = windowOptions.generalCSSIn && windowOptions.generalCSSIn !== '' ? windowOptions.generalCSSIn : generateCSSFromTheme('')
-    fullHTML.push(generalCSS)
-    fullHTML.push(windowOptions.specificCSS || '')
-    fullHTML.push('</style>')
-    fullHTML.push('</head>')
-    fullHTML.push('<body>')
-    fullHTML.push(bodyHTML)
-
-    // Add postBodyScript using generateScriptTags
-    // $FlowFixMe - generatedOptions.postBodyScript can be array/string/ScriptObj
-    const postScript = generateScriptTags((generatedOptions.postBodyScript: any) ?? '')
-    if (postScript !== '') {
-      fullHTML.push(postScript)
-    }
-
-    fullHTML.push('</body>')
-    fullHTML.push('</html>')
-    const fullHTMLStr = fullHTML.join('\n')
+    // Assemble the HTML string (since showInMainWindow needs a complete HTML string, not just body)
+    const fullHTMLStr = assembleHTMLString(bodyHTML, generatedOptions, windowOptions)
 
     // Use HTMLView.showInMainWindow instead of showHTMLV2
     // $FlowFixMe[prop-missing] - showInMainWindow is available in NotePlan v3.20+
@@ -345,16 +278,34 @@ export function showInMainWindow(globalData: any = null, windowOptions?: HtmlWin
 /**
  * Add a string or array of strings to the end of an array
  * Because we build JS from an array of strings, we need to make sure that if the user passes in a string or array of strings, we add them to the array
+ * Also handles ScriptObj types (converts to string) and undefined/null
  * @param {Array<string>} arr
- * @param {string|Array<string>} items
+ * @param {any} items - Can be string, Array<string>, ScriptObj, or undefined/null
  * @returns {Array<string>}
  */
-const addStringOrArrayItems = (arr: Array<string>, items: string | Array<string>) => {
+const addStringOrArrayItems = (arr: Array<string>, items: any): Array<string> => {
   if (!items) return arr
   if (typeof items === 'string') {
     arr.push(items)
   } else if (Array.isArray(items)) {
-    arr.push(...items)
+    // Handle array of strings or ScriptObj
+    for (const item of items) {
+      if (typeof item === 'string') {
+        arr.push(item)
+      } else if (item && typeof item === 'object') {
+        // ScriptObj - convert to string using generateScriptTags
+        const scriptStr = generateScriptTags(item)
+        if (scriptStr) {
+          arr.push(scriptStr)
+        }
+      }
+    }
+  } else if (items && typeof items === 'object') {
+    // ScriptObj - convert to string using generateScriptTags
+    const scriptStr = generateScriptTags(items)
+    if (scriptStr) {
+      arr.push(scriptStr)
+    }
   }
   return arr
 }
