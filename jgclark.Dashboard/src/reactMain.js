@@ -330,8 +330,24 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     logTimer('showDashboardReact', startTime, `===== Calling React =====`)
     // clo(data, `showDashboardReact data object passed`)
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
-    // now ask np.Shared to open the React Window with the data we just gathered
-    await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
+    
+    // Check if we should open in split view
+    const settings = await getSettings(pluginID)
+    const openInSplitView = settings?.openInSplitView === true
+    
+    if (openInSplitView) {
+      // Generate HTML and use showInMainWindow
+      const htmlString = generateReactHTML(data, windowOptions)
+      await HTMLView.showInMainWindow(htmlString, windowOptions.windowTitle, {
+        splitView: true,
+        id: windowOptions.customId || WEBVIEW_WINDOW_ID,
+        icon: 'fa-chart-line',
+        iconColor: 'blue-500',
+      })
+    } else {
+      // Use the existing approach with openReactWindow
+      await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
+    }
   } catch (error) {
     logError('showDashboardReact', JSP(error))
   }

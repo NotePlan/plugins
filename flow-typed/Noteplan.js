@@ -1245,18 +1245,82 @@ declare class Calendar {
   /**
    * Calendar.availableCalendarTitles()
    * Get the titles of all calendars the user has access to. Set `writeOnly` true, if you want to get only the calendars the user has write access to (some calendars, like holidays are not writable).
-   * Note: Available from v3.1
-   * @param {boolean}
+   * Note: second parameter available from v3.20.0 (build 1469)
+   * @param {boolean} [writeOnly=false] - If true, returns only calendars the user has write access to (some calendars, like holidays, are not writable). If false or omitted, returns all calendars (writable and read-only).
+   * @param {boolean} [enabledOnly=false] - If true, returns only calendars that are enabled in NotePlan's settings. If false or omitted, returns all calendars the user has access to (including disabled ones).
    * @return {Array<string>}
    */
-  static availableCalendarTitles(writeOnly: boolean): $ReadOnlyArray<string>;
+  static availableCalendarTitles(writeOnly: boolean, enabledOnly: boolean): $ReadOnlyArray < string >;
+  /**
+   * Calendar.availableCalendars()
+   * Get all calendars the user has access to, returning full calendar objects with detailed information (title, color, source, etc.) instead of just titles.
+  * Note: available from v3.20.0 (build 1469)
+  * 
+  * @param {object} [options] - Optional filter options:
+  * - {boolean} [options.writeOnly=false] - If true, returns only calendars the user has write access to (some calendars, like holidays, are not writable). If false or omitted, returns all calendars (writable and read-only).
+  * - {boolean} [options.enabledOnly=false] - If true, returns only calendars that are enabled in NotePlan's settings. If false or omitted, returns all calendars the user has access to (including disabled ones). Also accepts `filterEnabled` as an alias.
+  * @return {[Object]} Array of calendar objects, each containing:
+  *   - {String} title - Calendar title
+  *   - {String} id - Calendar identifier
+  *   - {String} color - Calendar color as hex string (e.g., "#5A9FD4")
+  *   - {String} source - Source title (e.g., "iCloud", "Google")
+  *   - {String} sourceType - Source type (e.g., "calDAV", "local", "exchange", "subscribed", "birthdays")
+  *   - {Boolean} isWritable - Whether calendar allows content modifications
+  *   - {Boolean} isEnabled - Whether calendar is enabled (not blacklisted) in NotePlan's settings
+  *   - {[String]} allowedEntityTypes - Entity types supported by this calendar (e.g., ["event"], ["reminder"], or ["event", "reminder"])
+  * 
+  * @example
+  * // Get only writable AND enabled calendars
+  * const calendars = Calendar.availableCalendars({ writeOnly: true, enabledOnly: true })
+  * 
+  * @example
+  * // Access calendar properties
+  * const calendars = Calendar.availableCalendars()
+  * calendars.forEach(cal => {
+  *   console.log(`${cal.title} (${cal.source}) - Color: ${cal.color}, Writable: ${cal.isWritable}, Enabled: ${cal.isEnabled}`)
+  * })
+  */
+  static availableCalendars(options?: {writeOnly?: boolean, enabledOnly?: boolean}): $ReadOnlyArray<TCalendar>;
   /**
    * Calendar.availableReminderListTitles()
    * Get the titles of all reminders the user has access to.
    * Note: Available from v3.1
    * @return {Array<string>}
    */
-  static availableReminderListTitles(): $ReadOnlyArray<string>;
+  static availableReminderListTitles(): $ReadOnlyArray < string >;
+  /**
+   * Calendar.availableReminderLists()
+   * Get all reminder lists the user has access to, returning full reminder list objects with detailed information (title, color, source, etc.) instead of just titles.
+   * Note: available from v3.20.0 (build 1469)
+   * 
+   * @param {object} [options] - Optional filter options:
+   * - {boolean} [options.enabledOnly=false] - If true, returns only reminder lists that are enabled in NotePlan's settings. If false or omitted, returns all reminder lists the user has access to (including disabled ones). Also accepts `filterEnabled` as an alias.
+   * @return {Array<Object>} Array of reminder list objects, each containing:
+   *   - {String} title - Reminder list title
+   *   - {String} id - Reminder list identifier
+   *   - {String} color - Reminder list color as hex string (e.g., "#5A9FD4")
+   *   - {String} source - Source title (e.g., "iCloud", "Google")
+   *   - {String} sourceType - Source type (e.g., "calDAV", "local", "exchange", "subscribed")
+   *   - {Boolean} isWritable - Whether reminder list allows content modifications (typically true for reminder lists)
+   *   - {Boolean} isEnabled - Whether reminder list is enabled (not blacklisted) in NotePlan's settings
+   *   - {[String]} allowedEntityTypes - Entity types supported by this reminder list (typically ["reminder"])
+   * 
+   * @example
+   * // Get all reminder lists (including disabled)
+   * const reminderLists = Calendar.availableReminderLists()
+   * 
+   * @example
+   * // Get only enabled reminder lists
+   * const reminderLists = Calendar.availableReminderLists({ enabledOnly: true })
+   * 
+   * @example
+   * // Access reminder list properties
+   * const reminderLists = Calendar.availableReminderLists()
+   * reminderLists.forEach(list => {
+   *   console.log(`${list.title} (${list.source}) - Color: ${list.color}, Enabled: ${list.isEnabled}`)
+   * })
+   */
+  static availableReminderLists(options?: {enabledOnly?: boolean}): $ReadOnlyArray<TCalendarItem>;
   /**
    * Calendar.add()
    * Create an event or reminder based on the given CalendarItem.
@@ -2640,6 +2704,50 @@ declare class HTMLView {
    * @returns {Window} promise to window
    */
   static showWindowWithOptions(html: string, title: string, options: Object): HTMLView;
+  /**
+   * * HTMLView.showInMainWindow()
+  * Shows HTML content in the main application window, either in the main content area or as a split view (a sidebar entry will be added, so the user can open it also with opt+click as split view).
+  * Available in v3.20.0 (build 1469)
+  * @param { String } html - The HTML content to display
+  * @param { String } title - The title for the view
+  * @param { Object } options - (optional) Configuration options:
+  *   - splitView: Boolean - Show as split view (true) or in main content area (false, default)
+  *   - id/customId/customID: String - Unique identifier for reusing the same view
+  *   - icon: String - Font Awesome icon string for the navigation bar
+  *   - iconColor: String - Tailwind color name (e.g., "blue-500") or hex color (e.g., "#3b82f6")
+  *   - autoTopPadding: Boolean - Auto-add top padding for navigation bar (default: true)
+  * @returns { Promise<{boolean, string}> } Returns a promise that resolves with { success: true, windowID: String }
+  *
+  * @example
+  * // Show HTML in main content area with icon
+  * await NotePlan.showInMainWindow(
+  *   '<h1>Hello World</h1><p>This is displayed in the main view.</p>',
+  *   'My View',
+  *   { icon: 'fa-star', iconColor: 'blue-500' }
+  * )
+  * 
+  * @example
+  * // Show HTML as split view with custom icon and color
+  * await NotePlan.showInMainWindow(
+  *   '<div>Split view content</div>',
+  *   'Split View',
+  *   { 
+  *     splitView: true,
+  *     id: 'my-split-view',
+  *     icon: 'fa-chart-line',
+  *     iconColor: '#3b82f6'
+  *   }
+  * )
+  * 
+  * @example
+  * // Reuse a view by ID
+  * await NotePlan.showInMainWindow(
+  *   '<div>Updated content</div>',
+  *   'Updated View',
+  *   { id: 'my-split-view', splitView: true }
+  * )
+  */
+  static showInMainWindow(html: string, title: string, options: Object): Promise<{success: boolean, windowID: string}>;
   /**
    * Get a unique ID for the window to make it easier to identify it later
    * Note: Available from NotePlan v3.8.1 build 973
