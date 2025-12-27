@@ -468,8 +468,16 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
   try {
     // Get the template filename from the data passed from React, or fall back to reactWindowData
     const templateFilename = data?.templateFilename
-    const reactWindowData = await getGlobalSharedData(FORMBUILDER_WINDOW_ID)
-    const fallbackTemplateFilename = reactWindowData?.pluginData?.templateFilename || ''
+    // Try to get window data using the windowId from the request (if provided), otherwise use the default
+    const windowId = data?.__windowId || FORMBUILDER_WINDOW_ID
+    let fallbackTemplateFilename = ''
+    try {
+      const reactWindowData = await getGlobalSharedData(windowId)
+      fallbackTemplateFilename = reactWindowData?.pluginData?.templateFilename || ''
+    } catch (e) {
+      // If we can't get window data, that's ok - we'll use templateFilename from data
+      logDebug(pluginJson, `handleSaveRequest: Could not get window data for windowId="${windowId}", using templateFilename from data`)
+    }
     const finalTemplateFilename = templateFilename || fallbackTemplateFilename
 
     if (!finalTemplateFilename) {

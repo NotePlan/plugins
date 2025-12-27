@@ -125,7 +125,7 @@ export function getFormTemplates(params: { space?: string } = {}): RequestRespon
 }
 
 /**
- * Get form fields for a specific template
+ * Get form fields and frontmatter for a specific template
  * @param {Object} params - Request parameters
  * @param {string} params.templateFilename - The template filename
  * @returns {RequestResponse}
@@ -143,6 +143,16 @@ export async function getFormFields(params: { templateFilename?: string } = {}):
 
     logDebug(pluginJson, `getFormFields: templateFilename="${templateFilename}"`)
 
+    // Get the template note to read frontmatter
+    const templateNote = await getNoteByFilename(templateFilename)
+    if (!templateNote) {
+      return {
+        success: false,
+        message: `Template not found: ${templateFilename}`,
+        data: null,
+      }
+    }
+
     // Load form fields from code block
     const formFields = await loadCodeBlockFromNote<Array<any>>(templateFilename, 'formfields', pluginJson.id, parseObjectString)
 
@@ -154,10 +164,16 @@ export async function getFormFields(params: { templateFilename?: string } = {}):
       }
     }
 
+    // Get frontmatter attributes
+    const frontmatter = templateNote.frontmatterAttributes || {}
+
     logDebug(pluginJson, `getFormFields: Loaded ${formFields.length} form fields`)
     return {
       success: true,
-      data: formFields,
+      data: {
+        formFields,
+        frontmatter,
+      },
     }
   } catch (error) {
     logError(pluginJson, `getFormFields: Error: ${error.message}`)

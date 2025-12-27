@@ -15,6 +15,12 @@ type FormPreviewProps = {
   folders: Array<string>,
   notes: Array<NoteOption>,
   requestFromPlugin: (command: string, data?: any) => Promise<any>,
+  onSave?: (formValues: { [key: string]: any }, windowId?: string) => void,
+  onCancel?: () => void,
+  hideHeaderButtons?: boolean,
+  allowEmptySubmit?: boolean,
+  hidePreviewHeader?: boolean,
+  hideWindowTitlebar?: boolean,
 }
 
 /**
@@ -54,7 +60,19 @@ function parsePreviewDimension(value: ?(number | string), dimensionType: 'width'
   return undefined
 }
 
-export function FormPreview({ frontmatter, fields, folders, notes, requestFromPlugin }: FormPreviewProps): Node {
+export function FormPreview({
+  frontmatter,
+  fields,
+  folders,
+  notes,
+  requestFromPlugin,
+  onSave,
+  onCancel,
+  hideHeaderButtons = true,
+  allowEmptySubmit = false,
+  hidePreviewHeader = false,
+  hideWindowTitlebar = false,
+}: FormPreviewProps): Node {
   // Parse width and height from frontmatter for preview window dimensions
   // Convert percentages to pixel values based on actual window size for accurate preview
   const windowStyle = useMemo(() => {
@@ -73,26 +91,30 @@ export function FormPreview({ frontmatter, fields, folders, notes, requestFromPl
 
   return (
     <div className="form-builder-preview">
-      <div className="form-section-header">
-        <h3>Preview</h3>
-      </div>
+      {!hidePreviewHeader && (
+        <div className="form-section-header">
+          <h3>Preview</h3>
+        </div>
+      )}
       <div className="form-preview-container">
         <div className="form-preview-window" style={windowStyle}>
-          <div className="form-preview-window-titlebar">
-            <span className="form-preview-window-title">{stripDoubleQuotes(frontmatter.windowTitle || '') || 'Form Window'}</span>
-          </div>
+          {!hideWindowTitlebar && (
+            <div className="form-preview-window-titlebar">
+              <span className="form-preview-window-title">{stripDoubleQuotes(frontmatter.windowTitle || '') || 'Form Window'}</span>
+            </div>
+          )}
           <div className="form-preview-window-content">
             <DynamicDialog
               isOpen={true}
               isModal={false}
               title={stripDoubleQuotes(frontmatter.formTitle || '') || 'Form Heading'}
               items={fields}
-              hideHeaderButtons={true}
-              onSave={() => {}}
-              onCancel={() => {}}
+              hideHeaderButtons={hideHeaderButtons}
+              onSave={onSave || (() => {})}
+              onCancel={onCancel || (() => {})}
               handleButtonClick={() => {}}
               style={{ width: '100%', maxWidth: '100%', margin: 0 }}
-              allowEmptySubmit={frontmatter.allowEmptySubmit || false}
+              allowEmptySubmit={allowEmptySubmit || frontmatter.allowEmptySubmit || false}
               hideDependentItems={frontmatter.hideDependentItems || false}
               folders={folders}
               notes={(notes: any)} // NoteOption array - cast to any to avoid Flow invariant array type issues
@@ -106,4 +128,3 @@ export function FormPreview({ frontmatter, fields, folders, notes, requestFromPl
 }
 
 export default FormPreview
-

@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, type Node } from 'react'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { AppProvider } from './AppContext.jsx'
-import DynamicDialog from '@helpers/react/DynamicDialog'
+import { FormPreview } from './FormPreview.jsx'
 import { SpaceChooser as SpaceChooserComponent } from '@helpers/react/DynamicDialog/SpaceChooser'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
@@ -156,8 +156,12 @@ export function FormBrowserView({
   const [templates, setTemplates] = useState<Array<FormTemplate>>([])
   const [selectedTemplate, setSelectedTemplate] = useState<?FormTemplate>(null)
   const [formFields, setFormFields] = useState<Array<TSettingItem>>([])
+  const [frontmatter, setFrontmatter] = useState<{ [key: string]: any }>({})
+  const [folders, setFolders] = useState<Array<string>>([])
+  const [notes, setNotes] = useState<Array<any>>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [selectedIndex, setSelectedIndex] = useState<number>(-1)
+  const formPreviewRef = useRef<?HTMLDivElement>(null)
 
   // Refs
   const filterInputRef = useRef<?HTMLInputElement>(null)
@@ -201,18 +205,46 @@ export function FormBrowserView({
           templateFilename: template.filename,
         })
         // requestFromPlugin resolves with the data from the response (result.data from handler)
-        // The handler returns { success: true, data: formFields }
-        // So responseData should be the formFields array
-        if (Array.isArray(responseData)) {
-          setFormFields(responseData)
-          logDebug('FormBrowserView', `Loaded ${responseData.length} form fields for template "${template.label}"`)
+        // The handler now returns { success: true, data: { formFields, frontmatter } }
+        if (responseData && typeof responseData === 'object' && Array.isArray(responseData.formFields)) {
+          setFormFields(responseData.formFields)
+          setFrontmatter(responseData.frontmatter || {})
+          logDebug('FormBrowserView', `Loaded ${responseData.formFields.length} form fields for template "${template.label}"`)
+
+          // Load folders and notes if needed (check if form has folder-chooser or note-chooser fields)
+          const needsFolders = responseData.formFields.some((field: TSettingItem) => field.type === 'folder-chooser')
+          const needsNotes = responseData.formFields.some((field: TSettingItem) => field.type === 'note-chooser')
+
+          if (needsFolders) {
+            try {
+              const foldersData = await requestFromPlugin('getFolders', {})
+              if (Array.isArray(foldersData)) {
+                setFolders(foldersData)
+              }
+            } catch (error) {
+              logError('FormBrowserView', `Error loading folders: ${error.message}`)
+            }
+          }
+
+          if (needsNotes) {
+            try {
+              const notesData = await requestFromPlugin('getNotes', { includeCalendarNotes: false })
+              if (Array.isArray(notesData)) {
+                setNotes(notesData)
+              }
+            } catch (error) {
+              logError('FormBrowserView', `Error loading notes: ${error.message}`)
+            }
+          }
         } else {
-          logError('FormBrowserView', `Failed to load form fields: Expected array but got ${typeof responseData}`)
+          logError('FormBrowserView', `Failed to load form fields: Invalid response data`)
           setFormFields([])
+          setFrontmatter({})
         }
       } catch (error) {
         logError('FormBrowserView', `Error loading form fields: ${error.message}`)
         setFormFields([])
+        setFrontmatter({})
       } finally {
         setLoading(false)
       }
@@ -252,62 +284,183 @@ export function FormBrowserView({
 
   // Handle template selection
   const handleTemplateSelect = useCallback((template: FormTemplate) => {
+    logDebug('FormBrowserView', `handleTemplateSelect: selecting template "${template.label}"`)
     setSelectedTemplate(template)
-    setSelectedIndex(-1) // Reset selected index
+    // Don't reset selectedIndex - keep it for arrow navigation continuity
+    // setSelectedIndex(-1) // Reset selected index
   }, [])
+
+  // Auto-select template when selectedIndex changes (for arrow navigation)
+  useEffect(() => {
+    logDebug(
+      'FormBrowserView',
+      `useEffect selectedIndex: selectedIndex=${selectedIndex}, filteredTemplates.length=${filteredTemplates.length}, current selectedTemplate=${
+        selectedTemplate?.label || 'null'
+      }`,
+    )
+    if (selectedIndex >= 0 && selectedIndex < filteredTemplates.length) {
+      const template = filteredTemplates[selectedIndex]
+      logDebug(
+        'FormBrowserView',
+        `useEffect selectedIndex: template at index ${selectedIndex} is "${template.label}", current selectedTemplate=${selectedTemplate?.label || 'null'}`,
+      )
+      if (template) {
+        // Always update selectedTemplate when selectedIndex changes (even if same template)
+        // This ensures the form loads/reloads when navigating with arrows
+        if (template.value !== selectedTemplate?.value) {
+          logDebug('FormBrowserView', `useEffect selectedIndex: calling handleTemplateSelect for "${template.label}" (different template)`)
+          handleTemplateSelect(template)
+        } else {
+          logDebug('FormBrowserView', `useEffect selectedIndex: same template already selected, but ensuring form is loaded`)
+          // Even if same template, make sure form fields are loaded (in case they weren't before)
+          if (selectedTemplate && formFields.length === 0) {
+            logDebug('FormBrowserView', `useEffect selectedIndex: formFields empty, triggering loadFormFields`)
+            loadFormFields(selectedTemplate)
+          }
+        }
+      }
+    } else {
+      logDebug('FormBrowserView', `useEffect selectedIndex: selectedIndex out of range (${selectedIndex}) or no templates`)
+    }
+  }, [selectedIndex, filteredTemplates, selectedTemplate, handleTemplateSelect, formFields.length, loadFormFields])
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      logDebug(
+        'FormBrowserView',
+        `handleKeyDown: key="${e.key}", selectedIndex=${selectedIndex}, filteredTemplates.length=${filteredTemplates.length}, selectedTemplate=${
+          selectedTemplate?.label || 'null'
+        }`,
+      )
+
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        if (selectedIndex < filteredTemplates.length - 1) {
-          const newIndex = selectedIndex + 1
+        logDebug('FormBrowserView', `handleKeyDown ArrowDown: current selectedIndex=${selectedIndex}, max=${filteredTemplates.length - 1}`)
+        // If selectedIndex is -1, start at 0, otherwise increment
+        const newIndex = selectedIndex < 0 ? 0 : selectedIndex + 1
+        if (newIndex < filteredTemplates.length) {
+          logDebug('FormBrowserView', `handleKeyDown ArrowDown: setting selectedIndex to ${newIndex}`)
           setSelectedIndex(newIndex)
           // Scroll into view
-          if (listRef.current) {
-            const item = listRef.current.querySelector(`[data-index="${newIndex}"]`)
-            if (item) {
-              item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          setTimeout(() => {
+            if (listRef.current) {
+              const item = listRef.current.querySelector(`[data-index="${newIndex}"]`)
+              if (item) {
+                logDebug('FormBrowserView', `handleKeyDown ArrowDown: scrolling item into view`)
+                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+                // Also focus the item for better keyboard navigation
+                // @ts-ignore
+                item.focus()
+              } else {
+                logDebug('FormBrowserView', `handleKeyDown ArrowDown: could not find item with data-index="${newIndex}"`)
+              }
+            } else {
+              logDebug('FormBrowserView', `handleKeyDown ArrowDown: listRef.current is null`)
             }
-          }
+          }, 0)
+        } else {
+          logDebug('FormBrowserView', `handleKeyDown ArrowDown: already at last item (${selectedIndex}), not moving`)
         }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
+        logDebug('FormBrowserView', `handleKeyDown ArrowUp: current selectedIndex=${selectedIndex}`)
         if (selectedIndex > 0) {
           const newIndex = selectedIndex - 1
+          logDebug('FormBrowserView', `handleKeyDown ArrowUp: setting selectedIndex to ${newIndex}`)
           setSelectedIndex(newIndex)
           // Scroll into view
-          if (listRef.current) {
-            const item = listRef.current.querySelector(`[data-index="${newIndex}"]`)
-            if (item) {
-              item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          setTimeout(() => {
+            if (listRef.current) {
+              const item = listRef.current.querySelector(`[data-index="${newIndex}"]`)
+              if (item) {
+                logDebug('FormBrowserView', `handleKeyDown ArrowUp: scrolling item into view`)
+                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+                // Also focus the item for better keyboard navigation
+                // @ts-ignore
+                item.focus()
+              } else {
+                logDebug('FormBrowserView', `handleKeyDown ArrowUp: could not find item with data-index="${newIndex}"`)
+              }
+            } else {
+              logDebug('FormBrowserView', `handleKeyDown ArrowUp: listRef.current is null`)
             }
-          }
+          }, 0)
+        } else {
+          logDebug('FormBrowserView', `handleKeyDown ArrowUp: already at first item (${selectedIndex}), not moving`)
         }
       } else if (e.key === 'Enter' && selectedIndex >= 0 && selectedIndex < filteredTemplates.length) {
         e.preventDefault()
+        logDebug('FormBrowserView', `handleKeyDown Enter: selecting template at index ${selectedIndex}`)
         handleTemplateSelect(filteredTemplates[selectedIndex])
+      } else if (e.key === 'Tab' && selectedIndex >= 0 && selectedIndex < filteredTemplates.length && selectedTemplate) {
+        // TAB from focused list item should focus first form field
+        e.preventDefault()
+        logDebug('FormBrowserView', `handleKeyDown Tab: attempting to focus first form field, formPreviewRef.current=${formPreviewRef.current ? 'exists' : 'null'}`)
+        // Focus the first input field in the form preview
+        if (formPreviewRef.current) {
+          const firstInput = formPreviewRef.current.querySelector('input:not([type="hidden"]), textarea, select, button:not(.cancel-button):not(.save-button)')
+          if (firstInput instanceof HTMLElement) {
+            logDebug('FormBrowserView', `handleKeyDown Tab: found first input, focusing it`)
+            firstInput.focus()
+          } else {
+            logDebug('FormBrowserView', `handleKeyDown Tab: no input field found in form preview`)
+          }
+        } else {
+          logDebug('FormBrowserView', `handleKeyDown Tab: formPreviewRef.current is null`)
+        }
+      } else {
+        logDebug('FormBrowserView', `handleKeyDown: unhandled key="${e.key}"`)
       }
     },
-    [selectedIndex, filteredTemplates, handleTemplateSelect],
+    [selectedIndex, filteredTemplates, selectedTemplate, handleTemplateSelect],
   )
 
   // Handle filter input keydown
   const handleFilterKeyDown = useCallback(
     (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
+      logDebug('FormBrowserView', `handleFilterKeyDown: key="${e.key}", filteredTemplates.length=${filteredTemplates.length}`)
+
       if (e.key === 'ArrowDown' && filteredTemplates.length > 0) {
         e.preventDefault()
+        logDebug('FormBrowserView', `handleFilterKeyDown ArrowDown: setting selectedIndex to 0 and focusing first item`)
         setSelectedIndex(0)
-        // Focus the list
-        if (listRef.current) {
-          const firstItem = listRef.current.querySelector('[data-index="0"]')
-          if (firstItem) {
-            // @ts-ignore
-            firstItem.focus()
+        // Focus the list with setTimeout to ensure DOM is updated
+        setTimeout(() => {
+          if (listRef.current) {
+            const firstItem = listRef.current.querySelector('[data-index="0"]')
+            if (firstItem) {
+              logDebug('FormBrowserView', `handleFilterKeyDown ArrowDown: found first item, focusing it`)
+              // @ts-ignore
+              firstItem.focus()
+            } else {
+              logDebug('FormBrowserView', `handleFilterKeyDown ArrowDown: could not find first item`)
+            }
+          } else {
+            logDebug('FormBrowserView', `handleFilterKeyDown ArrowDown: listRef.current is null`)
           }
-        }
+        }, 0)
+      } else if (e.key === 'Tab' && !e.shiftKey && filteredTemplates.length > 0) {
+        // TAB from filter should focus first list item
+        e.preventDefault()
+        logDebug('FormBrowserView', `handleFilterKeyDown Tab: focusing first list item`)
+        setSelectedIndex(0)
+        setTimeout(() => {
+          if (listRef.current) {
+            const firstItem = listRef.current.querySelector('[data-index="0"]')
+            if (firstItem) {
+              logDebug('FormBrowserView', `handleFilterKeyDown Tab: found first item, focusing it`)
+              // @ts-ignore
+              firstItem.focus()
+            } else {
+              logDebug('FormBrowserView', `handleFilterKeyDown Tab: could not find first item`)
+            }
+          } else {
+            logDebug('FormBrowserView', `handleFilterKeyDown Tab: listRef.current is null`)
+          }
+        }, 0)
       } else {
+        logDebug('FormBrowserView', `handleFilterKeyDown: passing to handleKeyDown, key="${e.key}"`)
         handleKeyDown(e.nativeEvent)
       }
     },
@@ -453,9 +606,41 @@ export function FormBrowserView({
                         className={`form-browser-list-item ${selectedIndex === index ? 'selected' : ''} ${selectedTemplate?.value === template.value ? 'active' : ''}`}
                         onClick={() => handleTemplateSelect(template)}
                         onKeyDown={(e) => {
+                          logDebug('FormBrowserView', `list-item onKeyDown: key="${e.key}", index=${index}, template="${template.label}", shiftKey=${e.shiftKey}`)
                           if (e.key === 'Enter') {
                             e.preventDefault()
+                            logDebug('FormBrowserView', `list-item Enter: selecting template "${template.label}"`)
                             handleTemplateSelect(template)
+                          } else if (e.key === 'Tab' && !e.shiftKey && selectedTemplate) {
+                            // TAB from list item should focus first form field
+                            e.preventDefault()
+                            logDebug('FormBrowserView', `list-item Tab: attempting to focus first form field, formPreviewRef.current=${formPreviewRef.current ? 'exists' : 'null'}`)
+                            // Use setTimeout to ensure the form is rendered
+                            setTimeout(() => {
+                              const previewRef = formPreviewRef.current
+                              if (previewRef) {
+                                // Try to find first focusable input (skip hidden, readonly, disabled)
+                                const firstInput = previewRef.querySelector(
+                                  'input:not([type="hidden"]):not([readonly]):not([disabled]), textarea:not([readonly]):not([disabled]), select:not([disabled]), button:not(.cancel-button):not(.save-button):not([disabled])',
+                                )
+                                if (firstInput instanceof HTMLElement) {
+                                  logDebug('FormBrowserView', `list-item Tab: found first input (${firstInput.tagName}), focusing it`)
+                                  firstInput.focus()
+                                } else {
+                                  logDebug('FormBrowserView', `list-item Tab: no focusable input found, trying broader search`)
+                                  // Try a broader search (include readonly/disabled)
+                                  const anyInput = previewRef.querySelector('input:not([type="hidden"]), textarea, select, button:not(.cancel-button):not(.save-button)')
+                                  if (anyInput instanceof HTMLElement) {
+                                    logDebug('FormBrowserView', `list-item Tab: found input with broader search (${anyInput.tagName}), focusing it`)
+                                    anyInput.focus()
+                                  } else {
+                                    logDebug('FormBrowserView', `list-item Tab: no input field found at all in form preview`)
+                                  }
+                                }
+                              } else {
+                                logDebug('FormBrowserView', `list-item Tab: formPreviewRef.current is null`)
+                              }
+                            }, 100)
                           }
                         }}
                         tabIndex={0}
@@ -478,19 +663,23 @@ export function FormBrowserView({
             {/* Right Panel: Form Preview */}
             <Panel defaultSize={60} minSize={30} order={2}>
               <div className="form-browser-form-container">
-                {selectedTemplate ? (
-                  <div className="form-browser-form-wrapper">
-                    <DynamicDialog
-                      items={formFields}
-                      onSave={handleSave}
-                      onCancel={handleCancel}
-                      title={selectedTemplate.label}
-                      isOpen={true}
-                      isModal={false}
-                      hideHeaderButtons={false}
-                      allowEmptySubmit={false}
-                      requestFromPlugin={requestFromPlugin}
-                    />
+                {selectedTemplate && formFields.length > 0 ? (
+                  <div className="form-browser-form-wrapper" ref={formPreviewRef}>
+                    <div className="form-browser-preview-wrapper">
+                      <FormPreview
+                        frontmatter={frontmatter}
+                        fields={formFields}
+                        folders={folders}
+                        notes={notes}
+                        requestFromPlugin={requestFromPlugin}
+                        onSave={handleSave}
+                        onCancel={handleCancel}
+                        hideHeaderButtons={false}
+                        allowEmptySubmit={frontmatter.allowEmptySubmit || false}
+                        hidePreviewHeader={true}
+                        hideWindowTitlebar={true}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div className="form-browser-form-empty">
