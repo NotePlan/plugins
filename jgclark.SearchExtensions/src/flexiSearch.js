@@ -35,6 +35,7 @@ const infoTooltipForNPExtendedSyntax = `
       <i class="fa-regular fa-circle-question"></i>
       <div class="tooltipUnderLeft">
       Searches match on partial words; to get whole words enclose in double quotes. Separate search terms by spaces; surround an exact phrase in double quotes.<br />
+      <i class="fa-regular fa-globe"></i><a href="https://help.noteplan.co/article/269-advanced-search" target="_blank">Full documentation</a><br />
       Must find: <kbd>term</kbd><br />
       Must not find in same line: <kbd>-term</kbd><br />
       May find in same line: <kbd>termA OR termB</kbd> and negative groups <kbd>-(termA OR termB)</kbd><br />
@@ -46,8 +47,7 @@ const infoTooltipForNPExtendedSyntax = `
       Task type(s): <kbd>is:open|done|scheduled|cancelled|checklist|checklist-done|checklist-scheduled|checklist-cancelled|not-task</kbd><br />
       Heading: <kbd>heading:Projects</kbd><br />
       Sort: <kbd>sort:asc|desc</kbd><br />
-      Show/Hide: <kbd>show|hide:past-events|archive|teamspace|timeblocked</kbd><br />
-      <i class="fa-regular fa-globe"></i><a href="https://help.noteplan.co/article/269-advanced-search" target="_blank">Full documentation</a>
+      Show/Hide: <kbd>show|hide:past-events|archive|teamspace|timeblocked</kbd>
       <u></u> <!-- used to trigger extra bit that mimics speech bubble -->
     </div>
 `
@@ -225,7 +225,7 @@ const flexiSearchDialogPostBodyScripts = `
           console.log('- setting fullWordSearching "'+ val +'" to ' + String(fullWordSearching === val))
           inputs[i].checked = (fullWordSearching === val)
         } else if (inputs[i].type === "checkbox") {
-          console.log('- setting paraTypesStr "'+ val +'" to ' + String(noteTypesStr.includes(val)))
+          console.log('- setting paraTypesStr "'+ val +'" to ' + String(paraTypesArr.includes(val)))
           inputs[i].checked = paraTypesArr.includes(val)
         }
 			}
@@ -331,13 +331,37 @@ const flexiSearchDialogPostBodyScripts = `
         return
       }
 
-			// Get the text input
+      // Get the text input
 			const searchTerms = inputs["searchTerms"].value
 
+      // Read current form state (similar to saveDialogState but for immediate use)
+      let currentSaveType = ''
+      let currentCaseSens = ''
+      let currentFullWord = ''
+      let currentNoteTypesStr = ''
+      let currentParaTypesStr = ''
+      for (let i = 0; i < inputs.length; i++) {
+        if (inputs[i].checked && inputs[i].name === "notetype") {
+          currentNoteTypesStr += inputs[i].value + ','
+        }
+        if (inputs[i].checked && (inputs[i].name === "savetype")) {
+          currentSaveType = inputs[i].value
+        }
+        if (inputs[i].checked && (inputs[i].name === "casesens")) {
+          currentCaseSens = inputs[i].value
+        }
+        if (inputs[i].checked && (inputs[i].name === "fullword")) {
+          currentFullWord = inputs[i].value
+        }
+        if (inputs[i].checked && (inputs[i].name === "task" || inputs[i].name === "checklist" || inputs[i].name === "other")) {
+          currentParaTypesStr += inputs[i].value + ','
+        }
+      }
+
       // Remove any multiple or leading or trailing comma(s)
-      let noteTypes = noteTypesStr.replace(/,{2,}/g, ',').replace(/,$/, '').replace(/^,/, '')
+      let noteTypes = currentNoteTypesStr.replace(/,{2,}/g, ',').replace(/,$/, '').replace(/^,/, '')
       noteTypes = (noteTypes === 'notes,calendar') ? 'both' : noteTypes
-      let paraTypes = paraTypesStr.replace(/,{2,}/g, ',').replace(/,$/, '').replace(/^,/, '')
+      let paraTypes = currentParaTypesStr.replace(/,{2,}/g, ',').replace(/,$/, '').replace(/^,/, '')
 
       if (paraTypes === '' || noteTypes === '') {
         console.log("** cancel submit form as we don't have valid options set yet ... **")
@@ -348,9 +372,9 @@ const flexiSearchDialogPostBodyScripts = `
       window.webkit.messageHandlers.jsBridge.postMessage({
         code: ${JSStartSearchInPlugin}
           .replace('%%SEARCHTERMS%%', searchTerms)
-          .replace('%%SAVETYPE%%', saveType)
-          .replace('%%CASE%%', caseSensitiveSearching)
-          .replace('%%FULLWORD%%', fullWordSearching)
+          .replace('%%SAVETYPE%%', currentSaveType)
+          .replace('%%CASE%%', currentCaseSens)
+          .replace('%%FULLWORD%%', currentFullWord)
           .replace('%%NOTETYPES%%', noteTypes)
           .replace('%%PARATYPES%%', paraTypes),
         onHandle: "neededDummyFunc",
@@ -392,11 +416,14 @@ export async function showFlexiSearchDialog(
   try {
     // Look up the 5 preferences from local store
     // Note: extra commas aren't typos
-    const saveType = String(DataStore.preference(`${pluginID}.saveType`)) ?? 'quick'
+    const saveTypePref = DataStore.preference(`${pluginID}.saveType`)
+    const saveType = (saveTypePref != null) ? String(saveTypePref) : 'quick'
     const caseSensitiveSearching = DataStore.preference(`${pluginID}.caseSensitiveSearching`) ?? false
     const fullWordSearching = DataStore.preference(`${pluginID}.fullWordSearching`) ?? false
-    const noteTypesStr = String(DataStore.preference(`${pluginID}.noteTypesStr`)) ?? 'notes,calendar,'
-    const paraTypesStr = String(DataStore.preference(`${pluginID}.paraTypesStr`)) ?? 'open,done,checklistOpen,checklistDone,other,'
+    const noteTypesStrPref = DataStore.preference(`${pluginID}.noteTypesStr`)
+    const noteTypesStr = (noteTypesStrPref != null) ? String(noteTypesStrPref) : 'notes,calendar,'
+    const paraTypesStrPref = DataStore.preference(`${pluginID}.paraTypesStr`)
+    const paraTypesStr = (paraTypesStrPref != null) ? String(paraTypesStrPref) : 'open,done,checklistOpen,checklistDone,other,'
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
       // $FlowIgnore[incompatible-call] not pretty, but works
@@ -460,8 +487,8 @@ export async function flexiSearchHandler(
             : 'search' // which defaults to 'both'
 
     // Set searchOptions
-    const caseSensitiveSearching: boolean = getPluginPreference('caseSensitiveSearching') === 'casesens'
-    const fullWordSearching: boolean = getPluginPreference('fullWordSearching') === 'fullword'
+    const caseSensitiveSearching: boolean = caseSensitiveSearchingAsStr === 'casesens'
+    const fullWordSearching: boolean = fullWordSearchingAsStr === 'fullword'
     // saveSearch(searchTerms, noteType, originatorCommand, paraTypes, 'Searching', caseSensitiveSearching, fullWordSearching)
     const searchOptions: TSearchOptions = {
       noteTypesToInclude: getNoteTypesFromString(noteType),

@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers, for both older and newer methods of running searches.
 // Jonathan Clark
-// Last updated 2025-10-30 for v3.0.0, @jgclark
+// Last updated 2025-12-26 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -282,6 +282,12 @@ export function resultCounts(resultSet: resultOutputV3Type): string {
     : `**${resultSet.resultCount} results** from ${resultSet.resultNoteCount} notes`
 }
 
+/**
+ * Form the heading line for the search results note, using the representation of the search string in square brackets.
+ * @author @jgclark
+ * @param {resultOutputV3Type} resultSet
+ * @returns {string}
+ */
 export function formSearchResultsHeadingLine(resultSet: resultOutputV3Type): string {
   // const headingMarker = '#'.repeat(config.headingLevel)
   const searchTermsRepStr = resultSet.searchTermsStr ?? '?'

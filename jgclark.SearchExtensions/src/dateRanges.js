@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions for date ranges etc. in SearchExtensions plugin.
 // Jonathan Clark
-// Last updated 2025-09-26 for v3.0.0, @jgclark
+// Last updated 2025-12-26 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -65,7 +65,7 @@ export function getDateRangeFromSearchOptions(searchOptions: TSearchOptions): [s
         : fromDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
           ? fromDateArg
           : 'error')
-      : todayMom.subtract(91, 'days').format('YYYYMMDD') // 91 days ago
+      : todayMom.clone().subtract(91, 'days').format('YYYYMMDD') // 91 days ago
     const toDateStr = (toDateArg && toDateArg !== '')
       ? (toDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
         ? convertISODateFilenameToNPDayFilename(toDateArg)

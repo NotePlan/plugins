@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands to search and replace over NP notes.
 // Jonathan Clark
-// Last updated 2025-09-30 for v3.0.0, @jgclark
+// Last updated 2025-12-26 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -25,15 +25,27 @@ import {
 // Private helper functions
 
 /**
- * Build a global RegExp for replace, honoring case sensitivity
+ * Build a global RegExp for replace, honouring case sensitivity
+ * It protects against regex operators in the pattern, by escaping them.
  * @param {string} pattern
  * @param {boolean} caseSensitive
  * @returns {RegExp}
  */
 function buildReplaceRegex(pattern: string, caseSensitive: boolean): RegExp {
+  // First escape any regex operators in the pattern
+  const escapedPattern = escapeRegexOperators(pattern)
   return caseSensitive
-    ? new RegExp(pattern, 'g')
-    : new RegExp(pattern, 'gi')
+    ? new RegExp(escapedPattern, 'g')
+    : new RegExp(escapedPattern, 'gi')
+}
+
+/**
+ * Escape any regex operators in the pattern
+ * @param {string} pattern
+ * @returns {string}
+ */
+function escapeRegexOperators(pattern: string): string {
+  return pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 /**
@@ -163,7 +175,7 @@ export async function replace(
 
     } else {
       // NP Advanced Syntax not available, or not wanted
-      logDebug('saveSearch', `Will use older Plugin extended syntax`)
+      logDebug('replace', `Will use older Plugin extended syntax`)
       
       // Validate the search string: an empty return means failure. There is error logging in the function.
       validatedSearchTerms = await validateAndTypeSearchTerms(searchStr, true)
@@ -174,14 +186,8 @@ export async function replace(
 
       searchTermsRepStr = `'${validatedSearchTerms.map(term => term.termRep).join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
     
-      // Form TSearchOptions object
-      const searchOptions: TSearchOptions = {
-        noteTypesToInclude: noteTypesToInclude,
-        foldersToInclude: [],
-        foldersToExclude: config.foldersToExclude,
-        paraTypesToInclude: paraTypesToInclude,
-        caseSensitiveSearching: config.caseSensitiveSearching,
-      }
+      // Update searchOptions (already created earlier, but may need operator adjustments)
+      // Note: searchOptions was already created at line 123, so we just update it here if needed
 
       //----------------------------------------------------------------------------
       // Search using search() API via JGC extended search helpers in this plugin
@@ -252,7 +258,22 @@ export async function replace(
     // Do the replace
     const startTime = new Date() // for timing
     logDebug('replace', `------------ Will now replace with '${replacementText}' -------------`)
-    const replaceRegex = buildReplaceRegex(searchStrWithoutOperators, searchOptions.caseSensitiveSearching ?? false)
+    
+    // Build the search pattern for replace regex
+    // For newer method: use searchStrWithoutOperators (already set). 
+    // For older method: extract terms from validatedSearchTerms and join them.
+    let searchPatternForReplace = ''
+    if (config.useNativeSearch && NPAdvancedSyntaxAvailable) {
+      searchPatternForReplace = searchStrWithoutOperators
+    } else {
+      // Extract the actual search terms (not the negative ones) and join them
+      const positiveTerms = validatedSearchTerms
+        .filter(term => term.type === 'must' || term.type === 'may')
+        .map(term => term.term)
+      searchPatternForReplace = positiveTerms.join(' ')
+    }
+    
+    const replaceRegex = buildReplaceRegex(searchPatternForReplace, searchOptions.caseSensitiveSearching ?? false)
     logDebug('replace', `replaceRegex = ${replaceRegex.toString()} with caseSensitiveSearching = ${String(searchOptions.caseSensitiveSearching ?? false)}`)
 
     // Iterate through each result and do the replace
@@ -264,15 +285,16 @@ export async function replace(
     logTimer('replace', startTime, `replace() finished.`)
     logDebug('replace', `----------------------------------------------------------`)
 
-    // Confirmatory check: run search again and see if it is zero
-    // TODO: only run if DEBUG logging is enabled
-    const checkResults: resultOutputV3Type = (NPAdvancedSyntaxAvailable)
-      ? await runNPExtendedSyntaxSearches(searchStr, config, searchOptions) 
-      : await runPluginExtendedSyntaxSearches(validatedSearchTerms, config, searchOptions)
-    if (checkResults.resultCount > 0) {
-      logWarn('replace', `I've double-checked the replace, and found that there are ${checkResults.resultCount} unchanged copies of '${searchStr}'`)
-    } else {
-      logDebug('replace', `I've double-checked the replace, and it has changed all the copies.`)
+    // Confirmatory check, if DEBUG logging is enabled: run search again and see if it is zero
+    if (config._logLevel === 'DEBUG') {
+      const checkResults: resultOutputV3Type = (config.useNativeSearch && NPAdvancedSyntaxAvailable)
+        ? await runNPExtendedSyntaxSearches(searchStr, config, searchOptions)
+        : await runPluginExtendedSyntaxSearches(validatedSearchTerms, config, searchOptions)
+      if (checkResults.resultCount > 0) {
+        logWarn('replace', `I've double-checked the replace, and found that there are ${checkResults.resultCount} unchanged copies of '${searchStr}'`)
+      } else {
+        logDebug('replace', `I've double-checked the replace, and it has changed all the copies.`)
+      }
     }
   }
   catch (err) {

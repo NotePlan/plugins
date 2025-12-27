@@ -24,11 +24,11 @@ import {
   OPEN_PARA_TYPES,
   writeSearchResultsToNote,
 } from './searchHelpers'
-import { runPluginExtendedSyntaxSearches, validateAndTypeSearchTerms
-} from './pluginExtendedSyntaxHelpers'
+import { runPluginExtendedSyntaxSearches, validateAndTypeSearchTerms } from './pluginExtendedSyntaxHelpers'
 import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
 import { stringToTailwindColorName } from '@helpers/colors'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { removeSection, replaceSection, setIconForNote } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
@@ -390,7 +390,7 @@ export async function saveSearch(
     if (originatorCommand === 'quickSearch') {
       destination = 'quick'
     }
-    else if (destinationArg!=='') {
+    else if (destinationArg != null && destinationArg !== '') {
       destination = destinationArg
     }
     else if (config.autoSave) {
@@ -501,7 +501,7 @@ export async function saveSearch(
       }
 
       default: { // i.e. 'current' or 'refresh'
-        writeToCurrentNote(config, resultSetToUse, xCallbackURL)
+        writeSearchResultsToCurrentNote(config, resultSetToUse, xCallbackURL)
         break
       }
     }
@@ -576,12 +576,12 @@ function writeToLog(
  * @param {resultOutputV3Type} resultSet object
  * @param {string} xCallbackURL URL to cause a 'refresh' of this command
  */
-function writeToCurrentNote(
+function writeSearchResultsToCurrentNote(
   config: SearchConfig, resultSetToUse: resultOutputV3Type, xCallbackURL: string
 ): void {
   try {
     if (resultSetToUse.resultCount === 0) {
-      logInfo('saveSearch/writeToCurrentNote', `No results found for search [${resultSetToUse.searchTermsStr}].`)
+      logInfo('saveSearch/writeSearchResultsToCurrentNote', `No results found for search [${resultSetToUse.searchTermsStr}].`)
       return
     }
 
@@ -592,28 +592,31 @@ function writeToCurrentNote(
 
     const thisResultHeading = formSearchResultsHeadingLine(resultSetToUse)
     const thisMetadataLine = formSearchResultsMetadataLine(resultSetToUse, xCallbackURL)
-
     insertOrReplaceMetadataLine(currentNote, config, thisMetadataLine)
-    // FIXME: Ensure that H1 or frontmatter is present
-
+    
+    // Ensure that frontmatter is present
+    const FMResult = ensureFrontmatter(currentNote)
+    if (!FMResult) {
+      logWarn('saveSearch/writeSearchResultsToCurrentNote',`Failed to ensure frontmatter in current note. Will try to continue.`)
+    }
 
     // Remove section from note using 2 different possible formats
     const olderResultHeadingStart1 = `'${resultSetToUse.searchTermsStr}'`
-    logDebug('saveSearch/writeToCurrentNote', `Will try to remove section '${olderResultHeadingStart1}' from current note`)
+    logDebug('saveSearch/writeSearchResultsToCurrentNote', `Will try to remove section '${olderResultHeadingStart1}' from current note`)
     const _res1 = removeSection(currentNote, olderResultHeadingStart1)
     const olderResultHeadingStart2 = `${resultSetToUse.searchTermsStr}`
-    logDebug('saveSearch/writeToCurrentNote', `Will try to remove section '${olderResultHeadingStart2}' from current note`)
+    logDebug('saveSearch/writeSearchResultsToCurrentNote', `Will try to remove section '${olderResultHeadingStart2}' from current note`)
     const _res2 = removeSection(currentNote, olderResultHeadingStart2)
 
-    logDebug('saveSearch/writeToCurrentNote', `Will replace section '${thisResultHeading}' with new content`)
+    logDebug('saveSearch/writeSearchResultsToCurrentNote', `Will replace section '${thisResultHeading}' with new content`)
     const resultOutputLines: Array<string> = createFormattedResultLines(resultSetToUse, config)
-    replaceSection(currentNote, thisResultHeading, thisResultHeading,config.headingLevel, `${resultOutputLines.join('\n')}`)
+    replaceSection(currentNote, thisResultHeading, thisResultHeading, config.headingLevel, `${resultOutputLines.join('\n')}`)
 
     // Set note's icon
     setIconForNote(currentNote, "magnifying-glass", stringToTailwindColorName(thisResultHeading))
-    logDebug('saveSearch/writeToCurrentNote', `Finished writing to current note.`)
+    logDebug('saveSearch/writeSearchResultsToCurrentNote', `Finished writing to current note.`)
   }
   catch (err) {
-    logError('saveSearch/writeToCurrentNote', err.message)
+    logError('saveSearch/writeSearchResultsToCurrentNote', err.message)
   }
 }
