@@ -25,6 +25,7 @@ import { getNoteByFilename } from '@helpers/note'
 import { validateObjectString, stripDoubleQuotes, parseObjectString } from '@helpers/stringTransforms'
 import { updateFrontMatterVars, ensureFrontmatter, noteHasFrontMatter, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
+import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 // Note: getFoldersMatching is no longer used here - FormView loads folders dynamically via requestFromPlugin
 
 // Re-export shared type for backward compatibility
@@ -1220,6 +1221,124 @@ export async function onFormSubmitFromHTMLView(actionType: string, data: any = n
  * @author @dwertheimer
  */
 // openFormWindow is now imported from windowManagement.js
+
+/**
+ * Open Form Browser window - browse and select template forms
+ * @param {Object} argObj - Options object
+ * @param {boolean} argObj.showFloating - If true, use showReactWindow instead of showInMainWindow
+ * @returns {Promise<void>}
+ */
+export async function openFormBrowser(_showFloating: boolean = false): Promise<void> {
+  try {
+    logDebug(pluginJson, `openFormBrowser: Starting, showFloating=${String(_showFloating)}`)
+
+    // Make sure we have np.Shared plugin which has the core react code
+    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true)
+    logDebug(pluginJson, `openFormBrowser: installOrUpdatePluginsByID ['np.Shared'] completed`)
+
+    const startTime = new Date()
+    const ENV_MODE = 'development'
+    const showFloating = _showFloating === true || typeof _showFloating === 'string' && /true/i.test(_showFloating)
+
+    // Create plugin data with requestFromPlugin callback
+    const pluginData = {
+      platform: NotePlan.environment.platform,
+      requestFromPlugin: async (command: string, dataToSend: any = {}) => {
+        // This will be called from React to make requests to the plugin
+        const response = await handleRequest(command, dataToSend)
+        return response
+      },
+    }
+
+    // Create data object to pass to React
+    const dataToPass: PassedData = {
+      pluginData,
+      title: 'Form Browser',
+      logProfilingMessage: false,
+      debug: false,
+      ENV_MODE,
+      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormBrowserAction' },
+      componentPath: `../dwertheimer.Forms/react.c.FormBrowserView.bundle.dev.js`,
+      startTime,
+    }
+
+    // CSS tags for styling
+    const cssTagsString = `
+      <link rel="stylesheet" href="../np.Shared/css.w3.css">
+      <link href="../np.Shared/fontawesome.css" rel="stylesheet">
+      <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
+
+    if (showFloating) {
+      // Use showReactWindow (floating window)
+      logDebug(pluginJson, `openFormBrowser: Using showReactWindow (floating window)`)
+
+      const windowOptions = {
+        savedFilename: `../../${pluginJson['plugin.id']}/form_browser_output.html`,
+        headerTags: cssTagsString,
+        windowTitle: 'Form Browser',
+        width: 1200,
+        height: 800,
+        customId: 'form-browser-window',
+        shouldFocus: true,
+        generalCSSIn: generateCSSFromTheme(),
+        postBodyScript: `
+          <script type="text/javascript" >
+          // Set DataStore.settings so default logDebug etc. logging works in React
+          let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+          </script>
+        `,
+      }
+
+      await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [dataToPass, windowOptions])
+    } else {
+      // Use showInMainWindow (main window)
+      logDebug(pluginJson, `openFormBrowser: Using showInMainWindow (main window)`)
+
+      // Generate HTML content for showInMainWindow
+      // We need to create an HTML page that loads the React bundle
+      const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  ${cssTagsString}
+  <style>
+    ${generateCSSFromTheme()}
+  </style>
+  <script type="text/javascript">
+    // Set DataStore.settings so default logDebug etc. logging works in React
+    let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+    
+    // Global data for React to access
+    window.globalSharedData = ${JSON.stringify(dataToPass)};
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="../dwertheimer.Forms/react.c.FormBrowserView.bundle.dev.js"></script>
+</body>
+</html>
+      `.trim()
+
+      // $FlowFixMe[prop-missing] - showInMainWindow is available in NotePlan v3.20+
+      await HTMLView.showInMainWindow(htmlContent, 'Form Browser', {
+        splitView: false,
+        id: 'form-browser-main-window',
+        icon: 'fa-list',
+        iconColor: 'blue-500',
+        autoTopPadding: true,
+      })
+    }
+
+    logDebug(pluginJson, `openFormBrowser: Completed after ${timer(startTime)}`)
+  } catch (error) {
+    logError(pluginJson, `openFormBrowser: Error: ${JSP(error)}`)
+    await showMessage(`Error opening form browser: ${error.message}`)
+  }
+}
 
 /**
  * Export testRequestHandlers for direct testing

@@ -54,6 +54,21 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
   const formBuilderViewConfig = formBuilderViewRollupConfigs[0] // use only dev version for now
   rollupProms.push(rollupReactFiles(formBuilderViewConfig, watch, 'dwertheimer.Forms FormBuilderView Component development version'))
 
+  // FormBrowserView bundle configs
+  const formBrowserViewRollupConfigs = [
+    getRollupConfig({
+      entryPointPath: 'dwertheimer.Forms/src/support/rollup.FormBrowserView.entry.js',
+      outputFilePath: 'dwertheimer.Forms/requiredFiles/react.c.FormBrowserView.bundle.REPLACEME.js',
+      externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
+      createBundleGraph: graph,
+      buildMode: 'development',
+      bundleName: 'FormBrowserViewBundle',
+    }),
+  ]
+
+  const formBrowserViewConfig = formBrowserViewRollupConfigs[0] // use only dev version for now
+  rollupProms.push(rollupReactFiles(formBrowserViewConfig, watch, 'dwertheimer.Forms FormBrowserView Component development version'))
+
   try {
     await Promise.all(rollupProms)
   } catch (error) {

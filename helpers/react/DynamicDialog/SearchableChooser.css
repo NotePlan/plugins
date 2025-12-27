@@ -148,7 +148,7 @@
   top: 100% !important;
   left: 0 !important;
   right: 0 !important;
-  max-height: 200px;
+  max-height: 150px;
   overflow-y: auto;
   background-color: var(--dropdown-bg, #fff) !important;
   border: 1px solid var(--border-color, #ddd) !important;
@@ -171,7 +171,7 @@
   top: 100%;
   left: 0;
   right: 0;
-  max-height: 200px;
+  max-height: 150px;
   overflow-y: auto;
   background-color: var(--dropdown-bg, #fff);
   border: 1px solid var(--border-color, #ddd);

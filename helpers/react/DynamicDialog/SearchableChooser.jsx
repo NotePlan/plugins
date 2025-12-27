@@ -394,7 +394,6 @@ export function SearchableChooser({
             if (item && typeof item === 'object' && 'filename' in item) return `{title: "${item.title}", filename: "${item.filename}"}`
             return String(item)
           })
-          console.log(`${fieldType}: Example items:`, examples)
         }
       }
     }

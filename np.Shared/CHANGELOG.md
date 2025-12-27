@@ -2,9 +2,17 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.8.2] @dwertheimer 2025-12-27
+
+- Root bundle now includes React and ReactDOM internally (self-contained)
+- Eliminated separate react.core.dev.js bundle - React/ReactDOM are bundled into Root
+- Root exports React, ReactDOM, and createRoot as globals for other bundles to use
+- Fixed script loading order: Root loads before plugin bundles so React/ReactDOM are available
+- Plugin bundles (like Forms) now reference React/ReactDOM as external globals from Root
+
 ## [0.8.1] @dwertheimer 2025-12-24
 
-- Add Toast notification component for transient messages in top-right corner
+- Add Toast notification component and option for MessageBanner to be displayed as a floating toast for transient messages in top-right corner
 - Toast overlays content (doesn't push it down like MessageBanner)
 - Supports INFO, WARN, ERROR, and SUCCESS types with auto-dismiss timeout
 - Can be called from plugin side via `sendToastMessage()` or React side via `dispatch('SHOW_TOAST')`
