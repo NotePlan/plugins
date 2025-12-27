@@ -327,7 +327,7 @@ export function showInMainWindow(globalData: any = null, windowOptions?: HtmlWin
     const mainWindowOptions = {
       splitView: windowOptsAny.splitView ?? false,
       id: generatedOptions.customId || windowOptions.windowTitle || 'react-window',
-      icon: windowOptsAny.icon || 'fa-window-maximize',
+      icon: windowOptsAny.icon || 'window-maximize',
       iconColor: windowOptsAny.iconColor || 'blue-500',
       autoTopPadding: windowOptsAny.autoTopPadding ?? true,
     }

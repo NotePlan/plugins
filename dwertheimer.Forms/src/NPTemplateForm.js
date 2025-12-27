@@ -703,7 +703,7 @@ export async function openFormBrowser(_showFloating: boolean = false): Promise<v
       `,
       // Options for showInMainWindow (main window mode)
       splitView: false,
-      icon: 'fa-list',
+      icon: 'list',
       iconColor: 'blue-500',
       autoTopPadding: true,
     }
