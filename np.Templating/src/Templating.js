@@ -399,60 +399,22 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       await Editor.openNoteByFilename(filename)
 
       // Check for -- blocks and convert them to --- frontmatter blocks
-      // Pattern 1: Multi-line blocks with -- on separate lines
-      // Pattern 2: Single-line blocks like "-- key: value --"
+      // Only multi-line blocks with -- on separate lines are converted
       let processedTemplateResult = templateResult
       const lines = templateResult.split('\n')
-      
-      // First, check for multi-line blocks with -- separators
+      logDebug(pluginJson, `templateNew: checking for -- blocks in ${lines.length} lines, first line: "${lines[0]}"`)
+
+      // Check for multi-line blocks with -- separators
       const startBlock = lines.findIndex((line) => line.trim() === '--')
       const endBlock = startBlock >= 0 ? lines.findIndex((line, idx) => idx > startBlock && line.trim() === '--') : -1
+      logDebug(pluginJson, `templateNew: multi-line block check - startBlock: ${startBlock}, endBlock: ${endBlock}`)
 
       if (startBlock >= 0 && endBlock >= 0) {
         // Replace -- with --- while preserving any leading/trailing whitespace
         lines[startBlock] = lines[startBlock].replace(/^(\s*)--(\s*)$/, '$1---$2')
         lines[endBlock] = lines[endBlock].replace(/^(\s*)--(\s*)$/, '$1---$2')
         processedTemplateResult = lines.join('\n')
-        logDebug(
-          pluginJson,
-          `templateNew: detected -- block in rendered content, converted to --- frontmatter at lines ${startBlock} and ${endBlock}`,
-        )
-      } else {
-        // Check for single-line pattern: "-- key: value --"
-        // Match lines that start with --, contain a colon (key: value), and end with --
-        // Pattern matches: optional whitespace, --, whitespace, key, colon, value, whitespace, --
-        const singleLinePattern = /^(\s*)--\s+(\w+):\s+(.+?)\s+--(\s*)$/
-        const convertedLines = lines.map((line) => {
-          const match = line.match(singleLinePattern)
-          if (match) {
-            const indent = match[1]
-            const key = match[2]
-            const value = match[3]
-            const trailing = match[4]
-            logDebug(
-              pluginJson,
-              `templateNew: detected single-line -- block pattern, converting "-- ${key}: ${value} --" to frontmatter`,
-            )
-            // Convert to proper frontmatter format (multi-line)
-            return `${indent}---\n${indent}${key}: ${value}\n${indent}---${trailing}`
-          }
-          return line
-        })
-        
-        // If we converted any lines, flatten the array (some entries may now contain newlines)
-        if (convertedLines.some((line, idx) => line !== lines[idx])) {
-          // Flatten any multi-line entries back into the array
-          const flattenedLines = []
-          convertedLines.forEach((line) => {
-            if (line.includes('\n')) {
-              flattenedLines.push(...line.split('\n'))
-            } else {
-              flattenedLines.push(line)
-            }
-          })
-          processedTemplateResult = flattenedLines.join('\n')
-          logDebug(pluginJson, `templateNew: converted single-line -- pattern to frontmatter format`)
-        }
+        logDebug(pluginJson, `templateNew: detected -- block in rendered content, converted to --- frontmatter at lines ${startBlock} and ${endBlock}`)
       }
 
       const renderedTemplateHasFM = hasFrontMatter(processedTemplateResult)
