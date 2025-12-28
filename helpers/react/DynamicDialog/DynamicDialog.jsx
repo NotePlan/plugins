@@ -138,7 +138,7 @@ export type TDynamicDialogProps = {
   items?: Array<TSettingItem>, // generally required, but can be empty (e.g. for PerspectivesTable)
   onSave?: (updatedSettings: { [key: string]: any }, windowId?: string) => void, // Updated to accept optional windowId
   onCancel?: () => void,
-  handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
+  handleButtonClick?: (key: string, value: any) => void | boolean, // Add handleButtonClick prop (return false to prevent closing)
   className?: string,
   labelPosition?: 'left' | 'right',
   allowEmptySubmit?: boolean,

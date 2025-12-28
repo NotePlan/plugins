@@ -10,6 +10,9 @@ import { FilterableList } from '@helpers/react/FilterableList'
 import { type ListItemAction } from '@helpers/react/List'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { defaultNoteIconDetails } from '@helpers/NPnote.js'
+import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
+import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
+import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 import './FavoritesView.css'
 
 type FavoriteNote = {
@@ -69,6 +72,12 @@ function FavoritesViewComponent({
   const [filterText, setFilterText] = useState<string>('')
   const [selectedIndex, setSelectedIndex] = useState<?number>(null)
   const [showNotes, setShowNotes] = useState<boolean>(reactSettings?.showNotes !== false) // Default to notes
+  const [projectNotes, setProjectNotes] = useState<Array<NoteOption>>([])
+  const [presetCommands, setPresetCommands] = useState<Array<{ label: string, value: string }>>([])
+  const [showAddNoteDialog, setShowAddNoteDialog] = useState<boolean>(false)
+  const [showAddCommandDialog, setShowAddCommandDialog] = useState<boolean>(false)
+  const [addNoteDialogData, setAddNoteDialogData] = useState<{ [key: string]: any }>({})
+  const [addCommandDialogData, setAddCommandDialogData] = useState<{ [key: string]: any }>({})
 
   // Request function
   const requestFromPlugin = useCallback((command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
@@ -184,6 +193,128 @@ function FavoritesViewComponent({
       loadFavoriteCommands()
     }
   }, [showNotes, loadFavoriteNotes, loadFavoriteCommands])
+
+  // Load project notes for NoteChooser
+  const loadProjectNotes = useCallback(async () => {
+    try {
+      const notes = await requestFromPlugin('getProjectNotes')
+      if (Array.isArray(notes)) {
+        setProjectNotes(notes)
+        logDebug('FavoritesView', `Loaded ${notes.length} project notes`)
+      }
+    } catch (error) {
+      logError('FavoritesView', `Error loading project notes: ${error.message}`)
+    }
+  }, [requestFromPlugin])
+
+  // Load preset commands for command dialog
+  const loadPresetCommands = useCallback(async () => {
+    try {
+      const commands = await requestFromPlugin('getPresetCommands')
+      if (Array.isArray(commands)) {
+        setPresetCommands(commands)
+        logDebug('FavoritesView', `Loaded ${commands.length} preset commands`)
+      }
+    } catch (error) {
+      logError('FavoritesView', `Error loading preset commands: ${error.message}`)
+    }
+  }, [requestFromPlugin])
+
+  // Handle adding favorite note dialog
+  const handleAddNoteDialogSave = useCallback((updatedSettings: { [key: string]: any }) => {
+    ;(async () => {
+      try {
+        if (updatedSettings.note) {
+          const response = await requestFromPlugin('addFavoriteNote', { filename: updatedSettings.note })
+          if (response && response.success) {
+            await loadFavoriteNotes()
+            setShowAddNoteDialog(false)
+            setAddNoteDialogData({})
+            logDebug('FavoritesView', 'Successfully added favorite note')
+          } else {
+            logError('FavoritesView', `Failed to add favorite note: ${response?.message || 'Unknown error'}`)
+          }
+        }
+      } catch (error) {
+        logError('FavoritesView', `Error adding favorite note: ${error.message}`)
+      }
+    })()
+  }, [requestFromPlugin, loadFavoriteNotes])
+
+  const handleAddNoteDialogCancel = useCallback(() => {
+    setShowAddNoteDialog(false)
+    setAddNoteDialogData({})
+  }, [])
+
+  const handleAddFavoriteNote = useCallback(async () => {
+    // Load notes if not already loaded
+    if (projectNotes.length === 0) {
+      await loadProjectNotes()
+    }
+    setShowAddNoteDialog(true)
+  }, [projectNotes, loadProjectNotes])
+
+  // Handle adding favorite command dialog
+  const handleAddCommandDialogSave = useCallback((updatedSettings: { [key: string]: any }) => {
+    ;(async () => {
+      try {
+        if (updatedSettings.preset && updatedSettings.commandName && updatedSettings.url) {
+          const response = await requestFromPlugin('addFavoriteCommand', {
+            jsFunction: updatedSettings.preset,
+            name: updatedSettings.commandName,
+            data: updatedSettings.url,
+          })
+          if (response && response.success) {
+            await loadFavoriteCommands()
+            setShowAddCommandDialog(false)
+            setAddCommandDialogData({})
+            logDebug('FavoritesView', 'Successfully added favorite command')
+          } else {
+            logError('FavoritesView', `Failed to add favorite command: ${response?.message || 'Unknown error'}`)
+          }
+        }
+      } catch (error) {
+        logError('FavoritesView', `Error adding favorite command: ${error.message}`)
+      }
+    })()
+  }, [requestFromPlugin, loadFavoriteCommands])
+
+  const handleAddCommandDialogCancel = useCallback(() => {
+    setShowAddCommandDialog(false)
+    setAddCommandDialogData({})
+  }, [])
+
+  const handleAddCommandButtonClick = useCallback((key: string, value: string) => {
+    if (key === 'getCallbackURL') {
+      ;(async () => {
+        try {
+          const urlResponse = await requestFromPlugin('getCallbackURL', {})
+          if (urlResponse && urlResponse.success && urlResponse.url) {
+            // Update the URL field in the dialog
+            setAddCommandDialogData((prev) => ({ ...prev, url: urlResponse.url }))
+            logDebug('FavoritesView', `Got URL from Link Creator: ${urlResponse.url}`)
+          }
+        } catch (error) {
+          logError('FavoritesView', `Error getting callback URL: ${error.message}`)
+        }
+      })()
+      return false // Don't close dialog
+    }
+  }, [requestFromPlugin])
+
+  const handleAddFavoriteCommand = useCallback(async () => {
+    // Load preset commands if not already loaded
+    if (presetCommands.length === 0) {
+      await loadPresetCommands()
+    }
+
+    if (presetCommands.length === 0) {
+      logError('FavoritesView', 'No preset commands available')
+      return
+    }
+
+    setShowAddCommandDialog(true)
+  }, [presetCommands, loadPresetCommands])
 
   // Handle item click
   const handleItemClick = useCallback((item: FavoriteNote | FavoriteCommand, event: MouseEvent) => {
@@ -307,9 +438,12 @@ function FavoritesViewComponent({
   }, [setReactSettings])
 
   // Handle keyboard navigation
+  // Arrow keys only navigate (change selectedIndex) - they do NOT trigger actions
+  // Click and Enter trigger actions (run command or open note)
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'ArrowDown') {
       event.preventDefault()
+      // Arrow navigation only - no action triggered
       const newIndex = selectedIndex === null || selectedIndex === undefined ? 0 : selectedIndex + 1
       if (newIndex < currentItems.length) {
         setSelectedIndex(newIndex)
@@ -326,6 +460,7 @@ function FavoritesViewComponent({
       }
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
+      // Arrow navigation only - no action triggered
       if (selectedIndex !== null && selectedIndex !== undefined && selectedIndex > 0) {
         const newIndex = selectedIndex - 1
         setSelectedIndex(newIndex)
@@ -342,6 +477,7 @@ function FavoritesViewComponent({
       }
     } else if (event.key === 'Enter' && selectedIndex !== null && selectedIndex !== undefined && selectedIndex >= 0 && selectedIndex < currentItems.length) {
       event.preventDefault()
+      // Enter key triggers the action (run command via x-callback URL or open note)
       const item = currentItems[selectedIndex]
       if (item) {
         handleItemClick(item, (event: any))
@@ -391,25 +527,42 @@ function FavoritesViewComponent({
         </div>
       )}
       <div className="favorites-view-header">
-        <div className="favorites-view-toggle">
-          <label className="favorites-toggle-label">
-            <input
-              type="radio"
-              name="favorites-view-type"
-              checked={showNotes}
-              onChange={() => handleToggleChange(true)}
-            />
-            <span>Favorite Notes</span>
-          </label>
-          <label className="favorites-toggle-label">
-            <input
-              type="radio"
-              name="favorites-view-type"
-              checked={!showNotes}
-              onChange={() => handleToggleChange(false)}
-            />
-            <span>Favorite Commands</span>
-          </label>
+        <div className="favorites-view-header-controls">
+          <div className="favorites-view-segmented-control">
+            <button
+              type="button"
+              className={`favorites-segment-button ${showNotes ? 'favorites-segment-button-active' : ''}`}
+              onClick={() => handleToggleChange(true)}
+              aria-pressed={showNotes}
+            >
+              <i className="fa fa-file-alt favorites-segment-icon" />
+              <span>Notes</span>
+            </button>
+            <button
+              type="button"
+              className={`favorites-segment-button ${!showNotes ? 'favorites-segment-button-active' : ''}`}
+              onClick={() => handleToggleChange(false)}
+              aria-pressed={!showNotes}
+            >
+              <i className="fa fa-slash-forward favorites-segment-icon" />
+              <span>Commands</span>
+            </button>
+          </div>
+          <button
+            type="button"
+            className="favorites-new-button"
+            onClick={() => {
+              if (showNotes) {
+                handleAddFavoriteNote()
+              } else {
+                handleAddFavoriteCommand()
+              }
+            }}
+            title={showNotes ? 'Add new favorite note' : 'Add new favorite command'}
+          >
+            <i className="fa fa-plus favorites-new-icon" />
+            <span>New</span>
+          </button>
         </div>
       </div>
       <FilterableList
@@ -428,6 +581,76 @@ function FavoritesViewComponent({
         onKeyDown={handleKeyDown}
         onFilterKeyDown={handleFilterKeyDown}
         listRef={listRef}
+      />
+
+      {/* Add Favorite Note Dialog */}
+      <DynamicDialog
+        isOpen={showAddNoteDialog}
+        title="Add Favorite Note"
+        items={[
+          {
+            type: 'note-chooser',
+            key: 'note',
+            label: 'Select a note to add as favorite',
+            includeCalendarNotes: false,
+            includePersonalNotes: true,
+            includeRelativeNotes: false,
+            includeTeamspaceNotes: true,
+            required: true,
+          },
+        ]}
+        onSave={handleAddNoteDialogSave}
+        onCancel={handleAddNoteDialogCancel}
+        isModal={true}
+        notes={projectNotes}
+        requestFromPlugin={requestFromPlugin}
+        onNotesChanged={() => {
+          loadProjectNotes().catch((error) => {
+            logError('FavoritesView', `Error reloading notes: ${error.message}`)
+          })
+        }}
+      />
+
+      {/* Add Favorite Command Dialog */}
+      <DynamicDialog
+        isOpen={showAddCommandDialog}
+        title="Add Favorite Command"
+        items={[
+          {
+            type: 'dropdown-select',
+            key: 'preset',
+            label: 'Choose a preset to set/reset',
+            options: presetCommands.map((cmd) => ({ label: cmd.label, value: cmd.value, isDefault: false })),
+            required: true,
+          },
+          {
+            type: 'input',
+            key: 'commandName',
+            label: 'Command Name',
+            description: 'What human-readable text do you want to use for the command? (this is the text you will see in the Command Bar when you type slash)',
+            placeholder: 'Enter command name',
+            required: true,
+          },
+          {
+            type: 'input',
+            key: 'url',
+            label: 'X-Callback URL or Web URL',
+            description: 'Enter the X-Callback URL or Web URL to run when this command is selected',
+            placeholder: 'noteplan://x-callback-url/... or https://...',
+            required: true,
+            value: addCommandDialogData.url || '',
+          },
+          {
+            type: 'button',
+            key: 'getCallbackURL',
+            label: 'Use Link Creator',
+            buttonText: 'Get X-Callback URL from Link Creator',
+          },
+        ]}
+        onSave={handleAddCommandDialogSave}
+        onCancel={handleAddCommandDialogCancel}
+        isModal={true}
+        handleButtonClick={handleAddCommandButtonClick}
       />
     </div>
   )

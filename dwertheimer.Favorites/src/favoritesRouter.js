@@ -4,7 +4,17 @@
 // Routes requests from FavoritesView React component to appropriate handlers
 //--------------------------------------------------------------------------
 
-import { handleGetFavoriteNotes, handleGetFavoriteCommands, handleOpenNote, handleRunCommand } from './requestHandlers'
+import {
+  handleGetFavoriteNotes,
+  handleGetFavoriteCommands,
+  handleOpenNote,
+  handleRunCommand,
+  handleAddFavoriteNote,
+  handleGetPresetCommands,
+  handleAddFavoriteCommand,
+  handleGetCallbackURL,
+  handleGetProjectNotes,
+} from './requestHandlers'
 import { createRouter, type RequestResponse } from './routerUtils'
 
 const FAVORITES_BROWSER_WINDOW_ID = 'favorites-browser-window'
@@ -25,6 +35,16 @@ async function routeFavoritesRequest(actionType: string, data: any): Promise<Req
       return await handleOpenNote(data)
     case 'runCommand':
       return await handleRunCommand(data)
+    case 'addFavoriteNote':
+      return await handleAddFavoriteNote(data)
+    case 'getPresetCommands':
+      return await handleGetPresetCommands(data)
+    case 'addFavoriteCommand':
+      return await handleAddFavoriteCommand(data)
+    case 'getCallbackURL':
+      return await handleGetCallbackURL(data)
+    case 'getProjectNotes':
+      return await handleGetProjectNotes(data)
     default:
       return {
         success: false,
