@@ -101,7 +101,7 @@ export async function openFavoritesBrowser(_isFloating: boolean | string = false
       savedFilename: `../../${pluginJson['plugin.id']}/favorites_browser_output.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
       windowTitle: REACT_WINDOW_TITLE,
-      width: 300,
+      width: 500,
       height: 800,
       customId: windowId, // Use unique window ID instead of constant
       shouldFocus: true,
