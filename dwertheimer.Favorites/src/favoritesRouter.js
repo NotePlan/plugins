@@ -14,6 +14,8 @@ import {
   handleAddFavoriteCommand,
   handleGetCallbackURL,
   handleGetProjectNotes,
+  handleRenderMarkdown,
+  handleGetNoteContentAsHTML,
 } from './requestHandlers'
 import { createRouter, type RequestResponse } from './routerUtils'
 
@@ -45,6 +47,10 @@ async function routeFavoritesRequest(actionType: string, data: any): Promise<Req
       return await handleGetCallbackURL(data)
     case 'getProjectNotes':
       return await handleGetProjectNotes(data)
+    case 'renderMarkdown':
+      return await handleRenderMarkdown(data)
+    case 'getNoteContentAsHTML':
+      return await handleGetNoteContentAsHTML(data)
     default:
       return {
         success: false,

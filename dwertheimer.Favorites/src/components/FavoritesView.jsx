@@ -587,6 +587,7 @@ function FavoritesViewComponent({
       <DynamicDialog
         isOpen={showAddNoteDialog}
         title="Add Favorite Note"
+        className="favorites-note-dialog"
         items={[
           {
             type: 'note-chooser',
@@ -597,6 +598,13 @@ function FavoritesViewComponent({
             includeRelativeNotes: false,
             includeTeamspaceNotes: true,
             required: true,
+          },
+          {
+            type: 'markdown-preview',
+            key: 'notePreview',
+            label: 'Note Preview',
+            sourceNoteKey: 'note',
+            compactDisplay: false,
           },
         ]}
         onSave={handleAddNoteDialogSave}

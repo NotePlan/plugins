@@ -55,6 +55,7 @@ export type TSettingItemType =
   | 'textarea' // Expandable textarea field
   | 'templatejs-block' // TemplateJS code block that executes JavaScript
   | 'multi-select' // Multi-select checkbox list
+  | 'markdown-preview' // Non-editable markdown preview (static text, note by filename/title, or note from another field)
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -69,7 +70,8 @@ export type TSettingItem = {
   default?: any,
   refreshAllOnChange?: boolean,
   compactDisplay?: boolean,
-  dependsOnKey?: string, // only show/allow this field if the field named in dependsOnKey is true
+  dependsOnKey?: string, // DEPRECATED: use requiresKey instead. Only show/allow this field if the field named in requiresKey is true (prerequisite for visibility/editability)
+  requiresKey?: string, // Prerequisite: only show/allow this field if the field named in requiresKey is true/has a value (for visibility/editability)
   step?: number, // only applies to number type -- the increment/decrement amount
   noWrapOptions?: boolean, // truncate, do not wrap the label (for combo)
   focus?: boolean, // for input fields only, set focus to this field when dialog opens
@@ -94,7 +96,8 @@ export type TSettingItem = {
   includeFolderPath?: boolean, // for folder-chooser, show the folder path (or most of it), not just the last folder name
   excludeTeamspaces?: boolean, // for folder-chooser, exclude teamspace folders from the list
   // heading-chooser options
-  dependsOnNoteKey?: string, // for heading-chooser, the key of a note-chooser field to get headings from dynamically
+  dependsOnNoteKey?: string, // DEPRECATED: use sourceNoteKey instead. For heading-chooser, the key of a note-chooser field to get headings from dynamically (value dependency)
+  sourceNoteKey?: string, // Value dependency: for heading-chooser and markdown-preview, the key of a note-chooser field to get note data from dynamically
   defaultHeading?: string, // for heading-chooser, default heading value if none selected
   optionAddTopAndBottom?: boolean, // for heading-chooser, whether to add "top of note" and "bottom of note" options (default: true)
   includeArchive?: boolean, // for heading-chooser, whether to include headings in Archive section (default: false)
@@ -104,7 +107,8 @@ export type TSettingItem = {
   includeRelativeNotes?: boolean, // for note-chooser, include relative notes like <today>, <thisweek>, etc. (default: false)
   includeTeamspaceNotes?: boolean, // for note-chooser, include teamspace notes (default: true)
   includeNewNoteOption?: boolean, // for note-chooser, add a 'New Note' option that allows creating a new note
-  dependsOnFolderKey?: string, // for note-chooser, key of a folder-chooser field to filter notes by folder
+  dependsOnFolderKey?: string, // DEPRECATED: use sourceFolderKey instead. For note-chooser, key of a folder-chooser field to filter notes by folder (value dependency)
+  sourceFolderKey?: string, // Value dependency: for note-chooser, key of a folder-chooser field to filter notes by folder
   // showValue option for SearchableChooser-based fields
   showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
   staticHeadings?: Array<string>, // for heading-chooser, static list of headings (if not depending on a note)
@@ -116,7 +120,12 @@ export type TSettingItem = {
   templateJSContent?: string, // for templatejs-block, JavaScript content stored with the form (not rendered in preview)
   // event-chooser options
   eventDate?: Date, // for event-chooser, date to get events for (defaults to today)
-  dependsOnDateKey?: string, // for event-chooser, key of a date field (calendarpicker or text input) to get the date from dynamically
+  dependsOnDateKey?: string, // DEPRECATED: use sourceDateKey instead. For event-chooser, key of a date field (calendarpicker or text input) to get the date from dynamically (value dependency)
+  sourceDateKey?: string, // Value dependency: for event-chooser, key of a date field (calendarpicker or text input) to get the date from dynamically
+  // markdown-preview options
+  markdownText?: string, // for markdown-preview, static markdown text to display (if not using note)
+  markdownNoteFilename?: string, // for markdown-preview, filename of note to display (alternative to markdownText)
+  markdownNoteTitle?: string, // for markdown-preview, title of note to display (alternative to markdownText and markdownNoteFilename)
   selectedCalendars?: Array<string>, // for event-chooser, array of calendar titles to filter events by (ignored if allCalendars=true)
   allCalendars?: boolean, // for event-chooser, if true, include events from all calendars NotePlan can access (bypasses selectedCalendars)
   calendarFilterRegex?: string, // for event-chooser, optional regex pattern to filter calendars after fetching (applied when allCalendars=true)
@@ -211,7 +220,8 @@ const DynamicDialog = ({
 
   // Return whether the controlling setting item is checked or not
   function stateOfControllingSetting(item: TSettingItem): boolean {
-    const dependsOn = item.dependsOnKey ?? ''
+    // Support both old (dependsOnKey) and new (requiresKey) property names for backward compatibility
+    const dependsOn = item.requiresKey ?? item.dependsOnKey ?? ''
     if (dependsOn) {
       const isThatKeyChecked = updatedSettings[dependsOn]
       if (!updatedSettings.hasOwnProperty(dependsOn)) {
@@ -221,15 +231,17 @@ const DynamicDialog = ({
       return isThatKeyChecked
     } else {
       // shouldn't get here
-      logWarn('SettingsDialog/stateOfControllingSetting', `Key ${item.key ?? ''} does not have .dependsOnKey setting`)
+      logWarn('SettingsDialog/stateOfControllingSetting', `Key ${item.key ?? ''} does not have .requiresKey or .dependsOnKey setting`)
       return false
     }
   }
 
   function shouldRenderItem(item: TSettingItem): boolean {
     if (!item) return false
-    if (!item.dependsOnKey) return true
-    const yesRender = !item.dependsOnKey || !hideDependentItems || (item.dependsOnKey && stateOfControllingSetting(item))
+    // Support both old (dependsOnKey) and new (requiresKey) property names for backward compatibility
+    const requiresKey = item.requiresKey ?? item.dependsOnKey
+    if (!requiresKey) return true
+    const yesRender = !requiresKey || !hideDependentItems || (requiresKey && stateOfControllingSetting(item))
     return yesRender
   }
 
@@ -435,8 +447,8 @@ const DynamicDialog = ({
               value: typeof item.key === 'undefined' ? '' : updatedSettings[item.key] ?? '',
               checked: typeof item.key === 'undefined' ? false : updatedSettings[item.key] === true,
             },
-            disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
-            indent: Boolean(item.dependsOnKey),
+            disabled: (item.dependsOnKey || item.requiresKey) ? !stateOfControllingSetting(item) : false,
+            indent: Boolean(item.dependsOnKey || item.requiresKey),
             handleFieldChange,
             handleButtonClick, // Pass handleButtonClick
             labelPosition,

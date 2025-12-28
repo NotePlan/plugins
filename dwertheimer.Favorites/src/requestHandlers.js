@@ -4,14 +4,17 @@
 //--------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { favoriteNotes, type FavoritesConfig } from './favorites'
-import { getConfig } from './NPFavorites'
+import { favoriteNotes, noteIsFavorite, type FavoritesConfig } from './favorites'
+import { getConfig, setFavorite } from './NPFavorites'
 import { type RequestResponse } from './routerUtils'
 import { getFrontmatterNotes } from '@helpers/NPFrontMatter'
 import { getNoteDecoration } from '@helpers/NPnote'
 import { getFolderFromFilename, getFolderDisplayName } from '@helpers/folders'
 import { getPluginJson } from '@helpers/NPConfiguration'
+import { savePluginCommand } from '@helpers/NPPresets'
 import { logDebug, logError, JSP } from '@helpers/dev'
+import { getNote } from '@helpers/note'
+import { getNoteContentAsHTML } from '@helpers/HTMLView'
 
 /**
  * Handle request to get favorite notes
@@ -224,10 +227,6 @@ export async function handleAddFavoriteNote(requestData: Object): Promise<Reques
 
     // Check if already a favorite
     const config = await getConfig()
-    const { setFavorite } = await import('./NPFavorites')
-
-    // Check if already favorite
-    const { noteIsFavorite } = await import('./favorites')
     if (noteIsFavorite(note, config)) {
       return {
         success: false,
@@ -361,7 +360,6 @@ export async function handleAddFavoriteCommand(requestData: Object): Promise<Req
     }
 
     // Save the command using savePluginCommand
-    const { savePluginCommand } = await import('@helpers/NPPresets')
     await savePluginCommand(pluginJson, { ...command, name: commandName, data: url })
 
     logDebug(pluginJson, `handleAddFavoriteCommand: Successfully saved preset command`)
@@ -441,6 +439,108 @@ export async function handleGetProjectNotes(requestData: Object): Promise<Reques
     return {
       success: false,
       message: error.message || 'Failed to get project notes',
+    }
+  }
+}
+
+/**
+ * Render markdown text to HTML
+ * @param {Object} params - Request parameters
+ * @param {string} params.markdown - Markdown text to render
+ * @returns {Promise<RequestResponse>}
+ */
+export async function handleRenderMarkdown(params: { markdown: string }): Promise<RequestResponse> {
+  const startTime: number = Date.now()
+  try {
+    logDebug(pluginJson, `handleRenderMarkdown: ENTRY - markdown length=${params.markdown?.length || 0}`)
+
+    if (!params.markdown) {
+      return {
+        success: false,
+        message: 'Markdown text is required',
+        data: null,
+      }
+    }
+
+    // Use a temporary note object to render the markdown
+    // getNoteContentAsHTML expects (content: string, note: TNote)
+    const tempNote: any = {
+      filename: 'temp.md',
+      content: params.markdown,
+      paragraphs: [],
+    }
+
+    const html = await getNoteContentAsHTML(params.markdown, tempNote)
+
+    const totalElapsed: number = Date.now() - startTime
+    logDebug(pluginJson, `handleRenderMarkdown: COMPLETE - totalElapsed=${totalElapsed}ms`)
+
+    return {
+      success: true,
+      data: html,
+    }
+  } catch (error) {
+    const totalElapsed: number = Date.now() - startTime
+    logError(pluginJson, `handleRenderMarkdown: ERROR - totalElapsed=${totalElapsed}ms, error="${error.message}"`)
+    return {
+      success: false,
+      message: `Failed to render markdown: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
+ * Get note content as HTML
+ * @param {Object} params - Request parameters
+ * @param {string} params.noteIdentifier - Filename or title of the note
+ * @param {boolean} params.isFilename - Whether noteIdentifier is a filename (default: true)
+ * @param {boolean} params.isTitle - Whether noteIdentifier is a title (default: false)
+ * @returns {Promise<RequestResponse>}
+ */
+export async function handleGetNoteContentAsHTML(params: { noteIdentifier: string, isFilename?: boolean, isTitle?: boolean }): Promise<RequestResponse> {
+  const startTime: number = Date.now()
+  try {
+    logDebug(
+      pluginJson,
+      `handleGetNoteContentAsHTML: ENTRY - noteIdentifier="${params.noteIdentifier}", isFilename=${String(params.isFilename ?? true)}, isTitle=${String(params.isTitle ?? false)}`,
+    )
+
+    if (!params.noteIdentifier) {
+      return {
+        success: false,
+        message: 'Note identifier is required',
+        data: null,
+      }
+    }
+
+    // Get the note by filename or title
+    const note = await getNote(params.noteIdentifier, null, '')
+    if (!note) {
+      return {
+        success: false,
+        message: `Note not found: ${params.noteIdentifier}`,
+        data: null,
+      }
+    }
+
+    // Get the note content as HTML
+    const html = await getNoteContentAsHTML(note.content, note)
+
+    const totalElapsed: number = Date.now() - startTime
+    logDebug(pluginJson, `handleGetNoteContentAsHTML: COMPLETE - totalElapsed=${totalElapsed}ms`)
+
+    return {
+      success: true,
+      data: html,
+    }
+  } catch (error) {
+    const totalElapsed: number = Date.now() - startTime
+    logError(pluginJson, `handleGetNoteContentAsHTML: ERROR - totalElapsed=${totalElapsed}ms, error="${error.message}"`)
+    return {
+      success: false,
+      message: `Failed to get note content as HTML: ${error.message}`,
+      data: null,
     }
   }
 }

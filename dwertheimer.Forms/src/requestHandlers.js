@@ -22,7 +22,8 @@ import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { showMessage } from '@helpers/userInput'
 import { getHeadingsFromNote } from '@helpers/NPnote'
-import { getNoteByFilename } from '@helpers/note'
+import { getNoteByFilename, getNote } from '@helpers/note'
+import { getNoteContentAsHTML } from '@helpers/HTMLView'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
 import { updateFrontMatterVars, ensureFrontmatter, endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
@@ -855,6 +856,109 @@ export function getHeadings(params: { noteFilename: string, optionAddTopAndBotto
 }
 
 /**
+ * Render markdown text to HTML
+ * @param {Object} params - Request parameters
+ * @param {string} params.markdown - Markdown text to render
+ * @returns {RequestResponse}
+ */
+export async function renderMarkdown(params: { markdown: string }): Promise<RequestResponse> {
+  const startTime: number = Date.now()
+  try {
+    logDebug(pluginJson, `[DIAG] renderMarkdown START: markdown length=${params.markdown?.length || 0}`)
+
+    if (!params.markdown) {
+      return {
+        success: false,
+        message: 'Markdown text is required',
+        data: null,
+      }
+    }
+
+    // For static markdown, we need to create a minimal note-like object
+    // getNoteContentAsHTML expects (content: string, note: TNote)
+    // We'll create a minimal note object with just the required properties
+    const tempNote: any = {
+      filename: 'temp.md',
+      content: params.markdown,
+      paragraphs: [],
+    }
+
+    const html = await getNoteContentAsHTML(params.markdown, tempNote)
+
+    const totalElapsed: number = Date.now() - startTime
+    logDebug(pluginJson, `[DIAG] renderMarkdown COMPLETE: totalElapsed=${totalElapsed}ms`)
+
+    return {
+      success: true,
+      data: html,
+    }
+  } catch (error) {
+    const totalElapsed: number = Date.now() - startTime
+    logError(pluginJson, `[DIAG] renderMarkdown ERROR: totalElapsed=${totalElapsed}ms, error="${error.message}"`)
+    return {
+      success: false,
+      message: `Failed to render markdown: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
+ * Get note content as HTML
+ * @param {Object} params - Request parameters
+ * @param {string} params.noteIdentifier - Filename or title of the note
+ * @param {boolean} params.isFilename - Whether noteIdentifier is a filename (default: true)
+ * @param {boolean} params.isTitle - Whether noteIdentifier is a title (default: false)
+ * @returns {RequestResponse}
+ */
+export async function getNoteContentAsHTMLHandler(params: { noteIdentifier: string, isFilename?: boolean, isTitle?: boolean }): Promise<RequestResponse> {
+  const startTime: number = Date.now()
+  try {
+    logDebug(
+      pluginJson,
+      `[DIAG] getNoteContentAsHTML START: noteIdentifier="${params.noteIdentifier}", isFilename=${String(params.isFilename ?? true)}, isTitle=${String(params.isTitle ?? false)}`,
+    )
+
+    if (!params.noteIdentifier) {
+      return {
+        success: false,
+        message: 'Note identifier is required',
+        data: null,
+      }
+    }
+
+    // Get the note by filename or title
+    const note = await getNote(params.noteIdentifier, null, '')
+    if (!note) {
+      return {
+        success: false,
+        message: `Note not found: ${params.noteIdentifier}`,
+        data: null,
+      }
+    }
+
+    // Get the note content as HTML
+    const html = await getNoteContentAsHTML(note.content, note)
+
+    const totalElapsed: number = Date.now() - startTime
+    logDebug(pluginJson, `[DIAG] getNoteContentAsHTML COMPLETE: totalElapsed=${totalElapsed}ms`)
+
+    return {
+      success: true,
+      data: html,
+    }
+  } catch (error) {
+    const totalElapsed: number = Date.now() - startTime
+    logError(pluginJson, `[DIAG] getNoteContentAsHTML ERROR: totalElapsed=${totalElapsed}ms, error="${error.message}"`)
+    return {
+      success: false,
+      message: `Failed to get note content as HTML: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
  * Remove empty lines from a note's content
  * Removes sequences of 2+ newlines, blank lines after frontmatter, and trailing blank lines
  * @param {any} note - The note to clean up (CoreNoteFields)
@@ -985,6 +1089,10 @@ export async function handleRequest(requestType: string, params: Object = {}): P
         return createFolder(params)
       case 'getHeadings':
         return getHeadings(params)
+      case 'renderMarkdown':
+        return await renderMarkdown(params)
+      case 'getNoteContentAsHTML':
+        return await getNoteContentAsHTMLHandler(params)
       case 'createNote':
         return createNote(params)
       // Form-specific handlers are now in their respective handler files:

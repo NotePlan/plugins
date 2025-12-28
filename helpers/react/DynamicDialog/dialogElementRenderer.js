@@ -23,6 +23,7 @@ import EventChooser from './EventChooser.jsx'
 import MultiSelectChooser from './MultiSelectChooser.jsx'
 import { ExpandableTextarea } from './ExpandableTextarea.jsx'
 import { TemplateJSBlock } from './TemplateJSBlock.jsx'
+import { MarkdownPreview } from './MarkdownPreview.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import type { Option } from './DropdownSelect.jsx'
 import { Button, ButtonGroup } from './ButtonComponents.jsx'
@@ -485,12 +486,13 @@ export function renderItem({
         const label = item.label || ''
         const compactDisplay = item.compactDisplay || false
         const currentValue = item.value || item.default || ''
-        const dependsOnFolderKey = item.dependsOnFolderKey
+        // Support both old (dependsOnFolderKey) and new (sourceFolderKey) property names for backward compatibility
+        const sourceFolderKey = item.sourceFolderKey ?? item.dependsOnFolderKey
 
-        // Get folder value from the dependsOnFolderKey field if specified
+        // Get folder value from the sourceFolderKey field if specified
         let folderFilter = null
-        if (dependsOnFolderKey && updatedSettings && typeof updatedSettings === 'object') {
-          const folderValue = updatedSettings[dependsOnFolderKey]
+        if (sourceFolderKey && updatedSettings && typeof updatedSettings === 'object') {
+          const folderValue = updatedSettings[sourceFolderKey]
           if (folderValue && typeof folderValue === 'string') {
             folderFilter = folderValue
           }
@@ -521,7 +523,7 @@ export function renderItem({
               includeRelativeNotes={item.includeRelativeNotes ?? false}
               includeTeamspaceNotes={item.includeTeamspaceNotes ?? true}
               includeNewNoteOption={item.includeNewNoteOption ?? false}
-              dependsOnFolderKey={dependsOnFolderKey}
+              dependsOnFolderKey={sourceFolderKey}
               folderFilter={folderFilter}
               requestFromPlugin={requestFromPlugin}
               onNotesChanged={onNotesChanged}
@@ -535,16 +537,17 @@ export function renderItem({
         const label = item.label || ''
         const compactDisplay = item.compactDisplay || false
         const currentValue = item.value || item.default || ''
-        const dependsOnNoteKey = item.dependsOnNoteKey
+        // Support both old (dependsOnNoteKey) and new (sourceNoteKey) property names for backward compatibility
+        const sourceNoteKey = item.sourceNoteKey ?? item.dependsOnNoteKey
         const defaultHeading = item.defaultHeading
         const optionAddTopAndBottom = item.optionAddTopAndBottom ?? true
         const includeArchive = item.includeArchive ?? false
         const staticHeadings = item.staticHeadings || []
 
-        // Get note filename from the dependsOnNoteKey field if specified
+        // Get note filename from the sourceNoteKey field if specified
         let noteFilename = null
-        if (dependsOnNoteKey && updatedSettings && typeof updatedSettings === 'object') {
-          const noteValue = updatedSettings[dependsOnNoteKey]
+        if (sourceNoteKey && updatedSettings && typeof updatedSettings === 'object') {
+          const noteValue = updatedSettings[sourceNoteKey]
           if (noteValue && typeof noteValue === 'string') {
             noteFilename = noteValue
           }
@@ -589,15 +592,16 @@ export function renderItem({
               ? rawValue.id
               : ''
         const eventDate = item.eventDate
-        const dependsOnDateKey = item.dependsOnDateKey
+        // Support both old (dependsOnDateKey) and new (sourceDateKey) property names for backward compatibility
+        const sourceDateKey = item.sourceDateKey ?? item.dependsOnDateKey
 
-        // Get date value from the dependsOnDateKey field if specified
+        // Get date value from the sourceDateKey field if specified
         let dateFromField = null
-        if (dependsOnDateKey && updatedSettings && typeof updatedSettings === 'object') {
-          const dateValue = updatedSettings[dependsOnDateKey]
+        if (sourceDateKey && updatedSettings && typeof updatedSettings === 'object') {
+          const dateValue = updatedSettings[sourceDateKey]
           if (dateValue !== null && dateValue !== undefined) {
             dateFromField = dateValue
-            logDebug('dialogElementRenderer', `event-chooser: got date from ${dependsOnDateKey}: ${typeof dateValue === 'string' ? dateValue : dateValue instanceof Date ? dateValue.toISOString() : String(dateValue)}`)
+            logDebug('dialogElementRenderer', `event-chooser: got date from ${sourceDateKey}: ${typeof dateValue === 'string' ? dateValue : dateValue instanceof Date ? dateValue.toISOString() : String(dateValue)}`)
           }
         }
 
@@ -706,6 +710,39 @@ export function renderItem({
               <pre className="form-state-viewer-json">{formStateJson}</pre>
             </div>
             {/* Description is rendered by DynamicDialog.jsx, don't render it here to avoid duplication */}
+          </div>
+        )
+      }
+      case 'markdown-preview': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        // Support both old (dependsOnNoteKey) and new (sourceNoteKey) property names for backward compatibility
+        const sourceNoteKey = item.sourceNoteKey ?? item.dependsOnNoteKey
+
+        // Get note value from the sourceNoteKey field if specified
+        let sourceNoteValue = null
+        if (sourceNoteKey && updatedSettings && typeof updatedSettings === 'object') {
+          const noteValue = updatedSettings[sourceNoteKey]
+          if (noteValue && typeof noteValue === 'string') {
+            sourceNoteValue = noteValue
+          }
+        }
+
+        return (
+          <div data-field-type="markdown-preview">
+            <MarkdownPreview
+              key={`markdown-preview${index}`}
+              label={label}
+              markdownText={item.markdownText}
+              noteFilename={item.markdownNoteFilename}
+              noteTitle={item.markdownNoteTitle}
+              sourceNoteKey={sourceNoteKey}
+              sourceNoteValue={sourceNoteValue}
+              requestFromPlugin={requestFromPlugin}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              className={indent ? 'indent' : ''}
+            />
           </div>
         )
       }

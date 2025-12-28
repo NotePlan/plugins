@@ -123,7 +123,14 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
 
     requestFn('getAvailableReminderLists', {})
       .then((listsData) => {
-        console.log('[FieldEditor DIAG] reminderLists useEffect: received data, isMounted=', isMounted, 'data type=', Array.isArray(listsData) ? 'array' : typeof listsData, 'length=', Array.isArray(listsData) ? listsData.length : 'N/A')
+        console.log(
+          '[FieldEditor DIAG] reminderLists useEffect: received data, isMounted=',
+          isMounted,
+          'data type=',
+          Array.isArray(listsData) ? 'array' : typeof listsData,
+          'length=',
+          Array.isArray(listsData) ? listsData.length : 'N/A',
+        )
         if (isMounted) {
           if (Array.isArray(listsData)) {
             setReminderLists(listsData)
@@ -591,12 +598,22 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
           {editedField.type === 'event-chooser' && (
             <>
               <div className="field-editor-row">
-                <label>Depends On Date Field (optional):</label>
+                <label>Source Date Field (value dependency, optional):</label>
                 <select
-                  value={((editedField: any): { dependsOnDateKey?: string }).dependsOnDateKey || ''}
+                  value={
+                    ((editedField: any): { sourceDateKey?: string, dependsOnDateKey?: string }).sourceDateKey ||
+                    ((editedField: any): { sourceDateKey?: string, dependsOnDateKey?: string }).dependsOnDateKey ||
+                    ''
+                  }
                   onChange={(e) => {
                     const updated = { ...editedField }
-                    ;(updated: any).dependsOnDateKey = e.target.value || undefined
+                    ;(updated: any).sourceDateKey = e.target.value || undefined
+                    // Also set old property for backward compatibility
+                    if (e.target.value) {
+                      ;(updated: any).dependsOnDateKey = e.target.value
+                    } else {
+                      delete (updated: any).dependsOnDateKey
+                    }
                     setEditedField(updated)
                   }}
                 >
@@ -611,7 +628,8 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 </select>
                 <div className="field-editor-help">
                   If specified, events will be loaded for the date from the selected field. The field can be a Date Picker (returns Date) or a text input with a date string
-                  (YYYY-MM-DD format). If not specified, events default to today.
+                  (YYYY-MM-DD format). If not specified, events default to today. This is a <strong>value dependency</strong> - the field needs the value from another field to
+                  function.
                 </div>
               </div>
               <div className="field-editor-row">
@@ -837,12 +855,22 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
           {editedField.type === 'heading-chooser' && (
             <>
               <div className="field-editor-row">
-                <label>Depends On Note Field (optional):</label>
+                <label>Source Note Field (value dependency, optional):</label>
                 <select
-                  value={((editedField: any): { dependsOnNoteKey?: string }).dependsOnNoteKey || ''}
+                  value={
+                    ((editedField: any): { sourceNoteKey?: string, dependsOnNoteKey?: string }).sourceNoteKey ||
+                    ((editedField: any): { sourceNoteKey?: string, dependsOnNoteKey?: string }).dependsOnNoteKey ||
+                    ''
+                  }
                   onChange={(e) => {
                     const updated = { ...editedField }
-                    ;(updated: any).dependsOnNoteKey = e.target.value || undefined
+                    ;(updated: any).sourceNoteKey = e.target.value || undefined
+                    // Also set old property for backward compatibility
+                    if (e.target.value) {
+                      ;(updated: any).dependsOnNoteKey = e.target.value
+                    } else {
+                      delete (updated: any).dependsOnNoteKey
+                    }
                     setEditedField(updated)
                   }}
                 >
@@ -855,7 +883,10 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                       </option>
                     ))}
                 </select>
-                <div className="field-editor-help">If specified, headings will be loaded dynamically from the selected note. Otherwise, use static headings below.</div>
+                <div className="field-editor-help">
+                  If specified, headings will be loaded dynamically from the selected note. Otherwise, use static headings below. This is a <strong>value dependency</strong> - the
+                  field needs the value from another field to function.
+                </div>
               </div>
               <div className="field-editor-row">
                 <label>Static Headings (if not depending on note):</label>
@@ -919,18 +950,179 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             </>
           )}
 
+          {editedField.type === 'markdown-preview' && (
+            <>
+              <div className="field-editor-row">
+                <label>Markdown Source Type:</label>
+                <select
+                  value={
+                    ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownText
+                      ? 'static'
+                      : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownNoteFilename
+                      ? 'filename'
+                      : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownNoteTitle
+                      ? 'title'
+                      : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).sourceNoteKey
+                      ? 'field'
+                      : 'static'
+                  }
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const sourceType = e.target.value
+                    // Clear all source options
+                    delete (updated: any).markdownText
+                    delete (updated: any).markdownNoteFilename
+                    delete (updated: any).markdownNoteTitle
+                    delete (updated: any).sourceNoteKey
+                    delete (updated: any).dependsOnNoteKey
+                    // Set default based on type
+                    if (sourceType === 'static') {
+                      ;(updated: any).markdownText = ''
+                    }
+                    setEditedField(updated)
+                  }}
+                >
+                  <option value="static">Static Markdown Text</option>
+                  <option value="filename">Note by Filename</option>
+                  <option value="title">Note by Title</option>
+                  <option value="field">Note from Another Field</option>
+                </select>
+                <div className="field-editor-help">Choose how to get the markdown content to display</div>
+              </div>
+
+              {(() => {
+                const sourceType = ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownText
+                  ? 'static'
+                  : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownNoteFilename
+                  ? 'filename'
+                  : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownNoteTitle
+                  ? 'title'
+                  : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).sourceNoteKey
+                  ? 'field'
+                  : 'static'
+                return (
+                  <>
+                    {sourceType === 'static' && (
+                      <div className="field-editor-row">
+                        <label>Markdown Text:</label>
+                        <textarea
+                          value={((editedField: any): { markdownText?: string }).markdownText || ''}
+                          onChange={(e) => {
+                            const updated = { ...editedField }
+                            ;(updated: any).markdownText = e.target.value
+                            setEditedField(updated)
+                          }}
+                          placeholder="Enter markdown text to display..."
+                          rows={10}
+                        />
+                        <div className="field-editor-help">Enter the markdown text to display (e.g., instructions)</div>
+                      </div>
+                    )}
+
+                    {sourceType === 'filename' && (
+                      <div className="field-editor-row">
+                        <label>Note Filename:</label>
+                        <input
+                          type="text"
+                          value={((editedField: any): { markdownNoteFilename?: string }).markdownNoteFilename || ''}
+                          onChange={(e) => {
+                            const updated = { ...editedField }
+                            ;(updated: any).markdownNoteFilename = e.target.value || undefined
+                            setEditedField(updated)
+                          }}
+                          placeholder="e.g., MyNote.md or 20240101.md"
+                        />
+                        <div className="field-editor-help">Enter the filename (with extension) of the note to display</div>
+                      </div>
+                    )}
+
+                    {sourceType === 'title' && (
+                      <div className="field-editor-row">
+                        <label>Note Title:</label>
+                        <input
+                          type="text"
+                          value={((editedField: any): { markdownNoteTitle?: string }).markdownNoteTitle || ''}
+                          onChange={(e) => {
+                            const updated = { ...editedField }
+                            ;(updated: any).markdownNoteTitle = e.target.value || undefined
+                            setEditedField(updated)
+                          }}
+                          placeholder="e.g., My Note"
+                        />
+                        <div className="field-editor-help">Enter the title of the note to display</div>
+                      </div>
+                    )}
+
+                    {sourceType === 'field' && (
+                      <div className="field-editor-row">
+                        <label>Source Note Field (value dependency):</label>
+                        <select
+                          value={
+                            ((editedField: any): { sourceNoteKey?: string, dependsOnNoteKey?: string }).sourceNoteKey ||
+                            ((editedField: any): { sourceNoteKey?: string, dependsOnNoteKey?: string }).dependsOnNoteKey ||
+                            ''
+                          }
+                          onChange={(e) => {
+                            const updated = { ...editedField }
+                            ;(updated: any).sourceNoteKey = e.target.value || undefined
+                            // Also set old property for backward compatibility
+                            if (e.target.value) {
+                              ;(updated: any).dependsOnNoteKey = e.target.value
+                            } else {
+                              delete (updated: any).dependsOnNoteKey
+                            }
+                            setEditedField(updated)
+                          }}
+                        >
+                          <option value="">Select a note-chooser field...</option>
+                          {allFields
+                            .filter((f) => f.key && f.type === 'note-chooser' && f.key !== editedField.key)
+                            .map((f) => (
+                              <option key={f.key} value={f.key}>
+                                {f.label || f.key} ({f.key})
+                              </option>
+                            ))}
+                        </select>
+                        <div className="field-editor-help">
+                          Select a note-chooser field. The preview will display the note selected in that field. This is a <strong>value dependency</strong> - the field needs the
+                          value from another field to function.
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
+            </>
+          )}
+
           {needsKey && (
             <div className="field-editor-row">
-              <label>Depends On (conditional field):</label>
-              <select value={editedField.dependsOnKey || ''} onChange={(e) => updateField({ dependsOnKey: e.target.value || undefined })}>
-                <option value="">None (no dependency)</option>
+              <label>Requires Field (prerequisite):</label>
+              <select
+                value={editedField.requiresKey || editedField.dependsOnKey || ''}
+                onChange={(e) => {
+                  const updated = { ...editedField }
+                  updated.requiresKey = e.target.value || undefined
+                  // Also set old property for backward compatibility
+                  if (e.target.value) {
+                    updated.dependsOnKey = e.target.value
+                  } else {
+                    delete updated.dependsOnKey
+                  }
+                  setEditedField(updated)
+                }}
+              >
+                <option value="">None (no prerequisite)</option>
                 {dependencyOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
-              <div className="field-editor-help">This field will only be enabled when the specified field is true/has a value</div>
+              <div className="field-editor-help">
+                This field will only be visible/enabled when the specified field is true/has a value. This is a <strong>prerequisite</strong> - the field must be set for this field
+                to be visible or editable.
+              </div>
             </div>
           )}
         </div>

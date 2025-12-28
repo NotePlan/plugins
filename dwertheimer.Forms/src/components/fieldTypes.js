@@ -26,6 +26,7 @@ export const FIELD_TYPES: Array<FieldTypeOption> = [
   { value: 'note-chooser', label: 'Note Chooser', description: 'Searchable note selector' },
   { value: 'heading-chooser', label: 'Heading Chooser', description: 'Select a heading from a note (static or dynamic based on note-chooser)' },
   { value: 'event-chooser', label: 'Event Chooser', description: 'Select a calendar event for a specific date' },
+  { value: 'markdown-preview', label: 'Markdown Preview', description: 'Display markdown content (static text, note by filename/title, or note from another field)' },
   { value: 'heading', label: 'Heading', description: 'Section heading' },
   { value: 'separator', label: 'Separator', description: 'Horizontal line' },
   { value: 'button', label: 'Button', description: 'Clickable button' },
