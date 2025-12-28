@@ -80,10 +80,7 @@ const useSectionSortAndFilter = (
   // This useEffect is responsible for updating the filtered and displayed items in the Dashboard section whenever the relevant inputs change (such as the section, items, dashboard settings, or priority filter).
   // It applies filtering based on checklist/task type, special message handling, section-specific logic (like for timeblocks), and any limit or priority-based filters, then sets the resulting items to display and other related state.
   useEffect(() => {
-    logDebug(
-      'useSectionSortAndFilter',
-      `Section ${section.sectionCode}${section.sectionCode === 'TAG' ? ` (${section.name})` : ''} useEffect running with ${memoizedItems.length} items`,
-    )
+    // logDebug('useSectionSortAndFilter', `Section ${section.sectionCode}${section.sectionCode === 'TAG' ? ` (${section.name})` : ''} useEffect running with ${memoizedItems.length} items`)
     if (memoizedItems.length === 0) {
       setFilteredItems([])
       setItemsToShow([])
@@ -172,9 +169,9 @@ const useSectionSortAndFilter = (
             const priorityToUse = currentMaxPriorityFromAllVisibleSections > -1
               ? currentMaxPriorityFromAllVisibleSections
               : thisSectionCalculatedMaxPriority
-            logDebug('useSectionSortAndFilter', `${section.sectionCode}: starting to filter ${String(typeWantedItems.length)} items with all ${String(currentMaxPriorityFromAllVisibleSections)} / this ${String(thisSectionCalculatedMaxPriority)}`)
+            // logDebug('useSectionSortAndFilter', `${section.sectionCode}: starting to filter ${String(typeWantedItems.length)} items with all ${String(currentMaxPriorityFromAllVisibleSections)} / this ${String(thisSectionCalculatedMaxPriority)}`)
             filteredItems = filteredItems.filter((f) => (f.para?.priority ?? 0) >= priorityToUse)
-            logDebug('useSectionSortAndFilter', `  filtered to ${filteredItems.length} items using priority ${priorityToUse}`)
+            // logDebug('useSectionSortAndFilter', `  filtered to ${filteredItems.length} items using priority ${priorityToUse}`)
           } else {
             logDebug('useSectionSortAndFilter', `${section.sectionCode}: no priority filtering`)
           }

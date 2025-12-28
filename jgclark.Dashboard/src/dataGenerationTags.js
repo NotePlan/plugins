@@ -87,7 +87,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
           // This is taking about 2ms per note for JGC
           if (!filenamesWithTagFromCache || filenamesWithTagFromCache.length === 0) {
-            logWarn('getTaggedSectionData', `- no valid filenamesWithTagFromCache result for ${thisTag}`)
+            logInfo('getTaggedSectionData', `- no valid filenamesWithTagFromCache result for ${thisTag}`)
           } else {
             filenamesWithTagFromCache.forEach((filename) => {
               const note = getNoteByFilename(filename)
