@@ -1,0 +1,146 @@
+/* List Component Styles */
+
+.list-container {
+  flex: 1;
+  overflow-y: auto;
+  outline: none;
+}
+
+.list-loading,
+.list-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.list-loading-message,
+.list-empty-message {
+  padding: 2rem;
+  text-align: center;
+  color: var(--np-theme-text-secondary, #666666);
+  font-style: italic;
+}
+
+/* NotePlan Sidebar Style */
+.list-noteplan-sidebar {
+  padding: 0.25rem 0;
+}
+
+.list-item-noteplan-sidebar {
+  padding: 0.5rem 0.75rem;
+  margin: 0.125rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 32px;
+}
+
+.list-item-noteplan-sidebar:hover {
+  background: var(--np-theme-background-hover, rgba(0, 0, 0, 0.05));
+}
+
+.list-item-noteplan-sidebar.selected {
+  background: var(--tint-color, #007aff);
+  color: white;
+  border-color: var(--tint-color, #007aff);
+}
+
+.list-item-noteplan-sidebar.selected .list-item-action-button {
+  color: white;
+  opacity: 0.8;
+}
+
+.list-item-noteplan-sidebar.selected .list-item-action-button:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Chips Style */
+.list-chips {
+  padding: 0.5rem;
+}
+
+.list-item-chips {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  background: var(--np-theme-background, #ffffff);
+  border: 1px solid var(--np-theme-border, #e0e0e0);
+  transition: all 0.2s;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.list-item-chips:hover {
+  background: var(--np-theme-background-hover, #f0f0f0);
+  border-color: var(--tint-color, #007aff);
+}
+
+.list-item-chips.selected {
+  background: var(--tint-color, #007aff);
+  color: white;
+  border-color: var(--tint-color, #007aff);
+}
+
+.list-item-chips.selected .list-item-action-button {
+  color: white;
+  opacity: 0.8;
+}
+
+.list-item-chips.selected .list-item-action-button:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Item Content */
+.list-item-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Item Actions */
+.list-item-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.list-item-action-button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+  transition: background 0.2s, opacity 0.2s;
+  opacity: 0.7;
+  color: var(--np-theme-text, #000000);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list-item:hover .list-item-action-button {
+  opacity: 1;
+}
+
+.list-item-action-button:hover {
+  background: var(--np-theme-background-hover, #f0f0f0);
+}
+

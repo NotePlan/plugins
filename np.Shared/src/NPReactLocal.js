@@ -112,7 +112,21 @@ function prepareReactWindowData(
     `
 
   const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.dev.js"></script>\n`
-  const preBS = (windowOptions.preBodyScript = windowOptions.preBodyScript || '')
+
+  // Add NP_THEME to preBodyScript if includeCSSAsJS is true (same logic as showHTMLV2)
+  let preBS = windowOptions.preBodyScript || ''
+  if (windowOptions.includeCSSAsJS) {
+    const preBody: Array<Object> = preBS ? (Array.isArray(preBS) ? preBS : [preBS]) : []
+    const theme = getThemeJS(true, true)
+    if (theme.values) {
+      const themeName = theme.name ?? '<unknown>'
+      const themeJSONStr = JSON.stringify(theme.values, null, 4) ?? '<empty>'
+      preBody.push(`/* Basic Theme as JS for CSS-in-JS use in scripts \n  Created from theme: "${themeName}" */\n  const NP_THEME=${themeJSONStr}\n`)
+      logDebug(pluginJson, `prepareReactWindowData: Saving NP_THEME in JavaScript`)
+    }
+    preBS = preBody
+  }
+
   const generatedOptions = {
     includeCSSAsJS: windowOptions.includeCSSAsJS === false ? false : true,
     headerTags: `${[cssTags].join('\n')}${windowOptions.headerTags || ''}` /* needs to be a string */,
@@ -266,6 +280,20 @@ export function showInMainWindow(globalData: any = null, windowOptions?: HtmlWin
     }
     // $FlowFixMe[prop-missing] - showInMainWindow is available in NotePlan v3.20+
     HTMLView.showInMainWindow(fullHTMLStr, windowOptions.windowTitle || 'React Window', mainWindowOptions)
+
+    // If wanted, also write this HTML to a file so we can work on it offline.
+    // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
+    if (windowOptions.savedFilename && windowOptions.savedFilename !== '') {
+      const thisFilename = windowOptions.savedFilename ?? ''
+      const filenameWithoutSpaces = thisFilename.split(' ').join('') ?? ''
+      // Write to specified file in NP sandbox
+      const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
+      if (res) {
+        logDebug(pluginJson, `showInMainWindow: - Saved copy of HTML to '${windowOptions.windowTitle || 'React Window'}' to ${thisFilename}`)
+      } else {
+        logError(pluginJson, `showInMainWindow: - Couldn't save resulting HTML '${windowOptions.windowTitle || 'React Window'}' to ${thisFilename}.`)
+      }
+    }
 
     logDebug(pluginJson, `showInMainWindow: ---------------------------------------- HTML prep: ${timer(startTime)} | Total so far: ${timer(globalData.startTime)}`)
     return true
