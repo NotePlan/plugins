@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-11-28 for v2.3.0.b16, @jgclark
+// Last updated 2025-12-23 for v2.4.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -31,6 +31,7 @@ import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
 import { isNoteFromAllowedFolder } from '@helpers/note'
 import { saveSettings } from '@helpers/NPConfiguration'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
+import { getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 import { getNoteFromFilename, getReferencedParagraphs } from '@helpers/NPnote'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { isAChildPara } from '@helpers/parentsAndChildren'
@@ -219,7 +220,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
  * @param {Array<TParagraph>} origParas
  * @returns {Array<TParagraphForDashboard>} dashboardParas
  */
-export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagraphForDashboard> {
+export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorityDelta: boolean = true): Array<TParagraphForDashboard> {
   try {
     const timer = new Date()
 
@@ -227,11 +228,10 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       if (!p) {
         throw new Error(`p is undefined`)
       }
+      const note = p.note
 
-      // WARNING: p.note appears to be null for Teamspace regular note paras. But .filename and .content are OK.
-      // TODO(later): remove this workaround.
-      const note = p.note ?? getNoteFromFilename(p.filename ?? '') ?? null
-
+      // Set default priorityDelta to 0
+      let priorityDelta = 0
       if (note) {
         // Note: seems to be a quick operation (1ms), but leaving a timer for now to indicate if >10ms
         // Changed: Check if p.children exists before calling
@@ -254,6 +254,10 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           // clo(p.contentRange, `contentRange for paragraph`)
           clof(anyChildren, `Children of paragraph`, ['lineIndex', 'indents', 'content'])
           // clo(anyChildren[0].contentRange, `contentRange for child[0]`)
+
+        }
+        if (checkForPriorityDelta) {
+          priorityDelta = getPriorityDeltaFromNote(note)
         }
 
         const dueDateStr = getDueDateOrStartOfCalendarDate(p)
@@ -272,7 +276,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           rawContent: p.rawContent,
           indents: p.indents, // TEST: not returning correct indents at times? Certainly lands up being 0 when it should be 1.
           lineIndex: p.lineIndex,
-          priority: getNumericPriorityFromPara(p),
+          priority: getNumericPriorityFromPara(p) + priorityDelta,
           startTime: startTimeStr,
           changedDate: note?.changedDate,
           hasChild: hasChild,
@@ -294,6 +298,23 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
   } catch (error) {
     logError('makeDashboardParas', error.message)
     return []
+  }
+}
+
+/**
+ * Get the priority delta from the note's frontmatter attributes, if present.
+ * @param {TNote} note
+ * @returns {number} the priority delta
+ */
+function getPriorityDeltaFromNote(note: TNote): number {
+  try {
+    const FMAttributes = getFrontmatterAttributes(note)
+    const priorityDeltaStr = FMAttributes['note-priority-delta'] ?? ''
+    // logDebug('getPriorityDeltaFromNote', `- priorityDelta for ${note.filename} is ${priorityDeltaStr}`)
+    return priorityDeltaStr ? parseInt(priorityDeltaStr) : 0
+  } catch (error) {
+    logError('getPriorityDeltaFromNote', error.message)
+    return 0
   }
 }
 

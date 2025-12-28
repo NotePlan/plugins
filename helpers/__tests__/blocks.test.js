@@ -3,7 +3,7 @@
 /* global jest, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
-import { breakParagraphsIntoBlocks, isBreakBlock, isTitleWithEqualOrLowerHeadingLevel } from '../blocks'
+import * as b from '../blocks'
 const PLUGIN_NAME = `helpers`
 const FILENAME = `blocks`
 
@@ -50,8 +50,7 @@ import { mockWasCalledWith } from '@mocks/mockHelpers'
       })
 */
 
-describe(`${PLUGIN_NAME}`, () => {
-  describe(`${FILENAME}`, () => {
+describe(`helpers/blocks`, () => {
     //functions go here using jfunc command
     describe('breakParagraphsIntoBlocks', () => {
       test('should break paragraphs into blocks based on block types', () => {
@@ -72,7 +71,7 @@ describe(`${PLUGIN_NAME}`, () => {
           [{ type: 'empty' }],
           [{ type: 'title', headingLevel: 3 }, { type: 'text' }],
         ]
-        const result = breakParagraphsIntoBlocks(input)
+        const result = b.breakParagraphsIntoBlocks(input)
         expect(result.length).toBe(5)
         expect(result[1][0].type).toBe('separator')
         expect(result[3][0].type).toBe('empty')
@@ -93,7 +92,7 @@ describe(`${PLUGIN_NAME}`, () => {
           [{ type: 'title', headingLevel: 2 }, { type: 'text' }],
           [{ type: 'title', headingLevel: 1 }, { type: 'text' }],
         ]
-        const result = breakParagraphsIntoBlocks(input)
+        const result = b.breakParagraphsIntoBlocks(input)
         expect(result.length).toBe(3)
         expect(result).toEqual(expectedOutput)
       })
@@ -101,77 +100,51 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should handle empty input array', () => {
         const input = []
         const expectedOutput = []
-        expect(breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
+        expect(b.breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
       })
 
       test('should handle input with no break block types', () => {
         const input = [{ type: 'title', headingLevel: 1 }, { type: 'text' }, { type: 'text' }, { type: 'title', headingLevel: 2 }, { type: 'text' }]
         const expectedOutput = [input]
-        expect(breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
+        expect(b.breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
       })
 
       test('should handle input with no titles', () => {
         const input = [{ type: 'text' }, { type: 'text' }]
         const expectedOutput = [input]
-        expect(breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
+        expect(b.breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
       })
 
       test('should handle input with single item', () => {
         const input = [{ type: 'title', headingLevel: 1 }]
         const expectedOutput = [[{ type: 'title', headingLevel: 1 }]]
-        expect(breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
+        expect(b.breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
       })
 
       test('should handle input with all break block types', () => {
         const input = [{ type: 'empty' }, { type: 'separator' }, { type: 'title', headingLevel: 1 }]
         const expectedOutput = [[{ type: 'empty' }], [{ type: 'separator' }], [{ type: 'title', headingLevel: 1 }]]
-        expect(breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
+        expect(b.breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
       })
 
       test('should handle input with no paragraphs', () => {
         const input = [{ type: 'title', headingLevel: 1 }, { type: 'separator' }, { type: 'title', headingLevel: 2 }]
         const expectedOutput = [[{ type: 'title', headingLevel: 1 }], [{ type: 'separator' }], [{ type: 'title', headingLevel: 2 }]]
-        expect(breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
+        expect(b.breakParagraphsIntoBlocks(input)).toEqual(expectedOutput)
       })
     })
 
-    describe('isBreakBlock', () => {
+    describe('isBreakParaType', () => {
       test('should return true for break block types', () => {
         const item = { type: 'separator' }
         const breakBlockTypes = ['empty', 'separator', 'title']
-        expect(isBreakBlock(item, breakBlockTypes)).toBe(true)
+        expect(b.isBreakParaType(item, breakBlockTypes)).toBe(true)
       })
 
       test('should return false for non-break block type', () => {
         const item = { type: 'text' }
         const breakBlockTypes = ['empty', 'separator', 'title']
-        expect(isBreakBlock(item, breakBlockTypes)).toBe(false)
-      })
-    })
-
-    describe('isTitleWithEqualOrLowerHeadingLevel', () => {
-      test('should return true for title with lower heading level', () => {
-        const item = { type: 'title', headingLevel: 2 }
-        const prevLowestLevel = 3
-        expect(isTitleWithEqualOrLowerHeadingLevel(item, prevLowestLevel)).toBe(true)
-      })
-
-      test('should return false for title with equal heading level', () => {
-        const item = { type: 'title', headingLevel: 3 }
-        const prevLowestLevel = 3
-        expect(isTitleWithEqualOrLowerHeadingLevel(item, prevLowestLevel)).toBe(true)
-      })
-
-      test('should return false for title with higher heading level', () => {
-        const item = { type: 'title', headingLevel: 3 }
-        const prevLowestLevel = 2
-        expect(isTitleWithEqualOrLowerHeadingLevel(item, prevLowestLevel)).toBe(false)
-      })
-
-      test('should return false for non-title item', () => {
-        const item = { type: 'text' }
-        const prevLowestLevel = 2
-        expect(isTitleWithEqualOrLowerHeadingLevel(item, prevLowestLevel)).toBe(false)
+        expect(b.isBreakParaType(item, breakBlockTypes)).toBe(false)
       })
     })
 
@@ -181,6 +154,57 @@ describe(`${PLUGIN_NAME}`, () => {
 
     // JGC doesn't know how to mock this out yet
     // describe('getParaAndAllChildren', () => {
-    // })
-  }) // end of describe(`${FILENAME}`, () => {
-}) // end of describe(`${PLUGIN_NAME}`, () => {
+  // })
+  
+    describe('blockHasActiveTasks', () => {
+    test('returns false when block has only completed/cancelled tasks', () => {
+      const block = [
+        { type: 'done', content: 't1' },
+        { type: 'checklistDone', content: 't2' },
+        { type: 'cancelled', content: 't3' },
+        { type: 'checklistCancelled', content: 't4' },
+      ]
+      expect(b.blockHasActiveTasks(block)).toBe(false)
+    })
+    test('returns false when block has only non-task paragraphs', () => {
+      const block = [
+        { type: 'text', content: 't1' },
+        { type: 'heading', content: 't2' },
+        { type: 'separator', content: 't3' },
+        { type: 'empty', content: 't4' },
+        { type: 'list', content: 't5' },
+        { type: 'quote', content: 't6' },
+      ]
+      expect(b.blockHasActiveTasks(block)).toBe(false)
+    })
+    test('returns true when block has any active task', () => {
+      const block = [
+        { type: 'done', content: 't1' },
+        { type: 'open', content: 't2' },
+      ]
+      expect(b.blockHasActiveTasks(block)).toBe(true)
+    })
+    test('returns true when block has any active checklist', () => {
+      const block = [
+        { type: 'checklistDone', content: 't1' },
+        { type: 'checklistCancelled', content: 't2' },
+        { type: 'checklistScheduled', content: 't3' },
+        { type: 'checklist', content: 't4' },
+      ]
+      expect(b.blockHasActiveTasks(block)).toBe(true)
+    })
+    test('returns true when block has a mix of completed and active tasks and non-task paragraphs', () => {
+      const block = [
+        { type: 'done', content: 't1' },
+        { type: 'open', content: 't2' },
+        { type: 'text', content: 't3' },
+        { type: 'heading', content: 't4' },
+        { type: 'separator', content: 't5' },
+        { type: 'empty', content: 't6' },
+        { type: 'list', content: 't7' },
+        { type: 'quote', content: 't8' },
+      ]
+      expect(b.blockHasActiveTasks(block)).toBe(true)
+    })
+  })
+})

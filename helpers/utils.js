@@ -1,11 +1,27 @@
 // @flow
 // shared functions that can be imported and used in helpers without creating circular dependencies
 
-import { logDebug, logError } from '@helpers/dev'
 import { RE_IS_SCHEDULED } from './dateTime'
 import { RE_ARROW_DATES_G } from './regex'
+import { logDebug, logError } from '@helpers/dev'
 
 // TODO: following short functions should really live in helpers/paragraph.js
+
+// Paragraph types that count as completed / cancelled tasks or checklists
+export const COMPLETED_TASK_TYPES: Array<ParagraphType> = [
+  'done',
+  'cancelled',
+  'checklistDone',
+  'checklistCancelled',
+]
+
+// Paragraph types that mean a task/checklist is still active
+export const ACTIVE_TASK_TYPES: Array<ParagraphType> = [
+  'open',
+  'scheduled',
+  'checklist',
+  'checklistScheduled',
+]
 
 /**
  * Test whether a para is open or not (type: 'open' or 'checklist') and not blank
@@ -38,12 +54,21 @@ export function isOpenNotScheduled(t: TParagraph): boolean {
 }
 
 /**
- * Test whether a para is open and has a scheduled date (type: 'open'/ 'checklist'/'scheduled'/'checklistScheduled').
+ * Test whether a para is open *and* has a scheduled date (type: 'open'/ 'checklist' with a date, or 'scheduled'/'checklistScheduled').
  * @param {Paragraph} t - the paragraph to check
  * @returns {boolean} result
  */
 export function isOpenAndScheduled(t: TParagraph): boolean {
-  return (t.type === 'open' || t.type === 'checklist' || t.type === 'scheduled' || t.type === 'checklistScheduled') && hasScheduledDate(t.content)
+  return ACTIVE_TASK_TYPES.includes(t.type) && hasScheduledDate(t.content)
+}
+
+/**
+ * Test whether a para is open or has a scheduled date (type: 'open'/ 'checklist'/'scheduled'/'checklistScheduled').
+ * @param {Paragraph} t - the paragraph to check
+ * @returns {boolean} result
+ */
+export function isOpenOrScheduled(t: TParagraph): boolean {
+  return ACTIVE_TASK_TYPES.includes(t.type)
 }
 
 /**
@@ -61,11 +86,11 @@ export function isOpenTaskNotScheduled(t: TParagraph): boolean {
  * @param {Paragraph} t - the paragraph to check
  * @returns {boolean} true if open, false if any other status/type
  */
-export const isClosed = (t: TParagraph): boolean => (t.type === 'done' || t.type === 'cancelled' || t.type === 'checklistDone' || t.type === 'checklistCancelled') && t.content.trim() !== ''
+export const isClosed = (t: TParagraph): boolean => COMPLETED_TASK_TYPES.includes(t.type) && t.content.trim() !== ''
 
 /**
  * Test whether a task is closed or not (types: 'done', 'cancelled').
- * Note: not the same as isDone(), which is tighter
+ * Note: not the same as isDone().
  * @param {Paragraph} t - the paragraph to check
  * @returns {boolean} true if open, false if any other status/type
  */

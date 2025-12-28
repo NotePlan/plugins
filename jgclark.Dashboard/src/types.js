@@ -29,6 +29,7 @@ export type TDashboardSettings = {
   // Note: add all of these to the list of items in cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
   usePerspectives: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
+  openInSplitView: boolean,
   FFlag_ShowSearchPanel?: boolean,
   // searchSettings?: TSearchOptions, // an object holding a number of settings TODO: add from 2.4.0?
   // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings

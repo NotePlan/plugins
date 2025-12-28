@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 2025-09-06, for v1.3.2
+// Last updated 2025-12-16, for v1.5.0
 // -----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json' // allow changes in plugin.json to trigger recompilation
@@ -13,6 +13,7 @@ import { showMessage } from '@helpers/userInput'
 
 export { archiveNote } from './archive'
 export { addIDAndAddToOtherNote } from './IDs'
+export { moveCompletedItemsToDoneSectionCommand } from './moveCompletedToDone'
 export {
   moveParas,
   moveParaBlock,

@@ -8,6 +8,7 @@
 
 import pluginJson from "../plugin.json"
 import { getFilerSettings } from './filerHelpers'
+import { getParagraphBlock } from '@helpers/blocks'
 import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
@@ -16,7 +17,7 @@ import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { addParagraphsToNote, findHeading } from '@helpers/paragraph'
 import { chooseNoteV2 } from '@helpers/NPnote'
-import { getParagraphBlock, highlightSelectionInEditor } from '@helpers/NPParagraph'
+import { highlightSelectionInEditor } from '@helpers/NPParagraph'
 import { chooseHeadingV2, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------

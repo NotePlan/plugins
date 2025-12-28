@@ -549,7 +549,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
     }
 
     const endOfFMIndex: number = endOfFrontmatterLineIndex(note) || 0
-    logDebug(`paragraph/findStartOfActivePartOfNote`, `endOfFMIndex: ${String(endOfFMIndex)}`)
+    // logDebug(`paragraph/findStartOfActivePartOfNote`, `endOfFMIndex: ${String(endOfFMIndex)}`)
     if (endOfFMIndex === 0) {
       // No frontmatter found
       if (paras[0].type === 'title' && paras[0].headingLevel === 1) {
@@ -578,10 +578,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
       startOfActive = paras.length - 1
     }
 
-    logDebug(
-      'paragraph/findStartOfActivePartOfNote',
-      `- startOfActive so far = ${String(startOfActive)}. allowPreamble: ${allowPreamble ? 'true' : 'false'} paras.length=${paras.length}`,
-    )
+    // logDebug('paragraph/findStartOfActivePartOfNote',`- startOfActive so far = ${String(startOfActive)}. allowPreamble: ${allowPreamble ? 'true' : 'false'} paras.length=${paras.length}`)
     // Additionally, skip past any front-matter-like section in a project note,
     // if either there's a #hashtag starting the next line,
     // or 'allowPreamble' is true.
@@ -601,7 +598,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
           break
         }
       }
-      logDebug('paragraph/findStartOfActivePartOfNote', `-> ${String(startOfActive)}  (after finding preamble or metadata line)`)
+      // logDebug('paragraph/findStartOfActivePartOfNote', `-> ${String(startOfActive)}  (after finding preamble or metadata line)`)
     }
     return startOfActive
   } catch (err) {

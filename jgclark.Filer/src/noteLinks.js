@@ -8,13 +8,13 @@
 
 import pluginJson from "../plugin.json"
 import { getFilerSettings, type FilerConfig } from './filerHelpers'
+import { getParagraphBlock } from '@helpers/blocks'
 import {
   clo, logDebug, logError, logInfo, logWarn,
   overrideSettingsWithEncodedTypedArgs,
 } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getAllNotesOfType, getNotesChangedInInterval } from '@helpers/NPnote'
-import { getParagraphBlock } from '@helpers/NPParagraph'
 import { addParagraphsToNote } from '@helpers/paragraph'
 import { NP_RE_note_title_link, RE_NOTE_TITLE_CAPTURE } from '@helpers/regex'
 import { showMessage } from '@helpers/userInput'

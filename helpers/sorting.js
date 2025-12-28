@@ -145,8 +145,8 @@ export const firstValue = (val: any): string | number => {
 }
 
 /**
- * A general purpose function to get all the elements from a task that match a regex
- * and return them as an array. Generally usefull for getting all the tags or mentions from a task
+ * A general purpose function to get all the elements from a task that match a regex and return them as an array.
+ * Generally useful for getting all the tags or mentions from a task.
  * @param {string} content
  * @param {RegExp} reSearch
  * @returns {Array<string>} - array of elements found matching the regex
@@ -168,10 +168,18 @@ export function getElementsFromTask(content: string, reSearch: RegExp): Array<st
  * (or 'working-on' support (W) => 4)
  * @author @dwertheimer extended by @jgclark
  * @param {SortableParagraphSubset} item
- * @returns {number} priority from 3, 2, 1, 4 for >> or -1 (default)
+ * @returns {number} priority from 3, 2, 1, 4 for >>, 0 for not priority markers, or -1 (for error or empty item)
+ * Note: -1 is a special value in Dashboard:
+ * - Sentinel value: indicates "no priority set" or "no items found"
+ * - Initialization: default for max priority calculations
+ * - State management: used to detect when priority calculations are pending vs. complete
  */
 export function getNumericPriority(item: SortableParagraphSubset): number {
-  let prio = -1
+  try {
+    let prio = 0
+    if (item.content === '') {
+      prio = -1
+    }
   if (item.exclamations[0]) {
     prio = item.exclamations[0].length
   } else if (item.parensPriority[0]) {
@@ -180,7 +188,11 @@ export function getNumericPriority(item: SortableParagraphSubset): number {
   } else if (item.content.startsWith('>>')) {
     prio = 4
   }
-  return prio
+    return prio
+  } catch (error) {
+    logError('getNumericPriority', `${error.message}: ${item.content}`)
+    return -1
+  }
 }
 
 /*

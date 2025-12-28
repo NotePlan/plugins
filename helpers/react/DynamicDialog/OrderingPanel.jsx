@@ -5,7 +5,7 @@
 // Written 2025-11-12 for Dashboard v2.3.0.b14 by Cursor AI guided by @jgclark
 // Last updated 2025-11-29 for v2.3.0.b16 by @jgclark
 //
-// TODO: Needs making generic so it can be used in other plugins. Requires lots of changes here and in Dashboard's SettingsDialog. JGC had one go at it, but it got complicated quickly, so backed out.
+// Note: Could do with making generic so it can be used in other plugins. Requires lots of changes here and in Dashboard's SettingsDialog. JGC had one go at it, but it got complicated quickly, so backed out.
 //--------------------------------------------------------------------------
 
 import React, { useState, useMemo } from 'react'

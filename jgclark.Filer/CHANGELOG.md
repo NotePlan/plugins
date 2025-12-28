@@ -1,6 +1,11 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.5.0] - 2025-12-26
+- new **/move completed items to done section** command that extends NP's built-in 'Move Completed to Bottom' menu action. This is a more powerful version of NotePlan's built-in 'Move Completed to Bottom' menu action.  It has two settings, which reveal its additional powers:
+- Recreate existing section structure in Done section? (default: true)
+- Only move completed items when whole section is complete? (default: false)
+
 ## [1.4.1] - 2025-12-15
 - fix **/move paragraph...** commands when moving to a heading with trailing spaces (thanks, @Stacey)
 
