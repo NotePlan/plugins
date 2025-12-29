@@ -11,6 +11,16 @@ export type InfoIconProps = {
   text: string | React$Node, // The tooltip text to display
   position?: 'top' | 'bottom' | 'left' | 'right', // Tooltip position relative to icon
   className?: string,
+  // Custom icon support
+  icon?: string, // Font Awesome icon class (e.g., 'fa-star') - if provided, replaces default ⓘ
+  iconClassName?: string, // Additional CSS classes for the icon
+  iconStyle?: { [string]: any }, // Inline styles for the icon
+  // Tooltip behavior
+  showOnHover?: boolean, // Show tooltip on hover (default: true)
+  showOnClick?: boolean, // Show tooltip on click (default: true)
+  showImmediately?: boolean, // Show tooltip immediately on mount (default: false)
+  // Click handler (if provided, icon becomes clickable)
+  onClick?: (event: MouseEvent) => void,
 }
 
 /**
@@ -19,8 +29,19 @@ export type InfoIconProps = {
  * @param {InfoIconProps} props
  * @returns {React$Node}
  */
-export function InfoIcon({ text, position = 'top', className = '' }: InfoIconProps): React$Node {
-  const [isVisible, setIsVisible] = useState(false)
+export function InfoIcon({
+  text,
+  position = 'top',
+  className = '',
+  icon,
+  iconClassName = '',
+  iconStyle,
+  showOnHover = true,
+  showOnClick = true,
+  showImmediately = false,
+  onClick: onClickHandler,
+}: InfoIconProps): React$Node {
+  const [isVisible, setIsVisible] = useState(showImmediately)
   const iconRef = useRef<?HTMLSpanElement>(null)
   const tooltipRef = useRef<?HTMLDivElement>(null)
 
@@ -96,20 +117,33 @@ export function InfoIcon({ text, position = 'top', className = '' }: InfoIconPro
     <>
       <span
         ref={iconRef}
-        className={`info-icon ${className}`}
+        className={`info-icon ${className} ${iconClassName}`}
+        style={iconStyle}
         onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          setIsVisible(!isVisible)
+          if (onClickHandler) {
+            onClickHandler(e)
+          } else if (showOnClick) {
+            e.preventDefault()
+            e.stopPropagation()
+            setIsVisible(!isVisible)
+          }
         }}
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
+        onMouseEnter={() => {
+          if (showOnHover) {
+            setIsVisible(true)
+          }
+        }}
+        onMouseLeave={() => {
+          if (showOnHover) {
+            setIsVisible(false)
+          }
+        }}
         role="button"
         tabIndex={0}
         aria-label="Show information"
         title="Click or hover for more information"
       >
-        ⓘ
+        {icon ? <i className={`fa ${icon}`} /> : 'ⓘ'}
       </span>
       {isVisible && (
         <div

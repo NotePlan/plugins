@@ -107,7 +107,7 @@ export async function openFavoritesBrowser(_isFloating: boolean | string = false
       shouldFocus: true,
       generalCSSIn: generateCSSFromTheme(),
       specificCSS: `
-        /* Constrain width of favorites browser - left justified, full height */
+        /* Favorites browser - left justified, full height, expandable width */
         body, html {
           margin: 0;
           padding: 0;
@@ -116,8 +116,19 @@ export async function openFavoritesBrowser(_isFloating: boolean | string = false
         }
         #root, .favorites-view-container {
           width: 100%;
-          max-width: 300px; /* Limit width to 150px (half of 300px) */
           height: 100vh;
+        }
+        /* Keep header controls fixed size and left-aligned */
+        .favorites-view-header {
+          width: 100%;
+        }
+        /* Let list items expand to fill available space */
+        .favorites-view-container .filterable-list-container {
+          flex: 1;
+          min-width: 0;
+        }
+        .favorites-view-container .list-container {
+          width: 100%;
         }
       `,
       postBodyScript: `

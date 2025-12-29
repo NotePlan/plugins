@@ -5,7 +5,7 @@
 // Supports: (a) static markdown text, (b) note by filename/title, (c) note from another field
 //--------------------------------------------------------------------------
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import './MarkdownPreview.css'
 
@@ -16,7 +16,7 @@ export type MarkdownPreviewProps = {
   noteTitle?: ?string, // Title of note to display (alternative to filename)
   sourceNoteKey?: ?string, // Key of a note-chooser field to get note from dynamically
   sourceNoteValue?: ?string, // Current value from sourceNoteKey field (note filename)
-  requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request note content from plugin
+  requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request note content from plugin (should be memoized with useCallback)
   disabled?: boolean,
   compactDisplay?: boolean,
   className?: string,
@@ -43,15 +43,33 @@ export function MarkdownPreview({
   const [htmlContent, setHtmlContent] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<?string>(null)
+  
+  // Track the last loaded content to prevent duplicate loads
+  const lastLoadedRef = useRef<string>('')
+  const isLoadingRef = useRef<boolean>(false)
 
   // Determine which note to load (priority: sourceNoteValue > noteFilename > noteTitle)
   const noteToLoad = sourceNoteValue || noteFilename || noteTitle || null
+  
+  // Create a stable identifier for the current content source
+  const contentKey = markdownText ? `markdown:${markdownText}` : noteToLoad ? `note:${noteToLoad}` : 'empty'
 
   // Load markdown content
   useEffect(() => {
+    // Skip if already loading the same content
+    if (isLoadingRef.current && lastLoadedRef.current === contentKey) {
+      return
+    }
+    
+    // Skip if this content is already loaded
+    if (lastLoadedRef.current === contentKey && !loading) {
+      return
+    }
+
     const loadContent = async () => {
       // If we have static markdown text, use that
       if (markdownText) {
+        isLoadingRef.current = true
         setLoading(true)
         try {
           if (requestFromPlugin) {
@@ -59,6 +77,7 @@ export function MarkdownPreview({
             if (typeof html === 'string') {
               setHtmlContent(html)
               setError(null)
+              lastLoadedRef.current = contentKey
             } else {
               throw new Error('Invalid response from renderMarkdown')
             }
@@ -66,6 +85,7 @@ export function MarkdownPreview({
             // Fallback: just display the markdown as-is (could be enhanced with client-side rendering)
             setHtmlContent(`<pre class="markdown-preview-static">${markdownText}</pre>`)
             setError(null)
+            lastLoadedRef.current = contentKey
           }
         } catch (err) {
           logError('MarkdownPreview', `Failed to render markdown: ${err.message}`)
@@ -73,9 +93,11 @@ export function MarkdownPreview({
           setHtmlContent('')
         } finally {
           setLoading(false)
+          isLoadingRef.current = false
         }
       } else if (noteToLoad && requestFromPlugin) {
         // Load note content
+        isLoadingRef.current = true
         setLoading(true)
         try {
           logDebug('MarkdownPreview', `Loading note: ${noteToLoad}`)
@@ -87,6 +109,7 @@ export function MarkdownPreview({
           if (typeof html === 'string') {
             setHtmlContent(html)
             setError(null)
+            lastLoadedRef.current = contentKey
           } else {
             throw new Error('Invalid response from getNoteContentAsHTML')
           }
@@ -96,17 +119,20 @@ export function MarkdownPreview({
           setHtmlContent('')
         } finally {
           setLoading(false)
+          isLoadingRef.current = false
         }
       } else {
         // No content to display
         setHtmlContent('')
         setError(null)
         setLoading(false)
+        lastLoadedRef.current = contentKey
+        isLoadingRef.current = false
       }
     }
 
     loadContent()
-  }, [markdownText, noteToLoad, noteFilename, noteTitle, sourceNoteValue, requestFromPlugin])
+  }, [markdownText, noteToLoad, noteFilename, noteTitle, sourceNoteValue, requestFromPlugin]) // Now safe to include requestFromPlugin since it's memoized
 
   const labelElement = label ? (
     <div className={`markdown-preview-label ${compactDisplay ? 'compact' : ''}`}>{label}</div>

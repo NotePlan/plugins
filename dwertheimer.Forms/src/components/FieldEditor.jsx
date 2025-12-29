@@ -955,17 +955,27 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
               <div className="field-editor-row">
                 <label>Markdown Source Type:</label>
                 <select
-                  value={
-                    ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownText
-                      ? 'static'
-                      : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownNoteFilename
-                      ? 'filename'
-                      : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownNoteTitle
-                      ? 'title'
-                      : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).sourceNoteKey
-                      ? 'field'
-                      : 'static'
-                  }
+                  value={(() => {
+                    const field = (editedField: any)
+                    // Check in priority order - if sourceNoteKey exists (even if empty string), it's 'field'
+                    if (field.sourceNoteKey !== undefined || field.dependsOnNoteKey !== undefined) {
+                      return 'field'
+                    }
+                    // If markdownNoteFilename exists (even if empty string), it's 'filename'
+                    if (field.markdownNoteFilename !== undefined) {
+                      return 'filename'
+                    }
+                    // If markdownNoteTitle exists (even if empty string), it's 'title'
+                    if (field.markdownNoteTitle !== undefined) {
+                      return 'title'
+                    }
+                    // If markdownText exists (even if empty string), it's 'static'
+                    if (field.markdownText !== undefined) {
+                      return 'static'
+                    }
+                    // Default to static
+                    return 'static'
+                  })()}
                   onChange={(e) => {
                     const updated = { ...editedField }
                     const sourceType = e.target.value
@@ -973,11 +983,29 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                     delete (updated: any).markdownText
                     delete (updated: any).markdownNoteFilename
                     delete (updated: any).markdownNoteTitle
-                    delete (updated: any).sourceNoteKey
-                    delete (updated: any).dependsOnNoteKey
                     // Set default based on type
                     if (sourceType === 'static') {
                       ;(updated: any).markdownText = ''
+                      // Clear field-related properties when switching away from field mode
+                      delete (updated: any).sourceNoteKey
+                      delete (updated: any).dependsOnNoteKey
+                    } else if (sourceType === 'filename') {
+                      ;(updated: any).markdownNoteFilename = ''
+                      // Clear field-related properties when switching away from field mode
+                      delete (updated: any).sourceNoteKey
+                      delete (updated: any).dependsOnNoteKey
+                    } else if (sourceType === 'title') {
+                      ;(updated: any).markdownNoteTitle = ''
+                      // Clear field-related properties when switching away from field mode
+                      delete (updated: any).sourceNoteKey
+                      delete (updated: any).dependsOnNoteKey
+                    } else if (sourceType === 'field') {
+                      // When switching to field mode, set sourceNoteKey to empty string if it doesn't exist
+                      // This ensures the dropdown stays on 'field' option
+                      // If it already exists, preserve it (user may have already selected a field)
+                      if (!(updated: any).sourceNoteKey && !(updated: any).dependsOnNoteKey) {
+                        ;(updated: any).sourceNoteKey = ''
+                      }
                     }
                     setEditedField(updated)
                   }}
@@ -991,15 +1019,26 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
               </div>
 
               {(() => {
-                const sourceType = ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownText
-                  ? 'static'
-                  : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownNoteFilename
-                  ? 'filename'
-                  : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).markdownNoteTitle
-                  ? 'title'
-                  : ((editedField: any): { markdownText?: string, markdownNoteFilename?: string, markdownNoteTitle?: string, sourceNoteKey?: string }).sourceNoteKey
-                  ? 'field'
-                  : 'static'
+                const field = (editedField: any)
+                // Determine source type
+                let sourceType = 'static'
+                // Check in priority order - if sourceNoteKey exists (even if empty string), it's 'field'
+                if (field.sourceNoteKey !== undefined || field.dependsOnNoteKey !== undefined) {
+                  sourceType = 'field'
+                }
+                // If markdownNoteFilename exists (even if empty string), it's 'filename'
+                else if (field.markdownNoteFilename !== undefined) {
+                  sourceType = 'filename'
+                }
+                // If markdownNoteTitle exists (even if empty string), it's 'title'
+                else if (field.markdownNoteTitle !== undefined) {
+                  sourceType = 'title'
+                }
+                // If markdownText exists (even if empty string), it's 'static'
+                else if (field.markdownText !== undefined) {
+                  sourceType = 'static'
+                }
+
                 return (
                   <>
                     {sourceType === 'static' && (
@@ -1064,10 +1103,12 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                           }
                           onChange={(e) => {
                             const updated = { ...editedField }
-                            ;(updated: any).sourceNoteKey = e.target.value || undefined
+                            const value = e.target.value
+                            // Set sourceNoteKey to the value (even if empty string, to maintain 'field' mode)
+                            ;(updated: any).sourceNoteKey = value || ''
                             // Also set old property for backward compatibility
-                            if (e.target.value) {
-                              ;(updated: any).dependsOnNoteKey = e.target.value
+                            if (value) {
+                              ;(updated: any).dependsOnNoteKey = value
                             } else {
                               delete (updated: any).dependsOnNoteKey
                             }

@@ -510,6 +510,33 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       })
     }
 
+    // Clean up markdown-preview fields: remove empty string values
+    // Empty strings are used in the UI to maintain state, but shouldn't be saved
+    fieldsToSave = fieldsToSave.map((field) => {
+      if (field.type === 'markdown-preview') {
+        const cleaned = { ...field }
+        // Remove empty string values - they're just UI state markers
+        if (cleaned.sourceNoteKey === '') {
+          delete cleaned.sourceNoteKey
+        }
+        if (cleaned.markdownNoteFilename === '') {
+          delete cleaned.markdownNoteFilename
+        }
+        if (cleaned.markdownNoteTitle === '') {
+          delete cleaned.markdownNoteTitle
+        }
+        if (cleaned.markdownText === '') {
+          delete cleaned.markdownText
+        }
+        // Also clean up old property names for backward compatibility
+        if (cleaned.dependsOnNoteKey === '') {
+          delete cleaned.dependsOnNoteKey
+        }
+        return cleaned
+      }
+      return field
+    })
+
     logDebug(pluginJson, `handleSaveRequest: Saving ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
 
     await saveFormFieldsToTemplate(finalTemplateFilename, fieldsToSave)

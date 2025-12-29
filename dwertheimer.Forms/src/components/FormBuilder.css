@@ -278,9 +278,27 @@
   padding: 1rem;
   overflow-y: auto;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
   position: relative;
+}
+
+.form-preview-scaled-disclaimer {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-mid-color, #ebedf2);
+  color: var(--fg-main-color, #4c4f69);
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 90%;
+  box-sizing: border-box;
 }
 
 .form-preview-window {

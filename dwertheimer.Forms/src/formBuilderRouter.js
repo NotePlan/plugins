@@ -4,7 +4,6 @@
 // Routes actions from FormBuilderView React component to appropriate handlers
 //--------------------------------------------------------------------------
 
-import { getGlobalSharedData } from '../../helpers/HTMLView'
 import pluginJson from '../plugin.json'
 import { handleRequest } from './requestHandlers' // For shared requests like getFolders, getNotes, getTeamspaces
 import { handleSaveRequest, handleCreateProcessingTemplate, handleOpenNote, handleCopyFormUrl, handleDuplicateForm } from './formBuilderHandlers'
@@ -52,7 +51,7 @@ async function routeFormBuilderRequest(actionType: string, data: any): Promise<R
  * @param {any} data - Request data
  * @returns {Promise<any>}
  */
-async function handleFormBuilderNonRequestAction(actionType: string, data: any): Promise<any> {
+async function handleFormBuilderNonRequestAction(_actionType: string, data: any): Promise<any> {
   // The data structure from React is: { type: 'save'|'cancel'|'openForm', fields: [...], templateFilename: ..., templateTitle: ... }
   // actionType will be "onFormBuilderAction" (the command name), and the actual action is in data.type
   const actualActionType = data?.type
@@ -62,17 +61,13 @@ async function handleFormBuilderNonRequestAction(actionType: string, data: any):
     logDebug(pluginJson, `onFormBuilderAction: openForm detected, data.templateTitle="${data?.templateTitle || 'MISSING'}"`)
   }
 
-  // Get the template filename from the data passed from React, or fall back to reactWindowData
-  const templateFilename = data?.templateFilename
-  const reactWindowData = await getGlobalSharedData(FORMBUILDER_WINDOW_ID)
-  const fallbackTemplateFilename = reactWindowData?.pluginData?.templateFilename || ''
-  const finalTemplateFilename = templateFilename || fallbackTemplateFilename
-
-  logDebug(pluginJson, `onFormBuilderAction: templateFilename="${finalTemplateFilename}"`)
+  // Get window ID from data (passed from React), or fall back to default
+  const windowId = data?.__windowId || FORMBUILDER_WINDOW_ID
+  logDebug(pluginJson, `onFormBuilderAction: Using windowId="${windowId}"`)
 
   if (actualActionType === 'cancel') {
     logDebug(pluginJson, `onFormBuilderAction: User cancelled, closing window`)
-    closeWindowFromCustomId(FORMBUILDER_WINDOW_ID)
+    closeWindowFromCustomId(windowId)
   } else if (actualActionType === 'openForm' && data?.templateTitle) {
     logDebug(pluginJson, `onFormBuilderAction: Opening form with templateTitle="${data.templateTitle}"`)
     logDebug(pluginJson, `onFormBuilderAction: Calling getTemplateFormData with templateTitle="${data.templateTitle}"`)
@@ -81,6 +76,7 @@ async function handleFormBuilderNonRequestAction(actionType: string, data: any):
       logDebug(pluginJson, `onFormBuilderAction: getTemplateFormData completed successfully`)
     } catch (error) {
       logError(pluginJson, `onFormBuilderAction: Error in getTemplateFormData: ${error.message}`)
+      logError(pluginJson, `onFormBuilderAction: Error stack: ${error.stack || 'No stack trace'}`)
       throw error
     }
   } else if (actualActionType === 'duplicateForm' && data?.newTemplateFilename) {

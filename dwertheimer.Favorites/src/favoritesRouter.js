@@ -10,6 +10,7 @@ import {
   handleOpenNote,
   handleRunCommand,
   handleAddFavoriteNote,
+  handleRemoveFavoriteNote,
   handleGetPresetCommands,
   handleAddFavoriteCommand,
   handleGetCallbackURL,
@@ -39,6 +40,8 @@ async function routeFavoritesRequest(actionType: string, data: any): Promise<Req
       return await handleRunCommand(data)
     case 'addFavoriteNote':
       return await handleAddFavoriteNote(data)
+    case 'removeFavoriteNote':
+      return await handleRemoveFavoriteNote(data)
     case 'getPresetCommands':
       return await handleGetPresetCommands(data)
     case 'addFavoriteCommand':
@@ -70,5 +73,7 @@ export const onFavoritesBrowserAction: (actionType: string, data: any) => Promis
   routerName: 'onFavoritesBrowserAction',
   defaultWindowId: FAVORITES_BROWSER_WINDOW_ID,
   routeRequest: routeFavoritesRequest,
+  // Also handle non-REQUEST actions (like SEND_TO_PLUGIN) by routing them the same way
+  handleNonRequestAction: routeFavoritesRequest,
 })
 

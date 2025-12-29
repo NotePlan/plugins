@@ -144,3 +144,8 @@
   background: var(--np-theme-background-hover, #f0f0f0);
 }
 
+/* Cursor Decoration - now handled by ModifierHints component */
+.list-item-with-decoration {
+  position: relative;
+}
+

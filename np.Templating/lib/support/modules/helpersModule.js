@@ -48,7 +48,8 @@ import { getSetting, initConfiguration, updateSettingData, pluginUpdated } from 
 
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, smartPrependPara, smartAppendPara } from '@helpers/paragraph'
 
-import { replaceContentUnderHeading, insertContentUnderHeading, getParagraphBlock, getBlockUnderHeading } from '@helpers/NPParagraph'
+import { replaceContentUnderHeading, insertContentUnderHeading, getBlockUnderHeading } from '@helpers/NPParagraph'
+import { getParagraphBlock } from '@helpers/blocks'
 
 import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 

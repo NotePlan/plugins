@@ -13,6 +13,8 @@ import { defaultNoteIconDetails } from '@helpers/NPnote.js'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
+import { waitForCondition } from '@helpers/promisePolyfill'
+import { InfoIcon } from '@helpers/react/InfoIcon'
 import './FavoritesView.css'
 
 type FavoriteNote = {
@@ -78,6 +80,8 @@ function FavoritesViewComponent({
   const [showAddCommandDialog, setShowAddCommandDialog] = useState<boolean>(false)
   const [addNoteDialogData, setAddNoteDialogData] = useState<{ [key: string]: any }>({})
   const [addCommandDialogData, setAddCommandDialogData] = useState<{ [key: string]: any }>({})
+  const [newlyAddedFilename, setNewlyAddedFilename] = useState<?string>(null) // Track newly added item for highlighting
+  const listRef = useRef<?HTMLElement>(null) // Ref for scrolling to items
 
   // Request function
   const requestFromPlugin = useCallback((command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
@@ -169,6 +173,27 @@ function FavoritesViewComponent({
     }
   }, [requestFromPlugin])
 
+  // Effect to scroll to and highlight newly added item
+  useEffect(() => {
+    if (newlyAddedFilename && favoriteNotes.length > 0 && listRef.current) {
+      // Find the index of the newly added item
+      const newIndex = favoriteNotes.findIndex((note) => note.filename === newlyAddedFilename)
+      if (newIndex >= 0) {
+        // Wait a bit for DOM to update, then scroll to the item
+        setTimeout(() => {
+          const item = listRef.current?.querySelector(`[data-index="${newIndex}"]`)
+          if (item instanceof HTMLElement) {
+            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+            // Remove highlight after animation completes (2 seconds)
+            setTimeout(() => {
+              setNewlyAddedFilename(null)
+            }, 2000)
+          }
+        }, 100)
+      }
+    }
+  }, [newlyAddedFilename, favoriteNotes])
+
   // Load favorite commands
   const loadFavoriteCommands = useCallback(async () => {
     try {
@@ -225,21 +250,66 @@ function FavoritesViewComponent({
     ;(async () => {
       try {
         if (updatedSettings.note) {
-          const response = await requestFromPlugin('addFavoriteNote', { filename: updatedSettings.note })
-          if (response && response.success) {
-            await loadFavoriteNotes()
-            setShowAddNoteDialog(false)
-            setAddNoteDialogData({})
-            logDebug('FavoritesView', 'Successfully added favorite note')
+          const filename = updatedSettings.note
+          
+          // Close dialog immediately
+          setShowAddNoteDialog(false)
+          setAddNoteDialogData({})
+          
+          // Add the favorite
+          // Note: requestFromPlugin resolves with result.data (unwrapped), or rejects on error
+          // If we get here without throwing, the request succeeded
+          const response = await requestFromPlugin('addFavoriteNote', { filename })
+          logDebug('FavoritesView', `addFavoriteNote response:`, response)
+          
+          // Show success toast
+          dispatch('SHOW_TOAST', {
+            type: 'SUCCESS',
+            msg: 'Favorite note added successfully',
+            timeout: 3000,
+          })
+          
+          // Reload the favorites list first
+          await loadFavoriteNotes()
+          
+          // Wait for the note to appear in the list by checking the actual list data
+          // We need to reload and check, since state updates are async
+          const found = await waitForCondition(
+            async () => {
+              // Reload notes to get fresh data, then check
+              if (showNotes) {
+                const notes = await requestFromPlugin('getFavoriteNotes')
+                if (Array.isArray(notes)) {
+                  return notes.some((note) => note.filename === filename)
+                }
+              }
+              return false
+            },
+            { maxWaitMs: 3000, checkIntervalMs: 150 }
+          )
+          
+          // Reload one more time to ensure UI is in sync
+          await loadFavoriteNotes()
+          
+          // Set the newly added filename for highlighting (useEffect will handle scrolling)
+          setNewlyAddedFilename(filename)
+          
+          if (found) {
+            logDebug('FavoritesView', 'Successfully added favorite note and found it in list')
           } else {
-            logError('FavoritesView', `Failed to add favorite note: ${response?.message || 'Unknown error'}`)
+            logError('FavoritesView', 'Added favorite note but could not find it in list after waiting')
           }
         }
       } catch (error) {
         logError('FavoritesView', `Error adding favorite note: ${error.message}`)
+        dispatch('SHOW_TOAST', {
+          type: 'ERROR',
+          msg: `Error adding favorite: ${error.message}`,
+          timeout: 3000,
+        })
       }
     })()
-  }, [requestFromPlugin, loadFavoriteNotes])
+  }, [requestFromPlugin, loadFavoriteNotes, dispatch, showNotes, favoriteNotes])
 
   const handleAddNoteDialogCancel = useCallback(() => {
     setShowAddNoteDialog(false)
@@ -317,6 +387,7 @@ function FavoritesViewComponent({
   }, [presetCommands, loadPresetCommands])
 
   // Handle item click
+  // Note: __windowId is automatically injected by Root.jsx sendToPlugin, so we don't need to add it here
   const handleItemClick = useCallback((item: FavoriteNote | FavoriteCommand, event: MouseEvent) => {
     const isOptionClick = event.altKey || event.metaKey === false && event.ctrlKey // Alt key (option on Mac)
     const isCmdClick = event.metaKey || event.ctrlKey // Cmd key (meta on Mac, ctrl on Windows)
@@ -352,6 +423,37 @@ function FavoritesViewComponent({
     return showNotes ? favoriteNotes : favoriteCommands
   }, [showNotes, favoriteNotes, favoriteCommands])
 
+  // Handle removing favorite note
+  const handleRemoveFavorite = useCallback(async (filename: string) => {
+    try {
+      const response = await requestFromPlugin('removeFavoriteNote', { filename })
+      if (response && response.success) {
+        // Show toast notification
+        dispatch('SHOW_TOAST', {
+          type: 'SUCCESS',
+          msg: 'Favorite note removed',
+          timeout: 2000,
+        })
+        // Reload the favorites list
+        await loadFavoriteNotes()
+      } else {
+        logError('FavoritesView', `Failed to remove favorite note: ${response?.message || 'Unknown error'}`)
+        dispatch('SHOW_TOAST', {
+          type: 'ERROR',
+          msg: `Failed to remove favorite: ${response?.message || 'Unknown error'}`,
+          timeout: 3000,
+        })
+      }
+    } catch (error) {
+      logError('FavoritesView', `Error removing favorite note: ${error.message}`)
+      dispatch('SHOW_TOAST', {
+        type: 'ERROR',
+        msg: `Error removing favorite: ${error.message}`,
+        timeout: 3000,
+      })
+    }
+  }, [requestFromPlugin, loadFavoriteNotes, dispatch])
+
   // Render note item
   const renderNoteItem = useCallback((item: any, index: number): Node => {
     // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
@@ -363,9 +465,10 @@ function FavoritesViewComponent({
     // Always show an icon - use note icon if provided, otherwise use default
     const icon = note.icon || defaultNoteIconDetails.icon
     const color = note.color || defaultNoteIconDetails.color
+    const isNewlyAdded = newlyAddedFilename === note.filename
 
     return (
-      <div className="favorites-item-note">
+      <div className={`favorites-item-note ${isNewlyAdded ? 'favorites-item-newly-added' : ''}`}>
         <i className={`fa ${icon} favorites-item-icon`} style={{ color: color }} />
         <div className="favorites-item-content">
           <div className="favorites-item-title">{displayTitle}</div>
@@ -373,9 +476,24 @@ function FavoritesViewComponent({
             <div className="favorites-item-folder">{folderDisplay}</div>
           )}
         </div>
+        <InfoIcon
+          text="Remove from favorites"
+          position="left"
+          icon="fa-star"
+          iconClassName="info-icon-outline-on-hover"
+          showOnClick={false}
+          showOnHover={true}
+          showImmediately={false}
+          className="favorites-unfavorite-icon"
+          onClick={(e: MouseEvent) => {
+            e.preventDefault()
+            e.stopPropagation()
+            handleRemoveFavorite(note.filename)
+          }}
+        />
       </div>
     )
-  }, [])
+  }, [newlyAddedFilename, handleRemoveFavorite])
 
   // Render command item
   const renderCommandItem = useCallback((item: any, index: number): Node => {
@@ -516,8 +634,6 @@ function FavoritesViewComponent({
     }
   }, [currentItems.length, handleKeyDown])
 
-  const listRef = useRef<?HTMLDivElement>(null)
-
   return (
     <div className="favorites-view-container">
       {/* Header - only show if floating window */}
@@ -581,6 +697,8 @@ function FavoritesViewComponent({
         onKeyDown={handleKeyDown}
         onFilterKeyDown={handleFilterKeyDown}
         listRef={listRef}
+        optionKeyDecoration={showNotes ? { icon: 'fa-columns', text: 'Split View' } : undefined}
+        commandKeyDecoration={showNotes ? { icon: 'fa-window-restore', text: 'Floating Window' } : undefined}
       />
 
       {/* Add Favorite Note Dialog */}

@@ -4,16 +4,16 @@
 //--------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { favoriteNotes, noteIsFavorite, type FavoritesConfig } from './favorites'
-import { getConfig, setFavorite } from './NPFavorites'
+import { favoriteNotes, noteIsFavorite, getFavoritedTitle, removeFavoriteFromTitle } from './favorites'
+import { getConfig } from './NPFavorites'
 import { type RequestResponse } from './routerUtils'
-import { getFrontmatterNotes } from '@helpers/NPFrontMatter'
+import { getFrontmatterNotes, ensureFrontmatter, getFrontmatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { getNoteDecoration } from '@helpers/NPnote'
 import { getFolderFromFilename, getFolderDisplayName } from '@helpers/folders'
 import { getPluginJson } from '@helpers/NPConfiguration'
 import { savePluginCommand } from '@helpers/NPPresets'
 import { logDebug, logError, JSP } from '@helpers/dev'
-import { getNote } from '@helpers/note'
+import { getNote, setTitle } from '@helpers/note'
 import { getNoteContentAsHTML } from '@helpers/HTMLView'
 
 /**
@@ -133,21 +133,14 @@ export async function handleOpenNote(requestData: Object): Promise<RequestRespon
 
     // Use Editor.openNoteByFilename with options
     // Parameters: filename, newWindow, highlightStart, highlightEnd, splitView, createIfNeeded, content
-    // Note: Editor.openNoteByFilename may not return a Promise, so we call it directly
-    const note = Editor.openNoteByFilename(filename, newWindow, 0, 0, splitView, false, undefined)
+    // Note: Editor.openNoteByFilename returns a Promise<TNote | void>
+    // It may return void even on success, so we don't check the return value
+    await Editor.openNoteByFilename(filename, newWindow, 0, 0, splitView, false, undefined)
 
-    if (note) {
-      logDebug(pluginJson, `handleOpenNote: Successfully opened note "${filename}"`)
-      return {
-        success: true,
-        data: { filename },
-      }
-    } else {
-      logError(pluginJson, `handleOpenNote: Editor.openNoteByFilename returned null/undefined for "${filename}"`)
-      return {
-        success: false,
-        message: `Failed to open note: "${filename}". Note may not exist.`,
-      }
+    logDebug(pluginJson, `handleOpenNote: Successfully opened note "${filename}"`)
+    return {
+      success: true,
+      data: { filename },
     }
   } catch (error) {
     logError(pluginJson, `handleOpenNote: Error: ${JSP(error)}`)
@@ -234,9 +227,25 @@ export async function handleAddFavoriteNote(requestData: Object): Promise<Reques
       }
     }
 
-    // Open the note in editor and set it as favorite
-    await Editor.openNoteByFilename(filename)
-    await setFavorite()
+    // Set it as favorite directly without opening the note
+    // We'll modify the note's title or frontmatter directly
+    const { favoriteKey, favoriteIcon, position, favoriteIdentifier } = config
+
+    if (favoriteIdentifier.includes('Star')) {
+      // Add star to title
+      const newTitle = getFavoritedTitle(note.title || '', position, favoriteIcon, favoriteIdentifier)
+      setTitle(note, newTitle)
+    }
+
+    if (favoriteIdentifier.includes('Frontmatter')) {
+      // Add frontmatter field
+      ensureFrontmatter(note)
+      const fm = getFrontmatterAttributes(note)
+      if (typeof fm === 'object' && fm !== null) {
+        fm[favoriteKey] = 'true'
+        updateFrontMatterVars(note, fm)
+      }
+    }
 
     logDebug(pluginJson, `handleAddFavoriteNote: Successfully added favorite note`)
     return {
@@ -248,6 +257,75 @@ export async function handleAddFavoriteNote(requestData: Object): Promise<Reques
     return {
       success: false,
       message: error.message || 'Failed to add favorite note',
+    }
+  }
+}
+
+/**
+ * Handle request to remove favorite note
+ * @param {Object} requestData - Request data with filename
+ * @returns {Promise<RequestResponse>}
+ */
+export async function handleRemoveFavoriteNote(requestData: Object): Promise<RequestResponse> {
+  try {
+    logDebug(pluginJson, `handleRemoveFavoriteNote: ENTRY - filename="${requestData.filename}"`)
+
+    const { filename } = requestData
+
+    if (!filename) {
+      return {
+        success: false,
+        message: 'Filename is required',
+      }
+    }
+
+    // Find the note
+    const note = DataStore.projectNoteByFilename(filename)
+    if (!note) {
+      return {
+        success: false,
+        message: `Note not found: "${filename}"`,
+      }
+    }
+
+    // Check if it's a favorite
+    const config = await getConfig()
+    if (!noteIsFavorite(note, config)) {
+      return {
+        success: false,
+        message: 'This note is not a favorite',
+      }
+    }
+
+    // Remove favorite status directly without opening the note
+    const { favoriteKey, favoriteIcon, favoriteIdentifier } = config
+
+    if (favoriteIdentifier.includes('Star')) {
+      // Remove star from title
+      const newTitle = removeFavoriteFromTitle(note.title || '', favoriteIcon, favoriteIdentifier)
+      setTitle(note, newTitle)
+    }
+
+    if (favoriteIdentifier.includes('Frontmatter')) {
+      // Remove frontmatter field
+      const fm = getFrontmatterAttributes(note)
+      if (typeof fm === 'object' && fm !== null && fm[favoriteKey]) {
+        const updatedFm = { ...fm }
+        delete updatedFm[favoriteKey]
+        updateFrontMatterVars(note, updatedFm)
+      }
+    }
+
+    logDebug(pluginJson, `handleRemoveFavoriteNote: Successfully removed favorite note`)
+    return {
+      success: true,
+      data: { filename },
+    }
+  } catch (error) {
+    logError(pluginJson, `handleRemoveFavoriteNote: Error: ${JSP(error)}`)
+    return {
+      success: false,
+      message: error.message || 'Failed to remove favorite note',
     }
   }
 }

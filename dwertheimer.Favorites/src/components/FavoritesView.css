@@ -5,6 +5,8 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--np-theme-background, #ffffff);
+  width: 100%;
+  height: 100vh;
 }
 
 .favorites-view-window-header {
@@ -127,6 +129,23 @@
   align-items: center;
   gap: 0.5rem;
   width: 100%;
+  min-width: 0; /* Allow flex items to shrink below content size */
+}
+
+.favorites-item-note.favorites-item-newly-added,
+.favorites-item-command.favorites-item-newly-added {
+  background-color: var(--np-theme-tint, #007aff);
+  background-color: rgba(0, 122, 255, 0.1); /* Light blue highlight */
+  animation: highlightFade 2s ease-out;
+}
+
+@keyframes highlightFade {
+  0% {
+    background-color: rgba(0, 122, 255, 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 
 .favorites-item-icon {
@@ -159,6 +178,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Unfavorite icon styling */
+.favorites-item-note .favorites-unfavorite-icon {
+  margin-left: auto;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
 }
 
 /* Styles for Add Favorite Note Dialog with Markdown Preview */

@@ -88,12 +88,13 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   /**
    * Request data from the plugin using request/response pattern
    * Returns a Promise that resolves with the response data or rejects with an error
+   * Memoized with useCallback to prevent infinite loops in child components
    * @param {string} command - The command/request type (e.g., 'getFolders', 'getNotes')
    * @param {any} dataToSend - Request parameters
    * @param {number} timeout - Timeout in milliseconds (default: 10000)
    * @returns {Promise<any>}
    */
-  const requestFromPlugin = (command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
+  const requestFromPlugin = useCallback((command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
     if (!command) throw new Error('requestFromPlugin: command must be called with a string')
 
     const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -163,7 +164,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
         )
         throw error
       })
-  }
+  }, [dispatch, pluginData?.windowId]) // Memoize to prevent infinite loops - only recreate if dispatch or windowId changes
 
   // Load folders on demand when needed (matching FormBuilder pattern)
   const loadFolders = useCallback(async () => {

@@ -5,7 +5,8 @@
  * Supports two display styles: noteplan-sidebar and chips
  */
 
-import React, { useRef, useEffect, type Node } from 'react'
+import React, { useRef, useEffect, useState, type Node } from 'react'
+import { ModifierHints, type ModifierHint } from './ModifierHints.jsx'
 import './List.css'
 
 export type ListItemAction = {
@@ -13,6 +14,9 @@ export type ListItemAction = {
   onClick: (item: any, event: MouseEvent) => void,
   title?: string,
 }
+
+// Backward compatibility - CursorDecoration is now an alias for ModifierHint
+export type CursorDecoration = ModifierHint
 
 type Props = {
   items: Array<any>,
@@ -27,6 +31,11 @@ type Props = {
   className?: string,
   onKeyDown?: (event: KeyboardEvent) => void,
   listRef?: any, // ref to the list container
+  // Cursor decoration for modifier keys
+  optionKeyDecoration?: CursorDecoration, // Shown when Alt/Option key is pressed
+  commandKeyDecoration?: CursorDecoration, // Shown when Cmd/Meta key is pressed
+  // Whether to use cursor positioning for hints (default: false, uses decoration mode)
+  useCursorPositioning?: boolean,
 }
 
 /**
@@ -47,9 +56,14 @@ export function List({
   className = '',
   onKeyDown,
   listRef: externalListRef,
+  optionKeyDecoration,
+  commandKeyDecoration,
+  useCursorPositioning = false,
 }: Props): Node {
   const internalListRef = useRef<?HTMLDivElement>(null)
   const listRef = externalListRef || internalListRef
+  const [hoveredIndex, setHoveredIndex] = useState<?number>(null)
+  const [cursorPosition, setCursorPosition] = useState<{ x: number, y: number } | null>(null)
 
   // Scroll selected item into view and call onItemSelect if provided
   useEffect(() => {
@@ -106,12 +120,27 @@ export function List({
         const isSelected = selectedIndex === index
         const itemContent = renderItem(item, index)
 
+        const isHovered = hoveredIndex === index
+
         return (
           <div
             key={index}
             data-index={index}
-            className={`list-item list-item-${displayType} ${isSelected ? 'selected' : ''}`}
+            className={`list-item list-item-${displayType} ${isSelected ? 'selected' : ''} ${isHovered && (optionKeyDecoration || commandKeyDecoration) ? 'list-item-with-decoration' : ''}`}
             onClick={(e) => handleItemClick(item, index, e)}
+            onMouseEnter={(e) => {
+              setHoveredIndex(index)
+              setCursorPosition({ x: e.clientX, y: e.clientY })
+            }}
+            onMouseMove={(e) => {
+              if (isHovered) {
+                setCursorPosition({ x: e.clientX, y: e.clientY })
+              }
+            }}
+            onMouseLeave={() => {
+              setHoveredIndex(null)
+              setCursorPosition(null)
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
@@ -119,8 +148,21 @@ export function List({
               }
             }}
             tabIndex={0}
+            style={isHovered && (optionKeyDecoration || commandKeyDecoration) ? { cursor: 'pointer' } : undefined}
           >
             <div className="list-item-content">{itemContent}</div>
+            {isHovered && (optionKeyDecoration || commandKeyDecoration) && (
+              <ModifierHints
+                optionHint={optionKeyDecoration}
+                commandHint={commandKeyDecoration}
+                displayMode={useCursorPositioning && cursorPosition ? 'cursor' : 'decoration'}
+                show={true}
+                position="right"
+                cursorX={cursorPosition?.x}
+                cursorY={cursorPosition?.y}
+                cursorMargin={10}
+              />
+            )}
             {itemActions && itemActions.length > 0 && (
               <div className="list-item-actions" onClick={(e) => e.stopPropagation()}>
                 {itemActions.map((action, actionIndex) => (
@@ -131,7 +173,7 @@ export function List({
                     title={action.title || ''}
                     type="button"
                   >
-                    {action.icon}
+                    <i className={`fa ${action.icon}`} />
                   </button>
                 ))}
               </div>

@@ -78,7 +78,7 @@ export function Root(/* props: Props */): Node {
     border: globalSharedData?.initialBanner?.border || '',
     icon: globalSharedData?.initialBanner?.icon || '',
     floating: globalSharedData?.initialBanner?.floating || false,
-      }
+  }
   const [bannerMessage, setBannerMessage] = useState(initialBannerMessage)
   // Initialize toast message (default to hidden)
   const initialToastMessage = {
@@ -158,8 +158,13 @@ export function Root(/* props: Props */): Node {
       // logDebug(`Root`, ` sendToPlugin: ${JSON.stringify(action)} ${additionalDetails}`, action, data, additionalDetails)
       if (!data) throw new Error('sendToPlugin: data must be called with an object')
       // logDebug(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `)
+
+      // Automatically inject __windowId if not already present
+      // This ensures all plugin actions include windowId for routing and logging
+      const dataWithWindowId = !data.__windowId && globalSharedData?.pluginData?.windowId ? { ...data, __windowId: globalSharedData.pluginData.windowId } : data
+
       const { command, id } = returnPluginCommand // this comes from the initial data passed to the plugin
-      runPluginCommand(command, id, [action, data, additionalDetails])
+      runPluginCommand(command, id, [action, dataWithWindowId, additionalDetails])
     },
     [globalSharedData],
   )
@@ -171,12 +176,23 @@ export function Root(/* props: Props */): Node {
    * Memoized with useCallback to ensure stable reference (needed for onMessageReceived dependency).
    * @param {boolean} floating - if true, displays as a floating toast in top-right corner instead of banner at top
    */
-  const showBanner = useCallback((type: string, msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red', icon: string = 'fa-regular fa-circle-exclamation', timeout: number = 0, floating: boolean = false) => {
-    const bannerMessage = { type, msg, timeout, color, border, icon, floating }
-    logDebug(`Root`, `showBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
-    // $FlowFixMe - bannerMessage object matches the expected shape
-    setBannerMessage(bannerMessage)
-  }, []) // State setters are stable, no dependencies needed
+  const showBanner = useCallback(
+    (
+      type: string,
+      msg: string,
+      color: string = 'w3-pale-red',
+      border: string = 'w3-border-red',
+      icon: string = 'fa-regular fa-circle-exclamation',
+      timeout: number = 0,
+      floating: boolean = false,
+    ) => {
+      const bannerMessage = { type, msg, timeout, color, border, icon, floating }
+      logDebug(`Root`, `showBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
+      // $FlowFixMe - bannerMessage object matches the expected shape
+      setBannerMessage(bannerMessage)
+    },
+    [],
+  ) // State setters are stable, no dependencies needed
 
   /**
    * handle click on X on banner to hide it
@@ -198,7 +214,7 @@ export function Root(/* props: Props */): Node {
     let colorClass = color
     let borderClass = border
     let iconClass = icon
-    
+
     if (!colorClass || !borderClass || !iconClass) {
       switch (type) {
         case 'INFO':
@@ -227,7 +243,7 @@ export function Root(/* props: Props */): Node {
           iconClass = iconClass || 'fa-regular fa-circle-info'
       }
     }
-    
+
     const toastMessage = { type, msg, timeout, color: colorClass, border: borderClass, icon: iconClass }
     logDebug(`Root`, `showToast: ${JSON.stringify(toastMessage, null, 2)}`)
     // $FlowFixMe - toastMessage object matches the expected shape
@@ -248,122 +264,130 @@ export function Root(/* props: Props */): Node {
    * And also from components down the tree, using the dispatch command
    * Memoized with useCallback to ensure stable reference (needed for dispatch dependency)
    */
-  const onMessageReceived = useCallback((event: MessageEvent) => {
-    const { data } = event
-    // logDebug('Root', `onMessageReceived ${event.type} data=${JSP(data, 2)}`)
-    if (!shouldIgnoreMessage(event) && data) {
-      // const str = JSON.stringify(event, null, 4)
-      try {
-        // $FlowFixMe
-        const { type, payload } = event.data // remember: event is on prototype and not JSON.stringify-able
-        if (!type) throw (`onMessageReceived: event.data.type is undefined`, event.data)
-        if (!payload) throw (`onMessageReceived: event.data.payload is undefined`, event.data)
-        if (type && payload) {
-          // logDebug(`Root`, ` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
-          if (!payload.lastUpdated) payload.lastUpdated = { msg: '(no msg)' }
-          // Spread existing state into new object to keep it immutable
-          // TODO: ideally, you would use a reducer here
-          if (type === 'SHOW_BANNER') {
-            if (payload.lastUpdated?.msg) {
-              payload.lastUpdated.msg += `: ${payload.msg}`
-            } else {
-              logDebug(
-                `Root`,
-                ` onMessageReceived: payload.lastUpdated.msg is undefined: payload.lastUpdated:${payload.lastUpdated} payload.lastUpdated.msg:${payload.lastUpdated.msg}`,
-              )
-            }
-          }
-          setHistory((prevData) => [...prevData, ...tempSavedClicksRef.current, payload.lastUpdated])
-          tempSavedClicksRef.current = []
-          switch (type) {
-            case 'SET_TITLE':
-              // Note this works because we are using payload.title in npData
-              document.title = payload.title
-              break
-            case 'SET_DATA':
-            case 'UPDATE_DATA':
-              setNPData((prevData) => ({ ...prevData, ...payload }))
-              globalSharedData = { ...globalSharedData, ...payload }
-              break
-            case 'CHANGE_THEME': {
-              const { themeCSS } = payload
-              logDebug(`Root`, `CHANGE_THEME changing theme to "${themeCSS.substring(0, 55)}"...`)
-              replaceStylesheetContent('Updated Theme Styles', themeCSS)
-              break
-            }
-            case 'SHOW_BANNER':
-              logDebug(`Root`, ` onMessageReceived: Showing banner${payload.floating ? ' (floating toast mode)' : ''}, so we need to scroll the page up to the top so user sees it. (timeout: ${payload.timeout ?? '-'})`)
-              setNPData((prevData) => {
-                prevData.passThroughVars = prevData.passThroughVars ?? {}
-                prevData.passThroughVars.lastWindowScrollTop = 0
-                return { ...prevData, ...payload }
-              })
-              showBanner(payload.type, payload.msg, payload.color, payload.border, payload.icon, payload.timeout, payload.floating)
-              // If timeout is a valid positive number, then start a timer to clear the message after the timeout period
-              if (typeof payload.timeout === 'number' && payload.timeout > 0 && !isNaN(payload.timeout)) {
-                logDebug(`Root`, ` onMessageReceived: Setting timeout to clear banner after ${payload.timeout}ms`)
-                setTimeout(() => {
-                  hideBanner()
-                }, payload.timeout)
+  const onMessageReceived = useCallback(
+    (event: MessageEvent) => {
+      const { data } = event
+      // logDebug('Root', `onMessageReceived ${event.type} data=${JSP(data, 2)}`)
+      if (!shouldIgnoreMessage(event) && data) {
+        // const str = JSON.stringify(event, null, 4)
+        try {
+          // $FlowFixMe
+          const { type, payload } = event.data // remember: event is on prototype and not JSON.stringify-able
+          if (!type) throw (`onMessageReceived: event.data.type is undefined`, event.data)
+          if (!payload) throw (`onMessageReceived: event.data.payload is undefined`, event.data)
+          if (type && payload) {
+            // logDebug(`Root`, ` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
+            if (!payload.lastUpdated) payload.lastUpdated = { msg: '(no msg)' }
+            // Spread existing state into new object to keep it immutable
+            // TODO: ideally, you would use a reducer here
+            if (type === 'SHOW_BANNER') {
+              if (payload.lastUpdated?.msg) {
+                payload.lastUpdated.msg += `: ${payload.msg}`
+              } else {
+                logDebug(
+                  `Root`,
+                  ` onMessageReceived: payload.lastUpdated.msg is undefined: payload.lastUpdated:${payload.lastUpdated} payload.lastUpdated.msg:${payload.lastUpdated.msg}`,
+                )
               }
-              break
-            case 'REMOVE_BANNER':
-              logInfo(`Root`, ` onMessageReceived: Removing banner`)
-              hideBanner()
-              break
-            case 'SHOW_TOAST':
-              logDebug(`Root`, ` onMessageReceived: Showing toast (timeout: ${payload.timeout ?? '-'})`)
-              showToast(payload.type, payload.msg, payload.color, payload.border, payload.icon, payload.timeout)
-              // If timeout is a valid positive number, then start a timer to clear the message after the timeout period
-              if (typeof payload.timeout === 'number' && payload.timeout > 0 && !isNaN(payload.timeout)) {
-                logDebug(`Root`, ` onMessageReceived: Setting timeout to clear toast after ${payload.timeout}ms`)
-                setTimeout(() => {
-                  hideToast()
-                }, payload.timeout)
+            }
+            setHistory((prevData) => [...prevData, ...tempSavedClicksRef.current, payload.lastUpdated])
+            tempSavedClicksRef.current = []
+            switch (type) {
+              case 'SET_TITLE':
+                // Note this works because we are using payload.title in npData
+                document.title = payload.title
+                break
+              case 'SET_DATA':
+              case 'UPDATE_DATA':
+                setNPData((prevData) => ({ ...prevData, ...payload }))
+                globalSharedData = { ...globalSharedData, ...payload }
+                break
+              case 'CHANGE_THEME': {
+                const { themeCSS } = payload
+                logDebug(`Root`, `CHANGE_THEME changing theme to "${themeCSS.substring(0, 55)}"...`)
+                replaceStylesheetContent('Updated Theme Styles', themeCSS)
+                break
               }
-              break
-            case 'REMOVE_TOAST':
-              logInfo(`Root`, ` onMessageReceived: Removing toast`)
-              hideToast()
-              break
-            case 'SEND_TO_PLUGIN':
-              sendToPlugin(payload)
-              break
-            case 'RESPONSE':
-              // Handle response from plugin for request/response pattern
-              {
-                const { correlationId, success, data, error } = payload
-                const pending = pendingRequestsRef.current.get(correlationId)
-                if (pending) {
-                  pendingRequestsRef.current.delete(correlationId)
-                  clearTimeout(pending.timeoutId)
-                  if (success) {
-                    pending.resolve(data)
-                  } else {
-                    pending.reject(new Error(error || 'Request failed'))
-                  }
-                } else {
-                  logDebug(`Root`, `RESPONSE received for unknown correlationId: ${correlationId}`)
+              case 'SHOW_BANNER':
+                logDebug(
+                  `Root`,
+                  ` onMessageReceived: Showing banner${payload.floating ? ' (floating toast mode)' : ''}, so we need to scroll the page up to the top so user sees it. (timeout: ${
+                    payload.timeout ?? '-'
+                  })`,
+                )
+                setNPData((prevData) => {
+                  prevData.passThroughVars = prevData.passThroughVars ?? {}
+                  prevData.passThroughVars.lastWindowScrollTop = 0
+                  return { ...prevData, ...payload }
+                })
+                showBanner(payload.type, payload.msg, payload.color, payload.border, payload.icon, payload.timeout, payload.floating)
+                // If timeout is a valid positive number, then start a timer to clear the message after the timeout period
+                if (typeof payload.timeout === 'number' && payload.timeout > 0 && !isNaN(payload.timeout)) {
+                  logDebug(`Root`, ` onMessageReceived: Setting timeout to clear banner after ${payload.timeout}ms`)
+                  setTimeout(() => {
+                    hideBanner()
+                  }, payload.timeout)
                 }
-              }
-              break
-            case 'RETURN_VALUE' /* function called returned a value */:
-              // $FlowIgnore
-              // setMessageFromPlugin(payload)
-              break
-            default:
-              break
+                break
+              case 'REMOVE_BANNER':
+                logInfo(`Root`, ` onMessageReceived: Removing banner`)
+                hideBanner()
+                break
+              case 'SHOW_TOAST':
+                logDebug(`Root`, ` onMessageReceived: Showing toast (timeout: ${payload.timeout ?? '-'})`)
+                showToast(payload.type, payload.msg, payload.color, payload.border, payload.icon, payload.timeout)
+                // If timeout is a valid positive number, then start a timer to clear the message after the timeout period
+                if (typeof payload.timeout === 'number' && payload.timeout > 0 && !isNaN(payload.timeout)) {
+                  logDebug(`Root`, ` onMessageReceived: Setting timeout to clear toast after ${payload.timeout}ms`)
+                  setTimeout(() => {
+                    hideToast()
+                  }, payload.timeout)
+                }
+                break
+              case 'REMOVE_TOAST':
+                logInfo(`Root`, ` onMessageReceived: Removing toast`)
+                hideToast()
+                break
+              case 'SEND_TO_PLUGIN':
+                sendToPlugin(payload)
+                break
+              case 'RESPONSE':
+                // Handle response from plugin for request/response pattern
+                {
+                  const { correlationId, success, data, error } = payload
+                  const pending = pendingRequestsRef.current.get(correlationId)
+                  if (pending) {
+                    pendingRequestsRef.current.delete(correlationId)
+                    clearTimeout(pending.timeoutId)
+                    if (success) {
+                      pending.resolve(data)
+                    } else {
+                      pending.reject(new Error(error || 'Request failed'))
+                    }
+                  } else {
+                    logDebug(`Root`, `RESPONSE received for unknown correlationId: ${correlationId}`)
+                  }
+                }
+                break
+              case 'RETURN_VALUE' /* function called returned a value */:
+                // $FlowIgnore
+                // setMessageFromPlugin(payload)
+                break
+              default:
+                break
+            }
+          } else {
+            logDebug(`Root`, ` onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event)
           }
-        } else {
-          logDebug(`Root`, ` onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event)
+        } catch (error) {
+          logDebug(`Root`, ` onMessageReceived: error=${JSP(formatReactError(error))}`)
         }
-      } catch (error) {
-        logDebug(`Root`, ` onMessageReceived: error=${JSP(formatReactError(error))}`)
+      } else {
+        // logDebug(`Root`,` onMessageReceived: called but event.data is undefined: noop`)
       }
-    } else {
-      // logDebug(`Root`,` onMessageReceived: called but event.data is undefined: noop`)
-    }
-  }, [showBanner, hideBanner, showToast, hideToast, sendToPlugin]) // Depend on memoized helper functions
+    },
+    [showBanner, hideBanner, showToast, hideToast, sendToPlugin],
+  ) // Depend on memoized helper functions
 
   /**
    * Dispatcher for child components to update the master data object or show a banner message.
@@ -373,13 +397,16 @@ export function Root(/* props: Props */): Node {
    * @param {string} [actionDescriptionForLog] - Optional description of the action for logging purposes.
    */
   // eslint-disable-next-line no-unused-vars
-  const dispatch = useCallback((action: string, data: any, actionDescriptionForLog?: string): void => {
-    // const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
-    // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
-    const event = new MessageEvent('message', { data: { type: action, payload: data } })
-    onMessageReceived(event)
-    // onMessageReceived({ data: { type: action, payload: data } }) // dispatch the message to the reducer
-  }, [onMessageReceived]) // Depend on onMessageReceived, which is now stable
+  const dispatch = useCallback(
+    (action: string, data: any, actionDescriptionForLog?: string): void => {
+      // const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
+      // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
+      const event = new MessageEvent('message', { data: { type: action, payload: data } })
+      onMessageReceived(event)
+      // onMessageReceived({ data: { type: action, payload: data } }) // dispatch the message to the reducer
+    },
+    [onMessageReceived],
+  ) // Depend on onMessageReceived, which is now stable
 
   /**
    * Ignore messages that have nothing to do with the plugin
@@ -467,7 +494,6 @@ export function Root(/* props: Props */): Node {
     }
   }
 
-
   /**
    * For debugging purposes, send a message to the plugin to test the comms bridge
    */
@@ -544,86 +570,118 @@ export function Root(/* props: Props */): Node {
       <div className="Root" onClickCapture={onClickCapture}>
         {logProfilingMessage ? (
           <Profiler id="MemoizedWebView" onRender={onRender}>
-            <MessageBanner msg={bannerMessage.msg} type={bannerMessage.type} color={bannerMessage.color || ''} border={bannerMessage.border || ''} hide={hideBanner} icon={bannerMessage.icon || ''} floating={bannerMessage.floating || false} />
+            <MessageBanner
+              msg={bannerMessage.msg}
+              type={bannerMessage.type}
+              color={bannerMessage.color || ''}
+              border={bannerMessage.border || ''}
+              hide={hideBanner}
+              icon={bannerMessage.icon || ''}
+              floating={bannerMessage.floating || false}
+            />
             <MemoizedWebView dispatch={dispatch} data={npData} reactSettings={reactSettings} setReactSettings={setReactSettings} />
-            <Toast msg={toastMessage.msg} type={toastMessage.type} color={toastMessage.color || ''} border={toastMessage.border || ''} hide={hideToast} icon={toastMessage.icon || ''} />
+            <Toast
+              msg={toastMessage.msg}
+              type={toastMessage.type}
+              color={toastMessage.color || ''}
+              border={toastMessage.border || ''}
+              hide={hideToast}
+              icon={toastMessage.icon || ''}
+            />
           </Profiler>
         ) : (
           <>
-              <MessageBanner msg={bannerMessage.msg} type={bannerMessage.type} color={bannerMessage.color || ''} border={bannerMessage.border || ''} hide={hideBanner} icon={bannerMessage.icon || ''} floating={bannerMessage.floating || false} />
+            <MessageBanner
+              msg={bannerMessage.msg}
+              type={bannerMessage.type}
+              color={bannerMessage.color || ''}
+              border={bannerMessage.border || ''}
+              hide={hideBanner}
+              icon={bannerMessage.icon || ''}
+              floating={bannerMessage.floating || false}
+            />
             <MemoizedWebView data={npData} dispatch={dispatch} reactSettings={reactSettings} setReactSettings={setReactSettings} />
-            <Toast msg={toastMessage.msg} type={toastMessage.type} color={toastMessage.color || ''} border={toastMessage.border || ''} hide={hideToast} icon={toastMessage.icon || ''} />
-            {showSimpleDialogTest && (() => {
-              // Cycle through different examples
-              const examples = [
-                {
-                  title: 'Example 1: Single OK Button (Default)',
-                  message: 'This is the simplest dialog with just a single OK button. This is the default when no buttons are specified.',
-                  buttonLabels: undefined, // Will use default OK button
-                },
-                {
-                  title: 'Example 2: OK/Cancel Buttons',
-                  message: 'This dialog uses buttonLabels with two buttons: Cancel and OK. The last button (OK) is automatically the default.',
-                  buttonLabels: ['Cancel', 'OK'],
-                },
-                {
-                  title: 'Example 3: Multiple Buttons',
-                  message: 'This dialog uses buttonLabels with multiple options. The last button is always the default. Try clicking different buttons!',
-                  buttonLabels: ['Cancel', 'Maybe', 'OK'],
-                },
-                {
-                  title: 'Example 4: Custom Buttons (Full Control)',
-                  message: 'This dialog uses the buttons prop for full control. You can specify which button is default. In this case, "Yes" is the default even though it\'s not last.',
-                  buttons: [
-                    { label: 'No', value: 'no', isDefault: false },
-                    { label: 'Yes', value: 'yes', isDefault: true },
-                    { label: 'Maybe', value: 'maybe', isDefault: false },
-                  ],
-                },
-                {
-                  title: 'Example 5: Wide Dialog',
-                  message: 'This dialog demonstrates custom width. The dialog is wider than the default square size.',
-                  buttonLabels: ['Cancel', 'OK'],
-                  width: '700px',
-                  maxWidth: '700px',
-                },
-              ]
-              const currentExample = examples[simpleDialogExample % examples.length]
-              return (
-                <SimpleDialog
-                  isOpen={showSimpleDialogTest}
-                  title={currentExample.title}
-                  message={currentExample.message}
-                  buttons={currentExample.buttons}
-                  buttonLabels={currentExample.buttonLabels}
-                  width={currentExample.width}
-                  maxWidth={currentExample.maxWidth}
-                  onButtonClick={(value) => {
-                    logDebug('Root', `SimpleDialog button clicked: ${value}, example: ${simpleDialogExample}`)
-                    // If OK/Yes button clicked, show next example
-                    const isDefaultButton = 
-                      value === 'ok' || 
-                      value === 'yes' || 
-                      (currentExample.buttonLabels && value === currentExample.buttonLabels[currentExample.buttonLabels.length - 1].toLowerCase().replace(/\s+/g, '-'))
-                    if (isDefaultButton) {
-                      // Update state to show next example - dialog will stay open because we return false
-                      setSimpleDialogExample((prev) => {
-                        const next = prev + 1
-                        logDebug('Root', `Cycling to next example: ${next}`)
-                        return next
-                      })
-                      // Return false to prevent dialog from closing - we want to show the next example
-                      return false
-                    } else {
-                      // Other buttons close the dialog (return undefined/true to allow close)
-                      setShowSimpleDialogTest(false)
-                      return true
-                    }
-                  }}
-                  onClose={() => setShowSimpleDialogTest(false)}
-                />
-              )
-            })()}
+            <Toast
+              msg={toastMessage.msg}
+              type={toastMessage.type}
+              color={toastMessage.color || ''}
+              border={toastMessage.border || ''}
+              hide={hideToast}
+              icon={toastMessage.icon || ''}
+            />
+            {showSimpleDialogTest &&
+              (() => {
+                // Cycle through different examples
+                const examples = [
+                  {
+                    title: 'Example 1: Single OK Button (Default)',
+                    message: 'This is the simplest dialog with just a single OK button. This is the default when no buttons are specified.',
+                    buttonLabels: undefined, // Will use default OK button
+                  },
+                  {
+                    title: 'Example 2: OK/Cancel Buttons',
+                    message: 'This dialog uses buttonLabels with two buttons: Cancel and OK. The last button (OK) is automatically the default.',
+                    buttonLabels: ['Cancel', 'OK'],
+                  },
+                  {
+                    title: 'Example 3: Multiple Buttons',
+                    message: 'This dialog uses buttonLabels with multiple options. The last button is always the default. Try clicking different buttons!',
+                    buttonLabels: ['Cancel', 'Maybe', 'OK'],
+                  },
+                  {
+                    title: 'Example 4: Custom Buttons (Full Control)',
+                    message:
+                      'This dialog uses the buttons prop for full control. You can specify which button is default. In this case, "Yes" is the default even though it\'s not last.',
+                    buttons: [
+                      { label: 'No', value: 'no', isDefault: false },
+                      { label: 'Yes', value: 'yes', isDefault: true },
+                      { label: 'Maybe', value: 'maybe', isDefault: false },
+                    ],
+                  },
+                  {
+                    title: 'Example 5: Wide Dialog',
+                    message: 'This dialog demonstrates custom width. The dialog is wider than the default square size.',
+                    buttonLabels: ['Cancel', 'OK'],
+                    width: '700px',
+                    maxWidth: '700px',
+                  },
+                ]
+                const currentExample = examples[simpleDialogExample % examples.length]
+                return (
+                  <SimpleDialog
+                    isOpen={showSimpleDialogTest}
+                    title={currentExample.title}
+                    message={currentExample.message}
+                    buttons={currentExample.buttons}
+                    buttonLabels={currentExample.buttonLabels}
+                    width={currentExample.width}
+                    maxWidth={currentExample.maxWidth}
+                    onButtonClick={(value) => {
+                      logDebug('Root', `SimpleDialog button clicked: ${value}, example: ${simpleDialogExample}`)
+                      // If OK/Yes button clicked, show next example
+                      const isDefaultButton =
+                        value === 'ok' ||
+                        value === 'yes' ||
+                        (currentExample.buttonLabels && value === currentExample.buttonLabels[currentExample.buttonLabels.length - 1].toLowerCase().replace(/\s+/g, '-'))
+                      if (isDefaultButton) {
+                        // Update state to show next example - dialog will stay open because we return false
+                        setSimpleDialogExample((prev) => {
+                          const next = prev + 1
+                          logDebug('Root', `Cycling to next example: ${next}`)
+                          return next
+                        })
+                        // Return false to prevent dialog from closing - we want to show the next example
+                        return false
+                      } else {
+                        // Other buttons close the dialog (return undefined/true to allow close)
+                        setShowSimpleDialogTest(false)
+                        return true
+                      }
+                    }}
+                    onClose={() => setShowSimpleDialogTest(false)}
+                  />
+                )
+              })()}
           </>
         )}
 
@@ -647,10 +705,13 @@ export function Root(/* props: Props */): Node {
             <div className="w3-button w3-black" onClick={() => dispatch('SHOW_BANNER', { msg: 'Banner test succeeded' }, `banner test`)}>
               Local Banner Display Test
             </div>
-            <div className="w3-button w3-black" onClick={() => {
-              setSimpleDialogExample(0)
-              setShowSimpleDialogTest(true)
-            }}>
+            <div
+              className="w3-button w3-black"
+              onClick={() => {
+                setSimpleDialogExample(0)
+                setShowSimpleDialogTest(true)
+              }}
+            >
               Test SimpleDialog
             </div>
             <div className="w3-button w3-black" onClick={testCommsBridge}>

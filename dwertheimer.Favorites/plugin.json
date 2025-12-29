@@ -39,8 +39,8 @@
       ]
     },
     {
-      "name": "Favorites Browser - Open Favorites Browser Window",
-      "description": "Open a browser window to view and open favorite notes and commands",
+      "name": "Sidebar - Open Favorites Browser Sidebar",
+      "description": "Open a sidebar window to view and open favorite notes and commands",
       "jsFunction": "openFavoritesBrowser",
       "alias": [
         "favorites-browser",

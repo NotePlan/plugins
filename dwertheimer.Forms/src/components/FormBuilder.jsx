@@ -511,7 +511,7 @@ export function FormBuilder({
     onOpenForm(templateTitle)
   }
 
-  const canOpenForm = isSaved && !isNewForm && templateTitle && onOpenForm
+  const canOpenForm = Boolean(isSaved && !isNewForm && templateTitle && onOpenForm)
 
   // Log canOpenForm calculation whenever dependencies change
   useEffect(() => {

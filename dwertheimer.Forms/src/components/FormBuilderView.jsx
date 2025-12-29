@@ -171,8 +171,9 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings, onSub
     sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, {
       type: 'openForm',
       templateTitle: templateTitle,
+      __windowId: windowIdRef.current, // Include windowId so plugin knows which FormBuilder window initiated this
     })
-    logDebug('FormBuilderView', `handleOpenForm: sendActionToPlugin called`)
+    logDebug('FormBuilderView', `handleOpenForm: sendActionToPlugin called with windowId="${String(windowIdRef.current || '')}"`)
   }
 
   return (

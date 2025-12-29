@@ -8,16 +8,30 @@
   height: 1.2em;
   margin-left: 0.15rem;
   cursor: pointer;
-  color: var(--tint-color, #007aff);
+  color: var(--tint-color, #dc8a78);
   font-size: 0.9em;
   vertical-align: middle;
   user-select: none;
-  transition: opacity 0.2s ease;
-  opacity: 0.8;
+  transition: all 0.2s ease;
+  opacity: 1;
 }
 
 .info-icon:hover {
-  opacity: 0.8;
+  opacity: 1;
+}
+
+/* Custom icon styles - for icons that should show outline on hover (e.g., unfavorite) */
+.info-icon.info-icon-outline-on-hover {
+  color: var(--tint-color, #dc8a78);
+  -webkit-text-stroke: 0;
+  -webkit-text-fill-color: var(--tint-color, #dc8a78);
+  transition: all 0.2s ease;
+}
+
+.info-icon.info-icon-outline-on-hover:hover {
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 1.5px var(--tint-color, #dc8a78);
+  color: transparent;
 }
 
 .info-icon:focus {

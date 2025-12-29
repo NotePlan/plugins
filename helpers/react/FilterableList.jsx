@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useMemo, type Node } from 'react'
-import { List, type ListItemAction } from './List.jsx'
+import { List, type ListItemAction, type CursorDecoration } from './List.jsx'
 import './FilterableList.css'
 
 type Props = {
@@ -31,7 +31,15 @@ type Props = {
   // Filter function - defaults to case-insensitive search on item label
   filterFunction?: (item: any, filterText: string) => boolean,
   getItemLabel?: (item: any) => string, // Used by default filter function
+  // Cursor decoration props (passed through to List)
+  optionKeyDecoration?: CursorDecoration,
+  commandKeyDecoration?: CursorDecoration,
+  // Whether to use cursor positioning for hints (default: false, uses decoration mode)
+  useCursorPositioning?: boolean,
 }
+
+// Export CursorDecoration type for convenience
+export type { CursorDecoration } from './List.jsx'
 
 /**
  * FilterableList Component
@@ -58,6 +66,9 @@ export function FilterableList({
   onFilterKeyDown,
   filterFunction,
   getItemLabel,
+  optionKeyDecoration,
+  commandKeyDecoration,
+  useCursorPositioning = false,
 }: Props): Node {
   // Default filter function - case-insensitive search on label
   const defaultFilterFunction = (item: any, text: string): boolean => {
@@ -127,6 +138,9 @@ export function FilterableList({
         loading={loading}
         onKeyDown={onKeyDown}
         listRef={listRef}
+        optionKeyDecoration={optionKeyDecoration}
+        commandKeyDecoration={commandKeyDecoration}
+        useCursorPositioning={useCursorPositioning}
       />
     </div>
   )
