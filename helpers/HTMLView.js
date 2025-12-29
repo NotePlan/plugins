@@ -10,7 +10,7 @@ import {
 } from '@helpers/NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
-import { getStoredWindowRect, getWindowFromId, getWindowFromCustomId, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
+import { getStoredWindowRect, getWindowFromCustomId, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInEventLinkHiddenPart, isTermInNotelinkOrURI, isTermInMarkdownPath } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER, formRegExForUsersOpenTasks } from '@helpers/regex'
@@ -55,7 +55,8 @@ export type HtmlWindowOptions = {
   splitView?: boolean, // only usde if showInMainWindow is true
   icon?: string, // only used if showInMainWindow is true
   iconColor?: string, // only used if showInMainWindow is true
-  autoTopPadding?: boolean // only used if showInMainWindow is true
+  autoTopPadding?: boolean, // only used if showInMainWindow is true
+  showReloadButton?: boolean, // only used if showInMainWindow is true
 }
 
 
@@ -527,6 +528,8 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         winOptions.iconColor = ("iconColor" in opts) ? opts.iconColor : ''
         // $FlowFixMe[prop-missing] - as above
         winOptions.autoTopPadding = ("autoTopPadding" in opts) ? opts.autoTopPadding : true
+        // $FlowFixMe[prop-missing] - as above
+        winOptions.showReloadButton = ("showReloadButton" in opts) ? opts.showReloadButton : false
       }
       // Now override with saved x/y/w/h for this window if wanted, and if available
       if (opts.reuseUsersWindowRect && cId) {
@@ -575,8 +578,9 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
           icon: opts.icon,
           iconColor: opts.iconColor,
           autoTopPadding: opts.autoTopPadding,
+          showReloadButton: opts.showReloadButton,
         }
-        clo(mainWindowSpecificOptions, `showHTMLV2 mainWindowSpecificOptions:`)
+        // clo(mainWindowSpecificOptions, `showHTMLV2 mainWindowSpecificOptions:`)
         const { success: mainViewSuccess, windowID } = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', mainWindowSpecificOptions)
         if (mainViewSuccess) {
           success = true

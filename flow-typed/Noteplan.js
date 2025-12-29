@@ -2713,9 +2713,10 @@ declare class HTMLView {
   * @param { Object } options - (optional) Configuration options:
   *   - splitView: boolean - Show as split view (true) or in main content area (false, default)
   *   - id/customId/customID: String - Unique identifier for reusing the same view
-  *   - icon: string - FontAwesome icon string for the navigation bar
+  *   - icon: string - FontAwesome icon string for the navigation bar. Note: currently doesn't support setting the font type, and always uses "fa-regular"
   *   - iconColor: string - Tailwind color name (e.g., "blue-500") or hex color (e.g., "#3b82f6")
   *   - autoTopPadding: boolean - Auto-add top padding for navigation bar (default: true)
+  *   - showReloadButton: boolean - Show a reload button in the navigation bar (default: false)
   * @returns { Promise<{boolean, string}> } Returns a promise that resolves with { success: true, windowID: String }
   *
   * @example

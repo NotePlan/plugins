@@ -326,6 +326,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       // icon: 'fa-duotone fa-grid-round-2', // TODO: this icon is not available in our old build
       iconColor: 'yellow-500',
       autoTopPadding: true,
+      showReloadButton: false,
     }
     logTimer('showDashboardReact', startTime, `Finished getting initial data. Now will call React:`)
 
