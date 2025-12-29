@@ -2705,7 +2705,7 @@ declare class HTMLView {
    */
   static showWindowWithOptions(html: string, title: string, options: Object): HTMLView;
   /**
-   * * HTMLView.showInMainWindow()
+   * HTMLView.showInMainWindow()
   * Shows HTML content in the main application window, either in the main content area or as a split view (a sidebar entry will be added, so the user can open it also with opt+click as split view).
   * Available in v3.20.0 (build 1469)
   * @param { String } html - The HTML content to display

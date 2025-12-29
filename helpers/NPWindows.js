@@ -44,12 +44,12 @@ export function logWindowsList(): void {
 
   let c = 0
   for (const win of NotePlan.editors) {
-    outputLines.push(`- ${String(c)}: ${win.windowType}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
+    outputLines.push(`- ${String(c)}: ${win.windowType}: customId:'${win.customId ?? '-'}' filename:${win.filename ?? '-'} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
     c++
   }
   c = 0
   for (const win of NotePlan.htmlWindows) {
-    outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' ID:${win.id} Rect:${rectToString(win.windowRect)}`)
+    outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? '-'}' ID:${win.id} Rect:${rectToString(win.windowRect)}`)
     c++
   }
   logInfo('logWindowsList', outputLines.join('\n'))
@@ -199,23 +199,33 @@ export function getNonMainWindowIds(windowType: TWindowType = 'Editor'): Array<s
  */
 export function getWindowIdFromCustomId(customId: string): string | false {
   if (NotePlan.environment.platform !== 'macOS') {
-    logDebug('isHTMLWindowOpen', `Platform is ${NotePlan.environment.platform}`)
+    logDebug('getWindowIdFromCustomId', `Platform is ${NotePlan.environment.platform}`)
     // return false
   }
 
+  // First try to find an HTML window with the same customId
   const allHTMLWindows = NotePlan.htmlWindows
   // clo(allHTMLWindows, 'getWindowIdFromCustomId: allHTMLWindows')
   for (const thisWin of allHTMLWindows) {
     // clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
     if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
       thisWin.customId = customId
+      logDebug('getWindowIdFromCustomId', `Found HTML window '${thisWin.customId}' matching customId '${customId}' with ID '${thisWin.id}'`)
       return thisWin.id
-    } else {
-      // logWarn('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customId}'`)
     }
   }
+
+  // From 3.20 now try to find an Editor window with the same customId
+  const allEditorWindows = NotePlan.editors
+  for (const thisWin of allEditorWindows) {
+    if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
+      logDebug('getWindowIdFromCustomId', `Found Editor window '${thisWin.customId}' matching customId '${customId}' with ID '${thisWin.id}'`)
+      return thisWin.id
+    }
+  }
+
   logDebug(
-    'isHTMLWindowOpen',
+    'getWindowIdFromCustomId',
     `Did not find open window with ID:"${customId}" on platform:"${NotePlan.environment.platform}". This is ok if the window is not open or the platform is not macOS.`,
   )
   return false
@@ -635,6 +645,11 @@ export async function openCalendarNoteInSplit(filename: string, cursorPointIn?: 
   }
 }
 
+/**
+ * Get the TEditor or HTMLView object from the given window ID
+ * @param {string} windowId 
+ * @returns {TEditor | HTMLView | false} the matching window object or false if not found
+ */
 export function getWindowFromId(windowId: string): TEditor | HTMLView | false {
   // First loop over all Editor windows
   const allEditorWindows = NotePlan.editors
@@ -654,6 +669,11 @@ export function getWindowFromId(windowId: string): TEditor | HTMLView | false {
   return false
 }
 
+/**
+ * Get the TEditor or HTMLView object from the given custom ID
+ * @param {string} windowCustomId
+ * @returns {TEditor | HTMLView | false} the matching window object or false if not found
+ */
 export function getWindowFromCustomId(windowCustomId: string): TEditor | HTMLView | false {
   // First loop over all Editor windows
   const allEditorWindows = NotePlan.editors
@@ -702,7 +722,7 @@ export function closeWindowFromCustomId(windowCustomId: string): void {
 }
 
 /**
- * Close an Editor or HTML window given its window Id
+ * Close an Editor or HTML window given its windowId
  * @param {string} windowId
  */
 export function closeWindowFromId(windowId: string): void {
@@ -965,7 +985,11 @@ export async function setSidebarWidth(widthIn?: number): Promise<void> {
 }
 
 export function toggleSidebar(): void {
-  NotePlan.toggleSidebar(false, false, true)
+  if (usersVersionHas('mainSidebarControl')) {
+    NotePlan.toggleSidebar(false, false, true)
+  } else {
+    logWarn('toggleSidebar', `Cannot toggle sidebar before NP v3.19.2`)
+  }
 }
 
 /**
@@ -983,5 +1007,9 @@ export function openSidebar(widthIn?: number): void {
 }
 
 export function closeSidebar(): void {
-  NotePlan.toggleSidebar(true, false, true)
+  if (usersVersionHas('mainSidebarControl')) {
+    NotePlan.toggleSidebar(true, false, true)
+  } else {
+    logWarn('closeSidebar', `Cannot close sidebar before NP v3.19.2`)
+  }
 }
