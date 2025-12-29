@@ -15,6 +15,7 @@ import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
 import { usersVersionHas } from './NPVersions'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 import { parseTeamspaceFilename } from './teamspace'
+import { RE_UUID } from './regex'
 
 //------------------------------ Constants ------------------------------------
 
@@ -338,7 +339,6 @@ export async function chooseFolder(
     // logDebug('userInput / chooseFolder', `🟡 ${ folders.length } folders ordered: ${ String(folders) }`) // ✅
 
     let folder: string = ''
-    let value: string = ''
     let keyModifiers: Array<string> = []
     let optClickedOnFolder = false
     let newFolderWanted = false
@@ -383,7 +383,7 @@ export async function chooseFolder(
           // i.e. new folder wanted, but no name given yet
           folder = ''
           newFolderWanted = true
-          logDebug('userInput / chooseFolder CHOSE NEW FOLDER CREATE OPTION', `- result.index: ${ result.index } `)
+          logDebug('userInput / chooseFolder CHOSE NEW FOLDER CREATE OPTION', `- result.index: ${result.index} `)
         } else if (optClickedOnFolder) {
           logDebug('userInput / chooseFolder CHOSEN OPT CLICKED ON FOLDER', `- optClickedOnFolder: true`)
           // i.e. new folder wanted, and parent folder chosen
@@ -415,7 +415,6 @@ export async function chooseFolder(
         result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions)
         clo(result, 'chooseFolder chooseDecoratedOptionWithModifiers result') // ✅
         actualIndex = result.index
-        value = folders[actualIndex]
       }
       // logDebug('userInput / chooseFolder', `User chose: result.index:${ result.index } ${ includeNewFolderOption ? `(actualIndex in folders array: ${actualIndex} because running with includeNewFolderOption),` : '' } optClickedOnFolder: ${ String(optClickedOnFolder) } `)
       // logDebug output a map of the folders arrray with 3 items on either side of the chosen index
@@ -423,65 +422,64 @@ export async function chooseFolder(
       if (actualIndex > -1) {
         const foldersSample = folders.map((f, i) => ({ ...(typeof f === 'string' ? { label: f, value: f } : f), index: i })).slice(Math.max(0, actualIndex - 3), actualIndex + 3)
         logDebug('userInput / chooseFolder', `foldersSample +/- 3 of chosen index`)
-foldersSample.forEach((folder) => {
-  logDebug('userInput / chooseFolder', `  [${folder.index}]: ${folder.label}${folder.index === actualIndex ? ' <== (chosen)' : ''}`)
-})
+        foldersSample.forEach((folder) => {
+          logDebug('userInput / chooseFolder', `  [${folder.index}]: ${folder.label}${folder.index === actualIndex ? ' <== (chosen)' : ''}`)
+        })
       }
-logDebug(`userInput / chooseFolder`, ` -> folder:${folder} keyModifiers:${String(keyModifiers)}`)
+      logDebug(`userInput / chooseFolder`, ` -> folder:${folder} keyModifiers:${String(keyModifiers)}`)
     } else {
-// ✅ for both private + teamspace
-// ✅ for excluding Archive
-// ✅ for folder creation to private area root
-// ✅ for folder creation to private area subfolder
-// ✅ for folder creation to a Teamspace root
-// ✅ for folder creation to a Teamspace subfolder
-// ✅ for folder creation to private area root opt-click
-// ✅ for folder creation to private area subfolder opt-click
-// ✅ for folder creation to a Teamspace root opt-click
-// ✅ for folder creation to a Teamspace subfolder opt-click
+      // ✅ for both private + teamspace
+      // ✅ for excluding Archive
+      // ✅ for folder creation to private area root
+      // ✅ for folder creation to private area subfolder
+      // ✅ for folder creation to a Teamspace root
+      // ✅ for folder creation to a Teamspace subfolder
+      // ✅ for folder creation to private area root opt-click
+      // ✅ for folder creation to private area subfolder opt-click
+      // ✅ for folder creation to a Teamspace root opt-click
+      // ✅ for folder creation to a Teamspace subfolder opt-click
 
-  // Add in the new folder option just for newer CommandBar use
-  if (includeNewFolderOption) {
-    simpleFolderOptions.unshift(addSimpleNewFolderOption)
-  }
-  // V1 used chooseOptionWithModifiers() but it just got too complicated, so using parts of its logic here
-  // V2
-  const { index, keyModifiers } = await CommandBar.showOptions(
-    simpleFolderOptions.map((option) => (typeof option === 'string' ? option : option.label)),
-    'Choose Folder',
-  )
-  if (keyModifiers.length > 0 && keyModifiers.indexOf('opt') > -1) {
-    optClickedOnFolder = true
-  }
-  logDebug('userInput / chooseFolder', `- index: ${index}, keyModifiers: ${String(keyModifiers)}`)
+      // Add in the new folder option just for newer CommandBar use
+      if (includeNewFolderOption) {
+        simpleFolderOptions.unshift(addSimpleNewFolderOption)
+      }
+      // V1 used chooseOptionWithModifiers() but it just got too complicated, so using parts of its logic here
+      // V2
+      const { index, keyModifiers } = await CommandBar.showOptions(
+        simpleFolderOptions.map((option) => (typeof option === 'string' ? option : option.label)),
+        'Choose Folder',
+      )
+      if (keyModifiers.length > 0 && keyModifiers.indexOf('opt') > -1) {
+        optClickedOnFolder = true
+      }
+      logDebug('userInput / chooseFolder', `- index: ${index}, keyModifiers: ${String(keyModifiers)}`)
 
-  if (includeNewFolderOption && index === 0) {
-    // i.e. new folder wanted but no name given
-    folder = ''
-    newFolderWanted = true
-  } else if (optClickedOnFolder) {
-    // i.e. new folder wanted, and parent folder chosen
-    folder = folders[index - 1]
-    newFolderWanted = true
-  } else {
-    folder = folders[index]
-  }
-  logDebug('userInput / chooseFolder', `- folder: ${folder}, newFolderWanted? ${String(newFolderWanted)}`)
-  // Handle new folder creation, if required
-  if (newFolderWanted) {
-    const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
-    if (newFolderPath) {
-      folder = newFolderPath
-      // logInfo(`userInput / chooseFolder`, ` -> created new folder "${folder}"`)
-      return newFolderPath
-    } else {
-      throw new Error(`Failed to create new folder "${folder}"`)
+      if (includeNewFolderOption && index === 0) {
+        // i.e. new folder wanted but no name given
+        folder = ''
+        newFolderWanted = true
+      } else if (optClickedOnFolder) {
+        // i.e. new folder wanted, and parent folder chosen
+        folder = folders[index - 1]
+        newFolderWanted = true
+      } else {
+        folder = folders[index]
+      }
+      logDebug('userInput / chooseFolder', `- folder: ${folder}, newFolderWanted? ${String(newFolderWanted)}`)
+      // Handle new folder creation, if required
+      if (newFolderWanted) {
+        const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
+        if (newFolderPath) {
+          folder = newFolderPath
+          // logInfo(`userInput / chooseFolder`, ` -> created new folder "${folder}"`)
+          return newFolderPath
+        } else {
+          throw new Error(`Failed to create new folder "${folder}"`)
+        }
+      }
+      newFolderWanted = result?.index === -1
     }
-  }
-  value = result?.value || ''
-  newFolderWanted = result?.index === -1
-}
-logDebug(`userInput / chooseFolder`, ` -> folder:${folder} keyModifiers:${String(keyModifiers)}`)
+    logDebug(`userInput / chooseFolder`, ` -> folder:${folder} keyModifiers:${String(keyModifiers)}`)
     return folder
   } catch (error) {
     logError('userInput / chooseFolder', error.message)
@@ -546,6 +544,105 @@ export function createFolderOptions(
  * @param {Array} teamspaceDefs - teamspace definitions
  * @returns {[string, TCommandBarOptionObject]} simple and decorated version of the folder label
  */
+/**
+ * Get folder icon based on folder path
+ * Extracted from createFolderRepresentation for reuse
+ * @param {string} folder - The folder path
+ * @returns {string} Icon name (e.g., 'folder', 'box-archive', 'clipboard', 'trash-can', 'users')
+ */
+export function getFolderIcon(folder: string): string {
+  const folderParts = folder.split('/')
+  if (folderParts[0] === '@Archive') return 'box-archive'
+  if (folderParts[0] === '@Templates') return 'clipboard'
+  if (folderParts[0] === '@Trash') return 'trash-can'
+  if (folder.startsWith('%%NotePlanCloud%%')) return 'users' // Teamspace icon
+  return 'folder'
+}
+
+/**
+ * Get folder color based on folder path and teamspace info
+ * Extracted from createFolderRepresentation for reuse
+ * @param {string} folder - The folder path
+ * @param {Array<TTeamspace>} teamspaceDefs - Array of teamspace definitions
+ * @returns {string} Color name (e.g., 'gray-500', 'green-800' for teamspaces)
+ */
+export function getFolderColor(folder: string, teamspaceDefs: Array<TTeamspace> = []): string {
+  // Check if this is a teamspace folder
+  if (folder.startsWith('%%NotePlanCloud%%')) return TEAMSPACE_ICON_COLOR
+  // Check if any teamspace matches this folder
+  if (teamspaceDefs.length > 0) {
+    const isTeamspaceFolder = teamspaceDefs.some((ts) => folder.includes(ts.id))
+    if (isTeamspaceFolder) return TEAMSPACE_ICON_COLOR
+  }
+  return 'gray-500'
+}
+
+/**
+ * Get folder short description (for display in choosers)
+ * Extracted from createFolderRepresentation for reuse
+ * @param {string} folder - The folder path
+ * @param {boolean} includeFolderPath - Whether to include full path
+ * @param {Array<TTeamspace>} teamspaceDefs - Array of teamspace definitions
+ * @returns {?string} Short description or null
+ */
+export function getFolderShortDescription(folder: string, includeFolderPath: boolean, teamspaceDefs: Array<TTeamspace> = []): ?string {
+  if (folder === '/') return 'Root folder'
+
+  const folderParts = folder.split('/')
+
+  // Check if this is a teamspace folder and get teamspace title
+  if (folder.startsWith('%%NotePlanCloud%%') && teamspaceDefs.length > 0) {
+    const teamspace = teamspaceDefs.find((ts) => folder.includes(ts.id))
+    if (teamspace) {
+      const teamspaceDetails = parseTeamspaceFilename(folder)
+      if (teamspaceDetails.filepath === '/') {
+        return teamspace.title
+      } else {
+        // Extract folder path after teamspace ID and filter out UUIDs (GUIDs)
+        let cleanPath = teamspaceDetails.filepath
+        // Filter out any UUID parts from the path (they might be in the middle or end)
+        const pathParts = cleanPath.split('/').filter(Boolean)
+        const filteredParts = pathParts.filter((part) => !RE_UUID.test(part))
+        cleanPath = filteredParts.length > 0 ? filteredParts.join(' / ') : ''
+
+        if (cleanPath) {
+          return `${teamspace.title} / ${cleanPath}`
+        } else {
+          return teamspace.title
+        }
+      }
+    }
+  }
+
+  // For regular folders, show folder path if not showing full path
+  if (!includeFolderPath && folder !== '/') {
+    const parts = folderParts.filter(Boolean)
+    return parts.length > 0 ? parts[parts.length - 1] : null
+  }
+
+  return null
+}
+
+/**
+ * Get folder decoration (icon, color, shortDescription) for use in React components
+ * Combines getFolderIcon, getFolderColor, and getFolderShortDescription for convenience
+ * @param {string} folder - The folder path
+ * @param {boolean} includeFolderPath - Whether to include full path in short description
+ * @param {Array<TTeamspace>} teamspaceDefs - Array of teamspace definitions
+ * @returns {{ icon: string, color: string, shortDescription: ?string }} Decoration object
+ */
+export function getFolderDecorationFromPath(
+  folder: string,
+  includeFolderPath: boolean,
+  teamspaceDefs: Array<TTeamspace> = [],
+): { icon: string, color: string, shortDescription: ?string } {
+  return {
+    icon: getFolderIcon(folder),
+    color: getFolderColor(folder, teamspaceDefs),
+    shortDescription: getFolderShortDescription(folder, includeFolderPath, teamspaceDefs),
+  }
+}
+
 export function createFolderRepresentation(folder: string, includeFolderPath: boolean, teamspaceDefs: Array<TTeamspace>): [string, TCommandBarOptionObject] {
   // logDebug('userInput / createFolderRepresentation', `- folder: ${folder}`)
   const INDENT_SPACES = '     ' // to use for indentation of folders that are not the root folder, when includeFolderPath is false
@@ -557,24 +654,21 @@ export function createFolderRepresentation(folder: string, includeFolderPath: bo
   // Set default icons
   let simpleIcon = '📁'
   const decoratedOption: TCommandBarOptionObject = {
-    icon: 'folder',
-    color: 'gray-500',
+    icon: getFolderIcon(folder),
+    color: getFolderColor(folder, teamspaceDefs),
     alpha: 0.5,
     darkAlpha: 0.5,
     text: '',
-    shortDescription: '',
+    shortDescription: getFolderShortDescription(folder, includeFolderPath, teamspaceDefs) || '',
   }
 
-  // Update the icon to use the appropriate icon for special @folders
+  // Update simpleIcon for special @folders (for text display)
   if (folderParts[0] === '@Archive') {
     simpleIcon = '🗄️'
-    decoratedOption.icon = 'box-archive'
   } else if (folderParts[0] === '@Templates') {
     simpleIcon = '📝'
-    decoratedOption.icon = 'clipboard'
   } else if (folderParts[0] === '@Trash') {
     simpleIcon = '🗑️'
-    decoratedOption.icon = 'trash-can'
   }
 
   if (isTeamspaceFolder) {
@@ -587,24 +681,21 @@ export function createFolderRepresentation(folder: string, includeFolderPath: bo
     // logDebug('userInput / createFolderRepresentation', `teamspaceDef: ${ JSON.stringify(thisTeamspaceDef) } from '${folder}' / filepath:${ teamspaceDetails.filepath } / includeFolderPath:${ String(includeFolderPath) }`)
     if (teamspaceDetails.filepath === '/') {
       simpleOption = `👥 ${teamspaceTitle}`
-      decoratedOption.color = TEAMSPACE_ICON_COLOR
       decoratedOption.text = '/'
-      decoratedOption.shortDescription = teamspaceTitle
+      // decoratedOption.shortDescription already set by getFolderShortDescription
       // decoratedOption.alpha = 0.6
       // decoratedOption.darkAlpha = 0.6
     } else {
       if (includeFolderPath) {
         simpleOption = `👥 ${teamspaceTitle} / ${folderParts.slice(2).join(' / ')}`
-        decoratedOption.color = TEAMSPACE_ICON_COLOR
         decoratedOption.text = folderParts.slice(2).join(' / ')
-        decoratedOption.shortDescription = teamspaceTitle
+        // decoratedOption.shortDescription already set by getFolderShortDescription
         // decoratedOption.alpha = 0.6
         // decoratedOption.darkAlpha = 0.6
       } else {
         simpleOption = `${simpleIcon} ${folderParts.slice(2).join(' / ')}`
-        decoratedOption.color = TEAMSPACE_ICON_COLOR
         decoratedOption.text = folderParts.slice(2).join(' / ')
-        decoratedOption.shortDescription = teamspaceTitle
+        // decoratedOption.shortDescription already set by getFolderShortDescription
         // decoratedOption.alpha = 0.6
         // decoratedOption.darkAlpha = 0.6
       }
@@ -850,7 +941,7 @@ export async function processChosenHeading(note: TNote, chosenHeading: string, h
     logDebug('userInput / processChosenHeading', `headingLevel: ${headingLevel} chosenHeading: '${chosenHeading}'`)
 
     if (headingToReturn.includes('insert new heading at the start of the note')) {
-    // ask for new heading, and insert right at top
+      // ask for new heading, and insert right at top
       newHeading = await getInput(`Enter heading to add at the start of the note`, 'OK', 'New Heading')
       if (newHeading && typeof newHeading === 'string') {
         const startPos = 0

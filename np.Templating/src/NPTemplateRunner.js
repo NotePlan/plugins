@@ -416,36 +416,103 @@ export async function processFrontmatter(
  * @returns {boolean} true if new note was created and function should return
  */
 export async function handleNewNoteCreation(selectedTemplate: string, data: Object, argObj: Object, content: string = ''): Promise<boolean | string> {
-  const newNoteTitle = data['newNoteTitle'] || null
+  let newNoteTitle = data['newNoteTitle'] || null
+  // Render newNoteTitle with form values if it contains template tags
+  // This ensures template tags are rendered before being used to create the note
+  if (newNoteTitle && typeof newNoteTitle === 'string' && newNoteTitle.includes('<%')) {
+    try {
+      newNoteTitle = await NPTemplating.render(newNoteTitle, data)
+      const isError = /Template Rendering Error/.test(newNoteTitle)
+      if (isError) {
+        logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation template rendering error for newNoteTitle`)
+        await showMessage('Template Render Error Encountered when rendering note title. Stopping.')
+        return false
+      }
+      // Clean up rendered title: trim and remove any newlines (defensive)
+      newNoteTitle = newNoteTitle.replace(/\n/g, ' ').trim()
+      logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation rendered newNoteTitle with template tags`)
+    } catch (error) {
+      logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation error rendering newNoteTitle: ${error.message}`)
+      await showMessage(`Error rendering note title: ${error.message || String(error)}`)
+      return false
+    }
+  }
+
+  // Render folder with form values if it contains template tags
+  // Special values like <select>, <choose>, <current> will be preserved and handled by templateNew/getFolder after rendering
+  let folder = data['folder'] || null
+  if (folder && typeof folder === 'string' && folder.includes('<%')) {
+    try {
+      folder = await NPTemplating.render(folder, data)
+      const isError = /Template Rendering Error/.test(folder)
+      if (isError) {
+        logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation template rendering error for folder`)
+        await showMessage('Template Render Error Encountered when rendering folder. Stopping.')
+        return false
+      }
+      // Clean up rendered folder: trim (special values like <select> will be handled by templateNew/getFolder)
+      folder = folder.trim()
+      logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation rendered folder with template tags`)
+    } catch (error) {
+      logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation error rendering folder: ${error.message}`)
+      await showMessage(`Error rendering folder: ${error.message || String(error)}`)
+      return false
+    }
+  }
+
   if (newNoteTitle) {
     if (selectedTemplate) {
       // if form or template has a newNoteTitle field then we need to call templateNew
-      const argsArray = [selectedTemplate, data['folder'] || null, newNoteTitle, argObj]
+      const argsArray = [selectedTemplate, folder || null, newNoteTitle, argObj]
       logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation calling templateNew with args:${JSP(argsArray)} and template:${selectedTemplate}`)
       await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
       return true
     } else {
       // this could have been TR calling itself programmatically with newNoteTitle but no template
-      logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation calling DataStore.newNote with newNoteTitle:${newNoteTitle} and folder:${data['folder'] || null}`)
-      const filename = DataStore.newNote(newNoteTitle, data['folder'] || null)
+      logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation calling DataStore.newNote with newNoteTitle:${newNoteTitle} and folder:${folder || null}`)
+      const filename = DataStore.newNote(newNoteTitle, folder || null)
       if (filename) {
         logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation created note with title:"${newNoteTitle}"  in folder:"${data['folder'] || null}" filename:"${filename}"`)
         const note = await DataStore.projectNoteByFilename(filename)
         note && DataStore.updateCache(note, true) // try to update the note cache so functions called after this will see the new note
         if (note && content) {
-          logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation adding content to new note:${filename}; content:"${content}"`)
-          if (content.startsWith('--') && (content.includes('title: ') || content.includes('--\n#'))) {
+          // Render the content with form values if it contains template tags
+          // This ensures template tags are rendered before being written to the note
+          // This makes the behavior consistent with the write-existing path which renders at line 764
+          let renderedContent = content
+          if (content && content.includes('<%')) {
+            try {
+              renderedContent = await NPTemplating.render(content, data)
+              const isError = /Template Rendering Error/.test(renderedContent)
+              if (isError) {
+                logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation template rendering error for content`)
+                await showMessage('Template Render Error Encountered when creating new note. Stopping.')
+                return false
+              }
+              logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation rendered content with template tags`)
+            } catch (error) {
+              logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation error rendering content: ${error.message}`)
+              await showMessage(`Error rendering template content: ${error.message || String(error)}`)
+              return false
+            }
+          }
+
+          logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation adding content to new note:${filename}; content:"${renderedContent}"`)
+          if (renderedContent.startsWith('--') && (renderedContent.includes('title: ') || renderedContent.includes('--\n#'))) {
             // if the content has a frontmatter title or a double/triple dasy and a first-following line title,
             // then we should replace the entire note with the contents
             logDebug(
               pluginJson,
-              `NPTemplateRunner::handleNewNoteCreation template body has title specified; replacing entire note content with content from template:${filename}; content:"${content}"`,
+              `NPTemplateRunner::handleNewNoteCreation template body has title specified; replacing entire note content with content from template:${filename}; content:"${renderedContent}"`,
             )
             // replace double/triple dashes with triple dashes so they are treated as frontmatter
-            note.content = replaceDoubleDashes(content)
+            note.content = replaceDoubleDashes(renderedContent)
           } else {
-            logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation template body does not have title specified; appending content to note:${filename}; content:"${content}"`)
-            note.appendParagraph(content, 'text')
+            logDebug(
+              pluginJson,
+              `NPTemplateRunner::handleNewNoteCreation template body does not have title specified; appending content to note:${filename}; content:"${renderedContent}"`,
+            )
+            note.appendParagraph(renderedContent, 'text')
           }
           // trying anything to force the cache to recognize this note by title soon after creation
           note && DataStore.updateCache(note, true) // try to update the note cache so functions called after this will see the new note
@@ -765,7 +832,29 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
         logDebug(pluginJson, `templateRunnerExecute Template Render Complete renderedTemplate= "${renderedTemplate}"`)
 
         // Extract note preferences
-        const { noteTitle, shouldOpenInEditor } = extractTitleAndShouldOpenSettings(frontmatterAttributes, openInEditor)
+        let { noteTitle, shouldOpenInEditor } = extractTitleAndShouldOpenSettings(frontmatterAttributes, openInEditor)
+
+        // Render noteTitle (getNoteTitled) with form values if it contains template tags
+        // Special values like <today>, <current>, <choose>, <select> will be preserved and handled by handleNoteSelection after rendering
+        // This allows combinations like "<%- field1 %> <today>" to work correctly
+        if (noteTitle && typeof noteTitle === 'string' && noteTitle.includes('<%')) {
+          try {
+            noteTitle = await NPTemplating.render(noteTitle, data)
+            const isError = /Template Rendering Error/.test(noteTitle)
+            if (isError) {
+              logError(pluginJson, `templateRunnerExecute template rendering error for noteTitle`)
+              await showMessage('Template Render Error Encountered when rendering note title. Stopping.')
+              return
+            }
+            // Clean up rendered title: trim (special values like <today> will be handled by handleNoteSelection)
+            noteTitle = noteTitle.trim()
+            logDebug(pluginJson, `templateRunnerExecute rendered noteTitle with template tags`)
+          } catch (error) {
+            logError(pluginJson, `templateRunnerExecute error rendering noteTitle: ${error.message}`)
+            await showMessage(`Error rendering note title: ${error.message || String(error)}`)
+            return
+          }
+        }
 
         // Handle note selection if needed
         let finalNoteTitle
@@ -782,6 +871,28 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
 
         clo(data, `templateRunnerExecute before createTemplateWriteOptions, data=`)
         clo(frontmatterAttributes, `templateRunnerExecute before createTemplateWriteOptions, frontmatterAttributes=`)
+
+        // Render writeUnderHeading with form values if it contains template tags
+        // Special values like <choose>, <select> will be preserved and handled by handleHeadingSelection after rendering
+        if (frontmatterAttributes.writeUnderHeading && typeof frontmatterAttributes.writeUnderHeading === 'string' && frontmatterAttributes.writeUnderHeading.includes('<%')) {
+          try {
+            frontmatterAttributes.writeUnderHeading = await NPTemplating.render(frontmatterAttributes.writeUnderHeading, data)
+            const isError = /Template Rendering Error/.test(frontmatterAttributes.writeUnderHeading)
+            if (isError) {
+              logError(pluginJson, `templateRunnerExecute template rendering error for writeUnderHeading`)
+              await showMessage('Template Render Error Encountered when rendering heading. Stopping.')
+              return
+            }
+            // Clean up rendered heading: trim (special values like <choose> will be handled by handleHeadingSelection)
+            frontmatterAttributes.writeUnderHeading = frontmatterAttributes.writeUnderHeading.trim()
+            logDebug(pluginJson, `templateRunnerExecute rendered writeUnderHeading with template tags`)
+          } catch (error) {
+            logError(pluginJson, `templateRunnerExecute error rendering writeUnderHeading: ${error.message}`)
+            await showMessage(`Error rendering heading: ${error.message || String(error)}`)
+            return
+          }
+        }
+
         const writeOptions = createTemplateWriteOptions(frontmatterAttributes, shouldOpenInEditor)
 
         logDebug(pluginJson, `templateRunnerExecute isTodayNote:${String(isTodayNote)} isThisWeek:${String(isThisWeek)} isNextWeek:${String(isNextWeek)}`)

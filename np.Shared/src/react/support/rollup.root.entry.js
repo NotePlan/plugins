@@ -23,3 +23,11 @@ npx rollup -c np.Shared/src/react/support/rollup.root.cfg.js --watch
 // export { WebView } from '../_Cmp-WebView.jsx'
 export { logDebug } from '@helpers/react/reactDev'
 export { Root } from '../Root.jsx'
+
+// Export React and ReactDOM so they're available as globals for other bundles
+import React, { createElement } from 'react'
+export { React, React as react, createElement }
+
+import * as ReactDOM from 'react-dom/client'
+export { createRoot } from 'react-dom/client'
+export { ReactDOM as reactDOM, ReactDOM as dom, ReactDOM }

@@ -32,6 +32,9 @@ export {
   runPreset20,
 } from './NPFavoritePresets'
 
+export { openFavoritesBrowser } from './windowManagement'
+export { onFavoritesBrowserAction } from './favoritesRouter'
+
 /**
  * NotePlan calls this function after the plugin is installed or updated.
  * The `updateSettingData` function looks through the new plugin settings in plugin.json and updates

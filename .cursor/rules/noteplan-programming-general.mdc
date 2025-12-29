@@ -1,0 +1,135 @@
+---
+alwaysApply: true
+---
+For NotePlan code, never use require statements. Use import statements at the top of the file -- never inline/dynamically import modules. Rollup will not process them correctly.
+You should not ever try to build the code with "npm run build" -- this will not work. The programmer will have to use Rollup to build the code. There is separate tooling for this described in @README.md.
+NotePlan has global variables that are available to all plugins such as DataStore, CommandBar, Editor, and NotePlan. You can use these variables to access the NotePlan API. You do not need to import them.
+
+## Promise Polyfills
+
+NotePlan's JSContext may not have `Promise.resolve()` or `Promise.all()`. Use the polyfills in `@helpers/promisePolyfill.js`:
+
+- **Import**: `import { initPromisePolyfills, promiseResolve, promiseAll, waitForCondition, setTimeoutPolyfill } from '@helpers/promisePolyfill'`
+- **Initialize early**: Call `initPromisePolyfills()` at the top of your plugin file to add polyfills to the global Promise object
+- **Use directly**: `promiseResolve(value)`, `promiseAll(promises)`, `waitForCondition(condition, options)`, `setTimeoutPolyfill(callback, delayMs)`
+- **waitForCondition**: Useful for waiting for notes to appear in `DataStore.projectNotes` after creation/modification. Example:
+  ```javascript
+  const found = await waitForCondition(
+    () => getFormTemplateList().find(opt => opt.label === title) != null,
+    { maxWaitMs: 3000, checkIntervalMs: 100 }
+  )
+  ```
+- **Cache updates**: After creating or modifying notes, call `DataStore.updateCache(note, true)` to ensure the note is available in `DataStore.projectNotes` for searches.
+
+## React Function Memoization (CRITICAL - Prevents Infinite Loops)
+
+**ALWAYS wrap functions passed to React Context or child components in `useCallback`**. This is critical to prevent infinite render loops that crash the app.
+
+### The Problem
+Functions created in React components are recreated on every render. If these functions are:
+- Passed to `AppContext` (via `AppProvider`)
+- Used as dependencies in `useEffect` hooks
+- Passed as props to child components
+
+They will cause infinite loops because:
+1. Function reference changes → Context value changes → All consumers re-render
+2. Re-render creates new function → Function reference changes → Loop continues
+
+### The Solution
+**Always use `useCallback` for functions passed to context or used as dependencies:**
+
+```javascript
+// ❌ WRONG - Causes infinite loops
+const requestFromPlugin = (command: string, dataToSend: any = {}) => {
+  // ... implementation
+}
+
+// ✅ CORRECT - Stable function reference
+const requestFromPlugin = useCallback((command: string, dataToSend: any = {}) => {
+  // ... implementation
+}, [dispatch, windowId]) // Only recreate if these dependencies change
+```
+
+### Functions That MUST Be Memoized
+- `requestFromPlugin` - Request/response pattern function
+- `sendActionToPlugin` - Action sender function  
+- `sendToPlugin` - Direct sender function
+- Any function passed to `AppProvider` props
+- Any function used in `useEffect` dependency arrays
+
+### Dependencies
+Keep dependencies minimal - usually just:
+- `dispatch` (from props, usually stable)
+- `windowId` (if used in the function)
+- Other stable refs (not state/props that change frequently)
+
+### AppContext Memoization
+`AppContext` should use `useMemo` to memoize the context value:
+
+```javascript
+const contextValue = useMemo(() => ({
+  sendActionToPlugin,
+  sendToPlugin,
+  requestFromPlugin,
+  dispatch,
+  pluginData,
+  // ...
+}), [sendActionToPlugin, sendToPlugin, requestFromPlugin, dispatch, pluginData, ...])
+```
+
+**This pattern has caused infinite loops 5+ times. Always check for `useCallback` when creating functions that go into context.**
+
+### Why This Must Be Checked Every Time
+
+**IMPORTANT FOR AI ASSISTANTS:** This rule must be checked at the start of EVERY coding session and whenever creating or modifying React components that:
+- Create functions passed to `AppProvider`
+- Use `useEffect` with function dependencies
+- Pass functions as props to child components
+
+**Why this isn't always caught:**
+- The issue only manifests at runtime (infinite loops, app crashes)
+- Linters may not catch missing `useCallback` in all cases
+- The pattern looks correct syntactically but fails functionally
+- Context consumers re-render silently, making the problem hard to trace
+
+**Before writing ANY React component code, ask:**
+1. Are any functions being passed to `AppProvider`? → Must use `useCallback`
+2. Are any functions used in `useEffect` dependencies? → Must use `useCallback`
+3. Is `AppContext` using `useMemo` for the context value? → Must use `useMemo`
+
+**This is a CRITICAL pattern that has caused production issues multiple times. Always verify function memoization before considering code complete.**
+
+## NotePlan Theme Colors
+
+When using CSS variables for styling, use these NotePlan theme color variables with their default values:
+
+```css
+--bg-main-color: #eff1f5;
+--fg-sidebar-color: #242E32;
+--bg-sidebar-color: #ECECEC;
+--divider-color: #CDCFD0;
+--block-id-color: #79A0B5;
+--fg-main-color: #4c4f69;
+--h1-color: #5c5f77;
+--h2-color: #5c5f77;
+--h3-color: #5c5f77;
+--bg-alt-color: #e6e9ef;
+--tint-color: #dc8a78;
+--bg-mid-color: #ebedf2;
+--bg-apple-input-color: #fbfbfb;
+--bg-apple-switch-color: #dadada;
+--fg-apple-switch-color: #ffffff;
+--bg-apple-button-color: #fcfcfc;
+--item-icon-color: #1e66f5;
+--fg-done-color: #04a5e5;
+--fg-canceled-color: #4F57A0E0;
+--hashtag-color: inherit;
+--attag-color: inherit;
+--code-color: #0091f8;
+```
+
+**Always use these CSS variables with their default fallback values** when styling React components. For example:
+```css
+background: var(--tint-color, #dc8a78);
+color: var(--fg-main-color, #4c4f69);
+```

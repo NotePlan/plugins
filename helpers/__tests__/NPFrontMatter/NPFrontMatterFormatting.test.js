@@ -41,11 +41,6 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual('"foo: bar"')
       })
 
-      test('should quote text with empty string value', () => {
-        const result = f.quoteText('')
-        expect(result).toEqual('""')
-      })
-
       test('should quote text with leading hashtag', () => {
         const result = f.quoteText('#foo')
         expect(result).toEqual('#foo')

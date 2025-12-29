@@ -4,6 +4,9 @@ import { createRoot } from 'react-dom/client'
 import DynamicDialog, { type TDynamicDialogProps, type TSettingItem } from './DynamicDialog/DynamicDialog'
 import { logDebug, logError } from './reactDev'
 
+// Re-export types for convenience
+export type { TDynamicDialogProps, TSettingItem } from './DynamicDialog/DynamicDialog'
+
 /**
  * Shows a React modal dialog and returns the user input or null if canceled.
  * The user input object is returned from the onSave callback from an enter or save button click.
@@ -54,7 +57,13 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
 
     const handleButtonClick = (key: string, value: string) => {
       logDebug('showDialog', 'handleButtonClick', key, value)
-      dialogProps.handleButtonClick && dialogProps.handleButtonClick(key, value)
+      if (dialogProps.handleButtonClick) {
+        const result = dialogProps.handleButtonClick(key, value)
+        // If handleButtonClick returns false, don't close the dialog
+        if (result === false) {
+          return
+        }
+      }
       handleClose()
     }
 
@@ -75,6 +84,9 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
         submitOnEnter={dialogProps.submitOnEnter}
         hideHeaderButtons={dialogProps.hideHeaderButtons}
         handleButtonClick={handleButtonClick}
+        notes={dialogProps.notes}
+        requestFromPlugin={dialogProps.requestFromPlugin}
+        onNotesChanged={dialogProps.onNotesChanged}
       >
         {dialogProps.children}
       </DynamicDialog>,
