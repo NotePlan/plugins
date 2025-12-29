@@ -2,20 +2,21 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-12-09 for v2.4.0
+// last updated 2025-12-28 for v2.4.0
 // ----------------------------------------------------------------------------
 
 /**
  * Imports
  */
 import pluginJson from '../plugin.json'
-import { generateTagMentionCache } from './tagMentionCache'
 import { getDashboardSettingsDefaultsWithSectionsSetToFalse } from './dashboardHelpers'
 import { showDashboardReact } from './reactMain'
 import { parseSettings } from './shared'
+import { generateTagMentionCache } from './tagMentionCache'
 import { renameKeys } from '@helpers/dataManipulation'
 import { clo, compareObjects, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import * as npc from '@helpers/NPConfiguration'
+import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 
 // ----------------------------------------------------------------------------
 
@@ -94,21 +95,24 @@ export async function onUpdateOrInstall(): Promise<void> {
     // Backup the settings on all new installs
     await npc.backupSettings('jgclark.Dashboard', `before_onUpdateOrInstall_v${pluginJson["plugin.version"]}`)
 
+    // Log warnings if we don't have required files
+    await checkForRequiredSharedFiles(pluginJson)
+
+    // Make sure we have the np.Shared plugin which has the core react code and some basic CSS
+    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
+    // logDebug(pluginJson, `onUpdateOrInstall: installOrUpdatePluginsByID ['np.Shared'] completed`)
+
     // Migrate some setting names to new names.
     // Note: can't easily be done with updateSettingData() in index.js as there can be multiple copies of these settings at different object levels.
     // logInfo(pluginJson, `- renaming any necessary keys from 2.1.x to 2.2.x ...`)
     const keysToChange = {
-      //   perspectivesEnabled: 'usePerspectives',
-      //   includeFolderName: 'showFolderName',
-      //   includeScheduledDates: 'showScheduledDates',
-      //   includeTaskContext: 'showTaskContext',
     }
 
     const initialDashboardSettings = parseSettings(initialSettings.dashboardSettings)
     const defaults = getDashboardSettingsDefaultsWithSectionsSetToFalse()
     const migratedDashboardSettings = { ...defaults, ...renameKeys(initialDashboardSettings, keysToChange) }
 
-    // Note: no longer need to add new settings here, because if they are in the defaults of dashboardSettings, they will be added to the perspectives.
+    // Note: don't need to add *new* settings here, because if they are in the defaults of dashboardSettings, they will be added to the perspectives.
 
     // Note: Workaround for number types getting changed to strings at some point in our Settings system.  FIXME: but lower priority for now.
     migratedDashboardSettings.newTaskSectionHeadingLevel = parseInt(migratedDashboardSettings.newTaskSectionHeadingLevel || 2)

@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2025-08-30 for v2.3.0
+// Last updated 2025-12-27 for v2.4.0
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -20,7 +20,6 @@ import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import { getGlobalSharedData, sendToHTMLWindow, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
-import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
@@ -28,6 +27,17 @@ import { chooseOption, showMessage } from '@helpers/userInput'
 // Constants
 //------------------------------------------------------------------------------
 const pluginID = 'jgclark.Dashboard'
+
+const RESOURCE_LINKS_FOR_HEADER = `
+  <!-- <link rel="stylesheet" href="../np.Shared/css.w3.css"> -->
+
+  <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
+  <link href="../np.Shared/fontawesome.css" rel="stylesheet">
+  <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
+  <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+  <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
+  <link href="../np.Shared/duotone.min.flat4NP.css" rel="stylesheet">
+`
 
 //------------------------------------------------------------------------------
 // Types
@@ -275,37 +285,18 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     // (e.g. from xcallback)
     if (callMode !== 'trigger' && callMode !== 'full') await updateSectionFlagsToShowOnly(callMode)
 
-    // make sure we have the np.Shared plugin which has the core react code and some basic CSS
-    // TODO: can this be moved to onInstallOrUpdate?
-    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
-    // logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
-
-    // log warnings if we don't have required files
-    // TODO: can this be moved to onInstallOrUpdate?
-    await checkForRequiredSharedFiles(pluginJson)
-    // logDebug(pluginJson, `showDashboardReact: checkForRequiredSharedFiles completed`)
-
     // Get settings
     const config = await getDashboardSettings() // pulls the JSON stringified dashboardSettings and parses it into object
     // clo(config, `showDashboardReact: keys:${Object.keys(config).length} config=`)
     const logSettings = await getLogSettings()
+    const settings = await getSettings(pluginID)
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindow(perspectiveName, useDemoData)
     // logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
-
-    const resourceLinksInHeader = `
-      <!-- <link rel="stylesheet" href="../${pluginJson['plugin.id']}/Dashboard.css"> -->
-      <!-- <link rel="stylesheet" href="../${pluginJson['plugin.id']}/DashboardDialog.css"> -->
-      <link rel="stylesheet" href="../np.Shared/css.w3.css">
-
-      <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
-      <link href="../np.Shared/fontawesome.css" rel="stylesheet">
-      <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
-      `
+    const preferredWindowType = settings?.preferredWindowType ?? 'Window'
     const platform = NotePlan.environment.platform
+    logDebug('showDashboardReact', `preferredWindowType = ${preferredWindowType} / platform = ${platform}`)
 
     const windowOptions: HtmlWindowOptions = {
       windowTitle: data?.title || 'Dashboard',
@@ -314,7 +305,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       savedFilename: `../../${pluginJson['plugin.id']}/dashboard-react.html` /* for saving a debug version of the html file */,
       shouldFocus: callMode !== 'trigger' /* focus window (unless called by a trigger) */,
       reuseUsersWindowRect: true,
-      headerTags: `${resourceLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
+      headerTags: `${RESOURCE_LINKS_FOR_HEADER}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // set in separate CSS file referenced in header
       preBodyScript: `
@@ -326,28 +317,21 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       postBodyScript: ``,
       paddingWidth: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,
       paddingHeight: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,
+      // If we should open in main/split view, or the default new window
+      showInMainWindow: (preferredWindowType !== 'Window'),
+      splitView: (preferredWindowType === 'Split'),
+      // If we are opening in main/split view, then set the icon details
+      icon: 'fa-gauge-high',
+      // icon: 'fa-duotone fa-gauge-high', // TODO(Eduard): support other icon sets
+      // icon: 'fa-duotone fa-grid-round-2', // TODO: this icon is not available in our old build
+      iconColor: 'yellow-500',
+      autoTopPadding: true,
     }
-    logTimer('showDashboardReact', startTime, `===== Calling React =====`)
+    logTimer('showDashboardReact', startTime, `Finished getting initial data. Now will call React:`)
+
     // clo(data, `showDashboardReact data object passed`)
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
-    
-    // Check if we should open in split view
-    const settings = await getSettings(pluginID)
-    const openInSplitView = settings?.openInSplitView === true
-    
-    if (openInSplitView) {
-      // Generate HTML and use showInMainWindow
-      const htmlString = generateReactHTML(data, windowOptions)
-      await HTMLView.showInMainWindow(htmlString, windowOptions.windowTitle, {
-        splitView: true,
-        id: windowOptions.customId || WEBVIEW_WINDOW_ID,
-        icon: 'fa-chart-line',
-        iconColor: 'blue-500',
-      })
-    } else {
-      // Use the existing approach with openReactWindow
-      await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
-    }
+    await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
   } catch (error) {
     logError('showDashboardReact', JSP(error))
   }
@@ -361,6 +345,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
 export async function reactWindowInitialisedSoStartGeneratingData(): Promise<void> {
   try {
     logDebug('reactWindowInitialisedSoStartGeneratingData', `--> React Window reported back to plugin that it has loaded <--`)
+    const startTime = new Date()
     const config = await getDashboardSettings()
     const logSettings = await getLogSettings()
     const enabledSections = getListOfEnabledSections(config)
@@ -375,6 +360,7 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
         await setPluginData({ firstRun: false }, 'Setting firstRun to false after force initial load')
       }
     }
+    logTimer('reactWindowInitialisedSoStartGeneratingData', startTime, `----- END OF GENERATION ------`)
     logInfo('reactWindowInitialisedSoStartGeneratingData', `----- END OF GENERATION ------`)
 
     // ---------------------------------------------------------------
@@ -448,7 +434,6 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData) // Note: the only time this is called.
     logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
-    // clo(pluginData.dashboardSettings, `getInitialDataForReactWindow pluginData.dashboardData`) // huge!
     const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
@@ -460,6 +445,7 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
       startTime,
       windowID: WEBVIEW_WINDOW_ID,
     }
+    logTimer('getInitialDataForReactWindow', startTime, `<<<<< Finished`)
     logDebug('getInitialDataForReactWindow', `<<<<< Finished`)
     return dataToPass
   } catch (error) {

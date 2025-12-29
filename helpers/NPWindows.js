@@ -665,7 +665,8 @@ export function getWindowFromId(windowId: string): TEditor | HTMLView | false {
       return thisWindow
     }
   }
-  logWarn('getWindowFromId', `Couldn't find window matching id '${windowId}'`)
+  logWarn('getWindowFromId', `Couldn't find window matching id '${windowId}', so will return false. Here's the list of open windows:`)
+  logWindowsList()
   return false
 }
 
@@ -834,7 +835,6 @@ export function getLiveWindowRectFromWin(win: Window): Rect | false {
  */
 export function applyRectToHTMLWindow(rect: Rect, customId?: string): void {
   const winToUse = customId ? getWindowFromCustomId(customId) : NotePlan.htmlWindows[0]
-  // logDebug('applyRectToHTMLWindow', `Trying to set Rect for HTML window '${customId ?? 'HTML[0]'}'`)
   if (winToUse) {
     winToUse.windowRect = rect
     logDebug('applyRectToHTMLWindow', `Set Rect for HTML window '${customId ?? 'HTML[0]'}' -> ${rectToString(winToUse.windowRect)}`)
