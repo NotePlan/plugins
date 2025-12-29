@@ -2708,14 +2708,14 @@ declare class HTMLView {
    * HTMLView.showInMainWindow()
   * Shows HTML content in the main application window, either in the main content area or as a split view (a sidebar entry will be added, so the user can open it also with opt+click as split view).
   * Available in v3.20.0 (build 1469)
-  * @param { String } html - The HTML content to display
-  * @param { String } title - The title for the view
+  * @param { string } html - The HTML content to display
+  * @param { string } title - The title for the view
   * @param { Object } options - (optional) Configuration options:
-  *   - splitView: Boolean - Show as split view (true) or in main content area (false, default)
+  *   - splitView: boolean - Show as split view (true) or in main content area (false, default)
   *   - id/customId/customID: String - Unique identifier for reusing the same view
-  *   - icon: String - Font Awesome icon string for the navigation bar
-  *   - iconColor: String - Tailwind color name (e.g., "blue-500") or hex color (e.g., "#3b82f6")
-  *   - autoTopPadding: Boolean - Auto-add top padding for navigation bar (default: true)
+  *   - icon: string - FontAwesome icon string for the navigation bar
+  *   - iconColor: string - Tailwind color name (e.g., "blue-500") or hex color (e.g., "#3b82f6")
+  *   - autoTopPadding: boolean - Auto-add top padding for navigation bar (default: true)
   * @returns { Promise<{boolean, string}> } Returns a promise that resolves with { success: true, windowID: String }
   *
   * @example
