@@ -50,7 +50,7 @@ html {
 /* Floating mode (toast-like) styles */
 .banner-panel--floating {
   position: fixed;
-  top: 1rem;
+  top: calc(1rem + var(--noteplan-toolbar-height, 0));
   right: 1rem;
   width: auto;
   min-width: 300px;

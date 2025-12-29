@@ -5,7 +5,7 @@
 
 .toast {
   position: fixed;
-  top: 1rem;
+  top: calc(1rem + var(--noteplan-toolbar-height, 0));
   right: 1rem;
   min-width: 300px;
   max-width: 500px;

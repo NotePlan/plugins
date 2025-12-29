@@ -4,6 +4,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useMemo, useRef, useEffect, useState, useCallback, type Node } from 'react'
+import { useAppContext } from './AppContext.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
@@ -130,6 +131,8 @@ export function FormPreview({
   const previewWindowRef = useRef<?HTMLDivElement>(null)
   const [containerDimensions, setContainerDimensions] = useState<{ width: number, height: number }>({ width: 0, height: 0 })
   const [previewWindowDimensions, setPreviewWindowDimensions] = useState<{ width: number, height: number }>({ width: 0, height: 0 })
+  const { dispatch } = useAppContext()
+  const prevShowScaledDisclaimerRef = useRef<boolean>(false)
 
   // Check if we're in a preview/browser context (where we need smart sizing)
   // We use hidePreviewHeader as a proxy - if it's true, we're in Form Browser
@@ -285,6 +288,42 @@ export function FormPreview({
 
   const showScaledDisclaimer = isPreviewContext && (previewDimensions.isScaled.width || previewDimensions.isScaled.height)
 
+  // Show warning toast when preview is scaled
+  useEffect(() => {
+    if (showScaledDisclaimer && !prevShowScaledDisclaimerRef.current) {
+      const isWidthScaled = previewDimensions.isScaled.width
+      const isHeightScaled = previewDimensions.isScaled.height
+      let reducedText = ''
+      if (isWidthScaled && isHeightScaled) {
+        reducedText = 'width+height'
+      } else if (isWidthScaled) {
+        reducedText = 'width'
+      } else if (isHeightScaled) {
+        reducedText = 'height'
+      }
+      const intendedSize = `${intendedWidth ? `${intendedWidth}px` : 'auto'} × ${intendedHeight ? `${intendedHeight}px` : 'auto'}`
+      const actualSize = `${previewWindowDimensions.width > 0 ? `${previewWindowDimensions.width}px` : '...'} × ${
+        previewWindowDimensions.height > 0 ? `${previewWindowDimensions.height}px` : '...'
+      }`
+      const message = `Form settings are set to ${intendedSize}, but preview DIV is ${actualSize}\n${reducedText} is reduced for the preview window.`
+      dispatch('SHOW_TOAST', {
+        type: 'WARN',
+        msg: message,
+        timeout: 10000,
+      })
+    }
+    prevShowScaledDisclaimerRef.current = showScaledDisclaimer
+  }, [
+    showScaledDisclaimer,
+    intendedWidth,
+    intendedHeight,
+    previewWindowDimensions.width,
+    previewWindowDimensions.height,
+    previewDimensions.isScaled.width,
+    previewDimensions.isScaled.height,
+    dispatch,
+  ])
+
   return (
     <div className="form-builder-preview">
       {!hidePreviewHeader && (
@@ -293,13 +332,6 @@ export function FormPreview({
         </div>
       )}
       <div className="form-preview-container" ref={containerRef}>
-        {showScaledDisclaimer && (
-          <div className="form-preview-scaled-disclaimer">
-            Note: Form settings want {intendedWidth ? `${intendedWidth}px` : 'auto'} × {intendedHeight ? `${intendedHeight}px` : 'auto'}, but preview DIV is{' '}
-            {previewWindowDimensions.width > 0 ? `${previewWindowDimensions.width}px` : '...'} ×{' '}
-            {previewWindowDimensions.height > 0 ? `${previewWindowDimensions.height}px` : '...'}
-          </div>
-        )}
         <div className="form-preview-window" ref={previewWindowRef} style={previewDimensions.style}>
           {!hideWindowTitlebar && (
             <div className="form-preview-window-titlebar">
