@@ -321,9 +321,8 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       showInMainWindow: (preferredWindowType !== 'Window'),
       splitView: (preferredWindowType === 'Split'),
       // If we are opening in main/split view, then set the icon details
-      icon: 'gauge-high',
-      // icon: 'fa-regular fa-gauge-high',
-      // icon: 'fa-duotone fa-gauge-high', // FIXME: not yet working
+      icon: 'fa-gauge-high',
+      // icon: 'fa-duotone fa-gauge-high', // TODO(Eduard): support other icon sets
       // icon: 'fa-duotone fa-grid-round-2', // TODO: this icon is not available in our old build
       iconColor: 'yellow-500',
       autoTopPadding: true,

@@ -570,7 +570,14 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       let success: boolean = false
       if (opts.showInMainWindow) {
         logDebug('showHTMLV2', `- Showing in main window with options: ${JSON.stringify(winOptions)}`)
-        const { success: mainViewSuccess, windowID } = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', winOptions)
+        const mainWindowSpecificOptions = {
+          splitView: opts.splitView,
+          icon: opts.icon,
+          iconColor: opts.iconColor,
+          autoTopPadding: opts.autoTopPadding,
+        }
+        clo(mainWindowSpecificOptions, `showHTMLV2 mainWindowSpecificOptions:`)
+        const { success: mainViewSuccess, windowID } = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', mainWindowSpecificOptions)
         if (mainViewSuccess) {
           success = true
           logDebug('showHTMLV2', `- Main view window opened successfully with ID '${windowID}'`)
