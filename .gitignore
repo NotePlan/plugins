@@ -25,3 +25,5 @@ Documentation-Helpers
 **/react.*.min.js
 .windsurfrules
 CLAUDE.md
+# Allow GraphNote plugin scripts
+!jh.GraphNote/script.js
