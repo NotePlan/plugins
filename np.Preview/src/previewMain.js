@@ -5,18 +5,14 @@
 // by Jonathan Clark, last updated 2025-03-14 for v0.4.5
 //--------------------------------------------------------------
 
-
 // import open, { openApp, apps } from 'open'
 import pluginJson from '../plugin.json'
+import { getPreviewSpecificCSS } from './previewStyles'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { addTrigger } from '@helpers/NPFrontMatter'
 import { displayTitle } from '@helpers/general'
 
-import {
-  getNoteContentAsHTML,
-  type HtmlWindowOptions,
-  showHTMLV2
-} from '@helpers/HTMLView'
+import { getNoteContentAsHTML, type HtmlWindowOptions, showHTMLV2 } from '@helpers/HTMLView'
 import { showMessageYesNo } from '@helpers/userInput'
 
 //--------------------------------------------------------------
@@ -33,13 +29,11 @@ const initMathJaxScripts = `
 
 // Set up for Mermaid, using live copy of the Mermaid library (for now)
 // is current NP theme dark or light?
-const isDarkTheme = (Editor.currentTheme.mode === 'dark')
+const isDarkTheme = Editor.currentTheme.mode === 'dark'
 
 // Note: using CDN version of mermaid.js, because whatever we tried for a packaged local version didn't work for Gantt charts.
 function initMermaidScripts(mermaidTheme?: string): string {
-  const mermaidThemeToUse = mermaidTheme
-    ? mermaidTheme : isDarkTheme
-      ? 'dark' : 'default'
+  const mermaidThemeToUse = mermaidTheme ? mermaidTheme : isDarkTheme ? 'dark' : 'default'
   return `
 <script type="module">
 import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
@@ -50,21 +44,6 @@ mermaid.initialize({ startOnLoad: true, theme: '${mermaidThemeToUse}' });
 `
 }
 
-const extraCSS = `
-.stickyButton { position: sticky; float: right; top: 6px; right: 8px; }
-Button a { text-decoration: none; font-size: 0.9rem; }
-.frontmatter { border-radius: 8px;
-  border: 1px solid var(--tint-color);
-  padding: 0rem 0.4rem;
-  background-color: var(--bg-alt-color);
-  }
-@media print {
-  .nonPrinting {
-    display: none;
-  }
-}
-`
-
 /**
  * Preview current Editor note to HTML window, covering:
  * - Mermaid diagrams
@@ -74,21 +53,21 @@ Button a { text-decoration: none; font-size: 0.9rem; }
  * @author @jgclark
  * @param {string?} mermaidTheme name (optional)
  */
-export async function previewNote(mermaidTheme?: string = "green"): Promise<void> {
+export async function previewNote(mermaidTheme?: string = 'green'): Promise<void> {
   try {
     const { note, content } = Editor
     if (!note || !content) {
       throw new Error('No note or content found in Editor. Stopping.')
     }
     let lines = content.split('\n')
-    lines = lines.filter(l => l !== 'triggers: onEditorWillSave => np.Preview.updatePreview')
+    lines = lines.filter((l) => l !== 'triggers: onEditorWillSave => np.Preview.updatePreview')
     // Update mermaid fenced code blocks to suitable <divs>
     // Note: did try to use getCodeBlocksOfType() helper but found it wasn't architected helpfully for this use case
     let includesMermaid = false
     let inMermaidCodeblock = false
     for (let i = 0; i < lines.length; i++) {
-      if (inMermaidCodeblock && lines[i].trim() === "```") {
-        lines[i] = "</pre>"
+      if (inMermaidCodeblock && lines[i].trim() === '```') {
+        lines[i] = '</pre>'
         inMermaidCodeblock = false
       }
       if (!inMermaidCodeblock && lines[i].trim().match(/```\s*mermaid/)) {
@@ -98,7 +77,7 @@ export async function previewNote(mermaidTheme?: string = "green"): Promise<void
       }
     }
 
-    let body = await getNoteContentAsHTML(lines.join('\n'), note) ?? ''
+    let body = (await getNoteContentAsHTML(lines.join('\n'), note)) ?? ''
 
     // Add mermaid script if needed
     if (includesMermaid) {
@@ -118,7 +97,7 @@ export async function previewNote(mermaidTheme?: string = "green"): Promise<void
       headerTags: headerTags,
       generalCSSIn: '', // get general CSS set automatically
       bodyOptions: '',
-      specificCSS: extraCSS,
+      specificCSS: getPreviewSpecificCSS(),
       makeModal: false, // = not modal window
       preBodyScript: initMathJaxScripts, // for MathJax libraries
       postBodyScript: '', // none
@@ -130,8 +109,7 @@ export async function previewNote(mermaidTheme?: string = "green"): Promise<void
     }
     showHTMLV2(body, windowOpts)
     // logDebug('preview', `written results to HTML`)
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, `preview: ${error.message}`)
   }
 }
@@ -173,8 +151,7 @@ export async function addTriggerAndStartPreview(): Promise<void> {
 
     // Start the preview
     await previewNote()
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, `${error.name}: ${error.message}`)
   }
 }
