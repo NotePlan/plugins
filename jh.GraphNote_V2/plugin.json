@@ -1,0 +1,24 @@
+{
+  "noteplan.minAppVersion": "3.0.21",
+  "macOS.minVersion": "10.15.7",
+  "iOS.minVersion": "14",
+  "plugin.id": "jh.GraphNote_V2",
+  "plugin.name": "GraphNote_V2",
+  "plugin.description": "Visualise how your notes connect using an interactive graph. Explore relationships between notes, tags, mentions, and links using multiple easy-to-switch visual views.",
+  "plugin.version": "2.0.0",
+  "plugin.author": "James Hannam",
+  "plugin.url": "https://github.com/iamjameshannam/graphnote_v2",
+  "plugin.script": "script.js",
+  "plugin.commands": [
+    {
+      "name": "graphnote_v2",
+      "description": "Open GraphNote_V2 (D3 visualisations).",
+      "jsFunction": "graphnote_v2"
+    },
+    {
+      "name": "graphnote_v2-rebuild",
+      "description": "Rebuild GraphNote_V2 index and refresh window.",
+      "jsFunction": "rebuildGraphIndex_v2"
+    }
+  ]
+}
