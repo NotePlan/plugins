@@ -4,7 +4,27 @@ See [CHANGELOG](changelog.md) for latest updates/changes to this plugin.
 
 ## About This Code
 
-This is a basic skeleton of a React app that can be used in a NotePlan plugin. 
+This is a basic skeleton of a React app that can be used in a NotePlan plugin.
+
+**⚠️ CRITICAL: Read these documents before writing any React code:**
+
+1. **[REACT_COMMUNICATION_PATTERNS.md](REACT_COMMUNICATION_PATTERNS.md)** - Explains:
+   - How to implement request/response pattern communication
+   - **Why you MUST use `useCallback` for functions passed to context (prevents infinite loops)**
+   - How to properly memoize AppContext
+   - Common pitfalls and best practices
+   - **This pattern has caused infinite loops 5+ times. Always verify function memoization.**
+
+2. **[ROUTER_AND_HANDLERS.md](ROUTER_AND_HANDLERS.md)** - Explains:
+   - How the router and handler system works
+   - How to organize your request handlers
+   - How to add new handlers
+   - How to handle both REQUEST and non-REQUEST actions
+
+3. **[REACT_UTILITIES.md](REACT_UTILITIES.md)** - Explains:
+   - Available utility functions (`truncatePath`, `truncateText`)
+   - How to use them in your React components
+   - Best practices for text/path truncation 
 1. Copy this whole directory 
 1. Do a global find/replace inside the new plugin directory you created and replace:
   `dwertheimer.ReactSkeleton` with whatever the ID you want your new plugin to have. 

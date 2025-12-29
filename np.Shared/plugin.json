@@ -39,6 +39,12 @@
       "hidden": true
     },
     {
+      "name": "showInMainWindow",
+      "description": "Show a HTML+React Window in the main window (split view) for whatever WebView component was supplied by plugin",
+      "jsFunction": "showInMainWindow",
+      "hidden": true
+    },
+    {
       "name": "onMessageFromHTMLView",
       "description": "React Window calling back to plugin",
       "jsFunction": "onMessageFromHTMLView",

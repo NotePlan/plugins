@@ -28,13 +28,15 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
   const rollupProms = []
 
   // Root component configs
+  // Root now bundles React and ReactDOM internally (no longer external)
+  // This makes Root self-contained and eliminates the need for react.core.dev.js
   // dbw: note to self: at some point, we can delete the production version of the Root component
   // because it's not used anywhere -- dev seems to work fine
   const rootRollupConfigs = [
     getRollupConfig({
       entryPointPath: 'np.Shared/src/react/support/rollup.root.entry.js',
       outputFilePath: 'np.Shared/requiredFiles/react.c.Root.REPLACEME.js',
-      externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
+      externalModules: [], // React and ReactDOM are now bundled into Root
       createBundleGraph: graph,
       buildMode: 'development',
       bundleName: 'RootBundle',
@@ -42,7 +44,7 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
     getRollupConfig({
       entryPointPath: 'np.Shared/src/react/support/rollup.root.entry.js',
       outputFilePath: 'np.Shared/requiredFiles/react.c.Root.REPLACEME.js',
-      externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
+      externalModules: [], // React and ReactDOM are now bundled into Root
       createBundleGraph: graph,
       buildMode: 'production',
       bundleName: 'RootBundle',

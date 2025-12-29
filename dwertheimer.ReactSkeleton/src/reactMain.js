@@ -1,8 +1,7 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
-import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { getWindowFromId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 
@@ -65,57 +64,11 @@ export function getPluginData(): { [string]: mixed } {
 }
 
 /**
- * Router function that receives requests from the React Window and routes them to the appropriate function
- * Typically based on a user interaction in the React Window
- * (e.g. handleSubmitButtonClick example below)
- * Here's where you will process any other commands+data that comes back from the React Window
- * How it works:
- * let reactWindowData...reaches out to the React window and get the most current pluginData that it's using to render.
- * This is the data that you initially built and passed to the window in the initial call (with a few additions you don't need to worry about)
- * Then in the case statements, we pass that data to a function which will act on the particular action type,
- * and you edit the part of the data object that needs to be edited: typically `reactWindowData.pluginData.XXX`
- * and that function IMPORTANTLY returns a modified reactWindowData object after acting on the action (this should be the full object used to render the React Window)
- * That new updated reactWindowData object is sent back to the React window basically saying "hey, the data has changed, re-render as necessary!"
- * and React will look through the data and find the parts that have changed and re-draw only those parts of the window
- * @param {string} actionType - the reducer-type action to be dispatched
- * @param {any} data - the relevant sent from the React Window (could be anything the plugin needs to act on the actionType)
- * @author @dwertheimer
- */
-export async function onMessageFromHTMLView(actionType: string, data: any = null): Promise<any> {
-  try {
-    logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
-    clo(data, `Plugin onMessageFromHTMLView data=`)
-    let reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
-    clo(reactWindowData, `Plugin onMessageFromHTMLView reactWindowData=`)
-    if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
-    switch (actionType) {
-      /* best practice here is not to actually do the processing but to call a function based on what the actionType was sent by React */
-      /* you would probably call a different function for each actionType */
-      case 'onSubmitClick':
-        reactWindowData = await handleSubmitButtonClick(data, reactWindowData) //update the data to send it back to the React Window
-        break
-      default:
-        await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`, 'ERROR')
-        break
-    }
-    if (reactWindowData) {
-      const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
-      clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
-      sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
-    }
-    return {} // this return value is ignored but needs to exist or we get an error
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
-
-/**
  * Update the data in the React Window (and cause it to re-draw as necessary with the new data)
  * This is likely most relevant when a trigger has been sent from a NotePlan window, but could be used anytime a plugin wants to update the data in the React Window
- * This is exactly the same as onMessageFromHTMLView, but named updateReactWindowData to clarify that the plugin is updating the data in the React Window
- * rather than a user interaction having triggered it (the result is the same)
- * @param {string} actionType - the reducer-type action to be dispatched -- see onMessageFromHTMLView above
- * @param {any} data - any data that the router (specified in onMessageFromHTMLView) needs -- may be nothing
+ * This calls the router function (onMessageFromHTMLView) which handles both REQUEST and non-REQUEST actions
+ * @param {string} actionType - the reducer-type action to be dispatched
+ * @param {any} data - any data that the router needs -- may be nothing
  * @returns {Promise<any>} - does not return anything important
  */
 export async function updateReactWindowData(actionType: string, data: any = null): Promise<any> {
@@ -123,33 +76,9 @@ export async function updateReactWindowData(actionType: string, data: any = null
     logError(pluginJson, `updateReactWindowData('${actionType}'): Window with ID ${WEBVIEW_WINDOW_ID} not found. Could not update data.`)
     return
   }
+  // Import and call the router function
+  const { onMessageFromHTMLView } = await import('./router')
   return await onMessageFromHTMLView(actionType, data)
-}
-
-/**
- * An example handler function that is called when someone clicks a button in the React Window.
- * When someone clicks a "Submit" button in the React Window, it calls the router (onMessageFromHTMLView)
- * which sees the actionType === "onSubmitClick" so it routes to this function for processing.
- * @param {any} data - the data sent from the React Window for the action 'onSubmitClick'
- * @param {any} reactWindowData - the current data in the React Window
- * @returns {any} - the updated data to send back to the React Window
- */
-async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): Promise<PassedData> {
-  const { index: clickedIndex } = data //in our example, the button click just sends the index of the row clicked
-  await sendBannerMessage(
-    WEBVIEW_WINDOW_ID,
-    `Plugin received an actionType: "onSubmitClick" command with data:<br/>${JSON.stringify(
-      data,
-    )}.<br/>Plugin then fired this message over the bridge to the React window and changed the data in the React window.`,
-    'INFO',
-    2000,
-  )
-  clo(reactWindowData, `handleSubmitButtonClick: reactWindowData BEFORE update`)
-  // change the data in the React window for the row that was clicked (just an example)
-  // find the right row, even though rows could have been scrambled by the user inside the React Window
-  const index = reactWindowData.pluginData.tableRows.findIndex((row) => row.id === clickedIndex)
-  reactWindowData.pluginData.tableRows[index].textValue = `Item ${clickedIndex} was updated by the plugin (see changed data in the debug section below)`
-  return reactWindowData //updated data to send back to React Window
 }
 
 /**

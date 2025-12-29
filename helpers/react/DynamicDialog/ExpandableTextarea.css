@@ -1,0 +1,49 @@
+/* ExpandableTextarea Component Styles */
+
+.expandable-textarea-container {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.expandable-textarea-container.compact {
+  margin-bottom: 0.5rem;
+}
+
+.expandable-textarea-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text-color, #333);
+}
+
+.expandable-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical; /* Allow vertical resizing */
+  transition: height 0.1s ease;
+  background-color: var(--bg-color, #fff);
+  color: var(--text-color, #333);
+}
+
+.expandable-textarea:focus {
+  outline: none;
+  border-color: var(--tint-color, #007aff);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+}
+
+.expandable-textarea:disabled {
+  background-color: var(--bg-alt-color, #f5f5f5);
+  color: var(--text-disabled-color, #999);
+  cursor: not-allowed;
+}
+
+.expandable-textarea::placeholder {
+  color: var(--text-placeholder-color, #999);
+}
+
+

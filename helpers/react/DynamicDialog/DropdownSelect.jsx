@@ -46,7 +46,7 @@ type DropdownSelectProps = {
    * Use this prop to override the internal state and control the dropdown's value externally.
    */
   controlledValue?: string | Option,
-  onChange?: ({ [string]: mixed }) => void,
+  onChange?: (option: Option) => void,
   inputRef?: { current: null | HTMLInputElement },
   compactDisplay?: boolean,
   disabled?: boolean,
@@ -63,6 +63,11 @@ type DropdownSelectProps = {
    * Defaults to false (meaning auto-scroll is active).
    */
   disableAutoScroll?: boolean,
+  /**
+   * Placeholder text to show when no value is selected.
+   * This will be displayed as a non-selectable option that won't be submitted.
+   */
+  placeholder?: string,
 }
 
 /**
@@ -125,6 +130,7 @@ const DropdownSelect = ({
   isEditable = false,
   disabled = false,
   disableAutoScroll = false,
+  placeholder,
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
 
@@ -132,20 +138,29 @@ const DropdownSelect = ({
     return typeof option === 'string' ? { label: option, value: option } : option
   }
 
+  // Find option by value (string or Option)
+  const findOptionByValue = (val: string | Option | void, optionsList: Array<Option>): ?Option => {
+    if (!val) return null
+    const searchValue = typeof val === 'string' ? val : val.value
+    return optionsList.find((opt) => opt.value === searchValue) || null
+  }
+
   const [isOpen, setIsOpen] = useState(false)
   const normalizedOptions: Array<Option> = useMemo(() => {
-    const normalized = options.map(normalizeOption)
-    if (value) {
-      const normalizedValue = normalizeOption(value)
-      const exists = normalized.some((option) => option.value === normalizedValue.value)
-      if (!exists) {
-        normalized.unshift(normalizedValue)
-      }
-    }
-    return normalized
-  }, [options, value])
-  const [selectedValue, setSelectedValue] = useState(value ? normalizeOption(value) : options[0] ? normalizeOption(options[0]) : { label: '', value: '' })
-  const [inputValue, setInputValue] = useState(selectedValue.label)
+    return options.map(normalizeOption)
+  }, [options])
+
+  // Determine the effective value - if value is a string, find the matching option
+  const effectiveValueOption: ?Option = useMemo(() => {
+    const valToUse = controlledValue !== undefined ? controlledValue : value
+    if (!valToUse) return null
+    return findOptionByValue(valToUse, normalizedOptions) || (typeof valToUse === 'string' ? null : normalizeOption(valToUse))
+  }, [value, controlledValue, normalizedOptions])
+
+  const [selectedValue, setSelectedValue] = useState<Option>(
+    effectiveValueOption || (placeholder ? { label: placeholder, value: '' } : options[0] ? normalizeOption(options[0]) : { label: '', value: '' }),
+  )
+  const [inputValue, setInputValue] = useState(selectedValue.label || placeholder || '')
   const [calculatedWidth, setCalculatedWidth] = useState(fixedWidth || 200) // Initial width
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
   const optionsRef = useRef<?ElementRef<'div'>>(null)
@@ -168,10 +183,18 @@ const DropdownSelect = ({
   }, [fixedWidth, normalizedOptions])
 
   // Filter options based on input value only if editable
+  // Include placeholder at the top if no value is selected
   const filteredOptions = useMemo(() => {
-    if (!isEditable) return normalizedOptions
-    return normalizedOptions.filter((option) => option.label.toLowerCase().includes(inputValue.toLowerCase()))
-  }, [inputValue, normalizedOptions, isEditable])
+    let optionsToShow = normalizedOptions
+    if (isEditable) {
+      optionsToShow = normalizedOptions.filter((option) => option.label.toLowerCase().includes(inputValue.toLowerCase()))
+    }
+    // Add placeholder as first option if we have a placeholder and no value is selected (empty value)
+    if (placeholder && (!selectedValue || selectedValue.value === '')) {
+      return [{ label: placeholder, value: '', isPlaceholder: true }, ...optionsToShow]
+    }
+    return optionsToShow
+  }, [inputValue, normalizedOptions, isEditable, placeholder, selectedValue])
 
   // Handle input change
   const handleInputChange = (event: SyntheticInputEvent<HTMLInputElement>) => {
@@ -189,24 +212,14 @@ const DropdownSelect = ({
     }
   }
 
-  // Helper function to safely normalize an option
-  const safeNormalizeOption = (option: ?(string | Option)): Option => {
-    if (!option) {
-      return { label: '', value: '' } // Default empty option
-    }
-    return normalizeOption(option)
-  }
-
-  // Use controlledValue if provided, otherwise fall back to internal state
-  const effectiveValue = controlledValue !== undefined ? safeNormalizeOption(controlledValue) : safeNormalizeOption(value)
-
-  // Update inputValue based on effectiveValue
-  useEffect(() => {
-    setInputValue(effectiveValue.label)
-  }, [effectiveValue])
-
   // Handle option click
   const handleOptionClick = (option: Option) => {
+    // Don't submit placeholder option (empty value)
+    if (option.value === '' && placeholder) {
+      logDebug(`DropdownSelect`, `placeholder clicked, ignoring`)
+      setIsOpen(false)
+      return
+    }
     logDebug(`DropdownSelect`, `option click: ${option.label}`)
     setSelectedValue(option)
     setInputValue(option.label) // Update inputValue with the selected option's label
@@ -264,11 +277,29 @@ const DropdownSelect = ({
     }
   }, [isOpen])
 
+  // Update selectedValue when value prop changes - find matching option by value
   useEffect(() => {
-    if (value !== undefined) {
-      setSelectedValue(safeNormalizeOption(value))
+    const valToUse = controlledValue !== undefined ? controlledValue : value
+    if (valToUse !== undefined && valToUse !== null && valToUse !== '') {
+      const foundOption = findOptionByValue(valToUse, normalizedOptions)
+      if (foundOption) {
+        setSelectedValue(foundOption)
+        setInputValue(foundOption.label)
+      } else if (typeof valToUse === 'string') {
+        // Value not found in options - display the value as-is (fallback)
+        setSelectedValue({ label: valToUse, value: valToUse })
+        setInputValue(valToUse)
+      }
+    } else if (placeholder) {
+      // No value, show placeholder
+      setSelectedValue({ label: placeholder, value: '' })
+      setInputValue(placeholder)
+    } else {
+      // No value and no placeholder
+      setSelectedValue({ label: '', value: '' })
+      setInputValue('')
     }
-  }, [value, normalizedOptions])
+  }, [value, controlledValue, normalizedOptions, placeholder])
 
   // Scroll adjustment effect
   useEffect(() => {
@@ -326,7 +357,7 @@ const DropdownSelect = ({
   }, [isOpen, disableAutoScroll])
 
   // Determine if the selected option should show the indicator
-  const selectedOption = normalizedOptions.find((option) => option.value === effectiveValue.value)
+  const selectedOption = normalizedOptions.find((option) => option.value === selectedValue.value)
   const shouldShowIndicator = showIndicatorOptionProp && selectedOption ? selectedOption[showIndicatorOptionProp] === true : false
 
   //----------------------------------------------------------------------
@@ -361,11 +392,16 @@ const DropdownSelect = ({
       <label className="dropdown-select-label" style={mergeStyles({}, styles.label)}>
         {label}
       </label>
-      <div className="dropdown-select-wrapper"
-        style={mergeStyles({
-          // width: `max(${calculatedWidth}ch, 90%)`
-        }, styles.wrapper)}
-        onClick={disabled ? undefined : toggleDropdown}>
+      <div
+        className="dropdown-select-wrapper"
+        style={mergeStyles(
+          {
+            // width: `max(${calculatedWidth}ch, 90%)`
+          },
+          styles.wrapper,
+        )}
+        onClick={disabled ? undefined : toggleDropdown}
+      >
         <div
           className="dropdown-select-input-container"
           style={mergeStyles(
@@ -396,20 +432,28 @@ const DropdownSelect = ({
           </span>
         </div>
         {isOpen && (
-          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({
-            // width: `max(${calculatedWidth}ch, 98%)`,
-            maxHeight: '80vh',
-            overflowY: 'auto'
-          }, styles.dropdown)}>
+          <div
+            className="dropdown-select-dropdiv"
+            ref={optionsRef}
+            style={mergeStyles(
+              {
+                // width: `max(${calculatedWidth}ch, 98%)`,
+                maxHeight: '80vh',
+                overflowY: 'auto',
+              },
+              styles.dropdown,
+            )}
+          >
             {filteredOptions.map((option: Option, i) => {
               if (option.type === 'separator') {
                 return <div key={option.value} style={styles.separator}></div>
               }
+              const isPlaceholder = (option: any).isPlaceholder || false
               const showIndicator = showIndicatorOptionProp && option.hasOwnProperty(showIndicatorOptionProp)
               return (
                 <div
-                  key={`${option.value}-${i}`}
-                  className={`dropdown-select-option`}
+                  key={`${option.value || 'placeholder'}-${i}`}
+                  className={`dropdown-select-option ${isPlaceholder ? 'placeholder-option' : ''}`}
                   onClick={() => handleOptionClick(option)}
                   style={mergeStyles(
                     {
@@ -421,8 +465,7 @@ const DropdownSelect = ({
                   )}
                 >
                   {showIndicator && <span style={dot(option[showIndicatorOptionProp] === true, styles.indicator || {})} />}
-                  <span className="option-label"
-                    style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
+                  <span className="option-label" style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
                     {option.label}
                   </span>
                 </div>

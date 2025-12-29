@@ -2,11 +2,39 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.8.3] @dwertheimer 2025-12-27
+
+- Refactor HTML generation code to eliminate duplication between `openReactWindow` and `showInMainWindow`
+- Extract shared HTML generation logic into `prepareReactWindowData` function
+- Create `assembleHTMLString` function for `showInMainWindow` to build complete HTML string
+- Update `addStringOrArrayItems` to properly handle `ScriptObj` types in addition to strings and arrays
+- Both window functions now use shared code, reducing maintenance burden and ensuring consistency
+
+## [0.8.2] @dwertheimer 2025-12-27
+
+- Root bundle now includes React and ReactDOM internally (self-contained)
+- Eliminated separate react.core.dev.js bundle - React/ReactDOM are bundled into Root
+- Root exports React, ReactDOM, and createRoot as globals for other bundles to use
+- Fixed script loading order: Root loads before plugin bundles so React/ReactDOM are available
+- Plugin bundles (like Forms) now reference React/ReactDOM as external globals from Root
+
+## [0.8.1] @dwertheimer 2025-12-24
+
+- Add Toast notification component and option for MessageBanner to be displayed as a floating toast for transient messages in top-right corner
+- Toast overlays content (doesn't push it down like MessageBanner)
+- Supports INFO, WARN, ERROR, and SUCCESS types with auto-dismiss timeout
+- Can be called from plugin side via `sendToastMessage()` or React side via `dispatch('SHOW_TOAST')`
+- Includes slide-in animation from right and fade effects
+
 ## [0.8.0] @jgclark 2025-12-18
 
+- Add request/response pattern for awaiting from React->Plugin->React
 - Bring a better design to MessageBanner component
 - Update MessageBanner to take a 'type' (WARN, ERROR, INFO or REMOVE), and an optional timeout
 - Add separate MessageBanner.css, that removes this particular dependency on css.w3.css
+- Add NP_THEME to showHTMLV2
+- Fix bug in window positioning math in showHTMLV2
+
 
 ## [0.7.5] @dwertheimer 2025-01-24
 

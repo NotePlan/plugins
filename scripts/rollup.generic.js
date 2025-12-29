@@ -142,7 +142,25 @@ function getRollupConfig(options) {
 
   const exportedFileVarName = options.bundleName || 'reactBundle'
 
-  const externalGlobals = (externalModules || []).reduce((acc, cur) => ({ ...acc, [cur]: cur }), {})
+  // Map external module names to their global variable names
+  // React and ReactDOM are loaded by np.Shared's Root component
+  const externalGlobals = (externalModules || []).reduce((acc, cur) => {
+    // Map various React import names to the global React variable
+    if (cur === 'react' || cur === 'React') {
+      acc[cur] = 'React'
+    } else if (cur === 'react-dom' || cur === 'reactDOM' || cur === 'ReactDOM' || cur === 'dom') {
+      acc[cur] = 'ReactDOM'
+    } else {
+      // For other externals, use the module name as the global name
+      acc[cur] = cur
+    }
+    return acc
+  }, {})
+  
+  // Also add 'react-dom' explicitly (common import name that might not be in externalModules list)
+  if (!externalGlobals['react-dom']) {
+    externalGlobals['react-dom'] = 'ReactDOM'
+  }
 
   const postcssOptions = {
     minimize: true,
@@ -237,8 +255,43 @@ function getRollupConfig(options) {
     ],
   }
 
+  // Function to determine if a module should be treated as external
+  // Only treat React/ReactDOM as external if they're in the explicit externalModules list
+  // (Root bundle includes React/ReactDOM, so they shouldn't be external for Root)
+  const isExternal = (id) => {
+    // Check explicit external modules list
+    if (externalModules.includes(id)) {
+      return true
+    }
+    // Only treat 'react' and 'react-dom' as external if they're explicitly in the externalModules list
+    // This allows Root to bundle React while Forms bundles treat it as external
+    return false
+  }
+
+  // Create footer that assigns bundle to global and extracts key exports
+  let footer = null
+  if (opts.format === 'iife') {
+    // Assign bundle to global
+    footer = `Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, ${exportedFileVarName});`
+    
+    // Extract WebView to global scope (Root component expects it as a global)
+    if (exportedFileVarName.includes('FormView') || exportedFileVarName.includes('FormBuilderView')) {
+      footer += `\nif (typeof ${exportedFileVarName} !== 'undefined' && ${exportedFileVarName}.WebView) { typeof(globalThis) == "undefined" ? (this.WebView = ${exportedFileVarName}.WebView) : (globalThis.WebView = ${exportedFileVarName}.WebView); }`
+    }
+    
+    // Extract React and ReactDOM to global scope from Root bundle
+    // Root bundle now includes React and ReactDOM, and other bundles (like Forms) need them as globals
+    if (exportedFileVarName.includes('Root') || exportedFileVarName.includes('RootBundle')) {
+      footer += `\nif (typeof ${exportedFileVarName} !== 'undefined') {`
+      footer += `\n  if (${exportedFileVarName}.React) { typeof(globalThis) == "undefined" ? (this.React = ${exportedFileVarName}.React) : (globalThis.React = ${exportedFileVarName}.React); }`
+      footer += `\n  if (${exportedFileVarName}.ReactDOM) { typeof(globalThis) == "undefined" ? (this.ReactDOM = ${exportedFileVarName}.ReactDOM) : (globalThis.ReactDOM = ${exportedFileVarName}.ReactDOM); }`
+      footer += `\n  if (${exportedFileVarName}.createRoot) { typeof(globalThis) == "undefined" ? (this.createRoot = ${exportedFileVarName}.createRoot) : (globalThis.createRoot = ${exportedFileVarName}.createRoot); }`
+      footer += `\n}`
+    }
+  }
+
   return {
-    external: externalModules,
+    external: isExternal,
     input: entryPointPath,
     output: {
       plugins: outputPlugins,
@@ -247,7 +300,7 @@ function getRollupConfig(options) {
       inlineDynamicImports: opts.format === 'iife' ? false : true,
       name: exportedFileVarName,
       globals: externalGlobals,
-      footer: opts.format === 'iife' ? `Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, ${exportedFileVarName})` : null,
+      footer: footer,
     },
     plugins,
     watch: watchOptions,

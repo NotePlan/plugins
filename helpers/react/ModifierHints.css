@@ -1,0 +1,162 @@
+/* ModifierHints Component Styles */
+
+/* Decoration mode (default) - appears as a badge/decoration */
+.modifier-hint-decoration {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--tint-color, #dc8a78);
+  color: var(--fg-main-color, #ffffff);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  animation: modifierHintFadeIn 0.2s ease-out;
+}
+
+.modifier-hint-decoration.modifier-hint-right {
+  margin-left: auto;
+  margin-right: 0.5rem;
+}
+
+.modifier-hint-decoration.modifier-hint-left {
+  margin-right: auto;
+  margin-left: 0.5rem;
+}
+
+/* Tooltip mode - appears as a tooltip */
+.modifier-hint-tooltip {
+  position: absolute;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--np-theme-background, #ffffff);
+  color: var(--np-theme-text, #000000);
+  border: 1px solid var(--np-theme-border, #e0e0e0);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: modifierHintFadeIn 0.2s ease-out;
+  pointer-events: none;
+}
+
+.modifier-hint-tooltip.modifier-hint-top {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.5rem;
+}
+
+.modifier-hint-tooltip.modifier-hint-bottom {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.5rem;
+}
+
+.modifier-hint-tooltip.modifier-hint-left {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 0.5rem;
+}
+
+.modifier-hint-tooltip.modifier-hint-right {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 0.5rem;
+}
+
+/* Inline mode - appears inline with text */
+.modifier-hint-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  background: var(--np-theme-background-secondary, #f5f5f5);
+  color: var(--np-theme-text-secondary, #666666);
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  margin-left: 0.25rem;
+  vertical-align: middle;
+}
+
+.modifier-hint-icon {
+  font-size: 0.75rem;
+}
+
+.modifier-hint-text {
+  font-size: 0.75rem;
+}
+
+@keyframes modifierHintFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* Tooltip-specific animation */
+.modifier-hint-tooltip.modifier-hint-top,
+.modifier-hint-tooltip.modifier-hint-bottom {
+  animation: modifierHintFadeInVertical 0.2s ease-out;
+}
+
+@keyframes modifierHintFadeInVertical {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.modifier-hint-tooltip.modifier-hint-left,
+.modifier-hint-tooltip.modifier-hint-right {
+  animation: modifierHintFadeInHorizontal 0.2s ease-out;
+}
+
+@keyframes modifierHintFadeInHorizontal {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
+}
+
+/* Cursor mode - positioned at cursor coordinates */
+.modifier-hint-cursor {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--tint-color, #dc8a78);
+  color: var(--np-theme-background, #ffffff);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: modifierHintFadeIn 0.2s ease-out;
+  pointer-events: none;
+}
+

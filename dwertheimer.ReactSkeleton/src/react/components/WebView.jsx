@@ -30,7 +30,7 @@ type Props = {
  *                             IMPORTS
  ****************************************************************************************************************************/
 
-import React, { useEffect, type Node } from 'react'
+import React, { useEffect, useCallback, useRef, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import { AppProvider } from './AppContext.jsx'
 import CompositeLineExample from './CompositeLineExample.jsx'
@@ -62,9 +62,56 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const { pluginData, debug } = data
   const { tableRows } = pluginData
 
+  // Map to store pending requests for request/response pattern
+  // Key: correlationId, Value: { resolve, reject, timeoutId }
+  const pendingRequestsRef = useRef<Map<string, { resolve: (data: any) => void, reject: (error: Error) => void, timeoutId: any }>>(new Map())
+
   /****************************************************************************************************************************
    *                             HANDLERS
    ****************************************************************************************************************************/
+
+  /**
+   * Request data from the plugin using request/response pattern
+   * Returns a Promise that resolves with the response data or rejects with an error
+   * CRITICAL: Must use useCallback to prevent infinite loops when passed to AppContext
+   * @param {string} command - The command/request type (e.g., 'getData')
+   * @param {any} dataToSend - Request parameters
+   * @param {number} timeout - Timeout in milliseconds (default: 10000)
+   * @returns {Promise<any>}
+   */
+  const requestFromPlugin = useCallback((command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
+    if (!command) throw new Error('requestFromPlugin: command must be called with a string')
+
+    const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const pending = pendingRequestsRef.current.get(correlationId)
+        if (pending) {
+          pendingRequestsRef.current.delete(correlationId)
+          reject(new Error(`Request timeout: ${command}`))
+        }
+      }, timeout)
+
+      pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
+
+      const requestData = {
+        ...dataToSend,
+        __correlationId: correlationId,
+        __requestType: 'REQUEST',
+        // NOTE: __windowId is automatically injected by Root.jsx if not present
+        // Root.jsx extracts it from globalSharedData.pluginData?.windowId for ALL SEND_TO_PLUGIN dispatches
+      }
+
+      dispatch('SEND_TO_PLUGIN', [command, requestData], `WebView: requestFromPlugin: ${String(command)}`)
+    })
+      .then((result) => {
+        return result
+      })
+      .catch((error) => {
+        throw error
+      })
+  }, [dispatch]) // Minimal dependencies - only recreate if dispatch changes (__windowId is handled by Root.jsx)
 
   /**
    * Submit button on the page was clicked
@@ -99,6 +146,49 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   /****************************************************************************************************************************
    *                             EFFECTS
    ****************************************************************************************************************************/
+
+  /**
+   * Listen for RESPONSE messages from Root and resolve pending requests
+   * This handles the request/response pattern communication
+   */
+  useEffect(() => {
+    const handleResponse = (event: MessageEvent) => {
+      const { data: eventData } = event
+      // $FlowFixMe[incompatible-type] - eventData can be various types
+      if (eventData && typeof eventData === 'object' && eventData.type === 'RESPONSE' && eventData.payload) {
+        // $FlowFixMe[prop-missing] - payload structure is validated above
+        const payload = eventData.payload
+        // $FlowFixMe[prop-missing] - payload structure is validated above
+        if (payload && typeof payload === 'object') {
+          const correlationId = (payload: any).correlationId
+          const success = (payload: any).success
+          if (correlationId && typeof correlationId === 'string') {
+            const { data: responseData, error } = (payload: any)
+            const pending = pendingRequestsRef.current.get(correlationId)
+            if (pending) {
+              pendingRequestsRef.current.delete(correlationId)
+              clearTimeout(pending.timeoutId)
+              if (success) {
+                pending.resolve(responseData)
+              } else {
+                pending.reject(new Error(error || 'Request failed'))
+              }
+            }
+          }
+        }
+      }
+    }
+
+    window.addEventListener('message', handleResponse)
+    return () => {
+      window.removeEventListener('message', handleResponse)
+      // Clean up any pending requests on unmount
+      pendingRequestsRef.current.forEach((pending) => {
+        clearTimeout(pending.timeoutId)
+      })
+      pendingRequestsRef.current.clear()
+    }
+  }, [])
 
   /**
    * When the data changes, console.log it so we know and scroll the window
@@ -144,31 +234,45 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   }
 
   /**
-   * Convenience function to send an action to the plugin and saving any passthrough data first in the Root data store
-   * This is useful if you want to save data that you want to persist when the plugin sends data back to the Webview
-   * For instance, saving where the scroll position was so that when data changes and the Webview re-renders, it can scroll back to where it was
-   * @param {string} command
-   * @param {any} dataToSend
-   */
-  const sendActionToPlugin = (command: string, dataToSend: any, additionalDetails: string = '') => {
-    logDebug(`Webview: sendActionToPlugin: ${command} ${additionalDetails}`, dataToSend)
-    const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
-    dispatch('UPDATE_DATA', newData) // save the data at the Root React Component level, which will give the plugin access to this data also
-    sendToPlugin([command, dataToSend, additionalDetails]) // send action to plugin
-  }
-
-  /**
    * Send data back to the plugin to update the data in the plugin
    * This could cause a refresh of the Webview if the plugin sends back new data, so we want to save any passthrough data first
    * In that case, don't call this directly, use sendActionToPlugin() instead
-   * @param {[command:string,data:any,additionalDetails:string]} param0
+   * CRITICAL: Must use useCallback to prevent infinite loops when passed to AppContext
+   * 
+   * NOTE: __windowId is automatically injected by Root.jsx if not present, so you don't need to add it manually.
+   * Root.jsx extracts it from globalSharedData.pluginData?.windowId.
+   * 
+   * @param {string} command - The command to send
+   * @param {any} dataToSend - The data to send
+   * @param {string} additionalDetails - Optional additional details for logging
    */
-  const sendToPlugin = ([command: string, data: any, additionalDetails: string = '']) => {
+  const sendToPlugin = useCallback((command: string, dataToSend: any, additionalDetails: string = '') => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
-    logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
-    if (!data) throw new Error('sendToPlugin: data must be called with an object')
-    dispatch('SEND_TO_PLUGIN', [command, data], `WebView: sendToPlugin: ${String(command)} ${additionalDetails}`)
-  }
+    logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, dataToSend, additionalDetails)
+    if (!dataToSend) throw new Error('sendToPlugin: data must be called with an object')
+    // NOTE: __windowId is automatically injected by Root.jsx if not present
+    dispatch('SEND_TO_PLUGIN', [command, dataToSend], `WebView: sendToPlugin: ${String(command)} ${additionalDetails}`)
+  }, [dispatch])
+
+  /**
+   * Convenience function to send an action to the plugin and saving any passthrough data first in the Root data store
+   * This is useful if you want to save data that you want to persist when the plugin sends data back to the Webview
+   * For instance, saving where the scroll position was so that when data changes and the Webview re-renders, it can scroll back to where it was
+   * CRITICAL: Must use useCallback to prevent infinite loops when passed to AppContext
+   * 
+   * NOTE: __windowId is automatically injected by Root.jsx if not present, so you don't need to add it manually.
+   * Root.jsx extracts it from globalSharedData.pluginData?.windowId.
+   * 
+   * @param {string} command
+   * @param {any} dataToSend
+   */
+  const sendActionToPlugin = useCallback((command: string, dataToSend: any, additionalDetails: string = '') => {
+    logDebug(`Webview: sendActionToPlugin: ${command} ${additionalDetails}`, dataToSend)
+    const newData: PassedData = addPassthroughVars(data) // save scroll position and other data in data object at root level
+    dispatch('UPDATE_DATA', newData) // save the data at the Root React Component level, which will give the plugin access to this data also
+    // NOTE: __windowId is automatically injected by Root.jsx if not present
+    sendToPlugin(command, dataToSend, additionalDetails) // send action to plugin
+  }, [dispatch, data, sendToPlugin]) // Include sendToPlugin since it's used inside
 
   /**
    * Updates the pluginData with the provided new data (must be the whole pluginData object)
@@ -178,7 +282,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @throws {Error} Throws an error if newData is not provided or if it does not have more keys than the current pluginData.
    * @return {void}
    */
-  const updatePluginData = (newData, messageForLog?: string) => {
+  const updatePluginData = (newData: Object, messageForLog?: string) => {
     if (!newData) {
       throw new Error('updatePluginData: newData must be called with an object')
     }
@@ -198,6 +302,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     <AppProvider
       sendActionToPlugin={sendActionToPlugin}
       sendToPlugin={sendToPlugin}
+      requestFromPlugin={requestFromPlugin}
       dispatch={dispatch}
       pluginData={pluginData}
       updatePluginData={updatePluginData}

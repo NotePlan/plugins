@@ -15,8 +15,12 @@
 // So you need to add a line below for each function that you want NP to have access to.
 // Typically, listed below are only the top-level plug-in functions listed in plugin.json
 
-export { getTemplateFormData } from './NPTemplateForm'
-export { onFormSubmitFromHTMLView } from './NPTemplateForm'
+export { getTemplateFormData, openFormBuilder, testRequestHandlers, openFormBrowser } from './NPTemplateForm'
+export { onFormSubmitFromHTMLView } from './formSubmitRouter'
+export { onFormBuilderAction } from './formBuilderRouter'
+export { onFormBrowserAction } from './formBrowserRouter'
+export { testFormFieldRender } from './FormFieldRenderTest'
+export { createProcessingTemplate } from './ProcessingTemplate'
 
 // FETCH mocking for offline testing
 // If you want to use external server calls in your plugin, it can be useful to mock the server responses

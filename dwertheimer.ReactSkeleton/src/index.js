@@ -11,7 +11,8 @@ import { clo } from '@helpers/dev'
  */
 export { editSettings } from '@helpers/NPSettings'
 
-export { openReactWindow, onMessageFromHTMLView } from './reactMain.js'
+export { openReactWindow, updateReactWindowData } from './reactMain.js'
+export { onMessageFromHTMLView } from './router.js'
 
 /**
  * Hooks
