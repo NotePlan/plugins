@@ -257,11 +257,16 @@
   ],
   "plugin.settings": [
     {
-      "key": "openInSplitView",
-      "type": "bool",
-      "title": "Open Dashboard in split view?",
-      "description": "If enabled, the Dashboard will open in the main window as a split view instead of a separate window.",
-      "default": false,
+      "key": "preferredWindowType",
+      "title": "Open Dashboard in what sort of window?",
+      "description": "'Window' for a separate window; 'Main' for the main window; 'Split View' for a split view in the main window.",
+      "type": "string",
+      "default": "window",
+      "choices": [
+        "Window",
+        "Main",
+        "Split"
+      ],
       "required": true
     },
     {

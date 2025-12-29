@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-12-08 for v2.4.0.b by @jgclark
+// Last updated 2025-12-28 for v2.4.0.b by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -29,7 +29,7 @@ export type TDashboardSettings = {
   // Note: add all of these to the list of items in cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
   usePerspectives: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
-  openInSplitView: boolean,
+  preferredWindowType: string, // 'Window' | 'Main' | 'Split'
   FFlag_ShowSearchPanel?: boolean,
   // searchSettings?: TSearchOptions, // an object holding a number of settings TODO: add from 2.4.0?
   // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings
