@@ -49,6 +49,7 @@ export type TSettingItemType =
   | 'orderingPanel'
   | 'folder-chooser'
   | 'note-chooser'
+  | 'space-chooser' // Space (Private/Teamspace) chooser
   | 'heading-chooser'
   | 'event-chooser' // Calendar event chooser
   | 'form-state-viewer' // Read-only field that displays current form state as JSON
@@ -111,6 +112,8 @@ export type TSettingItem = {
   sourceFolderKey?: string, // Value dependency: for note-chooser, key of a folder-chooser field to filter notes by folder
   // showValue option for SearchableChooser-based fields
   showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
+  // space-chooser options
+  includeAllOption?: boolean, // for space-chooser, include "All Private + Spaces" option that returns "__all__" (default: false)
   staticHeadings?: Array<string>, // for heading-chooser, static list of headings (if not depending on a note)
   // textarea options
   minRows?: number, // for textarea, minimum number of rows (default: 3)
@@ -447,7 +450,7 @@ const DynamicDialog = ({
               value: typeof item.key === 'undefined' ? '' : updatedSettings[item.key] ?? '',
               checked: typeof item.key === 'undefined' ? false : updatedSettings[item.key] === true,
             },
-            disabled: (item.dependsOnKey || item.requiresKey) ? !stateOfControllingSetting(item) : false,
+            disabled: item.dependsOnKey || item.requiresKey ? !stateOfControllingSetting(item) : false,
             indent: Boolean(item.dependsOnKey || item.requiresKey),
             handleFieldChange,
             handleButtonClick, // Pass handleButtonClick

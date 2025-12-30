@@ -595,6 +595,28 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             </>
           )}
 
+          {editedField.type === 'space-chooser' && (
+            <>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { includeAllOption?: boolean }).includeAllOption || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includeAllOption = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Include &apos;All Private + Spaces&apos; option
+                </label>
+                <div className="field-editor-help">
+                  When enabled, adds an &quot;All Private + Spaces&quot; option that returns &quot;__all__&quot; when selected. This allows users to select all spaces at once.
+                </div>
+              </div>
+            </>
+          )}
+
           {editedField.type === 'event-chooser' && (
             <>
               <div className="field-editor-row">

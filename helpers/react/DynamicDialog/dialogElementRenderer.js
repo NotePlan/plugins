@@ -770,6 +770,7 @@ export function renderItem({
               placeholder={item.placeholder || 'Type to search spaces...'}
               requestFromPlugin={requestFromPlugin}
               showValue={item.showValue ?? false}
+              includeAllOption={item.includeAllOption ?? false}
             />
           </div>
         )

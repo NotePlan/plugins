@@ -4,10 +4,9 @@
 // Allows users to select a Space (Teamspace or Private) by typing to filter choices
 //--------------------------------------------------------------------------
 
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
-import { TEAMSPACE_FA_ICON } from '@helpers/teamspace.js'
 import { TEAMSPACE_ICON_COLOR } from '@helpers/NPnote.js'
 import { truncateText } from '@helpers/react/reactUtils.js'
 import './SpaceChooser.css'
@@ -20,13 +19,14 @@ export type SpaceOption = {
 
 export type SpaceChooserProps = {
   label?: string,
-  value?: string, // The space ID (empty string for Private)
-  onChange: (spaceId: string) => void, // Callback with space ID (empty string for Private)
+  value?: string, // The space ID (empty string for Private, "__all__" for All)
+  onChange: (spaceId: string) => void, // Callback with space ID (empty string for Private, "__all__" for All)
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>,
   showValue?: boolean, // If true, display the selected value below the input
+  includeAllOption?: boolean, // If true, include "All Private + Spaces" option that returns "__all__"
 }
 
 /**
@@ -44,17 +44,29 @@ export function SpaceChooser({
   placeholder = 'Type to search spaces...',
   requestFromPlugin,
   showValue = false,
+  includeAllOption = false,
 }: SpaceChooserProps): React$Node {
   const [spaces, setSpaces] = useState<Array<SpaceOption>>([])
   const [spacesLoaded, setSpacesLoaded] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const requestFromPluginRef = useRef<?(command: string, dataToSend?: any, timeout?: number) => Promise<any>>(requestFromPlugin)
   const isLoadingRef = useRef<boolean>(false) // Track loading state to prevent concurrent loads
+  const includeAllOptionRef = useRef<boolean>(includeAllOption)
 
-  // Update ref when requestFromPlugin changes
+  // Update refs when props change
   useEffect(() => {
     requestFromPluginRef.current = requestFromPlugin
   }, [requestFromPlugin])
+
+  useEffect(() => {
+    // If includeAllOption changes and spaces are already loaded, we need to reload
+    if (includeAllOptionRef.current !== includeAllOption && spacesLoaded) {
+      includeAllOptionRef.current = includeAllOption
+      setSpacesLoaded(false) // Force reload to update the options list
+    } else {
+      includeAllOptionRef.current = includeAllOption
+    }
+  }, [includeAllOption, spacesLoaded])
 
   // Load spaces (teamspaces) from plugin
   const loadSpaces = async () => {
@@ -65,7 +77,7 @@ export function SpaceChooser({
     }
 
     const loadStartTime = performance.now()
-    let isMounted = true
+    const isMounted = true // Track if component is still mounted (currently always true, but kept for future cleanup pattern)
     try {
       isLoadingRef.current = true
       setIsLoading(true)
@@ -75,11 +87,18 @@ export function SpaceChooser({
       const loadElapsed = performance.now() - loadStartTime
       logDebug('SpaceChooser', `[DIAG] loadSpaces COMPLETE: elapsed=${loadElapsed.toFixed(2)}ms`)
 
-      // Always include Private as the first option
+      // Always include Private as an option
       const privateOption: SpaceOption = {
         id: '',
         title: 'Private',
         isPrivate: true,
+      }
+
+      // Optionally include "All Private + Spaces" option
+      const allOption: SpaceOption = {
+        id: '__all__',
+        title: 'All Private + Spaces',
+        isPrivate: false, // Not technically private, but we'll handle it specially in display functions
       }
 
       if (isMounted) {
@@ -91,8 +110,9 @@ export function SpaceChooser({
             isPrivate: false,
           }))
 
-          // Combine Private + Teamspaces
-          setSpaces([privateOption, ...teamspaceOptions])
+          // Combine options: All (if enabled) + Private + Teamspaces
+          const allOptions = includeAllOptionRef.current ? [allOption, privateOption, ...teamspaceOptions] : [privateOption, ...teamspaceOptions]
+          setSpaces(allOptions)
           setSpacesLoaded(true)
           logDebug('SpaceChooser', `Loaded ${teamspaceOptions.length} teamspaces + Private`)
           if (teamspaceOptions.length > 0) {
@@ -104,22 +124,29 @@ export function SpaceChooser({
           }
         } else {
           logError('SpaceChooser', `[DIAG] loadSpaces: Invalid response format, got:`, typeof teamspacesData, teamspacesData)
-          // Still set Private option even on error
-          setSpaces([privateOption])
+          // Still set Private option even on error (and All if enabled)
+          const allOptions = includeAllOptionRef.current ? [allOption, privateOption] : [privateOption]
+          setSpaces(allOptions)
           setSpacesLoaded(true)
         }
       }
     } catch (error) {
       const loadElapsed = performance.now() - loadStartTime
       logError('SpaceChooser', `[DIAG] loadSpaces ERROR: elapsed=${loadElapsed.toFixed(2)}ms, error="${error.message}"`)
-      // Still set Private option even on error
+      // Still set Private option even on error (and All if enabled)
       if (isMounted) {
         const privateOption: SpaceOption = {
           id: '',
           title: 'Private',
           isPrivate: true,
         }
-        setSpaces([privateOption])
+        const allOption: SpaceOption = {
+          id: '__all__',
+          title: 'All Private + Spaces',
+          isPrivate: false,
+        }
+        const allOptions = includeAllOptionRef.current ? [allOption, privateOption] : [privateOption]
+        setSpaces(allOptions)
         setSpacesLoaded(true) // Set to true to prevent infinite retries on error
       }
     } finally {
@@ -144,6 +171,7 @@ export function SpaceChooser({
       isLoadingRef.current = false
     }
     // Only depend on spacesLoaded, not requestFromPlugin to avoid infinite loops
+    // includeAllOption changes are handled by the separate useEffect above
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spacesLoaded])
 
@@ -161,6 +189,9 @@ export function SpaceChooser({
       return space.title
     },
     getOptionTitle: (space: SpaceOption) => {
+      if (space.id === '__all__') {
+        return 'All Private notes and all Teamspaces'
+      }
       return space.isPrivate ? 'Private notes (default)' : `Teamspace: ${space.title}`
     },
     truncateDisplay: truncateText,
@@ -179,19 +210,28 @@ export function SpaceChooser({
     dropdownMaxLength: 80,
     getOptionIcon: (space: SpaceOption) => {
       // TEAMSPACE_FA_ICON is 'fa-regular fa-cube', we need just 'cube' for fa-solid
+      if (space.id === '__all__') {
+        return 'layer-group' // Icon representing "all" or multiple layers
+      }
       return space.isPrivate ? 'user' : 'cube'
     },
     getOptionColor: (space: SpaceOption) => {
+      if (space.id === '__all__') {
+        return undefined // Use default color for "All" option
+      }
       return space.isPrivate ? undefined : TEAMSPACE_ICON_COLOR
     },
     getOptionShortDescription: (space: SpaceOption) => {
+      if (space.id === '__all__') {
+        return 'All Private notes and Teamspaces'
+      }
       return space.isPrivate ? 'Your private notes' : 'Teamspace'
     },
   }
 
   // Find the current space to get its display title
   const currentSpace = spaces.find((s) => s.id === value) || (value === '' ? spaces.find((s) => s.isPrivate) : null)
-  const displayValue = currentSpace ? currentSpace.title : value || 'Private'
+  const displayValue = currentSpace ? currentSpace.title : value === '__all__' ? 'All Private + Spaces' : value || 'Private'
 
   return (
     <SearchableChooser
