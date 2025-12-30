@@ -44,7 +44,7 @@ import {
   RE_DATE, RE_DATE_INTERVAL, todaysDateISOString
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
-import { saveEditorIfNecessary } from '@helpers/editor'
+import { saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
 import {
   createRunPluginCallbackUrl, displayTitle,

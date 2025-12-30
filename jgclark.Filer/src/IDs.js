@@ -8,7 +8,7 @@
 import pluginJson from "../plugin.json"
 import { getFilerSettings } from './filerHelpers'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
-import { getSelectedParagraphsToUse } from '@helpers/editor'
+import { getSelectedParagraphsToUse } from '@helpers/NPEditor'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { chooseNoteV2 } from '@helpers/NPnote'

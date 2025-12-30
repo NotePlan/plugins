@@ -12,7 +12,7 @@ import { isCalendarNoteFilename } from '@helpers/regex'
 import { log, logDebug, logError, clo, JSP, timer } from '@helpers/dev'
 import { findProjectNoteUrlInText } from '@helpers/urls'
 import { getAttributes, getNoteTitleFromTemplate, getNoteTitleFromRenderedContent } from '@helpers/NPFrontMatter'
-import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
+import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/NPEditor'
 import { getContentWithLinks } from '@helpers/content'
 
 /**

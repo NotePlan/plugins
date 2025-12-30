@@ -55,7 +55,7 @@ import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
 
-import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
+import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/NPEditor'
 
 import { getOpenTasksAndChildren } from '@helpers/parentsAndChildren'
 

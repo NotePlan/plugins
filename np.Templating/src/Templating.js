@@ -29,7 +29,7 @@ import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 import { initConfiguration, updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 import { hasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
-import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
+import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/NPEditor'
 import { getNoteTitleFromTemplate, getNoteTitleFromRenderedContent, analyzeTemplateStructure } from '@helpers/NPFrontMatter'
 
 import pluginJson from '../plugin.json'
