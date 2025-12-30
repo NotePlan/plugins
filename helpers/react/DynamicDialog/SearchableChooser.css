@@ -32,12 +32,25 @@
 }
 
 /* Label - matches any {prefix}-label within base */
+/* Use font-weight: 600 to match input-box-label styling for consistency */
 .searchable-chooser-base [class*="-chooser-label"],
 [class*="-chooser-label"] {
   display: block;
   margin-bottom: 0.25rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-color, #333);
+}
+
+/* Fix label alignment in compact display */
+.searchable-chooser-base.compact [class*="-chooser-label"],
+[class*="-chooser-container"].compact [class*="-chooser-label"] {
+  margin-bottom: 0;
+  align-self: center;
+  min-width: 8rem;
+  text-align: right;
+  padding-right: 1rem;
+  white-space: nowrap;
+  margin-right: 0;
 }
 
 /* Input wrapper - matches any {prefix}-input-wrapper within base */
@@ -46,6 +59,14 @@
   position: relative;
   width: 100%;
   overflow: visible !important; /* Ensure dropdown is not clipped */
+}
+
+/* In compact mode, input wrapper should flex to fill remaining space */
+.searchable-chooser-base.compact [class*="-chooser-input-wrapper"],
+[class*="-chooser-container"].compact [class*="-chooser-input-wrapper"] {
+  flex: 1;
+  min-width: 0;
+  margin-left: 0; /* Ensure no extra margin to align with other compact fields */
 }
 
 /* Input - matches any {prefix}-input within base */

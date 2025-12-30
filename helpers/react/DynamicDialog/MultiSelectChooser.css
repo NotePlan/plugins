@@ -10,7 +10,7 @@
 .multi-select-chooser-base label {
   display: block;
   margin-bottom: 0.5rem;
-  font-weight: 500;
+  font-weight: 600; /* Match input-box-label for consistency */
   color: var(--text-color, #333);
 }
 

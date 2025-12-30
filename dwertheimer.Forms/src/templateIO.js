@@ -4,7 +4,7 @@
 //--------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { templateBodyCodeBlockType, templateRunnerArgsCodeBlockType, varsCodeBlockType, varsInForm } from './ProcessingTemplate'
+import { templateBodyCodeBlockType, templateRunnerArgsCodeBlockType, varsCodeBlockType, varsInForm, customCSSCodeBlockType } from './ProcessingTemplate'
 import { getNoteByFilename } from '@helpers/note'
 import { saveCodeBlockToNote, loadCodeBlockFromNote, replaceCodeBlockContent } from '@helpers/codeBlocks'
 import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
@@ -159,6 +159,44 @@ export async function saveTemplateRunnerArgsToTemplate(templateFilename: string,
     )
   } catch (error) {
     logError(pluginJson, `saveTemplateRunnerArgsToTemplate error: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Save custom CSS to template as code block
+ * @param {string} templateFilename - The template filename
+ * @param {string} customCSS - The custom CSS content
+ * @returns {Promise<void>}
+ */
+export async function saveCustomCSSToTemplate(templateFilename: string, customCSS: string): Promise<void> {
+  try {
+    // Use generalized helper function (no formatting needed for CSS, it's already a string)
+    await saveCodeBlockToNote(
+      templateFilename,
+      customCSSCodeBlockType,
+      customCSS || '',
+      pluginJson.id,
+      null, // No format function needed
+      false, // Don't show error messages to user (silent operation)
+    )
+  } catch (error) {
+    logError(pluginJson, `saveCustomCSSToTemplate error: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Load custom CSS from template code block
+ * @param {CoreNoteFields | string} templateNoteOrFilename - The template note or filename
+ * @returns {Promise<string>} - The custom CSS content, or empty string if not found
+ */
+export async function loadCustomCSSFromTemplate(templateNoteOrFilename: CoreNoteFields | string): Promise<string> {
+  try {
+    // Use generalized helper function (no parsing needed for CSS, it's already a string)
+    const content = await loadCodeBlockFromNote<string>(templateNoteOrFilename, customCSSCodeBlockType, pluginJson.id, null)
+    return content || ''
+  } catch (error) {
+    logError(pluginJson, `loadCustomCSSFromTemplate error: ${JSP(error)}`)
+    return ''
   }
 }
 

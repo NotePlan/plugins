@@ -155,9 +155,61 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
 
         clo(templateRunnerArgs, `handleSubmitButtonClick: Using write-existing, calling templateRunner with args`)
         await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
+      } else if (method === 'run-js-only') {
+        // Option D: Run JS Only (no note creation)
+        // Get TemplateJS blocks from form fields (templatejs-block type)
+        const formFields = reactWindowData?.pluginData?.formFields || []
+        
+        logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: formFields.length=${formFields.length}`)
+        
+        // Find all TemplateJS blocks from form fields
+        const templateJSBlocks: Array<string> = []
+        formFields.forEach((field) => {
+          if (field.type === 'templatejs-block' && field.templateJSContent && field.key) {
+            const code = String(field.templateJSContent).trim()
+            logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: Found templatejs-block field "${field.key}" with ${code.length} chars of code`)
+            logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: JavaScript code: ${code.substring(0, 200)}${code.length > 200 ? '...' : ''}`)
+            if (code) {
+              templateJSBlocks.push(code)
+            }
+          }
+        })
+        
+        if (templateJSBlocks.length === 0) {
+          await showMessage('No TemplateJS block found in form fields. Please add a TemplateJS Block field to your form with the JavaScript code to execute.')
+          return null
+        }
+
+        // Combine all TemplateJS blocks (they will be executed in order)
+        // Format as templatejs code blocks
+        const finalTemplateBody = templateJSBlocks.map((code) => `\`\`\`templatejs\n${code}\n\`\`\``).join('\n')
+
+        // Build form values for rendering (filter out __isJSON__ flag)
+        const formValuesForRendering = { ...formValues }
+        delete formValuesForRendering.__isJSON__
+
+        logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: formValues keys: ${Object.keys(formValuesForRendering).join(', ')}`)
+        logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: templateBody length: ${finalTemplateBody.length} chars`)
+
+        // Execute JavaScript directly using templating plugin's render command
+        // This will process the templatejs blocks, convert them to EJS, and execute them with form values as context
+        try {
+          logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: About to execute JavaScript with form values: ${JSON.stringify(formValuesForRendering)}`)
+          const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [finalTemplateBody, formValuesForRendering])
+          logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: JavaScript executed successfully, result length: ${result?.length || 0} chars`)
+          // Result is typically empty for JS-only execution (no output expected, just side effects like creating folders)
+          // Note: If folders aren't being created, check that the JavaScript code uses the correct folder paths
+          // For example, if parentFolder is "DELETEME" and folderName is "tetpara", the code should use:
+          // DataStore.createFolder(`${parentFolder}/${folderName}`) or similar
+        } catch (error) {
+          logError(pluginJson, `handleSubmitButtonClick: run-js-only: Error executing JavaScript: ${error.message}`)
+          logError(pluginJson, `handleSubmitButtonClick: run-js-only: Error stack: ${error.stack}`)
+          await showMessage(`Error executing JavaScript: ${error.message}`)
+          return null
+        }
       } else if (method === 'create-new') {
         // Option B: Create New Note
-        const { newNoteTitle, newNoteFolder } = data
+        const { newNoteTitle, newNoteFolder, space } = data
         // Clean newNoteTitle: trim and remove any newlines (defensive)
         const cleanedNewNoteTitle = newNoteTitle ? String(newNoteTitle).replace(/\n/g, ' ').trim() : ''
         if (!cleanedNewNoteTitle) {
@@ -201,8 +253,25 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
         }
 
         // Set folder - use '/' for root folder if empty, otherwise use the specified folder
+        // If space (teamspace) is set and folder doesn't already have teamspace prefix, prepend it
         // Don't pass null as DataStore.newNote treats null as the literal string "null"
-        templateRunnerArgs.folder = newNoteFolder && newNoteFolder.trim() ? newNoteFolder.trim() : '/'
+        let folderPath = newNoteFolder && newNoteFolder.trim() ? newNoteFolder.trim() : '/'
+        
+        // If space is set (teamspace) and folder doesn't already have teamspace prefix, prepend it
+        if (space && space.trim() && !folderPath.startsWith('%%NotePlanCloud%%')) {
+          // Construct teamspace folder path: %%NotePlanCloud%%/{teamspaceID}/{folder}
+          // Note: teamspace folder format requires / after %%NotePlanCloud%%
+          if (folderPath === '/' || folderPath === '') {
+            folderPath = `%%NotePlanCloud%%/${space}/`
+          } else {
+            // Remove leading slash from folderPath if present (we'll add it after teamspace prefix)
+            const cleanFolder = folderPath.startsWith('/') ? folderPath.slice(1) : folderPath
+            folderPath = `%%NotePlanCloud%%/${space}/${cleanFolder}`
+          }
+          logDebug(pluginJson, `handleSubmitButtonClick: Prefixed folder with teamspace: ${folderPath}`)
+        }
+        
+        templateRunnerArgs.folder = folderPath
 
         clo(templateRunnerArgs, `handleSubmitButtonClick: Using create-new, calling templateRunner with args`)
         await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])

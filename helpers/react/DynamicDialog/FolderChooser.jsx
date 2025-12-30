@@ -437,7 +437,7 @@ export function FolderChooser({
   }
 
   return (
-    <>
+    <div className={compactDisplay ? 'folder-chooser-wrapper-compact' : 'folder-chooser-wrapper'}>
       <SearchableChooser
         label={label}
         value={value}
@@ -449,7 +449,10 @@ export function FolderChooser({
         closeDropdown={closeDropdown}
       />
       {includeNewFolderOption && (
-        <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+        <div
+          className={compactDisplay ? 'folder-chooser-description-compact' : 'folder-chooser-description'}
+          style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}
+        >
           Click &quot;New Folder&quot; to create a folder. Hold Option (⌥) and click on any folder to create a subfolder inside it.
         </div>
       )}
@@ -544,7 +547,7 @@ export function FolderChooser({
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }
 

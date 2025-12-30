@@ -4,7 +4,7 @@ import pluginJson from '../plugin.json'
 import { type PassedData } from './shared/types.js'
 // Note: getAllNotesAsOptions is no longer used here - FormView loads notes dynamically via requestFromPlugin
 import { testRequestHandlers, updateFormLinksInNote, removeEmptyLinesFromNote } from './requestHandlers'
-import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, getFormTemplateList } from './templateIO.js'
+import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, getFormTemplateList } from './templateIO.js'
 import { openFormWindow, openFormBuilderWindow, getFormBrowserWindowId } from './windowManagement.js'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
@@ -15,6 +15,7 @@ import { validateObjectString, parseObjectString } from '@helpers/stringTransfor
 import { updateFrontMatterVars, ensureFrontmatter, noteHasFrontMatter, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
+import { parseTeamspaceFilename } from '@helpers/teamspace'
 // Note: getFoldersMatching is no longer used here - FormView loads folders dynamically via requestFromPlugin
 
 // Re-export shared type for backward compatibility
@@ -194,6 +195,15 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
       return
     }
 
+    // Detect teamspace from template note (if form is in a teamspace, preserve that context)
+    // This ensures forms opened in a teamspace default to that teamspace for creating/loading notes
+    let templateTeamspaceID = ''
+    if (templateNote.filename?.startsWith('%%NotePlanCloud%%')) {
+      const teamspaceDetails = parseTeamspaceFilename(templateNote.filename || '')
+      templateTeamspaceID = teamspaceDetails.teamspaceID || ''
+      logDebug(pluginJson, `getTemplateFormData: Template is in teamspace: ${templateTeamspaceID}`)
+    }
+
     // Get template content directly from note (not through getTemplateContent which assumes @Templates)
     const templateData = templateNote.content || ''
     const templateFrontmatterAttributes = await NPTemplating.getTemplateAttributes(templateData)
@@ -235,6 +245,12 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
           frontmatterAttributes.templateBody = templateBodyFromCodeblock
         }
 
+        // Load custom CSS from codeblock
+        const customCSSFromCodeblock = await loadCustomCSSFromTemplate(templateNote)
+        if (customCSSFromCodeblock) {
+          frontmatterAttributes.customCSS = customCSSFromCodeblock
+        }
+
         // Load TemplateRunner args from codeblock
         const templateRunnerArgs = await loadTemplateRunnerArgsFromTemplate(templateNote)
         if (templateRunnerArgs) {
@@ -242,6 +258,13 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
           Object.assign(frontmatterAttributes, templateRunnerArgs)
         }
       }
+    }
+
+    // Set default space from template's teamspace (unless explicitly set in frontmatter)
+    // This ensures forms opened in a teamspace default to that teamspace for creating/loading notes
+    if (templateTeamspaceID && !frontmatterAttributes.space) {
+      frontmatterAttributes.space = templateTeamspaceID
+      logDebug(pluginJson, `getTemplateFormData: Setting default space to template's teamspace: ${templateTeamspaceID}`)
     }
 
     if (templateFrontmatterAttributes.formFields) {

@@ -205,6 +205,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings, onSub
             x={x}
             y={y}
             templateBody={pluginData.templateBody || ''} // Load from codeblock
+            customCSS={pluginData.customCSS || ''} // Load from codeblock
             isNewForm={isNewForm}
             templateTitle={templateTitle}
             templateFilename={templateFilename}

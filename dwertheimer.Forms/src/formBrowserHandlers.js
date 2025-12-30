@@ -13,6 +13,10 @@ import { logDebug, logError } from '@helpers/dev'
 import { getNoteByFilename, getNote } from '@helpers/note'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { getFolderFromFilename } from '@helpers/folders'
+import { showMessage } from '@helpers/userInput'
+import { openFormBuilderWindow } from './windowManagement'
+import { ensureFrontmatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { waitForCondition } from '@helpers/promisePolyfill'
 
 // RequestResponse type definition (shared with requestHandlers.js)
 // NOTE: Handler functions return this format. The router wraps it in a RESPONSE message.
@@ -68,16 +72,18 @@ export function getFormTemplates(params: { space?: string } = {}): RequestRespon
 
         // Check if note is in the @Forms folder (or a subfolder of @Forms)
         // For Private: noteFolder should start with '@Forms' or be exactly '@Forms'
-        // For teamspace: noteFolder should start with '%%NotePlanCloud%%{teamspaceID}/@Forms'
+        // For teamspace: noteFolder should start with '%%NotePlanCloud%%/{teamspaceID}/@Forms' (correct format)
+        // Note: We check both formats (with and without the /) for backward compatibility, but the correct format is with the /
         let isInFormsFolder = false
         if (spaceId === '') {
           // Private: check if folder is '@Forms' or starts with '@Forms/'
           isInFormsFolder = noteFolder === '@Forms' || noteFolder.startsWith('@Forms/')
         } else {
-          // Teamspace: check if folder starts with '%%NotePlanCloud%%{teamspaceID}/@Forms'
+          // Teamspace: check if folder starts with '%%NotePlanCloud%%/{teamspaceID}/@Forms' (correct format)
           // Note: getFolderFromFilename may return paths with or without the leading slash after %%NotePlanCloud%%
-          const expectedPrefix1 = `%%NotePlanCloud%%${spaceId}/@Forms`
-          const expectedPrefix2 = `%%NotePlanCloud%%/${spaceId}/@Forms`
+          // We check both for backward compatibility, but the correct format is: %%NotePlanCloud%%/{teamspaceID}/...
+          const expectedPrefix1 = `%%NotePlanCloud%%${spaceId}/@Forms` // Incorrect format (for backward compatibility)
+          const expectedPrefix2 = `%%NotePlanCloud%%/${spaceId}/@Forms` // Correct format
           isInFormsFolder =
             noteFolder === expectedPrefix1 || noteFolder.startsWith(`${expectedPrefix1}/`) || noteFolder === expectedPrefix2 || noteFolder.startsWith(`${expectedPrefix2}/`)
         }
@@ -228,6 +234,9 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       }
     }
 
+    // For run-js-only, we don't need receivingTemplateTitle or templateBody validation
+    // TemplateJS blocks come from form fields, not from templateBody
+
     // Call the form submission handler
     // handleSubmitButtonClick expects (data, reactWindowData) but we'll create a minimal reactWindowData
     // Strip quotes from string values that may have been stored with quotes in frontmatter
@@ -246,11 +255,23 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       newNoteFolder: stripDoubleQuotes(fm?.newNoteFolder || '') || '',
     }
 
+    // Load formFields from template note (needed for run-js-only to find TemplateJS blocks)
+    let formFields: Array<any> = []
+    try {
+      const loadedFields = await loadCodeBlockFromNote<Array<any>>(templateFilename, 'formfields', pluginJson.id, parseObjectString)
+      if (loadedFields && Array.isArray(loadedFields)) {
+        formFields = loadedFields
+      }
+    } catch (error) {
+      logError(pluginJson, `handleSubmitForm: Error loading formFields: ${error.message}`)
+      // Continue without formFields - will fail validation if run-js-only needs them
+    }
+
     // Create minimal reactWindowData for handleSubmitButtonClick
     // $FlowFixMe[prop-missing] - PassedData type requires more properties, but handleSubmitButtonClick only needs pluginData
     const reactWindowData = {
       pluginData: {
-        formFields: [], // Not needed for submission
+        formFields, // Include formFields so TemplateJS blocks can be found for run-js-only
       },
       componentPath: '',
       debug: false,
@@ -269,7 +290,7 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       } else if (processingMethod === 'write-existing') {
         noteTitle = submitData.getNoteTitled || ''
       }
-      // For form-processor, we don't know the note title, so leave it empty
+      // For form-processor and run-js-only, we don't know the note title, so leave it empty
 
       return {
         success: true,
@@ -298,40 +319,45 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
 }
 
 /**
- * Handle creating a new form from FormBrowserView (skips the chooser dialog)
- * @param {Object} _params - Request parameters (currently unused)
+ * Handle creating a new form from FormBrowserView
+ * @param {Object} params - Request parameters
+ * @param {string} params.formName - The form name (will have "Form" appended if not present)
+ * @param {string} params.space - The space ID (empty string = Private, teamspace ID = specific teamspace)
  * @returns {RequestResponse}
  */
-export async function handleCreateNewForm(_params: Object = {}): Promise<RequestResponse> {
+export async function handleCreateNewForm(params: { formName?: string, space?: string } = {}): Promise<RequestResponse> {
   try {
-    logDebug(pluginJson, `handleCreateNewForm: Creating new form directly`)
+    const { formName, space = '' } = params
+    logDebug(pluginJson, `handleCreateNewForm: Creating new form, formName="${formName || ''}", space="${space || 'Private'}"`)
 
-    // Import helpers (CommandBar and DataStore are global in NotePlan, no need to import)
-    const { showMessage } = require('@helpers/userInput')
-    const { getNoteByFilename } = require('@helpers/note')
-    const { openFormBuilderWindow } = require('./windowManagement')
-    const { ensureFrontmatter, updateFrontMatterVars } = require('@helpers/NPFrontMatter')
-
-    // Prompt for new form title (CommandBar is global)
-    let newTitle = await CommandBar.textPrompt('New Form Template', 'Enter template title:', '')
-    logDebug(pluginJson, `handleCreateNewForm: User entered title: "${String(newTitle)}"`)
-    if (!newTitle || typeof newTitle === 'boolean') {
-      logDebug(pluginJson, `handleCreateNewForm: User cancelled or empty title, returning`)
+    if (!formName || typeof formName !== 'string' || !formName.trim()) {
+      logDebug(pluginJson, `handleCreateNewForm: No form name provided, returning`)
       return {
         success: false,
-        message: 'Form creation cancelled',
+        message: 'Form name is required',
         data: null,
       }
     }
 
     // Append "Form" to title if it doesn't already contain "form" (case-insensitive)
+    let newTitle = formName.trim()
     if (!/form/i.test(newTitle)) {
       newTitle = `${newTitle} Form`
       logDebug(pluginJson, `handleCreateNewForm: Appended "Form" to title, new title: "${newTitle}"`)
     }
 
-    // Create folder path: @Forms/{form name}
-    const formFolderPath = `@Forms/${newTitle}`
+    // Create folder path based on space
+    // For Private: @Forms/{form name}
+    // For teamspace: %%NotePlanCloud%%/{teamspaceID}/@Forms/{form name}
+    // Note: teamspace folder format requires / after %%NotePlanCloud%%
+    let formFolderPath: string
+    if (space && space.trim()) {
+      // Teamspace: construct path with teamspace prefix (note the / after %%NotePlanCloud%%)
+      formFolderPath = `%%NotePlanCloud%%/${space}/@Forms/${newTitle}`
+    } else {
+      // Private: use standard folder path
+      formFolderPath = `@Forms/${newTitle}`
+    }
     logDebug(pluginJson, `handleCreateNewForm: Creating form in folder "${formFolderPath}"`)
 
     // Create new note in Forms subfolder
@@ -347,6 +373,28 @@ export async function handleCreateNewForm(_params: Object = {}): Promise<Request
       }
     }
 
+    // Wait for the note to appear in the cache (especially important for teamspace notes)
+    // Teamspace notes may take a moment to be indexed after creation
+    logDebug(pluginJson, `handleCreateNewForm: Waiting for note to appear in cache...`)
+    const noteFound = await waitForCondition(
+      () => {
+        const note = DataStore.projectNoteByFilename(filename)
+        return note != null
+      },
+      { maxWaitMs: 3000, checkIntervalMs: 100 },
+    )
+
+    if (!noteFound) {
+      logError(pluginJson, `handleCreateNewForm: Note did not appear in cache within timeout: ${filename}`)
+      await showMessage(`Note was created but could not be found. Please try again.`)
+      return {
+        success: false,
+        message: `Note was created but could not be found: ${filename}`,
+        data: null,
+      }
+    }
+
+    // Now get the note (should be available now)
     const templateNote = await getNoteByFilename(filename)
     if (!templateNote) {
       logError(pluginJson, `handleCreateNewForm: Could not find note with filename: ${filename}`)

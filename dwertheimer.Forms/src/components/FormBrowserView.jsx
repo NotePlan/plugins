@@ -10,6 +10,7 @@ import { AppProvider } from './AppContext.jsx'
 import { FormPreview } from './FormPreview.jsx'
 import { SimpleDialog } from '@helpers/react/SimpleDialog'
 import { SpaceChooser as SpaceChooserComponent } from '@helpers/react/DynamicDialog/SpaceChooser'
+import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import './FormBrowserView.css'
@@ -168,6 +169,9 @@ export function FormBrowserView({
   // Success dialog state
   const [showSuccessDialog, setShowSuccessDialog] = useState<boolean>(false)
   const [successDialogData, setSuccessDialogData] = useState<{ noteTitle?: string, processingMethod?: string } | null>(null)
+  // Create form dialog state
+  const [showCreateFormDialog, setShowCreateFormDialog] = useState<boolean>(false)
+  const [createFormDialogData, setCreateFormDialogData] = useState<{ formName?: string, space?: string }>({})
 
   // Refs
   const filterInputRef = useRef<?HTMLInputElement>(null)
@@ -604,14 +608,56 @@ export function FormBrowserView({
     setSuccessDialogData(null)
   }, [])
 
-  // Handle new form button
+  // Handle new form button - show dialog
   const handleNewForm = useCallback(() => {
-    if (requestFromPlugin) {
-      requestFromPlugin('createNewForm', {}).catch((error) => {
+    // Pass through the currently selected space filter as the default for the new form dialog
+    setCreateFormDialogData({ formName: '', space: selectedSpace || '' })
+    setShowCreateFormDialog(true)
+  }, [selectedSpace])
+
+  // Handle creating form from dialog
+  const handleCreateFormDialogSave = useCallback(
+    async (formValues: { [key: string]: any }) => {
+      const formName = formValues.formName?.trim() || ''
+      const spaceId = formValues.space || ''
+
+      if (!formName) {
+        logError('FormBrowserView', 'Form name is required')
+        return
+      }
+
+      if (!requestFromPlugin) {
+        logError('FormBrowserView', 'requestFromPlugin is not available')
+        return
+      }
+
+      try {
+        logDebug('FormBrowserView', `Creating new form: name="${formName}", space="${spaceId || 'Private'}"`)
+        const result = await requestFromPlugin('createNewForm', {
+          formName,
+          space: spaceId,
+        })
+
+        if (result && result.success !== false) {
+          // Reload templates to show the new form
+          await loadTemplates()
+          setShowCreateFormDialog(false)
+          setCreateFormDialogData({})
+          logDebug('FormBrowserView', `Form "${formName}" created successfully`)
+        } else {
+          logError('FormBrowserView', `Failed to create form: ${result?.message || 'Unknown error'}`)
+        }
+      } catch (error) {
         logError('FormBrowserView', `Error creating new form: ${error.message}`)
-      })
-    }
-  }, [requestFromPlugin])
+      }
+    },
+    [requestFromPlugin, loadTemplates],
+  )
+
+  const handleCreateFormDialogCancel = useCallback(() => {
+    setShowCreateFormDialog(false)
+    setCreateFormDialogData({})
+  }, [])
 
   // Handle reload button
   const handleReload = useCallback(() => {
@@ -821,6 +867,33 @@ export function FormBrowserView({
           onClose={handleCloseSuccessDialog}
         />
       )}
+      <DynamicDialog
+        isOpen={showCreateFormDialog}
+        title="Create New Form"
+        items={[
+          {
+            type: 'input',
+            key: 'formName',
+            label: 'Form Name',
+            placeholder: 'Enter form name',
+            required: true,
+            value: createFormDialogData.formName || '',
+          },
+          {
+            type: 'space-chooser',
+            key: 'space',
+            label: 'Space',
+            placeholder: 'Select space (Private or Teamspace)',
+            compactDisplay: true,
+            value: createFormDialogData.space || '',
+            showValue: false,
+          },
+        ]}
+        onSave={handleCreateFormDialogSave}
+        onCancel={handleCreateFormDialogCancel}
+        isModal={true}
+        requestFromPlugin={requestFromPlugin}
+      />
     </AppProvider>
   )
 }

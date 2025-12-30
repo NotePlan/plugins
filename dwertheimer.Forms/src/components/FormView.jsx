@@ -296,6 +296,39 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     }
   }, [notesLoaded, loadingNotes, needsNotes, requestFromPlugin, formFields])
 
+  // Inject custom CSS from pluginData if provided
+  useEffect(() => {
+    const customCSS = pluginData?.customCSS || ''
+    if (!customCSS || typeof document === 'undefined') return
+    
+    // $FlowFixMe[incompatible-use] - document.head is checked for null
+    const head = document.head
+    if (!head) return
+
+    // Create a style element with a unique ID to avoid duplicates
+    const styleId = 'form-custom-css'
+    let styleElement = document.getElementById(styleId)
+    
+    if (!styleElement) {
+      styleElement = document.createElement('style')
+      styleElement.id = styleId
+      // $FlowFixMe[incompatible-use] - head is checked for null above
+      head.appendChild(styleElement)
+    }
+    
+    if (styleElement) {
+      styleElement.textContent = customCSS
+    }
+    
+    // Cleanup: remove style element when component unmounts or CSS changes
+    return () => {
+      const element = document.getElementById(styleId)
+      if (element) {
+        element.remove()
+      }
+    }
+  }, [pluginData?.customCSS])
+
   // Listen for RESPONSE messages from Root and resolve pending requests
   useEffect(() => {
     const handleResponse = (event: MessageEvent) => {
@@ -381,6 +414,8 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       // Option B: Create new note
       newNoteTitle: pluginData['newNoteTitle'] || '',
       newNoteFolder: pluginData['newNoteFolder'] || '',
+      // Space (teamspace ID) - used to filter notes/folders and construct teamspace paths
+      space: pluginData['space'] || '',
     })
     closeDialog()
   }

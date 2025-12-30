@@ -18,6 +18,7 @@ import ThemedSelect from './ThemedSelect.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import FolderChooser from './FolderChooser.jsx'
 import NoteChooser, { type NoteOption } from './NoteChooser.jsx'
+import { SpaceChooser } from './SpaceChooser.jsx'
 import { HeadingChooser } from './HeadingChooser.jsx'
 import EventChooser from './EventChooser.jsx'
 import MultiSelectChooser from './MultiSelectChooser.jsx'
@@ -742,6 +743,33 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               className={indent ? 'indent' : ''}
+            />
+          </div>
+        )
+      }
+      case 'space-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+
+        const handleSpaceChange = (spaceId: string) => {
+          if (item.key) {
+            handleFieldChange(item.key, spaceId)
+          }
+        }
+
+        return (
+          <div data-field-type="space-chooser">
+            <SpaceChooser
+              key={`space-chooser${index}`}
+              label={label}
+              value={currentValue}
+              onChange={handleSpaceChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={item.placeholder || 'Type to search spaces...'}
+              requestFromPlugin={requestFromPlugin}
+              showValue={item.showValue ?? false}
             />
           </div>
         )
