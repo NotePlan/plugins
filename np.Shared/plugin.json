@@ -1,6 +1,6 @@
 {
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.8.0",
+  "noteplan.minAppVersion": "3.20.0",
   "plugin.id": "np.Shared",
   "plugin.name": "🤝 Shared Resources",
   "plugin.version": "0.8.0",
