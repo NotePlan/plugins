@@ -15,7 +15,7 @@
 // So you need to add a line below for each function that you want NP to have access to.
 // Typically, listed below are only the top-level plug-in functions listed in plugin.json
 
-export { getTemplateFormData, openFormBuilder, testRequestHandlers, openFormBrowser } from './NPTemplateForm'
+export { openTemplateForm, openFormBuilder, testRequestHandlers, openFormBrowser, triggerOpenForm } from './NPTemplateForm'
 export { onFormSubmitFromHTMLView } from './formSubmitRouter'
 export { onFormBuilderAction } from './formBuilderRouter'
 export { onFormBrowserAction } from './formBrowserRouter'

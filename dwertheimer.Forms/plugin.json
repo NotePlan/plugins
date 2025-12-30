@@ -21,17 +21,18 @@
       "name": "Open Template Form",
       "alias": [
         "form",
-        "dialog"
+        "dialog",
+        "getTemplateFormData"
       ],
       "description": "Open form for template data entry which will be sent to a template for processing. Generally invoked from an xcallback",
-      "jsFunction": "getTemplateFormData",
-      "arguments": [
-        {
-          "name": "templateTitle",
-          "type": "string",
-          "description": "Title of the template form to open (optional, if not provided user will be prompted to select)"
-        }
-      ]
+      "jsFunction": "openTemplateForm",
+      "arguments": ["Title of the template form to open (optional, if not provided user will be prompted to select)"]
+    },
+    {
+      "name": "Open Template Form from trigger",
+      "description": "Open form for template data entry which will be sent to a template for processing. Generally invoked from an trigger. Looks for template details in the open note in Editor",
+      "jsFunction": "triggerOpenForm",
+      "hidden": true
     },
     {
       "name": "Form Builder/Editor",

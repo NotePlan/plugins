@@ -80,7 +80,7 @@ function validateFormFields(formFields: Array<Object>): boolean {
  * @param {string} templateTitle - the title of the template to use
  * @returns {void}
  */
-export async function getTemplateFormData(templateTitle?: string): Promise<void> {
+export async function openTemplateForm(templateTitle?: string): Promise<void> {
   try {
     let selectedTemplate // will be a filename
     if (templateTitle?.trim().length) {
@@ -111,7 +111,7 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
       const note = await getNoteByFilename(selectedTemplate)
       if (note) {
         const fm = note.frontmatterAttributes
-        clo(fm, `getTemplateFormData fm=`)
+        clo(fm, `openTemplateForm fm=`)
 
         // Check processing method - determine from frontmatter or infer from receivingTemplateTitle (backward compatibility)
         const processingMethod = fm?.processingMethod || (fm?.receivingTemplateTitle || fm?.receivingtemplatetitle ? 'form-processor' : null)
@@ -146,13 +146,13 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
             const formFieldsString: ?string = await loadCodeBlockFromNote<string>(selectedTemplate, 'formfields', pluginJson.id, null)
             if (formFieldsString) {
               const errors = validateObjectString(formFieldsString)
-              logError(pluginJson, `getTemplateFormData: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
-              logError(pluginJson, `getTemplateFormData: errors: ${errors.join('\n')}`)
+              logError(pluginJson, `openTemplateForm: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
+              logError(pluginJson, `openTemplateForm: errors: ${errors.join('\n')}`)
               return
             }
           }
-          clo(formFields, `🎅🏼 DBWDELETE NPTemplating.getTemplateFormData formFields=`)
-          logDebug(pluginJson, `🎅🏼 DBWDELETE NPTemplating.getTemplateFormData formFields=\n${JSON.stringify(formFields, null, 2)}`)
+          clo(formFields, `🎅🏼 DBWDELETE NPTemplating.openTemplateForm formFields=`)
+          logDebug(pluginJson, `🎅🏼 DBWDELETE NPTemplating.openTemplateForm formFields=\n${JSON.stringify(formFields, null, 2)}`)
         } else {
           // Try to get raw string for error reporting
           const formFieldsString: ?string = await loadCodeBlockFromNote<string>(selectedTemplate, 'formfields', pluginJson.id, null)
@@ -161,37 +161,37 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
               formFields = parseObjectString(formFieldsString)
               if (!formFields) {
                 const errors = validateObjectString(formFieldsString)
-                logError(pluginJson, `getTemplateFormData: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
-                logError(pluginJson, `getTemplateFormData: errors: ${errors.join('\n')}`)
+                logError(pluginJson, `openTemplateForm: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
+                logError(pluginJson, `openTemplateForm: errors: ${errors.join('\n')}`)
                 return
               }
             } catch (error) {
               const errors = validateObjectString(formFieldsString)
               await showMessage(
-                `getTemplateFormData: There is an error in your form fields (most often a missing comma).\nJS Error: "${error.message}"\nCheck Plugin Console Log for more details.`,
+                `openTemplateForm: There is an error in your form fields (most often a missing comma).\nJS Error: "${error.message}"\nCheck Plugin Console Log for more details.`,
               )
-              logError(pluginJson, `getTemplateFormData: error parsing form fields: ${error.message} String:\n${formFieldsString}`)
-              logError(pluginJson, `getTemplateFormData: errors: ${errors.join('\n')}`)
+              logError(pluginJson, `openTemplateForm: error parsing form fields: ${error.message} String:\n${formFieldsString}`)
+              logError(pluginJson, `openTemplateForm: errors: ${errors.join('\n')}`)
               return
             }
           }
         }
       } else {
-        logError(pluginJson, `getTemplateFormData: could not find form template: ${selectedTemplate}`)
+        logError(pluginJson, `openTemplateForm: could not find form template: ${selectedTemplate}`)
         return
       }
     }
 
     // Ensure we have a selectedTemplate before proceeding
     if (!selectedTemplate) {
-      logError(pluginJson, 'getTemplateFormData: No template selected')
+      logError(pluginJson, 'openTemplateForm: No template selected')
       return
     }
 
     // Get the note directly (bypassing getTemplateContent which assumes @Templates folder)
     const templateNote = await getNoteByFilename(selectedTemplate)
     if (!templateNote) {
-      logError(pluginJson, `getTemplateFormData: could not find form template note: ${selectedTemplate}`)
+      logError(pluginJson, `openTemplateForm: could not find form template note: ${selectedTemplate}`)
       return
     }
 
@@ -201,14 +201,14 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
     if (templateNote.filename?.startsWith('%%NotePlanCloud%%')) {
       const teamspaceDetails = parseTeamspaceFilename(templateNote.filename || '')
       templateTeamspaceID = teamspaceDetails.teamspaceID || ''
-      logDebug(pluginJson, `getTemplateFormData: Template is in teamspace: ${templateTeamspaceID}`)
+      logDebug(pluginJson, `openTemplateForm: Template is in teamspace: ${templateTeamspaceID}`)
     }
 
     // Get template content directly from note (not through getTemplateContent which assumes @Templates)
     const templateData = templateNote.content || ''
     const templateFrontmatterAttributes = await NPTemplating.getTemplateAttributes(templateData)
-    clo(templateData, `getTemplateFormData templateData=`)
-    clo(templateFrontmatterAttributes, `getTemplateFormData templateFrontmatterAttributes=`)
+    clo(templateData, `openTemplateForm templateData=`)
+    clo(templateFrontmatterAttributes, `openTemplateForm templateFrontmatterAttributes=`)
 
     // Check processing method - determine from frontmatter or infer from receivingTemplateTitle (backward compatibility)
     const processingMethod = templateFrontmatterAttributes?.processingMethod || (templateFrontmatterAttributes?.receivingTemplateTitle ? 'form-processor' : null)
@@ -264,7 +264,7 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
     // This ensures forms opened in a teamspace default to that teamspace for creating/loading notes
     if (templateTeamspaceID && !frontmatterAttributes.space) {
       frontmatterAttributes.space = templateTeamspaceID
-      logDebug(pluginJson, `getTemplateFormData: Setting default space to template's teamspace: ${templateTeamspaceID}`)
+      logDebug(pluginJson, `openTemplateForm: Setting default space to template's teamspace: ${templateTeamspaceID}`)
     }
 
     if (templateFrontmatterAttributes.formFields) {
@@ -438,6 +438,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
           // formTitle is left blank by default - user can fill it in later
           launchLink: launchLink,
           formEditLink: formEditLink,
+          triggers: 'onOpen => dwertheimer.Forms.triggerOpenForm',
           width: '25%',
           height: '40%',
           x: 'center',
@@ -650,7 +651,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
 
 /**
  * Opens the HTML+React window; Called after the form data has been generated
- * @param {Object} argObj - the data to pass to the React Window (comes from templating "getTemplateFormData" command, a combination of the template frontmatter vars and formFields codeblock)
+ * @param {Object} argObj - the data to pass to the React Window (comes from templating "openTemplateForm" command, a combination of the template frontmatter vars and formFields codeblock)
  *  - formFields: array (required) - the form fields to display
  *  - windowTitle: string (optional) - the title of the window (defaults to 'Form')
  *  - formTitle: string (optional) - the title of the form (inside the window)
@@ -741,6 +742,46 @@ export async function openFormBrowser(_showFloating: boolean = false): Promise<v
   } catch (error) {
     logError(pluginJson, `openFormBrowser: Error: ${JSP(error)}`)
     await showMessage(`Error opening form browser: ${error.message}`)
+  }
+}
+
+/**
+ * Plugin entrypoint for triggerOpenForm
+ * Checks if the currently open note in Editor has frontmatter type "template-form"
+ * and if so, opens the template form with the note's title
+ * @returns {Promise<void>}
+ */
+export async function triggerOpenForm(): Promise<void> {
+  try {
+    // Check if Editor.note exists
+    if (!Editor.note) {
+      logDebug(pluginJson, 'triggerOpenForm: No note is currently open in Editor')
+      return
+    }
+
+    // Check if Editor.frontmatterAttributes exists and has type "template-form"
+    const frontmatterAttributes = Editor.frontmatterAttributes || {}
+    const noteType = frontmatterAttributes.type
+
+    if (noteType !== 'template-form') {
+      logDebug(pluginJson, `triggerOpenForm: Note type is "${noteType || 'undefined'}", not "template-form". Skipping.`)
+      return
+    }
+
+    // Get the note title
+    const noteTitle = Editor.note.title
+    if (!noteTitle) {
+      logError(pluginJson, 'triggerOpenForm: Note has type "template-form" but no title found')
+      await showMessage('Note has type "template-form" but no title found. Cannot open form.')
+      return
+    }
+
+    logDebug(pluginJson, `triggerOpenForm: Opening template form with title: "${noteTitle}"`)
+    // Open the template form with the note's title
+    await openTemplateForm(noteTitle)
+  } catch (error) {
+    logError(pluginJson, `triggerOpenForm: Error: ${JSP(error)}`)
+    await showMessage(`Error opening form: ${error.message}`)
   }
 }
 

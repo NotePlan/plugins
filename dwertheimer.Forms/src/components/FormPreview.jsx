@@ -306,7 +306,7 @@ export function FormPreview({
             <DynamicDialog
               isOpen={true}
               isModal={false}
-              title={stripDoubleQuotes(frontmatter.formTitle || '') || 'Form Heading'}
+              title={frontmatter.formTitle != null ? stripDoubleQuotes(frontmatter.formTitle) || '' : ''}
               items={fields}
               hideHeaderButtons={hideHeaderButtons}
               onSave={onSave || (() => {})}

@@ -235,7 +235,7 @@ export function getPluginData(argObj: Object): { [string]: mixed } {
 
 /**
  * Opens the HTML+React window; Called after the form data has been generated
- * @param {Object} argObj - the data to pass to the React Window (comes from templating "getTemplateFormData" command, a combination of the template frontmatter vars and formFields codeblock)
+ * @param {Object} argObj - the data to pass to the React Window (comes from templating "openTemplateForm" command, a combination of the template frontmatter vars and formFields codeblock)
  *  - formFields: array (required) - the form fields to display
  *  - windowTitle: string (optional) - the title of the window (defaults to 'Form')
  *  - formTitle: string (optional) - the title of the form (inside the window)
