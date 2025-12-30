@@ -193,12 +193,13 @@ function buildHTMLShell() {
     html,body{height:100%;margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial;}
     .app{height:100%;display:flex;flex-direction:column;}
     .topbar{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);background:#fff;}
-    .search{flex:1;max-width:320px;background:#f3f4f6;border:1px solid var(--border);border-radius:18px;padding:8px 12px;outline:none;font-size:14px;}
-    .select{max-width:260px;background:#f3f4f6;border:1px solid var(--border);border-radius:18px;padding:8px 12px;outline:none;font-size:14px;color:var(--text);}
-    .toggles{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-    .pill{border:none;border-radius:999px;padding:10px 16px;font-weight:700;color:#fff;cursor:pointer;user-select:none;font-size:14px;}
-    .pill.on{background:var(--on);} .pill.off{background:var(--off);}
-    .btn{border:none;border-radius:999px;padding:10px 16px;font-weight:700;background:var(--btn);color:var(--btnText);cursor:pointer;font-size:14px;}
+    .search{flex:1;max-width:320px;background:#f3f4f6;border:1px solid var(--border);border-radius:999px;padding:6px 10px;outline:none;font-size:13px;color:var(--text);}
+    .select{max-width:260px;background:#f3f4f6;border:1px solid var(--border);border-radius:999px;padding:6px 10px;outline:none;font-size:13px;color:var(--text);}
+    .toggles{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .control{appearance:none;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:999px;padding:4px 10px;font-weight:600;color:var(--text);cursor:pointer;user-select:none;font-size:12px;line-height:1.2;white-space:nowrap;}
+    .control:hover{background:var(--panel2);}
+    .control.on{background:#111827;color:#fff;border-color:#111827;}
+    .control.off{background:#fff;color:var(--muted);}
     .main{flex:1;display:flex;min-height:0;}
     #vizWrap{flex:1;position:relative;min-width:0;}
     #viz{position:absolute;inset:0;}
@@ -247,16 +248,18 @@ function buildHTMLShell() {
     </select>
 
     <div class="toggles">
-      <button id="toggleTags" class="pill on">Tags</button>
-      <button id="toggleMentions" class="pill on">Mentions</button>
-      <button id="toggleExternal" class="pill on">External</button>
-      <button id="toggleLabels" class="pill on">Labels</button>
+      <button id="toggleTags" class="control on">Tags</button>
+      <button id="toggleMentions" class="control on">Mentions</button>
+      <button id="toggleExternal" class="control on">External</button>
+      <button id="toggleLabels" class="control on">Labels</button>
 
-      <button id="btnFit" class="btn">Fit</button>
-      <button id="btnRelayout" class="btn">Relayout</button>
-      <button id="btnRebuild" class="btn">Rebuild</button>
-      <button id="btnClear" class="btn">Clear</button>
-      <button id="btnReset" class="btn">Reset</button>
+      <button id="toggleCalendars" class="control on" title="Include Calendar notes">Calendars</button>
+
+      <button id="btnFit" class="control">Fit</button>
+      <button id="btnRelayout" class="control">Relayout</button>
+      <button id="btnRebuild" class="control">Rebuild</button>
+      <button id="btnClear" class="control">Clear</button>
+      <button id="btnReset" class="control">Reset</button>
     </div>
   </div>
 
@@ -335,6 +338,7 @@ function buildHTMLShell() {
 
   let showTags = true, showMentions = true, showExternal = true;
   let showLabels = true;
+  let showCalendars = true;
   let labelDensity = 'med';
 
   let graphData = null;
@@ -448,6 +452,7 @@ function buildHTMLShell() {
     setPill('toggleMentions', showMentions);
     setPill('toggleExternal', showExternal);
     setPill('toggleLabels', showLabels);
+    setPill('toggleCalendars', showCalendars);
   }
 
   function labelRules(){
@@ -548,6 +553,9 @@ function buildHTMLShell() {
       if(n.type === 'tag' && !showTags) return false;
       if(n.type === 'mention' && !showMentions) return false;
       if(n.type === 'external' && !showExternal) return false;
+
+      // Optionally ignore Calendar notes (best-effort heuristic)
+      if(!showCalendars && n.type === 'note' && n.filename && String(n.filename).startsWith('Calendar/')) return false;
 
       if(q){
         const hay = (String(n.label || '') + ' ' + String(n.id || '')).toLowerCase();
@@ -1237,6 +1245,7 @@ function buildHTMLShell() {
   document.getElementById('toggleMentions').onclick = () => { showMentions = !showMentions; updateToggleUI(); applyFilters(); };
   document.getElementById('toggleExternal').onclick = () => { showExternal = !showExternal; updateToggleUI(); applyFilters(); };
   document.getElementById('toggleLabels').onclick = () => { showLabels = !showLabels; updateToggleUI(); renderCurrentViz(); };
+  document.getElementById('toggleCalendars').onclick = () => { showCalendars = !showCalendars; updateToggleUI(); applyFilters(); };
 
   document.getElementById('labelDensity').addEventListener('change', (e) => {
     labelDensity = String(e.target.value || 'med');
