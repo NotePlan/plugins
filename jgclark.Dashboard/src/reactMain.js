@@ -52,8 +52,7 @@ export type PassedData = {
   ENV_MODE?: 'development' | 'production',
   passThroughVars?: any /* any data you want to pass through to the React Window */,
   windowID?: string,
-  initialBanner?: {
-    // for debugging/testing the warning banner
+  initialBanner?: { // TODO(later): remove this, as it was only used for debugging/testing the warning banner
     msg: string,
     color: string,
     border: string,
@@ -294,7 +293,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindow(perspectiveName, useDemoData)
     // logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
-    const preferredWindowType = settings?.preferredWindowType ?? 'Window'
+    const preferredWindowType = settings?.preferredWindowType ?? 'New Window'
     const platform = NotePlan.environment.platform
     logDebug('showDashboardReact', `preferredWindowType = ${preferredWindowType} / platform = ${platform}`)
 
@@ -318,13 +317,14 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       paddingWidth: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,
       paddingHeight: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,
       // If we should open in main/split view, or the default new window
-      showInMainWindow: (preferredWindowType !== 'Window'),
-      splitView: (preferredWindowType === 'Split'),
+      showInMainWindow: (preferredWindowType !== 'New Window'),
+      splitView: (preferredWindowType === 'Split View'),
       // If we are opening in main/split view, then set the icon details
+      // TODO: later, move this to plugin.json file
       icon: 'fa-gauge-high',
       // icon: 'fa-duotone fa-gauge-high', // TODO(Eduard): support other icon sets
       // icon: 'fa-duotone fa-grid-round-2', // TODO: this icon is not available in our old build
-      iconColor: 'yellow-500',
+      iconColor: 'red-600',
       autoTopPadding: true,
       showReloadButton: false,
     }

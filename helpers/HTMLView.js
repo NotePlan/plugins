@@ -15,6 +15,7 @@ import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInEventLinkHiddenPart, isTermInNotelinkOrURI, isTermInMarkdownPath } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER, formRegExForUsersOpenTasks } from '@helpers/regex'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
+import { usersVersionHas } from '@helpers/NPVersions'
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -571,22 +572,22 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
 
       let win: HTMLView|TEditor|false
       let success: boolean = false
-      if (opts.showInMainWindow) {
-        logDebug('showHTMLV2', `- Showing in main window with options: ${JSON.stringify(winOptions)}`)
-        const mainWindowSpecificOptions = {
-          splitView: opts.splitView,
-          icon: opts.icon,
-          iconColor: opts.iconColor,
-          autoTopPadding: opts.autoTopPadding,
-          showReloadButton: opts.showReloadButton,
-        }
-        // clo(mainWindowSpecificOptions, `showHTMLV2 mainWindowSpecificOptions:`)
-        const { success: mainViewSuccess, windowID } = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', mainWindowSpecificOptions)
-        if (mainViewSuccess) {
-          success = true
-          logDebug('showHTMLV2', `- Main view window opened successfully with ID '${windowID}'`)
-          win = getWindowFromCustomId(windowID)
-        }
+      if (opts.showInMainWindow && usersVersionHas('showInMainWindow')) {
+          logDebug('showHTMLV2', `- Showing in main window with options: ${JSON.stringify(winOptions)}`)
+          const mainWindowSpecificOptions = {
+            splitView: opts.splitView,
+            icon: opts.icon,
+            iconColor: opts.iconColor,
+            autoTopPadding: opts.autoTopPadding,
+            showReloadButton: opts.showReloadButton,
+          }
+          // clo(mainWindowSpecificOptions, `showHTMLV2 mainWindowSpecificOptions:`)
+          const { success: mainViewSuccess, windowID } = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', mainWindowSpecificOptions)
+          if (mainViewSuccess) {
+            success = true
+            logDebug('showHTMLV2', `- Main view window opened successfully with ID '${windowID}'`)
+            win = getWindowFromCustomId(windowID)
+          }
       } else {
         logDebug('showHTMLV2', `- Showing in floating window with options: ${JSON.stringify(winOptions)}`)
         win = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle ?? '', winOptions)
