@@ -301,15 +301,33 @@ export function findEditorWindowByFilename(filenameToFind: string): TEditor | fa
 }
 
 /**
- * Tests whether the provided filename is open in an Editor window.
+ * Deprecated: use isNoteOpenInEditor() instead.
+ * Tests whether the provided filename is open in an Editor window/split.
  * @author @jgclark
- * @param {string} openNoteFilename
+ * @param {string} filename
  * @returns {boolean}
  */
-export function noteOpenInEditor(openNoteFilename: string): boolean {
+export function noteOpenInEditor(filename: string): boolean {
   const allEditorWindows = NotePlan.editors
   for (const thisEditorWindow of allEditorWindows) {
-    if (thisEditorWindow.filename === openNoteFilename) {
+    if (thisEditorWindow.filename === filename) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Tests whether the provided filename is open in an Editor window/split.
+ * Note: this is a newer name for the function noteOpenInEditor(), which is now deprecated.
+ * @author @jgclark
+ * @param {string} filename
+ * @returns {boolean}
+ */
+export function isNoteOpenInEditor(filename: string): boolean {
+  const allEditorWindows = NotePlan.editors
+  for (const thisEditorWindow of allEditorWindows) {
+    if (thisEditorWindow.filename === filename) {
       return true
     }
   }

@@ -3,7 +3,7 @@
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import { getFolderFromFilename } from './folders'
 import { getNoteTitleFromTemplate } from './NPFrontMatter'
-import { getSelectedParagraphsWithCorrectLineIndex } from './NPParagraph'
+import { getSelectedParagraphsWithCorrectLineIndex, highlightParagraphInEditor } from './NPParagraph'
 import { usersVersionHas } from './NPVersions'
 import { getOpenEditorFromFilename, isNoteOpenInEditor } from './NPWindows'
 import { showMessageYesNo, showMessage, chooseFolder } from './userInput'
@@ -224,15 +224,16 @@ export function clearHighlighting(): void {
  * Show an existing note in an Editor window, identified by its filename.
  * Uses smart features to determine which window or split view to open the note in:
  * - If already open in another window or split, simply focuses it.
- * - If not open, opens it in a new window or split view (according to newWindowType).
+ * - If not open, opens it in a new split view.
  * Returns true if successful, false otherwise.
  * Note: only designed for macOS, but may work in a limited way on other platforms.
  *
  * Note: Prefer the showLine... variant of this (below) where possible.
- * Does not support creating a new note, but adds more open options than the built-in openNoteByFilename() API call:
- * - newWindowType: string, either 'window' or 'split' (where to open the note)
- * - highlightStart: number, the start position of the highlight (if set)
- * - highlightEnd: number, the end position of the highlight (if set)
+ * @param {string} filename - the filename of the note to open
+ * @param {any} opts - the options for opening the note
+ *   - highlightStart: number, the start position of the highlight (if set)
+ *   - highlightEnd: number, the end position of the highlight (if set)
+ * @returns {boolean} success?
  */
 export async function smartOpenNoteInEditorFromFilename(filename: string, opts: any): Promise<boolean> {
   try {
@@ -240,7 +241,7 @@ export async function smartOpenNoteInEditorFromFilename(filename: string, opts: 
     clo(opts, 'smartOpenNoteInEditorFromFilename: opts')
     const highlightStart = opts.highlightStart ?? 0
     const highlightEnd = opts.highlightEnd ?? 0
-    const newWindowType = opts.newWindowType ?? 'window'
+    // const newWindowType = opts.newWindowType ?? 'window'
 
     // If note is already open, then simply focus it
     const isAlreadyOpen = isNoteOpenInEditor(filename)
@@ -254,25 +255,15 @@ export async function smartOpenNoteInEditorFromFilename(filename: string, opts: 
       return true
     }
 
-    // If note is not open, then open it in a new window or split view. If we are operating from a split window already (possible for HTMLWindows from 3.20), then ensure we open it in a *different* split view.
-    if (newWindowType === 'window') {
-      logDebug('smartOpenNoteInEditorFromFilename', `Opening note '${filename}' in a new window.`)
-      const possibleNote = await Editor.openNoteByFilename(filename, true, highlightStart, highlightEnd, false, false)
-      if (possibleNote) {
-        logDebug('smartOpenNoteInEditorFromFilename', `Opened new window for filename '${filename}'`)
-        Editor.focus()
-        return true
-      }
-    } else if (newWindowType === 'split') {
-      logDebug('smartOpenNoteInEditorFromFilename', `Opening note '${filename}' in a new split view.`)
-      const possibleNote = await Editor.openNoteByFilename(filename, false, highlightStart, highlightEnd, true, false)
-      if (possibleNote) {
-        logDebug('smartOpenNoteInEditorFromFilename', `Opened new split view for filename '${filename}'`)
-        Editor.focus()
-        return true
-      }
+    // Note is not already open, so open it in a new window or split view.
+    logDebug('smartOpenNoteInEditorFromFilename', `Opening note '${filename}' in a new split view.`)
+    const possibleNote = await Editor.openNoteByFilename(filename, false, highlightStart, highlightEnd, true, false)
+    if (possibleNote) {
+      logDebug('smartOpenNoteInEditorFromFilename', `Opened new split view for filename '${filename}'`)
+      Editor.focus()
+      return true
     }
-
+  
     // Fallback
     throw new Error(`Could not open note '${filename}' in a new window or split view with newWindowType: ${newWindowType}. Stopping.`)
   } catch (error) {
@@ -282,25 +273,48 @@ export async function smartOpenNoteInEditorFromFilename(filename: string, opts: 
 }
 
 /**
- * Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line.
- * If ⌘ (command) key is clicked, then open in a new floating window.
- * If option key is clicked, then open in a new split view.
+ * Handle a show line call by opening the note in an Editor, and then finding and moving the cursor to the start of that line.
+ * If the note isn't already open, then open in a new split view.
  * Note: Handles Teamspace notes from b1375 (v3.17.0).
- * TODO: Needs to work when running in the main/split window, as well as in a separate window.
- * @param {MessageDataObject} data with details of item
- * @returns {TBridgeClickHandlerResult} how to handle this result
+ * @param {string} filename - the filename of the note to open
+ * @param {string} content - the content of the note to open
+ * @returns {boolean} success?
  */
-export async function doShowLineInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, modifierKey } = validateAndFlattenMessageObject(data)
-  const note = await Editor.openNoteByFilename(filename, modifierKey === 'meta', 0, 0, modifierKey === 'alt')
-  if (note) {
-    // $FlowIgnore[prop-missing]
-    // $FlowIgnore[incompatible-call]
-    const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
-    logDebug('doShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph`,)
-    return handlerResult(true)
-  } else {
-    logWarn('doShowLineInEditorFromFilename', `-> failed to open filename ${filename} in Editor.`)
-    return handlerResult(false)
+export async function smartShowLineInEditorFromFilename(filename: string, content: string): Promise<boolean> {
+  try {
+    if (!filename) throw 'No filename: stopping'
+    if (!content) throw 'No content: stopping'
+    // const newWindowType = opts.newWindowType ?? 'window'
+
+    // If note is already open, then simply highlight the line
+    const isAlreadyOpen = isNoteOpenInEditor(filename)
+    if (isAlreadyOpen) {
+      logDebug('smartOpenNoteInEditorFromFilename', `Note '${filename}' is already open in an Editor window. Will highlight the line.`)
+      const thisEditor = getOpenEditorFromFilename(filename)
+      if (thisEditor) {
+        logDebug('smartOpenNoteInEditorFromFilename', `Focused Editor window '${thisEditor.id}' for filename '${filename}'`)
+        // $FlowIgnore[prop-missing]
+        // $FlowIgnore[incompatible-call]
+        const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
+      }
+      return true
+    }
+
+    // Note is not already open, so open it in a new window or split view.
+    const possibleNote = await Editor.openNoteByFilename(filename, false, 0, 0, true, false)
+    if (possibleNote) {
+      logDebug('smartOpenNoteInEditorFromFilename', `Opened new split view for filename '${filename}'`)
+      // $FlowIgnore[prop-missing]
+      // $FlowIgnore[incompatible-call]
+      const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
+      logDebug('smartShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph`,)
+      return true
+    }
+  
+    // Fallback
+    throw new Error(`Could not open note '${filename}' in a new Split View. Stopping.`)
+  } catch (error) {
+    logError('smartShowLineInEditorFromFilename', error.message)
+    return false
   }
 }
