@@ -13,6 +13,8 @@ GraphNote is an attempt to fill that gap.
 
 It provides an interactive graph of your notes, plus several alternative visualisation styles that can highlight different patterns depending on how you think and what you’re exploring.
 
+![GraphNote UI](jh.GraphNote/screenshots/graphnote-v2-02.png)
+
 This is a starting point, not a finished system. Feedback is very welcome, and improvements will follow where possible.
 
 ☕ If you’d like to support development: https://buymeacoffee.com/iamjameshannam
