@@ -6,12 +6,14 @@
 import pluginJson from '../plugin.json'
 import { type PassedData } from './shared/types.js'
 import { FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID } from './shared/constants.js'
-import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate } from './templateIO.js'
+import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate } from './templateIO.js'
 import { getNoteByFilename } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { logDebug, logError, timer, JSP, clo } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 import { stripDoubleQuotes } from '@helpers/stringTransforms'
+import { parseTeamspaceFilename } from '@helpers/teamspace'
+import { getTeamspaceTitleFromID } from '@helpers/NPTeamspace'
 
 // Re-export constants for backward compatibility with other back-end files
 export { FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID }
@@ -335,9 +337,21 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
     let templateNote = null
 
     // Fetch the note once and reuse it (performance optimization)
+    let templateTeamspaceID = '' // Will be used as default space for form operations
+    let templateTeamspaceTitle = '' // Will be used for display in Form Builder
     if (argObj.templateFilename) {
       templateNote = await getNoteByFilename(argObj.templateFilename)
       if (templateNote) {
+        // Detect teamspace from template note (if form is in a teamspace, preserve that context)
+        if (templateNote.filename?.startsWith('%%NotePlanCloud%%')) {
+          const teamspaceDetails = parseTeamspaceFilename(templateNote.filename || '')
+          templateTeamspaceID = teamspaceDetails.teamspaceID || ''
+          if (templateTeamspaceID) {
+            templateTeamspaceTitle = getTeamspaceTitleFromID(templateTeamspaceID)
+            logDebug(pluginJson, `openFormBuilderWindow: Template is in teamspace: ${templateTeamspaceID} (${templateTeamspaceTitle})`)
+          }
+        }
+
         if (argObj.initialReceivingTemplateTitle) {
           // For newly created forms, use the value we already have - no need to read from note
           receivingTemplateTitle = argObj.initialReceivingTemplateTitle
@@ -359,9 +373,11 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
     let height: ?number | ?string = undefined
     let x: ?number | ?string = undefined
     let y: ?number | ?string = undefined
+    let processingMethod = '' // Read from frontmatter
     let isNewForm = false
     let templateBody = ''
     let templateRunnerArgs = null
+    let customCSSValue = ''
     let templateTitleForWindow = argObj.templateTitle || ''
     let launchLink = '' // Will be generated or read from frontmatter
 
@@ -372,6 +388,8 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
       formTitle = stripDoubleQuotes(templateNote.frontmatterAttributes?.formTitle || '') || ''
       allowEmptySubmit = templateNote.frontmatterAttributes?.allowEmptySubmit === 'true' || templateNote.frontmatterAttributes?.allowEmptySubmit === true
       hideDependentItems = templateNote.frontmatterAttributes?.hideDependentItems === 'true' || templateNote.frontmatterAttributes?.hideDependentItems === true
+      // Read processingMethod from frontmatter (don't strip quotes as it's not a string value that needs cleaning)
+      processingMethod = templateNote.frontmatterAttributes?.processingMethod || ''
       // Read launchLink from frontmatter if available, otherwise generate it
       launchLink = templateNote.frontmatterAttributes?.launchLink || ''
       if (!launchLink && templateTitleForWindow) {
@@ -397,12 +415,14 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
         y = typeof yStr === 'number' ? yStr : String(yStr)
       }
 
-      // Load templateBody and TemplateRunner args in parallel (performance optimization)
-      // Start both promises to run in parallel, then await them
+      // Load templateBody, TemplateRunner args, and custom CSS in parallel (performance optimization)
+      // Start all promises to run in parallel, then await them
       const templateBodyPromise = loadTemplateBodyFromTemplate(templateNote)
       const templateRunnerArgsPromise = loadTemplateRunnerArgsFromTemplate(templateNote)
+      const customCSSPromise = loadCustomCSSFromTemplate(templateNote)
       templateBody = await templateBodyPromise
       templateRunnerArgs = await templateRunnerArgsPromise
+      customCSSValue = await customCSSPromise
 
       // Merge TemplateRunner args into the data object that will be passed to FormBuilder
       // These will override any values that might be in frontmatter
@@ -435,12 +455,20 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
         height: height,
         x: x,
         y: y,
+        processingMethod: processingMethod, // Pass processingMethod from frontmatter
         templateBody: templateBody, // Load from codeblock
+        customCSS: customCSSValue || '', // Load custom CSS from codeblock
         isNewForm: isNewForm,
         launchLink: launchLink, // Add launchLink to pluginData
         windowId: windowId, // Store window ID in pluginData so React can send it in requests
+        templateTeamspaceID: templateTeamspaceID, // Pass template's teamspace ID as default space for form operations
+        templateTeamspaceTitle: templateTeamspaceTitle, // Pass template's teamspace title for display
       },
-      title: templateTitleForWindow ? `Form Builder - ${templateTitleForWindow}` : 'Form Builder',
+      title: templateTitleForWindow
+        ? templateTeamspaceTitle
+          ? `Form Builder - ${templateTeamspaceTitle} ${templateTitleForWindow}`
+          : `Form Builder - ${templateTitleForWindow}`
+        : 'Form Builder',
       logProfilingMessage: false,
       debug: false,
       ENV_MODE,

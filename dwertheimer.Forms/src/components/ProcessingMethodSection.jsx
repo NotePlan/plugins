@@ -125,26 +125,31 @@ export function ProcessingMethodSection({
           <option value="create-new">Create New Note on Each Submission</option>
           <option value="write-existing">Write to Existing Note</option>
           <option value="form-processor">Use Form Processor Template</option>
+          <option value="run-js-only">Run JS Only (no note creation)</option>
         </select>
         <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
           {processingMethod === 'write-existing' && 'Write form data directly to an existing note using TemplateRunner'}
           {processingMethod === 'create-new' && 'Create a new note with form data using TemplateRunner'}
           {processingMethod === 'form-processor' && 'Use a separate processing template to handle form submissions'}
+          {processingMethod === 'run-js-only' && 'Run JavaScript template code only - no note creation or validation'}
         </div>
       </div>
 
       {/* Show in Editor checkbox - label changes based on processing method */}
-      <div className="frontmatter-field">
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-          <input type="checkbox" checked={frontmatter.shouldOpenInEditor !== false} onChange={(e) => onFrontmatterChange('shouldOpenInEditor', e.target.checked)} />
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            {(processingMethod === 'write-existing' || !processingMethod) && 'Open target note in Editor on Submit'}
-            {processingMethod === 'create-new' && 'Open new note in Editor on Submit'}
-            {processingMethod === 'form-processor' && 'Open processed note in Editor on Submit'}
-            <InfoIcon text="If checked, the target note will automatically open in the NotePlan editor after the form is submitted, allowing you to immediately see the results." />
-          </span>
-        </label>
-      </div>
+      {/* Hide for run-js-only since there's no note to open */}
+      {processingMethod !== 'run-js-only' && (
+        <div className="frontmatter-field">
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+            <input type="checkbox" checked={frontmatter.shouldOpenInEditor !== false} onChange={(e) => onFrontmatterChange('shouldOpenInEditor', e.target.checked)} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              {(processingMethod === 'write-existing' || !processingMethod) && 'Open target note in Editor on Submit'}
+              {processingMethod === 'create-new' && 'Open new note in Editor on Submit'}
+              {processingMethod === 'form-processor' && 'Open processed note in Editor on Submit'}
+              <InfoIcon text="If checked, the target note will automatically open in the NotePlan editor after the form is submitted, allowing you to immediately see the results." />
+            </span>
+          </label>
+        </div>
+      )}
 
       {/* Option A: Write to Existing File */}
       {processingMethod === 'write-existing' && (
@@ -577,6 +582,26 @@ export function ProcessingMethodSection({
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               Leave empty for root folder, or use &lt;select&gt; to prompt each time
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Option D: Run JS Only */}
+      {processingMethod === 'run-js-only' && (
+        <>
+          <div className="frontmatter-field" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--bg-alt-color, #f5f5f5)', borderRadius: '4px', border: '1px solid var(--divider-color, #ddd)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
+              <strong>JavaScript Template Code:</strong>
+              <InfoIcon text="For 'run-js-only' method, include a TemplateJS block field in your form fields. The JavaScript code in that field will be executed when the form is submitted. No note creation or validation is performed." />
+            </div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--fg-main-color, #333)', lineHeight: '1.5' }}>
+              <p style={{ margin: '0 0 0.5rem 0' }}>
+                To use this method, add a <strong>TemplateJS Block</strong> field to your form fields list. The JavaScript code in that field will be executed when the form is submitted.
+              </p>
+              <p style={{ margin: '0', fontStyle: 'italic', color: 'var(--fg-secondary-color, #666)' }}>
+                Form values are available as variables in the TemplateJS code. No note creation or validation is performed - the code runs directly.
+              </p>
             </div>
           </div>
         </>

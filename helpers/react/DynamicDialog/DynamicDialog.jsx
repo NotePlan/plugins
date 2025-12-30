@@ -465,7 +465,7 @@ const DynamicDialog = ({
             renderItemProps.inputRef = dropdownRef
           }
           return (
-            <div key={`ddc-${index}`}>
+            <div key={`ddc-${index}`} data-compact-display={item.compactDisplay ? 'true' : 'false'}>
               {(!item.key || shouldRenderItem(item)) && renderItem(renderItemProps)}
               {/* Don't render description for heading type since renderItem already renders it */}
               {item.description && item.type !== 'heading' && <div className="item-description">{item.description}</div>}

@@ -143,7 +143,7 @@ export function InfoIcon({
         aria-label="Show information"
         title="Click or hover for more information"
       >
-        {icon ? <i className={`fa ${icon}`} /> : 'ⓘ'}
+        {icon ? <i className={`fa ${icon}`} /> : <i className="fa-solid fa-circle-info" />}
       </span>
       {isVisible && (
         <div

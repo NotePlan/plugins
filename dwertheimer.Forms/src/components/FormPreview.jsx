@@ -134,9 +134,8 @@ export function FormPreview({
   const { dispatch } = useAppContext()
   const prevShowScaledDisclaimerRef = useRef<boolean>(false)
 
-  // Check if we're in a preview/browser context (where we need smart sizing)
-  // We use hidePreviewHeader as a proxy - if it's true, we're in Form Browser
-  const isPreviewContext = hidePreviewHeader
+  // Always use smart sizing for previews (both Form Browser and Form Builder)
+  // The key difference is that Form Browser doesn't show the preview header
 
   // Calculate intended window dimensions (what they would be when actually opened)
   const intendedWidth = useMemo(() => {
@@ -171,36 +170,7 @@ export function FormPreview({
 
   // Calculate preview dimensions with constraints
   const previewDimensions = useMemo(() => {
-    if (!isPreviewContext) {
-      // In Form Builder, use simple dimension parsing (original behavior)
-      const style: { [key: string]: string } = {}
-      if (frontmatter.width) {
-        const widthValue =
-          typeof frontmatter.width === 'number'
-            ? `${frontmatter.width}px`
-            : frontmatter.width.toString().trim().endsWith('%')
-            ? frontmatter.width.toString()
-            : /^\d+px$/.test(frontmatter.width.toString().trim())
-            ? frontmatter.width.toString()
-            : `${frontmatter.width}px`
-        style.width = widthValue
-        style.maxWidth = widthValue
-      }
-      if (frontmatter.height) {
-        const heightValue =
-          typeof frontmatter.height === 'number'
-            ? `${frontmatter.height}px`
-            : frontmatter.height.toString().trim().endsWith('%')
-            ? frontmatter.height.toString()
-            : /^\d+px$/.test(frontmatter.height.toString().trim())
-            ? frontmatter.height.toString()
-            : `${frontmatter.height}px`
-        style.height = heightValue
-      }
-      return { style, isScaled: { width: false, height: false } }
-    }
-
-    // In preview context (Form Browser), use smart sizing
+    // Always use smart sizing for previews (both Form Browser and Form Builder)
     // Only calculate dimensions if we have valid container dimensions
     if (containerDimensions.width === 0 && containerDimensions.height === 0) {
       // Container not measured yet, return empty style (will be recalculated after measurement)
@@ -221,15 +191,11 @@ export function FormPreview({
     style.minHeight = `${heightResult.size}px`
 
     return { style, isScaled: { width: widthResult.isScaled, height: heightResult.isScaled } }
-  }, [isPreviewContext, frontmatter.width, frontmatter.height, intendedWidth, intendedHeight, containerDimensions.width, containerDimensions.height])
+  }, [frontmatter.width, frontmatter.height, intendedWidth, intendedHeight, containerDimensions.width, containerDimensions.height])
 
   // Measure container dimensions - initial measurement and when needed
   useEffect(() => {
-    if (!isPreviewContext) {
-      return
-    }
-
-    // Initial measurement after a brief delay to ensure container is rendered
+    // Always measure container for smart sizing
     const timeoutId = setTimeout(() => {
       measureContainer()
       measurePreviewWindow()
@@ -272,25 +238,22 @@ export function FormPreview({
         previewResizeObserver.unobserve(previewElement)
       }
     }
-  }, [isPreviewContext, measureContainer, measurePreviewWindow])
+  }, [measureContainer, measurePreviewWindow])
 
   // Measure preview window when its dimensions are set
   useEffect(() => {
-    if (!isPreviewContext) {
-      return
-    }
     // Small delay to allow DOM to update with new styles
     const timeoutId = setTimeout(() => {
       measurePreviewWindow()
     }, 50)
     return () => clearTimeout(timeoutId)
-  }, [isPreviewContext, previewDimensions.style, measurePreviewWindow])
+  }, [previewDimensions.style, measurePreviewWindow])
 
-  const showScaledDisclaimer = isPreviewContext && (previewDimensions.isScaled.width || previewDimensions.isScaled.height)
+  const showScaledDisclaimer = previewDimensions.isScaled.width || previewDimensions.isScaled.height
 
-  // Show warning toast when preview is scaled
+  // Show warning toast when preview is scaled (only in Form Browser, not Form Builder)
   useEffect(() => {
-    if (showScaledDisclaimer && !prevShowScaledDisclaimerRef.current) {
+    if (hidePreviewHeader && showScaledDisclaimer && !prevShowScaledDisclaimerRef.current) {
       const isWidthScaled = previewDimensions.isScaled.width
       const isHeightScaled = previewDimensions.isScaled.height
       let reducedText = ''
@@ -314,6 +277,7 @@ export function FormPreview({
     }
     prevShowScaledDisclaimerRef.current = showScaledDisclaimer
   }, [
+    hidePreviewHeader,
     showScaledDisclaimer,
     intendedWidth,
     intendedHeight,

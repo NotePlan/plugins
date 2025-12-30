@@ -17,9 +17,10 @@ import {
   saveFormFieldsToTemplate,
   saveTemplateBodyToTemplate,
   saveTemplateRunnerArgsToTemplate,
+  saveCustomCSSToTemplate,
   updateReceivingTemplateWithFields,
 } from './templateIO'
-import { removeEmptyLinesFromNote } from './requestHandlers'
+import { removeEmptyLinesFromNote, updateFormLinksInNote } from './requestHandlers'
 import { getNoteByFilename } from '@helpers/note'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
 import { updateFrontMatterVars, ensureFrontmatter, endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
@@ -269,7 +270,6 @@ export async function handleDuplicateForm(params: { templateFilename?: string, t
     updateFrontMatterVars(newNote, newFrontmatter)
 
     // Update markdown links in body using replaceContentUnderHeading (works better than manual insertion)
-    const { updateFormLinksInNote } = require('./requestHandlers')
     await updateFormLinksInNote(newNote, newTitle, newLaunchLink, newFormEditLink, undefined)
 
     // Copy codeblocks (these will be added after the heading)
@@ -309,7 +309,6 @@ export async function handleDuplicateForm(params: { templateFilename?: string, t
       finalNote.updateParagraphs(finalNote.paragraphs)
 
       // Remove empty lines
-      const { removeEmptyLinesFromNote } = require('./requestHandlers')
       removeEmptyLinesFromNote(finalNote)
 
       // Update cache to ensure the note is available in DataStore.projectNotes
@@ -566,6 +565,11 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     // Save templateBody to codeblock if provided
     if (data?.frontmatter?.templateBody !== undefined) {
       await saveTemplateBodyToTemplate(finalTemplateFilename, data.frontmatter.templateBody || '')
+    }
+
+    // Save custom CSS to codeblock if provided
+    if (data?.frontmatter?.customCSS !== undefined) {
+      await saveCustomCSSToTemplate(finalTemplateFilename, data.frontmatter.customCSS || '')
     }
 
     // Save TemplateRunner args to codeblock if any exist

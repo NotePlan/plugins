@@ -22,6 +22,8 @@
     /* overflow: hidden; commented out to allow for dropdowns to show */
     display: flex;
     flex-direction: column;
+    margin: 0;
+    padding: 0;
 
     /* Narrow for simpler confirmation dialogs */
     &.confirmation {
@@ -62,14 +64,16 @@
         font-size: 1.05rem;
         font-weight: 600;
         gap: 0.5rem;
-        background-color: var(--bg-alt-color);
-        color: var(--tint-color);
+        background-color: var(--bg-alt-color, #e6e9ef);
+        color: var(--tint-color, #dc8a78);
         margin: 0;
-        background: none;
         line-height: 1.2rem;
         min-height: 2.5rem;
-        border-bottom: gray solid .5px;
-        padding-bottom: 2px;
+        border-bottom: 0.5px solid var(--divider-color, #CDCFD0);
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px 8px 0 0;
+        width: 100%;
+        box-sizing: border-box;
         /* Match the height of the buttons container */
     }
 
@@ -233,6 +237,56 @@
         align-items: center;
         gap: 1rem !important;
         column-gap: 0px;
+    }
+    
+    /* Fix label alignment in compact display - ensure consistent vertical alignment */
+    .input-box-container-compact .input-box-label {
+        margin-bottom: 0;
+        align-self: center;
+        min-width: fit-content;
+        white-space: nowrap;
+    }
+    
+    /* Ensure all compact display fields align vertically - use consistent label width */
+    .dynamic-dialog-content {
+        /* Create a CSS variable for compact label width to ensure alignment */
+        --compact-label-width: auto;
+    }
+    
+    /* Unified field label styling for all DynamicDialog fields */
+    /* All field labels should use font-weight: 600 for consistency */
+    .input-box-label,
+    .expandable-textarea-label,
+    .markdown-preview-label,
+    .templatejs-block-label,
+    [class*="-chooser-label"],
+    .multi-select-chooser-base label {
+        font-weight: 600;
+    }
+    
+    /* For compact fields, set a consistent minimum label width to align all labels */
+    .input-box-container-compact .input-box-label {
+        min-width: 8rem;
+        text-align: right;
+        padding-right: 1rem;
+    }
+    
+    /* Align validation messages with labels in compact mode */
+    .input-box-container-compact + .validation-message {
+        margin-left: 8rem;
+        padding-left: 1rem;
+    }
+    
+    /* Align item descriptions with labels in compact mode */
+    /* When a field has compactDisplay, the description should align with the label (9rem from left) */
+    [data-compact-display="true"] .item-description {
+        margin-left: 9rem; /* Align with input field: 8rem (label width) + 1rem (label padding-right) */
+    }
+    
+    /* Ensure input fields in compact mode align with chooser inputs */
+    /* Label is 8rem + 1rem padding = 9rem, so input should start at 9rem */
+    .input-box-container-compact .input-box-input {
+        margin-left: 0; /* Remove the 10px margin to align with choosers */
     }
 
     /* Style for input-box-wrapper - TODO: remove later */

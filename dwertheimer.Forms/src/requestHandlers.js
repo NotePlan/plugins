@@ -28,7 +28,7 @@ import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
 import { updateFrontMatterVars, ensureFrontmatter, endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseObjectString } from '@helpers/stringTransforms'
-import { replaceContentUnderHeading } from '@helpers/NPParagraph'
+import { replaceContentUnderHeading, removeContentUnderHeading } from '@helpers/NPParagraph'
 import { initPromisePolyfills, waitForCondition } from '@helpers/promisePolyfill'
 import { keepTodayPortionOnly } from '@helpers/calendar.js'
 // Form-specific handlers are now in their respective handler files:
@@ -1034,7 +1034,6 @@ export async function updateFormLinksInNote(
 
     if (headingIndex >= 0) {
       // Heading exists, remove content under it first
-      const { removeContentUnderHeading } = require('@helpers/NPParagraph')
       removeContentUnderHeading(note, 'Form Details', false, false)
       // Re-find the heading after removal
       for (let i = insertionIndex; i < note.paragraphs.length; i++) {

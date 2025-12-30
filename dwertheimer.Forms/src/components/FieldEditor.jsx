@@ -313,7 +313,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   style={{ width: '100%', fontFamily: 'Menlo, monospace' }}
                 />
                 <div className="field-editor-help">
-                  Stored as plain text in the form definition. The form executor will wrap it in a <code>templateJS</code> code block at runtime.
+                  Enter without the backticks.Stored as plain text in the form definition. The form executor will wrap it in a <code>templateJS</code> code block at runtime.
                 </div>
               </div>
               <div className="field-editor-row">

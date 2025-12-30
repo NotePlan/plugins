@@ -30,6 +30,7 @@ type FormBuilderProps = {
   x?: ?number | ?string,
   y?: ?number | ?string,
   templateBody?: string, // Load from codeblock
+  customCSS?: string, // Load from codeblock
   templateRunnerArgs?: { [key: string]: any }, // TemplateRunner processing variables (loaded from codeblock)
   isNewForm?: boolean,
   templateTitle?: string,
@@ -55,6 +56,7 @@ export function FormBuilder({
   x,
   y,
   templateBody = '', // Load from codeblock
+  customCSS = '', // Load from codeblock
   templateRunnerArgs = {}, // TemplateRunner processing variables (loaded from codeblock)
   isNewForm = false,
   templateTitle = '',
@@ -64,6 +66,13 @@ export function FormBuilder({
   onCancel,
   onOpenForm,
 }: FormBuilderProps): Node {
+  // Get requestFromPlugin and sendActionToPlugin from context (needed early for useState)
+  const { requestFromPlugin, dispatch, pluginData } = useAppContext()
+  
+  // Get template's teamspace ID and title from pluginData (if form is in a teamspace, preserve that context)
+  const templateTeamspaceID = pluginData?.templateTeamspaceID || ''
+  const templateTeamspaceTitle = pluginData?.templateTeamspaceTitle || ''
+
   const [fields, setFields] = useState<Array<TSettingItem>>(initialFields)
   const [editingIndex, setEditingIndex] = useState<?number>(null)
   const [draggedIndex, setDraggedIndex] = useState<?number>(null)
@@ -84,12 +93,16 @@ export function FormBuilder({
   const [frontmatter, setFrontmatter] = useState<{ [key: string]: any }>(() => {
     // Strip quotes from initial values to prevent saving quoted values
     const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''
+    // Get processingMethod from pluginData (loaded from frontmatter) or calculate default
+    // pluginData.processingMethod comes from the note's frontmatter via windowManagement.js
+    const processingMethodFromPluginData = pluginData?.processingMethod || ''
     // For backward compatibility: if receivingTemplateTitle exists, automatically use form-processor
-    const defaultProcessingMethod = cleanedReceivingTemplateTitle ? 'form-processor' : 'write-existing'
+    // But only if processingMethod wasn't already set in frontmatter
+    const defaultProcessingMethod = processingMethodFromPluginData || (cleanedReceivingTemplateTitle ? 'form-processor' : 'write-existing')
 
     // Base frontmatter with form configuration
     const baseFrontmatter = {
-      processingMethod: defaultProcessingMethod,
+      processingMethod: defaultProcessingMethod, // Will be overridden by templateRunnerArgs if present
       receivingTemplateTitle: cleanedReceivingTemplateTitle,
       windowTitle: stripDoubleQuotes(windowTitle || '') || '',
       formTitle: stripDoubleQuotes(formTitle || '') || '',
@@ -111,9 +124,12 @@ export function FormBuilder({
       // Option C: Form processor
       formProcessorTitle: cleanedReceivingTemplateTitle, // Set to receivingTemplateTitle for backward compatibility
       // Space selection (empty string = Private, teamspace ID = Teamspace)
-      space: '', // Default to Private (empty string)
+      // Default to template's teamspace if form is in a teamspace, otherwise Private
+      space: templateTeamspaceID || '', // Use template's teamspace as default if available
       // Template body (loaded from codeblock)
       templateBody: templateBody || '',
+      // Custom CSS (loaded from codeblock)
+      customCSS: customCSS || '',
     }
 
     // Merge TemplateRunner args from codeblock (these override defaults)
@@ -124,11 +140,15 @@ export function FormBuilder({
         mergedFrontmatter[key] = templateRunnerArgs[key]
       }
     })
+    
+    // If space is not set in templateRunnerArgs and template is in a teamspace, set it as default
+    // This ensures forms opened in a teamspace default to that teamspace for creating/loading notes
+    if (templateTeamspaceID && !mergedFrontmatter.space) {
+      mergedFrontmatter.space = templateTeamspaceID
+    }
+    
     return mergedFrontmatter
   })
-
-  // Get requestFromPlugin and sendActionToPlugin from context
-  const { requestFromPlugin, dispatch } = useAppContext()
 
   // Handle Form URL copy
   const handleCopyFormUrl = async () => {
@@ -503,6 +523,11 @@ export function FormBuilder({
       const confirmed = window.confirm('You have unsaved changes. The form will open with the last saved version. Do you want to continue?')
       if (!confirmed) {
         logDebug('FormBuilder', `handleOpenForm: user cancelled confirmation`)
+        dispatch('SHOW_TOAST', {
+          type: 'INFO',
+          msg: 'Opening form cancelled. Save your changes first to open the form with the latest version.',
+          timeout: 5000,
+        })
         return
       }
     }
@@ -556,15 +581,25 @@ export function FormBuilder({
                 style={{ cursor: templateFilename ? 'pointer' : 'default', fontSize: '0.875rem', color: 'var(--fg-secondary-color, #666)' }}
               >
                 Form:{' '}
+                {templateTeamspaceTitle && (
+                  <i className="fa-regular fa-cube" style={{ marginRight: '0.25rem', color: 'var(--item-icon-color, #1e66f5)' }} />
+                )}
                 {(() => {
                   const windowTitle = frontmatter.windowTitle || ''
                   const formTitle = frontmatter.formTitle || templateTitle || ''
                   // Only show both if they're different and both exist
+                  let displayTitle = ''
                   if (windowTitle && formTitle && windowTitle !== formTitle) {
-                    return `${windowTitle} | ${formTitle}`
+                    displayTitle = `${windowTitle} | ${formTitle}`
+                  } else {
+                    // Otherwise show whichever one exists (or templateTitle as fallback)
+                    displayTitle = windowTitle || formTitle || templateTitle
                   }
-                  // Otherwise show whichever one exists (or templateTitle as fallback)
-                  return windowTitle || formTitle || templateTitle
+                  // Add teamspace indication if form is in a teamspace
+                  if (templateTeamspaceTitle) {
+                    return `${templateTeamspaceTitle} ${displayTitle}`
+                  }
+                  return displayTitle
                 })()}
               </div>
               {hasUnsavedChanges && (
@@ -662,7 +697,25 @@ export function FormBuilder({
           </Panel>
           <PanelResizeHandle className="form-builder-resize-handle" />
           <Panel defaultSize={35} minSize={20} order={3}>
-            <FormPreview frontmatter={frontmatter} fields={fields} folders={folders} notes={notes} requestFromPlugin={requestFromPlugin} />
+            <FormPreview
+              frontmatter={frontmatter}
+              fields={fields}
+              folders={folders}
+              notes={notes}
+              requestFromPlugin={requestFromPlugin}
+              hideHeaderButtons={false}
+              keepOpenOnSubmit={true}
+              onSave={(formValues: { [key: string]: any }, windowId?: string) => {
+                // Show toast instead of closing
+                dispatch('SHOW_TOAST', {
+                  type: 'INFO',
+                  msg: 'Form submitted successfully (preview mode - no actual submission)',
+                  timeout: 3000,
+                })
+                // Explicitly return void
+                return
+              }}
+            />
           </Panel>
         </PanelGroup>
       </div>

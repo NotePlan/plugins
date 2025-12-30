@@ -415,6 +415,11 @@ export function SearchableChooser({
 
   return (
     <div className={`searchable-chooser-base ${classNamePrefix}-container ${compactDisplay ? 'compact' : ''}`} ref={containerRef} data-field-type={fieldType}>
+      {label && compactDisplay && (
+        <label className={`${classNamePrefix}-label`} htmlFor={`${classNamePrefix}-${label}`}>
+          {label}
+        </label>
+      )}
       {label && !compactDisplay && (
         <label className={`${classNamePrefix}-label`} htmlFor={`${classNamePrefix}-${label}`}>
           {label}

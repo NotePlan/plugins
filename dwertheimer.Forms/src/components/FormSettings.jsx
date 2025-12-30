@@ -235,6 +235,31 @@ export function FormSettings({
                     </div>
                   </div>
                 </div>
+                <div className="frontmatter-field frontmatter-field-custom-css" style={{ marginTop: '1rem' }}>
+                  <label className="frontmatter-field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
+                    Custom CSS:
+                    <InfoIcon text="Custom CSS styles for this form. Stored in a template:ignore codeblock and injected into the form window when opened. Use this to override specific styles for this form only." />
+                  </label>
+                  <textarea
+                    className="frontmatter-field-textarea frontmatter-field-textarea-custom-css"
+                    value={frontmatter.customCSS || ''}
+                    onChange={(e) => onFrontmatterChange('customCSS', e.target.value)}
+                    placeholder="/* Enter custom CSS for this form */&#10;.dynamic-dialog {&#10;  /* Your styles here */&#10;}"
+                    rows={8}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+                      fontSize: '0.85rem',
+                      lineHeight: '1.4',
+                      resize: 'vertical',
+                      marginTop: '0.25rem',
+                    }}
+                  />
+                  <div className="frontmatter-field-help-text" style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                    Custom CSS will be saved in a <code>template:ignore customCSS</code> codeblock and injected into the form window when opened.
+                  </div>
+                </div>
               </div>
             )}
           </div>
