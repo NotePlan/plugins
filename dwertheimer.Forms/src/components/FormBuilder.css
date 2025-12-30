@@ -166,8 +166,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 60vh;
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .field-type-option {
@@ -627,6 +628,7 @@
   border-radius: 8px;
   width: 90%;
   max-width: 600px;
+  height: 600px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -691,6 +693,9 @@
   flex: 1;
   padding: 1.5rem;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .field-type-selector-footer {

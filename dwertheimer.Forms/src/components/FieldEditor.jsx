@@ -612,6 +612,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 </label>
                 <div className="field-editor-help">
                   When enabled, adds an &quot;All Private + Spaces&quot; option that returns &quot;__all__&quot; when selected. This allows users to select all spaces at once.
+                  NOTE: whatever is receiving the value needs to handle the &quot;__all__&quot; value appropriately.
                 </div>
               </div>
             </>
