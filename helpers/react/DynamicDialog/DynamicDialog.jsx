@@ -114,6 +114,8 @@ export type TSettingItem = {
   showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
   // space-chooser options
   includeAllOption?: boolean, // for space-chooser, include "All Private + Spaces" option that returns "__all__" (default: false)
+  // chooser display options (for folder-chooser, note-chooser, space-chooser, heading-chooser, event-chooser)
+  shortDescriptionOnLine2?: boolean, // for choosers, display short description on second line instead of on the same line (default: false)
   staticHeadings?: Array<string>, // for heading-chooser, static list of headings (if not depending on a note)
   // textarea options
   minRows?: number, // for textarea, minimum number of rows (default: 3)

@@ -479,6 +479,7 @@ export function renderItem({
               requestFromPlugin={requestFromPlugin}
               showValue={item.showValue ?? false}
               onFoldersChanged={onFoldersChanged}
+              shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
             />
           </div>
         )
@@ -530,6 +531,7 @@ export function renderItem({
               onNotesChanged={onNotesChanged}
               placeholder={item.placeholder || 'Type to search notes...'}
               showValue={item.showValue ?? false}
+              shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
             />
           </div>
         )
@@ -577,6 +579,7 @@ export function renderItem({
               optionAddTopAndBottom={optionAddTopAndBottom}
               includeArchive={includeArchive}
               showValue={item.showValue ?? false}
+              shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
             />
           </div>
         )
@@ -650,6 +653,7 @@ export function renderItem({
               eventFilterRegex={eventFilterRegex}
               includeReminders={includeReminders}
               reminderLists={reminderLists}
+              shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
             />
           </div>
         )
@@ -771,6 +775,7 @@ export function renderItem({
               requestFromPlugin={requestFromPlugin}
               showValue={item.showValue ?? false}
               includeAllOption={item.includeAllOption ?? false}
+              shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
             />
           </div>
         )

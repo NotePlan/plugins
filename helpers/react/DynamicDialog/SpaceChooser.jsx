@@ -27,6 +27,7 @@ export type SpaceChooserProps = {
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>,
   showValue?: boolean, // If true, display the selected value below the input
   includeAllOption?: boolean, // If true, include "All Private + Spaces" option that returns "__all__"
+  shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
 }
 
 /**
@@ -45,6 +46,7 @@ export function SpaceChooser({
   requestFromPlugin,
   showValue = false,
   includeAllOption = false,
+  shortDescriptionOnLine2 = false,
 }: SpaceChooserProps): React$Node {
   const [spaces, setSpaces] = useState<Array<SpaceOption>>([])
   const [spacesLoaded, setSpacesLoaded] = useState<boolean>(false)
@@ -227,6 +229,7 @@ export function SpaceChooser({
       }
       return space.isPrivate ? 'Your private notes' : 'Teamspace'
     },
+    shortDescriptionOnLine2,
   }
 
   // Find the current space to get its display title

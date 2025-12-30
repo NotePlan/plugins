@@ -46,6 +46,7 @@ export type ChooserConfig = {
   getOptionIcon?: (item: any) => ?string, // Optional function to get icon for option
   getOptionColor?: (item: any) => ?string, // Optional function to get color for option
   getOptionShortDescription?: (item: any) => ?string, // Optional function to get short description for option
+  shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
   allowManualEntry?: boolean, // If true, allow Enter key to accept typed text even if it doesn't match any item
   manualEntryIndicator?: string, // Text to show when value is a manual entry (default: "✏️ Manual entry")
   isManualEntry?: (value: string, items: Array<any>) => boolean, // Function to check if a value is a manual entry (not in items list)
@@ -127,6 +128,7 @@ export function SearchableChooser({
     getOptionIcon,
     getOptionColor,
     getOptionShortDescription,
+    shortDescriptionOnLine2 = false,
     showArrow = false,
     allowManualEntry = false,
     manualEntryIndicator = '✏️ Manual entry',
@@ -542,6 +544,64 @@ export function SearchableChooser({
                   }
 
                   // Default rendering
+                  if (shortDescriptionOnLine2 && optionShortDesc) {
+                    // Two-line layout: icon + label on first line, description on second line
+                    return (
+                      <div
+                        key={`${fieldType}-${index}`}
+                        className={`searchable-chooser-option searchable-chooser-option-two-line ${classNamePrefix}-option ${classNamePrefix}-option-two-line ${showOptionClickHint ? 'option-click-hint' : ''} ${isSelected ? 'option-selected' : ''}`}
+                        onClick={(e) => handleItemSelect(item, e)}
+                        onMouseEnter={() => setHoveredIndex(index)}
+                        onMouseLeave={() => setHoveredIndex(null)}
+                        title={finalTitle}
+                        style={{
+                          cursor: showOptionClickHint ? 'pointer' : 'default',
+                          backgroundColor: isSelected ? 'var(--hover-bg, #f5f5f5)' : undefined,
+                        }}
+                      >
+                        <div className={`searchable-chooser-option-first-line ${classNamePrefix}-option-first-line`}>
+                          {optionIcon && (
+                            <i
+                              className={`fa-solid fa-${optionIcon}`}
+                              style={{
+                                marginRight: '0.5rem',
+                                opacity: 0.7,
+                                color: optionColor ? `var(--${optionColor}, inherit)` : undefined,
+                              }}
+                            />
+                          )}
+                          {showOptionClickHint && optionClickIcon && (
+                            <i
+                              className={`fa-solid fa-${optionClickIcon}`}
+                              style={{
+                                marginRight: '0.5rem',
+                                color: 'var(--tint-color, #0066cc)',
+                              }}
+                              title={optionClickHint || 'Option-click for action'}
+                            />
+                          )}
+                          <span
+                            className={`searchable-chooser-option-text ${classNamePrefix}-option-text`}
+                            style={{
+                              color: optionColor ? `var(--${optionColor}, inherit)` : undefined,
+                            }}
+                          >
+                            {truncatedText}
+                          </span>
+                        </div>
+                        <div
+                          className={`searchable-chooser-option-second-line ${classNamePrefix}-option-second-line`}
+                          style={{
+                            color: optionColor ? `var(--${optionColor}, var(--gray-500, #666))` : undefined,
+                          }}
+                        >
+                          {optionShortDesc}
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  // Single-line layout (default): icon + label + description on one line
                   return (
                     <div
                       key={`${fieldType}-${index}`}

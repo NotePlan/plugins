@@ -29,6 +29,7 @@ export type HeadingChooserProps = {
   optionAddTopAndBottom?: boolean, // Whether to include "top of note" and "bottom of note" options
   includeArchive?: boolean, // Whether to include headings in Archive section
   showValue?: boolean, // If true, display the selected value below the input
+  shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
 }
 
 /**
@@ -51,6 +52,7 @@ export function HeadingChooser({
   optionAddTopAndBottom = true,
   includeArchive = false,
   showValue = false,
+  shortDescriptionOnLine2 = false,
 }: HeadingChooserProps): React$Node {
   const [headings, setHeadings] = useState<Array<string>>(staticHeadings)
   const [loading, setLoading] = useState<boolean>(false)
@@ -163,6 +165,7 @@ export function HeadingChooser({
         return cleanHeading === value || item.heading === value || item.displayText === value
       })
     },
+    shortDescriptionOnLine2,
   }
 
   return (

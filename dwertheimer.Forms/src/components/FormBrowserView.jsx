@@ -19,6 +19,8 @@ type FormTemplate = {
   label: string,
   value: string,
   filename: string,
+  spaceId?: string, // Empty string for Private, teamspace ID for teamspaces
+  spaceTitle?: string, // "Private" or teamspace title
 }
 
 type FormBrowserViewProps = {
@@ -724,6 +726,8 @@ export function FormBrowserView({
                       compactDisplay={true}
                       requestFromPlugin={requestFromPlugin}
                       showValue={false}
+                      includeAllOption={true}
+                      shortDescriptionOnLine2={true}
                     />
                   </div>
                   <div className="form-browser-filter-row">
@@ -804,7 +808,12 @@ export function FormBrowserView({
                         }}
                         tabIndex={0}
                       >
-                        <span className="form-browser-list-item-label">{template.label}</span>
+                        <div className="form-browser-list-item-content">
+                          <span className="form-browser-list-item-label">{template.label}</span>
+                          {selectedSpace === '__all__' && template.spaceTitle && (
+                            <span className="form-browser-list-item-space">{template.spaceTitle}</span>
+                          )}
+                        </div>
                         <div className="form-browser-list-item-actions" onClick={(e) => e.stopPropagation()}>
                           <button className="form-browser-list-item-button form-browser-list-item-button-edit" onClick={(e) => handleEditForm(template, e)} title="Edit form">
                             ✏️

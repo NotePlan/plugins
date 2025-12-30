@@ -53,6 +53,7 @@ export type NoteChooserProps = {
   onNotesChanged?: () => void, // Callback to request note list reload after creating a note
   onOpen?: () => void, // Callback when dropdown opens (for lazy loading) - can be async internally
   isLoading?: boolean, // If true, show loading indicator
+  shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
 }
 
 /**
@@ -136,6 +137,7 @@ export function NoteChooser({
   onNotesChanged,
   onOpen,
   isLoading = false,
+  shortDescriptionOnLine2 = false,
 }: NoteChooserProps): React$Node {
   const [isCreatingNote, setIsCreatingNote] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -407,6 +409,7 @@ export function NoteChooser({
     getOptionIcon: (note: NoteOption) => getNoteDecoration(note).icon,
     getOptionColor: (note: NoteOption) => getNoteDecoration(note).color,
     getOptionShortDescription: (note: NoteOption) => getNoteDecoration(note).shortDescription,
+    shortDescriptionOnLine2,
   }
 
   return (

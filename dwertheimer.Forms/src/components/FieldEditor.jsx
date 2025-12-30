@@ -525,6 +525,21 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 </label>
                 <div className="field-editor-help">Exclude teamspace folders from the list of folders</div>
               </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { shortDescriptionOnLine2?: boolean }).shortDescriptionOnLine2 || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).shortDescriptionOnLine2 = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Short description on second line
+                </label>
+                <div className="field-editor-help">When enabled, displays the short description (e.g., folder path, space name) on a second line below the label</div>
+              </div>
             </>
           )}
 
@@ -592,6 +607,21 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 </label>
                 <div className="field-editor-help">Include teamspace notes in the list</div>
               </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { shortDescriptionOnLine2?: boolean }).shortDescriptionOnLine2 || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).shortDescriptionOnLine2 = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Short description on second line
+                </label>
+                <div className="field-editor-help">When enabled, displays the short description (e.g., folder path, space name) on a second line below the label</div>
+              </div>
             </>
           )}
 
@@ -614,6 +644,21 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   When enabled, adds an &quot;All Private + Spaces&quot; option that returns &quot;__all__&quot; when selected. This allows users to select all spaces at once.
                   NOTE: whatever is receiving the value needs to handle the &quot;__all__&quot; value appropriately.
                 </div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { shortDescriptionOnLine2?: boolean }).shortDescriptionOnLine2 || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).shortDescriptionOnLine2 = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Short description on second line
+                </label>
+                <div className="field-editor-help">When enabled, displays the short description (e.g., folder path, space name) on a second line below the label</div>
               </div>
             </>
           )}
@@ -872,6 +917,21 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   )}
                 </div>
               )}
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { shortDescriptionOnLine2?: boolean }).shortDescriptionOnLine2 || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).shortDescriptionOnLine2 = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Short description on second line
+                </label>
+                <div className="field-editor-help">When enabled, displays the short description (e.g., calendar name) on a second line below the label</div>
+              </div>
             </>
           )}
 
@@ -969,6 +1029,21 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   />
                   Include headings in Archive section
                 </label>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { shortDescriptionOnLine2?: boolean }).shortDescriptionOnLine2 || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).shortDescriptionOnLine2 = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Short description on second line
+                </label>
+                <div className="field-editor-help">When enabled, displays the short description on a second line below the label</div>
               </div>
             </>
           )}

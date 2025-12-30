@@ -281,6 +281,65 @@
   text-align: right;
 }
 
+/* Two-line layout for options */
+.searchable-chooser-option-two-line {
+  flex-direction: column;
+  align-items: flex-start;
+  white-space: normal;
+}
+
+.searchable-chooser-option-first-line {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.searchable-chooser-option-second-line {
+  font-size: 0.85em;
+  opacity: 0.6;
+  color: var(--gray-500, #666);
+  margin-top: 0.25rem;
+  padding-left: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Support attribute selector for two-line layout */
+.searchable-chooser-base [class*="-chooser-option-two-line"],
+[class*="-chooser-option-two-line"] {
+  flex-direction: column;
+  align-items: flex-start;
+  white-space: normal;
+}
+
+.searchable-chooser-base [class*="-chooser-option-first-line"],
+[class*="-chooser-option-first-line"] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.searchable-chooser-base [class*="-chooser-option-second-line"],
+[class*="-chooser-option-second-line"] {
+  font-size: 0.85em;
+  opacity: 0.6;
+  color: var(--gray-500, #666);
+  margin-top: 0.25rem;
+  padding-left: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .searchable-chooser-base [class*="-chooser-option-right"],
 [class*="-chooser-option-right"] {
   flex-shrink: 0;

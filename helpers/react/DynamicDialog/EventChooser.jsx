@@ -49,6 +49,7 @@ export type EventChooserProps = {
   eventFilterRegex?: string, // Optional regex pattern to filter events by title after fetching
   includeReminders?: boolean, // If true, include reminders in the list
   reminderLists?: Array<string>, // Optional array of reminder list titles to filter reminders by
+  shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
 }
 
 /**
@@ -194,6 +195,7 @@ export function EventChooser({
   eventFilterRegex,
   includeReminders = false,
   reminderLists,
+  shortDescriptionOnLine2 = false,
 }: EventChooserProps): React$Node {
   const [events, setEvents] = useState<Array<EventOption>>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -468,6 +470,7 @@ export function EventChooser({
     getOptionShortDescription: (event: EventOption) => {
       return event.isAllDay ? 'all-day' : null
     },
+    shortDescriptionOnLine2,
     // Custom rendering with column layout: icon | time | title
     renderOption: (event: EventOption, helpers) => {
       const { isSelected, handleItemSelect, classNamePrefix, getOptionTitle } = helpers

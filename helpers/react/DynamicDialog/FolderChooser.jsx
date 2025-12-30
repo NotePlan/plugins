@@ -32,6 +32,7 @@ export type FolderChooserProps = {
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>,
   showValue?: boolean, // If true, display the selected value below the input
   onFoldersChanged?: () => void, // Callback to request folder list reload after creating a folder
+  shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
 }
 
 /**
@@ -57,6 +58,7 @@ export function FolderChooser({
   requestFromPlugin,
   showValue = false,
   onFoldersChanged,
+  shortDescriptionOnLine2 = false,
 }: FolderChooserProps): React$Node {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -434,6 +436,7 @@ export function FolderChooser({
       }
       return decoration.shortDescription || undefined
     },
+    shortDescriptionOnLine2,
   }
 
   return (
