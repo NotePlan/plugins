@@ -277,6 +277,7 @@ export function showInMainWindow(globalData: any = null, windowOptions?: HtmlWin
       icon: windowOptsAny.icon || 'window-maximize',
       iconColor: windowOptsAny.iconColor || 'blue-500',
       autoTopPadding: windowOptsAny.autoTopPadding ?? true,
+      showReloadButton: windowOptsAny.showReloadButton ?? false,
     }
     // $FlowFixMe[prop-missing] - showInMainWindow is available in NotePlan v3.20+
     HTMLView.showInMainWindow(fullHTMLStr, windowOptions.windowTitle || 'React Window', mainWindowOptions)
