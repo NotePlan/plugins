@@ -97,6 +97,17 @@ export async function openFavoritesBrowser(_isFloating: boolean | string = false
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
 
+    const themeCSS = generateCSSFromTheme()
+    // find the --tint-color from the themeCSS
+    const tintColor = themeCSS.match(/--tint-color: (.*?);/)?.[1]
+    let iconColorHex = ''
+    if (tintColor) {
+      logDebug(pluginJson, `openFavoritesBrowser: Found tint color: ${tintColor}`)
+      iconColorHex = tintColor
+    } else {
+      logDebug(pluginJson, `openFavoritesBrowser: No tint color found in themeCSS`)
+    }
+
     const windowOptions = {
       savedFilename: `../../${pluginJson['plugin.id']}/favorites_browser_output.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
@@ -105,7 +116,7 @@ export async function openFavoritesBrowser(_isFloating: boolean | string = false
       height: 800,
       customId: windowId, // Use unique window ID instead of constant
       shouldFocus: true,
-      generalCSSIn: generateCSSFromTheme(),
+      generalCSSIn: themeCSS,
       specificCSS: `
         /* Favorites browser - left justified, full height, expandable width */
         body, html {
@@ -140,7 +151,7 @@ export async function openFavoritesBrowser(_isFloating: boolean | string = false
       // Options for showInMainWindow (main window mode)
       splitView: false,
       icon: 'star',
-      iconColor: 'var(--tint-color, #dc8a78)',
+      iconColor: iconColorHex ? iconColorHex : 'blue-500',
       autoTopPadding: true,
       showReloadButton: false,
     }
