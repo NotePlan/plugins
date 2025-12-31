@@ -140,8 +140,9 @@ export async function openFavoritesBrowser(_isFloating: boolean | string = false
       // Options for showInMainWindow (main window mode)
       splitView: false,
       icon: 'star',
-      iconColor: 'blue-500',
+      iconColor: 'var(--tint-color, #dc8a78)',
       autoTopPadding: true,
+      showReloadButton: false,
     }
 
     // Choose the appropriate command based on whether it's floating or main window

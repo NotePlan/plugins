@@ -477,16 +477,49 @@ function FavoritesViewComponent({
     setSelectedIndex(null)
     // Scroll list to top and focus the filter input after a brief delay to ensure it's rendered
     setTimeout(() => {
+      // Get toolbar height offset (same calculation as Toast.css: calc(1rem + var(--noteplan-toolbar-height, 0)))
+      const root = document.documentElement
+      if (!root) return
+
+      const toolbarHeight = parseInt(getComputedStyle(root).getPropertyValue('--noteplan-toolbar-height') || '0', 10)
+      const oneRem = parseFloat(getComputedStyle(root).fontSize || '16px')
+      const scrollOffset = oneRem + toolbarHeight
+
+      // Helper function to find scrollable ancestor
+      const findScrollableAncestor = (el: HTMLElement): ?HTMLElement => {
+        let parent: ?Element = el.parentElement
+        while (parent) {
+          if (parent instanceof HTMLElement) {
+            const style = getComputedStyle(parent)
+            if (style.overflow === 'auto' || style.overflow === 'scroll' || style.overflowY === 'auto' || style.overflowY === 'scroll') {
+              return parent
+            }
+          }
+          parent = parent.parentElement
+        }
+        return null
+      }
+
       // Scroll list to top
       if (listRef.current) {
         const firstItem = listRef.current.querySelector('[data-index="0"]')
         if (firstItem instanceof HTMLElement) {
-          firstItem.scrollIntoView({ block: 'start', behavior: 'instant' })
+          // Use scrollIntoView with offset by scrolling the parent container
+          const scrollableParent = findScrollableAncestor(firstItem)
+          if (scrollableParent) {
+            const itemRect = firstItem.getBoundingClientRect()
+            const parentRect = scrollableParent.getBoundingClientRect()
+            const currentScrollTop = scrollableParent.scrollTop
+            const targetScrollTop = currentScrollTop + (itemRect.top - parentRect.top) - scrollOffset
+            scrollableParent.scrollTop = Math.max(0, targetScrollTop)
+          } else {
+            firstItem.scrollIntoView({ block: 'start', behavior: 'instant' })
+          }
         } else if (listRef.current instanceof HTMLElement) {
-          // If no items, try scrolling the container itself
+          // If no items, try scrolling the container itself with offset
           const scrollableParent = listRef.current.parentElement?.parentElement
           if (scrollableParent instanceof HTMLElement && scrollableParent.scrollTop !== undefined) {
-            scrollableParent.scrollTop = 0
+            scrollableParent.scrollTop = scrollOffset
           }
         }
       }
