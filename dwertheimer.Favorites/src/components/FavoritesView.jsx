@@ -255,69 +255,67 @@ function FavoritesViewComponent({
 
   // Handle adding favorite note dialog
   const handleAddNoteDialogSave = useCallback(
-    (updatedSettings: { [key: string]: any }) => {
-      await(async () => {
-        try {
-          if (updatedSettings.note) {
-            const filename = updatedSettings.note
+    async (updatedSettings: { [key: string]: any }) => {
+      try {
+        if (updatedSettings.note) {
+          const filename = updatedSettings.note
 
-            // Close dialog immediately
-            setShowAddNoteDialog(false)
-            setAddNoteDialogData({})
+          // Close dialog immediately
+          setShowAddNoteDialog(false)
+          setAddNoteDialogData({})
 
-            // Add the favorite
-            // Note: requestFromPlugin resolves with result.data (unwrapped), or rejects on error
-            // If we get here without throwing, the request succeeded
-            const response = await requestFromPlugin('addFavoriteNote', { filename })
-            logDebug('FavoritesView', `addFavoriteNote response:`, response)
+          // Add the favorite
+          // Note: requestFromPlugin resolves with result.data (unwrapped), or rejects on error
+          // If we get here without throwing, the request succeeded
+          const response = await requestFromPlugin('addFavoriteNote', { filename })
+          logDebug('FavoritesView', `addFavoriteNote response:`, response)
 
-            // Show success toast
-            dispatch('SHOW_TOAST', {
-              type: 'SUCCESS',
-              msg: 'Favorite note added successfully',
-              timeout: 3000,
-            })
-
-            // Reload the favorites list first
-            await loadFavoriteNotes()
-
-            // Wait for the note to appear in the list by checking the actual list data
-            // We need to reload and check, since state updates are async
-            const found = await waitForCondition(
-              async () => {
-                // Reload notes to get fresh data, then check
-                if (showNotes) {
-                  const notes = await requestFromPlugin('getFavoriteNotes')
-                  if (Array.isArray(notes)) {
-                    return notes.some((note) => note.filename === filename)
-                  }
-                }
-                return false
-              },
-              { maxWaitMs: 3000, checkIntervalMs: 150 },
-            )
-
-            // Reload one more time to ensure UI is in sync
-            await loadFavoriteNotes()
-
-            // Set the newly added filename for highlighting (useEffect will handle scrolling)
-            setNewlyAddedFilename(filename)
-
-            if (found) {
-              logDebug('FavoritesView', 'Successfully added favorite note and found it in list')
-            } else {
-              logError('FavoritesView', 'Added favorite note but could not find it in list after waiting')
-            }
-          }
-        } catch (error) {
-          logError('FavoritesView', `Error adding favorite note: ${error.message}`)
+          // Show success toast
           dispatch('SHOW_TOAST', {
-            type: 'ERROR',
-            msg: `Error adding favorite: ${error.message}`,
+            type: 'SUCCESS',
+            msg: 'Favorite note added successfully',
             timeout: 3000,
           })
+
+          // Reload the favorites list first
+          await loadFavoriteNotes()
+
+          // Wait for the note to appear in the list by checking the actual list data
+          // We need to reload and check, since state updates are async
+          const found = await waitForCondition(
+            async () => {
+              // Reload notes to get fresh data, then check
+              if (showNotes) {
+                const notes = await requestFromPlugin('getFavoriteNotes')
+                if (Array.isArray(notes)) {
+                  return notes.some((note) => note.filename === filename)
+                }
+              }
+              return false
+            },
+            { maxWaitMs: 3000, checkIntervalMs: 150 },
+          )
+
+          // Reload one more time to ensure UI is in sync
+          await loadFavoriteNotes()
+
+          // Set the newly added filename for highlighting (useEffect will handle scrolling)
+          setNewlyAddedFilename(filename)
+
+          if (found) {
+            logDebug('FavoritesView', 'Successfully added favorite note and found it in list')
+          } else {
+            logError('FavoritesView', 'Added favorite note but could not find it in list after waiting')
+          }
         }
-      })()
+      } catch (error) {
+        logError('FavoritesView', `Error adding favorite note: ${error.message}`)
+        dispatch('SHOW_TOAST', {
+          type: 'ERROR',
+          msg: `Error adding favorite: ${error.message}`,
+          timeout: 3000,
+        })
+      }
     },
     [requestFromPlugin, loadFavoriteNotes, dispatch, showNotes, favoriteNotes],
   )
@@ -337,28 +335,26 @@ function FavoritesViewComponent({
 
   // Handle adding favorite command dialog
   const handleAddCommandDialogSave = useCallback(
-    (updatedSettings: { [key: string]: any }) => {
-      await(async () => {
-        try {
-          if (updatedSettings.preset && updatedSettings.commandName && updatedSettings.url) {
-            const response = await requestFromPlugin('addFavoriteCommand', {
-              jsFunction: updatedSettings.preset,
-              name: updatedSettings.commandName,
-              data: updatedSettings.url,
-            })
-            if (response && response.success) {
-              await loadFavoriteCommands()
-              setShowAddCommandDialog(false)
-              setAddCommandDialogData({})
-              logDebug('FavoritesView', 'Successfully added favorite command')
-            } else {
-              logError('FavoritesView', `Failed to add favorite command: ${response?.message || 'Unknown error'}`)
-            }
+    async (updatedSettings: { [key: string]: any }) => {
+      try {
+        if (updatedSettings.preset && updatedSettings.commandName && updatedSettings.url) {
+          const response = await requestFromPlugin('addFavoriteCommand', {
+            jsFunction: updatedSettings.preset,
+            name: updatedSettings.commandName,
+            data: updatedSettings.url,
+          })
+          if (response && response.success) {
+            await loadFavoriteCommands()
+            setShowAddCommandDialog(false)
+            setAddCommandDialogData({})
+            logDebug('FavoritesView', 'Successfully added favorite command')
+          } else {
+            logError('FavoritesView', `Failed to add favorite command: ${response?.message || 'Unknown error'}`)
           }
-        } catch (error) {
-          logError('FavoritesView', `Error adding favorite command: ${error.message}`)
         }
-      })()
+      } catch (error) {
+        logError('FavoritesView', `Error adding favorite command: ${error.message}`)
+      }
     },
     [requestFromPlugin, loadFavoriteCommands],
   )
@@ -369,20 +365,18 @@ function FavoritesViewComponent({
   }, [])
 
   const handleAddCommandButtonClick = useCallback(
-    (key: string, value: string) => {
+    async (key: string, value: string) => {
       if (key === 'getCallbackURL') {
-        await(async () => {
-          try {
-            const urlResponse = await requestFromPlugin('getCallbackURL', {})
-            if (urlResponse && urlResponse.success && urlResponse.url) {
-              // Update the URL field in the dialog
-              setAddCommandDialogData((prev) => ({ ...prev, url: urlResponse.url }))
-              logDebug('FavoritesView', `Got URL from Link Creator: ${urlResponse.url}`)
-            }
-          } catch (error) {
-            logError('FavoritesView', `Error getting callback URL: ${error.message}`)
+        try {
+          const urlResponse = await requestFromPlugin('getCallbackURL', {})
+          if (urlResponse && urlResponse.success && urlResponse.url) {
+            // Update the URL field in the dialog
+            setAddCommandDialogData((prev) => ({ ...prev, url: urlResponse.url }))
+            logDebug('FavoritesView', `Got URL from Link Creator: ${urlResponse.url}`)
           }
-        })()
+        } catch (error) {
+          logError('FavoritesView', `Error getting callback URL: ${error.message}`)
+        }
         return false // Don't close dialog
       }
     },
