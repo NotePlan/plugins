@@ -8,7 +8,7 @@
 //------------------------------------------------------------------------------
 
 // @flow
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { logDebug } from '@helpers/react/reactDev'
 import { getTimeAgoString } from '@helpers/dateTime.js'
 import { dt } from '@helpers/dev'
@@ -38,16 +38,27 @@ const LEGAL_DRIFT_THRESHHOLD = 10000 // 10 seconds
  */
 function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
   const [lastActivity, setLastActivity] = useState(Date.now())
+  const hasCalledTimeoutRef = useRef<boolean>(false)
+  const onIdleTimeoutRef = useRef(onIdleTimeout)
+  
+  // Keep the callback ref up to date
+  useEffect(() => {
+    onIdleTimeoutRef.current = onIdleTimeout
+  }, [onIdleTimeout])
   
   useEffect(() => {
     const handleUserActivity = () => {
       setLastActivity(Date.now())
+      // Reset the timeout flag when user becomes active
+      hasCalledTimeoutRef.current = false
     }
 
     const handleVisibilityChange = () => {
       // $FlowIgnore
       if (document.visibilityState === 'visible') {
         setLastActivity(Date.now())
+        // Reset the timeout flag when user becomes active
+        hasCalledTimeoutRef.current = false
       }
     }
 
@@ -67,16 +78,27 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
   }, [])
 
   useEffect(() => {
+    // Don't run interval if timeout has already fired and user hasn't interacted yet
+    if (hasCalledTimeoutRef.current) {
+      return
+    }
+
     const interval = setInterval(() => {
       const elapsedMs = Date.now() - lastActivity
       if (elapsedMs >= idleTime) {
-        if ((elapsedMs - LEGAL_DRIFT_THRESHHOLD) < idleTime) {
-          onIdleTimeout()
-          logDebug('IdleTimer', `${dt().padEnd(19)} Over the ${msToMinutes(idleTime)}m limit (it's been ${getTimeAgoString(new Date(lastActivity))}), calling onIdleTimeout`)
-        } else {
-          logDebug('IdleTimer', `${dt().padEnd(19)} Over the ${msToMinutes(idleTime)}m limit (it's been ${getTimeAgoString(new Date(lastActivity))}), NOT calling onIdleTimeout (computer was probably asleep); Resetting timer...`)
+        // Only call timeout once per idle period
+        if (!hasCalledTimeoutRef.current) {
+          if ((elapsedMs - LEGAL_DRIFT_THRESHHOLD) < idleTime) {
+            hasCalledTimeoutRef.current = true
+            onIdleTimeoutRef.current()
+            logDebug('IdleTimer', `${dt().padEnd(19)} Over the ${msToMinutes(idleTime)}m limit (it's been ${getTimeAgoString(new Date(lastActivity))}), calling onIdleTimeout`)
+          } else {
+            logDebug('IdleTimer', `${dt().padEnd(19)} Over the ${msToMinutes(idleTime)}m limit (it's been ${getTimeAgoString(new Date(lastActivity))}), NOT calling onIdleTimeout (computer was probably asleep); Resetting timer...`)
+            // Reset lastActivity for sleep/wake case, but don't set hasCalledTimeoutRef
+            setLastActivity(Date.now())
+          }
+          // Don't reset lastActivity here - let it stay idle so interval stops
         }
-        setLastActivity(Date.now()) // Reset the timer after calling onIdleTimeout
       } else {
         // logDebug('IdleTimer', `${dt().padEnd(19)} Still under the ${msToMinutes(idleTime)}m limit; It has been ${(Date.now() - lastActivity) / 1000}s since last activity`)
       }
@@ -85,7 +107,7 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
     return () => {
       clearInterval(interval)
     }
-  }, [lastActivity, idleTime, onIdleTimeout])
+  }, [lastActivity, idleTime])
 
   return null
 }
