@@ -532,6 +532,7 @@ export function renderItem({
               placeholder={item.placeholder || 'Type to search notes...'}
               showValue={item.showValue ?? false}
               shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
+              showTitleOnly={item.showTitleOnly ?? false}
             />
           </div>
         )

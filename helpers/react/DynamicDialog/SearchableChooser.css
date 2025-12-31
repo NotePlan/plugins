@@ -219,12 +219,12 @@
   gap: 0.5rem;
 }
 
-/* Also support attribute selector for backward compatibility */
-.searchable-chooser-base [class*="-chooser-option"],
-[class*="-chooser-option"] {
+/* Also support attribute selector for backward compatibility - but exclude two-line options and inner lines */
+.searchable-chooser-base [class*="-chooser-option"]:not([class*="-chooser-option-two-line"]):not([class*="-chooser-option-first-line"]):not([class*="-chooser-option-second-line"]),
+[class*="-chooser-option"]:not([class*="-chooser-option-two-line"]):not([class*="-chooser-option-first-line"]):not([class*="-chooser-option-second-line"]) {
   padding: 0.25rem 0.75rem;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  /* border-bottom: 1px solid var(--border-color, #f0f0f0); */
   color: var(--text-color, #333);
   font-size: 0.9rem;
   white-space: nowrap;
@@ -233,7 +233,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  /* gap: 0.5rem; */
 }
 
 /* Left side of option (icon + text) */
@@ -283,9 +283,15 @@
 
 /* Two-line layout for options */
 .searchable-chooser-option-two-line {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  color: var(--text-color, #333);
+  font-size: 0.9rem;
   flex-direction: column;
   align-items: flex-start;
   white-space: normal;
+  display: flex;
 }
 
 .searchable-chooser-option-first-line {
@@ -295,26 +301,40 @@
   width: 100%;
   min-width: 0;
   overflow: hidden;
+  border-bottom: none !important;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .searchable-chooser-option-second-line {
   font-size: 0.85em;
   opacity: 0.6;
   color: var(--gray-500, #666);
-  margin-top: 0.25rem;
+  margin-top: 0;
+  padding-top: 0;
   padding-left: 0;
+  padding-right: 0;
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: right;
+  border-bottom: none !important;
+  line-height: 1.2;
 }
 
-/* Support attribute selector for two-line layout */
+/* Support attribute selector for two-line layout - ensure it overrides base option styles */
 .searchable-chooser-base [class*="-chooser-option-two-line"],
 [class*="-chooser-option-two-line"] {
+  padding: 0.5rem 0.75rem !important;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  color: var(--text-color, #333);
+  font-size: 0.9rem;
   flex-direction: column;
   align-items: flex-start;
-  white-space: normal;
+  white-space: normal !important;
+  display: flex;
 }
 
 .searchable-chooser-base [class*="-chooser-option-first-line"],
@@ -325,6 +345,9 @@
   width: 100%;
   min-width: 0;
   overflow: hidden;
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 .searchable-chooser-base [class*="-chooser-option-second-line"],
@@ -332,12 +355,17 @@
   font-size: 0.85em;
   opacity: 0.6;
   color: var(--gray-500, #666);
-  margin-top: 0.25rem;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
   padding-left: 0;
+  padding-right: 0;
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: right;
+  border-bottom: none !important;
+  line-height: 1.2;
 }
 
 .searchable-chooser-base [class*="-chooser-option-right"],

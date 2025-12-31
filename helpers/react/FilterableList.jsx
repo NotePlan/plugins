@@ -28,6 +28,7 @@ type Props = {
   filterPlaceholder?: string,
   renderFilter?: () => React$Node,
   onFilterKeyDown?: (event: any) => void, // SyntheticKeyboardEvent<HTMLInputElement>
+  filterInputRef?: any, // Ref for the filter input element
   // Filter function - defaults to case-insensitive search on item label
   filterFunction?: (item: any, filterText: string) => boolean,
   getItemLabel?: (item: any) => string, // Used by default filter function
@@ -64,6 +65,7 @@ export function FilterableList({
   filterPlaceholder = 'Filter...',
   renderFilter,
   onFilterKeyDown,
+  filterInputRef,
   filterFunction,
   getItemLabel,
   optionKeyDecoration,
@@ -116,6 +118,7 @@ export function FilterableList({
       ) : (
         <div className="filterable-list-filter-row">
           <input
+            ref={filterInputRef}
             type="text"
             className="filterable-list-filter-input"
             placeholder={filterPlaceholder}

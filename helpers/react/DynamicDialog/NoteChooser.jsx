@@ -54,6 +54,7 @@ export type NoteChooserProps = {
   onOpen?: () => void, // Callback when dropdown opens (for lazy loading) - can be async internally
   isLoading?: boolean, // If true, show loading indicator
   shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
+  showTitleOnly?: boolean, // If true, show only the note title in the label (not "path / title") (default: false)
 }
 
 /**
@@ -138,6 +139,7 @@ export function NoteChooser({
   onOpen,
   isLoading = false,
   shortDescriptionOnLine2 = false,
+  showTitleOnly = false,
 }: NoteChooserProps): React$Node {
   const [isCreatingNote, setIsCreatingNote] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -349,6 +351,10 @@ export function NoteChooser({
       // Handle "New Note" option
       if (note.filename === '__NEW_NOTE__') {
         return '➕ New Note'
+      }
+      // If showTitleOnly is true, always return just the title
+      if (showTitleOnly) {
+        return note.title
       }
       // For personal/project notes, show "path / title" format to match native chooser
       // For calendar notes, show just the title
