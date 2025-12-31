@@ -314,7 +314,19 @@ export function NoteChooser({
 
       return shouldInclude
     })
-  }, [notes, includeCalendarNotes, includePersonalNotes, includeRelativeNotes, includeTeamspaceNotes, folderFilter, startFolder, filterByType, allowBackwardsCompatible, value, spaceFilter])
+  }, [
+    notes,
+    includeCalendarNotes,
+    includePersonalNotes,
+    includeRelativeNotes,
+    includeTeamspaceNotes,
+    folderFilter,
+    startFolder,
+    filterByType,
+    allowBackwardsCompatible,
+    value,
+    spaceFilter,
+  ])
 
   // Add "New Note" option to items if includeNewNoteOption is true
   const itemsWithNewNote = useMemo(() => {
