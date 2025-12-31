@@ -471,7 +471,8 @@
 
     /* Style for item description */
     .item-description {
-        font-size: small;
+        font-size: smaller;
+        font-style: italic;        
         color: var(--fg-alt-color);
         /* margin-top: 0.3rem; */
         opacity: 0.8;
