@@ -622,6 +622,23 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 </label>
                 <div className="field-editor-help">When enabled, displays the short description (e.g., folder path, space name) on a second line below the label</div>
               </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { showTitleOnly?: boolean }).showTitleOnly || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).showTitleOnly = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Show title only (not path/title)
+                </label>
+                <div className="field-editor-help">
+                  When enabled, displays only the note title in the label (not &quot;path / title&quot;). The path will still appear in the short description if enabled.
+                </div>
+              </div>
             </>
           )}
 

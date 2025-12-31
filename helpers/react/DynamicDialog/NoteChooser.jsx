@@ -228,7 +228,7 @@ export function NoteChooser({
         }
         const normalizedStart = normalizeFolder(startFolder)
         const normalizedNoteFolder = normalizeFolder(noteFolder)
-        const folderMatches = normalizedNoteFolder === normalizedStart || normalizedNoteFolder.startsWith(normalizedStart + '/')
+        const folderMatches = normalizedNoteFolder === normalizedStart || normalizedNoteFolder.startsWith(`${normalizedStart}/`)
         if (!folderMatches) {
           return false
         }
@@ -259,7 +259,7 @@ export function NoteChooser({
 
         // Check if note is in the selected folder
         // For exact match or if note folder starts with filter folder + '/'
-        const folderMatches = normalizedNoteFolder === normalizedFilter || normalizedNoteFolder.startsWith(normalizedFilter + '/')
+        const folderMatches = normalizedNoteFolder === normalizedFilter || normalizedNoteFolder.startsWith(`${normalizedFilter}/`)
 
         if (!folderMatches) {
           return false // Exclude notes not in the selected folder
@@ -374,7 +374,7 @@ export function NoteChooser({
         // Parse teamspace info to get clean folder path
         const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
         let folder = getFolderFromFilename(note.filename)
-        
+
         // Strip teamspace prefix from folder path for display
         if (possTeamspaceDetails.isTeamspace) {
           folder = getFilenameWithoutTeamspaceID(folder) || '/'

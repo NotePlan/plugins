@@ -110,6 +110,7 @@ export type TSettingItem = {
   includeNewNoteOption?: boolean, // for note-chooser, add a 'New Note' option that allows creating a new note
   dependsOnFolderKey?: string, // DEPRECATED: use sourceFolderKey instead. For note-chooser, key of a folder-chooser field to filter notes by folder (value dependency)
   sourceFolderKey?: string, // Value dependency: for note-chooser, key of a folder-chooser field to filter notes by folder
+  showTitleOnly?: boolean, // for note-chooser, show only the note title in the label (not "path / title") (default: false)
   // showValue option for SearchableChooser-based fields
   showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
   // space-chooser options
