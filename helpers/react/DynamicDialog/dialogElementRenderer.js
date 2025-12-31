@@ -59,6 +59,9 @@ type RenderItemProps = {
   onFoldersChanged?: () => void, // Callback to reload folders after creating a new folder
   onNotesChanged?: () => void, // Callback to reload notes after creating a new note
   formTitle?: string, // Form title for autosave field
+  templateFilename?: string, // Template filename for autosave field
+  templateTitle?: string, // Template title for autosave field
+  onRegisterAutosaveTrigger?: (triggerFn: () => Promise<void>) => void, // Register autosave trigger function
 }
 
 /**
@@ -91,6 +94,9 @@ export function renderItem({
   onFoldersChanged, // Callback to reload folders after creating a new folder
   onNotesChanged, // Callback to reload notes after creating a new note
   formTitle, // Form title for autosave field
+  templateFilename, // Template filename for autosave field
+  templateTitle, // Template title for autosave field
+  onRegisterAutosaveTrigger, // Register autosave trigger function
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -795,6 +801,8 @@ export function renderItem({
         const autosaveInterval = item.autosaveInterval ?? 2
         const autosaveFilename = item.autosaveFilename
         const invisible = (item: any).invisible || false
+        const templateFilename = (item: any).templateFilename
+        const templateTitle = (item: any).templateTitle
 
         return (
           <div data-field-type="autosave">
@@ -806,9 +814,12 @@ export function renderItem({
               autosaveInterval={autosaveInterval}
               autosaveFilename={autosaveFilename}
               formTitle={formTitle}
+              templateFilename={templateFilename}
+              templateTitle={templateTitle}
               compactDisplay={compactDisplay}
               disabled={disabled}
               invisible={invisible}
+              onRegisterTrigger={onRegisterAutosaveTrigger}
             />
           </div>
         )

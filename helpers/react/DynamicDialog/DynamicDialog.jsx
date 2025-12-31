@@ -20,7 +20,7 @@
 // Imports
 //--------------------------------------------------------------------------
 
-import React, { useEffect, useRef, useState, type ElementRef } from 'react'
+import React, { useEffect, useRef, useState, useCallback, type ElementRef } from 'react'
 import { renderItem } from './dialogElementRenderer'
 import './DynamicDialog.css' // Import the CSS file
 import Modal from '@helpers/react/Modal'
@@ -181,6 +181,9 @@ export type TDynamicDialogProps = {
   onNotesChanged?: () => void, // Callback to reload notes after creating a new note
   windowId?: string, // Optional window ID to pass when submitting (for backward compatibility, will use fallback if not provided)
   keepOpenOnSubmit?: boolean, // If true, don't close the window after submit (e.g., for Form Browser context)
+  defaultValues?: { [key: string]: any }, // Default values to pre-populate form fields
+  templateFilename?: string, // Template filename for autosave field
+  templateTitle?: string, // Template title for autosave field
 }
 
 //--------------------------------------------------------------------------
@@ -214,6 +217,9 @@ const DynamicDialog = ({
   onFoldersChanged,
   onNotesChanged,
   keepOpenOnSubmit = false, // Default to false (close on submit for backward compatibility)
+  defaultValues,
+  templateFilename,
+  templateTitle,
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || []
@@ -222,11 +228,14 @@ const DynamicDialog = ({
   // HELPER FUNCTIONS
   //----------------------------------------------------------------------
 
-  function getInitialItemStateObject(items: Array<TSettingItem>): { [key: string]: any } {
-    const initialItemValues = {}
+  function getInitialItemStateObject(items: Array<TSettingItem>, defaultValues?: { [key: string]: any }): { [key: string]: any } {
+    const initialItemValues: { [key: string]: any } = {}
     items.forEach((item) => {
       // $FlowFixMe[prop-missing]
-      if (item.key) initialItemValues[item.key] = item.value ?? item.checked ?? item.default ?? ''
+      if (item.key) {
+        // Use defaultValues if provided, otherwise fall back to item.value, item.checked, item.default, or empty string
+        initialItemValues[item.key] = defaultValues?.[item.key] ?? item.value ?? item.checked ?? item.default ?? ''
+      }
     })
     return initialItemValues
   }
@@ -268,8 +277,10 @@ const DynamicDialog = ({
   const dialogRef = useRef<?ElementRef<'dialog'>>(null)
   const dropdownRef = useRef<?HTMLInputElement>(null)
   const [changesMade, setChangesMadeInternal] = useState(false)
-  const [updatedSettings, setUpdatedSettings] = useState(getInitialItemStateObject(items))
+  const [updatedSettings, setUpdatedSettings] = useState(getInitialItemStateObject(items, defaultValues))
   const updatedSettingsRef = useRef(updatedSettings)
+  const autosaveTriggersRef = useRef<Array<() => Promise<void>>>([]) // Store autosave trigger functions
+  const isSavingRef = useRef<boolean>(false) // Guard to prevent multiple simultaneous saves
 
   useEffect(() => {
     updatedSettingsRef.current = updatedSettings
@@ -337,14 +348,48 @@ const DynamicDialog = ({
     })
   }
 
-  const handleSave = () => {
-    if (onSave) {
-      // Pass keepOpenOnSubmit flag in windowId as a special marker, or pass it separately
-      // For now, we'll pass it as part of a special windowId format, or the caller can check the prop
-      // Actually, the caller (onSave) can access keepOpenOnSubmit via closure, so we don't need to pass it
-      onSave(updatedSettingsRef.current, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
+  // Stable callback for registering autosave triggers (created once, not recreated on every render)
+  const registerAutosaveTrigger = useCallback((triggerFn: () => Promise<void>) => {
+    // Register autosave trigger function
+    if (!autosaveTriggersRef.current.includes(triggerFn)) {
+      autosaveTriggersRef.current.push(triggerFn)
+      logDebug('DynamicDialog', `Registered autosave trigger (total: ${autosaveTriggersRef.current.length})`)
     }
-    logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current, windowId, keepOpenOnSubmit })
+  }, [])
+
+  const handleSave = async () => {
+    // Guard against multiple simultaneous saves
+    if (isSavingRef.current) {
+      logDebug('DynamicDialog', 'Save already in progress, skipping duplicate save')
+      return
+    }
+
+    try {
+      isSavingRef.current = true
+
+      // Trigger final autosave before form submission if there are any autosave fields
+      if (autosaveTriggersRef.current.length > 0) {
+        logDebug('DynamicDialog', `Triggering final autosave before form submission (${autosaveTriggersRef.current.length} autosave field(s))`)
+        try {
+          // Trigger all autosave fields and wait for them to complete
+          await Promise.all(autosaveTriggersRef.current.map((trigger) => trigger()))
+          logDebug('DynamicDialog', 'Final autosave completed before form submission')
+        } catch (error) {
+          logError('DynamicDialog', `Error during final autosave: ${error.message}`)
+          // Continue with form submission even if autosave fails
+        }
+      }
+
+      if (onSave) {
+        // Pass keepOpenOnSubmit flag in windowId as a special marker, or pass it separately
+        // For now, we'll pass it as part of a special windowId format, or the caller can check the prop
+        // Actually, the caller (onSave) can access keepOpenOnSubmit via closure, so we don't need to pass it
+        onSave(updatedSettingsRef.current, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
+      }
+      logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current, windowId, keepOpenOnSubmit })
+    } finally {
+      isSavingRef.current = false
+    }
   }
 
   const handleDropdownOpen = () => {
@@ -474,6 +519,9 @@ const DynamicDialog = ({
             onFoldersChanged, // Pass onFoldersChanged to reload folders after creating a new folder
             onNotesChanged, // Pass onNotesChanged to reload notes after creating a new note
             formTitle: title || windowTitle, // Pass form title (or windowTitle as fallback) for autosave field
+            templateFilename: templateFilename, // Pass template filename for autosave field
+            templateTitle: templateTitle, // Pass template title for autosave field
+            onRegisterAutosaveTrigger: item.type === 'autosave' ? registerAutosaveTrigger : undefined,
           }
           if (item.type === 'combo' || item.type === 'dropdown-select') {
             renderItemProps.inputRef = dropdownRef

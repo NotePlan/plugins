@@ -94,77 +94,80 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
    * @param {number} timeout - Timeout in milliseconds (default: 10000)
    * @returns {Promise<any>}
    */
-  const requestFromPlugin = useCallback((command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
-    if (!command) throw new Error('requestFromPlugin: command must be called with a string')
+  const requestFromPlugin = useCallback(
+    (command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
+      if (!command) throw new Error('requestFromPlugin: command must be called with a string')
 
-    const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    const requestStartTime = performance.now()
-    const pendingCount = pendingRequestsRef.current.size
+      const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const requestStartTime = performance.now()
+      const pendingCount = pendingRequestsRef.current.size
 
-    logDebug('FormView', `[DIAG] requestFromPlugin START: command="${command}", correlationId="${correlationId}", pendingRequests=${pendingCount}`)
+      logDebug('FormView', `[DIAG] requestFromPlugin START: command="${command}", correlationId="${correlationId}", pendingRequests=${pendingCount}`)
 
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        const pending = pendingRequestsRef.current.get(correlationId)
-        if (pending) {
-          pendingRequestsRef.current.delete(correlationId)
-          const elapsed = performance.now() - requestStartTime
-          logDebug('FormView', `[DIAG] requestFromPlugin TIMEOUT: command="${command}", correlationId="${correlationId}", elapsed=${elapsed.toFixed(2)}ms`)
-          reject(new Error(`Request timeout: ${command}`))
-        }
-      }, timeout)
+      return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          const pending = pendingRequestsRef.current.get(correlationId)
+          if (pending) {
+            pendingRequestsRef.current.delete(correlationId)
+            const elapsed = performance.now() - requestStartTime
+            logDebug('FormView', `[DIAG] requestFromPlugin TIMEOUT: command="${command}", correlationId="${correlationId}", elapsed=${elapsed.toFixed(2)}ms`)
+            reject(new Error(`Request timeout: ${command}`))
+          }
+        }, timeout)
 
-      pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
+        pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
 
-      // Use requestAnimationFrame to yield to browser before dispatching
-      requestAnimationFrame(() => {
-        const dispatchElapsed = performance.now() - requestStartTime
-        logDebug(
-          'FormView',
-          `[DIAG] requestFromPlugin DISPATCH: command="${command}", correlationId="${correlationId}", pendingRequests=${
-            pendingRequestsRef.current.size
-          }, dispatchElapsed=${dispatchElapsed.toFixed(2)}ms`,
-        )
-
-        const requestData = {
-          ...dataToSend,
-          __correlationId: correlationId,
-          __requestType: 'REQUEST',
-          __windowId: pluginData?.windowId || '', // Include windowId in request for reliable response routing
-        }
-
-        // Dispatch the request
+        // Use requestAnimationFrame to yield to browser before dispatching
         requestAnimationFrame(() => {
-          const dispatchAfterRAFElapsed = performance.now() - requestStartTime
+          const dispatchElapsed = performance.now() - requestStartTime
           logDebug(
             'FormView',
-            `[DIAG] requestFromPlugin DISPATCH AFTER RAF: command="${command}", correlationId="${correlationId}", dispatchElapsed=${dispatchAfterRAFElapsed.toFixed(2)}ms`,
+            `[DIAG] requestFromPlugin DISPATCH: command="${command}", correlationId="${correlationId}", pendingRequests=${
+              pendingRequestsRef.current.size
+            }, dispatchElapsed=${dispatchElapsed.toFixed(2)}ms`,
           )
-          dispatch('SEND_TO_PLUGIN', [command, requestData], `WebView: requestFromPlugin: ${String(command)}`)
+
+          const requestData = {
+            ...dataToSend,
+            __correlationId: correlationId,
+            __requestType: 'REQUEST',
+            __windowId: pluginData?.windowId || '', // Include windowId in request for reliable response routing
+          }
+
+          // Dispatch the request
+          requestAnimationFrame(() => {
+            const dispatchAfterRAFElapsed = performance.now() - requestStartTime
+            logDebug(
+              'FormView',
+              `[DIAG] requestFromPlugin DISPATCH AFTER RAF: command="${command}", correlationId="${correlationId}", dispatchElapsed=${dispatchAfterRAFElapsed.toFixed(2)}ms`,
+            )
+            dispatch('SEND_TO_PLUGIN', [command, requestData], `WebView: requestFromPlugin: ${String(command)}`)
+          })
         })
       })
-    })
-      .then((result) => {
-        const elapsed = performance.now() - requestStartTime
-        logDebug(
-          'FormView',
-          `[DIAG] requestFromPlugin RESOLVED: command="${command}", correlationId="${correlationId}", elapsed=${elapsed.toFixed(2)}ms, pendingRequests=${
-            pendingRequestsRef.current.size
-          }`,
-        )
-        return result
-      })
-      .catch((error) => {
-        const elapsed = performance.now() - requestStartTime
-        logDebug(
-          'FormView',
-          `[DIAG] requestFromPlugin REJECTED: command="${command}", correlationId="${correlationId}", elapsed=${elapsed.toFixed(2)}ms, error="${error.message}", pendingRequests=${
-            pendingRequestsRef.current.size
-          }`,
-        )
-        throw error
-      })
-  }, [dispatch, pluginData?.windowId]) // Memoize to prevent infinite loops - only recreate if dispatch or windowId changes
+        .then((result) => {
+          const elapsed = performance.now() - requestStartTime
+          logDebug(
+            'FormView',
+            `[DIAG] requestFromPlugin RESOLVED: command="${command}", correlationId="${correlationId}", elapsed=${elapsed.toFixed(2)}ms, pendingRequests=${
+              pendingRequestsRef.current.size
+            }`,
+          )
+          return result
+        })
+        .catch((error) => {
+          const elapsed = performance.now() - requestStartTime
+          logDebug(
+            'FormView',
+            `[DIAG] requestFromPlugin REJECTED: command="${command}", correlationId="${correlationId}", elapsed=${elapsed.toFixed(2)}ms, error="${
+              error.message
+            }", pendingRequests=${pendingRequestsRef.current.size}`,
+          )
+          throw error
+        })
+    },
+    [dispatch, pluginData?.windowId],
+  ) // Memoize to prevent infinite loops - only recreate if dispatch or windowId changes
 
   // Load folders on demand when needed (matching FormBuilder pattern)
   const loadFolders = useCallback(async () => {
@@ -300,7 +303,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   useEffect(() => {
     const customCSS = pluginData?.customCSS || ''
     if (!customCSS || typeof document === 'undefined') return
-    
+
     // $FlowFixMe[incompatible-use] - document.head is checked for null
     const head = document.head
     if (!head) return
@@ -308,18 +311,18 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     // Create a style element with a unique ID to avoid duplicates
     const styleId = 'form-custom-css'
     let styleElement = document.getElementById(styleId)
-    
+
     if (!styleElement) {
       styleElement = document.createElement('style')
       styleElement.id = styleId
       // $FlowFixMe[incompatible-use] - head is checked for null above
       head.appendChild(styleElement)
     }
-    
+
     if (styleElement) {
       styleElement.textContent = customCSS
     }
-    
+
     // Cleanup: remove style element when component unmounts or CSS changes
     return () => {
       const element = document.getElementById(styleId)
@@ -576,6 +579,9 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
             notes={notes}
             requestFromPlugin={requestFromPlugin}
             windowId={pluginData.windowId} // Pass windowId to DynamicDialog
+            defaultValues={pluginData?.defaultValues || {}} // Pass default values for form pre-population
+            templateFilename={pluginData?.templateFilename || ''} // Pass template filename for autosave
+            templateTitle={pluginData?.templateTitle || ''} // Pass template title for autosave
             onFoldersChanged={() => {
               reloadFolders()
             }}

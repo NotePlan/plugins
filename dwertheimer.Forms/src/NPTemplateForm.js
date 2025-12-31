@@ -16,6 +16,8 @@ import { updateFrontMatterVars, ensureFrontmatter, noteHasFrontMatter, getFrontm
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
+import { getFolderFromFilename } from '@helpers/folders'
+import { displayTitle } from '@helpers/paragraph'
 // Note: getFoldersMatching is no longer used here - FormView loads folders dynamically via requestFromPlugin
 
 // Re-export shared type for backward compatibility
@@ -274,6 +276,10 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
       // codeblock version of formFields
       frontmatterAttributes.formFields = formFields
     }
+
+    // Add templateFilename and templateTitle for autosave identification
+    frontmatterAttributes.templateFilename = selectedTemplate
+    frontmatterAttributes.templateTitle = templateNote.title || ''
 
     if (await validateFormFields(frontmatterAttributes.formFields)) {
       await openFormWindow(frontmatterAttributes)
@@ -780,8 +786,175 @@ export async function triggerOpenForm(): Promise<void> {
     // Open the template form with the note's title
     await openTemplateForm(noteTitle)
   } catch (error) {
-    logError(pluginJson, `triggerOpenForm: Error: ${JSP(error)}`)
+    logError(pluginJson, `triggerOpenForm: Error: ${error.message}`)
     await showMessage(`Error opening form: ${error.message}`)
+  }
+}
+
+/**
+ * Restore form from autosave
+ * Opens the form with the autosaved data pre-populated
+ * @param {string} autosaveFilename - The filename of the autosave file (e.g., "@Trash/Autosave-2025-12-30T23-51-09")
+ * @returns {Promise<void>}
+ */
+export async function restoreFormFromAutosave(autosaveFilename?: string): Promise<void> {
+  try {
+    if (!autosaveFilename) {
+      await showMessage('No autosave filename provided')
+      return
+    }
+
+    logDebug(pluginJson, `restoreFormFromAutosave: Restoring from "${autosaveFilename}"`)
+
+    // Parse the autosave filename to get the note
+    const parts = autosaveFilename.split('/')
+    let folder = '/'
+    let noteTitle = autosaveFilename
+
+    if (parts.length > 1) {
+      folder = parts.slice(0, -1).join('/')
+      noteTitle = parts[parts.length - 1]
+    } else if (autosaveFilename.startsWith('@')) {
+      noteTitle = autosaveFilename
+      folder = '/'
+    }
+
+    // Find the autosave note
+    let note = null
+    const isTrashFolder = folder === '@Trash' || folder.startsWith('@Trash/')
+
+    if (isTrashFolder) {
+      const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, true) ?? []
+      const matchingNotes = potentialNotes.filter((n) => {
+        const noteFolder = getFolderFromFilename(n.filename)
+        return noteFolder === folder && displayTitle(n) === noteTitle
+      })
+      if (matchingNotes.length > 0) {
+        note = matchingNotes[0]
+      }
+    } else {
+      const folderNotes = DataStore.projectNotes.filter((n) => {
+        const noteFolder = getFolderFromFilename(n.filename)
+        return noteFolder === folder && displayTitle(n) === noteTitle
+      })
+      if (folderNotes.length > 0) {
+        note = folderNotes[0]
+      }
+    }
+
+    if (!note) {
+      await showMessage(`Could not find autosave file: ${autosaveFilename}`)
+      return
+    }
+
+    // Load the autosave data from the code block
+    const autosaveData = await loadCodeBlockFromNote<string>(note, 'autosave', pluginJson.id, null)
+    if (!autosaveData) {
+      await showMessage(`No autosave data found in file: ${autosaveFilename}`)
+      return
+    }
+
+    // Parse the autosave data to get form identification and default values
+    let formState: any = {}
+    let formTitle: string | null = null
+    let templateFilename: string | null = null
+
+    try {
+      formState = JSON.parse(autosaveData)
+
+      // Extract form identification from the saved data
+      formTitle = formState.__templateTitle__ || formState.__formTitle__ || null
+      templateFilename = formState.__templateFilename__ || null
+
+      // Remove the internal fields from formState to get the actual form values
+      delete formState.__formTitle__
+      delete formState.__templateFilename__
+      delete formState.__templateTitle__
+      delete formState.lastUpdated
+    } catch (e) {
+      logError(pluginJson, `restoreFormFromAutosave: Error parsing autosave data: ${e.message}`)
+      await showMessage(`Error parsing autosave data: ${e.message}`)
+      return
+    }
+
+    // If we don't have form identification from the saved data, try to extract from filename
+    if (!formTitle) {
+      if (autosaveFilename.includes('-') && !autosaveFilename.startsWith('@Trash/Autosave-')) {
+        const match = autosaveFilename.match(/Autosave-([^-]+)-/)
+        if (match && match[1]) {
+          formTitle = match[1].replace(/-/g, ' ')
+        }
+      }
+    }
+
+    // If we still don't have a form title, ask the user
+    if (!formTitle) {
+      const options = getFormTemplateList()
+      if (options.length === 0) {
+        await showMessage('No form templates found. Cannot restore form.')
+        return
+      }
+      const choice = await CommandBar.showOptions(
+        options.map((opt) => opt.label),
+        'Restore Form from Autosave',
+        'Select the form template to restore:',
+      )
+      if (choice && choice.index >= 0 && choice.index < options.length) {
+        formTitle = options[choice.index].label
+        // Try to get templateFilename from the selected option
+        if (!templateFilename && options[choice.index].value) {
+          templateFilename = options[choice.index].value
+        }
+      } else {
+        return // User cancelled
+      }
+    }
+
+    logDebug(pluginJson, `restoreFormFromAutosave: Opening form "${formTitle}" with restored data (${Object.keys(formState).length} fields)`)
+
+    // Open the form with the restored data as default values
+    // We need to get the template note to pass to openFormWindow
+    let selectedTemplate = templateFilename
+    if (!selectedTemplate && formTitle) {
+      const options = getFormTemplateList()
+      const chosenOpt = options.find((option) => option.label === formTitle)
+      if (chosenOpt) {
+        selectedTemplate = chosenOpt.value
+      }
+    }
+
+    if (!selectedTemplate) {
+      await showMessage(`Could not find template file for form "${formTitle}"`)
+      return
+    }
+
+    const templateNote = await getNoteByFilename(selectedTemplate)
+    if (!templateNote) {
+      await showMessage(`Could not find template note: ${selectedTemplate}`)
+      return
+    }
+
+    // Get form fields and frontmatter
+    const formFields = await loadCodeBlockFromNote<Array<Object>>(selectedTemplate, 'formfields', pluginJson.id, parseObjectString)
+    if (!formFields) {
+      await showMessage(`Could not load form fields from template: ${selectedTemplate}`)
+      return
+    }
+
+    const templateData = templateNote.content || ''
+    const { _, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateData])
+
+    // Add form fields, template info, and default values
+    frontmatterAttributes.formFields = formFields
+    frontmatterAttributes.templateFilename = selectedTemplate
+    frontmatterAttributes.templateTitle = templateNote.title || formTitle
+    frontmatterAttributes.defaultValues = formState // Pass the restored form state as default values
+
+    // Open the form window with default values
+    await openFormWindow(frontmatterAttributes)
+  } catch (error) {
+    logError(pluginJson, `restoreFormFromAutosave: Error: ${error.message}`)
+    await showMessage(`Error restoring form from autosave: ${error.message}`)
   }
 }
 

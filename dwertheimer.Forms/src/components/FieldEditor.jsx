@@ -1293,26 +1293,13 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                       <code>&lt;formTitle&gt;</code> or <code>&lt;FORM_NAME&gt;</code> - Form title (sanitized for filesystem compatibility)
                     </li>
                   </ul>
-                  Default is &quot;@Trash/Autosave-&lt;formTitle&gt;-&lt;ISO8601&gt;&quot; (or &quot;@Trash/Autosave-&lt;ISO8601&gt;&quot; if no form title). The form title will be automatically included if available.
+                  Default is &quot;@Trash/Autosave-&lt;formTitle&gt;-&lt;ISO8601&gt;&quot; (or &quot;@Trash/Autosave-&lt;ISO8601&gt;&quot; if no form title). The form title will be
+                  automatically included if available.
                 </div>
               </div>
               <div className="field-editor-row">
                 <label>
-                  <input
-                    type="checkbox"
-                    checked={editedField.compactDisplay || false}
-                    onChange={(e) => updateField({ compactDisplay: e.target.checked })}
-                  />
-                  Compact Display (label and field side-by-side)
-                </label>
-              </div>
-              <div className="field-editor-row">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={(editedField: any).invisible || false}
-                    onChange={(e) => updateField({ invisible: e.target.checked })}
-                  />
+                  <input type="checkbox" checked={(editedField: any).invisible || false} onChange={(e) => updateField({ invisible: e.target.checked })} />
                   Invisible (hide UI but still perform autosaves)
                 </label>
                 <div className="field-editor-help">

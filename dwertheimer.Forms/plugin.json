@@ -67,6 +67,16 @@
       ]
     },
     {
+      "name": "Restore form from autosave",
+      "alias": [
+        "restoreautosave",
+        "restoreform"
+      ],
+      "description": "Restore a form from an autosave file, opening the form with the saved data pre-populated",
+      "jsFunction": "restoreFormFromAutosave",
+      "arguments": ["Autosave filename (e.g., '@Trash/Autosave-2025-12-30T23-51-09')"]
+    },
+    {
       "name": "Create Processing Template",
       "alias": [
         "createprocessor",
@@ -165,6 +175,13 @@
       "key": "pluginID",
       "default": "dwertheimer.Forms",
       "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "key": "autosave",
+      "type": "bool",
+      "title": "Enable Autosave for All Forms",
+      "description": "When enabled, automatically adds an invisible autosave field to every form opened. The form will be automatically saved periodically in the background, by default to @Trash/Autosave-<ISO8601>. This provides a safety net in case of unexpected crashes or power outages or form submission errors. You can turn this off and add an autosave to a specific form by adding an autosave field to the form in the form builder.",
+      "default": true
     },
     {
       "note": "================== DEBUGGING SETTINGS ========================"

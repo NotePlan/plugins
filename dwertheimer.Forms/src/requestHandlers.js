@@ -19,6 +19,7 @@ import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, forma
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/paragraph'
+import { createRunPluginCallbackUrl } from '@helpers/general'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { showMessage } from '@helpers/userInput'
@@ -851,14 +852,36 @@ export async function saveAutosave(params: { filename: string, content: string, 
     if (isTrashFolder) {
       // For @Trash folder, use projectNoteByTitle with searchAllFolders: true
       // because projectNotes excludes trash notes
+      // Search by filename pattern since NotePlan appends numbers to filenames, not titles
       const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, true) ?? []
-      // Filter to match the exact folder
-      const matchingNotes = potentialNotes.filter((n) => {
+      
+      // First, try to find exact title match
+      let matchingNotes = potentialNotes.filter((n) => {
         const noteFolder = getFolderFromFilename(n.filename)
-        return noteFolder === folder && displayTitle(n) === noteTitle
+        const noteDisplayTitle = displayTitle(n)
+        return noteFolder === folder && noteDisplayTitle === noteTitle
       })
+      
+      // If no exact match, search by filename pattern (NotePlan appends " 2", " 3", etc. to filenames)
+      if (matchingNotes.length === 0) {
+        // Extract base filename without extension (e.g., "Autosave-Jeff-Meeting-Form-2025-12-31T08-40-49")
+        const baseFilename = noteTitle.replace(/\.(md|txt)$/i, '')
+        matchingNotes = potentialNotes.filter((n) => {
+          const noteFolder = getFolderFromFilename(n.filename)
+          if (noteFolder !== folder) return false
+          
+          // Get filename without folder and extension
+          const noteFilename = n.filename.split('/').pop() || ''
+          const noteFilenameBase = noteFilename.replace(/\.(md|txt)$/i, '').replace(/\s+\d+$/, '') // Remove number suffix
+          
+          // Match if base filename matches (ignoring number suffix)
+          return noteFilenameBase === baseFilename || noteFilenameBase === noteTitle
+        })
+      }
+      
       if (matchingNotes.length > 0) {
-        note = matchingNotes[0]
+        // Prefer exact title match, otherwise use first match (which should be the original, not numbered)
+        note = matchingNotes.find((n) => displayTitle(n) === noteTitle) || matchingNotes[0]
         logDebug(pluginJson, `saveAutosave: Found existing note in trash folder "${folder}": ${note.filename}`)
       }
     } else if (folder === '/') {
@@ -883,10 +906,45 @@ export async function saveAutosave(params: { filename: string, content: string, 
       }
     }
 
-    // If note not found, create it using getOrMakeRegularNoteInFolder
+    // If note not found, create it
+    // For @Trash, we need to use a different approach since getOrMakeRegularNoteInFolder doesn't search trash properly
     if (!note) {
       logDebug(pluginJson, `saveAutosave: Note not found, creating new note`)
-      note = await getOrMakeRegularNoteInFolder(noteTitle, folder)
+      if (isTrashFolder) {
+        // For @Trash, create the note directly using DataStore.newNote (synchronous, not async)
+        const noteFilename = DataStore.newNote(noteTitle, folder)
+        if (noteFilename) {
+          // Try to get the note by filename first
+          note = await DataStore.projectNoteByFilename(noteFilename)
+          if (!note) {
+            // Wait a bit for the note to be available in the cache
+            await new Promise((resolve) => setTimeout(resolve, 100))
+            // Try again
+            note = await DataStore.projectNoteByFilename(noteFilename)
+            if (!note) {
+              // If that fails, try to find it using projectNoteByTitle with searchAllFolders
+              const foundNotes = DataStore.projectNoteByTitle(noteTitle, true, true) ?? []
+              const matchingNotes = foundNotes.filter((n) => {
+                const noteFolder = getFolderFromFilename(n.filename)
+                return noteFolder === folder && displayTitle(n) === noteTitle
+              })
+              if (matchingNotes.length > 0) {
+                note = matchingNotes[0]
+                logDebug(pluginJson, `saveAutosave: Found newly created note in trash: ${note.filename}`)
+              }
+            }
+          }
+          if (note) {
+            // Update cache to ensure note is available
+            DataStore.updateCache(note, true)
+            logDebug(pluginJson, `saveAutosave: Created/found note in trash: ${note.filename}`)
+          }
+        }
+      } else {
+        // For other folders, use getOrMakeRegularNoteInFolder
+        note = await getOrMakeRegularNoteInFolder(noteTitle, folder)
+      }
+      
       if (!note) {
         logError(pluginJson, `saveAutosave: Failed to get or create note "${noteTitle}" in folder "${folder}"`)
         return {
@@ -895,7 +953,7 @@ export async function saveAutosave(params: { filename: string, content: string, 
           data: null,
         }
       }
-      logDebug(pluginJson, `saveAutosave: Created new note: ${note.filename}`)
+      logDebug(pluginJson, `saveAutosave: Created/found note: ${note.filename}`)
     }
 
     // Extract JSON content from the code block (content comes as "```json\n{...}\n```")
@@ -926,6 +984,48 @@ export async function saveAutosave(params: { filename: string, content: string, 
         data: null,
       }
     }
+
+    // Add xcallback URL outside the codeblock for restoring the form
+    // Parse the formState to get the form title if available
+    let formStateObj: any = {}
+    try {
+      formStateObj = params.formState || JSON.parse(jsonContent)
+    } catch (e) {
+      logDebug(pluginJson, `saveAutosave: Could not parse formState, using empty object`)
+    }
+
+    // Create xcallback URL to restore the form
+    // The restore command will need the autosave filename to restore from
+    const restoreCommand = 'Restore form from autosave'
+    const restoreUrl = createRunPluginCallbackUrl(pluginJson['plugin.id'], restoreCommand, [filename])
+
+    // Add the restore link to the note content (outside the codeblock)
+    // Check if the link already exists in the note
+    const restoreLinkText = `[Restore form from autosave](${restoreUrl})`
+    const noteContent = note.content || ''
+    
+    // Remove existing restore link if present (look for the pattern)
+    let updatedContent = noteContent.replace(/\[Restore form from autosave\]\(noteplan:\/\/[^\)]+\)\n?/g, '')
+    
+    // Split content into lines for easier manipulation
+    const lines = updatedContent.split('\n')
+    
+    // Find where to insert the restore link
+    // If note has frontmatter, insert after frontmatter; otherwise insert at index 1 (after title)
+    const fmEndIndex = endOfFrontmatterLineIndex(note)
+    let insertIndex = 1 // Default: after title line (index 0)
+    
+    if (fmEndIndex !== -1) {
+      // Has frontmatter, insert after it
+      insertIndex = fmEndIndex + 1
+    }
+    
+    // Insert the restore link at the calculated index
+    lines.splice(insertIndex, 0, restoreLinkText, '') // Add link and a blank line
+    updatedContent = lines.join('\n')
+
+    // Update the note content
+    note.content = updatedContent
 
     // Update cache
     DataStore.updateCache(note, true)

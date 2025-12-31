@@ -3,7 +3,7 @@
 // Autosave field component for DynamicDialog.
 // Automatically saves form state periodically with debouncing.
 //--------------------------------------------------------------------------
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { logDebug, logError } from '@helpers/react/reactDev'
 
 type AutosaveFieldProps = {
@@ -13,9 +13,12 @@ type AutosaveFieldProps = {
   autosaveInterval?: number, // Interval in seconds (default: 2)
   autosaveFilename?: string, // Filename pattern (default: "@Trash/Autosave-<ISO8601>")
   formTitle?: string, // Form title to include in filename
+  templateFilename?: string, // Template filename for form identification
+  templateTitle?: string, // Template title for form identification
   compactDisplay?: boolean,
   disabled?: boolean,
   invisible?: boolean, // If true, hide the UI but still perform autosaves
+  onRegisterTrigger?: (triggerFn: () => Promise<void>) => void, // Callback to register trigger function
 }
 
 /**
@@ -93,9 +96,12 @@ const AutosaveField = ({
   autosaveInterval = 2,
   autosaveFilename,
   formTitle,
+  templateFilename,
+  templateTitle,
   compactDisplay = false,
   disabled = false,
   invisible = false,
+  onRegisterTrigger,
 }: AutosaveFieldProps): React$Node => {
   const [lastSaveTime, setLastSaveTime] = useState<?Date>(null)
   const [timeAgo, setTimeAgo] = useState<string>('Never saved')
@@ -104,7 +110,13 @@ const AutosaveField = ({
   const saveTimerRef = useRef<?TimeoutID>(null)
   const timeAgoTimerRef = useRef<?IntervalID>(null)
   const autosaveFilenameRef = useRef<?string>(null) // Store filename generated at startup
+  const updatedSettingsRef = useRef<{ [key: string]: any }>(updatedSettings) // Store latest settings for debounced save
   const intervalMs = autosaveInterval * 1000
+
+  // Keep ref updated with latest settings
+  useEffect(() => {
+    updatedSettingsRef.current = updatedSettings
+  }, [updatedSettings])
 
   // Generate filename once at startup, or regenerate if formTitle becomes available
   useEffect(() => {
@@ -153,60 +165,79 @@ const AutosaveField = ({
     }
   }, [])
 
-  // Save function that sends to plugin
-  const performSave = useCallback(() => {
-    if (!requestFromPlugin || disabled) {
-      return
-    }
-
-    const currentState = serializeState(updatedSettings)
-
-    // Only save if state has changed
-    if (currentState === lastSavedStateRef.current) {
-      logDebug('AutosaveField', 'State unchanged, skipping save')
-      return
-    }
-
-    try {
-      setIsSaving(true)
-      const filename = autosaveFilenameRef.current || generateAutosaveFilename(autosaveFilename, formTitle)
-
-      logDebug('AutosaveField', `Saving form state to ${filename}`)
-
-      // Add lastUpdated timestamp to form state
-      const stateWithTimestamp = {
-        ...updatedSettings,
-        lastUpdated: new Date().toLocaleString(), // Local timestamp
+  // Save function that sends to plugin (reads from ref to avoid dependency on updatedSettings)
+  const performSave = useCallback(
+    async (force: boolean = false): Promise<void> => {
+      if (!requestFromPlugin || disabled) {
+        return Promise.resolve()
       }
 
-      // Send to plugin asynchronously (non-blocking)
-      // Use a code block format as suggested
-      const formStateCode = `\`\`\`json
+      // Read latest settings from ref (this avoids dependency on updatedSettings)
+      const latestSettings = updatedSettingsRef.current
+      const currentState = serializeState(latestSettings)
+
+      // Only save if state has changed (unless forced)
+      if (!force && currentState === lastSavedStateRef.current) {
+        logDebug('AutosaveField', 'State unchanged, skipping save')
+        return Promise.resolve()
+      }
+
+      try {
+        setIsSaving(true)
+        const filename = autosaveFilenameRef.current || generateAutosaveFilename(autosaveFilename, formTitle)
+
+        logDebug('AutosaveField', `Saving form state to ${filename}`)
+
+        // Add lastUpdated timestamp and form identification to form state
+        const stateWithTimestamp = {
+          ...latestSettings,
+          lastUpdated: new Date().toLocaleString(), // Local timestamp
+          __formTitle__: formTitle || '', // Form title for restoration
+          __templateFilename__: templateFilename || '', // Template filename for restoration
+          __templateTitle__: templateTitle || '', // Template title for restoration
+        }
+
+        // Send to plugin asynchronously
+        // Use a code block format as suggested
+        const formStateCode = `\`\`\`json
 ${JSON.stringify(stateWithTimestamp, null, 2)}
 \`\`\``
 
-      // Fire and forget - don't await, just send it
-      requestFromPlugin('saveAutosave', {
-        filename,
-        content: formStateCode,
-        formState: stateWithTimestamp, // Also send as object for easier parsing (with timestamp)
-      }).catch((error) => {
-        logError('AutosaveField', `Error saving autosave: ${error.message}`)
-      })
+        // Await the save to ensure it completes before form submission
+        await requestFromPlugin('saveAutosave', {
+          filename,
+          content: formStateCode,
+          formState: stateWithTimestamp, // Also send as object for easier parsing (with timestamp)
+        })
 
-      // Update last saved state and time
-      lastSavedStateRef.current = currentState
-      const now = new Date()
-      setLastSaveTime(now)
-      setTimeAgo('Just now')
+        // Update last saved state and time
+        lastSavedStateRef.current = currentState
+        const now = new Date()
+        setLastSaveTime(now)
+        setTimeAgo('Just now')
 
-      logDebug('AutosaveField', 'Autosave completed successfully')
-    } catch (error) {
-      logError('AutosaveField', `Error in performSave: ${error.message}`)
-    } finally {
-      setIsSaving(false)
+        logDebug('AutosaveField', 'Autosave completed successfully')
+      } catch (error) {
+        logError('AutosaveField', `Error in performSave: ${error.message}`)
+        throw error // Re-throw so caller knows it failed
+      } finally {
+        setIsSaving(false)
+      }
+    },
+    [requestFromPlugin, autosaveFilename, formTitle, templateFilename, templateTitle, serializeState, disabled],
+  )
+
+  // Create a stable trigger function using useMemo to prevent re-registration on every render
+  const triggerSave = useMemo(() => {
+    return () => performSave(true) // Force save even if state unchanged
+  }, [performSave])
+
+  // Register trigger function with parent (only when onRegisterTrigger or triggerSave changes)
+  useEffect(() => {
+    if (onRegisterTrigger) {
+      onRegisterTrigger(triggerSave)
     }
-  }, [updatedSettings, requestFromPlugin, autosaveFilename, formTitle, serializeState, disabled])
+  }, [onRegisterTrigger, triggerSave])
 
   // Update time ago display
   useEffect(() => {
@@ -235,7 +266,7 @@ ${JSON.stringify(stateWithTimestamp, null, 2)}
     }
   }, [lastSaveTime])
 
-  // Debounced save effect
+  // Debounced save effect (only depends on updatedSettings and intervalMs, not performSave)
   useEffect(() => {
     // Clear existing timer
     if (saveTimerRef.current) {
@@ -243,8 +274,9 @@ ${JSON.stringify(stateWithTimestamp, null, 2)}
     }
 
     // Set new timer to save after interval
+    // Use a stable reference to performSave via closure
     saveTimerRef.current = (window.setTimeout(() => {
-      performSave()
+      performSave(false) // Regular autosave, don't force
     }, intervalMs): any)
 
     return () => {
@@ -252,7 +284,7 @@ ${JSON.stringify(stateWithTimestamp, null, 2)}
         clearTimeout((saveTimerRef.current: any))
       }
     }
-  }, [updatedSettings, intervalMs, performSave])
+  }, [updatedSettings, intervalMs]) // Removed performSave from dependencies to prevent timer reset
 
   // Cleanup on unmount
   useEffect(() => {
@@ -273,7 +305,6 @@ ${JSON.stringify(stateWithTimestamp, null, 2)}
 
   return (
     <div className={`autosave-field-container ${compactDisplay ? 'compact' : ''} ${disabled ? 'disabled' : ''}`}>
-      {label && <div className={`autosave-field-label ${compactDisplay ? 'compact' : ''}`}>{label}</div>}
       <div className="autosave-field-status">
         {isSaving ? <span className="autosave-field-saving">Saving...</span> : <span className="autosave-field-saved">Autosaved {timeAgo}</span>}
       </div>
