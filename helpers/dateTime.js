@@ -17,7 +17,7 @@ const RE_TEAMSPACE_INDICATOR_AND_ID = new RegExp(`^${TEAMSPACE_INDICATOR}\/([0-9
 // CONSTANTS
 export const MOMENT_FORMAT_NP_ISO = 'YYYY-MM-DD'
 export const MOMENT_FORMAT_NP_DAY = 'YYYYMMDD'
-export const MOMENT_FORMAT_NP_WEEK = 'YYYY-[W]WW'
+export const MOMENT_FORMAT_NP_WEEK = 'GGGG-[W]WW' // note: GGGG is the week year, which is needed with ISO weeks
 export const MOMENT_FORMAT_NP_MONTH = 'YYYY-MM'
 export const MOMENT_FORMAT_NP_QUARTER = 'YYYY-[Q]Q'
 export const MOMENT_FORMAT_NP_YEAR = 'YYYY'
