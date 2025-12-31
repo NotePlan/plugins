@@ -426,24 +426,15 @@ function FavoritesViewComponent({
   // Handle removing favorite note
   const handleRemoveFavorite = useCallback(async (filename: string) => {
     try {
-      const response = await requestFromPlugin('removeFavoriteNote', { filename })
-      if (response && response.success) {
-        // Show toast notification
-        dispatch('SHOW_TOAST', {
-          type: 'SUCCESS',
-          msg: 'Favorite note removed',
-          timeout: 2000,
-        })
-        // Reload the favorites list
-        await loadFavoriteNotes()
-      } else {
-        logError('FavoritesView', `Failed to remove favorite note: ${response?.message || 'Unknown error'}`)
-        dispatch('SHOW_TOAST', {
-          type: 'ERROR',
-          msg: `Failed to remove favorite: ${response?.message || 'Unknown error'}`,
-          timeout: 3000,
-        })
-      }
+      await requestFromPlugin('removeFavoriteNote', { filename })
+      // Show toast notification
+      dispatch('SHOW_TOAST', {
+        type: 'SUCCESS',
+        msg: 'Favorite note removed',
+        timeout: 2000,
+      })
+      // Reload the favorites list
+      await loadFavoriteNotes()
     } catch (error) {
       logError('FavoritesView', `Error removing favorite note: ${error.message}`)
       dispatch('SHOW_TOAST', {
