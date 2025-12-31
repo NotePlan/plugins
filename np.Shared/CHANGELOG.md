@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.8.4] @dwertheimer 2025-12-31
+
+- Add showReloadButton option to NPReactLocal.showInMainWindow
+
 ## [0.8.3] @dwertheimer 2025-12-27
 
 - Refactor HTML generation code to eliminate duplication between `openReactWindow` and `showInMainWindow`
@@ -26,7 +30,7 @@ See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Sh
 - Can be called from plugin side via `sendToastMessage()` or React side via `dispatch('SHOW_TOAST')`
 - Includes slide-in animation from right and fade effects
 
-## [0.8.0] @jgclark 2025-12-18
+## [0.8.0] @dwertheimer 2025-12-18
 
 - Add request/response pattern for awaiting from React->Plugin->React
 - Bring a better design to MessageBanner component
