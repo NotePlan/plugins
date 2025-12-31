@@ -566,6 +566,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
           <DynamicDialog
             isOpen={true}
             title={pluginData?.formTitle || ''}
+            windowTitle={pluginData?.windowTitle || ''}
             items={formFields}
             onSave={handleSave}
             onCancel={handleCancel}

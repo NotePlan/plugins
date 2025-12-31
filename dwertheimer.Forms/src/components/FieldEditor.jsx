@@ -185,7 +185,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
     onSave(editedField)
   }
 
-  const needsKey = editedField.type !== 'separator' && editedField.type !== 'heading'
+  const needsKey = editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'autosave'
 
   // Construct header title with label, key, and type
   const headerTitle = needsKey && editedField.key ? `Editing ${editedField.type}: ${editedField.label || ''} (${editedField.key})` : `Editing: ${editedField.type}`
@@ -224,7 +224,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             </div>
           )}
 
-          {editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'calendarpicker' && (
+          {editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'calendarpicker' && editedField.type !== 'autosave' && (
             <div className="field-editor-row">
               <label>
                 <input type="checkbox" checked={editedField.compactDisplay || false} onChange={(e) => updateField({ compactDisplay: e.target.checked })} />
@@ -1248,6 +1248,77 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   </>
                 )
               })()}
+            </>
+          )}
+
+          {editedField.type === 'autosave' && (
+            <>
+              <div className="field-editor-row">
+                <label>Autosave Interval (seconds):</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={((editedField: any): { autosaveInterval?: number }).autosaveInterval || 2}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const value = parseInt(e.target.value, 10)
+                    ;(updated: any).autosaveInterval = isNaN(value) || value < 1 ? 2 : value
+                    setEditedField(updated)
+                  }}
+                  placeholder="2"
+                />
+                <div className="field-editor-help">
+                  How often (in seconds) to automatically save the form state. Default is 2 seconds. The form will only save if the content has changed since the last save.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>Autosave Filename Pattern:</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { autosaveFilename?: string }).autosaveFilename || '@Trash/Autosave-<ISO8601>'}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).autosaveFilename = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                  placeholder="@Trash/Autosave-<ISO8601>"
+                />
+                <div className="field-editor-help">
+                  Filename pattern for autosave files. Available placeholders:
+                  <ul style={{ marginTop: '0.5rem', marginBottom: '0.5rem', paddingLeft: '1.5rem' }}>
+                    <li>
+                      <code>&lt;ISO8601&gt;</code> or <code>&lt;timestamp&gt;</code> - Timestamp in local timezone format: YYYY-MM-DDTHH-MM-SS
+                    </li>
+                    <li>
+                      <code>&lt;formTitle&gt;</code> or <code>&lt;FORM_NAME&gt;</code> - Form title (sanitized for filesystem compatibility)
+                    </li>
+                  </ul>
+                  Default is &quot;@Trash/Autosave-&lt;formTitle&gt;-&lt;ISO8601&gt;&quot; (or &quot;@Trash/Autosave-&lt;ISO8601&gt;&quot; if no form title). The form title will be automatically included if available.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={editedField.compactDisplay || false}
+                    onChange={(e) => updateField({ compactDisplay: e.target.checked })}
+                  />
+                  Compact Display (label and field side-by-side)
+                </label>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={(editedField: any).invisible || false}
+                    onChange={(e) => updateField({ invisible: e.target.checked })}
+                  />
+                  Invisible (hide UI but still perform autosaves)
+                </label>
+                <div className="field-editor-help">
+                  When checked, the autosave field will not display any UI message, but will still automatically save the form state in the background.
+                </div>
+              </div>
             </>
           )}
 

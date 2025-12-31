@@ -57,6 +57,7 @@ export type TSettingItemType =
   | 'templatejs-block' // TemplateJS code block that executes JavaScript
   | 'multi-select' // Multi-select checkbox list
   | 'markdown-preview' // Non-editable markdown preview (static text, note by filename/title, or note from another field)
+  | 'autosave' // Autosave field that saves form state periodically
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -146,6 +147,10 @@ export type TSettingItem = {
   multiSelectFilterFn?: (item: any, searchTerm: string) => boolean, // for multi-select, filter function
   multiSelectEmptyMessage?: string, // for multi-select, empty message
   multiSelectMaxHeight?: string, // for multi-select, max height
+  // autosave options
+  autosaveInterval?: number, // for autosave, interval in seconds between saves (default: 2)
+  autosaveFilename?: string, // for autosave, filename pattern (default: "@Trash/Autosave-<ISO8601>")
+  invisible?: boolean, // for autosave, if true, hide the UI but still perform autosaves (default: false)
 }
 
 export type TDynamicDialogProps = {
@@ -160,6 +165,7 @@ export type TDynamicDialogProps = {
   submitButtonText?: string, // Add submitButtonText property
   isOpen?: boolean,
   title?: string,
+  windowTitle?: string, // Window title to use as fallback for formTitle (e.g., for autosave)
   style?: Object, // Add style prop
   isModal?: boolean, // default is true, but can be overridden to run full screen
   hideDependentItems?: boolean,
@@ -185,6 +191,7 @@ const DynamicDialog = ({
   windowId,
   children,
   title,
+  windowTitle,
   items: passedItems,
   className = '',
   labelPosition = 'right',
@@ -466,6 +473,7 @@ const DynamicDialog = ({
             updatedSettings, // Pass updatedSettings for heading-chooser to watch note-chooser field, and for form-state-viewer
             onFoldersChanged, // Pass onFoldersChanged to reload folders after creating a new folder
             onNotesChanged, // Pass onNotesChanged to reload notes after creating a new note
+            formTitle: title || windowTitle, // Pass form title (or windowTitle as fallback) for autosave field
           }
           if (item.type === 'combo' || item.type === 'dropdown-select') {
             renderItemProps.inputRef = dropdownRef

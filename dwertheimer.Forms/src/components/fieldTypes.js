@@ -35,4 +35,5 @@ export const FIELD_TYPES: Array<FieldTypeOption> = [
   { value: 'json', label: 'JSON Editor', description: 'JSON data editor' },
   { value: 'hidden', label: 'Hidden Field', description: 'Hidden data field' },
   { value: 'templatejs-block', label: 'TemplateJS Block', description: 'JavaScript code block that executes during template processing' },
+  { value: 'autosave', label: 'Autosave', description: 'Automatically saves form state periodically (shows "Saved x ago" status)' },
 ]

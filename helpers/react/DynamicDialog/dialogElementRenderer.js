@@ -25,6 +25,7 @@ import MultiSelectChooser from './MultiSelectChooser.jsx'
 import { ExpandableTextarea } from './ExpandableTextarea.jsx'
 import { TemplateJSBlock } from './TemplateJSBlock.jsx'
 import { MarkdownPreview } from './MarkdownPreview.jsx'
+import AutosaveField from './AutosaveField.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import type { Option } from './DropdownSelect.jsx'
 import { Button, ButtonGroup } from './ButtonComponents.jsx'
@@ -57,6 +58,7 @@ type RenderItemProps = {
   updatedSettings?: { [key: string]: any }, // For heading-chooser to watch note-chooser field
   onFoldersChanged?: () => void, // Callback to reload folders after creating a new folder
   onNotesChanged?: () => void, // Callback to reload notes after creating a new note
+  formTitle?: string, // Form title for autosave field
 }
 
 /**
@@ -88,6 +90,7 @@ export function renderItem({
   updatedSettings, // For heading-chooser to watch note-chooser field
   onFoldersChanged, // Callback to reload folders after creating a new folder
   onNotesChanged, // Callback to reload notes after creating a new note
+  formTitle, // Form title for autosave field
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -245,11 +248,11 @@ export function renderItem({
               options={(normalizedOptions: Array<string | any>)}
               value={item.value || item.default || ''}
               onChange={(value: string) => {
-                  // Don't submit placeholder (empty value)
-                  if (value !== '') {
-                    item.key && handleFieldChange(item.key, value)
-                    item.key && handleComboChange(item.key, value)
-                  }
+                // Don't submit placeholder (empty value)
+                if (value !== '') {
+                  item.key && handleFieldChange(item.key, value)
+                  item.key && handleComboChange(item.key, value)
+                }
               }}
               disabled={disabled}
               compactDisplay={compactDisplay}
@@ -424,7 +427,11 @@ export function renderItem({
         ) : null
 
         return (
-          <div key={`calendarpicker${index}`} className={`calendarpicker-container ${compactDisplay ? 'compact' : ''}`} style={compactDisplay ? { display: 'flex', alignItems: 'center' } : {}}>
+          <div
+            key={`calendarpicker${index}`}
+            className={`calendarpicker-container ${compactDisplay ? 'compact' : ''}`}
+            style={compactDisplay ? { display: 'flex', alignItems: 'center' } : {}}
+          >
             {labelElement}
             <CalendarPicker
               startingSelectedDate={selectedDate ?? undefined}
@@ -451,7 +458,10 @@ export function renderItem({
           excludeTeamspaces: (item: any).excludeTeamspaces,
         }
 
-        logDebug('dialogElementRenderer', `folder-chooser: folders=${folders?.length || 0}, label=${label}, currentValue="${currentValue}", options=${JSON.stringify(folderChooserOptions)}`)
+        logDebug(
+          'dialogElementRenderer',
+          `folder-chooser: folders=${folders?.length || 0}, label=${label}, currentValue="${currentValue}", options=${JSON.stringify(folderChooserOptions)}`,
+        )
 
         const handleFolderChange = (folder: string) => {
           logDebug('dialogElementRenderer', `folder-chooser: handleFolderChange called with folder="${folder}"`)
@@ -590,12 +600,7 @@ export function renderItem({
         const compactDisplay = item.compactDisplay || false
         // Handle both string (ID) and object (full event) values for backward compatibility
         const rawValue = item.value || item.default
-        const currentValue =
-          typeof rawValue === 'string'
-            ? rawValue
-            : rawValue && typeof rawValue === 'object' && rawValue.id
-              ? rawValue.id
-              : ''
+        const currentValue = typeof rawValue === 'string' ? rawValue : rawValue && typeof rawValue === 'object' && rawValue.id ? rawValue.id : ''
         const eventDate = item.eventDate
         // Support both old (dependsOnDateKey) and new (sourceDateKey) property names for backward compatibility
         const sourceDateKey = item.sourceDateKey ?? item.dependsOnDateKey
@@ -606,7 +611,12 @@ export function renderItem({
           const dateValue = updatedSettings[sourceDateKey]
           if (dateValue !== null && dateValue !== undefined) {
             dateFromField = dateValue
-            logDebug('dialogElementRenderer', `event-chooser: got date from ${sourceDateKey}: ${typeof dateValue === 'string' ? dateValue : dateValue instanceof Date ? dateValue.toISOString() : String(dateValue)}`)
+            logDebug(
+              'dialogElementRenderer',
+              `event-chooser: got date from ${sourceDateKey}: ${
+                typeof dateValue === 'string' ? dateValue : dateValue instanceof Date ? dateValue.toISOString() : String(dateValue)
+              }`,
+            )
           }
         }
 
@@ -626,9 +636,7 @@ export function renderItem({
               ...event,
               date: event.date instanceof Date ? event.date.toISOString() : event.date,
               endDate: event.endDate instanceof Date ? event.endDate.toISOString() : event.endDate,
-              occurrences: event.occurrences
-                ? event.occurrences.map((d: Date | string) => (d instanceof Date ? d.toISOString() : d))
-                : [],
+              occurrences: event.occurrences ? event.occurrences.map((d: Date | string) => (d instanceof Date ? d.toISOString() : d)) : [],
             }
             handleFieldChange(item.key, serializedEvent)
           }
@@ -777,6 +785,30 @@ export function renderItem({
               showValue={item.showValue ?? false}
               includeAllOption={item.includeAllOption ?? false}
               shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
+            />
+          </div>
+        )
+      }
+      case 'autosave': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const autosaveInterval = item.autosaveInterval ?? 2
+        const autosaveFilename = item.autosaveFilename
+        const invisible = (item: any).invisible || false
+
+        return (
+          <div data-field-type="autosave">
+            <AutosaveField
+              key={`autosave${index}`}
+              label={label}
+              updatedSettings={updatedSettings || {}}
+              requestFromPlugin={requestFromPlugin}
+              autosaveInterval={autosaveInterval}
+              autosaveFilename={autosaveFilename}
+              formTitle={formTitle}
+              compactDisplay={compactDisplay}
+              disabled={disabled}
+              invisible={invisible}
             />
           </div>
         )

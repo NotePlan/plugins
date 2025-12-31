@@ -18,15 +18,16 @@ import { getAllNotesAsOptions, getRelativeNotesAsOptions } from './noteHelpers'
 import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, formatFormFieldsAsCodeBlock, getFormTemplateList } from './templateIO'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
+import { displayTitle } from '@helpers/paragraph'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { showMessage } from '@helpers/userInput'
-import { getHeadingsFromNote } from '@helpers/NPnote'
+import { getHeadingsFromNote, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { getNoteByFilename, getNote } from '@helpers/note'
 import { getNoteContentAsHTML } from '@helpers/HTMLView'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
 import { updateFrontMatterVars, ensureFrontmatter, endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
-import { saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
+import { saveCodeBlockToNote, loadCodeBlockFromNote, replaceCodeBlockContent } from '@helpers/codeBlocks'
 import { parseObjectString } from '@helpers/stringTransforms'
 import { replaceContentUnderHeading, removeContentUnderHeading } from '@helpers/NPParagraph'
 import { initPromisePolyfills, waitForCondition } from '@helpers/promisePolyfill'
@@ -802,6 +803,151 @@ export function createNote(params: { noteTitle: string, folder?: string }): Requ
 }
 
 /**
+ * Save autosave content to a note
+ * @param {Object} params - Request parameters
+ * @param {string} params.filename - Filename pattern (e.g., "@Trash/Autosave-2025-12-30T23-51-09")
+ * @param {string} params.content - Content to save (JSON code block)
+ * @param {Object} params.formState - Form state object (for reference)
+ * @returns {RequestResponse}
+ */
+export async function saveAutosave(params: { filename: string, content: string, formState?: Object }): Promise<RequestResponse> {
+  const startTime: number = Date.now()
+  try {
+    const { filename, content } = params
+
+    if (!filename || !content) {
+      return {
+        success: false,
+        message: 'Filename and content are required',
+        data: null,
+      }
+    }
+
+    logDebug(pluginJson, `saveAutosave: Saving to "${filename}"`)
+
+    // Parse filename pattern: "@Trash/Autosave-2025-12-30T23-51-09"
+    // Extract folder and note title
+    const parts = filename.split('/')
+    let folder = '/'
+    let noteTitle = filename
+
+    if (parts.length > 1) {
+      folder = parts.slice(0, -1).join('/')
+      noteTitle = parts[parts.length - 1]
+    } else if (filename.startsWith('@')) {
+      // If it starts with @ but no slash, treat the whole thing as the note title
+      noteTitle = filename
+      folder = '/'
+    }
+
+    logDebug(pluginJson, `saveAutosave: Parsed folder="${folder}", noteTitle="${noteTitle}"`)
+
+    // Try to find existing note first by searching in the folder
+    // Note: DataStore.projectNotes excludes notes in @Trash, so we need to use
+    // projectNoteByTitle with searchAllFolders: true for trash folder
+    let note: ?TNote = null
+    const isTrashFolder = folder === '@Trash' || folder.startsWith('@Trash/')
+
+    if (isTrashFolder) {
+      // For @Trash folder, use projectNoteByTitle with searchAllFolders: true
+      // because projectNotes excludes trash notes
+      const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, true) ?? []
+      // Filter to match the exact folder
+      const matchingNotes = potentialNotes.filter((n) => {
+        const noteFolder = getFolderFromFilename(n.filename)
+        return noteFolder === folder && displayTitle(n) === noteTitle
+      })
+      if (matchingNotes.length > 0) {
+        note = matchingNotes[0]
+        logDebug(pluginJson, `saveAutosave: Found existing note in trash folder "${folder}": ${note.filename}`)
+      }
+    } else if (folder === '/') {
+      // Root folder - find notes without folder path
+      const rootNotes = DataStore.projectNotes.filter((n) => {
+        const noteFolder = getFolderFromFilename(n.filename)
+        return noteFolder === '/' && displayTitle(n) === noteTitle
+      })
+      if (rootNotes.length > 0) {
+        note = rootNotes[0]
+        logDebug(pluginJson, `saveAutosave: Found existing note in root: ${note.filename}`)
+      }
+    } else {
+      // Specific folder - find notes in that folder
+      const folderNotes = DataStore.projectNotes.filter((n) => {
+        const noteFolder = getFolderFromFilename(n.filename)
+        return noteFolder === folder && displayTitle(n) === noteTitle
+      })
+      if (folderNotes.length > 0) {
+        note = folderNotes[0]
+        logDebug(pluginJson, `saveAutosave: Found existing note in folder "${folder}": ${note.filename}`)
+      }
+    }
+
+    // If note not found, create it using getOrMakeRegularNoteInFolder
+    if (!note) {
+      logDebug(pluginJson, `saveAutosave: Note not found, creating new note`)
+      note = await getOrMakeRegularNoteInFolder(noteTitle, folder)
+      if (!note) {
+        logError(pluginJson, `saveAutosave: Failed to get or create note "${noteTitle}" in folder "${folder}"`)
+        return {
+          success: false,
+          message: `Failed to get or create note "${noteTitle}"`,
+          data: null,
+        }
+      }
+      logDebug(pluginJson, `saveAutosave: Created new note: ${note.filename}`)
+    }
+
+    // Extract JSON content from the code block (content comes as "```json\n{...}\n```")
+    // Remove the code block fences to get just the JSON content
+    let jsonContent = content
+    if (content.startsWith('```')) {
+      // Remove opening fence (e.g., "```json\n")
+      const lines = content.split('\n')
+      if (lines.length > 1) {
+        // Skip first line (fence) and last line (closing fence), join the rest
+        jsonContent = lines.slice(1, -1).join('\n')
+      } else {
+        // Fallback: try to strip fences manually
+        jsonContent = content.replace(/^```[a-z]*\n/, '').replace(/\n```$/, '')
+      }
+    }
+
+    // Use replaceCodeBlockContent to save to a code block (replaces existing or adds new)
+    // Use fixed code block type "autosave" so each save replaces the previous one in the same note
+    const codeBlockType = 'autosave'
+    const success = replaceCodeBlockContent(note, codeBlockType, jsonContent, pluginJson.id)
+
+    if (!success) {
+      logError(pluginJson, `saveAutosave: Failed to save code block to note`)
+      return {
+        success: false,
+        message: 'Failed to save autosave content',
+        data: null,
+      }
+    }
+
+    // Update cache
+    DataStore.updateCache(note, true)
+
+    const totalElapsed: number = Date.now() - startTime
+    logDebug(pluginJson, `saveAutosave: Successfully saved to "${filename}", totalElapsed=${totalElapsed}ms`)
+    return {
+      success: true,
+      data: note.filename,
+    }
+  } catch (error) {
+    const totalElapsed: number = Date.now() - startTime
+    logError(pluginJson, `saveAutosave: Error saving autosave, totalElapsed=${totalElapsed}ms, error="${error.message}"`)
+    return {
+      success: false,
+      message: `Error saving autosave: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
  * Get headings from a note
  * @param {Object} params - Request parameters
  * @param {string} params.noteFilename - Filename of the note to get headings from
@@ -1094,6 +1240,8 @@ export async function handleRequest(requestType: string, params: Object = {}): P
         return await getNoteContentAsHTMLHandler(params)
       case 'createNote':
         return createNote(params)
+      case 'saveAutosave':
+        return await saveAutosave(params)
       // Form-specific handlers are now in their respective handler files:
       // - formBrowserHandlers.js handles: getFormTemplates, getFormFields, submitForm, openFormBuilder
       // - formBuilderHandlers.js handles: createProcessingTemplate, openNote, copyFormUrl, duplicateForm

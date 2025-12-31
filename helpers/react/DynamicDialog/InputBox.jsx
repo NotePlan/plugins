@@ -125,7 +125,7 @@ const InputBox = ({
         </div>
       </div>
       {validationError && (
-        <div className="validation-message" style={{ color: 'red', fontSize: 'small' }}>
+        <div className="validation-message" style={{ color: 'red', fontSize: 'smaller' }}>
           {validationError} {/* Display the validation error message */}
         </div>
       )}
