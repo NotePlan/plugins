@@ -534,36 +534,6 @@ export function stripLinkFromString(s: string): string {
   return s.replace(/\s\[([^\[\]]*)\]\((.*?)\)/g, '').replace(/\s\[\[.*?\]\]/g, '')
 }
 
-/**
- * Convert semver string to number
- * @author @codedungeon
- * @param {string} semver - semver version
- * @return return long version number
- */
-export function semverVersionToNumber(version: string): number {
-  const parts = version.split('.')
-  if (parts.length < 3) {
-    parts.push('0')
-    if (parts.length < 3) {
-      parts.push('0')
-    }
-  }
-
-  for (const part of parts) {
-    const foundPart: number = parseInt(part, 10)
-    if (Number.isNaN(foundPart) || foundPart >= 1024) {
-      throw new Error(`Version string invalid, ${part} is too large`)
-    }
-  }
-
-  let numericVersion = 0
-  // Shift all parts either 0, 10 or 20 bits to the left.
-  for (let i = 0; i < 3; i++) {
-    numericVersion |= parseInt(parts[i]) << (i * 10)
-  }
-  return numericVersion
-}
-
 export const forceLeadingSlash = (str: string): string => (str[0] === '/' ? str : `/${str}`)
 
 /**

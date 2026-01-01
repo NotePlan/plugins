@@ -12,7 +12,7 @@ import { getPluginJson, updateSettingData } from '@helpers/NPConfiguration'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 
-export { openReactWindow, onMessageFromHTMLView } from './NPReactLocal'
+export { openReactWindow, showInMainWindow, onMessageFromHTMLView } from './NPReactLocal'
 
 /**
  * Log the list of resource files that should currently be available by this plugin (i.e. at run-time, not compile-time).

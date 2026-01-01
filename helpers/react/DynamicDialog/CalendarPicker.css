@@ -71,6 +71,27 @@
   padding-top: 0px;
 }
 
+.calendar-picker-button-text {
+  margin-left: 0.25rem;
+}
+
+/* Label styling for calendarpicker */
+.calendarpicker-label {
+  font-weight: 600;
+  color: var(--fg-alt-color);
+  margin-bottom: 0.5rem;
+}
+
+.calendarpicker-label.compact {
+  margin-bottom: 0;
+  margin-right: 0.5rem;
+}
+
+.calendarpicker-container.compact {
+  display: flex;
+  align-items: center;
+}
+
 .rdp-day {
   box-shadow: none;
   display: inline-grid;
@@ -99,10 +120,10 @@
 }
 
 .dayPicker-container {
-  overflow: hidden;
+  overflow: visible;
   position: relative;
-  width: 100%;
-  height: auto;
+  height: fit-content;
+  line-height: 0;
   /* margin-top: 20px; */
 }
 

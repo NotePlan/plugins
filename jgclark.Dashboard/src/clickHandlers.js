@@ -17,6 +17,7 @@ import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
+import { smartOpenNoteInEditorFromFilename, smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
 import { openNoteByFilename } from '@helpers/NPnote'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename, highlightParagraphInEditor } from '@helpers/NPParagraph'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
@@ -416,32 +417,28 @@ export function doWindowResized(): TBridgeClickHandlerResult {
   return handlerResult(false)
 }
 
-// Handle a show note call simply by opening the note in the main Editor.
-// Note: use the showLine... variant of this (below) where possible
+/** 
+ * Handle a show note call by opening the note in the main Editor, and returning success details.
+ * Note: use the showLine... variant of this (below) where possible
+ * @param {MessageDataObject} data - The data object containing information for content update.
+ * @returns {TBridgeClickHandlerResult} The result of the content update operation.
+*/
 export async function doShowNoteInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, modifierKey } = data
-  if (!filename) throw 'doShowNoteInEditorFromFilename: No filename: stopping'
-  const note = await openNoteByFilename(filename, { newWindow: modifierKey === 'meta', splitView: modifierKey === 'alt' })
-  Editor.focus()
-  return handlerResult(note ? true : false)
+  const { filename, modifierKey } = validateAndFlattenMessageObject(data)
+  const result = await smartOpenNoteInEditorFromFilename(filename, { newWindowType: modifierKey === 'alt' ? 'split' : 'window', highlightStart: 0, highlightEnd: 0 })
+  return handlerResult(result)
 }
 
-// Handle a show note call simply by opening the note in the main Editor
-// Note: use the showLine... variant of this (below) where possible
+/**
+ * Handle a show note call simply by opening the note in the main Editor
+ * Note: use the showLine... variant of this (below) where possible
+ * @param {MessageDataObject} data - The data object containing information for content update.
+ * @returns {TBridgeClickHandlerResult} The result of the content update operation.
+*/
 export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename } = validateAndFlattenMessageObject(data)
-  // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
-  const wantedTitle = filename
-  // TODO(@EduardMe): this might not work for Teamspace notes
-  const note = await Editor.openNoteByTitle(wantedTitle)
-  if (note) {
-    Editor.focus()
-    logDebug('doShowNoteInEditorFromTitle', `-> successful call to open title ${wantedTitle} in Editor`)
-    return handlerResult(true)
-  } else {
-    logWarn('doShowNoteInEditorFromTitle', `-> failed to open title ${wantedTitle} in Editor`)
-    return handlerResult(false)
-  }
+  const result = await smartOpenNoteInEditorFromFilename(filename, { newWindowType: 'window', highlightStart: 0, highlightEnd: 0 })
+  return handlerResult(result)
 }
 
 /**
@@ -449,18 +446,29 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
  * If ⌘ (command) key is clicked, then open in a new floating window.
  * If option key is clicked, then open in a new split view.
  * Note: Handles Teamspace notes from b1375 (v3.17.0).
+ * FIXME: Needs to work when running in the main/split window, as well as in a separate window.
  * @param {MessageDataObject} data with details of item
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
 export async function doShowLineInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, modifierKey } = validateAndFlattenMessageObject(data)
-  const note = await Editor.openNoteByFilename(filename, modifierKey === 'meta', 0, 0, modifierKey === 'alt')
-  if (note) {
-    const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
-    logDebug(
-      'doShowLineInEditorFromFilename',
-      `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`,
-    )
+  // const { filename, content, modifierKey } = validateAndFlattenMessageObject(data)
+  // const note = await Editor.openNoteByFilename(filename, modifierKey === 'meta', 0, 0, modifierKey === 'alt')
+  // if (note) {
+  //   // $FlowIgnore[prop-missing]
+  //   // $FlowIgnore[incompatible-call]
+  //   const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
+  //   logDebug('doShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph`,)
+  //   return handlerResult(true)
+  // } else {
+  //   logWarn('doShowLineInEditorFromFilename', `-> failed to open filename ${filename} in Editor.`)
+  //   return handlerResult(false)
+  // }
+
+  // V2
+  const { filename, content } = validateAndFlattenMessageObject(data)
+  const result = await smartShowLineInEditorFromFilename(filename, content)
+  if (result) {
+    logDebug('doShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor, followed by ${result ? 'succesful' : 'unsuccessful'} call to highlight the paragraph`,)
     return handlerResult(true)
   } else {
     logWarn('doShowLineInEditorFromFilename', `-> failed to open filename ${filename} in Editor.`)

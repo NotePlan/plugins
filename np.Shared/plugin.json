@@ -1,9 +1,9 @@
 {
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.8.0",
+  "noteplan.minAppVersion": "3.20.0",
   "plugin.id": "np.Shared",
   "plugin.name": "🤝 Shared Resources",
-  "plugin.version": "0.8.0",
+  "plugin.version": "0.8.4",
   "plugin.releaseStatus": "full",
   "plugin.description": "Shared resources for NotePlan plugins. (There are no commands for users to run directly.)",
   "plugin.author": "jgclark + dwertheimer",
@@ -36,6 +36,12 @@
       "name": "openReactWindow",
       "description": "Open a HTML+React Window for whatever WebView component was supplied by plugin",
       "jsFunction": "openReactWindow",
+      "hidden": true
+    },
+    {
+      "name": "showInMainWindow",
+      "description": "Show a HTML+React Window in the main window (split view) for whatever WebView component was supplied by plugin",
+      "jsFunction": "showInMainWindow",
       "hidden": true
     },
     {

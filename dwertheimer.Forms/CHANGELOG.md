@@ -4,6 +4,23 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.6] 2025-12-19 @dwertheimer
+
+- UI improvements for template tag editor:
+  - Moved +Field and +Date buttons to the left side of the editor
+  - Moved "Show RAW template code" toggle switch to the right side
+  - Double-click any pill (tag or text) to switch to RAW mode
+
+## [1.0.5] 2025-12-19 @dwertheimer
+
+- Add `folder-chooser` field type: Select folders from a searchable dropdown with smart path truncation (shows beginning and end of long paths with "..." in the middle)
+- Add `note-chooser` field type: Select notes from a searchable dropdown with smart text truncation
+- Both chooser types include intelligent truncation that preserves the start and end of long paths/titles for better readability
+
+## [1.0.4] 2025-12-18 @dwertheimer
+
+- Add Form Builder
+
 ## [1.0.3] 2025-12-18 @dwertheimer
 
 - Add readme with basic instructions
@@ -16,14 +33,6 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 ## [1.0.1] 2025-03-06 @dwertheimer
 
 - Workaround for frontmatter UI and CSV strings
-### Added
-List what has been added. If nothing has been changed, this section can be removed.
-
-### Changed
-List what has changed. If nothing has been changed, this section can be removed.
-
-### Removed
-List what has removed. If nothing has been removed, this section can be removed.
 
 ## Changelog
 

@@ -16,6 +16,64 @@ let baseFontSize: number // updated later
 // ---------------------------------------------------------
 
 /**
+ * Load theme data from the given theme name, or fall back to current theme, or dark theme.
+ * @author @jgclark
+ * @param {string?} themeNameIn (optional)
+ * @returns {Object} { themeName, themeJSON, currentThemeMode }
+ */
+function loadThemeData(themeNameIn: string = ''): { themeName: string, themeJSON: Object, currentThemeMode: string } {
+  let themeName = ''
+  let themeJSON: Object = {}
+  const availableThemeNames = Editor.availableThemes.map((m) => (m.name.endsWith('.json') ? m.name.slice(0, -5) : m.name))
+  let matchingThemeObjs: Array<any> = [] // Eduard hasn't typed the Theme objects
+  let currentThemeMode = 'light' // default; overridden later
+
+  // If we havee a supplied themeName, then attempt to use it
+  if (themeNameIn) {
+    // get list of available themes
+    logDebug('loadThemeData', String(availableThemeNames))
+    matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeNameIn)
+    if (matchingThemeObjs.length > 0) {
+      themeName = themeNameIn
+      logDebug('loadThemeData', `Reading theme '${themeName}'`)
+      themeJSON = matchingThemeObjs[0].values
+      currentThemeMode = Editor.currentTheme.mode
+    } else {
+      logWarn('loadThemeData', `Theme '${themeNameIn}' is not in list of available themes. Will try to use current theme instead.`)
+    }
+  }
+
+  // If that hasn't worked, then currentTheme
+  if (!themeName) {
+    themeName = Editor.currentTheme.name ?? ''
+    themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
+    logDebug('loadThemeData', `Translating your current theme '${themeName}'`)
+    if (themeName !== '') {
+      themeJSON = Editor.currentTheme.values
+      currentThemeMode = Editor.currentTheme.mode
+    } else {
+      logWarn('loadThemeData', `Cannot get settings for your current theme '${themeName}'`)
+    }
+  }
+
+  // If that hasn't worked, try dark theme
+  if (!themeName) {
+    themeName = String(DataStore.preference('themeDark'))
+    themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
+    matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeName)
+    if (matchingThemeObjs.length > 0) {
+      logDebug('loadThemeData', `Reading your dark theme '${themeName}'`)
+      themeJSON = matchingThemeObjs[0].values
+      currentThemeMode = 'dark'
+    } else {
+      logWarn('loadThemeData', `Cannot get settings for your dark theme '${themeName}'`)
+    }
+  }
+
+  return { themeName, themeJSON, currentThemeMode }
+}
+
+/**
  * Generate CSS as an equivalent to the given theme (or current one if not given, or 'dark' theme if that isn't available) to use as an embedded style sheet.
  * TODO: ideally consult theme to see if Editor's "shouldOverwriteFont" is false before changing font size and family?
  *
@@ -25,53 +83,7 @@ let baseFontSize: number // updated later
  */
 export function generateCSSFromTheme(themeNameIn: string = ''): string {
   try {
-    let themeName = ''
-    let themeJSON: Object
-    const availableThemeNames = Editor.availableThemes.map((m) => (m.name.endsWith('.json') ? m.name.slice(0, -5) : m.name))
-    let matchingThemeObjs: Array<any> = [] // Eduard hasn't typed the Theme objects
-    let currentThemeMode = 'light' // default; overridden later
-
-    // If we havee a supplied themeName, then attempt to use it
-    if (themeNameIn) {
-      // get list of available themes
-      logDebug('generateCSSFromTheme', String(availableThemeNames))
-      matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeNameIn)
-      if (matchingThemeObjs.length > 0) {
-        themeName = themeNameIn
-        logDebug('generateCSSFromTheme', `Reading theme '${themeName}'`)
-        themeJSON = matchingThemeObjs[0].values
-        currentThemeMode = Editor.currentTheme.mode
-      } else {
-        logWarn('generateCSSFromTheme', `Theme '${themeNameIn}' is not in list of available themes. Will try to use current theme instead.`)
-      }
-    }
-
-    // If that hasn't worked, then currentTheme
-    if (!themeName) {
-      themeName = Editor.currentTheme.name ?? ''
-      themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
-      logDebug('generateCSSFromTheme', `Translating your current theme '${themeName}'`)
-      if (themeName !== '') {
-        themeJSON = Editor.currentTheme.values
-        currentThemeMode = Editor.currentTheme.mode
-      } else {
-        logWarn('generateCSSFromTheme', `Cannot get settings for your current theme '${themeName}'`)
-      }
-    }
-
-    // If that hasn't worked, try dark theme
-    if (!themeName) {
-      themeName = String(DataStore.preference('themeDark'))
-      themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
-      matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeName)
-      if (matchingThemeObjs.length > 0) {
-        logDebug('generateCSSFromTheme', `Reading your dark theme '${themeName}'`)
-        themeJSON = matchingThemeObjs[0].values
-        currentThemeMode = 'dark'
-      } else {
-        logWarn('generateCSSFromTheme', `Cannot get settings for your dark theme '${themeName}'`)
-      }
-    }
+    const { themeName, themeJSON, currentThemeMode } = loadThemeData(themeNameIn)
 
     // Check we can proceed
     if (themeJSON == null || themeJSON.length === 0) {
@@ -432,6 +444,21 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     logError('generateCSSFromTheme', error.message)
     return '<error>'
   }
+}
+
+/**
+ * Get the tint color from the current theme.
+ * @author @jgclark
+ * @returns {string} tint color, as #RRGGBB[AA]
+ */
+export function getTintColor(): string {
+  const { themeJSON } = loadThemeData()
+  if (themeJSON == null || Object.keys(themeJSON).length === 0) {
+    logWarn('getTintColor', 'themeJSON is empty. Returning default tint color.')
+    return '#E9C0A2'
+  }
+  const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
+  return tintColor
 }
 
 /**

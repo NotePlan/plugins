@@ -93,6 +93,12 @@
 	white-space: nowrap;
 }
 
+/* Placeholder option styling */
+.dropdown-select-option.placeholder-option {
+	color: var(--fg-alt-color, #999999);
+	font-style: italic;
+}
+
 .dropdown-select-input-container {
 	position: relative;
 	width: 100%;

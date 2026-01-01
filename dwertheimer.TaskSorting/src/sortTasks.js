@@ -7,7 +7,7 @@ import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagrap
 import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType } from '@helpers/sorting'
 import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
-import { saveEditorIfNecessary } from '@helpers/editor'
+import { saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getBooleanValue, getArrayValue } from '@helpers/dataManipulation'
 
 const DEFAULT_HEADINGS = {

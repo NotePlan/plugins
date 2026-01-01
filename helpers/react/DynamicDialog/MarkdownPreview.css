@@ -1,0 +1,134 @@
+/* MarkdownPreview Component Styles */
+
+.markdown-preview-container {
+  margin-bottom: 1rem;
+}
+
+.markdown-preview-container.compact {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-preview-label {
+  font-weight: 600; /* Match input-box-label for consistency */
+  margin-bottom: 0.5rem;
+  color: var(--text-color, #333);
+}
+
+.markdown-preview-label.compact {
+  display: inline-block;
+  margin-right: 0.5rem;
+  margin-bottom: 0;
+}
+
+.markdown-preview-content {
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  padding: 1rem;
+  background-color: var(--bg-color, #fff);
+  min-height: 100px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.markdown-preview-container.compact .markdown-preview-content {
+  padding: 0.5rem;
+  min-height: 50px;
+  max-height: 300px;
+}
+
+.markdown-preview-html {
+  color: var(--text-color, #333);
+  line-height: 1.6;
+}
+
+.markdown-preview-html h1,
+.markdown-preview-html h2,
+.markdown-preview-html h3,
+.markdown-preview-html h4,
+.markdown-preview-html h5,
+.markdown-preview-html h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.markdown-preview-html p {
+  margin: 0.5em 0;
+}
+
+.markdown-preview-html ul,
+.markdown-preview-html ol {
+  margin: 0.5em 0;
+  padding-left: 2em;
+}
+
+.markdown-preview-html code {
+  background-color: var(--bg-alt-color, #f5f5f5);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.markdown-preview-html pre {
+  background-color: var(--bg-alt-color, #f5f5f5);
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.markdown-preview-html blockquote {
+  border-left: 3px solid var(--tint-color, #007aff);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--text-secondary-color, #666);
+}
+
+.markdown-preview-html table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.markdown-preview-html table th,
+.markdown-preview-html table td {
+  border: 1px solid var(--border-color, #ddd);
+  padding: 0.5em;
+  text-align: left;
+}
+
+.markdown-preview-html table th {
+  background-color: var(--bg-alt-color, #f5f5f5);
+  font-weight: 600;
+}
+
+.markdown-preview-html img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.markdown-preview-loading,
+.markdown-preview-error,
+.markdown-preview-empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-secondary-color, #666);
+  font-style: italic;
+}
+
+.markdown-preview-error {
+  color: var(--error-color, #d32f2f);
+}
+
+.markdown-preview-static {
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.markdown-preview-container.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+

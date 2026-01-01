@@ -29,7 +29,7 @@ import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 import { initConfiguration, updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 import { hasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
-import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
+import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/NPEditor'
 import { getNoteTitleFromTemplate, getNoteTitleFromRenderedContent, analyzeTemplateStructure } from '@helpers/NPFrontMatter'
 
 import pluginJson from '../plugin.json'
@@ -398,16 +398,35 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     if (filename) {
       await Editor.openNoteByFilename(filename)
 
-      const renderedTemplateHasFM = hasFrontMatter(templateResult)
+      // Check for -- blocks and convert them to --- frontmatter blocks
+      // Only multi-line blocks with -- on separate lines are converted
+      let processedTemplateResult = templateResult
+      const lines = templateResult.split('\n')
+      logDebug(pluginJson, `templateNew: checking for -- blocks in ${lines.length} lines, first line: "${lines[0]}"`)
+
+      // Check for multi-line blocks with -- separators
+      const startBlock = lines.findIndex((line) => line.trim() === '--')
+      const endBlock = startBlock >= 0 ? lines.findIndex((line, idx) => idx > startBlock && line.trim() === '--') : -1
+      logDebug(pluginJson, `templateNew: multi-line block check - startBlock: ${startBlock}, endBlock: ${endBlock}`)
+
+      if (startBlock >= 0 && endBlock >= 0) {
+        // Replace -- with --- while preserving any leading/trailing whitespace
+        lines[startBlock] = lines[startBlock].replace(/^(\s*)--(\s*)$/, '$1---$2')
+        lines[endBlock] = lines[endBlock].replace(/^(\s*)--(\s*)$/, '$1---$2')
+        processedTemplateResult = lines.join('\n')
+        logDebug(pluginJson, `templateNew: detected -- block in rendered content, converted to --- frontmatter at lines ${startBlock} and ${endBlock}`)
+      }
+
+      const renderedTemplateHasFM = hasFrontMatter(processedTemplateResult)
 
       if (renderedTemplateHasFM) {
-        Editor.content = templateResult
+        Editor.content = processedTemplateResult
 
         // Always add title to frontmatter if we have a newNoteTitle from template frontmatter
         // Only skip adding title if the template has an inline title but NO newNoteTitle
         // OR if newNoteTitle and inline title are the same (no need to duplicate)
         // Use the rendered content for analysis since we already have it
-        const analysis = analyzeTemplateStructure(templateResult)
+        const analysis = analyzeTemplateStructure(processedTemplateResult)
         const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
         const hasNewNoteTitle = analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle
         const titlesAreSame = hasInlineTitle && hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle === analysis.inlineTitleText
@@ -419,7 +438,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
         // Check if the template already contains an inline title to avoid duplication
         // Also check if we have newNoteTitle that should create frontmatter
         // Use the rendered content for analysis since we already have it
-        const analysis = analyzeTemplateStructure(templateResult)
+        const analysis = analyzeTemplateStructure(processedTemplateResult)
         const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
         const hasNewNoteTitle = analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle
         const titlesAreSame = hasInlineTitle && hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle === analysis.inlineTitleText
@@ -427,15 +446,15 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
         if (hasNewNoteTitle && !titlesAreSame) {
           // We have newNoteTitle, so create frontmatter with title
           logDebug(`templateNew: note was created with newNoteTitle so we need to add title to frontmatter: "${finalNoteTitle}" while adding the content`)
-          Editor.content = `---\ntitle: ${finalNoteTitle}\n---\n${templateResult}`
+          Editor.content = `---\ntitle: ${finalNoteTitle}\n---\n${processedTemplateResult}`
         } else if (hasInlineTitle) {
           // Template already has an inline title, don't add another one
           logDebug(`templateNew: note was created with inline title so just adding the template content (it will get the H1 title): "${finalNoteTitle}" while adding the content`)
-          Editor.content = templateResult
+          Editor.content = processedTemplateResult
         } else {
           // No inline title in template, add the title
           logDebug(`templateNew: note was created with no inline title or newNoteTitle so adding the title we received: "${finalNoteTitle}" while adding the content`)
-          Editor.content = `# ${finalNoteTitle}\n${templateResult}`
+          Editor.content = `# ${finalNoteTitle}\n${processedTemplateResult}`
         }
       }
       selectFirstNonTitleLineInEditor()

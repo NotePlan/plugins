@@ -9,8 +9,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    min-width: 30ch;
-    max-width: 50ch;
+    width: 90vw;
+    max-width: 90vw;
+    height: 90vh;
+    max-height: 90vh;
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     /* z-index: 1000; */
@@ -18,10 +20,17 @@
     border-radius: 8px;
     transition: opacity 0.2s ease-out;
     /* overflow: hidden; commented out to allow for dropdowns to show */
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
 
     /* Narrow for simpler confirmation dialogs */
     &.confirmation {
         width: max(20rem, 50%);
+        max-width: max(20rem, 50%);
+        height: auto;
+        max-height: auto;
     }
 
     /* Show the settings dialog with transition */
@@ -37,10 +46,14 @@
         background-color: var(--bg-mid-color);
         padding: 0.75rem 0.6rem;
         border-radius: 8px;
-        max-height: 90vh;
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden; /* Prevent horizontal scrollbars */
         font-size: 95%;
-        /* overflow-y: auto; */
-        overflow-y: visible;
+        min-height: 0; /* Allow flex item to shrink below content size */
+        /* overflow-y: visible; - changed back to auto to restore scrollbars when content exceeds max-height */
+        box-sizing: border-box; /* Ensure padding is included in width calculation */
+        width: 100%; /* Ensure content doesn't exceed container width */
     }
 
     /* Style for the dialog buttons container */
@@ -51,14 +64,16 @@
         font-size: 1.05rem;
         font-weight: 600;
         gap: 0.5rem;
-        background-color: var(--bg-alt-color);
-        color: var(--tint-color);
+        background-color: var(--bg-alt-color, #e6e9ef);
+        color: var(--tint-color, #dc8a78);
         margin: 0;
-        background: none;
         line-height: 1.2rem;
         min-height: 2.5rem;
-        border-bottom: gray solid .5px;
-        padding-bottom: 2px;
+        border-bottom: 0.5px solid var(--divider-color, #CDCFD0);
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px 8px 0 0;
+        width: 100%;
+        box-sizing: border-box;
         /* Match the height of the buttons container */
     }
 
@@ -189,6 +204,24 @@
         /* flex-shrink: 0; */
     }
 
+    /* Style for each dialog item */
+    .dynamic-dialog-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+        max-width: 100%; /* Prevent items from exceeding container width */
+    }
+    
+    /* Ensure all input elements within dialog items respect container width */
+    .dynamic-dialog-item input,
+    .dynamic-dialog-item textarea,
+    .dynamic-dialog-item select {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
     /* Style for input-box-container */
     .input-box-container {
         display: flex;
@@ -204,6 +237,56 @@
         align-items: center;
         gap: 1rem !important;
         column-gap: 0px;
+    }
+    
+    /* Fix label alignment in compact display - ensure consistent vertical alignment */
+    .input-box-container-compact .input-box-label {
+        margin-bottom: 0;
+        align-self: center;
+        min-width: fit-content;
+        white-space: nowrap;
+    }
+    
+    /* Ensure all compact display fields align vertically - use consistent label width */
+    .dynamic-dialog-content {
+        /* Create a CSS variable for compact label width to ensure alignment */
+        --compact-label-width: auto;
+    }
+    
+    /* Unified field label styling for all DynamicDialog fields */
+    /* All field labels should use font-weight: 600 for consistency */
+    .input-box-label,
+    .expandable-textarea-label,
+    .markdown-preview-label,
+    .templatejs-block-label,
+    [class*="-chooser-label"],
+    .multi-select-chooser-base label {
+        font-weight: 600;
+    }
+    
+    /* For compact fields, set a consistent minimum label width to align all labels */
+    .input-box-container-compact .input-box-label {
+        min-width: 8rem;
+        text-align: right;
+        padding-right: 1rem;
+    }
+    
+    /* Align validation messages with labels in compact mode */
+    .input-box-container-compact + .validation-message {
+        margin-left: 8rem;
+        padding-left: 1rem;
+    }
+    
+    /* Align item descriptions with labels in compact mode */
+    /* When a field has compactDisplay, the description should align with the label (9rem from left) */
+    [data-compact-display="true"] .item-description {
+        margin-left: 9rem; /* Align with input field: 8rem (label width) + 1rem (label padding-right) */
+    }
+    
+    /* Ensure input fields in compact mode align with chooser inputs */
+    /* Label is 8rem + 1rem padding = 9rem, so input should start at 9rem */
+    .input-box-container-compact .input-box-input {
+        margin-left: 0; /* Remove the 10px margin to align with choosers */
     }
 
     /* Style for input-box-wrapper - TODO: remove later */
@@ -247,6 +330,33 @@
         border-color: var(--divider-color); /* Keep the same border color on focus */
         outline: none; /* Remove any outline on focus */
         box-shadow: none; /* Remove any potential box-shadow on focus */
+    }
+
+    /* Style for form-state-viewer (read-only JSON display of form state) */
+    .form-state-viewer-container {
+        width: 100%;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--divider-color);
+    }
+
+    .form-state-viewer-content {
+        background-color: var(--bg-alt-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 4px;
+        padding: 0.75rem;
+        max-height: 400px;
+        overflow-y: auto;
+        font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+        font-size: 0.8rem;
+        line-height: 1.4;
+    }
+
+    .form-state-viewer-json {
+        margin: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        color: var(--fg-main-color);
     }
         
     /* Make number boxes a little narrower */

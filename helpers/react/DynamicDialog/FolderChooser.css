@@ -1,0 +1,23 @@
+/* FolderChooser Component Styles */
+
+/* Wrapper for folder chooser and description */
+.folder-chooser-wrapper {
+  width: 100%;
+}
+
+.folder-chooser-wrapper-compact {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Description text alignment in compact mode */
+.folder-chooser-description-compact {
+  margin-left: 9rem; /* Align with input field: 8rem (label width) + 1rem (label padding-right) */
+}
+
+/* Also apply to any chooser description in compact mode */
+.searchable-chooser-base.compact + div[style*="fontSize"][style*="0.85rem"],
+[class*="-chooser-container"].compact + div[style*="fontSize"][style*="0.85rem"] {
+  margin-left: 9rem;
+}

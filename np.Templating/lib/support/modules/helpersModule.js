@@ -48,13 +48,14 @@ import { getSetting, initConfiguration, updateSettingData, pluginUpdated } from 
 
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, smartPrependPara, smartAppendPara } from '@helpers/paragraph'
 
-import { replaceContentUnderHeading, insertContentUnderHeading, getParagraphBlock, getBlockUnderHeading } from '@helpers/NPParagraph'
+import { replaceContentUnderHeading, insertContentUnderHeading, getBlockUnderHeading } from '@helpers/NPParagraph'
+import { getParagraphBlock } from '@helpers/blocks'
 
 import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
 
-import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
+import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/NPEditor'
 
 import { getOpenTasksAndChildren } from '@helpers/parentsAndChildren'
 

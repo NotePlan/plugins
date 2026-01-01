@@ -1,0 +1,107 @@
+/* ------------------------------------------------------------------ */
+/* Toast Notification CSS */
+/* Last updated 2025-12-24 by @dwertheimer */
+/* ------------------------------------------------------------------ */
+
+.toast {
+  position: fixed;
+  top: calc(1rem + var(--noteplan-toolbar-height, 0));
+  right: 1rem;
+  min-width: 300px;
+  max-width: 500px;
+  border-width: 0px 0px 0px 4px;
+  border-style: solid;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: grid;
+  grid-template-columns: fit-content(100%) 1fr fit-content(100%);
+  gap: 0.6rem;
+  justify-items: left;
+  align-items: center;
+  font-size: 0.95rem;
+  padding: 0.8rem 1.1rem;
+  z-index: 10000; /* High z-index to ensure it appears on top of everything */
+  /* No default background - let color classes set it */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  /* Hide animation: fade and slide out to right */
+  opacity: 0;
+  transform: translateX(100%);
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 1, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 1, 1);
+  overflow: hidden;
+}
+
+.toast.toast--visible {
+  /* Show animation: fade and slide in from right */
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 0.25s cubic-bezier(0.24, 0.8, 0.47, 1),
+    transform 0.3s cubic-bezier(0.24, 0.8, 0.47, 1);
+  overflow: unset;
+}
+
+.toast .border-info {
+  border-left-color: var(--fg-info-color, #3b82f6);
+}
+
+.toast .border-warn {
+  border-left-color: var(--fg-warn-color, #fbbf24);
+}
+
+.toast .border-error {
+  border-left-color: var(--fg-error-color, #ef4444);
+}
+
+.toast .border-success {
+  border-left-color: #22c55e; /* Green border */
+}
+
+.toast .color-info {
+  /* Light blue background */
+  background-color: rgba(219, 234, 254, 0.95); /* Light blue (#dbeafe) with 95% opacity */
+  color: #1e40af; /* Dark blue for text contrast */
+  border-left-color: #3b82f6; /* Blue border */
+}
+
+.toast .color-warn {
+  /* Light yellow/orange background */
+  background-color: rgba(254, 243, 199, 0.95); /* Light yellow (#fef3c7) with 95% opacity */
+  color: #b45309; /* Dark orange for text contrast */
+  border-left-color: #fbbf24; /* Yellow border */
+}
+
+.toast .color-error {
+  /* Light red background */
+  background-color: rgba(254, 226, 226, 0.95); /* Light red (#fee2e2) with 95% opacity */
+  color: #991b1b; /* Dark red for text contrast */
+  border-left-color: #ef4444; /* Red border */
+}
+
+.toast .color-success {
+  /* Light green background for better readability */
+  background-color: rgba(220, 252, 231, 0.95); /* Light green (#dcfce7) with 95% opacity */
+  color: #15803d; /* Dark green for text contrast */
+  border-left-color: #22c55e; /* Green border */
+}
+
+.toast-message-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.toast-close-button {
+  justify-self: right;
+  color: var(--fg-main-color, black);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.toast-close-button:hover {
+  opacity: 1;
+}
+

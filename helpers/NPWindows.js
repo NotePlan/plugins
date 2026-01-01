@@ -301,15 +301,33 @@ export function findEditorWindowByFilename(filenameToFind: string): TEditor | fa
 }
 
 /**
- * Tests whether the provided filename is open in an Editor window.
+ * Deprecated: use isNoteOpenInEditor() instead.
+ * Tests whether the provided filename is open in an Editor window/split.
  * @author @jgclark
- * @param {string} openNoteFilename
+ * @param {string} filename
  * @returns {boolean}
  */
-export function noteOpenInEditor(openNoteFilename: string): boolean {
+export function noteOpenInEditor(filename: string): boolean {
   const allEditorWindows = NotePlan.editors
   for (const thisEditorWindow of allEditorWindows) {
-    if (thisEditorWindow.filename === openNoteFilename) {
+    if (thisEditorWindow.filename === filename) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Tests whether the provided filename is open in an Editor window/split.
+ * Note: this is a newer name for the function noteOpenInEditor(), which is now deprecated.
+ * @author @jgclark
+ * @param {string} filename
+ * @returns {boolean}
+ */
+export function isNoteOpenInEditor(filename: string): boolean {
+  const allEditorWindows = NotePlan.editors
+  for (const thisEditorWindow of allEditorWindows) {
+    if (thisEditorWindow.filename === filename) {
       return true
     }
   }
@@ -665,7 +683,8 @@ export function getWindowFromId(windowId: string): TEditor | HTMLView | false {
       return thisWindow
     }
   }
-  logWarn('getWindowFromId', `Couldn't find window matching id '${windowId}'`)
+  logWarn('getWindowFromId', `Couldn't find window matching id '${windowId}', so will return false. Here's the list of open windows:`)
+  logWindowsList()
   return false
 }
 
@@ -834,7 +853,6 @@ export function getLiveWindowRectFromWin(win: Window): Rect | false {
  */
 export function applyRectToHTMLWindow(rect: Rect, customId?: string): void {
   const winToUse = customId ? getWindowFromCustomId(customId) : NotePlan.htmlWindows[0]
-  // logDebug('applyRectToHTMLWindow', `Trying to set Rect for HTML window '${customId ?? 'HTML[0]'}'`)
   if (winToUse) {
     winToUse.windowRect = rect
     logDebug('applyRectToHTMLWindow', `Set Rect for HTML window '${customId ?? 'HTML[0]'}' -> ${rectToString(winToUse.windowRect)}`)

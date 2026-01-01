@@ -1,0 +1,164 @@
+/* SimpleDialog - Themed floating dialog using CSS variables */
+
+.simple-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.simple-dialog-container {
+  background-color: var(--bg-main-color, #eff1f5);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  min-width: 400px;
+  max-width: 500px;
+  width: 500px; /* More square default size */
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.2s ease-out;
+  border: 1px solid var(--divider-color, #CDCFD0);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.simple-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--divider-color, #CDCFD0);
+  background-color: var(--bg-alt-color, #e6e9ef);
+  border-radius: 12px 12px 0 0;
+}
+
+.simple-dialog-title {
+  margin: 0;
+  font-size: 1.25rem; /* Slightly larger title */
+  font-weight: 600;
+  color: var(--h1-color, #5c5f77);
+}
+
+.simple-dialog-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--fg-main-color, #4c4f69);
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.simple-dialog-close:hover {
+  background-color: var(--bg-mid-color, #ebedf2);
+}
+
+.simple-dialog-close:active {
+  background-color: var(--divider-color, #CDCFD0);
+}
+
+.simple-dialog-content {
+  padding: 1.25rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.simple-dialog-message {
+  margin: 0;
+  color: var(--fg-main-color, #4c4f69);
+  line-height: 1.6;
+  font-size: 1.0625rem; /* Slightly larger text */
+}
+
+.simple-dialog-footer {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--divider-color, #CDCFD0);
+  background-color: var(--bg-alt-color, #e6e9ef);
+  border-radius: 0 0 12px 12px;
+}
+
+/* ButtonGroup styling - ensure buttons are styled correctly */
+.simple-dialog-footer .ui-button-group {
+  width: 100%;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.simple-dialog-footer .ui-button {
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  min-width: 100px;
+  background-color: var(--bg-apple-button-color, #fcfcfc);
+  color: var(--fg-main-color, #4c4f69);
+  border-color: var(--divider-color, #CDCFD0);
+}
+
+.simple-dialog-footer .ui-button:hover {
+  background-color: var(--bg-mid-color, #ebedf2);
+  border-color: var(--fg-main-color, #4c4f69);
+}
+
+.simple-dialog-footer .ui-button:active {
+  background-color: var(--divider-color, #CDCFD0);
+}
+
+.simple-dialog-footer .ui-button.default-button {
+  background-color: var(--tint-color, #dc8a78);
+  color: white;
+  border-color: var(--tint-color, #dc8a78);
+}
+
+.simple-dialog-footer .ui-button.default-button:hover {
+  background-color: var(--tint-color, #dc8a78);
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.simple-dialog-footer .ui-button.default-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
