@@ -16,7 +16,7 @@ import {
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
 } from './dashboardHelpers'
-import { getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
+import { getTodaySectionData, getTimeBlockSectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
 import { getOverdueSectionData } from './dataGenerationOverdue'
 import { getPrioritySectionData } from './dataGenerationPriority'
 import { getProjectSectionData } from './dataGenerationProjects'
@@ -84,8 +84,9 @@ export async function getSomeSectionsData(
 
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('INFO')) sections.push(...getInfoSectionData(config, useDemoData))
-    // v2: for Timeblocks, now done inside getTodaySectionData()
-    if (sectionCodesToGet.includes('DT') || sectionCodesToGet.includes('TB')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
+    // DT and TB sections are now generated separately but share paragraph data fetching
+    if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
+    if (sectionCodesToGet.includes('TB') && config.showTimeBlockSection) sections.push(...getTimeBlockSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DO') && config.showTomorrowSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('LW') && config.showLastWeekSection) sections.push(...getLastWeekSectionData(config, useDemoData, useEditorWherePossible))
