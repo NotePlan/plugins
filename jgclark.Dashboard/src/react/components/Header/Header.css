@@ -1,5 +1,5 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated 2025-11-14 for v2.3.0.b14 by @jgclark */
+/* Last updated 2026-01-01 for v2.4.0.b4 by @jgclark */
 /* TODO: SearchPanel transition is not working well yet. Not sure if that's because of this file or SearchPanel.css */
 
 /* Container for header and search panel */
@@ -24,11 +24,18 @@
 	align-items: center;
 	/* Padding around the header content -- more on the right to accommodate the scrollbar */
 	padding: 5px 1.0rem 4px 0.5rem;
+	border-top: solid 1px var(--divider-color);
 	border-bottom: solid 1px var(--divider-color);
 	background-color: var(--bg-sidebar-color);
 	/* Ensure the header uses the full width -- if contained width:Nvw set to less than 100 */
 	/* width: 100%; */
 	z-index: 10;
+}
+
+/* Ensure text, buttons and inputs in the header use the same font size */
+.header button,
+.header input {
+	font-size: 0.95rem;
 }
 
 /* :focus {

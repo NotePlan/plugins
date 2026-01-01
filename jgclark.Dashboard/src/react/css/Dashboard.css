@@ -109,7 +109,7 @@ dialog::backdrop {
 	/* align-self: flex-start; /* Doesn't seem to be needed */
 	border: 0px none;
 	box-shadow: none;
-	padding-top: 1px;
+	/* padding-top: 1px; */
 	padding-left: unset;
 	padding-right: unset;
 	background-color: unset;

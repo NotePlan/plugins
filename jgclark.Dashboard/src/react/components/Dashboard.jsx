@@ -308,6 +308,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const handleSectionButtonClick = useCallback((_button: TActionButton): void => {}, [])
 
   return (
+    <>
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
       {autoUpdateEnabled && (
         <IdleTimer idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000} onIdleTimeout={autoRefresh} />
@@ -336,8 +337,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       {pluginData?.logSettings?._logLevel === 'DEV' && (
         <DebugPanel isVisible={showDebugPanel} getContext={getContext} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />
       )}
-      <div id="tooltip-portal"></div>
-    </div>
+      </div>
+      {/* TEST: Trying to move Tooltip Portal outside Dashboard Container */}
+    <div id="tooltip-portal"></div>
+    </>
   )
 }
 

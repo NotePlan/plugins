@@ -1,0 +1,26 @@
+/* Last updated @jgclark 2026-01-01 */
+
+.tooltipMain {
+  position: fixed;
+  background-color: var(--bg-main-color);
+  color: var(--fg-main-color);
+  padding: 0.15rem 0.25rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--tint-color);
+  border-radius: 6px;
+  white-space: nowrap;
+  /* TEST: Hopefully not needed now that portal is at document.body level (outside Dashboard container) */
+  /* z-index: 1001; */
+}
+
+.tooltipArrow {
+  position: absolute;
+  left: 1px;
+  bottom: -10px;
+  content: "";
+  border-width: 10px 8px 0 8px;
+  border-style: solid;
+  border-color: var(--tint-color) transparent transparent transparent;
+  /* TEST: Hopefully not needed now that portal is at document.body level (outside Dashboard container) */
+  /* z-index: 1001; */
+}
