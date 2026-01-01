@@ -38,6 +38,7 @@ function getCalendarHTML(currentYear) {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
         <style>
           * {
             margin: 0;
@@ -68,7 +69,7 @@ function getCalendarHTML(currentYear) {
             display: flex;
             align-items: center;
       gap: 8px;
-      padding: 8px 16px;
+      padding: 1px 6px 1px 6px;
       margin-bottom: 0;
       border-bottom: 1px solid rgba(229, 229, 231, 0.8);
             flex-shrink: 0;
@@ -104,6 +105,7 @@ function getCalendarHTML(currentYear) {
       transition: all 0.15s;
       opacity: 1;
       padding: 0;
+      margin-bottom: 2px;
           }
           
           .year-button:hover {
@@ -138,31 +140,30 @@ function getCalendarHTML(currentYear) {
     }
     
     .settings-button {
-      background: #f5f5f7;
+      background: transparent;
       border: none;
       border-radius: 8px;
-      padding: 6px 12px;
+      padding: 4px 12px;
+      margin-bottom: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
       cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
+            font-size: 14px;
+            font-weight: 400;
             color: #1d1d1f;
       transition: background-color 0.15s;
       opacity: 1;
     }
     
     .settings-button:hover {
-      background: #e8e8ed;
+      background: #f5f5f7;
     }
     
     .settings-icon {
-      width: 14px;
-      height: 14px;
+      font-size: 14px;
       display: inline-block;
-      opacity: 0.7;
     }
     
     .settings-dropdown {
@@ -218,7 +219,7 @@ function getCalendarHTML(currentYear) {
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: #007AFF;
+            background: #FF8800;
             cursor: pointer;
             border: 2px solid #ffffff;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -242,7 +243,7 @@ function getCalendarHTML(currentYear) {
             width: 16px;
             height: 16px;
             cursor: pointer;
-            accent-color: #007AFF;
+            accent-color: #FF8800;
           }
           
     .settings-checkbox-label {
@@ -251,6 +252,36 @@ function getCalendarHTML(currentYear) {
             user-select: none;
             cursor: pointer;
           }
+          
+    .layout-button,
+    .first-day-button {
+      flex: 1;
+      padding: 6px 12px;
+      border: 1px solid #e5e5e7;
+      border-radius: 6px;
+      background: #ffffff;
+      font-size: 13px;
+      font-weight: 400;
+      color: #1d1d1f;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .layout-button:hover,
+    .first-day-button:hover {
+      background: #f5f5f7;
+      border-color: #d1d1d6;
+    }
+    
+    .layout-button.active,
+    .first-day-button.active {
+      background: #FF8800;
+      border-color: #FF8800;
+      color: #ffffff;
+    }
           
     /* Calendar filter dropdown */
           .calendar-filter {
@@ -261,13 +292,13 @@ function getCalendarHTML(currentYear) {
     }
     
     .calendar-filter-button {
-      min-width: 140px;
-      padding: 6px 28px 6px 12px;
+      padding: 4px 12px;
+      margin-bottom: 2px;
       border: none;
       border-radius: 8px;
-      background: #f5f5f7;
-            font-size: 13px;
-            font-weight: 500;
+      background: transparent;
+            font-size: 14px;
+            font-weight: 400;
             color: #1d1d1f;
             cursor: pointer;
             outline: none;
@@ -278,36 +309,17 @@ function getCalendarHTML(currentYear) {
       display: flex;
       align-items: center;
       gap: 6px;
+      white-space: nowrap;
     }
     
     .calendar-filter-icon {
-      width: 14px;
-      height: 14px;
+      font-size: 14px;
       display: inline-block;
-      opacity: 0.7;
       flex-shrink: 0;
           }
           
           .calendar-filter-button:hover {
-      background: #e8e8ed;
-          }
-          
-          .calendar-filter-button::after {
-            content: '';
-            position: absolute;
-      right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-      border-top: 5px solid #86868b;
-            transition: transform 0.2s;
-          }
-          
-          .calendar-filter-button.open::after {
-            transform: translateY(-50%) rotate(180deg);
+      background: #f5f5f7;
           }
           
           .calendar-filter-dropdown {
@@ -353,7 +365,7 @@ function getCalendarHTML(currentYear) {
             cursor: pointer;
             width: 16px;
             height: 16px;
-            accent-color: #007AFF;
+            accent-color: #FF8800;
           }
           
           .calendar-filter-item-label {
@@ -363,6 +375,22 @@ function getCalendarHTML(currentYear) {
             user-select: none;
           }
           
+          .calendar-filter-action-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.15s;
+            border-bottom: 1px solid #e5e5e7;
+            font-size: 13px;
+            font-weight: 500;
+            color: #FF8800;
+          }
+          
+          .calendar-filter-action-item:hover {
+            background-color: #f5f5f7;
+          }
+          
     /* ============================================
        Calendar Layout
        ============================================ */
@@ -370,7 +398,7 @@ function getCalendarHTML(currentYear) {
             overflow-x: auto;
             overflow-y: auto;
       padding: 0 0 20px 0;
-      height: calc(100vh - 48px);
+      height: calc(100vh - 38px);
             box-sizing: border-box;
       position: relative;
           }
@@ -453,12 +481,12 @@ function getCalendarHTML(currentYear) {
           }
           
     .day-header.today .day-number {
-      color: #007AFF;
+      color: #FF8800;
             font-weight: 600;
           }
           
     .day-header.today .day-name {
-      color: #007AFF;
+      color: #FF8800;
     }
     
     .day-header.empty {
@@ -479,6 +507,34 @@ function getCalendarHTML(currentYear) {
             min-width: 10px;
             width: 10px;
           }
+    
+    /* Weekday header row for Fixed Week layout */
+    .weekday-header-row {
+      display: grid;
+      /* grid-template-columns set via JavaScript */
+      border-bottom: 1px solid #e5e5e7;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.95);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+    }
+    
+    .weekday-header-spacer {
+      background: transparent;
+    }
+    
+    /* Weekday header for Fixed Week layout */
+    .weekday-header {
+      padding: 4px 2px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #1d1d1f;
+      background: #f5f5f7;
+      border-bottom: 1px solid #e5e5e7;
+    }
           
           .day-number {
       font-size: 12px;
@@ -628,17 +684,13 @@ function getCalendarHTML(currentYear) {
             
       .calendar-filter-button,
       .settings-button {
-        background: #2c2c2e;
+        background: transparent;
               color: #f5f5f7;
             }
             
       .calendar-filter-button:hover,
       .settings-button:hover {
-              background: #38383a;
-            }
-            
-            .calendar-filter-button::after {
-        border-top-color: #98989d;
+              background: #2c2c2e;
             }
             
       .calendar-filter-dropdown,
@@ -656,18 +708,47 @@ function getCalendarHTML(currentYear) {
               color: #f5f5f7;
             }
             
+            .calendar-filter-action-item {
+              border-bottom-color: #38383a;
+              color: #FF7700;
+            }
+            
+            .calendar-filter-action-item:hover {
+              background-color: #38383a;
+            }
+            
       .settings-slider {
         background: #38383a;
       }
       
       .settings-slider::-webkit-slider-thumb {
-        background: #0a84ff;
+        background: #FF7700;
         border-color: #2c2c2e;
       }
       
       .settings-checkbox-label {
               color: #f5f5f7;
             }
+            
+      .layout-button,
+      .first-day-button {
+        background: #2c2c2e;
+        border-color: #38383a;
+        color: #f5f5f7;
+      }
+      
+      .layout-button:hover,
+      .first-day-button:hover {
+        background: #38383a;
+        border-color: #48484a;
+      }
+      
+      .layout-button.active,
+      .first-day-button.active {
+        background: #FF7700;
+        border-color: #FF7700;
+        color: #ffffff;
+      }
             
             .month-row {
               border-bottom-color: #38383a;
@@ -692,11 +773,11 @@ function getCalendarHTML(currentYear) {
       }
       
       .day-header.today .day-number {
-        color: #0a84ff;
+        color: #FF7700;
       }
       
       .day-header.today .day-name {
-        color: #0a84ff;
+        color: #FF7700;
             }
             
             .day-number {
@@ -706,6 +787,17 @@ function getCalendarHTML(currentYear) {
             .day-name {
               color: #98989d;
             }
+            
+      .weekday-header-row {
+        background: rgba(28, 28, 30, 0.95);
+        border-bottom-color: #38383a;
+      }
+      
+      .weekday-header {
+        background: #2c2c2e;
+        border-bottom-color: #38383a;
+        color: #f5f5f7;
+      }
             
       .api-unavailable-title {
         color: #f5f5f7;
@@ -727,29 +819,41 @@ function getCalendarHTML(currentYear) {
     <div class="controls-right">
       <div class="calendar-filter">
         <button class="calendar-filter-button" id="calendarFilterButton" onclick="toggleCalendarDropdown(event)">
-          <svg class="calendar-filter-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="4" width="10" height="9" rx="1" stroke="currentColor" stroke-width="1.2" fill="none"/>
-            <path d="M5 2v3M11 2v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-            <path d="M3 7h10" stroke="currentColor" stroke-width="1.2"/>
-            <circle cx="6" cy="10" r="0.8" fill="currentColor"/>
-            <circle cx="8" cy="10" r="0.8" fill="currentColor"/>
-            <circle cx="10" cy="10" r="0.8" fill="currentColor"/>
-          </svg>
+          <i class="far fa-calendar calendar-filter-icon"></i>
           <span id="calendarFilterText">Loading...</span>
         </button>
         <div class="calendar-filter-dropdown" id="calendarFilterDropdown"></div>
           </div>
       <div class="settings-container">
         <button class="settings-button" id="settingsButton" onclick="toggleSettingsDropdown(event)" title="Display">
-          <svg class="settings-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2 4h12M2 8h12M2 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <circle cx="12" cy="4" r="1.5" fill="currentColor"/>
-            <circle cx="12" cy="8" r="1.5" fill="currentColor"/>
-            <circle cx="10" cy="12" r="1.5" fill="currentColor"/>
-          </svg>
+          <i class="far fa-sliders settings-icon"></i>
           <span>Display</span>
         </button>
         <div class="settings-dropdown" id="settingsDropdown">
+          <div class="settings-section">
+            <div class="settings-label">Layout</div>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <button class="layout-button" id="layoutDateGrid" data-layout="dateGrid">
+                <i class="far fa-th" style="margin-right: 4px;"></i>
+                Date Grid
+              </button>
+              <button class="layout-button" id="layoutFixedWeek" data-layout="fixedWeek">
+                <i class="far fa-calendar-week" style="margin-right: 4px;"></i>
+                Fixed Week
+              </button>
+            </div>
+          </div>
+          <div class="settings-section" id="firstDayOfWeekSection" style="display: none;">
+            <div class="settings-label">First Day of Week</div>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <button class="first-day-button" id="firstDaySunday" data-day="0">
+                Sunday
+              </button>
+              <button class="first-day-button" id="firstDayMonday" data-day="1">
+                Monday
+              </button>
+            </div>
+          </div>
           <div class="settings-section">
             <div class="settings-label">Cell Width</div>
             <div class="settings-row">
@@ -777,6 +881,12 @@ function getCalendarHTML(currentYear) {
               <span class="settings-checkbox-label">Obfuscate event text</span>
             </label>
           </div>
+          <div class="settings-section">
+            <label class="settings-checkbox-row">
+              <input type="checkbox" class="settings-checkbox" id="hideSingleDayEventsCheckbox">
+              <span class="settings-checkbox-label">Hide single-day events</span>
+            </label>
+          </div>
         </div>
             </div>
           </div>
@@ -799,6 +909,8 @@ function getCalendarHTML(currentYear) {
     let loadedYearRange = null;
     let calendarDropdownOpen = false;
     let settingsDropdownOpen = false;
+    let layoutMode = 'dateGrid'; // 'dateGrid' or 'fixedWeek'
+    let firstDayOfWeek = 0; // 0 = Sunday, 1 = Monday
     
     // ============================================
     // Dropdown Toggle Functions
@@ -1210,6 +1322,15 @@ function getCalendarHTML(currentYear) {
     // Calendar Filter Functions
     // ============================================
     
+    function updateToggleAllButton() {
+      const toggleAllItem = document.getElementById('toggleAllCalendars');
+      if (!toggleAllItem) return;
+      
+      const calendars = Array.from(calendarInfoMap.keys());
+      const allSelected = calendars.length > 0 && calendars.every(cal => selectedCalendars.has(cal));
+      toggleAllItem.textContent = allSelected ? 'Unselect All' : 'Select All';
+    }
+    
     async function populateCalendarFilter() {
       try {
         const calendars = await loadAvailableCalendars();
@@ -1250,6 +1371,52 @@ function getCalendarHTML(currentYear) {
               selectedCalendars = new Set(calendars.map(cal => cal.title));
             }
             
+            // Add toggle "Select All" / "Unselect All" action item at the top
+            const toggleAllItem = document.createElement('div');
+            toggleAllItem.className = 'calendar-filter-action-item';
+            toggleAllItem.id = 'toggleAllCalendars';
+            
+            // Set initial text content directly
+            const allSelected = calendars.length > 0 && calendars.every(cal => selectedCalendars.has(cal.title));
+            toggleAllItem.textContent = allSelected ? 'Unselect All' : 'Select All';
+            
+            toggleAllItem.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const allSelected = calendars.length > 0 && calendars.every(cal => selectedCalendars.has(cal.title));
+              
+              if (allSelected) {
+                // Unselect all calendars
+                selectedCalendars.clear();
+                const checkboxes = calendarFilterDropdown.querySelectorAll('.calendar-filter-checkbox');
+                checkboxes.forEach(checkbox => {
+                  checkbox.checked = false;
+                });
+              } else {
+                // Select all calendars
+                calendars.forEach(cal => {
+                  selectedCalendars.add(cal.title);
+                });
+                const checkboxes = calendarFilterDropdown.querySelectorAll('.calendar-filter-checkbox');
+                checkboxes.forEach(checkbox => {
+                  checkbox.checked = true;
+                });
+              }
+              
+              // Save and update display
+              const selectionArray = Array.from(selectedCalendars);
+              localStorage.setItem('calendarFilterSelection', JSON.stringify(selectionArray));
+              updateToggleAllButton();
+              updateCalendarFilterDisplay();
+              updateCalendarDisplay();
+            });
+            
+            // Append the toggle button first
+            calendarFilterDropdown.appendChild(toggleAllItem);
+            
+            // Initialize the button text after it's in the DOM
+            updateToggleAllButton();
+            
             calendars.forEach(calendar => {
               const item = document.createElement('div');
               item.className = 'calendar-filter-item';
@@ -1269,8 +1436,8 @@ function getCalendarHTML(currentYear) {
               label.className = 'calendar-filter-item-label';
           label.textContent = calendar.title;
               
-              item.appendChild(colorDot);
               item.appendChild(checkbox);
+              item.appendChild(colorDot);
               item.appendChild(label);
               
               item.addEventListener('click', (e) => {
@@ -1292,6 +1459,8 @@ function getCalendarHTML(currentYear) {
               calendarFilterDropdown.appendChild(item);
             });
             
+            // Ensure toggle button is properly initialized after all calendars are added
+            updateToggleAllButton();
             updateCalendarFilterDisplay();
       } catch (error) {
         console.error('Error populating calendar filter:', error);
@@ -1313,6 +1482,7 @@ function getCalendarHTML(currentYear) {
             localStorage.setItem('calendarFilterSelection', JSON.stringify(selectionArray));
             console.log('Saved calendar selection:', selectionArray);
             
+            updateToggleAllButton();
             updateCalendarFilterDisplay();
             updateCalendarDisplay();
           }
@@ -1329,7 +1499,7 @@ function getCalendarHTML(currentYear) {
             } else if (selectedCount === totalCount) {
         calendarFilterText.textContent = 'All calendars';
             } else {
-        calendarFilterText.textContent = \`\${selectedCount} of \${totalCount}\`;
+        calendarFilterText.textContent = \`\${selectedCount} of \${totalCount} calendars\`;
       }
     }
     
@@ -1352,15 +1522,37 @@ function getCalendarHTML(currentYear) {
     }
     
     function getFilteredEvents() {
+      // If no calendars are selected, show no events
+      if (selectedCalendars.size === 0) {
+        return [];
+      }
+      
+      const hideSingleDayEventsCheckbox = document.getElementById('hideSingleDayEventsCheckbox');
+      const hideSingleDayEvents = hideSingleDayEventsCheckbox?.checked || false;
+      
       return rawEvents.filter(event => {
-        if (selectedCalendars.size > 0 && !selectedCalendars.has(event.calendarTitle)) {
+        // Filter by selected calendars
+        if (!selectedCalendars.has(event.calendarTitle)) {
           return false;
         }
+        // Filter by date range
         const eventStart = new Date(event.startDate);
         const eventEnd = new Date(event.endDate);
         const yearStart = new Date(displayYear, 0, 1);
         const yearEnd = new Date(displayYear, 11, 31, 23, 59, 59);
-        return eventStart <= yearEnd && eventEnd >= yearStart;
+        if (!(eventStart <= yearEnd && eventEnd >= yearStart)) {
+          return false;
+        }
+        // Filter out single-day events if option is enabled
+        if (hideSingleDayEvents) {
+          const startDateOnly = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+          const endDateOnly = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate());
+          const isSingleDay = startDateOnly.getTime() === endDateOnly.getTime();
+          if (isSingleDay) {
+            return false;
+          }
+        }
+        return true;
       });
     }
     
@@ -1377,7 +1569,19 @@ function getCalendarHTML(currentYear) {
             'July', 'August', 'September', 'October', 'November', 'December'
           ];
       const dayNames = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+      // Reorder day names based on firstDayOfWeek
+      const orderedDayNames = firstDayOfWeek === 1 
+        ? ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
+        : ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
       
+      if (layoutMode === 'fixedWeek') {
+        renderFixedWeekLayout(container, currentWidth, monthNames, orderedDayNames, dayNames);
+      } else {
+        renderDateGridLayout(container, currentWidth, monthNames, dayNames);
+      }
+    }
+    
+    function renderDateGridLayout(container, currentWidth, monthNames, dayNames) {
       for (let month = 0; month < 12; month++) {
         const row = document.createElement('div');
         row.className = 'month-row';
@@ -1444,6 +1648,8 @@ function getCalendarHTML(currentYear) {
         const eventsLayer = document.createElement('div');
         eventsLayer.className = 'events-layer';
         eventsLayer.id = \`events-layer-\${month}\`;
+        // Explicitly set grid template for Date Grid (31 day columns)
+        eventsLayer.style.gridTemplateColumns = \`30px repeat(31, minmax(var(--cell-width), 1fr)) 10px\`;
         row.appendChild(eventsLayer);
         
         container.appendChild(row);
@@ -1451,6 +1657,147 @@ function getCalendarHTML(currentYear) {
       
       // Update min-width for horizontal scroll (label + 31 days + spacer)
       const minWidth = 30 + (31 * currentWidth) + 10;
+      container.style.minWidth = minWidth + 'px';
+    }
+    
+    function renderFixedWeekLayout(container, currentWidth, monthNames, orderedDayNames, dayNames) {
+      // Fixed Week layout: 37 columns (5 weeks + 2 days) with repeating weekday headers
+      // This accommodates any month (max 31 days starting on any weekday)
+      const totalColumns = 37; // 5 weeks * 7 + 2 = 37
+      
+      // Create single weekday header row at the top
+      const headerRow = document.createElement('div');
+      headerRow.className = 'weekday-header-row';
+      headerRow.style.setProperty('--cell-width', currentWidth + 'px');
+      headerRow.style.gridTemplateColumns = \`30px repeat(\${totalColumns}, minmax(var(--cell-width), 1fr)) 10px\`;
+      headerRow.style.display = 'grid';
+      headerRow.style.borderBottom = '1px solid #e5e5e7';
+      
+      // Empty cell for month label column
+      const labelSpacer = document.createElement('div');
+      labelSpacer.className = 'weekday-header-spacer';
+      headerRow.appendChild(labelSpacer);
+      
+      // Repeating weekday headers (37 columns)
+      for (let col = 0; col < totalColumns; col++) {
+        const weekdayIndex = col % 7;
+        const weekdayHeader = document.createElement('div');
+        weekdayHeader.className = 'weekday-header';
+        weekdayHeader.style.gridColumn = col + 2; // +1 for label, +1 for 1-indexed
+        weekdayHeader.textContent = orderedDayNames[weekdayIndex];
+        headerRow.appendChild(weekdayHeader);
+      }
+      
+      // Spacer at the end
+      const endSpacer = document.createElement('div');
+      endSpacer.className = 'weekday-header-spacer';
+      endSpacer.style.gridColumn = totalColumns + 2;
+      headerRow.appendChild(endSpacer);
+      
+      container.appendChild(headerRow);
+      
+      // Render month rows
+      for (let month = 0; month < 12; month++) {
+        const row = document.createElement('div');
+        row.className = 'month-row';
+        row.dataset.month = month;
+        row.style.setProperty('--cell-width', currentWidth + 'px');
+        // Grid: label (30px) + 37 day columns + spacer (10px)
+        row.style.gridTemplateColumns = \`30px repeat(\${totalColumns}, minmax(var(--cell-width), 1fr)) 10px\`;
+        
+        // Month label
+        const monthLabel = document.createElement('div');
+        monthLabel.className = 'month-label';
+        monthLabel.textContent = monthNames[month];
+        row.appendChild(monthLabel);
+        
+        // Find the starting weekday of day 1 of this month
+        const firstDayOfMonth = new Date(displayYear, month, 1);
+        let startWeekday = firstDayOfMonth.getDay();
+        // Adjust for firstDayOfWeek setting
+        if (firstDayOfWeek === 1) {
+          startWeekday = (startWeekday + 6) % 7; // Convert Sunday=0 to Monday=0
+        }
+        
+        const daysInMonth = getDaysInMonth(displayYear, month);
+        
+        // Add empty cells before day 1
+        for (let emptyCol = 0; emptyCol < startWeekday; emptyCol++) {
+          const emptyCell = document.createElement('div');
+          emptyCell.className = 'day-header empty';
+          emptyCell.style.gridColumn = emptyCol + 2; // +1 for label, +1 for 1-indexed
+          emptyCell.style.gridRow = 1;
+          row.appendChild(emptyCell);
+        }
+        
+        // Add day cells starting at the correct column
+        for (let day = 1; day <= daysInMonth; day++) {
+          const date = new Date(displayYear, month, day);
+          const col = startWeekday + day - 1; // Column position (0-indexed)
+          
+          const dayCell = document.createElement('div');
+          dayCell.className = 'day-header';
+          dayCell.style.gridColumn = col + 2; // +1 for label, +1 for 1-indexed
+          dayCell.style.gridRow = 1;
+          
+          const originalDayOfWeek = date.getDay();
+          
+          if (originalDayOfWeek === 0 || originalDayOfWeek === 6) {
+            dayCell.classList.add('weekend');
+          }
+          
+          if (isToday(date)) {
+            dayCell.classList.add('today');
+          }
+          
+          const dayNumber = document.createElement('span');
+          dayNumber.className = 'day-number';
+          dayNumber.textContent = day;
+          
+          const dayName = document.createElement('span');
+          dayName.className = 'day-name';
+          dayName.textContent = dayNames[originalDayOfWeek];
+          
+          dayCell.appendChild(dayNumber);
+          dayCell.appendChild(dayName);
+          
+          dayCell.addEventListener('click', (event) => {
+            const inSplitView = event.metaKey || event.altKey;
+            openNote(date, inSplitView);
+          });
+          
+          row.appendChild(dayCell);
+        }
+        
+        // Add empty cells after the last day (fill remaining columns)
+        const lastColumn = startWeekday + daysInMonth;
+        for (let emptyCol = lastColumn; emptyCol < totalColumns; emptyCol++) {
+          const emptyCell = document.createElement('div');
+          emptyCell.className = 'day-header empty';
+          emptyCell.style.gridColumn = emptyCol + 2;
+          emptyCell.style.gridRow = 1;
+          row.appendChild(emptyCell);
+        }
+        
+        // Spacer cell
+        const spacerCell = document.createElement('div');
+        spacerCell.className = 'day-header spacer';
+        spacerCell.style.gridColumn = totalColumns + 2;
+        spacerCell.style.gridRow = 1;
+        row.appendChild(spacerCell);
+        
+        // Events layer
+        const eventsLayer = document.createElement('div');
+        eventsLayer.className = 'events-layer';
+        eventsLayer.id = \`events-layer-\${month}\`;
+        eventsLayer.style.gridTemplateColumns = \`30px repeat(\${totalColumns}, minmax(var(--cell-width), 1fr)) 10px\`;
+        row.appendChild(eventsLayer);
+        
+        container.appendChild(row);
+      }
+      
+      // Update min-width for horizontal scroll
+      const minWidth = 30 + (totalColumns * currentWidth) + 10;
       container.style.minWidth = minWidth + 'px';
     }
     
@@ -1486,6 +1833,17 @@ function getCalendarHTML(currentYear) {
           monthRow.style.height = fixedMonthHeight + 'px'; // Fixed height, not just min
         }
         
+        // For Fixed Week layout, calculate the weekday offset for this month
+        let weekdayOffset = 0;
+        if (layoutMode === 'fixedWeek') {
+          const firstDayOfMonth = new Date(displayYear, month, 1);
+          weekdayOffset = firstDayOfMonth.getDay();
+          // Adjust for firstDayOfWeek setting
+          if (firstDayOfWeek === 1) {
+            weekdayOffset = (weekdayOffset + 6) % 7;
+          }
+        }
+        
         for (const segment of segments) {
           // Filter out events in lanes beyond the user's maximum
           // Lane is 0-indexed, so if max is 4, we show lanes 0, 1, 2, 3 (4 total)
@@ -1503,9 +1861,21 @@ function getCalendarHTML(currentYear) {
             segmentEl.classList.add('continues-right');
           }
           
-          // CSS Grid positioning: +2 because column 1 is label, and grid is 1-indexed
-          // endDay + 2 because grid-column-end is exclusive
-          segmentEl.style.gridColumn = \`\${segment.startDay + 1} / \${segment.endDay + 2}\`;
+          // CSS Grid positioning
+          // For Date Grid: day 1 = column 2 (after label column)
+          // For Fixed Week: day 1 = column (weekdayOffset + 2) because of the offset
+          let startCol, endCol;
+          if (layoutMode === 'fixedWeek') {
+            // In Fixed Week, columns are shifted by the weekday offset
+            startCol = segment.startDay + weekdayOffset + 1; // +1 for label column
+            endCol = segment.endDay + weekdayOffset + 2; // +2 because grid-column-end is exclusive
+          } else {
+            // Date Grid: simple day-based positioning
+            startCol = segment.startDay + 1; // +1 for label column
+            endCol = segment.endDay + 2; // +2 because grid-column-end is exclusive
+          }
+          
+          segmentEl.style.gridColumn = \`\${startCol} / \${endCol}\`;
           segmentEl.style.gridRow = segment.lane + 1; // 1-indexed
           
           // Colors
@@ -1582,6 +1952,38 @@ function getCalendarHTML(currentYear) {
     }
     
     // ============================================
+    // Layout Helper Functions
+    // ============================================
+    
+    function updateLayoutButtons() {
+      const dateGridBtn = document.getElementById('layoutDateGrid');
+      const fixedWeekBtn = document.getElementById('layoutFixedWeek');
+      const firstDaySection = document.getElementById('firstDayOfWeekSection');
+      
+      if (dateGridBtn) {
+        dateGridBtn.classList.toggle('active', layoutMode === 'dateGrid');
+      }
+      if (fixedWeekBtn) {
+        fixedWeekBtn.classList.toggle('active', layoutMode === 'fixedWeek');
+      }
+      if (firstDaySection) {
+        firstDaySection.style.display = layoutMode === 'fixedWeek' ? 'block' : 'none';
+      }
+    }
+    
+    function updateFirstDayButtons() {
+      const sundayBtn = document.getElementById('firstDaySunday');
+      const mondayBtn = document.getElementById('firstDayMonday');
+      
+      if (sundayBtn) {
+        sundayBtn.classList.toggle('active', firstDayOfWeek === 0);
+      }
+      if (mondayBtn) {
+        mondayBtn.classList.toggle('active', firstDayOfWeek === 1);
+      }
+    }
+    
+    // ============================================
     // Initialization
     // ============================================
     
@@ -1615,6 +2017,60 @@ function getCalendarHTML(currentYear) {
       const savedObfuscate = localStorage.getItem('calendarObfuscateText');
       obfuscateCheckbox.checked = savedObfuscate === 'true';
       
+      const hideSingleDayEventsCheckbox = document.getElementById('hideSingleDayEventsCheckbox');
+      const savedHideSingleDay = localStorage.getItem('calendarHideSingleDayEvents');
+      // Default: unchecked (show single-day events by default)
+      hideSingleDayEventsCheckbox.checked = savedHideSingleDay === 'true';
+      
+      // Load layout mode and first day of week
+      const savedLayoutMode = localStorage.getItem('calendarLayoutMode');
+      if (savedLayoutMode === 'fixedWeek' || savedLayoutMode === 'dateGrid') {
+        layoutMode = savedLayoutMode;
+      }
+      
+      const savedFirstDay = localStorage.getItem('calendarFirstDayOfWeek');
+      if (savedFirstDay === '0' || savedFirstDay === '1') {
+        firstDayOfWeek = parseInt(savedFirstDay);
+      }
+      
+      // Update layout button states
+      updateLayoutButtons();
+      updateFirstDayButtons();
+      
+      // Event listeners for layout buttons
+      document.getElementById('layoutDateGrid').addEventListener('click', () => {
+        layoutMode = 'dateGrid';
+        localStorage.setItem('calendarLayoutMode', layoutMode);
+        updateLayoutButtons();
+        renderCalendar();
+        updateCalendarDisplay();
+      });
+      
+      document.getElementById('layoutFixedWeek').addEventListener('click', () => {
+        layoutMode = 'fixedWeek';
+        localStorage.setItem('calendarLayoutMode', layoutMode);
+        updateLayoutButtons();
+        renderCalendar();
+        updateCalendarDisplay();
+      });
+      
+      // Event listeners for first day of week buttons
+      document.getElementById('firstDaySunday').addEventListener('click', () => {
+        firstDayOfWeek = 0;
+        localStorage.setItem('calendarFirstDayOfWeek', firstDayOfWeek.toString());
+        updateFirstDayButtons();
+        renderCalendar();
+        updateCalendarDisplay();
+      });
+      
+      document.getElementById('firstDayMonday').addEventListener('click', () => {
+        firstDayOfWeek = 1;
+        localStorage.setItem('calendarFirstDayOfWeek', firstDayOfWeek.toString());
+        updateFirstDayButtons();
+        renderCalendar();
+        updateCalendarDisplay();
+      });
+      
       // Event listeners
       cellWidthSlider.addEventListener('input', (e) => {
         const width = parseInt(e.target.value);
@@ -1644,6 +2100,11 @@ function getCalendarHTML(currentYear) {
       
       obfuscateCheckbox.addEventListener('change', (e) => {
         localStorage.setItem('calendarObfuscateText', e.target.checked.toString());
+        updateCalendarDisplay();
+      });
+      
+      hideSingleDayEventsCheckbox.addEventListener('change', (e) => {
+        localStorage.setItem('calendarHideSingleDayEvents', e.target.checked.toString());
         updateCalendarDisplay();
       });
       
