@@ -14,7 +14,7 @@
     height: 90vh;
     max-height: 90vh;
     border: none;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     /* z-index: 1000; */
     opacity: 1;
     border-radius: 8px;
@@ -104,7 +104,7 @@
 
     /* Hover effect for buttons */
     .PCButton:hover {
-        box-shadow: inset 0 0 0 50px rgba(0, 0, 0, 0.15);
+        box-shadow: inset 0 0 0 50px rgba(0 0 0 / 0.15);
     }
 
     /* Specific button styling */
@@ -171,7 +171,7 @@
         width: 1.0rem;
         height: 1.0rem;
         border-radius: 50%;
-        box-shadow: 1px 0px 1px rgba(0, 0, 0, 0.3);
+        box-shadow: 1px 0px 1px rgba(0 0 0 / 0.3);
         margin-right: 1.0rem;
     }
 
@@ -182,7 +182,7 @@
 
     input.apple-switch:checked:after {
         left: 0.8rem;
-        box-shadow: -2px 4px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: -2px 4px 3px rgba(0 0 0 / 0.1);
     }
 
     /* Style for switch-line */
@@ -385,7 +385,7 @@
         background-color: var(--tint-color);
         color: var(--bg-main-color);
         cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 5px rgba(0 0 0 / 0.1);
         transition: background-color 0.3s, box-shadow 0.3s;
         height: 30px;
         /* Set height to 75% of the container height */
@@ -405,7 +405,7 @@
     /* Hover style for enabled input-box-save */
     .input-box-save:not(:disabled):hover {
         background-color: #0056b3;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 10px rgba(0 0 0 / 0.2);
     }
 
     /* Style for dropdown-container */
@@ -540,7 +540,7 @@
     .ui-button:hover:not(.default-button) {
         /* background-color: var(--bg-alt-color); */
         /* color: var(--fg-alt-color); */
-        /* box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); */
+        /* box-shadow: 0 2px 5px rgba(0 0 0 / 0.1); */
         filter: brightness(95%);
     }
     .default-button {
@@ -553,7 +553,7 @@
         /* color: var(--bg-main-color); */
         /* background-color: hsl(from var(--tint-color) h s calc(l*0.8)); */
         /* Add shadow for emphasis */
-        /* box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);  */
+        /* box-shadow: 0 2px 5px rgba(0 0 0 / 0.1);  */
         filter: brightness(105%);
     }
 
@@ -582,7 +582,7 @@
     border: 1px solid #ddd;
     border-radius: 4px;
     background-color: var(--bg-main-color);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(0 0 0 / 0.1);
     z-index: 5;
 }
 

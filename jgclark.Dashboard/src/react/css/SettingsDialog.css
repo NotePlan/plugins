@@ -13,7 +13,7 @@
     width: 80%;
     /* max-width: 600px; */
     border: none;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     /* z-index: 1000; */
     opacity: 1;
     transition: opacity 0.2s ease-out;
@@ -79,7 +79,7 @@
     /* Darken Cancel button slightly on Hover */
     .cancel-button:hover {
         /* following is a bit of a hack from https://stackoverflow.com/a/31005080/3238281 */
-        box-shadow: inset 0 0 0 50px rgba(0, 0, 0, 0.15);
+        box-shadow: inset 0 0 0 50px rgba(0 0 0 / 0.15);
     }
 
     /* Style for the inactive Save & Close button */
@@ -100,7 +100,7 @@
     /* Darken Save & Close button slightly on Hover */
     .save-button:hover {
         /* following is a bit of a hack from https://stackoverflow.com/a/31005080/3238281 */
-        box-shadow: inset 0 0 0 50px rgba(0, 0, 0, 0.15);
+        box-shadow: inset 0 0 0 50px rgba(0 0 0 / 0.15);
     }
 
     /* Style for switch-line */
@@ -210,7 +210,7 @@
         background-color: var(--tint-color);
         color: var(--bg-main-color);
         cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 5px rgba(0 0 0 / 0.1);
         transition: background-color 0.3s, box-shadow 0.3s;
         height: 30px;
         /* Set height to 75% of the container height */
@@ -230,7 +230,7 @@
     /* Hover style for enabled input-box-save */
     .input-box-save:not(:disabled):hover {
         background-color: #0056b3;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 10px rgba(0 0 0 / 0.2);
     }
 
     /* Style for combobox-container */
@@ -298,7 +298,7 @@
         border: 1px solid #ddd;
         border-radius: 4px;
         background-color: var(--bg-main-color);
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 5px rgba(0 0 0 / 0.1);
         z-index: 5;
     }
 

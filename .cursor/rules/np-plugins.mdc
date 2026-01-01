@@ -1,15 +1,6 @@
-# NOTEPLAN PLUGINS DEVELOPMENT GUIDE
-
-## Build/Test Commands
-- Build plugin: `npc plugin:dev <plugin-id> -nc`
-- Build react runtime: `node ./<plugin-id>/src/react/support/performRollup.node.js`
-- Lint code: `npm run lint` or fix issues with `npm run lint-fix`
-- Type check: `npm run typecheck`
-- Run all tests: `npm run test`
-- Run single test: `npx jest path/to/file.test.js -t "test name"`
-- Watch tests: `npm run test:watch`
-- Development mode: `npm run dev`
-
+---
+alwaysApply: true
+---
 ## Code Style Guidelines
 - Use Flow for static typing
 - No semicolons (enforced by ESLint/Prettier)
@@ -22,9 +13,10 @@
 - Proper error handling with try/catch blocks
 - Follow import order: external libs -> internal libs -> local files
 - Keep code DRY and modular with clear function responsibilities
-- Use JSDoc comments for public functions
+- Add JSDoc comments for all functions
 - Always research the `helpers/` folder before writing new code
 - Prefer writing explicit functions over constant declarations
+- When moving code, keep existing comments and commented-out code
 
 ## Common Helper Functions
 The most frequently used functions in the codebase are:
