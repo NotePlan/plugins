@@ -468,7 +468,8 @@ function getCalendarHTML(currentYear) {
       min-height: 24px;
     }
     
-    .day-header:hover {
+    .day-header:hover,
+    .day-header.hovered {
             background-color: #f5f5f7;
           }
           
@@ -652,6 +653,259 @@ function getCalendarHTML(currentYear) {
     }
     
     /* ============================================
+       Event Modal Dialog
+       ============================================ */
+    .event-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+    }
+    
+    .event-modal-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .event-modal {
+      background: #ffffff;
+      border-radius: 12px;
+      width: 340px;
+      max-width: 90vw;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      transform: scale(0.95);
+      transition: transform 0.2s;
+    }
+    
+    .event-modal-overlay.visible .event-modal {
+      transform: scale(1);
+    }
+    
+    .event-modal-header {
+      padding: 16px 20px 12px 20px;
+      border-bottom: 1px solid #e5e5e7;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .event-modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1d1d1f;
+    }
+    
+    .event-modal-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #86868b;
+      cursor: pointer;
+      padding: 4px 8px;
+      line-height: 1;
+      border-radius: 4px;
+    }
+    
+    .event-modal-close:hover {
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+    
+    .event-modal-body {
+      padding: 16px 20px;
+    }
+    
+    .event-form-group {
+      margin-bottom: 16px;
+    }
+    
+    .event-form-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    .event-form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #86868b;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    
+    .event-form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e5e5e7;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #1d1d1f;
+      background: #ffffff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    
+    .event-form-input:focus {
+      outline: none;
+      border-color: #FF8800;
+      box-shadow: 0 0 0 3px rgba(255, 136, 0, 0.15);
+    }
+    
+    .event-form-input::placeholder {
+      color: #c7c7cc;
+    }
+    
+    .event-form-row {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .event-form-row .event-form-group {
+      flex: 1;
+    }
+    
+    .event-form-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e5e5e7;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #1d1d1f;
+      background: #ffffff;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2386868b' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    
+    .event-form-select:focus {
+      outline: none;
+      border-color: #FF8800;
+      box-shadow: 0 0 0 3px rgba(255, 136, 0, 0.15);
+    }
+    
+    .event-modal-footer {
+      padding: 12px 20px 16px 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      border-top: 1px solid #e5e5e7;
+    }
+    
+    .event-modal-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.15s, opacity 0.15s;
+    }
+    
+    .event-modal-btn-cancel {
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+    
+    .event-modal-btn-cancel:hover {
+      background: #e8e8ed;
+    }
+    
+    .event-modal-btn-delete {
+      background: #ff3b30;
+      color: #ffffff;
+    }
+    
+    .event-modal-btn-delete:hover {
+      background: #e0342b;
+    }
+    
+    .event-modal-btn-save {
+      background: #FF8800;
+      color: #ffffff;
+    }
+    
+    .event-modal-btn-save:hover {
+      background: #e67a00;
+    }
+    
+    .event-modal-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Dummy event for drag creation */
+    .event-segment.dummy-event {
+      background-color: rgba(0, 122, 255, 0.4) !important;
+      color: #ffffff !important;
+      pointer-events: none;
+      animation: pulse-dummy 1s ease-in-out infinite;
+    }
+    
+    @keyframes pulse-dummy {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+    
+    /* Calendar color indicator in select */
+    .calendar-option-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .calendar-color-dot-option {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    /* Calendar source group headers */
+    .calendar-source-header {
+      padding: 8px 12px 4px 12px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #86868b;
+      background: #f5f5f7;
+      border-bottom: 1px solid #e5e5e7;
+      margin-top: 4px;
+    }
+    
+    .calendar-source-header:first-of-type {
+      margin-top: 0;
+    }
+    
+    /* Optgroup styling for select dropdown */
+    .event-form-select optgroup {
+      font-weight: 600;
+      font-style: normal;
+      color: #86868b;
+      background: #f5f5f7;
+    }
+    
+    .event-form-select option {
+      font-weight: 400;
+      color: #1d1d1f;
+      background: #ffffff;
+      padding: 4px 8px;
+    }
+    
+    /* ============================================
        Dark Mode Support
        ============================================ */
           @media (prefers-color-scheme: dark) {
@@ -760,7 +1014,8 @@ function getCalendarHTML(currentYear) {
         border-right-color: #38383a;
             }
             
-      .day-header:hover {
+      .day-header:hover,
+      .day-header.hovered {
               background-color: #2c2c2e;
             }
             
@@ -806,6 +1061,92 @@ function getCalendarHTML(currentYear) {
       .api-unavailable-message {
         color: #98989d;
             }
+            
+      /* Event Modal - Dark Mode */
+      .event-modal-overlay {
+        background: rgba(0, 0, 0, 0.6);
+      }
+      
+      .event-modal {
+        background: #2c2c2e;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      }
+      
+      .event-modal-header {
+        border-bottom-color: #38383a;
+      }
+      
+      .event-modal-title {
+        color: #f5f5f7;
+      }
+      
+      .event-modal-close {
+        color: #98989d;
+      }
+      
+      .event-modal-close:hover {
+        background: #38383a;
+        color: #f5f5f7;
+      }
+      
+      .event-form-label {
+        color: #98989d;
+      }
+      
+      .event-form-input,
+      .event-form-select {
+        background: #1c1c1e;
+        border-color: #38383a;
+        color: #f5f5f7;
+      }
+      
+      .event-form-input:focus,
+      .event-form-select:focus {
+        border-color: #FF7700;
+        box-shadow: 0 0 0 3px rgba(255, 119, 0, 0.2);
+      }
+      
+      .event-form-input::placeholder {
+        color: #636366;
+      }
+      
+      .event-modal-footer {
+        border-top-color: #38383a;
+      }
+      
+      .event-modal-btn-cancel {
+        background: #38383a;
+        color: #f5f5f7;
+      }
+      
+      .event-modal-btn-cancel:hover {
+        background: #48484a;
+      }
+      
+      .event-modal-btn-save {
+        background: #FF7700;
+      }
+      
+      .event-modal-btn-save:hover {
+        background: #e66a00;
+      }
+      
+      /* Calendar source headers - Dark Mode */
+      .calendar-source-header {
+        background: #2c2c2e;
+        border-bottom-color: #38383a;
+        color: #98989d;
+      }
+      
+      .event-form-select optgroup {
+        background: #2c2c2e;
+        color: #98989d;
+      }
+      
+      .event-form-select option {
+        background: #1c1c1e;
+        color: #f5f5f7;
+      }
           }
         </style>
       </head>
@@ -897,6 +1238,42 @@ function getCalendarHTML(currentYear) {
     </div>
         </div>
         
+        <!-- Event Creation/Editing Modal -->
+        <div class="event-modal-overlay" id="eventModalOverlay">
+          <div class="event-modal">
+            <div class="event-modal-header">
+              <span class="event-modal-title" id="eventModalTitle">New Event</span>
+              <button class="event-modal-close" id="eventModalClose">&times;</button>
+            </div>
+            <div class="event-modal-body">
+              <div class="event-form-group">
+                <label class="event-form-label" for="eventTitleInput">Title</label>
+                <input type="text" class="event-form-input" id="eventTitleInput" placeholder="Event title" autocomplete="off">
+              </div>
+              <div class="event-form-row">
+                <div class="event-form-group">
+                  <label class="event-form-label" for="eventStartDate">Start Date</label>
+                  <input type="date" class="event-form-input" id="eventStartDate">
+                </div>
+                <div class="event-form-group">
+                  <label class="event-form-label" for="eventEndDate">End Date</label>
+                  <input type="date" class="event-form-input" id="eventEndDate">
+                </div>
+              </div>
+              <div class="event-form-group">
+                <label class="event-form-label" for="eventCalendarSelect">Calendar</label>
+                <select class="event-form-select" id="eventCalendarSelect"></select>
+              </div>
+            </div>
+            <div class="event-modal-footer">
+              <button class="event-modal-btn event-modal-btn-delete" id="eventDeleteBtn" style="display: none;">Delete</button>
+              <div style="flex: 1;"></div>
+              <button class="event-modal-btn event-modal-btn-cancel" id="eventCancelBtn">Cancel</button>
+              <button class="event-modal-btn event-modal-btn-save" id="eventSaveBtn">Save</button>
+            </div>
+          </div>
+        </div>
+        
         <script>
     // ============================================
     // State Management
@@ -911,6 +1288,15 @@ function getCalendarHTML(currentYear) {
     let settingsDropdownOpen = false;
     let layoutMode = 'dateGrid'; // 'dateGrid' or 'fixedWeek'
     let firstDayOfWeek = 0; // 0 = Sunday, 1 = Monday
+    
+    // Event creation/editing state
+    let isDragging = false;
+    let dragStartDate = null;
+    let dragEndDate = null;
+    let dragStartMonth = null;
+    let dummyEventElement = null;
+    let editingEvent = null; // null for new event, CalendarItem for editing
+    let writableCalendars = []; // Calendars user can write to
     
     // ============================================
     // Dropdown Toggle Functions
@@ -1093,6 +1479,7 @@ function getCalendarHTML(currentYear) {
         
         return {
           id: idx,
+          eventId: event.id, // Original event ID from calendar API
           title: event.title,
           startDate: startDate,
           endDate: endDate,
@@ -1171,7 +1558,7 @@ function getCalendarHTML(currentYear) {
           const endDayOfMonth = segEnd.getDate(); // 1-31
           
           const segment = {
-            eventId: event.id,
+            eventId: event.eventId, // Original calendar API event ID
             title: event.title,
             color: event.color,
             lane: event.lane,
@@ -1181,7 +1568,11 @@ function getCalendarHTML(currentYear) {
             continuesLeft: segStart > event.displayStart,
             continuesRight: segEnd < event.displayEnd,
             // Only show title on first segment of each event
-            showTitle: month === startMonth
+            showTitle: month === startMonth,
+            // Original event data for editing
+            originalStartDate: event.startDate,
+            originalEndDate: event.endDate,
+            calendarTitle: event.calendarTitle
           };
           
           segmentsByMonth[month].push(segment);
@@ -1232,6 +1623,60 @@ function getCalendarHTML(currentYear) {
     let loadingMonths = new Set();
     let loadedMonths = new Set();
     
+    // Force reload events for specific months (used after adding/updating/deleting events)
+    async function forceReloadEventsForMonths(startDate, endDate) {
+      const startMonth = startDate.getMonth();
+      const startYear = startDate.getFullYear();
+      const endMonth = endDate.getMonth();
+      const endYear = endDate.getFullYear();
+      
+      console.log('Force reloading events from ' + startYear + '-' + startMonth + ' to ' + endYear + '-' + endMonth);
+      
+      // Clear cache for affected months
+      let currentYear = startYear;
+      let currentMonth = startMonth;
+      
+      while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
+        const monthKey = currentYear + '-' + currentMonth;
+        loadedMonths.delete(monthKey);
+        loadingMonths.delete(monthKey);
+        
+        // Also remove events from rawEvents for this month so they can be re-added
+        rawEvents = rawEvents.filter(e => {
+          const eventDate = new Date(e.startDate);
+          return !(eventDate.getFullYear() === currentYear && eventDate.getMonth() === currentMonth);
+        });
+        
+        currentMonth++;
+        if (currentMonth > 11) {
+          currentMonth = 0;
+          currentYear++;
+        }
+      }
+      
+      // Reload affected months
+      currentYear = startYear;
+      currentMonth = startMonth;
+      
+      while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
+        const events = await loadEventsForMonth(currentYear, currentMonth);
+        if (events.length > 0) {
+          const existingIds = new Set(rawEvents.map(e => e.title + '-' + e.startDate));
+          const newEvents = events.filter(e => !existingIds.has(e.title + '-' + e.startDate));
+          rawEvents = [...rawEvents, ...newEvents];
+        }
+        
+        currentMonth++;
+        if (currentMonth > 11) {
+          currentMonth = 0;
+          currentYear++;
+        }
+      }
+      
+      // Update display
+      updateCalendarDisplay();
+    }
+    
     async function loadEventsForMonth(year, month) {
       const monthKey = \`\${year}-\${month}\`;
       if (loadingMonths.has(monthKey) || loadedMonths.has(monthKey)) {
@@ -1253,11 +1698,17 @@ function getCalendarHTML(currentYear) {
               const eventDate = new Date(event.date);
               const eventEndDate = event.endDate ? new Date(event.endDate) : eventDate;
               eventsList.push({
+                id: event.id, // Store the event ID for editing/deleting
                 title: event.title || "Event",
                 startDate: eventDate.toISOString(),
                 endDate: eventEndDate.toISOString(),
                 calendarTitle: event.calendar || "",
                 color: event.color || "#5A9FD4",
+                isAllDay: event.isAllDay || false,
+                isRecurring: event.isRecurring || false,
+                notes: event.notes || "",
+                url: event.url || "",
+                availability: event.availability || 0
               });
             }
           });
@@ -1417,46 +1868,73 @@ function getCalendarHTML(currentYear) {
             // Initialize the button text after it's in the DOM
             updateToggleAllButton();
             
+            // Group calendars by source
+            const calendarsBySource = {};
             calendars.forEach(calendar => {
-              const item = document.createElement('div');
-              item.className = 'calendar-filter-item';
+              const source = calendar.source || 'Other';
+              if (!calendarsBySource[source]) {
+                calendarsBySource[source] = [];
+              }
+              calendarsBySource[source].push(calendar);
+            });
+            
+            // Sort sources alphabetically, but put "iCloud" first if present
+            const sortedSources = Object.keys(calendarsBySource).sort((a, b) => {
+              if (a === 'iCloud') return -1;
+              if (b === 'iCloud') return 1;
+              return a.localeCompare(b);
+            });
+            
+            // Render calendars grouped by source
+            sortedSources.forEach(source => {
+              // Add source header
+              const sourceHeader = document.createElement('div');
+              sourceHeader.className = 'calendar-source-header';
+              sourceHeader.textContent = source;
+              calendarFilterDropdown.appendChild(sourceHeader);
               
-              const colorDot = document.createElement('div');
-              colorDot.className = 'calendar-filter-color-dot';
-          colorDot.style.backgroundColor = calendar.color || "#5A9FD4";
-              
-              const checkbox = document.createElement('input');
-              checkbox.type = 'checkbox';
-              checkbox.className = 'calendar-filter-checkbox';
-          checkbox.value = calendar.title;
-          checkbox.checked = selectedCalendars.has(calendar.title);
-              checkbox.addEventListener('change', handleCalendarFilterChange);
-              
-              const label = document.createElement('span');
-              label.className = 'calendar-filter-item-label';
-          label.textContent = calendar.title;
-              
-              item.appendChild(checkbox);
-              item.appendChild(colorDot);
-              item.appendChild(label);
-              
-              item.addEventListener('click', (e) => {
-            if (e.target === checkbox) return;
-                e.preventDefault();
-                e.stopPropagation();
-                // Toggle checkbox state
-                checkbox.checked = !checkbox.checked;
-                // Create a proper event-like object with the updated checked state
-                const syntheticEvent = {
-                  target: {
-                    value: checkbox.value,
-                    checked: checkbox.checked
-                  }
-                };
-                handleCalendarFilterChange(syntheticEvent);
+              // Add calendars for this source
+              calendarsBySource[source].forEach(calendar => {
+                const item = document.createElement('div');
+                item.className = 'calendar-filter-item';
+                
+                const colorDot = document.createElement('div');
+                colorDot.className = 'calendar-filter-color-dot';
+                colorDot.style.backgroundColor = calendar.color || "#5A9FD4";
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'calendar-filter-checkbox';
+                checkbox.value = calendar.title;
+                checkbox.checked = selectedCalendars.has(calendar.title);
+                checkbox.addEventListener('change', handleCalendarFilterChange);
+                
+                const label = document.createElement('span');
+                label.className = 'calendar-filter-item-label';
+                label.textContent = calendar.title;
+                
+                item.appendChild(checkbox);
+                item.appendChild(colorDot);
+                item.appendChild(label);
+                
+                item.addEventListener('click', (e) => {
+                  if (e.target === checkbox) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // Toggle checkbox state
+                  checkbox.checked = !checkbox.checked;
+                  // Create a proper event-like object with the updated checked state
+                  const syntheticEvent = {
+                    target: {
+                      value: checkbox.value,
+                      checked: checkbox.checked
+                    }
+                  };
+                  handleCalendarFilterChange(syntheticEvent);
+                });
+                
+                calendarFilterDropdown.appendChild(item);
               });
-              
-              calendarFilterDropdown.appendChild(item);
             });
             
             // Ensure toggle button is properly initialized after all calendars are added
@@ -1626,9 +2104,19 @@ function getCalendarHTML(currentYear) {
             dayHeader.appendChild(dayNumber);
             dayHeader.appendChild(dayName);
             
+            // Store day and month data on the header for hover/click handling
+            dayHeader.dataset.day = day;
+            dayHeader.dataset.month = month;
+            
             dayHeader.addEventListener('click', (event) => {
-              const inSplitView = event.metaKey || event.altKey;
-              openNote(date, inSplitView);
+              if (event.metaKey || event.altKey) {
+                // Modifier+click opens note
+                openNote(date, true);
+              } else {
+                // Normal click creates event
+                const clickedDate = new Date(displayYear, month, day);
+                openEventModal(clickedDate, clickedDate, null);
+              }
             });
           } else {
             dayHeader.classList.add('empty');
@@ -1650,6 +2138,18 @@ function getCalendarHTML(currentYear) {
         eventsLayer.id = \`events-layer-\${month}\`;
         // Explicitly set grid template for Date Grid (31 day columns)
         eventsLayer.style.gridTemplateColumns = \`30px repeat(31, minmax(var(--cell-width), 1fr)) 10px\`;
+        
+        // Add drag-to-create event handlers
+        const currentMonth = month;
+        eventsLayer.addEventListener('mousedown', (e) => handleEventsLayerMouseDown(e, currentMonth));
+        eventsLayer.addEventListener('mousemove', (e) => {
+          handleEventsLayerMouseMove(e, currentMonth);
+          handleEventsLayerHover(e, currentMonth, row);
+        });
+        eventsLayer.addEventListener('mouseup', (e) => handleEventsLayerMouseUp(e, currentMonth));
+        eventsLayer.addEventListener('mouseleave', () => clearDayHeaderHover(row));
+        eventsLayer.style.pointerEvents = 'auto';
+        
         row.appendChild(eventsLayer);
         
         container.appendChild(row);
@@ -1671,7 +2171,7 @@ function getCalendarHTML(currentYear) {
       headerRow.style.setProperty('--cell-width', currentWidth + 'px');
       headerRow.style.gridTemplateColumns = \`30px repeat(\${totalColumns}, minmax(var(--cell-width), 1fr)) 10px\`;
       headerRow.style.display = 'grid';
-      headerRow.style.borderBottom = '1px solid #e5e5e7';
+      // Border is set via CSS to support dark mode
       
       // Empty cell for month label column
       const labelSpacer = document.createElement('div');
@@ -1761,9 +2261,19 @@ function getCalendarHTML(currentYear) {
           dayCell.appendChild(dayNumber);
           dayCell.appendChild(dayName);
           
+          // Store day and month data on the cell for hover/click handling
+          dayCell.dataset.day = day;
+          dayCell.dataset.month = month;
+          
           dayCell.addEventListener('click', (event) => {
-            const inSplitView = event.metaKey || event.altKey;
-            openNote(date, inSplitView);
+            if (event.metaKey || event.altKey) {
+              // Modifier+click opens note
+              openNote(date, true);
+            } else {
+              // Normal click creates event
+              const clickedDate = new Date(displayYear, month, day);
+              openEventModal(clickedDate, clickedDate, null);
+            }
           });
           
           row.appendChild(dayCell);
@@ -1791,6 +2301,18 @@ function getCalendarHTML(currentYear) {
         eventsLayer.className = 'events-layer';
         eventsLayer.id = \`events-layer-\${month}\`;
         eventsLayer.style.gridTemplateColumns = \`30px repeat(\${totalColumns}, minmax(var(--cell-width), 1fr)) 10px\`;
+        
+        // Add drag-to-create event handlers
+        const currentMonth = month;
+        eventsLayer.addEventListener('mousedown', (e) => handleEventsLayerMouseDown(e, currentMonth));
+        eventsLayer.addEventListener('mousemove', (e) => {
+          handleEventsLayerMouseMove(e, currentMonth);
+          handleEventsLayerHover(e, currentMonth, row);
+        });
+        eventsLayer.addEventListener('mouseup', (e) => handleEventsLayerMouseUp(e, currentMonth));
+        eventsLayer.addEventListener('mouseleave', () => clearDayHeaderHover(row));
+        eventsLayer.style.pointerEvents = 'auto';
+        
         row.appendChild(eventsLayer);
         
         container.appendChild(row);
@@ -1896,6 +2418,21 @@ function getCalendarHTML(currentYear) {
           }
           segmentEl.title = segment.title; // Tooltip
           
+          // Add click handler for editing
+          segmentEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Find the original event data to edit
+            const eventData = {
+              id: segment.eventId,
+              title: segment.title,
+              startDate: segment.originalStartDate,
+              endDate: segment.originalEndDate,
+              calendarTitle: segment.calendarTitle,
+              isAllDay: true
+            };
+            handleEventSegmentClick(e, eventData);
+          });
+          
           eventsLayer.appendChild(segmentEl);
         }
       }
@@ -1949,6 +2486,535 @@ function getCalendarHTML(currentYear) {
                       } else {
         updateCalendarDisplay();
       }
+    }
+    
+    // ============================================
+    // Event Creation/Editing Modal Functions
+    // ============================================
+    
+    function openEventModal(startDate, endDate, existingEvent = null) {
+      const overlay = document.getElementById('eventModalOverlay');
+      const titleInput = document.getElementById('eventTitleInput');
+      const startInput = document.getElementById('eventStartDate');
+      const endInput = document.getElementById('eventEndDate');
+      const calendarSelect = document.getElementById('eventCalendarSelect');
+      const deleteBtn = document.getElementById('eventDeleteBtn');
+      const modalTitle = document.getElementById('eventModalTitle');
+      
+      editingEvent = existingEvent;
+      
+      // Set modal title
+      modalTitle.textContent = existingEvent ? 'Edit Event' : 'New Event';
+      
+      // Show/hide delete button
+      deleteBtn.style.display = existingEvent ? 'inline-block' : 'none';
+      
+      // Populate calendar dropdown with writable calendars only, grouped by source
+      calendarSelect.innerHTML = '';
+      
+      const filteredCalendars = writableCalendars.filter(cal => cal.isWritable !== false);
+      
+      // Group by source
+      const calendarsBySource = {};
+      filteredCalendars.forEach(cal => {
+        const source = cal.source || 'Other';
+        if (!calendarsBySource[source]) {
+          calendarsBySource[source] = [];
+        }
+        calendarsBySource[source].push(cal);
+      });
+      
+      // Sort sources alphabetically, but put "iCloud" first if present
+      const sortedSources = Object.keys(calendarsBySource).sort((a, b) => {
+        if (a === 'iCloud') return -1;
+        if (b === 'iCloud') return 1;
+        return a.localeCompare(b);
+      });
+      
+      // Render calendars grouped by source using optgroup
+      sortedSources.forEach(source => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = source;
+        
+        calendarsBySource[source].forEach(cal => {
+          const option = document.createElement('option');
+          option.value = cal.title;
+          option.textContent = cal.title;
+          option.style.color = cal.color || '#007AFF';
+          optgroup.appendChild(option);
+        });
+        
+        calendarSelect.appendChild(optgroup);
+      });
+      
+      if (existingEvent) {
+        // Editing existing event
+        titleInput.value = existingEvent.title || '';
+        // CalendarItem uses 'date' for start, raw event data uses 'startDate'
+        const eventStart = existingEvent.date || existingEvent.startDate;
+        const eventEnd = existingEvent.endDate;
+        startInput.value = formatDateForInput(new Date(eventStart));
+        endInput.value = formatDateForInput(new Date(eventEnd));
+        
+        // Select the calendar - CalendarItem uses 'calendar', segment data uses 'calendarTitle'
+        const calendarName = existingEvent.calendar || existingEvent.calendarTitle;
+        for (let i = 0; i < calendarSelect.options.length; i++) {
+          if (calendarSelect.options[i].value === calendarName) {
+            calendarSelect.selectedIndex = i;
+            break;
+          }
+        }
+      } else {
+        // New event
+        titleInput.value = '';
+        startInput.value = formatDateForInput(startDate);
+        endInput.value = formatDateForInput(endDate);
+        
+        // Select first calendar by default
+        if (calendarSelect.options.length > 0) {
+          calendarSelect.selectedIndex = 0;
+        }
+      }
+      
+      // Show modal
+      overlay.classList.add('visible');
+      
+      // Focus title input
+      setTimeout(() => titleInput.focus(), 100);
+    }
+    
+    function closeEventModal() {
+      const overlay = document.getElementById('eventModalOverlay');
+      overlay.classList.remove('visible');
+      
+      // Remove dummy event if exists
+      removeDummyEvent();
+      
+      editingEvent = null;
+    }
+    
+    function formatDateForInput(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return \`\${year}-\${month}-\${day}\`;
+    }
+    
+    function parseDateFromInput(dateString) {
+      const [year, month, day] = dateString.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    
+    async function saveEvent() {
+      const titleInput = document.getElementById('eventTitleInput');
+      const startInput = document.getElementById('eventStartDate');
+      const endInput = document.getElementById('eventEndDate');
+      const calendarSelect = document.getElementById('eventCalendarSelect');
+      
+      const title = titleInput.value.trim() || 'New Event';
+      let startDate = parseDateFromInput(startInput.value);
+      let endDate = parseDateFromInput(endInput.value);
+      const calendarTitle = calendarSelect.value;
+      
+      // Ensure end date is not before start date
+      if (endDate < startDate) {
+        endDate = new Date(startDate.getTime());
+      }
+      
+      // For all-day events, set appropriate times
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+      
+      try {
+        if (editingEvent && editingEvent.id) {
+          // Update existing event - build a proper object for the bridge
+          console.log('Updating event - id: ' + editingEvent.id + ' title: ' + title + ' calendar: ' + calendarTitle);
+          console.log('Original editingEvent: ' + JSON.stringify(editingEvent));
+          
+          const updateObject = {
+            id: editingEvent.id,
+            title: title,
+            date: startDate,
+            endDate: endDate,
+            type: 'event',
+            isAllDay: true,
+            calendar: calendarTitle,
+            isCompleted: false,
+            notes: editingEvent.notes || '',
+            url: editingEvent.url || '',
+            availability: editingEvent.availability || 0,
+            isRecurring: editingEvent.isRecurring || false
+          };
+          
+          console.log('Update object: ' + JSON.stringify(updateObject));
+          console.log('Calling Calendar.update...');
+          
+          const updateResult = await Calendar.update(updateObject);
+          console.log('Calendar.update result: ' + (updateResult ? 'success' : 'returned undefined'));
+        } else {
+          // Create new event by passing a plain object to Calendar.add()
+          // The bridge converts dictionaries to CalendarItem internally
+          console.log('Creating event - title: ' + title + ' start: ' + startDate.toISOString() + ' end: ' + endDate.toISOString() + ' calendar: ' + calendarTitle);
+          
+          // Build event object with required properties
+          const eventObject = {
+            title: title,
+            date: startDate,
+            endDate: endDate,
+            type: 'event',
+            isAllDay: true,
+            calendar: calendarTitle,
+            isCompleted: false,
+            notes: '',
+            url: '',
+            availability: 0
+          };
+          
+          console.log('Calling Calendar.add with event object...');
+          const result = await Calendar.add(eventObject);
+          console.log('Calendar.add returned: ' + (result ? JSON.stringify(result) : 'undefined/null'));
+          
+          if (!result) {
+            console.log('WARNING: Calendar.add returned undefined - event may not have been created');
+          } else {
+            console.log('Event created successfully with id: ' + (result.id || 'no id'));
+          }
+        }
+        
+        // Close modal
+        closeEventModal();
+        
+        // Force reload events for affected months to show the new/updated event
+        await forceReloadEventsForMonths(startDate, endDate);
+        
+      } catch (error) {
+        console.log('ERROR saving event: ' + String(error));
+        console.log('Error name: ' + (error && error.name ? error.name : 'none'));
+        console.log('Error message: ' + (error && error.message ? error.message : 'none'));
+        alert('Failed to save event: ' + String(error));
+      }
+    }
+    
+    async function deleteEvent() {
+      console.log('deleteEvent called');
+      console.log('editingEvent: ' + JSON.stringify(editingEvent));
+      
+      if (!editingEvent) {
+        console.log('No editingEvent - returning');
+        return;
+      }
+      
+      if (!editingEvent.id) {
+        console.log('No event id - cannot delete');
+        return;
+      }
+      
+      // Note: confirm() doesn't work in WebViews, so we delete directly
+      // TODO: Add a custom confirmation modal if needed
+      try {
+        // Get event dates before deleting
+        const eventStart = new Date(editingEvent.date || editingEvent.startDate);
+        const eventEnd = new Date(editingEvent.endDate || eventStart);
+        
+        console.log('Deleting event - id: ' + editingEvent.id);
+        console.log('Event dates: ' + eventStart.toISOString() + ' to ' + eventEnd.toISOString());
+        
+        // Build proper object for the bridge
+        const deleteObject = {
+          id: editingEvent.id,
+          title: editingEvent.title || '',
+          date: eventStart,
+          endDate: eventEnd,
+          type: 'event',
+          isAllDay: editingEvent.isAllDay !== undefined ? editingEvent.isAllDay : true,
+          calendar: editingEvent.calendar || editingEvent.calendarTitle || '',
+          isCompleted: false,
+          isRecurring: editingEvent.isRecurring || false
+        };
+        
+        console.log('Delete object: ' + JSON.stringify(deleteObject));
+        console.log('Calling Calendar.remove...');
+        
+        const removeResult = await Calendar.remove(deleteObject);
+        console.log('Calendar.remove result: ' + (removeResult ? 'success' : 'returned undefined'));
+        
+        closeEventModal();
+        
+        // Force reload affected months
+        console.log('Reloading events...');
+        await forceReloadEventsForMonths(eventStart, eventEnd);
+        console.log('Delete complete');
+      } catch (error) {
+        console.log('ERROR deleting event: ' + String(error));
+        console.log('Error name: ' + (error && error.name ? error.name : 'none'));
+        console.log('Error message: ' + (error && error.message ? error.message : 'none'));
+      }
+    }
+    
+    // ============================================
+    // Drag-to-Create Event Functions
+    // ============================================
+    
+    function createDummyEvent(month, startDay, endDay) {
+      removeDummyEvent();
+      
+      const eventsLayer = document.getElementById(\`events-layer-\${month}\`);
+      if (!eventsLayer) return;
+      
+      const dummy = document.createElement('div');
+      dummy.className = 'event-segment dummy-event';
+      dummy.textContent = 'New Event';
+      
+      // Calculate column positions based on layout mode
+      let startCol, endCol;
+      if (layoutMode === 'fixedWeek') {
+        const firstDayOfMonth = new Date(displayYear, month, 1);
+        let weekdayOffset = firstDayOfMonth.getDay();
+        if (firstDayOfWeek === 1) {
+          weekdayOffset = (weekdayOffset + 6) % 7;
+        }
+        startCol = startDay + weekdayOffset + 1;
+        endCol = endDay + weekdayOffset + 2;
+      } else {
+        startCol = startDay + 1;
+        endCol = endDay + 2;
+      }
+      
+      dummy.style.gridColumn = \`\${startCol} / \${endCol}\`;
+      dummy.style.gridRow = '1';
+      
+      eventsLayer.appendChild(dummy);
+      dummyEventElement = dummy;
+    }
+    
+    function removeDummyEvent() {
+      if (dummyEventElement && dummyEventElement.parentNode) {
+        dummyEventElement.parentNode.removeChild(dummyEventElement);
+      }
+      dummyEventElement = null;
+    }
+    
+    function handleEventsLayerMouseDown(event, month) {
+      // Don't start drag if clicking on an existing event
+      if (event.target.classList.contains('event-segment') && !event.target.classList.contains('dummy-event')) {
+        return;
+      }
+      
+      const eventsLayer = event.currentTarget;
+      const dayCell = getDayCellFromPosition(event, eventsLayer, month);
+      
+      if (!dayCell || dayCell.day < 1 || dayCell.day > getDaysInMonth(displayYear, month)) {
+        return;
+      }
+      
+      isDragging = true;
+      dragStartMonth = month;
+      dragStartDate = new Date(displayYear, month, dayCell.day);
+      dragEndDate = new Date(displayYear, month, dayCell.day);
+      
+      createDummyEvent(month, dayCell.day, dayCell.day);
+      
+      event.preventDefault();
+    }
+    
+    function handleEventsLayerMouseMove(event, month) {
+      if (!isDragging || dragStartMonth !== month) return;
+      
+      const eventsLayer = event.currentTarget;
+      const dayCell = getDayCellFromPosition(event, eventsLayer, month);
+      
+      if (!dayCell || dayCell.day < 1 || dayCell.day > getDaysInMonth(displayYear, month)) {
+        return;
+      }
+      
+      dragEndDate = new Date(displayYear, month, dayCell.day);
+      
+      // Update dummy event to span from start to current position
+      const startDay = Math.min(dragStartDate.getDate(), dragEndDate.getDate());
+      const endDay = Math.max(dragStartDate.getDate(), dragEndDate.getDate());
+      
+      createDummyEvent(month, startDay, endDay);
+    }
+    
+    function handleEventsLayerMouseUp(event, month) {
+      if (!isDragging) return;
+      
+      isDragging = false;
+      
+      // Ensure dates are in correct order
+      let startDate = dragStartDate;
+      let endDate = dragEndDate;
+      if (endDate < startDate) {
+        [startDate, endDate] = [endDate, startDate];
+      }
+      
+      // Open modal with the selected date range
+      openEventModal(startDate, endDate, null);
+    }
+    
+    function handleEventsLayerHover(event, month, row) {
+      // Don't update hover when dragging
+      if (isDragging) return;
+      
+      const eventsLayer = event.currentTarget;
+      const dayCell = getDayCellFromPosition(event, eventsLayer, month);
+      
+      if (!dayCell || dayCell.day < 1 || dayCell.day > getDaysInMonth(displayYear, month)) {
+        clearDayHeaderHover(row);
+        return;
+      }
+      
+      // Find the day header with matching day number
+      const dayHeaders = row.querySelectorAll('.day-header');
+      dayHeaders.forEach(header => {
+        if (header.dataset.day === String(dayCell.day) && header.dataset.month === String(month)) {
+          header.classList.add('hovered');
+        } else {
+          header.classList.remove('hovered');
+        }
+      });
+    }
+    
+    function clearDayHeaderHover(row) {
+      const dayHeaders = row.querySelectorAll('.day-header.hovered');
+      dayHeaders.forEach(header => {
+        header.classList.remove('hovered');
+      });
+    }
+    
+    function getDayCellFromPosition(event, eventsLayer, month) {
+      const rect = eventsLayer.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      
+      const labelWidth = 30; // Month label width
+      const spacerWidth = 10; // Spacer at the end
+      
+      // Calculate actual cell width from container width
+      // Grid: labelWidth + N columns + spacerWidth = total width
+      const numColumns = layoutMode === 'fixedWeek' ? 37 : 31;
+      const availableWidth = rect.width - labelWidth - spacerWidth;
+      const cellWidth = availableWidth / numColumns;
+      
+      // Calculate which column was clicked (0-indexed)
+      const clickedColumn = Math.floor((x - labelWidth) / cellWidth);
+      
+      if (layoutMode === 'fixedWeek') {
+        // For fixed week, we need to convert column back to day
+        const firstDayOfMonth = new Date(displayYear, month, 1);
+        let weekdayOffset = firstDayOfMonth.getDay();
+        if (firstDayOfWeek === 1) {
+          weekdayOffset = (weekdayOffset + 6) % 7;
+        }
+        // Column 0 = weekdayOffset day 1, so day = column - weekdayOffset + 1
+        const day = clickedColumn - weekdayOffset + 1;
+        return { day };
+      } else {
+        // Date Grid: column 0 = day 1
+        return { day: clickedColumn + 1 };
+      }
+    }
+    
+    async function handleEventSegmentClick(event, eventData) {
+      event.stopPropagation();
+      
+      console.log('Event segment clicked');
+      console.log('eventData: ' + JSON.stringify(eventData));
+      
+      try {
+        // Fetch the actual CalendarItem from the API
+        if (eventData.id) {
+          console.log('Fetching event by ID: ' + eventData.id);
+          const calendarItem = await Calendar.eventByID(eventData.id);
+          console.log('Calendar.eventByID returned: ' + JSON.stringify(calendarItem));
+          
+          if (calendarItem) {
+            console.log('Opening modal with fetched calendarItem');
+            openEventModal(new Date(calendarItem.date || calendarItem.startDate), 
+                          new Date(calendarItem.endDate), 
+                          calendarItem);
+            return;
+          } else {
+            console.log('calendarItem was null/undefined');
+          }
+        } else {
+          console.log('No event ID in eventData');
+        }
+      } catch (error) {
+        console.log('Error fetching event: ' + String(error));
+      }
+      
+      // Fallback: use the segment data if we couldn't fetch the actual event
+      console.log('Using fallback - opening modal with segment data');
+      openEventModal(new Date(eventData.startDate), new Date(eventData.endDate), eventData);
+    }
+    
+    async function loadWritableCalendars() {
+      try {
+        const allCalendars = await Calendar.availableCalendars({ writeOnly: true, enabledOnly: true });
+        // Filter to only writable calendars (extra safety)
+        writableCalendars = (allCalendars || []).filter(cal => cal.isWritable !== false);
+        console.log('Loaded ' + writableCalendars.length + ' writable calendars');
+      } catch (error) {
+        console.log('Error loading writable calendars: ' + String(error));
+        writableCalendars = [];
+      }
+    }
+    
+    function setupEventModalListeners() {
+      const overlay = document.getElementById('eventModalOverlay');
+      const closeBtn = document.getElementById('eventModalClose');
+      const cancelBtn = document.getElementById('eventCancelBtn');
+      const saveBtn = document.getElementById('eventSaveBtn');
+      const deleteBtn = document.getElementById('eventDeleteBtn');
+      
+      // Close on overlay click
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          closeEventModal();
+        }
+      });
+      
+      // Close button
+      closeBtn.addEventListener('click', closeEventModal);
+      
+      // Cancel button
+      cancelBtn.addEventListener('click', closeEventModal);
+      
+      // Save button
+      saveBtn.addEventListener('click', saveEvent);
+      
+      // Delete button
+      deleteBtn.addEventListener('click', deleteEvent);
+      
+      // ESC key to close
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && overlay.classList.contains('visible')) {
+          closeEventModal();
+        }
+      });
+      
+      // Enter key to save (when in title input)
+      document.getElementById('eventTitleInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          saveEvent();
+        }
+      });
+      
+      // Global mouse up to handle drag end outside events layer
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          // If we ended outside, still open the modal with current selection
+          if (dragStartDate && dragEndDate) {
+            let startDate = dragStartDate;
+            let endDate = dragEndDate;
+            if (endDate < startDate) {
+              [startDate, endDate] = [endDate, startDate];
+            }
+            openEventModal(startDate, endDate, null);
+          }
+        }
+      });
     }
     
     // ============================================
@@ -2110,6 +3176,12 @@ function getCalendarHTML(currentYear) {
       
       document.getElementById('yearPrev').addEventListener('click', () => changeYear(-1));
       document.getElementById('yearNext').addEventListener('click', () => changeYear(1));
+      
+      // Setup event modal listeners
+      setupEventModalListeners();
+      
+      // Load writable calendars for event creation
+      await loadWritableCalendars();
       
       // Render initial calendar
       renderCalendar();
