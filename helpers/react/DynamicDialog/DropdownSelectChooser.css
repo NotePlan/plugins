@@ -15,7 +15,8 @@
 }
 
 .dropdown-select-chooser-container .dropdown-select-chooser-input {
-  width: 100%;
+  width: 100%; /* Use full width of wrapper */
+  box-sizing: border-box; /* Ensure padding is included in width calculation */
 }
 
 .dropdown-select-chooser-container .dropdown-select-chooser-dropdown {
@@ -79,7 +80,7 @@
 
 .dropdown-select-chooser-arrow {
   position: absolute;
-  right: 0.75rem;
+  right: 0.5rem; /* Position inside the input border - match SearchableChooser arrow position */
   top: 50%;
   transform: translateY(-50%);
   color: var(--icon-color, #666);
