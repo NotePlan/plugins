@@ -71,6 +71,7 @@
         min-height: 2.5rem;
         border-bottom: 0.5px solid var(--divider-color, #CDCFD0);
         padding: 0.5rem 0.75rem;
+        padding-top: 0.8rem;
         border-radius: 8px 8px 0 0;
         width: 100%;
         box-sizing: border-box;
@@ -247,10 +248,12 @@
         white-space: nowrap;
     }
     
-    /* Ensure all compact display fields align vertically - use consistent label width */
+    /* Standardized input width system - use CSS variables for consistency */
     .dynamic-dialog-content {
         /* Create a CSS variable for compact label width to ensure alignment */
         --compact-label-width: auto;
+        /* Standard input field width - can be overridden in form-specific CSS */
+        --dynamic-dialog-input-width: 180px;
     }
     
     /* Unified field label styling for all DynamicDialog fields */
@@ -271,10 +274,62 @@
         padding-right: 1rem;
     }
     
-    /* Align validation messages with labels in compact mode */
-    .input-box-container-compact + .validation-message {
-        margin-left: 8rem;
-        padding-left: 1rem;
+    /* Validation messages - show to the right of the field with triangle icon */
+    .validation-message {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        color: var(--tint-color, #dc8a78);
+        font-size: 0.85rem;
+        margin-left: 0.5rem;
+        white-space: nowrap;
+        vertical-align: middle;
+        flex-shrink: 0;
+        width: 6rem; /* Fixed width to prevent input shrinking */
+    }
+    
+    /* Transparent placeholder to reserve space when no validation error */
+    .validation-message-placeholder {
+        visibility: hidden;
+        opacity: 0;
+        width: 6rem; /* Fixed width to match validation message */
+        flex-shrink: 0;
+    }
+    
+    /* Triangle icon before validation message */
+    .validation-message:not(.validation-message-placeholder) i {
+        font-size: 0.75rem;
+    }
+    
+    /* Validation message inside input-box-wrapper - shows to the right of input */
+    .input-box-wrapper .validation-message {
+        margin-left: 0.5rem;
+        margin-top: 0;
+        flex-shrink: 0;
+    }
+    
+    /* Validation messages for choosers - positioned outside input wrapper to not constrain dropdown */
+    .searchable-chooser-base [class*="-chooser-input-wrapper"],
+    [class*="-chooser-input-wrapper"] {
+        display: flex;
+        align-items: center;
+        position: relative;
+        flex-shrink: 0; /* Don't let input wrapper shrink */
+    }
+    
+    /* Validation message after chooser input wrapper */
+    .searchable-chooser-base .validation-message,
+    [class*="-chooser-container"] .validation-message {
+        margin-left: 0.5rem;
+        margin-top: 0;
+        flex-shrink: 0;
+        position: static; /* Inline, not absolute */
+    }
+    
+    /* Ensure chooser container is flex so validation message can sit next to input wrapper */
+    .searchable-chooser-base.compact {
+        display: inline-flex;
+        align-items: center;
     }
     
     /* Align item descriptions with labels in compact mode */
@@ -292,8 +347,32 @@
     /* Style for input-box-wrapper - TODO: remove later */
     .input-box-wrapper {
         display: flex;
-        align-items: end;
-        /* gap: 10px; */
+        align-items: center; /* Changed from 'end' to 'center' for better validation message alignment */
+    }
+    
+    /* Ensure input doesn't shrink when validation message appears - set fixed width on input */
+    .input-box-wrapper .input-box-input {
+        flex-shrink: 0 !important; /* Don't allow input to shrink */
+    }
+    
+    .input-box-container-compact .input-box-wrapper .input-box-input {
+        flex: 0 0 var(--dynamic-dialog-input-width, 180px); /* Fixed width - don't grow or shrink */
+        min-width: var(--dynamic-dialog-input-width, 180px);
+        max-width: var(--dynamic-dialog-input-width, 180px);
+    }
+    
+    /* Standardized width for ThemedSelect (combo) in compact mode */
+    .input-box-container-compact .input-box-wrapper {
+        width: auto;
+        flex: 0 0 auto;
+        margin-left: 0;
+    }
+    
+    /* ThemedSelect react-select container width */
+    .input-box-container-compact .input-box-wrapper > div {
+        width: var(--dynamic-dialog-input-width, 180px) !important;
+        max-width: var(--dynamic-dialog-input-width, 180px) !important;
+        min-width: var(--dynamic-dialog-input-width, 180px) !important;
     }
 
     /* Style for input-box-label */
@@ -306,7 +385,8 @@
 
     /* Style for input-box-input */
     .input-box-input {
-        flex: 1;
+        width: var(--dynamic-dialog-input-width, 180px); /* Standardized width */
+        max-width: var(--dynamic-dialog-input-width, 180px); /* Prevent expansion */
         padding: 4px 8px;
         /* border: 1px solid #ddd; */
         border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
@@ -316,7 +396,24 @@
         font-size: 0.85rem;
         /* vertical spacing above and below */
         margin: 0.3rem 0rem;
-        margin-left: 10px
+        margin-left: 10px;
+        box-sizing: border-box;
+    }
+    
+    /* In compact mode, inputs should fill available space after label */
+    .input-box-container-compact .input-box-input {
+        width: var(--dynamic-dialog-input-width, 180px);
+        max-width: var(--dynamic-dialog-input-width, 180px);
+        min-width: var(--dynamic-dialog-input-width, 180px); /* Prevent shrinking */
+        margin-left: 0;
+        flex-shrink: 0; /* Don't allow input to shrink */
+    }
+    
+    /* Input wrapper in compact mode should respect the width */
+    .input-box-container-compact .input-box-wrapper {
+        width: var(--dynamic-dialog-input-width, 180px);
+        max-width: var(--dynamic-dialog-input-width, 180px);
+        flex: 0 0 auto; /* Don't flex, use fixed width */
     }
     /* Apply styles for read-only input fields */
     .input-box-input:read-only {
@@ -413,8 +510,11 @@
     }
         
     /* Make number boxes a little narrower */
+    /* Number inputs can be narrower than text inputs */
     .input-box-input-number {
         width: 6rem;
+        max-width: 6rem;
+        /* Number inputs don't need the full standardized width */
     }
 
     /* Style for input box with invalid input */

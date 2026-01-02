@@ -6,9 +6,12 @@
 }
 
 .folder-chooser-wrapper-compact {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
+  width: auto;
+  max-width: none;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem; /* Match input-box-container-compact gap */
 }
 
 /* Description text alignment in compact mode */

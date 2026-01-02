@@ -596,10 +596,12 @@ export function SearchableChooser({
                           }}
                         >
                           {optionShortDesc}
-                        </div>
-                      </div>
-                    )
-                  }
+      </div>
+      {/* Placeholder div to reserve space for validation message - outside input wrapper so it doesn't constrain dropdown */}
+      <div className="validation-message validation-message-placeholder" aria-hidden="true"></div>
+    </div>
+  )
+}
                   
                   // Single-line layout (default): icon + label + description on one line
                   return (

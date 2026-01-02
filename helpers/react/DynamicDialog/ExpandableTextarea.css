@@ -6,7 +6,20 @@
 }
 
 .expandable-textarea-container.compact {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1rem; /* Match input-box-container-compact gap */
   margin-bottom: 0.5rem;
+}
+
+.expandable-textarea-container.compact .expandable-textarea-label {
+  min-width: 8rem;
+  text-align: right;
+  padding-right: 1rem;
+  margin-bottom: 0;
+  align-self: flex-start;
+  padding-top: 0.5rem; /* Align with textarea top padding */
 }
 
 .expandable-textarea-label {
@@ -17,7 +30,8 @@
 }
 
 .expandable-textarea {
-  width: 100%;
+  width: var(--dynamic-dialog-input-width, 180px); /* Standardized width */
+  max-width: var(--dynamic-dialog-input-width, 180px); /* Prevent expansion */
   padding: 0.5rem;
   border: 1px solid var(--border-color, #ddd);
   border-radius: 4px;
@@ -28,6 +42,24 @@
   transition: height 0.1s ease;
   background-color: var(--bg-color, #fff);
   color: var(--text-color, #333);
+  box-sizing: border-box;
+  flex: 0 0 auto; /* Don't flex, use fixed width */
+}
+
+.expandable-textarea-wrapper {
+  display: flex;
+  align-items: flex-start;
+}
+
+.expandable-textarea-container.compact .expandable-textarea-wrapper {
+  display: flex;
+  align-items: flex-start;
+}
+
+.expandable-textarea-container.compact .expandable-textarea {
+  width: var(--dynamic-dialog-input-width, 180px);
+  max-width: var(--dynamic-dialog-input-width, 180px);
+  margin-left: 0;
 }
 
 .expandable-textarea:focus {

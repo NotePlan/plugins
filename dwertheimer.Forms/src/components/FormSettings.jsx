@@ -256,6 +256,14 @@ export function FormSettings({
                   />
                   <div className="frontmatter-field-help-text" style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem', fontStyle: 'italic' }}>
                     Custom CSS will be saved in a <code>template:ignore customCSS</code> codeblock and injected into the form window when opened.
+                    <br />
+                    <br />
+                    <strong>Override Input Width:</strong> To change the width of all input fields on this form, add:
+                    <br />
+                    <code style={{ display: 'block', marginTop: '0.25rem', padding: '0.25rem', background: '#f5f5f5', borderRadius: '3px' }}>
+                      .dynamic-dialog-content {'{'} --dynamic-dialog-input-width: 250px; {'}'}
+                    </code>
+                    Replace <code>250px</code> with your desired width.
                   </div>
                 </div>
               </div>

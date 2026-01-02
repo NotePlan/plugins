@@ -15,7 +15,7 @@ import InputBox from './InputBox.jsx'
 import { DropdownSelectChooser } from './DropdownSelectChooser.jsx'
 import TextComponent from './TextComponent.jsx'
 import ThemedSelect from './ThemedSelect.jsx'
-import CalendarPicker from './CalendarPicker.jsx'
+import GenericDatePicker from './GenericDatePicker.jsx'
 import FolderChooser from './FolderChooser.jsx'
 import NoteChooser, { type NoteOption } from './NoteChooser.jsx'
 import { SpaceChooser } from './SpaceChooser.jsx'
@@ -415,39 +415,31 @@ export function renderItem({
       }
       case 'calendarpicker': {
         const selectedDate: ?Date = item.selectedDate || null
-        const numberOfMonths = item.numberOfMonths || 1
         const label = item.label || ''
         const compactDisplay = item.compactDisplay || false
 
         const handleDateChange = (date: Date) => {
           if (item.key) {
-            handleFieldChange(item.key, date)
+            // Handle cleared date (NaN date means cleared)
+            if (isNaN(date.getTime())) {
+              handleFieldChange(item.key, null)
+            } else {
+              handleFieldChange(item.key, date)
+            }
           }
         }
 
-        // Render label similar to other fields
-        const labelElement = label ? (
-          <div className={`calendarpicker-label ${compactDisplay ? 'compact' : ''}`} style={compactDisplay ? { display: 'inline-block', marginRight: '0.5rem' } : {}}>
-            {label}
-          </div>
-        ) : null
-
+        // Render similar to InputBox - label and input in a container
         return (
           <div
             key={`calendarpicker${index}`}
-            className={`calendarpicker-container ${compactDisplay ? 'compact' : ''}`}
-            style={compactDisplay ? { display: 'flex', alignItems: 'center' } : {}}
+            className={`${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'} ${indent ? 'indent' : ''}`}
           >
-            {labelElement}
-            <CalendarPicker
+            <label className="input-box-label">{label}</label>
+            <GenericDatePicker
               startingSelectedDate={selectedDate ?? undefined}
               onSelectDate={handleDateChange}
-              numberOfMonths={numberOfMonths}
-              className="calendarPickerCustom"
-              buttonText={(item: any).buttonText}
-              label={label}
-              visible={(item: any).visible}
-              size={(item: any).size ?? 0.75}
+              disabled={disabled}
             />
           </div>
         )

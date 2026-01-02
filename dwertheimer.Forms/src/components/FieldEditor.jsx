@@ -407,34 +407,6 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
 
           {editedField.type === 'calendarpicker' && (
             <>
-              <div className="field-editor-row">
-                <label>Button Text:</label>
-                <input
-                  type="text"
-                  value={((editedField: any): { buttonText?: string }).buttonText || 'Select Date'}
-                  onChange={(e) => {
-                    const updated = { ...editedField }
-                    ;(updated: any).buttonText = e.target.value
-                    setEditedField(updated)
-                  }}
-                  placeholder="Button text"
-                />
-                <div className="field-editor-help">Text to show on the button which pops up the calendar picker</div>
-              </div>
-              <div className="field-editor-row">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={((editedField: any): { visible?: boolean }).visible ?? false}
-                    onChange={(e) => {
-                      const updated = { ...editedField }
-                      ;(updated: any).visible = e.target.checked
-                      setEditedField(updated)
-                    }}
-                  />
-                  Show calendar by default (visible without clicking button)
-                </label>
-              </div>
               {editedField.type !== 'separator' && editedField.type !== 'heading' && (
                 <div className="field-editor-row">
                   <label>
