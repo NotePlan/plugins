@@ -14,12 +14,17 @@ export function Toast(props) {
 
   // Effect to handle the visibility of the toast, to allow for animation
   useEffect(() => {
-    if (props.msg) {
+    // Check if msg is truthy and not just whitespace
+    const hasMessage = props.msg && typeof props.msg === 'string' && props.msg.trim().length > 0
+    const shouldShow = hasMessage && props.type !== 'REMOVE'
+    
+    if (shouldShow) {
       // Show: add to DOM and then make visible
       setShouldRender(true)
       // Use setTimeout to ensure DOM is ready before adding visible class
-      setTimeout(() => setIsVisible(true), 10)
-    } else if (shouldRender) {
+      const showTimer = setTimeout(() => setIsVisible(true), 10)
+      return () => clearTimeout(showTimer)
+    } else {
       // Hide: remove visible class first, then remove from DOM after animation
       setIsVisible(false)
       const timer = setTimeout(() => {
@@ -27,7 +32,7 @@ export function Toast(props) {
       }, 300) // Match the transition duration
       return () => clearTimeout(timer)
     }
-  }, [props.type, props.msg, props.timeout, shouldRender])
+  }, [props.type, props.msg])
 
   if (!shouldRender) {
     return null

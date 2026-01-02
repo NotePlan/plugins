@@ -155,7 +155,7 @@ export function FormBrowserView({
   }
 
   // State
-  const [selectedSpace, setSelectedSpace] = useState<string>('') // Empty string = Private (default)
+  const [selectedSpace, setSelectedSpace] = useState<string>('__all__') // '__all__' = show all spaces (default)
   const [filterText, setFilterText] = useState<string>('')
   const [templates, setTemplates] = useState<Array<FormTemplate>>([])
   const [selectedTemplate, setSelectedTemplate] = useState<?FormTemplate>(null)
@@ -186,7 +186,7 @@ export function FormBrowserView({
     try {
       setLoading(true)
       const responseData = await requestFromPlugin('getFormTemplates', {
-        space: selectedSpace,
+        space: selectedSpace || '__all__', // Default to showing all spaces if not set
       })
       // requestFromPlugin resolves with the data from the response (result.data from handler)
       // The handler returns { success: true, data: formTemplates }
@@ -215,6 +215,8 @@ export function FormBrowserView({
         setLoading(true)
         const responseData = await requestFromPlugin('getFormFields', {
           templateFilename: template.filename,
+          templateTitle: template.label,
+          windowId: windowIdRef.current || '',
         })
         // requestFromPlugin resolves with the data from the response (result.data from handler)
         // The handler now returns { success: true, data: { formFields, frontmatter } }

@@ -67,12 +67,19 @@ export function ProcessingMethodSection({
   const [selectedProcessingTemplateFilename, setSelectedProcessingTemplateFilename] = useState<string>('')
 
   // Initialize selectedProcessingTemplateFilename from notes when receivingTemplateTitle is set
+  // Also update when notes load (for timing issue fix)
   React.useEffect(() => {
     const currentTitle = frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''
     if (currentTitle && notes.length > 0) {
-      const matchingNote = notes.find((note: NoteOption) => note.title === currentTitle)
+      const matchingNote = notes.find((note: NoteOption) => {
+        // Match by title (preferred) or filename
+        return note.title === currentTitle || note.filename === currentTitle
+      })
       if (matchingNote && matchingNote.filename) {
         setSelectedProcessingTemplateFilename(matchingNote.filename)
+      } else {
+        // If no match found but we have a title, clear the filename to prevent stale state
+        setSelectedProcessingTemplateFilename('')
       }
     } else {
       setSelectedProcessingTemplateFilename('')
@@ -647,7 +654,7 @@ export function ProcessingMethodSection({
               <InfoIcon text="A separate template note that will process the form submission. This template should be in the @Forms directory and have type 'forms-processor'. The template receives the form data as JSON and can perform complex processing logic." />
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: '250px', maxWidth: '400px' }}>
                 <NoteChooser
                   label=""
                   value={frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''}
@@ -678,32 +685,41 @@ export function ProcessingMethodSection({
                   spaceFilter={frontmatter.space || ''}
                   startFolder="@Forms"
                   filterByType="forms-processor"
-                  allowBackwardsCompatible={true}
+                  allowBackwardsCompatible={true} // Allow backwards compatible matches but also show all filtered notes
                   compactDisplay={true}
                   requestFromPlugin={requestFromPlugin}
                   onNotesChanged={() => {
                     onLoadNotes(true) // Load only project notes for processing templates (faster)
                   }}
-                  onOpen={() => {
-                    // Lazy load notes when dropdown opens
+                  onOpen={async () => {
+                    // Lazy load notes when dropdown opens - always reload to ensure fresh data
                     // For processing templates, only need project notes (faster)
-                    if (notes.length === 0) {
-                      onLoadNotes(true).catch((error) => {
-                        console.error('Error loading notes:', error)
-                      })
+                    try {
+                      await onLoadNotes(true, true) // Force reload to get all available templates
+                    } catch (error) {
+                      console.error('Error loading notes:', error)
                     }
                   }}
                   isLoading={notes.length === 0 && loadingNotes}
                 />
               </div>
-              {selectedProcessingTemplateFilename && (
+              {(selectedProcessingTemplateFilename || (frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle)) && (
                 <button
                   type="button"
                   onClick={async () => {
                     try {
-                      await requestFromPlugin('openNote', {
-                        filename: selectedProcessingTemplateFilename,
-                      })
+                      // If we have a filename, use it; otherwise try to find it from the title
+                      let filenameToOpen = selectedProcessingTemplateFilename
+                      if (!filenameToOpen && notes.length > 0) {
+                        const currentTitle = frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''
+                        const matchingNote = notes.find((note: NoteOption) => note.title === currentTitle)
+                        filenameToOpen = matchingNote?.filename || ''
+                      }
+                      if (filenameToOpen) {
+                        await requestFromPlugin('openNote', {
+                          filename: filenameToOpen,
+                        })
+                      }
                     } catch (error) {
                       console.error('openNote: Error opening note:', error)
                     }

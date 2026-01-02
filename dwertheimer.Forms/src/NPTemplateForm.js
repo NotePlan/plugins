@@ -4,10 +4,13 @@ import pluginJson from '../plugin.json'
 import { type PassedData } from './shared/types.js'
 // Note: getAllNotesAsOptions is no longer used here - FormView loads notes dynamically via requestFromPlugin
 import { testRequestHandlers, updateFormLinksInNote, removeEmptyLinesFromNote } from './requestHandlers'
-import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, getFormTemplateList } from './templateIO.js'
-import { openFormWindow, openFormBuilderWindow, getFormBrowserWindowId } from './windowManagement.js'
+import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, getFormTemplateList, findDuplicateFormTemplates } from './templateIO.js'
+import { openFormWindow, openFormBuilderWindow, getFormBrowserWindowId, getFormBuilderWindowId, getFormWindowId } from './windowManagement.js'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
+import { chooseNoteV2 } from '@helpers/NPnote'
+import { sendBannerMessage } from '@helpers/HTMLView'
+import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { waitForCondition } from '@helpers/promisePolyfill'
 import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
@@ -87,6 +90,34 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
     let selectedTemplate // will be a filename
     if (templateTitle?.trim().length) {
       const options = getFormTemplateList()
+      const duplicates = findDuplicateFormTemplates(templateTitle)
+
+      if (duplicates.length > 1) {
+        // Multiple forms with same title found - show warning
+        const duplicateFilenames = duplicates.map((d) => d.value).join(', ')
+        const warningMsg = `⚠️ WARNING: Multiple forms found with the title "${templateTitle}". This may cause confusion. Opening the first match. Duplicate files: ${
+          duplicates.length
+        } found.\n\nPlease rename one of these forms to avoid conflicts.\n\nFilenames:\n${duplicates.map((d, i) => `${i + 1}. ${d.value}`).join('\n')}`
+
+        // Try to show banner in any open form/form builder windows
+        const formBrowserWindowId = getFormBrowserWindowId()
+        const formBuilderWindowId = getFormBuilderWindowId(templateTitle)
+        const formWindowId = getFormWindowId(templateTitle)
+
+        if (isHTMLWindowOpen(formBrowserWindowId)) {
+          await sendBannerMessage(formBrowserWindowId, warningMsg, 'WARN', 10000)
+        } else if (isHTMLWindowOpen(formBuilderWindowId)) {
+          await sendBannerMessage(formBuilderWindowId, warningMsg, 'WARN', 10000)
+        } else if (isHTMLWindowOpen(formWindowId)) {
+          await sendBannerMessage(formWindowId, warningMsg, 'WARN', 10000)
+        } else {
+          // No window open, show regular message
+          await showMessage(warningMsg)
+        }
+
+        logWarn(pluginJson, `openTemplateForm: Found ${duplicates.length} forms with title "${templateTitle}": ${duplicateFilenames}`)
+      }
+
       const chosenOpt = options.find((option) => option.label === templateTitle)
       if (chosenOpt) {
         // variable passed is a note title, but we need the filename
@@ -336,6 +367,34 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
     if (templateTitle?.trim().length) {
       logDebug(pluginJson, `openFormBuilder: Using provided templateTitle`)
       const options = getFormTemplateList()
+      const duplicates = findDuplicateFormTemplates(templateTitle)
+
+      if (duplicates.length > 1) {
+        // Multiple forms with same title found - show warning
+        const duplicateFilenames = duplicates.map((d) => d.value).join(', ')
+        const warningMsg = `⚠️ WARNING: Multiple forms found with the title "${templateTitle}". This may cause confusion. Opening the first match. Duplicate files: ${
+          duplicates.length
+        } found.\n\nPlease rename one of these forms to avoid conflicts.\n\nFilenames:\n${duplicates.map((d, i) => `${i + 1}. ${d.value}`).join('\n')}`
+
+        // Try to show banner in any open form/form builder windows
+        const formBrowserWindowId = getFormBrowserWindowId()
+        const formBuilderWindowId = getFormBuilderWindowId(templateTitle)
+        const formWindowId = getFormWindowId(templateTitle)
+
+        if (isHTMLWindowOpen(formBrowserWindowId)) {
+          await sendBannerMessage(formBrowserWindowId, warningMsg, 'WARN', 10000)
+        } else if (isHTMLWindowOpen(formBuilderWindowId)) {
+          await sendBannerMessage(formBuilderWindowId, warningMsg, 'WARN', 10000)
+        } else if (isHTMLWindowOpen(formWindowId)) {
+          await sendBannerMessage(formWindowId, warningMsg, 'WARN', 10000)
+        } else {
+          // No window open, show regular message
+          await showMessage(warningMsg)
+        }
+
+        logWarn(pluginJson, `openFormBuilder: Found ${duplicates.length} forms with title "${templateTitle}": ${duplicateFilenames}`)
+      }
+
       const chosenOpt = options.find((option) => option.label === templateTitle)
       if (chosenOpt) {
         selectedTemplate = chosenOpt.value
@@ -552,9 +611,80 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         // $FlowFixMe[incompatible-type] - showOptions returns number index
       } else if (createNew.index === 1 || createNew.value === 'Edit Existing Form') {
         logDebug(pluginJson, `openFormBuilder: User chose to edit existing form`)
-        // Edit existing
-        selectedTemplate = await NPTemplating.chooseTemplate('template-form')
-        logDebug(pluginJson, `openFormBuilder: User selected existing template: "${selectedTemplate || 'none'}"`)
+
+        // Filter form templates from all spaces
+        // Find notes that are:
+        // - In @Forms folder AND have type 'template-form', OR
+        // - In @Templates folder AND have type 'template-form'
+        const allNotes = DataStore.projectNotes
+        const formTemplateNotes = allNotes.filter((note) => {
+          const noteType = note.frontmatterAttributes?.type
+          if (noteType !== 'template-form') {
+            return false
+          }
+
+          const filename = note.filename || ''
+          const isInFormsFolder = filename.includes('@Forms')
+          const isInTemplatesFolder = filename.includes('@Templates') || (filename.includes('%%NotePlanCloud%%') && filename.includes('@Templates'))
+
+          return isInFormsFolder || isInTemplatesFolder
+        })
+
+        if (formTemplateNotes.length === 0) {
+          await showMessage('No form templates found. Please create a form template first.')
+          logDebug(pluginJson, `openFormBuilder: No form templates found, returning`)
+          return
+        }
+
+        logDebug(pluginJson, `openFormBuilder: Found ${formTemplateNotes.length} form templates from all spaces`)
+
+        // Use chooseNoteV2 to get decorated note selection
+        const selectedNote = await chooseNoteV2(
+          'Choose a form template to edit:',
+          formTemplateNotes,
+          false, // includeCalendarNotes
+          false, // includeFutureCalendarNotes
+          false, // currentNoteFirst
+          false, // allowNewRegularNoteCreation
+        )
+
+        if (!selectedNote) {
+          logDebug(pluginJson, `openFormBuilder: User cancelled note selection, returning`)
+          return
+        }
+
+        selectedTemplate = selectedNote.filename || ''
+        logDebug(pluginJson, `openFormBuilder: User selected existing template: "${selectedNote.title || 'none'}" at "${selectedTemplate}"`)
+
+        // Check for duplicates after selection
+        const selectedNoteTitle = selectedNote.title || selectedNote.filename || ''
+        if (selectedNoteTitle) {
+          const duplicates = findDuplicateFormTemplates(selectedNoteTitle)
+          if (duplicates.length > 1) {
+            const duplicateFilenames = duplicates.map((d) => d.value).join(', ')
+            const warningMsg = `⚠️ WARNING: Multiple forms found with the title "${selectedNoteTitle}". This may cause confusion. Duplicate files: ${
+              duplicates.length
+            } found.\n\nPlease rename one of these forms to avoid conflicts.\n\nFilenames:\n${duplicates.map((d, i) => `${i + 1}. ${d.value}`).join('\n')}`
+
+            // Try to show banner in any open form/form builder windows
+            const formBrowserWindowId = getFormBrowserWindowId()
+            const formBuilderWindowId = getFormBuilderWindowId(selectedNoteTitle)
+            const formWindowId = getFormWindowId(selectedNoteTitle)
+
+            if (isHTMLWindowOpen(formBrowserWindowId)) {
+              await sendBannerMessage(formBrowserWindowId, warningMsg, 'WARN', 10000)
+            } else if (isHTMLWindowOpen(formBuilderWindowId)) {
+              await sendBannerMessage(formBuilderWindowId, warningMsg, 'WARN', 10000)
+            } else if (isHTMLWindowOpen(formWindowId)) {
+              await sendBannerMessage(formWindowId, warningMsg, 'WARN', 10000)
+            } else {
+              // No window open, show regular message
+              await showMessage(warningMsg)
+            }
+
+            logWarn(pluginJson, `openFormBuilder: Found ${duplicates.length} forms with title "${selectedNoteTitle}": ${duplicateFilenames}`)
+          }
+        }
       } else {
         logDebug(pluginJson, `openFormBuilder: User cancelled, returning`)
         return // cancelled

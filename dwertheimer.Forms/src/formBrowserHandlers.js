@@ -9,7 +9,8 @@ import { openFormBuilder } from './NPTemplateForm'
 import { handleSubmitButtonClick } from './formSubmission'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
-import { logDebug, logError } from '@helpers/dev'
+import { logDebug, logError, logWarn } from '@helpers/dev'
+import { findDuplicateFormTemplates } from './templateIO'
 import { getNoteByFilename, getNote } from '@helpers/note'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { getFolderFromFilename } from '@helpers/folders'
@@ -165,7 +166,7 @@ export function getFormTemplates(params: { space?: string } = {}): RequestRespon
  * @param {string} params.templateFilename - The template filename
  * @returns {RequestResponse}
  */
-export async function getFormFields(params: { templateFilename?: string } = {}): Promise<RequestResponse> {
+export async function getFormFields(params: { templateFilename?: string, templateTitle?: string, windowId?: string } = {}): Promise<RequestResponse> {
   try {
     const templateFilename = params.templateFilename
     if (!templateFilename) {
@@ -185,6 +186,25 @@ export async function getFormFields(params: { templateFilename?: string } = {}):
         success: false,
         message: `Template not found: ${templateFilename}`,
         data: null,
+      }
+    }
+    
+    // Check for duplicate titles if templateTitle is provided
+    const templateTitle = params.templateTitle || templateNote.title
+    if (templateTitle) {
+      const duplicates = findDuplicateFormTemplates(templateTitle)
+      if (duplicates.length > 1) {
+        // Multiple forms with same title found - include warning in response
+        const duplicateFilenames = duplicates.map((d) => d.value).join(', ')
+        const warningMsg = `⚠️ WARNING: Multiple forms found with the title "${templateTitle}". This may cause confusion. Duplicate files: ${duplicates.length} found. Please rename one of these forms to avoid conflicts.`
+        logWarn(pluginJson, `getFormFields: Found ${duplicates.length} forms with title "${templateTitle}": ${duplicateFilenames}`)
+        
+        // Send banner message to React window if windowId is provided
+        if (params.windowId && typeof params.windowId === 'string' && params.windowId.length > 0) {
+          const { sendBannerMessage } = await import('@helpers/HTMLView')
+          // $FlowFixMe[incompatible-call] - We've checked that windowId is a string above
+          await sendBannerMessage(params.windowId, warningMsg, 'WARN', 10000)
+        }
       }
     }
 
