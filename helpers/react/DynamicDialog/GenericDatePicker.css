@@ -21,28 +21,34 @@
   flex: 0 0 auto; /* Don't flex, use fixed width */
 }
 
-/* Ensure calendar icon is visible in all browsers, especially Safari */
-/* The native calendar icon should appear automatically on the right side */
+/* Ensure calendar icon is visible in all browsers */
+/* Chrome/Edge: The native calendar icon should be visible */
 .generic-date-picker-input::-webkit-calendar-picker-indicator {
+  opacity: 0.7 !important;
+  filter: opacity(0.7) !important; /* Alternative method for opacity */
   cursor: pointer;
-  opacity: 1 !important; /* Force visibility */
-  display: inline-block !important; /* Ensure it displays */
-  width: auto !important;
-  height: auto !important;
-  /* Don't position absolutely - let browser handle native positioning */
+  width: 16px;
+  height: 16px;
 }
 
-/* Safari-specific: ensure calendar icon is visible and properly styled */
-/* Safari needs the native appearance to show the calendar icon */
+/* Safari-specific: ensure calendar icon is visible */
+/* Note: Safari's native calendar icon may not respect opacity/filter changes */
+/* Safari shows the calendar icon automatically, but ensure it's not being hidden */
+/* Don't set -webkit-appearance: none on the input as that removes the calendar icon */
 @supports (-webkit-appearance: none) {
-  /* Safari's native calendar icon styling - ensure it's visible */
+  /* Only target the indicator, not the input itself */
   .generic-date-picker-input::-webkit-calendar-picker-indicator {
-    opacity: 1 !important;
-    display: inline-block !important;
+    opacity: 0.7 !important;
+    filter: opacity(0.7) !important; /* Try filter as alternative */
     visibility: visible !important;
-    -webkit-appearance: calendar-picker-indicator !important; /* Force Safari's native indicator */
-    appearance: auto; /* Use native appearance */
+    display: inline-block !important;
+    -webkit-appearance: calendar-picker-indicator !important;
+    appearance: auto !important;
     cursor: pointer;
+    width: 18px !important;
+    height: 18px !important;
+    /* Safari positions the icon automatically on the right */
+    /* Note: Native Safari UI elements may not be fully stylable */
   }
 }
 
