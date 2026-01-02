@@ -1004,8 +1004,9 @@ export async function saveAutosave(params: { filename: string, content: string, 
     const restoreLinkText = `[Restore form from autosave](${restoreUrl})`
     const noteContent = note.content || ''
     
-    // Remove existing restore link if present (look for the pattern)
-    let updatedContent = noteContent.replace(/\[Restore form from autosave\]\(noteplan:\/\/[^\)]+\)\n?/g, '')
+    // Remove existing restore link if present (look for the pattern, including any trailing newline and blank lines)
+    // Remove the link and up to 2 following newlines (to clean up extra blank lines)
+    let updatedContent = noteContent.replace(/\[Restore form from autosave\]\(noteplan:\/\/[^\)]+\)\n{0,2}/g, '')
     
     // Split content into lines for easier manipulation
     const lines = updatedContent.split('\n')
@@ -1020,8 +1021,29 @@ export async function saveAutosave(params: { filename: string, content: string, 
       insertIndex = fmEndIndex + 1
     }
     
-    // Insert the restore link at the calculated index
-    lines.splice(insertIndex, 0, restoreLinkText, '') // Add link and a blank line
+    // Check if restore link already exists (shouldn't happen after removal, but be safe)
+    const existingLinkIndex = lines.findIndex((line) => line.includes('[Restore form from autosave]'))
+    if (existingLinkIndex === -1) {
+      // Only insert if it doesn't already exist
+      // Check what's at the insert position and after to avoid adding extra blank lines
+      const lineAtInsert = lines[insertIndex] || ''
+      const lineAfterInsert = lines[insertIndex + 1] || ''
+      
+      // If the line at insert position is already blank, just insert the link
+      if (lineAtInsert.trim() === '') {
+        lines[insertIndex] = restoreLinkText
+      } else {
+        // Insert link and ensure exactly one blank line after it
+        lines.splice(insertIndex, 0, restoreLinkText)
+        // If the next line isn't blank, add one blank line
+        if (insertIndex + 1 >= lines.length || lines[insertIndex + 1].trim() !== '') {
+          lines.splice(insertIndex + 1, 0, '')
+        }
+      }
+    } else {
+      // Link exists, just update it (don't add extra blank lines)
+      lines[existingLinkIndex] = restoreLinkText
+    }
     updatedContent = lines.join('\n')
 
     // Update the note content
