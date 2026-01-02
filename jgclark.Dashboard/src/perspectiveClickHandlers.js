@@ -136,6 +136,7 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
  * @returns {TBridgeClickHandlerResult} - the result of the switch to perspective
  */
 export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  // aka doSwitchPerspective
   const switchToName = data?.perspectiveName || ''
   if (!switchToName) {
     logError('doSwitchToPerspective', `No perspective name provided.`)

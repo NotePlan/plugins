@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2025-11-28 for v2.3.0.b16
+// Last updated 2026-01-01 for v2.4.0-b4
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -27,6 +27,7 @@ import { isOpen } from '@helpers/utils'
 /**
  * Shared helper function to get paragraph data for today's note.
  * Used by both DT and TB section generation to avoid duplicate data fetching.
+ * TODO: look at caching this data for slightly better performance.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
@@ -39,8 +40,8 @@ function getTodayParasData(
 ): [Array<TParagraphForDashboard>, Array<TParagraphForDashboard>, string, string, TNote | null] {
   const NPSettings = getNotePlanSettings()
   const thisFilename = `${getTodaysDateUnhyphenated()}.${NPSettings.defaultFileExtension}`
-  const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
-  const currentDailyNote: TNote | null = DataStore.calendarNoteByDateString(filenameDateStr) // ✅ reliable
+  const filenameDateStr: string = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
+  const currentDailyNote: ?TNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅ reliable
   let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
   let sortedRefParas: Array<TParagraphForDashboard> = []
 
@@ -202,13 +203,13 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         },
         {
           actionName: 'moveAllTodayToTomorrow',
+          actionParam: 'true' /* refresh afterwards */,
           actionPluginID: `${pluginJson['plugin.id']}`,
           display: 'All <i class="fa-solid fa-right-long"></i> Tomorrow',
           tooltip: config.rescheduleNotMove
             ? '(Re)Schedule all open items from today to tomorrow. (Press ⌘-click to move instead.)'
             : 'Move all open items from today to tomorrow. (Press ⌘-click to (re)schedule instead.)',
-          actionParam: 'true' /* refresh afterwards */,
-          postActionRefresh: config.showTimeBlockSection ? ['DT', 'TB', 'DO'] : ['DT', 'DO'], // refresh sections afterwards
+          postActionRefresh: config.showTimeBlockSection ? ['DT', 'TB', 'DO'] : ['DT', 'DO'],
         },
       ],
     }
