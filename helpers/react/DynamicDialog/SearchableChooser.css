@@ -3,41 +3,41 @@
 /* This ensures consistent styling across all chooser components */
 
 /* Base container - applies to all choosers */
+/* Non-compact choosers should be wider and flexible - don't constrain width here */
 .searchable-chooser-base {
   position: relative;
-  width: var(--dynamic-dialog-input-width, 180px); /* Standardized width to match other inputs */
-  max-width: var(--dynamic-dialog-input-width, 180px); /* Prevent expansion, can be overridden in form-specific CSS */
   margin-bottom: 0.75rem;
   overflow: visible !important; /* Ensure dropdown is not clipped */
 }
 
+/* Compact mode: constrain width to match other input fields */
 .searchable-chooser-base.compact {
   display: inline-flex;
   align-items: center;
   gap: 1rem; /* Match input-box-container-compact gap */
   margin-bottom: 0;
-  width: auto; /* In compact mode, let it size based on content */
+  width: auto; /* In compact mode, let container size based on content */
   max-width: none;
   margin-left: 0; /* Ensure no left margin to align with other fields */
 }
 
 /* All chooser containers inherit base styles - use both patterns for compatibility */
+/* Non-compact containers should be wider and flexible - don't constrain width here */
 .searchable-chooser-base[class*="-chooser-container"],
 [class*="-chooser-container"] {
   /* Inherits from .searchable-chooser-base above */
   position: relative;
-  width: var(--dynamic-dialog-input-width, 180px); /* Match standardized input width */
-  max-width: var(--dynamic-dialog-input-width, 180px);
   margin-bottom: 0.75rem;
   box-sizing: border-box;
 }
 
+/* Compact mode: constrain width to match other input fields */
 [class*="-chooser-container"].compact {
   display: inline-flex;
   align-items: center;
   gap: 1rem; /* Match input-box-container-compact gap */
   margin-bottom: 0;
-  width: auto; /* Let it size based on content in compact mode */
+  width: auto; /* Let container size based on content in compact mode */
   max-width: none;
 }
 
@@ -272,19 +272,21 @@
   text-overflow: ellipsis; /* CSS truncation for normal cases, JS truncation for very long items */
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start; /* Left-justify content - right side will use margin-left: auto to push itself right */
   /* gap: 0.5rem; */
   text-indent: 0; /* Reset text-indent for options - they already have padding */
 }
 
 /* Left side of option (icon + text) */
+/* Uses flex: 1 to grow, but respects right side space reservation */
 .searchable-chooser-option-left {
   display: flex;
   align-items: center;
   justify-content: flex-start; /* Left-align content */
-  flex: 1;
+  flex: 1 1 0; /* Grow to fill available space, but allow shrinking */
   min-width: 0; /* Allow text truncation */
   overflow: hidden;
+  max-width: 100%; /* Prevent expanding beyond container */
 }
 
 .searchable-chooser-base [class*="-chooser-option-left"],
@@ -292,9 +294,10 @@
   display: flex;
   align-items: center;
   justify-content: flex-start; /* Left-align content */
-  flex: 1;
+  flex: 1 1 0; /* Grow to fill available space, but allow shrinking */
   min-width: 0; /* Allow text truncation */
   overflow: hidden;
+  max-width: 100%; /* Prevent expanding beyond container */
 }
 
 /* Text within option left side */
@@ -312,14 +315,18 @@
 }
 
 /* Right side of option (short description) */
+/* Always rendered to reserve space even when empty */
 .searchable-chooser-option-right {
   flex-shrink: 0;
+  flex-grow: 0; /* Don't grow */
   margin-left: auto;
   white-space: nowrap;
   color: var(--gray-500, #666);
   font-size: 0.9em;
   opacity: 0.7;
   text-align: right;
+  min-width: 0; /* Allow to be 0 width when empty, but flex-shrink: 0 prevents being compressed below natural width when it has content */
+  padding-left: 1rem; /* Add spacing between left and right content */
 }
 
 /* Two-line layout for options */
@@ -412,12 +419,15 @@
 .searchable-chooser-base [class*="-chooser-option-right"],
 [class*="-chooser-option-right"] {
   flex-shrink: 0;
+  flex-grow: 0; /* Don't grow */
   margin-left: auto;
   white-space: nowrap;
   color: var(--gray-500, #666);
   font-size: 0.9em;
   opacity: 0.7;
   text-align: right;
+  min-width: 0; /* Allow to be 0 width when empty, but flex-shrink: 0 prevents being compressed below natural width when it has content */
+  padding-left: 1rem; /* Add spacing between left and right content */
 }
 
 .searchable-chooser-option:hover,

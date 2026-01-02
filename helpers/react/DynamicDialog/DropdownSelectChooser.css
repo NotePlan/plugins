@@ -61,20 +61,21 @@
 }
 
 /* Ensure arrow is positioned inside the input wrapper */
+/* Non-compact: let wrapper size naturally */
 .dropdown-select-chooser-input-wrapper {
   position: relative;
-  width: var(--dynamic-dialog-input-width, 180px); /* Match standardized input width */
-  max-width: var(--dynamic-dialog-input-width, 180px); /* Prevent expansion */
-  margin-left: 0; /* Align with other inputs in compact mode */
-  flex: 0 0 auto; /* Don't flex, use fixed width */
+  width: 100%; /* Use full width of parent container in non-compact mode */
+  margin-left: 0;
   box-sizing: border-box;
 }
 
-/* In compact mode, ensure proper alignment */
+/* In compact mode only: constrain width to match other input fields */
 .searchable-chooser-base.compact .dropdown-select-chooser-input-wrapper,
 .dropdown-select-chooser-container.compact .dropdown-select-chooser-input-wrapper {
-  width: var(--dynamic-dialog-input-width, 180px);
-  max-width: var(--dynamic-dialog-input-width, 180px);
+  width: var(--dynamic-dialog-input-width, 180px); /* Match standardized input width */
+  max-width: var(--dynamic-dialog-input-width, 180px); /* Prevent expansion */
+  min-width: var(--dynamic-dialog-input-width, 180px); /* Ensure full width */
+  flex: 0 0 auto; /* Don't flex, use fixed width */
   margin-left: 0; /* Match input-box-wrapper alignment */
 }
 

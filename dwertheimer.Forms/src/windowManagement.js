@@ -494,7 +494,7 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
           : `Form Builder - ${templateTitleForWindow}`
         : 'Form Builder',
       logProfilingMessage: false,
-      debug: false,
+      debug: true,
       ENV_MODE,
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormBuilderAction' },
       componentPath: `../dwertheimer.Forms/react.c.FormBuilderView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,

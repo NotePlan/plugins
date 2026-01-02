@@ -170,18 +170,20 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   ) // Memoize to prevent infinite loops - only recreate if dispatch or windowId changes
 
   // Load folders on demand when needed (matching FormBuilder pattern)
+  // Always load all folders (space: null) so folder-choosers with space dependencies can filter client-side
   const loadFolders = useCallback(async () => {
     if (foldersLoaded || loadingFolders || !needsFolders) return
 
     try {
       setLoadingFolders(true)
-      logDebug('FormView', 'Loading folders on demand...')
+      logDebug('FormView', 'Loading folders on demand... (all spaces)')
       // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-      const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true })
+      // Pass space: null to get all folders from all spaces (FolderChooser will filter client-side based on spaceFilter prop)
+      const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true, space: null })
       if (Array.isArray(foldersData)) {
         setFolders(foldersData)
         setFoldersLoaded(true)
-        logDebug('FormView', `Loaded ${foldersData.length} folders`)
+        logDebug('FormView', `Loaded ${foldersData.length} folders (all spaces)`)
       } else {
         logError('FormView', `Failed to load folders: Invalid response format`)
         setFoldersLoaded(true) // Set to true to prevent infinite retries
@@ -195,16 +197,18 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   }, [foldersLoaded, loadingFolders, needsFolders, requestFromPlugin])
 
   // Reload folders (used after creating a new folder)
+  // Always load all folders (space: null) so folder-choosers with space dependencies can filter client-side
   const reloadFolders = useCallback(async () => {
     try {
       setLoadingFolders(true)
       setFoldersLoaded(false) // Reset to allow reload
-      logDebug('FormView', 'Reloading folders after folder creation...')
-      const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true })
+      logDebug('FormView', 'Reloading folders after folder creation... (all spaces)')
+      // Pass space: null to get all folders from all spaces
+      const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true, space: null })
       if (Array.isArray(foldersData)) {
         setFolders(foldersData)
         setFoldersLoaded(true)
-        logDebug('FormView', `Reloaded ${foldersData.length} folders`)
+        logDebug('FormView', `Reloaded ${foldersData.length} folders (all spaces)`)
       } else {
         logError('FormView', `Failed to reload folders: Invalid response format`)
         setFoldersLoaded(true)

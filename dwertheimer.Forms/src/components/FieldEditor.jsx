@@ -512,6 +512,40 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 </label>
                 <div className="field-editor-help">When enabled, displays the short description (e.g., folder path, space name) on a second line below the label</div>
               </div>
+              <div className="field-editor-row">
+                <label>Source Space Field (value dependency, optional):</label>
+                <select
+                  value={
+                    ((editedField: any): { sourceSpaceKey?: string, dependsOnSpaceKey?: string }).sourceSpaceKey ||
+                    ((editedField: any): { sourceSpaceKey?: string, dependsOnSpaceKey?: string }).dependsOnSpaceKey ||
+                    ''
+                  }
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).sourceSpaceKey = e.target.value || undefined
+                    // Also set old property for backward compatibility
+                    if (e.target.value) {
+                      ;(updated: any).dependsOnSpaceKey = e.target.value
+                    } else {
+                      delete (updated: any).dependsOnSpaceKey
+                    }
+                    setEditedField(updated)
+                  }}
+                >
+                  <option value="">None (show folders from all spaces)</option>
+                  {allFields
+                    .filter((f) => f.key && f.type === 'space-chooser' && f.key !== editedField.key)
+                    .map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label || f.key} ({f.key})
+                      </option>
+                    ))}
+                </select>
+                <div className="field-editor-help">
+                  If specified, folders will be filtered by the space selected in the space-chooser field. This is a <strong>value dependency</strong> - the field needs the value
+                  from another field to function.
+                </div>
+              </div>
             </>
           )}
 

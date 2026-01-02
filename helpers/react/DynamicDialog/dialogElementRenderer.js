@@ -455,10 +455,26 @@ export function renderItem({
           includeFolderPath: (item: any).includeFolderPath,
           excludeTeamspaces: (item: any).excludeTeamspaces,
         }
+        // Support both old (dependsOnSpaceKey) and new (sourceSpaceKey) property names for backward compatibility
+        const itemAny = (item: any)
+        const sourceSpaceKey = itemAny.sourceSpaceKey ?? itemAny.dependsOnSpaceKey
+
+        // Get space value from the sourceSpaceKey field if specified
+        let spaceFilter: ?string = null
+        if (sourceSpaceKey && updatedSettings && typeof updatedSettings === 'object') {
+          const spaceValue = updatedSettings[sourceSpaceKey]
+          if (spaceValue !== null && spaceValue !== undefined) {
+            // spaceValue can be empty string (Private), teamspace ID, or "__all__"
+            spaceFilter = spaceValue === '__all__' ? null : String(spaceValue)
+          }
+        } else {
+          // If no dependency, use item.spaceFilter if provided
+          spaceFilter = itemAny.spaceFilter
+        }
 
         logDebug(
           'dialogElementRenderer',
-          `folder-chooser: folders=${folders?.length || 0}, label=${label}, currentValue="${currentValue}", options=${JSON.stringify(folderChooserOptions)}`,
+          `folder-chooser: folders=${folders?.length || 0}, label=${label}, currentValue="${currentValue}", spaceFilter="${spaceFilter != null ? String(spaceFilter) : 'null'}", sourceSpaceKey="${sourceSpaceKey || 'none'}", options=${JSON.stringify(folderChooserOptions)}`,
         )
 
         const handleFolderChange = (folder: string) => {
@@ -484,6 +500,7 @@ export function renderItem({
               startFolder={folderChooserOptions.startFolder}
               includeFolderPath={folderChooserOptions.includeFolderPath}
               excludeTeamspaces={folderChooserOptions.excludeTeamspaces}
+              spaceFilter={spaceFilter}
               requestFromPlugin={requestFromPlugin}
               showValue={item.showValue ?? false}
               onFoldersChanged={onFoldersChanged}

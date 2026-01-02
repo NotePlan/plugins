@@ -231,7 +231,8 @@ export function FormBrowserView({
 
           if (needsFolders) {
             try {
-              const foldersData = await requestFromPlugin('getFolders', {})
+              // Pass space: null to get all folders from all spaces (FolderChooser will filter client-side based on spaceFilter prop)
+              const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true, space: null })
               if (Array.isArray(foldersData)) {
                 setFolders(foldersData)
               }

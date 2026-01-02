@@ -335,7 +335,7 @@ export function NoteChooser({
     }
     // Add a special "New Note" option at the beginning
     const newNoteOption: NoteOption = {
-      title: '➕ New Note',
+      title: 'New Note',
       filename: '__NEW_NOTE__',
       type: 'Notes',
     }
@@ -355,14 +355,14 @@ export function NoteChooser({
     },
     getDisplayValue: (note: NoteOption) => {
       if (note.filename === '__NEW_NOTE__') {
-        return '➕ New Note'
+        return 'New Note'
       }
       return note.title
     },
     getOptionText: (note: NoteOption) => {
       // Handle "New Note" option
       if (note.filename === '__NEW_NOTE__') {
-        return '➕ New Note'
+        return 'New Note'
       }
       // If showTitleOnly is true, always return just the title
       if (showTitleOnly) {
@@ -424,8 +424,14 @@ export function NoteChooser({
     maxResults: 25,
     inputMaxLength: 100, // Large value - CSS handles most truncation based on actual width
     dropdownMaxLength: 80, // Large value for dropdown - only truncate very long items
-    getOptionIcon: (note: NoteOption) => getNoteDecoration(note).icon,
-    getOptionColor: (note: NoteOption) => getNoteDecoration(note).color,
+    getOptionIcon: (note: NoteOption) => {
+      if (note.filename === '__NEW_NOTE__') return 'file-circle-plus'
+      return getNoteDecoration(note).icon
+    },
+    getOptionColor: (note: NoteOption) => {
+      if (note.filename === '__NEW_NOTE__') return 'orange-500'
+      return getNoteDecoration(note).color
+    },
     getOptionShortDescription: (note: NoteOption) => getNoteDecoration(note).shortDescription,
     shortDescriptionOnLine2,
   }

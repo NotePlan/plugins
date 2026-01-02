@@ -3,6 +3,7 @@
 /* Wrapper for folder chooser and description */
 .folder-chooser-wrapper {
   width: 100%;
+  position: relative;
 }
 
 .folder-chooser-wrapper-compact {
@@ -12,15 +13,59 @@
   flex-direction: row;
   align-items: center;
   gap: 1rem; /* Match input-box-container-compact gap */
+  position: relative;
+}
+
+/* Description text - hidden by default, shown on hover */
+/* Use tooltip-style approach: show description on hover of the chooser wrapper */
+.folder-chooser-description {
+  display: none; /* Hidden by default */
+}
+
+.folder-chooser-wrapper:hover .folder-chooser-description {
+  display: block;
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background-color: var(--bg-main-color, #fff);
+  padding: 0.5rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
 }
 
 /* Description text alignment in compact mode */
 .folder-chooser-description-compact {
-  margin-left: 9rem; /* Align with input field: 8rem (label width) + 1rem (label padding-right) */
+  display: none; /* Hidden by default */
+}
+
+.folder-chooser-wrapper-compact:hover .folder-chooser-description-compact {
+  display: block;
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 9rem; /* Align with input field: 8rem (label width) + 1rem (label padding-right) */
+  right: 0;
+  z-index: 10;
+  background-color: var(--bg-main-color, #fff);
+  padding: 0.5rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
 }
 
 /* Also apply to any chooser description in compact mode */
 .searchable-chooser-base.compact + div[style*="fontSize"][style*="0.85rem"],
 [class*="-chooser-container"].compact + div[style*="fontSize"][style*="0.85rem"] {
   margin-left: 9rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.searchable-chooser-base.compact:hover + div[style*="fontSize"][style*="0.85rem"],
+[class*="-chooser-container"].compact:hover + div[style*="fontSize"][style*="0.85rem"] {
+  opacity: 1;
+  visibility: visible;
 }

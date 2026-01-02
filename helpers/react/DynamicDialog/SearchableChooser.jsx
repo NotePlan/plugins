@@ -647,16 +647,18 @@ export function SearchableChooser({
                           {truncatedText}
                         </span>
                       </span>
-                      {optionShortDesc && (
-                        <span
-                          className={`searchable-chooser-option-right ${classNamePrefix}-option-right`}
-                          style={{
-                            color: optionColor ? `var(--${optionColor}, var(--gray-500, #666))` : undefined,
-                          }}
-                        >
-                          {optionShortDesc}
-                        </span>
-                      )}
+                      {/* Always render right side to reserve space, even if empty */}
+                      {/* In single-line mode (not shortDescriptionOnLine2), reserve space even when empty */}
+                      <span
+                        className={`searchable-chooser-option-right ${classNamePrefix}-option-right`}
+                        style={{
+                          color: optionColor ? `var(--${optionColor}, var(--gray-500, #666))` : undefined,
+                          // Reserve minimum space when in single-line mode and no shortDescription
+                          minWidth: !shortDescriptionOnLine2 && !optionShortDesc ? '8rem' : undefined,
+                        }}
+                      >
+                        {optionShortDesc || ''}
+                      </span>
                     </div>
                   )
                 })

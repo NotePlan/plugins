@@ -97,6 +97,8 @@ export type TSettingItem = {
   startFolder?: string, // for folder-chooser, folder to start the list in (e.g. to limit folders to a specific subfolder)
   includeFolderPath?: boolean, // for folder-chooser, show the folder path (or most of it), not just the last folder name
   excludeTeamspaces?: boolean, // for folder-chooser, exclude teamspace folders from the list
+  dependsOnSpaceKey?: string, // DEPRECATED: use sourceSpaceKey instead. For folder-chooser, key of a space-chooser field to filter folders by space (value dependency)
+  sourceSpaceKey?: string, // Value dependency: for folder-chooser, key of a space-chooser field to filter folders by space
   // heading-chooser options
   dependsOnNoteKey?: string, // DEPRECATED: use sourceNoteKey instead. For heading-chooser, the key of a note-chooser field to get headings from dynamically (value dependency)
   sourceNoteKey?: string, // Value dependency: for heading-chooser and markdown-preview, the key of a note-chooser field to get note data from dynamically

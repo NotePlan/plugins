@@ -103,13 +103,19 @@ export async function testRequestHandlers(): Promise<void> {
  * @param {boolean} params.excludeTrash - Whether to exclude @Trash folder (default: true)
  * @returns {RequestResponse}
  */
-export function getFolders(params: { excludeTrash?: boolean, space?: string } = {}): RequestResponse {
+export function getFolders(params: { excludeTrash?: boolean, space?: ?string } = {}): RequestResponse {
   const startTime: number = Date.now()
   try {
-    logDebug(pluginJson, `[DIAG] getFolders START: excludeTrash=${String(params.excludeTrash ?? true)}`)
+    const spaceParam = params.space
+    logDebug(
+      pluginJson,
+      `[DIAG] getFolders START: excludeTrash=${String(params.excludeTrash ?? true)}, space=${spaceParam != null ? String(spaceParam) : 'null/undefined (all spaces)'}`,
+    )
 
     const excludeTrash = params.excludeTrash ?? true
-    const spaceId = params.space ?? '' // Empty string = Private (default)
+    // Don't default spaceId - if null/undefined, don't filter (show all spaces)
+    // Empty string means Private space only, teamspace ID means specific teamspace only
+    const spaceId = spaceParam
     const exclusions = excludeTrash ? ['@Trash'] : []
 
     // Get all folders except exclusions. Include special folders (@Templates, @Archive, etc.) and teamspaces, sorted
@@ -118,7 +124,7 @@ export function getFolders(params: { excludeTrash?: boolean, space?: string } = 
     const foldersElapsed: number = Date.now() - foldersStartTime
     logDebug(pluginJson, `[DIAG] getFolders getFoldersMatching: elapsed=${foldersElapsed}ms, found=${folders.length} folders`)
 
-    // Filter by space if specified
+    // Filter by space if specified (empty string = Private, teamspace ID = specific teamspace, null/undefined = all spaces)
     if (spaceId !== null && spaceId !== undefined) {
       folders = folders.filter((folder: string) => {
         // Root folder - only include for Private space
