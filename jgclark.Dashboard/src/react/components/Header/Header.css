@@ -1,5 +1,6 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated 2026-01-01 for v2.4.0.b4 by @jgclark */
+/* Last updated 2026-01-02 for v2.4.0.b5 by @jgclark */
+
 /* TODO: SearchPanel transition is not working well yet. Not sure if that's because of this file or SearchPanel.css */
 
 /* Container for header and search panel */
@@ -7,7 +8,7 @@
 	position: sticky;
 	width: 100%;
 	z-index: 10;
-	top: 0px;
+	top: var(--noteplan-toolbar-height, 0);
 	background-color: var(--bg-sidebar-color);
 }
 

@@ -1,17 +1,16 @@
 /* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
-/* Last updated 2025-11-29 for v2.3.0.b16 by @jgclark */
+/* Last updated 2026-01-02 for v2.4.0.b5 by @jgclark */
 
 /* Style for the settings dialog */
 .settings-dialog {
     font-family: system-ui;
-    /* background-color: var(--bg-main-color); */
     background-color: var(--bg-mid-color);
     position: fixed;
-    top: 50%;
+    top: calc(50% + var(--noteplan-toolbar-height, 0)/2);
     left: 50%;
     transform: translate(-50%, -48%); /* second param needs to be a little lower than 50% to avoid hiding the Header bar, as we want to see Perspective name */
-    width: 80%;
-    /* max-width: 600px; */
+    width: clamp(380px, 86%, 700px);
+    max-height: calc(90% - var(--noteplan-toolbar-height, 0));
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     /* z-index: 1000; */

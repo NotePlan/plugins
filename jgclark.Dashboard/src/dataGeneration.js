@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-01-01 for v2.4.0-b4, @jgclark
+// Last updated 2026-01-01 for v2.4.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -27,7 +27,7 @@ import { openMonthParas, refMonthParas, tagParasFromNote } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import { removeInvalidTagSections } from './perspectiveHelpers'
 import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
-import { getDateStringFromCalendarFilename, getNPMonthStr, getNPQuarterStr, getNPYearStr } from '@helpers/dateTime'
+import { getNPMonthStr, getNPQuarterStr, getNPYearStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 // import { sortListBy } from '@helpers/sorting'

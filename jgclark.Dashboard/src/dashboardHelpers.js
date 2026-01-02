@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-12-23 for v2.4.0.b3, @jgclark
+// Last updated 2026-01-01 for v2.4.0-b4, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -265,8 +265,6 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
         const startTimeStr = startTime ? getTimeStringFromHM(startTime.hours, startTime.mins) : 'none'
         const outputPara: TParagraphForDashboard = {
           filename: p?.filename ?? '',
-          // TEST: removing the following workaround to fix regular teamspace paras.
-          // noteType: p.noteType === 'teamspaceNote' ? 'Notes' : note.type,
           noteType: p?.noteType ?? note?.type ?? 'Notes',
           // Get title, but don't add the 👥 icon and teamspace name for Teamspace notes. Fallback is to use the note.title, which will be ISO-8601 date for Calendar notes.
           title: note.type === 'Notes' ? displayTitle(note, false) : note.title,

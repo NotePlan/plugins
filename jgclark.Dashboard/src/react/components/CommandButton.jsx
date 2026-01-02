@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Buttons on the UI, including adding tasks and checklists to today's note
-// Last updated 2025-04-08 for 2.2.0.a12
+// Last updated 2026-01-02 for v2.4.0.b5 by @jgclark
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -49,11 +49,6 @@ function CommandButton(inputObj: ButtonProps): React$Node {
         title: button.tooltip,
         submitOnEnter: button.submitOnEnter,
         submitButtonText: button.submitButtonText,
-        // TODO: can this be removed or refactored?
-        style: {
-          top: '40%',
-        },
-
       })
       userInputObj ? sendButtonAction(button, userInputObj, modifierName) : null
     } else {
