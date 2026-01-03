@@ -1,12 +1,7 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2025-12-10 for v2.4.0 by @jgclark */
+/* Last updated 2026-01-02 for v2.4.0.b5 by @jgclark */
 
 html {
-	/* Define 'Named Colors' -------------------------------- */
-	--teamspace-color: #269F54;
-	--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%); /* for subtle colouring - not yet used */
-	--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%); /* for subtle colouring - not yet used */
-
 	/* Add a gutter to the scrollbar to prevent it from overlapping with the content. Available in Safari, but not sure when it becomes available in NotePlan. */
 	scrollbar-gutter: stable;
 

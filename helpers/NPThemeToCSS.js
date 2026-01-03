@@ -115,6 +115,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     rootSel.push(`--bg-main-color: ${bgMainColor}`)
 
     // Set the NP fixed colours for sidebar, divider, etc.
+    rootSel.push(`--teamspace-color: #269F54`)
     if (currentThemeMode === 'light') {
       rootSel.push(`--fg-sidebar-color: #242E32`)
       rootSel.push(`--bg-sidebar-color: #ECECEC`) // moving from #F6F6F6 to #DADADA in 3 steps
@@ -148,6 +149,13 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
         const lineSpacingRem = (Number(styleObj?.lineSpacing) * 1.5).toPrecision(3) // some fudge factor seems to be needed
         rootSel.push(`--body-line-height: ${String(lineSpacingRem)}rem`)
       }
+
+      // TEST: Add some other colors based from main fg/bg colors
+      rootSel.push(`--fg-placeholder-color: rgba(from var(--fg-main-color) r g b / 0.7)`)
+      rootSel.push(`--fg-error-color: color-mix(in oklch, var(--fg-main-color), red 20%)`)
+      rootSel.push(`--fg-ok-color: color-mix(in oklch, var(--fg-main-color), green 20%)`)
+      rootSel.push(`--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%)`)
+      rootSel.push(`--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%)`)
     }
 
     // Set H1 from styles.title1
