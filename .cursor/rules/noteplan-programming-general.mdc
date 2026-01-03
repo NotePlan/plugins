@@ -274,6 +274,7 @@ See `@helpers/react/DynamicDialog/DynamicDialog.jsx` and `dialogElementRenderer.
 ## NotePlan Theme Colors
 
 When using CSS variables for styling, use these NotePlan theme color variables with their default values:
+**DO NOT INVENT NEW CSS VARIABLES. USE THESE EXISTING ONES.**
 
 ```css
 --bg-main-color: #eff1f5;
@@ -302,6 +303,7 @@ When using CSS variables for styling, use these NotePlan theme color variables w
 
 **Always use these CSS variables with their default fallback values** when styling React components. For example:
 ```css
-background: var(--tint-color, #dc8a78);
+background: var(--bg-main-color, #eff1f5);
 color: var(--fg-main-color, #4c4f69);
+icon: var(--tint-color, #1e66f5);
 ```
