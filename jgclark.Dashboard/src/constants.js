@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 2025-12-03 for v2.3.3, @jgclark
+// Last updated 2026-01-01 for v2.4.0, @jgclark
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -12,6 +12,7 @@ import type { TSectionDetails, TSectionCode } from './types'
 export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 
 export const allSectionDetails: Array<TSectionDetails> = [
+  { sectionCode: 'TB', sectionName: 'Current time block', showSettingName: 'showTimeBlockSection' },
   { sectionCode: 'DT', sectionName: 'Today', showSettingName: 'showTodaySection' },
   { sectionCode: 'DY', sectionName: 'Yesterday', showSettingName: 'showYesterdaySection' },
   { sectionCode: 'DO', sectionName: 'Tomorrow', showSettingName: 'showTomorrowSection' },
@@ -27,7 +28,6 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
   { sectionCode: 'PRIORITY', sectionName: 'Priority', showSettingName: 'showPrioritySection' },
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
-  { sectionCode: 'TB', sectionName: 'Current time block', showSettingName: 'showTimeBlockSection' },
   { sectionCode: 'SEARCH', sectionName: 'Search', showSettingName: '' },
   { sectionCode: 'INFO', sectionName: 'Info', showSettingName: 'showInfoSection' },
   // For possible future use:

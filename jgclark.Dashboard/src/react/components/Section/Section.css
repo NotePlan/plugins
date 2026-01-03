@@ -193,11 +193,9 @@
 		padding-right: 0.5rem;
 	}
 
-	/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
-	/* And https://www.joshwcomeau.com/snippets/react-components/shift-by/ might be useful if tiny tweaks are still needed. */
+	/* Override justification of these buttons in section title area */
 	.buttonsWithoutBordersOrBackground {
 		justify-self: start;
-		/* padding-top: 1px; */
 	}
 }
 

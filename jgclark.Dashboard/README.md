@@ -138,6 +138,7 @@ The display will **automatically refresh** in the background if you set the "Aut
 
 <img src="teamspace-title-2.3.0.png" width="300px" margin="8px" border="1px solid grey" alt="example of (Team)Space title" align="center"/>
 
+(From v2.4) The settings screen allow you to specify which (Team)Spaces and/or the Private notes you wish to include in the current Perspective.
 
 ### Current Time Block section
 [Time blocks in NotePlan](https://help.noteplan.co/article/121-time-blocking) are a helpful way to help you plan your days. If you define some, they appear in the calendar sidebar.  If the current time is within a time block, then this section appears at the top of the Dashboard. For example:
@@ -282,6 +283,10 @@ triggers: onEditorWillSave => jgclark.Dashboard.onEditorWillSave
 ```
 
 Note: If you use the 'Overdue Tasks' section, this can add some delay before the dashboard window is updated if you have hundreds of overdue tasks 🥺. So this section is deliberately not updated when a trigger has fired. In practice this shouldn't matter, as editing your daily note won't change any overdue tasks.
+
+## Miscellaneous Features
+### Note Priority Delta
+v2.4 adds the ability to change the displayed priority of all open items in a note by specifying a `note-priority-delta: N` attribute in the note's frontmatter. This adds `N` (or subtracts `-N`) to the priority of every item in that note. This is useful if you have a note where everything in it is important, for example a note about filing and paying taxes. This saves having to clutter the note with priority markers on every task.  Note: This doesn't actually change the items, but just how they're displayed in the Dashboard.
 
 ## Controlling from Shortcuts, Streamdeck etc.
 There are number of 'callback's you can use to control the dashboard from shortcuts, command line, Streamdeck etc.  As these can be fiddly to set up, I recommend using the **/Make Callback from Current Settings** command to generate the appropriately encoded callback URL. This is copied to the clipboard ready to paste elsewhere.

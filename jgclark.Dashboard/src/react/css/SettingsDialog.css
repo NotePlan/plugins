@@ -1,19 +1,18 @@
 /* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
-/* Last updated 2025-11-29 for v2.3.0.b16 by @jgclark */
+/* Last updated 2026-01-02 for v2.4.0.b5 by @jgclark */
 
 /* Style for the settings dialog */
 .settings-dialog {
     font-family: system-ui;
-    /* background-color: var(--bg-main-color); */
     background-color: var(--bg-mid-color);
     position: fixed;
-    top: 50%;
+    top: calc(50% + var(--noteplan-toolbar-height, 0)/2);
     left: 50%;
     transform: translate(-50%, -48%); /* second param needs to be a little lower than 50% to avoid hiding the Header bar, as we want to see Perspective name */
-    width: 80%;
-    /* max-width: 600px; */
+    width: clamp(380px, 86%, 700px);
+    max-height: calc(90% - var(--noteplan-toolbar-height, 0));
     border: none;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     /* z-index: 1000; */
     opacity: 1;
     transition: opacity 0.2s ease-out;
@@ -79,7 +78,7 @@
     /* Darken Cancel button slightly on Hover */
     .cancel-button:hover {
         /* following is a bit of a hack from https://stackoverflow.com/a/31005080/3238281 */
-        box-shadow: inset 0 0 0 50px rgba(0, 0, 0, 0.15);
+        box-shadow: inset 0 0 0 50px rgba(0 0 0 / 0.15);
     }
 
     /* Style for the inactive Save & Close button */
@@ -100,7 +99,7 @@
     /* Darken Save & Close button slightly on Hover */
     .save-button:hover {
         /* following is a bit of a hack from https://stackoverflow.com/a/31005080/3238281 */
-        box-shadow: inset 0 0 0 50px rgba(0, 0, 0, 0.15);
+        box-shadow: inset 0 0 0 50px rgba(0 0 0 / 0.15);
     }
 
     /* Style for switch-line */
@@ -210,7 +209,7 @@
         background-color: var(--tint-color);
         color: var(--bg-main-color);
         cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 5px rgba(0 0 0 / 0.1);
         transition: background-color 0.3s, box-shadow 0.3s;
         height: 30px;
         /* Set height to 75% of the container height */
@@ -230,7 +229,7 @@
     /* Hover style for enabled input-box-save */
     .input-box-save:not(:disabled):hover {
         background-color: #0056b3;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 10px rgba(0 0 0 / 0.2);
     }
 
     /* Style for combobox-container */
@@ -298,7 +297,7 @@
         border: 1px solid #ddd;
         border-radius: 4px;
         background-color: var(--bg-main-color);
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 5px rgba(0 0 0 / 0.1);
         z-index: 5;
     }
 

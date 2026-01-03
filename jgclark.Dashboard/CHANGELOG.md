@@ -9,9 +9,15 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b4] 2025-12-30
+## [2.4.0.b5] 2026-01-02
+- dev: height/width/sticky fixes to use the new `var(--noteplan-toolbar-height, 0)` for mainWindow running
+
+## [2.4.0.b4] 2026-01-01
 - added support for opening the Dashboard in the main app window or a split view, as well as in a separate window. This is controlled in a new setting in the plugin's original settings screen (NotePlan > Settings… > AI & Plugins > Dashboard > ⚙️)
-  Note: when running in the main/split window, clicking on displayed tasks currently doesn't open the containing note editor. Waiting for @EM to deal with "Warning: The web view is null, make sure you are using a windowID to run this Javascript code on the original HTML window you have opened." error.
+- fix to Week section which (depending on settings) could be a year out when the week number has already ticked over to `W01` of the next year.
+- fix to some Header element sizes which mysteriously shrunk
+- another attempt to fix the tooltips getting clipped. Possibly improved some of them, but definitely not all, sorry.
+- dev: separated data generation for Timeblocks section from Today section.
 
 ## [2.4.0.b3] 2025-12-23
 - you can now change the priority shown in the Dashboard of all open items in a note by specifying `note-priority-delta: N` attribute in the note's frontmatter. This adds `N` (or subtracts `-N`) to the relative priority, used when priority filtering is turned on. This is useful if you have a note where everything in it is important, for example a note about filing and paying taxes. This saves having to clutter the note with priority markers.  Note: This doesn't actually change the items, but just how they're displayed in the Dashboard.
