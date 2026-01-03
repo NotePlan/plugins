@@ -463,10 +463,24 @@ export function renderItem({
         let spaceFilter: ?string = null
         if (sourceSpaceKey && updatedSettings && typeof updatedSettings === 'object') {
           const spaceValue = updatedSettings[sourceSpaceKey]
+          // spaceValue can be:
+          // - empty string ('') for Private space
+          // - teamspace ID (UUID string) for a specific teamspace
+          // - "__all__" for all spaces
+          // - "Private" (display value - need to convert to '')
+          // - null/undefined if not set
           if (spaceValue !== null && spaceValue !== undefined) {
-            // spaceValue can be empty string (Private), teamspace ID, or "__all__"
-            spaceFilter = spaceValue === '__all__' ? null : String(spaceValue)
+            if (spaceValue === '__all__') {
+              spaceFilter = null // null means show all spaces
+            } else if (spaceValue === 'Private' || spaceValue === '') {
+              // Handle both empty string and display value "Private"
+              spaceFilter = ''
+            } else {
+              // Teamspace ID
+              spaceFilter = String(spaceValue)
+            }
           }
+          // If spaceValue is null/undefined, spaceFilter stays null (show all)
         } else {
           // If no dependency, use item.spaceFilter if provided
           spaceFilter = itemAny.spaceFilter
@@ -474,7 +488,7 @@ export function renderItem({
 
         logDebug(
           'dialogElementRenderer',
-          `folder-chooser: folders=${folders?.length || 0}, label=${label}, currentValue="${currentValue}", spaceFilter="${spaceFilter != null ? String(spaceFilter) : 'null'}", sourceSpaceKey="${sourceSpaceKey || 'none'}", options=${JSON.stringify(folderChooserOptions)}`,
+          `folder-chooser: folders=${folders?.length || 0}, label=${label}, currentValue="${currentValue}", spaceFilter="${spaceFilter != null && spaceFilter !== '' ? String(spaceFilter) : spaceFilter === '' ? 'empty_string(Private)' : 'null(all)'}", sourceSpaceKey="${sourceSpaceKey || 'none'}", spaceValue="${sourceSpaceKey && updatedSettings && typeof updatedSettings === 'object' ? String(updatedSettings[sourceSpaceKey] || 'undefined') : 'N/A'}", options=${JSON.stringify(folderChooserOptions)}`,
         )
 
         const handleFolderChange = (folder: string) => {
