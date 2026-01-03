@@ -824,7 +824,11 @@ export function getLiveWindowRect(windowId: string): Rect | false {
     clo(windowRect, `getLiveWindowRect(): Retrieved ${rectToString(windowRect)} from win id '${windowId}'`)
     return windowRect
   } else {
-    logWarn('getLiveWindowRect', `Couldn't retrieve windowRect from win id '${windowId}'`)
+    if (windowId !== '') {
+      logWarn('getLiveWindowRect', `Couldn't retrieve windowRect from win id '${windowId}'`)
+    } else {
+      logDebug('getLiveWindowRect', `No HTML Windows available`)
+    }
     return false
   }
 }
