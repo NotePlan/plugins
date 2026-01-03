@@ -145,7 +145,7 @@
 .searchable-chooser-base [class*="-chooser-manual-entry-indicator"],
 [class*="-chooser-manual-entry-indicator"] {
   position: absolute;
-  top: 50%;
+  top: 56%;
   transform: translateY(-50%);
   font-size: 0.75rem;
   color: var(--tint-color, #007AFF);
@@ -169,7 +169,7 @@
 [class*="-chooser-icon"] {
   position: absolute;
   right: 0.5rem; /* Position inside the border - match padding-right of input */
-  top: 50%;
+  top: 56%;
   transform: translateY(-50%);
   color: var(--tint-color, #1e66f5);
   opacity: 0.6; /* Lower opacity to match calendar icon */
@@ -194,7 +194,7 @@
 [class*="-chooser-arrow"] {
   position: absolute;
   right: 0.5rem; /* Position inside the border - match padding-right of input */
-  top: 50%;
+  top: 56%;
   transform: translateY(-50%);
   color: var(--tint-color, #1e66f5);
   opacity: 0.6; /* Lower opacity to match calendar icon */
