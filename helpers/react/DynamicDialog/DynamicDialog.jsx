@@ -153,6 +153,8 @@ export type TSettingItem = {
   autosaveInterval?: number, // for autosave, interval in seconds between saves (default: 2)
   autosaveFilename?: string, // for autosave, filename pattern (default: "@Trash/Autosave-<ISO8601>")
   invisible?: boolean, // for autosave, if true, hide the UI but still perform autosaves (default: false)
+  // width option for SearchableChooser-based fields (folder-chooser, note-chooser, space-chooser, heading-chooser, dropdown-select, event-chooser)
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '70px', '300px'). Overrides default width even in compact mode. Must be valid CSS width value.
 }
 
 export type TDynamicDialogProps = {

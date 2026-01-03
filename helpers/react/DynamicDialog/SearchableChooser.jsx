@@ -79,6 +79,7 @@ export type SearchableChooserProps = {
   compactDisplay?: boolean,
   placeholder?: string,
   showValue?: boolean, // If true, display the selected value below the input
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   config: ChooserConfig,
   closeDropdown?: boolean, // If true, force close the dropdown (resets after closing)
   onOpen?: () => void, // Callback when dropdown opens (for lazy loading) - can be async internally
@@ -99,6 +100,7 @@ export function SearchableChooser({
   compactDisplay = false,
   placeholder = 'Type to search...',
   showValue = false,
+  width,
   config,
   closeDropdown = false,
   onOpen,
@@ -427,7 +429,7 @@ export function SearchableChooser({
           {label}
         </label>
       )}
-      <div className={`${classNamePrefix}-input-wrapper`}>
+      <div className={`${classNamePrefix}-input-wrapper`} style={width ? { width: width, maxWidth: width, minWidth: width } : undefined}>
         <input
           id={`${classNamePrefix}-${label || 'default'}`}
           ref={inputRef}

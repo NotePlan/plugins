@@ -108,6 +108,62 @@ export async function testFormFieldRender(): Promise<void> {
         label: 'Chooser Fields',
       },
       {
+        type: 'space-chooser',
+        label: 'Space Chooser',
+        key: 'testSpace',
+        showValue: true, // Show the selected value for debugging
+        description: 'Select a Space (Private or Teamspace). This is used to filter folders below.',
+      },
+      {
+        type: 'separator',
+        label: 'Custom Width Examples',
+      },
+      {
+        type: 'folder-chooser',
+        label: 'Folder Chooser (Compact, Custom Width: 80vw)',
+        key: 'testFolderCompact80vw',
+        compactDisplay: true,
+        width: '80vw',
+        showValue: true,
+        description: 'Compact display with custom width of 80vw. Width overrides default even in compact mode.',
+      },
+      {
+        type: 'note-chooser',
+        label: 'Note Chooser (Non-Compact, Custom Width: 79%)',
+        key: 'testNote79Percent',
+        compactDisplay: false,
+        width: '79%',
+        showValue: true,
+        description: 'Non-compact display with custom width of 79%. Width applies to the input field.',
+      },
+      {
+        type: 'dropdown-select',
+        label: 'Dropdown (Compact, Custom Width: 300px)',
+        key: 'testDropdown300px',
+        compactDisplay: true,
+        width: '300px',
+        options: ['Option 1', 'Option 2', 'Option 3', 'Option 4', 'Option 5'],
+        showValue: true,
+        description: 'Compact display with custom width of 300px. Width overrides default even in compact mode.',
+      },
+      {
+        type: 'space-chooser',
+        label: 'Space Chooser (Non-Compact, Custom Width: calc(100% - 40px))',
+        key: 'testSpaceCalc',
+        compactDisplay: false,
+        width: 'calc(100% - 40px)',
+        showValue: true,
+        description: 'Non-compact display with custom width using calc(). Demonstrates advanced CSS width values.',
+      },
+      {
+        type: 'space-chooser',
+        label: 'Space Chooser (With All Option)',
+        key: 'testSpaceWithAll',
+        includeAllOption: true,
+        showValue: true,
+        description: 'Space chooser with "All Private + Spaces" option that returns "__all__"',
+      },
+      {
         type: 'folder-chooser',
         label: 'Folder Chooser',
         key: 'testFolder',
@@ -115,6 +171,26 @@ export async function testFormFieldRender(): Promise<void> {
         startFolder: 'Projects',
         showValue: true, // Show the selected value for debugging
         description: 'Loads folders dynamically when form opens',
+      },
+      {
+        type: 'separator',
+        label: 'Folder Chooser with Space Dependency',
+      },
+      {
+        type: 'space-chooser',
+        label: 'Space Chooser (for Folder Dependency)',
+        key: 'testSpaceForFolder',
+        showValue: true,
+        description: 'Select a space to filter folders in the chooser below',
+      },
+      {
+        type: 'folder-chooser',
+        label: 'Folder Chooser (Depends on Space)',
+        key: 'testFolderDependsOnSpace',
+        sourceSpaceKey: 'testSpaceForFolder',
+        includeNewFolderOption: true,
+        showValue: true,
+        description: 'This folder chooser filters folders by the space selected above. Select a space first, then this will show only folders from that space.',
       },
       {
         type: 'note-chooser',
@@ -200,7 +276,7 @@ export async function testFormFieldRender(): Promise<void> {
       {
         type: 'folder-chooser',
         label: 'Folder Chooser (for Note Dependency)',
-        key: 'testFolder',
+        key: 'testFolderForNote',
         includeNewFolderOption: true,
         showValue: true,
         description: 'Select a folder to filter notes in the chooser below',
@@ -209,7 +285,7 @@ export async function testFormFieldRender(): Promise<void> {
         type: 'note-chooser',
         label: 'Note Chooser (Depends on Folder)',
         key: 'testNoteDependsOnFolder',
-        dependsOnFolderKey: 'testFolder',
+        sourceFolderKey: 'testFolderForNote',
         includePersonalNotes: true,
         includeCalendarNotes: false,
         includeRelativeNotes: false,
@@ -249,7 +325,7 @@ export async function testFormFieldRender(): Promise<void> {
         type: 'note-chooser',
         label: 'Note Chooser (Depends on Folder + Can Create)',
         key: 'testNoteDependsOnFolderWithCreate',
-        dependsOnFolderKey: 'testFolderForCreate',
+        sourceFolderKey: 'testFolderForCreate',
         includeNewNoteOption: true,
         includePersonalNotes: true,
         includeCalendarNotes: false,
@@ -272,7 +348,7 @@ export async function testFormFieldRender(): Promise<void> {
         type: 'heading-chooser',
         label: 'Heading Chooser (Dynamic)',
         key: 'testHeadingDynamic',
-        dependsOnNoteKey: 'testNote',
+        sourceNoteKey: 'testNote',
         defaultHeading: 'Tasks',
         optionAddTopAndBottom: true,
         showValue: true, // Show the selected value for debugging
@@ -290,6 +366,58 @@ export async function testFormFieldRender(): Promise<void> {
         selectedDate: new Date(),
         numberOfMonths: 1,
         description: 'Date picker calendar field',
+      },
+      {
+        type: 'calendarpicker',
+        label: 'Calendar Picker (Multiple Months)',
+        key: 'testCalendarMultiMonth',
+        selectedDate: new Date(),
+        numberOfMonths: 3,
+        size: 0.8,
+        description: 'Date picker showing 3 months at a time, scaled to 80%',
+      },
+      {
+        type: 'separator',
+        label: 'Event Chooser',
+      },
+      {
+        type: 'event-chooser',
+        label: 'Event Chooser (Today)',
+        key: 'testEventToday',
+        eventDate: new Date(),
+        showValue: true,
+        description: 'Event chooser for today\'s date (default)',
+      },
+      {
+        type: 'event-chooser',
+        label: 'Event Chooser (With Filters)',
+        key: 'testEventFiltered',
+        eventDate: new Date(),
+        allCalendars: true,
+        includeReminders: true,
+        showValue: true,
+        description: 'Event chooser with all calendars and reminders enabled',
+      },
+      {
+        type: 'separator',
+        label: 'Event Chooser with Date Dependency',
+      },
+      {
+        type: 'calendarpicker',
+        label: 'Date Picker (for Event Dependency)',
+        key: 'testDateForEvent',
+        selectedDate: new Date(),
+        numberOfMonths: 1,
+        description: 'Select a date to load events for that date in the chooser below',
+      },
+      {
+        type: 'event-chooser',
+        label: 'Event Chooser (Depends on Date)',
+        key: 'testEventDependsOnDate',
+        sourceDateKey: 'testDateForEvent',
+        allCalendars: true,
+        showValue: true,
+        description: 'This event chooser loads events for the date selected above. Change the date to see different events.',
       },
       {
         type: 'separator',
@@ -327,6 +455,76 @@ export async function testFormFieldRender(): Promise<void> {
         value: 'hidden-value',
         description: 'Hidden field (not visible but included in form data)',
       },
+      // Note: 'multi-select' is not included in this test because it requires functions
+      // (multiSelectGetLabel, multiSelectGetValue) that cannot be serialized to JSON when
+      // passing form fields to the React window. Multi-select fields work in actual forms
+      // because they are configured in the Form Builder where functions can be stored
+      // and reconstructed. For testing multi-select, create a real form template instead.
+      // {
+      //   type: 'multi-select',
+      //   label: 'Multi-Select (Simple Options)',
+      //   key: 'testMultiSelect',
+      //   multiSelectItems: [...],
+      //   multiSelectGetLabel: (item: any): string => item.name,
+      //   multiSelectGetValue: (item: any): string => item.id,
+      //   ...
+      // },
+      {
+        type: 'separator',
+        label: 'Markdown Preview',
+      },
+      {
+        type: 'markdown-preview',
+        label: 'Markdown Preview (Static Text)',
+        markdownText: '# Static Markdown\n\nThis is **static** markdown text.\n\n- Item 1\n- Item 2\n- Item 3',
+        description: 'Markdown preview with static text content',
+      },
+      {
+        type: 'markdown-preview',
+        label: 'Markdown Preview (Note by Filename)',
+        markdownNoteFilename: '📋 Templates/Form Templates/Example Form',
+        description: 'Markdown preview loading content from a note by filename',
+      },
+      {
+        type: 'separator',
+        label: 'Markdown Preview with Note Dependency',
+      },
+      {
+        type: 'note-chooser',
+        label: 'Note Chooser (for Markdown Preview)',
+        key: 'testNoteForMarkdown',
+        includePersonalNotes: true,
+        includeCalendarNotes: false,
+        includeRelativeNotes: false,
+        includeTeamspaceNotes: true,
+        showValue: true,
+        description: 'Select a note to preview its markdown content below',
+      },
+      {
+        type: 'markdown-preview',
+        label: 'Markdown Preview (Depends on Note)',
+        sourceNoteKey: 'testNoteForMarkdown',
+        description: 'This markdown preview displays the content of the note selected above. Select a note to see its rendered markdown.',
+      },
+      {
+        type: 'separator',
+        label: 'Autosave',
+      },
+      {
+        type: 'autosave',
+        label: 'Autosave Field',
+        key: 'testAutosave',
+        autosaveInterval: 2,
+        description: 'Automatically saves form state every 2 seconds. Shows "Saved X ago" status.',
+      },
+      {
+        type: 'autosave',
+        label: 'Autosave Field (Invisible)',
+        key: 'testAutosaveInvisible',
+        autosaveInterval: 5,
+        invisible: true,
+        description: 'Invisible autosave field that saves every 5 seconds without showing UI',
+      },
       {
         type: 'separator',
         label: 'Form State Viewer',
@@ -339,6 +537,8 @@ export async function testFormFieldRender(): Promise<void> {
       },
       // Note: 'orderingPanel' is not included as it's typically used in specific contexts
       // and may require special setup. Add it if needed for testing.
+      // Note: 'templatejs-block' is intentionally hidden in DynamicDialog preview (only visible in Form Builder),
+      // so it's not included in this test.
     ]
 
     const testArgObj = {
@@ -365,6 +565,7 @@ export async function testFormFieldRender(): Promise<void> {
     }
     logInfo(pluginJson, '📋 Form Field Render Test includes:')
     logInfo(pluginJson, '  • All DynamicDialog field types')
+    logInfo(pluginJson, '  • Field dependencies: folder→space, note→folder, heading→note, event→date, markdown→note')
     logInfo(pluginJson, '  • Folder/note choosers load dynamically when form opens')
     logInfo(pluginJson, '  • Check Plugin Console for [DIAG] logs showing request/response timing')
   } catch (error) {

@@ -172,13 +172,20 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--tint-color, #1e66f5);
+  opacity: 0.6; /* Lower opacity to match calendar icon */
   pointer-events: none;
-  transition: transform 0.2s;
+  transition: transform 0.2s, opacity 0.2s;
 }
 
 .searchable-chooser-base [class*="-chooser-icon"].open,
 [class*="-chooser-icon"].open {
   transform: translateY(-50%) rotate(90deg);
+}
+
+/* Increase icon opacity on hover */
+.searchable-chooser-base:hover [class*="-chooser-icon"],
+.searchable-chooser-base [class*="-chooser-input-wrapper"]:hover [class*="-chooser-icon"] {
+  opacity: 0.8;
 }
 
 /* Arrow - matches any {prefix}-arrow within base */
@@ -190,8 +197,9 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--tint-color, #1e66f5);
+  opacity: 0.6; /* Lower opacity to match calendar icon */
   pointer-events: none;
-  transition: transform 0.2s;
+  transition: transform 0.2s, opacity 0.2s;
   font-size: 0.75rem;
   z-index: 1;
   /* Ensure arrow stays within input boundaries */
@@ -200,6 +208,12 @@
 .searchable-chooser-base [class*="-chooser-arrow"].open,
 [class*="-chooser-arrow"].open {
   transform: translateY(-50%) rotate(180deg);
+}
+
+/* Increase arrow opacity on hover */
+.searchable-chooser-base:hover [class*="-chooser-arrow"],
+.searchable-chooser-base [class*="-chooser-input-wrapper"]:hover [class*="-chooser-arrow"] {
+  opacity: 0.8;
 }
 
 /* Dropdown - use direct class name for maximum compatibility */

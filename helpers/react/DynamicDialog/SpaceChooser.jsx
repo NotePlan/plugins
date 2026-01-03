@@ -24,6 +24,7 @@ export type SpaceChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>,
   showValue?: boolean, // If true, display the selected value below the input
   includeAllOption?: boolean, // If true, include "All Private + Spaces" option that returns "__all__"
@@ -43,6 +44,7 @@ export function SpaceChooser({
   disabled = false,
   compactDisplay = false,
   placeholder = 'Type to search spaces...',
+  width,
   requestFromPlugin,
   showValue = false,
   includeAllOption = false,
@@ -244,6 +246,7 @@ export function SpaceChooser({
       compactDisplay={compactDisplay}
       placeholder={placeholder}
       showValue={showValue}
+      width={width}
       config={config}
       isLoading={isLoading}
     />

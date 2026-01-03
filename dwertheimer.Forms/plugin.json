@@ -152,7 +152,7 @@
       "jsFunction": "testRequestHandlers"
     },
     {
-      "name": "All Form Fields Render Test",
+      "name": "DynamicDialog: All Form Fields Render Test",
       "alias": [
         "testfields",
         "fieldtest"

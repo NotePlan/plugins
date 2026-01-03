@@ -263,6 +263,7 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder}
+              width={(item: any).width}
               showValue={item.showValue ?? false}
             />
           </div>
@@ -509,6 +510,7 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search folders...'}
+              width={(item: any).width}
               includeArchive={folderChooserOptions.includeArchive}
               includeNewFolderOption={folderChooserOptions.includeNewFolderOption}
               startFolder={folderChooserOptions.startFolder}
@@ -559,6 +561,7 @@ export function renderItem({
               onChange={handleNoteChange}
               disabled={disabled}
               compactDisplay={compactDisplay}
+              width={(item: any).width}
               includeCalendarNotes={item.includeCalendarNotes ?? false}
               includePersonalNotes={item.includePersonalNotes ?? true}
               includeRelativeNotes={item.includeRelativeNotes ?? false}
@@ -615,6 +618,7 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search headings...'}
+              width={(item: any).width}
               defaultHeading={defaultHeading}
               optionAddTopAndBottom={optionAddTopAndBottom}
               includeArchive={includeArchive}
@@ -683,6 +687,7 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search events...'}
+              width={(item: any).width}
               showValue={item.showValue ?? false}
               requestFromPlugin={requestFromPlugin}
               selectedCalendars={selectedCalendars}
@@ -810,6 +815,7 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search spaces...'}
+              width={(item: any).width}
               requestFromPlugin={requestFromPlugin}
               showValue={item.showValue ?? false}
               includeAllOption={item.includeAllOption ?? false}

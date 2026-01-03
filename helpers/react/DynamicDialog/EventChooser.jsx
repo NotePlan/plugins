@@ -41,6 +41,7 @@ export type EventChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   showValue?: boolean, // If true, display the selected value below the input
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request events from plugin
   selectedCalendars?: Array<string>, // Optional array of calendar titles to filter events by (ignored if allCalendars=true)
@@ -187,6 +188,7 @@ export function EventChooser({
   disabled = false,
   compactDisplay = false,
   placeholder = 'Type to search events...',
+  width,
   showValue = false,
   requestFromPlugin,
   selectedCalendars,
@@ -212,7 +214,9 @@ export function EventChooser({
         return parsed
       }
     }
-    const result = date || new Date()
+    // Parse date prop if it exists, otherwise use today
+    const parsedDate = date ? parseDateFromField(date) : null
+    const result = parsedDate || new Date()
     logDebug('EventChooser', `[DIAG] Using date prop or today: ${result.toDateString()}, ISO: ${result.toISOString()}`)
     return result
   }, [date, dateFromField])
@@ -554,6 +558,7 @@ export function EventChooser({
       compactDisplay={compactDisplay}
       placeholder={placeholder}
       showValue={showValue}
+      width={width}
       config={config}
       isLoading={isLoading}
     />

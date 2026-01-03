@@ -19,16 +19,38 @@
   padding-right: 60px; /* Make room for native calendar icon + clear button */
   box-sizing: border-box; /* Ensure padding is included in width calculation */
   flex: 0 0 auto; /* Don't flex, use fixed width */
+  /* Use accent-color to set the selected date color to tint-color */
+  /* This controls the selected date background in the native date picker popup */
+  accent-color: var(--tint-color, #dc8a78) !important;
+  /* Also set color-scheme to ensure accent-color is respected */
+  color-scheme: light;
+}
+
+/* Use tint-color for focus state border */
+.generic-date-picker-input:focus {
+  border-color: var(--tint-color, #dc8a78);
+  outline-color: var(--tint-color, #dc8a78);
+  accent-color: var(--tint-color, #dc8a78) !important;
 }
 
 /* Ensure calendar icon is visible in all browsers */
 /* Chrome/Edge: The native calendar icon should be visible */
+/* Use tint-color for the calendar picker indicator at lower opacity */
+
 .generic-date-picker-input::-webkit-calendar-picker-indicator {
-  opacity: 0.7 !important;
-  filter: opacity(0.7) !important; /* Alternative method for opacity */
+  opacity: 0.6 !important;
   cursor: pointer;
   width: 16px;
   height: 16px;
+  filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(330deg) brightness(104%) contrast(86%) !important;
+  /* Apply tint-color via filter - this approximates #dc8a78 (default tint-color) */
+  /* Note: Native browser elements may have limited styling support */
+}
+
+/* Use tint-color for calendar picker indicator when input is focused */
+.generic-date-picker-input:focus::-webkit-calendar-picker-indicator {
+  opacity: 0.8 !important;
+  filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(330deg) brightness(104%) contrast(86%) !important;
 }
 
 /* Safari-specific: ensure calendar icon is visible */
@@ -37,9 +59,9 @@
 /* Don't set -webkit-appearance: none on the input as that removes the calendar icon */
 @supports (-webkit-appearance: none) {
   /* Only target the indicator, not the input itself */
+  /* Use tint-color for Safari calendar picker indicator at lower opacity */
   .generic-date-picker-input::-webkit-calendar-picker-indicator {
-    opacity: 0.7 !important;
-    filter: opacity(0.7) !important; /* Try filter as alternative */
+    opacity: 0.6 !important;
     visibility: visible !important;
     display: inline-block !important;
     -webkit-appearance: calendar-picker-indicator !important;
@@ -47,8 +69,16 @@
     cursor: pointer;
     width: 18px !important;
     height: 18px !important;
+    /* Apply tint-color via filter - this approximates #dc8a78 (default tint-color) */
+    filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(330deg) brightness(104%) contrast(86%) !important;
     /* Safari positions the icon automatically on the right */
     /* Note: Native Safari UI elements may not be fully stylable */
+  }
+  
+  /* Use tint-color when input is focused in Safari */
+  .generic-date-picker-input:focus::-webkit-calendar-picker-indicator {
+    opacity: 0.8 !important;
+    filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(330deg) brightness(104%) contrast(86%) !important;
   }
 }
 

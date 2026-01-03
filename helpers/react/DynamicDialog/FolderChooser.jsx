@@ -22,6 +22,7 @@ export type FolderChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   // Advanced options
   includeArchive?: boolean,
   includeNewFolderOption?: boolean,
@@ -49,6 +50,7 @@ export function FolderChooser({
   disabled = false,
   compactDisplay = false,
   placeholder = 'Type to search folders...',
+  width,
   includeArchive = false,
   includeNewFolderOption = false,
   startFolder,
@@ -448,6 +450,7 @@ export function FolderChooser({
         compactDisplay={compactDisplay}
         placeholder={placeholder}
         showValue={showValue}
+        width={width}
         config={config}
         closeDropdown={closeDropdown}
       />

@@ -15,6 +15,18 @@ type FieldEditorProps = {
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Optional function to call plugin commands
 }
 
+/**
+ * Validate CSS width value
+ * @param {string} value - The width value to validate
+ * @returns {boolean} - True if valid CSS width value
+ */
+function isValidCSSWidth(value: string): boolean {
+  if (!value || value.trim() === '') return true // Empty is valid (means use default)
+  // Match valid CSS width values: px, %, em, rem, vw, vh, ch, ex, cm, mm, in, pt, pc, or calc()
+  const cssWidthRegex = /^(\d+(\.\d+)?(px|%|em|rem|vw|vh|ch|ex|cm|mm|in|pt|pc)|calc\([^)]+\)|auto|inherit|initial|unset|max-content|min-content|fit-content)$/i
+  return cssWidthRegex.test(value.trim())
+}
+
 export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlugin }: FieldEditorProps): Node {
   const [editedField, setEditedField] = useState<TSettingItem>({ ...field })
   const [calendars, setCalendars] = useState<Array<string>>([])
@@ -24,6 +36,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
   const calendarsLoadingRef = useRef<boolean>(false)
   const reminderListsLoadingRef = useRef<boolean>(false)
   const requestFromPluginRef = useRef<typeof requestFromPlugin>(requestFromPlugin)
+  const [widthError, setWidthError] = useState<string>('')
 
   // Track previous field key to detect actual field changes
   const prevFieldKeyRef = useRef<string | void>(field.key)
@@ -230,6 +243,48 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 <input type="checkbox" checked={editedField.compactDisplay || false} onChange={(e) => updateField({ compactDisplay: e.target.checked })} />
                 Compact Display (label and field side-by-side)
               </label>
+            </div>
+          )}
+
+          {/* Width field for SearchableChooser-based fields */}
+          {(editedField.type === 'folder-chooser' ||
+            editedField.type === 'note-chooser' ||
+            editedField.type === 'space-chooser' ||
+            editedField.type === 'heading-chooser' ||
+            editedField.type === 'dropdown-select' ||
+            editedField.type === 'event-chooser') && (
+            <div className="field-editor-row">
+              <label>Custom Width (optional):</label>
+              <input
+                type="text"
+                value={((editedField: any): { width?: string }).width || ''}
+                onChange={(e) => {
+                  const widthValue = e.target.value.trim()
+                  const updated = { ...editedField }
+                  if (widthValue === '') {
+                    delete (updated: any).width
+                    setWidthError('')
+                  } else if (isValidCSSWidth(widthValue)) {
+                    ;(updated: any).width = widthValue
+                    setWidthError('')
+                  } else {
+                    setWidthError('Invalid CSS width value. Use px, %, em, rem, vw, vh, or calc()')
+                  }
+                  setEditedField(updated)
+                }}
+                placeholder="e.g., 80vw, 79%, 300px, calc(100% - 20px)"
+                style={{ borderColor: widthError ? 'red' : undefined }}
+              />
+              <div className="field-editor-help">
+                {widthError ? (
+                  <span style={{ color: 'red' }}>{widthError}</span>
+                ) : (
+                  <>
+                    Custom width for the chooser input. Overrides default width even in compact mode. Examples: <code>80vw</code>, <code>79%</code>, <code>300px</code>,{' '}
+                    <code>calc(100% - 20px)</code>. Leave empty to use default width.
+                  </>
+                )}
+              </div>
             </div>
           )}
 

@@ -25,6 +25,7 @@ export type HeadingChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   defaultHeading?: ?string, // Default heading to use if none selected
   optionAddTopAndBottom?: boolean, // Whether to include "top of note" and "bottom of note" options
   includeArchive?: boolean, // Whether to include headings in Archive section
@@ -48,6 +49,7 @@ export function HeadingChooser({
   disabled = false,
   compactDisplay = false,
   placeholder = 'Type to search headings...',
+  width,
   defaultHeading,
   optionAddTopAndBottom = true,
   includeArchive = false,
@@ -177,6 +179,7 @@ export function HeadingChooser({
         compactDisplay={compactDisplay}
         placeholder={loading ? 'Loading headings...' : placeholder}
         showValue={showValue}
+        width={width}
         config={config}
       />
     </div>

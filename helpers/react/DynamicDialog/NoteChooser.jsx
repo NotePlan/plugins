@@ -36,6 +36,7 @@ export type NoteChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   // Filter options - each NoteChooser filters the notes array based on its own options
   includeCalendarNotes?: boolean, // Include calendar notes (default: false)
   includePersonalNotes?: boolean, // Include personal/project notes (default: true)
@@ -122,6 +123,7 @@ export function NoteChooser({
   disabled = false,
   compactDisplay = false,
   placeholder = 'Type to search notes...',
+  width,
   includeCalendarNotes = false,
   includePersonalNotes = true,
   includeRelativeNotes = false,
@@ -444,6 +446,7 @@ export function NoteChooser({
       compactDisplay={compactDisplay}
       placeholder={placeholder}
       showValue={showValue}
+      width={width}
       config={config}
       onOpen={onOpen}
       isLoading={isLoading}
