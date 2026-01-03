@@ -592,6 +592,8 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
             onNotesChanged={() => {
               reloadNotes()
             }}
+            className="template-form"
+            style={{ content: { paddingLeft: '1rem', paddingRight: '1rem' } }}
           />
         </div>
         {/* end of replace */}

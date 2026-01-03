@@ -312,13 +312,14 @@ export function FormPreview({
               onSave={onSave || (() => {})}
               onCancel={onCancel || (() => {})}
               handleButtonClick={() => {}}
-              style={{ width: '100%', maxWidth: '100%', margin: 0 }}
+              style={{ width: '100%', maxWidth: '100%', margin: 0, content: { paddingLeft: '1rem', paddingRight: '1rem' } }}
               allowEmptySubmit={allowEmptySubmit || frontmatter.allowEmptySubmit || false}
               hideDependentItems={frontmatter.hideDependentItems || false}
               folders={folders}
               notes={(notes: any)} // NoteOption array - cast to any to avoid Flow invariant array type issues
               requestFromPlugin={requestFromPlugin}
               keepOpenOnSubmit={keepOpenOnSubmit}
+              className="template-form"
             />
           </div>
         </div>
