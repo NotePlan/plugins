@@ -22,6 +22,7 @@ export type FolderChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   // Advanced options
   includeArchive?: boolean,
   includeNewFolderOption?: boolean,
@@ -32,6 +33,7 @@ export type FolderChooserProps = {
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>,
   showValue?: boolean, // If true, display the selected value below the input
   onFoldersChanged?: () => void, // Callback to request folder list reload after creating a folder
+  shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
 }
 
 /**
@@ -48,6 +50,7 @@ export function FolderChooser({
   disabled = false,
   compactDisplay = false,
   placeholder = 'Type to search folders...',
+  width,
   includeArchive = false,
   includeNewFolderOption = false,
   startFolder,
@@ -57,6 +60,7 @@ export function FolderChooser({
   requestFromPlugin,
   showValue = false,
   onFoldersChanged,
+  shortDescriptionOnLine2 = false,
 }: FolderChooserProps): React$Node {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -156,7 +160,7 @@ export function FolderChooser({
         if (folder === '/') {
           return spaceFilter === ''
         }
-        
+
         // Check if folder is a teamspace folder
         if (folder.startsWith('%%NotePlanCloud%%')) {
           const folderDetails = parseTeamspaceFilename(folder)
@@ -361,14 +365,14 @@ export function FolderChooser({
     },
     getDisplayValue: (item: string) => {
       if (item === '__NEW_FOLDER__') {
-        return '➕ New Folder'
+        return 'New Folder'
       }
       // Use formatFolderDisplayForSelected for selected values to show more context
       return formatFolderDisplayForSelected(item)
     },
     getOptionText: (item: string) => {
       if (item === '__NEW_FOLDER__') {
-        return '➕ New Folder'
+        return 'New Folder'
       }
       return formatFolderDisplay(item)
     },
@@ -434,6 +438,7 @@ export function FolderChooser({
       }
       return decoration.shortDescription || undefined
     },
+    shortDescriptionOnLine2,
   }
 
   return (
@@ -445,6 +450,7 @@ export function FolderChooser({
         compactDisplay={compactDisplay}
         placeholder={placeholder}
         showValue={showValue}
+        width={width}
         config={config}
         closeDropdown={closeDropdown}
       />
@@ -452,6 +458,7 @@ export function FolderChooser({
         <div
           className={compactDisplay ? 'folder-chooser-description-compact' : 'folder-chooser-description'}
           style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}
+          title='Click "New Folder" to create a folder. Hold Option (⌥) and click on any folder to create a subfolder inside it.'
         >
           Click &quot;New Folder&quot; to create a folder. Hold Option (⌥) and click on any folder to create a subfolder inside it.
         </div>

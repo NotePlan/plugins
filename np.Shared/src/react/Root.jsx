@@ -717,6 +717,30 @@ export function Root(/* props: Props */): Node {
             <div className="w3-button w3-black" onClick={testCommsBridge}>
               Test Communication Bridge
             </div>
+            <div
+              className="w3-button w3-black"
+              onClick={async () => {
+                // Scroll to top first so we can see the toast
+                window.scrollTo(0, 0)
+                const toastTypes = [
+                  { type: 'SUCCESS', msg: 'Success toast test! This is a success message.', timeout: 2000 },
+                  { type: 'ERROR', msg: 'Error toast test! This is an error message.', timeout: 3000 },
+                  { type: 'WARN', msg: 'Warning toast test! This is a warning message.', timeout: 3000 },
+                  { type: 'INFO', msg: 'Info toast test! This is an info message.', timeout: 3000 },
+                ]
+                // Loop through each toast type sequentially
+                for (let i = 0; i < toastTypes.length; i++) {
+                  const toast = toastTypes[i]
+                  dispatch('SHOW_TOAST', toast)
+                  // Wait for this toast to disappear (timeout + small buffer) before showing the next
+                  if (i < toastTypes.length - 1) {
+                    await new Promise((resolve) => setTimeout(resolve, toast.timeout + 100))
+                  }
+                }
+              }}
+            >
+              Test Toast
+            </div>
           </React.StrictMode>
         )}
       </div>

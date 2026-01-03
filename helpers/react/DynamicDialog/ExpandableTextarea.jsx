@@ -125,29 +125,42 @@ export function ExpandableTextarea({
     }
   }
 
+  // Validate if required and empty
+  const validationError = required && textareaValue.trim() === '' ? 'required' : null
+
   return (
     <div className={`expandable-textarea-container ${compactDisplay ? 'compact' : ''} ${className}`} data-field-type="textarea">
       {label && <label className="expandable-textarea-label">{label}</label>}
-      <textarea
-        ref={textareaRef}
-        className="expandable-textarea"
-        value={textareaValue}
-        onChange={handleChange}
-        disabled={disabled}
-        placeholder={placeholder}
-        required={required}
-        rows={minRows}
-        onFocus={handleFocus}
-        onKeyDown={handleKeyDown}
-        style={Object.assign(
-          {
-            minHeight: `${minRows * 20}px`, // Approximate line height
-            maxHeight: `${maxRows * 20}px`, // Maximum height before scrolling
-            overflowY: 'auto',
-          },
-          style || {},
+      <div className="expandable-textarea-wrapper">
+        <textarea
+          ref={textareaRef}
+          className="expandable-textarea"
+          value={textareaValue}
+          onChange={handleChange}
+          disabled={disabled}
+          placeholder={placeholder}
+          required={required}
+          rows={minRows}
+          onFocus={handleFocus}
+          onKeyDown={handleKeyDown}
+          style={Object.assign(
+            {
+              minHeight: `${minRows * 20}px`, // Approximate line height
+              maxHeight: `${maxRows * 20}px`, // Maximum height before scrolling
+              overflowY: 'auto',
+            },
+            style || {},
+          )}
+        />
+        {validationError ? (
+          <div className="validation-message">
+            <i className="fa-solid fa-triangle-exclamation"></i>
+            <span>{validationError}</span>
+          </div>
+        ) : (
+          <div className="validation-message validation-message-placeholder" aria-hidden="true"></div>
         )}
-      />
+      </div>
     </div>
   )
 }

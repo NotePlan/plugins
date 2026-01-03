@@ -306,19 +306,20 @@ export function FormPreview({
             <DynamicDialog
               isOpen={true}
               isModal={false}
-              title={stripDoubleQuotes(frontmatter.formTitle || '') || 'Form Heading'}
+              title={frontmatter.formTitle != null ? stripDoubleQuotes(frontmatter.formTitle) || '' : ''}
               items={fields}
               hideHeaderButtons={hideHeaderButtons}
               onSave={onSave || (() => {})}
               onCancel={onCancel || (() => {})}
               handleButtonClick={() => {}}
-              style={{ width: '100%', maxWidth: '100%', margin: 0 }}
+              style={{ width: '100%', maxWidth: '100%', margin: 0, content: { paddingLeft: '1.5rem', paddingRight: '1.5rem' } }}
               allowEmptySubmit={allowEmptySubmit || frontmatter.allowEmptySubmit || false}
               hideDependentItems={frontmatter.hideDependentItems || false}
               folders={folders}
               notes={(notes: any)} // NoteOption array - cast to any to avoid Flow invariant array type issues
               requestFromPlugin={requestFromPlugin}
               keepOpenOnSubmit={keepOpenOnSubmit}
+              className="template-form"
             />
           </div>
         </div>

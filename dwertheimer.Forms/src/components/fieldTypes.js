@@ -24,6 +24,7 @@ export const FIELD_TYPES: Array<FieldTypeOption> = [
   { value: 'calendarpicker', label: 'Date Picker', description: 'Date selection calendar' },
   { value: 'folder-chooser', label: 'Folder Chooser', description: 'Searchable folder selector' },
   { value: 'note-chooser', label: 'Note Chooser', description: 'Searchable note selector' },
+  { value: 'space-chooser', label: 'Space Chooser', description: 'Select a Space (Private or Teamspace)' },
   { value: 'heading-chooser', label: 'Heading Chooser', description: 'Select a heading from a note (static or dynamic based on note-chooser)' },
   { value: 'event-chooser', label: 'Event Chooser', description: 'Select a calendar event for a specific date' },
   { value: 'markdown-preview', label: 'Markdown Preview', description: 'Display markdown content (static text, note by filename/title, or note from another field)' },
@@ -34,4 +35,5 @@ export const FIELD_TYPES: Array<FieldTypeOption> = [
   { value: 'json', label: 'JSON Editor', description: 'JSON data editor' },
   { value: 'hidden', label: 'Hidden Field', description: 'Hidden data field' },
   { value: 'templatejs-block', label: 'TemplateJS Block', description: 'JavaScript code block that executes during template processing' },
+  { value: 'autosave', label: 'Autosave', description: 'Automatically saves form state periodically (shows "Saved x ago" status)' },
 ]

@@ -578,7 +578,7 @@ export function FormBuilder({
                     }
                   }
                 }}
-                style={{ cursor: templateFilename ? 'pointer' : 'default', fontSize: '0.875rem', color: 'var(--fg-secondary-color, #666)' }}
+                style={{ cursor: templateFilename ? 'pointer' : 'default', fontSize: '0.875rem', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))' }}
               >
                 Form:{' '}
                 {templateTeamspaceTitle && (

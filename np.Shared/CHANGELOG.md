@@ -2,6 +2,17 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.9.0] @dwertheimer 2026-01-02
+
+- Fix Toast notification CSS selectors: Change descendant selectors to class combinators so color and border styles apply correctly
+- Fix toast positioning: Use calc(1rem + var(--noteplan-toolbar-height, 0px)) to properly account for toolbar height when variable exists
+- Add debug mode to Form Builder window initialization
+- Add Test Toast button in Root.jsx debug section that cycles through all toast types sequentially
+- Update MessageBanner component with improved styling and functionality
+- Update sendBannerMessage() function throughout codebase for consistency
+- Update JSDoc comments in Root.jsx
+- Update minAppVersion to 3.20.0 due to showInMainWindow requirements
+
 ## [0.8.4] @dwertheimer 2025-12-31
 
 - Add showReloadButton option to NPReactLocal.showInMainWindow

@@ -15,7 +15,7 @@ import InputBox from './InputBox.jsx'
 import { DropdownSelectChooser } from './DropdownSelectChooser.jsx'
 import TextComponent from './TextComponent.jsx'
 import ThemedSelect from './ThemedSelect.jsx'
-import CalendarPicker from './CalendarPicker.jsx'
+import GenericDatePicker from './GenericDatePicker.jsx'
 import FolderChooser from './FolderChooser.jsx'
 import NoteChooser, { type NoteOption } from './NoteChooser.jsx'
 import { SpaceChooser } from './SpaceChooser.jsx'
@@ -25,6 +25,7 @@ import MultiSelectChooser from './MultiSelectChooser.jsx'
 import { ExpandableTextarea } from './ExpandableTextarea.jsx'
 import { TemplateJSBlock } from './TemplateJSBlock.jsx'
 import { MarkdownPreview } from './MarkdownPreview.jsx'
+import AutosaveField from './AutosaveField.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import type { Option } from './DropdownSelect.jsx'
 import { Button, ButtonGroup } from './ButtonComponents.jsx'
@@ -57,6 +58,10 @@ type RenderItemProps = {
   updatedSettings?: { [key: string]: any }, // For heading-chooser to watch note-chooser field
   onFoldersChanged?: () => void, // Callback to reload folders after creating a new folder
   onNotesChanged?: () => void, // Callback to reload notes after creating a new note
+  formTitle?: string, // Form title for autosave field
+  templateFilename?: string, // Template filename for autosave field
+  templateTitle?: string, // Template title for autosave field
+  onRegisterAutosaveTrigger?: (triggerFn: () => Promise<void>) => void, // Register autosave trigger function
 }
 
 /**
@@ -88,6 +93,10 @@ export function renderItem({
   updatedSettings, // For heading-chooser to watch note-chooser field
   onFoldersChanged, // Callback to reload folders after creating a new folder
   onNotesChanged, // Callback to reload notes after creating a new note
+  formTitle, // Form title for autosave field
+  templateFilename, // Template filename for autosave field
+  templateTitle, // Template title for autosave field
+  onRegisterAutosaveTrigger, // Register autosave trigger function
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -245,15 +254,16 @@ export function renderItem({
               options={(normalizedOptions: Array<string | any>)}
               value={item.value || item.default || ''}
               onChange={(value: string) => {
-                  // Don't submit placeholder (empty value)
-                  if (value !== '') {
-                    item.key && handleFieldChange(item.key, value)
-                    item.key && handleComboChange(item.key, value)
-                  }
+                // Don't submit placeholder (empty value)
+                if (value !== '') {
+                  item.key && handleFieldChange(item.key, value)
+                  item.key && handleComboChange(item.key, value)
+                }
               }}
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder}
+              width={(item: any).width}
               showValue={item.showValue ?? false}
             />
           </div>
@@ -406,36 +416,28 @@ export function renderItem({
       }
       case 'calendarpicker': {
         const selectedDate: ?Date = item.selectedDate || null
-        const numberOfMonths = item.numberOfMonths || 1
         const label = item.label || ''
         const compactDisplay = item.compactDisplay || false
 
         const handleDateChange = (date: Date) => {
           if (item.key) {
-            handleFieldChange(item.key, date)
+            // Handle cleared date (NaN date means cleared)
+            if (isNaN(date.getTime())) {
+              handleFieldChange(item.key, null)
+            } else {
+              handleFieldChange(item.key, date)
+            }
           }
         }
 
-        // Render label similar to other fields
-        const labelElement = label ? (
-          <div className={`calendarpicker-label ${compactDisplay ? 'compact' : ''}`} style={compactDisplay ? { display: 'inline-block', marginRight: '0.5rem' } : {}}>
-            {label}
-          </div>
-        ) : null
-
+        // Render similar to InputBox - label and input in a container
         return (
-          <div key={`calendarpicker${index}`} className={`calendarpicker-container ${compactDisplay ? 'compact' : ''}`} style={compactDisplay ? { display: 'flex', alignItems: 'center' } : {}}>
-            {labelElement}
-            <CalendarPicker
-              startingSelectedDate={selectedDate ?? undefined}
-              onSelectDate={handleDateChange}
-              numberOfMonths={numberOfMonths}
-              className="calendarPickerCustom"
-              buttonText={(item: any).buttonText}
-              label={label}
-              visible={(item: any).visible}
-              size={(item: any).size ?? 0.75}
-            />
+          <div
+            key={`calendarpicker${index}`}
+            className={`${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'} ${indent ? 'indent' : ''}`}
+          >
+            <label className="input-box-label">{label}</label>
+            <GenericDatePicker startingSelectedDate={selectedDate ?? undefined} onSelectDate={handleDateChange} disabled={disabled} />
           </div>
         )
       }
@@ -450,8 +452,45 @@ export function renderItem({
           includeFolderPath: (item: any).includeFolderPath,
           excludeTeamspaces: (item: any).excludeTeamspaces,
         }
+        // Support both old (dependsOnSpaceKey) and new (sourceSpaceKey) property names for backward compatibility
+        const itemAny = (item: any)
+        const sourceSpaceKey = itemAny.sourceSpaceKey ?? itemAny.dependsOnSpaceKey
 
-        logDebug('dialogElementRenderer', `folder-chooser: folders=${folders?.length || 0}, label=${label}, currentValue="${currentValue}", options=${JSON.stringify(folderChooserOptions)}`)
+        // Get space value from the sourceSpaceKey field if specified
+        let spaceFilter: ?string = null
+        if (sourceSpaceKey && updatedSettings && typeof updatedSettings === 'object') {
+          const spaceValue = updatedSettings[sourceSpaceKey]
+          // spaceValue can be:
+          // - empty string ('') for Private space
+          // - teamspace ID (UUID string) for a specific teamspace
+          // - "__all__" for all spaces
+          // - "Private" (display value - need to convert to '')
+          // - null/undefined if not set
+          if (spaceValue !== null && spaceValue !== undefined) {
+            if (spaceValue === '__all__') {
+              spaceFilter = null // null means show all spaces
+            } else if (spaceValue === 'Private' || spaceValue === '') {
+              // Handle both empty string and display value "Private"
+              spaceFilter = ''
+            } else {
+              // Teamspace ID
+              spaceFilter = String(spaceValue)
+            }
+          }
+          // If spaceValue is null/undefined, spaceFilter stays null (show all)
+        } else {
+          // If no dependency, use item.spaceFilter if provided
+          spaceFilter = itemAny.spaceFilter
+        }
+
+        logDebug(
+          'dialogElementRenderer',
+          `folder-chooser: folders=${folders?.length || 0}, label=${label}, currentValue="${currentValue}", spaceFilter="${
+            spaceFilter != null && spaceFilter !== '' ? String(spaceFilter) : spaceFilter === '' ? 'empty_string(Private)' : 'null(all)'
+          }", sourceSpaceKey="${sourceSpaceKey || 'none'}", spaceValue="${
+            sourceSpaceKey && updatedSettings && typeof updatedSettings === 'object' ? String(updatedSettings[sourceSpaceKey] || 'undefined') : 'N/A'
+          }", options=${JSON.stringify(folderChooserOptions)}`,
+        )
 
         const handleFolderChange = (folder: string) => {
           logDebug('dialogElementRenderer', `folder-chooser: handleFolderChange called with folder="${folder}"`)
@@ -471,14 +510,17 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search folders...'}
+              width={(item: any).width}
               includeArchive={folderChooserOptions.includeArchive}
               includeNewFolderOption={folderChooserOptions.includeNewFolderOption}
               startFolder={folderChooserOptions.startFolder}
               includeFolderPath={folderChooserOptions.includeFolderPath}
               excludeTeamspaces={folderChooserOptions.excludeTeamspaces}
+              spaceFilter={spaceFilter}
               requestFromPlugin={requestFromPlugin}
               showValue={item.showValue ?? false}
               onFoldersChanged={onFoldersChanged}
+              shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
             />
           </div>
         )
@@ -519,6 +561,7 @@ export function renderItem({
               onChange={handleNoteChange}
               disabled={disabled}
               compactDisplay={compactDisplay}
+              width={(item: any).width}
               includeCalendarNotes={item.includeCalendarNotes ?? false}
               includePersonalNotes={item.includePersonalNotes ?? true}
               includeRelativeNotes={item.includeRelativeNotes ?? false}
@@ -530,6 +573,8 @@ export function renderItem({
               onNotesChanged={onNotesChanged}
               placeholder={item.placeholder || 'Type to search notes...'}
               showValue={item.showValue ?? false}
+              shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
+              showTitleOnly={item.showTitleOnly ?? false}
             />
           </div>
         )
@@ -573,10 +618,12 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search headings...'}
+              width={(item: any).width}
               defaultHeading={defaultHeading}
               optionAddTopAndBottom={optionAddTopAndBottom}
               includeArchive={includeArchive}
               showValue={item.showValue ?? false}
+              shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
             />
           </div>
         )
@@ -586,12 +633,7 @@ export function renderItem({
         const compactDisplay = item.compactDisplay || false
         // Handle both string (ID) and object (full event) values for backward compatibility
         const rawValue = item.value || item.default
-        const currentValue =
-          typeof rawValue === 'string'
-            ? rawValue
-            : rawValue && typeof rawValue === 'object' && rawValue.id
-              ? rawValue.id
-              : ''
+        const currentValue = typeof rawValue === 'string' ? rawValue : rawValue && typeof rawValue === 'object' && rawValue.id ? rawValue.id : ''
         const eventDate = item.eventDate
         // Support both old (dependsOnDateKey) and new (sourceDateKey) property names for backward compatibility
         const sourceDateKey = item.sourceDateKey ?? item.dependsOnDateKey
@@ -602,7 +644,12 @@ export function renderItem({
           const dateValue = updatedSettings[sourceDateKey]
           if (dateValue !== null && dateValue !== undefined) {
             dateFromField = dateValue
-            logDebug('dialogElementRenderer', `event-chooser: got date from ${sourceDateKey}: ${typeof dateValue === 'string' ? dateValue : dateValue instanceof Date ? dateValue.toISOString() : String(dateValue)}`)
+            logDebug(
+              'dialogElementRenderer',
+              `event-chooser: got date from ${sourceDateKey}: ${
+                typeof dateValue === 'string' ? dateValue : dateValue instanceof Date ? dateValue.toISOString() : String(dateValue)
+              }`,
+            )
           }
         }
 
@@ -622,9 +669,7 @@ export function renderItem({
               ...event,
               date: event.date instanceof Date ? event.date.toISOString() : event.date,
               endDate: event.endDate instanceof Date ? event.endDate.toISOString() : event.endDate,
-              occurrences: event.occurrences
-                ? event.occurrences.map((d: Date | string) => (d instanceof Date ? d.toISOString() : d))
-                : [],
+              occurrences: event.occurrences ? event.occurrences.map((d: Date | string) => (d instanceof Date ? d.toISOString() : d)) : [],
             }
             handleFieldChange(item.key, serializedEvent)
           }
@@ -642,6 +687,7 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search events...'}
+              width={(item: any).width}
               showValue={item.showValue ?? false}
               requestFromPlugin={requestFromPlugin}
               selectedCalendars={selectedCalendars}
@@ -650,6 +696,7 @@ export function renderItem({
               eventFilterRegex={eventFilterRegex}
               includeReminders={includeReminders}
               reminderLists={reminderLists}
+              shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
             />
           </div>
         )
@@ -768,8 +815,40 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search spaces...'}
+              width={(item: any).width}
               requestFromPlugin={requestFromPlugin}
               showValue={item.showValue ?? false}
+              includeAllOption={item.includeAllOption ?? false}
+              shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
+            />
+          </div>
+        )
+      }
+      case 'autosave': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const autosaveInterval = item.autosaveInterval ?? 2
+        const autosaveFilename = item.autosaveFilename
+        const invisible = (item: any).invisible || false
+        const templateFilename = (item: any).templateFilename
+        const templateTitle = (item: any).templateTitle
+
+        return (
+          <div data-field-type="autosave">
+            <AutosaveField
+              key={`autosave${index}`}
+              label={label}
+              updatedSettings={updatedSettings || {}}
+              requestFromPlugin={requestFromPlugin}
+              autosaveInterval={autosaveInterval}
+              autosaveFilename={autosaveFilename}
+              formTitle={formTitle}
+              templateFilename={templateFilename}
+              templateTitle={templateTitle}
+              compactDisplay={compactDisplay}
+              disabled={disabled}
+              invisible={invisible}
+              onRegisterTrigger={onRegisterAutosaveTrigger}
             />
           </div>
         )

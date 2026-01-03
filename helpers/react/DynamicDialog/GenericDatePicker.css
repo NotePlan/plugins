@@ -1,0 +1,137 @@
+/* Generic Date Picker styling using HTML date input */
+/* Matches InputBox styling for consistency */
+
+.generic-date-picker-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: var(--dynamic-dialog-input-width, 180px); /* Match standardized input width */
+  max-width: var(--dynamic-dialog-input-width, 180px); /* Prevent expansion */
+  flex: 0 0 auto; /* Don't flex, use fixed width */
+}
+
+/* Date input inherits all styles from .input-box-input */
+/* Additional date-specific styling if needed */
+.generic-date-picker-input {
+  width: var(--dynamic-dialog-input-width, 180px); /* Standardized width to match other inputs */
+  max-width: var(--dynamic-dialog-input-width, 180px); /* Prevent expansion */
+  min-width: var(--dynamic-dialog-input-width, 180px); /* Ensure minimum width */
+  padding-right: 60px; /* Make room for native calendar icon + clear button */
+  box-sizing: border-box; /* Ensure padding is included in width calculation */
+  flex: 0 0 auto; /* Don't flex, use fixed width */
+  /* Use accent-color to set the selected date color to tint-color */
+  /* This controls the selected date background in the native date picker popup */
+  accent-color: var(--tint-color, #dc8a78) !important;
+  /* Also set color-scheme to ensure accent-color is respected */
+  color-scheme: light;
+}
+
+/* Use tint-color for focus state border */
+.generic-date-picker-input:focus {
+  border-color: var(--tint-color, #dc8a78);
+  outline-color: var(--tint-color, #dc8a78);
+  accent-color: var(--tint-color, #dc8a78) !important;
+}
+
+/* Ensure calendar icon is visible in all browsers */
+/* Chrome/Edge: The native calendar icon should be visible */
+/* Use tint-color for the calendar picker indicator at lower opacity */
+
+.generic-date-picker-input::-webkit-calendar-picker-indicator {
+  opacity: 0.6 !important;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(330deg) brightness(104%) contrast(86%) !important;
+  /* Apply tint-color via filter - this approximates #dc8a78 (default tint-color) */
+  /* Note: Native browser elements may have limited styling support */
+}
+
+/* Use tint-color for calendar picker indicator when input is focused */
+.generic-date-picker-input:focus::-webkit-calendar-picker-indicator {
+  opacity: 0.8 !important;
+  filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(330deg) brightness(104%) contrast(86%) !important;
+}
+
+/* Safari-specific: ensure calendar icon is visible */
+/* Note: Safari's native calendar icon may not respect opacity/filter changes */
+/* Safari shows the calendar icon automatically, but ensure it's not being hidden */
+/* Don't set -webkit-appearance: none on the input as that removes the calendar icon */
+@supports (-webkit-appearance: none) {
+  /* Only target the indicator, not the input itself */
+  /* Use tint-color for Safari calendar picker indicator at lower opacity */
+  .generic-date-picker-input::-webkit-calendar-picker-indicator {
+    opacity: 0.6 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+    -webkit-appearance: calendar-picker-indicator !important;
+    appearance: auto !important;
+    cursor: pointer;
+    width: 18px !important;
+    height: 18px !important;
+    /* Apply tint-color via filter - this approximates #dc8a78 (default tint-color) */
+    filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(330deg) brightness(104%) contrast(86%) !important;
+    /* Safari positions the icon automatically on the right */
+    /* Note: Native Safari UI elements may not be fully stylable */
+  }
+  
+  /* Use tint-color when input is focused in Safari */
+  .generic-date-picker-input:focus::-webkit-calendar-picker-indicator {
+    opacity: 0.8 !important;
+    filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(330deg) brightness(104%) contrast(86%) !important;
+  }
+}
+
+/* Clear button styling - positioned inside the input field on the right */
+.generic-date-picker-clear-button {
+  position: absolute;
+  right: 35px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: var(--fg-main-color, #4c4f69);
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  transition: opacity 0.15s, color 0.15s;
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+}
+
+.generic-date-picker-clear-button:hover {
+  opacity: 1;
+  color: var(--tint-color, #dc8a78);
+  background: var(--bg-alt-color, #e6e9ef);
+}
+
+.generic-date-picker-clear-button:focus {
+  outline: 2px solid var(--tint-color, #dc8a78);
+  outline-offset: 1px;
+  opacity: 1;
+}
+
+.generic-date-picker-clear-button:active {
+  opacity: 0.8;
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* Dark mode support for clear button */
+@media (prefers-color-scheme: dark) {
+  .generic-date-picker-clear-button {
+    color: var(--fg-main-color, #f5f5f7);
+  }
+
+  .generic-date-picker-clear-button:hover {
+    color: var(--tint-color, #0a84ff);
+    background: var(--bg-alt-color, #38383a);
+  }
+}
+

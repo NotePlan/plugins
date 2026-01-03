@@ -19,6 +19,8 @@ type FormTemplate = {
   label: string,
   value: string,
   filename: string,
+  spaceId?: string, // Empty string for Private, teamspace ID for teamspaces
+  spaceTitle?: string, // "Private" or teamspace title
 }
 
 type FormBrowserViewProps = {
@@ -153,7 +155,7 @@ export function FormBrowserView({
   }
 
   // State
-  const [selectedSpace, setSelectedSpace] = useState<string>('') // Empty string = Private (default)
+  const [selectedSpace, setSelectedSpace] = useState<string>('__all__') // '__all__' = show all spaces (default)
   const [filterText, setFilterText] = useState<string>('')
   const [templates, setTemplates] = useState<Array<FormTemplate>>([])
   const [selectedTemplate, setSelectedTemplate] = useState<?FormTemplate>(null)
@@ -184,7 +186,7 @@ export function FormBrowserView({
     try {
       setLoading(true)
       const responseData = await requestFromPlugin('getFormTemplates', {
-        space: selectedSpace,
+        space: selectedSpace || '__all__', // Default to showing all spaces if not set
       })
       // requestFromPlugin resolves with the data from the response (result.data from handler)
       // The handler returns { success: true, data: formTemplates }
@@ -213,6 +215,8 @@ export function FormBrowserView({
         setLoading(true)
         const responseData = await requestFromPlugin('getFormFields', {
           templateFilename: template.filename,
+          templateTitle: template.label,
+          windowId: windowIdRef.current || '',
         })
         // requestFromPlugin resolves with the data from the response (result.data from handler)
         // The handler now returns { success: true, data: { formFields, frontmatter } }
@@ -227,7 +231,8 @@ export function FormBrowserView({
 
           if (needsFolders) {
             try {
-              const foldersData = await requestFromPlugin('getFolders', {})
+              // Pass space: null to get all folders from all spaces (FolderChooser will filter client-side based on spaceFilter prop)
+              const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true, space: null })
               if (Array.isArray(foldersData)) {
                 setFolders(foldersData)
               }
@@ -724,6 +729,8 @@ export function FormBrowserView({
                       compactDisplay={true}
                       requestFromPlugin={requestFromPlugin}
                       showValue={false}
+                      includeAllOption={true}
+                      shortDescriptionOnLine2={true}
                     />
                   </div>
                   <div className="form-browser-filter-row">
@@ -804,7 +811,12 @@ export function FormBrowserView({
                         }}
                         tabIndex={0}
                       >
-                        <span className="form-browser-list-item-label">{template.label}</span>
+                        <div className="form-browser-list-item-content">
+                          <span className="form-browser-list-item-label">{template.label}</span>
+                          {selectedSpace === '__all__' && template.spaceTitle && (
+                            <span className="form-browser-list-item-space">{template.spaceTitle}</span>
+                          )}
+                        </div>
                         <div className="form-browser-list-item-actions" onClick={(e) => e.stopPropagation()}>
                           <button className="form-browser-list-item-button form-browser-list-item-button-edit" onClick={(e) => handleEditForm(template, e)} title="Edit form">
                             ✏️

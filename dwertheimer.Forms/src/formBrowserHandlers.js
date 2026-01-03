@@ -9,11 +9,13 @@ import { openFormBuilder } from './NPTemplateForm'
 import { handleSubmitButtonClick } from './formSubmission'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
-import { logDebug, logError } from '@helpers/dev'
+import { logDebug, logError, logWarn } from '@helpers/dev'
+import { findDuplicateFormTemplates } from './templateIO'
 import { getNoteByFilename, getNote } from '@helpers/note'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { getFolderFromFilename } from '@helpers/folders'
 import { showMessage } from '@helpers/userInput'
+import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { openFormBuilderWindow } from './windowManagement'
 import { ensureFrontmatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { waitForCondition } from '@helpers/promisePolyfill'
@@ -35,8 +37,16 @@ export type RequestResponse = {
  */
 export function getFormTemplates(params: { space?: string } = {}): RequestResponse {
   try {
-    const spaceId = params.space ?? '' // Empty string = Private (default)
-    logDebug(pluginJson, `getFormTemplates: space=${spaceId || 'Private'}`)
+    const spaceId = params.space ?? '' // Empty string = Private (default), "__all__" = all spaces
+    const showAll = spaceId === '__all__'
+    logDebug(pluginJson, `getFormTemplates: space=${spaceId || 'Private'}, showAll=${String(showAll)}`)
+
+    // Get teamspace titles for lookup
+    const teamspaces = getAllTeamspaceIDsAndTitles()
+    const teamspaceMap = new Map<string, string>()
+    teamspaces.forEach((ts) => {
+      teamspaceMap.set(ts.id, ts.title)
+    })
 
     const allNotes = DataStore.projectNotes
     const formTemplates = []
@@ -55,18 +65,20 @@ export function getFormTemplates(params: { space?: string } = {}): RequestRespon
         const isTeamspaceNote = note.filename?.startsWith('%%NotePlanCloud%%') || false
         const noteTeamspaceID = isTeamspaceNote ? parseTeamspaceFilename(note.filename || '').teamspaceID : null
 
-        // Apply space filter first
-        if (spaceId === '') {
-          // Private space: only include private notes (non-teamspace)
-          if (isTeamspaceNote) {
-            logDebug(pluginJson, `getFormTemplates: Skipping teamspace note "${note.title || note.filename}" for Private space`)
-            continue
-          }
-        } else {
-          // Teamspace: only include notes from that specific teamspace
-          if (!isTeamspaceNote || noteTeamspaceID !== spaceId) {
-            logDebug(pluginJson, `getFormTemplates: Skipping note "${note.title || note.filename}" - teamspaceID="${String(noteTeamspaceID || 'null')}", expected="${spaceId}"`)
-            continue
+        // Apply space filter (skip if showAll is true)
+        if (!showAll) {
+          if (spaceId === '') {
+            // Private space: only include private notes (non-teamspace)
+            if (isTeamspaceNote) {
+              logDebug(pluginJson, `getFormTemplates: Skipping teamspace note "${note.title || note.filename}" for Private space`)
+              continue
+            }
+          } else {
+            // Teamspace: only include notes from that specific teamspace
+            if (!isTeamspaceNote || noteTeamspaceID !== spaceId) {
+              logDebug(pluginJson, `getFormTemplates: Skipping note "${note.title || note.filename}" - teamspaceID="${String(noteTeamspaceID || 'null')}", expected="${spaceId}"`)
+              continue
+            }
           }
         }
 
@@ -75,7 +87,19 @@ export function getFormTemplates(params: { space?: string } = {}): RequestRespon
         // For teamspace: noteFolder should start with '%%NotePlanCloud%%/{teamspaceID}/@Forms' (correct format)
         // Note: We check both formats (with and without the /) for backward compatibility, but the correct format is with the /
         let isInFormsFolder = false
-        if (spaceId === '') {
+        if (showAll) {
+          // When showing all, check folder based on the note's actual space
+          if (isTeamspaceNote && noteTeamspaceID) {
+            // Teamspace note: check if folder starts with '%%NotePlanCloud%%/{teamspaceID}/@Forms'
+            const expectedPrefix1 = `%%NotePlanCloud%%${noteTeamspaceID}/@Forms`
+            const expectedPrefix2 = `%%NotePlanCloud%%/${noteTeamspaceID}/@Forms`
+            isInFormsFolder =
+              noteFolder === expectedPrefix1 || noteFolder.startsWith(`${expectedPrefix1}/`) || noteFolder === expectedPrefix2 || noteFolder.startsWith(`${expectedPrefix2}/`)
+          } else {
+            // Private note: check if folder is '@Forms' or starts with '@Forms/'
+            isInFormsFolder = noteFolder === '@Forms' || noteFolder.startsWith('@Forms/')
+          }
+        } else if (spaceId === '') {
           // Private: check if folder is '@Forms' or starts with '@Forms/'
           isInFormsFolder = noteFolder === '@Forms' || noteFolder.startsWith('@Forms/')
         } else {
@@ -98,10 +122,16 @@ export function getFormTemplates(params: { space?: string } = {}): RequestRespon
         // Note passed all filters - add it to the list
         const title = note.title || note.filename || ''
         if (title) {
+          // Determine space info for this template
+          const templateSpaceId = isTeamspaceNote && noteTeamspaceID ? noteTeamspaceID : ''
+          const templateSpaceTitle = isTeamspaceNote && noteTeamspaceID ? teamspaceMap.get(noteTeamspaceID) || 'Unknown Teamspace' : 'Private'
+          
           formTemplates.push({
             label: title,
             value: note.filename || '',
             filename: note.filename || '',
+            spaceId: templateSpaceId,
+            spaceTitle: templateSpaceTitle,
           })
         }
       }
@@ -136,7 +166,7 @@ export function getFormTemplates(params: { space?: string } = {}): RequestRespon
  * @param {string} params.templateFilename - The template filename
  * @returns {RequestResponse}
  */
-export async function getFormFields(params: { templateFilename?: string } = {}): Promise<RequestResponse> {
+export async function getFormFields(params: { templateFilename?: string, templateTitle?: string, windowId?: string } = {}): Promise<RequestResponse> {
   try {
     const templateFilename = params.templateFilename
     if (!templateFilename) {
@@ -156,6 +186,25 @@ export async function getFormFields(params: { templateFilename?: string } = {}):
         success: false,
         message: `Template not found: ${templateFilename}`,
         data: null,
+      }
+    }
+    
+    // Check for duplicate titles if templateTitle is provided
+    const templateTitle = params.templateTitle || templateNote.title
+    if (templateTitle) {
+      const duplicates = findDuplicateFormTemplates(templateTitle)
+      if (duplicates.length > 1) {
+        // Multiple forms with same title found - include warning in response
+        const duplicateFilenames = duplicates.map((d) => d.value).join(', ')
+        const warningMsg = `⚠️ WARNING: Multiple forms found with the title "${templateTitle}". This may cause confusion. Duplicate files: ${duplicates.length} found. Please rename one of these forms to avoid conflicts.`
+        logWarn(pluginJson, `getFormFields: Found ${duplicates.length} forms with title "${templateTitle}": ${duplicateFilenames}`)
+        
+        // Send banner message to React window if windowId is provided
+        if (params.windowId && typeof params.windowId === 'string' && params.windowId.length > 0) {
+          const { sendBannerMessage } = await import('@helpers/HTMLView')
+          // $FlowFixMe[incompatible-call] - We've checked that windowId is a string above
+          await sendBannerMessage(params.windowId, warningMsg, 'WARN', 10000)
+        }
       }
     }
 

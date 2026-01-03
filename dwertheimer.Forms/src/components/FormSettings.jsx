@@ -5,10 +5,10 @@
 
 import React, { useState, type Node } from 'react'
 import { ProcessingMethodSection } from './ProcessingMethodSection.jsx'
+import { PositionInput } from './PositionInput.jsx'
 import { InfoIcon } from '@helpers/react/InfoIcon.jsx'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
-import { PositionInput } from './PositionInput.jsx'
 
 type FormSettingsProps = {
   frontmatter: { [key: string]: any },
@@ -159,7 +159,9 @@ export function FormSettings({
                   <div className="frontmatter-field-window-size-position-controls" style={{ marginTop: '0.5rem' }}>
                     <div className="frontmatter-field-window-size-position-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                       <div className="frontmatter-field-window-size-position-field frontmatter-field-window-width" style={{ flex: '1 1 0', minWidth: '80px' }}>
-                        <label className="frontmatter-field-window-size-position-label" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Width:</label>
+                        <label className="frontmatter-field-window-size-position-label" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>
+                          Width:
+                        </label>
                         <input
                           className="frontmatter-field-input frontmatter-field-input-window-width"
                           type="text"
@@ -183,7 +185,9 @@ export function FormSettings({
                         />
                       </div>
                       <div className="frontmatter-field-window-size-position-field frontmatter-field-window-height" style={{ flex: '1 1 0', minWidth: '80px' }}>
-                        <label className="frontmatter-field-window-size-position-label" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Height:</label>
+                        <label className="frontmatter-field-window-size-position-label" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>
+                          Height:
+                        </label>
                         <input
                           className="frontmatter-field-input frontmatter-field-input-window-height"
                           type="text"
@@ -207,25 +211,19 @@ export function FormSettings({
                         />
                       </div>
                       <div className="frontmatter-field-window-size-position-field frontmatter-field-window-x" style={{ flex: '1 1 0', minWidth: '80px' }}>
-                        <label className="frontmatter-field-window-size-position-label" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>X:</label>
+                        <label className="frontmatter-field-window-size-position-label" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>
+                          X:
+                        </label>
                         <div className="frontmatter-field-input-wrapper frontmatter-field-input-wrapper-window-x">
-                          <PositionInput
-                            type="x"
-                            value={frontmatter.x}
-                            onChange={(value) => onFrontmatterChange('x', value)}
-                            placeholder="center, left, right, or 25%"
-                          />
+                          <PositionInput type="x" value={frontmatter.x} onChange={(value) => onFrontmatterChange('x', value)} placeholder="center, left, right, or 25%" />
                         </div>
                       </div>
                       <div className="frontmatter-field-window-size-position-field frontmatter-field-window-y" style={{ flex: '1 1 0', minWidth: '80px' }}>
-                        <label className="frontmatter-field-window-size-position-label" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Y:</label>
+                        <label className="frontmatter-field-window-size-position-label" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>
+                          Y:
+                        </label>
                         <div className="frontmatter-field-input-wrapper frontmatter-field-input-wrapper-window-y">
-                          <PositionInput
-                            type="y"
-                            value={frontmatter.y}
-                            onChange={(value) => onFrontmatterChange('y', value)}
-                            placeholder="center, top, bottom, or 25%"
-                          />
+                          <PositionInput type="y" value={frontmatter.y} onChange={(value) => onFrontmatterChange('y', value)} placeholder="center, top, bottom, or 25%" />
                         </div>
                       </div>
                     </div>
@@ -258,6 +256,14 @@ export function FormSettings({
                   />
                   <div className="frontmatter-field-help-text" style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem', fontStyle: 'italic' }}>
                     Custom CSS will be saved in a <code>template:ignore customCSS</code> codeblock and injected into the form window when opened.
+                    <br />
+                    <br />
+                    <strong>Override Input Width:</strong> To change the width of all input fields on this form, add:
+                    <br />
+                    <code style={{ display: 'block', marginTop: '0.25rem', padding: '0.25rem', background: '#f5f5f5', borderRadius: '3px' }}>
+                      .dynamic-dialog-content {'{'} --dynamic-dialog-input-width: 250px; {'}'}
+                    </code>
+                    Replace <code>250px</code> with your desired width.
                   </div>
                 </div>
               </div>

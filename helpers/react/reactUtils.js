@@ -4,6 +4,85 @@
 //--------------------------------------------------------------------------
 
 /**
+ * Split a string into an array of Unicode characters (code points)
+ * This properly handles emojis and other multi-byte characters
+ * @param {string} text - The text to split
+ * @returns {Array<string>} - Array of Unicode characters
+ */
+function splitUnicode(text: string): Array<string> {
+  // Use Array.from() to properly split into Unicode code points
+  // This handles emojis and other multi-byte characters correctly
+  return Array.from(text)
+}
+
+/**
+ * Get the visual length of a string (number of Unicode characters, not code units)
+ * @param {string} text - The text to measure
+ * @returns {number} - Number of Unicode characters
+ */
+function unicodeLength(text: string): number {
+  return splitUnicode(text).length
+}
+
+/**
+ * Get a substring of Unicode characters (not code units)
+ * @param {string} text - The text to substring
+ * @param {number} start - Start index (in Unicode characters)
+ * @param {number} end - End index (in Unicode characters, optional)
+ * @returns {string} - Substring of Unicode characters
+ */
+function unicodeSlice(text: string, start: number, end?: number): string {
+  const chars = splitUnicode(text)
+  if (end === undefined) {
+    return chars.slice(start).join('')
+  }
+  return chars.slice(start, end).join('')
+}
+
+/**
+ * Truncate a note title or any string, showing start and end when too long
+ * Ensures we show meaningful portions of both start and end
+ * Unicode-aware: properly handles emojis and multi-byte characters
+ * 
+ * @param {string} text - The text to truncate
+ * @param {number} maxLength - Maximum length (default: 50)
+ * @returns {string} - The truncated text
+ */
+export function truncateText(text: string, maxLength: number = 50): string {
+  if (!text) {
+    return text
+  }
+
+  // Use Unicode-aware length check
+  const textLength = unicodeLength(text)
+  if (textLength <= maxLength) {
+    return text
+  }
+
+  const ellipsis = '…'
+  const ellipsisLength = 1 // Single character
+  const availableLength = maxLength - ellipsisLength
+
+  // Ensure we show at least 30% of start and 30% of end
+  // This gives us better visibility of both ends
+  const minStartLength = Math.max(5, Math.floor(availableLength * 0.3))
+  const minEndLength = Math.max(5, Math.floor(availableLength * 0.3))
+
+  // If the text is very short relative to what we want to show, just show end
+  if (availableLength < minStartLength + minEndLength) {
+    // Show as much end as possible
+    const endLength = Math.max(1, availableLength - 1)
+    const end = unicodeSlice(text, textLength - endLength)
+    return `${ellipsis}${end}`
+  }
+
+  // Show start and end portions using Unicode-aware slicing
+  const start = unicodeSlice(text, 0, minStartLength)
+  const end = unicodeSlice(text, textLength - minEndLength)
+  return `${start}${ellipsis}${end}`
+}
+
+/**
  * Truncate a path (folder path or file path) to show the beginning and end
  * when it's too long, with ellipsis in the middle.
  * Example: "very/long/path/to/some/folder" -> "very/.../folder" (if maxLength allows)
@@ -30,21 +109,8 @@ export function truncatePath(path: string, maxLength: number = 50): string {
 
   // If we only have one part (single folder name), use truncateText logic to show start and end
   if (parts.length <= 1) {
-    const availableLength = maxLength - ellipsisLength
-    const minStartLength = Math.max(5, Math.floor(availableLength * 0.3))
-    const minEndLength = Math.max(5, Math.floor(availableLength * 0.3))
-
-    // If the text is very short relative to what we want to show, just show end
-    if (availableLength < minStartLength + minEndLength) {
-      const endLength = Math.max(1, availableLength - 1)
-      const end = path.slice(-endLength)
-      return `${ellipsis}${end}`
-    }
-
-    // Show start and end portions with ellipsis in middle
-    const start = path.slice(0, minStartLength)
-    const end = path.slice(-minEndLength)
-    return `${start}${ellipsis}${end}`
+    // Use truncateText for single-part paths to ensure Unicode-aware truncation
+    return truncateText(path, maxLength)
   }
 
   // Try to show first part + … + last part
@@ -61,8 +127,11 @@ export function truncatePath(path: string, maxLength: number = 50): string {
     // Try to show at least 30% start and 30% end, rest for middle
     const startLength = Math.max(1, Math.floor(availableForParts * 0.3))
     const endLength = Math.max(1, Math.floor(availableForParts * 0.3))
-    const truncatedFirst = firstPart.slice(0, startLength)
-    const truncatedLast = lastPart.slice(-endLength)
+    // Use Unicode-aware slicing for path parts
+    const firstPartLength = unicodeLength(firstPart)
+    const lastPartLength = unicodeLength(lastPart)
+    const truncatedFirst = unicodeSlice(firstPart, 0, Math.min(startLength, firstPartLength))
+    const truncatedLast = unicodeSlice(lastPart, Math.max(0, lastPartLength - endLength))
     return `${truncatedFirst}/${ellipsis}/${truncatedLast}`
   }
 
@@ -93,41 +162,5 @@ export function truncatePath(path: string, maxLength: number = 50): string {
   } else {
     return `${firstPart}/${ellipsis}/${lastPart}`
   }
-}
-
-/**
- * Truncate a note title or any string, showing start and end when too long
- * Ensures we show meaningful portions of both start and end
- * 
- * @param {string} text - The text to truncate
- * @param {number} maxLength - Maximum length (default: 50)
- * @returns {string} - The truncated text
- */
-export function truncateText(text: string, maxLength: number = 50): string {
-  if (!text || text.length <= maxLength) {
-    return text
-  }
-
-  const ellipsis = '…'
-  const ellipsisLength = 1 // Single character
-  const availableLength = maxLength - ellipsisLength
-
-  // Ensure we show at least 30% of start and 30% of end
-  // This gives us better visibility of both ends
-  const minStartLength = Math.max(5, Math.floor(availableLength * 0.3))
-  const minEndLength = Math.max(5, Math.floor(availableLength * 0.3))
-
-  // If the text is very short relative to what we want to show, just show end
-  if (availableLength < minStartLength + minEndLength) {
-    // Show as much end as possible
-    const endLength = Math.max(1, availableLength - 1)
-    const end = text.slice(-endLength)
-    return `${ellipsis}${end}`
-  }
-
-  // Show start and end portions
-  const start = text.slice(0, minStartLength)
-  const end = text.slice(-minEndLength)
-  return `${start}${ellipsis}${end}`
 }
 

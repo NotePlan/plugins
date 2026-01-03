@@ -15,7 +15,11 @@ import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 import { waitForCondition } from '@helpers/promisePolyfill'
 import { InfoIcon } from '@helpers/react/InfoIcon'
+import IdleTimer from '@helpers/react/IdleTimer'
 import './FavoritesView.css'
+
+// Idle timeout: reset to notes view and focus filter after 1 minute of inactivity
+const IDLE_TIMEOUT_MS = 60000 // 1 minute
 
 type FavoriteNote = {
   filename: string,
@@ -82,44 +86,48 @@ function FavoritesViewComponent({
   const [addCommandDialogData, setAddCommandDialogData] = useState<{ [key: string]: any }>({})
   const [newlyAddedFilename, setNewlyAddedFilename] = useState<?string>(null) // Track newly added item for highlighting
   const listRef = useRef<?HTMLElement>(null) // Ref for scrolling to items
+  const filterInputRef = useRef<?HTMLInputElement>(null) // Ref for the filter input field
 
   // Request function
-  const requestFromPlugin = useCallback((command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
-    if (!command) throw new Error('requestFromPlugin: command must be called with a string')
+  const requestFromPlugin = useCallback(
+    (command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
+      if (!command) throw new Error('requestFromPlugin: command must be called with a string')
 
-    const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    logDebug('FavoritesView', `requestFromPlugin: command="${command}", correlationId="${correlationId}"`)
+      const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      logDebug('FavoritesView', `requestFromPlugin: command="${command}", correlationId="${correlationId}"`)
 
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        const pending = pendingRequestsRef.current.get(correlationId)
-        if (pending) {
-          pendingRequestsRef.current.delete(correlationId)
-          logDebug('FavoritesView', `requestFromPlugin TIMEOUT: command="${command}", correlationId="${correlationId}"`)
-          reject(new Error(`Request timeout: ${command}`))
+      return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          const pending = pendingRequestsRef.current.get(correlationId)
+          if (pending) {
+            pendingRequestsRef.current.delete(correlationId)
+            logDebug('FavoritesView', `requestFromPlugin TIMEOUT: command="${command}", correlationId="${correlationId}"`)
+            reject(new Error(`Request timeout: ${command}`))
+          }
+        }, timeout)
+
+        pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
+
+        const requestData = {
+          ...dataToSend,
+          __correlationId: correlationId,
+          __requestType: 'REQUEST',
+          __windowId: windowIdRef.current || '',
         }
-      }, timeout)
 
-      pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
-
-      const requestData = {
-        ...dataToSend,
-        __correlationId: correlationId,
-        __requestType: 'REQUEST',
-        __windowId: windowIdRef.current || '',
-      }
-
-      dispatch('SEND_TO_PLUGIN', [command, requestData], `FavoritesView: requestFromPlugin: ${String(command)}`)
-    })
-      .then((result) => {
-        logDebug('FavoritesView', `requestFromPlugin RESOLVED: command="${command}", correlationId="${correlationId}"`)
-        return result
+        dispatch('SEND_TO_PLUGIN', [command, requestData], `FavoritesView: requestFromPlugin: ${String(command)}`)
       })
-      .catch((error) => {
-        logError('FavoritesView', `requestFromPlugin REJECTED: command="${command}", correlationId="${correlationId}", error="${error.message}"`)
-        throw error
-      })
-  }, [dispatch])
+        .then((result) => {
+          logDebug('FavoritesView', `requestFromPlugin RESOLVED: command="${command}", correlationId="${correlationId}"`)
+          return result
+        })
+        .catch((error) => {
+          logError('FavoritesView', `requestFromPlugin REJECTED: command="${command}", correlationId="${correlationId}", error="${error.message}"`)
+          throw error
+        })
+    },
+    [dispatch],
+  )
 
   // Listen for RESPONSE messages
   useEffect(() => {
@@ -246,32 +254,32 @@ function FavoritesViewComponent({
   }, [requestFromPlugin])
 
   // Handle adding favorite note dialog
-  const handleAddNoteDialogSave = useCallback((updatedSettings: { [key: string]: any }) => {
-    ;(async () => {
+  const handleAddNoteDialogSave = useCallback(
+    async (updatedSettings: { [key: string]: any }) => {
       try {
         if (updatedSettings.note) {
           const filename = updatedSettings.note
-          
+
           // Close dialog immediately
           setShowAddNoteDialog(false)
           setAddNoteDialogData({})
-          
+
           // Add the favorite
           // Note: requestFromPlugin resolves with result.data (unwrapped), or rejects on error
           // If we get here without throwing, the request succeeded
           const response = await requestFromPlugin('addFavoriteNote', { filename })
           logDebug('FavoritesView', `addFavoriteNote response:`, response)
-          
+
           // Show success toast
           dispatch('SHOW_TOAST', {
             type: 'SUCCESS',
             msg: 'Favorite note added successfully',
             timeout: 3000,
           })
-          
+
           // Reload the favorites list first
           await loadFavoriteNotes()
-          
+
           // Wait for the note to appear in the list by checking the actual list data
           // We need to reload and check, since state updates are async
           const found = await waitForCondition(
@@ -285,15 +293,15 @@ function FavoritesViewComponent({
               }
               return false
             },
-            { maxWaitMs: 3000, checkIntervalMs: 150 }
+            { maxWaitMs: 3000, checkIntervalMs: 150 },
           )
-          
+
           // Reload one more time to ensure UI is in sync
           await loadFavoriteNotes()
-          
+
           // Set the newly added filename for highlighting (useEffect will handle scrolling)
           setNewlyAddedFilename(filename)
-          
+
           if (found) {
             logDebug('FavoritesView', 'Successfully added favorite note and found it in list')
           } else {
@@ -308,8 +316,9 @@ function FavoritesViewComponent({
           timeout: 3000,
         })
       }
-    })()
-  }, [requestFromPlugin, loadFavoriteNotes, dispatch, showNotes, favoriteNotes])
+    },
+    [requestFromPlugin, loadFavoriteNotes, dispatch, showNotes, favoriteNotes],
+  )
 
   const handleAddNoteDialogCancel = useCallback(() => {
     setShowAddNoteDialog(false)
@@ -325,8 +334,8 @@ function FavoritesViewComponent({
   }, [projectNotes, loadProjectNotes])
 
   // Handle adding favorite command dialog
-  const handleAddCommandDialogSave = useCallback((updatedSettings: { [key: string]: any }) => {
-    ;(async () => {
+  const handleAddCommandDialogSave = useCallback(
+    async (updatedSettings: { [key: string]: any }) => {
       try {
         if (updatedSettings.preset && updatedSettings.commandName && updatedSettings.url) {
           const response = await requestFromPlugin('addFavoriteCommand', {
@@ -346,17 +355,18 @@ function FavoritesViewComponent({
       } catch (error) {
         logError('FavoritesView', `Error adding favorite command: ${error.message}`)
       }
-    })()
-  }, [requestFromPlugin, loadFavoriteCommands])
+    },
+    [requestFromPlugin, loadFavoriteCommands],
+  )
 
   const handleAddCommandDialogCancel = useCallback(() => {
     setShowAddCommandDialog(false)
     setAddCommandDialogData({})
   }, [])
 
-  const handleAddCommandButtonClick = useCallback((key: string, value: string) => {
-    if (key === 'getCallbackURL') {
-      ;(async () => {
+  const handleAddCommandButtonClick = useCallback(
+    async (key: string, value: string) => {
+      if (key === 'getCallbackURL') {
         try {
           const urlResponse = await requestFromPlugin('getCallbackURL', {})
           if (urlResponse && urlResponse.success && urlResponse.url) {
@@ -367,10 +377,11 @@ function FavoritesViewComponent({
         } catch (error) {
           logError('FavoritesView', `Error getting callback URL: ${error.message}`)
         }
-      })()
-      return false // Don't close dialog
-    }
-  }, [requestFromPlugin])
+        return false // Don't close dialog
+      }
+    },
+    [requestFromPlugin],
+  )
 
   const handleAddFavoriteCommand = useCallback(async () => {
     // Load preset commands if not already loaded
@@ -388,35 +399,46 @@ function FavoritesViewComponent({
 
   // Handle item click
   // Note: __windowId is automatically injected by Root.jsx sendToPlugin, so we don't need to add it here
-  const handleItemClick = useCallback((item: FavoriteNote | FavoriteCommand, event: MouseEvent) => {
-    const isOptionClick = event.altKey || event.metaKey === false && event.ctrlKey // Alt key (option on Mac)
-    const isCmdClick = event.metaKey || event.ctrlKey // Cmd key (meta on Mac, ctrl on Windows)
+  const handleItemClick = useCallback(
+    (item: FavoriteNote | FavoriteCommand, event: MouseEvent) => {
+      const isOptionClick = event.altKey || (event.metaKey === false && event.ctrlKey) // Alt key (option on Mac)
+      const isCmdClick = event.metaKey || event.ctrlKey // Cmd key (meta on Mac, ctrl on Windows)
 
-    if (showNotes) {
-      // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
-      const note: FavoriteNote = (item: any)
-      // Send action to plugin to open note
-      dispatch('SEND_TO_PLUGIN', [
-        'openNote',
-        {
-          filename: note.filename,
-          newWindow: isCmdClick, // Cmd-click opens in floating window
-          splitView: isOptionClick, // Option-click opens in split view
-        },
-      ], 'FavoritesView: openNote')
-    } else {
-      // $FlowFixMe[incompatible-cast] - item is FavoriteCommand when showNotes is false
-      const command: FavoriteCommand = (item: any)
-      // Send action to plugin to run command
-      dispatch('SEND_TO_PLUGIN', [
-        'runCommand',
-        {
-          jsFunction: command.jsFunction,
-          data: command.data,
-        },
-      ], 'FavoritesView: runCommand')
-    }
-  }, [showNotes, dispatch])
+      if (showNotes) {
+        // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
+        const note: FavoriteNote = (item: any)
+        // Send action to plugin to open note
+        dispatch(
+          'SEND_TO_PLUGIN',
+          [
+            'openNote',
+            {
+              filename: note.filename,
+              newWindow: isCmdClick, // Cmd-click opens in floating window
+              splitView: isOptionClick, // Option-click opens in split view
+            },
+          ],
+          'FavoritesView: openNote',
+        )
+      } else {
+        // $FlowFixMe[incompatible-cast] - item is FavoriteCommand when showNotes is false
+        const command: FavoriteCommand = (item: any)
+        // Send action to plugin to run command
+        dispatch(
+          'SEND_TO_PLUGIN',
+          [
+            'runCommand',
+            {
+              jsFunction: command.jsFunction,
+              data: command.data,
+            },
+          ],
+          'FavoritesView: runCommand',
+        )
+      }
+    },
+    [showNotes, dispatch],
+  )
 
   // Get current items based on view type
   const currentItems = useMemo(() => {
@@ -424,10 +446,10 @@ function FavoritesViewComponent({
   }, [showNotes, favoriteNotes, favoriteCommands])
 
   // Handle removing favorite note
-  const handleRemoveFavorite = useCallback(async (filename: string) => {
-    try {
-      const response = await requestFromPlugin('removeFavoriteNote', { filename })
-      if (response && response.success) {
+  const handleRemoveFavorite = useCallback(
+    async (filename: string) => {
+      try {
+        await requestFromPlugin('removeFavoriteNote', { filename })
         // Show toast notification
         dispatch('SHOW_TOAST', {
           type: 'SUCCESS',
@@ -436,64 +458,119 @@ function FavoritesViewComponent({
         })
         // Reload the favorites list
         await loadFavoriteNotes()
-      } else {
-        logError('FavoritesView', `Failed to remove favorite note: ${response?.message || 'Unknown error'}`)
+      } catch (error) {
+        logError('FavoritesView', `Error removing favorite note: ${error.message}`)
         dispatch('SHOW_TOAST', {
           type: 'ERROR',
-          msg: `Failed to remove favorite: ${response?.message || 'Unknown error'}`,
+          msg: `Error removing favorite: ${error.message}`,
           timeout: 3000,
         })
       }
-    } catch (error) {
-      logError('FavoritesView', `Error removing favorite note: ${error.message}`)
-      dispatch('SHOW_TOAST', {
-        type: 'ERROR',
-        msg: `Error removing favorite: ${error.message}`,
-        timeout: 3000,
-      })
-    }
-  }, [requestFromPlugin, loadFavoriteNotes, dispatch])
+    },
+    [requestFromPlugin, loadFavoriteNotes, dispatch],
+  )
+
+  // Handle idle timeout: reset to notes view and focus filter
+  const handleIdleTimeout = useCallback(() => {
+    setShowNotes(true)
+    setFilterText('')
+    setSelectedIndex(null)
+    // Scroll list to top and focus the filter input after a brief delay to ensure it's rendered
+    setTimeout(() => {
+      // Get toolbar height offset (same calculation as Toast.css: calc(1rem + var(--noteplan-toolbar-height, 0)))
+      const root = document.documentElement
+      if (!root) return
+
+      const toolbarHeight = parseInt(getComputedStyle(root).getPropertyValue('--noteplan-toolbar-height') || '0', 10)
+      const oneRem = parseFloat(getComputedStyle(root).fontSize || '16px')
+      const scrollOffset = oneRem + toolbarHeight
+
+      // Helper function to find scrollable ancestor
+      const findScrollableAncestor = (el: HTMLElement): ?HTMLElement => {
+        let parent: ?Element = el.parentElement
+        while (parent) {
+          if (parent instanceof HTMLElement) {
+            const style = getComputedStyle(parent)
+            if (style.overflow === 'auto' || style.overflow === 'scroll' || style.overflowY === 'auto' || style.overflowY === 'scroll') {
+              return parent
+            }
+          }
+          parent = parent.parentElement
+        }
+        return null
+      }
+
+      // Scroll list to top
+      if (listRef.current) {
+        const firstItem = listRef.current.querySelector('[data-index="0"]')
+        if (firstItem instanceof HTMLElement) {
+          // Use scrollIntoView with offset by scrolling the parent container
+          const scrollableParent = findScrollableAncestor(firstItem)
+          if (scrollableParent) {
+            const itemRect = firstItem.getBoundingClientRect()
+            const parentRect = scrollableParent.getBoundingClientRect()
+            const currentScrollTop = scrollableParent.scrollTop
+            const targetScrollTop = currentScrollTop + (itemRect.top - parentRect.top) - scrollOffset
+            scrollableParent.scrollTop = Math.max(0, targetScrollTop)
+          } else {
+            firstItem.scrollIntoView({ block: 'start', behavior: 'instant' })
+          }
+        } else if (listRef.current instanceof HTMLElement) {
+          // If no items, try scrolling the container itself with offset
+          const scrollableParent = listRef.current.parentElement?.parentElement
+          if (scrollableParent instanceof HTMLElement && scrollableParent.scrollTop !== undefined) {
+            scrollableParent.scrollTop = scrollOffset
+          }
+        }
+      }
+      // Focus the filter input
+      if (filterInputRef.current) {
+        filterInputRef.current.focus()
+      }
+    }, 0)
+  }, [])
 
   // Render note item
-  const renderNoteItem = useCallback((item: any, index: number): Node => {
-    // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
-    const note: FavoriteNote = item
-    const folder = note.folder || ''
-    const folderDisplay = folder && folder !== '/' ? `${folder} / ` : ''
-    const displayTitle = note.title || note.filename || 'Untitled'
-    
-    // Always show an icon - use note icon if provided, otherwise use default
-    const icon = note.icon || defaultNoteIconDetails.icon
-    const color = note.color || defaultNoteIconDetails.color
-    const isNewlyAdded = newlyAddedFilename === note.filename
+  const renderNoteItem = useCallback(
+    (item: any, index: number): Node => {
+      // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
+      const note: FavoriteNote = item
+      const folder = note.folder || ''
+      const folderDisplay = folder && folder !== '/' ? `${folder} / ` : ''
+      const displayTitle = note.title || note.filename || 'Untitled'
 
-    return (
-      <div className={`favorites-item-note ${isNewlyAdded ? 'favorites-item-newly-added' : ''}`}>
-        <i className={`fa ${icon} favorites-item-icon`} style={{ color: color }} />
-        <div className="favorites-item-content">
-          <div className="favorites-item-title">{displayTitle}</div>
-          {folder && folder !== '/' && (
-            <div className="favorites-item-folder">{folderDisplay}</div>
-          )}
+      // Always show an icon - use note icon if provided, otherwise use default
+      const icon = note.icon || defaultNoteIconDetails.icon
+      const color = note.color || defaultNoteIconDetails.color
+      const isNewlyAdded = newlyAddedFilename === note.filename
+
+      return (
+        <div className={`favorites-item-note ${isNewlyAdded ? 'favorites-item-newly-added' : ''}`}>
+          <i className={`fa ${icon} favorites-item-icon`} style={{ color: color }} />
+          <div className="favorites-item-content">
+            <div className="favorites-item-title">{displayTitle}</div>
+            {folder && folder !== '/' && <div className="favorites-item-folder">{folderDisplay}</div>}
+          </div>
+          <InfoIcon
+            text="Remove from favorites"
+            position="left"
+            icon="fa-star"
+            iconClassName="info-icon-outline-on-hover"
+            showOnClick={false}
+            showOnHover={true}
+            showImmediately={false}
+            className="favorites-unfavorite-icon"
+            onClick={(e: MouseEvent) => {
+              e.preventDefault()
+              e.stopPropagation()
+              handleRemoveFavorite(note.filename)
+            }}
+          />
         </div>
-        <InfoIcon
-          text="Remove from favorites"
-          position="left"
-          icon="fa-star"
-          iconClassName="info-icon-outline-on-hover"
-          showOnClick={false}
-          showOnHover={true}
-          showImmediately={false}
-          className="favorites-unfavorite-icon"
-          onClick={(e: MouseEvent) => {
-            e.preventDefault()
-            e.stopPropagation()
-            handleRemoveFavorite(note.filename)
-          }}
-        />
-      </div>
-    )
-  }, [newlyAddedFilename, handleRemoveFavorite])
+      )
+    },
+    [newlyAddedFilename, handleRemoveFavorite],
+  )
 
   // Render command item
   const renderCommandItem = useCallback((item: any, index: number): Node => {
@@ -504,9 +581,7 @@ function FavoritesViewComponent({
         <i className="fa fa-terminal favorites-item-icon" />
         <div className="favorites-item-content">
           <div className="favorites-item-title">{command.name}</div>
-          {command.description && (
-            <div className="favorites-item-description">{command.description}</div>
-          )}
+          {command.description && <div className="favorites-item-description">{command.description}</div>}
         </div>
       </div>
     )
@@ -535,104 +610,117 @@ function FavoritesViewComponent({
   }, [])
 
   // Get item label for filtering
-  const getItemLabel = useCallback((item: any): string => {
-    if (showNotes) {
-      // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
-      const note: FavoriteNote = item
-      return note.title || note.filename || ''
-    } else {
-      // $FlowFixMe[incompatible-cast] - item is FavoriteCommand when showNotes is false
-      const command: FavoriteCommand = item
-      return command.name || ''
-    }
-  }, [showNotes])
+  const getItemLabel = useCallback(
+    (item: any): string => {
+      if (showNotes) {
+        // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
+        const note: FavoriteNote = item
+        return note.title || note.filename || ''
+      } else {
+        // $FlowFixMe[incompatible-cast] - item is FavoriteCommand when showNotes is false
+        const command: FavoriteCommand = item
+        return command.name || ''
+      }
+    },
+    [showNotes],
+  )
 
   // Handle toggle change
-  const handleToggleChange = useCallback((newShowNotes: boolean) => {
-    setShowNotes(newShowNotes)
-    setReactSettings((prev: any) => ({ ...prev, showNotes: newShowNotes }))
-    setFilterText('') // Clear filter when switching
-    setSelectedIndex(null) // Reset selection
-  }, [setReactSettings])
+  const handleToggleChange = useCallback(
+    (newShowNotes: boolean) => {
+      setShowNotes(newShowNotes)
+      setReactSettings((prev: any) => ({ ...prev, showNotes: newShowNotes }))
+      setFilterText('') // Clear filter when switching
+      setSelectedIndex(null) // Reset selection
+    },
+    [setReactSettings],
+  )
 
   // Handle keyboard navigation
   // Arrow keys only navigate (change selectedIndex) - they do NOT trigger actions
   // Click and Enter trigger actions (run command or open note)
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      // Arrow navigation only - no action triggered
-      const newIndex = selectedIndex === null || selectedIndex === undefined ? 0 : selectedIndex + 1
-      if (newIndex < currentItems.length) {
-        setSelectedIndex(newIndex)
-        // Scroll into view
-        setTimeout(() => {
-          if (listRef.current) {
-            const item = listRef.current.querySelector(`[data-index="${newIndex}"]`)
-            if (item instanceof HTMLElement) {
-              item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-              item.focus()
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        // Arrow navigation only - no action triggered
+        const newIndex = selectedIndex === null || selectedIndex === undefined ? 0 : selectedIndex + 1
+        if (newIndex < currentItems.length) {
+          setSelectedIndex(newIndex)
+          // Scroll into view
+          setTimeout(() => {
+            if (listRef.current) {
+              const item = listRef.current.querySelector(`[data-index="${newIndex}"]`)
+              if (item instanceof HTMLElement) {
+                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+                item.focus()
+              }
             }
-          }
-        }, 0)
-      }
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      // Arrow navigation only - no action triggered
-      if (selectedIndex !== null && selectedIndex !== undefined && selectedIndex > 0) {
-        const newIndex = selectedIndex - 1
-        setSelectedIndex(newIndex)
-        // Scroll into view
-        setTimeout(() => {
-          if (listRef.current) {
-            const item = listRef.current.querySelector(`[data-index="${newIndex}"]`)
-            if (item instanceof HTMLElement) {
-              item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-              item.focus()
+          }, 0)
+        }
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        // Arrow navigation only - no action triggered
+        if (selectedIndex !== null && selectedIndex !== undefined && selectedIndex > 0) {
+          const newIndex = selectedIndex - 1
+          setSelectedIndex(newIndex)
+          // Scroll into view
+          setTimeout(() => {
+            if (listRef.current) {
+              const item = listRef.current.querySelector(`[data-index="${newIndex}"]`)
+              if (item instanceof HTMLElement) {
+                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+                item.focus()
+              }
             }
-          }
-        }, 0)
+          }, 0)
+        }
+      } else if (event.key === 'Enter' && selectedIndex !== null && selectedIndex !== undefined && selectedIndex >= 0 && selectedIndex < currentItems.length) {
+        event.preventDefault()
+        // Enter key triggers the action (run command via x-callback URL or open note)
+        const item = currentItems[selectedIndex]
+        if (item) {
+          handleItemClick(item, (event: any))
+        }
       }
-    } else if (event.key === 'Enter' && selectedIndex !== null && selectedIndex !== undefined && selectedIndex >= 0 && selectedIndex < currentItems.length) {
-      event.preventDefault()
-      // Enter key triggers the action (run command via x-callback URL or open note)
-      const item = currentItems[selectedIndex]
-      if (item) {
-        handleItemClick(item, (event: any))
-      }
-    }
-  }, [currentItems, selectedIndex, handleItemClick])
+    },
+    [currentItems, selectedIndex, handleItemClick],
+  )
 
   // Handle filter input keydown
-  const handleFilterKeyDown = useCallback((e: any) => { // SyntheticKeyboardEvent<HTMLInputElement>
-    if (e.key === 'ArrowDown' && currentItems.length > 0) {
-      e.preventDefault()
-      setSelectedIndex(0)
-      // Focus the list with setTimeout to ensure DOM is updated
-      setTimeout(() => {
-        if (listRef.current) {
-          const firstItem = listRef.current.querySelector('[data-index="0"]')
-          if (firstItem instanceof HTMLElement) {
-            firstItem.focus()
+  const handleFilterKeyDown = useCallback(
+    (e: any) => {
+      // SyntheticKeyboardEvent<HTMLInputElement>
+      if (e.key === 'ArrowDown' && currentItems.length > 0) {
+        e.preventDefault()
+        setSelectedIndex(0)
+        // Focus the list with setTimeout to ensure DOM is updated
+        setTimeout(() => {
+          if (listRef.current) {
+            const firstItem = listRef.current.querySelector('[data-index="0"]')
+            if (firstItem instanceof HTMLElement) {
+              firstItem.focus()
+            }
           }
-        }
-      }, 0)
-    } else if (e.key === 'Tab' && !e.shiftKey && currentItems.length > 0) {
-      e.preventDefault()
-      setSelectedIndex(0)
-      setTimeout(() => {
-        if (listRef.current) {
-          const firstItem = listRef.current.querySelector('[data-index="0"]')
-          if (firstItem instanceof HTMLElement) {
-            firstItem.focus()
+        }, 0)
+      } else if (e.key === 'Tab' && !e.shiftKey && currentItems.length > 0) {
+        e.preventDefault()
+        setSelectedIndex(0)
+        setTimeout(() => {
+          if (listRef.current) {
+            const firstItem = listRef.current.querySelector('[data-index="0"]')
+            if (firstItem instanceof HTMLElement) {
+              firstItem.focus()
+            }
           }
-        }
-      }, 0)
-    } else {
-      // Pass other keys to handleKeyDown
-      handleKeyDown(e.nativeEvent)
-    }
-  }, [currentItems.length, handleKeyDown])
+        }, 0)
+      } else {
+        // Pass other keys to handleKeyDown
+        handleKeyDown(e.nativeEvent)
+      }
+    },
+    [currentItems.length, handleKeyDown],
+  )
 
   return (
     <div className="favorites-view-container">
@@ -681,6 +769,7 @@ function FavoritesViewComponent({
           </button>
         </div>
       </div>
+      <IdleTimer idleTime={IDLE_TIMEOUT_MS} onIdleTimeout={handleIdleTimeout} />
       <FilterableList
         items={currentItems}
         displayType="noteplan-sidebar"
@@ -697,6 +786,7 @@ function FavoritesViewComponent({
         onKeyDown={handleKeyDown}
         onFilterKeyDown={handleFilterKeyDown}
         listRef={listRef}
+        filterInputRef={filterInputRef}
         optionKeyDecoration={showNotes ? { icon: 'fa-columns', text: 'Split View' } : undefined}
         commandKeyDecoration={showNotes ? { icon: 'fa-window-restore', text: 'Floating Window' } : undefined}
       />
@@ -716,6 +806,8 @@ function FavoritesViewComponent({
             includeRelativeNotes: false,
             includeTeamspaceNotes: true,
             required: true,
+            shortDescriptionOnLine2: true,
+            showTitleOnly: true,
           },
           {
             type: 'markdown-preview',
@@ -785,13 +877,7 @@ function FavoritesViewComponent({
 /**
  * Root FavoritesView Component with AppProvider
  */
-export function FavoritesView({
-  data,
-  dispatch,
-  reactSettings,
-  setReactSettings,
-  onSubmitOrCancelCallFunctionNamed,
-}: FavoritesViewProps): Node {
+export function FavoritesView({ data, dispatch, reactSettings, setReactSettings, onSubmitOrCancelCallFunctionNamed }: FavoritesViewProps): Node {
   // Map to store pending requests
   const pendingRequestsRef = useRef<Map<string, { resolve: (data: any) => void, reject: (error: Error) => void, timeoutId: any }>>(new Map())
 
@@ -803,32 +889,35 @@ export function FavoritesView({
   }, [pluginData?.windowId])
 
   // Request function for AppContext
-  const requestFromPlugin = useCallback((command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
-    if (!command) throw new Error('requestFromPlugin: command must be called with a string')
+  const requestFromPlugin = useCallback(
+    (command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
+      if (!command) throw new Error('requestFromPlugin: command must be called with a string')
 
-    const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        const pending = pendingRequestsRef.current.get(correlationId)
-        if (pending) {
-          pendingRequestsRef.current.delete(correlationId)
-          reject(new Error(`Request timeout: ${command}`))
+      return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          const pending = pendingRequestsRef.current.get(correlationId)
+          if (pending) {
+            pendingRequestsRef.current.delete(correlationId)
+            reject(new Error(`Request timeout: ${command}`))
+          }
+        }, timeout)
+
+        pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
+
+        const requestData = {
+          ...dataToSend,
+          __correlationId: correlationId,
+          __requestType: 'REQUEST',
+          __windowId: windowIdRef.current || '',
         }
-      }, timeout)
 
-      pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
-
-      const requestData = {
-        ...dataToSend,
-        __correlationId: correlationId,
-        __requestType: 'REQUEST',
-        __windowId: windowIdRef.current || '',
-      }
-
-      dispatch('SEND_TO_PLUGIN', [command, requestData], `FavoritesView: requestFromPlugin: ${String(command)}`)
-    })
-  }, [dispatch])
+        dispatch('SEND_TO_PLUGIN', [command, requestData], `FavoritesView: requestFromPlugin: ${String(command)}`)
+      })
+    },
+    [dispatch],
+  )
 
   // Listen for RESPONSE messages
   useEffect(() => {
@@ -866,18 +955,27 @@ export function FavoritesView({
     }
   }, [])
 
-  const sendActionToPlugin = useCallback((command: string, dataToSend: any) => {
-    dispatch('SEND_TO_PLUGIN', [command, dataToSend], `FavoritesView: sendActionToPlugin: ${String(command)}`)
-  }, [dispatch])
+  const sendActionToPlugin = useCallback(
+    (command: string, dataToSend: any) => {
+      dispatch('SEND_TO_PLUGIN', [command, dataToSend], `FavoritesView: sendActionToPlugin: ${String(command)}`)
+    },
+    [dispatch],
+  )
 
-  const sendToPlugin = useCallback((command: string, dataToSend: any) => {
-    dispatch('SEND_TO_PLUGIN', [command, dataToSend], `FavoritesView: sendToPlugin: ${String(command)}`)
-  }, [dispatch])
+  const sendToPlugin = useCallback(
+    (command: string, dataToSend: any) => {
+      dispatch('SEND_TO_PLUGIN', [command, dataToSend], `FavoritesView: sendToPlugin: ${String(command)}`)
+    },
+    [dispatch],
+  )
 
-  const updatePluginData = useCallback((newData: any, messageForLog?: string) => {
-    const newFullData = { ...data, pluginData: newData }
-    dispatch('UPDATE_DATA', newFullData, messageForLog)
-  }, [data, dispatch])
+  const updatePluginData = useCallback(
+    (newData: any, messageForLog?: string) => {
+      const newFullData = { ...data, pluginData: newData }
+      dispatch('UPDATE_DATA', newFullData, messageForLog)
+    },
+    [data, dispatch],
+  )
 
   return (
     <AppProvider
@@ -900,4 +998,3 @@ export function FavoritesView({
     </AppProvider>
   )
 }
-
