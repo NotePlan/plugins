@@ -436,11 +436,7 @@ export function renderItem({
             className={`${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'} ${indent ? 'indent' : ''}`}
           >
             <label className="input-box-label">{label}</label>
-            <GenericDatePicker
-              startingSelectedDate={selectedDate ?? undefined}
-              onSelectDate={handleDateChange}
-              disabled={disabled}
-            />
+            <GenericDatePicker startingSelectedDate={selectedDate ?? undefined} onSelectDate={handleDateChange} disabled={disabled} />
           </div>
         )
       }
@@ -488,7 +484,11 @@ export function renderItem({
 
         logDebug(
           'dialogElementRenderer',
-          `folder-chooser: folders=${folders?.length || 0}, label=${label}, currentValue="${currentValue}", spaceFilter="${spaceFilter != null && spaceFilter !== '' ? String(spaceFilter) : spaceFilter === '' ? 'empty_string(Private)' : 'null(all)'}", sourceSpaceKey="${sourceSpaceKey || 'none'}", spaceValue="${sourceSpaceKey && updatedSettings && typeof updatedSettings === 'object' ? String(updatedSettings[sourceSpaceKey] || 'undefined') : 'N/A'}", options=${JSON.stringify(folderChooserOptions)}`,
+          `folder-chooser: folders=${folders?.length || 0}, label=${label}, currentValue="${currentValue}", spaceFilter="${
+            spaceFilter != null && spaceFilter !== '' ? String(spaceFilter) : spaceFilter === '' ? 'empty_string(Private)' : 'null(all)'
+          }", sourceSpaceKey="${sourceSpaceKey || 'none'}", spaceValue="${
+            sourceSpaceKey && updatedSettings && typeof updatedSettings === 'object' ? String(updatedSettings[sourceSpaceKey] || 'undefined') : 'N/A'
+          }", options=${JSON.stringify(folderChooserOptions)}`,
         )
 
         const handleFolderChange = (folder: string) => {
