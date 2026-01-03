@@ -593,7 +593,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
               reloadNotes()
             }}
             className="template-form"
-            style={{ content: { paddingLeft: '1rem', paddingRight: '1rem' } }}
+            style={{ content: { paddingLeft: '1.5rem', paddingRight: '1.5rem' } }}
           />
         </div>
         {/* end of replace */}
