@@ -9,6 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b5] 2026-01-03
+- Fixed height/Y pos issues for Dynamic and Settings dialogs
+- dev: added new color definitions to theme CSS generator
+
 ## [2.4.0.b5] 2026-01-02
 - dev: height/width/sticky fixes to use the new `var(--noteplan-toolbar-height, 0)` for mainWindow running
 

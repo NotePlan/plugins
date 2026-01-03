@@ -8,15 +8,15 @@
     background-color: var(--bg-mid-color);
     position: fixed;
     top: calc(50% + var(--noteplan-toolbar-height, 0)/2); /* TEST: */
+    height: 90vh;
+    max-height: calc(92vh - var(--noteplan-toolbar-height, 0));
+    /* max-height: calc(92% - var(--noteplan-toolbar-height, 0)); TEST: */
     left: 50%;
-    transform: translate(-50%, -50%);
     /* width: 90vw; */
     /* max-width: 90vw; */
-    /* height: 90vh; */
-    /* max-height: 90vh; */
     width: clamp(380px, 86%, 700px);
-    height: fit-content;
-    max-height: calc(92% - var(--noteplan-toolbar-height, 0)); /* TEST: */
+    /* transform: translate(-50%, -50%); */
+    transform: translate(-50%, 0%);  /* TEST: */
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     /* z-index: 1000; */
