@@ -572,6 +572,8 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
 
       let win: HTMLView|TEditor|false
       let success: boolean = false
+      logInfo('showHTMLV2', `- NotePlan.environment.buildVersion: ${NotePlan.environment.buildVersion}`)
+      logInfo('showHTMLV2', `- opts.showInMainWindow: ${String(opts.showInMainWindow)} and usersVersionHas('showInMainWindow'): ${String(usersVersionHas('showInMainWindow'))}`)
       if (opts.showInMainWindow && usersVersionHas('showInMainWindow')) {
         logDebug('showHTMLV2', `- Showing in main window with options: ${JSON.stringify(winOptions)}`)
         const mainWindowSpecificOptions = {

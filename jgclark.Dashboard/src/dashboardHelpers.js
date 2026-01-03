@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-01-01 for v2.4.0-b4, @jgclark
+// Last updated 2026-01-03 for v2.4.0.b5, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -282,9 +282,9 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
           dueDate: dueDateStr,
           isTeamspace: note.isTeamspaceNote,
         }
-        // if (p.content.includes('TEST')) {
-        //   clo(outputPara, `FYI 👉 makeDashboardParas - outputPara:`)
-        // }
+        if (p.content.includes('TEST')) {
+          logInfo('makeDashboardParas', `👉👉👉 ${JSP(outputPara)}`)
+        }
         return outputPara
       } else {
         logWarn('makeDashboardParas', `No note found for para {${p.content}} - probably an API teamspace bug?`)

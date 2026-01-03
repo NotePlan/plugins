@@ -9,7 +9,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b5] 2026-01-03
+## [2.4.0.b6] 2026-01-03
 - Fixed height/Y pos issues for Dynamic and Settings dialogs
 - dev: added new color definitions to theme CSS generator
 
