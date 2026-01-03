@@ -77,14 +77,14 @@
 
 .template-tag-toggle-label {
   font-size: 0.85rem;
-  color: var(--fg-secondary-color, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
 }
 
 /* Raw mode textarea */
 .template-tag-editor-raw {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid var(--divider-color, #CDCFD0);
   border-radius: 4px;
   font-family: Menlo, monospace;
   font-size: 0.9em;
@@ -111,7 +111,7 @@
   position: relative;
   min-height: 3em;
   padding: 0.5rem;
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid var(--divider-color, #CDCFD0);
   border-radius: 4px;
   background-color: var(--bg-main-color, #fff);
   cursor: text;
@@ -159,15 +159,13 @@
 }
 
 .template-tag-pill-tag:hover {
-  background-color: var(--tint-color-hover, #0056b3);
-  border-color: var(--tint-color-hover, #0056b3);
+  filter: brightness(90%);
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
 }
 
 .template-tag-pill-tag.template-tag-pill-selected {
-  background-color: var(--tint-color-hover, #0056b3);
-  border-color: var(--tint-color-hover, #0056b3);
+  filter: brightness(90%);
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
 }
 
@@ -179,7 +177,7 @@
 .template-tag-pill-text {
   background-color: var(--bg-alt-color, #f5f5f5);
   color: var(--fg-main-color, #333);
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid var(--divider-color, #CDCFD0);
   cursor: grab;
   font-family: Menlo, monospace; /* Monospace for text pills */
   white-space: pre-wrap; /* Preserve whitespace and newlines for display */
@@ -295,7 +293,7 @@
 /* Empty state */
 .template-tag-editor-empty {
   padding: 0.5rem;
-  color: var(--fg-secondary-color, #999);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
   font-size: 0.85rem;
   font-family: Menlo, monospace;
@@ -305,7 +303,7 @@
 .template-tag-editor-textarea {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid var(--divider-color, #CDCFD0);
   border-radius: 4px;
   font-family: Menlo, monospace; /* Monospace */
   font-size: 0.9em;

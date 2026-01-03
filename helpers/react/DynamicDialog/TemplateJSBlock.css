@@ -12,11 +12,11 @@
   display: block;
   font-weight: 600; /* Match input-box-label for consistency */
   margin-bottom: 0.5rem;
-  color: var(--fg-main-color, #333);
+  color: var(--fg-main-color, #4c4f69);
 }
 
 .templatejs-block-editor-wrapper {
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid var(--divider-color, #CDCFD0);
   border-radius: 4px;
   background-color: var(--bg-main-color, #fff);
   overflow: hidden;
@@ -33,7 +33,7 @@
 
 .templatejs-block-timing {
   font-size: 0.85rem;
-  color: var(--fg-secondary-color, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-weight: 500;
 }
 
@@ -46,7 +46,7 @@
   font-size: 0.9em;
   line-height: 1.5;
   background-color: var(--bg-main-color, #fff);
-  color: var(--fg-main-color, #333);
+  color: var(--fg-main-color, #4c4f69);
   resize: vertical;
   tab-size: 2;
 }
@@ -58,7 +58,7 @@
 
 .templatejs-block-editor:disabled {
   background-color: var(--bg-alt-color, #f5f5f5);
-  color: var(--fg-secondary-color, #999);
+  color: var(--fg-disabled-color, #999999);
   cursor: not-allowed;
 }
 
@@ -70,7 +70,7 @@
 
 .templatejs-block-hint {
   font-size: 0.8rem;
-  color: var(--fg-secondary-color, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
 }
 

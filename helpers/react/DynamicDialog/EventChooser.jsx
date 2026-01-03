@@ -514,7 +514,7 @@ export function EventChooser({
           onClick={(e) => handleItemSelect(event, e)}
           title={fullTooltip}
           style={{
-            backgroundColor: isSelected ? 'var(--hover-bg, #f5f5f5)' : undefined,
+            backgroundColor: isSelected ? 'var(--bg-alt-color, #e6e9ef)' : undefined,
             cursor: 'pointer',
           }}
         >
@@ -524,7 +524,7 @@ export function EventChooser({
               <i
                 className={`fa-solid ${calendarIcon}`}
                 style={{
-                  color: calendarColorStyle || `var(--${calendarColor}-500, var(--gray-500, #666))`,
+                  color: calendarColorStyle || `var(--${calendarColor}-500, var(--fg-placeholder-color, rgba(76, 79, 105, 0.7)))`,
                   fontSize: '0.9rem',
                 }}
                 title={event.calendar}

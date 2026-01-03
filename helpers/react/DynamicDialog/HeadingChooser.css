@@ -41,7 +41,7 @@
 }
 
 .heading-chooser-container .heading-chooser-icon {
-  color: var(--item-icon-color, #007aff);
+  color: var(--tint-color, #007aff);
   width: 1rem;
   text-align: center;
 }

@@ -606,7 +606,7 @@ export function ProcessingMethodSection({
               <p style={{ margin: '0 0 0.5rem 0' }}>
                 To use this method, add a <strong>TemplateJS Block</strong> field to your form fields list. The JavaScript code in that field will be executed when the form is submitted.
               </p>
-              <p style={{ margin: '0', fontStyle: 'italic', color: 'var(--fg-secondary-color, #666)' }}>
+              <p style={{ margin: '0', fontStyle: 'italic', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))' }}>
                 Form values are available as variables in the TemplateJS code. No note creation or validation is performed - the code runs directly.
               </p>
             </div>
@@ -800,12 +800,12 @@ export function ProcessingMethodSection({
       )}
 
       {/* Debug JSON Viewer */}
-      <div className="frontmatter-field" style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color, #ddd)' }}>
+      <div className="frontmatter-field" style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--divider-color, #CDCFD0)' }}>
         <label style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>Debug: Frontmatter Values (JSON)</label>
         <div
           style={{
             backgroundColor: 'var(--bg-alt-color, #f5f5f5)',
-            border: '1px solid var(--border-color, #ddd)',
+            border: '1px solid var(--divider-color, #CDCFD0)',
             borderRadius: '4px',
             padding: '0.75rem',
             fontFamily: 'Menlo, monospace',

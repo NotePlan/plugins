@@ -48,7 +48,7 @@
   display: block;
   margin-bottom: 0.25rem;
   font-weight: 600;
-  color: var(--text-color, #333);
+  color: var(--fg-main-color, #4c4f69);
 }
 
 /* Fix label alignment in compact display */
@@ -96,7 +96,7 @@
   font-size: 0.85rem; /* Match input-box-input font size */
   font-family: system-ui; /* Match input-box-input font family */
   background-color: var(--bg-main-color); /* Match input-box-input background */
-  color: var(--text-color, #333);
+  color: var(--fg-main-color, #4c4f69);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis; /* CSS truncation for normal cases, JS truncation for very long items */
@@ -124,14 +124,14 @@
 .searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus,
 [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus {
   outline: none;
-  border-color: var(--primary-color, #0066cc);
+  border-color: var(--tint-color, #dc8a78);
   box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
 }
 
 .searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:disabled,
 [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:disabled {
-  background-color: var(--disabled-bg, #f5f5f5);
-  color: var(--disabled-text, #999);
+  background-color: var(--bg-disabled-color, #f5f5f5);
+  color: var(--fg-disabled-color, #999999);
   cursor: not-allowed;
 }
 
@@ -160,7 +160,7 @@
   background-color: var(--bg-alt-color, #f5f5f5);
   border-radius: 4px;
   font-size: 0.85em;
-  color: var(--gray-600, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
 }
 
 /* Icon - matches any {prefix}-icon within base */
@@ -171,7 +171,7 @@
   right: 0.5rem; /* Position inside the border - match padding-right of input */
   top: 50%;
   transform: translateY(-50%);
-  color: var(--icon-color, #666);
+  color: var(--tint-color, #1e66f5);
   pointer-events: none;
   transition: transform 0.2s;
 }
@@ -189,7 +189,7 @@
   right: 0.5rem; /* Position inside the border - match padding-right of input */
   top: 50%;
   transform: translateY(-50%);
-  color: var(--icon-color, #666);
+  color: var(--tint-color, #1e66f5);
   pointer-events: none;
   transition: transform 0.2s;
   font-size: 0.75rem;
@@ -210,8 +210,8 @@
   right: 0 !important;
   max-height: 150px;
   overflow-y: auto;
-  background-color: var(--dropdown-bg, #fff) !important;
-  border: 1px solid var(--border-color, #ddd) !important;
+  background-color: var(--bg-main-color, #eff1f5) !important;
+  border: 1px solid var(--divider-color, #CDCFD0) !important;
   border-top: none;
   border-radius: 0 0 4px 4px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -233,8 +233,8 @@
   right: 0;
   max-height: 150px;
   overflow-y: auto;
-  background-color: var(--dropdown-bg, #fff);
-  border: 1px solid var(--border-color, #ddd);
+  background-color: var(--bg-main-color, #eff1f5);
+  border: 1px solid var(--divider-color, #CDCFD0);
   border-top: none;
   border-radius: 0 0 4px 4px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -246,8 +246,8 @@
 .searchable-chooser-option {
   padding: 0.5rem 0.75rem;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
-  color: var(--text-color, #333);
+  border-bottom: 1px solid var(--divider-color, #CDCFD0);
+  color: var(--fg-main-color, #4c4f69);
   font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
@@ -265,7 +265,7 @@
   padding: 0.25rem 0.75rem;
   cursor: pointer;
   /* border-bottom: 1px solid var(--border-color, #f0f0f0); */
-  color: var(--text-color, #333);
+  color: var(--fg-main-color, #4c4f69);
   font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
@@ -321,7 +321,7 @@
   flex-grow: 0; /* Don't grow */
   margin-left: auto;
   white-space: nowrap;
-  color: var(--gray-500, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-size: 0.9em;
   opacity: 0.7;
   text-align: right;
@@ -333,8 +333,8 @@
 .searchable-chooser-option-two-line {
   padding: 0.5rem 0.75rem;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
-  color: var(--text-color, #333);
+  border-bottom: 1px solid var(--divider-color, #CDCFD0);
+  color: var(--fg-main-color, #4c4f69);
   font-size: 0.9rem;
   flex-direction: column;
   align-items: flex-start;
@@ -357,7 +357,7 @@
 .searchable-chooser-option-second-line {
   font-size: 0.85em;
   opacity: 0.6;
-  color: var(--gray-500, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   margin-top: 0;
   padding-top: 0;
   padding-left: 0;
@@ -376,8 +376,8 @@
 [class*="-chooser-option-two-line"] {
   padding: 0.5rem 0.75rem !important;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
-  color: var(--text-color, #333);
+  border-bottom: 1px solid var(--divider-color, #CDCFD0);
+  color: var(--fg-main-color, #4c4f69);
   font-size: 0.9rem;
   flex-direction: column;
   align-items: flex-start;
@@ -402,7 +402,7 @@
 [class*="-chooser-option-second-line"] {
   font-size: 0.85em;
   opacity: 0.6;
-  color: var(--gray-500, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   margin-top: 0 !important;
   padding-top: 0 !important;
   padding-left: 0;
@@ -422,7 +422,7 @@
   flex-grow: 0; /* Don't grow */
   margin-left: auto;
   white-space: nowrap;
-  color: var(--gray-500, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-size: 0.9em;
   opacity: 0.7;
   text-align: right;
@@ -433,7 +433,7 @@
 .searchable-chooser-option:hover,
 .searchable-chooser-base [class*="-chooser-option"]:hover,
 [class*="-chooser-option"]:hover {
-  background-color: var(--hover-bg, #f5f5f5);
+  background-color: var(--bg-alt-color, #e6e9ef);
 }
 
 .searchable-chooser-option:last-child,
@@ -470,7 +470,7 @@
   flex-shrink: 0;
   min-width: 4rem;
   text-align: right;
-  color: var(--gray-600, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-size: 0.85em;
   padding-right: 0.5rem;
 }
@@ -495,14 +495,14 @@
 .searchable-chooser-option.option-click-hint,
 .searchable-chooser-base [class*="-chooser-option"].option-click-hint,
 [class*="-chooser-option"].option-click-hint {
-  background-color: var(--hover-bg, #f5f5f5);
+  background-color: var(--bg-alt-color, #e6e9ef);
   border-left: 3px solid var(--tint-color, #0066cc);
 }
 
 /* Empty state - use direct class name for maximum compatibility */
 .searchable-chooser-empty {
   padding: 0.5rem 0.75rem;
-  color: var(--text-muted, #999);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
   font-size: 0.9rem;
 }
@@ -510,7 +510,7 @@
 .searchable-chooser-base [class*="-chooser-empty"],
 [class*="-chooser-empty"] {
   padding: 0.5rem 0.75rem;
-  color: var(--text-muted, #999);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
   font-size: 0.9rem;
 }

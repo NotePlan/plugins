@@ -467,7 +467,10 @@ export function SearchableChooser({
                 }`,
               )}
             {isLoading ? (
-              <div className={`searchable-chooser-empty ${classNamePrefix}-empty`} style={{ padding: '1rem', textAlign: 'center', color: 'var(--gray-600, #666)' }}>
+              <div
+                className={`searchable-chooser-empty ${classNamePrefix}-empty`}
+                style={{ padding: '1rem', textAlign: 'center', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))' }}
+              >
                 <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
                 Loading...
               </div>
@@ -483,7 +486,7 @@ export function SearchableChooser({
                       backgroundColor: 'var(--bg-alt-color, #f5f5f5)',
                       borderRadius: '4px',
                       fontSize: '0.85em',
-                      color: 'var(--gray-600, #666)',
+                      color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))',
                     }}
                   >
                     Press Enter to use &quot;{searchTerm.trim()}&quot; as {manualEntryIndicator.toLowerCase()}
@@ -549,14 +552,16 @@ export function SearchableChooser({
                     return (
                       <div
                         key={`${fieldType}-${index}`}
-                        className={`searchable-chooser-option searchable-chooser-option-two-line ${classNamePrefix}-option ${classNamePrefix}-option-two-line ${showOptionClickHint ? 'option-click-hint' : ''} ${isSelected ? 'option-selected' : ''}`}
+                        className={`searchable-chooser-option searchable-chooser-option-two-line ${classNamePrefix}-option ${classNamePrefix}-option-two-line ${
+                          showOptionClickHint ? 'option-click-hint' : ''
+                        } ${isSelected ? 'option-selected' : ''}`}
                         onClick={(e) => handleItemSelect(item, e)}
                         onMouseEnter={() => setHoveredIndex(index)}
                         onMouseLeave={() => setHoveredIndex(null)}
                         title={finalTitle}
                         style={{
                           cursor: showOptionClickHint ? 'pointer' : 'default',
-                          backgroundColor: isSelected ? 'var(--hover-bg, #f5f5f5)' : undefined,
+                          backgroundColor: isSelected ? 'var(--bg-alt-color, #e6e9ef)' : undefined,
                         }}
                       >
                         <div className={`searchable-chooser-option-first-line ${classNamePrefix}-option-first-line`}>
@@ -592,17 +597,17 @@ export function SearchableChooser({
                         <div
                           className={`searchable-chooser-option-second-line ${classNamePrefix}-option-second-line`}
                           style={{
-                            color: optionColor ? `var(--${optionColor}, var(--gray-500, #666))` : undefined,
+                            color: optionColor ? `var(--${optionColor}, var(--fg-placeholder-color, rgba(76, 79, 105, 0.7)))` : undefined,
                           }}
                         >
                           {optionShortDesc}
-      </div>
-      {/* Placeholder div to reserve space for validation message - outside input wrapper so it doesn't constrain dropdown */}
-      <div className="validation-message validation-message-placeholder" aria-hidden="true"></div>
-    </div>
-  )
-}
-                  
+                        </div>
+                        {/* Placeholder div to reserve space for validation message - outside input wrapper so it doesn't constrain dropdown */}
+                        <div className="validation-message validation-message-placeholder" aria-hidden="true"></div>
+                      </div>
+                    )
+                  }
+
                   // Single-line layout (default): icon + label + description on one line
                   return (
                     <div
@@ -668,7 +673,10 @@ export function SearchableChooser({
         )}
       </div>
       {showValue && value && (
-        <div className={`${classNamePrefix}-value-display`} style={{ marginTop: '0.25rem', fontSize: '0.85em', color: 'var(--gray-500, #666)', fontFamily: 'Menlo, monospace' }}>
+        <div
+          className={`${classNamePrefix}-value-display`}
+          style={{ marginTop: '0.25rem', fontSize: '0.85em', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))', fontFamily: 'Menlo, monospace' }}
+        >
           <strong>Value:</strong> {value}
         </div>
       )}

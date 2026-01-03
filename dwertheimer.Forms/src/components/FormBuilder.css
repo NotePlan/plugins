@@ -28,7 +28,7 @@
 
 .form-builder-document-name {
   font-size: 0.875rem;
-  color: var(--fg-secondary-color, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   cursor: pointer;
   user-select: none;
 }
