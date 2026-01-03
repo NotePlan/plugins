@@ -6,12 +6,11 @@
     font-family: system-ui;
     background-color: var(--bg-mid-color);
     position: fixed;
-    top: calc(50% + var(--noteplan-toolbar-height, 0)*2); /* a little lower to try to avoid hiding the Header bar, as we want to see Perspective name */
-    max-height: calc(90% - var(--noteplan-toolbar-height, 0)*);
+    top: 50vh; /* Center in viewport */
+    max-height: calc(90vh - var(--noteplan-toolbar-height, 0));
     left: 50%;
     width: clamp(380px, 86%, 700px);
-    /* transform: translate(-50%, -48%); /* second param needs to be a little lower than 50% to avoid hiding the Header bar, as we want to see Perspective name */
-    transform: translate(-50%, 0%); /* TEST: */
+    transform: translate(-50%, -50%); /* Center both horizontally and vertically */
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     /* z-index: 1000; */
