@@ -4,10 +4,13 @@ import pluginJson from '../plugin.json'
 import { type PassedData } from './shared/types.js'
 // Note: getAllNotesAsOptions is no longer used here - FormView loads notes dynamically via requestFromPlugin
 import { testRequestHandlers, updateFormLinksInNote, removeEmptyLinesFromNote } from './requestHandlers'
-import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, getFormTemplateList } from './templateIO.js'
-import { openFormWindow, openFormBuilderWindow, getFormBrowserWindowId } from './windowManagement.js'
+import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, getFormTemplateList, findDuplicateFormTemplates } from './templateIO.js'
+import { openFormWindow, openFormBuilderWindow, getFormBrowserWindowId, getFormBuilderWindowId, getFormWindowId } from './windowManagement.js'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
+import { chooseNoteV2 } from '@helpers/NPnote'
+import { sendBannerMessage } from '@helpers/HTMLView'
+import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { waitForCondition } from '@helpers/promisePolyfill'
 import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
@@ -16,6 +19,8 @@ import { updateFrontMatterVars, ensureFrontmatter, noteHasFrontMatter, getFrontm
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
+import { getFolderFromFilename } from '@helpers/folders'
+import { displayTitle } from '@helpers/paragraph'
 // Note: getFoldersMatching is no longer used here - FormView loads folders dynamically via requestFromPlugin
 
 // Re-export shared type for backward compatibility
@@ -80,11 +85,39 @@ function validateFormFields(formFields: Array<Object>): boolean {
  * @param {string} templateTitle - the title of the template to use
  * @returns {void}
  */
-export async function getTemplateFormData(templateTitle?: string): Promise<void> {
+export async function openTemplateForm(templateTitle?: string): Promise<void> {
   try {
     let selectedTemplate // will be a filename
     if (templateTitle?.trim().length) {
       const options = getFormTemplateList()
+      const duplicates = findDuplicateFormTemplates(templateTitle)
+
+      if (duplicates.length > 1) {
+        // Multiple forms with same title found - show warning
+        const duplicateFilenames = duplicates.map((d) => d.value).join(', ')
+        const warningMsg = `⚠️ WARNING: Multiple forms found with the title "${templateTitle}". This may cause confusion. Opening the first match. Duplicate files: ${
+          duplicates.length
+        } found.\n\nPlease rename one of these forms to avoid conflicts.\n\nFilenames:\n${duplicates.map((d, i) => `${i + 1}. ${d.value}`).join('\n')}`
+
+        // Try to show banner in any open form/form builder windows
+        const formBrowserWindowId = getFormBrowserWindowId()
+        const formBuilderWindowId = getFormBuilderWindowId(templateTitle)
+        const formWindowId = getFormWindowId(templateTitle)
+
+        if (isHTMLWindowOpen(formBrowserWindowId)) {
+          await sendBannerMessage(formBrowserWindowId, warningMsg, 'WARN', 10000)
+        } else if (isHTMLWindowOpen(formBuilderWindowId)) {
+          await sendBannerMessage(formBuilderWindowId, warningMsg, 'WARN', 10000)
+        } else if (isHTMLWindowOpen(formWindowId)) {
+          await sendBannerMessage(formWindowId, warningMsg, 'WARN', 10000)
+        } else {
+          // No window open, show regular message
+          await showMessage(warningMsg)
+        }
+
+        logWarn(pluginJson, `openTemplateForm: Found ${duplicates.length} forms with title "${templateTitle}": ${duplicateFilenames}`)
+      }
+
       const chosenOpt = options.find((option) => option.label === templateTitle)
       if (chosenOpt) {
         // variable passed is a note title, but we need the filename
@@ -111,7 +144,7 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
       const note = await getNoteByFilename(selectedTemplate)
       if (note) {
         const fm = note.frontmatterAttributes
-        clo(fm, `getTemplateFormData fm=`)
+        clo(fm, `openTemplateForm fm=`)
 
         // Check processing method - determine from frontmatter or infer from receivingTemplateTitle (backward compatibility)
         const processingMethod = fm?.processingMethod || (fm?.receivingTemplateTitle || fm?.receivingtemplatetitle ? 'form-processor' : null)
@@ -146,13 +179,13 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
             const formFieldsString: ?string = await loadCodeBlockFromNote<string>(selectedTemplate, 'formfields', pluginJson.id, null)
             if (formFieldsString) {
               const errors = validateObjectString(formFieldsString)
-              logError(pluginJson, `getTemplateFormData: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
-              logError(pluginJson, `getTemplateFormData: errors: ${errors.join('\n')}`)
+              logError(pluginJson, `openTemplateForm: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
+              logError(pluginJson, `openTemplateForm: errors: ${errors.join('\n')}`)
               return
             }
           }
-          clo(formFields, `🎅🏼 DBWDELETE NPTemplating.getTemplateFormData formFields=`)
-          logDebug(pluginJson, `🎅🏼 DBWDELETE NPTemplating.getTemplateFormData formFields=\n${JSON.stringify(formFields, null, 2)}`)
+          clo(formFields, `🎅🏼 DBWDELETE NPTemplating.openTemplateForm formFields=`)
+          logDebug(pluginJson, `🎅🏼 DBWDELETE NPTemplating.openTemplateForm formFields=\n${JSON.stringify(formFields, null, 2)}`)
         } else {
           // Try to get raw string for error reporting
           const formFieldsString: ?string = await loadCodeBlockFromNote<string>(selectedTemplate, 'formfields', pluginJson.id, null)
@@ -161,37 +194,37 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
               formFields = parseObjectString(formFieldsString)
               if (!formFields) {
                 const errors = validateObjectString(formFieldsString)
-                logError(pluginJson, `getTemplateFormData: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
-                logError(pluginJson, `getTemplateFormData: errors: ${errors.join('\n')}`)
+                logError(pluginJson, `openTemplateForm: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
+                logError(pluginJson, `openTemplateForm: errors: ${errors.join('\n')}`)
                 return
               }
             } catch (error) {
               const errors = validateObjectString(formFieldsString)
               await showMessage(
-                `getTemplateFormData: There is an error in your form fields (most often a missing comma).\nJS Error: "${error.message}"\nCheck Plugin Console Log for more details.`,
+                `openTemplateForm: There is an error in your form fields (most often a missing comma).\nJS Error: "${error.message}"\nCheck Plugin Console Log for more details.`,
               )
-              logError(pluginJson, `getTemplateFormData: error parsing form fields: ${error.message} String:\n${formFieldsString}`)
-              logError(pluginJson, `getTemplateFormData: errors: ${errors.join('\n')}`)
+              logError(pluginJson, `openTemplateForm: error parsing form fields: ${error.message} String:\n${formFieldsString}`)
+              logError(pluginJson, `openTemplateForm: errors: ${errors.join('\n')}`)
               return
             }
           }
         }
       } else {
-        logError(pluginJson, `getTemplateFormData: could not find form template: ${selectedTemplate}`)
+        logError(pluginJson, `openTemplateForm: could not find form template: ${selectedTemplate}`)
         return
       }
     }
 
     // Ensure we have a selectedTemplate before proceeding
     if (!selectedTemplate) {
-      logError(pluginJson, 'getTemplateFormData: No template selected')
+      logError(pluginJson, 'openTemplateForm: No template selected')
       return
     }
 
     // Get the note directly (bypassing getTemplateContent which assumes @Templates folder)
     const templateNote = await getNoteByFilename(selectedTemplate)
     if (!templateNote) {
-      logError(pluginJson, `getTemplateFormData: could not find form template note: ${selectedTemplate}`)
+      logError(pluginJson, `openTemplateForm: could not find form template note: ${selectedTemplate}`)
       return
     }
 
@@ -201,14 +234,14 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
     if (templateNote.filename?.startsWith('%%NotePlanCloud%%')) {
       const teamspaceDetails = parseTeamspaceFilename(templateNote.filename || '')
       templateTeamspaceID = teamspaceDetails.teamspaceID || ''
-      logDebug(pluginJson, `getTemplateFormData: Template is in teamspace: ${templateTeamspaceID}`)
+      logDebug(pluginJson, `openTemplateForm: Template is in teamspace: ${templateTeamspaceID}`)
     }
 
     // Get template content directly from note (not through getTemplateContent which assumes @Templates)
     const templateData = templateNote.content || ''
     const templateFrontmatterAttributes = await NPTemplating.getTemplateAttributes(templateData)
-    clo(templateData, `getTemplateFormData templateData=`)
-    clo(templateFrontmatterAttributes, `getTemplateFormData templateFrontmatterAttributes=`)
+    clo(templateData, `openTemplateForm templateData=`)
+    clo(templateFrontmatterAttributes, `openTemplateForm templateFrontmatterAttributes=`)
 
     // Check processing method - determine from frontmatter or infer from receivingTemplateTitle (backward compatibility)
     const processingMethod = templateFrontmatterAttributes?.processingMethod || (templateFrontmatterAttributes?.receivingTemplateTitle ? 'form-processor' : null)
@@ -264,7 +297,7 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
     // This ensures forms opened in a teamspace default to that teamspace for creating/loading notes
     if (templateTeamspaceID && !frontmatterAttributes.space) {
       frontmatterAttributes.space = templateTeamspaceID
-      logDebug(pluginJson, `getTemplateFormData: Setting default space to template's teamspace: ${templateTeamspaceID}`)
+      logDebug(pluginJson, `openTemplateForm: Setting default space to template's teamspace: ${templateTeamspaceID}`)
     }
 
     if (templateFrontmatterAttributes.formFields) {
@@ -274,6 +307,10 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
       // codeblock version of formFields
       frontmatterAttributes.formFields = formFields
     }
+
+    // Add templateFilename and templateTitle for autosave identification
+    frontmatterAttributes.templateFilename = selectedTemplate
+    frontmatterAttributes.templateTitle = templateNote.title || ''
 
     if (await validateFormFields(frontmatterAttributes.formFields)) {
       await openFormWindow(frontmatterAttributes)
@@ -330,6 +367,34 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
     if (templateTitle?.trim().length) {
       logDebug(pluginJson, `openFormBuilder: Using provided templateTitle`)
       const options = getFormTemplateList()
+      const duplicates = findDuplicateFormTemplates(templateTitle)
+
+      if (duplicates.length > 1) {
+        // Multiple forms with same title found - show warning
+        const duplicateFilenames = duplicates.map((d) => d.value).join(', ')
+        const warningMsg = `⚠️ WARNING: Multiple forms found with the title "${templateTitle}". This may cause confusion. Opening the first match. Duplicate files: ${
+          duplicates.length
+        } found.\n\nPlease rename one of these forms to avoid conflicts.\n\nFilenames:\n${duplicates.map((d, i) => `${i + 1}. ${d.value}`).join('\n')}`
+
+        // Try to show banner in any open form/form builder windows
+        const formBrowserWindowId = getFormBrowserWindowId()
+        const formBuilderWindowId = getFormBuilderWindowId(templateTitle)
+        const formWindowId = getFormWindowId(templateTitle)
+
+        if (isHTMLWindowOpen(formBrowserWindowId)) {
+          await sendBannerMessage(formBrowserWindowId, warningMsg, 'WARN', 10000)
+        } else if (isHTMLWindowOpen(formBuilderWindowId)) {
+          await sendBannerMessage(formBuilderWindowId, warningMsg, 'WARN', 10000)
+        } else if (isHTMLWindowOpen(formWindowId)) {
+          await sendBannerMessage(formWindowId, warningMsg, 'WARN', 10000)
+        } else {
+          // No window open, show regular message
+          await showMessage(warningMsg)
+        }
+
+        logWarn(pluginJson, `openFormBuilder: Found ${duplicates.length} forms with title "${templateTitle}": ${duplicateFilenames}`)
+      }
+
       const chosenOpt = options.find((option) => option.label === templateTitle)
       if (chosenOpt) {
         selectedTemplate = chosenOpt.value
@@ -438,6 +503,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
           // formTitle is left blank by default - user can fill it in later
           launchLink: launchLink,
           formEditLink: formEditLink,
+          triggers: 'onOpen => dwertheimer.Forms.triggerOpenForm',
           width: '25%',
           height: '40%',
           x: 'center',
@@ -545,9 +611,80 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         // $FlowFixMe[incompatible-type] - showOptions returns number index
       } else if (createNew.index === 1 || createNew.value === 'Edit Existing Form') {
         logDebug(pluginJson, `openFormBuilder: User chose to edit existing form`)
-        // Edit existing
-        selectedTemplate = await NPTemplating.chooseTemplate('template-form')
-        logDebug(pluginJson, `openFormBuilder: User selected existing template: "${selectedTemplate || 'none'}"`)
+
+        // Filter form templates from all spaces
+        // Find notes that are:
+        // - In @Forms folder AND have type 'template-form', OR
+        // - In @Templates folder AND have type 'template-form'
+        const allNotes = DataStore.projectNotes
+        const formTemplateNotes = allNotes.filter((note) => {
+          const noteType = note.frontmatterAttributes?.type
+          if (noteType !== 'template-form') {
+            return false
+          }
+
+          const filename = note.filename || ''
+          const isInFormsFolder = filename.includes('@Forms')
+          const isInTemplatesFolder = filename.includes('@Templates') || (filename.includes('%%NotePlanCloud%%') && filename.includes('@Templates'))
+
+          return isInFormsFolder || isInTemplatesFolder
+        })
+
+        if (formTemplateNotes.length === 0) {
+          await showMessage('No form templates found. Please create a form template first.')
+          logDebug(pluginJson, `openFormBuilder: No form templates found, returning`)
+          return
+        }
+
+        logDebug(pluginJson, `openFormBuilder: Found ${formTemplateNotes.length} form templates from all spaces`)
+
+        // Use chooseNoteV2 to get decorated note selection
+        const selectedNote = await chooseNoteV2(
+          'Choose a form template to edit:',
+          formTemplateNotes,
+          false, // includeCalendarNotes
+          false, // includeFutureCalendarNotes
+          false, // currentNoteFirst
+          false, // allowNewRegularNoteCreation
+        )
+
+        if (!selectedNote) {
+          logDebug(pluginJson, `openFormBuilder: User cancelled note selection, returning`)
+          return
+        }
+
+        selectedTemplate = selectedNote.filename || ''
+        logDebug(pluginJson, `openFormBuilder: User selected existing template: "${selectedNote.title || 'none'}" at "${selectedTemplate}"`)
+
+        // Check for duplicates after selection
+        const selectedNoteTitle = selectedNote.title || selectedNote.filename || ''
+        if (selectedNoteTitle) {
+          const duplicates = findDuplicateFormTemplates(selectedNoteTitle)
+          if (duplicates.length > 1) {
+            const duplicateFilenames = duplicates.map((d) => d.value).join(', ')
+            const warningMsg = `⚠️ WARNING: Multiple forms found with the title "${selectedNoteTitle}". This may cause confusion. Duplicate files: ${
+              duplicates.length
+            } found.\n\nPlease rename one of these forms to avoid conflicts.\n\nFilenames:\n${duplicates.map((d, i) => `${i + 1}. ${d.value}`).join('\n')}`
+
+            // Try to show banner in any open form/form builder windows
+            const formBrowserWindowId = getFormBrowserWindowId()
+            const formBuilderWindowId = getFormBuilderWindowId(selectedNoteTitle)
+            const formWindowId = getFormWindowId(selectedNoteTitle)
+
+            if (isHTMLWindowOpen(formBrowserWindowId)) {
+              await sendBannerMessage(formBrowserWindowId, warningMsg, 'WARN', 10000)
+            } else if (isHTMLWindowOpen(formBuilderWindowId)) {
+              await sendBannerMessage(formBuilderWindowId, warningMsg, 'WARN', 10000)
+            } else if (isHTMLWindowOpen(formWindowId)) {
+              await sendBannerMessage(formWindowId, warningMsg, 'WARN', 10000)
+            } else {
+              // No window open, show regular message
+              await showMessage(warningMsg)
+            }
+
+            logWarn(pluginJson, `openFormBuilder: Found ${duplicates.length} forms with title "${selectedNoteTitle}": ${duplicateFilenames}`)
+          }
+        }
       } else {
         logDebug(pluginJson, `openFormBuilder: User cancelled, returning`)
         return // cancelled
@@ -650,7 +787,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
 
 /**
  * Opens the HTML+React window; Called after the form data has been generated
- * @param {Object} argObj - the data to pass to the React Window (comes from templating "getTemplateFormData" command, a combination of the template frontmatter vars and formFields codeblock)
+ * @param {Object} argObj - the data to pass to the React Window (comes from templating "openTemplateForm" command, a combination of the template frontmatter vars and formFields codeblock)
  *  - formFields: array (required) - the form fields to display
  *  - windowTitle: string (optional) - the title of the window (defaults to 'Form')
  *  - formTitle: string (optional) - the title of the form (inside the window)
@@ -741,6 +878,213 @@ export async function openFormBrowser(_showFloating: boolean = false): Promise<v
   } catch (error) {
     logError(pluginJson, `openFormBrowser: Error: ${JSP(error)}`)
     await showMessage(`Error opening form browser: ${error.message}`)
+  }
+}
+
+/**
+ * Plugin entrypoint for triggerOpenForm
+ * Checks if the currently open note in Editor has frontmatter type "template-form"
+ * and if so, opens the template form with the note's title
+ * @returns {Promise<void>}
+ */
+export async function triggerOpenForm(): Promise<void> {
+  try {
+    // Check if Editor.note exists
+    if (!Editor.note) {
+      logDebug(pluginJson, 'triggerOpenForm: No note is currently open in Editor')
+      return
+    }
+
+    // Check if Editor.frontmatterAttributes exists and has type "template-form"
+    const frontmatterAttributes = Editor.frontmatterAttributes || {}
+    const noteType = frontmatterAttributes.type
+
+    if (noteType !== 'template-form') {
+      logDebug(pluginJson, `triggerOpenForm: Note type is "${noteType || 'undefined'}", not "template-form". Skipping.`)
+      return
+    }
+
+    // Get the note title
+    const noteTitle = Editor.note.title
+    if (!noteTitle) {
+      logError(pluginJson, 'triggerOpenForm: Note has type "template-form" but no title found')
+      await showMessage('Note has type "template-form" but no title found. Cannot open form.')
+      return
+    }
+
+    logDebug(pluginJson, `triggerOpenForm: Opening template form with title: "${noteTitle}"`)
+    // Open the template form with the note's title
+    await openTemplateForm(noteTitle)
+  } catch (error) {
+    logError(pluginJson, `triggerOpenForm: Error: ${error.message}`)
+    await showMessage(`Error opening form: ${error.message}`)
+  }
+}
+
+/**
+ * Restore form from autosave
+ * Opens the form with the autosaved data pre-populated
+ * @param {string} autosaveFilename - The filename of the autosave file (e.g., "@Trash/Autosave-2025-12-30T23-51-09")
+ * @returns {Promise<void>}
+ */
+export async function restoreFormFromAutosave(autosaveFilename?: string): Promise<void> {
+  try {
+    if (!autosaveFilename) {
+      await showMessage('No autosave filename provided')
+      return
+    }
+
+    logDebug(pluginJson, `restoreFormFromAutosave: Restoring from "${autosaveFilename}"`)
+
+    // Parse the autosave filename to get the note
+    const parts = autosaveFilename.split('/')
+    let folder = '/'
+    let noteTitle = autosaveFilename
+
+    if (parts.length > 1) {
+      folder = parts.slice(0, -1).join('/')
+      noteTitle = parts[parts.length - 1]
+    } else if (autosaveFilename.startsWith('@')) {
+      noteTitle = autosaveFilename
+      folder = '/'
+    }
+
+    // Find the autosave note
+    let note = null
+    const isTrashFolder = folder === '@Trash' || folder.startsWith('@Trash/')
+
+    if (isTrashFolder) {
+      const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, true) ?? []
+      const matchingNotes = potentialNotes.filter((n) => {
+        const noteFolder = getFolderFromFilename(n.filename)
+        return noteFolder === folder && displayTitle(n) === noteTitle
+      })
+      if (matchingNotes.length > 0) {
+        note = matchingNotes[0]
+      }
+    } else {
+      const folderNotes = DataStore.projectNotes.filter((n) => {
+        const noteFolder = getFolderFromFilename(n.filename)
+        return noteFolder === folder && displayTitle(n) === noteTitle
+      })
+      if (folderNotes.length > 0) {
+        note = folderNotes[0]
+      }
+    }
+
+    if (!note) {
+      await showMessage(`Could not find autosave file: ${autosaveFilename}`)
+      return
+    }
+
+    // Load the autosave data from the code block
+    const autosaveData = await loadCodeBlockFromNote<string>(note, 'autosave', pluginJson.id, null)
+    if (!autosaveData) {
+      await showMessage(`No autosave data found in file: ${autosaveFilename}`)
+      return
+    }
+
+    // Parse the autosave data to get form identification and default values
+    let formState: any = {}
+    let formTitle: string | null = null
+    let templateFilename: string | null = null
+
+    try {
+      formState = JSON.parse(autosaveData)
+
+      // Extract form identification from the saved data
+      formTitle = formState.__templateTitle__ || formState.__formTitle__ || null
+      templateFilename = formState.__templateFilename__ || null
+
+      // Remove the internal fields from formState to get the actual form values
+      delete formState.__formTitle__
+      delete formState.__templateFilename__
+      delete formState.__templateTitle__
+      delete formState.lastUpdated
+    } catch (e) {
+      logError(pluginJson, `restoreFormFromAutosave: Error parsing autosave data: ${e.message}`)
+      await showMessage(`Error parsing autosave data: ${e.message}`)
+      return
+    }
+
+    // If we don't have form identification from the saved data, try to extract from filename
+    if (!formTitle) {
+      if (autosaveFilename.includes('-') && !autosaveFilename.startsWith('@Trash/Autosave-')) {
+        const match = autosaveFilename.match(/Autosave-([^-]+)-/)
+        if (match && match[1]) {
+          formTitle = match[1].replace(/-/g, ' ')
+        }
+      }
+    }
+
+    // If we still don't have a form title, ask the user
+    if (!formTitle) {
+      const options = getFormTemplateList()
+      if (options.length === 0) {
+        await showMessage('No form templates found. Cannot restore form.')
+        return
+      }
+      const choice = await CommandBar.showOptions(
+        options.map((opt) => opt.label),
+        'Restore Form from Autosave',
+        'Select the form template to restore:',
+      )
+      if (choice && choice.index >= 0 && choice.index < options.length) {
+        formTitle = options[choice.index].label
+        // Try to get templateFilename from the selected option
+        if (!templateFilename && options[choice.index].value) {
+          templateFilename = options[choice.index].value
+        }
+      } else {
+        return // User cancelled
+      }
+    }
+
+    logDebug(pluginJson, `restoreFormFromAutosave: Opening form "${formTitle}" with restored data (${Object.keys(formState).length} fields)`)
+
+    // Open the form with the restored data as default values
+    // We need to get the template note to pass to openFormWindow
+    let selectedTemplate = templateFilename
+    if (!selectedTemplate && formTitle) {
+      const options = getFormTemplateList()
+      const chosenOpt = options.find((option) => option.label === formTitle)
+      if (chosenOpt) {
+        selectedTemplate = chosenOpt.value
+      }
+    }
+
+    if (!selectedTemplate) {
+      await showMessage(`Could not find template file for form "${formTitle}"`)
+      return
+    }
+
+    const templateNote = await getNoteByFilename(selectedTemplate)
+    if (!templateNote) {
+      await showMessage(`Could not find template note: ${selectedTemplate}`)
+      return
+    }
+
+    // Get form fields and frontmatter
+    const formFields = await loadCodeBlockFromNote<Array<Object>>(selectedTemplate, 'formfields', pluginJson.id, parseObjectString)
+    if (!formFields) {
+      await showMessage(`Could not load form fields from template: ${selectedTemplate}`)
+      return
+    }
+
+    const templateData = templateNote.content || ''
+    const { _, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateData])
+
+    // Add form fields, template info, and default values
+    frontmatterAttributes.formFields = formFields
+    frontmatterAttributes.templateFilename = selectedTemplate
+    frontmatterAttributes.templateTitle = templateNote.title || formTitle
+    frontmatterAttributes.defaultValues = formState // Pass the restored form state as default values
+
+    // Open the form window with default values
+    await openFormWindow(frontmatterAttributes)
+  } catch (error) {
+    logError(pluginJson, `restoreFormFromAutosave: Error: ${error.message}`)
+    await showMessage(`Error restoring form from autosave: ${error.message}`)
   }
 }
 

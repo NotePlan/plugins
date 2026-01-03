@@ -8,7 +8,7 @@ import pluginJson from '../plugin.json'
 import { handleRequest } from './requestHandlers' // For shared requests like getFolders, getNotes, getTeamspaces
 import { handleSaveRequest, handleCreateProcessingTemplate, handleOpenNote, handleCopyFormUrl, handleDuplicateForm } from './formBuilderHandlers'
 import { openFormBuilderWindow, FORMBUILDER_WINDOW_ID } from './windowManagement'
-import { getTemplateFormData } from './NPTemplateForm'
+import { openTemplateForm } from './NPTemplateForm'
 import { createRouter, type RequestResponse } from './routerUtils'
 import { closeWindowFromCustomId } from '@helpers/NPWindows'
 import { getNoteByFilename } from '@helpers/note'
@@ -70,12 +70,12 @@ async function handleFormBuilderNonRequestAction(_actionType: string, data: any)
     closeWindowFromCustomId(windowId)
   } else if (actualActionType === 'openForm' && data?.templateTitle) {
     logDebug(pluginJson, `onFormBuilderAction: Opening form with templateTitle="${data.templateTitle}"`)
-    logDebug(pluginJson, `onFormBuilderAction: Calling getTemplateFormData with templateTitle="${data.templateTitle}"`)
+    logDebug(pluginJson, `onFormBuilderAction: Calling openTemplateForm with templateTitle="${data.templateTitle}"`)
     try {
-      await getTemplateFormData(data.templateTitle)
-      logDebug(pluginJson, `onFormBuilderAction: getTemplateFormData completed successfully`)
+      await openTemplateForm(data.templateTitle)
+      logDebug(pluginJson, `onFormBuilderAction: openTemplateForm completed successfully`)
     } catch (error) {
-      logError(pluginJson, `onFormBuilderAction: Error in getTemplateFormData: ${error.message}`)
+      logError(pluginJson, `onFormBuilderAction: Error in openTemplateForm: ${error.message}`)
       logError(pluginJson, `onFormBuilderAction: Error stack: ${error.stack || 'No stack trace'}`)
       throw error
     }

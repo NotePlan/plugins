@@ -184,12 +184,33 @@
   gap: 0.5rem;
 }
 
+.form-browser-list-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .form-browser-list-item-label {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.form-browser-list-item-space {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  color: var(--np-theme-text-secondary, #666666);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-browser-list-item.selected .form-browser-list-item-space {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .form-browser-list-item-actions {

@@ -27,6 +27,7 @@ export type DropdownSelectChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   showIndicatorOptionProp?: string, // Property name to determine if an indicator should be shown
   showValue?: boolean, // If true, display the selected value below the input
 }
@@ -52,6 +53,7 @@ export function DropdownSelectChooser({
   disabled = false,
   compactDisplay = false,
   placeholder = 'Type to search...',
+  width,
   showIndicatorOptionProp,
   showValue = false,
 }: DropdownSelectChooserProps): React$Node {
@@ -109,7 +111,7 @@ export function DropdownSelectChooser({
 
   return (
     <div className="dropdown-select-chooser-container" data-field-type="dropdown-select-chooser">
-      <SearchableChooser label={label} value={displayValue} disabled={disabled} compactDisplay={compactDisplay} placeholder={placeholder} showValue={showValue} config={config} />
+      <SearchableChooser label={label} value={displayValue} disabled={disabled} compactDisplay={compactDisplay} placeholder={placeholder} showValue={showValue} width={width} config={config} />
     </div>
   )
 }

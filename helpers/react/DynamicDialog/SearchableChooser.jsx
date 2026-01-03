@@ -46,6 +46,7 @@ export type ChooserConfig = {
   getOptionIcon?: (item: any) => ?string, // Optional function to get icon for option
   getOptionColor?: (item: any) => ?string, // Optional function to get color for option
   getOptionShortDescription?: (item: any) => ?string, // Optional function to get short description for option
+  shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
   allowManualEntry?: boolean, // If true, allow Enter key to accept typed text even if it doesn't match any item
   manualEntryIndicator?: string, // Text to show when value is a manual entry (default: "✏️ Manual entry")
   isManualEntry?: (value: string, items: Array<any>) => boolean, // Function to check if a value is a manual entry (not in items list)
@@ -78,6 +79,7 @@ export type SearchableChooserProps = {
   compactDisplay?: boolean,
   placeholder?: string,
   showValue?: boolean, // If true, display the selected value below the input
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   config: ChooserConfig,
   closeDropdown?: boolean, // If true, force close the dropdown (resets after closing)
   onOpen?: () => void, // Callback when dropdown opens (for lazy loading) - can be async internally
@@ -98,6 +100,7 @@ export function SearchableChooser({
   compactDisplay = false,
   placeholder = 'Type to search...',
   showValue = false,
+  width,
   config,
   closeDropdown = false,
   onOpen,
@@ -127,6 +130,7 @@ export function SearchableChooser({
     getOptionIcon,
     getOptionColor,
     getOptionShortDescription,
+    shortDescriptionOnLine2 = false,
     showArrow = false,
     allowManualEntry = false,
     manualEntryIndicator = '✏️ Manual entry',
@@ -425,7 +429,7 @@ export function SearchableChooser({
           {label}
         </label>
       )}
-      <div className={`${classNamePrefix}-input-wrapper`}>
+      <div className={`${classNamePrefix}-input-wrapper`} style={width ? { width: width, maxWidth: width, minWidth: width } : undefined}>
         <input
           id={`${classNamePrefix}-${label || 'default'}`}
           ref={inputRef}
@@ -465,7 +469,10 @@ export function SearchableChooser({
                 }`,
               )}
             {isLoading ? (
-              <div className={`searchable-chooser-empty ${classNamePrefix}-empty`} style={{ padding: '1rem', textAlign: 'center', color: 'var(--gray-600, #666)' }}>
+              <div
+                className={`searchable-chooser-empty ${classNamePrefix}-empty`}
+                style={{ padding: '1rem', textAlign: 'center', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))' }}
+              >
                 <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
                 Loading...
               </div>
@@ -481,7 +488,7 @@ export function SearchableChooser({
                       backgroundColor: 'var(--bg-alt-color, #f5f5f5)',
                       borderRadius: '4px',
                       fontSize: '0.85em',
-                      color: 'var(--gray-600, #666)',
+                      color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))',
                     }}
                   >
                     Press Enter to use &quot;{searchTerm.trim()}&quot; as {manualEntryIndicator.toLowerCase()}
@@ -542,6 +549,68 @@ export function SearchableChooser({
                   }
 
                   // Default rendering
+                  if (shortDescriptionOnLine2 && optionShortDesc) {
+                    // Two-line layout: icon + label on first line, description on second line
+                    return (
+                      <div
+                        key={`${fieldType}-${index}`}
+                        className={`searchable-chooser-option searchable-chooser-option-two-line ${classNamePrefix}-option ${classNamePrefix}-option-two-line ${
+                          showOptionClickHint ? 'option-click-hint' : ''
+                        } ${isSelected ? 'option-selected' : ''}`}
+                        onClick={(e) => handleItemSelect(item, e)}
+                        onMouseEnter={() => setHoveredIndex(index)}
+                        onMouseLeave={() => setHoveredIndex(null)}
+                        title={finalTitle}
+                        style={{
+                          cursor: showOptionClickHint ? 'pointer' : 'default',
+                          backgroundColor: isSelected ? 'var(--bg-alt-color, #e6e9ef)' : undefined,
+                        }}
+                      >
+                        <div className={`searchable-chooser-option-first-line ${classNamePrefix}-option-first-line`}>
+                          {optionIcon && (
+                            <i
+                              className={`fa-solid fa-${optionIcon}`}
+                              style={{
+                                marginRight: '0.5rem',
+                                opacity: 0.7,
+                                color: optionColor ? `var(--${optionColor}, inherit)` : undefined,
+                              }}
+                            />
+                          )}
+                          {showOptionClickHint && optionClickIcon && (
+                            <i
+                              className={`fa-solid fa-${optionClickIcon}`}
+                              style={{
+                                marginRight: '0.5rem',
+                                color: 'var(--tint-color, #0066cc)',
+                              }}
+                              title={optionClickHint || 'Option-click for action'}
+                            />
+                          )}
+                          <span
+                            className={`searchable-chooser-option-text ${classNamePrefix}-option-text`}
+                            style={{
+                              color: optionColor ? `var(--${optionColor}, inherit)` : undefined,
+                            }}
+                          >
+                            {truncatedText}
+                          </span>
+                        </div>
+                        <div
+                          className={`searchable-chooser-option-second-line ${classNamePrefix}-option-second-line`}
+                          style={{
+                            color: optionColor ? `var(--${optionColor}, var(--fg-placeholder-color, rgba(76, 79, 105, 0.7)))` : undefined,
+                          }}
+                        >
+                          {optionShortDesc}
+                        </div>
+                        {/* Placeholder div to reserve space for validation message - outside input wrapper so it doesn't constrain dropdown */}
+                        <div className="validation-message validation-message-placeholder" aria-hidden="true"></div>
+                      </div>
+                    )
+                  }
+
+                  // Single-line layout (default): icon + label + description on one line
                   return (
                     <div
                       key={`${fieldType}-${index}`}
@@ -585,16 +654,18 @@ export function SearchableChooser({
                           {truncatedText}
                         </span>
                       </span>
-                      {optionShortDesc && (
-                        <span
-                          className={`searchable-chooser-option-right ${classNamePrefix}-option-right`}
-                          style={{
-                            color: optionColor ? `var(--${optionColor}, var(--gray-500, #666))` : undefined,
-                          }}
-                        >
-                          {optionShortDesc}
-                        </span>
-                      )}
+                      {/* Always render right side to reserve space, even if empty */}
+                      {/* In single-line mode (not shortDescriptionOnLine2), reserve space even when empty */}
+                      <span
+                        className={`searchable-chooser-option-right ${classNamePrefix}-option-right`}
+                        style={{
+                          color: optionColor ? `var(--${optionColor}, var(--gray-500, #666))` : undefined,
+                          // Reserve minimum space when in single-line mode and no shortDescription
+                          minWidth: !shortDescriptionOnLine2 && !optionShortDesc ? '8rem' : undefined,
+                        }}
+                      >
+                        {optionShortDesc || ''}
+                      </span>
                     </div>
                   )
                 })
@@ -604,7 +675,10 @@ export function SearchableChooser({
         )}
       </div>
       {showValue && value && (
-        <div className={`${classNamePrefix}-value-display`} style={{ marginTop: '0.25rem', fontSize: '0.85em', color: 'var(--gray-500, #666)', fontFamily: 'Menlo, monospace' }}>
+        <div
+          className={`${classNamePrefix}-value-display`}
+          style={{ marginTop: '0.25rem', fontSize: '0.85em', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))', fontFamily: 'Menlo, monospace' }}
+        >
           <strong>Value:</strong> {value}
         </div>
       )}

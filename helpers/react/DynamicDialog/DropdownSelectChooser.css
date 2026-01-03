@@ -1,11 +1,22 @@
 /* DropdownSelectChooser Component Styles */
 
 .dropdown-select-chooser-container {
-  width: 100%;
+  box-sizing: border-box;
+  /* Don't set width here - let searchable-chooser-base handle it */
+  width: auto; /* Let it size based on content */
+  max-width: none; /* Don't constrain width */
+}
+
+/* When the inner chooser is in compact mode, ensure container doesn't interfere */
+.dropdown-select-chooser-container .searchable-chooser-base.compact {
+  width: auto;
+  max-width: none;
+  gap: 1rem; /* Match input-box-container-compact gap */
 }
 
 .dropdown-select-chooser-container .dropdown-select-chooser-input {
-  width: 100%;
+  width: 100%; /* Use full width of wrapper */
+  box-sizing: border-box; /* Ensure padding is included in width calculation */
 }
 
 .dropdown-select-chooser-container .dropdown-select-chooser-dropdown {
@@ -15,8 +26,8 @@
   right: 0;
   max-height: 300px;
   overflow-y: auto;
-  background-color: var(--dropdown-bg, #fff);
-  border: 1px solid var(--border-color, #ddd);
+  background-color: var(--bg-main-color, #eff1f5);
+  border: 1px solid var(--divider-color, #CDCFD0);
   border-top: none;
   border-radius: 0 0 4px 4px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -30,10 +41,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
-  color: var(--text-color, #333);
+  border-bottom: 1px solid var(--divider-color, #CDCFD0);
+  color: var(--fg-main-color, #4c4f69);
   font-size: 0.9rem;
-  background-color: var(--dropdown-bg, #fff);
+  background-color: var(--bg-main-color, #eff1f5);
 }
 
 .dropdown-select-chooser-container .dropdown-select-chooser-option:last-child {
@@ -50,16 +61,30 @@
 }
 
 /* Ensure arrow is positioned inside the input wrapper */
+/* Non-compact: let wrapper size naturally */
 .dropdown-select-chooser-input-wrapper {
   position: relative;
+  width: 100%; /* Use full width of parent container in non-compact mode */
+  margin-left: 0;
+  box-sizing: border-box;
+}
+
+/* In compact mode only: constrain width to match other input fields */
+.searchable-chooser-base.compact .dropdown-select-chooser-input-wrapper,
+.dropdown-select-chooser-container.compact .dropdown-select-chooser-input-wrapper {
+  width: var(--dynamic-dialog-input-width, 180px); /* Match standardized input width */
+  max-width: var(--dynamic-dialog-input-width, 180px); /* Prevent expansion */
+  min-width: var(--dynamic-dialog-input-width, 180px); /* Ensure full width */
+  flex: 0 0 auto; /* Don't flex, use fixed width */
+  margin-left: 0; /* Match input-box-wrapper alignment */
 }
 
 .dropdown-select-chooser-arrow {
   position: absolute;
-  right: 0.75rem;
+  right: 0.5rem; /* Position inside the input border - match SearchableChooser arrow position */
   top: 50%;
   transform: translateY(-50%);
-  color: var(--icon-color, #666);
+  color: var(--tint-color, #1e66f5);
   pointer-events: none;
   transition: transform 0.2s;
   font-size: 0.75rem;

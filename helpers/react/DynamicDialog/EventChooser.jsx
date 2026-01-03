@@ -41,6 +41,7 @@ export type EventChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   showValue?: boolean, // If true, display the selected value below the input
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request events from plugin
   selectedCalendars?: Array<string>, // Optional array of calendar titles to filter events by (ignored if allCalendars=true)
@@ -49,6 +50,7 @@ export type EventChooserProps = {
   eventFilterRegex?: string, // Optional regex pattern to filter events by title after fetching
   includeReminders?: boolean, // If true, include reminders in the list
   reminderLists?: Array<string>, // Optional array of reminder list titles to filter reminders by
+  shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
 }
 
 /**
@@ -186,6 +188,7 @@ export function EventChooser({
   disabled = false,
   compactDisplay = false,
   placeholder = 'Type to search events...',
+  width,
   showValue = false,
   requestFromPlugin,
   selectedCalendars,
@@ -194,6 +197,7 @@ export function EventChooser({
   eventFilterRegex,
   includeReminders = false,
   reminderLists,
+  shortDescriptionOnLine2 = false,
 }: EventChooserProps): React$Node {
   const [events, setEvents] = useState<Array<EventOption>>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -210,7 +214,9 @@ export function EventChooser({
         return parsed
       }
     }
-    const result = date || new Date()
+    // Parse date prop if it exists, otherwise use today
+    const parsedDate = date ? parseDateFromField(date) : null
+    const result = parsedDate || new Date()
     logDebug('EventChooser', `[DIAG] Using date prop or today: ${result.toDateString()}, ISO: ${result.toISOString()}`)
     return result
   }, [date, dateFromField])
@@ -468,6 +474,7 @@ export function EventChooser({
     getOptionShortDescription: (event: EventOption) => {
       return event.isAllDay ? 'all-day' : null
     },
+    shortDescriptionOnLine2,
     // Custom rendering with column layout: icon | time | title
     renderOption: (event: EventOption, helpers) => {
       const { isSelected, handleItemSelect, classNamePrefix, getOptionTitle } = helpers
@@ -511,7 +518,7 @@ export function EventChooser({
           onClick={(e) => handleItemSelect(event, e)}
           title={fullTooltip}
           style={{
-            backgroundColor: isSelected ? 'var(--hover-bg, #f5f5f5)' : undefined,
+            backgroundColor: isSelected ? 'var(--bg-alt-color, #e6e9ef)' : undefined,
             cursor: 'pointer',
           }}
         >
@@ -521,7 +528,7 @@ export function EventChooser({
               <i
                 className={`fa-solid ${calendarIcon}`}
                 style={{
-                  color: calendarColorStyle || `var(--${calendarColor}-500, var(--gray-500, #666))`,
+                  color: calendarColorStyle || `var(--${calendarColor}-500, var(--fg-placeholder-color, rgba(76, 79, 105, 0.7)))`,
                   fontSize: '0.9rem',
                 }}
                 title={event.calendar}
@@ -551,6 +558,7 @@ export function EventChooser({
       compactDisplay={compactDisplay}
       placeholder={placeholder}
       showValue={showValue}
+      width={width}
       config={config}
       isLoading={isLoading}
     />

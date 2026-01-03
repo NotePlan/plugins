@@ -11,7 +11,7 @@
 .markdown-preview-label {
   font-weight: 600; /* Match input-box-label for consistency */
   margin-bottom: 0.5rem;
-  color: var(--text-color, #333);
+  color: var(--fg-main-color, #4c4f69);
 }
 
 .markdown-preview-label.compact {
@@ -21,10 +21,10 @@
 }
 
 .markdown-preview-content {
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid var(--divider-color, #CDCFD0);
   border-radius: 4px;
   padding: 1rem;
-  background-color: var(--bg-color, #fff);
+  background-color: var(--bg-main-color, #eff1f5);
   min-height: 100px;
   max-height: 500px;
   overflow-y: auto;
@@ -37,7 +37,7 @@
 }
 
 .markdown-preview-html {
-  color: var(--text-color, #333);
+  color: var(--fg-main-color, #4c4f69);
   line-height: 1.6;
 }
 
@@ -81,7 +81,7 @@
   border-left: 3px solid var(--tint-color, #007aff);
   padding-left: 1em;
   margin: 1em 0;
-  color: var(--text-secondary-color, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
 }
 
 .markdown-preview-html table {
@@ -92,7 +92,7 @@
 
 .markdown-preview-html table th,
 .markdown-preview-html table td {
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid var(--divider-color, #CDCFD0);
   padding: 0.5em;
   text-align: left;
 }
@@ -113,12 +113,12 @@
 .markdown-preview-empty {
   padding: 1rem;
   text-align: center;
-  color: var(--text-secondary-color, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
 }
 
 .markdown-preview-error {
-  color: var(--error-color, #d32f2f);
+  color: var(--fg-error-color, #b85450);
 }
 
 .markdown-preview-static {

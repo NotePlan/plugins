@@ -1,7 +1,17 @@
 /* HeadingChooser Component Styles */
 
 .heading-chooser-container {
-  width: 100%;
+  width: var(--dynamic-dialog-input-width, 180px); /* Standardized width */
+  max-width: var(--dynamic-dialog-input-width, 180px);
+  box-sizing: border-box;
+}
+
+.heading-chooser-container.compact {
+  width: auto;
+  max-width: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem; /* Match input-box-container-compact gap */
 }
 
 .heading-chooser-container .heading-chooser-input {
@@ -31,7 +41,7 @@
 }
 
 .heading-chooser-container .heading-chooser-icon {
-  color: var(--item-icon-color, #007aff);
+  color: var(--tint-color, #007aff);
   width: 1rem;
   text-align: center;
 }

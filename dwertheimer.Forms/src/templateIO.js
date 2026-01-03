@@ -8,6 +8,7 @@ import { templateBodyCodeBlockType, templateRunnerArgsCodeBlockType, varsCodeBlo
 import { getNoteByFilename } from '@helpers/note'
 import { saveCodeBlockToNote, loadCodeBlockFromNote, replaceCodeBlockContent } from '@helpers/codeBlocks'
 import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
+// DataStore is a global variable in NotePlan, no import needed
 import { logError, logDebug, JSP } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 import NPTemplating from 'NPTemplating'
@@ -38,6 +39,23 @@ export function getFormTemplateList(): Array<{ label: string, value: string }> {
   formTemplates.sort((a, b) => a.label.localeCompare(b.label))
 
   return formTemplates
+}
+
+/**
+ * Check for duplicate form titles and return duplicates if found
+ * @param {string} templateTitle - The title to check for duplicates
+ * @returns {Array<{label: string, value: string}>} - Array of duplicate templates (empty if no duplicates)
+ */
+export function findDuplicateFormTemplates(templateTitle: string): Array<{ label: string, value: string }> {
+  if (!templateTitle || !templateTitle.trim()) {
+    return []
+  }
+
+  const allTemplates = getFormTemplateList()
+  const duplicates = allTemplates.filter((template) => template.label === templateTitle)
+
+  // If there's more than one match, return all duplicates
+  return duplicates.length > 1 ? duplicates : []
 }
 
 /**
@@ -209,27 +227,44 @@ export async function loadCustomCSSFromTemplate(templateNoteOrFilename: CoreNote
  */
 export async function updateReceivingTemplateWithFields(receivingTemplateTitle: string, fields: Array<Object>): Promise<void> {
   try {
-    logDebug(pluginJson, `updateReceivingTemplateWithFields: Starting for template "${receivingTemplateTitle}"`)
+    // Strip double quotes from the template title at the start
+    const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle)
+    logDebug(pluginJson, `updateReceivingTemplateWithFields: Starting for template "${cleanedReceivingTemplateTitle}"`)
 
-    // Find the receiving template
-    const templateList = await NPTemplating.getTemplateList('forms-processor')
-    const receivingTemplate = templateList.find((t) => {
-      // Strip double quotes from both sides for comparison
-      const templateLabel = stripDoubleQuotes(t.label)
-      const receivingTitle = stripDoubleQuotes(receivingTemplateTitle)
-      return templateLabel === receivingTitle
-    })
-
-    if (!receivingTemplate) {
-      logError(pluginJson, `updateReceivingTemplateWithFields: Could not find receiving template "${receivingTemplateTitle}"`)
-      await showMessage(`Could not find receiving template "${receivingTemplateTitle}"`)
-      return
+    // Find the receiving template by searching all notes (not just template folder)
+    // Search all project notes for forms-processor type templates
+    let receivingNote: ?TNote = null
+    const allNotes = DataStore.projectNotes
+    for (const note of allNotes) {
+      const noteType = note.frontmatterAttributes?.type
+      if (noteType === 'forms-processor') {
+        const noteTitle = stripDoubleQuotes(note.title || '')
+        if (noteTitle === cleanedReceivingTemplateTitle) {
+          receivingNote = note
+          logDebug(pluginJson, `updateReceivingTemplateWithFields: Found processing template "${cleanedReceivingTemplateTitle}" at "${note.filename}"`)
+          break
+        }
+      }
     }
 
-    const receivingNote = await getNoteByFilename(receivingTemplate.value)
+    // Fallback: try getTemplateList if direct search didn't find it
     if (!receivingNote) {
-      logError(pluginJson, `updateReceivingTemplateWithFields: Could not open receiving template note`)
-      await showMessage(`Could not open receiving template "${receivingTemplateTitle}"`)
+      logDebug(pluginJson, `updateReceivingTemplateWithFields: Direct search didn't find template, trying getTemplateList`)
+      const templateList = await NPTemplating.getTemplateList('forms-processor')
+      const receivingTemplate = templateList.find((t) => {
+        // Strip double quotes from both sides for comparison
+        const templateLabel = stripDoubleQuotes(t.label)
+        return templateLabel === cleanedReceivingTemplateTitle
+      })
+
+      if (receivingTemplate) {
+        receivingNote = await getNoteByFilename(receivingTemplate.value)
+      }
+    }
+
+    if (!receivingNote) {
+      logError(pluginJson, `updateReceivingTemplateWithFields: Could not find receiving template "${cleanedReceivingTemplateTitle}"`)
+      // Don't show error message or throw - just log and continue
       return
     }
 
@@ -250,11 +285,14 @@ export async function updateReceivingTemplateWithFields(receivingTemplateTitle: 
     const success = replaceCodeBlockContent(receivingNote, varsCodeBlockType, codeBlockContent, pluginJson.id)
     if (!success) {
       logError(pluginJson, `updateReceivingTemplateWithFields: Failed to replace code block content`)
+      // Don't show error message or throw - just log and continue
+      return
     }
     logDebug(pluginJson, `updateReceivingTemplateWithFields: Updated receiving template with ${fieldsWithKeys.length} field variables`)
-    await showMessage(`Updated receiving template "${receivingTemplateTitle}" with ${fieldsWithKeys.length} field variables`)
+    // Don't show message - let the form save message handle user feedback
   } catch (error) {
+    // Log error but don't throw or stop execution - form saving should continue
     logError(pluginJson, `updateReceivingTemplateWithFields error: ${JSP(error)}`)
-    await showMessage(`Error updating receiving template: ${error.message}`)
+    // Don't show error message to user - just log it
   }
 }

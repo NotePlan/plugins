@@ -144,6 +144,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel.push(`font-size: ${baseFontSize}px`)
       output.push(makeCSSSelector('body, .body', tempSel))
       rootSel.push(`--fg-main-color: ${thisColor}`)
+      rootSel.push(`--fg-alt-color: ${thisColor}`) // per @jgclark 2026-01-03 these should be the same; maybe remove this one later if it looks fine
+
       if (styleObj?.lineSpacing) {
         // borrowed from convertStyleObjectBlock()
         const lineSpacingRem = (Number(styleObj?.lineSpacing) * 1.5).toPrecision(3) // some fudge factor seems to be needed
@@ -156,6 +158,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       rootSel.push(`--fg-ok-color: color-mix(in oklch, var(--fg-main-color), green 20%)`)
       rootSel.push(`--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%)`)
       rootSel.push(`--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%)`)
+      rootSel.push(`--bg-disabled-color: color-mix(in oklch, var(--bg-main-color), gray 20%)`)
+      rootSel.push(`--fg-disabled-color: color-mix(in oklch, var(--fg-main-color), gray 20%)`)
     }
 
     // Set H1 from styles.title1

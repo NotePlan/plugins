@@ -598,13 +598,21 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     }
 
     // Check if we should update the receiving template
+    // Use try-catch to ensure form saving continues even if template update fails
+    // Update automatically without prompting (user requested automatic update)
+    // Note: We await this so it completes, but errors don't stop the save
     if (templateNote) {
       const receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle
       if (receivingTemplateTitle) {
-        const updateReceiving = await CommandBar.showOptions(['Yes, update receiving template', 'No, skip'], 'Form Builder', 'Update receiving template with new field keys?')
-
-        if (updateReceiving?.value === 'Yes, update receiving template' || updateReceiving?.index === 0) {
-          await updateReceivingTemplateWithFields(receivingTemplateTitle, fieldsToSave)
+        // Strip double quotes before passing to updateReceivingTemplateWithFields
+        const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle)
+        try {
+          // Await the update but don't let errors stop the save
+          await updateReceivingTemplateWithFields(cleanedReceivingTemplateTitle, fieldsToSave)
+          logDebug(pluginJson, `handleSaveRequest: Successfully updated processing template "${cleanedReceivingTemplateTitle}"`)
+        } catch (error) {
+          // Log error but don't stop form saving
+          logError(pluginJson, `handleSaveRequest: Error updating receiving template: ${error.message || String(error)}`)
         }
       }
     }

@@ -21,17 +21,18 @@
       "name": "Open Template Form",
       "alias": [
         "form",
-        "dialog"
+        "dialog",
+        "getTemplateFormData"
       ],
       "description": "Open form for template data entry which will be sent to a template for processing. Generally invoked from an xcallback",
-      "jsFunction": "getTemplateFormData",
-      "arguments": [
-        {
-          "name": "templateTitle",
-          "type": "string",
-          "description": "Title of the template form to open (optional, if not provided user will be prompted to select)"
-        }
-      ]
+      "jsFunction": "openTemplateForm",
+      "arguments": ["Title of the template form to open (optional, if not provided user will be prompted to select)"]
+    },
+    {
+      "name": "Open Template Form from trigger",
+      "description": "Open form for template data entry which will be sent to a template for processing. Generally invoked from an trigger. Looks for template details in the open note in Editor",
+      "jsFunction": "triggerOpenForm",
+      "hidden": true
     },
     {
       "name": "Form Builder/Editor",
@@ -50,7 +51,7 @@
       ]
     },
     {
-      "name": "Form Browser",
+      "name": "Form Browser - open in NotePlan Editor",
       "alias": [
         "browser",
         "formbrowser"
@@ -64,6 +65,16 @@
           "description": "If true, opens as a floating window instead of main window (optional, defaults to false)"
         }
       ]
+    },
+    {
+      "name": "Restore form from autosave",
+      "alias": [
+        "restoreautosave",
+        "restoreform"
+      ],
+      "description": "Restore a form from an autosave file, opening the form with the saved data pre-populated",
+      "jsFunction": "restoreFormFromAutosave",
+      "arguments": ["Autosave filename (e.g., '@Trash/Autosave-2025-12-30T23-51-09')"]
     },
     {
       "name": "Create Processing Template",
@@ -141,7 +152,7 @@
       "jsFunction": "testRequestHandlers"
     },
     {
-      "name": "All Form Fields Render Test",
+      "name": "DynamicDialog: All Form Fields Render Test",
       "alias": [
         "testfields",
         "fieldtest"
@@ -164,6 +175,13 @@
       "key": "pluginID",
       "default": "dwertheimer.Forms",
       "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "key": "autosave",
+      "type": "bool",
+      "title": "Enable Autosave for All Forms",
+      "description": "When enabled, automatically adds an invisible autosave field to every form opened. The form will be automatically saved periodically in the background, by default to @Trash/Autosave-<ISO8601>. This provides a safety net in case of unexpected crashes or power outages or form submission errors. You can turn this off and add an autosave to a specific form by adding an autosave field to the form in the form builder.",
+      "default": true
     },
     {
       "note": "================== DEBUGGING SETTINGS ========================"

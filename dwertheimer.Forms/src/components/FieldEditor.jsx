@@ -15,6 +15,18 @@ type FieldEditorProps = {
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Optional function to call plugin commands
 }
 
+/**
+ * Validate CSS width value
+ * @param {string} value - The width value to validate
+ * @returns {boolean} - True if valid CSS width value
+ */
+function isValidCSSWidth(value: string): boolean {
+  if (!value || value.trim() === '') return true // Empty is valid (means use default)
+  // Match valid CSS width values: px, %, em, rem, vw, vh, ch, ex, cm, mm, in, pt, pc, or calc()
+  const cssWidthRegex = /^(\d+(\.\d+)?(px|%|em|rem|vw|vh|ch|ex|cm|mm|in|pt|pc)|calc\([^)]+\)|auto|inherit|initial|unset|max-content|min-content|fit-content)$/i
+  return cssWidthRegex.test(value.trim())
+}
+
 export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlugin }: FieldEditorProps): Node {
   const [editedField, setEditedField] = useState<TSettingItem>({ ...field })
   const [calendars, setCalendars] = useState<Array<string>>([])
@@ -24,6 +36,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
   const calendarsLoadingRef = useRef<boolean>(false)
   const reminderListsLoadingRef = useRef<boolean>(false)
   const requestFromPluginRef = useRef<typeof requestFromPlugin>(requestFromPlugin)
+  const [widthError, setWidthError] = useState<string>('')
 
   // Track previous field key to detect actual field changes
   const prevFieldKeyRef = useRef<string | void>(field.key)
@@ -185,7 +198,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
     onSave(editedField)
   }
 
-  const needsKey = editedField.type !== 'separator' && editedField.type !== 'heading'
+  const needsKey = editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'autosave'
 
   // Construct header title with label, key, and type
   const headerTitle = needsKey && editedField.key ? `Editing ${editedField.type}: ${editedField.label || ''} (${editedField.key})` : `Editing: ${editedField.type}`
@@ -224,12 +237,54 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             </div>
           )}
 
-          {editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'calendarpicker' && (
+          {editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'calendarpicker' && editedField.type !== 'autosave' && (
             <div className="field-editor-row">
               <label>
                 <input type="checkbox" checked={editedField.compactDisplay || false} onChange={(e) => updateField({ compactDisplay: e.target.checked })} />
                 Compact Display (label and field side-by-side)
               </label>
+            </div>
+          )}
+
+          {/* Width field for SearchableChooser-based fields */}
+          {(editedField.type === 'folder-chooser' ||
+            editedField.type === 'note-chooser' ||
+            editedField.type === 'space-chooser' ||
+            editedField.type === 'heading-chooser' ||
+            editedField.type === 'dropdown-select' ||
+            editedField.type === 'event-chooser') && (
+            <div className="field-editor-row">
+              <label>Custom Width (optional):</label>
+              <input
+                type="text"
+                value={((editedField: any): { width?: string }).width || ''}
+                onChange={(e) => {
+                  const widthValue = e.target.value.trim()
+                  const updated = { ...editedField }
+                  if (widthValue === '') {
+                    delete (updated: any).width
+                    setWidthError('')
+                  } else if (isValidCSSWidth(widthValue)) {
+                    ;(updated: any).width = widthValue
+                    setWidthError('')
+                  } else {
+                    setWidthError('Invalid CSS width value. Use px, %, em, rem, vw, vh, or calc()')
+                  }
+                  setEditedField(updated)
+                }}
+                placeholder="e.g., 80vw, 79%, 300px, calc(100% - 20px)"
+                style={{ borderColor: widthError ? 'red' : undefined }}
+              />
+              <div className="field-editor-help">
+                {widthError ? (
+                  <span style={{ color: 'red' }}>{widthError}</span>
+                ) : (
+                  <>
+                    Custom width for the chooser input. Overrides default width even in compact mode. Examples: <code>80vw</code>, <code>79%</code>, <code>300px</code>,{' '}
+                    <code>calc(100% - 20px)</code>. Leave empty to use default width.
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -407,34 +462,6 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
 
           {editedField.type === 'calendarpicker' && (
             <>
-              <div className="field-editor-row">
-                <label>Button Text:</label>
-                <input
-                  type="text"
-                  value={((editedField: any): { buttonText?: string }).buttonText || 'Select Date'}
-                  onChange={(e) => {
-                    const updated = { ...editedField }
-                    ;(updated: any).buttonText = e.target.value
-                    setEditedField(updated)
-                  }}
-                  placeholder="Button text"
-                />
-                <div className="field-editor-help">Text to show on the button which pops up the calendar picker</div>
-              </div>
-              <div className="field-editor-row">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={((editedField: any): { visible?: boolean }).visible ?? false}
-                    onChange={(e) => {
-                      const updated = { ...editedField }
-                      ;(updated: any).visible = e.target.checked
-                      setEditedField(updated)
-                    }}
-                  />
-                  Show calendar by default (visible without clicking button)
-                </label>
-              </div>
               {editedField.type !== 'separator' && editedField.type !== 'heading' && (
                 <div className="field-editor-row">
                   <label>
@@ -525,6 +552,55 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 </label>
                 <div className="field-editor-help">Exclude teamspace folders from the list of folders</div>
               </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { shortDescriptionOnLine2?: boolean }).shortDescriptionOnLine2 || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).shortDescriptionOnLine2 = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Short description on second line
+                </label>
+                <div className="field-editor-help">When enabled, displays the short description (e.g., folder path, space name) on a second line below the label</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Source Space Field (value dependency, optional):</label>
+                <select
+                  value={
+                    ((editedField: any): { sourceSpaceKey?: string, dependsOnSpaceKey?: string }).sourceSpaceKey ||
+                    ((editedField: any): { sourceSpaceKey?: string, dependsOnSpaceKey?: string }).dependsOnSpaceKey ||
+                    ''
+                  }
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).sourceSpaceKey = e.target.value || undefined
+                    // Also set old property for backward compatibility
+                    if (e.target.value) {
+                      ;(updated: any).dependsOnSpaceKey = e.target.value
+                    } else {
+                      delete (updated: any).dependsOnSpaceKey
+                    }
+                    setEditedField(updated)
+                  }}
+                >
+                  <option value="">None (show folders from all spaces)</option>
+                  {allFields
+                    .filter((f) => f.key && f.type === 'space-chooser' && f.key !== editedField.key)
+                    .map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label || f.key} ({f.key})
+                      </option>
+                    ))}
+                </select>
+                <div className="field-editor-help">
+                  If specified, folders will be filtered by the space selected in the space-chooser field. This is a <strong>value dependency</strong> - the field needs the value
+                  from another field to function.
+                </div>
+              </div>
             </>
           )}
 
@@ -591,6 +667,76 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   Include Teamspace Notes (default: on)
                 </label>
                 <div className="field-editor-help">Include teamspace notes in the list</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { shortDescriptionOnLine2?: boolean }).shortDescriptionOnLine2 || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).shortDescriptionOnLine2 = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Short description on second line
+                </label>
+                <div className="field-editor-help">When enabled, displays the short description (e.g., folder path, space name) on a second line below the label</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { showTitleOnly?: boolean }).showTitleOnly || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).showTitleOnly = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Show title only (not path/title)
+                </label>
+                <div className="field-editor-help">
+                  When enabled, displays only the note title in the label (not &quot;path / title&quot;). The path will still appear in the short description if enabled.
+                </div>
+              </div>
+            </>
+          )}
+
+          {editedField.type === 'space-chooser' && (
+            <>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { includeAllOption?: boolean }).includeAllOption || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includeAllOption = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Include &apos;All Private + Spaces&apos; option
+                </label>
+                <div className="field-editor-help">
+                  When enabled, adds an &quot;All Private + Spaces&quot; option that returns &quot;__all__&quot; when selected. This allows users to select all spaces at once.
+                  NOTE: whatever is receiving the value needs to handle the &quot;__all__&quot; value appropriately.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { shortDescriptionOnLine2?: boolean }).shortDescriptionOnLine2 || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).shortDescriptionOnLine2 = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Short description on second line
+                </label>
+                <div className="field-editor-help">When enabled, displays the short description (e.g., folder path, space name) on a second line below the label</div>
               </div>
             </>
           )}
@@ -849,6 +995,21 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   )}
                 </div>
               )}
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { shortDescriptionOnLine2?: boolean }).shortDescriptionOnLine2 || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).shortDescriptionOnLine2 = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Short description on second line
+                </label>
+                <div className="field-editor-help">When enabled, displays the short description (e.g., calendar name) on a second line below the label</div>
+              </div>
             </>
           )}
 
@@ -946,6 +1107,21 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   />
                   Include headings in Archive section
                 </label>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { shortDescriptionOnLine2?: boolean }).shortDescriptionOnLine2 || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).shortDescriptionOnLine2 = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Short description on second line
+                </label>
+                <div className="field-editor-help">When enabled, displays the short description on a second line below the label</div>
               </div>
             </>
           )}
@@ -1133,6 +1309,64 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   </>
                 )
               })()}
+            </>
+          )}
+
+          {editedField.type === 'autosave' && (
+            <>
+              <div className="field-editor-row">
+                <label>Autosave Interval (seconds):</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={((editedField: any): { autosaveInterval?: number }).autosaveInterval || 2}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const value = parseInt(e.target.value, 10)
+                    ;(updated: any).autosaveInterval = isNaN(value) || value < 1 ? 2 : value
+                    setEditedField(updated)
+                  }}
+                  placeholder="2"
+                />
+                <div className="field-editor-help">
+                  How often (in seconds) to automatically save the form state. Default is 2 seconds. The form will only save if the content has changed since the last save.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>Autosave Filename Pattern:</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { autosaveFilename?: string }).autosaveFilename || '@Trash/Autosave-<ISO8601>'}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).autosaveFilename = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                  placeholder="@Trash/Autosave-<ISO8601>"
+                />
+                <div className="field-editor-help">
+                  Filename pattern for autosave files. Available placeholders:
+                  <ul style={{ marginTop: '0.5rem', marginBottom: '0.5rem', paddingLeft: '1.5rem' }}>
+                    <li>
+                      <code>&lt;ISO8601&gt;</code> or <code>&lt;timestamp&gt;</code> - Timestamp in local timezone format: YYYY-MM-DDTHH-MM-SS
+                    </li>
+                    <li>
+                      <code>&lt;formTitle&gt;</code> or <code>&lt;FORM_NAME&gt;</code> - Form title (sanitized for filesystem compatibility)
+                    </li>
+                  </ul>
+                  Default is &quot;@Trash/Autosave-&lt;formTitle&gt;-&lt;ISO8601&gt;&quot; (or &quot;@Trash/Autosave-&lt;ISO8601&gt;&quot; if no form title). The form title will be
+                  automatically included if available.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input type="checkbox" checked={(editedField: any).invisible || false} onChange={(e) => updateField({ invisible: e.target.checked })} />
+                  Invisible (hide UI but still perform autosaves)
+                </label>
+                <div className="field-editor-help">
+                  When checked, the autosave field will not display any UI message, but will still automatically save the form state in the background.
+                </div>
+              </div>
             </>
           )}
 

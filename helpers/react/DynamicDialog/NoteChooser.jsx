@@ -36,6 +36,7 @@ export type NoteChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
+  width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   // Filter options - each NoteChooser filters the notes array based on its own options
   includeCalendarNotes?: boolean, // Include calendar notes (default: false)
   includePersonalNotes?: boolean, // Include personal/project notes (default: true)
@@ -53,6 +54,8 @@ export type NoteChooserProps = {
   onNotesChanged?: () => void, // Callback to request note list reload after creating a note
   onOpen?: () => void, // Callback when dropdown opens (for lazy loading) - can be async internally
   isLoading?: boolean, // If true, show loading indicator
+  shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
+  showTitleOnly?: boolean, // If true, show only the note title in the label (not "path / title") (default: false)
 }
 
 /**
@@ -120,6 +123,7 @@ export function NoteChooser({
   disabled = false,
   compactDisplay = false,
   placeholder = 'Type to search notes...',
+  width,
   includeCalendarNotes = false,
   includePersonalNotes = true,
   includeRelativeNotes = false,
@@ -136,6 +140,8 @@ export function NoteChooser({
   onNotesChanged,
   onOpen,
   isLoading = false,
+  shortDescriptionOnLine2 = false,
+  showTitleOnly = false,
 }: NoteChooserProps): React$Node {
   const [isCreatingNote, setIsCreatingNote] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -224,7 +230,7 @@ export function NoteChooser({
         }
         const normalizedStart = normalizeFolder(startFolder)
         const normalizedNoteFolder = normalizeFolder(noteFolder)
-        const folderMatches = normalizedNoteFolder === normalizedStart || normalizedNoteFolder.startsWith(normalizedStart + '/')
+        const folderMatches = normalizedNoteFolder === normalizedStart || normalizedNoteFolder.startsWith(`${normalizedStart}/`)
         if (!folderMatches) {
           return false
         }
@@ -255,7 +261,7 @@ export function NoteChooser({
 
         // Check if note is in the selected folder
         // For exact match or if note folder starts with filter folder + '/'
-        const folderMatches = normalizedNoteFolder === normalizedFilter || normalizedNoteFolder.startsWith(normalizedFilter + '/')
+        const folderMatches = normalizedNoteFolder === normalizedFilter || normalizedNoteFolder.startsWith(`${normalizedFilter}/`)
 
         if (!folderMatches) {
           return false // Exclude notes not in the selected folder
@@ -310,7 +316,19 @@ export function NoteChooser({
 
       return shouldInclude
     })
-  }, [notes, includeCalendarNotes, includePersonalNotes, includeRelativeNotes, includeTeamspaceNotes, folderFilter, startFolder, filterByType, allowBackwardsCompatible, value, spaceFilter])
+  }, [
+    notes,
+    includeCalendarNotes,
+    includePersonalNotes,
+    includeRelativeNotes,
+    includeTeamspaceNotes,
+    folderFilter,
+    startFolder,
+    filterByType,
+    allowBackwardsCompatible,
+    value,
+    spaceFilter,
+  ])
 
   // Add "New Note" option to items if includeNewNoteOption is true
   const itemsWithNewNote = useMemo(() => {
@@ -319,7 +337,7 @@ export function NoteChooser({
     }
     // Add a special "New Note" option at the beginning
     const newNoteOption: NoteOption = {
-      title: '➕ New Note',
+      title: 'New Note',
       filename: '__NEW_NOTE__',
       type: 'Notes',
     }
@@ -339,14 +357,18 @@ export function NoteChooser({
     },
     getDisplayValue: (note: NoteOption) => {
       if (note.filename === '__NEW_NOTE__') {
-        return '➕ New Note'
+        return 'New Note'
       }
       return note.title
     },
     getOptionText: (note: NoteOption) => {
       // Handle "New Note" option
       if (note.filename === '__NEW_NOTE__') {
-        return '➕ New Note'
+        return 'New Note'
+      }
+      // If showTitleOnly is true, always return just the title
+      if (showTitleOnly) {
+        return note.title
       }
       // For personal/project notes, show "path / title" format to match native chooser
       // For calendar notes, show just the title
@@ -354,7 +376,7 @@ export function NoteChooser({
         // Parse teamspace info to get clean folder path
         const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
         let folder = getFolderFromFilename(note.filename)
-        
+
         // Strip teamspace prefix from folder path for display
         if (possTeamspaceDetails.isTeamspace) {
           folder = getFilenameWithoutTeamspaceID(folder) || '/'
@@ -404,9 +426,16 @@ export function NoteChooser({
     maxResults: 25,
     inputMaxLength: 100, // Large value - CSS handles most truncation based on actual width
     dropdownMaxLength: 80, // Large value for dropdown - only truncate very long items
-    getOptionIcon: (note: NoteOption) => getNoteDecoration(note).icon,
-    getOptionColor: (note: NoteOption) => getNoteDecoration(note).color,
+    getOptionIcon: (note: NoteOption) => {
+      if (note.filename === '__NEW_NOTE__') return 'file-circle-plus'
+      return getNoteDecoration(note).icon
+    },
+    getOptionColor: (note: NoteOption) => {
+      if (note.filename === '__NEW_NOTE__') return 'orange-500'
+      return getNoteDecoration(note).color
+    },
     getOptionShortDescription: (note: NoteOption) => getNoteDecoration(note).shortDescription,
+    shortDescriptionOnLine2,
   }
 
   return (
@@ -417,6 +446,7 @@ export function NoteChooser({
       compactDisplay={compactDisplay}
       placeholder={placeholder}
       showValue={showValue}
+      width={width}
       config={config}
       onOpen={onOpen}
       isLoading={isLoading}

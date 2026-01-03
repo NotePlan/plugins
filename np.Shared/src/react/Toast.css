@@ -5,7 +5,7 @@
 
 .toast {
   position: fixed;
-  top: calc(1rem + var(--noteplan-toolbar-height, 0));
+  top: calc(1rem + var(--noteplan-toolbar-height, 0px));
   right: 1rem;
   min-width: 300px;
   max-width: 500px;
@@ -44,44 +44,44 @@
   overflow: unset;
 }
 
-.toast .border-info {
+.toast.border-info {
   border-left-color: var(--fg-info-color, #3b82f6);
 }
 
-.toast .border-warn {
+.toast.border-warn {
   border-left-color: var(--fg-warn-color, #fbbf24);
 }
 
-.toast .border-error {
+.toast.border-error {
   border-left-color: var(--fg-error-color, #ef4444);
 }
 
-.toast .border-success {
+.toast.border-success {
   border-left-color: #22c55e; /* Green border */
 }
 
-.toast .color-info {
+.toast.color-info {
   /* Light blue background */
   background-color: rgba(219, 234, 254, 0.95); /* Light blue (#dbeafe) with 95% opacity */
   color: #1e40af; /* Dark blue for text contrast */
   border-left-color: #3b82f6; /* Blue border */
 }
 
-.toast .color-warn {
+.toast.color-warn {
   /* Light yellow/orange background */
   background-color: rgba(254, 243, 199, 0.95); /* Light yellow (#fef3c7) with 95% opacity */
   color: #b45309; /* Dark orange for text contrast */
   border-left-color: #fbbf24; /* Yellow border */
 }
 
-.toast .color-error {
+.toast.color-error {
   /* Light red background */
   background-color: rgba(254, 226, 226, 0.95); /* Light red (#fee2e2) with 95% opacity */
   color: #991b1b; /* Dark red for text contrast */
   border-left-color: #ef4444; /* Red border */
 }
 
-.toast .color-success {
+.toast.color-success {
   /* Light green background for better readability */
   background-color: rgba(220, 252, 231, 0.95); /* Light green (#dcfce7) with 95% opacity */
   color: #15803d; /* Dark green for text contrast */

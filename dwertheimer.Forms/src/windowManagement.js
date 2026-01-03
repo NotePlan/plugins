@@ -156,6 +156,8 @@ export function createWindowInitData(argObj: Object): PassedData {
   const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
   const formTitle = argObj?.formTitle || ''
   const templateTitle = argObj?.templateTitle || formTitle || ''
+  const templateFilename = argObj?.templateFilename || ''
+  logDebug(pluginJson, `createWindowInitData: templateFilename="${templateFilename}", templateTitle="${templateTitle}", formTitle="${formTitle}"`)
   // Use the same logic as customId in windowOptions to ensure consistency
   // This ensures windowId in pluginData matches the actual window customId
   const windowId = getFormWindowId(argObj?.formTitle || argObj?.windowTitle || '')
@@ -173,7 +175,9 @@ export function createWindowInitData(argObj: Object): PassedData {
       windowId: windowId, // Store window ID in pluginData so we can retrieve it later
       formTitle: formTitle, // Store form title for window ID reconstruction
       templateTitle: templateTitle, // Store template title for URL generation
+      templateFilename: templateFilename, // Store template filename for autosave
       launchLink: launchLink, // Store launchLink for Form URL button
+      defaultValues: argObj?.defaultValues || {}, // Store default values for form pre-population
     },
     title: formTitle || REACT_WINDOW_TITLE,
     width: argObj?.width,
@@ -200,8 +204,28 @@ export function getPluginData(argObj: Object): { [string]: mixed } {
   logDebug(pluginJson, `getPluginData: ENTRY - argObj keys: ${Object.keys(argObj || {}).join(', ')}`)
 
   // Check if form fields include folder-chooser or note-chooser
-  const formFields = argObj.formFields || []
+  let formFields = argObj.formFields || []
   logDebug(pluginJson, `getPluginData: Checking ${formFields.length} form fields for folder-chooser/note-chooser`)
+
+  // Check if autosave is enabled in plugin settings and add autosave field if needed
+  const autosaveEnabled = DataStore.settings?.autosave === true
+  const hasAutosaveField = formFields.some((field) => field.type === 'autosave')
+  
+  if (autosaveEnabled && !hasAutosaveField) {
+    logDebug(pluginJson, `getPluginData: Autosave enabled in settings, adding invisible autosave field`)
+    // Add an invisible autosave field silently
+    formFields = [
+      ...formFields,
+      {
+        type: 'autosave',
+        invisible: true, // Hide the UI but still perform autosaves
+        autosaveInterval: 2, // Default 2 seconds
+        // autosaveFilename will use default pattern with form title
+      },
+    ]
+    // Update argObj with the modified formFields
+    argObj.formFields = formFields
+  }
 
   // Log field types for debugging
   const fieldTypes = formFields.map((f) => f.type).filter(Boolean)
@@ -235,7 +259,7 @@ export function getPluginData(argObj: Object): { [string]: mixed } {
 
 /**
  * Opens the HTML+React window; Called after the form data has been generated
- * @param {Object} argObj - the data to pass to the React Window (comes from templating "getTemplateFormData" command, a combination of the template frontmatter vars and formFields codeblock)
+ * @param {Object} argObj - the data to pass to the React Window (comes from templating "openTemplateForm" command, a combination of the template frontmatter vars and formFields codeblock)
  *  - formFields: array (required) - the form fields to display
  *  - windowTitle: string (optional) - the title of the window (defaults to 'Form')
  *  - formTitle: string (optional) - the title of the form (inside the window)
@@ -470,7 +494,7 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
           : `Form Builder - ${templateTitleForWindow}`
         : 'Form Builder',
       logProfilingMessage: false,
-      debug: false,
+      debug: true,
       ENV_MODE,
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormBuilderAction' },
       componentPath: `../dwertheimer.Forms/react.c.FormBuilderView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,

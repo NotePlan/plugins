@@ -46,7 +46,7 @@
   z-index: 10000;
   max-width: 300px;
   background-color: var(--bg-main-color, #fff);
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid var(--divider-color, #CDCFD0);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   padding: 0.75rem;
@@ -83,7 +83,7 @@
   left: 50%;
   transform: translateX(-50%);
   border-width: 8px 8px 0 8px;
-  border-color: var(--border-color, #ddd) transparent transparent transparent;
+  border-color: var(--divider-color, #CDCFD0) transparent transparent transparent;
 }
 
 .info-tooltip-arrow-bottom {
@@ -101,7 +101,7 @@
   left: 50%;
   transform: translateX(-50%);
   border-width: 0 8px 8px 8px;
-  border-color: transparent transparent var(--border-color, #ddd) transparent;
+  border-color: transparent transparent var(--divider-color, #CDCFD0) transparent;
 }
 
 .info-tooltip-arrow-left {
@@ -119,7 +119,7 @@
   top: 50%;
   transform: translateY(-50%);
   border-width: 8px 0 8px 8px;
-  border-color: transparent transparent transparent var(--border-color, #ddd);
+  border-color: transparent transparent transparent var(--divider-color, #CDCFD0);
 }
 
 .info-tooltip-arrow-right {
@@ -137,6 +137,6 @@
   top: 50%;
   transform: translateY(-50%);
   border-width: 8px 8px 8px 0;
-  border-color: transparent var(--border-color, #ddd) transparent transparent;
+  border-color: transparent var(--divider-color, #CDCFD0) transparent transparent;
 }
 

@@ -3,32 +3,42 @@
 /* This ensures consistent styling across all chooser components */
 
 /* Base container - applies to all choosers */
+/* Non-compact choosers should be wider and flexible - don't constrain width here */
 .searchable-chooser-base {
   position: relative;
-  width: 100%;
   margin-bottom: 0.75rem;
   overflow: visible !important; /* Ensure dropdown is not clipped */
 }
 
+/* Compact mode: constrain width to match other input fields */
 .searchable-chooser-base.compact {
   display: inline-flex;
   align-items: center;
+  gap: 1rem; /* Match input-box-container-compact gap */
   margin-bottom: 0;
+  width: auto; /* In compact mode, let container size based on content */
+  max-width: none;
+  margin-left: 0; /* Ensure no left margin to align with other fields */
 }
 
 /* All chooser containers inherit base styles - use both patterns for compatibility */
+/* Non-compact containers should be wider and flexible - don't constrain width here */
 .searchable-chooser-base[class*="-chooser-container"],
 [class*="-chooser-container"] {
   /* Inherits from .searchable-chooser-base above */
   position: relative;
-  width: 100%;
   margin-bottom: 0.75rem;
+  box-sizing: border-box;
 }
 
+/* Compact mode: constrain width to match other input fields */
 [class*="-chooser-container"].compact {
   display: inline-flex;
   align-items: center;
+  gap: 1rem; /* Match input-box-container-compact gap */
   margin-bottom: 0;
+  width: auto; /* Let container size based on content in compact mode */
+  max-width: none;
 }
 
 /* Label - matches any {prefix}-label within base */
@@ -38,7 +48,7 @@
   display: block;
   margin-bottom: 0.25rem;
   font-weight: 600;
-  color: var(--text-color, #333);
+  color: var(--fg-main-color, #4c4f69);
 }
 
 /* Fix label alignment in compact display */
@@ -59,47 +69,74 @@
   position: relative;
   width: 100%;
   overflow: visible !important; /* Ensure dropdown is not clipped */
+  background: transparent; /* Ensure no background on wrapper */
+  border: none; /* Ensure no border on wrapper */
 }
 
-/* In compact mode, input wrapper should flex to fill remaining space */
+/* In compact mode, input wrapper should use standardized width */
 .searchable-chooser-base.compact [class*="-chooser-input-wrapper"],
 [class*="-chooser-container"].compact [class*="-chooser-input-wrapper"] {
-  flex: 1;
-  min-width: 0;
+  width: var(--dynamic-dialog-input-width, 180px); /* Standardized width - match other inputs exactly */
+  max-width: var(--dynamic-dialog-input-width, 180px);
+  min-width: var(--dynamic-dialog-input-width, 180px); /* Ensure full width */
+  flex: 0 0 auto; /* Don't flex, use fixed width */
   margin-left: 0; /* Ensure no extra margin to align with other compact fields */
+  /* Match input-box-wrapper alignment - no left margin */
 }
 
 /* Input - matches any {prefix}-input within base */
-.searchable-chooser-base [class*="-chooser-input"],
-[class*="-chooser-input"] {
+/* Only target actual input elements, not dropdown options */
+.searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"],
+[class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"] {
   width: 100%;
-  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
-  border: 1px solid var(--border-color, #ddd);
+  max-width: 100%; /* Respect parent wrapper width - use full width of wrapper */
+  padding: 4px 1.75rem 4px 0; /* Match other input fields: 4px vertical padding, right padding for arrow icon (inside border) */
+  border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3); /* Match input-box-input border style */
   border-radius: 4px;
-  font-size: 0.9rem;
-  background-color: var(--input-bg, #fff);
-  color: var(--text-color, #333);
+  font-size: 0.85rem; /* Match input-box-input font size */
+  font-family: system-ui; /* Match input-box-input font family */
+  background-color: var(--bg-main-color); /* Match input-box-input background */
+  color: var(--fg-main-color, #4c4f69);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis; /* CSS truncation for normal cases, JS truncation for very long items */
+  box-sizing: border-box; /* Ensure padding is inside border and width includes padding */
+  text-indent: 1rem; /* Add space to the left of text/placeholder without affecting border */
+  margin: 0; /* No margin on input itself */
+  line-height: 1.2; /* Match line height for consistent height calculation */
+  height: auto; /* Let height be determined by padding and line height */
+  min-height: calc(0.85rem * 1.2 + 8px); /* font-size * line-height + vertical padding (4px top + 4px bottom) */
 }
 
-.searchable-chooser-base [class*="-chooser-input"]:focus,
-[class*="-chooser-input"]:focus {
+/* Also support the simpler selector for backward compatibility, but exclude dropdown options */
+.searchable-chooser-base [class*="-chooser-input"]:not([class*="-chooser-option"]):not([class*="-chooser-dropdown"]),
+[class*="-chooser-input"]:not([class*="-chooser-option"]):not([class*="-chooser-dropdown"]) {
+  padding: 4px 0 0 0;
+  margin: 0;
+}
+
+/* Ensure placeholder text also gets indented (some browsers need this explicitly) */
+.searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]::placeholder,
+[class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]::placeholder {
+  text-indent: 1rem;
+}
+
+.searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus,
+[class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus {
   outline: none;
-  border-color: var(--primary-color, #0066cc);
+  border-color: var(--tint-color, #dc8a78);
   box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
 }
 
-.searchable-chooser-base [class*="-chooser-input"]:disabled,
-[class*="-chooser-input"]:disabled {
-  background-color: var(--disabled-bg, #f5f5f5);
-  color: var(--disabled-text, #999);
+.searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:disabled,
+[class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:disabled {
+  background-color: var(--bg-disabled-color, #f5f5f5);
+  color: var(--fg-disabled-color, #999999);
   cursor: not-allowed;
 }
 
-.searchable-chooser-base [class*="-chooser-input"].manual-entry,
-[class*="-chooser-input"].manual-entry {
+.searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"].manual-entry,
+[class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"].manual-entry {
   border-color: var(--tint-color, #007AFF);
   background-color: var(--bg-alt-color, #f5f5f5);
 }
@@ -108,8 +145,7 @@
 .searchable-chooser-base [class*="-chooser-manual-entry-indicator"],
 [class*="-chooser-manual-entry-indicator"] {
   position: absolute;
-  right: 2.5rem;
-  top: 50%;
+  top: 56%;
   transform: translateY(-50%);
   font-size: 0.75rem;
   color: var(--tint-color, #007AFF);
@@ -124,19 +160,21 @@
   background-color: var(--bg-alt-color, #f5f5f5);
   border-radius: 4px;
   font-size: 0.85em;
-  color: var(--gray-600, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
 }
 
 /* Icon - matches any {prefix}-icon within base */
+/* Position icon inside the input border on the right */
 .searchable-chooser-base [class*="-chooser-icon"],
 [class*="-chooser-icon"] {
   position: absolute;
-  right: 0.75rem;
-  top: 50%;
+  right: 0.5rem; /* Position inside the border - match padding-right of input */
+  top: 56%;
   transform: translateY(-50%);
-  color: var(--icon-color, #666);
+  color: var(--tint-color, #1e66f5);
+  opacity: 0.6; /* Lower opacity to match calendar icon */
   pointer-events: none;
-  transition: transform 0.2s;
+  transition: transform 0.2s, opacity 0.2s;
 }
 
 .searchable-chooser-base [class*="-chooser-icon"].open,
@@ -144,23 +182,38 @@
   transform: translateY(-50%) rotate(90deg);
 }
 
+/* Increase icon opacity on hover */
+.searchable-chooser-base:hover [class*="-chooser-icon"],
+.searchable-chooser-base [class*="-chooser-input-wrapper"]:hover [class*="-chooser-icon"] {
+  opacity: 0.8;
+}
+
 /* Arrow - matches any {prefix}-arrow within base */
+/* Position arrow inside the input border on the right */
 .searchable-chooser-base [class*="-chooser-arrow"],
 [class*="-chooser-arrow"] {
   position: absolute;
-  right: 0.75rem;
-  top: 50%;
+  right: 0.5rem; /* Position inside the border - match padding-right of input */
+  top: 56%;
   transform: translateY(-50%);
-  color: var(--icon-color, #666);
+  color: var(--tint-color, #1e66f5);
+  opacity: 0.6; /* Lower opacity to match calendar icon */
   pointer-events: none;
-  transition: transform 0.2s;
+  transition: transform 0.2s, opacity 0.2s;
   font-size: 0.75rem;
   z-index: 1;
+  /* Ensure arrow stays within input boundaries */
 }
 
 .searchable-chooser-base [class*="-chooser-arrow"].open,
 [class*="-chooser-arrow"].open {
   transform: translateY(-50%) rotate(180deg);
+}
+
+/* Increase arrow opacity on hover */
+.searchable-chooser-base:hover [class*="-chooser-arrow"],
+.searchable-chooser-base [class*="-chooser-input-wrapper"]:hover [class*="-chooser-arrow"] {
+  opacity: 0.8;
 }
 
 /* Dropdown - use direct class name for maximum compatibility */
@@ -171,8 +224,8 @@
   right: 0 !important;
   max-height: 150px;
   overflow-y: auto;
-  background-color: var(--dropdown-bg, #fff) !important;
-  border: 1px solid var(--border-color, #ddd) !important;
+  background-color: var(--bg-main-color, #eff1f5) !important;
+  border: 1px solid var(--divider-color, #CDCFD0) !important;
   border-top: none;
   border-radius: 0 0 4px 4px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -194,8 +247,8 @@
   right: 0;
   max-height: 150px;
   overflow-y: auto;
-  background-color: var(--dropdown-bg, #fff);
-  border: 1px solid var(--border-color, #ddd);
+  background-color: var(--bg-main-color, #eff1f5);
+  border: 1px solid var(--divider-color, #CDCFD0);
   border-top: none;
   border-radius: 0 0 4px 4px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -207,8 +260,8 @@
 .searchable-chooser-option {
   padding: 0.5rem 0.75rem;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
-  color: var(--text-color, #333);
+  border-bottom: 1px solid var(--divider-color, #CDCFD0);
+  color: var(--fg-main-color, #4c4f69);
   font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
@@ -217,33 +270,37 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  text-indent: 0; /* Reset text-indent for options - they already have padding */
 }
 
-/* Also support attribute selector for backward compatibility */
-.searchable-chooser-base [class*="-chooser-option"],
-[class*="-chooser-option"] {
+/* Also support attribute selector for backward compatibility - but exclude two-line options and inner lines */
+.searchable-chooser-base [class*="-chooser-option"]:not([class*="-chooser-option-two-line"]):not([class*="-chooser-option-first-line"]):not([class*="-chooser-option-second-line"]),
+[class*="-chooser-option"]:not([class*="-chooser-option-two-line"]):not([class*="-chooser-option-first-line"]):not([class*="-chooser-option-second-line"]) {
   padding: 0.25rem 0.75rem;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
-  color: var(--text-color, #333);
+  /* border-bottom: 1px solid var(--border-color, #f0f0f0); */
+  color: var(--fg-main-color, #4c4f69);
   font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis; /* CSS truncation for normal cases, JS truncation for very long items */
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  justify-content: flex-start; /* Left-justify content - right side will use margin-left: auto to push itself right */
+  /* gap: 0.5rem; */
+  text-indent: 0; /* Reset text-indent for options - they already have padding */
 }
 
 /* Left side of option (icon + text) */
+/* Uses flex: 1 to grow, but respects right side space reservation */
 .searchable-chooser-option-left {
   display: flex;
   align-items: center;
   justify-content: flex-start; /* Left-align content */
-  flex: 1;
+  flex: 1 1 0; /* Grow to fill available space, but allow shrinking */
   min-width: 0; /* Allow text truncation */
   overflow: hidden;
+  max-width: 100%; /* Prevent expanding beyond container */
 }
 
 .searchable-chooser-base [class*="-chooser-option-left"],
@@ -251,9 +308,10 @@
   display: flex;
   align-items: center;
   justify-content: flex-start; /* Left-align content */
-  flex: 1;
+  flex: 1 1 0; /* Grow to fill available space, but allow shrinking */
   min-width: 0; /* Allow text truncation */
   overflow: hidden;
+  max-width: 100%; /* Prevent expanding beyond container */
 }
 
 /* Text within option left side */
@@ -271,31 +329,125 @@
 }
 
 /* Right side of option (short description) */
+/* Always rendered to reserve space even when empty */
 .searchable-chooser-option-right {
   flex-shrink: 0;
+  flex-grow: 0; /* Don't grow */
   margin-left: auto;
   white-space: nowrap;
-  color: var(--gray-500, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-size: 0.9em;
   opacity: 0.7;
   text-align: right;
+  min-width: 0; /* Allow to be 0 width when empty, but flex-shrink: 0 prevents being compressed below natural width when it has content */
+  padding-left: 1rem; /* Add spacing between left and right content */
+}
+
+/* Two-line layout for options */
+.searchable-chooser-option-two-line {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--divider-color, #CDCFD0);
+  color: var(--fg-main-color, #4c4f69);
+  font-size: 0.9rem;
+  flex-direction: column;
+  align-items: flex-start;
+  white-space: normal;
+  display: flex;
+}
+
+.searchable-chooser-option-first-line {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border-bottom: none !important;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.searchable-chooser-option-second-line {
+  font-size: 0.85em;
+  opacity: 0.6;
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
+  margin-top: 0;
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  border-bottom: none !important;
+  line-height: 1.2;
+}
+
+/* Support attribute selector for two-line layout - ensure it overrides base option styles */
+.searchable-chooser-base [class*="-chooser-option-two-line"],
+[class*="-chooser-option-two-line"] {
+  padding: 0.5rem 0.75rem !important;
+  cursor: pointer;
+  border-bottom: 1px solid var(--divider-color, #CDCFD0);
+  color: var(--fg-main-color, #4c4f69);
+  font-size: 0.9rem;
+  flex-direction: column;
+  align-items: flex-start;
+  white-space: normal !important;
+  display: flex;
+}
+
+.searchable-chooser-base [class*="-chooser-option-first-line"],
+[class*="-chooser-option-first-line"] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.searchable-chooser-base [class*="-chooser-option-second-line"],
+[class*="-chooser-option-second-line"] {
+  font-size: 0.85em;
+  opacity: 0.6;
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  padding-left: 0;
+  padding-right: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  border-bottom: none !important;
+  line-height: 1.2;
 }
 
 .searchable-chooser-base [class*="-chooser-option-right"],
 [class*="-chooser-option-right"] {
   flex-shrink: 0;
+  flex-grow: 0; /* Don't grow */
   margin-left: auto;
   white-space: nowrap;
-  color: var(--gray-500, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-size: 0.9em;
   opacity: 0.7;
   text-align: right;
+  min-width: 0; /* Allow to be 0 width when empty, but flex-shrink: 0 prevents being compressed below natural width when it has content */
+  padding-left: 1rem; /* Add spacing between left and right content */
 }
 
 .searchable-chooser-option:hover,
 .searchable-chooser-base [class*="-chooser-option"]:hover,
 [class*="-chooser-option"]:hover {
-  background-color: var(--hover-bg, #f5f5f5);
+  background-color: var(--bg-alt-color, #e6e9ef);
 }
 
 .searchable-chooser-option:last-child,
@@ -332,7 +484,7 @@
   flex-shrink: 0;
   min-width: 4rem;
   text-align: right;
-  color: var(--gray-600, #666);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-size: 0.85em;
   padding-right: 0.5rem;
 }
@@ -357,14 +509,14 @@
 .searchable-chooser-option.option-click-hint,
 .searchable-chooser-base [class*="-chooser-option"].option-click-hint,
 [class*="-chooser-option"].option-click-hint {
-  background-color: var(--hover-bg, #f5f5f5);
+  background-color: var(--bg-alt-color, #e6e9ef);
   border-left: 3px solid var(--tint-color, #0066cc);
 }
 
 /* Empty state - use direct class name for maximum compatibility */
 .searchable-chooser-empty {
   padding: 0.5rem 0.75rem;
-  color: var(--text-muted, #999);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
   font-size: 0.9rem;
 }
@@ -372,7 +524,7 @@
 .searchable-chooser-base [class*="-chooser-empty"],
 [class*="-chooser-empty"] {
   padding: 0.5rem 0.75rem;
-  color: var(--text-muted, #999);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
   font-size: 0.9rem;
 }
