@@ -435,8 +435,6 @@
     .form-state-viewer-container {
         width: 100%;
         margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 2px solid var(--divider-color);
     }
 
     .form-state-viewer-content {
@@ -646,6 +644,45 @@
         font-weight: 600;
         text-align: start;
         line-height: 140%;
+    }
+
+    .ui-heading.ui-heading-with-button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .ui-heading-scroll-top {
+        background: none;
+        border: none;
+        padding: 0.25rem 0.5rem;
+        cursor: pointer;
+        color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
+        font-size: 0.75rem;
+        transition: color 0.2s, transform 0.2s, opacity 0.2s;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.6;
+        flex-shrink: 0;
+    }
+
+    .ui-heading-scroll-top:hover {
+        color: var(--tint-color, #dc8a78);
+        opacity: 1;
+        transform: translateY(-2px);
+    }
+
+    .ui-heading-scroll-top:active {
+        transform: translateY(0);
+    }
+
+    .ui-heading-underline {
+        border-bottom: 1px solid var(--divider-color, #CDCFD0);
+        padding-bottom: 0.25rem;
+        margin-bottom: 0.5rem;
     }
 
     .ui-separator {

@@ -1,0 +1,79 @@
+/* Table of Contents Component Styles */
+
+.table-of-contents-container {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background-color: var(--bg-alt-color, #e6e9ef);
+  border-radius: 6px;
+  border: 1px solid var(--divider-color, #CDCFD0);
+}
+
+.table-of-contents-container.compact {
+  padding: 0.5rem;
+}
+
+.table-of-contents-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--fg-main-color, #4c4f69);
+  margin-bottom: 0.5rem;
+}
+
+.table-of-contents-nav {
+  margin: 0;
+}
+
+.table-of-contents-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.table-of-contents-item {
+  margin: 0;
+  padding: 0;
+}
+
+.table-of-contents-link {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--item-icon-color, #1e66f5);
+  text-decoration: underline;
+  font-size: 0.875rem;
+  transition: color 0.2s, background-color 0.2s;
+  border-radius: 3px;
+  width: 100%;
+}
+
+.table-of-contents-link:hover {
+  color: var(--tint-color, #dc8a78);
+  background-color: var(--bg-main-color, #eff1f5);
+}
+
+.table-of-contents-link:active {
+  color: var(--tint-color, #dc8a78);
+}
+
+.table-of-contents-description {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
+  font-style: italic;
+}
+
+/* Highlight effect for headings when scrolled to */
+.ui-heading.toc-highlight {
+  background-color: var(--bg-alt-color, #e6e9ef);
+  color: var(--fg-main-color, #4c4f69);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 2px solid var(--tint-color, #dc8a78);
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+

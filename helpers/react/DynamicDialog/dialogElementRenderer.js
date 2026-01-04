@@ -26,6 +26,7 @@ import { ExpandableTextarea } from './ExpandableTextarea.jsx'
 import { TemplateJSBlock } from './TemplateJSBlock.jsx'
 import { MarkdownPreview } from './MarkdownPreview.jsx'
 import AutosaveField from './AutosaveField.jsx'
+import { TableOfContents } from './TableOfContents.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import type { Option } from './DropdownSelect.jsx'
 import { Button, ButtonGroup } from './ButtonComponents.jsx'
@@ -273,15 +274,34 @@ export function renderItem({
         return <TextComponent disabled={disabled} key={`text${index}`} textType={item.textType || 'description'} label={thisLabel} />
       case 'separator':
         return <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
-      case 'heading':
+      case 'heading': {
+        // Generate a URL-safe ID from the heading label
+        const generateHeadingId = (label: string): string => {
+          return label
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+        }
+        const headingId = generateHeadingId(thisLabel)
+        // Ensure unique ID by appending index if needed
+        let uniqueId = headingId
+        let counter = 0
+        while (document.getElementById(uniqueId)) {
+          counter++
+          uniqueId = `${headingId}-${counter}`
+        }
+
+        const underline = (item: any).underline || false
+
         return (
           <>
-            <div key={`hed${index}`} className="ui-heading">
+            <div key={`hed${index}`} id={uniqueId} className={`ui-heading ${underline ? 'ui-heading-underline' : ''}`}>
               {thisLabel}
             </div>
             {item.description && <TextComponent textType="description" label={item.description} key={`heddesc${index}`} />}
           </>
         )
+      }
       case 'json': {
         // JsonEditor returns objects, but we need a string for validation
         // Convert to string if it's an object, otherwise use as-is
@@ -758,6 +778,16 @@ export function renderItem({
               <pre className="form-state-viewer-json">{formStateJson}</pre>
             </div>
             {/* Description is rendered by DynamicDialog.jsx, don't render it here to avoid duplication */}
+          </div>
+        )
+      }
+      case 'table-of-contents': {
+        const label = item.label || 'Table of Contents'
+        const compactDisplay = item.compactDisplay || false
+
+        return (
+          <div data-field-type="table-of-contents">
+            <TableOfContents label={label} description={item.description} compactDisplay={compactDisplay} />
           </div>
         )
       }

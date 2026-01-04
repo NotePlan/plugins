@@ -58,6 +58,7 @@ export type TSettingItemType =
   | 'multi-select' // Multi-select checkbox list
   | 'markdown-preview' // Non-editable markdown preview (static text, note by filename/title, or note from another field)
   | 'autosave' // Autosave field that saves form state periodically
+  | 'table-of-contents' // Table of contents that links to headings in the form
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -155,6 +156,8 @@ export type TSettingItem = {
   invisible?: boolean, // for autosave, if true, hide the UI but still perform autosaves (default: false)
   // width option for SearchableChooser-based fields (folder-chooser, note-chooser, space-chooser, heading-chooser, dropdown-select, event-chooser)
   width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '70px', '300px'). Overrides default width even in compact mode. Must be valid CSS width value.
+  // heading options
+  underline?: boolean, // for heading, add an underline directly under the heading with minimal margin/padding
 }
 
 export type TDynamicDialogProps = {

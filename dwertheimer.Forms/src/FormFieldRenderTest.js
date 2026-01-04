@@ -29,14 +29,61 @@ export async function testFormFieldRender(): Promise<void> {
     // This list should match the type definition to ensure we test everything
     const testFormFields = [
       {
-        type: 'heading',
-        label: 'Form Field Examples',
-        description:
+        type: 'text',
+        textType: 'description',
+        label:
           'This form demonstrates all available field types and their configuration options in DynamicDialog. Use these examples to see how different settings affect field appearance and behavior.',
       },
       {
-        type: 'separator',
+        type: 'table-of-contents',
+        label: 'Table of Contents',
+        description: '',
+      },
+      {
+        type: 'heading',
+        label: 'Compact View Alignment Test',
+        underline: true,
+      },
+      {
+        type: 'input',
+        label: 'Name',
+        key: 'testCompactName',
+        placeholder: 'Enter name',
+        compactDisplay: true,
+        description: 'Compact input field with short label',
+      },
+      {
+        type: 'number',
+        label: 'Age',
+        key: 'testCompactAge',
+        value: '25',
+        step: 1,
+        compactDisplay: true,
+        description: 'Compact number field with short label',
+      },
+      {
+        type: 'textarea',
+        label: 'Notes',
+        key: 'testCompactNotes',
+        placeholder: 'Enter notes...',
+        minRows: 3,
+        maxRows: 10,
+        compactDisplay: true,
+        description: 'Compact expandable textarea with short label',
+      },
+      {
+        type: 'calendarpicker',
+        label: 'Date',
+        key: 'testCompactDate',
+        selectedDate: new Date(),
+        numberOfMonths: 1,
+        compactDisplay: true,
+        description: 'Compact calendar picker with short label',
+      },
+      {
+        type: 'heading',
         label: 'Basic Input Fields',
+        underline: true,
       },
       {
         type: 'input',
@@ -188,8 +235,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'This is a text display field with textType="separator" (not editable)',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Selection Fields',
+        underline: true,
       },
       {
         type: 'switch',
@@ -233,8 +281,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'Editable dropdown - allows typing a custom value not in the options list',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Chooser Fields',
+        underline: true,
       },
       {
         type: 'space-chooser',
@@ -244,8 +293,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'Select a Space (Private or Teamspace). This is used to filter folders below.',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Custom Width Examples',
+        underline: true,
       },
       {
         type: 'folder-chooser',
@@ -334,8 +384,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'Folder chooser that starts in a specific folder (e.g., "Projects")',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Folder Chooser with Space Dependency',
+        underline: true,
       },
       {
         type: 'space-chooser',
@@ -443,8 +494,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'All options enabled: Personal + Calendar + Relative + Teamspace (comprehensive test)',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Note Chooser with Folder Dependency',
+        underline: true,
       },
       {
         type: 'folder-chooser',
@@ -467,8 +519,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'This note chooser filters notes by the folder selected above. Select a folder first, then this will show only notes in that folder.',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Note Chooser with Creation',
+        underline: true,
       },
       {
         type: 'note-chooser',
@@ -483,8 +536,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'This note chooser includes a "➕ New Note" option at the top of the dropdown. Click it to create a new note.',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Note Chooser: Folder Dependency + Creation',
+        underline: true,
       },
       {
         type: 'folder-chooser',
@@ -549,8 +603,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'Dynamic heading chooser that loads headings from the selected note above',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Date & Time',
+        underline: true,
       },
       {
         type: 'calendarpicker',
@@ -588,8 +643,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'Date picker that shows the calendar immediately (no button click needed)',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Event Chooser',
+        underline: true,
       },
       {
         type: 'event-chooser',
@@ -630,8 +686,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'Event chooser showing only reminders (no calendar events)',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Event Chooser with Date Dependency',
+        underline: true,
       },
       {
         type: 'calendarpicker',
@@ -651,8 +708,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'This event chooser loads events for the date selected above. Change the date to see different events.',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Action Fields',
+        underline: true,
       },
       {
         type: 'button',
@@ -696,8 +754,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'Button group with one option marked as default',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Advanced Fields',
+        underline: true,
       },
       {
         type: 'json',
@@ -735,8 +794,9 @@ export async function testFormFieldRender(): Promise<void> {
       //   ...
       // },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Markdown Preview',
+        underline: true,
       },
       {
         type: 'markdown-preview',
@@ -754,8 +814,9 @@ export async function testFormFieldRender(): Promise<void> {
         }. Note: This is a very basic markdown renderer that does not display full NotePlan formatted tasks and items. It's intended for a quick preview, not a faithful rendering.`,
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Markdown Preview with Note Dependency',
+        underline: true,
       },
       {
         type: 'note-chooser',
@@ -776,8 +837,9 @@ export async function testFormFieldRender(): Promise<void> {
           "This markdown preview displays the content of the note selected above. Select a note to see its rendered markdown. Note: This is a very basic markdown renderer that does not display full NotePlan formatted tasks and items. It's intended for a quick preview, not a faithful rendering.",
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Autosave',
+        underline: true,
       },
       {
         type: 'autosave',
@@ -796,8 +858,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'Invisible autosave field that saves every 5 seconds without showing UI',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Prerequisite Dependencies (requiresKey)',
+        underline: true,
       },
       {
         type: 'switch',
@@ -825,8 +888,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'This textarea is only visible when "Enable Advanced Options" is turned on',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Compact Display Examples',
+        underline: true,
       },
       {
         type: 'input',
@@ -854,8 +918,9 @@ export async function testFormFieldRender(): Promise<void> {
         description: 'Switch in compact display mode',
       },
       {
-        type: 'separator',
+        type: 'heading',
         label: 'Form State Viewer',
+        underline: true,
       },
       {
         type: 'form-state-viewer',

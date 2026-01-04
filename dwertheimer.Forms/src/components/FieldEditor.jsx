@@ -198,7 +198,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
     onSave(editedField)
   }
 
-  const needsKey = editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'autosave'
+  const needsKey = editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'autosave' && editedField.type !== 'table-of-contents'
 
   // Construct header title with label, key, and type
   const headerTitle = needsKey && editedField.key ? `Editing ${editedField.type}: ${editedField.label || ''} (${editedField.key})` : `Editing: ${editedField.type}`
@@ -229,7 +229,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             </div>
           )}
 
-          {(editedField.type === 'heading' || editedField.type !== 'separator') && (
+          {(editedField.type === 'heading' || editedField.type === 'table-of-contents' || editedField.type !== 'separator') && (
             <div className="field-editor-row">
               <label>Label:</label>
               <input type="text" value={editedField.label || ''} onChange={(e) => updateField({ label: e.target.value })} placeholder="Field label" />
@@ -237,7 +237,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             </div>
           )}
 
-          {editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'calendarpicker' && editedField.type !== 'autosave' && (
+          {editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'table-of-contents' && editedField.type !== 'calendarpicker' && editedField.type !== 'autosave' && (
             <div className="field-editor-row">
               <label>
                 <input type="checkbox" checked={editedField.compactDisplay || false} onChange={(e) => updateField({ compactDisplay: e.target.checked })} />
@@ -1311,6 +1311,26 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   </>
                 )
               })()}
+            </>
+          )}
+
+          {editedField.type === 'heading' && (
+            <>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { underline?: boolean }).underline || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).underline = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Add underline
+                </label>
+                <div className="field-editor-help">Add an underline directly under the heading with minimal margin/padding</div>
+              </div>
             </>
           )}
 
