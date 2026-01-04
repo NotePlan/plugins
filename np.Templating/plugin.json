@@ -1,6 +1,6 @@
 {
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.19.2",
+  "noteplan.minAppVersion": "3.20",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
   "plugin.version": "2.2.6-beta1",
