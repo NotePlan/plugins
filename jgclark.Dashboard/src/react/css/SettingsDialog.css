@@ -1,24 +1,25 @@
 /* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
-/* Last updated 2026-01-02 for v2.4.0.b5 by @jgclark */
+/* Last updated 2026-01-04 for v2.4.0.b8 by @jgclark */
 
 /* Style for the settings dialog */
 .settings-dialog {
     font-family: system-ui;
     background-color: var(--bg-mid-color);
     position: fixed;
-    top: calc(50% + var(--noteplan-toolbar-height, 0)*2); /* a little lower to try to avoid hiding the Header bar, as we want to see Perspective name */
-    max-height: calc(90% - var(--noteplan-toolbar-height, 0)*);
+    top: calc(50vh + var(--noteplan-toolbar-height, 0)/2); /* Center in viewport, with Y offset a bit lower to generally allow the Perspective name to be visible) */
+    height: 90vh;
+    max-height: calc(92vh - var(--noteplan-toolbar-height, 0));
     left: 50%;
     width: clamp(380px, 86%, 700px);
     /* transform: translate(-50%, -48%); /* second param needs to be a little lower than 50% to avoid hiding the Header bar, as we want to see Perspective name */
     transform: translate(-50%, 0%); /* TEST: */
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
-    /* z-index: 1000; */
     opacity: 1;
     transition: opacity 0.2s ease-out;
     overflow: hidden;
     border-radius: 8px;
+    /* z-index: 1000; */
 
     /* Style for Section headings */
     .ui-heading {
@@ -322,7 +323,7 @@
 	flex-direction: column;
 	gap: 0.5rem; /* down from 1rem to give more control elsewhere */
 	background-color: var(--bg-mid-color);
-	padding: 0.75rem 0.9rem;
+	padding: 0.75rem 1rem;
 	border-radius: 8px;
 	max-height: 85vh;
 	margin-bottom: 10px;
@@ -354,7 +355,7 @@
     /* vertically align items in the centre */
     align-items: center;
     justify-content: space-between;
-    padding: 0.2rem 0.7rem;
+    padding: 0.4rem 1rem;
     border-bottom: 1px solid #ddd;
     background-color: var(--bg-alt-color);
     /* Adjusted height for better visibility */
