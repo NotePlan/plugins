@@ -33,6 +33,7 @@ import { parseObjectString } from '@helpers/stringTransforms'
 import { replaceContentUnderHeading, removeContentUnderHeading } from '@helpers/NPParagraph'
 import { initPromisePolyfills, waitForCondition } from '@helpers/promisePolyfill'
 import { keepTodayPortionOnly } from '@helpers/calendar.js'
+import { testFormFieldRender } from './FormFieldRenderTest'
 // Form-specific handlers are now in their respective handler files:
 // - formBrowserHandlers.js: getFormTemplates, getFormFields, handleSubmitForm, handleOpenFormBuilder
 // - formBuilderHandlers.js: handleCreateProcessingTemplate, handleOpenNote, handleCopyFormUrl, handleDuplicateForm
@@ -1370,6 +1371,14 @@ export async function handleRequest(requestType: string, params: Object = {}): P
         return createNote(params)
       case 'saveAutosave':
         return await saveAutosave(params)
+      case 'testFormFieldRender':
+        // Open the form field render test window
+        await testFormFieldRender()
+        return {
+          success: true,
+          message: 'Form field examples opened',
+          data: null,
+        }
       // Form-specific handlers are now in their respective handler files:
       // - formBrowserHandlers.js handles: getFormTemplates, getFormFields, submitForm, openFormBuilder
       // - formBuilderHandlers.js handles: createProcessingTemplate, openNote, copyFormUrl, duplicateForm

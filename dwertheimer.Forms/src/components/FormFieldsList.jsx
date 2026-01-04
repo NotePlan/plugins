@@ -19,6 +19,7 @@ type FormFieldsListProps = {
   onDragLeave: () => void,
   onDrop: (e: any, index: number) => void,
   onDragEnd: () => void,
+  requestFromPlugin?: (command: string, data?: any) => Promise<any>,
 }
 
 export function FormFieldsList({
@@ -34,15 +35,34 @@ export function FormFieldsList({
   onDragLeave,
   onDrop,
   onDragEnd,
+  requestFromPlugin,
 }: FormFieldsListProps): Node {
   return (
     <div className="form-builder-main">
       <div className="form-builder-editor">
         <div className="form-section-header">
           <h3>Form Fields</h3>
-          <button className="add-field-button-small" onClick={onAddField}>
-            + Add Field
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button className="add-field-button-small" onClick={onAddField}>
+              + Add Field
+            </button>
+            {requestFromPlugin && (
+              <button
+                className="PCButton"
+                onClick={async () => {
+                  try {
+                    await requestFromPlugin('testFormFieldRender', {})
+                  } catch (error) {
+                    console.error('Error opening form field examples:', error)
+                  }
+                }}
+                title="Open a test form showing examples of all field types"
+                style={{ fontSize: '0.85rem', padding: '4px 8px' }}
+              >
+                Examples
+              </button>
+            )}
+          </div>
         </div>
         <div className="form-fields-list">
           {fields.length === 0 ? (

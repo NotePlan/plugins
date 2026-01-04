@@ -7,16 +7,14 @@
     /* background-color: var(--bg-main-color); */
     background-color: var(--bg-mid-color);
     position: fixed;
-    top: calc(50% + var(--noteplan-toolbar-height, 0)/2); /* TEST: */
+    top: 50vh; /* Center in viewport */
     height: 90vh;
     max-height: calc(92vh - var(--noteplan-toolbar-height, 0));
-    /* max-height: calc(92% - var(--noteplan-toolbar-height, 0)); TEST: */
     left: 50%;
     /* width: 90vw; */
     /* max-width: 90vw; */
     width: clamp(380px, 86%, 700px);
-    /* transform: translate(-50%, -50%); */
-    transform: translate(-50%, 0%);  /* TEST: */
+    transform: translate(-50%, -50%); /* Center both horizontally and vertically */
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     /* z-index: 1000; */
@@ -633,6 +631,11 @@
         color: var(--fg-alt-color);
         /* margin-top: 0.3rem; */
         opacity: 0.8;
+    }
+
+    /* JSON Editor container - ensure consistent spacing */
+    .ui-json-container {
+        margin-bottom: 0; /* Match input-box-container - no extra margin, spacing handled by .dynamic-dialog-item gap */
     }
 
     /* Style for Section headings */

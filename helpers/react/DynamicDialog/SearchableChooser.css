@@ -6,7 +6,7 @@
 /* Non-compact choosers should be wider and flexible - don't constrain width here */
 .searchable-chooser-base {
   position: relative;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0; /* Match input-box-container - no extra margin, spacing handled by .dynamic-dialog-item gap */
   overflow: visible !important; /* Ensure dropdown is not clipped */
 }
 
@@ -27,7 +27,7 @@
 [class*="-chooser-container"] {
   /* Inherits from .searchable-chooser-base above */
   position: relative;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0; /* Match input-box-container - no extra margin, spacing handled by .dynamic-dialog-item gap */
   box-sizing: border-box;
 }
 
@@ -527,4 +527,24 @@
   color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
   font-size: 0.9rem;
+}
+
+/* Value display - show selected value for debugging */
+/* In compact mode, force it to a new line by taking full width */
+.searchable-chooser-base [class*="-value-display"],
+[class*="-value-display"] {
+  margin-top: 0.25rem;
+  font-size: 0.85em;
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
+  font-family: Menlo, monospace;
+}
+
+/* In compact mode, value display should be on a new line below the field */
+.searchable-chooser-base.compact [class*="-value-display"],
+[class*="-chooser-container"].compact [class*="-value-display"] {
+  width: 100%;
+  flex-basis: 100%;
+  margin-left: 0;
+  margin-top: 0.5rem;
+  padding-left: calc(8rem + 1rem); /* Align with input field: 8rem (label width) + 1rem (label padding-right) */
 }

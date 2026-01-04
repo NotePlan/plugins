@@ -2,7 +2,7 @@
 
 .expandable-textarea-container {
   width: 100%;
-  margin-bottom: 1rem;
+  margin-bottom: 0; /* Match input-box-container - no extra margin, spacing handled by .dynamic-dialog-item gap */
 }
 
 .expandable-textarea-container.compact {
@@ -10,7 +10,7 @@
   flex-direction: row;
   align-items: flex-start;
   gap: 1rem; /* Match input-box-container-compact gap */
-  margin-bottom: 0.5rem;
+  margin-bottom: 0; /* Match input-box-container-compact - no extra margin */
 }
 
 .expandable-textarea-container.compact .expandable-textarea-label {

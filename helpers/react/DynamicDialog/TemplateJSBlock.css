@@ -1,11 +1,11 @@
 /* TemplateJSBlock Component Styles */
 
 .templatejs-block {
-  margin-bottom: 1rem;
+  margin-bottom: 0; /* Match input-box-container - no extra margin, spacing handled by .dynamic-dialog-item gap */
 }
 
 .templatejs-block.compact {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0; /* Match input-box-container-compact - no extra margin */
 }
 
 .templatejs-block-label {

@@ -95,3 +95,23 @@
   transform: translateY(-50%) rotate(180deg);
 }
 
+/* Value display - show selected value for debugging */
+/* Base styles (non-compact) */
+.dropdown-select-chooser-container .dropdown-select-chooser-value-display {
+  margin-top: 0.25rem;
+  font-size: 0.85em;
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
+  font-family: Menlo, monospace;
+}
+
+/* In compact mode, value display should be on a new line below the field */
+/* The value display is a direct child of searchable-chooser-base.compact */
+/* Use !important to override inline styles and ensure it breaks out of flex layout */
+.dropdown-select-chooser-container .searchable-chooser-base.compact .dropdown-select-chooser-value-display {
+  width: 100% !important;
+  flex-basis: 100% !important;
+  margin-left: 0 !important;
+  margin-top: 0.5rem !important; /* Override inline style */
+  padding-left: calc(8rem + 1rem) !important; /* Align with input field: 8rem (label width) + 1rem (label padding-right) */
+}
+
