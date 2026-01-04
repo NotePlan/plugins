@@ -137,6 +137,43 @@ describe('promptTag and promptMention functionality', () => {
           allowCreate: true,
         })
       })
+
+      it('should parse allowCreate with empty includePattern and excludePattern', () => {
+        const tag = "<%- promptTag('Select from existing hashtags only:', '', '', 'true') %>"
+        const result = HashtagPromptHandler.parsePromptTagParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select from existing hashtags only:',
+          includePattern: '',
+          excludePattern: '',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate as false', () => {
+        const tag = "<%- promptTag('Select a hashtag:', 'project|important', 'follow', 'false') %>"
+        const result = HashtagPromptHandler.parsePromptTagParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a hashtag:',
+          includePattern: 'project|important',
+          excludePattern: 'follow',
+          allowCreate: false,
+        })
+      })
+
+      it('should handle cleaned tag format (without template syntax)', () => {
+        // This tests the fallback regex pattern that handles tags without <% %>
+        const tag = "promptTag('Select a hashtag:', 'project|important', 'follow', 'true')"
+        const result = HashtagPromptHandler.parsePromptTagParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a hashtag:',
+          includePattern: 'project|important',
+          excludePattern: 'follow',
+          allowCreate: true,
+        })
+      })
     })
 
     describe('filterHashtags', () => {
@@ -323,6 +360,68 @@ describe('promptTag and promptMention functionality', () => {
           promptMessage: 'Select a mention:',
           includePattern: 'john|jane',
           excludePattern: 'team',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate with empty includePattern and excludePattern', () => {
+        const tag = "<%- promptMention('Select from existing mentions only:', '', '', 'true') %>"
+        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select from existing mentions only:',
+          includePattern: '',
+          excludePattern: '',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate as false', () => {
+        const tag = "<%- promptMention('Select a mention:', 'john|jane', 'team', 'false') %>"
+        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a mention:',
+          includePattern: 'john|jane',
+          excludePattern: 'team',
+          allowCreate: false,
+        })
+      })
+
+      it('should parse allowCreate with empty includePattern and excludePattern as false', () => {
+        const tag = "<%- promptMention('Select from existing mentions only:', '', '', 'false') %>"
+        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select from existing mentions only:',
+          includePattern: '',
+          excludePattern: '',
+          allowCreate: false,
+        })
+      })
+
+      it('should handle cleaned tag format (without template syntax)', () => {
+        // This tests the fallback regex pattern that handles tags without <% %>
+        const tag = "promptMention('Select a mention:', 'john|jane', 'team', 'true')"
+        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a mention:',
+          includePattern: 'john|jane',
+          excludePattern: 'team',
+          allowCreate: true,
+        })
+      })
+
+      it('should handle cleaned tag format with empty strings and allowCreate', () => {
+        // This tests the fallback regex pattern with the user's exact use case
+        const tag = "promptMention('Select from existing mentions only:', '', '', 'true')"
+        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select from existing mentions only:',
+          includePattern: '',
+          excludePattern: '',
           allowCreate: true,
         })
       })

@@ -6,6 +6,10 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.2.6] 2026-01-04 @dwertheimer
+
+- fix bug where promptMention was not working correctly when adding a new item
+
 ## [2.2.5] 2025-12-19 @dwertheimer
 
 - Fix messaging in templateNew when templates not found

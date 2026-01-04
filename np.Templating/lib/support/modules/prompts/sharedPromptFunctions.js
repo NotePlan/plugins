@@ -10,6 +10,18 @@ import { log, logError, logDebug } from '@helpers/dev'
 import { chooseOptionWithModifiers, getInput } from '@helpers/userInput'
 
 /**
+ * Converts a string value to a boolean, handling both quoted strings ('true'/'false')
+ * and unquoted boolean literals (true/false).
+ * @param {string} value - The string value to convert
+ * @returns {boolean} The boolean value
+ */
+function parseBooleanString(value: string): boolean {
+  if (typeof value !== 'string') return false
+  const cleaned = BasePromptHandler.removeQuotes(value).trim().toLowerCase()
+  return cleaned === 'true'
+}
+
+/**
  * Parse parameters from a prompt tag.
  * @param {string} tag - The template tag containing the prompt call.
  * @param {string} promptType - The type of prompt ('promptTag' or 'promptMention') for logging.
@@ -42,7 +54,8 @@ export function parsePromptParameters(
     )
 
     // Extract the content inside the parentheses - handle empty parentheses case
-    const paramMatch = tag.match(/<%[-=]?\s*\w+\s*\(\s*([^)]*)\s*\)/)
+    // Try regex with template syntax first, then fall back to cleaned tag pattern
+    const paramMatch = tag.match(/<%[-=]?\s*\w+\s*\(\s*([^)]*)\s*\)/) || tag.match(/\w+\s*\(\s*([^)]*)\s*\)/)
 
     // Debug the regex match
     logDebug(pluginJson, `${promptType} paramMatch: ${paramMatch ? 'match found' : 'no match'}`)
@@ -51,15 +64,6 @@ export function parsePromptParameters(
       logDebug(pluginJson, `${promptType} paramMatch[1]: "${paramMatch[1]}"`)
       logDebug(pluginJson, `${promptType} paramMatch[1].trim(): "${paramMatch[1].trim()}"`)
     }
-
-    // Try alternative regex patterns for debugging
-    const altMatch1 = tag.match(/<%[-=]?\s*\w+\s*\(([^)]*)\)/)
-    const altMatch2 = tag.match(/\w+\s*\(\s*([^)]*)\s*\)/)
-    const altMatch3 = tag.match(/\(([^)]*)\)/)
-
-    logDebug(pluginJson, `${promptType} altMatch1: ${altMatch1 ? 'match found' : 'no match'}`)
-    logDebug(pluginJson, `${promptType} altMatch2: ${altMatch2 ? 'match found' : 'no match'}`)
-    logDebug(pluginJson, `${promptType} altMatch3: ${altMatch3 ? 'match found' : 'no match'}`)
 
     // Case 1: Zero parameters or empty parentheses
     if (!paramMatch || !paramMatch[1] || paramMatch[1].trim() === '') {
@@ -91,6 +95,49 @@ export function parsePromptParameters(
               logDebug(pluginJson, `${promptType} detected regex in promptMessage: promptMessage="${promptMessage}", includePattern="${includePattern}"`)
             } else {
               promptMessage = param
+            }
+
+            return {
+              promptMessage,
+              includePattern,
+              excludePattern,
+              allowCreate,
+            }
+          } else {
+            // Multiple parameters detected - use BasePromptHandler.getPromptParameters
+            logDebug(pluginJson, `${promptType} fallback: multiple parameters detected, using BasePromptHandler.getPromptParameters`)
+            const basicParams = BasePromptHandler.getPromptParameters(tag, true)
+
+            // Get the prompt message
+            promptMessage = basicParams.promptMessage
+
+            // Process additional parameters from options
+            if (Array.isArray(basicParams.options)) {
+              if (basicParams.options.length > 0) includePattern = BasePromptHandler.removeQuotes(basicParams.options[0]) || ''
+              if (basicParams.options.length > 1) excludePattern = BasePromptHandler.removeQuotes(basicParams.options[1]) || ''
+              if (basicParams.options.length > 2) allowCreate = parseBooleanString(String(basicParams.options[2]))
+            } else if (typeof basicParams.options === 'string') {
+              // Process string options
+              const paramRegex = /,(?=(?:[^"']*["'][^"']*["'])*[^"']*$)/
+              const optionParts = basicParams.options.split(paramRegex).map((part: string) => part.trim())
+
+              logDebug(pluginJson, `${promptType} parsed options parts: ${JSON.stringify(optionParts)}`)
+
+              // Special case for testing: split a single string with all parameters if the regex didn't work
+              if (optionParts.length === 1 && optionParts[0].includes(',')) {
+                const manualParts = optionParts[0].split(',').map((p: string) => p.trim())
+                const filteredManualParts = manualParts.filter((s: string) => s !== '')
+                // Use manually split parts if they make more logical sense
+                if (filteredManualParts.length > 0) includePattern = BasePromptHandler.removeQuotes(filteredManualParts[0]) || ''
+                if (filteredManualParts.length > 1) excludePattern = BasePromptHandler.removeQuotes(filteredManualParts[1]) || ''
+                if (filteredManualParts.length > 2) allowCreate = parseBooleanString(filteredManualParts[2])
+              } else {
+                // Regular case processing
+                const filteredParts = optionParts.filter((s: string) => s !== '')
+                if (filteredParts.length > 0) includePattern = BasePromptHandler.removeQuotes(filteredParts[0]) || ''
+                if (filteredParts.length > 1) excludePattern = BasePromptHandler.removeQuotes(filteredParts[1]) || ''
+                if (filteredParts.length > 2) allowCreate = parseBooleanString(filteredParts[2])
+              }
             }
 
             return {
@@ -131,7 +178,7 @@ export function parsePromptParameters(
       if (Array.isArray(basicParams.options)) {
         if (basicParams.options.length > 0) includePattern = BasePromptHandler.removeQuotes(basicParams.options[0]) || ''
         if (basicParams.options.length > 1) excludePattern = BasePromptHandler.removeQuotes(basicParams.options[1]) || ''
-        if (basicParams.options.length > 2) allowCreate = BasePromptHandler.removeQuotes(basicParams.options[2]) === 'true'
+        if (basicParams.options.length > 2) allowCreate = parseBooleanString(String(basicParams.options[2]))
       } else if (typeof basicParams.options === 'string') {
         // Process string options
         const paramRegex = /,(?=(?:[^"']*["'][^"']*["'])*[^"']*$)/
@@ -146,13 +193,13 @@ export function parsePromptParameters(
           // Use manually split parts if they make more logical sense
           if (filteredManualParts.length > 0) includePattern = BasePromptHandler.removeQuotes(filteredManualParts[0]) || ''
           if (filteredManualParts.length > 1) excludePattern = BasePromptHandler.removeQuotes(filteredManualParts[1]) || ''
-          if (filteredManualParts.length > 2) allowCreate = BasePromptHandler.removeQuotes(filteredManualParts[2]) === 'true'
+          if (filteredManualParts.length > 2) allowCreate = parseBooleanString(filteredManualParts[2])
         } else {
           // Regular case processing
           const filteredParts = optionParts.filter((s: string) => s !== '')
           if (filteredParts.length > 0) includePattern = BasePromptHandler.removeQuotes(filteredParts[0]) || ''
           if (filteredParts.length > 1) excludePattern = BasePromptHandler.removeQuotes(filteredParts[1]) || ''
-          if (filteredParts.length > 2) allowCreate = BasePromptHandler.removeQuotes(filteredParts[2]) === 'true'
+          if (filteredParts.length > 2) allowCreate = parseBooleanString(filteredParts[2])
         }
       }
     }
@@ -243,7 +290,7 @@ export async function promptForItem(
 
     // Show options to user
     // $FlowFixMe - We know this will return an object with value property
-    const response: { value: string, label: string, index: number } = await chooseOptionWithModifiers(promptMessage || `Select a ${itemType}`, options, allowCreate ?? true)
+    const response: { value: string, label: string, index: number } = await chooseOptionWithModifiers(promptMessage || `Select a ${itemType}`, options, allowCreate)
 
     // Return the selected value (safely)
     return response.value || ''
