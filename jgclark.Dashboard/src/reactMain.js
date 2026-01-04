@@ -445,6 +445,13 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
       ENV_MODE,
       startTime,
       windowID: WEBVIEW_WINDOW_ID,
+      // For testing the warning banner outside NP
+      // initialBanner: {
+      //   msg: 'jgclark testing the warning banner',
+      //   color: 'w3-pale-red', // optional
+      //   border: 'w3-border-red', // optional
+      //   icon: 'fa-regular fa-circle-exclamation', // optional
+      // },
     }
     logTimer('getInitialDataForReactWindow', startTime, `<<<<< Finished`)
     logDebug('getInitialDataForReactWindow', `<<<<< Finished`)
