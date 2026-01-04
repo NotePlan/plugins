@@ -377,6 +377,7 @@ This is the actual template body.
     describe(`${block('.getFrontmatterAttributes')}`, () => {
       it('should return frontmatter attributes from a note', () => {
         const mockNote = {
+          type: 'Notes',
           frontmatterAttributes: {
             title: 'Test Note',
             status: 'active',
@@ -394,6 +395,7 @@ This is the actual template body.
 
       it('should return empty object when note has no frontmatter attributes', () => {
         const mockNote = {
+          type: 'Notes',
           frontmatterAttributes: null,
         }
 
@@ -445,6 +447,7 @@ This is the actual template body.
     describe(`${block('.properties')}`, () => {
       it('should return all frontmatter properties from a note', () => {
         const mockNote: any = {
+          type: 'Notes',
           frontmatterAttributes: {
             title: 'Test Note',
             status: 'active',
@@ -464,6 +467,7 @@ This is the actual template body.
 
       it('should return empty object when note has no frontmatter', () => {
         const mockNote: any = {
+          type: 'Notes',
           frontmatterAttributes: {},
         }
 
@@ -484,6 +488,7 @@ This is the actual template body.
         // Mock Editor.note
         global.Editor = {
           note: {
+            type: 'Notes',
             frontmatterAttributes: {
               title: 'Editor Note',
               status: 'current',

@@ -174,6 +174,54 @@ describe('promptTag and promptMention functionality', () => {
           allowCreate: true,
         })
       })
+
+      it('should parse allowCreate with <% %> execution tag syntax', () => {
+        const tag = "<% promptTag('Select a hashtag:', 'project|important', 'follow', 'true') %>"
+        const result = HashtagPromptHandler.parsePromptTagParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a hashtag:',
+          includePattern: 'project|important',
+          excludePattern: 'follow',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate with <%- %> output tag syntax', () => {
+        const tag = "<%- promptTag('Select a hashtag:', 'project|important', 'follow', 'true') %>"
+        const result = HashtagPromptHandler.parsePromptTagParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a hashtag:',
+          includePattern: 'project|important',
+          excludePattern: 'follow',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate with <%- -%> slurp tag syntax', () => {
+        const tag = "<%- promptTag('Select a hashtag:', 'project|important', 'follow', 'true') -%>"
+        const result = HashtagPromptHandler.parsePromptTagParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a hashtag:',
+          includePattern: 'project|important',
+          excludePattern: 'follow',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate with <%= %> escaped output tag syntax', () => {
+        const tag = "<%= promptTag('Select a hashtag:', 'project|important', 'follow', 'true') %>"
+        const result = HashtagPromptHandler.parsePromptTagParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a hashtag:',
+          includePattern: 'project|important',
+          excludePattern: 'follow',
+          allowCreate: true,
+        })
+      })
     })
 
     describe('filterHashtags', () => {
@@ -416,6 +464,78 @@ describe('promptTag and promptMention functionality', () => {
       it('should handle cleaned tag format with empty strings and allowCreate', () => {
         // This tests the fallback regex pattern with the user's exact use case
         const tag = "promptMention('Select from existing mentions only:', '', '', 'true')"
+        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select from existing mentions only:',
+          includePattern: '',
+          excludePattern: '',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate with <% %> execution tag syntax', () => {
+        const tag = "<% promptMention('Select a mention:', 'john|jane', 'team', 'true') %>"
+        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a mention:',
+          includePattern: 'john|jane',
+          excludePattern: 'team',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate with <%- %> output tag syntax', () => {
+        const tag = "<%- promptMention('Select a mention:', 'john|jane', 'team', 'true') %>"
+        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a mention:',
+          includePattern: 'john|jane',
+          excludePattern: 'team',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate with <%- -%> slurp tag syntax', () => {
+        const tag = "<%- promptMention('Select a mention:', 'john|jane', 'team', 'true') -%>"
+        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a mention:',
+          includePattern: 'john|jane',
+          excludePattern: 'team',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate with <%= %> escaped output tag syntax', () => {
+        const tag = "<%= promptMention('Select a mention:', 'john|jane', 'team', 'true') %>"
+        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select a mention:',
+          includePattern: 'john|jane',
+          excludePattern: 'team',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate with empty strings and <% %> execution tag syntax', () => {
+        const tag = "<% promptMention('Select from existing mentions only:', '', '', 'true') %>"
+        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
+
+        expect(result).toMatchObject({
+          promptMessage: 'Select from existing mentions only:',
+          includePattern: '',
+          excludePattern: '',
+          allowCreate: true,
+        })
+      })
+
+      it('should parse allowCreate with empty strings and <%- -%> slurp tag syntax', () => {
+        const tag = "<%- promptMention('Select from existing mentions only:', '', '', 'true') -%>"
         const result = MentionPromptHandler.parsePromptMentionParameters(tag)
 
         expect(result).toMatchObject({

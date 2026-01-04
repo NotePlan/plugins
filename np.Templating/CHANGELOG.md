@@ -8,7 +8,12 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 
 ## [2.2.6] 2026-01-04 @dwertheimer
 
-- fix bug where promptMention was not working correctly when adding a new item
+- Fix `allowCreate` parameter parsing for `promptMention` and `promptTag` prompts: The `allowCreate` parameter (4th parameter) was not being parsed correctly from template tags, preventing the "➕ Add new [item]" option from appearing in selection dialogs. This fix:
+  - Improved parameter parsing to handle both quoted strings (`'true'`) and unquoted boolean literals (`true`)
+  - Fixed regex pattern to handle both full template tag syntax (`<%- promptMention(...) %>`) and cleaned tag format (without `<% %>`)
+  - Added fallback parsing logic for multiple parameters when the primary regex doesn't match
+  - Works with all template tag syntax variations: `<% %>`, `<%- %>`, `<%- -%>`, `<%= %>`
+  - Users can now properly use `allowCreate` to enable creating new mentions/hashtags when they don't exist in the list
 
 ## [2.2.5] 2025-12-19 @dwertheimer
 
