@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2026-01-01 for v2.4.0-b4
+// Last updated 2026-01-04 for v2.4.0.b8
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -24,6 +24,19 @@ import { isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
 import { isOpen } from '@helpers/utils'
 
 //--------------------------------------------------------------------
+// Type definitions
+
+type TodayParasData = {
+  sortedOrCombinedParas: Array<TParagraphForDashboard>,
+  sortedRefParas: Array<TParagraphForDashboard>,
+  filenameDateStr: string,
+  thisFilename: string,
+  currentDailyNote: ?TNote,
+}
+
+//--------------------------------------------------------------------
+// Local helper functions
+
 /**
  * Shared helper function to get paragraph data for today's note.
  * Used by both DT and TB section generation to avoid duplicate data fetching.
@@ -31,13 +44,14 @@ import { isOpen } from '@helpers/utils'
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
- * @returns {[Array<TParagraphForDashboard>, Array<TParagraphForDashboard>, string, string, TNote?]} [sortedOrCombinedParas, sortedRefParas, filenameDateStr, thisFilename, currentDailyNote]
+ * @returns {TodayParasData} An object containing today's sorted/combined paragraphs, referenced paragraphs, date string, filename, and current daily note.
+ *
  */
 function getTodayParasData(
   config: TDashboardSettings,
   useDemoData: boolean = false,
   useEditorWherePossible: boolean,
-): [Array<TParagraphForDashboard>, Array<TParagraphForDashboard>, string, string, TNote | null] {
+): TodayParasData {
   const NPSettings = getNotePlanSettings()
   const thisFilename = `${getTodaysDateUnhyphenated()}.${NPSettings.defaultFileExtension}`
   const filenameDateStr: string = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
@@ -52,13 +66,22 @@ function getTodayParasData(
     logDebug('getTodayParasData', `getOpenItemParasForTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
   }
 
-  return [sortedOrCombinedParas, sortedRefParas, filenameDateStr, thisFilename, currentDailyNote ?? null]
+  const returnObject: TodayParasData = {
+    sortedOrCombinedParas,
+    sortedRefParas,
+    filenameDateStr,
+    thisFilename,
+    currentDailyNote: currentDailyNote ?? null,
+  }
+  return returnObject
 }
 
 //--------------------------------------------------------------------
 /**
  * Get open items from Today's note, and scheduled to Today from other notes.
  * Includes relevant Teamspace calendar notes.
+ * Note: The data for this section is used by the Timeblock section, so as that needs to be checked most frequently, we will call that first with this shared data.
+ * Note: The reverse is not true, partly to avoid infinite recursion!
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
@@ -74,8 +97,14 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     logInfo('getTodaySectionData', `--------- Gathering Today's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} --------`)
     const startTime = new Date() // for timing only
 
-    // Get shared paragraph data
-    const [sortedOrCombinedParas, sortedRefParas, filenameDateStr, thisFilename, currentDailyNote] = getTodayParasData(config, useDemoData, useEditorWherePossible)
+    // Get Today's paragraph data once -- will be used by both DT and TB sections
+    const sharedParasData = getTodayParasData(config, useDemoData, useEditorWherePossible)
+    const { sortedOrCombinedParas, sortedRefParas, filenameDateStr, thisFilename, currentDailyNote } = sharedParasData
+
+    // Trigger timeblock section data generation first (if TB enabled), with this shared data
+    if (config.showTimeBlockSection) {
+      getTimeBlockSectionData(config, useDemoData, useEditorWherePossible, sharedParasData)
+    }
 
     if (useDemoData) {
       // write first or combined section items
@@ -163,7 +192,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           actionPluginID: `${pluginJson['plugin.id']}`,
           display: '<i class= "fa-regular fa-fw  fa-circle-plus sidebarDaily" ></i> ',
           tooltip: "Add a new task to today's note",
-          postActionRefresh: config.showTimeBlockSection ? ['DT', 'TB'] : ['DT'],
+          postActionRefresh: ['DT'], // Note: TB no longer needs to be specified here, as it will be refreshed along with DT (if enabled)
           formFields: todayFormFields,
           submitOnEnter: true,
           submitButtonText: 'Add & Close',
@@ -174,7 +203,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           actionPluginID: `${pluginJson['plugin.id']}`,
           display: '<i class= "fa-regular fa-fw  fa-square-plus sidebarDaily" ></i> ',
           tooltip: "Add a checklist item to today's note",
-          postActionRefresh: config.showTimeBlockSection ? ['DT', 'TB'] : ['DT'],
+          postActionRefresh: ['DT'], // Note: TB no longer needs to be specified here, as it will be refreshed along with DT (if enabled)
           formFields: todayFormFields,
           submitOnEnter: true,
           submitButtonText: 'Add & Close',
@@ -209,7 +238,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           tooltip: config.rescheduleNotMove
             ? '(Re)Schedule all open items from today to tomorrow. (Press ⌘-click to move instead.)'
             : 'Move all open items from today to tomorrow. (Press ⌘-click to (re)schedule instead.)',
-          postActionRefresh: config.showTimeBlockSection ? ['DT', 'TB', 'DO'] : ['DT', 'DO'],
+          postActionRefresh: ['DT', 'DO'], // Note: TB no longer needs to be specified here, as it will be refreshed along with DT (if enabled)
         },
       ],
     }
@@ -272,12 +301,19 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
 /**
  * Get timeblock section data for today's note.
  * Uses shared helper to get paragraph data, then filters for timeblocks.
+ * Note: This is called by getTodaySectionData(), so it can share the paragraph data with the DT section.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
+ * @param {TodayParasData?} sharedParasData - Optional shared paragraph data to avoid duplicate fetching
  * @returns {Array<TSection>} 1 section (TB) or empty array
  */
-export function getTimeBlockSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getTimeBlockSectionData(
+  config: TDashboardSettings,
+  useDemoData: boolean = false,
+  useEditorWherePossible: boolean,
+  sharedParasData?: TodayParasData,
+): Array<TSection> {
   try {
     if (!config.showTimeBlockSection) {
       return []
@@ -289,8 +325,9 @@ export function getTimeBlockSectionData(config: TDashboardSettings, useDemoData:
     logInfo('getTimeBlockSectionData', `--------- Gathering Timeblock ${useDemoData ? 'DEMO' : ''} items for section ${TBsectionCode} --------`)
     const startTime = new Date() // for timing only
 
-    // Get shared paragraph data
-    const [sortedOrCombinedParas, sortedRefParas, filenameDateStr, thisFilename, currentDailyNote] = getTodayParasData(config, useDemoData, useEditorWherePossible)
+    // Get shared paragraph data (use provided data if available, otherwise fetch it)
+    const { sortedOrCombinedParas, sortedRefParas, filenameDateStr, thisFilename, currentDailyNote } =
+      sharedParasData ?? getTodayParasData(config, useDemoData, useEditorWherePossible)
 
     const timeBlockItems: Array<TSectionItem> = []
     const combinedParas = sortedOrCombinedParas.concat(sortedRefParas)

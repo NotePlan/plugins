@@ -9,6 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b8] 2026-01-04
+- now always trigger Timeblock Section generation whenever Today Section is generated. This simplifies some handlers.
+- add error message info to click handlers, ready to display in updated MessageBanners
+
 ## [2.4.0.b6] 2026-01-03
 - Fixed height/Y pos issues for Dynamic and Settings dialogs
 - dev: added new color definitions to theme CSS generator
