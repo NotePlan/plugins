@@ -3,86 +3,226 @@
 
 const PLUGIN_ID = 'jh.GraphNote'
 const WINDOW_CUSTOM_ID = 'graphnote'
-const CACHE_FILE = 'graphnote-index.json'
+
+/**
+ * Public command: graphnote
+ */
+async function graphnote() {
+  const BUILD_ID = `GN-D3-FULL-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}`
+  console.log(`GraphNote: command started ${BUILD_ID}`)
+
+  try {
+    const settings = await getPluginSettingsSafe()
+    const saved = await loadSavedSettingsSafe()
+    if (saved) Object.assign(settings, saved)
+    await openGraphWindow(BUILD_ID, settings)
+
+    const { projectNotes, calendarNotes } = await getNotesSafe()
+    console.log(`GraphNote: projectNotes=${projectNotes.length} calendarNotes=${calendarNotes.length}`)
+
+    const graph = buildGraphIndex(projectNotes, calendarNotes, settings)
+    console.log(`GraphNote: graph nodes=${graph.nodes.length} links=${graph.edges.length}`)
+
+    await waitForWindowFunction('setGraphData', 12000)
+    await pushGraphToWindow({
+      buildId: BUILD_ID,
+      settings,
+      ...graph,
+    })
+    console.log('GraphNote: graph pushed to window')
+  } catch (e) {
+    console.log(`GraphNote: error: ${stringifyError(e)}`)
+    try {
+      await waitForWindowFunction('setGraphError', 3000)
+      await pushErrorToWindow(e)
+    } catch (_) {}
+  }
+}
+
+/**
+ * Public command: graphnote-rebuild
+ */
+async function rebuildGraphIndex(arg0) {
+  const BUILD_ID = `GN-D3-REBUILD-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}`
+  console.log(`GraphNote: rebuild started ${BUILD_ID}`)
+
+  // Called from the HTML window to persist settings (via noteplan:// runPlugin)
+  if (typeof arg0 === 'string' && arg0.trim().length) {
+    try {
+      const decoded = decodeURIComponent(arg0)
+      const obj = JSON.parse(decoded)
+      if (obj && typeof obj === 'object') {
+        await saveSavedSettingsSafe(obj)
+        console.log('GraphNote: settings saved')
+        return
+      }
+    } catch (e) {
+      console.log(`GraphNote: settings save arg parse failed: ${stringifyError(e)}`)
+      // fall through to normal rebuild
+    }
+  }
+
+
+  try {
+    const settings = await getPluginSettingsSafe()
+    await openGraphWindow(BUILD_ID, settings)
+
+    const { projectNotes, calendarNotes } = await getNotesSafe()
+    console.log(`GraphNote: projectNotes=${projectNotes.length} calendarNotes=${calendarNotes.length}`)
+
+    const graph = buildGraphIndex(projectNotes, calendarNotes, settings)
+    console.log(`GraphNote: graph nodes=${graph.nodes.length} links=${graph.edges.length}`)
+
+    await waitForWindowFunction('setGraphData', 12000)
+    await pushGraphToWindow({
+      buildId: BUILD_ID,
+      settings,
+      ...graph,
+    })
+    console.log('GraphNote: rebuild - graph pushed')
+  } catch (e) {
+    console.log(`GraphNote: rebuild error: ${stringifyError(e)}`)
+    try {
+      await waitForWindowFunction('setGraphError', 3000)
+      await pushErrorToWindow(e)
+    } catch (_) {}
+  }
+}
+
+/**
+ * NotePlan calls this automatically after plugin settings are saved.
+ */
+async function onSettingsUpdated() {
+  try {
+    console.log('GraphNote: settings updated - refreshing graph')
+    await graphnote()
+  } catch (e) {
+    console.log(`GraphNote: onSettingsUpdated failed: ${stringifyError(e)}`)
+  }
+}
+
+/* -----------------------------
+   Settings (from plugin.json)
+----------------------------- */
+
+
+async function loadSavedSettingsSafe() {
+  try {
+    if (typeof DataStore !== 'undefined' && DataStore && typeof DataStore.loadJSON === 'function') {
+      const s = await DataStore.loadJSON('graphnote-settings.json')
+      if (s && typeof s === 'object') return s
+    }
+  } catch (e) {
+    // ignore (file may not exist)
+  }
+  return null
+}
+
+async function saveSavedSettingsSafe(settingsObj) {
+  try {
+    if (typeof DataStore !== 'undefined' && DataStore && typeof DataStore.saveJSON === 'function') {
+      await DataStore.saveJSON(settingsObj, 'graphnote-settings.json')
+    }
+  } catch (e) {
+    console.log(`GraphNote: save settings failed: ${stringifyError(e)}`)
+  }
+}
+
+async function getPluginSettingsSafe() {
+  const defaults = {
+    defaultShowTags: 'Yes',
+    defaultShowMentions: 'Yes',
+    defaultShowExternal: 'Yes',
+    defaultShowLabels: 'Yes',
+    defaultLabelDensity: 'med',
+    defaultViz: 'disjoint',
+    ignoreCalendarNotesByDefault: 'No',
+    forceMaxNodes: '2500',
+    noteColor: '#fbbf24',
+    tagColor: '#22c55e',
+    mentionColor: '#5eead4',
+    externalColor: '#ec4899',
+  }
+
+  try {
+    if (typeof DataStore !== 'undefined' && DataStore && typeof DataStore.settings === 'object') {
+      return Object.assign({}, defaults, DataStore.settings || {})
+    }
+  } catch (_) {}
+
+  try {
+    if (typeof DataStore !== 'undefined' && DataStore && typeof DataStore.loadSettings === 'function') {
+      const s = await DataStore.loadSettings()
+      if (s && typeof s === 'object') return Object.assign({}, defaults, s)
+    }
+  } catch (_) {}
+
+  return defaultss
+}
+
+function ynToBool(v, fallback) {
+  if (v === 'Yes') return true
+  if (v === 'No') return false
+  return !!fallback
+}
+
+function clampHexColor(s, fallback) {
+  const v = String(s || '').trim()
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) return v
+  return fallback
+}
+
+/* -----------------------------
+   Note retrieval (robust across NP versions)
+----------------------------- */
+
+async function getNotesSafe() {
+  let projectNotes = []
+  let calendarNotes = []
+
+  try {
+    if (typeof DataStore !== 'undefined') {
+      if (typeof DataStore.projectNotes === 'function') {
+        const res = await DataStore.projectNotes()
+        if (Array.isArray(res)) projectNotes = res
+      } else if (Array.isArray(DataStore.projectNotes)) {
+        projectNotes = DataStore.projectNotes
+      }
+    }
+  } catch (e) {
+    console.log(`GraphNote: projectNotes failed: ${stringifyError(e)}`)
+  }
+
+  try {
+    if (typeof DataStore !== 'undefined') {
+      if (typeof DataStore.calendarNotes === 'function') {
+        const res = await DataStore.calendarNotes()
+        if (Array.isArray(res)) calendarNotes = res
+      } else if (Array.isArray(DataStore.calendarNotes)) {
+        calendarNotes = DataStore.calendarNotes
+      }
+    }
+  } catch (e) {
+    console.log(`GraphNote: calendarNotes failed: ${stringifyError(e)}`)
+  }
+
+  return {
+    projectNotes: Array.isArray(projectNotes) ? projectNotes : [],
+    calendarNotes: Array.isArray(calendarNotes) ? calendarNotes : [],
+  }
+}
+
+/* -----------------------------
+   Window + injection (customId-safe)
+----------------------------- */
 
 let _usedCustomId = false
 
-// -----------------------------
-// NotePlan-safe sleep (NO Promise constructor usage)
-// -----------------------------
-async function npSleep(ms) {
-  try {
-    if (typeof NotePlan !== 'undefined' && typeof NotePlan.sleep === 'function') {
-      await NotePlan.sleep(ms)
-      return
-    }
-  } catch (_) {}
-
-  try {
-    if (typeof DataStore !== 'undefined' && typeof DataStore.sleep === 'function') {
-      await DataStore.sleep(ms)
-      return
-    }
-  } catch (_) {}
-
-  // Final fallback (busy wait)
-  const end = Date.now() + ms
-  while (Date.now() < end) {}
-}
-
-// -----------------------------
-// Public commands
-// -----------------------------
-async function graphnote() {
-  try {
-    await openGraphWindow()
-
-    let graph = await loadCache()
-    if (!isValidGraph(graph)) {
-      graph = await buildGraphIndex()
-      await saveCache(graph)
-    }
-
-    console.log('GraphNote: window opened, waiting for setGraphData...')
-    await waitForWindowFunction('setGraphData', 12000)
-    await pushGraphToWindow(graph)
-    console.log('GraphNote: graph pushed to window')
-  } catch (e) {
-    console.log(`GraphNote error: ${stringifyError(e)}`)
-    try {
-      await waitForWindowFunction('setGraphError', 3000)
-      await pushErrorToWindow(e)
-    } catch (_) {}
-  }
-}
-
-async function rebuildGraphIndex() {
-  try {
-    await openGraphWindow()
-    const graph = await buildGraphIndex()
-    await saveCache(graph)
-
-    console.log('GraphNote: rebuild - waiting for setGraphData...')
-    await waitForWindowFunction('setGraphData', 12000)
-    await pushGraphToWindow(graph)
-    console.log('GraphNote: rebuild - graph pushed')
-  } catch (e) {
-    console.log(`GraphNote rebuild error: ${stringifyError(e)}`)
-    try {
-      await waitForWindowFunction('setGraphError', 3000)
-      await pushErrorToWindow(e)
-    } catch (_) {}
-  }
-}
-
-// -----------------------------
-// Window + Injection
-// -----------------------------
-async function openGraphWindow() {
-  const html = buildHTMLShell()
+async function openGraphWindow(buildId, settings) {
+  const html = buildHTMLShell(buildId, settings)
   _usedCustomId = false
 
-  if (typeof HTMLView.showWindowWithOptions === 'function') {
+  if (typeof HTMLView !== 'undefined' && typeof HTMLView.showWindowWithOptions === 'function') {
     await HTMLView.showWindowWithOptions(html, 'GraphNote', {
       width: 1200,
       height: 750,
@@ -93,10 +233,19 @@ async function openGraphWindow() {
     return
   }
 
-  await HTMLView.showWindow(html, 'GraphNote', 1200, 750)
+  if (typeof HTMLView !== 'undefined' && typeof HTMLView.showWindow === 'function') {
+    await HTMLView.showWindow(html, 'GraphNote', 1200, 750)
+    _usedCustomId = false
+    return
+  }
+
+  throw new Error('HTMLView is unavailable (cannot open GraphNote window).')
 }
 
 async function runJSInWindow(code) {
+  if (typeof HTMLView === 'undefined' || typeof HTMLView.runJavaScript !== 'function') {
+    throw new Error('HTMLView.runJavaScript is unavailable.')
+  }
   if (_usedCustomId) return await HTMLView.runJavaScript(code, WINDOW_CUSTOM_ID)
   return await HTMLView.runJavaScript(code)
 }
@@ -117,115 +266,362 @@ async function waitForWindowFunction(fnName, timeoutMs) {
 
 async function pushGraphToWindow(graph) {
   const safe = JSON.stringify(graph).replace(/</g, '\\u003c')
-  const code = `
-    (function(){
-      try {
-        if (window && typeof window.setGraphData === 'function') {
-          window.setGraphData(${safe});
-          return 'ok';
-        }
-        return 'setGraphData missing';
-      } catch (e) {
-        return 'error:' + (e && e.message ? e.message : String(e));
-      }
-    })();
-  `
+  const code =
+    `(function(){` +
+    ` try {` +
+    `   if (window && typeof window.setGraphData === 'function') { window.setGraphData(${safe}); return 'ok'; }` +
+    `   return 'setGraphData missing';` +
+    ` } catch(e){ return 'error:' + (e && e.message ? e.message : String(e)); }` +
+    `})();`
   const res = await runJSInWindow(code)
   const s = String(res)
-  if (s.includes('missing') || s.startsWith('error:')) {
-    throw new Error('Graph injection failed: ' + s)
-  }
+  if (s.includes('missing') || s.startsWith('error:')) throw new Error('Graph injection failed: ' + s)
 }
 
-// NO backtick templating inside injected code (prevents VS Code/template literal breakage)
 async function pushErrorToWindow(err) {
   const msg = stringifyError(err)
-  const code = `
-    (function(){
-      try {
-        if (window && typeof window.setGraphError === 'function') {
-          window.setGraphError(${JSON.stringify(msg)});
-          return 'ok';
-        }
-        return 'setGraphError missing';
-      } catch (e) {
-        return 'error:' + (e && e.message ? e.message : String(e));
-      }
-    })();
-  `
+  const code =
+    `(function(){` +
+    ` try {` +
+    `   if (window && typeof window.setGraphError === 'function') { window.setGraphError(${JSON.stringify(
+      msg
+    )}); return 'ok'; }` +
+    `   return 'setGraphError missing';` +
+    ` } catch(e){ return 'error:' + (e && e.message ? e.message : String(e)); }` +
+    `})();`
   await runJSInWindow(code)
 }
 
-// -----------------------------
-// HTML Shell (loads local d3.v7.min.js)
-// -----------------------------
-function buildHTMLShell() {
+/* -----------------------------
+   Sleep (NotePlan-safe)
+----------------------------- */
+
+async function npSleep(ms) {
+  try {
+    if (typeof NotePlan !== 'undefined' && typeof NotePlan.sleep === 'function') {
+      await NotePlan.sleep(ms)
+      return
+    }
+  } catch (_) {}
+  try {
+    if (typeof DataStore !== 'undefined' && typeof DataStore.sleep === 'function') {
+      await DataStore.sleep(ms)
+      return
+    }
+  } catch (_) {}
+
+  const end = Date.now() + ms
+  while (Date.now() < end) {}
+}
+
+/* -----------------------------
+   Graph build
+----------------------------- */
+
+function buildGraphIndex(projectNotes, calendarNotes, settings) {
+  const notes = Array.isArray(projectNotes) ? projectNotes : []
+  const cals = Array.isArray(calendarNotes) ? calendarNotes : []
+
+  const ignoreCal = ynToBool(settings.ignoreCalendarNotesByDefault, false)
+
+  const titleToFilename = new Map()
+  for (const n of notes) {
+    const title = safeTitle(n)
+    const fn = n && n.filename ? String(n.filename) : ''
+    if (title && fn) titleToFilename.set(title, fn)
+  }
+
+  const nodes = []
+  const edges = []
+  const nodeSeen = new Set()
+  const edgeSeen = new Set()
+
+  const addNode = (node) => {
+    if (!node || !node.id) return
+    if (nodeSeen.has(node.id)) return
+    nodeSeen.add(node.id)
+    nodes.push(node)
+  }
+
+  const addEdge = (source, target) => {
+    if (!source || !target) return
+    const id = `e:${source}=>${target}`
+    if (edgeSeen.has(id)) return
+    edgeSeen.add(id)
+    edges.push({ id, source, target })
+  }
+
+  for (const n of notes) {
+    const fn = n && n.filename ? String(n.filename) : ''
+    if (!fn) continue
+    addNode({ id: `note:${fn}`, type: 'note', label: safeTitle(n) || fn, filename: fn })
+  }
+
+  if (!ignoreCal) {
+    for (const n of cals) {
+      const fn = n && n.filename ? String(n.filename) : ''
+      if (!fn) continue
+      addNode({ id: `cal:${fn}`, type: 'calendar', label: safeTitle(n) || fn, filename: fn })
+    }
+  }
+
+  for (const n of notes) {
+    const fromFilename = n && n.filename ? String(n.filename) : ''
+    if (!fromFilename) continue
+    const fromId = `note:${fromFilename}`
+    const content = String((n && n.content) || '')
+
+    // Wiki links: [[Title]]
+    const reWiki = /\[\[([^\]]+)\]\]/g
+    let m
+    while ((m = reWiki.exec(content)) !== null) {
+      const raw = String(m[1] || '').trim()
+      if (!raw) continue
+      const targetFilename = titleToFilename.get(raw) || ''
+      if (targetFilename) {
+        addEdge(fromId, `note:${targetFilename}`)
+      } else {
+        const dangId = `noteTitle:${raw}`
+        addNode({ id: dangId, type: 'note', label: raw, filename: '' })
+        addEdge(fromId, dangId)
+      }
+    }
+
+    const tokens = content.split(/\s+/).filter(Boolean)
+
+    for (const tok of tokens) {
+      if (tok[0] === '#') {
+        const t = tok.slice(1).replace(/[^A-Za-z0-9_\-\/]/g, '')
+        if (!t) continue
+        const tid = `tag:${t}`
+        addNode({ id: tid, type: 'tag', label: `#${t}` })
+        addEdge(fromId, tid)
+      }
+      if (tok[0] === '@') {
+        const mm = tok.slice(1).replace(/[^A-Za-z0-9_\-\/]/g, '')
+        if (!mm) continue
+        const mid = `mention:${mm}`
+        addNode({ id: mid, type: 'mention', label: `@${mm}` })
+        addEdge(fromId, mid)
+      }
+    }
+
+    for (const tok of tokens) {
+      if (tok.startsWith('http://') || tok.startsWith('https://')) {
+        const u = tok.replace(/[),.\]]+$/g, '')
+        if (!u) continue
+        const uid = `external:${u}`
+        addNode({ id: uid, type: 'external', label: trimMiddle(u, 46) })
+        addEdge(fromId, uid)
+      }
+    }
+  }
+
+  return { nodes, edges }
+}
+
+/* -----------------------------
+   HTML Shell (settings applied)
+----------------------------- */
+
+function buildHTMLShell(buildId, settingsRaw) {
+  const settings = Object.assign({}, settingsRaw || {})
+
+  const init = {
+    showTags: ynToBool(settings.defaultShowTags, true),
+    showMentions: ynToBool(settings.defaultShowMentions, true),
+    showExternal: ynToBool(settings.defaultShowExternal, true),
+    showLabels: ynToBool(settings.defaultShowLabels, true),
+    showCalendar: !ynToBool(settings.ignoreCalendarNotesByDefault, false),
+    labelDensity: ['low', 'med', 'high'].includes(String(settings.defaultLabelDensity))
+      ? String(settings.defaultLabelDensity)
+      : 'med',
+    viz: String(settings.defaultViz || 'disjoint'),
+    forceMaxNodes: parseInt(String(settings.forceMaxNodes || '2500'), 10) || 2500,
+    colors: {
+      note: clampHexColor(settings.noteColor, '#fbbf24'),
+      tag: clampHexColor(settings.tagColor, '#22c55e'),
+      mention: clampHexColor(settings.mentionColor, '#5eead4'),
+      external: clampHexColor(settings.externalColor, '#ec4899'),
+    },
+  }
+
   const rebuildURL =
     'noteplan://x-callback-url/runPlugin?pluginID=' +
     encodeURIComponent(PLUGIN_ID) +
     '&command=' +
     encodeURIComponent('graphnote-rebuild')
 
+  const saveSettingsURL = rebuildURL + '&arg0=';
+
   return `<!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GraphNote</title>
-  <style>
-    :root{
-      --bg:#ffffff;
-      --panel:#f4f5f7;
-      --panel2:#f7f8fa;
-      --text:#111827;
-      --muted:#6b7280;
-      --border:#e5e7eb;
-      --btn:#111827;
-      --btnText:#ffffff;
-      --on:#22c55e;
-      --off:#9ca3af;
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GraphNote</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --panel:#f4f5f7;
+    --panel2:#f7f8fa;
+    --text:#111827;
+    --muted:#6b7280;
+    --border:#e5e7eb;
 
-      --note:#fbbf24;
-      --tag:#22c55e;
-      --mention:#5EEAD4;
-      --external:#EC4899;
-    }
-    html,body{height:100%;margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial;}
-    .app{height:100%;display:flex;flex-direction:column;}
-    .topbar{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);background:#fff;}
-    .search{flex:1;max-width:320px;background:#f3f4f6;border:1px solid var(--border);border-radius:999px;padding:6px 10px;outline:none;font-size:13px;color:var(--text);}
-    .select{max-width:260px;background:#f3f4f6;border:1px solid var(--border);border-radius:999px;padding:6px 10px;outline:none;font-size:13px;color:var(--text);}
-    .toggles{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-    .control{appearance:none;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:999px;padding:4px 10px;font-weight:600;color:var(--text);cursor:pointer;user-select:none;font-size:12px;line-height:1.2;white-space:nowrap;}
-    .control:hover{background:var(--panel2);}
-    .control.on{background:#111827;color:#fff;border-color:#111827;}
-    .control.off{background:#fff;color:var(--muted);}
-    .main{flex:1;display:flex;min-height:0;}
-    #vizWrap{flex:1;position:relative;min-width:0;}
-    #viz{position:absolute;inset:0;}
-    .side{width:340px;border-left:1px solid var(--border);background:var(--panel);padding:16px;overflow:auto;}
-    .title{font-size:26px;font-weight:800;color:var(--text);margin:4px 0 8px 0;}
-    .kv{color:var(--muted);font-size:14px;margin-bottom:8px;}
-    .sectionTitle{margin-top:18px;font-weight:800;color:var(--text);}
-    .list{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
-    .linkItem{display:block;padding:10px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--border);color:var(--text);text-decoration:none;font-weight:600;font-size:14px;}
-    .errorBox{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid #fecaca;background:#fff1f2;color:#991b1b;font-weight:700;white-space:pre-wrap;}
-    .loadingOverlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px 18px;box-shadow:0 10px 25px rgba(0,0,0,0.10);display:flex;gap:12px;align-items:center;min-width:320px;z-index:10;}
-    .spinner{width:26px;height:26px;border-radius:999px;border:3px solid #e5e7eb;border-top-color:#6b7280;animation:spin 0.9s linear infinite;}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    svg{width:100%;height:100%;}
-    .node circle{stroke:#111827;stroke-width:0.5px;}
-    .node text{font-size:10px;fill:#111827;pointer-events:none;}
-    .link{stroke:#d1d5db;stroke-width:1.0px;fill:none;}
-    .linkArrow{stroke:#d1d5db;fill:#d1d5db;}
-    .selected circle{stroke:#111827;stroke-width:3px;}
+    --btn:#111827;
+    --btnText:#ffffff;
 
-    .crumbs{position:absolute;left:14px;top:14px;display:flex;gap:6px;flex-wrap:wrap;z-index:9;pointer-events:none;}
-    .crumb{background:rgba(255,255,255,0.95);border:1px solid var(--border);border-radius:12px;padding:6px 10px;font-weight:800;font-size:12px;color:var(--text);box-shadow:0 6px 16px rgba(0,0,0,0.08);}
-    .hint{position:absolute;left:14px;bottom:14px;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:12px;padding:6px 10px;font-weight:800;font-size:12px;color:var(--muted);box-shadow:0 6px 16px rgba(0,0,0,0.08);z-index:9;pointer-events:none;}
-    .tooltip{position:absolute;pointer-events:none;background:rgba(17,24,39,0.92);color:#fff;padding:8px 10px;border-radius:10px;font-size:12px;max-width:380px;line-height:1.3;z-index:11;display:none;}
-  </style>
+    --on:#22c55e;
+    --off:#9ca3af;
+
+    --note:${escapeHTML(init.colors.note)};
+    --tag:${escapeHTML(init.colors.tag)};
+    --mention:${escapeHTML(init.colors.mention)};
+    --external:${escapeHTML(init.colors.external)};
+    --calendar:#60a5fa;
+  }
+
+  html,body{height:100%;margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial;}
+  .app{height:100%;display:flex;flex-direction:column;}
+  .topbar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    background:#fff;
+    flex-wrap:wrap;
+  }
+  .search{
+    flex:1;
+    min-width:220px;
+    background:#f3f4f6;
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:7px 10px;
+    outline:none;
+    font-size:13px;
+  }
+  .select{
+    max-width:260px;
+    background:#f3f4f6;
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:7px 10px;
+    outline:none;
+    font-size:13px;
+    color:var(--text);
+  }
+  .toggles{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .pill{
+    border:none;
+    border-radius:14px;
+    padding:8px 12px;
+    font-weight:800;
+    color:#fff;
+    cursor:pointer;
+    user-select:none;
+    font-size:13px;
+    line-height:1;
+    white-space:nowrap;
+  }
+  .pill.on{background:var(--on);}
+  .pill.off{background:var(--off);}
+  .btn{
+    border:none;
+    border-radius:14px;
+    padding:8px 12px;
+    font-weight:900;
+    background:var(--btn);
+    color:var(--btnText);
+    cursor:pointer;
+    font-size:13px;
+    line-height:1;
+    white-space:nowrap;
+  }
+
+  .main{flex:1;display:flex;min-height:0;}
+  #vizWrap{flex:1;position:relative;min-width:0;}
+  #viz{position:absolute;inset:0;}
+  .side{
+    width:340px;
+    border-left:1px solid var(--border);
+    background:var(--panel);
+    padding:16px;
+    overflow:auto;
+    box-sizing:border-box;
+  }
+
+  .card{
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:12px 12px;
+    box-shadow:0 8px 18px rgba(0,0,0,0.06);
+    margin-bottom:12px;
+  }
+  .title{font-size:22px;font-weight:900;color:var(--text);margin:0 0 6px 0;}
+  .kv{color:var(--muted);font-size:13px;margin:0 0 4px 0;word-break:break-word;}
+  .sectionTitle{margin-top:12px;font-weight:900;color:var(--text);font-size:13px;}
+  .list{margin-top:8px;display:flex;flex-direction:column;gap:8px;}
+
+  .linkItem{
+    display:block;
+    padding:9px 10px;
+    border-radius:14px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    text-decoration:none;
+    font-weight:800;
+    font-size:13px;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+
+  .errorBox{margin-top:10px;padding:10px 12px;border-radius:14px;border:1px solid #fecaca;background:#fff1f2;color:#991b1b;font-weight:900;white-space:pre-wrap;}
+  .loadingOverlay{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px 16px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.10);
+    display:flex;gap:12px;align-items:center;min-width:320px;z-index:10;
+  }
+  .spinner{width:24px;height:24px;border-radius:999px;border:3px solid #e5e7eb;border-top-color:#6b7280;animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .toast{
+    position:absolute;
+    left:14px;
+    bottom:14px;
+    background:rgba(17,24,39,0.92);
+    color:#fff;
+    padding:8px 10px;
+    border-radius:14px;
+    font-size:12px;
+    font-weight:900;
+    z-index:12;
+    display:none;
+  }
+
+  svg{width:100%;height:100%;}
+  .node circle{stroke:#111827;stroke-width:0.5px;}
+  .node text{fill:#111827;pointer-events:none;font-weight:800;}
+  .link{stroke:#d1d5db;stroke-width:1.0px;fill:none;}
+  .linkArrow{stroke:#d1d5db;fill:#d1d5db;}
+  .selected circle{stroke:#111827;stroke-width:3px;}
+  .smallLabel{font-size:10px;}
+  .medLabel{font-size:11px;}
+  .bigLabel{font-size:12px;}
+</style>
 </head>
+
 <body>
 <div class="app">
   <div class="topbar">
@@ -243,118 +639,112 @@ function buildHTMLShell() {
 
     <select id="labelDensity" class="select" title="Label density" style="max-width:160px">
       <option value="low">Labels: Low</option>
-      <option value="med" selected>Labels: Medium</option>
+      <option value="med">Labels: Medium</option>
       <option value="high">Labels: High</option>
     </select>
 
     <div class="toggles">
-      <button id="toggleTags" class="control on">Tags</button>
-      <button id="toggleMentions" class="control on">Mentions</button>
-      <button id="toggleExternal" class="control on">External</button>
-      <button id="toggleLabels" class="control on">Labels</button>
+      <button id="toggleCalendar" class="pill on">Calendar</button>
+      <button id="toggleTags" class="pill on">Tags</button>
+      <button id="toggleMentions" class="pill on">Mentions</button>
+      <button id="toggleExternal" class="pill on">External</button>
+      <button id="toggleLabels" class="pill on">Labels</button>
 
-      <button id="toggleCalendars" class="control on" title="Include Calendar notes">Calendars</button>
-
-      <button id="btnFit" class="control">Fit</button>
-      <button id="btnRelayout" class="control">Relayout</button>
-      <button id="btnRebuild" class="control">Rebuild</button>
-      <button id="btnClear" class="control">Clear</button>
-      <button id="btnReset" class="control">Reset</button>
+      <button id="btnFit" class="btn">Fit</button>
+      <button id="btnRelayout" class="btn">Relayout</button>
+      <button id="btnRebuild" class="btn">Rebuild</button>
     </div>
   </div>
 
   <div class="main">
     <div id="vizWrap">
       <div id="viz"></div>
-      <div id="crumbs" class="crumbs" style="display:none;"></div>
-      <div id="hint" class="hint" style="display:none;">Hover slices to see path</div>
-      <div id="tooltip" class="tooltip"></div>
-
       <div id="loading" class="loadingOverlay">
         <div class="spinner"></div>
         <div>
-          <div style="font-weight:800;font-size:16px;color:var(--text)">Loading graph...</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:2px">Indexing notes and building relationships</div>
+          <div style="font-weight:900;font-size:15px;color:var(--text)">Loading graph...</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Building relationships</div>
         </div>
       </div>
+      <div id="toast" class="toast"></div>
     </div>
 
     <div class="side">
-      <div class="title" id="selTitle">Nothing selected</div>
-      <div class="kv" id="selMeta">ID -</div>
-      <div class="kv" id="selCounts">Out 0 - In 0</div>
+      <div class="card">
+        <div class="title">GraphNote</div>
+        <div class="kv" id="buildLine">BUILD: ${escapeHTML(buildId)}</div>
+        <div class="kv" id="countsLine">Notes/Nodes: 0 - Edges: 0</div>
+        <div class="kv" id="settingsLine">Settings applied from NotePlan plugin settings.</div>
+      </div>
 
-      <div class="sectionTitle">Outgoing</div>
-      <div class="list" id="outList"></div>
+      <div class="card">
+        <div class="kv" style="font-weight:900;color:var(--muted);margin-bottom:6px;">Selected</div>
+        <div class="title" id="selTitle" style="font-size:18px;margin:0 0 6px 0;cursor:default;">Click a node</div>
+        <div class="kv" id="selMeta">-</div>
+        <a id="openNoteBtn" class="linkItem" href="#" style="display:none;background:#111827;color:#fff;border-color:#111827;text-align:center;">Open note</a>
 
-      <div class="sectionTitle">Incoming</div>
-      <div class="list" id="inList"></div>
+        <div class="sectionTitle">Outgoing</div>
+        <div class="list" id="outList"></div>
+
+        <div class="sectionTitle">Incoming</div>
+        <div class="list" id="inList"></div>
+      </div>
 
       <div id="err" class="errorBox" style="display:none;"></div>
     </div>
   </div>
 </div>
 
+<script>
+  window.__GN_INIT__ = ${JSON.stringify(init).replace(/</g, '\\u003c')};
+</script>
+
 <script src="d3.v7.min.js"></script>
+
 <script>
   const elErr = document.getElementById('err');
   const elLoading = document.getElementById('loading');
   const elViz = document.getElementById('viz');
-  const elCrumbs = document.getElementById('crumbs');
-  const elHint = document.getElementById('hint');
-  const elTooltip = document.getElementById('tooltip');
+  const elToast = document.getElementById('toast');
+  const SAVE_SETTINGS_URL_PREFIX = ${JSON.stringify(saveSettingsURL)};
 
   function setError(msg){ elErr.style.display='block'; elErr.textContent = msg || 'Unknown error'; }
   function clearError(){ elErr.style.display='none'; elErr.textContent=''; }
   function setLoading(on){ elLoading.style.display = on ? 'flex' : 'none'; }
-  function setCrumbs(items){
-    if(!items || items.length === 0){
-      elCrumbs.style.display = 'none';
-      elCrumbs.innerHTML = '';
-      return;
-    }
-    elCrumbs.style.display = 'flex';
-    elCrumbs.innerHTML = '';
-    items.forEach(t => {
-      const d = document.createElement('div');
-      d.className = 'crumb';
-      d.textContent = t;
-      elCrumbs.appendChild(d);
-    });
+
+  function toast(msg, ms){
+    elToast.textContent = msg;
+    elToast.style.display = 'block';
+    const t = ms || 900;
+    setTimeout(() => { elToast.style.display = 'none'; }, t);
   }
-  function setHint(on){ elHint.style.display = on ? 'block' : 'none'; }
-  function showTooltip(x,y,html){
-    elTooltip.style.display = 'block';
-    elTooltip.style.left = (x + 12) + 'px';
-    elTooltip.style.top = (y + 12) + 'px';
-    elTooltip.textContent = html;
-  }
-  function hideTooltip(){ elTooltip.style.display = 'none'; elTooltip.textContent=''; }
 
   if (typeof d3 === 'undefined') {
     setLoading(false);
-    setError("D3 failed to load. Ensure d3.v7.min.js is present (UMD build from d3js.org) in the plugin folder.");
+    setError("D3 failed to load. Ensure d3.v7.min.js is present (UMD build) in the plugin folder.");
   }
 
-  let showTags = true, showMentions = true, showExternal = true;
-  let showLabels = true;
-  let showCalendars = true;
-  let labelDensity = 'med';
+  const INIT = window.__GN_INIT__ || {};
+  let showCalendar = !!INIT.showCalendar;
+  let showTags = !!INIT.showTags;
+  let showMentions = !!INIT.showMentions;
+  let showExternal = !!INIT.showExternal;
+  let showLabels = !!INIT.showLabels;
+  let labelDensity = String(INIT.labelDensity || 'med');
+  let currentMode = String(INIT.viz || 'disjoint');
+  const FORCE_MAX = Number(INIT.forceMaxNodes || 2500);
 
   let graphData = null;
   let filtered = { nodes: [], edges: [] };
 
-  // D3 state
   let svg = null;
   let gRoot = null;
   let zoom = null;
   let simulation = null;
 
-  // fast lookup
   let nodeById = new Map();
   let outMap = new Map();
   let inMap  = new Map();
-
   let selectedId = null;
 
   window.setGraphError = function(msg){
@@ -370,21 +760,56 @@ function buildHTMLShell() {
   function nodeColor(type){
     if(type === 'note') return rootCssVar('--note', '#fbbf24');
     if(type === 'tag') return rootCssVar('--tag', '#22c55e');
-    if(type === 'mention') return rootCssVar('--mention', '#5EEAD4');
-    if(type === 'external') return rootCssVar('--external', '#EC4899');
+    if(type === 'mention') return rootCssVar('--mention', '#5eead4');
+    if(type === 'external') return rootCssVar('--external', '#ec4899');
+    if(type === 'calendar') return rootCssVar('--calendar', '#60a5fa');
     return '#9ca3af';
   }
 
-  function openNote(filename){
-    if(!filename) return;
-    window.location.href = 'noteplan://x-callback-url/openNote?filename=' + encodeURIComponent(filename);
+  function setPill(id, on){
+    const b = document.getElementById(id);
+    b.classList.remove('on'); b.classList.remove('off');
+    b.classList.add(on ? 'on' : 'off');
+  }
+
+  function updateToggleUI(){
+    setPill('toggleCalendar', showCalendar);
+    setPill('toggleTags', showTags);
+    setPill('toggleMentions', showMentions);
+    setPill('toggleExternal', showExternal);
+    setPill('toggleLabels', showLabels);
+  }
+
+  function truncateLabel(s, maxChars){
+    const str = String(s || '');
+    if(str.length <= maxChars) return str;
+    return str.slice(0, maxChars - 1) + '…';
+  }
+
+  function labelForNode(n){
+    const full = (n && (n.label || n.id)) ? (n.label || n.id) : '';
+
+    if(labelDensity === 'high') return truncateLabel(full, 80);
+
+    if(labelDensity === 'med'){
+      if(n.type === 'note' || n.type === 'tag') return truncateLabel(full, 34);
+      if(n.type === 'mention') return truncateLabel(full, 22);
+      if(n.type === 'external') return '';
+      return truncateLabel(full, 22);
+    }
+
+    if(n.type === 'note') return truncateLabel(full, 22);
+    if(n.type === 'tag') return truncateLabel(full, 16);
+    return '';
+  }
+
+  function labelClass(){
+    if(labelDensity === 'high') return 'bigLabel';
+    if(labelDensity === 'med') return 'medLabel';
+    return 'smallLabel';
   }
 
   function resetD3Canvas(){
-    setCrumbs(null);
-    setHint(false);
-    hideTooltip();
-
     if(typeof d3 === 'undefined') return;
 
     if(simulation){
@@ -415,11 +840,6 @@ function buildHTMLShell() {
       .attr('class', 'linkArrow');
   }
 
-  function resetView(){
-    if(!svg) return;
-    svg.transition().duration(200).call(zoom.transform, d3.zoomIdentity);
-  }
-
   function fitView(padding){
     if(!svg || !gRoot) return;
     const p = (typeof padding === 'number') ? padding : 30;
@@ -441,32 +861,10 @@ function buildHTMLShell() {
     svg.transition().duration(250).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
   }
 
-  function setPill(id, on){
-    const b = document.getElementById(id);
-    b.classList.remove('on'); b.classList.remove('off');
-    b.classList.add(on ? 'on' : 'off');
-  }
-
-  function updateToggleUI(){
-    setPill('toggleTags', showTags);
-    setPill('toggleMentions', showMentions);
-    setPill('toggleExternal', showExternal);
-    setPill('toggleLabels', showLabels);
-    setPill('toggleCalendars', showCalendars);
-  }
-
-  function labelRules(){
-    // Tuned for your screenshots: low/med/high behave noticeably differently
-    if(labelDensity === 'high') return { arcPx: 14, rectW: 40, rectH: 14, radialEvery: 10, forceMax: 99999 };
-    if(labelDensity === 'low')  return { arcPx: 40, rectW: 140, rectH: 18, radialEvery: 55, forceMax: 500 };
-    return { arcPx: 24, rectW: 80, rectH: 16, radialEvery: 25, forceMax: 2500 };
-  }
-
   function buildAdjacency(nodes, edges){
     nodeById = new Map();
     outMap = new Map();
     inMap = new Map();
-
     nodes.forEach(n => nodeById.set(n.id, n));
     edges.forEach(e => {
       if(!outMap.has(e.source)) outMap.set(e.source, []);
@@ -476,29 +874,52 @@ function buildHTMLShell() {
     });
   }
 
-  function makeNodeLink(text, nodeId){
-    const a = document.createElement('a');
-    a.className = 'linkItem';
-    a.href = '#';
-    a.textContent = text;
-    a.onclick = (e) => { e.preventDefault(); selectNode(nodeId); };
-    return a;
+  // More reliable than window.location.href in some WebViews: click an <a>
+  function fireUrl(url){
+    try{
+      const a = document.createElement('a');
+      a.href = url;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { try { a.remove(); } catch(e){} }, 50);
+    } catch(e) {
+      try { window.location.href = url; } catch(_) {}
+    }
+  }
+
+  function tryOpenNote(filename){
+    if(!filename) return;
+    const enc = encodeURIComponent(filename);
+    const urls = [
+      'noteplan://x-callback-url/openNote?filename=' + enc,
+      'noteplan://x-callback-url/openNote?noteFilename=' + enc,
+      'noteplan://x-callback-url/openNote?file=' + enc,
+    ];
+    // try all variants with slight delays
+    fireUrl(urls[0]);
+    setTimeout(() => fireUrl(urls[1]), 220);
+    setTimeout(() => fireUrl(urls[2]), 520);
   }
 
   function showSelection(nodeId){
     const selTitle = document.getElementById('selTitle');
     const selMeta = document.getElementById('selMeta');
-    const selCounts = document.getElementById('selCounts');
     const outList = document.getElementById('outList');
     const inList = document.getElementById('inList');
+    const openBtn = document.getElementById('openNoteBtn');
 
     outList.innerHTML = '';
     inList.innerHTML = '';
 
+    selTitle.onclick = null;
+    selTitle.style.cursor = 'default';
+
     if(!nodeId){
-      selTitle.textContent = 'Nothing selected';
-      selMeta.textContent = 'ID -';
-      selCounts.textContent = 'Out 0 - In 0';
+      selTitle.textContent = 'Click a node';
+      selMeta.textContent = '-';
+      openBtn.style.display = 'none';
+      openBtn.onclick = null;
       return;
     }
 
@@ -506,30 +927,46 @@ function buildHTMLShell() {
     const label = (n && n.label) ? n.label : nodeId;
 
     selTitle.textContent = label;
-    selMeta.textContent = 'ID ' + nodeId;
+    selMeta.textContent = nodeId;
+
+    if(n && n.type === 'note' && n.filename){
+      // Make title clickable too (single click opens)
+      selTitle.style.cursor = 'pointer';
+      selTitle.onclick = () => { toast('Opening note...', 650); tryOpenNote(n.filename); };
+
+      openBtn.style.display = 'block';
+      openBtn.onclick = (e) => { e.preventDefault(); toast('Opening note...', 650); tryOpenNote(n.filename); };
+    } else {
+      openBtn.style.display = 'none';
+      openBtn.onclick = null;
+    }
 
     const out = outMap.get(nodeId) || [];
     const inn = inMap.get(nodeId) || [];
-    selCounts.textContent = 'Out ' + out.length + ' - In ' + inn.length;
 
-    // "Open note" shortcut
-    if(n && n.type === 'note' && n.filename){
-      const open = document.createElement('a');
-      open.className = 'linkItem';
-      open.style.fontWeight = '800';
-      open.textContent = 'Open note';
-      open.href = 'noteplan://x-callback-url/openNote?filename=' + encodeURIComponent(n.filename);
-      outList.appendChild(open);
+    // Single click lozenge: open if it's a note, else select
+    function buildLozenge(targetId){
+      const tn = nodeById.get(targetId);
+      const a = document.createElement('a');
+      a.className = 'linkItem';
+      a.href = '#';
+      a.title = (tn && tn.label) ? tn.label : targetId;
+      a.textContent = (tn && tn.label) ? tn.label : targetId;
+
+      a.onclick = (e) => {
+        e.preventDefault();
+        if(tn && tn.type === 'note' && tn.filename){
+          toast('Opening note...', 650);
+          tryOpenNote(tn.filename);
+          return;
+        }
+        selectNode(targetId);
+      };
+      return a;
     }
 
-    out.forEach(tid => {
-      const tn = nodeById.get(tid);
-      outList.appendChild(makeNodeLink((tn && tn.label) ? tn.label : tid, tid));
-    });
-    inn.forEach(sid => {
-      const sn = nodeById.get(sid);
-      inList.appendChild(makeNodeLink((sn && sn.label) ? sn.label : sid, sid));
-    });
+    out.forEach(tid => outList.appendChild(buildLozenge(tid)));
+    inn.forEach(sid => inList.appendChild(buildLozenge(sid)));
   }
 
   function selectNode(nodeId){
@@ -550,12 +987,10 @@ function buildHTMLShell() {
     const q = String(document.getElementById('filterInput').value || '').trim().toLowerCase();
 
     const nodes = (graphData.nodes || []).filter(n => {
+      if(n.type === 'calendar' && !showCalendar) return false;
       if(n.type === 'tag' && !showTags) return false;
       if(n.type === 'mention' && !showMentions) return false;
       if(n.type === 'external' && !showExternal) return false;
-
-      // Optionally ignore Calendar notes (best-effort heuristic)
-      if(!showCalendars && n.type === 'note' && n.filename && String(n.filename).startsWith('Calendar/')) return false;
 
       if(q){
         const hay = (String(n.label || '') + ' ' + String(n.id || '')).toLowerCase();
@@ -575,151 +1010,36 @@ function buildHTMLShell() {
       showSelection(null);
     }
 
-    renderCurrentViz();
+    renderCurrentViz(true);
   }
 
-  // -----------------------------
-  // Hierarchy helpers for icicle/treemap/sunburst/radial/forceTree
-  // -----------------------------
-  function buildUndirectedAdjacency(nodes, edges){
-    const adj = new Map();
-    nodes.forEach(n => adj.set(n.id, []));
-    edges.forEach(e => {
-      if(!adj.has(e.source)) adj.set(e.source, []);
-      if(!adj.has(e.target)) adj.set(e.target, []);
-      adj.get(e.source).push(e.target);
-      adj.get(e.target).push(e.source);
-    });
-    return adj;
+  function updateForceLabelsOnly(){
+    if(!gRoot) return;
+    gRoot.selectAll('.node text')
+      .attr('class', () => labelClass())
+      .style('display', showLabels ? null : 'none')
+      .text(d => showLabels ? labelForNode(d) : '');
   }
 
-  function computeComponents(nodes, edges){
-    const adj = buildUndirectedAdjacency(nodes, edges);
-    const seen = new Set();
-    const comps = [];
-
-    for(const n of nodes){
-      if(seen.has(n.id)) continue;
-      const q = [n.id];
-      seen.add(n.id);
-      const comp = [];
-      while(q.length){
-        const cur = q.shift();
-        comp.push(cur);
-        const nbrs = adj.get(cur) || [];
-        for(const nb of nbrs){
-          if(!seen.has(nb)){
-            seen.add(nb);
-            q.push(nb);
-          }
-        }
-      }
-      comps.push(comp);
-    }
-    return comps;
-  }
-
-  function pickComponentRoot(componentIds){
-    // Prefer a note with highest degree
-    let best = null;
-    let bestScore = -1;
-    for(const id of componentIds){
-      const n = nodeById.get(id);
-      if(!n) continue;
-      const out = (outMap.get(id) || []).length;
-      const inn = (inMap.get(id) || []).length;
-      const deg = out + inn;
-      const typeBonus = (n.type === 'note') ? 100000 : 0;
-      const score = typeBonus + deg;
-      if(score > bestScore){
-        bestScore = score;
-        best = id;
-      }
-    }
-    return best || componentIds[0];
-  }
-
-  function makeTreeNode(id){
-    const n = nodeById.get(id) || { id:id, label:id, type:'note', filename:'' };
-    return { id: n.id, label: n.label || n.id, type: n.type || 'note', filename: n.filename || '', children: [] };
-  }
-
-  function buildSpanningTreeFromRoot(rootId, allowedSet){
-    // BFS spanning tree across component (ensures every node appears exactly once)
-    const undAdj = new Map();
-    for(const id of allowedSet) undAdj.set(id, []);
-    for(const e of filtered.edges){
-      if(allowedSet.has(e.source) && allowedSet.has(e.target)){
-        undAdj.get(e.source).push(e.target);
-        undAdj.get(e.target).push(e.source);
-      }
-    }
-
-    const seen = new Set([rootId]);
-    const q = [rootId];
-
-    const root = makeTreeNode(rootId);
-    const treeNodeById = new Map([[rootId, root]]);
-
-    while(q.length){
-      const cur = q.shift();
-      const parent = treeNodeById.get(cur);
-      const nbrs = undAdj.get(cur) || [];
-      for(const nb of nbrs){
-        if(!allowedSet.has(nb) || seen.has(nb)) continue;
-        seen.add(nb);
-        q.push(nb);
-        const child = makeTreeNode(nb);
-        treeNodeById.set(nb, child);
-        parent.children.push(child);
-      }
-    }
-    return root;
-  }
-
-  function buildForestHierarchy(){
-    const nodes = filtered.nodes || [];
-    const edges = filtered.edges || [];
-    if(nodes.length === 0) return { id:'__root__', label:'(empty)', type:'note', filename:'', children:[] };
-
-    const comps = computeComponents(nodes, edges);
-    const forestRoot = { id:'__root__', label:'All Notes', type:'note', filename:'', children:[] };
-
-    for(const compIds of comps){
-      const compSet = new Set(compIds);
-      const rootId = pickComponentRoot(compIds);
-      const tree = buildSpanningTreeFromRoot(rootId, compSet);
-      forestRoot.children.push(tree);
-    }
-    return forestRoot;
-  }
-
-  function hierarchyWithValues(){
-    const rootData = buildForestHierarchy();
-    const root = d3.hierarchy(rootData);
-    root.sum(d => (d && d.type === 'note') ? 5 : 1);
-    root.sort((a,b) => (b.value||0) - (a.value||0));
-    return root;
-  }
-
-  // -----------------------------
-  // Renderers
-  // -----------------------------
-  function renderDisjointForce(){
-    setHint(false);
+  function renderDisjointForce(preservePositions){
     resetD3Canvas();
+    currentMode = 'disjoint';
 
-    const rules = labelRules();
-
-    const nodes = filtered.nodes.slice(0, rules.forceMax).map(n => Object.assign({}, n));
-    const idSet = new Set(nodes.map(n => n.id));
-    const links = filtered.edges.filter(e => idSet.has(e.source) && idSet.has(e.target))
+    const baseNodes = filtered.nodes.slice(0, FORCE_MAX).map(n => Object.assign({}, n));
+    const idSet = new Set(baseNodes.map(n => n.id));
+    const links = filtered.edges
+      .filter(e => idSet.has(e.source) && idSet.has(e.target))
       .map(e => ({ source: e.source, target: e.target }));
 
     const w = elViz.clientWidth || 900;
     const h = elViz.clientHeight || 650;
 
-    const nodeLocal = new Map(nodes.map(n => [n.id, n]));
+    if(preservePositions){
+      baseNodes.forEach(n => {
+        n.x = (typeof n.x === 'number') ? n.x : (w/2 + (Math.random()-0.5)*40);
+        n.y = (typeof n.y === 'number') ? n.y : (h/2 + (Math.random()-0.5)*40);
+      });
+    }
 
     const link = gRoot.append('g')
       .selectAll('path')
@@ -730,11 +1050,17 @@ function buildHTMLShell() {
 
     const node = gRoot.append('g')
       .selectAll('g')
-      .data(nodes, d => d.id)
+      .data(baseNodes, d => d.id)
       .join('g')
       .attr('class', 'node')
       .on('click', (event, d) => { event.stopPropagation(); selectNode(d.id); })
-      .on('dblclick', (event, d) => { event.stopPropagation(); if(d.type === 'note' && d.filename) openNote(d.filename); })
+      .on('dblclick', (event, d) => {
+        event.stopPropagation();
+        if(d.type === 'note' && d.filename){
+          toast('Opening note...', 650);
+          tryOpenNote(d.filename);
+        }
+      })
       .call(d3.drag()
         .on('start', (event, d) => { if(!event.active) simulation.alphaTarget(0.2).restart(); d.fx = d.x; d.fy = d.y; })
         .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
@@ -742,16 +1068,17 @@ function buildHTMLShell() {
       );
 
     node.append('circle')
-      .attr('r', d => (d.type === 'note' ? 10 : 7))
+      .attr('r', d => (d.type === 'note' ? 10 : d.type === 'calendar' ? 9 : 7))
       .attr('fill', d => nodeColor(d.type));
 
     node.append('text')
+      .attr('class', () => labelClass())
       .attr('x', 12)
       .attr('y', 3)
       .style('display', showLabels ? null : 'none')
-      .text(d => (d.label || d.id));
+      .text(d => showLabels ? labelForNode(d) : '');
 
-    simulation = d3.forceSimulation(nodes)
+    simulation = d3.forceSimulation(baseNodes)
       .force('link', d3.forceLink(links).id(d => d.id).distance(55).strength(0.6))
       .force('charge', d3.forceManyBody().strength(-120))
       .force('x', d3.forceX(w/2).strength(0.06))
@@ -759,8 +1086,8 @@ function buildHTMLShell() {
       .force('collide', d3.forceCollide().radius(d => (d.type === 'note' ? 14 : 11)))
       .on('tick', () => {
         link.attr('d', d => {
-          const s = (typeof d.source === 'object') ? d.source : nodeLocal.get(d.source);
-          const t = (typeof d.target === 'object') ? d.target : nodeLocal.get(d.target);
+          const s = (typeof d.source === 'object') ? d.source : null;
+          const t = (typeof d.target === 'object') ? d.target : null;
           if(!s || !t) return '';
           return 'M' + s.x + ',' + s.y + ' L' + t.x + ',' + t.y;
         });
@@ -773,372 +1100,219 @@ function buildHTMLShell() {
       gRoot.selectAll('.node').classed('selected', false);
     });
 
-    fitView(40);
+    // always fit after rendering
+    setTimeout(() => { try { fitView(40); } catch(e){} }, 30);
   }
 
-  function renderForceDirectedTree(){
-    setHint(false);
-    resetD3Canvas();
 
-    const root = hierarchyWithValues();
-    const nodes = root.descendants();
-    const links = root.links();
 
-    const w = elViz.clientWidth || 900;
-    const h = elViz.clientHeight || 650;
 
-    // Map hierarchy nodes to flat nodes for simulation
-    const simNodes = nodes.map(d => ({
-      id: d.data.id,
-      label: d.data.label,
-      type: d.data.type,
-      filename: d.data.filename,
-      _h: d
-    }));
 
-    const nodeLocal = new Map(simNodes.map(n => [n.id, n]));
-    const simLinks = links.map(l => ({ source: l.source.data.id, target: l.target.data.id }));
 
-    const link = gRoot.append('g')
-      .selectAll('path')
-      .data(simLinks)
-      .join('path')
-      .attr('class','link')
-      .attr('marker-end','url(#arrow)');
 
-    const node = gRoot.append('g')
-      .selectAll('g')
-      .data(simNodes, d => d.id)
-      .join('g')
-      .attr('class','node')
-      .on('click', (event, d) => { event.stopPropagation(); selectNode(d.id); })
-      .on('dblclick', (event, d) => { event.stopPropagation(); if(d.type === 'note' && d.filename) openNote(d.filename); })
-      .call(d3.drag()
-        .on('start', (event, d) => { if(!event.active) simulation.alphaTarget(0.2).restart(); d.fx = d.x; d.fy = d.y; })
-        .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
-        .on('end', (event, d) => { if(!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
-      );
+  function renderCurrentViz(preserve){
+    if(typeof d3 === 'undefined') return;
+    clearError();
+    setLoading(false);
 
-    node.append('circle')
-      .attr('r', d => (d.type === 'note' ? 10 : 7))
-      .attr('fill', d => nodeColor(d.type));
-
-    node.append('text')
-      .attr('x', 12)
-      .attr('y', 3)
-      .style('display', showLabels ? null : 'none')
-      .text(d => d.label || d.id);
-
-    simulation = d3.forceSimulation(simNodes)
-      .force('link', d3.forceLink(simLinks).id(d => d.id).distance(45).strength(0.9))
-      .force('charge', d3.forceManyBody().strength(-110))
-      .force('center', d3.forceCenter(w/2, h/2))
-      .force('collide', d3.forceCollide().radius(d => (d.type === 'note' ? 14 : 11)))
-      .on('tick', () => {
-        link.attr('d', d => {
-          const s = (typeof d.source === 'object') ? d.source : nodeLocal.get(d.source);
-          const t = (typeof d.target === 'object') ? d.target : nodeLocal.get(d.target);
-          if(!s || !t) return '';
-          return 'M' + s.x + ',' + s.y + ' L' + t.x + ',' + t.y;
-        });
-        node.attr('transform', d => 'translate(' + d.x + ',' + d.y + ')');
-      });
-
-    fitView(40);
-  }
-
-  function renderRadialCluster(){
-    setHint(false);
-    resetD3Canvas();
-
-    const rules = labelRules();
-    const root = hierarchyWithValues();
-    const w = elViz.clientWidth || 900;
-    const h = elViz.clientHeight || 650;
-    const radius = Math.min(w, h) * 0.42;
-
-    const cluster = d3.cluster().size([2 * Math.PI, radius]);
-    cluster(root);
-
-    // Links
-    const link = gRoot.append('g')
-      .selectAll('path')
-      .data(root.links())
-      .join('path')
-      .attr('class','link')
-      .attr('d', d3.linkRadial()
-        .angle(d => d.x)
-        .radius(d => d.y)
-      );
-
-    // Nodes
-    const node = gRoot.append('g')
-      .selectAll('g')
-      .data(root.descendants())
-      .join('g')
-      .attr('class','node')
-      .attr('transform', d => {
-        const a = d.x - Math.PI / 2;
-        const r = d.y;
-        return 'translate(' + (Math.cos(a)*r) + ',' + (Math.sin(a)*r) + ')';
-      })
-      .on('click', (event, d) => { event.stopPropagation(); selectNode(d.data.id); })
-      .on('dblclick', (event, d) => { event.stopPropagation(); if(d.data.type === 'note' && d.data.filename) openNote(d.data.filename); });
-
-    node.append('circle')
-      .attr('r', d => (d.data.type === 'note' ? 6 : 4))
-      .attr('fill', d => nodeColor(d.data.type));
-
-    // Labels: only show every N leaves to avoid “black donut”
-    const leaves = root.leaves();
-    const leafIndex = new Map();
-    leaves.forEach((d,i) => leafIndex.set(d, i));
-
-    node.append('text')
-      .style('display', showLabels ? null : 'none')
-      .attr('dy','0.31em')
-      .attr('x', d => d.x < Math.PI ? 8 : -8)
-      .attr('text-anchor', d => d.x < Math.PI ? 'start' : 'end')
-      .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
-      .text(d => {
-        if(!d.parent) return '';
-        if(d.children && d.children.length) return ''; // internal nodes hidden
-        const idx = leafIndex.get(d) || 0;
-        if(labelDensity === 'high') return d.data.label || d.data.id;
-        if(labelDensity === 'med')  return (idx % rules.radialEvery === 0) ? (d.data.label || d.data.id) : '';
-        return (idx % rules.radialEvery === 0) ? (d.data.label || d.data.id) : '';
-      });
-
-    // Center
-    gRoot.attr('transform', 'translate(' + (w/2) + ',' + (h/2) + ')');
-
-    fitView(30);
-  }
-
-  // Tangled tree (simple layered DAG layout)
-  function renderTangledTree(){
-    setHint(false);
-    resetD3Canvas();
-
-    const w = elViz.clientWidth || 900;
-    const h = elViz.clientHeight || 650;
-
-    const nodes = filtered.nodes.map(n => Object.assign({}, n));
-    const links = filtered.edges.map(e => ({ source: e.source, target: e.target }));
-
-    const byId = new Map(nodes.map(n => [n.id, n]));
-    const indeg = new Map(nodes.map(n => [n.id, 0]));
-    links.forEach(l => { indeg.set(l.target, (indeg.get(l.target)||0) + 1); });
-
-    // Kahn-style layering (best-effort)
-    const layer = new Map();
-    const q = [];
-    nodes.forEach(n => { if((indeg.get(n.id)||0) === 0) q.push(n.id); });
-    // if no sources, seed with a few notes
-    if(q.length === 0) nodes.slice(0, Math.min(10, nodes.length)).forEach(n => q.push(n.id));
-
-    q.forEach(id => layer.set(id, 0));
-
-    const outAdj = new Map();
-    nodes.forEach(n => outAdj.set(n.id, []));
-    links.forEach(l => { if(outAdj.has(l.source)) outAdj.get(l.source).push(l.target); });
-
-    // propagate layers
-    const visited = new Set(q);
-    const qq = q.slice();
-    while(qq.length){
-      const cur = qq.shift();
-      const curL = layer.get(cur) || 0;
-      const outs = outAdj.get(cur) || [];
-      for(const t of outs){
-        const nextL = Math.max(layer.get(t) || 0, curL + 1);
-        layer.set(t, nextL);
-        if(!visited.has(t)){
-          visited.add(t);
-          qq.push(t);
-        }
-      }
+    if(!filtered || !filtered.nodes || filtered.nodes.length === 0){
+      resetD3Canvas();
+      return;
     }
 
-    // group nodes by layer
-    const maxL = Math.max(0, ...Array.from(layer.values()));
-    const columns = [];
-    for(let i=0;i<=maxL;i++) columns.push([]);
-    nodes.forEach(n => {
-      const L = layer.has(n.id) ? layer.get(n.id) : 0;
-      columns[Math.min(L, maxL)].push(n);
-    });
+    const mode = String(document.getElementById('vizSelect').value || 'disjoint');
+    currentMode = mode;
 
-    // assign positions
-    const colGap = (maxL <= 0) ? 1 : maxL;
-    columns.forEach((col, i) => {
-      col.sort((a,b) => (a.type === 'note' ? 0 : 1) - (b.type === 'note' ? 0 : 1));
-      const x = 80 + (i * (Math.max(200, (w - 160) / colGap)));
-      const step = Math.max(14, (h - 100) / Math.max(1, col.length));
-      col.forEach((n, j) => {
-        n.x = x;
-        n.y = 50 + j * step;
-      });
-    });
+    // Stop any running force simulation before switching modes
+    if(simulation){
+      try { simulation.stop(); } catch(e){}
+      simulation = null;
+    }
 
-    // links as smooth curves
-    const link = gRoot.append('g')
-      .selectAll('path')
-      .data(links)
-      .join('path')
-      .attr('class','link')
-      .attr('d', d => {
-        const s = byId.get(d.source);
-        const t = byId.get(d.target);
-        if(!s || !t) return '';
-        const x0 = s.x, y0 = s.y;
-        const x1 = t.x, y1 = t.y;
-        const mx = (x0 + x1) / 2;
-        return 'M' + x0 + ',' + y0 + ' C' + mx + ',' + y0 + ' ' + mx + ',' + y1 + ' ' + x1 + ',' + y1;
-      });
+    if(mode === 'disjoint'){
+      renderDisjointForce(!!preserve);
+      return;
+    }
 
-    const node = gRoot.append('g')
-      .selectAll('g')
-      .data(nodes, d => d.id)
-      .join('g')
-      .attr('class','node')
-      .attr('transform', d => 'translate(' + d.x + ',' + d.y + ')')
-      .on('click', (event, d) => { event.stopPropagation(); selectNode(d.id); })
-      .on('dblclick', (event, d) => { event.stopPropagation(); if(d.type === 'note' && d.filename) openNote(d.filename); });
+    // Hierarchical views need a root tree. We'll build a simple 2-level tree:
+    // root -> type buckets -> nodes (leafs sized by degree)
+    if(mode === 'icicle'){
+      renderIcicle();
+      return;
+    }
+    if(mode === 'treemap'){
+      renderTreemap();
+      return;
+    }
+    if(mode === 'sunburst'){
+      renderSunburst();
+      return;
+    }
 
-    node.append('circle')
-      .attr('r', d => (d.type === 'note' ? 8 : 6))
-      .attr('fill', d => nodeColor(d.type));
-
-    node.append('text')
-      .attr('x', 12)
-      .attr('y', 4)
-      .style('display', showLabels ? null : 'none')
-      .text(d => d.label || d.id);
-
-    fitView(40);
+    // If you pick a not-yet-implemented view, fallback safely
+    toast('That view is not enabled yet - falling back to disjoint.', 1100);
+    document.getElementById('vizSelect').value = 'disjoint';
+    renderDisjointForce(false);
   }
 
-  // Icicle (zoomable-ish by click focus)
-  function renderIcicle(){
-    setHint(false);
-    resetD3Canvas();
+  function buildHierarchyForNodes(){
+    // degree map
+    const deg = new Map();
+    filtered.nodes.forEach(n => deg.set(n.id, 0));
+    filtered.edges.forEach(e => {
+      deg.set(e.source, (deg.get(e.source)||0) + 1);
+      deg.set(e.target, (deg.get(e.target)||0) + 1);
+    });
 
-    const rules = labelRules();
-    const root = hierarchyWithValues();
+    const buckets = new Map(); // type -> children
+    for(const n of filtered.nodes){
+      const t = n.type || 'other';
+      if(!buckets.has(t)) buckets.set(t, []);
+      buckets.get(t).push({
+        id: n.id,
+        label: n.label || n.id,
+        type: n.type,
+        filename: n.filename || '',
+        value: Math.max(1, deg.get(n.id) || 1),
+      });
+    }
+
+    const children = [];
+    for(const [type, kids] of buckets.entries()){
+      // keep things stable by sorting
+      kids.sort((a,b) => (b.value - a.value) || String(a.label).localeCompare(String(b.label)));
+      children.push({ name: type, type, children: kids });
+    }
+
+    children.sort((a,b) => String(a.name).localeCompare(String(b.name)));
+
+    return {
+      name: 'GraphNote',
+      children
+    };
+  }
+
+  function renderIcicle(){
+    resetD3Canvas();
 
     const w = elViz.clientWidth || 900;
     const h = elViz.clientHeight || 650;
 
-    const partition = d3.partition().size([w, h]).padding(1);
-    partition(root);
+    const rootData = buildHierarchyForNodes();
+    const root = d3.hierarchy(rootData)
+      .sum(d => d.value || 0)
+      .sort((a,b) => (b.value - a.value));
 
-    const color = d => nodeColor(d.data.type);
+    d3.partition()
+      .size([w, h])
+      .padding(1)(root);
+
+    const nodes = root.descendants().filter(d => d.depth > 0);
 
     const g = gRoot.append('g');
 
-    const rects = g.selectAll('rect')
-      .data(root.descendants())
+    g.selectAll('rect')
+      .data(nodes)
       .join('rect')
       .attr('x', d => d.x0)
       .attr('y', d => d.y0)
       .attr('width', d => Math.max(0, d.x1 - d.x0))
       .attr('height', d => Math.max(0, d.y1 - d.y0))
-      .attr('fill', d => color(d))
-      .attr('opacity', d => d.depth === 0 ? 0 : 0.85)
-      .on('mousemove', (event, d) => {
-        showTooltip(event.clientX, event.clientY, (d.data.label || d.data.id));
+      .attr('fill', d => {
+        const t = d.data.type || d.parent?.data?.type || 'other';
+        return nodeColor(t);
       })
-      .on('mouseleave', hideTooltip)
-      .on('click', (event, d) => { event.stopPropagation(); selectNode(d.data.id); })
-      .on('dblclick', (event, d) => { event.stopPropagation(); if(d.data.type === 'note' && d.data.filename) openNote(d.data.filename); });
-
-    // labels only if box is big enough
-    g.selectAll('text')
-      .data(root.descendants())
-      .join('text')
-      .style('display', showLabels ? null : 'none')
-      .attr('x', d => d.x0 + 6)
-      .attr('y', d => d.y0 + 14)
-      .attr('fill', '#111827')
-      .attr('font-size', 11)
-      .text(d => {
-        const w0 = d.x1 - d.x0;
-        const h0 = d.y1 - d.y0;
-        if(d.depth === 0) return '';
-        if(w0 < rules.rectW || h0 < rules.rectH) return '';
-        return d.data.label || d.data.id;
+      .attr('stroke', '#ffffff')
+      .on('click', (event, d) => {
+        event.stopPropagation();
+        if(d.data && d.data.id) selectNode(d.data.id);
+      })
+      .on('dblclick', (event, d) => {
+        event.stopPropagation();
+        if(d.data && d.data.filename) { toast('Opening note...', 650); tryOpenNote(d.data.filename); }
       });
 
-    fitView(30);
+    if(showLabels){
+      g.selectAll('text')
+        .data(nodes.filter(d => (d.x1 - d.x0) > 45 && (d.y1 - d.y0) > 16))
+        .join('text')
+        .attr('x', d => d.x0 + 6)
+        .attr('y', d => d.y0 + 12)
+        .attr('class', labelClass())
+        .text(d => {
+          // depth 1 = bucket
+          if(d.depth === 1) return d.data.name;
+          const n = { label: d.data.label, type: d.data.type };
+          return labelForNode(n);
+        });
+    }
+
+    setTimeout(() => { try { fitView(20); } catch(e){} }, 30);
   }
 
-  // Cascaded treemap
-  function renderCascadedTreemap(){
-    setHint(false);
+  function renderTreemap(){
     resetD3Canvas();
-
-    const rules = labelRules();
-    const root = hierarchyWithValues();
 
     const w = elViz.clientWidth || 900;
     const h = elViz.clientHeight || 650;
+
+    const rootData = buildHierarchyForNodes();
+    const root = d3.hierarchy(rootData)
+      .sum(d => d.value || 0)
+      .sort((a,b) => (b.value - a.value));
 
     d3.treemap()
       .size([w, h])
-      .paddingInner(1)
-      .paddingOuter(1)
-      .round(true)(root);
+      .paddingInner(2)
+      .paddingOuter(2)(root);
+
+    const leaves = root.leaves();
 
     const g = gRoot.append('g');
 
-    const cells = g.selectAll('g')
-      .data(root.descendants().filter(d => d.depth > 0))
-      .join('g')
-      .attr('transform', d => 'translate(' + d.x0 + ',' + d.y0 + ')')
-      .on('mousemove', (event, d) => showTooltip(event.clientX, event.clientY, d.data.label || d.data.id))
-      .on('mouseleave', hideTooltip)
-      .on('click', (event, d) => { event.stopPropagation(); selectNode(d.data.id); })
-      .on('dblclick', (event, d) => { event.stopPropagation(); if(d.data.type === 'note' && d.data.filename) openNote(d.data.filename); });
-
-    cells.append('rect')
+    g.selectAll('rect')
+      .data(leaves)
+      .join('rect')
+      .attr('x', d => d.x0)
+      .attr('y', d => d.y0)
       .attr('width', d => Math.max(0, d.x1 - d.x0))
       .attr('height', d => Math.max(0, d.y1 - d.y0))
       .attr('fill', d => nodeColor(d.data.type))
-      .attr('opacity', 0.85);
-
-    cells.append('text')
-      .style('display', showLabels ? null : 'none')
-      .attr('x', 6)
-      .attr('y', 14)
-      .attr('fill', '#111827')
-      .attr('font-size', 11)
-      .text(d => {
-        const w0 = d.x1 - d.x0;
-        const h0 = d.y1 - d.y0;
-        if(w0 < rules.rectW || h0 < rules.rectH) return '';
-        return d.data.label || d.data.id;
+      .attr('stroke', '#ffffff')
+      .on('click', (event, d) => { event.stopPropagation(); selectNode(d.data.id); })
+      .on('dblclick', (event, d) => {
+        event.stopPropagation();
+        if(d.data && d.data.filename){ toast('Opening note...', 650); tryOpenNote(d.data.filename); }
       });
 
-    fitView(25);
+    if(showLabels){
+      g.selectAll('text')
+        .data(leaves.filter(d => (d.x1 - d.x0) > 60 && (d.y1 - d.y0) > 18))
+        .join('text')
+        .attr('x', d => d.x0 + 6)
+        .attr('y', d => d.y0 + 14)
+        .attr('class', labelClass())
+        .text(d => labelForNode({ label: d.data.label, type: d.data.type }));
+    }
+
+    setTimeout(() => { try { fitView(20); } catch(e){} }, 30);
   }
 
-  // Sequences sunburst (hover highlight + breadcrumbs)
-  function renderSequencesSunburst(){
-    setHint(true);
+  function renderSunburst(){
     resetD3Canvas();
-
-    const rules = labelRules();
-    const root = hierarchyWithValues();
 
     const w = elViz.clientWidth || 900;
     const h = elViz.clientHeight || 650;
-    const radius = Math.min(w, h) * 0.40;
+    const r = Math.min(w, h) / 2;
 
-    const partition = d3.partition()
-      .size([2 * Math.PI, radius]);
+    const rootData = buildHierarchyForNodes();
+    const root = d3.hierarchy(rootData)
+      .sum(d => d.value || 0)
+      .sort((a,b) => (b.value - a.value));
 
-    partition(root);
+    d3.partition()
+      .size([2 * Math.PI, r])
+      .padding(0)(root);
 
     const arc = d3.arc()
       .startAngle(d => d.x0)
@@ -1149,131 +1323,116 @@ function buildHTMLShell() {
     const g = gRoot.append('g')
       .attr('transform', 'translate(' + (w/2) + ',' + (h/2) + ')');
 
-    // build ancestor set highlight behaviour
-    const path = g.selectAll('path')
-      .data(root.descendants().filter(d => d.depth > 0))
+    const nodes = root.descendants().filter(d => d.depth > 0);
+
+    g.selectAll('path')
+      .data(nodes)
       .join('path')
       .attr('d', arc)
-      .attr('fill', d => nodeColor(d.data.type))
+      .attr('fill', d => {
+        const t = d.data.type || d.parent?.data?.type || 'other';
+        return nodeColor(t);
+      })
       .attr('stroke', '#ffffff')
-      .attr('stroke-width', 0.5)
-      .attr('fill-opacity', 0.55)
-      .on('mousemove', (event, d) => {
-        const names = d.ancestors().reverse().map(x => x.data.label || x.data.id).filter(Boolean);
-        setCrumbs(names.slice(0, 7)); // keep it tidy
-        showTooltip(event.clientX, event.clientY, (d.data.label || d.data.id));
-        const ancestors = new Set(d.ancestors());
-        path.attr('fill-opacity', p => ancestors.has(p) ? 0.95 : 0.12);
+      .on('click', (event, d) => {
+        event.stopPropagation();
+        if(d.data && d.data.id) selectNode(d.data.id);
       })
-      .on('mouseleave', () => {
-        hideTooltip();
-        setCrumbs(null);
-        path.attr('fill-opacity', 0.55);
-      })
-      .on('click', (event, d) => { event.stopPropagation(); selectNode(d.data.id); })
-      .on('dblclick', (event, d) => { event.stopPropagation(); if(d.data.type === 'note' && d.data.filename) openNote(d.data.filename); });
-
-    // Labels (only if arc is large enough)
-    g.append('g')
-      .style('display', showLabels ? null : 'none')
-      .selectAll('text')
-      .data(root.descendants().filter(d => d.depth > 0))
-      .join('text')
-      .attr('dy', '0.35em')
-      .attr('fill', '#111827')
-      .attr('font-size', 10)
-      .attr('pointer-events', 'none')
-      .attr('transform', d => {
-        // compute angle and rotate to readable
-        const x = (d.x0 + d.x1) / 2 * 180 / Math.PI;
-        const y = (d.y0 + d.y1) / 2;
-        return 'rotate(' + (x - 90) + ') translate(' + y + ',0) rotate(' + (x < 180 ? 0 : 180) + ')';
-      })
-      .attr('text-anchor', d => ((d.x0 + d.x1)/2) < Math.PI ? 'start' : 'end')
-      .text(d => {
-        const a = d.x1 - d.x0;
-        const arcPx = a * (d.y1);
-        if(arcPx < rules.arcPx) return '';
-        return d.data.label || d.data.id;
+      .on('dblclick', (event, d) => {
+        event.stopPropagation();
+        if(d.data && d.data.filename){ toast('Opening note...', 650); tryOpenNote(d.data.filename); }
       });
 
-    fitView(30);
-  }
-
-  // -----------------------------
-  // Visualisation switch
-  // -----------------------------
-  function renderCurrentViz(){
-    if(typeof d3 === 'undefined') return;
-
-    clearError();
-    setLoading(false);
-
-    if(!filtered || !filtered.nodes || filtered.nodes.length === 0){
-      resetD3Canvas();
-      return;
+    if(showLabels){
+      g.selectAll('text')
+        .data(nodes.filter(d => (d.x1 - d.x0) > 0.12 && (d.y1 - d.y0) > 14))
+        .join('text')
+        .attr('transform', d => {
+          const angle = ((d.x0 + d.x1) / 2) * 180 / Math.PI - 90;
+          const radius = (d.y0 + d.y1) / 2;
+          return 'rotate(' + angle + ') translate(' + radius + ',0) rotate(' + (angle < 90 ? 0 : 180) + ')';
+        })
+        .attr('dy', '0.32em')
+        .attr('text-anchor', d => (((d.x0 + d.x1) / 2) < Math.PI) ? 'start' : 'end')
+        .attr('class', labelClass())
+        .text(d => {
+          if(d.depth === 1) return d.data.name;
+          return labelForNode({ label: d.data.label, type: d.data.type });
+        });
     }
 
-    const mode = String(document.getElementById('vizSelect').value || 'disjoint');
-
-    if(mode === 'disjoint') return renderDisjointForce();
-    if(mode === 'forceTree') return renderForceDirectedTree();
-    if(mode === 'radialCluster') return renderRadialCluster();
-    if(mode === 'tangled') return renderTangledTree();
-    if(mode === 'icicle') return renderIcicle();
-    if(mode === 'treemap') return renderCascadedTreemap();
-    if(mode === 'sunburst') return renderSequencesSunburst();
-
-    return renderDisjointForce();
+    // for sunburst, fitting isn't as useful, but keep consistent
+    setTimeout(() => { try { fitView(20); } catch(e){} }, 30);
   }
 
-  // -----------------------------
-  // UI wiring
-  // -----------------------------
-  document.getElementById('btnFit').onclick = () => fitView(40);
-  document.getElementById('btnRelayout').onclick = () => renderCurrentViz();
-  document.getElementById('btnClear').onclick = () => {
-    selectedId = null;
-    showSelection(null);
-    if(gRoot) gRoot.selectAll('.node').classed('selected', false);
-    setCrumbs(null);
-  };
-  document.getElementById('btnReset').onclick = () => resetView();
-  document.getElementById('btnRebuild').onclick = () => { window.location.href = ${JSON.stringify(rebuildURL)}; };
 
-  document.getElementById('toggleTags').onclick = () => { showTags = !showTags; updateToggleUI(); applyFilters(); };
-  document.getElementById('toggleMentions').onclick = () => { showMentions = !showMentions; updateToggleUI(); applyFilters(); };
-  document.getElementById('toggleExternal').onclick = () => { showExternal = !showExternal; updateToggleUI(); applyFilters(); };
-  document.getElementById('toggleLabels').onclick = () => { showLabels = !showLabels; updateToggleUI(); renderCurrentViz(); };
-  document.getElementById('toggleCalendars').onclick = () => { showCalendars = !showCalendars; updateToggleUI(); applyFilters(); };
+
+  
+  // UI wiring
+  document.getElementById('btnFit').onclick = () => { toast('Fitting...', 650); fitView(40); };
+  document.getElementById('btnRelayout').onclick = () => { toast('Relayout...', 650); renderCurrentViz(false); };
+  document.getElementById('btnRebuild').onclick = () => { toast('Rebuild requested...', 900); window.location.href = ${JSON.stringify(
+    rebuildURL
+  )}; };
+
+  document.getElementById('toggleCalendar').onclick = () => { showCalendar = !showCalendar; updateToggleUI(); applyFilters(); persistSettings(); };
+  document.getElementById('toggleTags').onclick = () => { showTags = !showTags; updateToggleUI(); applyFilters(); persistSettings(); };
+  document.getElementById('toggleMentions').onclick = () => { showMentions = !showMentions; updateToggleUI(); applyFilters(); persistSettings(); };
+  document.getElementById('toggleExternal').onclick = () => { showExternal = !showExternal; updateToggleUI(); applyFilters(); persistSettings(); };
+  document.getElementById('toggleLabels').onclick = () => {
+    showLabels = !showLabels;
+    updateToggleUI();
+    updateForceLabelsOnly();
+    persistSettings();
+    setTimeout(() => { try { fitView(40); } catch(e){} }, 60);
+  };
 
   document.getElementById('labelDensity').addEventListener('change', (e) => {
     labelDensity = String(e.target.value || 'med');
-    renderCurrentViz();
+    updateForceLabelsOnly();
+    setTimeout(() => { try { fitView(40); } catch(e){} }, 60);
   });
 
   document.getElementById('filterInput').addEventListener('input', applyFilters);
-  document.getElementById('vizSelect').addEventListener('change', renderCurrentViz);
+
+  document.getElementById('vizSelect').addEventListener('change', () => {
+    renderCurrentViz(false);
+    persistSettings();
+    setTimeout(() => { try { fitView(40); } catch(e){} }, 120);
+  });
+
+  // APPLY settings to UI controls on load
+  (function applySettingsToControls(){
+    const vs = document.getElementById('vizSelect');
+    vs.value = currentMode;
+    const ld = document.getElementById('labelDensity');
+    ld.value = labelDensity;
+    updateToggleUI();
+  })();
 
   setLoading(true);
   updateToggleUI();
 
-  window.setGraphData = function(graph){
+  window.setGraphData = function(payload){
     try{
       if(typeof d3 === 'undefined'){
         setLoading(false);
-        setError("D3 failed to load. Confirm d3.v7.min.js is present and is the UMD build from d3js.org.");
+        setError("D3 failed to load. Confirm d3.v7.min.js exists and is the UMD build.");
         return;
       }
 
       clearError();
-      const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
-      const edges = Array.isArray(graph.edges) ? graph.edges : [];
+
+      const nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+      const edges = Array.isArray(payload.edges) ? payload.edges : [];
       graphData = { nodes, edges };
+
+      document.getElementById('buildLine').textContent = 'BUILD: ' + (payload.buildId || '-');
+      document.getElementById('countsLine').textContent = 'Notes/Nodes: ' + nodes.length + ' - Edges: ' + edges.length;
 
       applyFilters();
       setLoading(false);
-      try { fitView(40); } catch(e){}
+      setTimeout(() => { try { fitView(40); } catch(e){} }, 60);
     } catch(err){
       setLoading(false);
       setError('Failed to render graph: ' + (err && err.message ? err.message : String(err)));
@@ -1284,152 +1443,9 @@ function buildHTMLShell() {
 </html>`
 }
 
-// -----------------------------
-// Cache helpers
-// -----------------------------
-function isValidGraph(g) {
-  return g && Array.isArray(g.nodes) && Array.isArray(g.edges)
-}
-
-async function loadCache() {
-  try {
-    if (typeof DataStore.loadJSON === 'function') return await DataStore.loadJSON(CACHE_FILE)
-  } catch (_) {}
-  try {
-    if (typeof DataStore.loadData === 'function') {
-      const raw = await DataStore.loadData(CACHE_FILE)
-      if (raw) return JSON.parse(String(raw))
-    }
-  } catch (_) {}
-  return null
-}
-
-async function saveCache(graph) {
-  try {
-    if (typeof DataStore.saveJSON === 'function') {
-      await DataStore.saveJSON(graph, CACHE_FILE)
-      return
-    }
-  } catch (_) {}
-  try {
-    if (typeof DataStore.saveData === 'function') {
-      await DataStore.saveData(JSON.stringify(graph), CACHE_FILE)
-    }
-  } catch (e) {
-    console.log(`GraphNote: failed to save cache: ${stringifyError(e)}`)
-  }
-}
-
-// -----------------------------
-// Graph build (regex-safe, no dynamic regex construction)
-// -----------------------------
-async function buildGraphIndex() {
-  const notes = await getProjectNotesSafe()
-
-  // map title -> filename to resolve [[Wiki Links]]
-  const titleToFilename = new Map()
-  for (const n of notes) {
-    const title = safeTitle(n)
-    const fn = n && n.filename ? String(n.filename) : ''
-    if (title && fn) titleToFilename.set(title, fn)
-  }
-
-  const nodes = []
-  const edges = []
-  const nodeSeen = new Set()
-  const edgeSeen = new Set()
-
-  const addNode = (node) => {
-    if (!node || !node.id) return
-    if (nodeSeen.has(node.id)) return
-    nodeSeen.add(node.id)
-    nodes.push(node)
-  }
-
-  const addEdge = (source, target) => {
-    if (!source || !target) return
-    const id = `e:${source}=>${target}`
-    if (edgeSeen.has(id)) return
-    edgeSeen.add(id)
-    edges.push({ id, source, target })
-  }
-
-  // Note nodes
-  for (const n of notes) {
-    const fn = n && n.filename ? String(n.filename) : ''
-    if (!fn) continue
-    addNode({ id: `note:${fn}`, type: 'note', label: safeTitle(n) || fn, filename: fn })
-  }
-
-  for (const n of notes) {
-    const fromFilename = n && n.filename ? String(n.filename) : ''
-    if (!fromFilename) continue
-    const fromId = `note:${fromFilename}`
-    const content = String(n.content || '')
-
-    // Wiki links: [[Title]]
-    const reWiki = /\[\[([^\]]+)\]\]/g
-    let m
-    while ((m = reWiki.exec(content)) !== null) {
-      const raw = String(m[1] || '').trim()
-      if (!raw) continue
-      const targetFilename = titleToFilename.get(raw) || ''
-      if (targetFilename) {
-        addEdge(fromId, `note:${targetFilename}`)
-      } else {
-        const dangId = `noteTitle:${raw}`
-        addNode({ id: dangId, type: 'note', label: raw, filename: '' })
-        addEdge(fromId, dangId)
-      }
-    }
-
-    const tokens = content.split(/\s+/).filter(Boolean)
-
-    // #tags and @mentions
-    for (const tok of tokens) {
-      if (tok[0] === '#') {
-        const t = tok.slice(1).replace(/[^A-Za-z0-9_\-\/]/g, '')
-        if (!t) continue
-        const tid = `tag:${t}`
-        addNode({ id: tid, type: 'tag', label: `#${t}` })
-        addEdge(fromId, tid)
-      }
-      if (tok[0] === '@') {
-        const mm = tok.slice(1).replace(/[^A-Za-z0-9_\-\/]/g, '')
-        if (!mm) continue
-        const mid = `mention:${mm}`
-        addNode({ id: mid, type: 'mention', label: `@${mm}` })
-        addEdge(fromId, mid)
-      }
-    }
-
-    // URLs
-    for (const tok of tokens) {
-      if (tok.startsWith('http://') || tok.startsWith('https://')) {
-        const u = tok.replace(/[),.\]]+$/g, '')
-        if (!u) continue
-        const uid = `external:${u}`
-        addNode({ id: uid, type: 'external', label: trimMiddle(u, 38) })
-        addEdge(fromId, uid)
-      }
-    }
-  }
-
-  return { nodes, edges }
-}
-
-async function getProjectNotesSafe() {
-  try {
-    if (typeof DataStore.projectNotes === 'function') {
-      const res = await DataStore.projectNotes()
-      return Array.isArray(res) ? res : []
-    }
-    if (Array.isArray(DataStore.projectNotes)) return DataStore.projectNotes
-  } catch (e) {
-    console.log(`GraphNote: projectNotes failed: ${stringifyError(e)}`)
-  }
-  return []
-}
+/* -----------------------------
+   Helpers
+----------------------------- */
 
 function safeTitle(note) {
   const t = note && note.title ? String(note.title).trim() : ''
@@ -1437,7 +1453,7 @@ function safeTitle(note) {
   const fn = note && note.filename ? String(note.filename) : ''
   if (!fn) return ''
   const base = fn.split('/').pop() || fn
-  return base.replace(/\.md$/i, '')
+  return base.replace(/\.md$/i, '').replace(/\.txt$/i, '')
 }
 
 function trimMiddle(s, max) {
@@ -1457,6 +1473,19 @@ function stringifyError(e) {
   }
 }
 
-// Make commands discoverable by NotePlan (NO module.exports)
+function escapeHTML(s) {
+  const str = String(s || '')
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+/* -----------------------------
+   Make commands visible to NotePlan
+----------------------------- */
 globalThis.graphnote = graphnote
 globalThis.rebuildGraphIndex = rebuildGraphIndex
+globalThis.onSettingsUpdated = onSettingsUpdated
