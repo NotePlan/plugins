@@ -720,6 +720,16 @@
         gap: 10px; /* Space between buttons */
     }
 
+    /* Vertical button group layout */
+    .ui-button-group.vertical {
+        flex-direction: column;
+        align-items: stretch; /* Buttons should stretch to full width in vertical layout */
+    }
+
+    .ui-button-group.vertical .ui-button {
+        width: 100%; /* Full width in vertical layout */
+    }
+
     .ui-button {
         /* flex: 1; */
         padding: 8px 12px;
@@ -732,6 +742,10 @@
         min-width: 4rem;
         width: max-content;
         font-family: system-ui;
+        /* Ensure all buttons have consistent sizing */
+        box-sizing: border-box;
+        font-size: inherit; /* Use same font size as parent */
+        line-height: inherit; /* Use same line height as parent */
     }
 
     /* Hover style for ui-button - though don't apply to default-button as well */
@@ -745,6 +759,13 @@
         background-color: var(--tint-color);
         color: var(--bg-main-color);
         border-radius: 8px;
+        /* Ensure default button has same size as regular buttons */
+        padding: 8px 12px; /* Match .ui-button padding exactly */
+        min-width: 4rem; /* Match .ui-button min-width exactly */
+        width: max-content; /* Match .ui-button width exactly */
+        box-sizing: border-box; /* Match .ui-button box-sizing */
+        font-size: inherit; /* Match .ui-button font-size */
+        line-height: inherit; /* Match .ui-button line-height */
     }
 
     .default-button:hover {

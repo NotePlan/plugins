@@ -4,7 +4,7 @@
 // Allows users to select a heading from a note, either statically or dynamically based on a note-chooser field
 //--------------------------------------------------------------------------
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
 import { truncateText } from '@helpers/react/reactUtils.js'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
@@ -59,6 +59,7 @@ export function HeadingChooser({
   const [headings, setHeadings] = useState<Array<string>>(staticHeadings)
   const [loading, setLoading] = useState<boolean>(false)
   const [loaded, setLoaded] = useState<boolean>(false)
+  const lastLoadedNoteFilenameRef = useRef<?string>(null) // Track the last note filename we loaded headings for
 
   // Convert headings array to HeadingOption format
   const headingOptions: Array<HeadingOption> = useMemo(() => {
@@ -68,42 +69,68 @@ export function HeadingChooser({
     }))
   }, [headings])
 
-  // Load headings from note if noteFilename is provided and we have requestFromPlugin
-  useEffect(() => {
-    // Reset loaded state when noteFilename changes
-    if (noteFilename) {
-      setLoaded(false)
-    }
-  }, [noteFilename])
-
   // Load headings from plugin via REQUEST
   // Delay the request to yield to TOC rendering and other critical UI elements
   // This prevents blocking the initial render with data loading
   useEffect(() => {
-    if (noteFilename && requestFromPlugin && !loaded && !loading) {
+    const noteFilenameStr = noteFilename || 'null'
+    const lastLoadedStr = lastLoadedNoteFilenameRef.current || 'null'
+    const hasRequestStr = requestFromPlugin ? 'true' : 'false'
+    logDebug('HeadingChooser', `useEffect triggered: noteFilename="${noteFilenameStr}", hasRequestFromPlugin=${hasRequestStr}, staticHeadings.length=${staticHeadings.length}, lastLoaded="${lastLoadedStr}"`)
+
+    if (noteFilename && requestFromPlugin) {
+      // Only reload if noteFilename has changed (prevent infinite loops)
+      // Use only the ref check - don't rely on `loaded` state as it can cause issues during re-renders
+      if (lastLoadedNoteFilenameRef.current === noteFilename) {
+        logDebug('HeadingChooser', `Skipping reload: headings already loaded for "${noteFilename}" (ref check)`)
+        return
+      }
+
+      // Clear headings and reset state when noteFilename changes
+      // Don't clear the ref here - we'll set it after successful load
+      setHeadings([])
+      setLoaded(false)
+      setLoading(false)
+
       // Use setTimeout to delay the request, allowing TOC and other UI to render first
       const timeoutId = setTimeout(() => {
         setLoading(true)
         logDebug('HeadingChooser', `Loading headings from note: ${noteFilename} (delayed)`)
+        const noteFilenameAtStart = noteFilename // Capture at start of async operation
         requestFromPlugin('getHeadings', { noteFilename, optionAddTopAndBottom, includeArchive })
           .then((headingsData: Array<string>) => {
+            // Ignore stale responses if noteFilename changed during async operation
+            if (noteFilenameAtStart !== noteFilename) {
+              logDebug('HeadingChooser', `Ignoring stale response: noteFilename changed from "${noteFilenameAtStart}" to "${noteFilename}"`)
+              return
+            }
+            logDebug('HeadingChooser', `Received response from getHeadings: ${Array.isArray(headingsData) ? `Array with ${headingsData.length} items` : typeof headingsData}`)
             if (Array.isArray(headingsData)) {
               setHeadings(headingsData)
               setLoaded(true)
-              logDebug('HeadingChooser', `Loaded ${headingsData.length} headings from note`)
+              lastLoadedNoteFilenameRef.current = noteFilenameAtStart // Mark as loaded
+              logDebug('HeadingChooser', `Loaded ${headingsData.length} headings from note: ${noteFilenameAtStart}`)
             } else {
-              logError('HeadingChooser', 'Invalid response format from getHeadings')
+              logError('HeadingChooser', `Invalid response format from getHeadings: ${typeof headingsData}`)
               setHeadings([])
               setLoaded(true)
             }
           })
           .catch((error) => {
-            logError('HeadingChooser', `Failed to load headings: ${error.message}`)
+            // Ignore errors if noteFilename changed during async operation
+            if (noteFilenameAtStart !== noteFilename) {
+              logDebug('HeadingChooser', `Ignoring error from stale request: noteFilename changed from "${noteFilenameAtStart}" to "${noteFilename}"`)
+              return
+            }
+            logError('HeadingChooser', `Failed to load headings from ${noteFilenameAtStart}: ${error.message || error}`)
             setHeadings([])
             setLoaded(true)
           })
           .finally(() => {
-            setLoading(false)
+            // Only update loading state if noteFilename hasn't changed
+            if (noteFilenameAtStart === noteFilename) {
+              setLoading(false)
+            }
           })
       }, 200) // 200ms delay to yield to TOC rendering
 
@@ -112,10 +139,23 @@ export function HeadingChooser({
       }
     } else if (!noteFilename && staticHeadings.length > 0) {
       // Use static headings if provided (no delay needed for static data)
+      logDebug('HeadingChooser', `Using static headings: ${staticHeadings.length} items`)
       setHeadings(staticHeadings)
       setLoaded(true)
+      lastLoadedNoteFilenameRef.current = null // Clear ref for static headings
+    } else if (!noteFilename) {
+      // No note selected and no static headings - clear everything
+      logDebug('HeadingChooser', 'No noteFilename and no static headings - clearing')
+      setHeadings([])
+      setLoaded(false)
+      lastLoadedNoteFilenameRef.current = null // Clear ref
+    } else if (noteFilename && !requestFromPlugin) {
+      logError('HeadingChooser', `noteFilename provided (${noteFilename}) but requestFromPlugin is not available`)
+      setHeadings([])
+      setLoaded(false)
+      lastLoadedNoteFilenameRef.current = null // Clear ref
     }
-  }, [noteFilename, requestFromPlugin, loaded, loading, staticHeadings, optionAddTopAndBottom, includeArchive])
+  }, [noteFilename, requestFromPlugin, staticHeadings, optionAddTopAndBottom, includeArchive])
 
   // Apply default heading if value is empty and defaultHeading is provided
   useEffect(() => {
@@ -144,10 +184,18 @@ export function HeadingChooser({
       return option.heading.replace(/^#{1,5}\s*/, '')
     },
     getOptionText: (option: HeadingOption) => {
-      // Show heading with markdown markers in dropdown for context
-      return option.displayText
+      // Return empty string so text doesn't appear in left div (icon-only in left div)
+      // The actual text will be shown in right div via getOptionShortDescription
+      return ''
     },
     getOptionTitle: (option: HeadingOption) => option.displayText,
+    // Add heading icon (hashtag icon) to left div
+    getOptionIcon: (option: HeadingOption) => 'hashtag',
+    // Put heading text in right div using short description
+    getOptionShortDescription: (option: HeadingOption) => {
+      // Return the heading text (without markdown markers) to display in right div
+      return option.heading.replace(/^#{1,5}\s*/, '')
+    },
     truncateDisplay: truncateText,
     onSelect: (option: HeadingOption | { __manualEntry__: boolean, value: string, display: string }) => {
       // Handle both regular selections and manual entries
@@ -177,7 +225,7 @@ export function HeadingChooser({
         return cleanHeading === value || item.heading === value || item.displayText === value
       })
     },
-    shortDescriptionOnLine2,
+    shortDescriptionOnLine2: false, // Keep single-line layout: icon in left, text in right
   }
 
   return (

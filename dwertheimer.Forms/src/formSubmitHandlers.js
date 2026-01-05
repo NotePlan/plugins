@@ -119,19 +119,52 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
 
     const returnValue = await handleSubmitButtonClick(data, reactWindowData)
 
-    // Close the window after successful submission, unless keepOpenOnSubmit is true
-    // (e.g., for Form Browser context where we want to keep the browser open)
-    if (returnValue !== null && !data.keepOpenOnSubmit) {
-      closeWindowFromCustomId(windowId)
-    } else if (returnValue !== null && data.keepOpenOnSubmit) {
-      logDebug(pluginJson, `handleFormSubmitAction: keepOpenOnSubmit=true, not closing window`)
+    // Check if there's an AI analysis result (error message from template rendering)
+    const hasAiAnalysis =
+      returnValue?.pluginData?.aiAnalysisResult &&
+      typeof returnValue.pluginData.aiAnalysisResult === 'string' &&
+      returnValue.pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
+    logDebug(
+      pluginJson,
+      `handleFormSubmitAction: returnValue !== null=${String(returnValue !== null)}, hasAiAnalysis=${String(hasAiAnalysis)}, keepOpenOnSubmit=${String(data.keepOpenOnSubmit)}`,
+    )
+    logDebug(
+      pluginJson,
+      `handleFormSubmitAction: returnValue.pluginData.aiAnalysisResult exists=${String(!!returnValue?.pluginData?.aiAnalysisResult)}, length=${
+        returnValue?.pluginData?.aiAnalysisResult?.length || 0
+      }`,
+    )
+
+    // Update window data if it changed (send returnValue, not reactWindowData)
+    // Check if pluginData changed (especially aiAnalysisResult) even if object reference is the same
+    const hasPluginDataChanges =
+      returnValue?.pluginData?.aiAnalysisResult &&
+      (!reactWindowData?.pluginData?.aiAnalysisResult || returnValue.pluginData.aiAnalysisResult !== reactWindowData.pluginData.aiAnalysisResult)
+
+    // Always send SET_DATA if there's an AI analysis result, even if object reference is the same
+    // Check if we need to send SET_DATA (either object changed OR has AI analysis)
+    const shouldSendSetData = returnValue && (returnValue !== reactWindowData || hasPluginDataChanges || hasAiAnalysis)
+
+    if (shouldSendSetData && returnValue) {
+      const updateText = hasAiAnalysis ? 'AI Analysis Error Detected' : `After onSubmitClick, data was updated`
+      logDebug(pluginJson, `handleFormSubmitAction: Sending SET_DATA to windowId="${windowId}", has aiAnalysisResult=${String(!!returnValue.pluginData?.aiAnalysisResult)}`)
+      clo(returnValue, `handleFormSubmitAction: after updating window data,returnValue=`)
+      sendToHTMLWindow(windowId, 'SET_DATA', returnValue, updateText)
+      logDebug(pluginJson, `handleFormSubmitAction: SET_DATA sent to windowId="${windowId}"`)
+    } else {
+      logDebug(pluginJson, `handleFormSubmitAction: Not sending SET_DATA - returnValue === reactWindowData and no changes`)
     }
 
-    // Update window data if it changed
-    if (returnValue && returnValue !== reactWindowData) {
-      const updateText = `After onSubmitClick, data was updated`
-      clo(reactWindowData, `handleFormSubmitAction: after updating window data,reactWindowData=`)
-      sendToHTMLWindow(windowId, 'SET_DATA', reactWindowData, updateText)
+    // Close the window after successful submission, unless:
+    // 1. keepOpenOnSubmit is true (e.g., for Form Browser context)
+    // 2. There's an AI analysis result (keep window open to show the error)
+    if (returnValue !== null && !data.keepOpenOnSubmit && !hasAiAnalysis) {
+      logDebug(pluginJson, `handleFormSubmitAction: Closing window windowId="${windowId}" (no keepOpenOnSubmit, no AI analysis)`)
+      closeWindowFromCustomId(windowId)
+    } else if (returnValue !== null && (data.keepOpenOnSubmit || hasAiAnalysis)) {
+      logDebug(pluginJson, `handleFormSubmitAction: NOT closing window - keepOpenOnSubmit=${String(data.keepOpenOnSubmit)} or hasAiAnalysis=${String(hasAiAnalysis)}`)
+    } else if (returnValue === null) {
+      logDebug(pluginJson, `handleFormSubmitAction: returnValue is null, not closing window`)
     }
 
     return {

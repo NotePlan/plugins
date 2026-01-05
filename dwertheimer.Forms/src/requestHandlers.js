@@ -24,6 +24,7 @@ import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { showMessage } from '@helpers/userInput'
 import { getHeadingsFromNote, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
+import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 import { getNoteByFilename, getNote } from '@helpers/note'
 import { getNoteContentAsHTML } from '@helpers/HTMLView'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
@@ -728,6 +729,64 @@ export function getMentions(_params: Object = {}): RequestResponse {
   }
 }
 
+/**
+ * Get all values for a frontmatter key from DataStore
+ * @param {Object} params - Request parameters
+ * @param {string} params.frontmatterKey - The frontmatter key to get values for
+ * @param {'Notes' | 'Calendar' | 'All'} params.noteType - Type of notes to search (default: 'All')
+ * @param {boolean} params.caseSensitive - Whether to perform case-sensitive search (default: false)
+ * @param {string} params.folderString - Folder to limit search to (optional)
+ * @param {boolean} params.fullPathMatch - Whether to match full path (default: false)
+ * @returns {Promise<RequestResponse>} Array of values (as strings)
+ */
+export async function getFrontmatterKeyValues(params: {
+  frontmatterKey: string,
+  noteType?: 'Notes' | 'Calendar' | 'All',
+  caseSensitive?: boolean,
+  folderString?: string,
+  fullPathMatch?: boolean,
+}): Promise<RequestResponse> {
+  const startTime: number = Date.now()
+  try {
+    logDebug(pluginJson, `[DIAG] getFrontmatterKeyValues START: frontmatterKey="${params.frontmatterKey}"`)
+
+    if (!params.frontmatterKey) {
+      return {
+        success: false,
+        message: 'Frontmatter key is required',
+        data: [],
+      }
+    }
+
+    const noteType = params.noteType || 'All'
+    const caseSensitive = params.caseSensitive || false
+    const folderString = params.folderString || ''
+    const fullPathMatch = params.fullPathMatch || false
+
+    // Get values using the helper function
+    const values = await getValuesForFrontmatterTag(params.frontmatterKey, noteType, caseSensitive, folderString, fullPathMatch)
+
+    // Convert all values to strings (frontmatter values can be various types)
+    const stringValues = values.map((v: any) => String(v))
+
+    const totalElapsed: number = Date.now() - startTime
+    logDebug(pluginJson, `[DIAG] getFrontmatterKeyValues COMPLETE: totalElapsed=${totalElapsed}ms, found=${stringValues.length} values for key "${params.frontmatterKey}"`)
+
+    return {
+      success: true,
+      data: stringValues,
+    }
+  } catch (error) {
+    const totalElapsed: number = Date.now() - startTime
+    logError(pluginJson, `[DIAG] getFrontmatterKeyValues ERROR: totalElapsed=${totalElapsed}ms, error="${error.message}"`)
+    return {
+      success: false,
+      message: `Failed to get frontmatter key values: ${error.message}`,
+      data: [],
+    }
+  }
+}
+
 export function getTeamspaces(_params: Object = {}): RequestResponse {
   const startTime: number = Date.now()
   try {
@@ -1411,6 +1470,8 @@ export async function handleRequest(requestType: string, params: Object = {}): P
         return getHashtags(params)
       case 'getMentions':
         return getMentions(params)
+      case 'getFrontmatterKeyValues':
+        return await getFrontmatterKeyValues(params)
       case 'createFolder':
         return createFolder(params)
       case 'getHeadings':

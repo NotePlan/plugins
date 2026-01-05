@@ -22,11 +22,16 @@ export type ContainedMultiSelectChooserProps = {
   includePattern?: string, // Regex pattern to include items
   excludePattern?: string, // Regex pattern to exclude items
   maxHeight?: string, // Max height for scrollable list (default: '200px')
+  maxRows?: number, // Max number of result rows to show (overrides maxHeight if provided, assumes ~40px per row)
+  width?: string, // Custom width for the entire control (e.g., '300px', '80%'). Overrides default width.
+  height?: string, // Custom height for the entire control (e.g., '400px'). Overrides maxHeight.
   emptyMessageNoItems?: string,
   emptyMessageNoMatch?: string,
   fieldType?: string, // Field type identifier for CSS classes
   allowCreate?: boolean, // If true, show "+New" button to create new items (default: true)
   onCreate?: (newItem: string) => Promise<void> | void, // Callback when creating a new item
+  singleValue?: boolean, // If true, allow selecting only one value (no checkboxes, returns single value) (default: false)
+  renderAsDropdown?: boolean, // If true and singleValue is true, render as dropdown-select instead of filterable chooser (default: false)
 }
 
 /**
@@ -49,16 +54,22 @@ export function ContainedMultiSelectChooser({
   includePattern = '',
   excludePattern = '',
   maxHeight = '200px',
+  maxRows,
+  width,
+  height,
   emptyMessageNoItems = 'No items available',
   emptyMessageNoMatch = 'No items match',
   fieldType = 'contained-multi-select',
   allowCreate = true,
   onCreate,
+  singleValue = false,
+  renderAsDropdown = false,
 }: ContainedMultiSelectChooserProps): React$Node {
   const searchInputRef = useRef<?HTMLInputElement>(null)
   const [showCreateMode, setShowCreateMode] = useState<boolean>(false)
   const [createValue, setCreateValue] = useState<string>('')
   const [isCreating, setIsCreating] = useState<boolean>(false)
+  const [showList, setShowList] = useState<boolean>(true) // For single-value mode: show list or show selected value
 
   // Filter items based on include/exclude patterns
   const filteredItems = useMemo(() => {
@@ -128,34 +139,67 @@ export function ContainedMultiSelectChooser({
     // Value exists - parse it and sync selectedValues
     defaultInitializedRef.current = true // Mark as initialized when value is provided
     let parsed: Array<string>
-    if (Array.isArray(value)) {
-      // If array, extract item names (remove ALL prefixes if present) and remove duplicates
-      const cleaned = value.map((v: string) => {
-        let item = v
+    if (singleValue) {
+      // Single-value mode: value is a single string (with or without prefix)
+      if (Array.isArray(value)) {
+        // If array, take first item
+        let item = value[0] || ''
         while (item.startsWith('#') || item.startsWith('@')) {
           item = item.substring(1)
         }
-        return item
-      })
-      // Remove duplicates
-      parsed = Array.from(new Set(cleaned))
-    } else {
-      // If string, split by comma and extract item names
-      const itemList = value.split(',').map((item: string) => item.trim()).filter(Boolean)
-      const cleaned = itemList.map((item: string) => {
-        let cleanedItem = item
-        while (cleanedItem.startsWith('#') || cleanedItem.startsWith('@')) {
-          cleanedItem = cleanedItem.substring(1)
+        parsed = item ? [item] : []
+      } else {
+        // If string, extract item name (remove ALL prefixes if present)
+        // For single value, don't split by comma - treat entire string as one value
+        let item = value.trim()
+        while (item.startsWith('#') || item.startsWith('@')) {
+          item = item.substring(1)
         }
-        return cleanedItem
-      })
-      // Remove duplicates
-      parsed = Array.from(new Set(cleaned))
+        parsed = item ? [item] : []
+      }
+    } else {
+      // Multi-select mode: parse as before
+      if (Array.isArray(value)) {
+        // If array, extract item names (remove ALL prefixes if present) and remove duplicates
+        const cleaned = value.map((v: string) => {
+          let item = v
+          while (item.startsWith('#') || item.startsWith('@')) {
+            item = item.substring(1)
+          }
+          return item
+        })
+        // Remove duplicates
+        parsed = Array.from(new Set(cleaned))
+      } else {
+        // If string, split by comma and extract item names
+        const itemList = value.split(',').map((item: string) => item.trim()).filter(Boolean)
+        const cleaned = itemList.map((item: string) => {
+          let cleanedItem = item
+          while (cleanedItem.startsWith('#') || cleanedItem.startsWith('@')) {
+            cleanedItem = cleanedItem.substring(1)
+          }
+          return cleanedItem
+        })
+        // Remove duplicates
+        parsed = Array.from(new Set(cleaned))
+      }
     }
     setSelectedValues(parsed)
     // Update ref to track what we synced
     lastSyncedValueRef.current = value
-  }, [value, defaultChecked, returnAsArray]) // Only sync from value prop to prevent resetting selections
+  }, [value, defaultChecked, returnAsArray, singleValue]) // Only sync from value prop to prevent resetting selections
+
+  // Calculate effective maxHeight: height prop > maxRows > maxHeight
+  const effectiveMaxHeight = useMemo(() => {
+    if (height) {
+      return height
+    }
+    if (maxRows && maxRows > 0) {
+      // Assume ~40px per row (including padding and border)
+      return `${maxRows * 40}px`
+    }
+    return maxHeight
+  }, [height, maxRows, maxHeight])
 
   // Filter items based on search term
   const displayItems = useMemo(() => {
@@ -165,6 +209,20 @@ export function ContainedMultiSelectChooser({
     const term = searchTerm.toLowerCase()
     return filteredItems.filter((item: string) => item.toLowerCase().includes(term))
   }, [filteredItems, searchTerm])
+
+  // For single-value mode: determine if we should show the list or the selected value
+  const hasSelectedValue = singleValue && selectedValues.length > 0
+  const selectedDisplayValue = hasSelectedValue ? getItemDisplayLabel(selectedValues[0]) : ''
+
+  // When a single value is selected, hide the list and show the selected value
+  useEffect(() => {
+    if (singleValue && selectedValues.length > 0) {
+      setShowList(false)
+      setSearchTerm('')
+    } else if (singleValue && selectedValues.length === 0) {
+      setShowList(true)
+    }
+  }, [singleValue, selectedValues.length])
 
   // Show create mode automatically when search has no matches and allowCreate is true
   useEffect(() => {
@@ -185,23 +243,65 @@ export function ContainedMultiSelectChooser({
     }
   }, [displayItems.length, searchTerm, filteredItems.length, allowCreate, showCreateMode])
 
-  // Handle checkbox toggle
+  // Handle checkbox toggle (multi-select) or item selection (single-value)
   const handleToggle = (itemName: string) => {
     if (disabled) return
 
-    // Remove duplicates and toggle the item
-    const currentSelected = Array.from(new Set(selectedValues))
-    const newSelected = currentSelected.includes(itemName)
-      ? currentSelected.filter((v: string) => v !== itemName)
-      : [...currentSelected, itemName]
+    if (singleValue) {
+      // Single-value mode: select this item and return immediately
+      const formattedValue = getItemDisplayLabel(itemName)
+      setSelectedValues([itemName])
+      lastSyncedValueRef.current = formattedValue
+      onChange(formattedValue)
+      // Hide the list after selection
+      setShowList(false)
+      setSearchTerm('')
+    } else {
+      // Multi-select mode: toggle the item
+      const currentSelected = Array.from(new Set(selectedValues))
+      const newSelected = currentSelected.includes(itemName)
+        ? currentSelected.filter((v: string) => v !== itemName)
+        : [...currentSelected, itemName]
 
-    setSelectedValues(newSelected)
-    // Format items using getItemDisplayLabel and return (already unique)
-    const formattedItems = newSelected.map((item: string) => getItemDisplayLabel(item))
-    const newValue = returnAsArray ? formattedItems : formattedItems.join(',')
-    // Update ref before calling onChange to prevent re-sync
-    lastSyncedValueRef.current = newValue
-    onChange(newValue)
+      setSelectedValues(newSelected)
+      // Format items using getItemDisplayLabel and return (already unique)
+      const formattedItems = newSelected.map((item: string) => getItemDisplayLabel(item))
+      const newValue = returnAsArray ? formattedItems : formattedItems.join(',')
+      // Update ref before calling onChange to prevent re-sync
+      lastSyncedValueRef.current = newValue
+      onChange(newValue)
+    }
+  }
+
+  // Handle clearing selected value in single-value mode
+  const handleClearSelection = () => {
+    if (disabled) return
+    setSelectedValues([])
+    setShowList(true)
+    setSearchTerm('')
+    lastSyncedValueRef.current = returnAsArray ? [] : ''
+    onChange(returnAsArray ? [] : '')
+    if (searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }
+
+  // Handle clicking on the input in single-value mode to show list again
+  const handleInputClick = () => {
+    if (singleValue && hasSelectedValue && !showList) {
+      setShowList(true)
+      if (searchInputRef.current) {
+        searchInputRef.current.focus()
+      }
+    }
+  }
+
+  // Handle keyboard navigation for single-value mode
+  const handleKeyDown = (e: { key: string, preventDefault: () => void }, itemName: string) => {
+    if (singleValue && e.key === 'Enter') {
+      e.preventDefault()
+      handleToggle(itemName)
+    }
   }
 
   // Handle select all
@@ -324,14 +424,37 @@ export function ContainedMultiSelectChooser({
     }
   }
 
+  // Container styles
+  const containerStyle = useMemo(() => {
+    const style: { [string]: string } = {}
+    if (width) {
+      style.width = width
+    }
+    return style
+  }, [width])
+
+  // Box styles
+  const boxStyle = useMemo(() => {
+    const style: { [string]: string } = {}
+    if (height) {
+      style.height = height
+    }
+    return style
+  }, [height])
+
+  // If renderAsDropdown is true and singleValue is true, we need to render as dropdown
+  // But we can't do that here since we don't have access to DropdownSelectChooser
+  // So we'll handle this in the parent components (TagChooser, MentionChooser, FrontmatterKeyChooser)
+  // For now, we'll just render normally
+
   return (
-    <div className={`contained-multi-select-container ${compactDisplay ? 'compact' : ''}`} data-field-type={fieldType}>
+    <div className={`contained-multi-select-container ${compactDisplay ? 'compact' : ''}`} data-field-type={fieldType} style={containerStyle}>
       {label && !compactDisplay && (
         <label className="contained-multi-select-label" htmlFor={`${fieldType}-search`}>
           {label}
         </label>
       )}
-      <div className="contained-multi-select-box">
+      <div className="contained-multi-select-box" style={boxStyle}>
         {/* Top row: Label (compact), Filter, Clear, Select All, Select None */}
         <div className="contained-multi-select-header">
           {label && compactDisplay && (
@@ -344,9 +467,15 @@ export function ContainedMultiSelectChooser({
               id={`${fieldType}-search`}
               ref={searchInputRef}
               type="text"
-              className={`contained-multi-select-search-input ${showCreateMode ? 'create-mode' : ''}`}
-              value={showCreateMode ? createValue : searchTerm}
+              className={`contained-multi-select-search-input ${showCreateMode ? 'create-mode' : ''} ${singleValue && hasSelectedValue && !showList ? 'single-value-selected' : ''}`}
+              value={singleValue && hasSelectedValue && !showList ? selectedDisplayValue : showCreateMode ? createValue : searchTerm}
               onChange={(e) => {
+                // In single-value mode with selected value, typing should clear selection and show list
+                if (singleValue && hasSelectedValue && !showList) {
+                  handleClearSelection()
+                  setSearchTerm(e.target.value)
+                  return
+                }
                 let inputValue = e.target.value
                 // Validate: remove spaces for tag-chooser and mention-chooser when in create mode
                 // This handles pasted text or other ways spaces might get in
@@ -361,16 +490,32 @@ export function ContainedMultiSelectChooser({
                   setSearchTerm(inputValue)
                 }
               }}
+              onClick={handleInputClick}
               onKeyDown={(e) => {
                 // Prevent space key for tag-chooser and mention-chooser when in create mode
                 if (showCreateMode && (fieldType === 'tag-chooser' || fieldType === 'mention-chooser') && e.key === ' ') {
                   e.preventDefault()
                 }
+                // In single-value mode with selected value, pressing any key should clear and start searching
+                if (singleValue && hasSelectedValue && !showList && e.key !== 'Enter' && e.key !== 'Escape') {
+                  handleClearSelection()
+                }
               }}
               placeholder={showCreateMode ? (fieldType === 'tag-chooser' ? 'Enter new hashtag...' : fieldType === 'mention-chooser' ? 'Enter new mention...' : 'Enter new item...') : placeholder}
               disabled={disabled || isCreating}
+              readOnly={singleValue && hasSelectedValue && !showList}
             />
-            {searchTerm && !showCreateMode && (
+            {singleValue && hasSelectedValue && !showList ? (
+              <button
+                type="button"
+                className="contained-multi-select-clear-search"
+                onClick={handleClearSelection}
+                disabled={disabled}
+                title="Clear selection"
+              >
+                <i className="fa-solid fa-times"></i>
+              </button>
+            ) : searchTerm && !showCreateMode ? (
               <button
                 type="button"
                 className="contained-multi-select-clear-search"
@@ -380,7 +525,7 @@ export function ContainedMultiSelectChooser({
               >
                 <i className="fa-solid fa-times"></i>
               </button>
-            )}
+            ) : null}
             {showCreateMode && (
               <div className="contained-multi-select-create-actions">
                 <button
@@ -404,7 +549,7 @@ export function ContainedMultiSelectChooser({
               </div>
             )}
           </div>
-          {allowCreate && (
+          {allowCreate && !(singleValue && hasSelectedValue && !showList) && (
             <button
               type="button"
               className="contained-multi-select-new-btn"
@@ -415,59 +560,71 @@ export function ContainedMultiSelectChooser({
               +New
             </button>
           )}
-          <button
-            type="button"
-            className="contained-multi-select-select-all-btn"
-            onClick={handleSelectAll}
-            disabled={disabled || displayItems.length === 0 || showCreateMode}
-            title="Select all"
-          >
-            Select All
-          </button>
-          <button
-            type="button"
-            className="contained-multi-select-select-none-btn"
-            onClick={handleSelectNone}
-            disabled={disabled || selectedValues.length === 0}
-            title="Select none"
-          >
-            Select None
-          </button>
-        </div>
-
-        {/* Scrollable list with checkboxes */}
-        <div className="contained-multi-select-list-container" style={{ maxHeight }}>
-          {displayItems.length === 0 ? (
-            <div className="contained-multi-select-empty">
-              {filteredItems.length === 0 ? emptyMessageNoItems : `${emptyMessageNoMatch} "${searchTerm}"`}
-            </div>
-          ) : (
-            <div className="contained-multi-select-list">
-              {displayItems.map((item: string, index: number) => {
-                const isChecked = selectedValues.includes(item)
-                const displayLabel = getItemDisplayLabel(item)
-                return (
-                  <div
-                    key={`${fieldType}-${index}-${item}`}
-                    className={`contained-multi-select-item ${isChecked ? 'checked' : ''}`}
-                    onClick={() => handleToggle(item)}
-                    title={displayLabel}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handleToggle(item)}
-                      disabled={disabled}
-                      onClick={(e) => e.stopPropagation()}
-                      className="contained-multi-select-checkbox"
-                    />
-                    <span className="contained-multi-select-item-label">{displayLabel}</span>
-                  </div>
-                )
-              })}
-            </div>
+          {!singleValue && (
+            <>
+              <button
+                type="button"
+                className="contained-multi-select-select-all-btn"
+                onClick={handleSelectAll}
+                disabled={disabled || displayItems.length === 0 || showCreateMode}
+                title="Select all"
+              >
+                Select All
+              </button>
+              <button
+                type="button"
+                className="contained-multi-select-select-none-btn"
+                onClick={handleSelectNone}
+                disabled={disabled || selectedValues.length === 0}
+                title="Select none"
+              >
+                Select None
+              </button>
+            </>
           )}
         </div>
+
+        {/* Scrollable list with checkboxes - hide in single-value mode when value is selected */}
+        {!(singleValue && hasSelectedValue && !showList) && (
+          <div className="contained-multi-select-list-container" style={{ maxHeight: effectiveMaxHeight }}>
+            {displayItems.length === 0 ? (
+              <div className="contained-multi-select-empty">
+                {filteredItems.length === 0 ? emptyMessageNoItems : `${emptyMessageNoMatch} "${searchTerm}"`}
+              </div>
+            ) : (
+              <div className="contained-multi-select-list">
+                {displayItems.map((item: string, index: number) => {
+                  const isChecked = selectedValues.includes(item)
+                  const displayLabel = getItemDisplayLabel(item)
+                  return (
+                    <div
+                      key={`${fieldType}-${index}-${item}`}
+                      className={`contained-multi-select-item ${isChecked ? 'checked' : ''} ${singleValue ? 'single-value' : ''}`}
+                      onClick={() => handleToggle(item)}
+                      onKeyDown={(e) => handleKeyDown(e, item)}
+                      tabIndex={singleValue ? 0 : -1}
+                      role={singleValue ? 'option' : undefined}
+                      aria-selected={singleValue ? isChecked : undefined}
+                      title={displayLabel}
+                    >
+                      {!singleValue && (
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggle(item)}
+                          disabled={disabled}
+                          onClick={(e) => e.stopPropagation()}
+                          className="contained-multi-select-checkbox"
+                        />
+                      )}
+                      <span className="contained-multi-select-item-label">{displayLabel}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

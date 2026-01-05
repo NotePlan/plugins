@@ -360,3 +360,79 @@
     width: 100%;
   }
 }
+
+/* AI Analysis Error Warning Styles */
+.form-ai-analysis-error {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 1rem;
+  margin: 0;
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  font-size: 0.9rem;
+  max-height: 40vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.form-ai-analysis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  gap: 1rem;
+}
+
+.form-ai-analysis-title {
+  font-weight: bold;
+  font-size: 1rem;
+  flex: 1;
+  word-wrap: break-word;
+}
+
+.form-ai-analysis-close {
+  background: transparent;
+  border: none;
+  color: #856404;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0 0.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.form-ai-analysis-close:hover {
+  color: #856404;
+  opacity: 0.7;
+}
+
+.form-ai-analysis-content {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.form-ai-analysis-content * {
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.form-ai-analysis-content pre,
+.form-ai-analysis-content code {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}

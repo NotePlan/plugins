@@ -30,6 +30,8 @@ export type DropdownSelectChooserProps = {
   width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '300px'). Overrides default width even in compact mode.
   showIndicatorOptionProp?: string, // Property name to determine if an indicator should be shown
   showValue?: boolean, // If true, display the selected value below the input
+  allowCreate?: boolean, // If true, allow creating new items by typing and pressing Enter (default: false)
+  onCreate?: (newValue: string) => Promise<void> | void, // Callback when creating a new item
 }
 
 /**
@@ -56,6 +58,8 @@ export function DropdownSelectChooser({
   width,
   showIndicatorOptionProp,
   showValue = false,
+  allowCreate = false,
+  onCreate,
 }: DropdownSelectChooserProps): React$Node {
   // Normalize options to DropdownOption format
   const normalizedOptions: Array<DropdownOption> = useMemo(() => {
@@ -79,8 +83,23 @@ export function DropdownSelectChooser({
     getOptionText: (option: DropdownOption) => option.label,
     getOptionTitle: (option: DropdownOption) => option.label,
     truncateDisplay: truncateText,
-    onSelect: (option: DropdownOption) => {
-      onChange(option.value)
+    onSelect: (option: DropdownOption | { __manualEntry__: boolean, value: string, display: string }): void => {
+      // Handle manual entry (when allowCreate is true and user types a new value)
+      if ((option: any).__manualEntry__ && allowCreate && onCreate) {
+        const newValue = (option: any).value
+        // Call onCreate asynchronously, but don't wait for it (onSelect should be synchronous)
+        const createPromise = onCreate(newValue)
+        if (createPromise && typeof createPromise.then === 'function') {
+          createPromise.catch((error) => {
+            logDebug('DropdownSelectChooser', `Error creating new item: ${error.message}`)
+          })
+        }
+        onChange(newValue)
+      } else {
+        // Normal selection from existing options
+        const dropdownOption: DropdownOption = (option: any)
+        onChange(dropdownOption.value)
+      }
     },
     emptyMessageNoItems: 'No options available',
     emptyMessageNoMatch: 'No options match your search',
@@ -92,6 +111,13 @@ export function DropdownSelectChooser({
     maxResults: 25,
     inputMaxLength: 60,
     dropdownMaxLength: 80,
+    allowManualEntry: allowCreate, // Enable manual entry if allowCreate is true
+    isManualEntry: allowCreate
+      ? (value: string, items: Array<DropdownOption>) => {
+          // A value is a manual entry if it's not in the items list
+          return !items.some((item) => item.value === value || item.label === value)
+        }
+      : undefined,
     getOptionIcon: showIndicatorOptionProp
       ? (option: DropdownOption) => {
           const showIndicator = option[showIndicatorOptionProp] === true

@@ -80,7 +80,20 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
         }
         const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, JSON.stringify(formValues)]
         clo(argumentsToSend, `handleSubmitButtonClick: Using form-processor, calling templateRunner with arguments`)
-        await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
+        const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
+        logDebug(pluginJson, `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(templateRunnerResult?.includes?.('==**Templating Error Found**') || false)}`)
+        // Check if result contains AI analysis (error message from template rendering)
+        if (templateRunnerResult && typeof templateRunnerResult === 'string' && templateRunnerResult.includes('==**Templating Error Found**')) {
+          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
+          // Store AI analysis result in reactWindowData so it can be passed back to React window
+          if (!reactWindowData.pluginData) {
+            reactWindowData.pluginData = {}
+          }
+          ;(reactWindowData.pluginData: any).aiAnalysisResult = templateRunnerResult
+          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
+        } else {
+          logDebug(pluginJson, `handleSubmitButtonClick: No AI analysis result detected in templateRunner result`)
+        }
       } else if (method === 'write-existing') {
         // Option A: Write to Existing File
         const { getNoteTitled, location, writeUnderHeading, createMissingHeading } = data
@@ -154,7 +167,20 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
         }
 
         clo(templateRunnerArgs, `handleSubmitButtonClick: Using write-existing, calling templateRunner with args`)
-        await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
+        const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
+        logDebug(pluginJson, `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(templateRunnerResult?.includes?.('==**Templating Error Found**') || false)}`)
+        // Check if result contains AI analysis (error message from template rendering)
+        if (templateRunnerResult && typeof templateRunnerResult === 'string' && templateRunnerResult.includes('==**Templating Error Found**')) {
+          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
+          // Store AI analysis result in reactWindowData so it can be passed back to React window
+          if (!reactWindowData.pluginData) {
+            reactWindowData.pluginData = {}
+          }
+          ;(reactWindowData.pluginData: any).aiAnalysisResult = templateRunnerResult
+          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
+        } else {
+          logDebug(pluginJson, `handleSubmitButtonClick: No AI analysis result detected in templateRunner result`)
+        }
       } else if (method === 'run-js-only') {
         // Option D: Run JS Only (no note creation)
         // Get TemplateJS blocks from form fields (templatejs-block type)
@@ -196,6 +222,21 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
         try {
           logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: About to execute JavaScript with form values: ${JSON.stringify(formValuesForRendering)}`)
           const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [finalTemplateBody, formValuesForRendering])
+          logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: render result type=${typeof result}, length=${result?.length || 0}, includes AI marker=${String(result?.includes?.('==**Templating Error Found**') || false)}`)
+          
+          // Check if result contains AI analysis (error message from template rendering)
+          if (result && typeof result === 'string' && result.includes('==**Templating Error Found**')) {
+            logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
+            // Store AI analysis result in reactWindowData so it can be passed back to React window
+            if (!reactWindowData.pluginData) {
+              reactWindowData.pluginData = {}
+            }
+            ;(reactWindowData.pluginData: any).aiAnalysisResult = result
+            logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
+          } else {
+            logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: No AI analysis result detected in render result`)
+          }
+          
           logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: JavaScript executed successfully, result length: ${result?.length || 0} chars`)
           // Result is typically empty for JS-only execution (no output expected, just side effects like creating folders)
           // Note: If folders aren't being created, check that the JavaScript code uses the correct folder paths
@@ -274,7 +315,20 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
         templateRunnerArgs.folder = folderPath
 
         clo(templateRunnerArgs, `handleSubmitButtonClick: Using create-new, calling templateRunner with args`)
-        await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
+        const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
+        logDebug(pluginJson, `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(templateRunnerResult?.includes?.('==**Templating Error Found**') || false)}`)
+        // Check if result contains AI analysis (error message from template rendering)
+        if (templateRunnerResult && typeof templateRunnerResult === 'string' && templateRunnerResult.includes('==**Templating Error Found**')) {
+          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
+          // Store AI analysis result in reactWindowData so it can be passed back to React window
+          if (!reactWindowData.pluginData) {
+            reactWindowData.pluginData = {}
+          }
+          ;(reactWindowData.pluginData: any).aiAnalysisResult = templateRunnerResult
+          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
+        } else {
+          logDebug(pluginJson, `handleSubmitButtonClick: No AI analysis result detected in templateRunner result`)
+        }
       } else {
         logError(pluginJson, `handleSubmitButtonClick: Unknown processing method: ${method}`)
         await showMessage(`Unknown processing method: ${method}`)
@@ -286,5 +340,6 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
   } else {
     logDebug(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
   }
+  logDebug(pluginJson, `handleSubmitButtonClick: Returning reactWindowData, has aiAnalysisResult=${String(!!reactWindowData?.pluginData?.aiAnalysisResult)}, aiAnalysisResult length=${reactWindowData?.pluginData?.aiAnalysisResult?.length || 0}`)
   return reactWindowData
 }

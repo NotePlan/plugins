@@ -1003,13 +1003,13 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
     Object.keys(newAttributes).forEach((key: string) => {
       const value = newAttributes[key]
       logDebug('updateFrontMatterVars newAttributes', `key: ${key}, value: ${value}`)
-      
-      // Handle null/undefined - skip them (they won't be in normalizedNewAttributes, 
+
+      // Handle null/undefined - skip them (they won't be in normalizedNewAttributes,
       // so if deleteMissingAttributes is true, they will be deleted)
       if (value === null || value === undefined) {
         return // Skip this key - allows deletion when deleteMissingAttributes is true
       }
-      
+
       let normalizedValue: string
       if (typeof value === 'object') {
         normalizedValue = JSON.stringify(value)
@@ -1021,7 +1021,7 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
         // quoteText will handle empty strings correctly (returns '' without quotes)
         normalizedValue = quoteText(trimmedValue)
       }
-      
+
       // $FlowIgnore
       normalizedNewAttributes[key] = normalizedValue
     })
@@ -1276,9 +1276,16 @@ export async function getValuesForFrontmatterTag(
     // Get all notes with frontmatter
     const notesWithFrontmatter = getNotesWithFrontmatter(noteType, folderString, fullPathMatch)
 
+    // Filter out notes from Templates folder
+    const filteredNotes = notesWithFrontmatter.filter((note) => {
+      const filename = note.filename || ''
+      // Exclude notes from src/templates/ folder
+      return !filename.includes('@Templates/')
+    })
+
     // Extract all unique frontmatter keys from these notes
     const allKeys: Set<string> = new Set()
-    notesWithFrontmatter.forEach((note) => {
+    filteredNotes.forEach((note) => {
       if (note.frontmatterAttributes) {
         Object.keys(note.frontmatterAttributes).forEach((key) => {
           allKeys.add(key)
@@ -1325,10 +1332,17 @@ export async function getValuesForFrontmatterTag(
   // Get all notes with frontmatter
   const notes = getNotesWithFrontmatter(noteType, folderString, fullPathMatch)
 
+  // Filter out notes from src/templates/ folder
+  const filteredNotes = notes.filter((note) => {
+    const filename = note.filename || ''
+    // Exclude notes from src/templates/ folder
+    return !filename.includes('src/templates/')
+  })
+
   // Create a set to store unique values
   const uniqueValuesSet: Set<any> = new Set()
 
-  notes.forEach((note) => {
+  filteredNotes.forEach((note) => {
     if (!note.frontmatterAttributes) return
 
     // If using regex, find all matching keys

@@ -36,6 +36,10 @@ type ButtonGroupProps = {
 }
 
 export const ButtonGroup = ({ options, selectedValue, disabled, onClick, vertical }: ButtonGroupProps): React$Node => {
+  // If a value is selected, ignore isDefault flags - only show selected state
+  // Default styling should only appear when no selection has been made
+  const hasSelection = selectedValue != null && selectedValue !== ''
+  
   return (
     <div className={`ui-button-group ${vertical ? 'vertical' : 'horizontal'}`}>
       {options.map((option, idx) => (
@@ -43,7 +47,7 @@ export const ButtonGroup = ({ options, selectedValue, disabled, onClick, vertica
           key={`btn-group-${idx}`}
           label={option.label}
           value={option.value}
-          isDefault={option.isDefault}
+          isDefault={hasSelection ? false : option.isDefault} // Ignore default if user has made a selection
           isSelected={selectedValue === option.value}
           disabled={disabled}
           onClick={onClick}

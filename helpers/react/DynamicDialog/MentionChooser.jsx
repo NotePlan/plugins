@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import ContainedMultiSelectChooser from './ContainedMultiSelectChooser.jsx'
+import { DropdownSelectChooser, type DropdownOption } from './DropdownSelectChooser.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import './MentionChooser.css'
 
@@ -21,7 +22,12 @@ export type MentionChooserProps = {
   includePattern?: string, // Regex pattern to include mentions
   excludePattern?: string, // Regex pattern to exclude mentions
   maxHeight?: string, // Max height for scrollable list (default: '200px')
+  maxRows?: number, // Max number of result rows to show (overrides maxHeight if provided)
+  width?: string, // Custom width for the entire control (e.g., '300px', '80%')
+  height?: string, // Custom height for the entire control (e.g., '400px')
   allowCreate?: boolean, // If true, show "+New" button to create new mentions (default: true)
+  singleValue?: boolean, // If true, allow selecting only one value (no checkboxes, returns single value) (default: false)
+  renderAsDropdown?: boolean, // If true and singleValue is true, render as dropdown-select instead of filterable chooser (default: false)
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request data from plugin
 }
 
@@ -43,7 +49,12 @@ export function MentionChooser({
   includePattern = '',
   excludePattern = '',
   maxHeight = '200px',
+  maxRows,
+  width,
+  height,
   allowCreate = true,
+  singleValue = false,
+  renderAsDropdown = false,
   requestFromPlugin,
 }: MentionChooserProps): React$Node {
   const [mentions, setMentions] = useState<Array<string>>([])
@@ -119,6 +130,35 @@ export function MentionChooser({
     [],
   )
 
+  // If renderAsDropdown is true and singleValue is true, render as dropdown
+  if (renderAsDropdown && singleValue) {
+    // Convert mentions to dropdown options
+    const dropdownOptions: Array<string | DropdownOption> = mentions.map((mention: string): DropdownOption => ({
+      label: getItemDisplayLabel(mention),
+      value: getItemDisplayLabel(mention),
+    }))
+    // Get current value (remove @ prefix if present for matching)
+    const currentValue = typeof value === 'string' ? value : Array.isArray(value) && value.length > 0 ? value[0] : ''
+    return (
+      <div className="mention-chooser-wrapper" data-field-type="mention-chooser">
+        <DropdownSelectChooser
+          label={label}
+          value={currentValue}
+          options={dropdownOptions}
+          onChange={(selectedValue: string) => {
+            onChange(selectedValue)
+          }}
+          disabled={disabled || loading}
+          compactDisplay={compactDisplay}
+          placeholder={loading ? 'Loading mentions...' : placeholder}
+          width={width}
+          allowCreate={allowCreate}
+          onCreate={handleCreateMention}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="mention-chooser-wrapper" data-field-type="mention-chooser">
       <ContainedMultiSelectChooser
@@ -135,10 +175,14 @@ export function MentionChooser({
         includePattern={includePattern}
         excludePattern={excludePattern}
         maxHeight={maxHeight}
+        maxRows={maxRows}
+        width={width}
+        height={height}
         emptyMessageNoItems="No mentions available"
         emptyMessageNoMatch="No mentions match"
         fieldType="mention-chooser"
         allowCreate={allowCreate}
+        singleValue={singleValue}
         onCreate={handleCreateMention}
       />
     </div>

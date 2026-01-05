@@ -54,6 +54,7 @@ export type TSettingItemType =
   | 'event-chooser' // Calendar event chooser
   | 'tag-chooser' // Hashtag multi-select chooser
   | 'mention-chooser' // Mention multi-select chooser
+  | 'frontmatter-key-chooser' // Frontmatter key value multi-select chooser
   | 'form-state-viewer' // Read-only field that displays current form state as JSON
   | 'textarea' // Expandable textarea field
   | 'templatejs-block' // TemplateJS code block that executes JavaScript
@@ -61,8 +62,6 @@ export type TSettingItemType =
   | 'markdown-preview' // Non-editable markdown preview (static text, note by filename/title, or note from another field)
   | 'autosave' // Autosave field that saves form state periodically
   | 'table-of-contents' // Table of contents that links to headings in the form
-  | 'tag-chooser' // Hashtag multi-select chooser
-  | 'mention-chooser' // Mention multi-select chooser
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -153,7 +152,19 @@ export type TSettingItem = {
   includePattern?: string, // for tag-chooser and mention-chooser, regex pattern to include items
   excludePattern?: string, // for tag-chooser and mention-chooser, regex pattern to exclude items
   maxHeight?: string, // for tag-chooser and mention-chooser, max height for scrollable list (default: '200px')
+  maxRows?: number, // for tag-chooser, mention-chooser, and frontmatter-key-chooser, max number of result rows to show (overrides maxHeight if provided)
+  width?: string, // for tag-chooser, mention-chooser, and frontmatter-key-chooser, custom width for the entire control (e.g., '300px', '80%')
+  height?: string, // for tag-chooser, mention-chooser, and frontmatter-key-chooser, custom height for the entire control (e.g., '400px')
   allowCreate?: boolean, // for tag-chooser and mention-chooser, if true, show "+New" button to create new items (default: true)
+  singleValue?: boolean, // for tag-chooser, mention-chooser, and frontmatter-key-chooser, if true, allow selecting only one value (no checkboxes, returns single value) (default: false)
+  renderAsDropdown?: boolean, // for tag-chooser, mention-chooser, and frontmatter-key-chooser, if true and singleValue is true, render as dropdown-select instead of filterable chooser (default: false)
+  // frontmatter-key-chooser options
+  frontmatterKey?: string, // for frontmatter-key-chooser, the frontmatter key to get values for (can be fixed or from sourceKeyKey)
+  sourceKeyKey?: string, // Value dependency: for frontmatter-key-chooser, key of another field to get the frontmatter key from dynamically
+  noteType?: 'Notes' | 'Calendar' | 'All', // for frontmatter-key-chooser, type of notes to search (default: 'All')
+  caseSensitive?: boolean, // for frontmatter-key-chooser, whether to perform case-sensitive search (default: false)
+  folderString?: string, // for frontmatter-key-chooser, folder to limit search to (optional)
+  fullPathMatch?: boolean, // for frontmatter-key-chooser, whether to match full path (default: false)
   // multi-select options
   multiSelectItems?: Array<any>, // for multi-select, items for selection
   multiSelectGetLabel?: (item: any) => string, // for multi-select, function to get label

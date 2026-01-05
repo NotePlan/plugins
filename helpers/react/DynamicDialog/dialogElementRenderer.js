@@ -24,6 +24,7 @@ import EventChooser from './EventChooser.jsx'
 import MultiSelectChooser from './MultiSelectChooser.jsx'
 import TagChooser from './TagChooser.jsx'
 import MentionChooser from './MentionChooser.jsx'
+import FrontmatterKeyChooser from './FrontmatterKeyChooser.jsx'
 import { ExpandableTextarea } from './ExpandableTextarea.jsx'
 import { TemplateJSBlock } from './TemplateJSBlock.jsx'
 import { MarkdownPreview } from './MarkdownPreview.jsx'
@@ -143,7 +144,9 @@ export function renderItem({
             compactDisplay={item.compactDisplay || false}
             className={indent ? 'indent' : ''}
             required={item.required || false}
-            validationType={item.validationType || null}
+            validationType={item.validationType || undefined}
+            debounceOnChange={(item: any).debounceOnChange !== false} // Default to true, allow opt-out
+            debounceMs={(item: any).debounceMs || 500}
           />
         )
       case 'input-readonly':
@@ -204,6 +207,8 @@ export function renderItem({
             showSaveButton={showSaveButton}
             compactDisplay={item.compactDisplay || false}
             step={item.step} // Pass the step prop
+            debounceOnChange={(item: any).debounceOnChange !== false} // Default to true, allow opt-out
+            debounceMs={(item: any).debounceMs || 500}
           />
         )
       case 'combo': {
@@ -564,12 +569,16 @@ export function renderItem({
         }
 
         const handleNoteChange = (noteTitle: string, noteFilename: string) => {
+          logDebug('dialogElementRenderer', `note-chooser: handleNoteChange called with noteTitle="${noteTitle}", noteFilename="${noteFilename}", item.key="${item.key || 'undefined'}"`)
           if (item.key) {
             // Store both title and filename - using filename as the value for consistency
             // but you could also store as an object: { title: noteTitle, filename: noteFilename }
+            logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${item.key}", value="${noteFilename}"`)
             handleFieldChange(item.key, noteFilename)
             // If you want to store title separately, you could use a compound key like `${item.key}Title`
             // For now, we'll store filename as the value
+          } else {
+            logError('dialogElementRenderer', `note-chooser: handleNoteChange called but item.key is undefined`)
           }
         }
 
@@ -616,9 +625,13 @@ export function renderItem({
         let noteFilename = null
         if (sourceNoteKey && updatedSettings && typeof updatedSettings === 'object') {
           const noteValue = updatedSettings[sourceNoteKey]
-          if (noteValue && typeof noteValue === 'string') {
-            noteFilename = noteValue
+          // Check if noteValue is a non-empty string (empty string means no note selected)
+          if (noteValue != null && typeof noteValue === 'string' && noteValue.trim() !== '') {
+            noteFilename = noteValue.trim()
           }
+          logDebug('dialogElementRenderer', `heading-chooser: sourceNoteKey="${String(sourceNoteKey)}", noteValue="${String(noteValue || '')}", noteFilename="${String(noteFilename || 'null')}", hasRequestFromPlugin=${!!requestFromPlugin}`)
+        } else {
+          logDebug('dialogElementRenderer', `heading-chooser: sourceNoteKey="${String(sourceNoteKey || 'undefined')}", updatedSettings=${!!updatedSettings}, noteFilename=null`)
         }
 
         const handleHeadingChange = (heading: string) => {
@@ -865,7 +878,12 @@ export function renderItem({
         const includePattern = (item: any).includePattern || ''
         const excludePattern = (item: any).excludePattern || ''
         const maxHeight = (item: any).maxHeight || '200px'
+        const maxRows = (item: any).maxRows
+        const width = (item: any).width
+        const height = (item: any).height
         const allowCreate = (item: any).allowCreate ?? true
+        const singleValue = (item: any).singleValue ?? false
+        const renderAsDropdown = (item: any).renderAsDropdown ?? false
 
         const handleTagChange = (tags: string | Array<string>) => {
           if (item.key) {
@@ -888,7 +906,12 @@ export function renderItem({
               includePattern={includePattern}
               excludePattern={excludePattern}
               maxHeight={maxHeight}
+              maxRows={maxRows}
+              width={width}
+              height={height}
               allowCreate={allowCreate}
+              singleValue={singleValue}
+              renderAsDropdown={renderAsDropdown}
               requestFromPlugin={requestFromPlugin}
             />
           </div>
@@ -903,7 +926,12 @@ export function renderItem({
         const includePattern = (item: any).includePattern || ''
         const excludePattern = (item: any).excludePattern || ''
         const maxHeight = (item: any).maxHeight || '200px'
+        const maxRows = (item: any).maxRows
+        const width = (item: any).width
+        const height = (item: any).height
         const allowCreate = (item: any).allowCreate ?? true
+        const singleValue = (item: any).singleValue ?? false
+        const renderAsDropdown = (item: any).renderAsDropdown ?? false
 
         const handleMentionChange = (mentions: string | Array<string>) => {
           if (item.key) {
@@ -926,7 +954,81 @@ export function renderItem({
               includePattern={includePattern}
               excludePattern={excludePattern}
               maxHeight={maxHeight}
+              maxRows={maxRows}
+              width={width}
+              height={height}
               allowCreate={allowCreate}
+              singleValue={singleValue}
+              renderAsDropdown={renderAsDropdown}
+              requestFromPlugin={requestFromPlugin}
+            />
+          </div>
+        )
+      }
+      case 'frontmatter-key-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        const returnAsArray = (item: any).returnAsArray ?? false
+        const defaultChecked = (item: any).defaultChecked ?? false
+        const includePattern = (item: any).includePattern || ''
+        const excludePattern = (item: any).excludePattern || ''
+        const maxHeight = (item: any).maxHeight || '200px'
+        const maxRows = (item: any).maxRows
+        const width = (item: any).width
+        const height = (item: any).height
+        const allowCreate = (item: any).allowCreate ?? true
+        const singleValue = (item: any).singleValue ?? false
+        const renderAsDropdown = (item: any).renderAsDropdown ?? false
+        // Support both old (dependsOnKeyKey) and new (sourceKeyKey) property names for backward compatibility
+        const sourceKeyKey = (item: any).sourceKeyKey ?? (item: any).dependsOnKeyKey
+        const noteType = (item: any).noteType || 'All'
+        const caseSensitive = (item: any).caseSensitive ?? false
+        const folderString = (item: any).folderString || ''
+        const fullPathMatch = (item: any).fullPathMatch ?? false
+
+        // Get frontmatter key from fixed value or from sourceKeyKey field if specified
+        let frontmatterKey = (item: any).frontmatterKey || ''
+        if (sourceKeyKey && updatedSettings && typeof updatedSettings === 'object') {
+          const keyValue = updatedSettings[sourceKeyKey]
+          if (keyValue && typeof keyValue === 'string') {
+            frontmatterKey = keyValue
+            logDebug('dialogElementRenderer', `frontmatter-key-chooser: got key from ${sourceKeyKey}: "${frontmatterKey}"`)
+          }
+        }
+
+        const handleValueChange = (values: string | Array<string>) => {
+          if (item.key) {
+            handleFieldChange(item.key, values)
+          }
+        }
+
+        return (
+          <div data-field-type="frontmatter-key-chooser">
+            <FrontmatterKeyChooser
+              key={`frontmatter-key-chooser${index}`}
+              label={label}
+              value={currentValue}
+              onChange={handleValueChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={item.placeholder || 'Type to search values...'}
+              returnAsArray={returnAsArray}
+              defaultChecked={defaultChecked}
+              includePattern={includePattern}
+              excludePattern={excludePattern}
+              maxHeight={maxHeight}
+              maxRows={maxRows}
+              width={width}
+              height={height}
+              allowCreate={allowCreate}
+              singleValue={singleValue}
+              renderAsDropdown={renderAsDropdown}
+              frontmatterKey={frontmatterKey}
+              noteType={noteType}
+              caseSensitive={caseSensitive}
+              folderString={folderString}
+              fullPathMatch={fullPathMatch}
               requestFromPlugin={requestFromPlugin}
             />
           </div>

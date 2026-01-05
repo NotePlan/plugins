@@ -1,0 +1,8 @@
+/* FrontmatterKeyChooser Wrapper */
+.frontmatter-key-chooser-wrapper {
+  margin-bottom: 0;
+}
+
+/* Import and reuse styles from ContainedMultiSelectChooser */
+@import './ContainedMultiSelectChooser.css';
+

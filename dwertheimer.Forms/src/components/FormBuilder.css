@@ -349,6 +349,58 @@
   max-height: 100%; /* Constrain to parent height */
 }
 
+/* Warning message when preview is scaled - shown in Form Builder */
+.form-preview-scaled-warning {
+  position: absolute;
+  bottom: 2.5rem; /* Position above the dimensions display */
+  left: 0.5rem;
+  right: 0.5rem;
+  background: #fff3cd; /* Yellow warning background */
+  color: #856404; /* Dark yellow text */
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  border: 1px solid #ffc107; /* Yellow border */
+  z-index: 5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Dimension display at bottom right of preview container */
+.form-preview-dimensions {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 1.5rem;
+  font-size: 0.75rem;
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.form-preview-dimensions-text {
+  pointer-events: none;
+}
+
+.form-preview-dimensions-link {
+  pointer-events: auto;
+  background: none;
+  border: none;
+  color: var(--tint-color, #dc8a78);
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.75rem;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+}
+
+.form-preview-dimensions-link:hover {
+  color: var(--tint-color, #dc8a78);
+  opacity: 0.8;
+}
+
 /* Override DynamicDialog positioning when in preview pane */
 .form-preview-window-content .dynamic-dialog {
   position: relative !important;

@@ -22,6 +22,8 @@ type InputBoxProps = {
   step?: number, // Add step prop
   required?: boolean,
   validationType?: 'email' | 'number' | 'date-interval',
+  debounceOnChange?: boolean, // If true, debounce onChange callback (useful when this input provides a key for another field)
+  debounceMs?: number, // Debounce delay in milliseconds (default: 500ms)
 }
 
 const InputBox = ({
@@ -39,6 +41,8 @@ const InputBox = ({
   step,
   required,
   validationType,
+  debounceOnChange = true, // Default to true: debounce onChange to prevent excessive updates when input provides a key for another field
+  debounceMs = 500,
 }: InputBoxProps): React$Node => {
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
@@ -46,6 +50,7 @@ const InputBox = ({
   const isNumberType = inputType === 'number'
   const inputRef = useRef<?HTMLInputElement>(null) // Create a ref for the input element
   const [validationError, setValidationError] = useState<string | null>(null) // Add state for validation error message
+  const debounceTimeoutRef = useRef<?TimeoutID>(null) // Track debounce timeout
 
   const validateInput = (value: string): string | null => {
     if (required && value.trim() === '') {
@@ -84,15 +89,52 @@ const InputBox = ({
 
   const handleInputChange = (e: any, firstRun: boolean = false) => {
     const newValue = e.target.value
-    setInputValue(newValue)
-    if (!firstRun) onChange(e)
+    setInputValue(newValue) // Update local state immediately for responsive UI
+    
+    // Validate immediately
     if (required || validationType) {
       const error = validateInput(newValue)
       setValidationError(error)
     } else {
       setValidationError(null)
     }
+
+    // Handle onChange: debounce if enabled, otherwise call immediately
+    if (!firstRun) {
+      if (debounceOnChange) {
+        // Clear existing timeout
+        if (debounceTimeoutRef.current) {
+          clearTimeout(debounceTimeoutRef.current)
+        }
+        // Set new debounced timeout
+        // CRITICAL: Capture the value immediately because the event object will be nullified
+        // by React after the handler completes. Create a synthetic event object with the value.
+        const capturedValue = newValue
+        debounceTimeoutRef.current = setTimeout(() => {
+          // Create a synthetic event object with the captured value
+          // This ensures e.currentTarget.value works even after the original event is nullified
+          const syntheticEvent = {
+            target: { value: capturedValue },
+            currentTarget: { value: capturedValue },
+          }
+          onChange(syntheticEvent)
+          debounceTimeoutRef.current = null
+        }, debounceMs)
+      } else {
+        // No debouncing, call immediately
+        onChange(e)
+      }
+    }
   }
+
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleSaveClick = () => {
     logDebug('InputBox', `handleSaveClick: inputValue=${inputValue}`)

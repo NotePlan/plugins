@@ -24,6 +24,9 @@
   accent-color: var(--tint-color, #dc8a78) !important;
   /* Also set color-scheme to ensure accent-color is respected */
   color-scheme: light;
+  /* CRITICAL: Safari requires native appearance for calendar icon to show */
+  /* Do NOT set -webkit-appearance: none as that removes the calendar icon */
+  /* The default appearance for type="date" inputs is what Safari needs */
 }
 
 /* Use tint-color for focus state border */
@@ -54,14 +57,26 @@
 }
 
 /* Safari-specific: ensure calendar icon is visible */
-/* Note: Safari's native calendar icon may not respect opacity/filter changes */
-/* Safari shows the calendar icon automatically, but ensure it's not being hidden */
-/* Don't set -webkit-appearance: none on the input as that removes the calendar icon */
+/* CRITICAL: Safari requires the input to maintain its native date input appearance */
+/* Do NOT set -webkit-appearance: none on the input as that removes the calendar icon */
+/* Safari automatically shows the calendar icon for type="date" inputs with default appearance */
 @supports (-webkit-appearance: none) {
-  /* Only target the indicator, not the input itself */
-  /* Use tint-color for Safari calendar picker indicator at lower opacity */
+  /* Ensure the input maintains its native date input appearance in Safari */
+  /* The default appearance for type="date" is what Safari needs - don't override it */
+  .generic-date-picker-input {
+    /* Only reset if something else set appearance: none */
+    /* But then restore the native date input appearance */
+    -webkit-appearance: none !important; /* First reset any inherited appearance: none */
+    appearance: none !important; /* First reset any inherited appearance: none */
+    /* Then explicitly restore the native date input appearance */
+    /* Safari date inputs need their default appearance to show the calendar icon */
+    -webkit-appearance: auto !important; /* Restore native appearance */
+    appearance: auto !important; /* Restore native appearance */
+  }
+  
+  /* Target the calendar picker indicator - ensure it's visible */
   .generic-date-picker-input::-webkit-calendar-picker-indicator {
-    opacity: 0.6 !important;
+    opacity: 1 !important; /* Safari may need full opacity to show icon */
     visibility: visible !important;
     display: inline-block !important;
     -webkit-appearance: calendar-picker-indicator !important;
@@ -69,24 +84,21 @@
     cursor: pointer;
     width: 18px !important;
     height: 18px !important;
-    /* Apply tint-color via filter - this approximates #dc8a78 (default tint-color) */
-    filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(330deg) brightness(104%) contrast(86%) !important;
+    /* Don't apply filter in Safari as it may hide the icon */
     /* Safari positions the icon automatically on the right */
-    /* Note: Native Safari UI elements may not be fully stylable */
   }
   
-  /* Use tint-color when input is focused in Safari */
+  /* When input is focused in Safari */
   .generic-date-picker-input:focus::-webkit-calendar-picker-indicator {
-    opacity: 0.8 !important;
-    filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(330deg) brightness(104%) contrast(86%) !important;
+    opacity: 1 !important; /* Safari may need full opacity to show icon */
   }
 }
 
 /* Clear button styling - positioned inside the input field on the right */
 .generic-date-picker-clear-button {
   position: absolute;
-  right: 35px;
-  top: 50%;
+  right: 10px;
+  top: 53%;
   transform: translateY(-50%);
   background: transparent;
   border: none;

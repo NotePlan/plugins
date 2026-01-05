@@ -12,6 +12,7 @@ import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
 import { logError, logDebug, JSP } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 import NPTemplating from 'NPTemplating'
+import { isDoubleEncoded, fixDoubleEncoded } from './utils/encodingFix.js'
 
 /**
  * Search DataStore.projectNotes for form templates (type: template-form)
@@ -110,11 +111,27 @@ export async function saveFormFieldsToTemplate(templateFilename: string, fields:
  */
 export async function saveTemplateBodyToTemplate(templateFilename: string, templateBody: string): Promise<void> {
   try {
+    const cleanedBody = templateBody || ''
+    
+    // Log encoding info for debugging
+    if (cleanedBody) {
+      const hasUnicode = /[^\x00-\x7F]/.test(cleanedBody)
+      if (hasUnicode) {
+        logDebug(pluginJson, `saveTemplateBodyToTemplate: Saving content with Unicode characters (length=${cleanedBody.length})`)
+        // Check for common Unicode characters that might get corrupted
+        const hasEmDash = cleanedBody.includes('—')
+        const hasEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(cleanedBody)
+        if (hasEmDash || hasEmoji) {
+          logDebug(pluginJson, `saveTemplateBodyToTemplate: Content contains em-dash or emoji - monitoring for encoding issues`)
+        }
+      }
+    }
+    
     // Use generalized helper function (no formatting needed for templateBody, it's already a string)
     await saveCodeBlockToNote(
       templateFilename,
       templateBodyCodeBlockType,
-      templateBody || '',
+      cleanedBody,
       pluginJson.id,
       null, // No format function needed
       false, // Don't show error messages to user (silent operation)
@@ -133,7 +150,63 @@ export async function loadTemplateBodyFromTemplate(templateNoteOrFilename: CoreN
   try {
     // Use generalized helper function (no parsing needed for templateBody, it's already a string)
     const content = await loadCodeBlockFromNote<string>(templateNoteOrFilename, templateBodyCodeBlockType, pluginJson.id, null)
-    return content || ''
+    const loadedContent = content || ''
+    
+    // Check for and fix double-encoded UTF-8 issues
+    // This can happen if content was saved with wrong encoding
+    if (loadedContent) {
+      logDebug(pluginJson, `loadTemplateBodyFromTemplate: Loaded content (length=${loadedContent.length})`)
+      
+      // Check for specific corruption patterns we know exist in the file
+      // Check both the literal characters and their character codes
+      const hasKnownCorruption = 
+        loadedContent.includes('ðŸ') || 
+        loadedContent.includes('ô€') || 
+        loadedContent.includes('ô»') ||
+        loadedContent.includes('ï¿¼') ||
+        loadedContent.includes(String.fromCharCode(0xF0, 0x9F)) || // ðŸ as bytes
+        loadedContent.includes(String.fromCharCode(0xF4, 0x8F)) || // ô€ as bytes  
+        loadedContent.includes(String.fromCharCode(0xEF, 0xBF, 0xBD)) // ï¿¼ as bytes (replacement character)
+      
+      if (hasKnownCorruption) {
+        logDebug(pluginJson, `loadTemplateBodyFromTemplate: Found known corruption patterns`)
+        // Log a sample of corrupted content for debugging
+        const sampleStart = loadedContent.indexOf('ðŸ') >= 0 ? loadedContent.indexOf('ðŸ') : 
+                           loadedContent.indexOf('ô€') >= 0 ? loadedContent.indexOf('ô€') :
+                           loadedContent.indexOf('ï¿¼') >= 0 ? loadedContent.indexOf('ï¿¼') : -1
+        if (sampleStart >= 0) {
+          const sample = loadedContent.substring(Math.max(0, sampleStart - 10), Math.min(loadedContent.length, sampleStart + 30))
+          logDebug(pluginJson, `loadTemplateBodyFromTemplate: Sample corrupted content: "${sample}"`)
+          // Log character codes
+          const charCodes = []
+          for (let i = Math.max(0, sampleStart - 5); i < Math.min(loadedContent.length, sampleStart + 10); i++) {
+            charCodes.push(`${loadedContent[i]}(${loadedContent.charCodeAt(i)})`)
+          }
+          logDebug(pluginJson, `loadTemplateBodyFromTemplate: Character codes: ${charCodes.join(', ')}`)
+        }
+      }
+      
+      if (isDoubleEncoded(loadedContent) || hasKnownCorruption) {
+        logDebug(pluginJson, `loadTemplateBodyFromTemplate: Detected double-encoded UTF-8, attempting fix`)
+        const fixed = fixDoubleEncoded(loadedContent)
+        if (fixed !== loadedContent) {
+          logDebug(pluginJson, `loadTemplateBodyFromTemplate: Fixed encoding issues (original length=${loadedContent.length}, fixed length=${fixed.length})`)
+          // Auto-save the fixed content to prevent future issues
+          // But only if we loaded from a filename (not a note object)
+          if (typeof templateNoteOrFilename === 'string') {
+            logDebug(pluginJson, `loadTemplateBodyFromTemplate: Auto-saving fixed content back to template`)
+            await saveTemplateBodyToTemplate(templateNoteOrFilename, fixed)
+          }
+          return fixed
+        } else {
+          logDebug(pluginJson, `loadTemplateBodyFromTemplate: Detected double-encoding but fix did not change content`)
+        }
+      } else {
+        logDebug(pluginJson, `loadTemplateBodyFromTemplate: No double-encoding detected`)
+      }
+    }
+    
+    return loadedContent
   } catch (error) {
     logError(pluginJson, `loadTemplateBodyFromTemplate error: ${JSP(error)}`)
     return ''

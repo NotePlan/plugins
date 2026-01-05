@@ -27,13 +27,93 @@ function generateHeadingId(label: string): string {
 /**
  * Scroll to a heading element by ID
  * Scrolls the .dynamic-dialog-content container, not the window
+ * Includes Safari/WebKit-specific handling and retry logic for timing issues
  */
 function scrollToHeading(headingId: string): void {
-  const element = document.getElementById(headingId)
+  // Try to find element by ID first
+  let element = document.getElementById(headingId)
+  
+  // If not found by ID, try to find by class and match text content
+  // This handles cases where IDs might not be set yet or have changed
   if (!element) {
-    logDebug('TableOfContents', `scrollToHeading: Could not find element with id "${headingId}"`)
+    const headingElements = document.querySelectorAll('.ui-heading')
+    for (const headingEl of headingElements) {
+      if (headingEl instanceof HTMLElement) {
+        // Check if this heading's ID or generated ID matches
+        const headingText = headingEl.textContent?.trim() || ''
+        const cleanHeadingText = headingText.replace(/[\u2191\u2193\u2190\u2192\u25B2\u25BC\u25C0\u25B6]/g, '').trim()
+        const generatedId = generateHeadingId(cleanHeadingText)
+        
+        // Check exact match, or match without counter suffix (e.g., "heading-1" matches "heading")
+        const idWithoutCounter = headingId.replace(/-\d+$/, '')
+        const generatedIdWithoutCounter = generatedId.replace(/-\d+$/, '')
+        
+        if (
+          headingEl.id === headingId ||
+          generatedId === headingId ||
+          headingEl.id === idWithoutCounter ||
+          generatedIdWithoutCounter === idWithoutCounter
+        ) {
+          element = headingEl
+          // Ensure the element has the expected ID
+          if (!element.id) {
+            element.id = headingId
+          }
+          break
+        }
+      }
+    }
+  }
+  
+  // If still not found, try a more aggressive search by partial ID match
+  // This handles cases where the ID format might differ slightly
+  if (!element) {
+    const idBase = headingId.replace(/-\d+$/, '') // Remove counter suffix if present
+    const headingElements = document.querySelectorAll('.ui-heading')
+    for (const headingEl of headingElements) {
+      if (headingEl instanceof HTMLElement) {
+        const headingText = headingEl.textContent?.trim() || ''
+        const cleanHeadingText = headingText.replace(/[\u2191\u2193\u2190\u2192\u25B2\u25BC\u25C0\u25B6]/g, '').trim()
+        const generatedId = generateHeadingId(cleanHeadingText)
+        const generatedIdBase = generatedId.replace(/-\d+$/, '')
+        
+        // Match if the base IDs match (ignoring counter suffixes)
+        if (headingEl.id && headingEl.id.replace(/-\d+$/, '') === idBase) {
+          element = headingEl
+          break
+        } else if (generatedIdBase === idBase) {
+          element = headingEl
+          // Set the ID for future lookups
+          if (!element.id) {
+            element.id = headingId
+          }
+          break
+        }
+      }
+    }
+  }
+  
+  // If still not found, try with a small delay (Safari timing issue)
+  if (!element) {
+    logDebug('TableOfContents', `scrollToHeading: Could not find element with id "${headingId}", retrying after delay`)
+    setTimeout(() => {
+      const retryElement = document.getElementById(headingId)
+      if (retryElement) {
+        scrollToHeadingElement(retryElement, headingId)
+      } else {
+        logDebug('TableOfContents', `scrollToHeading: Retry failed, could not find element with id "${headingId}"`)
+      }
+    }, 100)
     return
   }
+  
+  scrollToHeadingElement(element, headingId)
+}
+
+/**
+ * Helper function to actually perform the scroll to a heading element
+ */
+function scrollToHeadingElement(element: HTMLElement, headingId: string): void {
 
   // Find the scrolling container (.dynamic-dialog-content)
   const selectors = [
@@ -52,19 +132,44 @@ function scrollToHeading(headingId: string): void {
   }
 
   if (scrollContainer) {
-    // Calculate the position of the element relative to the scroll container
-    const containerRect = scrollContainer.getBoundingClientRect()
-    const elementRect = element.getBoundingClientRect()
-    const scrollTop = scrollContainer.scrollTop
-    const elementTop = elementRect.top - containerRect.top + scrollTop
+    // Use requestAnimationFrame for Safari compatibility
+    // Safari sometimes needs the DOM to settle before scrolling
+    requestAnimationFrame(() => {
+      // Calculate the position of the element relative to the scroll container
+      const containerRect = scrollContainer.getBoundingClientRect()
+      const elementRect = element.getBoundingClientRect()
+      const scrollTop = scrollContainer.scrollTop
+      const elementTop = elementRect.top - containerRect.top + scrollTop
 
-    // Scroll the container to show the element at the top
-    scrollContainer.scrollTo({ top: elementTop, behavior: 'smooth' })
-    logDebug('TableOfContents', `scrollToHeading: Scrolled to "${headingId}", scrollTop=${elementTop}`)
+      // Scroll the container to show the element at the top
+      // Safari sometimes needs scrollTop assignment instead of scrollTo
+      if (scrollContainer) {
+        // Try scrollTop assignment first (more reliable in Safari)
+        scrollContainer.scrollTop = elementTop
+        // Also try scrollTo for smooth scrolling if supported
+        if (typeof scrollContainer.scrollTo === 'function') {
+          try {
+            scrollContainer.scrollTo({ top: elementTop, behavior: 'smooth' })
+          } catch (e) {
+            // Fallback if scrollTo fails (some Safari versions)
+            scrollContainer.scrollTop = elementTop
+          }
+        }
+        logDebug('TableOfContents', `scrollToHeading: Scrolled to "${headingId}", scrollTop=${elementTop}`)
+      }
+    })
   } else {
     // Fallback: use scrollIntoView if we can't find the scroll container
     logDebug('TableOfContents', `scrollToHeading: Could not find scroll container, using scrollIntoView`)
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // Use requestAnimationFrame for Safari compatibility
+    requestAnimationFrame(() => {
+      try {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      } catch (e) {
+        // Fallback for Safari versions that don't support smooth behavior
+        element.scrollIntoView({ block: 'start' })
+      }
+    })
   }
 
   // Add a highlight effect
@@ -172,21 +277,20 @@ export function TableOfContents({ label, description, compactDisplay = false }: 
         }
 
         if (headingText) {
-          // Generate ID from heading text
-          let headingId = generateHeadingId(headingText)
-          // Ensure unique ID by appending index if needed
-          let uniqueId = headingId
-          let counter = 0
-          while (document.getElementById(uniqueId)) {
-            counter++
-            uniqueId = `${headingId}-${counter}`
-          }
-
-          // Set the ID on the heading element if it doesn't have one
-          if (!element.id) {
+          // Use existing ID if the element already has one (set by dialogElementRenderer)
+          // Otherwise generate ID from heading text
+          let uniqueId = element.id
+          if (!uniqueId) {
+            let headingId = generateHeadingId(headingText)
+            // Ensure unique ID by appending index if needed
+            uniqueId = headingId
+            let counter = 0
+            while (document.getElementById(uniqueId)) {
+              counter++
+              uniqueId = `${headingId}-${counter}`
+            }
+            // Set the ID on the heading element
             element.id = uniqueId
-          } else {
-            uniqueId = element.id
           }
 
           // Check if heading already has a scroll-to-top button

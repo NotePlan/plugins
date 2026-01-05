@@ -99,6 +99,13 @@
   cursor: not-allowed;
 }
 
+/* Single-value selected state - show selected value in input */
+.contained-multi-select-search-input.single-value-selected {
+  cursor: pointer;
+  background-color: var(--bg-alt-color, #e6e9ef);
+  font-weight: 500;
+}
+
 .contained-multi-select-clear-search {
   position: absolute;
   right: 0.5rem;
@@ -257,6 +264,22 @@
 .contained-multi-select-item:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Single-value mode: items are selectable options (no checkboxes) */
+.contained-multi-select-item.single-value {
+  padding-left: 0.75rem; /* Remove left padding since there's no checkbox */
+}
+
+.contained-multi-select-item.single-value.checked {
+  background-color: var(--tint-color, #dc8a78);
+  color: white;
+  font-weight: 500;
+}
+
+.contained-multi-select-item.single-value:focus {
+  outline: 2px solid var(--tint-color, #dc8a78);
+  outline-offset: -2px;
 }
 
 /* Checkbox */

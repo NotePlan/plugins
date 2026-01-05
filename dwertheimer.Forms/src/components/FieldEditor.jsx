@@ -1126,6 +1126,426 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             </>
           )}
 
+          {editedField.type === 'frontmatter-key-chooser' && (
+            <>
+              <div className="field-editor-row">
+                <label>Frontmatter Key (fixed value, optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { frontmatterKey?: string }).frontmatterKey || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).frontmatterKey = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., status, category, priority"
+                />
+                <div className="field-editor-help">
+                  Enter the frontmatter key name (e.g., &quot;status&quot;). Leave empty if using a source field below.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>Source Key Field (value dependency, optional):</label>
+                <select
+                  value={((editedField: any): { sourceKeyKey?: string }).sourceKeyKey || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).sourceKeyKey = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                >
+                  <option value="">None (use fixed key above)</option>
+                  {allFields
+                    .filter((f) => f.key && (f.type === 'input' || f.type === 'text') && f.key !== editedField.key)
+                    .map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label || f.key} ({f.key})
+                      </option>
+                    ))}
+                </select>
+                <div className="field-editor-help">
+                  If specified, the frontmatter key will be read from this field&apos;s value. Otherwise, use the fixed key above. This is a <strong>value dependency</strong> - the
+                  field needs the value from another field to function.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { returnAsArray?: boolean }).returnAsArray || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).returnAsArray = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Return as Array
+                </label>
+                <div className="field-editor-help">If checked, returns selected values as an array. Otherwise, returns as comma-separated string.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { defaultChecked?: boolean }).defaultChecked || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).defaultChecked = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Default Checked (all items)
+                </label>
+                <div className="field-editor-help">If checked, all items will be selected by default.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { allowCreate?: boolean }).allowCreate ?? true}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).allowCreate = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Allow Creating New Values
+                </label>
+                <div className="field-editor-help">If checked, users can create new frontmatter values that don&apos;t exist yet.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { singleValue?: boolean }).singleValue || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).singleValue = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Choose Single Value
+                </label>
+                <div className="field-editor-help">If checked, allows selecting only one value (no checkboxes, returns single value). Clicking an item or pressing Enter selects it immediately.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { renderAsDropdown?: boolean }).renderAsDropdown || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).renderAsDropdown = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Render as Dropdown (single value only)
+                </label>
+                <div className="field-editor-help">If checked and &quot;Choose Single Value&quot; is enabled, renders as a dropdown-select instead of a filterable chooser.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Max Result Rows:</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={((editedField: any): { maxRows?: number }).maxRows || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const value = parseFloat(e.target.value)
+                    if (e.target.value === '' || isNaN(value) || value <= 0) {
+                      delete (updated: any).maxRows
+                    } else {
+                      ;(updated: any).maxRows = value
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., 5 or 5.5"
+                  min="0.1"
+                />
+                <div className="field-editor-help">Limit the height to show only this many result rows (overrides Max Height if provided). Assumes ~40px per row. Decimal values allowed (e.g., 5.5 for finer control).</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Custom Width (optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { width?: string }).width || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const widthValue = e.target.value.trim()
+                    if (widthValue === '') {
+                      delete (updated: any).width
+                      setWidthError('')
+                    } else if (isValidCSSWidth(widthValue)) {
+                      ;(updated: any).width = widthValue
+                      setWidthError('')
+                    } else {
+                      setWidthError('Invalid CSS width value. Use px, %, em, rem, vw, vh, or calc()')
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., 300px, 80%, calc(100% - 20px)"
+                  style={{ borderColor: widthError ? 'red' : undefined }}
+                />
+                <div className="field-editor-help">
+                  {widthError ? (
+                    <span style={{ color: 'red' }}>{widthError}</span>
+                  ) : (
+                    <>
+                      Custom width for the entire control. Overrides default width. Examples: <code>300px</code>, <code>80%</code>, <code>calc(100% - 20px)</code>. Leave empty to use default width.
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>Custom Height (optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { height?: string }).height || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const heightValue = e.target.value.trim()
+                    if (heightValue === '') {
+                      delete (updated: any).height
+                    } else {
+                      ;(updated: any).height = heightValue
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., 400px"
+                />
+                <div className="field-editor-help">Custom height for the entire control. Overrides Max Height and Max Result Rows. Examples: <code>400px</code>, <code>50vh</code>. Leave empty to use default height.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Include Pattern (regex, optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { includePattern?: string }).includePattern || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const patternValue = e.target.value.trim()
+                    if (patternValue === '') {
+                      delete (updated: any).includePattern
+                    } else {
+                      ;(updated: any).includePattern = patternValue
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., ^work|^personal"
+                />
+                <div className="field-editor-help">Optional regex pattern to include only items that match. Leave empty to include all items.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Exclude Pattern (regex, optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { excludePattern?: string }).excludePattern || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const patternValue = e.target.value.trim()
+                    if (patternValue === '') {
+                      delete (updated: any).excludePattern
+                    } else {
+                      ;(updated: any).excludePattern = patternValue
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., ^archive|^old"
+                />
+                <div className="field-editor-help">Optional regex pattern to exclude items that match. Leave empty to exclude nothing.</div>
+              </div>
+            </>
+          )}
+
+          {(editedField.type === 'tag-chooser' || editedField.type === 'mention-chooser') && (
+            <>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { returnAsArray?: boolean }).returnAsArray || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).returnAsArray = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Return as Array
+                </label>
+                <div className="field-editor-help">If checked, returns selected values as an array. Otherwise, returns as comma-separated string.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { defaultChecked?: boolean }).defaultChecked || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).defaultChecked = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Default Checked (all items)
+                </label>
+                <div className="field-editor-help">If checked, all items will be selected by default.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { allowCreate?: boolean }).allowCreate ?? true}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).allowCreate = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Allow Creating New {editedField.type === 'tag-chooser' ? 'Tags' : 'Mentions'}
+                </label>
+                <div className="field-editor-help">If checked, users can create new {editedField.type === 'tag-chooser' ? 'tags' : 'mentions'} that don&apos;t exist yet.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { singleValue?: boolean }).singleValue || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).singleValue = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Choose Single Value
+                </label>
+                <div className="field-editor-help">If checked, allows selecting only one value (no checkboxes, returns single value). Clicking an item or pressing Enter selects it immediately.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { renderAsDropdown?: boolean }).renderAsDropdown || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).renderAsDropdown = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Render as Dropdown (single value only)
+                </label>
+                <div className="field-editor-help">If checked and &quot;Choose Single Value&quot; is enabled, renders as a dropdown-select instead of a filterable chooser.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Max Result Rows:</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={((editedField: any): { maxRows?: number }).maxRows || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const value = parseFloat(e.target.value)
+                    if (e.target.value === '' || isNaN(value) || value <= 0) {
+                      delete (updated: any).maxRows
+                    } else {
+                      ;(updated: any).maxRows = value
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., 5 or 5.5"
+                  min="0.1"
+                />
+                <div className="field-editor-help">Limit the height to show only this many result rows (overrides Max Height if provided). Assumes ~40px per row. Decimal values allowed (e.g., 5.5 for finer control).</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Custom Width (optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { width?: string }).width || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const widthValue = e.target.value.trim()
+                    if (widthValue === '') {
+                      delete (updated: any).width
+                      setWidthError('')
+                    } else if (isValidCSSWidth(widthValue)) {
+                      ;(updated: any).width = widthValue
+                      setWidthError('')
+                    } else {
+                      setWidthError('Invalid CSS width value. Use px, %, em, rem, vw, vh, or calc()')
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., 300px, 80%, calc(100% - 20px)"
+                  style={{ borderColor: widthError ? 'red' : undefined }}
+                />
+                <div className="field-editor-help">
+                  {widthError ? (
+                    <span style={{ color: 'red' }}>{widthError}</span>
+                  ) : (
+                    <>
+                      Custom width for the entire control. Overrides default width. Examples: <code>300px</code>, <code>80%</code>, <code>calc(100% - 20px)</code>. Leave empty to use default width.
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>Custom Height (optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { height?: string }).height || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const heightValue = e.target.value.trim()
+                    if (heightValue === '') {
+                      delete (updated: any).height
+                    } else {
+                      ;(updated: any).height = heightValue
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., 400px"
+                />
+                <div className="field-editor-help">Custom height for the entire control. Overrides Max Height and Max Result Rows. Examples: <code>400px</code>, <code>50vh</code>. Leave empty to use default height.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Include Pattern (regex, optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { includePattern?: string }).includePattern || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const patternValue = e.target.value.trim()
+                    if (patternValue === '') {
+                      delete (updated: any).includePattern
+                    } else {
+                      ;(updated: any).includePattern = patternValue
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., ^work|^personal"
+                />
+                <div className="field-editor-help">Optional regex pattern to include only items that match. Leave empty to include all items.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Exclude Pattern (regex, optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { excludePattern?: string }).excludePattern || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    const patternValue = e.target.value.trim()
+                    if (patternValue === '') {
+                      delete (updated: any).excludePattern
+                    } else {
+                      ;(updated: any).excludePattern = patternValue
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., ^archive|^old"
+                />
+                <div className="field-editor-help">Optional regex pattern to exclude items that match. Leave empty to exclude nothing.</div>
+              </div>
+            </>
+          )}
+
           {editedField.type === 'markdown-preview' && (
             <>
               <div className="field-editor-row">

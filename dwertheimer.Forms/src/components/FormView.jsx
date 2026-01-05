@@ -404,8 +404,40 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     closeDialog()
   }
 
+  // Track if form was submitted to handle delayed closing
+  const [formSubmitted, setFormSubmitted] = useState<boolean>(false)
+
+  // Close dialog after submission if there's no AI analysis result
+  useEffect(() => {
+    if (formSubmitted) {
+      // Check if there's an AI analysis result
+      const hasAiAnalysis = pluginData?.aiAnalysisResult && typeof pluginData.aiAnalysisResult === 'string' && pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
+      logDebug('FormView', `[AI ANALYSIS] formSubmitted=${String(formSubmitted)}, hasAiAnalysis=${String(hasAiAnalysis)}, aiAnalysisResult exists=${String(!!pluginData?.aiAnalysisResult)}, length=${pluginData?.aiAnalysisResult?.length || 0}`)
+      
+      if (!hasAiAnalysis) {
+        // No AI analysis result - close the dialog after a short delay to allow data to update
+        logDebug('FormView', `[AI ANALYSIS] No AI analysis result, will close dialog after 500ms delay`)
+        const timeoutId = setTimeout(() => {
+          // Double-check there's still no AI analysis result
+          const stillNoAiAnalysis = !pluginData?.aiAnalysisResult || !pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
+          logDebug('FormView', `[AI ANALYSIS] After 500ms delay, stillNoAiAnalysis=${String(stillNoAiAnalysis)}, closing dialog`)
+          if (stillNoAiAnalysis) {
+            closeDialog()
+            setFormSubmitted(false)
+          }
+        }, 500) // Wait 500ms for SET_DATA message to arrive
+        
+        return () => clearTimeout(timeoutId)
+      } else {
+        logDebug('FormView', `[AI ANALYSIS] AI analysis result detected, keeping dialog open`)
+        // If there's an AI analysis result, keep the dialog open (don't close)
+      }
+    }
+  }, [formSubmitted, pluginData?.aiAnalysisResult])
+
   const handleSave = (formValues: Object, windowId?: string) => {
     clo(formValues, 'DynamicDialog: handleSave: formValues')
+    setFormSubmitted(true) // Mark form as submitted
     sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, {
       type: 'submit',
       formValues,
@@ -424,7 +456,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       // Space (teamspace ID) - used to filter notes/folders and construct teamspace paths
       space: pluginData['space'] || '',
     })
-    closeDialog()
+    // Don't close dialog immediately - wait for response to check for AI analysis
   }
 
   // Return true if the string is 'true' (case insensitive), otherwise return false (blank or otherwise)
@@ -637,6 +669,51 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     })
   })
 
+  // Check for AI analysis result in pluginData
+  const aiAnalysisResult = pluginData?.aiAnalysisResult || ''
+
+  // State for rendered markdown HTML and visibility
+  const [aiAnalysisHtml, setAiAnalysisHtml] = useState<string>('')
+  const [showAiAnalysis, setShowAiAnalysis] = useState<boolean>(false)
+  const bannerShownRef = useRef<boolean>(false)
+
+  // Render markdown when AI analysis result is received (only once)
+  useEffect(() => {
+    if (aiAnalysisResult && typeof aiAnalysisResult === 'string' && aiAnalysisResult.includes('==**Templating Error Found**') && !bannerShownRef.current) {
+      logDebug('FormView', `[AI ANALYSIS] Processing AI analysis result (length=${aiAnalysisResult.length})`)
+      bannerShownRef.current = true
+      setShowAiAnalysis(true)
+      
+      // Render markdown to HTML using requestFromPlugin
+      if (requestFromPlugin) {
+        requestFromPlugin('renderMarkdown', { markdown: aiAnalysisResult })
+          .then((response: any) => {
+            // renderMarkdown returns { success: true, data: html }
+            const html = response?.data || response
+            if (typeof html === 'string') {
+              setAiAnalysisHtml(html)
+              logDebug('FormView', `[AI ANALYSIS] Markdown rendered to HTML (length=${html.length})`)
+            } else {
+              logError('FormView', `[AI ANALYSIS] Invalid response from renderMarkdown: ${JSON.stringify(response)}`)
+              setAiAnalysisHtml(aiAnalysisResult.replace(/\n/g, '<br/>')) // Fallback to simple line breaks
+            }
+          })
+          .catch((error: Error) => {
+            logError('FormView', `[AI ANALYSIS] Error rendering markdown: ${error.message}`)
+            setAiAnalysisHtml(aiAnalysisResult.replace(/\n/g, '<br/>')) // Fallback to simple line breaks
+          })
+      } else {
+        // Fallback if requestFromPlugin not available
+        setAiAnalysisHtml(aiAnalysisResult.replace(/\n/g, '<br/>'))
+      }
+    } else if (!aiAnalysisResult) {
+      // Reset banner shown flag when AI analysis is cleared
+      bannerShownRef.current = false
+      setAiAnalysisHtml('')
+      setShowAiAnalysis(false)
+    }
+  }, [aiAnalysisResult, requestFromPlugin])
+
   return (
     <AppProvider
       sendActionToPlugin={sendActionToPlugin}
@@ -650,7 +727,31 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     >
       <div className={`webview ${pluginData.platform || ''}`}>
         {/* replace all this code with your own component(s) */}
-        <div style={{ maxWidth: '100vw', width: '100vw' }}>
+        <div style={{ maxWidth: '100vw', width: '100vw', paddingTop: showAiAnalysis ? '4rem' : '0' }}>
+          {/* Display AI analysis result at the top if present */}
+          {showAiAnalysis && aiAnalysisResult && (
+            <div className="form-ai-analysis-error">
+              <div className="form-ai-analysis-header">
+                <div className="form-ai-analysis-title">⚠️ Template Error - AI Analysis:</div>
+                <button
+                  type="button"
+                  className="form-ai-analysis-close"
+                  onClick={() => setShowAiAnalysis(false)}
+                  title="Close"
+                >
+                  ×
+                </button>
+              </div>
+              {aiAnalysisHtml ? (
+                <div 
+                  className="form-ai-analysis-content"
+                  dangerouslySetInnerHTML={{ __html: aiAnalysisHtml }} 
+                />
+              ) : (
+                <div>Loading...</div>
+              )}
+            </div>
+          )}
           <DynamicDialog
             isOpen={true}
             title={pluginData?.formTitle || ''}

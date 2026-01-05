@@ -23,6 +23,7 @@ type FormPreviewProps = {
   hidePreviewHeader?: boolean,
   hideWindowTitlebar?: boolean,
   keepOpenOnSubmit?: boolean, // If true, don't close the window after submit (e.g., for Form Browser context)
+  onFrontmatterChange?: (key: string, value: any) => void, // Optional callback to update frontmatter (for Form Builder)
 }
 
 /**
@@ -126,6 +127,7 @@ export function FormPreview({
   hidePreviewHeader = false,
   hideWindowTitlebar = false,
   keepOpenOnSubmit = false,
+  onFrontmatterChange,
 }: FormPreviewProps): Node {
   const containerRef = useRef<?HTMLDivElement>(null)
   const previewWindowRef = useRef<?HTMLDivElement>(null)
@@ -251,6 +253,83 @@ export function FormPreview({
 
   const showScaledDisclaimer = previewDimensions.isScaled.width || previewDimensions.isScaled.height
 
+  // Calculate warning message when preview is scaled (only for Form Builder)
+  const scaledWarningMessage = useMemo(() => {
+    if (!showScaledDisclaimer) {
+      return ''
+    }
+    const isWidthScaled = previewDimensions.isScaled.width
+    const isHeightScaled = previewDimensions.isScaled.height
+    let reducedText = ''
+    if (isWidthScaled && isHeightScaled) {
+      reducedText = 'width and height'
+    } else if (isWidthScaled) {
+      reducedText = 'width'
+    } else if (isHeightScaled) {
+      reducedText = 'height'
+    }
+    const intendedSize = `${intendedWidth ? `${intendedWidth}px` : 'auto'} x ${intendedHeight ? `${intendedHeight}px` : 'auto'}`
+    const actualSize = `${previewWindowDimensions.width > 0 ? `${previewWindowDimensions.width}px` : '...'} x ${
+      previewWindowDimensions.height > 0 ? `${previewWindowDimensions.height}px` : '...'
+    }`
+    return `Form settings are set to ${intendedSize}, but preview window is ${actualSize}. ${
+      reducedText.charAt(0).toUpperCase() + reducedText.slice(1)
+    } is reduced for the preview window.`
+  }, [
+    showScaledDisclaimer,
+    previewDimensions.isScaled.width,
+    previewDimensions.isScaled.height,
+    intendedWidth,
+    intendedHeight,
+    previewWindowDimensions.width,
+    previewWindowDimensions.height,
+  ])
+
+  // Compare current preview dimensions with frontmatter settings
+  // Only show "set window to this size" link if dimensions don't match
+  const dimensionsMatch = useMemo(() => {
+    if (!previewWindowDimensions.width || !previewWindowDimensions.height) {
+      return false // Don't show link until dimensions are measured
+    }
+    const currentWidth = previewWindowDimensions.width
+    const currentHeight = previewWindowDimensions.height
+    const frontmatterWidth = calculateIntendedWindowDimension(frontmatter.width, 'width')
+    const frontmatterHeight = calculateIntendedWindowDimension(frontmatter.height, 'height')
+
+    // If frontmatter has no width/height, they don't match
+    if (frontmatterWidth === null || frontmatterHeight === null) {
+      return false
+    }
+
+    // Compare with small tolerance (within 2px)
+    // Flow type guard: we know these are numbers after null check
+    const widthNum: number = (frontmatterWidth: any)
+    const heightNum: number = (frontmatterHeight: any)
+    const widthDiff = Math.abs(currentWidth - widthNum)
+    const heightDiff = Math.abs(currentHeight - heightNum)
+    return widthDiff <= 2 && heightDiff <= 2
+  }, [previewWindowDimensions.width, previewWindowDimensions.height, frontmatter.width, frontmatter.height])
+
+  // Handle setting window size from preview dimensions
+  const handleSetWindowSize = useCallback(() => {
+    if (!onFrontmatterChange || !previewWindowDimensions.width || !previewWindowDimensions.height) {
+      return
+    }
+
+    const width = String(previewWindowDimensions.width)
+    const height = String(previewWindowDimensions.height)
+
+    onFrontmatterChange('width', width)
+    onFrontmatterChange('height', height)
+
+    // Show success toast
+    dispatch('SHOW_TOAST', {
+      type: 'SUCCESS',
+      msg: `Window size set to ${width}x${height}px`,
+      timeout: 3000,
+    })
+  }, [onFrontmatterChange, previewWindowDimensions.width, previewWindowDimensions.height, dispatch])
+
   // Show warning toast when preview is scaled (only in Form Browser, not Form Builder)
   useEffect(() => {
     if (hidePreviewHeader && showScaledDisclaimer && !prevShowScaledDisclaimerRef.current) {
@@ -264,8 +343,8 @@ export function FormPreview({
       } else if (isHeightScaled) {
         reducedText = 'height'
       }
-      const intendedSize = `${intendedWidth ? `${intendedWidth}px` : 'auto'} × ${intendedHeight ? `${intendedHeight}px` : 'auto'}`
-      const actualSize = `${previewWindowDimensions.width > 0 ? `${previewWindowDimensions.width}px` : '...'} × ${
+      const intendedSize = `${intendedWidth ? `${intendedWidth}px` : 'auto'} x ${intendedHeight ? `${intendedHeight}px` : 'auto'}`
+      const actualSize = `${previewWindowDimensions.width > 0 ? `${previewWindowDimensions.width}px` : '...'} x ${
         previewWindowDimensions.height > 0 ? `${previewWindowDimensions.height}px` : '...'
       }`
       const message = `Form settings are set to ${intendedSize}, but preview DIV is ${actualSize}\n${reducedText} is reduced for the preview window.`
@@ -323,6 +402,21 @@ export function FormPreview({
             />
           </div>
         </div>
+        {/* Warning message when preview is scaled - only show in Form Builder (when onFrontmatterChange is provided) */}
+        {onFrontmatterChange && showScaledDisclaimer && scaledWarningMessage && <div className="form-preview-scaled-warning">{scaledWarningMessage}</div>}
+        {/* Dimension display - only show in Form Builder (when onFrontmatterChange is provided) */}
+        {onFrontmatterChange && previewWindowDimensions.width > 0 && previewWindowDimensions.height > 0 && (
+          <div className="form-preview-dimensions">
+            <span className="form-preview-dimensions-text">
+              Preview Dimensions: {previewWindowDimensions.width}x{previewWindowDimensions.height}
+            </span>
+            {!dimensionsMatch && (
+              <button type="button" className="form-preview-dimensions-link" onClick={handleSetWindowSize} title="Set window size to this dimension">
+                set window to this size
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

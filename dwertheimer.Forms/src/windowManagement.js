@@ -302,14 +302,12 @@ export async function openFormWindow(argObj: Object): Promise<void> {
       parsedY = screenHeight - parsedHeight - parsedY
     }
 
+    // Build windowOptions, only including width/height/x/y if they are defined
+    // This allows mixing numbers and percentages, or setting only one dimension
     const windowOptions = {
       savedFilename: `../../${pluginJson['plugin.id']}/form_output.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
       windowTitle: argObj?.windowTitle || 'Form',
-      width: parsedWidth,
-      height: parsedHeight,
-      x: parsedX,
-      y: parsedY,
       customId: getFormWindowId(argObj?.formTitle || argObj?.windowTitle),
       shouldFocus: true /* focus window everyd time (set to false if you want a bg refresh) */,
       generalCSSIn: generateCSSFromTheme(), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
@@ -319,6 +317,19 @@ export async function openFormWindow(argObj: Object): Promise<void> {
         let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
         </script>
       `,
+    }
+    // Only include dimensions if they are defined (allows mixing numbers/percentages or setting only one)
+    if (parsedWidth !== undefined && parsedWidth !== null) {
+      windowOptions.width = parsedWidth
+    }
+    if (parsedHeight !== undefined && parsedHeight !== null) {
+      windowOptions.height = parsedHeight
+    }
+    if (parsedX !== undefined && parsedX !== null) {
+      windowOptions.x = parsedX
+    }
+    if (parsedY !== undefined && parsedY !== null) {
+      windowOptions.y = parsedY
     }
     logDebug(`===== openReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
     logDebug(pluginJson, `openReactWindow invoking window. openReactWindow stopping here. It's all React from this point forward`)

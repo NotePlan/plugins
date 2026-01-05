@@ -707,6 +707,7 @@ export function FormBuilder({
               requestFromPlugin={requestFromPlugin}
               hideHeaderButtons={false}
               keepOpenOnSubmit={true}
+              onFrontmatterChange={handleFrontmatterChange}
               onSave={(formValues: { [key: string]: any }, windowId?: string) => {
                 // Show toast instead of closing
                 dispatch('SHOW_TOAST', {

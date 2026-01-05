@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import ContainedMultiSelectChooser from './ContainedMultiSelectChooser.jsx'
+import { DropdownSelectChooser, type DropdownOption } from './DropdownSelectChooser.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import './TagChooser.css'
 
@@ -21,7 +22,12 @@ export type TagChooserProps = {
   includePattern?: string, // Regex pattern to include tags
   excludePattern?: string, // Regex pattern to exclude tags
   maxHeight?: string, // Max height for scrollable list (default: '200px')
+  maxRows?: number, // Max number of result rows to show (overrides maxHeight if provided)
+  width?: string, // Custom width for the entire control (e.g., '300px', '80%')
+  height?: string, // Custom height for the entire control (e.g., '400px')
   allowCreate?: boolean, // If true, show "+New" button to create new tags (default: true)
+  singleValue?: boolean, // If true, allow selecting only one value (no checkboxes, returns single value) (default: false)
+  renderAsDropdown?: boolean, // If true and singleValue is true, render as dropdown-select instead of filterable chooser (default: false)
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request data from plugin
 }
 
@@ -43,7 +49,12 @@ export function TagChooser({
   includePattern = '',
   excludePattern = '',
   maxHeight = '200px',
+  maxRows,
+  width,
+  height,
   allowCreate = true,
+  singleValue = false,
+  renderAsDropdown = false,
   requestFromPlugin,
 }: TagChooserProps): React$Node {
   const [hashtags, setHashtags] = useState<Array<string>>([])
@@ -119,6 +130,35 @@ export function TagChooser({
     [],
   )
 
+  // If renderAsDropdown is true and singleValue is true, render as dropdown
+  if (renderAsDropdown && singleValue) {
+    // Convert hashtags to dropdown options
+    const dropdownOptions: Array<string | DropdownOption> = hashtags.map((tag: string): DropdownOption => ({
+      label: getItemDisplayLabel(tag),
+      value: getItemDisplayLabel(tag),
+    }))
+    // Get current value (remove # prefix if present for matching)
+    const currentValue = typeof value === 'string' ? value : Array.isArray(value) && value.length > 0 ? value[0] : ''
+    return (
+      <div className="tag-chooser-wrapper" data-field-type="tag-chooser">
+        <DropdownSelectChooser
+          label={label}
+          value={currentValue}
+          options={dropdownOptions}
+          onChange={(selectedValue: string) => {
+            onChange(selectedValue)
+          }}
+          disabled={disabled || loading}
+          compactDisplay={compactDisplay}
+          placeholder={loading ? 'Loading hashtags...' : placeholder}
+          width={width}
+          allowCreate={allowCreate}
+          onCreate={handleCreateTag}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="tag-chooser-wrapper" data-field-type="tag-chooser">
       <ContainedMultiSelectChooser
@@ -135,10 +175,14 @@ export function TagChooser({
         includePattern={includePattern}
         excludePattern={excludePattern}
         maxHeight={maxHeight}
+        maxRows={maxRows}
+        width={width}
+        height={height}
         emptyMessageNoItems="No hashtags available"
         emptyMessageNoMatch="No hashtags match"
         fieldType="tag-chooser"
         allowCreate={allowCreate}
+        singleValue={singleValue}
         onCreate={handleCreateTag}
       />
     </div>

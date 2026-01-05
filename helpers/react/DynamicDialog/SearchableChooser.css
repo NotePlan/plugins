@@ -13,6 +13,7 @@
 /* Compact mode: constrain width to match other input fields */
 .searchable-chooser-base.compact {
   display: inline-flex;
+  flex-wrap: wrap; /* Allow value display to wrap to new line */
   align-items: center;
   gap: 1rem; /* Match input-box-container-compact gap */
   margin-bottom: 0;
@@ -34,6 +35,7 @@
 /* Compact mode: constrain width to match other input fields */
 [class*="-chooser-container"].compact {
   display: inline-flex;
+  flex-wrap: wrap; /* Allow value display to wrap to new line */
   align-items: center;
   gap: 1rem; /* Match input-box-container-compact gap */
   margin-bottom: 0;
@@ -341,6 +343,34 @@
   text-align: right;
   min-width: 0; /* Allow to be 0 width when empty, but flex-shrink: 0 prevents being compressed below natural width when it has content */
   padding-left: 1rem; /* Add spacing between left and right content */
+}
+
+/* Heading chooser: fix layout - icon fixed width, text left-aligned and fills space */
+.heading-chooser-container .searchable-chooser-option,
+.heading-chooser-container .heading-chooser-option {
+  justify-content: flex-start !important; /* Align items to left, not space-between */
+}
+
+.heading-chooser-container .searchable-chooser-option-left,
+.heading-chooser-container .heading-chooser-option-left {
+  flex: 0 0 auto !important; /* Fixed width, don't grow or shrink */
+  width: auto; /* Just enough for icon */
+  min-width: 0;
+  max-width: none;
+}
+
+.heading-chooser-container .searchable-chooser-option-right,
+.heading-chooser-container .heading-chooser-option-right {
+  flex: 1 1 0 !important; /* Grow to fill remaining space */
+  flex-grow: 1 !important;
+  flex-shrink: 1 !important;
+  text-align: left !important;
+  margin-left: 0 !important;
+  padding-left: 0.5rem; /* Small spacing from icon */
+  max-width: 100%; /* Prevent overflow */
+  overflow: hidden; /* Prevent text from overflowing */
+  white-space: nowrap; /* Keep text on one line */
+  text-overflow: ellipsis; /* Truncate if too long */
 }
 
 /* Two-line layout for options */
