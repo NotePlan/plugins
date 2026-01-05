@@ -6,6 +6,15 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.2.7] 2026-01-05 @dwertheimer
+- templateRunnerExecute now returns AI analysis errors from all code paths
+- Modified templateRunnerExecute to return Promise<string | void> instead of Promise<void>
+- Added hasAiAnalysisError helper function to detect AI analysis error marker
+- Updated all handler functions (handleCurrentNote, handleRegularNote, handleTodayNote, handleWeeklyNote) to return errors
+- Updated handleNewNoteCreation to return rendered content if it contains AI analysis error
+- All early return paths in templateRunnerExecute now check for and return AI analysis errors
+- This allows Forms plugin to capture and display template rendering errors to users
+
 ## [2.2.6] 2026-01-04 @dwertheimer
 
 - Fix `allowCreate` parameter parsing for `promptMention` and `promptTag` prompts: The `allowCreate` parameter (4th parameter) was not being parsed correctly from template tags, preventing the "➕ Add new [item]" option from appearing in selection dialogs. This fix:

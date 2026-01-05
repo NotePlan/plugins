@@ -796,7 +796,7 @@ export async function templateQuote(): Promise<string> {
  * @returns {Promise<void>}
  *
  */
-export async function templateRunner(...args: Array<string>) {
+export async function templateRunner(...args: Array<string>): Promise<string | void> {
   try {
     const argsType = typeof args === 'object' && Array.isArray(args) ? 'array' : typeof args === 'object' ? 'object' : 'string'
     clo(args, `templateRunner starting with args (${argsType}), length: ${args.length}`)
@@ -820,13 +820,17 @@ export async function templateRunner(...args: Array<string>) {
         logInfo(
           `templateRunner: No templaterunner variables were provided to the templateRunner. Value was: ${args[2]}. This may be ok if your template does not need variables, but is obviously a problem if it does. Check your x-callback-url or calling function.`,
         )
-      await templateFileByTitle(args[0], args[1] === 'true' || args[1] === true, args.length > 2 ? args[2] : '')
+      const result = await templateFileByTitle(args[0], args[1] === 'true' || args[1] === true, args.length > 2 ? args[2] : '')
+      logDebug(`Total templateRunner time: ${timer(startTime)}`)
+      return result
     } else {
       await CommandBar.prompt(`No arguments (with template name) were given to the templateRunner."`, helpInfo('Presets'))
+      logDebug(`Total templateRunner time: ${timer(startTime)}`)
+      return
     }
-    logDebug(`Total templateRunner time: ${timer(startTime)}`)
   } catch (error) {
     logError(pluginJson, error)
+    return
   }
 }
 
@@ -964,6 +968,6 @@ export async function renderTemplate(templateName: string = '', userData: any = 
   return await NPTemplating.renderTemplate(templateName, userData, userOptions)
 }
 
-export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = '') {
-  await templateRunnerExecute(selectedTemplate, openInEditor, args)
+export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = ''): Promise<string | void> {
+  return await templateRunnerExecute(selectedTemplate, openInEditor, args)
 }

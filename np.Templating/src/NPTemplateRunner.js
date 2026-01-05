@@ -416,6 +416,7 @@ export async function processFrontmatter(
  * @returns {boolean} true if new note was created and function should return
  */
 export async function handleNewNoteCreation(selectedTemplate: string, data: Object, argObj: Object, content: string = ''): Promise<boolean | string> {
+  // Note: Returns string (filename) on success, boolean (false) on failure, or string (error message) if content contains AI analysis error
   let newNoteTitle = data['newNoteTitle'] || null
   // Render newNoteTitle with form values if it contains template tags
   // This ensures template tags are rendered before being used to create the note
@@ -489,6 +490,11 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
                 await showMessage('Template Render Error Encountered when creating new note. Stopping.')
                 return false
               }
+              // Check if rendered content contains AI analysis error
+              if (hasAiAnalysisError(renderedContent)) {
+                logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation: Returning rendered content with AI analysis error`)
+                return renderedContent
+              }
               logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation rendered content with template tags`)
             } catch (error) {
               logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation error rendering content: ${error.message}`)
@@ -523,6 +529,15 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
     }
   }
   return false
+}
+
+/**
+ * Check if rendered template contains an AI analysis error
+ * @param {string} renderedTemplate - the rendered template content
+ * @returns {boolean} true if template contains AI analysis error marker
+ */
+function hasAiAnalysisError(renderedTemplate: string): boolean {
+  return !!(renderedTemplate && typeof renderedTemplate === 'string' && renderedTemplate.includes('==**Templating Error Found**'))
 }
 
 /**
@@ -618,7 +633,13 @@ export function determineNoteType(noteTitle: string): { isTodayNote: boolean, is
  * @param {Object} writeOptions - write options containing all necessary parameters
  * @returns {Promise<void>}
  */
-export async function handleTodayNote(renderedTemplate: string, writeOptions: Object): Promise<void> {
+export async function handleTodayNote(renderedTemplate: string, writeOptions: Object): Promise<string | void> {
+  // Check if rendered template contains AI analysis error before processing
+  if (hasAiAnalysisError(renderedTemplate)) {
+    logDebug(pluginJson, `handleTodayNote: Returning rendered template with AI analysis error`)
+    return renderedTemplate
+  }
+
   const { shouldOpenInEditor, writeUnderHeading, location, ...options } = writeOptions
 
   if (shouldOpenInEditor) {
@@ -652,7 +673,13 @@ export async function handleTodayNote(renderedTemplate: string, writeOptions: Ob
  * @param {Object} writeOptions - write options containing all necessary parameters
  * @returns {Promise<void>}
  */
-export async function handleWeeklyNote(isThisWeek: boolean, isNextWeek: boolean, renderedTemplate: string, writeOptions: Object): Promise<void> {
+export async function handleWeeklyNote(isThisWeek: boolean, isNextWeek: boolean, renderedTemplate: string, writeOptions: Object): Promise<string | void> {
+  // Check if rendered template contains AI analysis error before processing
+  if (hasAiAnalysisError(renderedTemplate)) {
+    logDebug(pluginJson, `handleWeeklyNote: Returning rendered template with AI analysis error`)
+    return renderedTemplate
+  }
+
   const { shouldOpenInEditor, writeUnderHeading, location, ...options } = writeOptions
 
   logDebug(pluginJson, `templateRunnerExecute isThisWeek || isNextWeek`)
@@ -680,8 +707,14 @@ export async function handleWeeklyNote(isThisWeek: boolean, isNextWeek: boolean,
  * @param {Object} writeOptions - write options containing all necessary parameters
  * @returns {Promise<void>}
  */
-export async function handleCurrentNote(renderedTemplate: string, writeOptions: Object): Promise<void> {
+export async function handleCurrentNote(renderedTemplate: string, writeOptions: Object): Promise<string | void> {
   const { writeUnderHeading, location, ...options } = writeOptions
+
+  // Check if rendered template contains AI analysis error before processing
+  if (hasAiAnalysisError(renderedTemplate)) {
+    logDebug(pluginJson, `handleCurrentNote: Returning rendered template with AI analysis error`)
+    return renderedTemplate
+  }
 
   logDebug(pluginJson, `templateRunnerExecute is <current>`)
   if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
@@ -702,7 +735,12 @@ export async function handleCurrentNote(renderedTemplate: string, writeOptions: 
  * @param {Object} writeOptions - write options containing all necessary parameters
  * @returns {Promise<void>}
  */
-export async function handleRegularNote(noteTitle: string, selectedTemplate: string, argObj: Object, renderedTemplate: string, writeOptions: Object): Promise<void> {
+export async function handleRegularNote(noteTitle: string, selectedTemplate: string, argObj: Object, renderedTemplate: string, writeOptions: Object): Promise<string | void> {
+  // Check if rendered template contains AI analysis error before processing
+  if (hasAiAnalysisError(renderedTemplate)) {
+    logDebug(pluginJson, `handleRegularNote: Returning rendered template with AI analysis error`)
+    return renderedTemplate
+  }
   const { shouldOpenInEditor, writeUnderHeading, location, ...options } = writeOptions
 
   logDebug(pluginJson, `templateRunnerExecute looking for a regular note named: "${noteTitle}"`)
@@ -775,7 +813,7 @@ export async function handleRegularNote(noteTitle: string, selectedTemplate: str
  * @param {string | Object} args - the arguments to pass to the template (either a string of key=value pairs or an object)
  * @author @dwertheimer
  */
-export async function templateRunnerExecute(_selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string | Object | null = ''): Promise<void> {
+export async function templateRunnerExecute(_selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string | Object | null = ''): Promise<string | void> {
   try {
     const selectedTemplate = _selectedTemplate.trim()
     const start = new Date()
@@ -815,6 +853,11 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
         // STEP 3: Create a new note if needed
         const newNoteCreated = await handleNewNoteCreation(selectedTemplate, data, argObj, passedTemplateBody || '')
         if (newNoteCreated) {
+          // Check if newNoteCreated is an AI analysis error (string with error marker)
+          if (typeof newNoteCreated === 'string' && hasAiAnalysisError(newNoteCreated)) {
+            logDebug(pluginJson, `templateRunnerExecute: handleNewNoteCreation returned AI analysis error`)
+            return newNoteCreated
+          }
           if (openInEditor) {
             if (typeof newNoteCreated === 'string') {
               logDebug(pluginJson, `templateRunnerExecute: Opening new note: "${newNoteCreated}"`)
@@ -831,6 +874,12 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
         const renderedTemplate = await renderTemplate(frontmatterBody, data)
         logDebug(pluginJson, `templateRunnerExecute Template Render Complete renderedTemplate= "${renderedTemplate}"`)
 
+        // Check if rendered template contains AI analysis error - if so, return it immediately
+        if (hasAiAnalysisError(renderedTemplate)) {
+          logDebug(pluginJson, `templateRunnerExecute: Rendered template contains AI analysis error, returning it`)
+          return renderedTemplate
+        }
+
         // Extract note preferences
         let { noteTitle, shouldOpenInEditor } = extractTitleAndShouldOpenSettings(frontmatterAttributes, openInEditor)
 
@@ -844,6 +893,10 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
             if (isError) {
               logError(pluginJson, `templateRunnerExecute template rendering error for noteTitle`)
               await showMessage('Template Render Error Encountered when rendering note title. Stopping.')
+              // Check if renderedTemplate contains AI analysis error before returning
+              if (hasAiAnalysisError(renderedTemplate)) {
+                return renderedTemplate
+              }
               return
             }
             // Clean up rendered title: trim (special values like <today> will be handled by handleNoteSelection)
@@ -852,6 +905,10 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
           } catch (error) {
             logError(pluginJson, `templateRunnerExecute error rendering noteTitle: ${error.message}`)
             await showMessage(`Error rendering note title: ${error.message || String(error)}`)
+            // Check if renderedTemplate contains AI analysis error before returning
+            if (hasAiAnalysisError(renderedTemplate)) {
+              return renderedTemplate
+            }
             return
           }
         }
@@ -861,6 +918,10 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
         try {
           finalNoteTitle = await handleNoteSelection(noteTitle)
         } catch (error) {
+          // Check if renderedTemplate contains AI analysis error before returning
+          if (hasAiAnalysisError(renderedTemplate)) {
+            return renderedTemplate
+          }
           return // Error already handled in handleNoteSelection
         }
 
@@ -881,6 +942,10 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
             if (isError) {
               logError(pluginJson, `templateRunnerExecute template rendering error for writeUnderHeading`)
               await showMessage('Template Render Error Encountered when rendering heading. Stopping.')
+              // Check if renderedTemplate contains AI analysis error before returning
+              if (hasAiAnalysisError(renderedTemplate)) {
+                return renderedTemplate
+              }
               return
             }
             // Clean up rendered heading: trim (special values like <choose> will be handled by handleHeadingSelection)
@@ -889,6 +954,10 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
           } catch (error) {
             logError(pluginJson, `templateRunnerExecute error rendering writeUnderHeading: ${error.message}`)
             await showMessage(`Error rendering heading: ${error.message || String(error)}`)
+            // Check if renderedTemplate contains AI analysis error before returning
+            if (hasAiAnalysisError(renderedTemplate)) {
+              return renderedTemplate
+            }
             return
           }
         }
@@ -900,14 +969,26 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
 
         // STEP 4.6: Write to the target Note
         if (isTodayNote) {
-          await handleTodayNote(renderedTemplate, writeOptions)
+          const todayResult = await handleTodayNote(renderedTemplate, writeOptions)
+          if (typeof todayResult === 'string' && hasAiAnalysisError(todayResult)) {
+            return todayResult
+          }
         } else if (isThisWeek || isNextWeek) {
-          await handleWeeklyNote(isThisWeek, isNextWeek, renderedTemplate, writeOptions)
+          const weeklyResult = await handleWeeklyNote(isThisWeek, isNextWeek, renderedTemplate, writeOptions)
+          if (typeof weeklyResult === 'string' && hasAiAnalysisError(weeklyResult)) {
+            return weeklyResult
+          }
         } else if (finalNoteTitle === '<current>') {
-          await handleCurrentNote(renderedTemplate, writeOptions)
+          const currentResult = await handleCurrentNote(renderedTemplate, writeOptions)
+          if (typeof currentResult === 'string' && hasAiAnalysisError(currentResult)) {
+            return currentResult
+          }
           return // using current note, no further processing required
         } else if (finalNoteTitle?.length) {
-          await handleRegularNote(finalNoteTitle, selectedTemplate, argObj, renderedTemplate, writeOptions)
+          const regularResult = await handleRegularNote(finalNoteTitle, selectedTemplate, argObj, renderedTemplate, writeOptions)
+          if (typeof regularResult === 'string' && hasAiAnalysisError(regularResult)) {
+            return regularResult
+          }
         } else if (passedTemplateBody && (isRunFromCode || selectedTemplate)) {
           // If we have a passedTemplateBody and we're running from code or have a selected template,
           // we can still process the template even without a getNoteTitled setting
@@ -915,6 +996,12 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
           logDebug(pluginJson, `templateRunnerExecute: No note title specified but template body provided. Processing template without writing to note.`)
           // The template has been rendered, so we can consider it processed
           // If the user wants to write it somewhere, they should specify a note title or use templateNew
+          // Return the rendered template if it contains an error (AI analysis), so the caller can handle it
+          if (hasAiAnalysisError(renderedTemplate)) {
+            logDebug(pluginJson, `templateRunnerExecute: Returning rendered template with AI analysis error`)
+            logDebug(pluginJson, `TR Total Running Time -  after Step 6 (Returning): ${timer(start)}`)
+            return renderedTemplate
+          }
           logDebug(pluginJson, `TR Total Running Time -  after Step 6 (Returning): ${timer(start)}`)
           return
         } else {

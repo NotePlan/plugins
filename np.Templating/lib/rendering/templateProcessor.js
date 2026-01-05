@@ -69,21 +69,30 @@ export function logProgress(stepDescription: string, templateData: string, sessi
   const isError = stepDescription.includes('ERROR')
   const isKeyStep = isStart || isCompletion || isError
   const msg = isCompletion ? 'COMPLETE ' : isStart ? 'START ' : isError ? 'ERROR ' : ''
-  if (verbose || isKeyStep) {
+  
+  // Reduce logging when there's an error - only log essential info
+  if (isError) {
+    // For errors, only log a summary, not full template text
+    logDebug(`📄 ${msg}Template Text (${safeTemplateData.length} chars)`)
+    if (sessionData) {
+      const sessionKeys = Object.keys(sessionData)
+      logDebug(`📊 ${msg}Session Data Keys: [${sessionKeys.length} keys]`)
+    }
+  } else if (verbose || isKeyStep) {
     logDebug(
       `📄 ${msg}Template Text (${safeTemplateData.length} chars): ${safeTemplateData ? safeTemplateData.substring(0, 200) : ''}${
         safeTemplateData ? (safeTemplateData.length > 200 ? '...' : '') : ''
       }`,
     )
-  }
 
-  if (sessionData && (verbose || isKeyStep)) {
-    const sessionKeys = Object.keys(sessionData)
-    logDebug(`📊 ${msg}Session Data Keys: [${sessionKeys.join(', ')}]`)
+    if (sessionData && (verbose || isKeyStep)) {
+      const sessionKeys = Object.keys(sessionData)
+      logDebug(`📊 ${msg}Session Data Keys: [${sessionKeys.join(', ')}]`)
 
-    // Only log full session data details in verbose mode
-    if (verbose && sessionKeys.length > 0) {
-      logDebug(`📊 ${msg}Session Data Details: ${JSON.stringify(sessionData)}`)
+      // Only log full session data details in verbose mode
+      if (verbose && sessionKeys.length > 0) {
+        logDebug(`📊 ${msg}Session Data Details: ${JSON.stringify(sessionData)}`)
+      }
     }
   }
 
@@ -1461,6 +1470,7 @@ const isQuickTemplateNote = (userOptions: any): boolean => Boolean(userOptions?.
  */
 async function _renderWithConfig(inputTemplateData: string, userData: any = {}, userOptions: any = {}, templateConfig: any = {}): Promise<string> {
   try {
+    const verbose = Boolean(userData && userData.verboseLog)
     // Log the initial state
     logProgress('RENDER START', inputTemplateData, userData, userOptions)
 
@@ -1470,15 +1480,21 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       logProgress('VALIDATION FAILED', tagError, userData, userOptions)
       return tagError
     }
-    logProgress('Render Step 1 complete: Template structure validation', inputTemplateData, userData, userOptions)
+    if (verbose) {
+      logProgress('Render Step 1 complete: Template structure validation', inputTemplateData, userData, userOptions)
+    }
 
     // Step 2: Normalize template data (fix quotes, ensure string type)
     let templateData = normalizeTemplateData(inputTemplateData)
-    logProgress('Render Step 2 complete: Template data normalization', templateData, userData, userOptions)
+    if (verbose) {
+      logProgress('Render Step 2 complete: Template data normalization', templateData, userData, userOptions)
+    }
 
     // Step 3: Setup session data with global helpers
     let sessionData = { ...loadGlobalHelpers({ ...userData }), ...templateConfig }
-    logProgress('Render Step 3 complete: Global helpers loaded', templateData, sessionData, userOptions)
+    if (verbose) {
+      logProgress('Render Step 3 complete: Global helpers loaded', templateData, sessionData, userOptions)
+    }
 
     // Step 3.5: Validate that meeting note templates have required event data
     const allVars = { ...sessionData.data, ...sessionData.methods, ...userData.methods, ...userData.data }
@@ -1489,7 +1505,9 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       await showMessage(meetingNoteValidationError, 'OK', 'Template Error')
       throw new Error(`STOPPING RENDER: Render Step 3.5 stopped execution with error: ${meetingNoteValidationError}`)
     }
-    logProgress('Render Step 3.5 complete: Meeting note template validation', templateData, sessionData, userOptions)
+      if (verbose) {
+        logProgress('Render Step 3.5 complete: Meeting note template validation', templateData, sessionData, userOptions)
+      }
 
     // Create a single TemplatingEngine instance with the templateConfig
     const templatingEngine = new TemplatingEngine(templateConfig, inputTemplateData)
@@ -1500,7 +1518,9 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       const frontmatterResult = await processFrontmatter(templateData, sessionData, userOptions, templatingEngine)
       templateData = frontmatterResult.templateData
       sessionData = frontmatterResult.sessionData
-      logProgress('Render Step 4 complete: Frontmatter processing', templateData, sessionData, userOptions)
+      if (verbose) {
+        logProgress('Render Step 4 complete: Frontmatter processing', templateData, sessionData, userOptions)
+      }
     } else {
       // Even when frontmatterProcessed is true, we still need to extract the body if the template contains frontmatter
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
@@ -1511,10 +1531,14 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
         logDebug(pluginJson, `_renderWithConfig: Extracted frontmatterBody with ${frontmatterBody.length} chars: "${frontmatterBody.substring(0, 100)}..."`)
         logDebug(pluginJson, `_renderWithConfig: Extracted frontmatterAttributes: ${JSON.stringify(frontmatterAttributes)}`)
         templateData = frontmatterBody
-        logProgress('Render Step 4 (extracted body): Frontmatter body extraction', templateData, sessionData, userOptions)
+        if (verbose) {
+          logProgress('Render Step 4 (extracted body): Frontmatter body extraction', templateData, sessionData, userOptions)
+        }
       } else {
         logDebug(pluginJson, `_renderWithConfig: Template is not a frontmatter template, skipping body extraction`)
-        logProgress('Render Step 4 (skipped): Frontmatter processing (already pre-processed)', templateData, sessionData, userOptions)
+        if (verbose) {
+          logProgress('Render Step 4 (skipped): Frontmatter processing (already pre-processed)', templateData, sessionData, userOptions)
+        }
       }
     }
 
@@ -1534,7 +1558,9 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       logDebug(pluginJson, `_renderWithConfig: templateData is not a string after importTemplates: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
       templateData = String(templateData)
     }
-    logProgress('Render Step 5 complete: Template imports', templateData, sessionData, userOptions)
+    if (verbose) {
+      logProgress('Render Step 5 complete: Template imports', templateData, sessionData, userOptions)
+    }
 
     // Step 6: Convert JavaScript blocks to template tags
     templateData = convertTemplateJSBlocksToControlTags(templateData)
@@ -1546,13 +1572,17 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       )
       templateData = String(templateData)
     }
-    logProgress('Render Step 6 complete: JavaScript blocks conversion', templateData, sessionData, userOptions)
+    if (verbose) {
+      logProgress('Render Step 6 complete: JavaScript blocks conversion', templateData, sessionData, userOptions)
+    }
 
     // Step 7: Pre-process the template to handle includes, variables, etc.
     const { newTemplateData, newSettingData } = await preProcessTags(templateData, sessionData)
     templateData = newTemplateData
     sessionData = { ...newSettingData }
-    logProgress('Render Step 7 complete: Template pre-processing', templateData, sessionData, userOptions)
+    if (verbose) {
+      logProgress('Render Step 7 complete: Template pre-processing', templateData, sessionData, userOptions)
+    }
 
     // Step 8: Process prompts in the template body
     const afterPromptData = await processTemplatePrompts(templateData, sessionData)
@@ -1566,14 +1596,18 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       data: { ...afterPromptData.sessionData.data, ...userData?.data },
       methods: { ...afterPromptData.sessionData.methods, ...userData?.methods },
     }
-    logProgress('Render Step 8 complete: Template prompts processing', templateData, sessionData, userOptions)
+    if (verbose) {
+      logProgress('Render Step 8 complete: Template prompts processing', templateData, sessionData, userOptions)
+    }
 
     // Step 9: Protect JS ignored code blocks during rendering -- don't let EJS process them
     // Note: this was more relevant in Mike's original implementation where code blocks were ```javscript
     // But now that we're using ```templatejs, this is probably not ever used
     const { templateData: templateDataWithoutIgnoredCodeBlocks, codeBlocks: savedIgnoredCodeBlocks } = tempSaveIgnoredCodeBlocks(templateData)
     let protectedTemplate = templateDataWithoutIgnoredCodeBlocks
-    logProgress('Render Step 9 complete: Code blocks protection', protectedTemplate, sessionData, userOptions)
+    if (verbose) {
+      logProgress('Render Step 9 complete: Code blocks protection', protectedTemplate, sessionData, userOptions)
+    }
 
     // Step 10: Perform the actual template rendering
     let renderedData
@@ -1618,15 +1652,21 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       }
     }
 
-    logProgress('Render Step 10 complete: Template engine rendering', renderedData, sessionData, userOptions)
+    if (verbose) {
+      logProgress('Render Step 10 complete: Template engine rendering', renderedData, sessionData, userOptions)
+    }
 
     // Step 11: Post-process the rendered template
     let finalResult = removeEJSDocumentationNotes(renderedData)
-    logProgress('Render Step 11 complete: Post-processing (EJS cleanup)', finalResult, sessionData, userOptions)
+    if (verbose) {
+      logProgress('Render Step 11 complete: Post-processing (EJS cleanup)', finalResult, sessionData, userOptions)
+    }
 
     // Step 12: Restore code blocks in the final result
     finalResult = restoreCodeBlocks(finalResult, savedIgnoredCodeBlocks)
-    logProgress('Render Step 12 complete: Code blocks restoration', finalResult, sessionData, userOptions)
+    if (verbose) {
+      logProgress('Render Step 12 complete: Code blocks restoration', finalResult, sessionData, userOptions)
+    }
 
     logProgress('RENDER COMPLETE', finalResult, sessionData, userOptions)
 
