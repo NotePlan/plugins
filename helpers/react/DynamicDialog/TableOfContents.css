@@ -43,7 +43,7 @@
   padding: 0.25rem 0.5rem;
   text-align: left;
   cursor: pointer;
-  color: var(--item-icon-color, #1e66f5);
+  color: var(--tint-color, #1e66f5);
   text-decoration: underline;
   font-size: 0.875rem;
   transition: color 0.2s, background-color 0.2s;

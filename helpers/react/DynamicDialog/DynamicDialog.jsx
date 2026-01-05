@@ -52,6 +52,8 @@ export type TSettingItemType =
   | 'space-chooser' // Space (Private/Teamspace) chooser
   | 'heading-chooser'
   | 'event-chooser' // Calendar event chooser
+  | 'tag-chooser' // Hashtag multi-select chooser
+  | 'mention-chooser' // Mention multi-select chooser
   | 'form-state-viewer' // Read-only field that displays current form state as JSON
   | 'textarea' // Expandable textarea field
   | 'templatejs-block' // TemplateJS code block that executes JavaScript
@@ -59,6 +61,8 @@ export type TSettingItemType =
   | 'markdown-preview' // Non-editable markdown preview (static text, note by filename/title, or note from another field)
   | 'autosave' // Autosave field that saves form state periodically
   | 'table-of-contents' // Table of contents that links to headings in the form
+  | 'tag-chooser' // Hashtag multi-select chooser
+  | 'mention-chooser' // Mention multi-select chooser
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -66,6 +70,7 @@ export type TSettingItem = {
   value?: string,
   label?: string,
   checked?: boolean,
+  labelPosition?: 'left' | 'right', // for switch fields, override dialog-level labelPosition
   options?: Array<string | { label: string, value: string, isDefault?: boolean }>,
   textType?: 'title' | 'description' | 'separator',
   description?: string,
@@ -142,6 +147,13 @@ export type TSettingItem = {
   eventFilterRegex?: string, // for event-chooser, optional regex pattern to filter events by title after fetching
   includeReminders?: boolean, // for event-chooser, if true, include reminders in the list
   reminderLists?: Array<string>, // for event-chooser, optional array of reminder list titles to filter reminders by
+  // tag-chooser options
+  returnAsArray?: boolean, // for tag-chooser and mention-chooser, if true, return as array, otherwise return as comma-separated string (default: false)
+  defaultChecked?: boolean, // for tag-chooser and mention-chooser, if true, all items checked by default (default: false)
+  includePattern?: string, // for tag-chooser and mention-chooser, regex pattern to include items
+  excludePattern?: string, // for tag-chooser and mention-chooser, regex pattern to exclude items
+  maxHeight?: string, // for tag-chooser and mention-chooser, max height for scrollable list (default: '200px')
+  allowCreate?: boolean, // for tag-chooser and mention-chooser, if true, show "+New" button to create new items (default: true)
   // multi-select options
   multiSelectItems?: Array<any>, // for multi-select, items for selection
   multiSelectGetLabel?: (item: any) => string, // for multi-select, function to get label

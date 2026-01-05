@@ -162,12 +162,20 @@ export function SpaceChooser({
   }
 
   // Load spaces on mount
+  // Delay the request to yield to TOC rendering and other critical UI elements
+  // This prevents blocking the initial render with data loading
   useEffect(() => {
     if (!spacesLoaded && !isLoadingRef.current && requestFromPluginRef.current) {
-      // Use requestAnimationFrame to yield before making the request
-      requestAnimationFrame(() => {
+      // Use setTimeout to delay the request, allowing TOC and other UI to render first
+      const timeoutId = setTimeout(() => {
         loadSpaces()
-      })
+      }, 200) // 200ms delay to yield to TOC rendering
+
+      return () => {
+        // Cleanup: clear timeout and mark as not loading if component unmounts
+        clearTimeout(timeoutId)
+        isLoadingRef.current = false
+      }
     }
 
     return () => {

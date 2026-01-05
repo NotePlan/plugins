@@ -240,6 +240,8 @@ export function EventChooser({
   }, [targetDate])
 
   // Load events for the target date
+  // Delay the request to yield to TOC rendering and other critical UI elements
+  // This prevents blocking the initial render with data loading
   useEffect(() => {
     // Prevent re-loading if we've already loaded this exact date or are currently loading
     if (lastLoadedDateRef.current === targetDateString || isLoadingRef.current) {
@@ -351,11 +353,15 @@ export function EventChooser({
       }
     }
 
-    loadEvents()
+    // Use setTimeout to delay the request, allowing TOC and other UI to render first
+    const timeoutId = setTimeout(() => {
+      loadEvents()
+    }, 200) // 200ms delay to yield to TOC rendering
 
     return () => {
       isMounted = false
       isLoadingRef.current = false
+      clearTimeout(timeoutId)
     }
   }, [targetDateString]) // Only depend on targetDateString, not requestFromPlugin to avoid infinite loops
 

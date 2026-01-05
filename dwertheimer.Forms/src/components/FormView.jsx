@@ -435,25 +435,97 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
    ****************************************************************************************************************************/
 
   /**
-   * When the data changes, console.log it so we know and scroll the window
+   * Scroll the .dynamic-dialog-content element to top on mount
+   * The scrolling element is .dynamic-dialog-content inside .template-form, not the window
+   */
+  useEffect(() => {
+    const mountTime = Date.now()
+    
+    // Function to find and scroll the dialog content element
+    const scrollDialogContentToTop = () => {
+      // Try multiple selectors to find the scrolling element
+      const selectors = [
+        '.template-form .dynamic-dialog-content',
+        '.dynamic-dialog.template-form .dynamic-dialog-content',
+        '.dynamic-dialog-content',
+      ]
+      
+      for (const selector of selectors) {
+        const element = document.querySelector(selector)
+        if (element) {
+          const scrollTop = element.scrollTop
+          element.scrollTop = 0
+          logDebug('FormView', `[SCROLL] Found ${selector}, scrollTop was ${scrollTop}, set to 0`)
+          return element
+        }
+      }
+      logDebug('FormView', `[SCROLL] Could not find dialog content element`)
+      return null
+    }
+
+    // Try immediately
+    scrollDialogContentToTop()
+
+    // Try again after a short delay to catch it after React renders
+    const timeout1 = setTimeout(() => {
+      scrollDialogContentToTop()
+    }, 50)
+
+    // Try again after a longer delay
+    const timeout2 = setTimeout(() => {
+      scrollDialogContentToTop()
+    }, 200)
+
+    // Final attempt after everything should be rendered
+    const timeout3 = setTimeout(() => {
+      scrollDialogContentToTop()
+    }, 500)
+
+    return () => {
+      clearTimeout(timeout1)
+      clearTimeout(timeout2)
+      clearTimeout(timeout3)
+    }
+  }, []) // Only run once on mount
+
+  /**
+   * When the data changes, restore scroll position if provided
    * Fires after components draw
    */
   useEffect(() => {
     if (data?.passThroughVars?.lastWindowScrollTop !== undefined && data.passThroughVars.lastWindowScrollTop !== window.scrollY) {
+      logDebug('FormView', `[SCROLL] Restoring scroll position to ${data.passThroughVars.lastWindowScrollTop}`)
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
     }
   }, [data])
 
   // Load folders/notes automatically when fields change and they're needed (matching FormBuilder pattern)
+  // Load folders/notes with delay to yield to TOC rendering
+  // Delay the request to yield to TOC rendering and other critical UI elements
+  // This prevents blocking the initial render with data loading
   useEffect(() => {
     if (needsFolders && !foldersLoaded && !loadingFolders) {
-      loadFolders()
+      // Use setTimeout to delay the request, allowing TOC and other UI to render first
+      const timeoutId = setTimeout(() => {
+        loadFolders()
+      }, 200) // 200ms delay to yield to TOC rendering
+
+      return () => {
+        clearTimeout(timeoutId)
+      }
     }
   }, [needsFolders, foldersLoaded, loadingFolders, loadFolders])
 
   useEffect(() => {
     if (needsNotes && !notesLoaded && !loadingNotes) {
-      loadNotes()
+      // Use setTimeout to delay the request, allowing TOC and other UI to render first
+      const timeoutId = setTimeout(() => {
+        loadNotes()
+      }, 200) // 200ms delay to yield to TOC rendering
+
+      return () => {
+        clearTimeout(timeoutId)
+      }
     }
   }, [needsNotes, notesLoaded, loadingNotes, loadNotes])
 
@@ -545,14 +617,23 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
    * WHICH IS OPENED WHEN reactData.dynamicDialog.isOpen is set to true
    * which happens when the useEffect() in this FormView.jsx file opens the dialog on page load
    */
-  // Diagnostic: Log render timing
+  // Diagnostic: Log render timing (runs on every render to track re-renders)
+  // Note: Re-renders from autosave completion are expected (autosave updates state → re-render)
+  const renderCountRef = useRef<number>(0)
   useEffect(() => {
+    renderCountRef.current += 1
     const renderStartTime = performance.now()
-    logDebug('FormView', `[DIAG] FormView RENDER START: formFields=${formFields.length}, folders=${folders.length}, notes=${notes.length}`)
+    // Only log first few renders and then periodically to reduce noise
+    const shouldLog = renderCountRef.current <= 3 || renderCountRef.current % 10 === 0
+    if (shouldLog) {
+      logDebug('FormView', `[DIAG] FormView RENDER #${renderCountRef.current}: formFields=${formFields.length}, folders=${folders.length}, notes=${notes.length}`)
+    }
 
     requestAnimationFrame(() => {
       const renderElapsed = performance.now() - renderStartTime
-      logDebug('FormView', `[DIAG] FormView RENDER AFTER RAF: elapsed=${renderElapsed.toFixed(2)}ms`)
+      if (shouldLog) {
+        logDebug('FormView', `[DIAG] FormView RENDER #${renderCountRef.current} AFTER RAF: elapsed=${renderElapsed.toFixed(2)}ms`)
+      }
     })
   })
 

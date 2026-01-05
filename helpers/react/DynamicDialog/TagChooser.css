@@ -1,0 +1,7 @@
+/* TagChooser Styles */
+/* TagChooser uses ContainedMultiSelectChooser which has all the styling */
+/* This file is kept for consistency but styles are in ContainedMultiSelectChooser.css */
+
+.tag-chooser-wrapper {
+  /* Wrapper styling if needed in the future */
+}

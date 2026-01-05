@@ -27,6 +27,8 @@ export const FIELD_TYPES: Array<FieldTypeOption> = [
   { value: 'space-chooser', label: 'Space Chooser', description: 'Select a Space (Private or Teamspace)' },
   { value: 'heading-chooser', label: 'Heading Chooser', description: 'Select a heading from a note (static or dynamic based on note-chooser)' },
   { value: 'event-chooser', label: 'Event Chooser', description: 'Select a calendar event for a specific date' },
+  { value: 'tag-chooser', label: 'Tag Chooser', description: 'Multi-select hashtag chooser with filtering (returns #tag1,#tag2 or array)' },
+  { value: 'mention-chooser', label: 'Mention Chooser', description: 'Multi-select mention chooser with filtering (returns @mention1,@mention2 or array)' },
   { value: 'markdown-preview', label: 'Markdown Preview', description: 'Display markdown content (static text, note by filename/title, or note from another field). Note: This is a very basic markdown renderer that does not display full NotePlan formatted tasks and items. It\'s intended for a quick preview, not a faithful rendering.' },
   { value: 'heading', label: 'Heading', description: 'Section heading' },
   { value: 'separator', label: 'Separator', description: 'Horizontal line' },

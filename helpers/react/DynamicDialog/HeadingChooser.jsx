@@ -76,32 +76,42 @@ export function HeadingChooser({
     }
   }, [noteFilename])
 
+  // Load headings from plugin via REQUEST
+  // Delay the request to yield to TOC rendering and other critical UI elements
+  // This prevents blocking the initial render with data loading
   useEffect(() => {
     if (noteFilename && requestFromPlugin && !loaded && !loading) {
-      setLoading(true)
-      logDebug('HeadingChooser', `Loading headings from note: ${noteFilename}`)
-      requestFromPlugin('getHeadings', { noteFilename, optionAddTopAndBottom, includeArchive })
-        .then((headingsData: Array<string>) => {
-          if (Array.isArray(headingsData)) {
-            setHeadings(headingsData)
-            setLoaded(true)
-            logDebug('HeadingChooser', `Loaded ${headingsData.length} headings from note`)
-          } else {
-            logError('HeadingChooser', 'Invalid response format from getHeadings')
+      // Use setTimeout to delay the request, allowing TOC and other UI to render first
+      const timeoutId = setTimeout(() => {
+        setLoading(true)
+        logDebug('HeadingChooser', `Loading headings from note: ${noteFilename} (delayed)`)
+        requestFromPlugin('getHeadings', { noteFilename, optionAddTopAndBottom, includeArchive })
+          .then((headingsData: Array<string>) => {
+            if (Array.isArray(headingsData)) {
+              setHeadings(headingsData)
+              setLoaded(true)
+              logDebug('HeadingChooser', `Loaded ${headingsData.length} headings from note`)
+            } else {
+              logError('HeadingChooser', 'Invalid response format from getHeadings')
+              setHeadings([])
+              setLoaded(true)
+            }
+          })
+          .catch((error) => {
+            logError('HeadingChooser', `Failed to load headings: ${error.message}`)
             setHeadings([])
             setLoaded(true)
-          }
-        })
-        .catch((error) => {
-          logError('HeadingChooser', `Failed to load headings: ${error.message}`)
-          setHeadings([])
-          setLoaded(true)
-        })
-        .finally(() => {
-          setLoading(false)
-        })
+          })
+          .finally(() => {
+            setLoading(false)
+          })
+      }, 200) // 200ms delay to yield to TOC rendering
+
+      return () => {
+        clearTimeout(timeoutId)
+      }
     } else if (!noteFilename && staticHeadings.length > 0) {
-      // Use static headings if provided
+      // Use static headings if provided (no delay needed for static data)
       setHeadings(staticHeadings)
       setLoaded(true)
     }

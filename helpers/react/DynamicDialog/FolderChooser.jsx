@@ -114,11 +114,15 @@ export function FolderChooser({
     )
 
     if (folders.length > 0 && !teamspacesLoaded && requestFromPlugin) {
-      // Use requestAnimationFrame to yield before making the request
+      // Use requestAnimationFrame + setTimeout to yield before making the request
+      // This allows TOC and other critical UI elements to render first
       requestAnimationFrame(() => {
         const effectElapsed = performance.now() - effectStartTime
-        logDebug('FolderChooser', `[DIAG] useEffect AFTER RAF: elapsed=${effectElapsed.toFixed(2)}ms, calling loadTeamspaces`)
-        loadTeamspaces()
+        logDebug('FolderChooser', `[DIAG] useEffect AFTER RAF: elapsed=${effectElapsed.toFixed(2)}ms, scheduling loadTeamspaces`)
+        // Add additional delay after RAF to ensure TOC has time to render
+        setTimeout(() => {
+          loadTeamspaces()
+        }, 200) // 200ms delay to yield to TOC rendering
       })
     } else {
       const effectElapsed = performance.now() - effectStartTime

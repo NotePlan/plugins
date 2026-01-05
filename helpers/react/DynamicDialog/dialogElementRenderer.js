@@ -22,6 +22,8 @@ import { SpaceChooser } from './SpaceChooser.jsx'
 import { HeadingChooser } from './HeadingChooser.jsx'
 import EventChooser from './EventChooser.jsx'
 import MultiSelectChooser from './MultiSelectChooser.jsx'
+import TagChooser from './TagChooser.jsx'
+import MentionChooser from './MentionChooser.jsx'
 import { ExpandableTextarea } from './ExpandableTextarea.jsx'
 import { TemplateJSBlock } from './TemplateJSBlock.jsx'
 import { MarkdownPreview } from './MarkdownPreview.jsx'
@@ -115,7 +117,7 @@ export function renderItem({
                 item.key && handleSwitchChange(item.key, e)
               }
             }}
-            labelPosition={labelPosition}
+            labelPosition={(item: any).labelPosition || labelPosition}
             description={item.description || ''}
             className={indent ? 'indent' : ''}
           />
@@ -850,6 +852,82 @@ export function renderItem({
               showValue={item.showValue ?? false}
               includeAllOption={item.includeAllOption ?? false}
               shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
+            />
+          </div>
+        )
+      }
+      case 'tag-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        const returnAsArray = (item: any).returnAsArray ?? false
+        const defaultChecked = (item: any).defaultChecked ?? false
+        const includePattern = (item: any).includePattern || ''
+        const excludePattern = (item: any).excludePattern || ''
+        const maxHeight = (item: any).maxHeight || '200px'
+        const allowCreate = (item: any).allowCreate ?? true
+
+        const handleTagChange = (tags: string | Array<string>) => {
+          if (item.key) {
+            handleFieldChange(item.key, tags)
+          }
+        }
+
+        return (
+          <div data-field-type="tag-chooser">
+            <TagChooser
+              key={`tag-chooser${index}`}
+              label={label}
+              value={currentValue}
+              onChange={handleTagChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={item.placeholder || 'Type to search hashtags...'}
+              returnAsArray={returnAsArray}
+              defaultChecked={defaultChecked}
+              includePattern={includePattern}
+              excludePattern={excludePattern}
+              maxHeight={maxHeight}
+              allowCreate={allowCreate}
+              requestFromPlugin={requestFromPlugin}
+            />
+          </div>
+        )
+      }
+      case 'mention-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        const returnAsArray = (item: any).returnAsArray ?? false
+        const defaultChecked = (item: any).defaultChecked ?? false
+        const includePattern = (item: any).includePattern || ''
+        const excludePattern = (item: any).excludePattern || ''
+        const maxHeight = (item: any).maxHeight || '200px'
+        const allowCreate = (item: any).allowCreate ?? true
+
+        const handleMentionChange = (mentions: string | Array<string>) => {
+          if (item.key) {
+            handleFieldChange(item.key, mentions)
+          }
+        }
+
+        return (
+          <div data-field-type="mention-chooser">
+            <MentionChooser
+              key={`mention-chooser${index}`}
+              label={label}
+              value={currentValue}
+              onChange={handleMentionChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={item.placeholder || 'Type to search mentions...'}
+              returnAsArray={returnAsArray}
+              defaultChecked={defaultChecked}
+              includePattern={includePattern}
+              excludePattern={excludePattern}
+              maxHeight={maxHeight}
+              allowCreate={allowCreate}
+              requestFromPlugin={requestFromPlugin}
             />
           </div>
         )

@@ -1,0 +1,7 @@
+/* MentionChooser Styles */
+/* MentionChooser uses ContainedMultiSelectChooser which has all the styling */
+/* This file is kept for consistency but styles are in ContainedMultiSelectChooser.css */
+
+.mention-chooser-wrapper {
+  /* Wrapper styling if needed in the future */
+}

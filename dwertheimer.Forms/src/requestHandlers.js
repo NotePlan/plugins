@@ -680,6 +680,54 @@ export function getAvailableReminderLists(_params: Object = {}): RequestResponse
  * @param {Object} params - Request parameters (currently unused)
  * @returns {RequestResponse}
  */
+/**
+ * Get all hashtags from DataStore
+ * @param {Object} _params - Not used, kept for consistency
+ * @returns {RequestResponse} Array of hashtags (without # prefix)
+ */
+export function getHashtags(_params: Object = {}): RequestResponse {
+  try {
+    // DataStore.hashtags returns items without # prefix
+    const hashtags = DataStore.hashtags || []
+    logDebug(pluginJson, `getHashtags: returning ${hashtags.length} hashtags`)
+    return {
+      success: true,
+      data: hashtags,
+    }
+  } catch (error) {
+    logError(pluginJson, `getHashtags error: ${error.message}`)
+    return {
+      success: false,
+      message: error.message,
+      data: [],
+    }
+  }
+}
+
+/**
+ * Get all mentions from DataStore
+ * @param {Object} _params - Not used, kept for consistency
+ * @returns {RequestResponse} Array of mentions (without @ prefix)
+ */
+export function getMentions(_params: Object = {}): RequestResponse {
+  try {
+    // DataStore.mentions returns items without @ prefix
+    const mentions = DataStore.mentions || []
+    logDebug(pluginJson, `getMentions: returning ${mentions.length} mentions`)
+    return {
+      success: true,
+      data: mentions,
+    }
+  } catch (error) {
+    logError(pluginJson, `getMentions error: ${error.message}`)
+    return {
+      success: false,
+      message: error.message,
+      data: [],
+    }
+  }
+}
+
 export function getTeamspaces(_params: Object = {}): RequestResponse {
   const startTime: number = Date.now()
   try {
@@ -1359,6 +1407,10 @@ export async function handleRequest(requestType: string, params: Object = {}): P
         return getAvailableReminderLists(params)
       case 'getTeamspaces':
         return getTeamspaces(params)
+      case 'getHashtags':
+        return getHashtags(params)
+      case 'getMentions':
+        return getMentions(params)
       case 'createFolder':
         return createFolder(params)
       case 'getHeadings':
