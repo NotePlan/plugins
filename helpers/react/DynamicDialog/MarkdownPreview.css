@@ -1,11 +1,11 @@
 /* MarkdownPreview Component Styles */
 
 .markdown-preview-container {
-  margin-bottom: 1rem;
+  margin-bottom: 0; /* Match input-box-container - no extra margin, spacing handled by .dynamic-dialog-item gap */
 }
 
 .markdown-preview-container.compact {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0; /* Match input-box-container-compact - no extra margin */
 }
 
 .markdown-preview-label {

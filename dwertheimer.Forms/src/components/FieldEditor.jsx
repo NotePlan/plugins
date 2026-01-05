@@ -1191,7 +1191,9 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   <option value="title">Note by Title</option>
                   <option value="field">Note from Another Field</option>
                 </select>
-                <div className="field-editor-help">Choose how to get the markdown content to display</div>
+                <div className="field-editor-help">
+                  Choose how to get the markdown content to display. <strong>Note:</strong> This is a very basic markdown renderer that does not display full NotePlan formatted tasks and items. It's intended for a quick preview, not a faithful rendering.
+                </div>
               </div>
 
               {(() => {

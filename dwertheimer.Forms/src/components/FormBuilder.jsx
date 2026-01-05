@@ -631,11 +631,12 @@ export function FormBuilder({
                 handleOpenForm()
               }}
               title={hasUnsavedChanges ? 'Open form (you have unsaved changes - you will be warned)' : 'Open this form in a new window'}
+              style={{ marginRight: '0.5rem' }}
             >
               Open Form
             </button>
           ) : null}
-          <button className="PCButton cancel-button" onClick={onCancel}>
+          <button className="PCButton cancel-button" onClick={onCancel} style={{ marginRight: '0.5rem' }}>
             Cancel
           </button>
           <button
@@ -693,6 +694,7 @@ export function FormBuilder({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onDragEnd={handleDragEnd}
+              requestFromPlugin={requestFromPlugin}
             />
           </Panel>
           <PanelResizeHandle className="form-builder-resize-handle" />

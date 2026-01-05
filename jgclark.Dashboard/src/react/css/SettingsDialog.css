@@ -11,8 +11,7 @@
     max-height: calc(92vh - var(--noteplan-toolbar-height, 0));
     left: 50%;
     width: clamp(380px, 86%, 700px);
-    /* transform: translate(-50%, -48%); /* second param needs to be a little lower than 50% to avoid hiding the Header bar, as we want to see Perspective name */
-    transform: translate(-50%, 0%); /* TEST: */
+    transform: translate(-50%, -50%); /* Center both horizontally and vertically */
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     opacity: 1;
