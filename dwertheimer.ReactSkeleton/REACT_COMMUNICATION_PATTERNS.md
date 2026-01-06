@@ -454,7 +454,7 @@ Contains handlers for request/response pattern. Each handler:
 
 ### Shared Handlers (np.Shared)
 
-Common chooser handlers are available in `np.Shared/src/chooserHandlers.js` and are automatically used as a fallback when plugins don't implement their own handlers.
+Common chooser handlers are available in `np.Shared/src/sharedRequestRouter.js` and are automatically used as a fallback when plugins don't implement their own handlers.
 
 **How it works:**
 1. Plugin's `routeRequest()` is called first

@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [1.0.0] @dwertheimer 2026-01-06
+
+ - Add Shared Request Router for DynamicDialog choosers (e.g. getTeamspaces, getFolders, getNotes, etc.)
+ 
 ## [0.9.0] @dwertheimer 2026-01-02
 
 - Fix Toast notification CSS selectors: Change descendant selectors to class combinators so color and border styles apply correctly

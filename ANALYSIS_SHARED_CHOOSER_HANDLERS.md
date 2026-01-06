@@ -30,7 +30,7 @@ React Component (DynamicDialog)
   ↓ requestFromPlugin('getNotes', {...})
 Plugin Router
   ↓ Check if handler exists locally OR use shared
-Shared Handler (np.Shared/src/chooserHandlers.js)
+Shared Handler (np.Shared/src/sharedRequestRouter.js)
   ↓ getNotes(params)
 Returns { success, data, message }
 ```
@@ -187,7 +187,7 @@ export function getNotes(params, pluginJson) {
 ## Implementation Plan
 
 ### Phase 1: Create Shared Handlers Module
-1. Create `np.Shared/src/chooserHandlers.js`
+1. Create `np.Shared/src/sharedRequestRouter.js`
 2. Move common handlers from Forms plugin:
    - `getFolders`
    - `getNotes`

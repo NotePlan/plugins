@@ -1,6 +1,6 @@
 // @flow
 //--------------------------------------------------------------------------
-// Shared Chooser Request Handlers Router
+// Shared Request Router
 // Routes requests to appropriate shared handlers from requestHandlers folder
 // This is called by the fallback mechanism in newCommsRouter when a plugin doesn't have its own handler
 //--------------------------------------------------------------------------
@@ -34,7 +34,7 @@ export type RequestResponse = {
  */
 export async function handleSharedRequest(requestType: string, params: Object = {}, pluginJson: any): Promise<RequestResponse> {
   try {
-    logDebug(pluginJson, `[np.Shared/chooserHandlers] handleSharedRequest: requestType="${requestType}"`)
+    logDebug(pluginJson, `[np.Shared/sharedRequestRouter] handleSharedRequest: requestType="${requestType}"`)
 
     switch (requestType) {
       case 'getTeamspaces':
@@ -58,7 +58,7 @@ export async function handleSharedRequest(requestType: string, params: Object = 
       case 'getAvailableReminderLists':
         return getAvailableReminderLists(params, pluginJson)
       default:
-        logDebug(pluginJson, `[np.Shared/chooserHandlers] handleSharedRequest: Unknown request type "${requestType}", returning error`)
+        logDebug(pluginJson, `[np.Shared/sharedRequestRouter] handleSharedRequest: Unknown request type "${requestType}", returning error`)
         return {
           success: false,
           message: `Unknown shared request type: "${requestType}"`,
@@ -66,7 +66,7 @@ export async function handleSharedRequest(requestType: string, params: Object = 
         }
     }
   } catch (error) {
-    logError(pluginJson, `[np.Shared/chooserHandlers] handleSharedRequest ERROR: requestType="${requestType}", error="${error.message}"`)
+    logError(pluginJson, `[np.Shared/sharedRequestRouter] handleSharedRequest ERROR: requestType="${requestType}", error="${error.message}"`)
     return {
       success: false,
       message: `Error handling shared request "${requestType}": ${error.message}`,
@@ -74,3 +74,4 @@ export async function handleSharedRequest(requestType: string, params: Object = 
     }
   }
 }
+
