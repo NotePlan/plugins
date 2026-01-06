@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [2.1.1] - 2026-01-05 @dwertheimer
+
+- Bump minimum app version to 3.20 after multiple changes to np.Templating for Forms
+
 ## [2.1.0] - 2025-10-31 @dwertheimer
 
 - Use getContentWithLinks() for template content reads to properly handle attachment paths
