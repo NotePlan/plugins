@@ -130,14 +130,14 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
       } else {
-        logDebug('getTodaySectionData', `No daily note found using filename '${thisFilename}'`)
+        logInfo('getTodaySectionData', `No daily note found using filename '${thisFilename}'`)
       }
     }
 
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')
     const nextPeriodFilename = nextPeriodNote?.filename ?? '(errorthisFilename'
     const doneCountData = getDoneCountsForToday()
-    clo(doneCountData, 'dataGenerationDays: doneCountData') // x zero here
+    // clo(doneCountData, 'dataGenerationDays: doneCountData') // x zero here
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
@@ -322,7 +322,7 @@ export function getTimeBlockSectionData(
     const TBsectionCode = 'TB'
     const sections: Array<TSection> = []
     const NPSettings = getNotePlanSettings()
-    logInfo('getTimeBlockSectionData', `--------- Gathering Timeblock ${useDemoData ? 'DEMO' : ''} items for section ${TBsectionCode} --------`)
+    logInfo('getTimeBlockSectionData', `--------- Gathering Timeblock ${useDemoData ? 'DEMO ' : ''}items for section ${TBsectionCode} --------`)
     const startTime = new Date() // for timing only
 
     // Get shared paragraph data (use provided data if available, otherwise fetch it)
@@ -383,7 +383,7 @@ export function getTimeBlockSectionData(
       isReferenced: false,
       actionButtons: [],
     }
-    logTimer('getTimeBlockSectionData', startTime, `- found ${String(timeBlockItems.length)} timeblock items from ${filenameDateStr}`)
+    logTimer('getTimeBlockSectionData', startTime, `- found ${String(timeBlockItems.length)} timeblock items from ${filenameDateStr}, 100`)
     sections.push(section)
 
     return sections
@@ -417,7 +417,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
     const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getYesterdaySectionData', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} from ${filenameDateStr} ----------`)
+    logInfo('getYesterdaySectionData', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} from ${filenameDateStr} ----------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -445,7 +445,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
 
         // logTimer('getYesterdaySectionData', startTime, `- finished finding yesterday's items from ${filenameDateStr}`)
       } else {
-        logDebug('getYesterdaySectionData', `No yesterday note found using filename '${thisFilename}'`)
+        logInfo('getYesterdaySectionData', `No yesterday note found using filename '${thisFilename}'`)
       }
     }
     // Note: this only counts from yesterday's note
@@ -555,7 +555,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     // const thisFilename = tomorrowsNote?.filename ?? '(error)'
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logDebug('getTomorrowSectionData', `---------- Gathering Tomorrow's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} ------------`)
+    logInfo('getTomorrowSectionData', `---------- Gathering Tomorrow's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {

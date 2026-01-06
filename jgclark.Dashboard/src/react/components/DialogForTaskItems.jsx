@@ -2,14 +2,14 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-12-19 for v2.4.0 by @jgclark
+// Last updated 2026-01-05 for v2.4.0.b8 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
 //
 import React, { useRef, useLayoutEffect, useState } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
-import { type MessageDataObject } from '../../types'
+import type { MessageDataObject, TSectionCode } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
@@ -34,6 +34,7 @@ type DialogButtonProps = {
   handlingFunction?: string,
   description?: string,
   icons?: Array<{ className: string, position: 'left' | 'right' }>,
+  sectionCodesToRefresh?: Array<TSectionCode>,
 }
 
 const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
@@ -58,8 +59,13 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
   const { ID, item, itemType, para, filename, title, content, noteType, sectionCodes, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
-  // logDebug('DialogForTaskItems', `ID=${String(ID)} / itemType=${String(itemType)} / filename=${String(filename)} / sectionCodes=${String(sectionCodes)} / para.content={${String(para?.content ?? 'n/a')}}`)
+  logDebug('DialogForTaskItems', `ID=${String(ID)} / itemType=${String(itemType)} / filename=${String(filename)} / sectionCodes=${String(sectionCodes)} / para.content={${String(para?.content ?? 'n/a')}}`)
   if (!filename || filename === '') { logWarn('DialogForTaskItems', `filename is undefined or empty`) }
+
+  // sectionCodes in this case will be just the sectionCode of the current item
+  const thisSectionCode = sectionCodes[0] ?? ''
+  if (!thisSectionCode) { logWarn('DialogForTaskItems', `thisSectionCode is undefined or empty`) }
+  logDebug('DialogForTaskItems', `thisSectionCode=${String(thisSectionCode)}`)
 
   const { sendActionToPlugin, reactSettings, setReactSettings, dashboardSettings, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
@@ -72,7 +78,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const shouldStartCalendarOpen = modifierKey // = boolean for whether metaKey pressed
   // logDebug('DialogForTaskItems', `shouldStartCalendarOpen=${String(shouldStartCalendarOpen)}`)
 
-  // Deduce the action to take when this is a date-changed button
+  // Deduce the action to take when this is a date-changed button:
   // - Item in calendar note & move to new calendar note for that picked date: use moveFromCalToCal()
   // - All 3 other cases: use rescheduleItem()
   const dateChangeFunctionToUse = noteType === 'Calendar' && !resched ? 'moveFromCalToCal' : 'rescheduleItem'
@@ -85,32 +91,32 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // Set standard list of buttons to render.
   const buttons: Array<DialogButtonProps> = [
-    { label: 'today', controlStr: 't' },
-    { label: '+1d', controlStr: '+1d' },
-    { label: '+1b', controlStr: '+1b' },
-    { label: '+2d', controlStr: '+2d' },
-    { label: 'this week', controlStr: '+0w' },
-    { label: '+1w', controlStr: '+1w' },
-    { label: '+2w', controlStr: '+2w' },
-    { label: 'this month', controlStr: '+0m' },
-    { label: '+1m', controlStr: '+1m' },
-    { label: 'this quarter', controlStr: '+0q' },
+    { label: 'today', controlStr: 't', sectionCodesToRefresh: ['DT'] },
+    { label: '+1d', controlStr: '+1d', sectionCodesToRefresh: ['DO'] },
+    { label: '+1b', controlStr: '+1b', sectionCodesToRefresh: ['DO'] },
+    { label: '+2d', controlStr: '+2d', sectionCodesToRefresh: [] },
+    { label: 'this week', controlStr: '+0w', sectionCodesToRefresh: ['W'] },
+    { label: '+1w', controlStr: '+1w', sectionCodesToRefresh: [] },
+    { label: '+2w', controlStr: '+2w', sectionCodesToRefresh: [] },
+    { label: 'this month', controlStr: '+0m', sectionCodesToRefresh: ['M'] },
+    { label: '+1m', controlStr: '+1m', sectionCodesToRefresh: [] },
+    { label: 'this quarter', controlStr: '+0q', sectionCodesToRefresh: ['Q'] },
   ]
 
   // Now tweak this list if buttons slightly if we're on a weekly or monthly note etc.
   if (sectionCodes) {
     if (sectionCodes.includes('DT')) {
       buttons.splice(0, 1) // remove the 'today' item, as its redundant
-      buttons.splice(3, 0, { label: '+3d', controlStr: '+3d' }) // add another one instead
+      buttons.splice(3, 0, { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: [] }) // add another one instead
     }
     if (sectionCodes.includes('W')) {
       buttons.splice(4, 1) // remove the 'this week' item, as its redundant
     }
     if (sectionCodes.includes('M')) {
-      buttons.splice(7, 1, { label: 'next month', controlStr: '+1m' }) // Replace the 'this month' item
+      buttons.splice(7, 1, { label: 'next month', controlStr: '+1m', sectionCodesToRefresh: [] }) // Replace the 'this month' item
     }
     if (sectionCodes.includes('Q')) {
-      buttons.splice(8, 1, { label: 'next quarter', controlStr: '+1q' }) // Replace the 'this quarter' item
+      buttons.splice(8, 1, { label: 'next quarter', controlStr: '+1q', sectionCodesToRefresh: [] }) // Replace the 'this quarter' item
     }
   }
 
@@ -291,7 +297,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // Handle the Enter key press (from the editable input box) to trigger the updateItemContent button click
   function handleEnterPress() {
     // $FlowIgnore[incompatible-call] can't manufacture a MouseEvent, but no details are actually needed, I think.
-    handleButtonClick({}, 'updateItemContent', 'updateItemContent')
+    handleButtonClick({}, 'updateItemContent', 'updateItemContent', [])
   }
 
   // Handle the content change (from the editable input box) to set a flag that the content has changed
@@ -300,11 +306,17 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   }
 
   // Handle button clicks to trigger its handler, and generally close the dialog
-  function handleButtonClick(event: MouseEvent, controlStr: string, handlingFunction: string) {
+  function handleButtonClick(event: MouseEvent, controlStr: string, handlingFunction: string, sectionCodesToRefresh: Array<TSectionCode>) {
     const { metaKey } = extractModifierKeys(event) // Indicates whether ⌘-key was pressed
     // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
     const currentContent = para.content
     logDebug(`DialogForTaskItems/handleButtonClick`, `- button clicked on ID: ${ID} for controlStr: ${controlStr}, handlingFunction: ${handlingFunction}, itemType: ${itemType}, filename: ${filename}, contentHasChanged: ${String(contentHasChanged)}`)
+
+    // prepend the current sectionCode to the section codes to refresh
+    const sectionCodesToSend = sectionCodesToRefresh
+    if (thisSectionCode) { sectionCodesToSend.unshift(thisSectionCode) }
+    logDebug('DialogForTaskItems / handleButtonClick', `sectionCodesToSend=${String(sectionCodesToSend)}`)
+
     if (contentHasChanged || controlStr === 'updateItemContent') {
       // $FlowIgnore[prop-missing] Cursor says its getValue() not itemValue(). This change works.
       const updatedContent = inputRef?.current?.getValue() || ''
@@ -314,7 +326,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         actionType: 'updateItemContent',
         controlStr: 'updateItemContent',
         updatedContent: currentContent !== updatedContent ? updatedContent : '',
-        sectionCodes: sectionCodes,
+        // sectionCodes: sectionCodes,
+        sectionCodes: sectionCodesToSend,
       }
       sendActionToPlugin('updateItemContent', dataToSend, `Dialog requesting call to updateItemContent`, true)
       setContentHasChanged(false)
@@ -325,7 +338,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         actionType: handlingFunction,
         controlStr: controlStr,
         updatedContent: '',
-        sectionCodes: sectionCodes,
+        // sectionCodes: sectionCodes,
+        sectionCodes: sectionCodesToSend,
       }
 
       sendActionToPlugin(handlingFunction, dataToSend, `Dialog requesting call to ${handlingFunction}`, true)
@@ -360,6 +374,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     }
     return result
   }
+
   function handleTitleClick(e: MouseEvent) {
     // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
@@ -498,6 +513,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
         <div className="dialogBody">
           <div className="buttonGrid taskButtonGrid">
+
             {/* Item content line ---------------- */}
             <div className="preText">For:</div>
             <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -515,7 +531,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
               <button
                 className="updateItemContentButton PCButton"
                 title={'Update the content of this item'}
-                onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}
+                onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent', [])}
               >
                 Update
               </button>
@@ -533,7 +549,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             <div className="preText">{resched ? 'Reschedule to' : 'Move to'}:</div>
             <div id="itemControlDialogMoveControls">
               {buttons.map((button, index) => (
-                <button key={index} className="PCButton" title={button.description ?? ''} onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
+                <button key={index} className="PCButton" title={button.description ?? ''} onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse, button.sectionCodesToRefresh ?? [])}>
                   {button.label}
                 </button>
               ))}
@@ -552,7 +568,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             <div className="preText">Other actions:</div>
             <div>
               {otherControlButtons.map((button, index) => (
-                <button key={index} className="PCButton" title={button.description ?? ''} onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
+                <button key={index} className="PCButton" title={button.description ?? ''} onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '', button.sectionCodesToRefresh ?? [])}>
                   {button.icons
                     ?.filter((icon) => icon.position === 'left')
                     .map((icon) => (

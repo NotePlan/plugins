@@ -1,14 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2025-12-08 for v2.4.0.b by @jgclark
+// Last updated 2026-01-05 for v2.4.0.b8 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { handleBannerTestClick } from './bannerClickHandlers'
 import {
   doAddItem,
-  doAddItemToFuture,
+  // doAddItemToFuture, // see below
   doAddTaskAnywhere,
   doCancelChecklist,
   doCancelTask,
@@ -305,10 +305,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = { success: true }
         break
       }
-      case 'addTaskToFuture': {
-        result = await doAddItemToFuture(data)
-        break
-      }
+      // TEST:: removed this as it was not hooked up to any UI element
+      // case 'addTaskToFuture': {
+      //   result = await doAddItemToFuture(data)
+      //   break
+      // }
       case 'moveAllTodayToTomorrow': {
         result = await scheduleTodayToTomorrow(data)
         break
@@ -423,16 +424,13 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     }
     if (!handlerResultIn) return
     const handlerResult = handlerResultIn
-    const { success, updatedParagraph } = handlerResult
+    const { success, updatedParagraph, errorMsg, errorMessageLevel } = handlerResult
     const enabledSections = getListOfEnabledSections(config)
 
     if (!success) {
-      logDebug('processActionOnReturn', `-> failed handlerResult(false) ${handlerResult.errorMsg || ''}`)
-      await sendBannerMessage(
-        WEBVIEW_WINDOW_ID,
-        `Sorry; something's gone wrong for "${data.actionType}" ${handlerResult.errorMsg || ''}. This is most often caused by changing a task in NotePlan since the last time the Dashboard was refreshed. If it persists, please report it to the developer.`,
-        'WARN',
-      )
+      logDebug('processActionOnReturn', `-> failed (success false) ${errorMsg || ''}`)
+      const errorLevel = errorMessageLevel || 'WARN'
+      await sendBannerMessage(WEBVIEW_WINDOW_ID, errorMsg || `Sorry; something's gone wrong for "${data.actionType}"`, errorLevel)
       return
     }
 
@@ -463,7 +461,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
       const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
       const sections = reactWindowData.pluginData.sections
-      logDebug('processActionOnReturn', `Starting REMOVE_LINE_FROM_JSON with active sections: ${String(sections.map((s) => s.sectionCode).join(','))}`)
+      logDebug('processActionOnReturn', `Starting REMOVE_LINE_FROM_JSON from active sections: ${String(sections.map((s) => s.sectionCode).join(','))}`)
 
       if (isProject) {
         const thisProject = data.item?.project
@@ -531,13 +529,13 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
           logInfo('processActionOnReturn', `-> found ${indexes.length} items to update: ${itemsToUpdateStr}`)
           indexes.reverse().forEach((index) => {
             const { sectionIndex, itemIndex } = index
-            logDebug('processActionOnReturn', `-> updating item sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-            console.log(`before: ${JSP(sections[sectionIndex].sectionItems[itemIndex])}`)
-            console.log(`updatedParagraph: ${JSP(updatedParagraph)}`)
+            // logDebug('processActionOnReturn', `-> updating item sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+            // logDebug('processActionOnReturn', `before: ${JSP(sections[sectionIndex].sectionItems[itemIndex])}`)
+            // logDebug('processActionOnReturn', `updatedParagraph: ${JSP(updatedParagraph)}`)
             // Note: simpler methods don't work here; need to use copyUpdatedSectionItemData()
             const fieldPathsToUpdate = ['itemType', 'para.content', 'para.rawContent', 'para.type', 'para.priority']
             sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { para: updatedParagraph }, sections)
-            console.log(`after: ${JSP(sections[sectionIndex].sectionItems[itemIndex])}`)
+            // logDebug('processActionOnReturn', `after: ${JSP(sections[sectionIndex].sectionItems[itemIndex])}`)
           })
           await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Updated items ${itemsToUpdateStr} following change in  ${data.item?.ID || '?'}`)
         } else {
@@ -634,10 +632,10 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
             handlerResult.sectionCodes = []
           }
           if (!handlerResult.sectionCodes.includes('TB')) {
-            handlerResult.sectionCodes?.push('TB')
+            handlerResult.sectionCodes = [...(handlerResult.sectionCodes ?? []), 'TB']
           }
         }
-        logDebug('processActionOnReturn', `... -> ${String(handlerResult.sectionCodes)}`)
+        logDebug('processActionOnReturn', `... -> ${String(handlerResult.sectionCodes)}`) // TEST: is this working?
       }
     }
 

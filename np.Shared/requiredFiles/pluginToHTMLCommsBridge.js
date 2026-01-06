@@ -178,7 +178,7 @@ const onMessageReceived = (event) => {
       console.warn(`[pluginToHTMLCommsBridge] Consider fixing corruption at the source (when loading from disk)`)
     }
 
-    console.log(`pluginToHTMLCommsBridge onMessageReceived: ${type} lastUpdated: "${payload?.lastUpdated?.msg || ''}"`, { payload })
+    console.log(`CommsBridge ${type} message: "${payload?.lastUpdated?.msg || ''}"`, { payload })
     onMessageFromPlugin(type, payload) /* you need to have a function called onMessageFromPlugin in your code */
   } catch (error) {
     console.log(`CommsBridge onMessageReceived: ${JSON.stringify(error)}`)

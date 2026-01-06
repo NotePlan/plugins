@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2025-12-07 for v2.4.0.b by @jgclark
+// Last updated 2026-01-04 for v2.4.0.b by @jgclark
 //-----------------------------------------------------------------------------
 
 import {
@@ -27,7 +27,6 @@ import {
 } from '@helpers/NPMoveItems'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { scheduleItem, scheduleItemLiteMethod } from '@helpers/NPScheduleItems'
-import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 
@@ -90,7 +89,7 @@ function calculateNewDateStr(
  */
 export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-    const { filename, rawContent, controlStr } = validateAndFlattenMessageObject(data)
+    const { filename, rawContent, controlStr, thisSectionCode } = validateAndFlattenMessageObject(data)
     const config = await getDashboardSettings()
     const dateOrInterval = String(controlStr)
     logDebug('doMoveFromCalToCal', `Starting with controlStr ${controlStr} and rawContent {${rawContent}}`)
@@ -100,8 +99,8 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
     try {
       newDateStr = calculateNewDateStr(dateOrInterval, startDateStr, config, filename, false)
     } catch (error) {
-      logError('doMoveFromCalToCal', String(error))
-      return handlerResult(false)
+      logWarn('doMoveFromCalToCal', `Error "${String(error)}" for calculateNewDateStr`)
+      return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [thisSectionCode], errorMsg: `Error calculating date from '${dateOrInterval}' from '${startDateStr}'. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
     }
     logDebug('doMoveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
 
@@ -115,8 +114,8 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
       // Send a message to update all the calendar sections (as its too hard to work out which of the sections to update)
       return handlerResult(true, ['REFRESH_ALL_CALENDAR_SECTIONS', 'START_DELAYED_REFRESH_TIMER'])
     } else {
-      logWarn('doMoveFromCalToCal', `-> doMoveFromCalToCal to ${newDateStr} not successful`)
-      return handlerResult(false)
+      logWarn('doMoveFromCalToCal', `-> to date ${newDateStr} not successful`)
+      return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [thisSectionCode], errorMsg: `Moving item from note ${startDateStr} to date ${newDateStr} not successful. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
     }
   } catch (error) {
     logError('doMoveFromCalToCal', JSP(error))
@@ -135,41 +134,27 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
     const config = await getDashboardSettings()
     const { filename, rawContent, itemType, item } = validateAndFlattenMessageObject(data)
     if (!(item?.ID)) {
-      logError('doMoveToNote', `- no ID for item: ${JSP(item)}`)
-      return handlerResult(false)
+      throw new Error(`Can't find ID for item)}`)
     }
     logDebug('doMoveToNote', `starting for ID ${item.ID} / ${filename} / {${rawContent}} / ${itemType}`)
     const newPara: ?TParagraph = await moveItemToRegularNote(filename, rawContent, itemType, config.newTaskSectionHeadingLevel, true)
 
     if (!newPara) {
-      logError('doMoveToNote', `- no new para made for ID ${item.ID}`)
-      return handlerResult(false)
+      throw new Error(`Moving item to note '${filename}' not successful. This is most often caused by changing a task in NotePlan since the last time the Dashboard was refreshed. Please refresh and try again.`)
     }
     const newNote = newPara.note
     if (!newNote) {
-      logError('doMoveToNote', `- no new note for ID ${item.ID}`)
-      return handlerResult(false)
+      throw new Error(`Can't find new note after moving item ${item.ID} to note '${filename}'. This is most often caused by changing a task in NotePlan since the the Dashboard and try again. If it persists, please report it to the developer.`)
     }
+    logDebug('doMoveToNote', `Success: moved to -> '${displayTitle(newNote)}'`)
 
-    // Now find the new paragraph in the destination note to update the display
-    // const newParagraph: TParagraph | boolean = findParaFromRawContentAndFilename(newNote.filename, rawContent)
-    // if (typeof newParagraph === 'boolean') {
-    //   logError('doMoveToNote', `- can't find new paragraph in note '${newNote.filename}' based on rawContent {${rawContent}}`)
-    // } else {
-    //   // If success, then update the display
-    //   if (newNote) {
-        logDebug('doMoveToNote', `Success: moved to -> '${displayTitle(newNote)}'`)
-        // Update the display for this line (as it will probably still be relevant in its section)
-        logDebug('doMoveToNote', `- Sending update line request for ID ${item.ID}`)
+    // Update the display for this line (as it will probably still be relevant in its section)
     const newDashboardPara = makeDashboardParas([newPara])[0]
     logDebug('doMoveToNote', `- newDashboardPara: ${JSP(newDashboardPara)}`)
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: newDashboardPara })
-    //   }
-    // }
-    // return handlerResult(false)
   } catch (error) {
     logError('doMoveToNote', JSP(error))
-    return { success: false }
+    return handlerResult(false, [], { errorMsg: error.message, errorMessageLevel: 'ERROR' })
   }
 }
 
@@ -181,10 +166,10 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
 export async function doRescheduleItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
+  const { filename, content, controlStr, sectionCodes } = validateAndFlattenMessageObject(data)
   const config: TDashboardSettings = await getDashboardSettings()
   // Following logging to get to the bottom of the issue with non-numeric settings
-  logDebug('doRescheduleItem', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}`)
+  logDebug('doRescheduleItem', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}, sectionCodes: ${sectionCodes}`)
   logDebug('doRescheduleItem', `- config.rescheduleNotMove = ${String(config.rescheduleNotMove)}`)
   logDebug('doRescheduleItem', `- config.useLiteScheduleMethod = ${String(config.useLiteScheduleMethod)}`)
   logDebug('doRescheduleItem', `- config.newTaskSectionHeading = ${String(config.newTaskSectionHeading)}`)
@@ -198,8 +183,7 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
   if (typeof thePara === 'boolean') {
     logWarn('doRescheduleItem', `- note ${filename} doesn't seem to contain {${content}}`)
     clo(data, `doRescheduleItem -> data`)
-    await showMessage(`Note ${filename} doesn't seem to contain "{${content}}"`)
-    return handlerResult(false)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: sectionCodes, errorMsg: `Note ${filename} doesn't seem to contain {${content}}. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
   }
   const origNoteType = thePara.note?.type
 
@@ -214,7 +198,7 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
     }
   } catch (error) {
     logError('doRescheduleItem', String(error))
-    return handlerResult(false)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: sectionCodes, errorMsg: `Couldn't calculate new date for from '${dateOrInterval}' from '${startDateStr}'. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
   }
   logDebug('doRescheduleItem', `change due date on task from '${startDateStr ?? '?'}' -> '${newDateStr}'`)
 
@@ -234,15 +218,16 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
   const thisNote = thePara.note
   if (thisNote) {
     thisNote.updateParagraph(thePara)
-    logDebug('doRescheduleItem', `- appeared to update line OK using ${origNoteType === 'Notes' || config.useLiteScheduleMethod ? 'lite' : 'NP full'} method -> {${thePara.content}}`)
+    logDebug('doRescheduleItem', `-> appeared to update line OK using ${origNoteType === 'Notes' || config.useLiteScheduleMethod ? 'lite' : 'NP full'} method -> {${thePara.content}}`)
 
     // Note: No need to ask for cache refresh for this note -- done in functions above
 
     // refresh all enabled sections, as we don't know here which if any section the moved task might need to be added to (if any)
-    logDebug('doRescheduleItem', `------------ refresh enabled ------------`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_ENABLED_SECTIONS'], { updatedParagraph: thePara })
+    // TODO: but we could be a bit smarter about this ...
+    logDebug('doRescheduleItem', `------------ refresh section(s) ${String(sectionCodes)} ------------`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { updatedParagraph: thePara, sectionCodes: sectionCodes })
   } else {
-    logWarn('doRescheduleItem', `- some other failure`)
-    return handlerResult(false)
+    logWarn('doRescheduleItem', `-> some other failure`)
+    return handlerResult(false, [], { errorMsg: `Couldn't get the note this was scheduled to for some unknown reason.`, errorMessageLevel: 'ERROR' })
   }
 }

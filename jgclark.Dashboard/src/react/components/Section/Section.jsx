@@ -62,7 +62,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       }
       const diff: any = getDiff(previousValue, currentValue)
       if (diff != null) {
-        clo(diff, `Section ${section.sectionCode} ${section.name} diff for ${label}`, 2)
+        // clo(diff, `Section ${section.sectionCode} ${section.name} diff for ${label}`, 2)
       }
     },
     [section.sectionCode, section.name],
