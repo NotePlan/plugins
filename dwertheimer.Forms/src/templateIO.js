@@ -111,7 +111,20 @@ export async function saveFormFieldsToTemplate(templateFilename: string, fields:
  */
 export async function saveTemplateBodyToTemplate(templateFilename: string, templateBody: string): Promise<void> {
   try {
-    const cleanedBody = templateBody || ''
+    let cleanedBody = templateBody || ''
+    
+    // IMPORTANT: Check if the content coming from React is already corrupted
+    // This can happen if the data was corrupted when sent through the bridge
+    // We should fix it before saving to prevent the corruption from persisting
+    const { isDoubleEncoded, fixDoubleEncoded } = await import('./utils/encodingFix.js')
+    if (cleanedBody && isDoubleEncoded(cleanedBody)) {
+      logDebug(pluginJson, `saveTemplateBodyToTemplate: Detected corruption in content from React, fixing before save`)
+      const fixed = fixDoubleEncoded(cleanedBody)
+      if (fixed !== cleanedBody) {
+        logDebug(pluginJson, `saveTemplateBodyToTemplate: Fixed corruption before save (original length=${cleanedBody.length}, fixed length=${fixed.length})`)
+        cleanedBody = fixed
+      }
+    }
     
     // Log encoding info for debugging
     if (cleanedBody) {
@@ -188,9 +201,35 @@ export async function loadTemplateBodyFromTemplate(templateNoteOrFilename: CoreN
       
       if (isDoubleEncoded(loadedContent) || hasKnownCorruption) {
         logDebug(pluginJson, `loadTemplateBodyFromTemplate: Detected double-encoded UTF-8, attempting fix`)
+        
+        // Log a sample of corrupted content before fix
+        const corruptedSample = loadedContent.substring(
+          Math.max(0, (loadedContent.indexOf('ðŸ') >= 0 ? loadedContent.indexOf('ðŸ') : 
+                      loadedContent.indexOf('ô€') >= 0 ? loadedContent.indexOf('ô€') : 
+                      loadedContent.indexOf('ï¿¼') >= 0 ? loadedContent.indexOf('ï¿¼') : 0) - 5),
+          Math.min(loadedContent.length, (loadedContent.indexOf('ðŸ') >= 0 ? loadedContent.indexOf('ðŸ') : 
+                                          loadedContent.indexOf('ô€') >= 0 ? loadedContent.indexOf('ô€') : 
+                                          loadedContent.indexOf('ï¿¼') >= 0 ? loadedContent.indexOf('ï¿¼') : 0) + 20)
+        )
+        logDebug(pluginJson, `loadTemplateBodyFromTemplate: Before fix sample: "${corruptedSample}"`)
+        
         const fixed = fixDoubleEncoded(loadedContent)
+        
+        // Log a sample of fixed content
+        const fixedSample = fixed.substring(
+          Math.max(0, Math.min(corruptedSample.length, fixed.length) - 5),
+          Math.min(fixed.length, Math.max(corruptedSample.length, fixed.length) + 20)
+        )
+        logDebug(pluginJson, `loadTemplateBodyFromTemplate: After fix sample: "${fixedSample}"`)
+        
+        // Check if corruption patterns are still present
+        const stillHasCorruption = isDoubleEncoded(fixed) || 
+                                   fixed.includes('ðŸ') || 
+                                   fixed.includes('ô€') || 
+                                   fixed.includes('ï¿¼')
+        
         if (fixed !== loadedContent) {
-          logDebug(pluginJson, `loadTemplateBodyFromTemplate: Fixed encoding issues (original length=${loadedContent.length}, fixed length=${fixed.length})`)
+          logDebug(pluginJson, `loadTemplateBodyFromTemplate: Fixed encoding issues (original length=${loadedContent.length}, fixed length=${fixed.length}, stillHasCorruption=${String(stillHasCorruption)})`)
           // Auto-save the fixed content to prevent future issues
           // But only if we loaded from a filename (not a note object)
           if (typeof templateNoteOrFilename === 'string') {
@@ -200,6 +239,9 @@ export async function loadTemplateBodyFromTemplate(templateNoteOrFilename: CoreN
           return fixed
         } else {
           logDebug(pluginJson, `loadTemplateBodyFromTemplate: Detected double-encoding but fix did not change content`)
+          if (stillHasCorruption) {
+            logDebug(pluginJson, `loadTemplateBodyFromTemplate: WARNING - Corruption still present after fix attempt`)
+          }
         }
       } else {
         logDebug(pluginJson, `loadTemplateBodyFromTemplate: No double-encoding detected`)

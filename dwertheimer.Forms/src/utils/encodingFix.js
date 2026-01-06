@@ -85,35 +85,79 @@ export function fixDoubleEncoded(str: string): string {
     
     // Method 1: Try to decode by treating each char as a byte and decoding as UTF-8
     // This reverses: UTF-8 -> interpreted as ISO-8859-1 -> re-encoded as UTF-8
+    // 
+    // CRITICAL ISSUE: When UTF-8 bytes are misinterpreted, the character codes don't always
+    // match the byte values. For example:
+    // - Byte 0xF0 (240) → character ð (U+00F0, code point 240) ✓ Direct match
+    // - Byte 0x9F (159) → character Ÿ (U+0178, code point 376) ✗ NOT a direct match!
+    //
+    // This happens because ISO-8859-1 doesn't have a character at 0x9F, so when the byte
+    // is interpreted, it might get mapped to a different character or the encoding chain
+    // is more complex than a simple byte-to-char mapping.
+    //
+    // Strategy: Try multiple approaches:
+    // 1. Direct byte extraction (charCode < 256 → byte value)
+    // 2. Pattern-based fixes for known corruption sequences
+    // 3. Aggressive TextDecoder attempt on the entire string
+    
+    // First, try direct byte extraction for characters < 256
     try {
       const bytes = new Uint8Array(str.length)
+      let allBytesValid = true
       for (let i = 0; i < str.length; i++) {
-        bytes[i] = str.charCodeAt(i) & 0xFF // Get low byte
+        const charCode = str.charCodeAt(i)
+        // For characters < 256, assume char code = byte value
+        // For characters >= 256, extract low byte (less reliable)
+        if (charCode < 256) {
+          bytes[i] = charCode
+        } else {
+          bytes[i] = charCode & 0xFF
+          // If we have characters >= 256, the byte extraction might not be accurate
+          if (charCode > 0xFF) {
+            allBytesValid = false
+          }
+        }
       }
       
-      // Decode bytes as UTF-8
-      // In JavaScript, we can use TextDecoder for this
-      if (typeof TextDecoder !== 'undefined') {
-        const decoder = new TextDecoder('utf-8')
+      // Only try TextDecoder if we have reasonable confidence in byte extraction
+      if (typeof TextDecoder !== 'undefined' && allBytesValid) {
+        const decoder = new TextDecoder('utf-8', { fatal: false })
         const decoded = decoder.decode(bytes)
         // If decoding produces valid UTF-8, use it
         // Check if it looks more correct (fewer corruption patterns)
         const originalCorruptionCount = (str.match(/[â€Ãðôï¿]/g) || []).length
         const decodedCorruptionCount = (decoded.match(/[â€Ãðôï¿]/g) || []).length
-        if (decodedCorruptionCount < originalCorruptionCount) {
+        
+        // Also check for valid Unicode characters that indicate successful decoding
+        const hasValidUnicode = /[\u{1F300}-\u{1F9FF}]/u.test(decoded) || 
+                               decoded.includes('—') || 
+                               decoded.includes('"')
+        
+        if (decodedCorruptionCount < originalCorruptionCount || 
+            (originalCorruptionCount > 0 && decodedCorruptionCount === 0) ||
+            hasValidUnicode) {
           fixed = decoded
+          // Log for debugging
+          if (typeof console !== 'undefined' && console.log) {
+            console.log(`[encodingFix] Method 1 (TextDecoder) improved: before=${originalCorruptionCount}, after=${decodedCorruptionCount}`)
+          }
         }
       }
     } catch (e) {
       // TextDecoder failed or not available, fall back to pattern replacement
+      if (typeof console !== 'undefined' && console.log) {
+        console.log(`[encodingFix] Method 1 (TextDecoder) failed: ${e.message}`)
+      }
     }
     
     // Method 2: Pattern-based replacements for common cases
     // This handles specific known corruption patterns at different encoding levels
     
     // Level 1 patterns (UTF-8 -> ISO-8859-1 -> UTF-8):
+    // These are the most common corruption patterns where UTF-8 bytes were interpreted
+    // as ISO-8859-1 and then re-encoded as UTF-8, creating multi-character sequences
     fixed = fixed
-      .replace(/â€"/g, '—') // em dash (U+2014)
+      .replace(/â€"/g, '—') // em dash (U+2014) - most common corruption
       .replace(/â€"/g, '–') // en dash (U+2013)
       .replace(/â€œ/g, '"') // left double quote (U+201C)
       .replace(/â€\u009d/g, '"') // right double quote (U+201D)
@@ -121,53 +165,104 @@ export function fixDoubleEncoded(str: string): string {
       .replace(/â€™/g, "'") // right single quote (U+2019)
       .replace(/â€˜/g, "'") // left single quote (U+2018)
       .replace(/Ã¯Â¿Â¼/g, '') // BOM (U+FEFF) Level 1
+      // Fix common emoji corruption patterns that appear as multiple characters
+      // Ã°Å¸Å¸Â¢ is the corrupted form of 🟢 (U+1F7E2)
+      // The UTF-8 bytes are: F0 9F 9F A2
+      // When misinterpreted as ISO-8859-1 and re-encoded as UTF-8:
+      // F0 → Ã° (C3 B0 in UTF-8, but interpreted as two chars: Ã + °)
+      // Actually, the corruption is: F0→Ã° (C3 B0), 9F→Å¸ (C5 9F), 9F→Å¸, A2→Â¢ (C2 A2)
+      // So "Ã°Å¸Å¸Â¢" represents the bytes [C3, B0, C5, 9F, C5, 9F, C2, A2]
+      // Which when decoded as UTF-8 gives us the original bytes [F0, 9F, 9F, A2]
+      // Which is the UTF-8 encoding of 🟢
+      .replace(/Ã°Å¸Å¸Â¢/g, '🟢') // Specific emoji fix for green circle
+      // Try to fix other common emoji patterns (4-byte UTF-8 sequences starting with F0)
+      // Pattern: Ã°Å¸ followed by two more corrupted bytes
+      .replace(/Ã°Å¸([\x80-\xFF]{2})Â([\x80-\xBF])/g, (match) => {
+        // This is a corrupted 4-byte emoji
+        // We can't reliably reconstruct which emoji it was, so remove it
+        // (Better than showing garbage characters)
+        return '' // Remove corrupted emoji
+      })
     
     // Level 2 patterns (what we're actually seeing in the file):
+    // These are UTF-8 bytes that were interpreted as ISO-8859-1 characters directly
     // Fix BOM/zero-width characters
     fixed = fixed.replace(/ï¿¼/g, '') // BOM (U+FEFF) Level 2
     
-    // Fix emoji patterns - these need byte-level decoding
-    // The corruption happens because UTF-8 emoji bytes are being interpreted as ISO-8859-1
-    // We need to convert the corrupted string back to bytes and re-decode as UTF-8
+    // Fix Level 2 emoji corruption: ðŸŸ¢ should be 🟢
+    // The bytes [F0, 9F, 9F, A2] when interpreted as ISO-8859-1 become:
+    // F0 (240) → ð (U+00F0)
+    // 9F (159) → but 159 is not a valid ISO-8859-1 character!
+    // Actually, when bytes are read incorrectly, 9F might map to Ÿ (U+0178 = 376)
+    // This suggests the corruption is more complex - the bytes might have been
+    // transformed through multiple encoding steps
+    // 
+    // For now, try to fix known patterns:
+    // ðŸŸ¢ → 🟢 (green circle)
+    // We'll use a more aggressive approach: try to decode the entire string as if
+    // each character code < 256 is a byte value, then decode as UTF-8
     
-    // For emoji patterns like ðŸ©º, ðŸŸ¢, ðŸ‚, ô€Žž, ô€©, ô»Š:
-    // These are UTF-8 bytes that were interpreted as ISO-8859-1 characters
-    // We need to extract the byte values and decode them properly
+    // Fix Level 2 emoji patterns - these are UTF-8 bytes interpreted as ISO-8859-1
+    // Example: 🟢 (U+1F7E2) in UTF-8 is bytes [F0, 9F, 9F, A2]
+    // When interpreted as ISO-8859-1, these become: ð (240), Ÿ (376), Ÿ (376), ¢ (162)
+    // BUT: 9F (159) is not a valid ISO-8859-1 character, so Ÿ (376 = 0x178) suggests
+    // the corruption went through multiple encoding steps or the byte mapping is non-linear
     
-    // Try a more aggressive fix: convert the entire string byte-by-byte
-    // This should fix emoji corruption
+    // Try aggressive byte-level decoding: treat ALL characters < 256 as byte values
+    // This is a best-effort approach that may fix some corruption
     try {
       const byteArray = []
+      let hasNonByteChars = false
       for (let i = 0; i < fixed.length; i++) {
         const charCode = fixed.charCodeAt(i)
-        // If it's a high byte (above 127), it might be part of UTF-8 corruption
-        if (charCode > 127 && charCode < 256) {
-          byteArray.push(charCode)
-        } else if (charCode < 128) {
-          // ASCII character, keep as-is
+        if (charCode < 256) {
+          // Character code < 256, treat as byte value
           byteArray.push(charCode)
         } else {
-          // Multi-byte character, extract low byte
+          // Character >= 256 - this shouldn't happen in corrupted text
+          // Extract low byte as fallback
           byteArray.push(charCode & 0xFF)
+          hasNonByteChars = true
         }
       }
       
-      // Try to decode as UTF-8 using TextDecoder if available
-      if (typeof TextDecoder !== 'undefined' && byteArray.length > 0) {
+      // Only try TextDecoder if we have mostly byte-like characters
+      // (some non-byte chars are OK, but if too many, the approach won't work)
+      if (typeof TextDecoder !== 'undefined' && byteArray.length > 0 && !hasNonByteChars) {
         const bytes = new Uint8Array(byteArray)
         const decoder = new TextDecoder('utf-8', { fatal: false })
         const decoded = decoder.decode(bytes)
         
         // Check if decoding improved things (fewer corruption patterns)
-        const beforeCount = (fixed.match(/[ðôï¿]/g) || []).length
-        const afterCount = (decoded.match(/[ðôï¿]/g) || []).length
-        if (afterCount < beforeCount || (beforeCount > 0 && afterCount === 0)) {
+        const beforeCount = (fixed.match(/[ðôï¿â€Ã]/g) || []).length
+        const afterCount = (decoded.match(/[ðôï¿â€Ã]/g) || []).length
+        
+        // Also check if we got valid Unicode characters (emojis, proper quotes, etc.)
+        const hasValidUnicode = /[\u{1F300}-\u{1F9FF}]/u.test(decoded) || 
+                                decoded.includes('—') || 
+                                decoded.includes('"') ||
+                                decoded.includes('"')
+        
+        if (afterCount < beforeCount || (beforeCount > 0 && afterCount === 0) || hasValidUnicode) {
           fixed = decoded
+          // Log success for debugging
+          if (typeof console !== 'undefined' && console.log) {
+            console.log(`[encodingFix] Method 2 (aggressive byte decode) improved: before=${beforeCount}, after=${afterCount}`)
+          }
         }
       }
     } catch (e) {
       // Byte-level decoding failed, continue with pattern replacements
+      if (typeof console !== 'undefined' && console.log) {
+        console.log(`[encodingFix] Method 2 (aggressive byte decode) failed: ${e.message}`)
+      }
     }
+    
+    // Final pattern-based fixes for specific known corruption sequences
+    // These handle cases where byte-level decoding didn't work
+    // ðŸŸ¢ → 🟢 (if the corruption is at Level 2)
+    // Note: This is a heuristic and may not always work correctly
+    fixed = fixed.replace(/ðŸŸ¢/g, '🟢') // Try to fix green circle emoji at Level 2
     
     // Final cleanup: remove any remaining BOM/zero-width characters
     fixed = fixed.replace(/ï¿¼/g, '')
