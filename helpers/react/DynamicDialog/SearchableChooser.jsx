@@ -5,6 +5,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import './SearchableChooser.css'
 
 /**
@@ -145,7 +146,9 @@ export function SearchableChooser({
   const [hoveredIndex, setHoveredIndex] = useState<?number>(null)
   const containerRef = useRef<?HTMLDivElement>(null)
   const inputRef = useRef<?HTMLInputElement>(null)
+  const dropdownRef = useRef<?HTMLDivElement>(null)
   const [closeDropdownTriggered, setCloseDropdownTriggered] = useState<boolean>(false)
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number, left: number, width: number, openAbove: boolean } | null>(null)
 
   // Handle closeDropdown prop - close dropdown when it becomes true
   useEffect(() => {
@@ -188,6 +191,28 @@ export function SearchableChooser({
     }
   }, [searchTerm, items, filterFn, itemFilter])
 
+  // Scroll highlighted item into view when hoveredIndex changes
+  useEffect(() => {
+    if (isOpen && hoveredIndex != null && hoveredIndex >= 0 && hoveredIndex < filteredItems.length) {
+      // Use setTimeout to ensure DOM is updated after state change
+      setTimeout(() => {
+        // Use dropdownRef (portal dropdown) instead of containerRef since dropdown is portaled
+        if (dropdownRef.current) {
+          const optionElements = dropdownRef.current.querySelectorAll(`.${classNamePrefix}-option`)
+          if (optionElements[hoveredIndex]) {
+            optionElements[hoveredIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          }
+        } else if (containerRef.current) {
+          // Fallback for non-portal dropdowns (if any)
+          const optionElements = containerRef.current.querySelectorAll(`.${classNamePrefix}-option`)
+          if (optionElements[hoveredIndex]) {
+            optionElements[hoveredIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          }
+        }
+      }, 0)
+    }
+  }, [hoveredIndex, isOpen, filteredItems.length, classNamePrefix])
+
   // Track Option/Alt key for Option-click functionality
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -210,11 +235,41 @@ export function SearchableChooser({
     }
   }, [])
 
+  // Calculate dropdown position when it opens and on scroll/resize
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      const updatePosition = () => {
+        const position = calculateDropdownPosition()
+        if (position) {
+          setDropdownPosition(position)
+        }
+      }
+
+      // Calculate position immediately
+      updatePosition()
+      window.addEventListener('scroll', updatePosition, true)
+      window.addEventListener('resize', updatePosition)
+
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true)
+        window.removeEventListener('resize', updatePosition)
+      }
+    } else {
+      setDropdownPosition(null)
+    }
+  }, [isOpen])
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target
-      if (containerRef.current && target instanceof HTMLElement && !containerRef.current.contains(target)) {
+      if (
+        containerRef.current &&
+        target instanceof HTMLElement &&
+        !containerRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
         setIsOpen(false)
         setSearchTerm('')
       }
@@ -238,6 +293,11 @@ export function SearchableChooser({
     setSearchTerm(newSearchTerm)
     if (!isOpen) {
       setIsOpen(true)
+      // Calculate position immediately when opening (synchronously)
+      const position = calculateDropdownPosition()
+      if (position) {
+        setDropdownPosition(position)
+      }
     }
   }
 
@@ -249,6 +309,11 @@ export function SearchableChooser({
       onOpen() // Trigger lazy loading callback
     }
     setIsOpen(true)
+    // Calculate position immediately when opening (synchronously)
+    const position = calculateDropdownPosition()
+    if (position) {
+      setDropdownPosition(position)
+    }
   }
 
   const handleInputKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
@@ -265,7 +330,14 @@ export function SearchableChooser({
       }
       setHoveredIndex(newIndex)
       // Scroll the selected item into view
-      if (containerRef.current) {
+      // Use dropdownRef (portal dropdown) instead of containerRef since dropdown is portaled
+      if (dropdownRef.current) {
+        const optionElements = dropdownRef.current.querySelectorAll(`.${classNamePrefix}-option`)
+        if (optionElements[newIndex]) {
+          optionElements[newIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      } else if (containerRef.current) {
+        // Fallback for non-portal dropdowns (if any)
         const optionElements = containerRef.current.querySelectorAll(`.${classNamePrefix}-option`)
         if (optionElements[newIndex]) {
           optionElements[newIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
@@ -407,6 +479,42 @@ export function SearchableChooser({
   // For shorter items, let CSS handle truncation based on actual width
   const truncatedDisplayValue = displayValue && displayValue.length > inputMaxLength ? truncateDisplay(displayValue, inputMaxLength) : displayValue || ''
 
+  // Prepare portal container for dropdown
+  const portalContainer: ?HTMLElement = typeof document !== 'undefined' && document.body ? document.body : null
+
+  // Helper function to calculate dropdown position
+  const calculateDropdownPosition = (): ?{ top: number, left: number, width: number, openAbove: boolean } => {
+    if (!inputRef.current) return null
+
+    const inputRect = inputRef.current.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const viewportWidth = window.innerWidth
+    const dropdownMaxHeight = 150 // Match CSS max-height
+    const spaceBelow = viewportHeight - inputRect.bottom
+    const spaceAbove = inputRect.top
+    const openAbove = spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow
+
+    let top: number
+    if (openAbove) {
+      // Position above the input
+      top = inputRect.top - Math.min(dropdownMaxHeight, spaceAbove - 10)
+      if (top < 10) {
+        top = 10
+      }
+    } else {
+      // Position below the input
+      top = inputRect.bottom
+    }
+
+    // Ensure dropdown doesn't go off-screen
+    top = Math.max(10, Math.min(top, viewportHeight - 10))
+
+    const left = Math.max(10, Math.min(inputRect.left, viewportWidth - inputRect.width - 10))
+    const width = inputRect.width
+
+    return { top, left, width, openAbove }
+  }
+
   // Debug logging (disabled for cleaner console output)
   // if (debugLogging && displayValue) {
   //   console.log(`${fieldType}: displayValue="${displayValue}", length=${displayValue.length}`)
@@ -453,15 +561,36 @@ export function SearchableChooser({
         ) : iconClass ? (
           <i className={`fa-solid ${iconClass} ${classNamePrefix}-icon ${isOpen ? 'open' : ''}`}></i>
         ) : null}
-        {isOpen && (
-          <div
-            className={`searchable-chooser-dropdown ${classNamePrefix}-dropdown`}
-            style={{ display: 'block' }}
-            data-debug-isopen={String(isOpen)}
-            data-debug-filtered-count={filteredItems.length}
-            data-debug-items-count={items.length}
-            data-debug-isloading={String(isLoading)}
-          >
+      </div>
+      {showValue && value && (
+        <div
+          className={`${classNamePrefix}-value-display`}
+          style={{ marginTop: '0.25rem', fontSize: '0.85em', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))', fontFamily: 'Menlo, monospace' }}
+        >
+          <strong>Value:</strong> {value}
+        </div>
+      )}
+      {/* Render dropdown via portal to avoid clipping */}
+      {isOpen && portalContainer
+        ? createPortal(
+            <div
+              ref={dropdownRef}
+              className={`searchable-chooser-dropdown-portal ${classNamePrefix}-dropdown ${dropdownPosition?.openAbove ? 'open-above' : ''}`}
+              style={{
+                position: 'fixed',
+                top: dropdownPosition ? `${dropdownPosition.top}px` : '0px',
+                left: dropdownPosition ? `${dropdownPosition.left}px` : '0px',
+                width: dropdownPosition ? `${dropdownPosition.width}px` : 'auto',
+                display: 'block',
+                zIndex: 99999,
+                opacity: dropdownPosition ? 1 : 0,
+                pointerEvents: dropdownPosition ? 'auto' : 'none',
+              }}
+              data-debug-isopen={String(isOpen)}
+              data-debug-filtered-count={filteredItems.length}
+              data-debug-items-count={items.length}
+              data-debug-isloading={String(isLoading)}
+            >
             {debugLogging &&
               console.log(
                 `${fieldType}: Rendering dropdown, isOpen=${String(isOpen)}, isLoading=${String(isLoading)}, items.length=${items.length}, filteredItems.length=${
@@ -671,17 +800,10 @@ export function SearchableChooser({
                 })
               })()
             )}
-          </div>
-        )}
-      </div>
-      {showValue && value && (
-        <div
-          className={`${classNamePrefix}-value-display`}
-          style={{ marginTop: '0.25rem', fontSize: '0.85em', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))', fontFamily: 'Menlo, monospace' }}
-        >
-          <strong>Value:</strong> {value}
-        </div>
-      )}
+            </div>,
+            portalContainer,
+          )
+        : null}
     </div>
   )
 }

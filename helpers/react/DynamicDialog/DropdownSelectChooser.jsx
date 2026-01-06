@@ -136,7 +136,7 @@ export function DropdownSelectChooser({
   const displayValue = selectedOption ? selectedOption.label : placeholder || ''
 
   return (
-    <div className="dropdown-select-chooser-container" data-field-type="dropdown-select-chooser">
+    <div className={`dropdown-select-chooser-container ${compactDisplay ? 'compact' : ''}`} data-field-type="dropdown-select-chooser">
       <SearchableChooser label={label} value={displayValue} disabled={disabled} compactDisplay={compactDisplay} placeholder={placeholder} showValue={showValue} width={width} config={config} />
     </div>
   )

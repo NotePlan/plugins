@@ -8,8 +8,9 @@
     background-color: var(--bg-mid-color);
     position: fixed;
     top: calc(50vh + var(--noteplan-toolbar-height, 0)/2); /* Center in viewport, with Y offset a bit lower to generally allow the Perspective name to be visible) */
-    height: 90vh;
+    /* height: 90vh; */
     max-height: calc(92vh - var(--noteplan-toolbar-height, 0));
+    /* min-height: 15rem; Minimum height to show header + 2-3 fields + footer comfortably */
     left: 50%;
     width: clamp(380px, 86%, 700px);
     transform: translate(-50%, -50%); /* Center both horizontally and vertically */
@@ -228,6 +229,7 @@
         display: flex;
         flex-direction: column;
         align-items: left;
+        width: 100%;
         /* width: 98%; */
     }
 
@@ -354,6 +356,7 @@
     /* Ensure input doesn't shrink when validation message appears - set fixed width on input */
     .input-box-wrapper .input-box-input {
         flex-shrink: 0 !important; /* Don't allow input to shrink */
+        width: 100%;
     }
     
     .input-box-container-compact .input-box-wrapper .input-box-input {

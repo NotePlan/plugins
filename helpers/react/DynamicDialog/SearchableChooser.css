@@ -240,6 +240,34 @@
   min-height: 50px !important;
 }
 
+/* Portal dropdown - fixed positioning to avoid clipping */
+/* Note: Portal dropdowns do NOT use .searchable-chooser-dropdown class to avoid conflicts */
+.searchable-chooser-dropdown-portal {
+  position: fixed !important;
+  /* top, left, width set via inline styles - these will override CSS */
+  max-height: 150px;
+  overflow-y: auto;
+  background-color: var(--bg-main-color, #eff1f5) !important;
+  border: 1px solid var(--divider-color, #CDCFD0) !important;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 99999 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  min-height: 50px !important;
+  margin-top: 0;
+}
+
+/* When dropdown opens above, adjust border radius */
+.searchable-chooser-dropdown-portal.open-above {
+  border-radius: 4px 4px 0 0;
+  border-top: 1px solid var(--divider-color, #CDCFD0) !important;
+  border-bottom: none;
+  box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+}
+
 /* Also support attribute selector for backward compatibility */
 .searchable-chooser-base [class*="-chooser-dropdown"],
 [class*="-chooser-dropdown"] {
