@@ -55,10 +55,10 @@ The router:
 
 ### Router Function
 
-The main router function is created using `createRouter` from `@helpers/react/routerUtils`:
+The main router function is created using `newCommsRouter` from `@helpers/react/routerUtils`:
 
 ```javascript
-export const onMessageFromHTMLView = createRouter({
+export const onMessageFromHTMLView = newCommsRouter({
   routerName: 'onMessageFromHTMLView',
   defaultWindowId: WEBVIEW_WINDOW_ID,
   routeRequest: routeRequest,              // Routes REQUEST actions

@@ -1,8 +1,6 @@
 /* HeadingChooser Component Styles */
 
 .heading-chooser-container {
-  width: var(--dynamic-dialog-input-width, 180px); /* Standardized width */
-  max-width: var(--dynamic-dialog-input-width, 180px);
   box-sizing: border-box;
 }
 

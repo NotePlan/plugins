@@ -18,6 +18,13 @@ import { generateTagMentionCache, isTagMentionCacheGenerationScheduled } from '.
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
+
+// RequestResponse type for request/response pattern
+type RequestResponse = {
+  success: boolean,
+  message?: string,
+  data?: any,
+}
 import { getGlobalSharedData, sendToHTMLWindow, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
@@ -483,6 +490,33 @@ export async function updateReactWindowData(actionType: string, data: any = null
 }
 
 /**
+ * Route request to appropriate handler (for REQUEST/RESPONSE pattern)
+ * @param {string} actionType - The action/command type
+ * @param {any} data - Request data
+ * @returns {Promise<RequestResponse>}
+ */
+async function routeDashboardRequest(actionType: string, data: any): Promise<RequestResponse> {
+  try {
+    logDebug(pluginJson, `[Dashboard] routeDashboardRequest: actionType="${actionType}"`)
+    
+    // Dashboard doesn't have its own handlers for common choosers yet
+    // Return "not found" to trigger shared handler fallback
+    return {
+      success: false,
+      message: `Unknown request type: "${actionType}"`,
+      data: null,
+    }
+  } catch (error) {
+    logError(pluginJson, `[Dashboard] routeDashboardRequest ERROR: actionType="${actionType}", error="${error.message}"`)
+    return {
+      success: false,
+      message: `Error handling request: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
+/**
  * Router function that receives requests from the React Window and routes them to the appropriate function
  * (e.g. handleSubmitButtonClick example below)
  * Here's where you will process any other commands+data that comes back from the React Window
@@ -492,6 +526,65 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
   try {
     let _newData = null
     logInfo(pluginJson, `actionType '${actionType}' received by onMessageFromHTMLView`)
+    
+    // Check if this is a REQUEST that needs a response (request/response pattern)
+    if (data?.__requestType === 'REQUEST' && data?.__correlationId) {
+      logDebug(pluginJson, `[Dashboard] Handling REQUEST type="${actionType}" with correlationId="${data.__correlationId}"`)
+      
+      // Try plugin handler first
+      const pluginResult = await routeDashboardRequest(actionType, data)
+      
+      // Check if plugin handler succeeded or explicitly handled the request
+      const message = pluginResult.message || ''
+      const isNotFound =
+        !pluginResult.success &&
+        message &&
+        (message.toLowerCase().includes('unknown') ||
+          message.toLowerCase().includes('not found') ||
+          message.toLowerCase().includes('no handler'))
+      
+      let result = pluginResult
+      
+      // If plugin handler didn't handle it, try shared handlers
+      if (isNotFound) {
+        logDebug(pluginJson, `[Dashboard] Plugin handler not found for "${actionType}", attempting np.Shared fallback`)
+        try {
+          // Check if np.Shared is installed
+          if (DataStore.isPluginInstalledByID('np.Shared')) {
+            logDebug(pluginJson, `[Dashboard] Calling np.Shared handler for "${actionType}"`)
+            const sharedResult = await DataStore.invokePluginCommandByName('handleSharedRequest', 'np.Shared', [actionType, data, pluginJson])
+            if (sharedResult && typeof sharedResult === 'object' && 'success' in sharedResult) {
+              logDebug(pluginJson, `[Dashboard] np.Shared handler result for "${actionType}": success=${String(sharedResult.success)}`)
+              result = sharedResult
+            } else {
+              logDebug(pluginJson, `[Dashboard] np.Shared handler returned invalid result, using plugin result`)
+            }
+          } else {
+            logDebug(pluginJson, `[Dashboard] np.Shared not installed, cannot use shared handlers`)
+          }
+        } catch (error) {
+          logError(pluginJson, `[Dashboard] Error calling shared handler for "${actionType}": ${error.message}`)
+          // Use plugin result on error
+        }
+      } else {
+        logDebug(pluginJson, `[Dashboard] Using plugin handler result for "${actionType}": success=${String(pluginResult.success)}`)
+      }
+      
+      // Get window ID from data or use default
+      const windowId = data?.__windowId || WEBVIEW_WINDOW_ID
+      
+      // Send response back to React
+      sendToHTMLWindow(windowId, 'RESPONSE', {
+        correlationId: data.__correlationId,
+        success: result.success,
+        data: result.data,
+        error: result.message,
+      })
+      
+      return {}
+    }
+    
+    // For non-REQUEST actions, use the existing bridgeClickDashboardItem pattern
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     const dataToSend = { ...data }

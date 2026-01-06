@@ -411,7 +411,7 @@ requestFromPlugin('getFolders', { excludeTrash: true })
 
 ## Router and Handler Organization
 
-The ReactSkeleton includes a well-organized router and handler system:
+The ReactSkeleton includes a well-organized router and handler system with automatic fallback to shared handlers:
 
 ### File Structure
 
@@ -425,8 +425,9 @@ src/
 
 ### Router (`src/router.js`)
 
-The router uses `createRouter` from `@helpers/react/routerUtils` to handle:
+The router uses `newCommsRouter` from `@helpers/react/routerUtils` to handle:
 - **REQUEST actions**: Routes to `routeRequest()` which calls handlers in `requestHandlers.js`
+- **Automatic fallback**: If plugin doesn't have a handler, automatically tries np.Shared handlers
 - **Non-REQUEST actions**: Routes to `handleNonRequestAction()` for fire-and-forget actions
 
 **Key functions:**
@@ -450,6 +451,45 @@ Contains handlers for request/response pattern. Each handler:
 1. Add handler function to `requestHandlers.js` with JSDoc
 2. Add case to `handleRequest()` switch statement
 3. Use from React: `await requestFromPlugin('yourHandler', { params })`
+
+### Shared Handlers (np.Shared)
+
+Common chooser handlers are available in `np.Shared/src/chooserHandlers.js` and are automatically used as a fallback when plugins don't implement their own handlers.
+
+**How it works:**
+1. Plugin's `routeRequest()` is called first
+2. If plugin handler returns `success: false` with message indicating "unknown" or "not found", the router automatically tries np.Shared handlers
+3. np.Shared handlers are called via `DataStore.invokePluginCommandByName('handleSharedRequest', 'np.Shared', ...)`
+
+**Available shared handlers:**
+- `getTeamspaces` - Get list of teamspaces for space-chooser
+- More handlers will be added (getFolders, getNotes, getHashtags, etc.)
+
+**Benefits:**
+- ✅ Plugins can use common choosers without implementing handlers
+- ✅ Single source of truth for common operations
+- ✅ Automatic fallback - no code changes needed
+- ✅ Plugin-specific handlers take precedence when they exist
+
+**Example:**
+```javascript
+// In your plugin's routeRequest function:
+async function routeRequest(actionType: string, data: any): Promise<RequestResponse> {
+  switch (actionType) {
+    case 'myCustomHandler':
+      return myCustomHandler(data)
+    default:
+      // Return "not found" to trigger shared handler fallback
+      return {
+        success: false,
+        message: `Unknown request type: "${actionType}"`,
+        data: null,
+      }
+  }
+}
+```
+
+The router will automatically try np.Shared handlers for any request that returns "unknown" or "not found".
 
 ### Registering the Router
 

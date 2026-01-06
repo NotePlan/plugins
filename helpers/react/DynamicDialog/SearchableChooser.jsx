@@ -436,12 +436,22 @@ export function SearchableChooser({
         }
         return matches
       } else if (item && typeof item === 'object' && 'id' in item) {
-        // It's an event object (or similar), match by id
-        const matches = item.id === displayValue
-        if (debugLogging && matches) {
-          console.log(`${fieldType}: Matched event item by id: "${item.id}" === "${displayValue}", title: "${item.title || ''}"`)
+        // It's an object with an id property (event, space, etc.), match by id first
+        const matchesById = item.id === displayValue
+        if (matchesById) {
+          if (debugLogging) {
+            console.log(`${fieldType}: Matched item by id: "${item.id}" === "${displayValue}", title: "${item.title || ''}"`)
+          }
+          return true
         }
-        return matches
+        // If id doesn't match, also check display value as fallback
+        // This handles cases where value is a display string (e.g., "Private") instead of id (e.g., "")
+        const displayVal = getDisplayValue(item)
+        const matchesByDisplay = displayVal === displayValue
+        if (debugLogging && matchesByDisplay) {
+          console.log(`${fieldType}: Matched item by display value: "${displayVal}" === "${displayValue}", id: "${item.id || ''}"`)
+        }
+        return matchesByDisplay
       }
       // For other object types, try to match by comparing getDisplayValue result
       // or by checking if the item itself is the value

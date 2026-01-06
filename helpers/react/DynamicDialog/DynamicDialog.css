@@ -10,7 +10,7 @@
     top: calc(50vh + var(--noteplan-toolbar-height, 0)/2); /* Center in viewport, with Y offset a bit lower to generally allow the Perspective name to be visible) */
     /* height: 90vh; */
     max-height: calc(92vh - var(--noteplan-toolbar-height, 0));
-    /* min-height: 15rem; Minimum height to show header + 2-3 fields + footer comfortably */
+    height: auto; /* Allow dialog to grow to fit content */
     left: 50%;
     width: clamp(380px, 86%, 700px);
     transform: translate(-50%, -50%); /* Center both horizontally and vertically */

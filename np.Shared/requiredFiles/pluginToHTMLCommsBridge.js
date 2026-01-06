@@ -168,14 +168,14 @@ const onMessageReceived = (event) => {
   try {
     // $FlowFixMe
     const { type, payload } = event.data // remember: data exists even though event is not JSON.stringify-able (like NP objects)
-    if (!type) throw (`onMessageReceived: received a message, but the 'type' was undefined`, event.data)
-    if (!payload) throw (`onMessageReceived: received a message but 'payload' was undefined`, event.data)
+    if (!type) throw (`Received a message, but the 'type' was undefined`, event.data)
+    if (!payload) throw (`Received a message but 'payload' was undefined`, event.data)
 
     // Non-invasive corruption detection (logging only, no modification)
     // This helps identify if corruption is coming from Swift/NotePlan side
     if (checkForCorruption(payload, 'payload')) {
-      console.warn(`[pluginToHTMLCommsBridge] Encoding corruption detected in payload for type: ${type}`)
-      console.warn(`[pluginToHTMLCommsBridge] Consider fixing corruption at the source (when loading from disk)`)
+      console.warn(`[CommsBridge] Encoding corruption detected in payload for type: ${type}`)
+      console.warn(`[CommsBridge] Consider fixing corruption at the source (when loading from disk)`)
     }
 
     console.log(`CommsBridge ${type} message: "${payload?.lastUpdated?.msg || ''}"`, { payload })

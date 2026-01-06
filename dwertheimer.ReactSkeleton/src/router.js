@@ -6,7 +6,7 @@
 
 import pluginJson from '../plugin.json'
 import { handleRequest } from './requestHandlers'
-import { createRouter, type RequestResponse } from '@helpers/react/routerUtils'
+import { newCommsRouter, type RequestResponse } from '@helpers/react/routerUtils'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { closeWindowFromCustomId } from '@helpers/NPWindows'
 import { logDebug, logError, logWarn, clo } from '@helpers/dev'
@@ -137,7 +137,7 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
  * Handle actions from React components
  * 
  * This is the main router function that handles both REQUEST and non-REQUEST actions.
- * It uses the createRouter utility from @helpers/react/routerUtils to handle the routing logic.
+ * It uses the newCommsRouter utility from @helpers/react/routerUtils to handle the routing logic.
  *
  * REQUEST PATTERN (requestFromPlugin):
  * - React calls: await requestFromPlugin('getFolders', { excludeTrash: true })
@@ -156,13 +156,15 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
  * @param {any} data - Request/action data with optional __requestType, __correlationId, __windowId
  * @returns {Promise<any>} - Empty object (responses are sent via sendToHTMLWindow)
  */
-export const onMessageFromHTMLView: (actionType: string, data: any) => Promise<any> = createRouter({
+export const onMessageFromHTMLView: (actionType: string, data: any) => Promise<any> = newCommsRouter({
   routerName: 'onMessageFromHTMLView',
   defaultWindowId: WEBVIEW_WINDOW_ID,
   routeRequest: routeRequest,
   handleNonRequestAction: handleNonRequestAction,
   pluginJson: pluginJson,
 })
+
+
 
 
 

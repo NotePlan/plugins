@@ -243,13 +243,18 @@ export function SpaceChooser({
   }
 
   // Find the current space to get its display title
+  // Note: value is the space ID (empty string for Private, "__all__" for All, teamspace ID for teamspaces)
+  // We need to pass the ID to SearchableChooser so it can match items correctly
+  // SearchableChooser will then look up the display value from the matched item
   const currentSpace = spaces.find((s) => s.id === value) || (value === '' ? spaces.find((s) => s.isPrivate) : null)
-  const displayValue = currentSpace ? currentSpace.title : value === '__all__' ? 'All Private + Spaces' : value || 'Private'
+  // Pass the ID (value) to SearchableChooser, not the display title
+  // SearchableChooser will match by id first, then fall back to display value matching
+  const valueToPass = value || '' // Ensure we pass empty string for Private, not undefined
 
   return (
     <SearchableChooser
       label={label}
-      value={displayValue}
+      value={valueToPass}
       disabled={disabled}
       compactDisplay={compactDisplay}
       placeholder={placeholder}

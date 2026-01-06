@@ -8,7 +8,7 @@
 // --------------------------------------------------------------------------
 // Imports
 // --------------------------------------------------------------------------
-import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
 import { getVisibleSectionCodes } from '../Section/sectionHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
@@ -24,7 +24,9 @@ import PerspectiveSelector from './PerspectiveSelector.jsx'
 import SearchBar from './SearchBar.jsx'
 import SearchPanel from './SearchPanel.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
-import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logInfo, logError } from '@helpers/react/reactDev.js'
+import DynamicDialog, { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
+import type { NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 // import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
 import './Header.css'
 // --------------------------------------------------------------------------
@@ -63,6 +65,12 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const [lastSearchPanelToggleTime, setLastSearchPanelToggleTime] = useState(0)
   // State to track if the panel should be rendered
   const [shouldRenderPanel, setShouldRenderPanel] = useState(false)
+  // State for add task dialog
+  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false)
+  const [notes, setNotes] = useState<Array<NoteOption>>([])
+  const [notesLoaded, setNotesLoaded] = useState(false)
+  const [loadingNotes, setLoadingNotes] = useState(false)
+  const pendingRequestsRef = useRef<Map<string, { resolve: (value: any) => void, reject: (error: Error) => void, timeoutId: TimeoutID }>>(new Map())
 
   // ----------------------------------------------------------------------
   // Effects
@@ -249,6 +257,233 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     setIsSearchOpen(false)
   }
 
+  /**
+   * Request function for plugin communication (promise-based)
+   * CRITICAL: Must use useCallback to prevent infinite loops when passed to AppContext
+   */
+  const requestFromPlugin = useCallback(
+    (command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
+      if (!command) throw new Error('requestFromPlugin: command must be called with a string')
+
+      const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      logDebug('Header', `requestFromPlugin: command="${command}", correlationId="${correlationId}"`)
+
+      return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          const pending = pendingRequestsRef.current.get(correlationId)
+          if (pending) {
+            pendingRequestsRef.current.delete(correlationId)
+            logDebug('Header', `requestFromPlugin TIMEOUT: command="${command}", correlationId="${correlationId}"`)
+            reject(new Error(`Request timeout: ${command}`))
+          }
+        }, timeout)
+
+        pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
+
+        const requestData = {
+          ...dataToSend,
+          __correlationId: correlationId,
+          __requestType: 'REQUEST',
+        }
+
+        // Use sendActionToPlugin to send the request
+        sendActionToPlugin(command, requestData, `Header: requestFromPlugin: ${String(command)}`, true)
+      })
+        .then((result) => {
+          logDebug('Header', `requestFromPlugin RESOLVED: command="${command}", correlationId="${correlationId}"`)
+          return result
+        })
+        .catch((error) => {
+          logError('Header', `requestFromPlugin REJECTED: command="${command}", correlationId="${correlationId}", error="${error.message}"`)
+          throw error
+        })
+    },
+    [sendActionToPlugin],
+  )
+
+  /**
+   * Listen for RESPONSE messages from plugin
+   * Note: Messages come in format: { type: 'RESPONSE', payload: { correlationId, success, data, error } }
+   */
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const eventData: any = event.data
+      // Check if this is a RESPONSE message (format from sendToHTMLWindow)
+      if (eventData && eventData.type === 'RESPONSE' && eventData.payload) {
+        const { correlationId, success, data, error } = eventData.payload
+        if (correlationId && typeof correlationId === 'string') {
+          const pending = pendingRequestsRef.current.get(correlationId)
+          if (pending) {
+            pendingRequestsRef.current.delete(correlationId)
+            clearTimeout(pending.timeoutId)
+            if (success) {
+              pending.resolve(data)
+            } else {
+              pending.reject(new Error(error || 'Request failed'))
+            }
+          } else {
+            logDebug('Header', `RESPONSE received for unknown correlationId: ${correlationId}`)
+          }
+        }
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => {
+      window.removeEventListener('message', handleMessage)
+      // Clean up any pending requests on unmount
+      pendingRequestsRef.current.forEach((pending) => {
+        clearTimeout(pending.timeoutId)
+        pending.reject(new Error('Component unmounted'))
+      })
+      pendingRequestsRef.current.clear()
+    }
+  }, [])
+
+  /**
+   * Load notes for the add task dialog
+   */
+  const loadNotes = useCallback(async () => {
+    if (notesLoaded || loadingNotes) return
+
+    try {
+      setLoadingNotes(true)
+      logDebug('Header', 'Loading notes for add task dialog...')
+      // Load all note types
+      const notesData = await requestFromPlugin('getNotes', {
+        includeCalendarNotes: true,
+        includePersonalNotes: true,
+        includeRelativeNotes: true,
+        includeTeamspaceNotes: true,
+      })
+      if (Array.isArray(notesData)) {
+        setNotes(notesData)
+        setNotesLoaded(true)
+        logDebug('Header', `Loaded ${notesData.length} notes`)
+      } else {
+        logError('Header', `Failed to load notes: Invalid response format`)
+        setNotesLoaded(true)
+      }
+    } catch (error) {
+      logError('Header', `Error loading notes: ${error.message}`)
+      setNotesLoaded(true)
+    } finally {
+      setLoadingNotes(false)
+    }
+  }, [notesLoaded, loadingNotes, requestFromPlugin])
+
+  /**
+   * Reload notes after creating a new note
+   */
+  const reloadNotes = useCallback((): void => {
+    setNotesLoaded(false)
+    // Call loadNotes but don't await it - it's fire-and-forget
+    loadNotes().catch((error) => {
+      logError('Header', `Error reloading notes: ${error.message}`)
+    })
+  }, [loadNotes])
+
+  /**
+   * Handle opening the add task dialog
+   */
+  const handleOpenAddTaskDialog = useCallback(() => {
+    setIsAddTaskDialogOpen(true)
+    // Load notes when dialog opens
+    if (!notesLoaded && !loadingNotes) {
+      loadNotes()
+    }
+  }, [notesLoaded, loadingNotes, loadNotes])
+
+  /**
+   * Handle closing the add task dialog
+   */
+  const handleCloseAddTaskDialog = useCallback(() => {
+    setIsAddTaskDialogOpen(false)
+  }, [])
+
+  /**
+   * Handle saving the add task dialog
+   */
+  const handleAddTaskDialogSave = useCallback(
+    (formValues: { [key: string]: any }) => {
+      const space = formValues.space || ''
+      const note = formValues.note || ''
+      const task = formValues.task || ''
+      const heading = formValues.heading || ''
+
+      logDebug('Header', `Add task dialog save: space="${space}", note="${note}", task="${task}", heading="${heading}"`)
+
+      if (!task.trim()) {
+        logError('Header', 'Task text is required')
+        return
+      }
+
+      if (!note) {
+        logError('Header', 'Note is required')
+        return
+      }
+
+      // Send action to plugin to add the task
+      const dataToSend = {
+        actionType: 'addTask',
+        toFilename: note,
+        taskText: task.trim(),
+        heading: heading || undefined,
+        space: space || undefined,
+      }
+
+      sendActionToPlugin('addTask', dataToSend, 'Add task dialog submitted', true)
+      setIsAddTaskDialogOpen(false)
+    },
+    [sendActionToPlugin],
+  )
+
+  /**
+   * Form fields for the add task dialog
+   */
+  const addTaskFormFields: Array<TSettingItem> = useMemo(
+    () => [
+      {
+        type: 'space-chooser',
+        key: 'space',
+        label: 'Space',
+        placeholder: 'Select space (Private or Teamspace)',
+        includeAllOption: true,
+        value: '',
+      },
+      {
+        type: 'note-chooser',
+        key: 'note',
+        label: 'Note',
+        placeholder: 'Type to search notes...',
+        includeCalendarNotes: true,
+        includePersonalNotes: true,
+        includeRelativeNotes: true,
+        includeTeamspaceNotes: true,
+        sourceSpaceKey: 'space', // Filter notes by selected space
+        value: '',
+      },
+      {
+        type: 'input',
+        key: 'task',
+        label: 'Task',
+        placeholder: 'Enter task text...',
+        focus: true,
+        required: true,
+        value: '',
+      },
+      {
+        type: 'heading-chooser',
+        key: 'heading',
+        label: 'Under Heading',
+        placeholder: 'Select heading...',
+        sourceNoteKey: 'note', // Get headings from selected note
+        value: '',
+      },
+    ],
+    [],
+  )
+
   // ----------------------------------------------------------------------
   // Constants
   // ----------------------------------------------------------------------
@@ -329,11 +564,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           <SearchBar onSearch={handleSearch} />
           {/* )} */}
 
-          {/* addItem button. TODO(later): see if we can get a better DynamicDialog for this */}
+          {/* addItem button - opens DynamicDialog for adding tasks */}
           <button accessKey="a"
             className="buttonsWithoutBordersOrBackground"
             title="Add new task/checklist"
-            onClick={(e) => handleButtonClick(e, 'qath', 'addTaskAnywhere')}>
+            onClick={handleOpenAddTaskDialog}>
             <i className="fa-solid fa-hexagon-plus"></i>
           </button>
 
@@ -380,6 +615,22 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
         {/* Render the SettingsDialog only when it is open */}
         {isDialogOpen && <SettingsDialog items={dashboardSettingsItems} className={'dashboard-settings'} onSaveChanges={handleChangesInSettings} />}
+
+        {/* Render the Add Task Dialog */}
+        {isAddTaskDialogOpen && (
+          <DynamicDialog
+            isOpen={isAddTaskDialogOpen}
+            title="Add a new task"
+            items={addTaskFormFields}
+            onSave={handleAddTaskDialogSave}
+            onCancel={handleCloseAddTaskDialog}
+            submitButtonText="Add & Close"
+            notes={notes}
+            requestFromPlugin={requestFromPlugin}
+            onNotesChanged={reloadNotes}
+            isModal={true}
+          />
+        )}
 
       </header>
 

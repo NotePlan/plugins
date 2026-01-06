@@ -558,6 +558,9 @@ export function renderItem({
         const currentValue = item.value || item.default || ''
         // Support both old (dependsOnFolderKey) and new (sourceFolderKey) property names for backward compatibility
         const sourceFolderKey = item.sourceFolderKey ?? item.dependsOnFolderKey
+        // Support both old (dependsOnSpaceKey) and new (sourceSpaceKey) property names for backward compatibility
+        const itemAny = (item: any)
+        const sourceSpaceKey = itemAny.sourceSpaceKey ?? itemAny.dependsOnSpaceKey
 
         // Get folder value from the sourceFolderKey field if specified
         let folderFilter = null
@@ -566,6 +569,33 @@ export function renderItem({
           if (folderValue && typeof folderValue === 'string') {
             folderFilter = folderValue
           }
+        }
+
+        // Get space value from the sourceSpaceKey field if specified
+        let spaceFilter: ?string = null
+        if (sourceSpaceKey && updatedSettings && typeof updatedSettings === 'object') {
+          const spaceValue = updatedSettings[sourceSpaceKey]
+          // spaceValue can be:
+          // - empty string ('') for Private space
+          // - teamspace ID (UUID string) for a specific teamspace
+          // - "__all__" for all spaces
+          // - "Private" (display value - need to convert to '')
+          // - null/undefined if not set
+          if (spaceValue !== null && spaceValue !== undefined) {
+            if (spaceValue === '__all__') {
+              spaceFilter = null // null means show all spaces
+            } else if (spaceValue === 'Private' || spaceValue === '') {
+              // Handle both empty string and display value "Private"
+              spaceFilter = ''
+            } else {
+              // Teamspace ID
+              spaceFilter = String(spaceValue)
+            }
+          }
+          // If spaceValue is null/undefined, spaceFilter stays null (show all)
+        } else {
+          // If no dependency, use item.spaceFilter if provided
+          spaceFilter = itemAny.spaceFilter
         }
 
         const handleNoteChange = (noteTitle: string, noteFilename: string) => {
@@ -600,6 +630,7 @@ export function renderItem({
               includeNewNoteOption={item.includeNewNoteOption ?? false}
               dependsOnFolderKey={sourceFolderKey}
               folderFilter={folderFilter}
+              spaceFilter={spaceFilter}
               requestFromPlugin={requestFromPlugin}
               onNotesChanged={onNotesChanged}
               placeholder={item.placeholder || 'Type to search notes...'}

@@ -9,7 +9,7 @@ import { getGlobalSharedData } from '../../helpers/HTMLView'
 import { handleRequest } from './requestHandlers' // For shared requests like getFolders, getNotes, getTeamspaces
 import { handleFormSubmitAction, handleUnknownAction, getFormWindowIdForSubmission } from './formSubmitHandlers'
 import { WEBVIEW_WINDOW_ID, getFormWindowId, findFormWindowId } from './windowManagement'
-import { handleRequestResponse, createRouter, type RequestResponse } from './routerUtils'
+import { handleRequestResponse, newCommsRouter, type RequestResponse } from './routerUtils'
 import { logDebug, logError, clo, JSP } from '@helpers/dev'
 
 /**
@@ -128,7 +128,7 @@ async function handleFormSubmitNonRequestAction(actionType: string, data: any): 
  * @param {any} data - Request data with optional __requestType, __correlationId, __windowId
  * @returns {Promise<any>}
  */
-export const onFormSubmitFromHTMLView: (actionType: string, data: any) => Promise<any> = createRouter({
+export const onFormSubmitFromHTMLView: (actionType: string, data: any) => Promise<any> = newCommsRouter({
   routerName: 'onFormSubmitFromHTMLView',
   defaultWindowId: WEBVIEW_WINDOW_ID,
   routeRequest: routeFormSubmitRequest,

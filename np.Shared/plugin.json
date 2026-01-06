@@ -59,6 +59,12 @@
       "name": "shared:logAvailableSharedResources",
       "description": "log locally available resources in np.Shared/ folder",
       "jsFunction": "logAvailableSharedResources"
+    },
+    {
+      "name": "handleSharedRequest",
+      "description": "Handle shared chooser requests (getTeamspaces, etc.) for DynamicDialog",
+      "jsFunction": "handleSharedRequest",
+      "hidden": true
     }
   ],
   "plugin.settings": [

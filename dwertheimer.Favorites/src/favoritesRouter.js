@@ -18,7 +18,7 @@ import {
   handleRenderMarkdown,
   handleGetNoteContentAsHTML,
 } from './requestHandlers'
-import { createRouter, type RequestResponse } from './routerUtils'
+import { newCommsRouter, type RequestResponse } from './routerUtils'
 
 const FAVORITES_BROWSER_WINDOW_ID = 'favorites-browser-window'
 
@@ -69,11 +69,10 @@ async function routeFavoritesRequest(actionType: string, data: any): Promise<Req
  * @param {any} data - Request data with optional __requestType, __correlationId, __windowId
  * @returns {Promise<any>}
  */
-export const onFavoritesBrowserAction: (actionType: string, data: any) => Promise<any> = createRouter({
+export const onFavoritesBrowserAction: (actionType: string, data: any) => Promise<any> = newCommsRouter({
   routerName: 'onFavoritesBrowserAction',
   defaultWindowId: FAVORITES_BROWSER_WINDOW_ID,
   routeRequest: routeFavoritesRequest,
   // Also handle non-REQUEST actions (like SEND_TO_PLUGIN) by routing them the same way
   handleNonRequestAction: routeFavoritesRequest,
 })
-

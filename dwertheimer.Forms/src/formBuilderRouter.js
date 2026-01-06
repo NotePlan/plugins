@@ -9,7 +9,7 @@ import { handleRequest } from './requestHandlers' // For shared requests like ge
 import { handleSaveRequest, handleCreateProcessingTemplate, handleOpenNote, handleCopyFormUrl, handleDuplicateForm } from './formBuilderHandlers'
 import { openFormBuilderWindow, FORMBUILDER_WINDOW_ID } from './windowManagement'
 import { openTemplateForm } from './NPTemplateForm'
-import { createRouter, type RequestResponse } from './routerUtils'
+import { newCommsRouter, type RequestResponse } from './routerUtils'
 import { closeWindowFromCustomId } from '@helpers/NPWindows'
 import { getNoteByFilename } from '@helpers/note'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
@@ -108,7 +108,7 @@ async function handleFormBuilderNonRequestAction(_actionType: string, data: any)
  * @param {any} data - Request data with optional __requestType, __correlationId, __windowId
  * @returns {Promise<any>}
  */
-export const onFormBuilderAction: (actionType: string, data: any) => Promise<any> = createRouter({
+export const onFormBuilderAction: (actionType: string, data: any) => Promise<any> = newCommsRouter({
   routerName: 'onFormBuilderAction',
   defaultWindowId: FORMBUILDER_WINDOW_ID,
   routeRequest: routeFormBuilderRequest,

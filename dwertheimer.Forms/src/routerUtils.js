@@ -120,7 +120,7 @@ export async function handleRequestResponse({
  * @param {Function} options.getWindowId - Optional function to get window ID (for complex lookup)
  * @returns {Function} - Router function
  */
-export function createRouter({
+export function newCommsRouter({
   routerName,
   defaultWindowId,
   routeRequest,

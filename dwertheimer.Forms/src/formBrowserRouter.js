@@ -7,7 +7,7 @@
 import { getFormTemplates, getFormFields, handleSubmitForm, handleOpenFormBuilder, handleCreateNewForm, handleOpenNoteByTitle } from './formBrowserHandlers'
 import { handleDuplicateForm } from './formBuilderHandlers' // For duplicate functionality
 import { handleRequest } from './requestHandlers' // For shared requests like getTeamspaces
-import { createRouter, type RequestResponse } from './routerUtils'
+import { newCommsRouter, type RequestResponse } from './routerUtils'
 
 const FORM_BROWSER_WINDOW_ID = 'form-browser-window'
 
@@ -47,7 +47,7 @@ async function routeFormBrowserRequest(actionType: string, data: any): Promise<R
  * @param {any} data - Request data with optional __requestType, __correlationId, __windowId
  * @returns {Promise<any>}
  */
-export const onFormBrowserAction: (actionType: string, data: any) => Promise<any> = createRouter({
+export const onFormBrowserAction: (actionType: string, data: any) => Promise<any> = newCommsRouter({
   routerName: 'onFormBrowserAction',
   defaultWindowId: FORM_BROWSER_WINDOW_ID,
   routeRequest: routeFormBrowserRequest,

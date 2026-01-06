@@ -7,6 +7,53 @@
 import { sendToHTMLWindow } from '../HTMLView'
 import { logDebug, logError, clo, JSP } from '@helpers/dev'
 
+/**
+ * Get shared handlers from np.Shared
+ * Uses DataStore.invokePluginCommandByName to call np.Shared's handleSharedRequest function
+ * @param {string} requestType - The request type
+ * @param {Object} params - Request parameters
+ * @param {Object} pluginJson - Plugin JSON for logging
+ * @returns {Promise<RequestResponse>}
+ */
+async function callSharedHandler(requestType: string, params: Object, pluginJson: any): Promise<RequestResponse> {
+  try {
+    // Check if np.Shared is installed and accessible
+    if (!DataStore.isPluginInstalledByID('np.Shared')) {
+      logDebug(pluginJson, `[routerUtils] np.Shared not installed, cannot use shared handlers`)
+      return {
+        success: false,
+        message: 'np.Shared plugin not installed',
+        data: null,
+      }
+    }
+
+    logDebug(pluginJson, `[routerUtils] Attempting to call np.Shared handler for "${requestType}"`)
+    
+    // Use DataStore.invokePluginCommandByName to call np.Shared's handleSharedRequest
+    // This requires np.Shared to have handleSharedRequest registered in plugin.json
+    const result = await DataStore.invokePluginCommandByName('handleSharedRequest', 'np.Shared', [requestType, params, pluginJson])
+    
+    if (result && typeof result === 'object' && 'success' in result) {
+      logDebug(pluginJson, `[routerUtils] np.Shared handler result for "${requestType}": success=${String(result.success)}`)
+      return result
+    } else {
+      logError(pluginJson, `[routerUtils] np.Shared handler returned invalid result for "${requestType}"`)
+      return {
+        success: false,
+        message: `Invalid response from np.Shared handler`,
+        data: null,
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, `[routerUtils] Error calling shared handler for "${requestType}": ${error.message}`)
+    return {
+      success: false,
+      message: `Error calling shared handler: ${error.message}`,
+      data: null,
+    }
+  }
+}
+
 // RequestResponse type definition
 export type RequestResponse = {
   success: boolean,
@@ -108,11 +155,17 @@ export async function handleRequestResponse({
 
 /**
  * Create a router function with shared REQUEST/RESPONSE handling
+ * Includes automatic fallback to np.Shared handlers if plugin doesn't have its own handler
  *
  * RESPONSE PATTERN:
  * - Handlers return { success: boolean, data?: any, message?: string }
  * - Router sends RESPONSE message: { correlationId, success, data, error }
  * - React resolves promise with payload.data (just the data, not the wrapper)
+ *
+ * FALLBACK PATTERN:
+ * - If routeRequest returns a response with success=false and message indicating "not found" or "unknown",
+ *   the router will automatically try np.Shared handlers as a fallback
+ * - This allows plugins to use common chooser handlers (getTeamspaces, getFolders, etc.) without implementing them
  *
  * @param {Object} options - Configuration options
  * @param {string} options.routerName - Name of the router (for logging)
@@ -121,15 +174,17 @@ export async function handleRequestResponse({
  * @param {Function} options.handleNonRequestAction - Optional function to handle non-REQUEST actions
  * @param {Function} options.getWindowId - Optional function to get window ID (for complex lookup)
  * @param {Object} options.pluginJson - Plugin JSON object for logging
+ * @param {boolean} options.useSharedHandlersFallback - If true, fallback to np.Shared handlers (default: true)
  * @returns {Function} - Router function
  */
-export function createRouter({
+export function newCommsRouter({
   routerName,
   defaultWindowId,
   routeRequest,
   handleNonRequestAction,
   getWindowId,
   pluginJson,
+  useSharedHandlersFallback = true,
 }: {
   routerName: string,
   defaultWindowId: string,
@@ -137,6 +192,7 @@ export function createRouter({
   handleNonRequestAction?: (actionType: string, data: any) => Promise<any>,
   getWindowId?: (data: any) => Promise<string> | string,
   pluginJson: any,
+  useSharedHandlersFallback?: boolean,
 }): (actionType: string, data: any) => Promise<any> {
   return async function router(actionType: string, data: any = null): Promise<any> {
     try {
@@ -145,12 +201,55 @@ export function createRouter({
 
       // Check if this is a request that needs a response
       if (data?.__requestType === 'REQUEST' && data?.__correlationId) {
+        // Create a wrapper routeRequest that includes fallback logic
+        const routeRequestWithFallback = async (actionType: string, data: any): Promise<RequestResponse> => {
+          // First, try the plugin's own routeRequest
+          logDebug(pluginJson, `[${routerName}] Attempting plugin handler for "${actionType}"`)
+          const pluginResult = await routeRequest(actionType, data)
+
+          // Check if plugin handler succeeded or explicitly handled the request
+          // If success is true, or if the error message doesn't indicate "not found", use plugin result
+          const message = pluginResult.message || ''
+          const isNotFound =
+            !pluginResult.success &&
+            message &&
+            (message.toLowerCase().includes('unknown') ||
+              message.toLowerCase().includes('not found') ||
+              message.toLowerCase().includes('no handler'))
+
+          if (pluginResult.success || !isNotFound) {
+            logDebug(pluginJson, `[${routerName}] Using plugin handler result for "${actionType}": success=${String(pluginResult.success)}`)
+            return pluginResult
+          }
+
+          // Plugin handler didn't handle it - try shared handlers if enabled
+          if (useSharedHandlersFallback) {
+            logDebug(pluginJson, `[${routerName}] Plugin handler not found for "${actionType}", attempting np.Shared fallback`)
+            try {
+              logDebug(pluginJson, `[${routerName}] Calling np.Shared handler for "${actionType}"`)
+              const sharedResult = await callSharedHandler(actionType, data, pluginJson)
+              logDebug(
+                pluginJson,
+                `[${routerName}] np.Shared handler result for "${actionType}": success=${String(sharedResult.success)}, message="${sharedResult.message || 'none'}"`,
+              )
+              return sharedResult
+            } catch (error) {
+              logError(pluginJson, `[${routerName}] Error calling shared handler for "${actionType}": ${error.message}`)
+              // Return plugin result on error (which indicates not found)
+              return pluginResult
+            }
+          } else {
+            logDebug(pluginJson, `[${routerName}] Shared handlers fallback disabled, returning plugin result`)
+            return pluginResult
+          }
+        }
+
         return await handleRequestResponse({
           actionType,
           data,
           routerName,
           defaultWindowId,
-          routeRequest,
+          routeRequest: routeRequestWithFallback,
           getWindowId,
           pluginJson,
         })
@@ -169,6 +268,8 @@ export function createRouter({
     }
   }
 }
+
+
 
 
 
