@@ -5,9 +5,7 @@
 // Last updated 2025-12-30 by @jgclark
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
-import {
-  hasFrontMatter
-} from '@helpers/NPFrontMatter'
+import { hasFrontMatter } from '@helpers/NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
 import { getStoredWindowRect, getWindowFromCustomId, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
@@ -60,7 +58,6 @@ export type HtmlWindowOptions = {
   showReloadButton?: boolean, // only used if showInMainWindow is true
 }
 
-
 /**
  * This function creates the webkit message handler for an action in HTML sending data back to the plugin. Generally passed through to showHTMLWindow as part of the pre or post body script.
  * @param {string} commandName - the *name* of the plugin command to be called (not the jsFunction) -- THIS NAME MUST BE ONE WORD, NO SPACES - generally a good idea for name/jsFunction to be the same for callbacks
@@ -104,7 +101,6 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
     };
 `
 }
-
 
 /**
  * Convert a note's content to HTML and include any images as base64
@@ -168,22 +164,22 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       tasklists: true,
       metadata: false, // otherwise metadata is swallowed
       requireSpaceBeforeHeadingText: true,
-      simpleLineBreaks: true // Makes this GFM style. TODO: make an option?
+      simpleLineBreaks: true, // Makes this GFM style. TODO: make an option?
     }
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
     body = `<style>img { background: white; max-width: 100%; max-height: 100%; }</style>${body}` // fix for bug in showdown
-    
+
     const imgTagRegex = /<img src=\"(.*?)\"/g
     const matches = [...body.matchAll(imgTagRegex)]
     const noteDirPath = getFolderFromFilename(note.filename)
-    
+
     for (const match of matches) {
       const imagePath = match[1]
       try {
         // Handle both absolute and relative paths
         let fullPath = `../../../Notes/${noteDirPath}/${decodeURI(imagePath)}`
-        if(fullPath.endsWith('.drawing')) {
+        if (fullPath.endsWith('.drawing')) {
           fullPath = fullPath.replace('.drawing', '.png')
         }
         const data = await DataStore.loadData(fullPath, false)
@@ -241,13 +237,11 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       modifiedLines.push(line)
     }
     return modifiedLines.join('\n')
-
   } catch (error) {
     logError('getNoteContentAsHTML', error.message)
     return '<conversion error>'
   }
 }
-
 
 /**
  * This function creates the webkit console.log/error handler for HTML messages to get back to NP console.log
@@ -487,7 +481,10 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
   try {
     const screenWidth = NotePlan.environment.screenWidth
     const screenHeight = NotePlan.environment.screenHeight
-    logDebug('HTMLView / showHTMLV2', `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'} for screen dimensions ${screenWidth}x${screenHeight}`)
+    logDebug(
+      'HTMLView / showHTMLV2',
+      `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'} for screen dimensions ${screenWidth}x${screenHeight}`,
+    )
 
     // Assemble the parts of the HTML into a single string
     const fullHTMLStr = assembleHTMLParts(body, opts.windowTitle ?? '', opts)
@@ -514,23 +511,23 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       winOptions = {
         x: opts.x ?? (screenWidth - (screenWidth - (opts.paddingWidth ?? 0) * 2)) / 2,
         y: opts.y ?? (screenHeight - (screenHeight - (opts.paddingHeight ?? 0) * 2)) / 2,
-        width: opts.width ?? (screenWidth - (opts.paddingWidth ?? 0) * 2),
-        height: opts.height ?? (screenHeight - (opts.paddingHeight ?? 0) * 2),
+        width: opts.width ?? screenWidth - (opts.paddingWidth ?? 0) * 2,
+        height: opts.height ?? screenHeight - (opts.paddingHeight ?? 0) * 2,
         shouldFocus: opts.shouldFocus,
         id: cId, // TODO: don't need both ... but trying to work out which is the current one for the API
         windowId: cId,
       }
       if ('showInMainWindow' in opts) {
         // $FlowFixMe[prop-missing] - splitView is an optional property in HtmlWindowOptions, and flow doesn't like it
-        winOptions.splitView = ("splitView" in opts) ? opts.splitView : false
+        winOptions.splitView = 'splitView' in opts ? opts.splitView : false
         // $FlowFixMe[prop-missing] - as above
-        winOptions.icon = ("icon" in opts) ? opts.icon : ''
+        winOptions.icon = 'icon' in opts ? opts.icon : ''
         // $FlowFixMe[prop-missing] - as above
-        winOptions.iconColor = ("iconColor" in opts) ? opts.iconColor : ''
+        winOptions.iconColor = 'iconColor' in opts ? opts.iconColor : ''
         // $FlowFixMe[prop-missing] - as above
-        winOptions.autoTopPadding = ("autoTopPadding" in opts) ? opts.autoTopPadding : true
+        winOptions.autoTopPadding = 'autoTopPadding' in opts ? opts.autoTopPadding : true
         // $FlowFixMe[prop-missing] - as above
-        winOptions.showReloadButton = ("showReloadButton" in opts) ? opts.showReloadButton : false
+        winOptions.showReloadButton = 'showReloadButton' in opts ? opts.showReloadButton : false
       }
       // Now override with saved x/y/w/h for this window if wanted, and if available
       if (opts.reuseUsersWindowRect && cId) {
@@ -570,7 +567,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         winOptions.y = 0
       }
 
-      let win: HTMLView|TEditor|false
+      let win: HTMLView | TEditor | false
       let success: boolean = false
       logInfo('showHTMLV2', `- NotePlan.environment.buildVersion: ${NotePlan.environment.buildVersion}`)
       logInfo('showHTMLV2', `- opts.showInMainWindow: ${String(opts.showInMainWindow)} and usersVersionHas('showInMainWindow'): ${String(usersVersionHas('showInMainWindow'))}`)
@@ -717,12 +714,8 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
  * @return {any} - the result of the runJavaScript call (should be unimportant in this case -- undefined is ok)
  * @author @dwertheimer
  */
-export async function sendToHTMLWindow(
-  windowId: string,
-  actionType: string,
-  data: any = {},
-  updateInfo: string = '',
-): Promise<any> {
+
+export async function sendToHTMLWindow(windowId: string, actionType: string, data: any = {}, updateInfo: string = ''): Promise<any> {
   try {
     const windowExists = isHTMLWindowOpen(windowId)
     if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = undefined`)
@@ -732,24 +725,217 @@ export async function sendToHTMLWindow(
       ...{
         lastUpdated: {
           msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`,
-          date: new Date().toLocaleString()
+          date: new Date().toLocaleString(),
         },
       },
       NPWindowID: windowExists ? windowId : undefined,
     }
+
+    // Log encoding for debugging emoji corruption - check data BEFORE JSON.stringify
+    if (dataWithUpdated?.pluginData?.sections) {
+      for (const section of dataWithUpdated.pluginData.sections || []) {
+        for (const item of section.sectionItems || []) {
+          if (item.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
+            const charCodes = item.para.title
+              .split('')
+              .map((c: string) => c.charCodeAt(0))
+              .join(',')
+            logDebug(
+              'sendToHTMLWindow',
+              `[ENCODING DEBUG] BEFORE JSON.stringify - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`,
+            )
+          }
+        }
+      }
+    }
+
+    // REVERTED: Go back to the original working approach - direct JSON.stringify in template string
+    // The old code that worked was: payload: ${JSON.stringify(dataWithUpdated)}
+    // If this doesn't work now, the issue is elsewhere (possibly in how data is created before this point)
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type: "${actionType}" to window: "${windowId}" msg=${dataWithUpdated.lastUpdated.msg}`)
     // const start = new Date()
-    const result = await HTMLView.runJavaScript(
-      `window.postMessage(
-        {
+    const stringifiedPayload = JSON.stringify(dataWithUpdated)
+
+    // Log encoding for debugging emoji corruption - check what JSON.stringify produces
+    // Check if JSON.stringify properly escaped the emoji as \uXXXX
+    if (stringifiedPayload.includes('Dashboard Plugin')) {
+      // Check if it's escaped as \uXXXX or if it's raw
+      if (stringifiedPayload.includes('\\u')) {
+        const unicodeEscapes = stringifiedPayload.match(/\\u[0-9a-fA-F]{4}/g)
+        if (unicodeEscapes && unicodeEscapes.length > 0) {
+          logDebug(
+            'sendToHTMLWindow',
+            `[ENCODING DEBUG] stringifiedPayload contains ${unicodeEscapes.length} Unicode escape sequences (e.g., ${unicodeEscapes.slice(0, 5).join(', ')})`,
+          )
+        }
+      }
+      // Check if it contains raw emoji (shouldn't if JSON.stringify worked correctly)
+      if (stringifiedPayload.includes('🧩')) {
+        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] WARNING: stringifiedPayload contains raw emoji (not escaped)`)
+      }
+      // Check if it contains corruption pattern
+      if (stringifiedPayload.includes('ð')) {
+        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] WARNING: stringifiedPayload contains corruption pattern "ð"`)
+      }
+    }
+
+    // Log encoding for debugging emoji corruption - check stringified payload
+    if (stringifiedPayload.includes('Dashboard Plugin')) {
+      const emojiMatch = stringifiedPayload.match(/"title":"Dashboard Plugin[^"]*"/)
+      if (emojiMatch) {
+        const matched = emojiMatch[0]
+        const charCodes = matched
+          .split('')
+          .map((c: string) => c.charCodeAt(0))
+          .join(',')
+        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] AFTER JSON.stringify - Found in stringified payload: "${matched}" (length=${matched.length}, charCodes=${charCodes})`)
+      }
+    }
+    if (stringifiedPayload.includes('ð')) {
+      logDebug('sendToHTMLWindow', `[ENCODING DEBUG] WARNING: Stringified payload contains corruption pattern "ð"`)
+    }
+
+    // Log encoding for debugging emoji corruption - check the JavaScript string that will be executed
+    // Add console.log inside the JavaScript code to check what postMessage actually sends
+    // CRITICAL: Use JSON.stringify() to properly escape the JSON string for embedding in JavaScript
+    // This ensures Unicode characters are properly escaped as \uXXXX sequences
+    const doubleStringified = JSON.stringify(stringifiedPayload)
+
+    // Log what JSON.stringify produces for embedding
+    if (doubleStringified.includes('Dashboard Plugin')) {
+      // Check if the double-stringified version has proper Unicode escapes
+      if (doubleStringified.includes('\\u')) {
+        const unicodeEscapes = doubleStringified.match(/\\u[0-9a-fA-F]{4}/g)
+        if (unicodeEscapes && unicodeEscapes.length > 0) {
+          logDebug('sendToHTMLWindow', `[ENCODING DEBUG] doubleStringified (JSON.stringify of stringifiedPayload) contains ${unicodeEscapes.length} Unicode escape sequences`)
+          // Check if the emoji is properly escaped
+          const emojiEscapes = unicodeEscapes.filter((e) => e === '\\ud83e' || e === '\\udde9' || e.toLowerCase() === '\\ud83e' || e.toLowerCase() === '\\udde9')
+          if (emojiEscapes.length > 0) {
+            logDebug('sendToHTMLWindow', `[ENCODING DEBUG] Found emoji escape sequences: ${emojiEscapes.join(', ')}`)
+          }
+        }
+      }
+      // Check if it contains raw corruption (shouldn't)
+      if (doubleStringified.includes('ð')) {
+        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] WARNING: doubleStringified contains corruption pattern "ð"`)
+      }
+      // Check if it contains raw emoji (shouldn't if properly escaped)
+      const rawEmojiMatch = doubleStringified.match(/Dashboard Plugin[^"]*/)
+      if (rawEmojiMatch && !rawEmojiMatch[0].includes('\\u')) {
+        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] WARNING: doubleStringified contains raw text without Unicode escapes: "${rawEmojiMatch[0]}"`)
+      }
+    }
+
+    const jsCodeToExecute = `
+      (function() {
+        // Use JSON.parse() with a properly escaped JSON string to preserve Unicode
+        // JSON.stringify() on the stringifiedPayload will escape it properly for JavaScript
+        const payloadDataString = ${doubleStringified};
+        // Log encoding for debugging - check the string IMMEDIATELY after assignment
+        // This will show if the corruption happens during HTMLView.runJavaScript transmission
+        try {
+          if (payloadDataString && typeof payloadDataString === 'string') {
+            // Check the raw string as assigned
+            const stringLength = payloadDataString.length;
+            const stringSample = payloadDataString.substring(0, Math.min(500, payloadDataString.length));
+            if (stringSample.includes('Dashboard Plugin')) {
+              const emojiMatch = stringSample.match(/Dashboard Plugin[^"]*/);
+              if (emojiMatch) {
+                const matched = emojiMatch[0];
+                const charCodes = matched.split('').map(c => c.charCodeAt(0)).join(',');
+                console.log('[ENCODING DEBUG] In WebView JS - payloadDataString IMMEDIATELY after assignment - Found: "' + matched + '" (length=' + matched.length + ', charCodes=' + charCodes + ', fullStringLength=' + stringLength + ')');
+              }
+            }
+            if (stringSample.includes('ð')) {
+              console.log('[ENCODING DEBUG] In WebView JS - payloadDataString IMMEDIATELY after assignment contains corruption pattern "ð"');
+              // Try to find where the corruption is
+              const corruptionIndex = stringSample.indexOf('ð');
+              const context = stringSample.substring(Math.max(0, corruptionIndex - 20), Math.min(corruptionIndex + 40, stringSample.length));
+              const contextCharCodes = context.split('').map(c => c.charCodeAt(0)).join(',');
+              console.log('[ENCODING DEBUG] In WebView JS - Corruption context: "' + context + '" (charCodes=' + contextCharCodes + ')');
+            }
+            // Also check if the string contains proper Unicode escape sequences
+            if (stringSample.includes('\\u')) {
+              const unicodeEscapes = stringSample.match(/\\u[0-9a-fA-F]{4}/g);
+              if (unicodeEscapes && unicodeEscapes.length > 0) {
+                console.log('[ENCODING DEBUG] In WebView JS - payloadDataString contains ' + unicodeEscapes.length + ' Unicode escape sequences (e.g., ' + unicodeEscapes.slice(0, 3).join(', ') + ')');
+              }
+            }
+          } else {
+            console.log('[ENCODING DEBUG] In WebView JS - payloadDataString is not a string: type=' + typeof payloadDataString);
+          }
+        } catch (e) {
+          console.log('[ENCODING DEBUG] In WebView JS - Error checking payloadDataString: ' + e.message);
+        }
+        const payloadData = JSON.parse(payloadDataString);
+        // Log encoding for debugging - check payloadData after parsing
+        if (payloadData?.pluginData?.sections) {
+          for (const section of payloadData.pluginData.sections || []) {
+            for (const item of section.sectionItems || []) {
+              if (item?.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
+                const title = item.para.title;
+                const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',');
+                console.log('[ENCODING DEBUG] In WebView JS - payloadData BEFORE postMessage - Section ' + section.sectionCode + ', title: "' + title + '" (length=' + title.length + ', charCodes=' + charCodes + ')');
+              }
+            }
+          }
+        }
+        const messageObj = {
           type: '${actionType}',
-          payload: ${JSON.stringify(dataWithUpdated)}
-        },
-        '*'
-      );`,
-      windowIdToSend,
-    )
+          payload: payloadData
+        };
+        // Log encoding for debugging - check messageObj before postMessage
+        if (messageObj?.payload?.pluginData?.sections) {
+          for (const section of messageObj.payload.pluginData.sections || []) {
+            for (const item of section.sectionItems || []) {
+              if (item?.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
+                const title = item.para.title;
+                const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',');
+                console.log('[ENCODING DEBUG] In WebView JS - messageObj BEFORE postMessage - Section ' + section.sectionCode + ', title: "' + title + '" (length=' + title.length + ', charCodes=' + charCodes + ')');
+              }
+            }
+          }
+        }
+        window.postMessage(messageObj, '*');
+      })();
+    `
+
+    // Check if the JS code contains the corruption pattern
+    if (jsCodeToExecute.includes('Dashboard Plugin')) {
+      const emojiMatch = jsCodeToExecute.match(/Dashboard Plugin[^"]*/)
+      if (emojiMatch) {
+        const matched = emojiMatch[0]
+        const charCodes = matched
+          .split('')
+          .map((c: string) => c.charCodeAt(0))
+          .join(',')
+        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] JavaScript code to execute contains: "${matched}" (length=${matched.length}, charCodes=${charCodes})`)
+      }
+    }
+
+    logDebug('sendToHTMLWindow', `[ENCODING DEBUG] About to call HTMLView.runJavaScript with code length: ${jsCodeToExecute.length}`)
+
+    // Log a sample of the actual JavaScript code that will be executed
+    const codeSample = jsCodeToExecute.substring(0, Math.min(500, jsCodeToExecute.length))
+    if (codeSample.includes('Dashboard Plugin')) {
+      const emojiMatch = codeSample.match(/Dashboard Plugin[^"]*/)
+      if (emojiMatch) {
+        const matched = emojiMatch[0]
+        const charCodes = matched
+          .split('')
+          .map((c: string) => c.charCodeAt(0))
+          .join(',')
+        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] JavaScript code sample (first 500 chars) contains: "${matched}" (length=${matched.length}, charCodes=${charCodes})`)
+      }
+    }
+
+    const result = await HTMLView.runJavaScript(jsCodeToExecute, windowIdToSend)
+
+    logDebug('sendToHTMLWindow', `[ENCODING DEBUG] HTMLView.runJavaScript completed, result type: ${typeof result}`)
+
+    // Note: The corruption happens between here and React receiving the postMessage
+    // This suggests the issue is in how HTMLView.runJavaScript executes the code or how postMessage serializes data
     // logDebug(`Bridge::sendToHTMLWindow`, `${actionType} took ${timer(start)}`)
     // logDebug(`Bridge::sendToHTMLWindow`, `result from the window: ${JSON.stringify(result)}`)
     return result
@@ -772,6 +958,25 @@ export async function getGlobalSharedData(windowId: string, varName: string = 'g
   try {
     // logDebug(pluginJson, `getGlobalSharedData getting var '${varName}' from window ID '${windowId}'`)
     const currentValue = await HTMLView.runJavaScript(`${varName};`, windowId)
+
+    // Log encoding for debugging emoji corruption - check data when read back from React
+    if (currentValue?.pluginData?.sections) {
+      for (const section of currentValue.pluginData.sections || []) {
+        for (const item of section.sectionItems || []) {
+          if (item.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
+            const charCodes = item.para.title
+              .split('')
+              .map((c: string) => c.charCodeAt(0))
+              .join(',')
+            logDebug(
+              'getGlobalSharedData',
+              `[ENCODING DEBUG] Data read from React - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`,
+            )
+          }
+        }
+      }
+    }
+
     // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
     return currentValue
   } catch (error) {
@@ -937,18 +1142,18 @@ export function convertBoldAndItalicToHTML(input: string): string {
 // of the form `![📅](2023-01-13 18:00:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Contact X about Y:::#63DA38)`
 export function simplifyNPEventLinksForHTML(input: string): string {
   try {
-  let output = input
-  const captures = output.match(RE_EVENT_LINK)
-  if (captures) {
-    clo(captures, 'results from NP event link matches:')
-    // Matches come in threes (plus full match), so process four at a time
-    for (let c = 0; c < captures.length; c = c + 3) {
-      const eventLink = captures[c]
-      const eventTitle = captures[c + 1]
-      const eventColor = captures[c + 2]
-      output = output.replace(eventLink, `<i class="fa-light fa-calendar" style="color: ${eventColor}"></i> <span class="event-link">${eventTitle}</span>`)
+    let output = input
+    const captures = output.match(RE_EVENT_LINK)
+    if (captures) {
+      clo(captures, 'results from NP event link matches:')
+      // Matches come in threes (plus full match), so process four at a time
+      for (let c = 0; c < captures.length; c = c + 3) {
+        const eventLink = captures[c]
+        const eventTitle = captures[c + 1]
+        const eventColor = captures[c + 2]
+        output = output.replace(eventLink, `<i class="fa-light fa-calendar" style="color: ${eventColor}"></i> <span class="event-link">${eventTitle}</span>`)
+      }
     }
-  }
     // logDebug('simplifyNPEventLinksForHTML', `{${input}} -> {${output}}`)
     return output
   } catch (error) {
@@ -961,16 +1166,16 @@ export function simplifyNPEventLinksForHTML(input: string): string {
 // (This also helps remove false positives for ! priority indicator)
 export function simplifyInlineImagesForHTML(input: string): string {
   try {
-  let output = input
-  const captures = output.match(/!\[image\]\([^\)]+\)/g)
-  if (captures) {
-    // clo(captures, 'results from embedded image match:')
-    for (const capture of captures) {
-      // logDebug(`simplifyInlineImagesForHTML`, capture)
-      output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
-      // logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
+    let output = input
+    const captures = output.match(/!\[image\]\([^\)]+\)/g)
+    if (captures) {
+      // clo(captures, 'results from embedded image match:')
+      for (const capture of captures) {
+        // logDebug(`simplifyInlineImagesForHTML`, capture)
+        output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
+        // logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
+      }
     }
-  }
     // logDebug('simplifyInlineImagesForHTML', `{${input}} -> {${output}}`)
     return output
   } catch (error) {
@@ -999,8 +1204,14 @@ export function convertHashtagsToHTML(input: string): string {
       // logDebug('convertHashtagsToHTML', `results from hashtag matches: ${String(matches)}`)
       for (const match of matches) {
         // logDebug('convertHashtagsToHTML', `- match: ${String(match)}`)
-        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output) || isTermAColorStyleDefinition(match, output)
-        ) { continue }
+        if (
+          isTermInNotelinkOrURI(match, output) ||
+          isTermInMarkdownPath(match, output) ||
+          isTermInEventLinkHiddenPart(match, output) ||
+          isTermAColorStyleDefinition(match, output)
+        ) {
+          continue
+        }
         output = output.replace(match, `<span class="hashtag">${match}</span>`)
       }
     }
@@ -1012,9 +1223,8 @@ export function convertHashtagsToHTML(input: string): string {
   }
 }
 
-
 function isTermAColorStyleDefinition(term: string, input: string): boolean {
-  const RE_CSS_STYLE_DEFINITION = new RegExp(`style="color:\\s*${term}"`, "i")
+  const RE_CSS_STYLE_DEFINITION = new RegExp(`style="color:\\s*${term}"`, 'i')
   return RE_CSS_STYLE_DEFINITION.test(input)
 }
 
@@ -1031,7 +1241,7 @@ export function convertMentionsToHTML(input: string): string {
     // regex from @EduardMe's file
     // const RE_MENTION_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/, 'g')
     // regex from @EduardMe's file, without [:punct:]
-    // const RE_MENTION_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/, 'g') 
+    // const RE_MENTION_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/, 'g')
     // now copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
     const RE_MENTION_G = new RegExp(/\B@((?![\p{N}_]+(?:$|\s|\b))(?:[\p{L}\p{M}\p{N}_\/\-]{1,60})(\(.*?\))?)/, 'gu')
     const matches = input.match(RE_MENTION_G)
@@ -1039,7 +1249,9 @@ export function convertMentionsToHTML(input: string): string {
       // logDebug('convertMentionsToHTML', `results from mention matches: ${String(matches)}`)
       for (const match of matches) {
         // logDebug('convertMentionsToHTML', `- match: ${String(match)}`)
-        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output)) { continue }
+        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output)) {
+          continue
+        }
         output = output.replace(match, `<span class="attag">${match}</span>`)
       }
     }

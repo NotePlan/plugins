@@ -269,12 +269,43 @@ export function Root(/* props: Props */): Node {
       const { data } = event
       // logDebug('Root', `onMessageReceived ${event.type} data=${JSP(data, 2)}`)
       if (!shouldIgnoreMessage(event) && data) {
+        // Log encoding for debugging emoji corruption - check raw event.data before parsing
+        try {
+          const dataStr = JSON.stringify(data)
+          if (dataStr.includes('Dashboard Plugin')) {
+            const emojiMatch = dataStr.match(/Dashboard Plugin[^"]*/)
+            if (emojiMatch) {
+              const matched = emojiMatch[0]
+              const charCodes = matched.split('').map((c: string) => c.charCodeAt(0)).join(',')
+              logDebug('Root/onMessageReceived', `[ENCODING DEBUG] Raw event.data (stringified) contains: "${matched}" (length=${matched.length}, charCodes=${charCodes})`)
+            }
+          }
+          if (dataStr.includes('ð')) {
+            logDebug('Root/onMessageReceived', `[ENCODING DEBUG] WARNING: Raw event.data (stringified) contains corruption pattern "ð"`)
+          }
+        } catch (e) {
+          // Ignore JSON.stringify errors
+        }
+        
         // const str = JSON.stringify(event, null, 4)
         try {
           // $FlowFixMe
           const { type, payload } = event.data // remember: event is on prototype and not JSON.stringify-able
           if (!type) throw (`onMessageReceived: event.data.type is undefined`, event.data)
           if (!payload) throw (`onMessageReceived: event.data.payload is undefined`, event.data)
+          
+          // Log encoding for debugging emoji corruption - check payload before processing
+          if (payload?.pluginData?.sections) {
+            for (const section of payload.pluginData.sections || []) {
+              for (const item of section.sectionItems || []) {
+                if (item?.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
+                  const charCodes = item.para.title.split('').map((c: string) => c.charCodeAt(0)).join(',')
+                  logDebug('Root/onMessageReceived', `[ENCODING DEBUG] Payload BEFORE processing - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
+                }
+              }
+            }
+          }
+          
           if (type && payload) {
             // logDebug(`Root`, ` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
             if (!payload.lastUpdated) payload.lastUpdated = { msg: '(no msg)' }
@@ -299,8 +330,30 @@ export function Root(/* props: Props */): Node {
                 break
               case 'SET_DATA':
               case 'UPDATE_DATA':
+                // Log encoding for debugging emoji corruption - check data when received from plugin
+                if (payload?.pluginData?.sections) {
+                  for (const section of payload.pluginData.sections || []) {
+                    for (const item of section.sectionItems || []) {
+                      if (item.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
+                        const charCodes = item.para.title.split('').map(c => c.charCodeAt(0)).join(',')
+                        logDebug('Root/onMessageReceived', `[ENCODING DEBUG] Data received from plugin - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
+                      }
+                    }
+                  }
+                }
                 setNPData((prevData) => ({ ...prevData, ...payload }))
                 globalSharedData = { ...globalSharedData, ...payload }
+                // Log encoding for debugging emoji corruption - check data after storing in globalSharedData
+                if (globalSharedData?.pluginData?.sections) {
+                  for (const section of globalSharedData.pluginData.sections || []) {
+                    for (const item of section.sectionItems || []) {
+                      if (item.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
+                        const charCodes = item.para.title.split('').map(c => c.charCodeAt(0)).join(',')
+                        logDebug('Root/onMessageReceived', `[ENCODING DEBUG] Data stored in globalSharedData - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
+                      }
+                    }
+                  }
+                }
                 break
               case 'CHANGE_THEME': {
                 const { themeCSS } = payload

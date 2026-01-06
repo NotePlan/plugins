@@ -41,8 +41,18 @@ export function convertNoteToOption(note: TNote, overrideType?: ?string, include
     return null
   }
 
+  // Log title encoding for debugging emoji corruption
+  const noteTitle = note.title
+  if (noteTitle && (noteTitle.includes('🧩') || noteTitle.includes('ð'))) {
+    const charCodes = noteTitle
+      .split('')
+      .map((c) => c.charCodeAt(0))
+      .join(',')
+    logDebug('noteHelpers', `[ENCODING DEBUG] Note title with emoji/corruption: "${noteTitle}" (length=${noteTitle.length}, charCodes=${charCodes})`)
+  }
+
   const option: NoteOption = {
-    title: note.title,
+    title: noteTitle,
     filename: note.filename,
     type: overrideType || note.type || 'Notes',
     frontmatterAttributes: note.frontmatterAttributes || {},
@@ -240,6 +250,3 @@ export function getRelativeNotesAsOptions(includeDecoration: boolean = false): A
     return []
   }
 }
-
-
-

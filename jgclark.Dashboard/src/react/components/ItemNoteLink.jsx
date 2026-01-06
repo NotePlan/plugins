@@ -18,7 +18,7 @@ type Props = {
   item: TSectionItem,
   thisSection: TSection,
   alwaysShowNoteTitle: boolean,
-  suppressTeamspaceName?: boolean
+  suppressTeamspaceName?: boolean,
 }
 
 //-----------------------------------------------------------
@@ -27,31 +27,41 @@ type Props = {
  * Represents the main content for a single item within a section
  */
 function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppressTeamspaceName = false }: Props): React$Node {
-
   // ------ COMPUTED VALUES --------------------------------
 
   const { sendActionToPlugin, reactSettings } = useAppContext()
   const filename = item.para?.filename ?? '<no filename found>'
   // compute the things we need later
   const noteTitle = item?.para?.title || ''
-  // logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} item.para.noteType:${item.para.noteType} / thisSection.filename=${thisSection.sectionFilename}`)
+  // Log encoding for debugging emoji corruption
+  if (noteTitle && (noteTitle.includes('🧩') || noteTitle.includes('ð'))) {
+    const charCodes = noteTitle
+      .split('')
+      .map((c) => c.charCodeAt(0))
+      .join(',')
+    logDebug('ItemNoteLink', `[ENCODING DEBUG] React received title with emoji/corruption: "${noteTitle}" (length=${noteTitle.length}, charCodes=${charCodes})`)
+  }
+  logDebug(
+    `ItemNoteLink`,
+    `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} item.para.noteType:${item.para.noteType} / thisSection.filename=${thisSection.sectionFilename}`,
+  )
 
   // Compute the icon and link class and style depending whether this is a teamspace item, and/or note types
-  const noteIconToUse = (isDailyDateStr(filename))
+  const noteIconToUse = isDailyDateStr(filename)
     ? 'fa-regular fa-calendar-star'
-    : (isWeeklyDateStr(filename))
-      ? 'fa-regular fa-calendar-week'
-      : (isMonthlyDateStr(filename))
-        ? 'fa-regular fa-calendar-days'
-        : (isQuarterlyDateStr(filename))
-          ? 'fa-regular fa-calendar-range'
-          : 'fa-light fa-file-lines'
+    : isWeeklyDateStr(filename)
+    ? 'fa-regular fa-calendar-week'
+    : isMonthlyDateStr(filename)
+    ? 'fa-regular fa-calendar-days'
+    : isQuarterlyDateStr(filename)
+    ? 'fa-regular fa-calendar-range'
+    : 'fa-light fa-file-lines'
   const parsedTeamspace = parseTeamspaceFilename(filename)
   const isFromTeamspace = parsedTeamspace.isTeamspace
   const filenameWithoutTeamspacePrefix = parsedTeamspace.filename
   const trimmedFilePath = parsedTeamspace.filepath.trim()
   // For Teamspace calendar notes, filepath can be '/', so we need to check for both empty and '/'
-  let folderNamePart = (trimmedFilePath !== '/' && trimmedFilePath !== '') ? `${trimmedFilePath} /` : ''
+  let folderNamePart = trimmedFilePath !== '/' && trimmedFilePath !== '' ? `${trimmedFilePath} /` : ''
   // logDebug(`ItemNoteLink`, `initial filePath:${parsedTeamspace.filepath} with folderNamePart:${folderNamePart}`)
   const showNoteTitle = alwaysShowNoteTitle || item.para?.noteType === 'Notes' || filenameWithoutTeamspacePrefix !== thisSection.sectionFilename
 
@@ -60,8 +70,9 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
   if (isFromTeamspace && !suppressTeamspaceName) {
     const teamspaceTitle = item.teamspaceTitle && item.teamspaceTitle !== 'Unknown Teamspace' ? item.teamspaceTitle : ''
     teamspaceName = (
-      <span className='pad-left teamspaceName pad-right'>
-        <i className={`${TEAMSPACE_FA_ICON} pad-right`}></i>{teamspaceTitle}
+      <span className="pad-left teamspaceName pad-right">
+        <i className={`${TEAMSPACE_FA_ICON} pad-right`}></i>
+        {teamspaceTitle}
       </span>
     )
     if (folderNamePart !== '' && !folderNamePart.endsWith('/')) {
@@ -71,8 +82,8 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
 
   // ------ HANDLERS ---------------------------------------
 
-  const handleLinkClick = (e:MouseEvent) => {
-    const { modifierName  } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
+  const handleLinkClick = (e: MouseEvent) => {
+    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
 
     const dataObjectToPassToFunction = {
       actionType: 'showLineInEditorFromFilename',
@@ -89,7 +100,8 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
       altKey={{ text: 'Open in Split View' }}
       metaKey={{ text: 'Open in Floating Window' }}
       label={`${item.itemType}_${item.ID}_Open Note Link`}
-      enabled={!reactSettings?.dialogData?.isOpen}>
+      enabled={!reactSettings?.dialogData?.isOpen}
+    >
       {/* If it's a teamspace note prepend that icon + title */}
       {isFromTeamspace && teamspaceName}
       {folderNamePart && <span className={`folderName`}>{folderNamePart}</span>}
