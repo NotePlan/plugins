@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-12-28 for v2.4.0.b by @jgclark
+// Last updated 2026-01-04 for v2.4.0.b by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -231,7 +231,7 @@ export type TActionType =
   | 'addProgress'
   | 'addTask'
   | 'addTaskAnywhere'
-  | 'addTaskToFuture'
+  // | 'addTaskToFuture' // TEST: removed this in v2.4.0.b8as it was not hooked up to any UI element
   | 'cancelProject'
   | 'cancelTask'
   | 'completeProject'
@@ -360,6 +360,7 @@ export type TBridgeClickHandlerResult = {
   actionsOnSuccess?: Array<TActionOnReturn>, // actions to perform after return
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   errorMsg?: string,
+  errorMessageLevel?: 'WARN' | 'ERROR' | 'INFO',
 }
 
 export type TClickPosition = {

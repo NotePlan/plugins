@@ -4,8 +4,9 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-12-12 for v2.4.0.b, @jgclark
+// Last updated 2026-01-04 for v2.4.0.b by @jgclark
 //-----------------------------------------------------------------------------
+
 import moment from 'moment/min/moment-with-locales'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getDashboardSettingsDefaults, handlerResult, makeDashboardParas, setPluginData } from './dashboardHelpers'
@@ -18,8 +19,8 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compar
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { smartOpenNoteInEditorFromFilename, smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
-import { openNoteByFilename } from '@helpers/NPnote'
-import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename, highlightParagraphInEditor } from '@helpers/NPParagraph'
+// import { openNoteByFilename } from '@helpers/NPnote'
+import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { getWindowFromCustomId, getLiveWindowRectFromWin, rectToString, storeWindowRect } from '@helpers/NPWindows'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
@@ -54,7 +55,7 @@ export async function doEvaluateString(data: MessageDataObject): Promise<TBridge
   const { stringToEvaluate } = data
   if (!stringToEvaluate) {
     logError('doEvaluateString', 'No stringToEvaluate provided')
-    return handlerResult(false)
+    return handlerResult(false, [], { errorMsg: 'No stringToEvaluate provided', errorMessageLevel: 'ERROR' })
   }
   logDebug('doEvaluateString', `Evaluating string: "${stringToEvaluate}"`)
   // use JS eval to evaluate the string
@@ -68,7 +69,7 @@ export async function doEvaluateString(data: MessageDataObject): Promise<TBridge
 }
 
 /**
- * Prepend an open task to 'calNoteFilename' calendar note, using text we prompt the user for.
+ * Prepend an open task to 'toFilename' Calendar note, using text we prompt the user for.
  * Note: It only writes to Calendar notes, as that's only what Dashboard needs.
  * @param {MessageDataObject} {actionType: addTask|addChecklist etc., toFilename:xxxxx}
  * @returns {TBridgeClickHandlerResult} result to be used by click result handler
@@ -76,11 +77,12 @@ export async function doEvaluateString(data: MessageDataObject): Promise<TBridge
 export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     const config = await getDashboardSettings()
-    clo(data, 'data for doAddItem', 2)
-    const { actionType, toFilename, sectionCodes, userInputObj } = data
+    // clo(data, 'data for doAddItem', 2)
+    const { actionType, toFilename, userInputObj } = data
+    const { sectionCode } = validateAndFlattenMessageObject(data)
     const { text, heading } = userInputObj || {}
 
-    logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''} in section ${String(sectionCodes)}`)
+    logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''} in section ${String(sectionCode)}`)
     if (!toFilename) {
       throw new Error('doAddItem: No toFilename provided')
     }
@@ -109,7 +111,7 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     // Note: updateCache is now done in previous function call
 
     // update just the section we've added to
-    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: sectionCodes })
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode] })
   } catch (err) {
     logError('doAddItem', err.message)
     return handlerResult(false, [], { errorMsg: err.message })
@@ -121,6 +123,7 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
  * Note: this uses the Quick Capture plugin's command, as it was available.
  * Ideally it would use a DynamicDialog instead, as that's more flexible and looks nicer, but we don't necessarily have a dropdown-select component that can scale to 1,000s of items.
  * Calls the doAddItem logic, once new filename is worked out.
+ * Note: Ideally make it smarter than refreshing all enabled sections. But we have no feedback from the Quick Capture plugin so have nothing to go on.
  * @param {MessageDataObject} {date: .data.data.data, text: .data.data.}
  * @returns {TBridgeClickHandlerResult} result to be used by click result handler
  */
@@ -132,24 +135,30 @@ export async function doAddTaskAnywhere(): Promise<TBridgeClickHandlerResult> {
 }
 
 /**
+ * TEST: removed this as it was not hooked up to any UI element
  * Add a new item to a future date, using the date and text provided.
  * Calls the doAddItem logic, once new filename is worked out.
  * @param {MessageDataObject} {date: .data.data.data, text: .data.data.}
  * @returns {TBridgeClickHandlerResult} result to be used by click result handler
  */
-export async function doAddItemToFuture(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  clo(data, `doAddItemToFuture starting with data`)
-  const { userInputObj } = data // "date": "2024-12-04T08:00:00.000Z",
-  if (!userInputObj) return handlerResult(false)
-  const { date, text } = userInputObj
-  if (!text) return handlerResult(false, [], { errorMsg: `No text was provided to addItemToFuture` })
-  if (!date) return handlerResult(false, [], { errorMsg: `No date was provided to addItemToFuture` })
-  const extension = DataStore.defaultFileExtension
-  const filename = `${moment(date).format(`YYYYMMDD`)}.${extension}`
-  data.toFilename = filename
-  data.actionType = 'addTask'
-  return await doAddItem(data)
-}
+// export async function doAddItemToFuture(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+//   try {
+//     clo(data, `doAddItemToFuture starting with data`)
+//     const { userInputObj } = data // "date": "2024-12-04T08:00:00.000Z",
+//     if (!userInputObj) throw new Error('No userInputObj provided')
+//     const { date, text } = userInputObj
+//     if (!text) throw new Error(`No text was provided to addItemToFuture`)
+//     if (!date) throw new Error(`No date was provided to addItemToFuture`)
+//     const extension = DataStore.defaultFileExtension
+//     const filename = `${moment(date).format(`YYYYMMDD`)}.${extension}`
+//     data.toFilename = filename
+//     data.actionType = 'addTask'
+//     return await doAddItem(data)
+//   } catch (error) {
+//     logError('doAddItemToFuture', error.message)
+//     return handlerResult(false, [], { errorMsg: error.message })
+//   }
+// }
 
 /**
  * Complete the task in the actual Note.
@@ -157,26 +166,22 @@ export async function doAddItemToFuture(data: MessageDataObject): Promise<TBridg
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, item } = validateAndFlattenMessageObject(data)
+  const { filename, content, item, sectionCode } = validateAndFlattenMessageObject(data)
   clo(item, `doCompleteTask -> item`)
   const completedParagraph = await completeItem(filename, content)
   // clo(completedParagraph, `doCompleteTask -> completedParagraph`)
 
   if (typeof completedParagraph === 'boolean') {
     logWarn('doCompleteTask', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
-    return handlerResult(false)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't complete task. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
+  } else {
+    // Update the done count for the section
+    await updateDoneCountsFromChangedNotes(`In doCompleteTask() for item ${item?.ID || 'unknown'}`)
+
+    // Send instructions to update the window
+    logDebug('doCompleteTask', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'INCREMENT_DONE_COUNT'], { updatedParagraph: completedParagraph, sectionCodes: [sectionCode] })
   }
-
-  // Update the done count for the section
-  await updateDoneCountsFromChangedNotes(`In doCompleteTask() for item ${item?.ID || 'unknown'}`)
-
-  // Now update the section.doneCounts.completedTasks
-  // by adding REFRESH_SECTION_IN_JSON below
-  const sectionCodes = [item?.sectionCode] || []
-
-  // Send instructions to update the window
-  logDebug('doCompleteTask', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
-  return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'INCREMENT_DONE_COUNT', 'REFRESH_SECTION_IN_JSON'], { updatedParagraph: completedParagraph, sectionCodes: sectionCodes })
 }
 
 /**
@@ -185,14 +190,15 @@ export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeCl
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedParagraph = await completeItemEarlier(filename, content)
-  if (typeof updatedParagraph !== 'boolean') {
-    logDebug('doCompleteTaskThen', `-> {${updatedParagraph.content}}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
-  } else {
+  const { filename, content, item, sectionCode } = validateAndFlattenMessageObject(data)
+  const completedParagraph = await completeItemEarlier(filename, content)
+  if (typeof completedParagraph === 'boolean') {
     logWarn('doCompleteTaskThen', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
-    return handlerResult(false)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't complete the task. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
+  } else {
+    logDebug('doCompleteTaskThen', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
+    // Send instructions to update the window
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph: completedParagraph, sectionCodes: [sectionCode] })
   }
 }
 
@@ -202,18 +208,20 @@ export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBrid
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename, content, item, sectionCode } = validateAndFlattenMessageObject(data)
   let res = cancelItem(filename, content)
   let updatedParagraph = null
   const possiblePara = findParaFromStringAndFilename(filename, content)
   if (typeof possiblePara === 'boolean') {
     res = false
     logWarn('doCancelTask', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't cancel task. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
   } else {
     updatedParagraph = possiblePara || {}
+    logDebug('doCompleteTaskThen', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
+    // Send instructions to update the window
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph, sectionCodes: [sectionCode] })
   }
-  logDebug('doCancelTask', `-> ${res ? 'success' : 'failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?'}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
 /**
@@ -222,13 +230,16 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doCompleteChecklist(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, item } = validateAndFlattenMessageObject(data)
+  const { filename, content, item, sectionCode } = validateAndFlattenMessageObject(data)
   const updatedParagraph = await completeItem(filename, content)
-  // clo(updatedParagraph, `doCompleteChecklist -> updatedParagraph`)
-
-  // Send instructions to update the window
-  logDebug('doCompleteChecklist', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
-  return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
+  if (typeof updatedParagraph === 'boolean') {
+    logWarn('doCompleteChecklist', `-> failed. Perhaps the checklist was modified in NotePlan since the last time the Dashboard was refreshed?`)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't complete checklist. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
+  } else {
+    logDebug('doCompleteChecklist', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
+    // Send instructions to update the window
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph: updatedParagraph || {} })
+  }
 }
 
 /**
@@ -238,13 +249,18 @@ export async function doCompleteChecklist(data: MessageDataObject): Promise<TBri
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, sectionCodes } = validateAndFlattenMessageObject(data)
-  logDebug('doDeleteItem', `Starting with "${String(content)}" and will ideally update sectionCodes ${String(sectionCodes)}`)
+  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
+  logDebug('doDeleteItem', `Starting with "${String(content)}" and will ideally update section ${String(sectionCode)}`)
   // Grab a copy of the paragraph before deleting it, so React can remove the right line. (It's not aware the paragraph has disappeared on the back end.)
   const updatedParagraph = findParaFromStringAndFilename(filename, content)
   const res = await deleteItem(filename, content)
-  logDebug('doDeleteItem', `-> ${res ? 'success' : 'failed'}`)
-  return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
+  if (res) {
+    logDebug('doDeleteItem', `-> success`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph: updatedParagraph || {} })
+  } else {
+    logWarn('doDeleteItem', `-> failed. Perhaps the item was modified in NotePlan since the last time the Dashboard was refreshed?`)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't delete item. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
+  }
 }
 
 /**
@@ -253,17 +269,19 @@ export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClic
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
   let res = cancelItem(filename, content)
   let updatedParagraph = null
   const possiblePara = findParaFromStringAndFilename(filename, content)
   if (typeof possiblePara === 'boolean') {
     res = false
+    logWarn('doCancelChecklist', `-> failed. Perhaps the checklist was modified in NotePlan since the last time the Dashboard was refreshed?`)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't cancel checklist. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
   } else {
     updatedParagraph = possiblePara || {}
+    logDebug('doCancelChecklist', `-> success`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
   }
-  logDebug('doCancelChecklist', `-> ${res ? 'success' : 'failed. Perhaps the checklist was modified in NotePlan since the last time the Dashboard was refreshed?'}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
 /**
@@ -272,27 +290,31 @@ export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerR
  * @returns {TBridgeClickHandlerResult} The result
  */
 export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerResult {
+  try {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const { updatedContent } = data
-  logDebug('doContentUpdate', `${updatedContent || ''}`)
+    logDebug('doContentUpdate', `updatedContent: {${updatedContent || ''}}`)
   if (!updatedContent) {
-    throw new Error('Trying to updateItemContent but no updatedContent was passed')
+    throw new Error(`Trying to updateItemContent but no updatedContent was passed`)
   }
 
-  const para = findParaFromStringAndFilename(filename, content)
-
+    const para = findParaFromStringAndFilename(filename, content)
   if (!para) {
-    throw new Error(`updateItemContent: No para found for filename ${filename} and content ${content}`)
+    throw new Error(`No para found for filename '${filename}' and content {${content}}`)
   }
 
   para.content = updatedContent
   if (para.note) {
     para.note.updateParagraph(para)
   } else {
-    throw new Error(`updateItemContent: No para.note found for filename ${filename} and content ${content}`)
+    throw new Error(`No para.note found for filename '${filename}' and content {${content}}`)
   }
 
-  return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([para])[0] })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([para])[0] })
+  } catch (error) {
+    logError('doContentUpdate', error.message)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [error.cause.sectionCode], errorMsg: `${error.message}. I will refresh this Section; please then try again.`, errorMessageLevel: 'ERROR' })
+  }
 }
 
 /**
@@ -302,25 +324,25 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
  */
 export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult {
   try {
-    const { filename, content, sectionCodes } = validateAndFlattenMessageObject(data)
-    logDebug('toggleTaskChecklistParaType', `starting for "${content}" in filename: ${filename} with sectionCodes ${String(sectionCodes)}`)
+    const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
+    logDebug('doToggleType', `starting for "${content}" in filename: ${filename} for section ${sectionCode}`)
 
     // V1: original from v0.x
-    // const updatedType = toggleTaskChecklistParaType(filename, content)
+    // const updatedType = doToggleType(filename, content)
 
-    // V2: move most of toggleTaskChecklistParaType() into here, as we need access to the full para
+    // V2: move most of doToggleType() into here, as we need access to the full para
     // find para
     const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
     if (typeof possiblePara === 'boolean') {
-      throw new Error('toggleTaskChecklistParaType: no para found')
+      throw new Error('doToggleType: no para found', { cause: { filename, content, sectionCode } })
     }
-    // logDebug('toggleTaskChecklistParaType', `toggling type for "${content}" in filename: ${filename}`)
+
     // Get the paragraph to change
     const updatedParagraph = possiblePara
     const thisNote = updatedParagraph.note
-    if (!thisNote) throw new Error(`Could not get note for filename ${filename}`)
+    if (!thisNote) throw new Error(`Could not get note for filename ${filename}`, { cause: { filename, content, sectionCode } })
     const existingType = updatedParagraph.type
-    logDebug('toggleTaskChecklistParaType', `toggling type from ${existingType} in filename: ${filename}`)
+    logDebug('doToggleType', `toggling type from ${existingType} in filename: ${filename}`)
     const updatedType = existingType === 'checklist' ? 'open' : 'checklist'
     updatedParagraph.type = updatedType
     logDebug('doToggleType', `-> ${updatedType}`)
@@ -328,10 +350,10 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     DataStore.updateCache(thisNote, false)
 
     // Refresh the whole section, as we might want to filter out the new item type from the display
-    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { updatedParagraph: updatedParagraph, sectionCodes: sectionCodes })
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { updatedParagraph: updatedParagraph, sectionCodes: [sectionCode] })
   } catch (error) {
     logError('doToggleType', error.message)
-    return handlerResult(false)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [error.cause.sectionCode], errorMsg: error.message, errorMessageLevel: 'ERROR' })
   }
 }
 
@@ -341,34 +363,32 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
  * @returns {TBridgeClickHandlerResult} The result
  */
 export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content, sectionCodes } = validateAndFlattenMessageObject(data)
+  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
   const updatedContent = unscheduleItem(filename, content)
   logDebug('doUnscheduleItem', `-> ${String(updatedContent)}`)
 
   // find the updated para
   const updatedParagraph: TParagraph | boolean = findParaFromStringAndFilename(filename, updatedContent)
   if (typeof updatedParagraph === 'boolean') {
-    logError(`doUnscheduleItem`, `couldn't find para for filename ${filename} and content ${updatedContent}. Will update current section ${sectionCodes}`)
+    logError(`doUnscheduleItem`, `couldn't find para for filename ${filename} and content ${updatedContent}. Will update current section ${sectionCode}`)
 
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: sectionCodes })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Unable to find para "${content}" in filename: "${filename}". I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
   } else {
-    logDebug('doUnscheduleItem', `- found updated paragraph, and will update display of the item and section ${sectionCodes}`)
+    logDebug('doUnscheduleItem', `- found updated paragraph, and will update display of the item and section ${sectionCode}`)
     // Now ask to update this line in the display
-    // sendToHTMLWindow(windowId, 'unscheduleItem', data)
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'REFRESH_SECTION_IN_JSON'], { updatedParagraph: makeDashboardParas([updatedParagraph])[0], sectionCodes: sectionCodes })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'REFRESH_SECTION_IN_JSON'], { updatedParagraph: makeDashboardParas([updatedParagraph])[0], sectionCodes: [sectionCode] })
   }
 }
 
 // Send a request to cyclePriorityStateUp to plugin
 export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
 
   // Get full TParagraph to work on
   const para = findParaFromStringAndFilename(filename, content)
   if (para && typeof para !== 'boolean') {
     // logDebug('doCyclePriorityStateUp', `will cycle priority on para {${paraContent}}`)
     // Note: next 2 lines have to be this way around, otherwise a race condition
-    // const newPriority = (getTaskPriority(paraContent) + 1) % 5
     const updatedContent = cyclePriorityStateUp(para)
     para.content = updatedContent
     logDebug('doCyclePriorityStateUp', `cycling priority -> {${JSP(updatedContent)}}`)
@@ -377,13 +397,13 @@ export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHan
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([para])[0] })
   } else {
     logWarn('doCyclePriorityStateUp', `-> unable to find para {${content}} in filename ${filename}`)
-    return handlerResult(false, [], { errorMsg: `unable to find para "${content}" in filename: "${filename}"` })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Unable to find para "${content}" in filename: "${filename}". I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
   }
 }
 
 // Send a request to cyclePriorityStateDown to plugin
 export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
   // Get para
   const para = findParaFromStringAndFilename(filename, content)
   if (para && typeof para !== 'boolean') {
@@ -399,7 +419,7 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([para])[0] })
   } else {
     logWarn('doCyclePriorityStateDown', `-> unable to find para {${content}} in filename ${filename}`)
-    return handlerResult(false, [], { errorMsg: `unable to find para "${content}" in filename: "${filename}"` })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Unable to find para "${content}" in filename: "${filename}". I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
   }
 }
 
@@ -411,10 +431,10 @@ export function doWindowResized(): TBridgeClickHandlerResult {
     if (rect) {
       logDebug('doWindowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
       storeWindowRect(windowCustomId)
+      return handlerResult(rect ? true : false)
     }
-    return handlerResult(rect ? true : false)
   }
-  return handlerResult(false)
+  return handlerResult(false, [], { errorMsg: 'Could not get window from customId', errorMessageLevel: 'ERROR' })
 }
 
 /** 
@@ -461,18 +481,18 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   //   return handlerResult(true)
   // } else {
   //   logWarn('doShowLineInEditorFromFilename', `-> failed to open filename ${filename} in Editor.`)
-  //   return handlerResult(false)
+  //   return handlerResult(false, [], { errorMsg: `Failed to open filename ${filename} in Editor.`, errorMessageLevel: 'WARN' })
   // }
 
   // V2
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
   const result = await smartShowLineInEditorFromFilename(filename, content)
   if (result) {
     logDebug('doShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor, followed by ${result ? 'succesful' : 'unsuccessful'} call to highlight the paragraph`,)
     return handlerResult(true)
   } else {
     logWarn('doShowLineInEditorFromFilename', `-> failed to open filename ${filename} in Editor.`)
-    return handlerResult(false)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `-> failed to open line in Editor for filename ${filename}. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
   }
 }
 
@@ -485,109 +505,115 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
  * @author @dwertheimer
  */
 export async function doDashboardSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
-  // clo(data, `doDashboardSettingsChanged() starting with data = `)
-  // $FlowFixMe[incompatible-type]
-  const newSettings: Partial<TDashboardSettings> = data.settings
-  if (!DataStore.settings || !newSettings) {
-    return handlerResult(false, [], { errorMsg: `doDashboardSettingsChanged: newSettings is null or undefined.` })
-  }
-  // If we are saving the dashboardSettings, and the perspectiveSettings are not being sent, then we need to save the active perspective settings
-  let perspectivesToSave = settingName === 'dashboardSettings' ? data.perspectiveSettings : Array.isArray(newSettings) ? newSettings : []
-  if (settingName === 'dashboardSettings' && !data.perspectiveSettings) {
-    let needToSetDash = false
-    const perspectiveSettings = await getPerspectiveSettings()
-    if (newSettings.usePerspectives) {
-      // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
-      const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
-      logDebug(`doDashboardSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
+  try {
+    // clo(data, `doDashboardSettingsChanged() starting with data = `)
+    // $FlowFixMe[incompatible-type]
+    const newSettings: Partial<TDashboardSettings> = data.settings
+    if (!DataStore.settings || !newSettings) {
+      throw new Error(`newSettings is null or undefined.`)
+    }
+    // If we are saving the dashboardSettings, and the perspectiveSettings are not being sent, then we need to save the active perspective settings
+    let perspectivesToSave = settingName === 'dashboardSettings' ? data.perspectiveSettings : Array.isArray(newSettings) ? newSettings : []
+    if (settingName === 'dashboardSettings' && !data.perspectiveSettings) {
+      let needToSetDash = false
+      const perspectiveSettings = await getPerspectiveSettings()
+      if (newSettings.usePerspectives) {
+        // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
+        const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
+        logDebug(`doDashboardSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
 
-      if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
-        // Clean up the settings before then comparing them with the active perspective settings
-        const dashboardSettingsDefaults = getDashboardSettingsDefaults()
-        const newSettingsWithDefaults = { ...dashboardSettingsDefaults, ...newSettings }
-        const activePerspDefDashboardSettingsWithDefaults = { ...dashboardSettingsDefaults, ...activePerspDef.dashboardSettings }
-        // $FlowIgnore[prop-missing]
-        // $FlowIgnore[incompatible-call]
-        const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
+        if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
+          // Clean up the settings before then comparing them with the active perspective settings
+          const dashboardSettingsDefaults = getDashboardSettingsDefaults()
+          const newSettingsWithDefaults = { ...dashboardSettingsDefaults, ...newSettings }
+          const activePerspDefDashboardSettingsWithDefaults = { ...dashboardSettingsDefaults, ...activePerspDef.dashboardSettings }
+          // $FlowIgnore[prop-missing]
+          // $FlowIgnore[incompatible-call]
+          const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
 
-        // Now add all the TAG sections, which otherwise aren't included in the active perspective settings.
-        // Get any active perspective setting keys that start 'showTagSection_'
-        const activePerspDefShowTagSectionKeys = Object.keys(activePerspDef.dashboardSettings).filter((k) => k.startsWith('showTagSection_'))
-        clo(activePerspDefShowTagSectionKeys, `doDashboardSettingsChanged: activePerspDefShowTagSectionKeys`)
-        // Add all the TAG sections to the active perspective settings
-        // $FlowIgnore[prop-missing] - Dynamic property access for tag section keys
-        const activePerspDefShowTagSectionObject = activePerspDefShowTagSectionKeys.reduce((acc, k) => {
-          acc[k] = activePerspDef.dashboardSettings[k]
-          return acc
-        }, ({}: { [string]: any }))
-        // $FlowIgnore[cannot-spread-indexer] - Dynamic property spread for tag section keys
-        const activePerspDefDashboardSettingsWithDefaultsAndTAGs = { ...activePerspDefDashboardSettingsWithDefaults, ...activePerspDefShowTagSectionObject }
+          // Now add all the TAG sections, which otherwise aren't included in the active perspective settings.
+          // Get any active perspective setting keys that start 'showTagSection_'
+          const activePerspDefShowTagSectionKeys = Object.keys(activePerspDef.dashboardSettings).filter((k) => k.startsWith('showTagSection_'))
+          clo(activePerspDefShowTagSectionKeys, `doDashboardSettingsChanged: activePerspDefShowTagSectionKeys`)
+          // Add all the TAG sections to the active perspective settings
+          // $FlowIgnore[prop-missing] - Dynamic property access for tag section keys
+          const activePerspDefShowTagSectionObject = activePerspDefShowTagSectionKeys.reduce((acc, k) => {
+            acc[k] = activePerspDef.dashboardSettings[k]
+            return acc
+          }, ({}: { [string]: any }))
+          // $FlowIgnore[cannot-spread-indexer] - Dynamic property spread for tag section keys
+          const activePerspDefDashboardSettingsWithDefaultsAndTAGs = { ...activePerspDefDashboardSettingsWithDefaults, ...activePerspDefShowTagSectionObject }
 
-        // Compare the cleaned settings with the active perspective settings
-        const diff = compareObjects(activePerspDefDashboardSettingsWithDefaultsAndTAGs, cleanedSettings, ['lastModified', 'lastChange', 'usePerspectives'])
-        clo(diff, `doDashboardSettingsChanged: diff`)
+          // Compare the cleaned settings with the active perspective settings
+          const diff = compareObjects(activePerspDefDashboardSettingsWithDefaultsAndTAGs, cleanedSettings, ['lastModified', 'lastChange', 'usePerspectives'])
+          clo(diff, `doDashboardSettingsChanged: diff`)
 
-        // if !diff or  all the diff keys start with FFlag, then return
-        if (!diff || Object.keys(diff).length === 0) return handlerResult(true)
-        if (Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
-          logDebug(`doDashboardSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
-          const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: newSettings })
-          return handlerResult(res)
+          // if !diff or  all the diff keys start with FFlag, then return
+          if (!diff || Object.keys(diff).length === 0) return handlerResult(true)
+          if (Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
+            logDebug(`doDashboardSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
+            const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: newSettings })
+            return handlerResult(res)
+          }
+
+          clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings: ${Object.keys(diff).length} keys: ${Object.keys(diff).join(', ')}`)
+          Object.keys(diff).forEach((d) => {
+            logDebug(`doDashboardSettingsChanged`,
+              // $FlowIgnore[invalid-computed-prop]
+              `activePerspDefDashboardSettingsWithDefaults['${String(d)}']=${d ? activePerspDefDashboardSettingsWithDefaults[d] : ''} vs. sent to save: cleanedSettings['${String(d)}']=${d ? cleanedSettings[d] : ''
+              }`,
+            )
+          })
+
+          // ignore dashboard changes in the perspective definition until it is saved explicitly
+          // but we need to set the isModified flag on the perspective
+          logDebug(`doDashboardSettingsChanged`, `Setting isModified to true for perspective ${activePerspDef.name}`)
+          perspectivesToSave = perspectiveSettings.map((p) => (p.name === activePerspDef.name ? { ...p, isModified: true } : { ...p, isModified: false }))
+        } else {
+          needToSetDash = true
         }
-
-        clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings: ${Object.keys(diff).length} keys: ${Object.keys(diff).join(', ')}`)
-        Object.keys(diff).forEach((d) => {
-          logDebug(`doDashboardSettingsChanged`,
-            // $FlowIgnore[invalid-computed-prop]
-            `activePerspDefDashboardSettingsWithDefaults['${String(d)}']=${d ? activePerspDefDashboardSettingsWithDefaults[d] : ''} vs. sent to save: cleanedSettings['${String(d)}']=${d ? cleanedSettings[d] : ''
-            }`,
-          )
-        })
-
-        // ignore dashboard changes in the perspective definition until it is saved explicitly
-        // but we need to set the isModified flag on the perspective
-        logDebug(`doDashboardSettingsChanged`, `Setting isModified to true for perspective ${activePerspDef.name}`)
-        perspectivesToSave = perspectiveSettings.map((p) => (p.name === activePerspDef.name ? { ...p, isModified: true } : { ...p, isModified: false }))
       } else {
         needToSetDash = true
       }
-    } else {
-      needToSetDash = true
-    }
-    if (needToSetDash) {
-      if (typeof newSettings === 'object' && newSettings !== null && !Array.isArray(newSettings)) {
-        perspectivesToSave = setDashPerspectiveSettings(newSettings, perspectiveSettings)
-      } else {
-        logError(`doDashboardSettingsChanged`, `newSettings is not an object: ${JSP(newSettings)}`)
+      if (needToSetDash) {
+        if (newSettings && typeof newSettings === 'object' && !Array.isArray(newSettings)) {
+          // $FlowFixMe[incompatible-call]
+          perspectivesToSave = setDashPerspectiveSettings(newSettings, perspectiveSettings)
+        } else {
+          logError(`doDashboardSettingsChanged`, `newSettings is not an object: ${JSP(newSettings)}`)
+        }
       }
     }
+
+    const combinedUpdatedSettings = { ...(await getSettings('jgclark.Dashboard')), [settingName]: newSettings }
+
+    if (perspectivesToSave && Array.isArray(perspectivesToSave)) {
+      const debugInfo = perspectivesToSave.map(
+        (ps) => `${ps.name} excludedFolders=[${String(ps.dashboardSettings?.excludedFolders) ?? ''} ${ps.isModified ? 'modified' : ''} ${ps.isActive ? '<active>' : ''}`)
+        .join(`\n\t`)
+      logDebug(`doDashboardSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
+
+      combinedUpdatedSettings.perspectiveSettings = perspectivesToSave
+    }
+
+    const res = await saveSettings(pluginID, combinedUpdatedSettings)
+    const updatedPluginData = { [settingName]: newSettings } // was also: pushFromServer: { [settingName]: true }
+    if (perspectivesToSave) {
+      // $FlowFixMe(incompatible-type)
+      updatedPluginData.perspectiveSettings = perspectivesToSave
+    }
+    await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
+
+    // Always close any unused sections, as some sections may no longer be needed
+    const resultsToHandle = ['CLOSE_UNNEEDED_SECTIONS']
+    // If we aren't just saving perspectiveSettings, then we need to refresh the enabled sections, as potentially every section might be altered
+    if (settingName === 'dashboardSettings') {
+      resultsToHandle.push('REFRESH_ALL_ENABLED_SECTIONS')
+    }
+
+    return handlerResult(res, resultsToHandle)
+  } catch (error) {
+    logError('doDashboardSettingsChanged', error.message)
+    return handlerResult(false, [], { errorMsg: `When trying to save settings, an error occurred: ${error.message}`, errorMessageLevel: 'ERROR' })
   }
-
-  const combinedUpdatedSettings = { ...(await getSettings('jgclark.Dashboard')), [settingName]: newSettings }
-
-  if (perspectivesToSave && Array.isArray(perspectivesToSave)) {
-    const debugInfo = perspectivesToSave.map(
-      (ps) => `${ps.name} excludedFolders=[${String(ps.dashboardSettings?.excludedFolders) ?? ''} ${ps.isModified ? 'modified' : ''} ${ps.isActive ? '<active>' : ''}`)
-      .join(`\n\t`)
-    logDebug(`doDashboardSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
-
-    combinedUpdatedSettings.perspectiveSettings = perspectivesToSave
-  }
-
-  const res = await saveSettings(pluginID, combinedUpdatedSettings)
-  const updatedPluginData = { [settingName]: newSettings } // was also: pushFromServer: { [settingName]: true }
-  if (perspectivesToSave) {
-    // $FlowFixMe(incompatible-type)
-    updatedPluginData.perspectiveSettings = perspectivesToSave
-  }
-  await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
-
-  // Always close any unused sections, as some sections may no longer be needed
-  const resultsToHandle = ['CLOSE_UNNEEDED_SECTIONS']
-  // If we aren't just saving perspectiveSettings, then we need to refresh the enabled sections, as potentially every section might be altered
-  if (settingName === 'dashboardSettings') {
-    resultsToHandle.push('REFRESH_ALL_ENABLED_SECTIONS')
-  }
-
-  return handlerResult(res, resultsToHandle)
 }

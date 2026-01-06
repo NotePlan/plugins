@@ -65,9 +65,9 @@ const onMessageReceived = (event) => {
   try {
     // $FlowFixMe
     const { type, payload } = event.data // remember: data exists even though event is not JSON.stringify-able (like NP objects)
-    if (!type) throw (`onMessageReceived: received a message, but the 'type' was undefined`, event.data)
-    if (!payload) throw (`onMessageReceived: received a message but 'payload' was undefined`, event.data)
-    console.log(`pluginToHTMLCommsBridge onMessageReceived: ${type} lastUpdated: "${payload?.lastUpdated?.msg || ''}"`, { payload })
+    if (!type) throw (`Received a message, but the 'type' was undefined`, event.data)
+    if (!payload) throw (`Received a message but 'payload' was undefined`, event.data)
+    console.log(`CommsBridge ${type} message: "${payload?.lastUpdated?.msg || ''}"`, { payload })
     onMessageFromPlugin(type, payload) /* you need to have a function called onMessageFromPlugin in your code */
   } catch (error) {
     console.log(`CommsBridge onMessageReceived: ${JSON.stringify(error)}`)

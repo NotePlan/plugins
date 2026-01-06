@@ -2,10 +2,10 @@
 //--------------------------------------------------------------------------
 // shared.js
 // shared functions between plugin and React
-// Last updated 2024-07-09 for v2.0.1 by @jgclark
+// Last updated 2026-01-04 for v2.4.0.b8 by @jgclark
 //--------------------------------------------------------------------------
 
-import type { MessageDataObject, TSectionItem, TDashboardSettings } from './types'
+import type { MessageDataObject, TSectionItem } from './types'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 
 export type ValidatedData = {
@@ -49,7 +49,7 @@ export function parseSettings(settingsStr: string): any {
  */
 export function validateAndFlattenMessageObject(data: MessageDataObject): ValidatedData {
 	try {
-		const { item, filename } = data
+		const { item, filename, toFilename } = data
 		let { para, project } = item || {}
 		const isProject = project !== undefined
 		const isTask = para !== undefined
@@ -59,9 +59,10 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
 		// $FlowIgnore[incompatible-type]
 		if (!project) project = {}
 
-		// Check for filename, which is always required -- from either data.filename or item.para.filename or item.project.filename
+		// Check for filename, which is always required -- from either data.filename, data.toFilename, or item.para.filename or item.project.filename
 		const activeObject = isProject ? project : isTask ? para : undefined
-		if (!filename && !activeObject?.filename) {
+		const resolvedFilename = filename || toFilename || activeObject?.filename
+		if (!resolvedFilename) {
 			throw new Error("'filename' is null or undefined.")
 		}
 		// Check for required fields in para
@@ -92,19 +93,27 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
 					throw new Error(`Key collision detected: '${key}' exists in multiple objects.`)
 				}
 				allKeys.add(key)
-				//$FlowIgnore[prop-missing]
+				// $FlowIgnore[prop-missing]
 				result[key] = value
 			}
 		}
 
+		// Normalize filename: if toFilename was used, ensure filename is set in result
+		// $FlowIgnore[prop-missing]
+		if (!result.filename && result.toFilename) {
+			//$FlowIgnore[prop-missing]
+			result.filename = result.toFilename
+		}
+
 		// Add 'item' and 'para' back to the result
-		//$FlowIgnore[prop-missing]
+		// $FlowIgnore[prop-missing]
 		result.item = { ...item }
-		//$FlowIgnore[prop-missing]
+		// $FlowIgnore[prop-missing]
 		if (isTask) result.para = { ...para }
-		//$FlowIgnore[prop-missing]
+		// $FlowIgnore[prop-missing]
 		if (isProject) result.project = { ...project }
-		//$FlowIgnore[prop-missing]
+		// logDebug(`shared / validateAndFlattenMessageObject()`, `result: ${JSP(result, 2)}`)
+		// $FlowIgnore[prop-missing]
 		return result
 	} catch (error) {
 		logError(`shared / validateAndFlattenMessageObject()`, `Error validating data: ${error.message} Data: ${JSP(data, 2)}`)
