@@ -14,7 +14,7 @@ import {
   getOpenItemParasForTimePeriod,
 } from './dashboardHelpers'
 import { openWeekParas, refWeekParas } from './demoData'
-import { getDateStringFromCalendarFilename, getNPWeekStr } from '@helpers/dateTime'
+import { getNPWeekStr, MOMENT_FORMAT_NP_WEEK } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 
@@ -41,7 +41,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} (${thisFilename}) ------------`)
+    logInfo('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} (${thisFilename}) ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -248,12 +248,12 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
     let items: Array<TSectionItem> = []
     let itemCount = 0
     const NPSettings = getNotePlanSettings()
-    const dateStr = new moment().subtract(1, 'week').format('YYYY-[W]WW') // use moment instead of  `new Date` to ensure we get a date in the local timezone
+    const dateStr = new moment().subtract(1, 'week').format(MOMENT_FORMAT_NP_WEEK) // use moment instead of `new Date` to ensure we get a date in the local timezone
     const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
 
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getLastWeekSectionData', `---------- Gathering Last Week's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} from ${thisFilename} ------------`)
+    logInfo('getLastWeekSectionData', `---------- Gathering Last Week's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} from ${thisFilename} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {

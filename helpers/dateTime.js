@@ -897,8 +897,7 @@ export function getWeek(inDate: Date): number {
 }
 
 /**
- * WARNING: Only for use where Monday is the user's first day of the week. See NPdateTime::getNPWeekData() for use with other days of the week.
- * TODO: Remove all uses of this.
+ * Note: JGC is not sure if this is OK for where Monday is *not* the user's first day of the week. If not, then try NPdateTime::getNPWeekData() instead.
  * @param {Date} inDate
  * @returns {string}
  */
