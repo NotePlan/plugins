@@ -103,7 +103,7 @@
   overflow: hidden;
   text-overflow: ellipsis; /* CSS truncation for normal cases, JS truncation for very long items */
   box-sizing: border-box; /* Ensure padding is inside border and width includes padding */
-  text-indent: 1rem; /* Add space to the left of text/placeholder without affecting border */
+  text-indent: 0.75rem; /* Add space to the left of text/placeholder without affecting border */
   margin: 0; /* No margin on input itself */
   line-height: 1.2; /* Match line height for consistent height calculation */
   height: auto; /* Let height be determined by padding and line height */
@@ -120,7 +120,7 @@
 /* Ensure placeholder text also gets indented (some browsers need this explicitly) */
 .searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]::placeholder,
 [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]::placeholder {
-  text-indent: 1rem;
+  text-indent: 0.75rem;
 }
 
 .searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus,
@@ -260,7 +260,7 @@
 
 /* Option - use direct class name for maximum compatibility */
 .searchable-chooser-option {
-  padding: 0.5rem 0.75rem;
+  padding: 0.15rem 0.75rem;
   cursor: pointer;
   border-bottom: 1px solid var(--divider-color, #CDCFD0);
   color: var(--fg-main-color, #4c4f69);

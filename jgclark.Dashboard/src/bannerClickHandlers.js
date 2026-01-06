@@ -7,7 +7,7 @@
 //-----------------------------------------------------------------------------
 
 import { WEBVIEW_WINDOW_ID } from './constants'
-import { handlerResult, setPluginData } from './dashboardHelpers'
+import { handlerResult } from './dashboardHelpers'
 import type { MessageDataObject, TBridgeClickHandlerResult } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { sendBannerMessage } from '@helpers/HTMLView'
@@ -46,13 +46,13 @@ export async function handleBannerTestClick(
         break
       default:
         logError('handleBannerTestClick', `Unknown actionType: ${actionType}`)
-        return handlerResult(false)
+        return handlerResult(true)
     }
     return handlerResult(true)
   }
   catch (error) {
     logError('handleBannerTestClick', error.message)
     await sendBannerMessage(WEBVIEW_WINDOW_ID, `Error in handleBannerTestClick: ${error.message}`, 'ERROR')
-    return handlerResult(false)
+    return handlerResult(false, [], { errorMsg: error.message, errorMessageLevel: 'ERROR' })
   }
 }

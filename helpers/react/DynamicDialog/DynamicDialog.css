@@ -7,17 +7,14 @@
     /* background-color: var(--bg-main-color); */
     background-color: var(--bg-mid-color);
     position: fixed;
-    top: 50vh; /* Center in viewport */
+    top: calc(50vh + var(--noteplan-toolbar-height, 0)/2); /* Center in viewport, with Y offset a bit lower to generally allow the Perspective name to be visible) */
     height: 90vh;
     max-height: calc(92vh - var(--noteplan-toolbar-height, 0));
     left: 50%;
-    /* width: 90vw; */
-    /* max-width: 90vw; */
     width: clamp(380px, 86%, 700px);
     transform: translate(-50%, -50%); /* Center both horizontally and vertically */
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
-    /* z-index: 1000; */
     opacity: 1;
     border-radius: 8px;
     transition: opacity 0.2s ease-out;
@@ -26,6 +23,7 @@
     flex-direction: column;
     margin: 0;
     padding: 0;
+    /* z-index: 1000; */
 
     /* Narrow for simpler confirmation dialogs */
     &.confirmation {
@@ -46,7 +44,7 @@
         flex-direction: column;
         gap: 1rem;
         background-color: var(--bg-mid-color);
-        padding: 0.75rem 0.6rem;
+        padding: 0.75rem 1.0rem;
         border-radius: 8px;
         flex: 1;
         overflow-y: auto;
@@ -72,8 +70,8 @@
         line-height: 1.2rem;
         min-height: 2.5rem;
         border-bottom: 0.5px solid var(--divider-color, #CDCFD0);
-        padding: 0.5rem 0.75rem;
-        padding-top: 0.8rem;
+        padding: 0.4rem 0.75rem;
+        /* padding-top: 0.8rem; */
         border-radius: 8px 8px 0 0;
         width: 100%;
         box-sizing: border-box;
@@ -116,14 +114,14 @@
         color: var(--fg-main-color);
         border: 1px solid #ddd;
         outline: none;
-        margin-left: 8px;
+        /* margin-left: 8px; */
     }
 
     .save-button, 
     .save-button-inactive {
         background-color: var(--tint-color);
         color: var(--bg-main-color);
-        margin-right: 8px;
+        /* margin-right: 8px; */
     }
 
     .save-button-inactive {
@@ -250,12 +248,13 @@
         white-space: nowrap;
     }
     
-    /* Standardized input width system - use CSS variables for consistency */
+    /* Standardized input width system - trying to use CSS variables for consistency */
     .dynamic-dialog-content {
+        /* FIXME(@dwertheimer): to work with wide widths as well. Commenting out for now. */
         /* Create a CSS variable for compact label width to ensure alignment */
-        --compact-label-width: auto;
+        /* --compact-label-width: auto; */
         /* Standard input field width - can be overridden in form-specific CSS */
-        --dynamic-dialog-input-width: 180px;
+        /* --dynamic-dialog-input-width: 180px; */
     }
     
     /* Unified field label styling for all DynamicDialog fields */
@@ -358,9 +357,9 @@
     }
     
     .input-box-container-compact .input-box-wrapper .input-box-input {
-        flex: 0 0 var(--dynamic-dialog-input-width, 180px); /* Fixed width - don't grow or shrink */
-        min-width: var(--dynamic-dialog-input-width, 180px);
-        max-width: var(--dynamic-dialog-input-width, 180px);
+        /* flex: 0 0 var(--dynamic-dialog-input-width, 180px); /* Fixed width - don't grow or shrink */
+        /* min-width: var(--dynamic-dialog-input-width, 180px);
+        max-width: var(--dynamic-dialog-input-width, 180px); */
     }
     
     /* Standardized width for ThemedSelect (combo) in compact mode */
@@ -372,9 +371,9 @@
     
     /* ThemedSelect react-select container width */
     .input-box-container-compact .input-box-wrapper > div {
-        width: var(--dynamic-dialog-input-width, 180px) !important;
+        /* width: var(--dynamic-dialog-input-width, 180px) !important;
         max-width: var(--dynamic-dialog-input-width, 180px) !important;
-        min-width: var(--dynamic-dialog-input-width, 180px) !important;
+        min-width: var(--dynamic-dialog-input-width, 180px) !important; */
     }
 
     /* Style for input-box-label */
@@ -387,8 +386,8 @@
 
     /* Style for input-box-input */
     .input-box-input {
-        width: var(--dynamic-dialog-input-width, 180px); /* Standardized width */
-        max-width: var(--dynamic-dialog-input-width, 180px); /* Prevent expansion */
+        /* width: var(--dynamic-dialog-input-width, 180px); /* Standardized width */
+        /* max-width: var(--dynamic-dialog-input-width, 180px); /* Prevent expansion */
         padding: 4px 8px;
         /* border: 1px solid #ddd; */
         border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
@@ -404,17 +403,17 @@
     
     /* In compact mode, inputs should fill available space after label */
     .input-box-container-compact .input-box-input {
-        width: var(--dynamic-dialog-input-width, 180px);
+        /* width: var(--dynamic-dialog-input-width, 180px);
         max-width: var(--dynamic-dialog-input-width, 180px);
-        min-width: var(--dynamic-dialog-input-width, 180px); /* Prevent shrinking */
+        min-width: var(--dynamic-dialog-input-width, 180px); Prevent shrinking */
         margin-left: 0;
         flex-shrink: 0; /* Don't allow input to shrink */
     }
     
     /* Input wrapper in compact mode should respect the width */
     .input-box-container-compact .input-box-wrapper {
-        width: var(--dynamic-dialog-input-width, 180px);
-        max-width: var(--dynamic-dialog-input-width, 180px);
+        /* width: var(--dynamic-dialog-input-width, 180px);
+        max-width: var(--dynamic-dialog-input-width, 180px); */
         flex: 0 0 auto; /* Don't flex, use fixed width */
     }
     /* Apply styles for read-only input fields */
@@ -701,17 +700,6 @@
         margin-left: 1rem;
     }
 
-    /* Header style for settings dialog */
-    /* TEST: removing this */
-    /* .dynamic-dialog-header {
-        font-size: 1.2rem;
-        font-weight: 600;
-        color: var(--tint-color);
-        margin: 0;
-        background: none;
-        line-height: 40px;
-    } */
-
     /* Add styles for button-group */
     .ui-button-group {
         display: flex;
@@ -788,10 +776,6 @@
     margin: 0;
 }
 
-.hide-step-buttons {
-    -moz-appearance: textfield; /* Firefox */
-}
-
 /* Style for dropdown-dropdown -- these need to be global, not nested because they apply to the portal */
 .dropdown-dropdown {
     position: absolute;
@@ -804,21 +788,6 @@
     box-shadow: 0 2px 5px rgba(0 0 0 / 0.1);
     z-index: 5;
 }
-
-/* Style for dropdown-option */
-/* TEST: removing, as not used? */
-/* .dropdown-option {
-    padding: 8px 12px;
-    cursor: pointer;
-    color: var(--fg-main-color);
-} */
-
-/* Hover style for dropdown option */
-/* TEST: removing, as not used? */
-/* .dropdown-option:hover {
-    background-color: var(--bg-alt-color);
-    color: var(--fg-alt-color);
-} */
 
 .iOS .dynamic-dialog {
     .dynamic-dialog-header {

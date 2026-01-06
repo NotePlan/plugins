@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------ */
 /* Message Banner CSS */
-/* Last updated 2025-12-17 by @jgclark */
+/* Last updated 2026-01-04 by @jgclark */
 /* ------------------------------------------------------------------ */
 
 html {
@@ -18,7 +18,7 @@ html {
 
 .banner-panel {
   margin: 0rem;
-  width: 100%;
+  width: auto; /* Note: was 100% before, but this was causing the banner to be too wide on the screen */
   border-width: 0px 0px 0px 6px;
   border-style: solid;
   display: grid;

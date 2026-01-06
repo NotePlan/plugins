@@ -9,6 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b8] 2026-01-04
+- now always trigger Timeblock Section generation whenever Today Section is generated. This simplifies some handlers.
+- add error message info to click handlers, ready to display in updated MessageBanners
+
 ## [2.4.0.b7] 2026-01-03
 - Fixed Settings Dialog and DynamicDialog positioning to center properly in viewport when `--noteplan-toolbar-height` is set. Changed from using percentage-based positioning (which used full page height) to viewport-based units (vh) for proper centering.
 
