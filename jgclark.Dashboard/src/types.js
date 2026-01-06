@@ -41,6 +41,7 @@ export type TDashboardSettings = {
   FFlag_UseTagCache?: boolean, // TODO: remove this in v2.5.0?
   FFlag_UseTagCacheAPIComparison?: boolean, // TODO: remove this in v2.5.0?
   FFlag_ShowBannerTestButtons?: boolean, // for v2.4.0 beta testing; TODO: remove this before v2.4.0 release
+  FFlag_DynamicAddToAnywhere?: boolean, // Use new DynamicDialog-based add task dialog instead of QuickCapture plugin
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
   defaultFileExtension?: string,

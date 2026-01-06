@@ -42,6 +42,7 @@ export type NoteChooserProps = {
   includePersonalNotes?: boolean, // Include personal/project notes (default: true)
   includeRelativeNotes?: boolean, // Include relative notes like <today>, <thisweek>, etc. (default: false)
   includeTeamspaceNotes?: boolean, // Include teamspace notes (default: true)
+  includeTemplatesAndForms?: boolean, // Include notes from @Templates and @Forms folders (default: false)
   showValue?: boolean, // If true, display the selected value below the input
   includeNewNoteOption?: boolean, // If true, add a 'New Note' option that allows creating a new note
   dependsOnFolderKey?: string, // Key of a folder-chooser field to filter notes by folder
@@ -128,6 +129,7 @@ export function NoteChooser({
   includePersonalNotes = true,
   includeRelativeNotes = false,
   includeTeamspaceNotes = true,
+  includeTemplatesAndForms = false,
   showValue = false,
   includeNewNoteOption = false,
   dependsOnFolderKey,
@@ -218,6 +220,15 @@ export function NoteChooser({
         const noteMatchesValue = note.title === value || note.filename === value
         if (noteMatchesValue) {
           return true // Always include backwards-compatible matches
+        }
+      }
+
+      // Filter out @Templates and @Forms unless includeTemplatesAndForms is true
+      if (!includeTemplatesAndForms && !isRelativeNote) {
+        const noteFolder = getFolderFromFilename(note.filename)
+        // Check if the folder path contains @Templates or @Forms
+        if (noteFolder.includes('@Templates') || noteFolder.includes('@Forms')) {
+          return false
         }
       }
 
@@ -322,6 +333,7 @@ export function NoteChooser({
     includePersonalNotes,
     includeRelativeNotes,
     includeTeamspaceNotes,
+    includeTemplatesAndForms,
     folderFilter,
     startFolder,
     filterByType,

@@ -6,12 +6,18 @@
     font-family: system-ui;
     background-color: var(--bg-mid-color);
     position: fixed;
-    top: calc(50vh + var(--noteplan-toolbar-height, 0)/2); /* Center in viewport, with Y offset a bit lower to generally allow the Perspective name to be visible) */
+    /* Center vertically in available space (viewport minus toolbar) */
+    /* Available space = 100vh - toolbar, center = toolbar + available/2 */
+    /* Position top edge at center minus half dialog height (45vh) to center it */
+    top: calc(var(--noteplan-toolbar-height, 0) + (100vh - var(--noteplan-toolbar-height, 0)) / 2 - 45vh);
     height: 90vh;
     max-height: calc(92vh - var(--noteplan-toolbar-height, 0));
-    left: 50%;
-    width: clamp(380px, 86%, 700px);
-    transform: translate(-50%, -50%); /* Center both horizontally and vertically */
+    /* Center horizontally: position left edge at 50% minus half the width */
+    /* For 86vw width, left = 50% - 43vw = 7vw */
+    left: 7vw;
+    width: 86vw;
+    max-width: 700px;
+    min-width: 380px;
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     opacity: 1;

@@ -66,6 +66,7 @@ type RenderItemProps = {
   templateFilename?: string, // Template filename for autosave field
   templateTitle?: string, // Template title for autosave field
   onRegisterAutosaveTrigger?: (triggerFn: () => Promise<void>) => void, // Register autosave trigger function
+  fieldLoadingStates?: { [fieldKey: string]: boolean }, // Loading states for dependent fields
 }
 
 /**
@@ -101,6 +102,7 @@ export function renderItem({
   templateFilename, // Template filename for autosave field
   templateTitle, // Template title for autosave field
   onRegisterAutosaveTrigger, // Register autosave trigger function
+  fieldLoadingStates = {}, // Loading states for dependent fields
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -612,6 +614,10 @@ export function renderItem({
           }
         }
 
+        // Get loading state for this field if it's a dependent field
+        const fieldKey = item.key || ''
+        const isLoading = fieldLoadingStates && fieldLoadingStates[fieldKey] === true
+
         return (
           <div data-field-type="note-chooser">
             <NoteChooser
@@ -627,16 +633,19 @@ export function renderItem({
               includePersonalNotes={item.includePersonalNotes ?? true}
               includeRelativeNotes={item.includeRelativeNotes ?? false}
               includeTeamspaceNotes={item.includeTeamspaceNotes ?? true}
+              includeTemplatesAndForms={item.includeTemplatesAndForms ?? false}
               includeNewNoteOption={item.includeNewNoteOption ?? false}
               dependsOnFolderKey={sourceFolderKey}
               folderFilter={folderFilter}
               spaceFilter={spaceFilter}
               requestFromPlugin={requestFromPlugin}
               onNotesChanged={onNotesChanged}
+              onOpen={(item: any).onOpen}
               placeholder={item.placeholder || 'Type to search notes...'}
               showValue={item.showValue ?? false}
               shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
               showTitleOnly={item.showTitleOnly ?? false}
+              isLoading={isLoading}
             />
           </div>
         )

@@ -9,6 +9,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b9] 2026-01-06
+- Fixed Settings Dialog CSS positioning to properly center in viewport accounting for toolbar height. Removed transform-based centering and switched to direct top/left calculations for more reliable positioning.
+
 ## [2.4.0.b8] 2026-01-05
 - now always trigger Timeblock Section generation whenever Today Section is generated. This simplifies some handlers.
 - add error message info to click handlers, ready to display in updated MessageBanners

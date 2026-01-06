@@ -209,7 +209,10 @@ export function SpaceChooser({
     truncateDisplay: truncateText,
     onSelect: (space: SpaceOption) => {
       logDebug('SpaceChooser', `Selected space: ${space.title} (id: ${space.id || 'Private'})`)
-      onChange(space.id)
+      // Yield to UI before calling onChange to allow dropdown to close immediately
+      setTimeout(() => {
+        onChange(space.id)
+      }, 0)
     },
     emptyMessageNoItems: 'No spaces available',
     emptyMessageNoMatch: 'No spaces match',

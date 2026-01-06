@@ -18,6 +18,7 @@ const featureFlagSettingDefs = [
   { key: 'FFlag_UseTagCacheAPIComparison', label: 'Use Tag Cache API Comparison', description: 'When using Tag Cache, compare the results with the API. (Slows it down.)' },
   { key: 'FFlag_ShowSectionTimings', label: 'Show Section Timings', description: 'Show timings for how long it took to generate sections' },
   { key: 'FFlag_ShowBannerTestButtons', label: 'Show Banner Test Buttons', description: 'Show test buttons for info, error, warning and remove banners' },
+  { key: 'FFlag_DynamicAddToAnywhere', label: 'Dynamic Add To Anywhere', description: 'Use new DynamicDialog-based add task dialog instead of QuickCapture plugin' },
 ]
 
 export const createFeatureFlagItems = (dashboardSettings: TDashboardSettings): Array<TSettingItem> => {

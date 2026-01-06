@@ -672,6 +672,21 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 <label>
                   <input
                     type="checkbox"
+                    checked={((editedField: any): { includeTemplatesAndForms?: boolean }).includeTemplatesAndForms || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).includeTemplatesAndForms = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Include @Templates and @Forms
+                </label>
+                <div className="field-editor-help">When enabled, includes notes from @Templates and @Forms folders. By default, these folders are excluded from the note list.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
                     checked={((editedField: any): { shortDescriptionOnLine2?: boolean }).shortDescriptionOnLine2 || false}
                     onChange={(e) => {
                       const updated = { ...editedField }

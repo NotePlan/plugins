@@ -53,13 +53,17 @@ export function getNotes(
     const allNotes: Array<any> = []
 
     // Get project notes and calendar notes separately, then filter
-    const processStartTime: number = Date.now()
+    let projectStartTime: number = Date.now()
+    let projectElapsed: number = 0
+    let calendarElapsed: number = 0
+    let relativeElapsed: number = 0
 
     // Get project notes (personal notes)
     if (includePersonalNotes) {
+      projectStartTime = Date.now()
       const projectNotes = getAllNotesAsOptions(false, true) // Don't include calendar notes here
-      const processElapsed: number = Date.now() - processStartTime
-      logDebug(pluginJson, `[np.Shared/requestHandlers] getNotes PROJECT: elapsed=${processElapsed}ms, found=${projectNotes.length} project notes`)
+      projectElapsed = Date.now() - projectStartTime
+      logDebug(pluginJson, `[np.Shared/requestHandlers] getNotes PROJECT: elapsed=${projectElapsed}ms, found=${projectNotes.length} project notes`)
 
       // Filter teamspace notes if needed, and also filter by space if specified
       for (const note of projectNotes) {
@@ -126,10 +130,10 @@ export function getNotes(
 
     // Get relative notes (like <today>, <thisweek>, etc.)
     if (includeRelativeNotes) {
-      const processStartTime: number = Date.now()
+      const relativeStartTime: number = Date.now()
       const relativeNotes = getRelativeNotesAsOptions(true) // Include decoration
-      const processElapsed: number = Date.now() - processStartTime
-      logDebug(pluginJson, `[np.Shared/requestHandlers] getNotes RELATIVE: elapsed=${processElapsed}ms, found=${relativeNotes.length} relative notes`)
+      relativeElapsed = Date.now() - relativeStartTime
+      logDebug(pluginJson, `[np.Shared/requestHandlers] getNotes RELATIVE: elapsed=${relativeElapsed}ms, found=${relativeNotes.length} relative notes`)
       allNotes.push(...relativeNotes)
     }
 
@@ -149,7 +153,10 @@ export function getNotes(
     })
 
     const totalElapsed: number = Date.now() - startTime
-    logDebug(pluginJson, `[np.Shared/requestHandlers] getNotes COMPLETE: totalElapsed=${totalElapsed}ms, found=${allNotes.length} total notes`)
+    logDebug(
+      pluginJson,
+      `[np.Shared/requestHandlers] getNotes COMPLETE: totalElapsed=${totalElapsed}ms, found=${allNotes.length} total notes (project: ${projectElapsed}ms, calendar: ${calendarElapsed}ms, relative: ${relativeElapsed}ms)`,
+    )
 
     return {
       success: true,
