@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Item Control and Project dialogs.
-// Last updated 30.6.2024 for v2.0.0-b17 by @dbw
+// Last updated 2026-01-07 for v2.4.0.b9 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useEffect } from 'react'
@@ -147,7 +147,10 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
 function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight: number, dialog: HTMLElement, event: TClickPosition) {
   logDebug('setPositionForDialog', `starting: thisOS=${thisOS} dialogWidth=${dialogWidth} dialogHeight=${dialogHeight} event=${JSON.stringify(event)}`)
   const fudgeFactor = 12 // small border (in pixels) to take account of scrollbars etc. round Left, Right, Bottom sides
-  const fudgeFactorTop = 40 // border (in pixels) to take account of header bar which floats over the top
+  // Get possible NP Editor header height from CSS variable, with fallback to 0
+  const root = document.documentElement
+  const headerHeight = parseInt(getComputedStyle(root).getPropertyValue('--noteplan-header-height') || '0', 10)
+  const fudgeFactorTop = 40 + headerHeight // border (in pixels) to take account of NP Editor header bar (if shown)
   const fudgeFactorBottom = 40 // allow more bottom space, as the dialog may be taller than expected
 
   // Get mouse positions (viewport-relative)
