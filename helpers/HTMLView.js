@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2025-12-30 by @jgclark
+// Last updated 2026-01-06 by @jgclark
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import { hasFrontMatter } from '@helpers/NPFrontMatter'
@@ -518,18 +518,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         id: cId, // TODO: don't need both ... but trying to work out which is the current one for the API
         windowId: cId,
       }
-      if ('showInMainWindow' in opts) {
-        // $FlowFixMe[prop-missing] - splitView is an optional property in HtmlWindowOptions, and flow doesn't like it
-        winOptions.splitView = 'splitView' in opts ? opts.splitView : false
-        // $FlowFixMe[prop-missing] - as above
-        winOptions.icon = 'icon' in opts ? opts.icon : ''
-        // $FlowFixMe[prop-missing] - as above
-        winOptions.iconColor = 'iconColor' in opts ? opts.iconColor : ''
-        // $FlowFixMe[prop-missing] - as above
-        winOptions.autoTopPadding = 'autoTopPadding' in opts ? opts.autoTopPadding : true
-        // $FlowFixMe[prop-missing] - as above
-        winOptions.showReloadButton = 'showReloadButton' in opts ? opts.showReloadButton : false
-      }
+
       // Now override with saved x/y/w/h for this window if wanted, and if available
       if (opts.reuseUsersWindowRect && cId) {
         // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
@@ -570,9 +559,24 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
 
       let win: HTMLView | TEditor | false
       let success: boolean = false
-      logInfo('showHTMLV2', `- NotePlan.environment.buildVersion: ${NotePlan.environment.buildVersion}`)
+      logInfo('showHTMLV2', `- NotePlan build ${NotePlan.environment.buildVersion} on platform ${NotePlan.environment.platform}`)
       logInfo('showHTMLV2', `- opts.showInMainWindow: ${String(opts.showInMainWindow)} and usersVersionHas('showInMainWindow'): ${String(usersVersionHas('showInMainWindow'))}`)
-      if (opts.showInMainWindow && usersVersionHas('showInMainWindow')) {
+
+      // Show in main window, if wanted, otherwise show in floating window
+      // Nif mainWindow is supported on iOS in future, then change this:
+      if (NotePlan.environment.platform === 'macOS' && opts.showInMainWindow && usersVersionHas('showInMainWindow')) {
+        // Split window only available on macOS
+        // $FlowFixMe[prop-missing] - splitView is an optional property in HtmlWindowOptions, and flow doesn't like it
+        winOptions.splitView = ("splitView" in opts && NotePlan.environment.platform === 'macOS') ? opts.splitView : false
+        // $FlowFixMe[prop-missing] - as above
+        winOptions.icon = ("icon" in opts) ? opts.icon : ''
+        // $FlowFixMe[prop-missing] - as above
+        winOptions.iconColor = ("iconColor" in opts) ? opts.iconColor : ''
+        // $FlowFixMe[prop-missing] - as above
+        winOptions.autoTopPadding = ("autoTopPadding" in opts) ? opts.autoTopPadding : true
+        // $FlowFixMe[prop-missing] - as above
+        winOptions.showReloadButton = ("showReloadButton" in opts) ? opts.showReloadButton : false
+
         logDebug('showHTMLV2', `- Showing in main window with options: ${JSON.stringify(winOptions)}`)
         const mainWindowSpecificOptions = {
           splitView: opts.splitView,
@@ -582,11 +586,12 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
           showReloadButton: opts.showReloadButton,
           customId: cId,
         }
-        const { success: mainViewSuccess, windowID } = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', mainWindowSpecificOptions)
-        if (mainViewSuccess) {
+        // $FlowFixMe[incompatible-type] - Flow can't guarantee the Promise resolves to an object
+        const mainWindowResult = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', mainWindowSpecificOptions)
+        if (mainWindowResult && mainWindowResult.success) {
           success = true
-          logDebug('showHTMLV2', `- Main view window opened successfully with ID '${windowID}'`)
-          win = getWindowFromCustomId(windowID)
+          logDebug('showHTMLV2', `- Main view window opened successfully with ID '${mainWindowResult.windowID || ''}'`)
+          win = getWindowFromCustomId(mainWindowResult.windowID)
         }
       } else {
         logDebug('showHTMLV2', `- Showing in floating window with options: ${JSON.stringify(winOptions)}`)
@@ -617,7 +622,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         logDebug('showHTMLV2', `- Window has customId:'${win?.customId || ''}' / id:"${win?.id || ''}" / success:${String(success)}`)
         return success
       } else {
-        logError('showHTMLV2', `- Window customID not found after opening`)
+        logWarn('showHTMLV2', `- Window customID not found after opening. Win: ${JSP(win)}`)
         return false
       }
     }
