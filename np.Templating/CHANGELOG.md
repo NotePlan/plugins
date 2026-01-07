@@ -6,6 +6,14 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.2.8] 2026-01-XX @dwertheimer
+- Add triggerTemplateRunner command to automatically run templates when notes are opened
+- New hidden command `triggerTemplateRunner` checks for `runTemplateOnOpen` frontmatter attribute
+- When a note with `runTemplateOnOpen` is opened, the specified template is automatically executed
+- Use `triggers: onOpen => np.Templating.triggerTemplateRunner` in note frontmatter to enable this feature
+- Similar to Forms plugin's `triggerOpenForm` functionality, but for template execution
+- Example use case: Automatically update age calculations or other dynamic content when a note is opened
+
 ## [2.2.7] 2026-01-05 @dwertheimer
 - templateRunnerExecute now returns AI analysis errors from all code paths
 - Modified templateRunnerExecute to return Promise<string | void> instead of Promise<void>
