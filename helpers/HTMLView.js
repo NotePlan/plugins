@@ -441,6 +441,7 @@ function assembleHTMLParts(body: string, title: string, winOpts: HtmlWindowOptio
     fullHTML.push('<html>')
     fullHTML.push('<head>')
     fullHTML.push(`<title>${title}</title>`)
+    fullHTML.push('<meta charset="utf-8">') // CRITICAL: Ensure UTF-8 encoding for Unicode characters (emojis, etc.)
     fullHTML.push(`<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, maximum-scale=1, viewport-fit=cover">`)
     const preScript = generateScriptTags(winOpts.preBodyScript ?? '')
     if (preScript !== '') {
