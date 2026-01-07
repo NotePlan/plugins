@@ -3,9 +3,9 @@
   "noteplan.minAppVersion": "3.20",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "2.2.7",
-  "plugin.releaseStatus": "",
-  "plugin.lastUpdateInfo": "2.2.7: templateRunnerExecute now returns AI analysis errors from all code paths\n- Modified templateRunnerExecute to return Promise<string | void> instead of Promise<void>\n- Added hasAiAnalysisError helper function to detect AI analysis error marker\n- Updated all handler functions (handleCurrentNote, handleRegularNote, handleTodayNote, handleWeeklyNote) to return errors\n- Updated handleNewNoteCreation to return rendered content if it contains AI analysis error\n- All early return paths in templateRunnerExecute now check for and return AI analysis errors\n- This allows Forms plugin to capture and display template rendering errors to users\n2.2.6: (previous version)\n2.2.5: fix messaging in templateNew when templates not found\n- Support template:ignore code blocks in templates\n2.2.4: fix <default> templateLocale setting to allow for locale-specific date/time formatting\n2.2.3: add new weather formatting fields (location.*, :formatted: etc.",
+  "plugin.version": "2.2.8",
+  "plugin.releaseStatus": "beta",
+  "plugin.lastUpdateInfo": "2.2.8: Add triggerTemplateRunner command to automatically run templates when notes are opened\n- New hidden command triggerTemplateRunner checks for runTemplateOnOpen frontmatter attribute\n- When a note with runTemplateOnOpen is opened, the specified template is automatically executed\n- Use triggers: onOpen => np.Templating.triggerTemplateRunner in note frontmatter to enable\n2.2.7: templateRunnerExecute now returns AI analysis errors from all code paths\n- Modified templateRunnerExecute to return Promise<string | void> instead of Promise<void>\n- Added hasAiAnalysisError helper function to detect AI analysis error marker\n- Updated all handler functions (handleCurrentNote, handleRegularNote, handleTodayNote, handleWeeklyNote) to return errors\n- Updated handleNewNoteCreation to return rendered content if it contains AI analysis error\n- All early return paths in templateRunnerExecute now check for and return AI analysis errors\n- This allows Forms plugin to capture and display template rendering errors to users\n2.2.6: (previous version)\n2.2.5: fix messaging in templateNew when templates not found\n- Support template:ignore code blocks in templates\n2.2.4: fix <default> templateLocale setting to allow for locale-specific date/time formatting\n2.2.3: add new weather formatting fields (location.*, :formatted: etc.",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson ( codedungeon)",
   "plugin.dependencies": [],
@@ -199,6 +199,12 @@
         "open file in editor after running",
         "template arguments"
       ]
+    },
+    {
+      "name": "Run TemplateRunner from trigger",
+      "description": "Run TemplateRunner when note is opened. Looks for runTemplateOnOpen attribute in frontmatter. Generally invoked from a trigger.",
+      "jsFunction": "triggerTemplateRunner",
+      "hidden": true
     },
     {
       "name": "Add note properties/frontmatter to template",

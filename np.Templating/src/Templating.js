@@ -971,3 +971,35 @@ export async function renderTemplate(templateName: string = '', userData: any = 
 export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = ''): Promise<string | void> {
   return await templateRunnerExecute(selectedTemplate, openInEditor, args)
 }
+
+/**
+ * Plugin entrypoint for triggerTemplateRunner
+ * Checks if the currently open note in Editor has frontmatter attribute "runTemplateOnOpen"
+ * and if so, executes the template with that title
+ * @returns {Promise<void>}
+ */
+export async function triggerTemplateRunner(): Promise<void> {
+  try {
+    // Check if Editor.note exists
+    if (!Editor.note) {
+      logDebug(pluginJson, 'triggerTemplateRunner: No note is currently open in Editor')
+      return
+    }
+
+    // Check if Editor.frontmatterAttributes exists and has runTemplateOnOpen
+    const frontmatterAttributes = Editor.frontmatterAttributes || {}
+    const templateTitle = frontmatterAttributes.runTemplateOnOpen
+
+    if (!templateTitle || typeof templateTitle !== 'string' || templateTitle.trim() === '') {
+      logDebug(pluginJson, `triggerTemplateRunner: Note does not have runTemplateOnOpen attribute or it is empty. Skipping.`)
+      return
+    }
+
+    logDebug(pluginJson, `triggerTemplateRunner: Running template with title: "${templateTitle}"`)
+    // Execute the template with the title from frontmatter
+    await templateRunner(templateTitle.trim())
+  } catch (error) {
+    logError(pluginJson, `triggerTemplateRunner: Error: ${error.message}`)
+    await showMessage(`Error running template: ${error.message}`)
+  }
+}
