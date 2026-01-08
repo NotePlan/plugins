@@ -20,7 +20,7 @@ import {
   RE_NP_WEEK_SPEC,
 } from '@helpers/dateTime'
 import { displayTitle } from '@helpers/general'
-import { calcOffsetDateStr, getNPWeekData } from '@helpers/NPdateTime'
+import { calcOffsetDateStr, getNPWeekData, getDateStrFromRelativeDateString } from '@helpers/NPdateTime'
 import {
   moveItemBetweenCalendarNotes,
   moveItemToRegularNote,
@@ -89,7 +89,7 @@ function calculateNewDateStr(
  */
 export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-    const { filename, rawContent, controlStr, thisSectionCode } = validateAndFlattenMessageObject(data)
+    const { filename, rawContent, controlStr, thisSectionCode, sectionCodes } = validateAndFlattenMessageObject(data)
     const config = await getDashboardSettings()
     const dateOrInterval = String(controlStr)
     logDebug('doMoveFromCalToCal', `Starting with controlStr ${controlStr} and rawContent {${rawContent}}`)
@@ -104,6 +104,11 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
     }
     logDebug('doMoveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
 
+    // Convert relative date strings (like 'today') to actual date strings for moveItemBetweenCalendarNotes
+    // moveItemBetweenCalendarNotes needs actual date strings, not relative ones
+    newDateStr = getDateStrFromRelativeDateString(newDateStr) || newDateStr
+    logDebug('doMoveFromCalToCal', `- converted relative date '${newDateStr}' -> actual date '${newDateStr}'`)
+
     // Do the actual move 
     const res = await moveItemBetweenCalendarNotes(filename,
       newDateStr, rawContent,
@@ -111,8 +116,8 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
 
     if (res) {
       logDebug('doMoveFromCalToCal', `-> appeared to move item successfully`)
-      // Send a message to update all the calendar sections (as its too hard to work out which of the sections to update)
-      return handlerResult(true, ['REFRESH_ALL_CALENDAR_SECTIONS', 'START_DELAYED_REFRESH_TIMER'])
+      // Send a message to update just the calendar sections that were affected by the move
+      return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })
     } else {
       logWarn('doMoveFromCalToCal', `-> to date ${newDateStr} not successful`)
       return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [thisSectionCode], errorMsg: `Moving item from note ${startDateStr} to date ${newDateStr} not successful. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })

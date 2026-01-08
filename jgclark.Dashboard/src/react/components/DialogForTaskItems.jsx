@@ -315,30 +315,29 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     // prepend the current sectionCode to the section codes to refresh
     const sectionCodesToSend = sectionCodesToRefresh
     if (thisSectionCode) { sectionCodesToSend.unshift(thisSectionCode) }
-    logDebug('DialogForTaskItems / handleButtonClick', `sectionCodesToSend=${String(sectionCodesToSend)}`)
+    logDebug('DialogForTaskItems/handleButtonClick', `sectionCodesToSend=${String(sectionCodesToSend)}`)
 
     if (contentHasChanged || controlStr === 'updateItemContent') {
       // $FlowIgnore[prop-missing] Cursor says its getValue() not itemValue(). This change works.
       const updatedContent = inputRef?.current?.getValue() || ''
-      // logDebug(`DialogForTaskItems/handleButtonClick`, ` - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
+      logDebug(`DialogForTaskItems/handleButtonClick`, ` - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
       const dataToSend = {
         ...detailsMessageObject,
         actionType: 'updateItemContent',
         controlStr: 'updateItemContent',
         updatedContent: currentContent !== updatedContent ? updatedContent : '',
-        // sectionCodes: sectionCodes,
         sectionCodes: sectionCodesToSend,
       }
       sendActionToPlugin('updateItemContent', dataToSend, `Dialog requesting call to updateItemContent`, true)
       setContentHasChanged(false)
     }
     else {
+      // Handle all other buttons
       const dataToSend = {
         ...detailsMessageObject,
         actionType: handlingFunction,
         controlStr: controlStr,
         updatedContent: '',
-        // sectionCodes: sectionCodes,
         sectionCodes: sectionCodesToSend,
       }
 

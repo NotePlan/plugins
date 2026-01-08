@@ -13,6 +13,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Running in "Main Window" mode doesn't seem to work on iPadOS or iOS, so changed it run only in "New Window" mode on those platforms.
 - Fixed Settings Dialog CSS positioning to properly center in viewport accounting for toolbar height. Removed transform-based centering and switched to direct top/left calculations for more reliable positioning.
 - Adjusted Task and Projects Dialog positioning to take account of the new header bar when running in mainWindow
+- Fixed the 'move to today' button not working in Task Dialog from Yesterday section
+- More efficient refresh after moving an item from calendar note to a different calendar note
 
 ## [2.4.0.b8] 2026-01-05
 - now always trigger Timeblock Section generation whenever Today Section is generated. This simplifies some handlers.
