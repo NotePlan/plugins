@@ -821,47 +821,47 @@ export async function setPluginData(changeObject: TAnyObject, changeMessage: str
   
   // Log encoding for debugging emoji corruption - check data FROM getGlobalSharedData (from WebView)
   // This is the data that already exists in the WebView, which might be corrupted
-  if (reactWindowData?.pluginData?.sections) {
-    for (const section of reactWindowData.pluginData.sections || []) {
-      for (const item of section.sectionItems || []) {
-        const title = item.para?.title
-        if (title && title.includes('Dashboard Plugin')) {
-          const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-          logDebug('setPluginData', `[ENCODING DEBUG] FROM getGlobalSharedData (WebView) - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-        }
-      }
-    }
-  }
-  
+  // if (reactWindowData?.pluginData?.sections) {
+  //   for (const section of reactWindowData.pluginData.sections || []) {
+  //     for (const item of section.sectionItems || []) {
+  //       const title = item.para?.title
+  //       if (title && title.includes('Dashboard Plugin')) {
+  //         const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
+  //         logDebug('setPluginData', `[ENCODING DEBUG] FROM getGlobalSharedData (WebView) - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
+  //       }
+  //     }
+  //   }
+  // }
+
   // Log encoding for debugging emoji corruption - check changeObject (new data being merged in)
-  if (changeObject?.sections) {
-    for (const section of changeObject.sections || []) {
-      for (const item of section.sectionItems || []) {
-        const title = item.para?.title
-        if (title && title.includes('Dashboard Plugin')) {
-          const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-          logDebug('setPluginData', `[ENCODING DEBUG] FROM changeObject (new data) - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-        }
-      }
-    }
-  }
+  // if (changeObject?.sections) {
+  //   for (const section of changeObject.sections || []) {
+  //     for (const item of section.sectionItems || []) {
+  //       const title = item.para?.title
+  //       if (title && title.includes('Dashboard Plugin')) {
+  //         const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
+  //         logDebug('setPluginData', `[ENCODING DEBUG] FROM changeObject (new data) - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
+  //       }
+  //     }
+  //   }
+  // }
   
   reactWindowData.pluginData = { ...reactWindowData.pluginData, ...changeObject }
   
   // Log encoding for debugging emoji corruption - check data AFTER merge, BEFORE sending to sendToHTMLWindow
   // Check ALL titles that contain "Dashboard Plugin" to catch corruption
-  if (reactWindowData?.pluginData?.sections) {
-    for (const section of reactWindowData.pluginData.sections || []) {
-      for (const item of section.sectionItems || []) {
-        const title = item.para?.title
-        if (title && title.includes('Dashboard Plugin')) {
-          const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-          logDebug('setPluginData', `[ENCODING DEBUG] AFTER merge, BEFORE sendToHTMLWindow - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-        }
-      }
-    }
-  }
-  
+  // if (reactWindowData?.pluginData?.sections) {
+  //   for (const section of reactWindowData.pluginData.sections || []) {
+  //     for (const item of section.sectionItems || []) {
+  //       const title = item.para?.title
+  //       if (title && title.includes('Dashboard Plugin')) {
+  //         const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
+  //         logDebug('setPluginData', `[ENCODING DEBUG] AFTER merge, BEFORE sendToHTMLWindow - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
+  //       }
+  //     }
+  //   }
+  // }
+  logInfo('setPluginData', `Sending changeMessage: "${changeMessage}"`)
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, changeMessage)
 }
 

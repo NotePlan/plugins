@@ -57,6 +57,7 @@ export async function refreshAllSections(): Promise<void> {
       const totalDoneCount = await updateDoneCountsFromChangedNotes(`end of refreshAllSections()`, config.FFlag_ShowSectionTimings === true)
       const changedData = {
         totalDoneCount: totalDoneCount,
+        firstRun: false, // Ensure firstRun remains false after refresh completes
       }
       await setPluginData(changedData, 'Updating doneCounts at end of refreshAllSections')
     }
@@ -68,6 +69,8 @@ export async function refreshAllSections(): Promise<void> {
     }
   }
   catch (error) {
+    // try to close the modal spinner and reset firstRun flag, if necessary
+    await setPluginData({ refreshing: false, firstRun: false }, `Error in refreshAllSections; resetting state`)
     logError('refreshAllSections', error)
     await sendBannerMessage(WEBVIEW_WINDOW_ID, `Error in refreshAllSections: ${error.message}`, 'ERROR')
   }
@@ -96,7 +99,7 @@ export async function incrementallyRefreshSomeSections(
     if (!sectionCodes) {
       throw new Error('No sections to incrementally refresh. If this happens again, please report it to the developer.')
     }
-    logDebug('incrementallyRefreshSomeSections', `[ENCODING DEBUG] ===== incrementallyRefreshSomeSections CALLED for sections [${String(sectionCodes)}] =====`)
+    // logDebug('incrementallyRefreshSomeSections', `[ENCODING DEBUG] ===== incrementallyRefreshSomeSections CALLED for sections [${String(sectionCodes)}] =====`)
     logDebug('incrementallyRefreshSomeSections', `Starting incremental refresh for sections [${String(sectionCodes)}]`)
     await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
 
@@ -117,6 +120,7 @@ export async function incrementallyRefreshSomeSections(
       const totalDoneCount = await updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSomeSections (for [${sectionCodes.join(',')}])`, config.FFlag_ShowSectionTimings === true)
       const changedData = {
         totalDoneCount: totalDoneCount,
+        firstRun: false, // Ensure firstRun remains false after generation completes
       }
       await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSomeSections')
       logTimer('incrementallyRefreshSomeSections', startTime, `- to calculate done counts at end of incrementallyRefreshSomeSections`, 200)
@@ -131,8 +135,8 @@ export async function incrementallyRefreshSomeSections(
     return handlerResult(true)
   }
   catch (error) {
-    // try to close the modal spinner
-    await setPluginData({ refreshing: false }, `Error in incrementallyRefreshSomeSections; closing modal spinner`)
+    // try to close the modal spinner and reset firstRun flag, if necessary
+    await setPluginData({ refreshing: false, firstRun: false }, `Error in incrementallyRefreshSomeSections; closing modal spinner`)
     logError('incrementallyRefreshSomeSections', error)
     return handlerResult(false, [], { errorMsg: error.message, errorMessageLevel: 'ERROR' })
   }
@@ -150,7 +154,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
     const startTime = new Date()
     
     // Log encoding for debugging emoji corruption - check data right after generation
-    logDebug('refreshSomeSections', `[ENCODING DEBUG] ===== refreshSomeSections CALLED for sections: ${String(data.sectionCodes)} =====`)
+    // logDebug('refreshSomeSections', `[ENCODING DEBUG] ===== refreshSomeSections CALLED for sections: ${String(data.sectionCodes)} =====`)
     const { sectionCodes } = data
     if (!sectionCodes) {
       throw new Error('No sections to refresh. If this happens again, please report it to the developer.')
@@ -175,43 +179,46 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
     // Force the wanted sections to refresh
     const newSections = await getSomeSectionsData(sectionCodes, pluginData.demoMode, calledByTrigger)
-    // Log encoding for debugging emoji corruption - check data right after getSomeSectionsData
-    // Check ALL titles that contain "Dashboard Plugin" to catch corruption
-    for (const section of newSections || []) {
-      for (const item of section.sectionItems || []) {
-        const title = item.para?.title
-        if (title && title.includes('Dashboard Plugin')) {
-          const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-          logDebug('refreshSomeSections', `[ENCODING DEBUG] AFTER getSomeSectionsData - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-        }
-      }
-    }
+    // // Log encoding for debugging emoji corruption - check data right after getSomeSectionsData
+    // // Check ALL titles that contain "Dashboard Plugin" to catch corruption
+    // for (const section of newSections || []) {
+    //   for (const item of section.sectionItems || []) {
+    //     const title = item.para?.title
+    //     if (title && title.includes('Dashboard Plugin')) {
+    //       const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
+    //       logDebug('refreshSomeSections', `[ENCODING DEBUG] AFTER getSomeSectionsData - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
+    //     }
+    //   }
+    // }
+
     // logTimer('refreshSomeSections', startTime, `- after getSomeSectionsData(): [${getDisplayListOfSectionCodes(newSections)}]`)
     const mergedSections = mergeSections(existingSections, newSections)
-    // Log encoding for debugging emoji corruption - check data right after mergeSections
-    // Check ALL titles that contain "Dashboard Plugin" to catch corruption
-    for (const section of mergedSections || []) {
-      for (const item of section.sectionItems || []) {
-        const title = item.para?.title
-        if (title && title.includes('Dashboard Plugin')) {
-          const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-          logDebug('refreshSomeSections', `[ENCODING DEBUG] AFTER mergeSections - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-        }
-      }
-    }
+
+    // // Log encoding for debugging emoji corruption - check data right after mergeSections
+    // // Check ALL titles that contain "Dashboard Plugin" to catch corruption
+    // for (const section of mergedSections || []) {
+    //   for (const item of section.sectionItems || []) {
+    //     const title = item.para?.title
+    //     if (title && title.includes('Dashboard Plugin')) {
+    //       const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
+    //       logDebug('refreshSomeSections', `[ENCODING DEBUG] AFTER mergeSections - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
+    //     }
+    //   }
+    // }
     // logTimer('refreshSomeSections', startTime, `- after mergeSections(): [${getDisplayListOfSectionCodes(mergedSections)}]`)
 
     const updates: TAnyObject = { sections: mergedSections }
+
     // Log encoding for debugging emoji corruption - check data right before setPluginData
     // Check ALL titles that contain "Dashboard Plugin" to catch corruption
-    for (const section of updates.sections || []) {
-      for (const item of section.sectionItems || []) {
-        if (item.para?.title && item.para.title.includes('Dashboard Plugin')) {
-          const charCodes = item.para.title.split('').map(c => c.charCodeAt(0)).join(',')
-          logDebug('refreshSomeSections', `[ENCODING DEBUG] BEFORE setPluginData - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
-        }
-      }
-    }
+    // for (const section of updates.sections || []) {
+    //   for (const item of section.sectionItems || []) {
+    //     if (item.para?.title && item.para.title.includes('Dashboard Plugin')) {
+    //       const charCodes = item.para.title.split('').map(c => c.charCodeAt(0)).join(',')
+    //       logDebug('refreshSomeSections', `[ENCODING DEBUG] BEFORE setPluginData - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
+    //     }
+    //   }
+    // }
 
     // Update the total done counts. 
     // Note: this is being done somewhere else, so turning off here

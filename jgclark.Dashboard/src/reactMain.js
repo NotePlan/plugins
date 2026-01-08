@@ -385,8 +385,23 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
         await incrementallyRefreshSomeSections({ sectionCodes: ['TAG'], actionType: 'incrementallyRefreshSomeSections' }, false, true)
       }
     }
+
+    // Ensure firstRun is set to false after all generation is complete
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    if (reactWindowData?.pluginData) {
+      await setPluginData({ firstRun: false }, 'Setting firstRun to false after all generation completes')
+    }
   } catch (error) {
     logError('reactWindowInitialisedSoStartGeneratingData', error.message)
+    // Also set firstRun to false on error so the UI won't stay stuck on "Generating"
+    try {
+      const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      if (reactWindowData?.pluginData) {
+        await setPluginData({ firstRun: false, refreshing: false }, 'Setting firstRun to false after error in reactWindowInitialisedSoStartGeneratingData')
+      }
+    } catch (setError) {
+      logError('reactWindowInitialisedSoStartGeneratingData', `Error setting firstRun to false: ${setError.message}`)
+    }
   }
 }
 
@@ -574,7 +589,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
       const windowId = data?.__windowId || WEBVIEW_WINDOW_ID
       
       // Send response back to React
-      sendToHTMLWindow(windowId, 'RESPONSE', {
+      await sendToHTMLWindow(windowId, 'RESPONSE', {
         correlationId: data.__correlationId,
         success: result.success,
         data: result.data,
@@ -591,7 +606,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
     if (!dataToSend.actionType) dataToSend.actionType = actionType
     switch (actionType) {
       case 'SHOW_BANNER':
-        sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', dataToSend)
+        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', dataToSend)
         break
       // Note: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
       // every time

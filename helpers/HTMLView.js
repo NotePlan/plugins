@@ -563,8 +563,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       logInfo('showHTMLV2', `- opts.showInMainWindow: ${String(opts.showInMainWindow)} and usersVersionHas('showInMainWindow'): ${String(usersVersionHas('showInMainWindow'))}`)
 
       // Show in main window, if wanted, otherwise show in floating window
-      // Nif mainWindow is supported on iOS in future, then change this:
-      if (NotePlan.environment.platform === 'macOS' && opts.showInMainWindow && usersVersionHas('showInMainWindow')) {
+      if (opts.showInMainWindow && usersVersionHas('showInMainWindow')) {
         // Split window only available on macOS
         // $FlowFixMe[prop-missing] - splitView is an optional property in HtmlWindowOptions, and flow doesn't like it
         winOptions.splitView = ("splitView" in opts && NotePlan.environment.platform === 'macOS') ? opts.splitView : false
@@ -737,24 +736,6 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
       NPWindowID: windowExists ? windowId : undefined,
     }
 
-    // Log encoding for debugging emoji corruption - check data BEFORE JSON.stringify
-    if (dataWithUpdated?.pluginData?.sections) {
-      for (const section of dataWithUpdated.pluginData.sections || []) {
-        for (const item of section.sectionItems || []) {
-          if (item.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
-            const charCodes = item.para.title
-              .split('')
-              .map((c: string) => c.charCodeAt(0))
-              .join(',')
-            logDebug(
-              'sendToHTMLWindow',
-              `[ENCODING DEBUG] BEFORE JSON.stringify - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`,
-            )
-          }
-        }
-      }
-    }
-
     // REVERTED: Go back to the original working approach - direct JSON.stringify in template string
     // The old code that worked was: payload: ${JSON.stringify(dataWithUpdated)}
     // If this doesn't work now, the issue is elsewhere (possibly in how data is created before this point)
@@ -763,182 +744,27 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
     // const start = new Date()
     const stringifiedPayload = JSON.stringify(dataWithUpdated)
 
-    // Log encoding for debugging emoji corruption - check what JSON.stringify produces
-    // Check if JSON.stringify properly escaped the emoji as \uXXXX
-    if (stringifiedPayload.includes('Dashboard Plugin')) {
-      // Check if it's escaped as \uXXXX or if it's raw
-      if (stringifiedPayload.includes('\\u')) {
-        const unicodeEscapes = stringifiedPayload.match(/\\u[0-9a-fA-F]{4}/g)
-        if (unicodeEscapes && unicodeEscapes.length > 0) {
-          logDebug(
-            'sendToHTMLWindow',
-            `[ENCODING DEBUG] stringifiedPayload contains ${unicodeEscapes.length} Unicode escape sequences (e.g., ${unicodeEscapes.slice(0, 5).join(', ')})`,
-          )
-        }
-      }
-      // Check if it contains raw emoji (shouldn't if JSON.stringify worked correctly)
-      if (stringifiedPayload.includes('🧩')) {
-        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] WARNING: stringifiedPayload contains raw emoji (not escaped)`)
-      }
-      // Check if it contains corruption pattern
-      if (stringifiedPayload.includes('ð')) {
-        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] WARNING: stringifiedPayload contains corruption pattern "ð"`)
-      }
-    }
-
-    // Log encoding for debugging emoji corruption - check stringified payload
-    if (stringifiedPayload.includes('Dashboard Plugin')) {
-      const emojiMatch = stringifiedPayload.match(/"title":"Dashboard Plugin[^"]*"/)
-      if (emojiMatch) {
-        const matched = emojiMatch[0]
-        const charCodes = matched
-          .split('')
-          .map((c: string) => c.charCodeAt(0))
-          .join(',')
-        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] AFTER JSON.stringify - Found in stringified payload: "${matched}" (length=${matched.length}, charCodes=${charCodes})`)
-      }
-    }
-    if (stringifiedPayload.includes('ð')) {
-      logDebug('sendToHTMLWindow', `[ENCODING DEBUG] WARNING: Stringified payload contains corruption pattern "ð"`)
-    }
-
-    // Log encoding for debugging emoji corruption - check the JavaScript string that will be executed
-    // Add console.log inside the JavaScript code to check what postMessage actually sends
     // CRITICAL: Use JSON.stringify() to properly escape the JSON string for embedding in JavaScript
     // This ensures Unicode characters are properly escaped as \uXXXX sequences
     const doubleStringified = JSON.stringify(stringifiedPayload)
-
-    // Log what JSON.stringify produces for embedding
-    if (doubleStringified.includes('Dashboard Plugin')) {
-      // Check if the double-stringified version has proper Unicode escapes
-      if (doubleStringified.includes('\\u')) {
-        const unicodeEscapes = doubleStringified.match(/\\u[0-9a-fA-F]{4}/g)
-        if (unicodeEscapes && unicodeEscapes.length > 0) {
-          logDebug('sendToHTMLWindow', `[ENCODING DEBUG] doubleStringified (JSON.stringify of stringifiedPayload) contains ${unicodeEscapes.length} Unicode escape sequences`)
-          // Check if the emoji is properly escaped
-          const emojiEscapes = unicodeEscapes.filter((e) => e === '\\ud83e' || e === '\\udde9' || e.toLowerCase() === '\\ud83e' || e.toLowerCase() === '\\udde9')
-          if (emojiEscapes.length > 0) {
-            logDebug('sendToHTMLWindow', `[ENCODING DEBUG] Found emoji escape sequences: ${emojiEscapes.join(', ')}`)
-          }
-        }
-      }
-      // Check if it contains raw corruption (shouldn't)
-      if (doubleStringified.includes('ð')) {
-        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] WARNING: doubleStringified contains corruption pattern "ð"`)
-      }
-      // Check if it contains raw emoji (shouldn't if properly escaped)
-      const rawEmojiMatch = doubleStringified.match(/Dashboard Plugin[^"]*/)
-      if (rawEmojiMatch && !rawEmojiMatch[0].includes('\\u')) {
-        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] WARNING: doubleStringified contains raw text without Unicode escapes: "${rawEmojiMatch[0]}"`)
-      }
-    }
 
     const jsCodeToExecute = `
       (function() {
         // Use JSON.parse() with a properly escaped JSON string to preserve Unicode
         // JSON.stringify() on the stringifiedPayload will escape it properly for JavaScript
         const payloadDataString = ${doubleStringified};
-        // Log encoding for debugging - check the string IMMEDIATELY after assignment
-        // This will show if the corruption happens during HTMLView.runJavaScript transmission
-        try {
-          if (payloadDataString && typeof payloadDataString === 'string') {
-            // Check the raw string as assigned
-            const stringLength = payloadDataString.length;
-            const stringSample = payloadDataString.substring(0, Math.min(500, payloadDataString.length));
-            if (stringSample.includes('Dashboard Plugin')) {
-              const emojiMatch = stringSample.match(/Dashboard Plugin[^"]*/);
-              if (emojiMatch) {
-                const matched = emojiMatch[0];
-                const charCodes = matched.split('').map(c => c.charCodeAt(0)).join(',');
-                console.log('[ENCODING DEBUG] In WebView JS - payloadDataString IMMEDIATELY after assignment - Found: "' + matched + '" (length=' + matched.length + ', charCodes=' + charCodes + ', fullStringLength=' + stringLength + ')');
-              }
-            }
-            if (stringSample.includes('ð')) {
-              console.log('[ENCODING DEBUG] In WebView JS - payloadDataString IMMEDIATELY after assignment contains corruption pattern "ð"');
-              // Try to find where the corruption is
-              const corruptionIndex = stringSample.indexOf('ð');
-              const context = stringSample.substring(Math.max(0, corruptionIndex - 20), Math.min(corruptionIndex + 40, stringSample.length));
-              const contextCharCodes = context.split('').map(c => c.charCodeAt(0)).join(',');
-              console.log('[ENCODING DEBUG] In WebView JS - Corruption context: "' + context + '" (charCodes=' + contextCharCodes + ')');
-            }
-            // Also check if the string contains proper Unicode escape sequences
-            if (stringSample.includes('\\u')) {
-              const unicodeEscapes = stringSample.match(/\\u[0-9a-fA-F]{4}/g);
-              if (unicodeEscapes && unicodeEscapes.length > 0) {
-                console.log('[ENCODING DEBUG] In WebView JS - payloadDataString contains ' + unicodeEscapes.length + ' Unicode escape sequences (e.g., ' + unicodeEscapes.slice(0, 3).join(', ') + ')');
-              }
-            }
-          } else {
-            console.log('[ENCODING DEBUG] In WebView JS - payloadDataString is not a string: type=' + typeof payloadDataString);
-          }
-        } catch (e) {
-          console.log('[ENCODING DEBUG] In WebView JS - Error checking payloadDataString: ' + e.message);
-        }
         const payloadData = JSON.parse(payloadDataString);
-        // Log encoding for debugging - check payloadData after parsing
-        if (payloadData?.pluginData?.sections) {
-          for (const section of payloadData.pluginData.sections || []) {
-            for (const item of section.sectionItems || []) {
-              if (item?.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
-                const title = item.para.title;
-                const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',');
-                console.log('[ENCODING DEBUG] In WebView JS - payloadData BEFORE postMessage - Section ' + section.sectionCode + ', title: "' + title + '" (length=' + title.length + ', charCodes=' + charCodes + ')');
-              }
-            }
-          }
-        }
+
         const messageObj = {
           type: '${actionType}',
           payload: payloadData
         };
-        // Log encoding for debugging - check messageObj before postMessage
-        if (messageObj?.payload?.pluginData?.sections) {
-          for (const section of messageObj.payload.pluginData.sections || []) {
-            for (const item of section.sectionItems || []) {
-              if (item?.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
-                const title = item.para.title;
-                const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',');
-                console.log('[ENCODING DEBUG] In WebView JS - messageObj BEFORE postMessage - Section ' + section.sectionCode + ', title: "' + title + '" (length=' + title.length + ', charCodes=' + charCodes + ')');
-              }
-            }
-          }
-        }
+
         window.postMessage(messageObj, '*');
       })();
     `
 
-    // Check if the JS code contains the corruption pattern
-    if (jsCodeToExecute.includes('Dashboard Plugin')) {
-      const emojiMatch = jsCodeToExecute.match(/Dashboard Plugin[^"]*/)
-      if (emojiMatch) {
-        const matched = emojiMatch[0]
-        const charCodes = matched
-          .split('')
-          .map((c: string) => c.charCodeAt(0))
-          .join(',')
-        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] JavaScript code to execute contains: "${matched}" (length=${matched.length}, charCodes=${charCodes})`)
-      }
-    }
-
-    logDebug('sendToHTMLWindow', `[ENCODING DEBUG] About to call HTMLView.runJavaScript with code length: ${jsCodeToExecute.length}`)
-
-    // Log a sample of the actual JavaScript code that will be executed
-    const codeSample = jsCodeToExecute.substring(0, Math.min(500, jsCodeToExecute.length))
-    if (codeSample.includes('Dashboard Plugin')) {
-      const emojiMatch = codeSample.match(/Dashboard Plugin[^"]*/)
-      if (emojiMatch) {
-        const matched = emojiMatch[0]
-        const charCodes = matched
-          .split('')
-          .map((c: string) => c.charCodeAt(0))
-          .join(',')
-        logDebug('sendToHTMLWindow', `[ENCODING DEBUG] JavaScript code sample (first 500 chars) contains: "${matched}" (length=${matched.length}, charCodes=${charCodes})`)
-      }
-    }
-
     const result = await HTMLView.runJavaScript(jsCodeToExecute, windowIdToSend)
-
-    logDebug('sendToHTMLWindow', `[ENCODING DEBUG] HTMLView.runJavaScript completed, result type: ${typeof result}`)
 
     // Note: The corruption happens between here and React receiving the postMessage
     // This suggests the issue is in how HTMLView.runJavaScript executes the code or how postMessage serializes data

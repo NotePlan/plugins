@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-01-01 for v2.4.0.b4, @jgclark
+// Last updated 2026-01-08 for v2.4.0.b10, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -31,6 +31,7 @@ import { getNPMonthStr, getNPQuarterStr, getNPYearStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 // import { sortListBy } from '@helpers/sorting'
+import { getSettings } from '@helpers/NPConfiguration'
 import { getLiveWindowRect, getStoredWindowRect, logWindowsList, rectToString } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------
@@ -84,7 +85,7 @@ export async function getSomeSectionsData(
     // TODO: change generation order to suit the new custom section display order
 
     let sections: Array<TSection> = []
-    if (sectionCodesToGet.includes('INFO')) sections.push(...getInfoSectionData(config, useDemoData))
+    if (sectionCodesToGet.includes('INFO')) sections.push(...(await getInfoSectionData(config, useDemoData)))
     // DT and TB sections are now generated separately but share paragraph data fetching
     if (sectionCodesToGet.includes('DT')) {
       const todaySections = getTodaySectionData(config, useDemoData, useEditorWherePossible)
@@ -175,26 +176,17 @@ export async function getSomeSectionsData(
  * @param {boolean} _useDemoData?
  * @returns {Array<TSection>} data
  */
-export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: boolean = false): Array<TSection> {
+export async function getInfoSectionData(_config: TDashboardSettings, _useDemoData: boolean = false): Promise<Array<TSection>> {
   const sections: Array<TSection> = []
   const thisSectionCode = 'INFO'
   const outputLines = []
-  outputLines.push(`Device name '${NotePlan.environment.machineName}' (${NotePlan.environment.platform}). Screen: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}`)
+  const settings = await getSettings(pluginJson['plugin.id'])
+  outputLines.push(`Device name '${NotePlan.environment.machineName}' (${NotePlan.environment.platform}) running NP v${NotePlan.environment.versionNumber} build ${NotePlan.environment.buildVersion}, and Dashboard v${pluginJson['plugin.version']}-${pluginJson['plugin.releaseStatus']}.`)
+  outputLines.push(`Screen: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}. Window type requested: ${settings?.preferredWindowType ?? '?'}`)
   const storedWindowRect: Rect | false = getStoredWindowRect('jgclark.Dashboard.main')
   const liveWindowRect: Rect | false = getLiveWindowRect('')
-  outputLines.push(`stored window rect: ${storedWindowRect ? rectToString(storedWindowRect) : 'no stored window rect'}`)
-  outputLines.push(`live window rect: ${liveWindowRect ? rectToString(liveWindowRect) : 'no live window rect'}`)
-  let itemCount = 0
-  const items: Array<TSectionItem> = outputLines.map((line) => {
-    const item = {
-      ID: `${thisSectionCode}-${itemCount}`,
-      sectionCode: thisSectionCode,
-      itemType: 'info',
-      message: line,
-    }
-    itemCount += 1
-    return item
-  })
+  outputLines.push(`Stored window rect: ${storedWindowRect ? rectToString(storedWindowRect) : 'no stored window rect'}`)
+  outputLines.push(`Live window rect: ${liveWindowRect ? rectToString(liveWindowRect) : 'no live window rect'}`)
   sections.push({
     ID: thisSectionCode,
     name: 'Info',
@@ -203,7 +195,12 @@ export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: bo
     description: 'Window Details',
     FAIconClass: 'fa-light fa-info-circle',
     sectionTitleColorPart: 'sidebarInfo',
-    sectionItems: items,
+    sectionItems: outputLines.map((line) => ({
+      ID: `${thisSectionCode}-${line}`,
+      sectionCode: thisSectionCode,
+      itemType: 'info',
+      message: line.trim(),
+    })),
     isReferenced: false,
     // TODO(later): remove this once we have a proper banner system
     actionButtons: (_config.FFlag_ShowBannerTestButtons ? [
