@@ -59,7 +59,8 @@ export type PassedData = {
   ENV_MODE?: 'development' | 'production',
   passThroughVars?: any /* any data you want to pass through to the React Window */,
   windowID?: string,
-  initialBanner?: { // TODO(later): remove this, as it was only used for debugging/testing the warning banner
+  initialBanner?: {
+    // TODO(later): remove this, as it was only used for debugging/testing the warning banner
     msg: string,
     color: string,
     border: string,
@@ -324,8 +325,8 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       paddingWidth: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,
       paddingHeight: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,
       // If we should open in main/split view, or the default new window
-      showInMainWindow: (preferredWindowType !== 'New Window'),
-      splitView: (preferredWindowType === 'Split View'),
+      showInMainWindow: preferredWindowType !== 'New Window',
+      splitView: preferredWindowType === 'Split View',
       // If we are opening in main/split view, then set the icon details
       // TODO: later, move this to plugin.json file
       icon: 'fa-gauge-high',
@@ -337,8 +338,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     }
     logTimer('showDashboardReact', startTime, `Finished getting initial data. Now will call React:`)
 
-    // clo(data, `showDashboardReact data object passed`)
-    logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
+    logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact is finished. It's all React from this point forward...\n`)
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
   } catch (error) {
     logError('showDashboardReact', JSP(error))
@@ -498,7 +498,7 @@ export async function updateReactWindowData(actionType: string, data: any = null
 async function routeDashboardRequest(actionType: string, data: any): Promise<RequestResponse> {
   try {
     logDebug(pluginJson, `[Dashboard] routeDashboardRequest: actionType="${actionType}"`)
-    
+
     // Dashboard doesn't have its own handlers for common choosers yet
     // Return "not found" to trigger shared handler fallback
     return {
@@ -526,25 +526,23 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
   try {
     let _newData = null
     logInfo(pluginJson, `actionType '${actionType}' received by onMessageFromHTMLView`)
-    
+
     // Check if this is a REQUEST that needs a response (request/response pattern)
     if (data?.__requestType === 'REQUEST' && data?.__correlationId) {
       logDebug(pluginJson, `[Dashboard] Handling REQUEST type="${actionType}" with correlationId="${data.__correlationId}"`)
-      
+
       // Try plugin handler first
       const pluginResult = await routeDashboardRequest(actionType, data)
-      
+
       // Check if plugin handler succeeded or explicitly handled the request
       const message = pluginResult.message || ''
       const isNotFound =
         !pluginResult.success &&
         message &&
-        (message.toLowerCase().includes('unknown') ||
-          message.toLowerCase().includes('not found') ||
-          message.toLowerCase().includes('no handler'))
-      
+        (message.toLowerCase().includes('unknown') || message.toLowerCase().includes('not found') || message.toLowerCase().includes('no handler'))
+
       let result = pluginResult
-      
+
       // If plugin handler didn't handle it, try shared handlers
       if (isNotFound) {
         logDebug(pluginJson, `[Dashboard] Plugin handler not found for "${actionType}", attempting np.Shared fallback`)
@@ -569,10 +567,10 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
       } else {
         logDebug(pluginJson, `[Dashboard] Using plugin handler result for "${actionType}": success=${String(pluginResult.success)}`)
       }
-      
+
       // Get window ID from data or use default
       const windowId = data?.__windowId || WEBVIEW_WINDOW_ID
-      
+
       // Send response back to React
       sendToHTMLWindow(windowId, 'RESPONSE', {
         correlationId: data.__correlationId,
@@ -580,10 +578,10 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
         data: result.data,
         error: result.message,
       })
-      
+
       return {}
     }
-    
+
     // For non-REQUEST actions, use the existing bridgeClickDashboardItem pattern
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
