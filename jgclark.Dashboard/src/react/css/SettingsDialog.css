@@ -6,15 +6,14 @@
     font-family: system-ui;
     background-color: var(--bg-mid-color);
     position: fixed;
-    /* Center vertically in available space (viewport minus toolbar) */
-    /* Available space = 100vh - toolbar, center = toolbar + available/2 */
-    /* Position top edge at center minus half dialog height (45vh) to center it */
-    top: calc(var(--noteplan-toolbar-height, 0) + (100vh - var(--noteplan-toolbar-height, 0)) / 2 - 45vh);
+    /* Center vertically: position top edge at viewport center, then translateY(-50%) centers it */
+    /* Account for toolbar offset: center of available space = 50vh + toolbar-height/2 */
+    top: calc(50vh + var(--noteplan-toolbar-height, 0px) / 2);
     height: 90vh;
-    max-height: calc(92vh - var(--noteplan-toolbar-height, 0));
-    /* Center horizontally: position left edge at 50% minus half the width */
-    /* For 86vw width, left = 50% - 43vw = 7vw */
-    left: 7vw;
+    max-height: calc(92vh - var(--noteplan-toolbar-height, 0px));
+    /* Center horizontally and vertically: use 50% positioning and translate(-50%, -50%) */
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 86vw;
     max-width: 700px;
     min-width: 380px;
