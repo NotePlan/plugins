@@ -9,6 +9,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b12] 2026-01-08
+### Fixed
+- **PerspectiveSelector star indicator not displaying**: Fixed issue where the asterisk (*) indicating a modified perspective was not showing in the dropdown selector. The bug was introduced in commit `c493f26d` (2025-12-18, "forms editor v1") when `DropdownSelect` was refactored to find options by value. The component was using the label from the found option in the options array instead of preserving the custom label from `controlledValue` (which includes the asterisk for modified perspectives). The fix ensures that when `controlledValue` is provided as an object with a custom label, that label is used instead of the option's label from the array.
+- **PerspectiveSelector using stale perspective data**: Changed `PerspectiveSelector` to use `getActivePerspectiveDef()` instead of `getPerspectiveNamed()` to ensure it always gets the most up-to-date perspective with the correct `isModified` flag directly from `perspectiveSettings`, rather than looking it up by name which could be stale.
+
 ## [2.4.0.b11] 2026-01-09
 ### Changed
 - Refactored request/response handling to use new shared router pattern (`newCommsRouter` from `@helpers/react/routerUtils`). Moved routing logic to `routeRequestsFromReact.js` for better maintainability and consistency with other plugins.

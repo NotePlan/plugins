@@ -182,7 +182,9 @@ const PerspectiveSelector = (): React$Node => {
   // Handler for Perspective Change with Comprehensive Logging
   //----------------------------------------------------------------------
 
-  const thisPersp = getPerspectiveNamed(activePerspectiveName, perspectiveSettings)
+  // Use getActivePerspectiveDef to get the current active perspective directly from perspectiveSettings
+  // This ensures we get the most up-to-date isModified flag, rather than looking up by name which might be stale
+  const thisPersp = getActivePerspectiveDef(perspectiveSettings)
   const nameToDisplay = thisPersp ? formatNameWithStarIfModified(thisPersp) : '-'
 
   /**
@@ -441,7 +443,7 @@ const PerspectiveSelector = (): React$Node => {
     },
   }
 
-  const selectedValue = { label: nameToDisplay, value: thisPersp ? activePerspectiveName : '-' }
+  const selectedValue = { label: nameToDisplay, value: thisPersp ? thisPersp.name : '-' }
   logDebug(
     'PerspectiveSelector',
     `selectedValue: ${JSON.stringify(selectedValue)} value(activePerspectiveName)=${activePerspectiveName} ${thisPersp?.isModified ? '<modified>' : ''}`,
