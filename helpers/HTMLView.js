@@ -56,6 +56,8 @@ export type HtmlWindowOptions = {
   iconColor?: string, // only used if showInMainWindow is true
   autoTopPadding?: boolean, // only used if showInMainWindow is true
   showReloadButton?: boolean, // only used if showInMainWindow is true
+  reloadPluginID?: string, // only used if showInMainWindow is true, and presumably showReloadButton is true
+  reloadCommandName?: string, // only used if showInMainWindow is true, and presumably showReloadButton is true
 }
 
 /**
@@ -575,15 +577,21 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         winOptions.autoTopPadding = ("autoTopPadding" in opts) ? opts.autoTopPadding : true
         // $FlowFixMe[prop-missing] - as above
         winOptions.showReloadButton = ("showReloadButton" in opts) ? opts.showReloadButton : false
+        // $FlowFixMe[prop-missing] - as above
+        winOptions.reloadPluginID = ("reloadPluginID" in opts) ? opts.reloadPluginID : ''
+        // $FlowFixMe[prop-missing] - as above
+        winOptions.reloadCommandName = ("reloadCommandName" in opts) ? opts.reloadCommandName : ''
 
         logDebug('showHTMLV2', `- Showing in main window with options: ${JSON.stringify(winOptions)}`)
         const mainWindowSpecificOptions = {
+          customId: cId,
           splitView: opts.splitView,
           icon: opts.icon,
           iconColor: opts.iconColor,
           autoTopPadding: opts.autoTopPadding,
           showReloadButton: opts.showReloadButton,
-          customId: cId,
+          reloadPluginID: opts.reloadPluginID,
+          reloadCommandName: opts.reloadCommandName,
         }
         // $FlowFixMe[incompatible-type] - Flow can't guarantee the Promise resolves to an object
         const mainWindowResult = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', mainWindowSpecificOptions)
