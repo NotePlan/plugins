@@ -9,11 +9,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b10] 2026-01-08
+## [2.4.0.b10] 2026-01-09
 - bump mainWindow version to 3.20.1 as @EM has changed it up
 - allowed mainWindow to work on iOS, now that @EM has added it
 - TODO: perspective changed indicator not showing. More logging added to useSyncPerspectivesWithPlugin shows its not being fired.
 - added more details to INFO section to see more clearly what's going on with mainWindow on different platforms
+- added an automatic refresh of the Dashboard if it's open at midnight
 
 ## [2.4.0.b9] 2026-01-07
 - Running in "Main Window" mode doesn't seem to work on iPadOS or iOS, so changed it run only in "New Window" mode on those platforms.
