@@ -49,7 +49,6 @@ export {
 
 export {
   showDashboardReact,
-  onMessageFromHTMLView,
   showDemoDashboard,
   showPerspective,
   showSections,
@@ -58,6 +57,8 @@ export {
   makeSettingsAsCallback,
   reactWindowInitialisedSoStartGeneratingData,
 } from './reactMain.js'
+
+export { onMessageFromHTMLView } from './routeRequestsFromReact.js'
 
 export {
   // onUpdateOrInstall, // Note: a more specialised version of this is below

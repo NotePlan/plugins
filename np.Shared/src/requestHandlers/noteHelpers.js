@@ -4,7 +4,7 @@
 // Uses native decoration functions from @helpers to ensure consistency
 //--------------------------------------------------------------------------
 
-import { getNoteDecoration } from '@helpers/NPnote'
+import { getNoteDecorationForReact } from '@helpers/NPnote'
 import { logDebug } from '@helpers/dev'
 import { getRelativeDates } from '@helpers/NPdateTime'
 
@@ -41,15 +41,7 @@ export function convertNoteToOption(note: TNote, overrideType?: ?string, include
     return null
   }
 
-  // Log title encoding for debugging emoji corruption
   const noteTitle = note.title
-  if (noteTitle && (noteTitle.includes('🧩') || noteTitle.includes('ð'))) {
-    const charCodes = noteTitle
-      .split('')
-      .map((c) => c.charCodeAt(0))
-      .join(',')
-    logDebug('noteHelpers', `[ENCODING DEBUG] Note title with emoji/corruption: "${noteTitle}" (length=${noteTitle.length}, charCodes=${charCodes})`)
-  }
 
   const option: NoteOption = {
     title: noteTitle,
@@ -62,10 +54,13 @@ export function convertNoteToOption(note: TNote, overrideType?: ?string, include
     changedDate: typeof note.changedDate === 'number' ? note.changedDate : note.changedDate instanceof Date ? note.changedDate.getTime() : null,
   }
 
-  // Optionally include decoration from native helper
+  // Optionally include decoration from shared helper
   if (includeDecoration) {
     try {
-      const decoration = getNoteDecoration(note)
+      // Use the shared helper that works with both TNote and NoteOption
+      // $FlowFixMe[incompatible-call] - NoteOption is compatible with the union type TNote | NoteOption (both have filename, type, frontmatterAttributes)
+      // $FlowFixMe[prop-missing] - NoteOption doesn't need all TNote properties for decoration
+      const decoration = getNoteDecorationForReact((option: any))
       if (decoration && decoration.icon && decoration.color) {
         option.decoration = {
           icon: decoration.icon,
@@ -192,8 +187,9 @@ export function getRelativeNotesAsOptions(includeDecoration: boolean = false): A
       }
 
       // Create a NoteOption for this relative date
+      // Use the relName as title (e.g., "today", "this week") and dateStr in shortDescription
       const option: NoteOption = {
-        title: templateRunnerValue, // Display name (e.g., "today", "this week")
+        title: rd.relName, // Use the relName directly (e.g., "today", "this week")
         filename: templateRunnerValue, // TemplateRunner format (e.g., "<today>", "<thisweek>")
         type: 'Calendar', // Relative dates are calendar notes
         frontmatterAttributes: {},
@@ -203,12 +199,12 @@ export function getRelativeNotesAsOptions(includeDecoration: boolean = false): A
         changedDate: null, // Relative dates don't have a changedDate
       }
 
-      // Optionally add decoration (calendar icon)
+      // Optionally add decoration (calendar icon with actual date in shortDescription)
       if (includeDecoration) {
         option.decoration = {
           icon: 'calendar-star',
           color: 'gray-500',
-          shortDescription: rd.dateStr, // Show the actual date string as short description
+          shortDescription: rd.dateStr, // Show the actual date string as short description (e.g., "2026-01-06")
         }
       }
 

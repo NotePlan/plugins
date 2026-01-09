@@ -2,6 +2,14 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [1.0.2] @dwertheimer 2026-01-08
+
+- Fix Settings Dialog CSS positioning to properly center in viewport accounting for toolbar height. Removed transform-based centering and switched to direct top/left calculations for more reliable positioning.
+
+## [1.0.1] @dwertheimer 2026-01-08
+
+- Bump version for @jgclark to see
+
 ## [1.0.0] @dwertheimer 2026-01-06
 
  - Add Shared Request Router for DynamicDialog choosers (e.g. getTeamspaces, getFolders, getNotes, etc.)

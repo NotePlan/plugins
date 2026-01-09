@@ -4,12 +4,16 @@
 // Allows users to select a note by typing to filter choices
 //--------------------------------------------------------------------------
 
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
+import { DayPicker } from 'react-day-picker'
+import 'react-day-picker/dist/style.css'
+import moment from 'moment/min/moment-with-locales'
 import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
-import { truncateText } from '@helpers/react/reactUtils.js'
+import { truncateText, calculatePortalPosition } from '@helpers/react/reactUtils.js'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
-import { TEAMSPACE_ICON_COLOR, defaultNoteIconDetails, noteIconsToUse } from '@helpers/NPnote.js'
-import { getFolderFromFilename, getFolderDisplayName } from '@helpers/folders.js'
+import { getNoteDecorationForReact, TEAMSPACE_ICON_COLOR } from '@helpers/NPnote.js'
+import { getFolderFromFilename } from '@helpers/folders.js'
 import { parseTeamspaceFilename, getFilenameWithoutTeamspaceID } from '@helpers/teamspace.js'
 import './NoteChooser.css'
 
@@ -57,6 +61,7 @@ export type NoteChooserProps = {
   isLoading?: boolean, // If true, show loading indicator
   shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
   showTitleOnly?: boolean, // If true, show only the note title in the label (not "path / title") (default: false)
+  showCalendarChooserIcon?: boolean, // If true, show a calendar button next to the chooser (default: true)
 }
 
 /**
@@ -66,54 +71,13 @@ export type NoteChooserProps = {
  * @returns {React$Node}
  */
 /**
- * Get note decoration using shared helpers from @helpers/NPnote.js
- * Adapted to work with NoteOption instead of TNote
+ * Get note decoration using shared helper from @helpers/NPnote.js
+ * This mirrors chooseNoteV2 decoration logic exactly
  */
 const getNoteDecoration = (note: NoteOption): { icon: string, color: string, shortDescription: ?string } => {
-  // Use shared helper to parse teamspace info
-  const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
-
-  // Work out which icon to use for this note (using shared constants)
-  const FMAttributes = note.frontmatterAttributes || {}
-  const userSetIcon = FMAttributes['icon']
-  const userSetIconColor = FMAttributes['icon-color']
-
-  // Determine note type for icon (using shared helper)
-  // For teamspace notes, strip the teamspace prefix first
-  let folderPath = getFolderFromFilename(note.filename)
-  if (possTeamspaceDetails.isTeamspace) {
-    folderPath = getFilenameWithoutTeamspaceID(folderPath) || '/'
-  }
-  let noteTypeForIcon = folderPath.split('/')[0] || '/'
-  if (note.type === 'Calendar') {
-    // Simplified calendar note type detection (could be enhanced to detect week/month/quarter/year)
-    // For now, assume daily - could check filename pattern for more precision
-    const basename = note.filename.split('/').pop() || ''
-    if (/^\d{8}\.md$/.test(basename) || /^\d{4}-\d{2}-\d{2}\.md$/.test(basename)) {
-      noteTypeForIcon = '<DAY>' // Could enhance to detect week/month/quarter/year
-    }
-  }
-
-  // Use shared noteIconsToUse array to find matching icon
-  const folderIconDetails = noteIconsToUse.find((details) => details.firstLevelFolder === noteTypeForIcon) ?? defaultNoteIconDetails
-
-  // Determine color (using shared constant for teamspace)
-  const color = possTeamspaceDetails.isTeamspace || note.isTeamspaceNote ? TEAMSPACE_ICON_COLOR : userSetIconColor || folderIconDetails.color
-
-  // Short description: show teamspace name if it's a teamspace note, otherwise show folder path
-  let shortDescription: ?string = null
-  if (possTeamspaceDetails.isTeamspace && note.teamspaceTitle) {
-    shortDescription = note.teamspaceTitle
-  } else if (folderPath && folderPath !== '/') {
-    // Show folder path as short description for non-teamspace notes
-    shortDescription = folderPath
-  }
-
-  return {
-    icon: userSetIcon || folderIconDetails.icon,
-    color,
-    shortDescription,
-  }
+  // Use the shared helper that works with both TNote and NoteOption
+  // $FlowFixMe[incompatible-call] - NoteOption is compatible with the union type TNote | NoteOption
+  return getNoteDecorationForReact(note)
 }
 
 export function NoteChooser({
@@ -132,7 +96,7 @@ export function NoteChooser({
   includeTemplatesAndForms = false,
   showValue = false,
   includeNewNoteOption = false,
-  dependsOnFolderKey,
+  dependsOnFolderKey: _dependsOnFolderKey, // eslint-disable-line no-unused-vars
   folderFilter,
   startFolder,
   filterByType,
@@ -144,10 +108,15 @@ export function NoteChooser({
   isLoading = false,
   shortDescriptionOnLine2 = false,
   showTitleOnly = false,
+  showCalendarChooserIcon = true,
 }: NoteChooserProps): React$Node {
   const [isCreatingNote, setIsCreatingNote] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [newNoteTitle, setNewNoteTitle] = useState('')
+  const [showCalendarPicker, setShowCalendarPicker] = useState(false)
+  const [calendarPosition, setCalendarPosition] = useState<{ top: number, left: number } | null>(null)
+  const calendarButtonRef = useRef<?HTMLButtonElement>(null)
+  const calendarPickerRef = useRef<?HTMLDivElement>(null)
 
   // Handle creating a new note
   const handleCreateNote = async (noteTitle: string, folder: string = '/') => {
@@ -202,6 +171,187 @@ export function NoteChooser({
     setShowCreateDialog(true)
     setNewNoteTitle('')
   }
+
+  /**
+   * Check if a value is a date string (YYYYMMDD format)
+   * @param {string} value - The value to check
+   * @returns {boolean}
+   */
+  const isDateString = (value: string): boolean => {
+    return /^\d{8}$/.test(value)
+  }
+
+  /**
+   * Format a date string (YYYYMMDD) for display using moment
+   * @param {string} dateStr - Date string in YYYYMMDD format
+   * @returns {string} - Formatted date string (e.g., "Daily Note: Tuesday, Jan 22, 2026")
+   */
+  const formatDateStringForDisplay = (dateStr: string): string => {
+    if (!isDateString(dateStr)) return dateStr
+    try {
+      const year = dateStr.substring(0, 4)
+      const month = dateStr.substring(4, 6)
+      const day = dateStr.substring(6, 8)
+      const date = moment(`${year}-${month}-${day}`, 'YYYY-MM-DD')
+      if (!date.isValid()) return dateStr
+      // Format as "Daily Note: Tuesday, Jan 22, 2026"
+      return `Daily Note: ${date.format('dddd, MMM D, YYYY')}`
+    } catch (error) {
+      logError('NoteChooser', `Error formatting date: ${error.message}`)
+      return dateStr
+    }
+  }
+
+  /**
+   * Convert a Date object to calendar note filename (YYYYMMDD.md)
+   * @param {Date} date - The date to convert
+   * @returns {string} - Calendar note filename
+   */
+  const dateToCalendarFilename = (date: Date): string => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}${month}${day}.md`
+  }
+
+  /**
+   * Convert a Date object to ISO 8601 format (YYYY-MM-DD) in local timezone
+   * @param {Date} date - The date to convert
+   * @returns {string} - ISO 8601 date string
+   */
+  const dateToISOString = (date: Date): string => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  /**
+   * Handle calendar date selection
+   * @param {?Date} date - Selected date
+   */
+  const handleCalendarDateSelect = useCallback(
+    (date: ?Date) => {
+      if (!date) {
+        logDebug('NoteChooser', 'handleCalendarDateSelect: date is null/undefined')
+        return
+      }
+
+      logDebug('NoteChooser', `handleCalendarDateSelect: date=${date.toISOString()}`)
+
+      const calendarFilename = dateToCalendarFilename(date)
+      // Use ISO 8601 format (YYYY-MM-DD) for consistency, regardless of whether note exists
+      const dateISO = dateToISOString(date)
+
+      logDebug('NoteChooser', `handleCalendarDateSelect: calendarFilename="${calendarFilename}", dateISO="${dateISO}"`)
+
+      // Find the note in the notes array or create a new option
+      const existingNote = notes.find((note) => note.filename === calendarFilename || note.filename.endsWith(`/${calendarFilename}`))
+
+      logDebug('NoteChooser', `handleCalendarDateSelect: existingNote=${existingNote ? `found: ${existingNote.title}` : 'not found'}`)
+
+      if (existingNote) {
+        // Use ISO 8601 format for consistency, even if note exists
+        logDebug(
+          'NoteChooser',
+          `handleCalendarDateSelect: calling onChange with existingNote filename but ISO date format: title="${dateISO}", filename="${existingNote.filename}"`,
+        )
+        onChange(dateISO, existingNote.filename)
+      } else {
+        // If note doesn't exist, use ISO 8601 format
+        logDebug('NoteChooser', `handleCalendarDateSelect: calling onChange with new note: title="${dateISO}", filename="${calendarFilename}"`)
+        onChange(dateISO, calendarFilename)
+      }
+
+      setShowCalendarPicker(false)
+    },
+    [notes, onChange],
+  )
+
+  /**
+   * Toggle calendar picker and calculate position
+   */
+  const handleCalendarIconClick = useCallback(() => {
+    if (!calendarButtonRef.current) return
+
+    const newShowState = !showCalendarPicker
+    setShowCalendarPicker(newShowState)
+
+    if (newShowState && calendarButtonRef.current) {
+      // Calculate position for calendar picker
+      const position = calculatePortalPosition({
+        referenceElement: calendarButtonRef.current,
+        elementWidth: 280, // Approximate width of DayPicker
+        elementHeight: 300, // Approximate height of DayPicker
+        preferredPlacement: 'below',
+        preferredAlignment: 'start',
+        offset: 5,
+        viewportPadding: 10,
+      })
+
+      if (position) {
+        setCalendarPosition({ top: position.top, left: position.left })
+      }
+    } else {
+      setCalendarPosition(null)
+    }
+  }, [showCalendarPicker])
+
+  // Update calendar position on scroll/resize - use refs to prevent infinite loops
+  const calendarPositionRef = useRef<?{ top: number, left: number }>(null)
+  React.useEffect(() => {
+    if (!showCalendarPicker || !calendarButtonRef.current) {
+      calendarPositionRef.current = null
+      return
+    }
+
+    const updatePosition = () => {
+      if (!calendarButtonRef.current) return
+      const position = calculatePortalPosition({
+        referenceElement: calendarButtonRef.current,
+        elementWidth: 280,
+        elementHeight: 300,
+        preferredPlacement: 'below',
+        preferredAlignment: 'start',
+        offset: 5,
+        viewportPadding: 10,
+      })
+
+      if (position) {
+        // Only update if position actually changed to prevent infinite loops
+        const newPos = { top: position.top, left: position.left }
+        if (!calendarPositionRef.current || calendarPositionRef.current.top !== newPos.top || calendarPositionRef.current.left !== newPos.left) {
+          calendarPositionRef.current = newPos
+          setCalendarPosition(newPos)
+        }
+      }
+    }
+
+    // Initial position calculation
+    updatePosition()
+
+    // Throttle scroll/resize events to prevent excessive updates
+    let timeoutId: ?number = null
+    const throttledUpdate = () => {
+      if (timeoutId) return
+      timeoutId = window.setTimeout(() => {
+        updatePosition()
+        timeoutId = null
+      }, 50) // Throttle to max once per 50ms
+    }
+
+    window.addEventListener('scroll', throttledUpdate, true)
+    window.addEventListener('resize', throttledUpdate)
+
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId)
+      }
+      window.removeEventListener('scroll', throttledUpdate, true)
+      window.removeEventListener('resize', throttledUpdate)
+      calendarPositionRef.current = null
+    }
+  }, [showCalendarPicker])
 
   // Filter notes based on this field's options and folder filter
   const filteredNotes = useMemo(() => {
@@ -382,6 +532,13 @@ export function NoteChooser({
       if (showTitleOnly) {
         return note.title
       }
+      // If shortDescription is being used (folder path is shown there), only show title
+      // Otherwise, show "path / title" format for backward compatibility
+      const decoration = getNoteDecoration(note)
+      if (decoration.shortDescription) {
+        // Folder path is shown in shortDescription, so only show title here
+        return note.title
+      }
       // For personal/project notes, show "path / title" format to match native chooser
       // For calendar notes, show just the title
       if (note.type === 'Notes' || !note.type) {
@@ -435,7 +592,7 @@ export function NoteChooser({
     iconClass: 'fa-file-lines',
     fieldType: 'note-chooser',
     debugLogging: false,
-    maxResults: 25,
+    maxResults: 999999, // Show all items - use very large number instead of undefined to avoid default parameter issue
     inputMaxLength: 100, // Large value - CSS handles most truncation based on actual width
     dropdownMaxLength: 80, // Large value for dropdown - only truncate very long items
     getOptionIcon: (note: NoteOption) => {
@@ -450,19 +607,87 @@ export function NoteChooser({
     shortDescriptionOnLine2,
   }
 
+  // Format value for display if it's a date string
+  const displayValue = useMemo(() => {
+    if (value && isDateString(value)) {
+      return formatDateStringForDisplay(value)
+    }
+    return value
+  }, [value])
+
   return (
-    <SearchableChooser
-      label={label}
-      value={value}
-      disabled={disabled}
-      compactDisplay={compactDisplay}
-      placeholder={placeholder}
-      showValue={showValue}
-      width={width}
-      config={config}
-      onOpen={onOpen}
-      isLoading={isLoading}
-    />
+    <>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', width: '100%' }}>
+        <div style={{ flex: 1 }}>
+          <SearchableChooser
+            label={label}
+            value={displayValue}
+            disabled={disabled}
+            compactDisplay={compactDisplay}
+            placeholder={placeholder}
+            showValue={showValue}
+            width={width}
+            config={config}
+            onOpen={onOpen}
+            isLoading={isLoading}
+          />
+        </div>
+        {showCalendarChooserIcon && !disabled && (
+          <button
+            ref={calendarButtonRef}
+            type="button"
+            onClick={handleCalendarIconClick}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 'calc(0.85rem * 1.2 + 8px)', // Match input field height exactly
+              height: 'calc(0.85rem * 1.2 + 8px)', // Match input field height: font-size * line-height + vertical padding
+              padding: 0,
+              border: '1px solid var(--divider-color, #CDCFD0)',
+              borderRadius: '4px',
+              backgroundColor: 'var(--bg-main-color, #eff1f5)',
+              color: 'var(--tint-color, #dc8a78)', // Use tint-color for icon
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+            title="Select date"
+          >
+            <i className="fa-regular fa-calendar" style={{ fontSize: '0.85rem' }} />
+          </button>
+        )}
+      </div>
+      {showCalendarPicker &&
+        calendarPosition &&
+        (() => {
+          const body = document.body
+          if (!body) return null
+          // $FlowFixMe[incompatible-call] - document.body is checked for null above
+          return createPortal(
+            <div
+              ref={calendarPickerRef}
+              className="dayPicker-container"
+              style={{
+                position: 'fixed',
+                top: `${calendarPosition.top}px`,
+                left: `${calendarPosition.left}px`,
+                zIndex: 10000,
+                backgroundColor: 'var(--bg-main-color, #eff1f5)',
+              }}
+            >
+              <DayPicker
+                mode="single"
+                selected={value && isDateString(value) ? new Date(formatDateStringForDisplay(value)) : null}
+                onSelect={handleCalendarDateSelect}
+                numberOfMonths={1}
+                fixedHeight
+                className="calendarPickerCustom"
+              />
+            </div>,
+            body,
+          )
+        })()}
+    </>
   )
 }
 

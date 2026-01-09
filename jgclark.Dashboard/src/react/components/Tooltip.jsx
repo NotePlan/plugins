@@ -4,6 +4,12 @@
 // Displays a fancy tooltip
 // Last updated @jgclark 2026-01-01
 //--------------------------------------------------------------------------
+// NOTE: We may want to consider making a version of calculatePortalPosition
+// (from @helpers/react/reactUtils.js) to deal with mouse-related portals
+// consistently. This component currently receives positioning from its parent
+// (ToolTipOnModifierPress), but a shared utility could handle cursor-based
+// portal positioning more robustly.
+//--------------------------------------------------------------------------
 import React, { useEffect, useRef } from 'react'
 import '../css/Tooltip.css'
 

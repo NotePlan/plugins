@@ -4,6 +4,11 @@
 // Used by many other components.
 // Last updated 4.6.2024 for v2.0.0 by @dbw
 //--------------------------------------------------------------------------
+// NOTE: We may want to consider making a version of calculatePortalPosition
+// (from @helpers/react/reactUtils.js) to deal with mouse-related portals
+// consistently. This component currently handles cursor-based positioning
+// manually in handleTooltipDimensionsChange.
+//--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, useCallback, type ElementRef } from 'react'
 import ReactDOM from 'react-dom'
 import Tooltip from './Tooltip' // Import the Tooltip component

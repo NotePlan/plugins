@@ -78,7 +78,6 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean,
 ): Promise<Array<TSection>> {
   try {
-    logDebug('getSomeSectionsData', `[ENCODING DEBUG] ===== getSomeSectionsData CALLED for sections: [${String(sectionCodesToGet)}] =====`)
     // logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
     const config: TDashboardSettings = await getDashboardSettings()
 
@@ -89,27 +88,7 @@ export async function getSomeSectionsData(
     // DT and TB sections are now generated separately but share paragraph data fetching
     if (sectionCodesToGet.includes('DT')) {
       const todaySections = getTodaySectionData(config, useDemoData, useEditorWherePossible)
-      // Log encoding for debugging emoji corruption - check data right after getTodaySectionData returns
-      for (const section of todaySections || []) {
-        for (const item of section.sectionItems || []) {
-          const title = item?.para?.title
-          if (title && (title.includes('🧩') || title.includes('ð'))) {
-            const charCodes = title.split('').map((c: string) => c.charCodeAt(0)).join(',')
-            logDebug('getSomeSectionsData', `[ENCODING DEBUG] AFTER getTodaySectionData returns - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-          }
-        }
-      }
       sections.push(...todaySections)
-      // Log encoding for debugging emoji corruption - check data right after pushing today sections
-      for (const section of sections || []) {
-        for (const item of section.sectionItems || []) {
-          const title = item?.para?.title
-          if (title && (title.includes('🧩') || title.includes('ð'))) {
-            const charCodes = title.split('').map((c: string) => c.charCodeAt(0)).join(',')
-            logDebug('getSomeSectionsData', `[ENCODING DEBUG] AFTER pushing today sections - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-          }
-        }
-      }
     }
     if (sectionCodesToGet.includes('TB') && config.showTimeBlockSection) sections.push(...getTimeBlockSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
@@ -151,17 +130,6 @@ export async function getSomeSectionsData(
     // logDebug('getSomeSectionsData', `=> 🔹 sections ${getDisplayListOfSectionCodes(sections)} (unfiltered)`)
 
     sections = sections.filter((s) => s) //get rid of any nulls b/c just in case any the sections above could return null
-    
-    // Log encoding for debugging emoji corruption - check data right before returning from getSomeSectionsData
-    for (const section of sections || []) {
-      for (const item of section.sectionItems || []) {
-        const title = item?.para?.title
-        if (title && (title.includes('🧩') || title.includes('ð'))) {
-          const charCodes = title.split('').map((c: string) => c.charCodeAt(0)).join(',')
-          logDebug('getSomeSectionsData', `[ENCODING DEBUG] BEFORE return - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-        }
-      }
-    }
     
     return sections
   } catch (error) {

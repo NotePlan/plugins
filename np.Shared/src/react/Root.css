@@ -1,0 +1,86 @@
+/* ------------------------------------------------------------------ */
+/* Root Component CSS */
+/* ------------------------------------------------------------------ */
+
+/* Base button styles for Root debug/test buttons - using unique class name to avoid conflicts */
+.root-test-button {
+  display: inline-block;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin: 2px 4px 2px 0px;
+  white-space: nowrap;
+  cursor: pointer;
+  font-size: smaller;
+  line-height: 1.1rem;
+  font-family: system-ui;
+  border: none;
+  transition: background-color 0.2s, box-shadow 0.2s;
+  max-height: unset;
+  color: var(--fg-main-color, #4c4f69);
+  background-color: var(--bg-alt-color, #e6e9ef);
+}
+
+/* Hover effect for buttons */
+.root-test-button:hover {
+  box-shadow: inset 0 0 0 50px rgba(0 0 0 / 0.15);
+}
+
+/* Black/dark button variant for debug area */
+.root-test-button.black {
+  background-color: var(--fg-main-color, #4c4f69);
+  color: var(--bg-main-color, #eff1f5);
+}
+
+.root-test-button.black:hover {
+  background-color: var(--fg-main-color, #4c4f69);
+  filter: brightness(110%);
+}
+
+/* Icon styling within button */
+.root-test-button i {
+  color: var(--tint-color, #dc8a78);
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared Message Type Color Classes */
+/* These classes are used by MessageBanner, Toast, and other components */
+/* ------------------------------------------------------------------ */
+
+/* Border color classes - set the left border color */
+.border-info {
+  border-left-color: var(--fg-info-color, #3b82f6);
+}
+
+.border-warn {
+  border-left-color: var(--fg-warn-color, #fbbf24);
+}
+
+.border-error {
+  border-left-color: var(--fg-error-color, #ef4444);
+}
+
+.border-success {
+  border-left-color: var(--fg-ok-color, #22c55e);
+}
+
+/* Background and text color classes */
+.color-info {
+  background-color: var(--bg-info-color);
+  color: var(--fg-info-color);
+}
+
+.color-warn {
+  background-color: var(--bg-warn-color);
+  color: var(--fg-warn-color);
+}
+
+.color-error {
+  background-color: var(--bg-error-color);
+  color: var(--fg-error-color);
+}
+
+.color-success {
+  background-color: var(--bg-ok-color, rgba(220, 252, 231, 1));
+  color: var(--fg-ok-color, #15803d);
+}

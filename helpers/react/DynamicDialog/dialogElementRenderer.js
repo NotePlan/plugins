@@ -601,7 +601,10 @@ export function renderItem({
         }
 
         const handleNoteChange = (noteTitle: string, noteFilename: string) => {
-          logDebug('dialogElementRenderer', `note-chooser: handleNoteChange called with noteTitle="${noteTitle}", noteFilename="${noteFilename}", item.key="${item.key || 'undefined'}"`)
+          logDebug(
+            'dialogElementRenderer',
+            `note-chooser: handleNoteChange called with noteTitle="${noteTitle}", noteFilename="${noteFilename}", item.key="${item.key || 'undefined'}"`,
+          )
           if (item.key) {
             // Store both title and filename - using filename as the value for consistency
             // but you could also store as an object: { title: noteTitle, filename: noteFilename }
@@ -626,7 +629,7 @@ export function renderItem({
               value={currentValue}
               notes={notes}
               onChange={handleNoteChange}
-              disabled={disabled}
+              disabled={disabled || isLoading}
               compactDisplay={compactDisplay}
               width={(item: any).width}
               includeCalendarNotes={item.includeCalendarNotes ?? false}
@@ -645,6 +648,7 @@ export function renderItem({
               showValue={item.showValue ?? false}
               shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
               showTitleOnly={item.showTitleOnly ?? false}
+              showCalendarChooserIcon={item.showCalendarChooserIcon ?? true}
               isLoading={isLoading}
             />
           </div>
@@ -669,7 +673,12 @@ export function renderItem({
           if (noteValue != null && typeof noteValue === 'string' && noteValue.trim() !== '') {
             noteFilename = noteValue.trim()
           }
-          logDebug('dialogElementRenderer', `heading-chooser: sourceNoteKey="${String(sourceNoteKey)}", noteValue="${String(noteValue || '')}", noteFilename="${String(noteFilename || 'null')}", hasRequestFromPlugin=${!!requestFromPlugin}`)
+          logDebug(
+            'dialogElementRenderer',
+            `heading-chooser: sourceNoteKey="${String(sourceNoteKey)}", noteValue="${String(noteValue || '')}", noteFilename="${String(
+              noteFilename || 'null',
+            )}", hasRequestFromPlugin=${!!requestFromPlugin}`,
+          )
         } else {
           logDebug('dialogElementRenderer', `heading-chooser: sourceNoteKey="${String(sourceNoteKey || 'undefined')}", updatedSettings=${!!updatedSettings}, noteFilename=null`)
         }

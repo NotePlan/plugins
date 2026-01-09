@@ -29,6 +29,18 @@ type TFolderIcon = {
   darkAlpha?: number,
 }
 
+// NoteOption type for React components (shared with np.Shared)
+export type NoteOption = {
+  title: string,
+  filename: string,
+  type?: string, // 'Notes' or 'Calendar'
+  frontmatterAttributes?: { [key: string]: any },
+  isTeamspaceNote?: boolean,
+  teamspaceID?: ?string,
+  teamspaceTitle?: ?string,
+  changedDate?: ?number,
+}
+
 //------------------------------ Constants ------------------------------------
 
 const pluginJson = 'NPnote.js'
@@ -193,6 +205,71 @@ export async function chooseNoteV2(
 
   // logDebug('chooseNoteV2', `-> ${noteToReturn ? noteToReturn.filename : '(none)'}`)
   return noteToReturn
+}
+
+/**
+ * Get decoration details for a note (icon, color, shortDescription)
+ * Shared helper that works with both TNote and NoteOption types
+ * This mirrors the logic from chooseNoteV2 for consistent decoration across native and React components
+ * @param {TNote | NoteOption} note - The note to get decoration for (can be TNote or NoteOption)
+ * @returns {{ icon: string, color: string, shortDescription: ?string }} Decoration object with icon, color, shortDescription
+ */
+export function getNoteDecorationForReact(note: TNote | NoteOption): { icon: string, color: string, shortDescription: ?string } {
+  // Show titles with relative dates, but without path
+  const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
+
+  // Work out which icon to use for this note
+  const FMAttributes = note.frontmatterAttributes || {}
+  const userSetIcon = FMAttributes['icon']
+  const userSetIconColor = FMAttributes['icon-color'] // Note: this is a tailwind color name, not a hex code
+  // Note: Teamspace notes are currently (v3.18) only regular or calendar notes, not @Templates, @Archive or @Trash.
+
+  // Determine note type for icon - use same logic as chooseNoteV2
+  let noteTypeForIcon = getFolderFromFilename(note.filename).split('/')[0]
+  if (note.type === 'Calendar') {
+    // Use filename pattern matching for calendar note type detection
+    // This works for both TNote and NoteOption since dateTime helpers only need filename anyway
+    // The dateTime helpers (isDailyNote, etc.) use regex patterns on filename, so we replicate that logic here
+    const basename = note.filename.split('/').pop() || ''
+    // Match patterns used by dateTime helpers:
+    // - Daily: YYYYMMDD.md or YYYY-MM-DD.md
+    // - Weekly: YYYY-Wnn.md
+    // - Monthly: YYYY-MM.md
+    // - Quarterly: YYYY-Qn.md
+    // - Yearly: YYYY.md
+    if (/^\d{8}\.md$/.test(basename) || /^\d{4}-\d{2}-\d{2}\.md$/.test(basename)) {
+      noteTypeForIcon = '<DAY>'
+    } else if (/^\d{4}-W\d{2}\.md$/.test(basename)) {
+      noteTypeForIcon = '<WEEK>'
+    } else if (/^\d{4}-\d{2}\.md$/.test(basename) && !basename.includes('-W') && !basename.includes('-Q')) {
+      noteTypeForIcon = '<MONTH>'
+    } else if (/^\d{4}-Q\d\.md$/.test(basename)) {
+      noteTypeForIcon = '<QUARTER>'
+    } else {
+      noteTypeForIcon = '<YEAR>'
+    }
+  }
+  const folderIconDetails = noteIconsToUse.find((details) => details.firstLevelFolder === noteTypeForIcon) ?? defaultNoteIconDetails
+
+  // Determine color - use same logic as chooseNoteV2
+  const isTeamspace = possTeamspaceDetails.isTeamspace || (note.isTeamspaceNote === true)
+  const color = isTeamspace ? TEAMSPACE_ICON_COLOR : userSetIconColor ? userSetIconColor : folderIconDetails.color
+
+  // Short description - use same logic as chooseNoteV2
+  let shortDescription: ?string = null
+  if (note.type === 'Notes') {
+    // For Notes, show folder display name (same as chooseNoteV2)
+    shortDescription = getFolderDisplayName(getFolderFromFilename(note.filename) ?? '')
+  } else if (isTeamspace && 'teamspaceTitle' in note && note.teamspaceTitle) {
+    // For teamspace notes, show teamspace title
+    shortDescription = note.teamspaceTitle
+  }
+
+  return {
+    icon: userSetIcon ? userSetIcon : folderIconDetails.icon,
+    color,
+    shortDescription,
+  }
 }
 
 /**

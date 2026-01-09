@@ -477,7 +477,7 @@ function FavoritesViewComponent({
     setSelectedIndex(null)
     // Scroll list to top and focus the filter input after a brief delay to ensure it's rendered
     setTimeout(() => {
-      // Get toolbar height offset (same calculation as Toast.css: calc(1rem + var(--noteplan-toolbar-height, 0)))
+      // Get toolbar height offset (same calculation as Toast.css: calc(1rem + var(--noteplan-toolbar-height, 0px)))
       const root = document.documentElement
       if (!root) return
 

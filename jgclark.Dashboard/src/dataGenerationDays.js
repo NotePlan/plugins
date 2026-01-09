@@ -171,14 +171,6 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     let sectionDescription = `{closedOrOpenTaskCount} from ${todayDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
-    // Log encoding for debugging emoji corruption - check data right before creating section
-    for (const item of items || []) {
-      if (item.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
-        const charCodes = item.para.title.split('').map((c: string) => c.charCodeAt(0)).join(',')
-        logDebug('getTodaySectionData', `[ENCODING DEBUG] BEFORE creating section - Section ${thisSectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
-      }
-    }
-    
     const section: TSection = {
       ID: thisSectionCode,
       name: 'Today',
@@ -253,13 +245,6 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     // clo(section, 'dataGenerationDays: content')
     sections.push(section)
     
-    // Log encoding for debugging emoji corruption - check data right after pushing section
-    for (const item of section.sectionItems || []) {
-      if (item.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
-        const charCodes = item.para.title.split('').map((c: string) => c.charCodeAt(0)).join(',')
-        logDebug('getTodaySectionData', `[ENCODING DEBUG] AFTER pushing section - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
-      }
-    }
 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
@@ -307,15 +292,6 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
 
     logTimer('getTodaySectionData', startTime, `- found ${itemCount} daily items from ${filenameDateStr}`)
     
-    // Log encoding for debugging emoji corruption - check data right before returning sections
-    for (const sec of sections || []) {
-      for (const item of sec.sectionItems || []) {
-        if (item.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
-          const charCodes = item.para.title.split('').map((c: string) => c.charCodeAt(0)).join(',')
-          logDebug('getTodaySectionData', `[ENCODING DEBUG] BEFORE return - Section ${sec.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
-        }
-      }
-    }
 
     return sections
   } catch (error) {

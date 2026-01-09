@@ -1,9 +1,9 @@
 {
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.20.0",
+  "noteplan.minAppVersion": "3.20.1",
   "plugin.id": "np.Shared",
   "plugin.name": "🤝 Shared Resources",
-  "plugin.version": "1.0.0",
+  "plugin.version": "1.0.2",
   "plugin.releaseStatus": "full",
   "plugin.description": "Shared resources for NotePlan plugins. (There are no commands for users to run directly.)",
   "plugin.author": "jgclark + dwertheimer",

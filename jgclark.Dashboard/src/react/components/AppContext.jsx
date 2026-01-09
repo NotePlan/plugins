@@ -9,7 +9,7 @@
  ****************************************************************************************************************************/
 // @flow
 
-import React, { createContext, useContext, useEffect, useReducer, useRef, type Node } from 'react'
+import React, { createContext, useContext, useEffect, useReducer, useRef, useMemo, type Node } from 'react'
 // import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import type { TDashboardSettings, TReactSettings, TPluginData, TPerspectiveSettings } from '../../types'
 import { dashboardSettingsReducer } from '../reducers/dashboardSettingsReducer'
@@ -115,19 +115,37 @@ export const AppProvider = ({
   // Syncing perspectiveSettings with plugin
   useSyncPerspectivesWithPlugin(perspectiveSettings, pluginData.perspectiveSettings, dispatchPerspectiveSettings, compareFn)
 
-  const contextValue: AppContextType = {
-    sendActionToPlugin,
-    sendToPlugin,
-    dispatch,
-    pluginData,
-    reactSettings,
-    setReactSettings,
-    updatePluginData,
-    dashboardSettings,
-    dispatchDashboardSettings,
-    perspectiveSettings,
-    dispatchPerspectiveSettings,
-  }
+  // Memoize the context value to prevent unnecessary re-renders of all consumers
+  // This ensures that functions like sendActionToPlugin and dispatch maintain stable references
+  // Only recreate the context value when the actual props change
+  const contextValue: AppContextType = useMemo(
+    () => ({
+      sendActionToPlugin,
+      sendToPlugin,
+      dispatch,
+      pluginData,
+      reactSettings,
+      setReactSettings,
+      updatePluginData,
+      dashboardSettings,
+      dispatchDashboardSettings,
+      perspectiveSettings,
+      dispatchPerspectiveSettings,
+    }),
+    [
+      sendActionToPlugin,
+      sendToPlugin,
+      dispatch,
+      pluginData,
+      reactSettings,
+      setReactSettings,
+      updatePluginData,
+      dashboardSettings,
+      dispatchDashboardSettings,
+      perspectiveSettings,
+      dispatchPerspectiveSettings,
+    ],
+  )
 
   useEffect(() => {
     logDebug('AppContext', `Just FYI, React settings updated somewhere.`, { reactSettings })
