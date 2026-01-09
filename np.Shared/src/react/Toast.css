@@ -57,35 +57,31 @@
 }
 
 .toast.border-success {
-  border-left-color: #22c55e; /* Green border */
+  border-left-color: var(--fg-ok-color, #22c55e);
 }
 
 .toast.color-info {
-  /* Light blue background */
-  background-color: rgba(219, 234, 254, 0.95); /* Light blue (#dbeafe) with 95% opacity */
-  color: #1e40af; /* Dark blue for text contrast */
-  border-left-color: #3b82f6; /* Blue border */
+  background-color: var(--bg-info-color, rgba(219, 234, 254, 0.95));
+  color: var(--fg-info-color, #1e40af);
+  border-left-color: var(--fg-info-color, #3b82f6);
 }
 
 .toast.color-warn {
-  /* Light yellow/orange background */
-  background-color: rgba(254, 243, 199, 0.95); /* Light yellow (#fef3c7) with 95% opacity */
-  color: #b45309; /* Dark orange for text contrast */
-  border-left-color: #fbbf24; /* Yellow border */
+  background-color: var(--bg-warn-color, rgba(254, 243, 199, 0.95));
+  color: var(--fg-warn-color, #b45309);
+  border-left-color: var(--fg-warn-color, #fbbf24);
 }
 
 .toast.color-error {
-  /* Light red background */
-  background-color: rgba(254, 226, 226, 0.95); /* Light red (#fee2e2) with 95% opacity */
-  color: #991b1b; /* Dark red for text contrast */
-  border-left-color: #ef4444; /* Red border */
+  background-color: var(--bg-error-color, rgba(254, 226, 226, 0.95));
+  color: var(--fg-error-color, #991b1b);
+  border-left-color: var(--fg-error-color, #ef4444);
 }
 
 .toast.color-success {
-  /* Light green background for better readability */
-  background-color: rgba(220, 252, 231, 0.95); /* Light green (#dcfce7) with 95% opacity */
-  color: #15803d; /* Dark green for text contrast */
-  border-left-color: #22c55e; /* Green border */
+  background-color: var(--bg-ok-color, rgba(220, 252, 231, 0.95));
+  color: var(--fg-ok-color, #15803d);
+  border-left-color: var(--fg-ok-color, #22c55e);
 }
 
 .toast-message-text {

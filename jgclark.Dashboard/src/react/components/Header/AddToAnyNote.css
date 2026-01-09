@@ -1,0 +1,13 @@
+/* CSS specific to AddToAnyNote component from jgclark.Dashboard plugin */
+
+/* Position the Add Task dialog relative to the button that opens it */
+/* CSS variables are set via inline styles from AddToAnyNote component */
+.add-to-any-note-dialog.dynamic-dialog {
+	position: fixed !important;
+	left: auto !important; /* Override default left: 50% from base .dynamic-dialog class */
+	top: var(--add-dialog-top, auto);
+	right: var(--add-dialog-right, auto);
+	transform: none !important; /* Override default centering transform */
+	margin: 0 !important; /* Override default centering margin */
+}
+

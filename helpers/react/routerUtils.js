@@ -5,7 +5,7 @@
 //--------------------------------------------------------------------------
 
 import { sendToHTMLWindow } from '../HTMLView'
-import { logDebug, logError, clo, JSP } from '@helpers/dev'
+import { logDebug, logError, clo, JSP, logTimer, timer } from '@helpers/dev'
 
 /**
  * Get shared handlers from np.Shared
@@ -28,11 +28,11 @@ async function callSharedHandler(requestType: string, params: Object, pluginJson
     }
 
     logDebug(pluginJson, `[routerUtils] Attempting to call np.Shared handler for "${requestType}"`)
-    
+
     // Use DataStore.invokePluginCommandByName to call np.Shared's handleSharedRequest
     // This requires np.Shared to have handleSharedRequest registered in plugin.json
     const result = await DataStore.invokePluginCommandByName('handleSharedRequest', 'np.Shared', [requestType, params, pluginJson])
-    
+
     if (result && typeof result === 'object' && 'success' in result) {
       logDebug(pluginJson, `[routerUtils] np.Shared handler result for "${requestType}": success=${String(result.success)}`)
       return result
@@ -126,11 +126,13 @@ export async function handleRequestResponse({
     }
     logDebug(pluginJson, `${routerName}: Using windowId="${windowId}" for RESPONSE`)
 
+    const dataToSend = result.data
+
     // Send response back to React
     sendToHTMLWindow(windowId, 'RESPONSE', {
       correlationId: data.__correlationId,
       success: result.success,
-      data: result.data,
+      data: dataToSend,
       error: result.message,
     })
     return {}
@@ -195,6 +197,7 @@ export function newCommsRouter({
   useSharedHandlersFallback?: boolean,
 }): (actionType: string, data: any) => Promise<any> {
   return async function router(actionType: string, data: any = null): Promise<any> {
+    const requestStartTime = new Date() // Start timing when request is received
     try {
       logDebug(pluginJson, `${routerName} received actionType="${actionType}"`)
       clo(data, `${routerName} data=`)
@@ -213,9 +216,7 @@ export function newCommsRouter({
           const isNotFound =
             !pluginResult.success &&
             message &&
-            (message.toLowerCase().includes('unknown') ||
-              message.toLowerCase().includes('not found') ||
-              message.toLowerCase().includes('no handler'))
+            (message.toLowerCase().includes('unknown') || message.toLowerCase().includes('not found') || message.toLowerCase().includes('no handler'))
 
           if (pluginResult.success || !isNotFound) {
             logDebug(pluginJson, `[${routerName}] Using plugin handler result for "${actionType}": success=${String(pluginResult.success)}`)
@@ -244,7 +245,7 @@ export function newCommsRouter({
           }
         }
 
-        return await handleRequestResponse({
+        const result = await handleRequestResponse({
           actionType,
           data,
           routerName,
@@ -253,23 +254,46 @@ export function newCommsRouter({
           getWindowId,
           pluginJson,
         })
+        logDebug(pluginJson, `[PERF] ${routerName} request/response completed for actionType="${actionType}" in ${timer(requestStartTime)}`)
+        // Log timing when request/response is complete
+        logTimer(
+          `${routerName}/router`,
+          requestStartTime,
+          `REQUEST/RESPONSE completed for actionType="${actionType}", correlationId="${data?.__correlationId || 'none'}"`,
+          1000, // Warn if takes longer than 1 second
+        )
+        return result
       }
 
       // For non-REQUEST actions, call the optional handler
       if (handleNonRequestAction) {
-        return await handleNonRequestAction(actionType, data)
+        const result = await handleNonRequestAction(actionType, data)
+        logTimer(
+          `${routerName}/router`,
+          requestStartTime,
+          `Non-REQUEST action completed for actionType="${actionType}"`,
+          1000, // Warn if takes longer than 1 second
+        )
+        return result
       }
 
       // Default: return empty object
+      logTimer(
+        `${routerName}/router`,
+        requestStartTime,
+        `Default (empty) response for actionType="${actionType}"`,
+        100, // Quick operation, warn if > 100ms
+      )
       return {}
     } catch (error) {
       logError(pluginJson, `${routerName} error: ${JSP(error)}`)
+      logTimer(
+        `${routerName}/router`,
+        requestStartTime,
+        `ERROR occurred for actionType="${actionType}": ${error.message}`,
+        100, // Log errors immediately
+      )
       return {}
     }
   }
 }
-
-
-
-
-

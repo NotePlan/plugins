@@ -48,16 +48,21 @@ export function getHeadings(params: { noteFilename: string, optionAddTopAndBotto
     }
 
     // Get headings from the note
+    // Use includeMarkdown: true to get headings with markdown markers (#) so we can extract heading levels
+    // This matches chooseHeadingV2 behavior which uses the same mechanism
     const optionAddTopAndBottom = params.optionAddTopAndBottom ?? true
     const includeArchive = params.includeArchive ?? false
-    const headings = getHeadingsFromNote(note, false, optionAddTopAndBottom, false, includeArchive)
+    const headings = getHeadingsFromNote(note, true, optionAddTopAndBottom, false, includeArchive)
+
+    // CRITICAL: Ensure headings is always an array (never undefined, null, or empty object)
+    const headingsArray = Array.isArray(headings) ? headings : []
 
     const totalElapsed: number = Date.now() - startTime
-    logDebug(pluginJson, `[np.Shared/requestHandlers] getHeadings COMPLETE: totalElapsed=${totalElapsed}ms, found=${headings.length} headings`)
+    logDebug(pluginJson, `[np.Shared/requestHandlers] getHeadings COMPLETE: totalElapsed=${totalElapsed}ms, found=${headingsArray.length} headings, isArray=${String(Array.isArray(headingsArray))}`)
 
     return {
       success: true,
-      data: headings,
+      data: headingsArray,
     }
   } catch (error) {
     const totalElapsed: number = Date.now() - startTime

@@ -28,15 +28,16 @@ import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
  *********************************************************************************/
 
 /**
- * Tell the React window to update by re-generating all Sections.
- * Note: I don't think this is used anymore (by v2.4 if not v2.3)
+ * Tell the React window to update by re-generating all enabled Sections.
+ * Used from v2.4 for the 'Reload' button when run in a "main window".
  */
-export async function refreshAllSections(): Promise<void> {
+export async function refreshDashboard(): Promise<void> {
   try {
-    logInfo('refreshAllSections', `👉👉👉👉 Starting ...so update codebase to note it is still used!`)
+    logInfo('refreshDashboard', `Starting to refresh Dashboard...`)
     const startTime = new Date()
-    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+
     // show refreshing message until done
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     await setPluginData({ refreshing: true, currentMaxPriorityFromAllVisibleSections: 0 }, 'Starting Refreshing all sections')
 
     // refresh all sections' data
@@ -47,14 +48,14 @@ export async function refreshAllSections(): Promise<void> {
       sections: newSections,
       lastFullRefresh: new Date(),
     }
-    await setPluginData(changedData, 'Finished Refreshing all sections')
-    logTimer('refreshAllSections', startTime, `at end for all sections`)
+    await setPluginData(changedData, 'Finished Refreshing all enabled sections')
+    logTimer('refreshDashboard', startTime, `finished for all enabled sections`)
 
     // re-calculate all done task counts (if the appropriate setting is on)
     const NPSettings = await getNotePlanSettings()
     if (NPSettings.doneDatesAvailable) {
       const config: any = await getDashboardSettings()
-      const totalDoneCount = await updateDoneCountsFromChangedNotes(`end of refreshAllSections()`, config.FFlag_ShowSectionTimings === true)
+      const totalDoneCount = await updateDoneCountsFromChangedNotes(`end of refreshDashboard()`, config.FFlag_ShowSectionTimings === true)
       const changedData = {
         totalDoneCount: totalDoneCount,
         firstRun: false, // Ensure firstRun remains false after refresh completes
@@ -62,17 +63,17 @@ export async function refreshAllSections(): Promise<void> {
       await setPluginData(changedData, 'Updating doneCounts at end of refreshAllSections')
     }
 
-    // Finally, if relevant, rebuild the tag mention cache.
-    if (isTagMentionCacheGenerationScheduled()) {
-      logInfo('refreshAllSections', `- now generating scheduled tag mention cache`)
-      await generateTagMentionCache()
-    }
+    // TEST: Now *not* rebuilding the tag mention cache.
+    // if (isTagMentionCacheGenerationScheduled()) {
+    //   logInfo('refreshDashboard', `- now generating scheduled tag mention cache`)
+    //   await generateTagMentionCache()
+    // }
   }
   catch (error) {
     // try to close the modal spinner and reset firstRun flag, if necessary
-    await setPluginData({ refreshing: false, firstRun: false }, `Error in refreshAllSections; resetting state`)
-    logError('refreshAllSections', error)
-    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Error in refreshAllSections: ${error.message}`, 'ERROR')
+    await setPluginData({ refreshing: false, firstRun: false }, `Error in refreshDashboard; resetting state`)
+    logError('refreshDashboard', error)
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Error in refreshDashboard: ${error.message}`, 'ERROR')
   }
 }
 
@@ -99,7 +100,6 @@ export async function incrementallyRefreshSomeSections(
     if (!sectionCodes) {
       throw new Error('No sections to incrementally refresh. If this happens again, please report it to the developer.')
     }
-    // logDebug('incrementallyRefreshSomeSections', `[ENCODING DEBUG] ===== incrementallyRefreshSomeSections CALLED for sections [${String(sectionCodes)}] =====`)
     logDebug('incrementallyRefreshSomeSections', `Starting incremental refresh for sections [${String(sectionCodes)}]`)
     await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
 
@@ -152,9 +152,6 @@ export async function incrementallyRefreshSomeSections(
 export async function refreshSomeSections(data: MessageDataObject, calledByTrigger: boolean = false): Promise<TBridgeClickHandlerResult> {
   try {
     const startTime = new Date()
-    
-    // Log encoding for debugging emoji corruption - check data right after generation
-    // logDebug('refreshSomeSections', `[ENCODING DEBUG] ===== refreshSomeSections CALLED for sections: ${String(data.sectionCodes)} =====`)
     const { sectionCodes } = data
     if (!sectionCodes) {
       throw new Error('No sections to refresh. If this happens again, please report it to the developer.')
@@ -179,46 +176,11 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
     // Force the wanted sections to refresh
     const newSections = await getSomeSectionsData(sectionCodes, pluginData.demoMode, calledByTrigger)
-    // // Log encoding for debugging emoji corruption - check data right after getSomeSectionsData
-    // // Check ALL titles that contain "Dashboard Plugin" to catch corruption
-    // for (const section of newSections || []) {
-    //   for (const item of section.sectionItems || []) {
-    //     const title = item.para?.title
-    //     if (title && title.includes('Dashboard Plugin')) {
-    //       const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-    //       logDebug('refreshSomeSections', `[ENCODING DEBUG] AFTER getSomeSectionsData - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-    //     }
-    //   }
-    // }
-
     // logTimer('refreshSomeSections', startTime, `- after getSomeSectionsData(): [${getDisplayListOfSectionCodes(newSections)}]`)
     const mergedSections = mergeSections(existingSections, newSections)
-
-    // // Log encoding for debugging emoji corruption - check data right after mergeSections
-    // // Check ALL titles that contain "Dashboard Plugin" to catch corruption
-    // for (const section of mergedSections || []) {
-    //   for (const item of section.sectionItems || []) {
-    //     const title = item.para?.title
-    //     if (title && title.includes('Dashboard Plugin')) {
-    //       const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-    //       logDebug('refreshSomeSections', `[ENCODING DEBUG] AFTER mergeSections - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-    //     }
-    //   }
-    // }
     // logTimer('refreshSomeSections', startTime, `- after mergeSections(): [${getDisplayListOfSectionCodes(mergedSections)}]`)
 
     const updates: TAnyObject = { sections: mergedSections }
-
-    // Log encoding for debugging emoji corruption - check data right before setPluginData
-    // Check ALL titles that contain "Dashboard Plugin" to catch corruption
-    // for (const section of updates.sections || []) {
-    //   for (const item of section.sectionItems || []) {
-    //     if (item.para?.title && item.para.title.includes('Dashboard Plugin')) {
-    //       const charCodes = item.para.title.split('').map(c => c.charCodeAt(0)).join(',')
-    //       logDebug('refreshSomeSections', `[ENCODING DEBUG] BEFORE setPluginData - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
-    //     }
-    //   }
-    // }
 
     // Update the total done counts. 
     // Note: this is being done somewhere else, so turning off here

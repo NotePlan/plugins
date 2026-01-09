@@ -122,6 +122,7 @@ export type TSettingItem = {
   dependsOnSpaceKey?: string, // DEPRECATED: use sourceSpaceKey instead. For note-chooser, key of a space-chooser field to filter notes by space (value dependency)
   sourceSpaceKey?: string, // Value dependency: for note-chooser, key of a space-chooser field to filter notes by space
   showTitleOnly?: boolean, // for note-chooser, show only the note title in the label (not "path / title") (default: false)
+  showCalendarChooserIcon?: boolean, // for note-chooser, show a calendar button next to the chooser (default: true)
   onOpen?: () => void | Promise<void>, // for note-chooser and other choosers, callback when dropdown opens (for lazy loading)
   // showValue option for SearchableChooser-based fields
   showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
@@ -190,7 +191,7 @@ export type TSettingItem = {
 export type TDynamicDialogProps = {
   // optional props
   items?: Array<TSettingItem>, // generally required, but can be empty (e.g. for PerspectivesTable)
-  onSave?: (updatedSettings: { [key: string]: any }, windowId?: string) => void, // Updated to accept optional windowId
+  onSave?: (updatedSettings: { [key: string]: any }, windowId?: string) => void | Promise<void>, // Updated to accept optional windowId and async handlers
   onCancel?: () => void,
   handleButtonClick?: (key: string, value: any) => void | boolean, // Add handleButtonClick prop (return false to prevent closing)
   className?: string,
@@ -211,13 +212,16 @@ export type TDynamicDialogProps = {
   folders?: Array<string>, // For folder-chooser field types
   notes?: Array<NoteOption>, // For note-chooser field types
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Optional function to call plugin commands (for native folder chooser)
-  onFoldersChanged?: (space?: ?string) => void, // Callback to reload folders after creating a new folder (optional space parameter)
-  onNotesChanged?: (space?: ?string) => void, // Callback to reload notes after creating a new note (optional space parameter)
+  onFoldersChanged?: (space?: ?string) => void | Promise<void>, // Callback to reload folders after creating a new folder (optional space parameter, can return Promise)
+  onNotesChanged?: (space?: ?string) => void | Promise<void>, // Callback to reload notes after creating a new note (optional space parameter, can return Promise)
+  onFieldChange?: (key: string, value: any, allValues: { [key: string]: any }) => void, // Optional callback when any field changes (for parent to react to changes)
   windowId?: string, // Optional window ID to pass when submitting (for backward compatibility, will use fallback if not provided)
   keepOpenOnSubmit?: boolean, // If true, don't close the window after submit (e.g., for Form Browser context)
   defaultValues?: { [key: string]: any }, // Default values to pre-populate form fields
   templateFilename?: string, // Template filename for autosave field
   templateTitle?: string, // Template title for autosave field
+  errorMessage?: ?string, // Optional error message to display in a banner inside the dialog
+  fieldLoadingStates?: { [fieldKey: string]: boolean }, // Optional external loading states for fields (overrides internal state if provided)
 }
 
 //--------------------------------------------------------------------------
@@ -250,10 +254,13 @@ const DynamicDialog = ({
   requestFromPlugin,
   onFoldersChanged,
   onNotesChanged,
+  onFieldChange,
   keepOpenOnSubmit = false, // Default to false (close on submit for backward compatibility)
   defaultValues,
   templateFilename,
   templateTitle,
+  errorMessage,
+  fieldLoadingStates: externalFieldLoadingStates,
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || []
@@ -316,248 +323,176 @@ const DynamicDialog = ({
   const autosaveTriggersRef = useRef<Array<() => Promise<void>>>([]) // Store autosave trigger functions
   const isSavingRef = useRef<boolean>(false) // Guard to prevent multiple simultaneous saves
   const previousSettingsRef = useRef<{ [key: string]: any }>({}) // Track previous settings to detect changes
-  const dependencyMapRef = useRef<{ [sourceKey: string]: Array<{ fieldKey: string, reloadType?: 'notes' | 'folders', clearValue?: boolean }> }>({}) // Map of source field -> dependent fields
+  const dependencyMapRef = useRef<{ [sourceKey: string]: Array<{ fieldKey: string, clearValue?: boolean }> }>({}) // Map of source field -> dependent fields (generic, no hardcoded knowledge)
   const isClearingValuesRef = useRef<boolean>(false) // Track if we're currently clearing values to prevent infinite loops
-  const initialLoadTriggeredRef = useRef<boolean>(false) // Track if initial load has been triggered for current dialog open session
   const previousIsOpenRef = useRef<boolean>(false) // Track previous isOpen state to detect dialog open/close transitions
-  const [fieldLoadingStates, setFieldLoadingStates] = useState<{ [fieldKey: string]: boolean }>({}) // Track loading state for dependent fields
+  const [fieldLoadingStates, setFieldLoadingStates] = useState<{ [fieldKey: string]: boolean }>({}) // Track loading state for dependent fields (can be set by parent component)
 
   useEffect(() => {
     updatedSettingsRef.current = updatedSettings
   }, [updatedSettings])
 
-  // Build dependency map: track which fields depend on which other fields and what they need to reload/clear
+  // Build dependency map: track which fields depend on which other fields (generic, no hardcoded knowledge)
   useEffect(() => {
     const buildStartTime = performance.now()
     logDebug('DynamicDialog', `[PERF] Building dependency map - START`)
-    const dependencyMap: { [sourceKey: string]: Array<{ fieldKey: string, reloadType?: 'notes' | 'folders', clearValue?: boolean }> } = {}
-    
+    const dependencyMap: { [sourceKey: string]: Array<{ fieldKey: string, clearValue?: boolean }> } = {}
+
     items.forEach((item) => {
-      if (!item.key) return
-      
+      const fieldKey = item.key
+      if (!fieldKey) return
+
       const itemAny = (item: any)
-      
-      // Check for space dependency (can trigger notes or folders reload, and should clear dependent values)
+
+      // Generic dependency tracking - just track that field depends on another field
+      // No hardcoded knowledge of what type of field or what should happen
+
+      // Check for space dependency
       const sourceSpaceKey = itemAny.sourceSpaceKey ?? itemAny.dependsOnSpaceKey
       if (sourceSpaceKey) {
         if (!dependencyMap[sourceSpaceKey]) {
           dependencyMap[sourceSpaceKey] = []
         }
-        // Determine reload type based on field type
-        if (item.key) {
-          if (item.type === 'note-chooser') {
-            dependencyMap[sourceSpaceKey].push({ fieldKey: item.key, reloadType: 'notes', clearValue: true })
-          } else if (item.type === 'folder-chooser') {
-            dependencyMap[sourceSpaceKey].push({ fieldKey: item.key, reloadType: 'folders', clearValue: true })
-          }
-        }
+        dependencyMap[sourceSpaceKey].push({ fieldKey, clearValue: true })
       }
-      
-      // Check for folder dependency (can trigger notes reload, and should clear dependent values)
+
+      // Check for folder dependency
       const sourceFolderKey = itemAny.sourceFolderKey ?? itemAny.dependsOnFolderKey
       if (sourceFolderKey) {
         if (!dependencyMap[sourceFolderKey]) {
           dependencyMap[sourceFolderKey] = []
         }
-        if (item.key && item.type === 'note-chooser') {
-          dependencyMap[sourceFolderKey].push({ fieldKey: item.key, reloadType: 'notes', clearValue: true })
-        }
+        dependencyMap[sourceFolderKey].push({ fieldKey, clearValue: true })
       }
-      
-      // Check for note dependency (should clear dependent values - heading-chooser, markdown-preview, etc.)
+
+      // Check for note dependency
       const sourceNoteKey = itemAny.sourceNoteKey ?? itemAny.dependsOnNoteKey
       if (sourceNoteKey) {
         if (!dependencyMap[sourceNoteKey]) {
           dependencyMap[sourceNoteKey] = []
         }
-        // Heading-chooser, markdown-preview, etc. should clear when note changes
-        // They handle reloading themselves via useEffect, but we should clear their values
-        if (item.key && (item.type === 'heading-chooser' || item.type === 'markdown-preview')) {
-          dependencyMap[sourceNoteKey].push({ fieldKey: item.key, clearValue: true })
-        }
+        dependencyMap[sourceNoteKey].push({ fieldKey, clearValue: true })
       }
-      
-      // Check for date dependency (should clear dependent values - event-chooser)
+
+      // Check for date dependency
       const sourceDateKey = itemAny.sourceDateKey ?? itemAny.dependsOnDateKey
       if (sourceDateKey) {
         if (!dependencyMap[sourceDateKey]) {
           dependencyMap[sourceDateKey] = []
         }
-        if (item.key && item.type === 'event-chooser') {
-          const fieldKey: string = item.key // Type assertion for Flow
-          dependencyMap[sourceDateKey].push({ fieldKey, clearValue: true })
-        }
+        dependencyMap[sourceDateKey].push({ fieldKey, clearValue: true })
       }
-      
-      // Check for key dependency (should clear dependent values - frontmatter-key-chooser)
+
+      // Check for key dependency
       const sourceKeyKey = itemAny.sourceKeyKey ?? itemAny.dependsOnKeyKey
       if (sourceKeyKey) {
         if (!dependencyMap[sourceKeyKey]) {
           dependencyMap[sourceKeyKey] = []
         }
-        if (item.key && item.type === 'frontmatter-key-chooser') {
-          const fieldKey: string = item.key // Type assertion for Flow
-          dependencyMap[sourceKeyKey].push({ fieldKey, clearValue: true })
-        }
+        dependencyMap[sourceKeyKey].push({ fieldKey, clearValue: true })
       }
     })
-    
+
     dependencyMapRef.current = dependencyMap
     const buildElapsed = performance.now() - buildStartTime
     logDebug('DynamicDialog', `[PERF] Built dependency map: ${Object.keys(dependencyMap).length} source fields with dependents - elapsed=${buildElapsed.toFixed(2)}ms`)
   }, [items])
 
-  // Initialize/reset previous settings when dialog opens and trigger initial loading for default values
+  // Initialize/reset previous settings when dialog opens
   useEffect(() => {
     // Only run when dialog transitions from closed to open (not on every updatedSettings change)
     const wasOpen = previousIsOpenRef.current
     const isNowOpen = isOpen
-    
+
     if (isNowOpen && !wasOpen) {
-      // Dialog just opened - reset flags and trigger initial load
-      initialLoadTriggeredRef.current = false
+      // Dialog just opened
       const dialogOpenStartTime = performance.now()
       logDebug('DynamicDialog', `[PERF] Dialog opened - START`)
       // Reset previous settings when dialog opens to establish baseline
       previousSettingsRef.current = { ...updatedSettings }
-      
-      // Check if any source fields have default values and trigger dependent field loading
-      const dependencyMap = dependencyMapRef.current
-      const fieldsToLoad: Array<{ fieldKey: string, sourceKey: string, sourceValue: any, reloadType: 'notes' | 'folders' }> = []
-      
-      Object.keys(dependencyMap).forEach((sourceKey) => {
-        const sourceValue = updatedSettings[sourceKey]
-        // If source field has a value (default or otherwise, including empty string for Private), trigger dependent field loading
-        // Empty string ('') is a valid value for Private space, so we check for null/undefined only
-        if (sourceValue !== null && sourceValue !== undefined) {
-          const dependents = dependencyMap[sourceKey]
-          dependents.forEach((dependent) => {
-            if (dependent.reloadType && dependent.fieldKey) {
-              fieldsToLoad.push({
-                fieldKey: dependent.fieldKey,
-                sourceKey,
-                sourceValue,
-                reloadType: dependent.reloadType,
-              })
-            }
-          })
-        }
-      })
-      
-      // Trigger initial loading for dependent fields if source fields have default values (only once per dialog open)
-      if (fieldsToLoad.length > 0 && !initialLoadTriggeredRef.current) {
-        initialLoadTriggeredRef.current = true
-        logDebug('DynamicDialog', `Dialog opened with default values - triggering initial load for ${fieldsToLoad.length} dependent field(s)`)
-        
-        // Set loading states immediately
-        setFieldLoadingStates((prev) => {
-          const newLoadingStates = { ...prev }
-          fieldsToLoad.forEach((field) => {
-            newLoadingStates[field.fieldKey] = true
-          })
-          return newLoadingStates
-        })
-        
-        // Yield to UI, then trigger reloads
-        setTimeout(async () => {
-          for (const field of fieldsToLoad) {
-            if (field.reloadType === 'notes' && onNotesChanged) {
-              logDebug('DynamicDialog', `[PERF] Triggering initial onNotesChanged for field "${field.fieldKey}" due to default "${field.sourceKey}" value (space="${String(field.sourceValue)}")`)
-              try {
-                onNotesChanged(field.sourceValue) // Pass space value
-              } catch (error) {
-                logDebug('DynamicDialog', `onNotesChanged with parameter failed, trying without: ${error.message}`)
-                onNotesChanged()
-              }
-            } else if (field.reloadType === 'folders' && onFoldersChanged) {
-              logDebug('DynamicDialog', `[PERF] Triggering initial onFoldersChanged for field "${field.fieldKey}" due to default "${field.sourceKey}" value`)
-              try {
-                onFoldersChanged(field.sourceValue) // Pass space value
-              } catch (error) {
-                logDebug('DynamicDialog', `onFoldersChanged with parameter failed, trying without: ${error.message}`)
-                onFoldersChanged()
-              }
-            }
-          }
-          
-          // Clear loading states after a short delay
-          setTimeout(() => {
-            setFieldLoadingStates((prev) => {
-              const clearedLoadingStates = { ...prev }
-              fieldsToLoad.forEach((field) => {
-                clearedLoadingStates[field.fieldKey] = false
-              })
-              return clearedLoadingStates
-            })
-          }, 100)
-        }, 0) // Yield to UI first
-      }
-      
+
       const dialogOpenElapsed = performance.now() - dialogOpenStartTime
       logDebug('DynamicDialog', `[PERF] Dialog opened - COMPLETE: elapsed=${dialogOpenElapsed.toFixed(2)}ms (initialized previous settings for dependency tracking)`)
-    } else if (!isNowOpen && wasOpen) {
-      // Dialog just closed - reset the initial load flag
-      initialLoadTriggeredRef.current = false
     }
-    
+
     // Update previous isOpen state
     previousIsOpenRef.current = isNowOpen
-  }, [isOpen, updatedSettings, onNotesChanged, onFoldersChanged]) // Keep updatedSettings for reading current values, but use refs to prevent re-triggering
+  }, [isOpen, updatedSettings]) // Keep updatedSettings for reading current values
 
-  // Watch for dependency changes and trigger reloads/clear values
+  // Watch for dependency changes and clear values (generic - no hardcoded reload logic)
+  // Handles cascading dependencies recursively (e.g., space -> note -> heading)
   useEffect(() => {
-    if (!isOpen) return // Don't trigger reloads when dialog is closed
+    if (!isOpen) return // Don't clear values when dialog is closed
     if (isClearingValuesRef.current) return // Skip if we're currently clearing values (prevent infinite loops)
-    
+
     const dependencyMap = dependencyMapRef.current
     const previousSettings = previousSettingsRef.current
     const currentSettings = updatedSettings
-    
+
     // Track if we need to update settings (for clearing values)
     let needsUpdate = false
     const newSettings = { ...currentSettings }
-    const fieldsToLoad: Array<{ fieldKey: string, sourceKey: string, sourceValue: any, reloadType: 'notes' | 'folders' }> = []
-    
-    // Check each source field in the dependency map
+    const fieldsToClear: Set<string> = new Set() // Track all fields that need to be cleared (for cascading)
+
+    // First pass: identify all fields that need to be cleared due to direct dependency changes
     Object.keys(dependencyMap).forEach((sourceKey) => {
       const previousValue = previousSettings[sourceKey]
       const currentValue = currentSettings[sourceKey]
-      
+
       // If the source field value changed (and we have a previous value to compare), handle dependents
       // We check previousValue !== undefined to ensure we're not triggering on initial mount
       if (previousValue !== currentValue && previousValue !== undefined) {
         const dependents = dependencyMap[sourceKey]
         logDebug('DynamicDialog', `Field "${sourceKey}" changed from "${String(previousValue)}" to "${String(currentValue)}". Handling ${dependents.length} dependent field(s)`)
-        
+
         dependents.forEach((dependent) => {
-          // Clear dependent field value if needed
+          // Mark dependent field for clearing if needed
           if (dependent.clearValue && dependent.fieldKey) {
             const currentDependentValue = currentSettings[dependent.fieldKey]
             if (currentDependentValue != null && currentDependentValue !== '') {
-              logDebug('DynamicDialog', `Clearing value for field "${dependent.fieldKey}" due to "${sourceKey}" change`)
+              logDebug('DynamicDialog', `Marking field "${dependent.fieldKey}" for clearing due to "${sourceKey}" change`)
+              fieldsToClear.add(dependent.fieldKey)
               newSettings[dependent.fieldKey] = ''
               needsUpdate = true
             }
           }
-          
-          // Track fields that need reloading (we'll trigger after yielding)
-          if (dependent.reloadType && dependent.fieldKey) {
-            fieldsToLoad.push({
-              fieldKey: dependent.fieldKey,
-              sourceKey,
-              sourceValue: currentValue,
-              reloadType: dependent.reloadType,
-            })
-          }
         })
       }
     })
-    
+
+    // Second pass: handle cascading dependencies (recursively clear fields that depend on fields we just cleared)
+    // Continue until no more fields need to be cleared (handles chains like space -> note -> heading)
+    let hasChanges = true
+    while (hasChanges) {
+      hasChanges = false
+      // Check each field that was marked for clearing to see if it has its own dependents
+      fieldsToClear.forEach((fieldToClear) => {
+        const dependents = dependencyMap[fieldToClear]
+        if (dependents && dependents.length > 0) {
+          dependents.forEach((dependent) => {
+            if (dependent.clearValue && dependent.fieldKey) {
+              // Only clear if not already cleared and has a value
+              if (!fieldsToClear.has(dependent.fieldKey)) {
+                const currentDependentValue = newSettings[dependent.fieldKey]
+                if (currentDependentValue != null && currentDependentValue !== '') {
+                  logDebug('DynamicDialog', `Cascading clear: field "${dependent.fieldKey}" cleared because its source "${fieldToClear}" was cleared`)
+                  fieldsToClear.add(dependent.fieldKey)
+                  newSettings[dependent.fieldKey] = ''
+                  needsUpdate = true
+                  hasChanges = true
+                }
+              }
+            }
+          })
+        }
+      })
+    }
+
     // Update previous settings for next comparison
     if (isOpen) {
       previousSettingsRef.current = { ...currentSettings }
     }
-    
+
     // Update settings if we cleared any values
     if (needsUpdate) {
       isClearingValuesRef.current = true
@@ -570,62 +505,7 @@ const DynamicDialog = ({
         isClearingValuesRef.current = false
       }, 0)
     }
-    
-    // Yield to UI before triggering reloads, then trigger them asynchronously
-    if (fieldsToLoad.length > 0) {
-      // Set loading states immediately
-      setFieldLoadingStates((prev) => {
-        const newLoadingStates = { ...prev }
-        fieldsToLoad.forEach((field) => {
-          newLoadingStates[field.fieldKey] = true
-        })
-        return newLoadingStates
-      })
-      
-      // Yield to UI, then trigger reloads
-      setTimeout(async () => {
-        const perfStartTime = performance.now()
-        logDebug('DynamicDialog', `[PERF] Dependency change handler - START (yielded to UI first)`)
-        
-        for (const field of fieldsToLoad) {
-          if (field.reloadType === 'notes' && onNotesChanged) {
-            logDebug('DynamicDialog', `[PERF] Triggering onNotesChanged for field "${field.fieldKey}" due to "${field.sourceKey}" change (space="${String(field.sourceValue)}")`)
-            // Always pass the source value (space) to the callback
-            // If the callback doesn't accept parameters, it will just ignore it
-            try {
-              onNotesChanged(field.sourceValue) // Pass space value
-            } catch (error) {
-              // If callback doesn't accept parameter, try without it
-              logDebug('DynamicDialog', `onNotesChanged with parameter failed, trying without: ${error.message}`)
-              onNotesChanged()
-            }
-          } else if (field.reloadType === 'folders' && onFoldersChanged) {
-            logDebug('DynamicDialog', `[PERF] Triggering onFoldersChanged for field "${field.fieldKey}" due to "${field.sourceKey}" change (space="${String(field.sourceValue)}")`)
-            try {
-              onFoldersChanged(field.sourceValue) // Pass space value
-            } catch (error) {
-              logDebug('DynamicDialog', `onFoldersChanged with parameter failed, trying without: ${error.message}`)
-              onFoldersChanged()
-            }
-          }
-        }
-        
-        // Clear loading states after a short delay to allow data to load
-        setTimeout(() => {
-          setFieldLoadingStates((prev) => {
-            const clearedLoadingStates = { ...prev }
-            fieldsToLoad.forEach((field) => {
-              clearedLoadingStates[field.fieldKey] = false
-            })
-            return clearedLoadingStates
-          })
-        }, 100) // Small delay to ensure loading indicator shows
-        
-        const perfElapsed = performance.now() - perfStartTime
-        logDebug('DynamicDialog', `[PERF] Dependency change handler - COMPLETE: elapsed=${perfElapsed.toFixed(2)}ms`)
-      }, 0) // Yield to UI first
-    }
-  }, [updatedSettings, onNotesChanged, onFoldersChanged, isOpen])
+  }, [updatedSettings, isOpen])
 
   if (!updatedSettings) return null // Prevent rendering before items are loaded
 
@@ -685,6 +565,10 @@ const DynamicDialog = ({
     setUpdatedSettings((prevSettings) => {
       const newSettings = { ...prevSettings, [key]: value }
       updatedSettingsRef.current = newSettings
+      // Call onFieldChange callback if provided (for parent to react to changes)
+      if (onFieldChange) {
+        onFieldChange(key, value, newSettings)
+      }
       return newSettings
     })
   }
@@ -836,6 +720,22 @@ const DynamicDialog = ({
         )}
       </div>
       <div className="dynamic-dialog-content thin-scrollbar" style={dialogStyle?.content}>
+        {errorMessage && (
+          <div
+            className="dynamic-dialog-error-banner"
+            style={{
+              padding: '0.75rem 1rem',
+              marginBottom: '1rem',
+              backgroundColor: 'var(--bg-error-color, #f5e6e6)',
+              color: 'var(--fg-error-color, #b85450)',
+              border: '1px solid var(--fg-error-color, #b85450)',
+              borderRadius: '4px',
+              fontSize: '0.9rem',
+            }}
+          >
+            {errorMessage}
+          </div>
+        )}
         {children}
         {items.map((item, index) => {
           const renderItemProps: any = {

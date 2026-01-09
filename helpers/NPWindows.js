@@ -29,6 +29,7 @@ const MIN_WINDOW_HEIGHT = 430
  * @returns {string}
  */
 export function rectToString(rect: Rect): string {
+  if (!rect) { return 'undefined' }
   return `X${String(rect.x)},Y${String(rect.y)}, w${String(rect.width)},h${String(rect.height)}`
 }
 

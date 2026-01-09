@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { calculatePortalPosition } from '@helpers/react/reactUtils.js'
 import './SearchableChooser.css'
 
 /**
@@ -492,37 +493,35 @@ export function SearchableChooser({
   // Prepare portal container for dropdown
   const portalContainer: ?HTMLElement = typeof document !== 'undefined' && document.body ? document.body : null
 
-  // Helper function to calculate dropdown position
+  // Helper function to calculate dropdown position using the shared portal positioning helper
   const calculateDropdownPosition = (): ?{ top: number, left: number, width: number, openAbove: boolean } => {
     if (!inputRef.current) return null
 
-    const inputRect = inputRef.current.getBoundingClientRect()
-    const viewportHeight = window.innerHeight
-    const viewportWidth = window.innerWidth
     const dropdownMaxHeight = 150 // Match CSS max-height
-    const spaceBelow = viewportHeight - inputRect.bottom
-    const spaceAbove = inputRect.top
-    const openAbove = spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow
+    const inputRect = inputRef.current.getBoundingClientRect()
 
-    let top: number
-    if (openAbove) {
-      // Position above the input
-      top = inputRect.top - Math.min(dropdownMaxHeight, spaceAbove - 10)
-      if (top < 10) {
-        top = 10
-      }
-    } else {
-      // Position below the input
-      top = inputRect.bottom
+    // Use the shared portal positioning helper
+    const position = calculatePortalPosition({
+      referenceElement: inputRef.current,
+      elementWidth: inputRect.width,
+      elementHeight: dropdownMaxHeight,
+      preferredPlacement: 'below',
+      preferredAlignment: 'start',
+      offset: 0, // No gap for dropdown (it should connect to input)
+      viewportPadding: 10,
+    })
+
+    if (!position) return null
+
+    // Determine if dropdown opens above based on placement
+    const openAbove = position.placement === 'above'
+
+    return {
+      top: position.top,
+      left: position.left,
+      width: inputRect.width, // Dropdown width matches input width
+      openAbove,
     }
-
-    // Ensure dropdown doesn't go off-screen
-    top = Math.max(10, Math.min(top, viewportHeight - 10))
-
-    const left = Math.max(10, Math.min(inputRect.left, viewportWidth - inputRect.width - 10))
-    const width = inputRect.width
-
-    return { top, left, width, openAbove }
   }
 
   // Debug logging (disabled for cleaner console output)
@@ -636,9 +635,10 @@ export function SearchableChooser({
               </div>
             ) : (
               (() => {
-                const itemsToShow = filteredItems.slice(0, maxResults)
+                // Show all items if maxResults is undefined, otherwise limit to maxResults
+                const itemsToShow = maxResults != null && maxResults > 0 ? filteredItems.slice(0, maxResults) : filteredItems
                 if (debugLogging) {
-                  console.log(`${fieldType}: Rendering ${itemsToShow.length} options (filtered from ${filteredItems.length} total, maxResults=${maxResults})`)
+                  console.log(`${fieldType}: Rendering ${itemsToShow.length} options (filtered from ${filteredItems.length} total, maxResults=${maxResults || 'unlimited'})`)
                 }
                 return itemsToShow.map((item: any, index: number) => {
                   const optionText = getOptionText(item)
@@ -702,7 +702,6 @@ export function SearchableChooser({
                         title={finalTitle}
                         style={{
                           cursor: showOptionClickHint ? 'pointer' : 'default',
-                          backgroundColor: isSelected ? 'var(--bg-alt-color, #e6e9ef)' : undefined,
                         }}
                       >
                         <div className={`searchable-chooser-option-first-line ${classNamePrefix}-option-first-line`}>
@@ -760,7 +759,6 @@ export function SearchableChooser({
                       title={finalTitle}
                       style={{
                         cursor: showOptionClickHint ? 'pointer' : 'default',
-                        backgroundColor: isSelected ? 'var(--hover-bg, #f5f5f5)' : undefined,
                       }}
                     >
                       <span className={`searchable-chooser-option-left ${classNamePrefix}-option-left`}>

@@ -265,11 +265,6 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
         const startTimeStr = startTime ? getTimeStringFromHM(startTime.hours, startTime.mins) : 'none'
         // Get title, but don't add the 👥 icon and teamspace name for Teamspace notes. Fallback is to use the note.title, which will be ISO-8601 date for Calendar notes.
         const noteTitle = note.type === 'Notes' ? displayTitle(note, false) : note.title
-        // Log title encoding for debugging emoji corruption
-        if (noteTitle && (noteTitle.includes('🧩') || noteTitle.includes('ð'))) {
-          const charCodes = noteTitle.split('').map(c => c.charCodeAt(0)).join(',')
-          logDebug('makeDashboardParas', `[ENCODING DEBUG] Note title with emoji/corruption: "${noteTitle}" (length=${noteTitle.length}, charCodes=${charCodes})`)
-        }
         const outputPara: TParagraphForDashboard = {
           filename: p?.filename ?? '',
           noteType: p?.noteType ?? note?.type ?? 'Notes',
@@ -819,48 +814,8 @@ export function handlerResult(success: boolean, actionsOnSuccess?: Array<TAction
 export async function setPluginData(changeObject: TAnyObject, changeMessage: string = ''): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   
-  // Log encoding for debugging emoji corruption - check data FROM getGlobalSharedData (from WebView)
-  // This is the data that already exists in the WebView, which might be corrupted
-  // if (reactWindowData?.pluginData?.sections) {
-  //   for (const section of reactWindowData.pluginData.sections || []) {
-  //     for (const item of section.sectionItems || []) {
-  //       const title = item.para?.title
-  //       if (title && title.includes('Dashboard Plugin')) {
-  //         const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-  //         logDebug('setPluginData', `[ENCODING DEBUG] FROM getGlobalSharedData (WebView) - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-  //       }
-  //     }
-  //   }
-  // }
-
-  // Log encoding for debugging emoji corruption - check changeObject (new data being merged in)
-  // if (changeObject?.sections) {
-  //   for (const section of changeObject.sections || []) {
-  //     for (const item of section.sectionItems || []) {
-  //       const title = item.para?.title
-  //       if (title && title.includes('Dashboard Plugin')) {
-  //         const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-  //         logDebug('setPluginData', `[ENCODING DEBUG] FROM changeObject (new data) - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-  //       }
-  //     }
-  //   }
-  // }
-  
   reactWindowData.pluginData = { ...reactWindowData.pluginData, ...changeObject }
   
-  // Log encoding for debugging emoji corruption - check data AFTER merge, BEFORE sending to sendToHTMLWindow
-  // Check ALL titles that contain "Dashboard Plugin" to catch corruption
-  // if (reactWindowData?.pluginData?.sections) {
-  //   for (const section of reactWindowData.pluginData.sections || []) {
-  //     for (const item of section.sectionItems || []) {
-  //       const title = item.para?.title
-  //       if (title && title.includes('Dashboard Plugin')) {
-  //         const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-  //         logDebug('setPluginData', `[ENCODING DEBUG] AFTER merge, BEFORE sendToHTMLWindow - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-  //       }
-  //     }
-  //   }
-  // }
   logInfo('setPluginData', `Sending changeMessage: "${changeMessage}"`)
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, changeMessage)
 }
@@ -874,60 +829,14 @@ export async function setPluginData(changeObject: TAnyObject, changeMessage: str
  * @returns {Array<TSection>} - merged sections
  */
 export function mergeSections(existingSections: Array<TSection>, newSections: Array<TSection>): Array<TSection> {
-  // Log encoding for debugging emoji corruption - check data BEFORE merge
-  // Check existingSections (from WebView, may already be corrupted)
-  for (const section of existingSections || []) {
-    for (const item of section.sectionItems || []) {
-      const title = item.para?.title
-      if (title && title.includes('Dashboard Plugin')) {
-        const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-        logDebug('mergeSections', `[ENCODING DEBUG] BEFORE merge - existingSection ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-      }
-    }
-  }
-  // Check newSections (freshly generated, should be correct)
-  for (const section of newSections || []) {
-    for (const item of section.sectionItems || []) {
-      const title = item.para?.title
-      if (title && title.includes('Dashboard Plugin')) {
-        const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-        logDebug('mergeSections', `[ENCODING DEBUG] BEFORE merge - newSection ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-      }
-    }
-  }
-  
   newSections.forEach((newSection) => {
     const existingIndex = existingSections.findIndex((existingSection) => existingSection.ID === newSection.ID)
     if (existingIndex > -1) {
-      // Log right before and after assignment to see if assignment corrupts
-      const titleBefore = existingSections[existingIndex]?.sectionItems?.[0]?.para?.title
-      if (titleBefore && titleBefore.includes('Dashboard Plugin')) {
-        const charCodesBefore = titleBefore.split('').map(c => c.charCodeAt(0)).join(',')
-        logDebug('mergeSections', `[ENCODING DEBUG] BEFORE assignment - existingSections[${existingIndex}], title: "${titleBefore}" (length=${titleBefore.length}, charCodes=${charCodesBefore})`)
-      }
       existingSections[existingIndex] = newSection
-      // Log right after assignment
-      const titleAfter = existingSections[existingIndex]?.sectionItems?.[0]?.para?.title
-      if (titleAfter && titleAfter.includes('Dashboard Plugin')) {
-        const charCodesAfter = titleAfter.split('').map(c => c.charCodeAt(0)).join(',')
-        logDebug('mergeSections', `[ENCODING DEBUG] AFTER assignment - existingSections[${existingIndex}], title: "${titleAfter}" (length=${titleAfter.length}, charCodes=${charCodesAfter})`)
-      }
     } else {
       existingSections.push(newSection)
     }
   })
-  
-  // Log encoding for debugging emoji corruption - check data AFTER merge
-  // Check ALL titles that contain "Dashboard Plugin" to catch corruption
-  for (const section of existingSections || []) {
-    for (const item of section.sectionItems || []) {
-      const title = item.para?.title
-      if (title && title.includes('Dashboard Plugin')) {
-        const charCodes = title.split('').map(c => c.charCodeAt(0)).join(',')
-        logDebug('mergeSections', `[ENCODING DEBUG] AFTER merge - Section ${section.sectionCode}, title: "${title}" (length=${title.length}, charCodes=${charCodes})`)
-      }
-    }
-  }
   
   return existingSections
 }
@@ -994,14 +903,6 @@ export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TPa
   let lastIndent3ParentID = ''
   const items: Array<TSectionItem> = []
   
-  // Log encoding for debugging emoji corruption - check data when converting from TParagraphForDashboard to TSectionItem
-  for (const socp of sortedOrCombinedParas) {
-    if (socp?.title && (socp.title.includes('🧩') || socp.title.includes('ð'))) {
-      const charCodes = socp.title.split('').map((c: string) => c.charCodeAt(0)).join(',')
-      logDebug('createSectionOpenItemsFromParas', `[ENCODING DEBUG] BEFORE creating sectionItem - Section ${sectionCode}, title: "${socp.title}" (length=${socp.title.length}, charCodes=${charCodes})`)
-    }
-  }
-  
   for (const socp of sortedOrCombinedParas) {
     // $FlowIgnore[incompatible-call]
     // $FlowIgnore[prop-missing]
@@ -1010,12 +911,6 @@ export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TPa
     }
     const thisID = `${sectionCode}-${itemCounter}`
     const thisSectionItemObject = createSectionItemObject(thisID, sectionCode, socp)
-    
-    // Log encoding for debugging emoji corruption - check data after creating sectionItem
-    if (thisSectionItemObject.para?.title && (thisSectionItemObject.para.title.includes('🧩') || thisSectionItemObject.para.title.includes('ð'))) {
-      const charCodes = thisSectionItemObject.para.title.split('').map((c: string) => c.charCodeAt(0)).join(',')
-      logDebug('createSectionOpenItemsFromParas', `[ENCODING DEBUG] AFTER creating sectionItem - Section ${sectionCode}, ID ${thisID}, title: "${thisSectionItemObject.para.title}" (length=${thisSectionItemObject.para.title.length}, charCodes=${charCodes})`)
-    }
     
     // Now add parentID where relevant
     if (socp.isAChild) {

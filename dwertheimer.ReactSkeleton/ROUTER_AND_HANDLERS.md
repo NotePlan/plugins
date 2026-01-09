@@ -15,13 +15,24 @@ This separation keeps your code organized and makes it easy to find and maintain
 
 ```
 src/
-  router.js              # Main router - routes to handlers
-  requestHandlers.js     # Handler functions - does the actual work
-  reactMain.js          # Window management and initialization
-  index.js              # Exports router to plugin.json
+  routeRequestsFromReact.js  # Main router - routes to handlers (uses newCommsRouter from @helpers/react/routerUtils)
+  requestHandlers/            # Folder containing individual handler files
+    addTaskToNote.js         # Example handler file
+    getFolders.js            # Another handler file
+    ...                      # More handlers as needed
+  reactMain.js               # Window management and initialization
+  index.js                   # Exports router to plugin.json
 ```
 
-## Router (`src/router.js`)
+**Important**: The router file should be named `routeRequestsFromReact.js` (or similar) and should use `newCommsRouter` from `@helpers/react/routerUtils.js`. Each handler should be in its own file in the `requestHandlers/` folder, following the pattern used in `np.Shared`.
+
+## Router (`src/routeRequestsFromReact.js`)
+
+**The router MUST use `newCommsRouter` from `@helpers/react/routerUtils.js`** - do not implement the router manually. This provides:
+- Automatic REQUEST/RESPONSE handling
+- Automatic fallback to np.Shared handlers
+- Consistent error handling
+- Proper window ID management
 
 The router is the entry point for all communication from React. It handles two patterns:
 
@@ -58,18 +69,47 @@ The router:
 The main router function is created using `newCommsRouter` from `@helpers/react/routerUtils`:
 
 ```javascript
+import { newCommsRouter } from '@helpers/react/routerUtils'
+import { addTaskToNote } from './requestHandlers/addTaskToNote'
+import { WEBVIEW_WINDOW_ID } from './constants'
+import pluginJson from '../plugin.json'
+
+// Route REQUEST type actions to appropriate handlers
+// IMPORTANT: Use async/await pattern - do NOT use Promise.resolve (not available in React/WebView)
+// Use await to support both sync and async handlers
+async function routeRequest(actionType: string, data: any): Promise<RequestResponse> {
+  switch (actionType) {
+    case 'addTaskToNote':
+      return await addTaskToNote(data, pluginJson)
+    default:
+      return {
+        success: false,
+        message: `Unknown request type: "${actionType}"`,
+        data: null,
+      }
+  }
+}
+
+// Handle non-REQUEST actions (using sendActionToPlugin)
+async function handleNonRequestAction(actionType: string, data: any): Promise<any> {
+  // Handle actions that don't need a response
+  // ...
+  return {}
+}
+
 export const onMessageFromHTMLView = newCommsRouter({
-  routerName: 'onMessageFromHTMLView',
+  routerName: 'Dashboard/routeRequestsFromReact',
   defaultWindowId: WEBVIEW_WINDOW_ID,
   routeRequest: routeRequest,              // Routes REQUEST actions
   handleNonRequestAction: handleNonRequestAction,  // Routes non-REQUEST actions
   pluginJson: pluginJson,
+  useSharedHandlersFallback: true,         // Enable automatic fallback to np.Shared handlers
 })
 ```
 
-## Request Handlers (`src/requestHandlers.js`)
+## Request Handlers (`src/requestHandlers/`)
 
-This file contains all handlers for the REQUEST/RESPONSE pattern.
+**Each handler should be in its own file** in the `requestHandlers/` folder, following the pattern used in `np.Shared`. This keeps handlers organized and makes them easy to find and maintain.
 
 ### Handler Structure
 
@@ -131,9 +171,9 @@ export async function handleRequest(requestType: string, params: any): Promise<R
 
 ## Adding New Handlers
 
-### Step 1: Add Handler Function
+### Step 1: Create Handler File
 
-Add your handler to `requestHandlers.js`:
+Create a new file in `requestHandlers/` folder (e.g., `requestHandlers/yourHandler.js`):
 
 ```javascript
 /**
@@ -159,14 +199,30 @@ export async function yourHandler(params: any = {}): Promise<RequestResponse> {
 }
 ```
 
-### Step 2: Add to Router
+### Step 2: Import and Add to Router
 
-Add a case to the `handleRequest()` switch statement:
+In `routeRequestsFromReact.js`, import your handler and add a case to the `routeRequest()` switch statement:
 
 ```javascript
-case 'yourHandler':
-  return await yourHandler(params)
+import { yourHandler } from './requestHandlers/yourHandler'
+
+// IMPORTANT: routeRequest must be async - do NOT use Promise.resolve
+// Use await to support both sync and async handlers
+async function routeRequest(actionType: string, data: any): Promise<RequestResponse> {
+  switch (actionType) {
+    case 'yourHandler':
+      return await yourHandler(data, pluginJson)  // Use await to support both sync and async handlers
+    // ... other cases
+  }
+}
 ```
+
+**Important Notes:**
+- `routeRequest` must be an `async function` (not a regular function)
+- Use `await` when calling handlers - this supports both sync and async handlers
+- Do NOT use `Promise.resolve()` (it's not available in React/WebView)
+- The `async` keyword automatically wraps return values in a Promise
+- This matches the pattern used in `np.Shared/src/sharedRequestRouter.js`
 
 ### Step 3: Use from React
 
@@ -182,7 +238,7 @@ For actions that don't need a response (using `sendActionToPlugin`):
 
 ### Step 1: Add Handler in Router
 
-Add your handler function in `router.js`:
+Add your handler function in `routeRequestsFromReact.js`:
 
 ```javascript
 async function handleYourAction(data: any, reactWindowData: PassedData): Promise<PassedData> {
@@ -263,7 +319,7 @@ The router function must be registered in two places:
 ### 1. Export from `src/index.js`
 
 ```javascript
-export { onMessageFromHTMLView } from './router.js'
+export { onMessageFromHTMLView } from './routeRequestsFromReact.js'
 ```
 
 ### 2. Register in `plugin.json`
@@ -280,7 +336,9 @@ export { onMessageFromHTMLView } from './router.js'
 ## See Also
 
 - [REACT_COMMUNICATION_PATTERNS.md](REACT_COMMUNICATION_PATTERNS.md) - Detailed explanation of communication patterns
-- `@helpers/react/routerUtils.js` - Shared router utilities
-- `src/router.js` - Router implementation
-- `src/requestHandlers.js` - Handler implementations
+- `@helpers/react/routerUtils.js` - Shared router utilities (MUST use `newCommsRouter`)
+- `np.Shared/src/sharedRequestRouter.js` - Example router implementation
+- `np.Shared/src/requestHandlers/` - Example handler implementations
+- `src/routeRequestsFromReact.js` - Router implementation (uses newCommsRouter)
+- `src/requestHandlers/` - Handler implementations (one file per handler)
 

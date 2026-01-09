@@ -33,18 +33,10 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
   const filename = item.para?.filename ?? '<no filename found>'
   // compute the things we need later
   const noteTitle = item?.para?.title || ''
-  // Log encoding for debugging emoji corruption
-  if (noteTitle && (noteTitle.includes('🧩') || noteTitle.includes('ð'))) {
-    const charCodes = noteTitle
-      .split('')
-      .map((c) => c.charCodeAt(0))
-      .join(',')
-    logDebug('ItemNoteLink', `[ENCODING DEBUG] React received title with emoji/corruption: "${noteTitle}" (length=${noteTitle.length}, charCodes=${charCodes})`)
-  }
-  logDebug(
-    `ItemNoteLink`,
-    `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} item.para.noteType:${item.para.noteType} / thisSection.filename=${thisSection.sectionFilename}`,
-  )
+  // logDebug(
+  //   `ItemNoteLink`,
+  //   `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} item.para.noteType:${item.para.noteType} / thisSection.filename=${thisSection.sectionFilename}`,
+  // )
 
   // Compute the icon and link class and style depending whether this is a teamspace item, and/or note types
   const noteIconToUse = isDailyDateStr(filename)

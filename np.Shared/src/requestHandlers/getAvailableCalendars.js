@@ -33,7 +33,8 @@ export function getAvailableCalendars(params: { writeOnly?: boolean } = {}, plug
     // even when writeOnly=false. This is why we offer "All NotePlan Enabled Calendars" option.
     // Note: Flow type definition shows 2 required params, but API accepts 1 param (2nd param optional from v3.20.0)
     // This matches the implementation in Forms plugin which works correctly at runtime
-    const calendars = Calendar.availableCalendarTitles(writeOnly || false)
+    // $FlowFixMe[incompatible-call] - Flow type definition incorrectly shows 2 required params, but API accepts 1 param (2nd is optional)
+    const calendars: Array<string> = (Calendar.availableCalendarTitles(writeOnly || false): any)
 
     const totalElapsed: number = Date.now() - startTime
     logDebug(pluginJson, `[np.Shared/requestHandlers] getAvailableCalendars COMPLETE: totalElapsed=${totalElapsed}ms, found=${calendars.length} calendars`)

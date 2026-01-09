@@ -9,12 +9,32 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b10] 2026-01-09
-- bump mainWindow version to 3.20.1 as @EM has changed it up
-- allowed mainWindow to work on iOS, now that @EM has added it
-- TODO: perspective changed indicator not showing. More logging added to useSyncPerspectivesWithPlugin shows its not being fired.
-- added more details to INFO section to see more clearly what's going on with mainWindow on different platforms
+## [2.4.0.b13] 2026-01-09
+### Changed
+- allowed mainWindow to work on iOS from v3.20.1, now that @EM has added it
+- to ease beta testing, particularly for users on iPhone/iPad, made minimum app version 3.20.0
+- added 'reload' icon to the NotePlan-added Header bar, as it looks like the usual Refresh button sometimes isn't working on iPad.
+
+## [2.4.0.b12] 2026-01-09
+### Fixed
+- **PerspectiveSelector star indicator not displaying**: Fixed issue where the asterisk (*) indicating a modified perspective was not showing in the dropdown selector. The bug was introduced in commit `c493f26d` (2025-12-18, "forms editor v1") when `DropdownSelect` was refactored to find options by value. The component was using the label from the found option in the options array instead of preserving the custom label from `controlledValue` (which includes the asterisk for modified perspectives). The fix ensures that when `controlledValue` is provided as an object with a custom label, that label is used instead of the option's label from the array.
+- **PerspectiveSelector using stale perspective data**: Changed `PerspectiveSelector` to use `getActivePerspectiveDef()` instead of `getPerspectiveNamed()` to ensure it always gets the most up-to-date perspective with the correct `isModified` flag directly from `perspectiveSettings`, rather than looking it up by name which could be stale.
 - added an automatic refresh of the Dashboard if it's open at midnight
+
+## [2.4.0.b11] 2026-01-09
+### Changed
+- Refactored request/response handling to use new shared router pattern (`newCommsRouter` from `@helpers/react/routerUtils`). Moved routing logic to `routeRequestsFromReact.js` for better maintainability and consistency with other plugins.
+- Improved "Add Task" dialog: now defaults to today's date in ISO format, supports date picker for selecting calendar notes, and provides better error messages with toast notifications for success and banner messages for failures.
+- Fixed CSS variable for toolbar height: changed `var(--noteplan-toolbar-height, 0)` to `var(--noteplan-toolbar-height, 0px)` for proper CSS unit handling in mainWindow mode.
+### Dev
+- Removed extensive encoding debug logging that was added for emoji corruption investigation (no longer needed).
+- Added new request handler `addTaskToNote` in `requestHandlers/addTaskToNote.js` (placeholder for @jgclark to implement).
+- Added performance logging and position verification for dialog rendering.
+- Improved error handling in AddToAnyNote component with request/response pattern instead of sendActionToPlugin.
+
+## [2.4.0.b10] 2026-01-08
+- bump mainWindow version to 3.20.1 as @EM has changed it up
+- added more details to INFO section to see more clearly what's going on with mainWindow on different platforms
 
 ## [2.4.0.b9] 2026-01-07
 - Running in "Main Window" mode doesn't seem to work on iPadOS or iOS, so changed it run only in "New Window" mode on those platforms.
@@ -36,7 +56,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dev: added new color definitions to theme CSS generator
 
 ## [2.4.0.b5] 2026-01-02
-- dev: height/width/sticky fixes to use the new `var(--noteplan-toolbar-height, 0)` for mainWindow running
+- dev: height/width/sticky fixes to use the new `var(--noteplan-toolbar-height, 0px)` for mainWindow running
 
 ## [2.4.0.b4] 2026-01-01
 - added support for opening the Dashboard in the main app window or a split view, as well as in a separate window. This is controlled in a new setting in the plugin's original settings screen (NotePlan > Settings… > AI & Plugins > Dashboard > ⚙️)

@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2026-01-06 by @jgclark
+// Last updated 2026-01-09 by @jgclark
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import { hasFrontMatter } from '@helpers/NPFrontMatter'
@@ -565,18 +565,18 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       logInfo('showHTMLV2', `- opts.showInMainWindow: ${String(opts.showInMainWindow)} and usersVersionHas('showInMainWindow'): ${String(usersVersionHas('showInMainWindow'))}`)
 
       // Show in main window, if wanted, otherwise show in floating window
-      if (opts.showInMainWindow && usersVersionHas('showInMainWindow')) {
+      if (opts.showInMainWindow && (NotePlan.environment.platform === 'macOS' ? usersVersionHas('showInMainWindow') : usersVersionHas('showInMainWindowOniOS'))) {
         // Split window only available on macOS
         // $FlowFixMe[prop-missing] - splitView is an optional property in HtmlWindowOptions, and flow doesn't like it
-        winOptions.splitView = ("splitView" in opts && NotePlan.environment.platform === 'macOS') ? opts.splitView : false
+        winOptions.splitView = 'splitView' in opts && NotePlan.environment.platform === 'macOS' ? opts.splitView : false
         // $FlowFixMe[prop-missing] - as above
-        winOptions.icon = ("icon" in opts) ? opts.icon : ''
+        winOptions.icon = 'icon' in opts ? opts.icon : ''
         // $FlowFixMe[prop-missing] - as above
-        winOptions.iconColor = ("iconColor" in opts) ? opts.iconColor : ''
+        winOptions.iconColor = 'iconColor' in opts ? opts.iconColor : ''
         // $FlowFixMe[prop-missing] - as above
-        winOptions.autoTopPadding = ("autoTopPadding" in opts) ? opts.autoTopPadding : true
+        winOptions.autoTopPadding = 'autoTopPadding' in opts ? opts.autoTopPadding : true
         // $FlowFixMe[prop-missing] - as above
-        winOptions.showReloadButton = ("showReloadButton" in opts) ? opts.showReloadButton : false
+        winOptions.showReloadButton = 'showReloadButton' in opts ? opts.showReloadButton : false
         // $FlowFixMe[prop-missing] - as above
         winOptions.reloadPluginID = ("reloadPluginID" in opts) ? opts.reloadPluginID : ''
         // $FlowFixMe[prop-missing] - as above
@@ -733,6 +733,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
     const windowExists = isHTMLWindowOpen(windowId)
     if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = undefined`)
     const windowIdToSend = windowExists ? windowId : undefined // for iphone/ipad you have to send undefined
+
     const dataWithUpdated = {
       ...data,
       ...{
@@ -744,40 +745,27 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
       NPWindowID: windowExists ? windowId : undefined,
     }
 
-    // REVERTED: Go back to the original working approach - direct JSON.stringify in template string
-    // The old code that worked was: payload: ${JSON.stringify(dataWithUpdated)}
-    // If this doesn't work now, the issue is elsewhere (possibly in how data is created before this point)
-    // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
-    // logDebug(`Bridge::sendToHTMLWindow`, `sending type: "${actionType}" to window: "${windowId}" msg=${dataWithUpdated.lastUpdated.msg}`)
-    // const start = new Date()
+    // Double-stringify approach (like getCallbackCodeString) to safely embed JSON in JavaScript
+    // First stringify the data, then stringify that string again for safe embedding
     const stringifiedPayload = JSON.stringify(dataWithUpdated)
-
-    // CRITICAL: Use JSON.stringify() to properly escape the JSON string for embedding in JavaScript
-    // This ensures Unicode characters are properly escaped as \uXXXX sequences
     const doubleStringified = JSON.stringify(stringifiedPayload)
 
     const jsCodeToExecute = `
       (function() {
-        // Use JSON.parse() with a properly escaped JSON string to preserve Unicode
-        // JSON.stringify() on the stringifiedPayload will escape it properly for JavaScript
-        const payloadDataString = ${doubleStringified};
-        const payloadData = JSON.parse(payloadDataString);
-
-        const messageObj = {
-          type: '${actionType}',
-          payload: payloadData
-        };
-
-        window.postMessage(messageObj, '*');
+        try {
+          const payloadDataString = ${doubleStringified};
+          const payloadData = JSON.parse(payloadDataString);
+          const messageObj = {
+            type: '${actionType}',
+            payload: payloadData
+          };
+          window.postMessage(messageObj, '*');
+        } catch (error) {
+          console.error('sendToHTMLWindow: Error in postMessage:', error);
+        }
       })();
     `
-
     const result = await HTMLView.runJavaScript(jsCodeToExecute, windowIdToSend)
-
-    // Note: The corruption happens between here and React receiving the postMessage
-    // This suggests the issue is in how HTMLView.runJavaScript executes the code or how postMessage serializes data
-    // logDebug(`Bridge::sendToHTMLWindow`, `${actionType} took ${timer(start)}`)
-    // logDebug(`Bridge::sendToHTMLWindow`, `result from the window: ${JSON.stringify(result)}`)
     return result
   } catch (error) {
     logError(pluginJson, `Bridge::sendToHTMLWindow: ${error.message}`)
@@ -798,25 +786,6 @@ export async function getGlobalSharedData(windowId: string, varName: string = 'g
   try {
     // logDebug(pluginJson, `getGlobalSharedData getting var '${varName}' from window ID '${windowId}'`)
     const currentValue = await HTMLView.runJavaScript(`${varName};`, windowId)
-
-    // Log encoding for debugging emoji corruption - check data when read back from React
-    if (currentValue?.pluginData?.sections) {
-      for (const section of currentValue.pluginData.sections || []) {
-        for (const item of section.sectionItems || []) {
-          if (item.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
-            const charCodes = item.para.title
-              .split('')
-              .map((c: string) => c.charCodeAt(0))
-              .join(',')
-            logDebug(
-              'getGlobalSharedData',
-              `[ENCODING DEBUG] Data read from React - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`,
-            )
-          }
-        }
-      }
-    }
-
     // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
     return currentValue
   } catch (error) {

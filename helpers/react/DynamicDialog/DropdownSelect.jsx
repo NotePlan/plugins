@@ -283,12 +283,20 @@ const DropdownSelect = ({
     if (valToUse !== undefined && valToUse !== null && valToUse !== '') {
       const foundOption = findOptionByValue(valToUse, normalizedOptions)
       if (foundOption) {
-        setSelectedValue(foundOption)
-        setInputValue(foundOption.label)
+        // If valToUse is an object with a label, use that label (e.g., for modified perspectives with *)
+        // Otherwise use the found option's label
+        const labelToUse = typeof valToUse === 'object' && valToUse.label ? valToUse.label : foundOption.label
+        const optionToUse = { ...foundOption, label: labelToUse }
+        setSelectedValue(optionToUse)
+        setInputValue(labelToUse)
       } else if (typeof valToUse === 'string') {
         // Value not found in options - display the value as-is (fallback)
         setSelectedValue({ label: valToUse, value: valToUse })
         setInputValue(valToUse)
+      } else if (typeof valToUse === 'object') {
+        // valToUse is an object but not found in options - use it directly
+        setSelectedValue(valToUse)
+        setInputValue(valToUse.label || '')
       }
     } else if (placeholder) {
       // No value, show placeholder

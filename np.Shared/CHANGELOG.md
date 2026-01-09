@@ -2,6 +2,34 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [1.0.4] @jgclark 2026-01-09
+### Changed
+- Changed minAppVersion back down to 3.8.1, as the checks for v3.20.0 (mainWindow in macOS) or v3.20.1 (mainWindow on iOS) are handled in showHTMLV2() calls
+
+## [1.0.3] @dwertheimer 2026-01-09
+### Changed
+- Refactored CSS architecture: Created new `Root.css` with shared color classes (`.color-info`, `.color-warn`, `.color-error`, `.color-success`, etc.) for reuse across MessageBanner, Toast, and other components. This centralizes color management and ensures consistency.
+- Updated MessageBanner and Toast components to use CSS variables from theme instead of hardcoded colors, improving theme compatibility.
+- Improved `showBanner()` function in Root.jsx to automatically determine color, border, and icon classes from message type if not explicitly provided, reducing boilerplate code.
+- Fixed `getHeadings()` request handler to use `includeMarkdown: true` and ensure it always returns an array (never undefined/null), preventing errors in HeadingChooser.
+- Updated `noteHelpers.js` to use `getNoteDecorationForReact()` helper for consistent note decoration handling.
+- Fixed relative notes title handling to use `relName` directly instead of template runner value.
+
+### Fixed
+- Fixed CSS variable for toolbar height: changed `var(--noteplan-toolbar-height, 0)` to `var(--noteplan-toolbar-height, 0px)` for proper CSS unit handling in mainWindow mode.
+
+### Dev
+- Removed encoding debug logging that was added for emoji corruption investigation (no longer needed).
+- Updated minAppVersion to 3.20.1 to match NotePlan requirements.
+
+## [1.0.2] @dwertheimer 2026-01-08
+
+- Fix Settings Dialog CSS positioning to properly center in viewport accounting for toolbar height. Removed transform-based centering and switched to direct top/left calculations for more reliable positioning.
+
+## [1.0.1] @dwertheimer 2026-01-08
+
+- Bump version for @jgclark to see
+
 ## [1.0.0] @dwertheimer 2026-01-06
 
  - Add Shared Request Router for DynamicDialog choosers (e.g. getTeamspaces, getFolders, getNotes, etc.)

@@ -8,7 +8,7 @@
 	position: sticky;
 	width: 100%;
 	z-index: 10;
-	top: var(--noteplan-toolbar-height, 0);
+	top: var(--noteplan-toolbar-height, 0px);
 	background-color: var(--bg-sidebar-color);
 }
 

@@ -306,7 +306,7 @@
 /* Also support attribute selector for backward compatibility - but exclude two-line options and inner lines */
 .searchable-chooser-base [class*="-chooser-option"]:not([class*="-chooser-option-two-line"]):not([class*="-chooser-option-first-line"]):not([class*="-chooser-option-second-line"]),
 [class*="-chooser-option"]:not([class*="-chooser-option-two-line"]):not([class*="-chooser-option-first-line"]):not([class*="-chooser-option-second-line"]) {
-  padding: 0.25rem 0.75rem;
+  padding: 0.15rem 0.75rem;
   cursor: pointer;
   /* border-bottom: 1px solid var(--border-color, #f0f0f0); */
   color: var(--fg-main-color, #4c4f69);
@@ -373,37 +373,12 @@
   padding-left: 1rem; /* Add spacing between left and right content */
 }
 
-/* Heading chooser: fix layout - icon fixed width, text left-aligned and fills space */
-.heading-chooser-container .searchable-chooser-option,
-.heading-chooser-container .heading-chooser-option {
-  justify-content: flex-start !important; /* Align items to left, not space-between */
-}
-
-.heading-chooser-container .searchable-chooser-option-left,
-.heading-chooser-container .heading-chooser-option-left {
-  flex: 0 0 auto !important; /* Fixed width, don't grow or shrink */
-  width: auto; /* Just enough for icon */
-  min-width: 0;
-  max-width: none;
-}
-
-.heading-chooser-container .searchable-chooser-option-right,
-.heading-chooser-container .heading-chooser-option-right {
-  flex: 1 1 0 !important; /* Grow to fill remaining space */
-  flex-grow: 1 !important;
-  flex-shrink: 1 !important;
-  text-align: left !important;
-  margin-left: 0 !important;
-  padding-left: 0.5rem; /* Small spacing from icon */
-  max-width: 100%; /* Prevent overflow */
-  overflow: hidden; /* Prevent text from overflowing */
-  white-space: nowrap; /* Keep text on one line */
-  text-overflow: ellipsis; /* Truncate if too long */
-}
+/* Heading chooser: use standard 3-column layout (icon, text, shortDescription) */
+/* No special CSS needed - uses default SearchableChooser layout */
 
 /* Two-line layout for options */
 .searchable-chooser-option-two-line {
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.75rem;
   cursor: pointer;
   border-bottom: 1px solid var(--divider-color, #CDCFD0);
   color: var(--fg-main-color, #4c4f69);
@@ -504,8 +479,11 @@
 
 .searchable-chooser-option:hover,
 .searchable-chooser-base [class*="-chooser-option"]:hover,
-[class*="-chooser-option"]:hover {
-  background-color: var(--bg-alt-color, #e6e9ef);
+[class*="-chooser-option"]:hover,
+.searchable-chooser-option.option-selected,
+.searchable-chooser-base [class*="-chooser-option"].option-selected,
+[class*="-chooser-option"].option-selected {
+  background-color: var(--bg-alt-color, #e6e9ef) !important;
 }
 
 .searchable-chooser-option:last-child,

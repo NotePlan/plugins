@@ -41,6 +41,7 @@ import { Toast } from './Toast.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
 import { SimpleDialog } from '@helpers/react/SimpleDialog'
 import { logDebug, formatReactError, JSP, clo, logError, logInfo } from '@helpers/react/reactDev'
+import './Root.css'
 
 const ROOT_DEBUG = false
 
@@ -172,27 +173,50 @@ export function Root(/* props: Props */): Node {
   /**
    * Callback passed to child components that allows them to put a message in the banner.
    * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_BANNER', payload).
-   * TODO: Hopefully can still remove the color/border/icon parameters, but leaving them in for now to avoid breaking changes.
+   * If color/border/icon are not provided, they will be automatically determined from the type.
    * Memoized with useCallback to ensure stable reference (needed for onMessageReceived dependency).
    * @param {boolean} floating - if true, displays as a floating toast in top-right corner instead of banner at top
    */
-  const showBanner = useCallback(
-    (
-      type: string,
-      msg: string,
-      color: string = 'w3-pale-red',
-      border: string = 'w3-border-red',
-      icon: string = 'fa-regular fa-circle-exclamation',
-      timeout: number = 0,
-      floating: boolean = false,
-    ) => {
-      const bannerMessage = { type, msg, timeout, color, border, icon, floating }
-      logDebug(`Root`, `showBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
-      // $FlowFixMe - bannerMessage object matches the expected shape
-      setBannerMessage(bannerMessage)
-    },
-    [],
-  ) // State setters are stable, no dependencies needed
+  const showBanner = useCallback((type: string, msg: string, color?: string, border?: string, icon?: string, timeout: number = 0, floating: boolean = false) => {
+    // If color/border/icon are not provided, determine them from the type
+    let colorClass = color
+    let borderClass = border
+    let iconClass = icon
+
+    if (!colorClass || !borderClass || !iconClass) {
+      switch (type.toUpperCase()) {
+        case 'INFO':
+          colorClass = colorClass || 'color-info'
+          borderClass = borderClass || 'border-info'
+          iconClass = iconClass || 'fa-regular fa-circle-info'
+          break
+        case 'WARN':
+          colorClass = colorClass || 'color-warn'
+          borderClass = borderClass || 'border-warn'
+          iconClass = iconClass || 'fa-regular fa-triangle-exclamation'
+          break
+        case 'ERROR':
+          colorClass = colorClass || 'color-error'
+          borderClass = borderClass || 'border-error'
+          iconClass = iconClass || 'fa-regular fa-circle-exclamation'
+          break
+        case 'SUCCESS':
+          colorClass = colorClass || 'color-success'
+          borderClass = borderClass || 'border-success'
+          iconClass = iconClass || 'fa-regular fa-circle-check'
+          break
+        default:
+          colorClass = colorClass || 'color-info'
+          borderClass = borderClass || 'border-info'
+          iconClass = iconClass || 'fa-regular fa-circle-info'
+      }
+    }
+
+    const bannerMessage = { type, msg, timeout, color: colorClass, border: borderClass, icon: iconClass, floating }
+    logDebug(`Root`, `showBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
+    // $FlowFixMe - bannerMessage object matches the expected shape
+    setBannerMessage(bannerMessage)
+  }, []) // State setters are stable, no dependencies needed
 
   /**
    * handle click on X on banner to hide it
@@ -216,7 +240,7 @@ export function Root(/* props: Props */): Node {
     let iconClass = icon
 
     if (!colorClass || !borderClass || !iconClass) {
-      switch (type) {
+      switch (type.toUpperCase()) {
         case 'INFO':
           colorClass = colorClass || 'color-info'
           borderClass = borderClass || 'border-info'
@@ -269,43 +293,13 @@ export function Root(/* props: Props */): Node {
       const { data } = event
       // logDebug('Root', `onMessageReceived ${event.type} data=${JSP(data, 2)}`)
       if (!shouldIgnoreMessage(event) && data) {
-        // Log encoding for debugging emoji corruption - check raw event.data before parsing
-        try {
-          const dataStr = JSON.stringify(data)
-          if (dataStr.includes('Dashboard Plugin')) {
-            const emojiMatch = dataStr.match(/Dashboard Plugin[^"]*/)
-            if (emojiMatch) {
-              const matched = emojiMatch[0]
-              const charCodes = matched.split('').map((c: string) => c.charCodeAt(0)).join(',')
-              logDebug('Root/onMessageReceived', `[ENCODING DEBUG] Raw event.data (stringified) contains: "${matched}" (length=${matched.length}, charCodes=${charCodes})`)
-            }
-          }
-          if (dataStr.includes('ð')) {
-            logDebug('Root/onMessageReceived', `[ENCODING DEBUG] WARNING: Raw event.data (stringified) contains corruption pattern "ð"`)
-          }
-        } catch (e) {
-          // Ignore JSON.stringify errors
-        }
-        
         // const str = JSON.stringify(event, null, 4)
         try {
           // $FlowFixMe
           const { type, payload } = event.data // remember: event is on prototype and not JSON.stringify-able
           if (!type) throw (`onMessageReceived: event.data.type is undefined`, event.data)
           if (!payload) throw (`onMessageReceived: event.data.payload is undefined`, event.data)
-          
-          // Log encoding for debugging emoji corruption - check payload before processing
-          if (payload?.pluginData?.sections) {
-            for (const section of payload.pluginData.sections || []) {
-              for (const item of section.sectionItems || []) {
-                if (item?.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
-                  const charCodes = item.para.title.split('').map((c: string) => c.charCodeAt(0)).join(',')
-                  logDebug('Root/onMessageReceived', `[ENCODING DEBUG] Payload BEFORE processing - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
-                }
-              }
-            }
-          }
-          
+
           if (type && payload) {
             // logDebug(`Root`, ` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
             if (!payload.lastUpdated) payload.lastUpdated = { msg: '(no msg)' }
@@ -323,37 +317,15 @@ export function Root(/* props: Props */): Node {
             }
             setHistory((prevData) => [...prevData, ...tempSavedClicksRef.current, payload.lastUpdated])
             tempSavedClicksRef.current = []
-            switch (type) {
+            switch (type.toUpperCase()) {
               case 'SET_TITLE':
                 // Note this works because we are using payload.title in npData
                 document.title = payload.title
                 break
               case 'SET_DATA':
               case 'UPDATE_DATA':
-                // Log encoding for debugging emoji corruption - check data when received from plugin
-                if (payload?.pluginData?.sections) {
-                  for (const section of payload.pluginData.sections || []) {
-                    for (const item of section.sectionItems || []) {
-                      if (item.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
-                        const charCodes = item.para.title.split('').map(c => c.charCodeAt(0)).join(',')
-                        logDebug('Root/onMessageReceived', `[ENCODING DEBUG] Data received from plugin - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
-                      }
-                    }
-                  }
-                }
                 setNPData((prevData) => ({ ...prevData, ...payload }))
                 globalSharedData = { ...globalSharedData, ...payload }
-                // Log encoding for debugging emoji corruption - check data after storing in globalSharedData
-                if (globalSharedData?.pluginData?.sections) {
-                  for (const section of globalSharedData.pluginData.sections || []) {
-                    for (const item of section.sectionItems || []) {
-                      if (item.para?.title && (item.para.title.includes('🧩') || item.para.title.includes('ð'))) {
-                        const charCodes = item.para.title.split('').map(c => c.charCodeAt(0)).join(',')
-                        logDebug('Root/onMessageReceived', `[ENCODING DEBUG] Data stored in globalSharedData - Section ${section.sectionCode}, title: "${item.para.title}" (length=${item.para.title.length}, charCodes=${charCodes})`)
-                      }
-                    }
-                  }
-                }
                 break
               case 'CHANGE_THEME': {
                 const { themeCSS } = payload
@@ -755,11 +727,11 @@ export function Root(/* props: Props */): Node {
               </ul>
               <div className="monospaceData">globalSharedData: {JSON.stringify(globalSharedData, null, 2)}</div>
             </div>
-            <div className="w3-button w3-black" onClick={() => dispatch('SHOW_BANNER', { msg: 'Banner test succeeded' }, `banner test`)}>
+            <div className="root-test-button black" onClick={() => dispatch('SHOW_BANNER', { type: 'INFO', msg: 'Banner test succeeded' }, `banner test`)}>
               Local Banner Display Test
             </div>
             <div
-              className="w3-button w3-black"
+              className="root-test-button black"
               onClick={() => {
                 setSimpleDialogExample(0)
                 setShowSimpleDialogTest(true)
@@ -767,11 +739,11 @@ export function Root(/* props: Props */): Node {
             >
               Test SimpleDialog
             </div>
-            <div className="w3-button w3-black" onClick={testCommsBridge}>
+            <div className="root-test-button black" onClick={testCommsBridge}>
               Test Communication Bridge
             </div>
             <div
-              className="w3-button w3-black"
+              className="root-test-button black"
               onClick={async () => {
                 // Scroll to top first so we can see the toast
                 window.scrollTo(0, 0)
