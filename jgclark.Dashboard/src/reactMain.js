@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2025-12-27 for v2.4.0
+// Last updated 2026-01-09 for v2.4.0.b14 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -17,10 +17,10 @@ import { generateTagMentionCache, isTagMentionCacheGenerationScheduled } from '.
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
-
 import { getGlobalSharedData, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
 //------------------------------------------------------------------------------
@@ -530,6 +530,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     totalDoneCount: 0,
     firstRun: true,
     currentMaxPriorityFromAllVisibleSections: 0,
+    mainWindowModeSupported: NotePlan.environment.platform === 'macOS' ? usersVersionHas('showInMainWindow') : usersVersionHas('showInMainWindowOniOS'),
   }
   logDebug('getPluginData', `After forming initial pluginData, firstRun = false`)
 

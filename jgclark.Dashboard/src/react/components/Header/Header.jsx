@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2025-06-04 for v2.3.0 by @jgclark
+// Last updated 2026-01-09 for v2.4.0.b14 by @jgclark
 // --------------------------------------------------------------------------
 
 // --------------------------------------------------------------------------
@@ -12,6 +12,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
 import { getVisibleSectionCodes } from '../Section/sectionHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
+// import { usersVersionHas } from '../../../../../helpers/NPVersions.js'
 import { useAppContext } from '../AppContext.jsx'
 import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
@@ -20,6 +21,7 @@ import { DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
 import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
+import './Header.css'
 import PerspectiveSelector from './PerspectiveSelector.jsx'
 import SearchBar from './SearchBar.jsx'
 import SearchPanel from './SearchPanel.jsx'
@@ -27,7 +29,7 @@ import useLastFullRefresh from './useLastFullRefresh.js'
 import { clo, logDebug, logInfo, logError } from '@helpers/react/reactDev.js'
 import AddToAnyNote from './AddToAnyNote.jsx'
 // import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
-import './Header.css'
+
 // --------------------------------------------------------------------------
 // Type Definitions
 // --------------------------------------------------------------------------
@@ -47,7 +49,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // ----------------------------------------------------------------------
   // Context
   // ----------------------------------------------------------------------
-  const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData, reactSettings, setReactSettings } = useAppContext()
+  const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData, /*reactSettings, setReactSettings*/ } = useAppContext()
   const { isDialogOpen, openDialog, closeDialog } = useSettingsDialogHandler()
 
   // ----------------------------------------------------------------------
@@ -279,15 +281,20 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     || dashboardSettings.FFlag_UseTagCache) && !pluginData.demoMode
   const showRefreshButton = pluginData.platform !== 'iOS'
   const showHardRefreshButton = dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
-  const isMobile = pluginData.platform !== 'macOS'
   const isNarrowWidth = window.innerWidth <= 700
+
   const isSearchPanelAvailable = dashboardSettings?.FFlag_ShowSearchPanel // Note: not yet used
   const useDynamicAddToAnywhere = dashboardSettings?.FFlag_DynamicAddToAnywhere ?? false
+
+  // Note: this is a hack on iOS and iPadOS in modal mode, to allow the modal close button to be visible
+  // FIXME: not working yet on iOS and iPadOS, and not logging either!
+  const isModal = (pluginData.platform === 'iOS' || pluginData.platform === 'iPadOS') && !pluginData.mainWindowModeSupported
+  logInfo('Header', `isModal:${String(isModal)}, mainWindowModeSupported:${String(pluginData.mainWindowModeSupported)} on platform ${pluginData.platform}`)
 
   // ----------------------------------------------------------------------
   // Render
   // ----------------------------------------------------------------------
-  const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(' mins', 'm').replace(' min', 'm').replace(' hours', 'h').replace(' hour', 'h')
+  const timeAgoText = isModal || isNarrowWidth ? timeAgo : timeAgo.replace(' mins', 'm').replace(' min', 'm').replace(' hours', 'h').replace(' hour', 'h')
   // logInfo('Header', `Rendering Header; isMobile:${String(isMobile)}, isNarrowWidth:${String(isNarrowWidth)}, showRefreshButton:${String(showRefreshButton)}, showHardRefreshButton:${String(showHardRefreshButton)}`)
   return (
     <div className="header-container">
@@ -390,7 +397,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           </button>
 
           {/* Spacer for the NP-generated close button on modal windows on mobile */}
-          {isMobile && <span className="modalCloseButtonSpacer"></span>}
+          {isModal && <span className="modalCloseButtonSpacer"></span>}
           
         </div>
 

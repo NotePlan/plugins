@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2025-12-09 for v1.3.0, @jgclark
+// Last updated 2026-01-10 for v1.3.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -187,7 +187,7 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
           await CommandBar.onAsyncThread()
         }
         for (const n of projectNotesArr) {
-          const np = new Project(n, tag, true, config.nextActionTags)
+          const np = new Project(n, tag, true, config.nextActionTags, config.sequentialTag ?? '#sequential')
           projectInstances.push(np)
         }
         if (!runInForeground) {
@@ -480,7 +480,7 @@ export async function updateAllProjectsListAfterChange(
         return
       }
       // Note: there had been issue of stale data here in the past. Leaving comment in case it's needed again.
-      const updatedProject = new Project(reviewedNote, reviewedProject.projectTag, true, config.nextActionTags)
+      const updatedProject = new Project(reviewedNote, reviewedProject.projectTag, true, config.nextActionTags, config.sequentialTag ?? '#sequential')
       // clo(updatedProject, 'in updateAllProjectsListAfterChange() 🟡 updatedProject:')
       allProjects.push(updatedProject)
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)

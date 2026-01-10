@@ -444,6 +444,14 @@
       "required": true
     },
     {
+      "key": "sequentialTag",
+      "title": "Sequential tag",
+      "description": "Hashtag to identify sequential projects. If this tag appears in a project note's frontmatter 'project' attribute, or the metadata line, the first open task/checklist will be shown as a next action.",
+      "type": "string",
+      "default": "#sequential",
+      "required": false
+    },
+    {
       "key": "width",
       "title": "Window width",
       "description": "Width of the Review List window (pixels)",

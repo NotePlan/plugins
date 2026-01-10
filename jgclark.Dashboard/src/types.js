@@ -409,6 +409,7 @@ export type TPluginData = {
   totalDoneCount?: number,
   startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands */,
   currentMaxPriorityFromAllVisibleSections: number, /* the highest priority seen in the current section (to help display filtering) */
+  mainWindowModeSupported: boolean /* true if the current platform and version of NotePlan supports main window mode -- TODO(later): remove this when NP > 3.23 or so. */,
 }
 
 /**

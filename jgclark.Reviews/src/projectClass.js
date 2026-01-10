@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2025-12-10 for v1.4.0, @jgclark
+// Last updated 2026-01-10 for v1.3.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -33,6 +33,7 @@ import {
   makeSVGPercentRing,
   redToGreenInterpolation,
 } from '@helpers/HTMLView'
+import { getFrontmatterAttribute } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
 import { findStartOfActivePartOfNote, simplifyRawContent } from '@helpers/paragraph'
 import { getLineMainContentPos } from '@helpers/search'
@@ -93,7 +94,7 @@ export class Project {
   nextActionsRawContent: Array<string> = []
   ID: string // required when making HTML views
 
-  constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = []) {
+  constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = [], sequentialTag: string = '') {
     try {
       const startTime = new Date()
       if (note == null || note.title == null) {
@@ -232,9 +233,9 @@ export class Project {
         this.calculatePercentComplete(numberDaysForFutureToIgnore)
       }
 
-      // If we want to track next actions, find the first one of each tag (if any)
-      if (nextActionTags.length > 0) {
-        this.generateNextActionComments(nextActionTags, paras)
+      // If we want to track next actions, find any tagged next actions or sequential first open task/checklist
+      if (nextActionTags.length > 0 || sequentialTag !== '') {
+        this.generateNextActionComments(nextActionTags, paras, sequentialTag, Array.from(hashtags ?? []), metadataLine)
       }
 
       if (this.title.includes('TEST')) {
@@ -384,7 +385,54 @@ export class Project {
     }
   }
 
-  generateNextActionComments(nextActionTags: Array<string>, paras: Array<Paragraph>): void {
+  /**
+   * Generate next action comments from tagged next actions and/or sequential first open task/checklist.
+   * @param {Array<string>} nextActionTags - Array of hashtags to search for in tasks/checklists
+   * @param {Array<Paragraph>} paras - Array of paragraphs from the note
+   * @param {string?} sequentialTag - (optional) Hashtag to identify sequential projects (e.g., '#sequential')
+   * @param {Array<string>?} hashtags - (optional) Array of hashtags from the note
+   * @param {string?} metadataLine - (optional) Content of the metadata line
+   * @author @jgclark
+   */
+  generateNextActionComments(nextActionTags: Array<string>, paras: Array<Paragraph>, sequentialTag?: string, hashtags?: Array<string>, metadataLine?: string): void {
+    // Set defaults for optional parameters
+    const sequentialTagValue = sequentialTag ?? ''
+    const hashtagsValue = hashtags ?? []
+    const metadataLineValue = metadataLine ?? ''
+    // Check if sequential tag is present in frontmatter 'project' attribute or metadata line
+    let hasSequentialTag = false
+    if (sequentialTagValue !== '') {
+      // Check frontmatter 'project' attribute
+      const projectAttribute = getFrontmatterAttribute(this.note, 'project')
+      if (projectAttribute && typeof projectAttribute === 'string' && projectAttribute.includes(sequentialTagValue)) {
+        hasSequentialTag = true
+        logDebug('Project', `  - found sequential tag '${sequentialTagValue}' in frontmatter 'project' attribute`)
+      }
+      // Check metadata line hashtags
+      if (!hasSequentialTag && hashtagsValue.length > 0) {
+        hasSequentialTag = hashtagsValue.some((tag) => tag === sequentialTagValue)
+        if (hasSequentialTag) {
+          logDebug('Project', `  - found sequential tag '${sequentialTagValue}' in metadata line hashtags`)
+        }
+      }
+      // Check metadata line content directly (as fallback)
+      if (!hasSequentialTag && metadataLineValue.includes(sequentialTagValue)) {
+        hasSequentialTag = true
+        logDebug('Project', `  - found sequential tag '${sequentialTagValue}' in metadata line content`)
+      }
+    }
+
+    // If sequential tag found, add first open task/checklist
+    if (hasSequentialTag) {
+      const firstOpenParas = paras.filter(isOpen)
+      if (firstOpenParas.length > 0) {
+        const firstOpenAction = firstOpenParas[0].rawContent
+        this.nextActionsRawContent.push(simplifyRawContent(firstOpenAction))
+        logDebug('Project', `  - found sequential nextActionRawContent = ${firstOpenAction}`)
+      }
+    }
+
+  // Process tagged next actions
     for (const nextActionTag of nextActionTags) {
       const nextActionParas = paras.filter(isOpen).filter((p) => p.content.match(nextActionTag))
 
