@@ -530,7 +530,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
             width: storedRect.width,
             height: storedRect.height,
             shouldFocus: opts.shouldFocus,
-            id: cId, // don't need both ... but trying to work out which is the current one for the API
+            id: cId, // TODO: don't need both ... but trying to work out which is the current one for the API
             windowId: cId,
           }
           logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
@@ -562,9 +562,8 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       logInfo('showHTMLV2', `- NotePlan build ${NotePlan.environment.buildVersion} on platform ${NotePlan.environment.platform}`)
       logInfo('showHTMLV2', `- opts.showInMainWindow: ${String(opts.showInMainWindow)} and usersVersionHas('showInMainWindow'): ${String(usersVersionHas('showInMainWindow'))}`)
 
-      // Show in main window, if wanted, otherwise show in floating window
-      // Nif mainWindow is supported on iOS in future, then change this:
-      if (NotePlan.environment.platform === 'macOS' && opts.showInMainWindow && usersVersionHas('showInMainWindow')) {
+      // Show in main window, if wanted (and available), otherwise show in floating window
+      if (opts.showInMainWindow && usersVersionHas('showInMainWindow')) {
         // Split window only available on macOS
         // $FlowFixMe[prop-missing] - splitView is an optional property in HtmlWindowOptions, and flow doesn't like it
         winOptions.splitView = 'splitView' in opts && NotePlan.environment.platform === 'macOS' ? opts.splitView : false

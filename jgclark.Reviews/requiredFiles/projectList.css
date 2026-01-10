@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2025-12-09 for v1.3.0, @jgclark 
+ * Last updated 2026-12-10 for v1.3.0.b2, @jgclark 
  */
 
 body {
@@ -36,34 +36,40 @@ h3, .h3 {
 /* Keep a header stuck to top middle of window */
 .topbar {
   display: flex;
-  flex-direction: row;
+  flex-wrap: wrap;
   justify-content: space-between;
-  align-items: baseline; /* for parts without taller buttons */
+  align-items: baseline;
   position: sticky;
   top: 0px;
   gap: 0.6rem;
   background-color: var(--bg-sidebar-color); 
+  border-top: 1px solid var(--divider-color);
   border-bottom: 1px solid var(--divider-color);
-  line-height: 1.8rem;
-  padding: 0.4rem 1rem 0.3rem 0.5rem;
+  line-height: 1.5rem; /* any less than this and the apple switches don't line up vertically properly */
+  padding: 0.4rem 0.8rem 0.3rem 0.8rem;
   font-size: 0.95rem;
   z-index: 5;
 
-  /* .topbar-text {
-    font-size: 0.9rem;
-  }
- */
   .perspective-name {
     font-weight: 500;
   }
-
-  /* Hide the div with id 'toggles' if not quite wide */
-  @media (max-width: 900px) {
-    #toggles {
-      display: none;
-    }
-  }
 }
+
+.topbar-item {
+  white-space: nowrap;     /* no wrapping inside items */
+  flex: 0 0 auto;          /* don’t stretch or shrink */
+  min-width: max-content;
+}
+
+/* If rather narrow, slide [items] under [info] */
+/* This needs to come after the earlier definitions to take priority */
+/* @media screen and (max-width: 600px) {
+	.topbar {
+		grid-template-columns: auto auto;
+    grid-template-rows: auto;
+    gap: 0.1rem;
+	}
+} */
 
 /* Styling for each cell in each row */
 td, th {

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2025-12-09 for v1.3.0, @jgclark
+// Last updated 2026-01-09 for v1.3.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -65,6 +65,7 @@ export type ReviewConfig = {
   removeDueDatesOnPause: boolean,
   nextActionTags: Array<string>,
   displayNextActions: boolean,
+  preferredWindowType: string,
   _logLevel: string,
   _logTimer: boolean,
 }
