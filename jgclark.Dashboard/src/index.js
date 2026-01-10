@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-12-28 for v2.4.0
+// last updated 2026-01-09 for v2.4.0.b13
 // ----------------------------------------------------------------------------
 
 /**
@@ -48,15 +48,17 @@ export {
 } from './perspectiveHelpers.js'
 
 export {
+  makeSettingsAsCallback,
+  reactWindowInitialisedSoStartGeneratingData,
   showDashboardReact,
   showDemoDashboard,
   showPerspective,
   showSections,
   setSetting,
   setSettings,
-  makeSettingsAsCallback,
-  reactWindowInitialisedSoStartGeneratingData,
 } from './reactMain.js'
+
+export { refreshDashboard } from './refreshClickHandlers'
 
 export { onMessageFromHTMLView } from './routeRequestsFromReact.js'
 

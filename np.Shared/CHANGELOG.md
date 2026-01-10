@@ -2,8 +2,11 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
-## [1.0.3] @dwertheimer 2026-01-09
+## [1.0.4] @jgclark 2026-01-09
+### Changed
+- Changed minAppVersion back down to 3.8.1, as the checks for v3.20.0 (mainWindow in macOS) or v3.20.1 (mainWindow on iOS) are handled in showHTMLV2() calls
 
+## [1.0.3] @dwertheimer 2026-01-09
 ### Changed
 - Refactored CSS architecture: Created new `Root.css` with shared color classes (`.color-info`, `.color-warn`, `.color-error`, `.color-success`, etc.) for reuse across MessageBanner, Toast, and other components. This centralizes color management and ensures consistency.
 - Updated MessageBanner and Toast components to use CSS variables from theme instead of hardcoded colors, improving theme compatibility.

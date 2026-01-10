@@ -130,7 +130,7 @@ export async function getSomeSectionsData(
     // logDebug('getSomeSectionsData', `=> 🔹 sections ${getDisplayListOfSectionCodes(sections)} (unfiltered)`)
 
     sections = sections.filter((s) => s) //get rid of any nulls b/c just in case any the sections above could return null
-    
+
     return sections
   } catch (error) {
     logError('getSomeSectionsData', error.message)
@@ -153,8 +153,8 @@ export async function getInfoSectionData(_config: TDashboardSettings, _useDemoDa
   outputLines.push(`Screen: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}. Window type requested: ${settings?.preferredWindowType ?? '?'}`)
   const storedWindowRect: Rect | false = getStoredWindowRect('jgclark.Dashboard.main')
   const liveWindowRect: Rect | false = getLiveWindowRect('')
+  if (liveWindowRect) { outputLines.push(`Live window rect: ${rectToString(liveWindowRect)}`) }
   outputLines.push(`Stored window rect: ${storedWindowRect ? rectToString(storedWindowRect) : 'no stored window rect'}`)
-  outputLines.push(`Live window rect: ${liveWindowRect ? rectToString(liveWindowRect) : 'no live window rect'}`)
   sections.push({
     ID: thisSectionCode,
     name: 'Info',
@@ -170,7 +170,7 @@ export async function getInfoSectionData(_config: TDashboardSettings, _useDemoDa
       message: line.trim(),
     })),
     isReferenced: false,
-    // TODO(later): remove this once we have a proper banner system
+    // TODO(later): remove after v2.4.0 is released
     actionButtons: (_config.FFlag_ShowBannerTestButtons ? [
       {
         actionName: 'testBannerInfo',

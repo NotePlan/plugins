@@ -306,7 +306,7 @@
 /* Also support attribute selector for backward compatibility - but exclude two-line options and inner lines */
 .searchable-chooser-base [class*="-chooser-option"]:not([class*="-chooser-option-two-line"]):not([class*="-chooser-option-first-line"]):not([class*="-chooser-option-second-line"]),
 [class*="-chooser-option"]:not([class*="-chooser-option-two-line"]):not([class*="-chooser-option-first-line"]):not([class*="-chooser-option-second-line"]) {
-  padding: 0.25rem 0.75rem;
+  padding: 0.15rem 0.75rem;
   cursor: pointer;
   /* border-bottom: 1px solid var(--border-color, #f0f0f0); */
   color: var(--fg-main-color, #4c4f69);
@@ -378,7 +378,7 @@
 
 /* Two-line layout for options */
 .searchable-chooser-option-two-line {
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.75rem;
   cursor: pointer;
   border-bottom: 1px solid var(--divider-color, #CDCFD0);
   color: var(--fg-main-color, #4c4f69);

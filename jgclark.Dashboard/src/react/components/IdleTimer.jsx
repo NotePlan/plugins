@@ -2,14 +2,16 @@
 //------------------------------------------------------------------------------
 // Dashboard React component to keep track of user idle time and perform an
 // action when the window has not been used in the last 'idleTime' milliseconds.
+// Also triggers a refresh at midnight every day (if Dashboard is open!)
 //
 // Note: currently this only can see 'idle' in the Dashboard windows, not in the main
 // NotePlan windows.
 //------------------------------------------------------------------------------
 
 // @flow
-import { useEffect, useState } from 'react'
-import { logDebug } from '@helpers/react/reactDev'
+import { useEffect, useState, useRef } from 'react'
+import moment from 'moment/min/moment-with-locales'
+import { logDebug, logInfo } from '@helpers/react/reactDev'
 import { getTimeAgoString } from '@helpers/dateTime.js'
 import { dt } from '@helpers/dev'
 
@@ -38,6 +40,7 @@ const LEGAL_DRIFT_THRESHHOLD = 10000 // 10 seconds
  */
 function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
   const [lastActivity, setLastActivity] = useState(Date.now())
+  const lastMidnightRefreshDateRef = useRef <? string > (null)
   
   useEffect(() => {
     const handleUserActivity = () => {
@@ -68,6 +71,18 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
 
   useEffect(() => {
     const interval = setInterval(() => {
+      // Check for midnight refresh (works as it runs every 15 seconds)
+      const now = moment()
+      const currentDate = now.format('YYYY-MM-DD')
+      const isMidnight = now.hours() === 0 && now.minutes() === 0
+
+      if (isMidnight && lastMidnightRefreshDateRef.current !== currentDate) {
+        lastMidnightRefreshDateRef.current = currentDate
+        onIdleTimeout()
+        logInfo('IdleTimer', `Midnight detected, triggering refresh`)
+      }
+
+      // Check for idle timeout
       const elapsedMs = Date.now() - lastActivity
       if (elapsedMs >= idleTime) {
         if ((elapsedMs - LEGAL_DRIFT_THRESHHOLD) < idleTime) {

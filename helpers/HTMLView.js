@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2026-01-06 by @jgclark
+// Last updated 2026-01-09 by @jgclark
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import { hasFrontMatter } from '@helpers/NPFrontMatter'
@@ -56,6 +56,8 @@ export type HtmlWindowOptions = {
   iconColor?: string, // only used if showInMainWindow is true
   autoTopPadding?: boolean, // only used if showInMainWindow is true
   showReloadButton?: boolean, // only used if showInMainWindow is true
+  reloadPluginID?: string, // only used if showInMainWindow is true, and presumably showReloadButton is true
+  reloadCommandName?: string, // only used if showInMainWindow is true, and presumably showReloadButton is true
 }
 
 /**
@@ -563,7 +565,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       logInfo('showHTMLV2', `- opts.showInMainWindow: ${String(opts.showInMainWindow)} and usersVersionHas('showInMainWindow'): ${String(usersVersionHas('showInMainWindow'))}`)
 
       // Show in main window, if wanted (and available), otherwise show in floating window
-      if (opts.showInMainWindow && usersVersionHas('showInMainWindow')) {
+      if (opts.showInMainWindow && (NotePlan.environment.platform === 'macOS' ? usersVersionHas('showInMainWindow') : usersVersionHas('showInMainWindowOniOS'))) {
         // Split window only available on macOS
         // $FlowFixMe[prop-missing] - splitView is an optional property in HtmlWindowOptions, and flow doesn't like it
         winOptions.splitView = 'splitView' in opts && NotePlan.environment.platform === 'macOS' ? opts.splitView : false
@@ -575,15 +577,21 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         winOptions.autoTopPadding = 'autoTopPadding' in opts ? opts.autoTopPadding : true
         // $FlowFixMe[prop-missing] - as above
         winOptions.showReloadButton = 'showReloadButton' in opts ? opts.showReloadButton : false
+        // $FlowFixMe[prop-missing] - as above
+        winOptions.reloadPluginID = ("reloadPluginID" in opts) ? opts.reloadPluginID : ''
+        // $FlowFixMe[prop-missing] - as above
+        winOptions.reloadCommandName = ("reloadCommandName" in opts) ? opts.reloadCommandName : ''
 
         logDebug('showHTMLV2', `- Showing in main window with options: ${JSON.stringify(winOptions)}`)
         const mainWindowSpecificOptions = {
+          customId: cId,
           splitView: opts.splitView,
           icon: opts.icon,
           iconColor: opts.iconColor,
           autoTopPadding: opts.autoTopPadding,
           showReloadButton: opts.showReloadButton,
-          customId: cId,
+          reloadPluginID: opts.reloadPluginID,
+          reloadCommandName: opts.reloadCommandName,
         }
         // $FlowFixMe[incompatible-type] - Flow can't guarantee the Promise resolves to an object
         const mainWindowResult = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', mainWindowSpecificOptions)

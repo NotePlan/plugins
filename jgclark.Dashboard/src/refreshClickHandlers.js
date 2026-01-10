@@ -28,15 +28,16 @@ import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
  *********************************************************************************/
 
 /**
- * Tell the React window to update by re-generating all Sections.
- * Note: I don't think this is used anymore (by v2.4 if not v2.3)
+ * Tell the React window to update by re-generating all enabled Sections.
+ * Used from v2.4 for the 'Reload' button when run in a "main window".
  */
-export async function refreshAllSections(): Promise<void> {
+export async function refreshDashboard(): Promise<void> {
   try {
-    logInfo('refreshAllSections', `👉👉👉👉 Starting ...so update codebase to note it is still used!`)
+    logInfo('refreshDashboard', `Starting to refresh Dashboard...`)
     const startTime = new Date()
-    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+
     // show refreshing message until done
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     await setPluginData({ refreshing: true, currentMaxPriorityFromAllVisibleSections: 0 }, 'Starting Refreshing all sections')
 
     // refresh all sections' data
@@ -47,14 +48,14 @@ export async function refreshAllSections(): Promise<void> {
       sections: newSections,
       lastFullRefresh: new Date(),
     }
-    await setPluginData(changedData, 'Finished Refreshing all sections')
-    logTimer('refreshAllSections', startTime, `at end for all sections`)
+    await setPluginData(changedData, 'Finished Refreshing all enabled sections')
+    logTimer('refreshDashboard', startTime, `finished for all enabled sections`)
 
     // re-calculate all done task counts (if the appropriate setting is on)
     const NPSettings = await getNotePlanSettings()
     if (NPSettings.doneDatesAvailable) {
       const config: any = await getDashboardSettings()
-      const totalDoneCount = await updateDoneCountsFromChangedNotes(`end of refreshAllSections()`, config.FFlag_ShowSectionTimings === true)
+      const totalDoneCount = await updateDoneCountsFromChangedNotes(`end of refreshDashboard()`, config.FFlag_ShowSectionTimings === true)
       const changedData = {
         totalDoneCount: totalDoneCount,
         firstRun: false, // Ensure firstRun remains false after refresh completes
@@ -62,17 +63,17 @@ export async function refreshAllSections(): Promise<void> {
       await setPluginData(changedData, 'Updating doneCounts at end of refreshAllSections')
     }
 
-    // Finally, if relevant, rebuild the tag mention cache.
-    if (isTagMentionCacheGenerationScheduled()) {
-      logInfo('refreshAllSections', `- now generating scheduled tag mention cache`)
-      await generateTagMentionCache()
-    }
+    // TEST: Now *not* rebuilding the tag mention cache.
+    // if (isTagMentionCacheGenerationScheduled()) {
+    //   logInfo('refreshDashboard', `- now generating scheduled tag mention cache`)
+    //   await generateTagMentionCache()
+    // }
   }
   catch (error) {
     // try to close the modal spinner and reset firstRun flag, if necessary
-    await setPluginData({ refreshing: false, firstRun: false }, `Error in refreshAllSections; resetting state`)
-    logError('refreshAllSections', error)
-    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Error in refreshAllSections: ${error.message}`, 'ERROR')
+    await setPluginData({ refreshing: false, firstRun: false }, `Error in refreshDashboard; resetting state`)
+    logError('refreshDashboard', error)
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Error in refreshDashboard: ${error.message}`, 'ERROR')
   }
 }
 

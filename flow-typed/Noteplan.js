@@ -2717,6 +2717,8 @@ declare class HTMLView {
   *   - iconColor: string - Tailwind color name (e.g., "blue-500") or hex color (e.g., "#3b82f6")
   *   - autoTopPadding: boolean - Auto-add top padding for navigation bar (default: true)
   *   - showReloadButton: boolean - Show a reload button in the navigation bar (default: false)
+  *   - reloadPluginID: string - The plugin ID to use by the reload button.
+  *   - reloadCommandName: string - The command name to use by the reload button.
   * @returns { Promise<{boolean, string}> } Returns a promise that resolves with { success: true, windowID: String }
   *
   * @example

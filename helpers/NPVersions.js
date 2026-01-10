@@ -34,7 +34,8 @@ export function usersVersionHas(feature: string): boolean {
     settableLineIndex: '3.19.2', // Nov 2025, build 1440
     availableCalendars: '3.20.0', // Dec 2025, macOS build 1469
     availableReminderLists: '3.20.0', // Dec 2025, macOS build 1469
-    showInMainWindow: '3.20.1', // Jan 2026, macOS build 1475, iOS build 1380
+    showInMainWindow: '3.20.0', // Dec 2025, macOS build 1469
+    showInMainWindowOniOS: '3.20.1', // Jan 2026, iOS build 1380
   }
 
   // Check if the user's version meets the requirement for the requested feature

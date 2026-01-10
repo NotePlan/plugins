@@ -390,8 +390,8 @@
     .input-box-label {
         font-weight: 600;
         color: var(--fg-alt-color);
-        /* margin-bottom: 0.3rem; */
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.3rem;
+        /* margin-bottom: 0.5rem; */
     }
 
     /* Style for input-box-input */

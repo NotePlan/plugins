@@ -327,7 +327,9 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       // icon: 'fa-duotone fa-grid-round-2', // TODO: this icon is not available in our old build
       iconColor: 'red-600',
       autoTopPadding: true,
-      showReloadButton: false,
+      showReloadButton: true,
+      reloadPluginID: pluginID,
+      reloadCommandName: "refreshDashboard",
     }
     logTimer('showDashboardReact', startTime, `Finished getting initial data. Now will call React:`)
 
