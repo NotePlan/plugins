@@ -18,19 +18,20 @@ function showTimeAgo() {
   if (diff <= 0.1) {
     output = 'just now'
   } else if (diff <= 1) {
-    output = '<1 min ago'
+    output = '<1m ago'
   } else if (diff < 1.5) {
-    output = '1 min ago'
+    output = '1m ago'
   } else if (diff <= 90) {
-    output = String(Math.round(diff)) + ' mins ago'
+    output = String(Math.round(diff)) + 'm ago'
   } else if (diff <= 1440) {
-    output = String(Math.round(diff / 60.0)) + ' hours ago'
-  } else if (diff <= 43776) {
-    output = String(Math.round(diff / 60.0 / 24.0)) + ' days ago'
-  } else if (diff <= 525312) {
-    output = String(Math.round(diff / 60.0 / 24.0 / 30.4)) + ' mon ago'
+    output = String(Math.round(diff / 60.0)) + 'h ago'
+    // } else if (diff <= 43776) {
   } else {
-    output = String(Math.round(diff / 60.0 / 24.0 / 30.4 / 365.0)) + ' yrs ago'
+    output = String(Math.round(diff / 60.0 / 24.0)) + 'd ago'
+  // } else if (diff <= 525312) {
+  //   output = String(Math.round(diff / 60.0 / 24.0 / 30.4)) + ' mon ago'
+  // } else {
+  //   output = String(Math.round(diff / 60.0 / 24.0 / 30.4 / 365.0)) + ' yrs ago'
   }
   document.getElementById('timer').innerHTML = output
   setTimeout(showTimeAgo, 30000) // call again in 30s

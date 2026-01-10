@@ -532,7 +532,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
             width: storedRect.width,
             height: storedRect.height,
             shouldFocus: opts.shouldFocus,
-            id: cId, // don't need both ... but trying to work out which is the current one for the API
+            id: cId, // TODO: don't need both ... but trying to work out which is the current one for the API
             windowId: cId,
           }
           logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)

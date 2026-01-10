@@ -1132,7 +1132,8 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
       // Method 1: make [[notelinks]] via x-callbacks
       // Method 2: x-callback using note title
       // Method 3: x-callback using filename
-      const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", null, false)
+      // Note: now using splitView if running in the main window on macOS
+      const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
       const noteTitleWithOpenAction = `<span class="noteTitle"><a href="${noteOpenActionURL}"><i class="fa-regular fa-file-lines pad-right"></i> ${folderNamePart}${titlePart}</a></span>`
       // Note: in theory could change to using onclick handler to a function that opens the note (like in Dashboard), but a lot of work for little gain. TODO(later): if switching to React.
 

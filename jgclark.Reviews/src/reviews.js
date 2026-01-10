@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2025-12-09 for v1.3.0, @jgclark
+// Last updated 2026-12-10 for v1.3.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -480,12 +480,12 @@ export async function renderProjectListsHTML(
     // v1: old style top middle box with lots of buttons
     // v2: New simpler version, with flexbox top bar
     if (config.usePerspectives) {
-      const perspectiveSection = `<div class="topbar-text">Persp: <span class="perspective-name">${config.perspectiveName}</span></div>`
+      const perspectiveSection = `<div id="persp" class="topbar-item">Persp: <span class="perspective-name">${config.perspectiveName}</span></div>`
       outputArray.push(perspectiveSection)
     }
-    const refreshSection = `<div class="pad-left">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+    const refreshSection = `<div id="refresh" class="topbar-item">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
     outputArray.push(refreshSection)
-    const controlButtons = `<div>Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
+    const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
     outputArray.push(controlButtons)
 
     // Show time since generation + display settings
@@ -494,9 +494,9 @@ export async function renderProjectListsHTML(
 
     // add checkbox toggles
     // logDebug('renderProjectListsHTML', `displayOnlyDue=${displayOnlyDue ? '✅' : '❌'}, displayFinished = ${displayFinished ? '✅' : '❌'}`)
-    outputArray.push(`<div id="toggles">`)
-    outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">Display only due?</input>`)
-    outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">Display finished?</input>`)
+    outputArray.push(`<div id="toggles" class="topbar-item">Display:`)
+    outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">only due?</input>`)
+    outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">finished?</input>`)
     outputArray.push(`</div>`)
 
     // Finish the sticky top bar
@@ -642,6 +642,16 @@ export async function renderProjectListsHTML(
       width: 800, // = default width of window (px)
       height: 1200, // = default height of window (px)
       shouldFocus: false, // shouuld not focus, if Window already exists
+      // If we should open in main/split view, or the default new window
+      showInMainWindow: config.preferredWindowType !== 'New Window',
+      splitView: config.preferredWindowType === 'Split View',
+      // Set icon details in case we are opening in main/split view
+      icon: pluginJson['plugin.icon'],
+      iconColor: pluginJson['plugin.iconColor'],
+      autoTopPadding: true,
+      showReloadButton: true,
+      reloadCommandName: 'displayProjectLists',
+      reloadPluginID: 'jgclark.Reviews',
     }
     const thisWindow = await showHTMLV2(body, winOptions)
     if (thisWindow) {
@@ -667,14 +677,14 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
     const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
 
     // Set up x-callback URLs for various commands
-    const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'start reviews', '') // "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=start%20reviews"
-    const reviewedXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'finish project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=finish%20project%20review&arg0="
-    const nextReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
-    const newIntervalXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'set new review interval', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
-    const addProgressXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'add progress update', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
-    const pauseXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'pause project toggle', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
-    const completeXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'complete project', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
-    const cancelXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'cancel project', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=cancel%20project&arg0="
+    const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'start reviews', '')
+    const reviewedXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'finish project review', '')
+    const nextReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '')
+    const newIntervalXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'set new review interval', '')
+    const addProgressXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'add progress update', '')
+    const pauseXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'pause project toggle', '')
+    const completeXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'complete project', '')
+    const cancelXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'cancel project', '')
 
     // style the x-callback URLs into markdown 'button' links
     const reviewedXCallbackButton = `[Finish](${reviewedXCallbackURL})`

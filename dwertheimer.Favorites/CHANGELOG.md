@@ -1,5 +1,9 @@
 # Favorites Plugin Changelog
 
+## [1.3.0] - 2025-01-10 @dwertheimer
+
+- Feature: Add new `/favorites-browser` command to open a sidebar window to view and open favorite notes and commands. This provides a persistent browser interface for managing and accessing your favorites.
+
 ## [1.2.10] - 2025-04-10 @dwertheimer
 
 - Bugfix: Fix issue with frontmatter not being visible immediately after setting a favorite

@@ -17,6 +17,25 @@ Somewhere on the Noteplan roadmap is (hopefully) the concept of pinned notes (se
 5. Choosing a favorite opens it in the Editor.
 6. Use the `/unfave` command to remove the ⭐️ or the frontmatter field (or you can do it by hand)!
 
+## Favorites Browser Sidebar
+
+The plugin includes a Favorites Browser that provides a persistent sidebar window for viewing and managing your favorite notes and commands. This is especially useful for quick access to your most frequently used items.
+
+### Opening the Favorites Browser
+
+- Type `/favorites-browser` or `/fav-browser` in the Command Bar to open the Favorites Browser sidebar window
+- The browser opens as a sidebar window by default, providing a dedicated view of all your favorites
+- You can optionally open it as a floating window by passing `IsFloating: true` as an argument
+
+### Using the Favorites Browser
+
+Once open, the Favorites Browser displays:
+- All your favorite notes (marked with ⭐️ or frontmatter)
+- All your favorite commands (X-Callbacks and URLs)
+- Quick access to open any favorite directly from the browser interface
+
+The sidebar provides a convenient way to browse and access your favorites without needing to type commands, making it ideal for users who prefer a visual interface for navigation.
+
 ### Preferences and Settings
 
 - **Favorite Identifier**: Choose how to identify favorites. Options include using a star in the title or a frontmatter field.
