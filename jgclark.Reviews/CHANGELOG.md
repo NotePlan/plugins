@@ -1,10 +1,14 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.3.0.b3] - 2026-01-11
+- can now display the first open task/checklist in a project note as the 'next action' by adding a new 'Sequential project marker' to its frontmatter (e.g. `project: #sequential`).
+- added new display toggle for "next actions"
+- tidied up the display of the top bar to more gracefully deal with likely narrow window widths
+
 ## [1.3.0.b2] - 2026-01-10
 - now supports opening the Project Lists window in NotePlan's main window on macOS. See Display setting "Open Project Lists in what sort of macOS window?".
 - when running in the main window, it will now open project notes in a split view to the side.
-- can now display the first open task/checklist in a project as the 'next action' by adding a new 'Sequential tag' to the frontmatter (e.g. `project: #sequential`).
 
 ## [1.3.0.b1] - 2025-12-09
 - now supports projects in (Team)Space notes, using the settings in the Perspective from Dashboard v2.4 which allows you to specify which (Team)Spaces you wish to include, plus whether or not to include the Private "Space" (all notes not in a Space).
