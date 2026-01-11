@@ -6,29 +6,26 @@
 // Last updated 2025-12-10 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
-//-----------------------------------------------------------------------------
-// Import Helper functions
-import { Project, generateProjectOutputLine } from './projectClass'
+
+import moment from 'moment'
+import { generateProjectOutputLine } from './htmlGenerators'
+import { Project } from './projectClass'
 import {
   finishReview,
   renderProjectLists,
   // updateAllProjectsListAfterChange,
 } from './reviews'
-import {
-  getReviewSettings,
-  type ReviewConfig
-} from './reviewHelpers'
-import {
-  updateAllProjectsListAfterChange
-} from './allProjectsListHelpers'
-import { hyphenatedDateString } from '@helpers/dateTime'
+import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
+import { updateAllProjectsListAfterChange } from './allProjectsListHelpers'
+// import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { archiveNoteUsingFolder } from '@helpers/NPnote'
 import { showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
+// Constants
 
-const thisYearStr = hyphenatedDateString(new Date()).substring(0, 4)
+const thisYearStr = moment().format('YYYY')
 const ERROR_FILENAME_PLACEHOLDER = '<error>'
 const ARCHIVE_PROMPT_YES = 'Yes'
 const ARCHIVE_PROMPT_NO = 'No'

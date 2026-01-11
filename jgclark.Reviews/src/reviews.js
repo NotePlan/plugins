@@ -35,8 +35,15 @@ import {
 } from './allProjectsListHelpers.js'
 import {
   calcReviewFieldsForProject,
-  generateProjectOutputLine,
 } from './projectClass'
+import {
+  generateProjectOutputLine,
+  generateTopBarHTML,
+  generateProjectTagSectionHTML,
+  generateTableStructureHTML,
+  generateProjectControlDialogHTML,
+  generateFolderHeaderHTML,
+} from './htmlGenerators'
 import { checkString } from '@helpers/checkType'
 import {
   getDateObjFromDateString,
@@ -431,83 +438,8 @@ export async function renderProjectListsHTML(
     // String array to save all output
     const outputArray = []
 
-    // Add (pseduo-)buttons for various commands
-    // Note: this is not a real button, bcause at the time I started this real < button > wouldn't work in NP HTML views, and Eduard didn't know why.
-    // Version 3: using proper link to the internal function using HTMLView::getCallbackCodeString() instead
-    // Useful fontawesome icons include:
-    // https://fontawesome.com/icons/play
-    // https://fontawesome.com/icons/forward-step
-    // https://fontawesome.com/icons/play-pause
-    // https://fontawesome.com/icons/calendar-pen
-    // https://fontawesome.com/icons/check
-    // https://fontawesome.com/icons/xmark
-    // https://fontawesome.com/icons/forward
-    const refreshPCButton = makePluginCommandButton(
-      `<i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh`,
-      'jgclark.Reviews',
-      'project lists',
-      '',
-      'Recalculate project lists and update this window',
-      true
-    )
-    const startReviewPCButton = makePluginCommandButton(
-      `<i class="fa-solid fa-play"></i>\u00A0Start`,
-      'jgclark.Reviews',
-      'start reviews',
-      '',
-      'Opens the next project to review in the NP editor',
-      true
-    )
-    const reviewedPCButton = makePluginCommandButton(
-      `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish`,
-      'jgclark.Reviews',
-      'finish project review',
-      '',
-      `Update the ${checkString(DataStore.preference('reviewedMentionStr'))}() date for the Project you're currently editing`,
-      true
-    )
-    const nextReviewPCButton = makePluginCommandButton(
-      `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
-      'jgclark.Reviews',
-      'next project review',
-      '',
-      `Finish review of currently open Project and start the next review`,
-      true
-    )
-
-    // Start with a sticky top bar
-    outputArray.push(`<div class="topbar">`)
-    // v1: old style top middle box with lots of buttons
-    // v2: New simpler version, with flexbox top bar
-    if (config.usePerspectives) {
-      const perspectiveSection = `<div id="persp" class="topbar-item">Persp: <span class="perspective-name">${config.perspectiveName}</span></div>`
-      outputArray.push(perspectiveSection)
-    }
-    const refreshSection = `<div id="refresh" class="topbar-item">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
-    outputArray.push(refreshSection)
-    const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
-    outputArray.push(controlButtons)
-
-    // Show time since generation + display settings
-    const displayFinished = config.displayFinished ?? false
-    const displayOnlyDue = config.displayOnlyDue ?? false
-
-    // add checkbox toggles
-    // logDebug('renderProjectListsHTML', `displayOnlyDue=${displayOnlyDue ? '✅' : '❌'}, displayFinished = ${displayFinished ? '✅' : '❌'}`)
-    outputArray.push(`<div id="toggles" class="topbar-item">Display:`)
-    outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">only due?</input>`)
-    outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">finished?</input>`)
-    outputArray.push(`</div>`)
-
-    // Finish the sticky top bar
-    outputArray.push(`</div>`)
-
-    // Note: remove test lines to see scroll position:
-    // controlButtons += ` <input id="id" type="button" value="Update Scroll Pos" onclick="getCurrentScrollHeight();"/>`
-    // controlButtons += ` <span id="scrollDisplay" class="fix-top-right">?</span>`
-
-    // Allow multi-col working
-    outputArray.push(`<div class="multi-cols">`)
+    // Generate top bar HTML
+    outputArray.push(generateTopBarHTML(config))
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
 
@@ -516,52 +448,12 @@ export async function renderProjectListsHTML(
       // Get the summary line for each revelant project
       const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
 
-      // Write out all relevant HTML
-      const headingContent = `<span class="h3 folder-name">${thisTag}</span> (${noteCount} notes, ${due} ready for review${config.numberDaysForFutureToIgnore > 0 ? ', with future items ignored' : ''})`
-      // If there are multiple projectTypeTags, then use details/summary HTML tags to open/close the section
-      if (config.projectTypeTags.length > 1) {
-        outputArray.push(`  <details open>`) // start it open
-        // Had tried adding: <i class="fa-solid fa-chevron-down"></i>
-        outputArray.push(`   <summary class="folder-header">${headingContent}</summary>`)
-      } else {
-        outputArray.push(`  <div class="folder-header">${headingContent}</div>`)
-      }
-      outputArray.push('\n<div class="details-content">')
-
-      // Add folder name, but only if we're only looking at 1 folder, and we're not grouping by folder. (If we are then folder names are added inside the table.)
-      if (!config.displayGroupedByFolder && config.foldersToInclude.length === 1) {
-        const folderDisplayName = getFolderDisplayNameForHTML(config.foldersToInclude[0])
-        outputArray.push(`<h4>${folderDisplayName} folder</h4>`)
-      }
-
-      // Start constructing table (if there any results)
-      outputArray.push('\n<table>')
+      // Generate project tag section HTML
+      outputArray.push(generateProjectTagSectionHTML(thisTag, noteCount, due, config, config.projectTypeTags.length > 1))
+      
       if (noteCount > 0) {
-        // In some cases, include colgroup to help massage widths a bit
-        if (config.displayDates) {
-          outputArray.push(`<thead>
-<colgroup>
-\t<col style="width: 2.6em">
-\t<col>
-\t<col style="width: 6em">
-\t<col style="width: 6em">
-</colgroup>
-`)
-        } else if (config.displayProgress) {
-          outputArray.push(`<thead>
-<colgroup>
-\t<col style="width: 3rem">
-\t<col>
-</colgroup>
-`)
-        } else {
-          outputArray.push(`<thead>
-<colgroup>
-\t<col style="width: 3rem">
-\t<col>
-</colgroup>
-`)
-        }
+        // Generate table structure HTML
+        outputArray.push(generateTableStructureHTML(config, noteCount))
         // outputArray.push('<tbody>')
         outputArray.push(thisSummaryLines.join('\n'))
         outputArray.push('   </tbody>')
@@ -575,45 +467,8 @@ export async function renderProjectListsHTML(
       logTimer('renderProjectListsHTML', funcTimer, `end of loop for ${thisTag}`)
     }
 
-    // Project control dialog
-    // Includes some 2x id elements to be updated with the project title + review interval
-    // Note: in the future the draft spec for CSS Anchor Positioning could be helpful for positioning this dialog relative to other things
-    const projectControlDialogHTML = `
-  <!----------- Dialog to show on Project items ----------->
-  <dialog id="projectControlDialog" class="projectControlDialog" aria-labelledby="Actions Dialog"
-    aria-describedby="Actions that can be taken on projects">
-    <div class="dialogTitle">
-      <div>For <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogProjectNote">?</span></b> <span id="dialogProjectInterval">?</span></div>
-      <div class="dialog-top-right"><form><button id="closeButton" class="closeButton">
-        <i class="fa-solid fa-square-xmark"></i>
-      </button></form></div>
-    </div>
-    <div class="dialogBody">
-      <div class="buttonGrid" id="projectDialogButtons">
-        <div>Review:</div>
-        <div id="projectControlDialogProjectControls">
-          <button data-control-str="finish"><i class="fa-regular fa-calendar-check"></i> Finish</button>
-          <button data-control-str="nr+1w"><i class="fa-solid fa-forward"></i> Skip 1w</button>
-          <button data-control-str="nr+2w"><i class="fa-solid fa-forward"></i> Skip 2w</button>
-          <button data-control-str="nr+1m"><i class="fa-solid fa-forward"></i> Skip 1m</button>
-          <button data-control-str="nr+1q"><i class="fa-solid fa-forward"></i> Skip 1q</button>
-          <button data-control-str="newrevint"><i class="fa-solid fa-arrows-left-right"></i> New Interval</button>
-        </div>
-        <div>Project:</div>
-        <div>
-          <button data-control-str="progress"><i class="fa-solid fa-comment-lines"></i> Add Progress</button>
-          <button data-control-str="pause">Toggle <i class="fa-solid fa-circle-pause"></i> Pause</button>
-          <button data-control-str="complete"><i class="fa-solid fa-circle-check"></i> Complete</button>
-          <button data-control-str="cancel"><i class="fa-solid fa-circle-xmark"></i> Cancel</button>
-        </div>
-        <div></div>
-        <!-- <div><form><button id="closeButton" class="mainButton">Close</button></form></div> -->
-        </div>
-      </div>
-    </div>
-  </dialog>
-`
-    outputArray.push(projectControlDialogHTML)
+    // Generate project control dialog HTML
+    outputArray.push(generateProjectControlDialogHTML())
 
     const body = outputArray.join('\n')
     logTimer('renderProjectListsHTML', funcTimer, `end of main loop`)
@@ -915,19 +770,7 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
         // Handle root folder display - check if original folder was root, not the display name
         if (folder === '/') folderPart = '(root folder)'
         if (style.match(/rich/i)) {
-          outputArray.push(`<thead>\n <tr class="folder-header-row">`)
-          outputArray.push(`  <th colspan=2 class="h4 folder-header">${folderPart}</th>`)
-          if (config.displayDates) {
-            outputArray.push(`  <th>Next Review</th><th>Due Date</th>`)
-          } else if (config.displayProgress && config.displayNextActions) {
-            outputArray.push(`  <th>Progress and/or Next Action</th>`)
-          } else if (config.displayProgress) {
-            outputArray.push(`  <th>Progress</th>`)
-          } else if (config.displayNextActions) {
-            outputArray.push(`  <th>Next Action</th>`)
-          }
-          outputArray.push(` </tr>\n</thead>\n`)
-          outputArray.push(` <tbody>`)
+          outputArray.push(generateFolderHeaderHTML(folderPart, config))
         } else if (style.match(/markdown/i)) {
           outputArray.push(`### ${folderPart}`)
         }
