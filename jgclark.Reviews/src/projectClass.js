@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-01-10 for v1.3.0.b3, @jgclark
+// Last updated 2026-01-11 for v1.3.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -107,6 +107,8 @@ export class Project {
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
       this.ID = String(Math.round((Math.random()) * 99999))
+      // TODO: Cursor suggests a more robust approach, instead of random number:
+      // this.ID = `${this.filename}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
       // Sometimes we're called just after a note has been updated in the Editor. So check to see if note is open in Editor, and if so use that version, which could be newer.
       // (Unless 'checkEditor' false, to avoid triggering 'You are running this on an async thread' warnings.)
@@ -157,49 +159,34 @@ export class Project {
       }
 
       // read in various metadata fields (if present)
-      let tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('startMentionStr')))
-      this.startDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
-      // read in due date (if present)
-      tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('dueMentionStr')))
-      this.dueDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+      this.startDate = this.parseDateMention(mentions, 'startMentionStr')
+      this.dueDate = this.parseDateMention(mentions, 'dueMentionStr')
       // read in reviewed date (if present)
       // Note: doesn't pick up reviewed() if not in metadata line
-      tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('reviewedMentionStr')))
-      this.reviewedDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+      this.reviewedDate = this.parseDateMention(mentions, 'reviewedMentionStr')
       // read in completed date (if present)
-      tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('completedMentionStr')))
-      this.completedDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+      this.completedDate = this.parseDateMention(mentions, 'completedMentionStr')
       // read in cancelled date (if present)
-      tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('cancelledMentionStr')))
-      this.cancelledDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+      this.cancelledDate = this.parseDateMention(mentions, 'cancelledMentionStr')
       // read in review interval (if present)
       const tempIntervalStr = getParamMentionFromList(mentions, checkString(DataStore.preference('reviewIntervalMentionStr')))
       // $FlowIgnore[incompatible-type]
       this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : '1w'
       // read in nextReview date (if present)
-      tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
-      if (tempStr !== '') {
-        this.nextReviewDateStr = tempStr.slice(12, 22)
-        this.nextReviewDate = moment(this.nextReviewDateStr, "YYYY-MM-DD").toDate()
+      const nextReviewStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
+      if (nextReviewStr !== '') {
+        // Extract date using regex instead of hardcoded slice indices
+        const dateMatch = nextReviewStr.match(/@nextReview\((\d{4}-\d{2}-\d{2})\)/)
+        if (dateMatch && dateMatch[1]) {
+          this.nextReviewDateStr = dateMatch[1]
+          this.nextReviewDate = moment(this.nextReviewDateStr, "YYYY-MM-DD").toDate()
+        }
       }
 
       // count tasks (includes both tasks and checklists)
       const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
       const numberDaysForFutureToIgnore = checkNumber(DataStore.preference('numberDaysForFutureToIgnore')) || 0
-      this.numOpenItems = ignoreChecklistsInProgress
-        ? paras.filter(isOpenTask).length
-        : paras.filter(isOpen).length
-      this.numCompletedItems = (ignoreChecklistsInProgress)
-        ? paras.filter(isClosedTask).length
-        : paras.filter(isClosed).length
-      this.numWaitingItems = (ignoreChecklistsInProgress
-        ? paras.filter(isOpenTask)
-        : paras.filter(isOpen)).filter((p) => p.content.match('#waiting')).length
-      // count future tasks. Note: if 'numberDaysForFutureToIgnore' is set to 0, then this will count all future tasks.
-      this.numFutureItems = (ignoreChecklistsInProgress
-        ? paras.filter(isOpenTask)
-        : paras.filter(isOpen))
-        .filter((p) => includesScheduledFurtherFutureDate(p.content, numberDaysForFutureToIgnore)).length
+      this.countTasks(paras, ignoreChecklistsInProgress, numberDaysForFutureToIgnore)
 
       // make project completed if @completed(date) set
       if (this.completedDate != null) {
@@ -260,6 +247,7 @@ export class Project {
     }
     catch (error) {
       logError('Project', error.message)
+      throw error // Re-throw to prevent invalid object creation
     }
   }
   /**
@@ -270,7 +258,75 @@ export class Project {
   get isReadyForReview(): boolean {
     // logDebug(pluginJson, `isReadyForReview: ${this.title}:  ${String(this.nextReviewDays)} ${String(this.isPaused)}`)
     // $FlowFixMe[invalid-compare]
-    return !this.isPaused && this.nextReviewDays != null && !isNaN(this.nextReviewDays) && this.nextReviewDays <= 0
+    return !this.isPaused && !this.isCompleted && this.nextReviewDays != null && !isNaN(this.nextReviewDays) && this.nextReviewDays <= 0
+  }
+
+  /**
+   * Parse a date mention from the mentions list
+   * @param {Array<string>} mentions - Array of mention strings
+   * @param {string} mentionKey - The preference key for the mention string
+   * @returns {?Date} Parsed date or undefined
+   * @private
+   */
+  parseDateMention(mentions: Array<string>, mentionKey: string): ?Date {
+    const tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference(mentionKey)))
+    return tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+  }
+
+  /**
+   * Count tasks/items in the note
+   * @param {Array<TParagraph>} paras - Paragraphs to count
+   * @param {boolean} ignoreChecklistsInProgress - Whether to ignore checklists
+   * @param {number} numberDaysForFutureToIgnore - Days in future to ignore
+   * @private
+   */
+  countTasks(paras: Array<TParagraph>, ignoreChecklistsInProgress: boolean, numberDaysForFutureToIgnore: number): void {
+    const openFilter = ignoreChecklistsInProgress ? isOpenTask : isOpen
+    const closedFilter = ignoreChecklistsInProgress ? isClosedTask : isClosed
+
+    const openParas = paras.filter(openFilter)
+    this.numOpenItems = openParas.length
+    this.numCompletedItems = paras.filter(closedFilter).length
+    this.numWaitingItems = openParas.filter((p) => p.content.match('#waiting')).length
+    this.numFutureItems = openParas.filter((p) => includesScheduledFurtherFutureDate(p.content, numberDaysForFutureToIgnore)).length
+  }
+
+  /**
+   * Calculate duration string for completed/cancelled date
+   * @param {Date} date - The completion or cancellation date
+   * @param {boolean} hasStartDate - Whether start date exists
+   * @param {?Date} startDate - Optional start date
+   * @returns {string} Duration string
+   * @private
+   */
+  calculateDurationString(date: Date, hasStartDate: boolean, startDate?: Date): string {
+    if (hasStartDate && startDate) {
+      return `after ${moment(startDate).to(moment(date), true)}`
+    } else {
+      let duration = moment(date).fromNow()
+      if (duration.includes('hours')) {
+        duration = 'today'
+      }
+      return duration
+    }
+  }
+
+  /**
+   * Update metadata paragraph and save to Editor or note
+   * @private
+   */
+  updateMetadataAndSave(): void {
+    const newMetadataLine = this.generateMetadataOutputLine()
+    const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
+    metadataPara.content = newMetadataLine
+
+    if (Editor && Editor.note && Editor.note === this.note) {
+      Editor.updateParagraph(metadataPara)
+      DataStore.updateCache(this.note, true)
+    } else {
+      this.note.updateParagraph(metadataPara)
+      DataStore.updateCache(this.note, true)
+    }
   }
 
   /**
@@ -290,7 +346,7 @@ export class Project {
   }
 
   calculateDueDays(): void {
-    const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+    const now = moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
     this.dueDays =
       this.dueDate != null
         ? daysBetween(now, this.dueDate)
@@ -304,36 +360,12 @@ export class Project {
     try {
       // Calculate durations or time since cancel/complete
       // logDebug('calculateCompletedOrCancelledDurations', String(this.startDate ?? 'no startDate'))
-      if (this.startDate) {
-        const momTSD = moment(this.startDate)
-        if (this.completedDate != null) {
-          this.completedDuration = `after ${momTSD.to(moment(this.completedDate), true)}`
-          // logDebug('calculateCompletedOrCancelledDurations', `-> completedDuration = ${this.completedDuration}`)
-        }
-        else if (this.cancelledDate != null) {
-          this.cancelledDuration = `after ${momTSD.to(moment(this.cancelledDate), true)}`
-          // logDebug('calculateCompletedOrCancelledDurations', `-> cancelledDuration = ${this.cancelledDuration}`)
-        }
-      }
-      else {
-        if (this.completedDate != null) {
-          this.completedDuration = moment(this.completedDate).fromNow() // ...ago
-          if (this.completedDuration.includes('hours')) {
-            this.completedDuration = 'today' // edge case
-          }
-          // logDebug('calculateCompletedOrCancelledDurations', `-> completedDuration = ${this.completedDuration}`)
-        }
-        else if (this.cancelledDate != null) {
-          this.cancelledDuration = moment(this.cancelledDate).fromNow() // ...ago
-          if (this.cancelledDuration.includes('hours')) {
-            this.cancelledDuration = 'today' // edge case
-          }
-          // logDebug('calculateCompletedOrCancelledDurations', `-> completedDuration = ${this.cancelledDuration}`)
-        }
-        else {
-          // Nothing to do
-          // logDebug('calculateCompletedOrCancelledDurations', `No completed or cancelled dates.`)
-        }
+      if (this.completedDate != null) {
+        this.completedDuration = this.calculateDurationString(this.completedDate, this.startDate != null, this.startDate)
+        // logDebug('calculateCompletedOrCancelledDurations', `-> completedDuration = ${this.completedDuration}`)
+      } else if (this.cancelledDate != null) {
+        this.cancelledDuration = this.calculateDurationString(this.cancelledDate, this.startDate != null, this.startDate)
+        // logDebug('calculateCompletedOrCancelledDurations', `-> cancelledDuration = ${this.cancelledDuration}`)
       }
     } catch (error) {
       logError('calculateCompletedOrCancelledDurations', error.message)
@@ -343,7 +375,7 @@ export class Project {
   calcNextReviewDate(): ?Date {
     try {
       // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
-      const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+      const now = moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
       // First check to see if project start is in future: if so set nextReviewDate to project start
       if (this.startDate) {
@@ -498,7 +530,6 @@ export class Project {
         logDebug('Project::addProgressLine', `- finished Editor.insertParagraph`)
         // Also updateCache to make changes more quickly available elsewhere
         // await DataStore.updateCache(Editor.note, true)
-        // TEST:
         await Editor.save()
         logDebug('Project::addProgressLine', `- after Editor.save`)
       }
@@ -554,27 +585,13 @@ export class Project {
       this.isCompleted = true
       this.isCancelled = false
       this.isPaused = false
-      this.completedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+      this.completedDate = moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
       this.calculateDueDays()
       this.calculateCompletedOrCancelledDurations()
 
       // re-write the note's metadata line
       logDebug('completeProject', `Completing '${this.title}' ...`)
-      const newMetadataLine = this.generateMetadataOutputLine()
-      logDebug('completeProject', `- metadata now '${newMetadataLine}'`)
-
-      // send update to Editor
-      // Note: Will need updating when supporting frontmatter for metadata
-
-      const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
-      metadataPara.content = newMetadataLine
-      if (Editor && Editor.note && Editor.note === this.note) {
-        Editor.updateParagraph(metadataPara)
-        const res = DataStore.updateCache(this.note, true)
-      } else {
-        this.note.updateParagraph(metadataPara)
-        DataStore.updateCache(this.note, true)
-      }
+      this.updateMetadataAndSave()
 
       const newMSL = this.TSVSummaryLine()
       logDebug('completeProject', `- returning mSL '${newMSL}'`)
@@ -599,26 +616,13 @@ export class Project {
       this.isCompleted = false
       this.isCancelled = true
       this.isPaused = false
-      this.cancelledDate = new moment().toDate()  // getJSDateStartOfToday() // use moment instead of `new Date` to ensure we get a date in the local timezone
+      this.cancelledDate = moment().toDate()  // getJSDateStartOfToday() // use moment instead of `new Date` to ensure we get a date in the local timezone
       this.calculateDueDays()
       this.calculateCompletedOrCancelledDurations()
 
       // re-write the note's metadata line
       logDebug('cancelProject', `Cancelling '${this.title}' ...`)
-      const newMetadataLine = this.generateMetadataOutputLine()
-      logDebug('cancelProject', `- metadata now '${newMetadataLine}'`)
-
-      // send update to Editor
-      // Note: Will need updating when supporting frontmatter for metadata
-      const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
-      metadataPara.content = newMetadataLine
-      if (Editor && Editor.note && Editor.note === this.note) {
-        Editor.updateParagraph(metadataPara)
-        DataStore.updateCache(this.note, true)
-      } else {
-        this.note.updateParagraph(metadataPara)
-        DataStore.updateCache(this.note, true)
-      }
+      this.updateMetadataAndSave()
 
       const newMSL = this.TSVSummaryLine()
       logDebug('cancelProject', `- returning mSL '${newMSL}'`)
@@ -686,23 +690,28 @@ export class Project {
    * Generate a one-line tab-sep summary line ready for Markdown note
    */
   generateMetadataOutputLine(): string {
-    let output = this.projectTag
-    output += ' '
-    output += this.isPaused ? '#paused ' : ''
-    // $FlowIgnore[incompatible-call]
-    output += this.startDate && this.startDate !== undefined ? `${checkString(DataStore.preference('startMentionStr'))}(${toISODateString(this.startDate)}) ` : ''
-    // $FlowIgnore[incompatible-call]
-    output += this.dueDate && this.startDate !== undefined ? `${checkString(DataStore.preference('dueMentionStr'))}(${toISODateString(this.dueDate)}) ` : ''
-    output +=
-      this.reviewInterval && this.reviewInterval !== undefined ? `${checkString(DataStore.preference('reviewIntervalMentionStr'))}(${checkString(this.reviewInterval)}) ` : ''
-    // $FlowIgnore[incompatible-call]
-    output += this.reviewedDate && this.reviewedDate !== undefined ? `${checkString(DataStore.preference('reviewedMentionStr'))}(${toISODateString(this.reviewedDate)}) ` : ''
-    // $FlowIgnore[incompatible-call]
-    output += this.completedDate && this.completedDate !== undefined ? `${checkString(DataStore.preference('completedMentionStr'))}(${toISODateString(this.completedDate)}) ` : ''
-    // $FlowIgnore[incompatible-call]
-    output += this.cancelledDate && this.cancelledDate !== undefined ? `${checkString(DataStore.preference('cancelledMentionStr'))}(${toISODateString(this.cancelledDate)}) ` : ''
-
-    return output
+    const parts: Array<string> = []
+    parts.push(this.projectTag)
+    if (this.isPaused) parts.push('#paused')
+    if (this.startDate != null) {
+      parts.push(`${checkString(DataStore.preference('startMentionStr'))}(${toISODateString(this.startDate)})`)
+    }
+    if (this.dueDate != null) {
+      parts.push(`${checkString(DataStore.preference('dueMentionStr'))}(${toISODateString(this.dueDate)})`)
+    }
+    if (this.reviewInterval != null) {
+      parts.push(`${checkString(DataStore.preference('reviewIntervalMentionStr'))}(${checkString(this.reviewInterval)})`)
+    }
+    if (this.reviewedDate != null) {
+      parts.push(`${checkString(DataStore.preference('reviewedMentionStr'))}(${toISODateString(this.reviewedDate)})`)
+    }
+    if (this.completedDate != null) {
+      parts.push(`${checkString(DataStore.preference('completedMentionStr'))}(${toISODateString(this.completedDate)})`)
+    }
+    if (this.cancelledDate != null) {
+      parts.push(`${checkString(DataStore.preference('cancelledMentionStr'))}(${toISODateString(this.cancelledDate)})`)
+    }
+    return parts.join(' ')
   }
 
   /**
@@ -806,7 +815,7 @@ function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = 
 */
 export function calcDurationsForProject(thisProjectIn: Project): Project {
   try {
-    const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+    const now = moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
     
     // Calculate # days until due
     const dueDays = thisProjectIn.dueDate != null
@@ -819,36 +828,27 @@ export function calcDurationsForProject(thisProjectIn: Project): Project {
     let completedDuration = thisProjectIn.completedDuration
     let cancelledDuration = thisProjectIn.cancelledDuration
     
-    if (thisProjectIn.startDate) {
-      const momTSD = moment(thisProjectIn.startDate)
-      if (thisProjectIn.completedDate != null) {
-        completedDuration = `after ${momTSD.to(moment(thisProjectIn.completedDate), true)}`
-        logDebug('calcDurationsForProject', `-> completedDuration = ${completedDuration}`)
-      }
-      else if (thisProjectIn.cancelledDate != null) {
-        cancelledDuration = `after ${momTSD.to(moment(thisProjectIn.cancelledDate), true)}`
-        logDebug('calcDurationsForProject', `-> cancelledDuration = ${cancelledDuration}`)
+    // Helper function to calculate duration string
+    const calculateDuration = (date: Date, hasStartDate: boolean, startDate?: Date): string => {
+      if (hasStartDate && startDate) {
+        return `after ${moment(startDate).to(moment(date), true)}`
+      } else {
+        let duration = moment(date).fromNow()
+        if (duration.includes('hours')) {
+          duration = 'today'
+        }
+        return duration
       }
     }
-    else {
-      if (thisProjectIn.completedDate != null) {
-        completedDuration = moment(thisProjectIn.completedDate).fromNow() // ...ago
-        if (completedDuration.includes('hours')) {
-          completedDuration = 'today' // edge case
-        }
-        logDebug('calcDurationsForProject', `-> completedDuration = ${completedDuration ?? '?'}`)
-      }
-      else if (thisProjectIn.cancelledDate != null) {
-        cancelledDuration = moment(thisProjectIn.cancelledDate).fromNow() // ...ago
-        if (cancelledDuration.includes('hours')) {
-          cancelledDuration = 'today' // edge case
-        }
-        logDebug('calcDurationsForProject', `-> completedDuration = ${cancelledDuration ?? '?'}`)
-      }
-      else {
-        // Nothing to do
-        logDebug('calcDurationsForProject', `No completed or cancelled dates.`)
-      }
+
+    if (thisProjectIn.completedDate != null) {
+      completedDuration = calculateDuration(thisProjectIn.completedDate, thisProjectIn.startDate != null, thisProjectIn.startDate)
+      logDebug('calcDurationsForProject', `-> completedDuration = ${completedDuration}`)
+    } else if (thisProjectIn.cancelledDate != null) {
+      cancelledDuration = calculateDuration(thisProjectIn.cancelledDate, thisProjectIn.startDate != null, thisProjectIn.startDate)
+      logDebug('calcDurationsForProject', `-> cancelledDuration = ${cancelledDuration}`)
+    } else {
+      logDebug('calcDurationsForProject', `No completed or cancelled dates.`)
     }
     
     return createImmutableProjectCopy(thisProjectIn, {
@@ -872,7 +872,7 @@ export function calcDurationsForProject(thisProjectIn: Project): Project {
 export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
   try {
     // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
-    const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+    const now = moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     let nextReviewDate: ?Date = thisProjectIn.nextReviewDate
     let nextReviewDays: number = thisProjectIn.nextReviewDays
@@ -922,6 +922,219 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
 }
 
 /**
+ * Generate circle indicator HTML for project status
+ * @param {Project} thisProject
+ * @returns {string}
+ * @private
+ */
+function generateCircleIndicator(thisProject: Project): string {
+  if (thisProject.isCompleted) {
+    return `<td class="first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check circle-icon')}</td>`
+  } else if (thisProject.isCancelled) {
+    return `<td class="first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</td>`
+  } else if (thisProject.isPaused) {
+    return `<td class="first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "var(--project-pause-color)")}</td>`
+  } else if (thisProject.percentComplete == null || isNaN(thisProject.percentComplete)) {
+    return `<td class="first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', 'var(--project-no-percent-color)')}</td>`
+  } else if (thisProject.percentComplete === 0) {
+    return `<td class="first-col-indicator">${addSVGPercentRing(thisProject, 100, '#FF000088', '0')}</td>`
+  } else {
+    return `<td class="first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</td>`
+  }
+}
+
+/**
+ * Generate progress section HTML
+ * @param {Project} thisProject
+ * @param {any} config
+ * @param {string} statsProgress
+ * @param {boolean} useDiv - Whether to use div instead of span
+ * @returns {string}
+ * @private
+ */
+function generateProgressSection(thisProject: Project, config: any, statsProgress: string, useDiv: boolean = false): string {
+  if (!config.displayProgress) return ''
+
+  const tag = useDiv ? 'div' : 'span'
+  const indent = useDiv ? '\t\t\t\t' : '\n\t\t\t\t'
+  let output = `${indent}<${tag} class="progress">`
+
+  if (thisProject.lastProgressComment !== '') {
+    output += `<span class="progressIcon"><i class="fa-solid fa-info-circle"></i></span><span class="progressText">${thisProject.lastProgressComment}</span>`
+  } else {
+    output += `<span class="progressText">${statsProgress}</span>`
+  }
+  output += `</${tag}>`
+  return output
+}
+
+/**
+ * Generate next actions section HTML
+ * @param {any} config
+ * @param {Array<string>} nextActionsContent
+ * @returns {string}
+ * @private
+ */
+function generateNextActionsSection(config: any, nextActionsContent: Array<string>): string {
+  if (!config.displayNextActions || nextActionsContent.length === 0) return ''
+
+  const parts: Array<string> = []
+  for (const NAContent of nextActionsContent) {
+    parts.push(`\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${NAContent}</span></div>`)
+  }
+  return parts.join('')
+}
+
+/**
+ * Generate date section HTML for Rich format
+ * @param {Project} thisProject
+ * @param {any} config
+ * @returns {string}
+ * @private
+ */
+function generateDateSection(thisProject: Project, config: any): string {
+  if (!config.displayDates || thisProject.isPaused) {
+    return '<td></td><td></td>'
+  }
+
+  if (thisProject.isCompleted) {
+    const completionRef = thisProject.completedDuration || "completed"
+    return `<td colspan=2 class="checked">Completed ${completionRef}</td>`
+  } else if (thisProject.isCancelled) {
+    const cancellationRef = thisProject.cancelledDuration || "cancelled"
+    return `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td>`
+  }
+
+  const parts: Array<string> = []
+  // Next review date
+  if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
+    const reviewDate = localeRelativeDateFromNumber(thisProject.nextReviewDays)
+    if (thisProject.nextReviewDays > 0) {
+      parts.push(`<td>${reviewDate}</td>`)
+    } else {
+      parts.push(`<td><p><b>${reviewDate}</b></p></td>`)
+    }
+  } else {
+    parts.push('<td></td>')
+  }
+
+  // Due date
+  if (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) {
+    const dueDate = localeRelativeDateFromNumber(thisProject.dueDays)
+    if (thisProject.dueDays > 0) {
+      parts.push(`<td>${dueDate}</td>`)
+    } else {
+      parts.push(`<td><p><b>${dueDate}</b></p></td>`)
+    }
+  } else {
+    parts.push('<td></td>')
+  }
+
+  return parts.join('')
+}
+
+/**
+ * Generate Rich HTML row for project
+ * @param {Project} thisProject
+ * @param {any} config
+ * @param {string} statsProgress
+ * @returns {string}
+ * @private
+ */
+function generateRichHTMLRow(thisProject: Project, config: any, statsProgress: string): string {
+  const parts: Array<string> = []
+  parts.push('\t<tr class="projectRow">\n\t\t')
+  parts.push(generateCircleIndicator(thisProject))
+
+  // Column 2a: Project name / link / edit dialog trigger button
+  const editButton = `          <span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}'})"><i class="fa-light fa-edit"></i></span>\n`
+  parts.push(`\n\t\t\t<td><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}</span>`)
+
+  if (!thisProject.isCompleted && !thisProject.isCancelled) {
+    const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
+      ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
+      : []
+
+    if (config.displayDates) {
+      // Write column 2b/2c under title
+      parts.push(generateProgressSection(thisProject, config, statsProgress, false))
+      parts.push(generateNextActionsSection(config, nextActionsContent))
+      parts.push(`</td>`)
+    } else {
+      // write progress in next cell instead
+      parts.push(`</td>\n`)
+      parts.push(`\t\t\t<td>`)
+      parts.push(generateProgressSection(thisProject, config, statsProgress, true))
+      parts.push(generateNextActionsSection(config, nextActionsContent))
+    }
+  }
+
+  // Columns 3/4: date information
+  parts.push(generateDateSection(thisProject, config))
+  parts.push('\n\t</tr>')
+
+  return parts.join('')
+}
+
+/**
+ * Generate Markdown/list format line for project
+ * @param {Project} thisProject
+ * @param {any} config
+ * @param {string} style
+ * @param {string} statsProgress
+ * @param {string} thisPercent
+ * @returns {string}
+ * @private
+ */
+function generateMarkdownLine(thisProject: Project, config: any, style: string, statsProgress: string, thisPercent: string): string {
+  const parts: Array<string> = []
+  parts.push('- ')
+  parts.push(decoratedProjectTitle(thisProject, style, config))
+
+  if (config.displayDates && !thisProject.isPaused) {
+    if (thisProject.isCompleted) {
+      const completionRef = thisProject.completedDuration || "completed"
+      parts.push(`\t(Completed ${completionRef})`)
+    } else if (thisProject.isCancelled) {
+      const cancellationRef = thisProject.cancelledDuration || "cancelled"
+      parts.push(`\t(Cancelled ${cancellationRef})`)
+    }
+  }
+
+  if (config.displayProgress && !thisProject.isCompleted && !thisProject.isCancelled) {
+    if (thisProject.lastProgressComment !== '') {
+      parts.push(`\t${thisPercent} done: ${thisProject.lastProgressComment}`)
+    } else {
+      parts.push(`\t${statsProgress}`)
+    }
+  }
+
+  if (config.displayDates && !thisProject.isPaused && !thisProject.isCompleted && !thisProject.isCancelled) {
+    if (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) {
+      parts.push(`\tdue ${localeRelativeDateFromNumber(thisProject.dueDays)}`)
+    }
+    if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
+      const reviewDate = localeRelativeDateFromNumber(thisProject.nextReviewDays)
+      if (thisProject.nextReviewDays > 0) {
+        parts.push(`\tReview ${reviewDate}`)
+      } else {
+        parts.push(`\tReview due **${reviewDate}**`)
+      }
+    }
+  }
+
+  // Add nextAction output if wanted and it exists
+  if (config.displayNextActions && thisProject.nextActionsRawContent.length > 0 && !thisProject.isCompleted && !thisProject.isCancelled) {
+    const nextActionsContent: Array<string> = thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
+    for (const nextActionContent of nextActionsContent) {
+      parts.push(`\n\t- Next action: ${nextActionContent}`)
+    }
+  }
+
+  return parts.join('')
+}
+
+/**
    * Returns line showing more detailed summary of the project, for output in Rich (HTML) or Markdown formats or simple list format.
    * Now uses fontawesome icons for some indicators.
    * Note: this is V2, now *not* part of the Project class, so can take config etc.
@@ -952,157 +1165,9 @@ export function generateProjectOutputLine(
   }
 
   if (style === 'Rich') {
-    output = '\t<tr class="projectRow">\n\t\t'
-
-    // Column 1: circle indicator
-    if (thisProject.isCompleted) {
-      output += `<td class="first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check circle-icon')}</td>` // ('checked' gives colour)
-    }
-    else if (thisProject.isCancelled) {
-      output += `<td class="first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</td>` // ('cancelled' gives colour)
-    }
-    else if (thisProject.isPaused) {
-      output += `<td class="first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "var(--project-pause-color)")}</td>`
-    }
-    else if (thisProject.percentComplete == null || isNaN(thisProject.percentComplete)) {
-      output += `<td class="first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', 'var(--project-no-percent-color)')}</td>`
-    }
-    else if (thisProject.percentComplete === 0) {
-      output += `<td class="first-col-indicator">${addSVGPercentRing(thisProject, 100, '#FF000088', '0')}</td>`
-    }
-    else {
-      output += `<td class="first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</td>`
-    }
-
-    // Column 2a: Project name / link / edit dialog trigger button
-    const editButton = `          <span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}'})"><i class="fa-light fa-edit"></i></span>\n`
-    output += `\n\t\t\t<td><span class="projectTitle">${decoratedProjectTitle(thisProject, style, config)}${editButton}</span>`
-
-    if (!thisProject.isCompleted && !thisProject.isCancelled) {
-      // tidy up nextActionContent to show only the main content and remove the nextAction tag
-      const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
-        ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
-        : []
-
-      if (config.displayDates) {
-      // Write column 2b/2c under title
-      // Column 2b: progress information (if it exists)
-        if (config.displayProgress) {
-          output += `\n\t\t\t\t<span class="progress">`
-          if (thisProject.lastProgressComment !== '') {
-            output += `<span class="progressIcon"><i class="fa-solid fa-info-circle"></i></span><span class="progressText">${thisProject.lastProgressComment}</span>`
-          } else {
-            output += `<span class="progressText">${statsProgress}</span>`
-          }
-          output += `</span>`
-        }
-
-        // Column 2c: next action(s) (if present)
-        if (config.displayNextActions && nextActionsContent.length > 0) {
-          for (const NAContent of nextActionsContent) {
-            output += `\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${NAContent}</span></div>`
-          }
-        }
-        output += `</td>`
-      } else {
-        // write progress in next cell instead
-        output += `</td>\n`
-        output += `\t\t\t<td>`
-        if (config.displayProgress) {
-          output += `\t\t\t\t<div class="progress">`
-          if (thisProject.lastProgressComment !== '') {
-            output += `<span class="progressIcon"><i class="fa-solid fa-info-circle"></i></span><span class="progressText">${thisProject.lastProgressComment}</span>`
-          } else {
-            output += `<span class="progressText">${statsProgress}</span>`
-          }
-          output += `</div>`
-        }
-        if (config.displayNextActions && nextActionsContent.length > 0) {
-          for (const NAContent of nextActionsContent) {
-            output += `\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${NAContent}</span></div>`
-          }
-        }
-      }
-    }
-
-    // Columns 3/4: date information
-    if (config.displayDates && !thisProject.isPaused) {
-      if (thisProject.isCompleted) {
-        // "completed after X"
-        const completionRef = (thisProject.completedDuration)
-          ? thisProject.completedDuration
-          : "completed"
-        output += `<td colspan=2 class="checked">Completed ${completionRef}</td>`
-      } else if (thisProject.isCancelled) {
-        // "cancelled X ago"
-        const cancellationRef = (thisProject.cancelledDuration)
-          ? thisProject.cancelledDuration
-          : "cancelled"
-        output += `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td>`
-      }
-      if (!thisProject.isCompleted && !thisProject.isCancelled) {
-        output = (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays))
-          ? (thisProject.nextReviewDays > 0)
-            ? `${output}<td>${localeRelativeDateFromNumber(thisProject.nextReviewDays)}</td>`
-            : `${output}<td><p><b>${localeRelativeDateFromNumber(thisProject.nextReviewDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
-          : `${output}<td></td>`
-        output = (thisProject.dueDays != null && !isNaN(thisProject.dueDays))
-          ? (thisProject.dueDays > 0)
-            ? `${output}<td>${localeRelativeDateFromNumber(thisProject.dueDays)}</td>`
-            : `${output}<td><p><b>${localeRelativeDateFromNumber(thisProject.dueDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
-          : `${output}<td></td>`
-      }
-    } else {
-      output += '<td></td><td></td>' // to avoid layout inconsistencies
-    }
-    output += '\n\t</tr>'
-  }
-  else if (style === 'Markdown' || style === 'list') {
-    output = '- '
-    output += `${decoratedProjectTitle(thisProject, style, config)}`
-    // logDebug('Project::generateProjectOutputLine', `${decoratedProjectTitle(thisProject, style, config
-    if (config.displayDates && !thisProject.isPaused) {
-      if (thisProject.isCompleted) {
-    // completed after X or cancelled X ago, depending
-        const completionRef = (thisProject.completedDuration)
-          ? thisProject.completedDuration
-          : "completed"
-        output += `\t(Completed ${completionRef})`
-      } else if (thisProject.isCancelled) {
-        // completed after X or cancelled X ago, depending
-        const cancellationRef = (thisProject.cancelledDuration)
-          ? thisProject.cancelledDuration
-          : "cancelled"
-        output += `\t(Cancelled ${cancellationRef})`
-      }
-    }
-    if (config.displayProgress && !thisProject.isCompleted && !thisProject.isCancelled) {
-      // Show progress comment if available ...
-      if (thisProject.lastProgressComment !== '' && !thisProject.isCompleted && !thisProject.isCancelled) {
-        output += `\t${thisPercent} done: ${thisProject.lastProgressComment}`
-      }
-      // ... else show stats
-      else {
-        output += `\t${statsProgress}`
-      }
-    }
-    if (config.displayDates && !thisProject.isPaused && !thisProject.isCompleted && !thisProject.isCancelled) {
-      output = (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) ? `${output}\tdue ${localeRelativeDateFromNumber(thisProject.dueDays)}` : output
-      output =
-        (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays))
-          ? thisProject.nextReviewDays > 0
-            ? `${output}\tReview ${localeRelativeDateFromNumber(thisProject.nextReviewDays)}`
-            : `${output}\tReview due **${localeRelativeDateFromNumber(thisProject.nextReviewDays)}**`
-          : output
-    }
-    // Add nextAction output if wanted and it exists
-    // logDebug('Project::generateProjectOutputLine', `nextActionRawContent: ${thisProject.nextActionRawContent}`)
-    if (config.displayNextActions && thisProject.nextActionsRawContent.length > 0 && !thisProject.isCompleted && !thisProject.isCancelled) {
-      const nextActionsContent: Array<string> = thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
-      for (const nextActionContent of nextActionsContent) {
-        output += `\n\t- Next action: ${nextActionContent}`
-      }
-    }
+    output = generateRichHTMLRow(thisProject, config, statsProgress)
+  } else if (style === 'Markdown' || style === 'list') {
+    output = generateMarkdownLine(thisProject, config, style, statsProgress, thisPercent)
   } else {
     logWarn('Project::generateProjectOutputLine', `Unknown style '${style}'; nothing returned.`)
     output = ''

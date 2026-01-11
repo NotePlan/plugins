@@ -4,12 +4,11 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-01-10 for v1.3.0.b3, @jgclark
+// Last updated 2026-01-11 for v1.3.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-// import { logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import { Project } from './projectClass.js'
 import {
   getReviewSettings,
@@ -27,12 +26,144 @@ import { smartPrependPara } from '@helpers/paragraph'
 
 // Settings
 const pluginID = 'jgclark.Reviews'
-const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
+const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // fully specified to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
 const maxAgeAllProjectsListInHours = 1
 const generatedDatePrefName = 'Reviews-lastAllProjectsGenerationTime'
+const MS_PER_HOUR = 1000 * 60 * 60
+const ERROR_FILENAME_PLACEHOLDER = 'error'
+const ERROR_READING_PLACEHOLDER = '<error reading'
+const SEQUENTIAL_TAG_DEFAULT = '#sequential'
 
 //-------------------------------------------------------------------------------
 // Helper functions
+
+/**
+ * Find the first project ready for review from a sorted list
+ * @param {Array<Project>} projects - Sorted array of projects
+ * @returns {?Project} First ready project or null
+ * @private
+ */
+function findFirstReadyProject(projects: Array<Project>): ?Project {
+  return projects.find((project) => project.isReadyForReview) ?? null
+}
+
+/**
+ * Find projects ready for review, avoiding duplicates
+ * @param {Array<Project>} projects - Sorted array of projects
+ * @param {number} maxCount - Maximum number to return (0 = no limit)
+ * @returns {Array<Project>} Array of ready projects
+ * @private
+ */
+function findReadyProjects(projects: Array<Project>, maxCount: number = 0): Array<Project> {
+  const projectsToReview: Array<Project> = []
+  let lastFilename = ''
+
+  for (const thisProject of projects) {
+    const thisNoteFilename = thisProject.filename ?? ERROR_FILENAME_PLACEHOLDER
+
+    // Skip if duplicate or not ready
+    if (thisNoteFilename === lastFilename || !thisProject.isReadyForReview) {
+      lastFilename = thisNoteFilename
+      continue
+    }
+
+    // Verify note exists
+    const thisNote = DataStore.projectNoteByFilename(thisNoteFilename)
+    if (!thisNote) {
+      logWarn('findReadyProjects', `Couldn't find note '${thisNoteFilename}' -- suggest you should re-run Project Lists to ensure this is up to date`)
+      lastFilename = thisNoteFilename
+      continue
+    }
+
+    projectsToReview.push(thisProject)
+    lastFilename = thisNoteFilename
+
+    // Stop if we've reached the limit
+    if (maxCount > 0 && projectsToReview.length >= maxCount) {
+      break
+    }
+  }
+
+  return projectsToReview
+}
+
+/**
+ * Build sorting specification array based on config
+ * @param {ReviewConfig} config - Review configuration
+ * @returns {Array<string>} Array of field names to sort by
+ * @private
+ */
+function buildSortingSpecification(config: ReviewConfig): Array<string> {
+  const sortingSpec: Array<string> = []
+  sortingSpec.push('projectTagOrder')
+
+  if (config.displayGroupedByFolder) {
+    sortingSpec.push('folder')
+  }
+
+  sortingSpec.push('isCancelled', 'isCompleted', 'isPaused') // i.e. 'active' before 'finished'
+
+  switch (config.displayOrder) {
+    case 'review':
+      sortingSpec.push('nextReviewDays')
+      break
+    case 'due':
+      sortingSpec.push('dueDays')
+      break
+    case 'title':
+      sortingSpec.push('title')
+      break
+  }
+
+  return sortingSpec
+}
+
+function stringifyProjectObjects(objArray: Array<any>): string {
+  /**
+   * a function for JSON.stringify to pass through all except .note property
+   * @returns {any}
+   */
+  function stringifyReplacer(key: string, value: any) {
+    // Filtering out properties
+    if (key === "note") {
+      return undefined
+    }
+    return value
+  }
+  const output = JSON.stringify(objArray, stringifyReplacer, 0).replace(/},/g, '},\n')
+  return output
+}
+
+/**
+ * Calculate file age in milliseconds
+ * @param {string} prefName - Preference name storing the timestamp
+ * @returns {number} File age in milliseconds, or Infinity if preference doesn't exist
+ * @private
+ */
+function getFileAgeMs(prefName: string): number {
+  // $FlowFixMe[incompatible-call] - DataStore.preference returns mixed, but we handle it
+  const prefValue: mixed = DataStore.preference(prefName)
+  const timestamp: number = typeof prefValue === 'number' ? prefValue : 0
+  const reviewListDate = new Date(timestamp)
+  return Date.now() - reviewListDate.getTime()
+}
+
+/**
+ * Check if allProjects list file is too old and needs regeneration
+ * @returns {boolean} True if file needs regeneration
+ * @private
+ */
+function shouldRegenerateAllProjectsList(): boolean {
+  if (!DataStore.fileExists(allProjectsListFilename)) {
+    return true
+  }
+  const fileAgeMs = getFileAgeMs(generatedDatePrefName)
+  const maxAgeMs = MS_PER_HOUR * maxAgeAllProjectsListInHours
+  return fileAgeMs > maxAgeMs
+}
+
+//-------------------------------------------------------------------------------
+// Main functions
 
 /**
  * Filter list of regular notes by folder inclusion and exclusion rules.
@@ -89,22 +220,6 @@ export function filterProjectNotesByTeamspaces(
   })
 }
 
-function stringifyProjectObjects(objArray: Array<any>): string {
-  /**
-   * a function for JSON.stringify to pass through all except .note property
-   * @returns {any}
-   */
-  function stringifyReplacer(key: string, value: any) {
-    // Filtering out properties
-    if (key === "note") {
-      return undefined
-    }
-    return value
-  }
-  const output = JSON.stringify(objArray, stringifyReplacer, 0).replace(/},/g, '},\n')
-  return output
-}
-
 /**
  * Log the machine-readable list of project-type notes
  * @author @jgclark
@@ -128,7 +243,7 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
   if (!config) throw new Error('No config found. Stopping.')
 
   logInfo('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
-  const startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+  const startTime = moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
   // Get list of folders, excluding @specials and our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore.
   const filteredFolderList = (config.foldersToInclude.length > 0)
@@ -187,7 +302,7 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
           await CommandBar.onAsyncThread()
         }
         for (const n of projectNotesArr) {
-          const np = new Project(n, tag, true, config.nextActionTags, config.sequentialTag ?? '#sequential')
+          const np = new Project(n, tag, true, config.nextActionTags, config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT)
           projectInstances.push(np)
         }
         if (!runInForeground) {
@@ -219,11 +334,12 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
 export async function generateAllProjectsList(configIn: any, runInForeground: boolean = false): Promise<Array<Project>> {
   try {
     logDebug('generateAllProjectsList', `starting`)
-    const startTime = new moment().toDate()
+    const startTime = moment().toDate()
     // Get all project notes as Project instances
     const projectInstances = await getAllMatchingProjects(configIn, runInForeground)
 
-    // Log the start this full generation to a special log note. FIXME: remove this later.
+    // Log the start this full generation to a special log note
+    // Note: This logging may be removed in a future version
     const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
     if (logNote) {
       const newLogLine = `${new Date().toLocaleString()}: Reviews (generateAllProjectsList) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
@@ -298,39 +414,34 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
 export async function getAllProjectsFromList(): Promise<Array<Project>> {
   try {
     logDebug('getAllProjectsFromList', `Starting ...`)
-    const startTime = new moment().toDate()
+    const startTime = moment().toDate()
     let projectInstances: Array<Project>
 
-    // But first check to see if it is more than a day old
-    if (DataStore.fileExists(allProjectsListFilename)) {
-      // read this from a NP preference
-      // $FlowFixMe[incompatible-call]
-      const reviewListDate = new Date(DataStore.preference(generatedDatePrefName) ?? 0)
-      const fileAge = Date.now() - reviewListDate.getTime()
-      logDebug('getAllProjectsFromList', `- reviewListDate = ${String(reviewListDate)} = ${String(fileAge)} ago`)
-      // If this note is more than a day old, then regenerate it
-      if (fileAge > (1000 * 60 * 60 * maxAgeAllProjectsListInHours)) {
-        logDebug('getAllProjectsFromList', `Regenerating allProjects list as more than ${String(maxAgeAllProjectsListInHours)} hours old`)
-        // Call plugin command generateAllProjectsList (which produces the newer JSON file)
-        projectInstances = await generateAllProjectsList()
+    // Check if file exists and is fresh enough
+    if (shouldRegenerateAllProjectsList()) {
+      if (DataStore.fileExists(allProjectsListFilename)) {
+        const fileAgeMs = getFileAgeMs(generatedDatePrefName)
+        const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
+        logDebug('getAllProjectsFromList', `Regenerating allProjects list as more than ${String(maxAgeAllProjectsListInHours)} hours old (currently ${fileAgeHours} hours)`)
       } else {
-        // Otherwise we can read from the list
-        logDebug('getAllProjectsFromList', `Reading from allProjectsList (as only ${(fileAge / (1000 * 60 * 60)).toFixed(2)} hours old)`)
-        const content = DataStore.loadData(allProjectsListFilename, true) ?? `<error reading ${allProjectsListFilename}>`
-        // Make objects from this (except .note)
-        projectInstances = JSON.parse(content)
+        logDebug('getAllProjectsFromList', `Generating allProjects list as can't find it`)
       }
-    } else {
-      // Need to generate it
-      logDebug('getAllProjectsFromList', `Generating allProjects list as can't find it`)
       projectInstances = await generateAllProjectsList()
+    } else {
+      // Read from the list
+      const fileAgeMs = getFileAgeMs(generatedDatePrefName)
+      const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
+      logDebug('getAllProjectsFromList', `Reading from allProjectsList (as only ${fileAgeHours} hours old)`)
+      const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
+      // Make objects from this (except .note)
+      projectInstances = JSON.parse(content)
     }
     logTimer(`getAllProjectsFromList`, startTime, `- read ${projectInstances.length} Projects from allProjects list`)
 
     return projectInstances
   }
   catch (error) {
-    logError(pluginJson, `generateAllProjectsList: ${error.message}`)
+    logError('getAllProjectsFromList', error.message)
     return []
   }
 }
@@ -398,26 +509,7 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
     })
 
     // Sort projects by projectTagOrder > folder > [nextReviewDays | dueDays | title]
-    const sortingSpecification = []
-    sortingSpecification.push('projectTagOrder')
-    if (config.displayGroupedByFolder) {
-      sortingSpecification.push('folder')
-    }
-    sortingSpecification.push('isCancelled', 'isCompleted', 'isPaused') // i.e. 'active' before 'finished'
-    switch (config.displayOrder) {
-      case 'review': {
-        sortingSpecification.push('nextReviewDays')
-        break
-      }
-      case 'due': {
-        sortingSpecification.push('dueDays')
-        break
-      }
-      case 'title': {
-        sortingSpecification.push('title')
-        break
-      }
-    }
+    const sortingSpecification = buildSortingSpecification(config)
     logDebug('reviews/filterAndSortProjectsList', `- sorting by ${String(sortingSpecification)}`)
     const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)
     // sortedProjectInstances.forEach(pi => logDebug('', `${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
@@ -465,7 +557,7 @@ export async function updateAllProjectsListAfterChange(
       return
     }
 
-    const reviewedTitle = reviewedProject.title ?? 'error'
+    const reviewedTitle = reviewedProject.title ?? ERROR_FILENAME_PLACEHOLDER
     logInfo('updateAllProjectsListAfterChange', `- Found '${reviewedTitle}' to update in allProjects list`)
 
     // delete this item from the list
@@ -480,14 +572,14 @@ export async function updateAllProjectsListAfterChange(
         return
       }
       // Note: there had been issue of stale data here in the past. Leaving comment in case it's needed again.
-      const updatedProject = new Project(reviewedNote, reviewedProject.projectTag, true, config.nextActionTags, config.sequentialTag ?? '#sequential')
+      const updatedProject = new Project(reviewedNote, reviewedProject.projectTag, true, config.nextActionTags, config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT)
       // clo(updatedProject, 'in updateAllProjectsListAfterChange() 🟡 updatedProject:')
       allProjects.push(updatedProject)
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
     }
     // re-form the file
     await writeAllProjectsList(allProjects)
-    logInfo('updateAllProjectsListAfterChange', `- Wrote  ${allProjects.length} items toupdated list`)
+    logInfo('updateAllProjectsListAfterChange', `- Wrote ${allProjects.length} items to updated list`)
 
     // Finally, refresh Dashboard
     await updateDashboardIfOpen()
@@ -521,21 +613,18 @@ export async function getNextNoteToReview(): Promise<?TNote> {
     }
     logDebug(pluginJson, `Starting projects/getNextNoteToReview() with ${allProjectsSorted.length} projects in total`)
 
-    // Now read from the top until we find an item with 'nextReviewDays' <= 0, and not complete
-    for (let i = 0; i < allProjectsSorted.length; i++) {
-      const thisProject = allProjectsSorted[i]
-      const thisNoteFilename = thisProject.filename ?? 'error'
-      const nextReviewDays = thisProject.nextReviewDays ?? NaN
-      if (nextReviewDays <= 0 && !thisProject.isCompleted && !thisProject.isPaused) { // = before today, or today, and not completed/paused
-        logDebug('getNextNoteToReview', `- Next to review -> '${thisNoteFilename}'`)
-        const nextNote = DataStore.projectNoteByFilename(thisNoteFilename)
-        if (!nextNote) {
-          logWarn('getNextNoteToReview', `Couldn't find note '${thisNoteFilename}' -- suggest you should re-run Project Lists to ensure this is up to date`)
-          return null
-        } else {
-          logDebug('getNextNoteToReview', `-> ${displayTitle(nextNote)}`)
-          return nextNote
-        }
+    // Find first project ready for review
+    const nextProject = findFirstReadyProject(allProjectsSorted)
+    if (nextProject) {
+      const thisNoteFilename = nextProject.filename ?? ERROR_FILENAME_PLACEHOLDER
+      logDebug('getNextNoteToReview', `- Next to review -> '${thisNoteFilename}'`)
+      const nextNote = DataStore.projectNoteByFilename(thisNoteFilename)
+      if (!nextNote) {
+        logWarn('getNextNoteToReview', `Couldn't find note '${thisNoteFilename}' -- suggest you should re-run Project Lists to ensure this is up to date`)
+        return null
+      } else {
+        logDebug('getNextNoteToReview', `-> ${displayTitle(nextNote)}`)
+        return nextNote
       }
     }
 
@@ -574,32 +663,8 @@ export async function getNextProjectsToReview(numToReturn: number = 0): Promise<
       return []
     }
 
-    // Now read from the top until we find an item with 'nextReviewDays' <= 0, and not complete,
-    // and not the same as the previous item (which used to happen legitimately).
-    // Continue until we have found up to numToReturn such notes.
-    const projectsToReview: Array<Project> = []
-    let lastFilename = ''
-    for (let i = 0; i < allProjectsSorted.length; i++) {
-      const thisProject = allProjectsSorted[i]
-      const thisNoteFilename = thisProject.filename ?? 'error'
-      const nextReviewDays = thisProject.nextReviewDays ?? NaN
-
-      // Get items with review due before today, or today etc.
-      if (nextReviewDays <= 0 && !thisProject.isCompleted && !thisProject.isPaused && thisNoteFilename !== lastFilename) {
-        const thisNote = DataStore.projectNoteByFilename(thisNoteFilename)
-        if (!thisNote) {
-          logWarn('getNextNoteToReview', `Couldn't find note '${thisNoteFilename}' -- suggest you should re-run Project Lists to ensure this is up to date`)
-          continue
-        } else {
-          // logDebug('reviews/getNextProjectsToReview', `- Next to review = '${displayTitle(noteToUse)}' with ${nextNotes.length} matches`)
-          projectsToReview.push(thisProject)
-        }
-        if ((numToReturn > 0) && (projectsToReview.length >= numToReturn)) {
-          break // stop processing the loop
-        }
-      }
-      lastFilename = thisNoteFilename
-    }
+    // Find projects ready for review, avoiding duplicates
+    const projectsToReview = findReadyProjects(allProjectsSorted, numToReturn)
 
     if (projectsToReview.length > 0) {
       logDebug('reviews/getNextProjectsToReview', `- Returning ${projectsToReview.length} project notes ready for review`)
