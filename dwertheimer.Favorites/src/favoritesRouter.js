@@ -18,7 +18,8 @@ import {
   handleRenderMarkdown,
   handleGetNoteContentAsHTML,
 } from './requestHandlers'
-import { newCommsRouter, type RequestResponse } from './routerUtils'
+import { newCommsRouter, type RequestResponse } from '@helpers/react/routerUtils'
+import pluginJson from '../plugin.json'
 
 const FAVORITES_BROWSER_WINDOW_ID = 'favorites-browser-window'
 
@@ -75,4 +76,6 @@ export const onFavoritesBrowserAction: (actionType: string, data: any) => Promis
   routeRequest: routeFavoritesRequest,
   // Also handle non-REQUEST actions (like SEND_TO_PLUGIN) by routing them the same way
   handleNonRequestAction: routeFavoritesRequest,
+  pluginJson: pluginJson,
+  useSharedHandlersFallback: false, // Favorites implements all its own handlers
 })

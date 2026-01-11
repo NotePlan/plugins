@@ -389,8 +389,9 @@ export function Root(/* props: Props */): Node {
                     } else {
                       pending.reject(new Error(error || 'Request failed'))
                     }
-                  } else {
-                    logDebug(`Root`, `RESPONSE received for unknown correlationId: ${correlationId}`)
+                  } else if (ROOT_DEBUG || debug) {
+                    // This is normal when child components handle their own request/response pattern
+                    logDebug(`Root`, `RESPONSE received for correlationId not in Root's pending map: ${correlationId}`)
                   }
                 }
                 break
