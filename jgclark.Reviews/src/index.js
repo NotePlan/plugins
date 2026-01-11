@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2025-09-01 for v1.2.4, @jgclark
+// Last updated 2026-01-11 for v1.3.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -29,7 +29,8 @@ export {
   skipReview,
   startReviews,
   toggleDisplayFinished,
-  toggleDisplayOnlyDue
+  toggleDisplayOnlyDue,
+  toggleDisplayNextActions
 } from './reviews'
 export {
   generateAllProjectsList,

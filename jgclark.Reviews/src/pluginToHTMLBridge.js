@@ -12,6 +12,7 @@ import {
   skipReviewForNote,
   toggleDisplayOnlyDue,
   toggleDisplayFinished,
+  toggleDisplayNextActions,
 } from './reviews'
 import {
   addProgressUpdate,
@@ -112,6 +113,10 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
       }
       case 'displayOnlyDue': {
         toggleDisplayOnlyDue()
+        break
+      }
+      case 'displayNextActions': {
+        toggleDisplayNextActions()
         break
       }
     }

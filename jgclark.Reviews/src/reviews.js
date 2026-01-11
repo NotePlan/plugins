@@ -441,6 +441,9 @@ export async function renderProjectListsHTML(
     // Generate top bar HTML
     outputArray.push(generateTopBarHTML(config))
 
+    // Start multi-col working (if space)
+    outputArray.push(`<div class="multi-cols">`)
+
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
 
     // Make the Summary list, for each projectTag in turn
@@ -1259,5 +1262,27 @@ export async function toggleDisplayOnlyDue(): Promise<void> {
   }
   catch (error) {
     logError('toggleDisplayOnlyDue', error.message)
+  }
+}
+
+/** 
+ * Toggle displayNextActions setting, held as a NP preference, as it is shared between frontend and backend
+*/
+export async function toggleDisplayNextActions(): Promise<void> {
+  try {
+    // v2 directly update settings.json
+    const config: ReviewConfig = await getReviewSettings()
+    const savedValue = config.displayNextActions ?? false
+    const newValue = !savedValue
+    logDebug('toggleDisplayNextActions', `displayNextActions? now '${String(newValue)}' (was '${String(savedValue)}')`)
+    const updatedConfig = config
+    updatedConfig.displayNextActions = newValue
+    // logDebug('toggleDisplayNextActions', `updatedConfig.displayNextActions? now is '${String(updatedConfig.displayNextActions)}'`)
+    const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+    // clo(updatedConfig, 'updatedConfig at end of toggle...()')
+    await renderProjectLists(updatedConfig, false)
+  }
+  catch (error) {
+    logError('toggleDisplayNextActions', error.message)
   }
 }

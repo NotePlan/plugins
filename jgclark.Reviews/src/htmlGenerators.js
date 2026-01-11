@@ -233,12 +233,11 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
       // Method 1: make [[notelinks]] via x-callbacks
       // Method 2: x-callback using note title
       // Method 3: x-callback using filename
-      // Method 4: use onclick handler to run the x-callback, not an anchor tag
+      // Note: using an "onclick="window.location.href='${noteOpenActionURL}'" handler instead of an anchor tag doesn't work in the NP constrained environment.
       // Note: now using splitView if running in the main window on macOS
       const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
       const extraClasses = (thisProject.isCompleted) ? 'checked' : (thisProject.isCancelled) ? 'cancelled' : (thisProject.isPaused) ? 'paused' : ''
-      // return `<span class="${extraClasses}" onclick="('${noteOpenActionURL}')">${noteTitleWithOpenAction}</span>`
-      return `<span class="noteTitle" onclick="window.location.href='${noteOpenActionURL}'"><span class="noteTitleIcon"><i class="fa-regular fa-file-lines"></i></span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></span>`
+      return `<a class="noteTitle" href="${noteOpenActionURL}"><span class="noteTitleIcon"><i class="fa-regular fa-file-lines"></i></span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a>`
     }
 
     case 'Markdown': {
@@ -402,27 +401,24 @@ export function generateTopBarHTML(config: any): string {
     parts.push(perspectiveSection)
   }
   
-  const refreshSection = `<div id="refresh" class="topbar-item">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
-  parts.push(refreshSection)
-  
-  const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
-  parts.push(controlButtons)
-
-  // Show time since generation + display settings
+  // add checkbox toggles
   const displayFinished = config.displayFinished ?? false
   const displayOnlyDue = config.displayOnlyDue ?? false
-
-  // add checkbox toggles
+  const displayNextActions = config.displayNextActions ?? false
   parts.push(`<div id="toggles" class="topbar-item">Display:`)
   parts.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">only due?</input>`)
   parts.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">finished?</input>`)
+  parts.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayNextActions ? 'checked' : ''} id="tog3" name="displayNextActions">next actions?</input>`)
   parts.push(`</div>`)
+
+  const refreshSection = `<div id="refresh" class="topbar-item">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+  parts.push(refreshSection)
+
+  const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
+  parts.push(controlButtons)
 
   // Finish the sticky top bar
   parts.push(`</div>`)
-  
-  // Allow multi-col working
-  parts.push(`<div class="multi-cols">`)
 
   return parts.join('\n')
 }
