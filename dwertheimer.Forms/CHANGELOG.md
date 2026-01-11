@@ -4,6 +4,13 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.7] 2026-01-11 @dwertheimer
+
+### Fixed
+- **CRITICAL**: Fixed potential request timeout issues by removing outdated local copy of `routerUtils.js` and switching to shared version from `@helpers/react/routerUtils`
+- All three routers (`formBrowserRouter`, `formBuilderRouter`, `formSubmitRouter`) now use the shared router utilities with proper `pluginJson` parameter
+- This prevents silent failures when sending responses back to React components and improves error logging
+
 ## [1.0.6] 2025-12-19 @dwertheimer
 
 - UI improvements for template tag editor:

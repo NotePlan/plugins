@@ -9,7 +9,7 @@ import { handleRequest } from './requestHandlers' // For shared requests like ge
 import { handleSaveRequest, handleCreateProcessingTemplate, handleOpenNote, handleCopyFormUrl, handleDuplicateForm } from './formBuilderHandlers'
 import { openFormBuilderWindow, FORMBUILDER_WINDOW_ID } from './windowManagement'
 import { openTemplateForm } from './NPTemplateForm'
-import { newCommsRouter, type RequestResponse } from './routerUtils'
+import { newCommsRouter, type RequestResponse } from '@helpers/react/routerUtils'
 import { closeWindowFromCustomId } from '@helpers/NPWindows'
 import { getNoteByFilename } from '@helpers/note'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
@@ -113,4 +113,6 @@ export const onFormBuilderAction: (actionType: string, data: any) => Promise<any
   defaultWindowId: FORMBUILDER_WINDOW_ID,
   routeRequest: routeFormBuilderRequest,
   handleNonRequestAction: handleFormBuilderNonRequestAction,
+  pluginJson: pluginJson,
+  useSharedHandlersFallback: true, // Forms uses shared handlers for choosers
 })

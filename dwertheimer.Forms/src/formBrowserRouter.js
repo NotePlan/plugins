@@ -7,7 +7,8 @@
 import { getFormTemplates, getFormFields, handleSubmitForm, handleOpenFormBuilder, handleCreateNewForm, handleOpenNoteByTitle } from './formBrowserHandlers'
 import { handleDuplicateForm } from './formBuilderHandlers' // For duplicate functionality
 import { handleRequest } from './requestHandlers' // For shared requests like getTeamspaces
-import { newCommsRouter, type RequestResponse } from './routerUtils'
+import { newCommsRouter, type RequestResponse } from '@helpers/react/routerUtils'
+import pluginJson from '../plugin.json'
 
 const FORM_BROWSER_WINDOW_ID = 'form-browser-window'
 
@@ -51,5 +52,7 @@ export const onFormBrowserAction: (actionType: string, data: any) => Promise<any
   routerName: 'onFormBrowserAction',
   defaultWindowId: FORM_BROWSER_WINDOW_ID,
   routeRequest: routeFormBrowserRequest,
+  pluginJson: pluginJson,
+  useSharedHandlersFallback: true, // Forms uses shared handlers for choosers
   // FormBrowserView primarily uses REQUEST/RESPONSE pattern, no non-REQUEST actions
 })

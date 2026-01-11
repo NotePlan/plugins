@@ -9,7 +9,7 @@ import { getGlobalSharedData } from '../../helpers/HTMLView'
 import { handleRequest } from './requestHandlers' // For shared requests like getFolders, getNotes, getTeamspaces
 import { handleFormSubmitAction, handleUnknownAction, getFormWindowIdForSubmission } from './formSubmitHandlers'
 import { WEBVIEW_WINDOW_ID, getFormWindowId, findFormWindowId } from './windowManagement'
-import { handleRequestResponse, newCommsRouter, type RequestResponse } from './routerUtils'
+import { handleRequestResponse, newCommsRouter, type RequestResponse } from '@helpers/react/routerUtils'
 import { logDebug, logError, clo, JSP } from '@helpers/dev'
 
 /**
@@ -134,4 +134,6 @@ export const onFormSubmitFromHTMLView: (actionType: string, data: any) => Promis
   routeRequest: routeFormSubmitRequest,
   handleNonRequestAction: handleFormSubmitNonRequestAction,
   getWindowId: getFormSubmitWindowId,
+  pluginJson: pluginJson,
+  useSharedHandlersFallback: true, // Forms uses shared handlers for choosers
 })

@@ -1,5 +1,12 @@
 # Favorites Plugin Changelog
 
+## [1.3.1] - 2026-01-11 @dwertheimer
+
+### Fixed
+- **CRITICAL**: Fixed request timeout issue by removing outdated local copy of `routerUtils.js` and switching to shared version from `@helpers/react/routerUtils`
+- The local copy was missing the `pluginJson` parameter required by the shared router, which could cause silent failures when sending responses back to React
+- Router now properly passes `pluginJson` parameter to `newCommsRouter` for correct logging and response handling
+
 ## [1.3.0] - 2025-01-10 @dwertheimer
 
 - Feature: Add new `/favorites-browser` command to open a sidebar window to view and open favorite notes and commands. This provides a persistent browser interface for managing and accessing your favorites.
