@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [1.0.5] @dwertheimer 2026-01-10 (not released yet)
+### Changed
+- Added logging to Root.jsx to reduce confusing logging about request/response patterns
+
 ## [1.0.4] @jgclark 2026-01-09
 ### Changed
 - Changed minAppVersion back down to 3.8.1, as the checks for v3.20.0 (mainWindow in macOS) or v3.20.1 (mainWindow on iOS) are handled in showHTMLV2() calls
