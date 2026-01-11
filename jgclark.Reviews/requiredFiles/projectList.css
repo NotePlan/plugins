@@ -6,6 +6,9 @@
 body {
   margin: 0px;
 	--teamspace-color: #269F54;
+  --project-pause-color: #888888;
+  --project-no-percent-color: #888888;
+  --project-zero-progress-color: #9F2626;
 }
 
 table {
@@ -57,7 +60,7 @@ h3, .h3 {
 
 .topbar-item {
   white-space: nowrap;     /* no wrapping inside items */
-  flex: 0 0 auto;          /* don’t stretch or shrink */
+  flex: 0 0 auto;          /* don't stretch or shrink */
   min-width: max-content;
 }
 
@@ -325,22 +328,64 @@ button, .fake-button, .clickTarget {
 	display: block;
 }
 
-/* -------------------------------------------------------- */
-/* make noteTitles bold and coloured */
-.noteTitle {
-  color: var(--tint-color);
-  font-size: 1.05rem; /* TODO: Gradually reduce from 1.1rem to 1.0rem? */
-  font-weight: 500;
-  text-decoration: none;
-}
-/* make noteTitle links underlined on mouse hover */
-.noteTitle a:hover {
-  text-decoration: underline;
-}
-
 /* a top-right fixed position */
 .fix-top-right {
   position: absolute; top: 1.7rem; right: 1rem;
+}
+
+/* -------------------------------------------------------- */
+/* first line of column 2 */
+.projectTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+/* make noteTitle icon + text bold and coloured, and indicate its clickable */
+.noteTitle {
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  color: var(--tint-color);
+  font-size: 1.03rem; /* TODO: Gradually reduce from 1.1rem to 1.0rem? */
+  font-weight: 500;
+  text-decoration: none;
+}
+.noteTitle:hover {
+  /* placeholder */
+}
+.noteTitleIcon {
+  /* placeholder */
+}
+/* make noteTitle links underlined on mouse hover */
+.noteTitleText:hover {
+  text-decoration: underline;
+}
+
+/* ---- PROGRESS ----------------------------------------- */
+.progress {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.progressIcon {
+  color: var(--tint-color);
+}
+.progressText {
+  /* placeholder */
+}
+
+/* ---- NEXT ACTIONS ----------------------------------------- */
+.nextAction {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.nextActionIcon {
+  /* placeholder */
+}
+.nextActionText {
+  /* placeholder */
 }
 
 /* ---- ICONS etc. ----------------------------------------- */
@@ -455,3 +500,4 @@ li {
 .fake-checkbox::before {
   content: '●';
 }
+

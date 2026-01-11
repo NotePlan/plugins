@@ -593,7 +593,7 @@ export async function updateDashboardIfOpen(): Promise<void> {
  * Insert a fontawesome icon in given color.
  * Other styling comes from CSS for 'circle-icon' (just sets size)
  * @param {string} faClasses CSS class name(s) to use for FA icons
- * @param {string} colorStr optional
+ * @param {string} colorStr optional, any valid CSS color value or var(...)
  * @returns HTML string to insert
  */
 export function addFAIcon(faClasses: string, colorStr: string = ''): string {

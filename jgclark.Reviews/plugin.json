@@ -282,7 +282,7 @@
     {
       "key": "projectTypeTags",
       "title": "Hashtags to review",
-      "description": "A comma-separated list of hashtags to indicate notes to include in this review system.\nIf this setting is empty, then it will include all notes for review that include a `@review(...)` string.\nIf it is set (e.g. `#project, #area`), then it will include just those notes which also have one or more of those tags.",
+      "description": "A comma-separated list of hashtags to indicate notes to include in this review system.\nIf this setting is empty, then it will include all notes for review that include a '@review(...)' string.\nIf it is set (e.g. '#project, #area'), then it will include just those notes which also have one or more of those tags.",
       "type": "[string]",
       "default": [
         "#area",
@@ -301,7 +301,7 @@
     {
       "key": "foldersToInclude",
       "title": "Folders to Include",
-      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nNotes:\n- if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders.\n- if empty, all folders will be used apart from those in the next setting.\n- if 'Use Perspectives' is set, then this setting is ignored.",
+      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say 'Project' which would match for 'Client A/Projects' as well as 'Client B/Projects'.\nNotes:\n- if you specify the root folder '/' this only includes the root folder itself, and not all its sub-folders.\n- if empty, all folders will be used apart from those in the next setting.\n- if 'Use Perspectives' is set, then this setting is ignored.",
       "type": "[string]",
       "default": [
         "Projects"
@@ -311,7 +311,7 @@
     {
       "key": "foldersToIgnore",
       "title": "Folders to Exclude",
-      "description": "If 'Folders to Include' above is empty, then this setting specifies folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is done anywhere in the folder name. Can be empty.\nNotes:\n- if you specify the root folder `/` this only ignores the root folder, and not all sub-folders.\n- the special @Trash, @Templates and @Archive folders are always excluded.\n- if 'Use Perspectives' is set, then this setting is ignored.",
+      "description": "If 'Folders to Include' above is empty, then this setting specifies folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is done anywhere in the folder name. Can be empty.\nNotes:\n- if you specify the root folder '/' this only ignores the root folder, and not all sub-folders.\n- the special @Trash, @Templates and @Archive folders are always excluded.\n- if 'Use Perspectives' is set, then this setting is ignored.",
       "type": "[string]",
       "default": [
         "Reviews",
@@ -440,6 +440,14 @@
       "required": true
     },
     {
+      "key": "displayNextActions",
+      "title": "Display next actions in output?",
+      "description": "Whether to display the next action in the output? Note: these are defined as the first item with the following 'next action tags' (below), or the first open task/checklist if the 'Sequential tag' (below) is set.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
       "key": "nextActionTags",
       "title": "Next action tag(s)",
       "description": "Optional comma-separated list of possible#hashtags to include in a task or checklist to indicate its the next action in this project. (Default: '#next')",
@@ -450,17 +458,9 @@
       "required": false
     },
     {
-      "key": "displayNextActions",
-      "title": "Display next actions in output?",
-      "description": "Whether to display the next action in the output? This requires the previous setting to be set. Note: If there are multiple items with the next action tag, only the first is shown.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
       "key": "sequentialTag",
       "title": "Sequential tag",
-      "description": "Hashtag to identify sequential projects. If this tag appears in a project note's frontmatter 'project' attribute, or the metadata line, the first open task/checklist will be shown as a next action.",
+      "description": "Tag to identify sequential projects. If this tag appears in a project's frontmatter 'project' attribute, or the metadata line, the first open task/checklist will be shown as a next action.",
       "type": "string",
       "default": "#sequential",
       "required": false

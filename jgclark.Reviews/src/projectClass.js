@@ -962,30 +962,21 @@ export function generateProjectOutputLine(
       output += `<td class="first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</td>` // ('cancelled' gives colour)
     }
     else if (thisProject.isPaused) {
-      output += `<td class="first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "#888888")}</td>`
+      output += `<td class="first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "var(--project-pause-color)")}</td>`
     }
     else if (thisProject.percentComplete == null || isNaN(thisProject.percentComplete)) {
-      output += `<td class="first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', '#888888')}</td>`
+      output += `<td class="first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', 'var(--project-no-percent-color)')}</td>`
     }
     else if (thisProject.percentComplete === 0) {
       output += `<td class="first-col-indicator">${addSVGPercentRing(thisProject, 100, '#FF000088', '0')}</td>`
     }
     else {
-      // output += `<td class="first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</td>`
       output += `<td class="first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</td>`
     }
 
     // Column 2a: Project name / link / edit dialog trigger button
-    const editButton = `          <a class="dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
-    if (thisProject.isCompleted || thisProject.isCancelled || thisProject.isPaused) {
-      output += `<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
-    }
-    else if (thisProject.percentComplete === 0 || isNaN(thisProject.percentComplete)) {
-      output += `<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
-    }
-    else {
-      output += `\n\t\t\t<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
-    }
+    const editButton = `          <span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}'})"><i class="fa-light fa-edit"></i></span>\n`
+    output += `\n\t\t\t<td><span class="projectTitle">${decoratedProjectTitle(thisProject, style, config)}${editButton}</span>`
 
     if (!thisProject.isCompleted && !thisProject.isCancelled) {
       // tidy up nextActionContent to show only the main content and remove the nextAction tag
@@ -997,17 +988,19 @@ export function generateProjectOutputLine(
       // Write column 2b/2c under title
       // Column 2b: progress information (if it exists)
         if (config.displayProgress) {
+          output += `\n\t\t\t\t<span class="progress">`
           if (thisProject.lastProgressComment !== '') {
-            output += `<br /><i class="fa-solid fa-info-circle fa-sm pad-right"></i> ${thisProject.lastProgressComment}`
+            output += `<span class="progressIcon"><i class="fa-solid fa-info-circle"></i></span><span class="progressText">${thisProject.lastProgressComment}</span>`
           } else {
-            output += `<br />${statsProgress}`
+            output += `<span class="progressText">${statsProgress}</span>`
           }
+          output += `</span>`
         }
 
-        // Column 2c: next action (if present)
+        // Column 2c: next action(s) (if present)
         if (config.displayNextActions && nextActionsContent.length > 0) {
-          for (const nextActionContent of nextActionsContent) {
-            output += `\n\t\t\t<br /><i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+          for (const NAContent of nextActionsContent) {
+            output += `\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${NAContent}</span></div>`
           }
         }
         output += `</td>`
@@ -1016,18 +1009,19 @@ export function generateProjectOutputLine(
         output += `</td>\n`
         output += `\t\t\t<td>`
         if (config.displayProgress) {
+          output += `\t\t\t\t<div class="progress">`
           if (thisProject.lastProgressComment !== '') {
-            output += `<i class="fa-solid fa-info-circle fa-sm pad-right"></i> ${thisProject.lastProgressComment}`
+            output += `<span class="progressIcon"><i class="fa-solid fa-info-circle"></i></span><span class="progressText">${thisProject.lastProgressComment}</span>`
           } else {
-            output += `${statsProgress}`
+            output += `<span class="progressText">${statsProgress}</span>`
           }
+          output += `</div>`
         }
         if (config.displayNextActions && nextActionsContent.length > 0) {
-          for (const nextActionContent of nextActionsContent) {
-            output += `\n\t\t\t<br /><i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+          for (const NAContent of nextActionsContent) {
+            output += `\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${NAContent}</span></div>`
           }
         }
-        output += `</td>`
       }
     }
 
@@ -1132,20 +1126,12 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
       // Method 1: make [[notelinks]] via x-callbacks
       // Method 2: x-callback using note title
       // Method 3: x-callback using filename
+      // Method 4: use onclick handler to run the x-callback, not an anchor tag
       // Note: now using splitView if running in the main window on macOS
       const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
-      const noteTitleWithOpenAction = `<span class="noteTitle"><a href="${noteOpenActionURL}"><i class="fa-regular fa-file-lines pad-right"></i> ${folderNamePart}${titlePart}</a></span>`
-      // Note: in theory could change to using onclick handler to a function that opens the note (like in Dashboard), but a lot of work for little gain. TODO(later): if switching to React.
-
-      if (thisProject.isCompleted) {
-        return `<span class="checked">${noteTitleWithOpenAction}</span>`
-      } else if (thisProject.isCancelled) {
-        return `<span class="cancelled">${noteTitleWithOpenAction}</span>`
-      } else if (thisProject.isPaused) {
-        return `<span class="paused">${noteTitleWithOpenAction}</span>`
-      } else {
-        return `${noteTitleWithOpenAction}`
-      }
+      const extraClasses = (thisProject.isCompleted) ? 'checked' : (thisProject.isCancelled) ? 'cancelled' : (thisProject.isPaused) ? 'paused' : ''
+      // return `<span class="${extraClasses}" onclick="('${noteOpenActionURL}')">${noteTitleWithOpenAction}</span>`
+      return `<span class="noteTitle" onclick="window.location.href='${noteOpenActionURL}'"><span class="noteTitleIcon"><i class="fa-regular fa-file-lines"></i></span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></span>`
     }
 
     case 'Markdown': {
