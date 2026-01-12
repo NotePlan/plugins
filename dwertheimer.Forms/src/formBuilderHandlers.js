@@ -585,8 +585,10 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     bustLog(`[handleSaveRequest] Fields saved to template successfully`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: Fields saved to template`)
 
+    bustLog(`[handleSaveRequest] About to extract TemplateRunner processing variables from frontmatter`)
     // Extract TemplateRunner processing variables from frontmatter
     // These contain template tags and should be stored in codeblock, not frontmatter
+    bustLog(`[handleSaveRequest] Creating templateRunnerArgs object`)
     const templateRunnerArgs: { [string]: any } = {}
     const templateRunnerArgKeys = [
       'newNoteTitle', // Contains template tags like <%- field1 %>
@@ -599,27 +601,43 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     ]
 
     // Extract TemplateRunner args from frontmatter
+    bustLog(`[handleSaveRequest] Checking if frontmatter exists: ${data?.frontmatter ? 'yes' : 'no'}`)
     if (data?.frontmatter) {
+      bustLog(`[handleSaveRequest] Extracting TemplateRunner args from frontmatter`)
       templateRunnerArgKeys.forEach((key) => {
         if (data.frontmatter[key] !== undefined) {
           templateRunnerArgs[key] = data.frontmatter[key]
         }
       })
+      bustLog(`[handleSaveRequest] Extracted ${Object.keys(templateRunnerArgs).length} TemplateRunner args`)
+    } else {
+      bustLog(`[handleSaveRequest] No frontmatter found, skipping TemplateRunner args extraction`)
     }
 
     // Save templateBody to codeblock if provided
+    bustLog(`[handleSaveRequest] Checking templateBody: ${data?.frontmatter?.templateBody !== undefined ? 'exists' : 'missing'}`)
     if (data?.frontmatter?.templateBody !== undefined) {
+      bustLog(`[handleSaveRequest] About to save templateBody to codeblock`)
       await saveTemplateBodyToTemplate(finalTemplateFilename, data.frontmatter.templateBody || '')
+      bustLog(`[handleSaveRequest] templateBody saved to codeblock`)
     }
 
     // Save custom CSS to codeblock if provided
+    bustLog(`[handleSaveRequest] Checking customCSS: ${data?.frontmatter?.customCSS !== undefined ? 'exists' : 'missing'}`)
     if (data?.frontmatter?.customCSS !== undefined) {
+      bustLog(`[handleSaveRequest] About to save customCSS to codeblock`)
       await saveCustomCSSToTemplate(finalTemplateFilename, data.frontmatter.customCSS || '')
+      bustLog(`[handleSaveRequest] customCSS saved to codeblock`)
     }
 
     // Save TemplateRunner args to codeblock if any exist
+    bustLog(`[handleSaveRequest] Checking TemplateRunner args: ${Object.keys(templateRunnerArgs).length} keys`)
     if (Object.keys(templateRunnerArgs).length > 0) {
+      bustLog(`[handleSaveRequest] About to save TemplateRunner args to codeblock`)
       await saveTemplateRunnerArgsToTemplate(finalTemplateFilename, templateRunnerArgs)
+      bustLog(`[handleSaveRequest] TemplateRunner args saved to codeblock`)
+    } else {
+      bustLog(`[handleSaveRequest] No TemplateRunner args to save`)
     }
 
     // Save frontmatter if provided (but exclude TemplateRunner args and templateBody as they're in codeblocks)
