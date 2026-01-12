@@ -489,9 +489,11 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       logDebug(pluginJson, `handleSaveRequest: Could not get window data for windowId="${windowId}", using templateFilename from data`)
     }
     const finalTemplateFilename = templateFilename || fallbackTemplateFilename
+    console.log(`[handleSaveRequest] finalTemplateFilename="${finalTemplateFilename}"`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: finalTemplateFilename="${finalTemplateFilename}"`)
 
     if (!finalTemplateFilename) {
+      console.log(`[handleSaveRequest] ERROR: No template filename provided`)
       return {
         success: false,
         message: 'No template filename provided',
@@ -500,13 +502,16 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     }
 
     // Check for missing or empty fields array
+    console.log(`[handleSaveRequest] Checking fields: data?.fields=${data?.fields ? 'exists' : 'missing'}, isArray=${Array.isArray(data?.fields)}, length=${data?.fields?.length || 0}`)
     if (!data?.fields || !Array.isArray(data.fields) || data.fields.length === 0) {
+      console.log(`[handleSaveRequest] ERROR: No fields provided to save`)
       return {
         success: false,
         message: 'No fields provided to save',
         data: null,
       }
     }
+    console.log(`[handleSaveRequest] Fields check passed, proceeding with save`)
 
     // Parse fields if they're strings (shouldn't happen, but just in case)
     let fieldsToSave = data.fields
@@ -549,9 +554,11 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       return field
     })
 
+    console.log(`[handleSaveRequest] About to save ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: Saving ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
 
     await saveFormFieldsToTemplate(finalTemplateFilename, fieldsToSave)
+    console.log(`[handleSaveRequest] Fields saved to template successfully`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: Fields saved to template`)
 
     // Extract TemplateRunner processing variables from frontmatter
