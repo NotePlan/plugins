@@ -103,6 +103,9 @@ export function Root(/* props: Props */): Node {
   // Key: correlationId, Value: { resolve, reject, timeoutId }
   const pendingRequestsRef = useRef<Map<string, { resolve: (data: any) => void, reject: (error: Error) => void, timeoutId: any }>>(new Map())
 
+  // Ref to store original console methods for log buffer buster
+  const originalConsoleMethodsRef = useRef<{ [string]: Function }>({})
+
   // NP does not destroy windows on close. So if we have an autorefresh sending requests to NP, it will run forever
   // So we do a check in sendToHTMLWindow to see if the window is still open
   if (npData?.NPWindowID === false) {
@@ -584,6 +587,62 @@ export function Root(/* props: Props */): Node {
       window.scrollTo(0, npData.passThroughVars.lastWindowScrollTop)
     } else {
       // logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
+    }
+  }, [npData])
+
+  /****************************************************************************************************************************
+   *                             LOG BUFFER BUSTER
+   ****************************************************************************************************************************/
+  useEffect(() => {
+    if (globalSharedData?.pluginData?.logBufferBuster) {
+      logDebug(`Root`, ` logBufferBuster is ENABLED in pluginData`)
+
+      const methodsToOverride = ['log', 'error', 'info', 'warn']
+      const padding = `${'.'.repeat(10000)}/`
+
+      const overrideConsoleMethod = (methodName: string) => {
+        // $FlowIgnore
+        const originalMethod = console[methodName]
+        originalConsoleMethodsRef.current[methodName] = originalMethod
+
+        // $FlowIgnore
+        console[methodName] = (...args: Array<any>) => {
+          // NotePlan only captures the first 2 arguments, so we append padding to the first argument
+          // Convert first arg to string and append padding to ensure it's always captured
+          const paddedArgs = [...args]
+          if (paddedArgs.length > 0) {
+            // Always append padding to the first argument as a string
+            const firstArgStr = typeof paddedArgs[0] === 'string' ? paddedArgs[0] : String(paddedArgs[0])
+            paddedArgs[0] = `${firstArgStr}\n${padding}`
+          } else {
+            // If no arguments, add padding as the first argument
+            paddedArgs.push(padding)
+          }
+          // Call original method with padded arguments
+          originalMethod.apply(console, paddedArgs)
+        }
+      }
+
+      methodsToOverride.forEach((methodName) => {
+        overrideConsoleMethod(methodName)
+      })
+
+      // Verify override is working
+      console.log('LOG_BUFFER_BUSTER_OVERRIDE_ACTIVE')
+      console.log('test log buffer buster')
+
+      return () => {
+        // Restore original console methods on cleanup
+        logDebug(`Root`, ` logBufferBuster is DISABLED or missing in pluginData`)
+        methodsToOverride.forEach((methodName) => {
+          if (originalConsoleMethodsRef.current[methodName]) {
+            // $FlowIgnore
+            console[methodName] = originalConsoleMethodsRef.current[methodName]
+          }
+        })
+      }
+    } else {
+      logDebug(`Root`, ` logBufferBuster is DISABLED or missing in pluginData`)
     }
   }, [npData])
 
