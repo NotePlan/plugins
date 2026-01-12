@@ -327,8 +327,15 @@ export function Root(/* props: Props */): Node {
                 break
               case 'SET_DATA':
               case 'UPDATE_DATA':
-                setNPData((prevData) => ({ ...prevData, ...payload }))
-                globalSharedData = { ...globalSharedData, ...payload }
+                // Guard: Skip empty updates to prevent infinite loops
+                // Only update if payload has actual data (not just metadata like lastUpdated, NPWindowID)
+                const hasActualData = payload && Object.keys(payload).some((key) => key !== 'lastUpdated' && key !== 'NPWindowID')
+                if (hasActualData) {
+                  setNPData((prevData) => ({ ...prevData, ...payload }))
+                  globalSharedData = { ...globalSharedData, ...payload }
+                } else {
+                  logDebug(`Root`, `SET_DATA/UPDATE_DATA: Skipping empty update (only metadata present) to prevent infinite loops`)
+                }
                 break
               case 'CHANGE_THEME': {
                 const { themeCSS } = payload
