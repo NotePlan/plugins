@@ -464,17 +464,24 @@ export async function saveFrontmatterToTemplate(templateFilename: string, frontm
  * @param {Object} data - Request data containing fields, frontmatter, templateFilename, templateTitle
  * @returns {Promise<{success: boolean, message?: string, data?: any}>}
  */
+// Buffer buster padding for NotePlan's console
+const BUFFER_BUSTER_PAD = `${'\n'.repeat(5)}${'.'.repeat(10000)}/`
+
+function bustLog(message: string): void {
+  console.log(`${message}${BUFFER_BUSTER_PAD}`)
+}
+
 export async function handleSaveRequest(data: any): Promise<{ success: boolean, message?: string, data?: any }> {
   const saveId = `SAVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  // Add immediate console.log to catch hangs before logDebug
-  console.log(`[handleSaveRequest] ENTRY - saveId=${saveId}`)
-  console.log(`[handleSaveRequest] data.fields: ${data?.fields ? `exists, type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields.length || 0}` : 'missing'}`)
+  // Add immediate console.log to catch hangs before logDebug with buffer busting
+  bustLog(`[handleSaveRequest] ENTRY - saveId=${saveId}`)
+  bustLog(`[handleSaveRequest] data.fields: ${data?.fields ? `exists, type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields.length || 0}` : 'missing'}`)
   if (data?.fields?.length > 0) {
-    console.log(`[handleSaveRequest] First field: ${typeof data.fields[0] === 'string' ? data.fields[0].substring(0, 50) : JSON.stringify(data.fields[0]).substring(0, 50)}`)
+    bustLog(`[handleSaveRequest] First field: ${typeof data.fields[0] === 'string' ? data.fields[0].substring(0, 50) : JSON.stringify(data.fields[0]).substring(0, 50)}`)
   }
-  console.log(`[handleSaveRequest] About to call logDebug`)
+  bustLog(`[handleSaveRequest] About to call logDebug`)
   logDebug(pluginJson, `[${saveId}] handleSaveRequest: ENTRY - Starting save request`)
-  console.log(`[handleSaveRequest] logDebug completed`)
+  bustLog(`[handleSaveRequest] logDebug completed`)
   try {
     // Get the template filename from the data passed from React, or fall back to reactWindowData
     const templateFilename = data?.templateFilename
@@ -485,22 +492,22 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     try {
       // Note: getGlobalSharedData may hang if window is in bad state, but we can't use Promise.race
       // in NotePlan's JSContext (Promise is not a constructor). Just try it and let it fail naturally.
-      console.log(`[handleSaveRequest] Attempting to get window data for windowId="${windowId}"`)
+      bustLog(`[handleSaveRequest] Attempting to get window data for windowId="${windowId}"`)
       const reactWindowData = await getGlobalSharedData(windowId)
       fallbackTemplateFilename = reactWindowData?.pluginData?.templateFilename || ''
-      console.log(`[handleSaveRequest] Got window data, fallbackTemplateFilename="${fallbackTemplateFilename}"`)
+      bustLog(`[handleSaveRequest] Got window data, fallbackTemplateFilename="${fallbackTemplateFilename}"`)
     } catch (e) {
       // If we can't get window data, that's ok - we'll use templateFilename from data
-      console.log(`[handleSaveRequest] Could not get window data: ${e.message || String(e)}`)
+      bustLog(`[handleSaveRequest] Could not get window data: ${e.message || String(e)}`)
       logDebug(pluginJson, `handleSaveRequest: Could not get window data for windowId="${windowId}", using templateFilename from data`)
     }
     const finalTemplateFilename = templateFilename || fallbackTemplateFilename
-    console.log(`[handleSaveRequest] finalTemplateFilename="${finalTemplateFilename}"`)
-    console.log(`[handleSaveRequest] About to call logDebug for finalTemplateFilename`)
+    bustLog(`[handleSaveRequest] finalTemplateFilename="${finalTemplateFilename}"`)
+    bustLog(`[handleSaveRequest] About to call logDebug for finalTemplateFilename`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: finalTemplateFilename="${finalTemplateFilename}"`)
-    console.log(`[handleSaveRequest] logDebug for finalTemplateFilename completed`)
+    bustLog(`[handleSaveRequest] logDebug for finalTemplateFilename completed`)
 
-    console.log(`[handleSaveRequest] About to check if finalTemplateFilename is empty`)
+    bustLog(`[handleSaveRequest] About to check if finalTemplateFilename is empty`)
     if (!finalTemplateFilename) {
       console.log(`[handleSaveRequest] ERROR: No template filename provided`)
       return {
@@ -511,37 +518,37 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     }
 
     // Check for missing or empty fields array
-    console.log(`[handleSaveRequest] Checking fields: data?.fields=${data?.fields ? 'exists' : 'missing'}, isArray=${Array.isArray(data?.fields)}, length=${data?.fields?.length || 0}`)
+    bustLog(`[handleSaveRequest] Checking fields: data?.fields=${data?.fields ? 'exists' : 'missing'}, isArray=${Array.isArray(data?.fields)}, length=${data?.fields?.length || 0}`)
     if (!data?.fields || !Array.isArray(data.fields) || data.fields.length === 0) {
-      console.log(`[handleSaveRequest] ERROR: No fields provided to save`)
+      bustLog(`[handleSaveRequest] ERROR: No fields provided to save`)
       return {
         success: false,
         message: 'No fields provided to save',
         data: null,
       }
     }
-    console.log(`[handleSaveRequest] Fields check passed, proceeding with save`)
+    bustLog(`[handleSaveRequest] Fields check passed, proceeding with save`)
 
     // Parse fields if they're strings (shouldn't happen, but just in case)
-    console.log(`[handleSaveRequest] Fields before parsing: type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields?.length || 0}, firstFieldType=${data.fields?.[0] ? typeof data.fields[0] : 'none'}`)
+    bustLog(`[handleSaveRequest] Fields before parsing: type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields?.length || 0}, firstFieldType=${data.fields?.[0] ? typeof data.fields[0] : 'none'}`)
     let fieldsToSave = data.fields
     if (Array.isArray(fieldsToSave) && fieldsToSave.length > 0 && typeof fieldsToSave[0] === 'string') {
-      console.log(`[handleSaveRequest] Fields are strings, attempting to parse`)
+      bustLog(`[handleSaveRequest] Fields are strings, attempting to parse`)
       logWarn(pluginJson, `handleSaveRequest: Fields are strings, attempting to parse`)
       fieldsToSave = fieldsToSave.map((field) => {
         try {
           const parsed = typeof field === 'string' ? JSON.parse(field) : field
-          console.log(`[handleSaveRequest] Parsed field: ${JSON.stringify(parsed).substring(0, 100)}`)
+          bustLog(`[handleSaveRequest] Parsed field: ${JSON.stringify(parsed).substring(0, 100)}`)
           return parsed
         } catch (e) {
-          console.log(`[handleSaveRequest] Error parsing field: ${e.message}`)
+          bustLog(`[handleSaveRequest] Error parsing field: ${e.message}`)
           logError(pluginJson, `handleSaveRequest: Error parsing field: ${e.message}`)
           return field
         }
       })
-      console.log(`[handleSaveRequest] Finished parsing ${fieldsToSave.length} fields`)
+      bustLog(`[handleSaveRequest] Finished parsing ${fieldsToSave.length} fields`)
     } else {
-      console.log(`[handleSaveRequest] Fields are already objects, no parsing needed`)
+      bustLog(`[handleSaveRequest] Fields are already objects, no parsing needed`)
     }
 
     // Clean up markdown-preview fields: remove empty string values
@@ -571,11 +578,11 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       return field
     })
 
-    console.log(`[handleSaveRequest] About to save ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
+    bustLog(`[handleSaveRequest] About to save ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: Saving ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
 
     await saveFormFieldsToTemplate(finalTemplateFilename, fieldsToSave)
-    console.log(`[handleSaveRequest] Fields saved to template successfully`)
+    bustLog(`[handleSaveRequest] Fields saved to template successfully`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: Fields saved to template`)
 
     // Extract TemplateRunner processing variables from frontmatter
