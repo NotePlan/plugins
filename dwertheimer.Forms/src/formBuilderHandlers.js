@@ -641,19 +641,25 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     }
 
     // Save frontmatter if provided (but exclude TemplateRunner args and templateBody as they're in codeblocks)
+    bustLog(`[handleSaveRequest] About to check if frontmatter needs to be saved`)
     if (data?.frontmatter) {
+      bustLog(`[handleSaveRequest] Frontmatter exists, preparing for save`)
       const frontmatterForSave = { ...data.frontmatter }
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter to save: ${JSON.stringify(frontmatterForSave)}`)
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: receivingTemplateTitle="${frontmatterForSave.receivingTemplateTitle || 'MISSING'}"`)
       // Remove TemplateRunner args and templateBody from frontmatter
+      bustLog(`[handleSaveRequest] Removing TemplateRunner args from frontmatter`)
       delete frontmatterForSave.templateBody
       templateRunnerArgKeys.forEach((key) => {
         delete frontmatterForSave[key]
       })
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter after cleanup: ${JSON.stringify(frontmatterForSave)}`)
+      bustLog(`[handleSaveRequest] About to save frontmatter to template`)
       await saveFrontmatterToTemplate(finalTemplateFilename, frontmatterForSave)
+      bustLog(`[handleSaveRequest] Frontmatter saved successfully`)
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter saved`)
     } else {
+      bustLog(`[handleSaveRequest] No frontmatter provided in data`)
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: No frontmatter provided in data`)
     }
 
