@@ -109,14 +109,24 @@ export async function saveFormFieldsToTemplate(templateFilename: string, fields:
  * @param {string} templateBody - The template body content
  * @returns {Promise<void>}
  */
+// Buffer buster padding for NotePlan's console
+const BUFFER_BUSTER_PAD = `${'\n'.repeat(5)}${'.'.repeat(10000)}/`
+
+function bustLog(message: string): void {
+  console.log(`${message}${BUFFER_BUSTER_PAD}`)
+}
+
 export async function saveTemplateBodyToTemplate(templateFilename: string, templateBody: string): Promise<void> {
   try {
+    bustLog(`[saveTemplateBodyToTemplate] ENTRY - templateFilename="${templateFilename}", templateBody length=${templateBody?.length || 0}`)
     let cleanedBody = templateBody || ''
     
     // IMPORTANT: Check if the content coming from React is already corrupted
     // This can happen if the data was corrupted when sent through the bridge
     // We should fix it before saving to prevent the corruption from persisting
+    bustLog(`[saveTemplateBodyToTemplate] About to import encodingFix.js`)
     const { isDoubleEncoded, fixDoubleEncoded } = await import('./utils/encodingFix.js')
+    bustLog(`[saveTemplateBodyToTemplate] Successfully imported encodingFix.js`)
     if (cleanedBody && isDoubleEncoded(cleanedBody)) {
       logDebug(pluginJson, `saveTemplateBodyToTemplate: Detected corruption in content from React, fixing before save`)
       const fixed = fixDoubleEncoded(cleanedBody)
@@ -141,6 +151,7 @@ export async function saveTemplateBodyToTemplate(templateFilename: string, templ
     }
     
     // Use generalized helper function (no formatting needed for templateBody, it's already a string)
+    bustLog(`[saveTemplateBodyToTemplate] About to call saveCodeBlockToNote`)
     await saveCodeBlockToNote(
       templateFilename,
       templateBodyCodeBlockType,
@@ -149,7 +160,9 @@ export async function saveTemplateBodyToTemplate(templateFilename: string, templ
       null, // No format function needed
       false, // Don't show error messages to user (silent operation)
     )
+    bustLog(`[saveTemplateBodyToTemplate] Successfully saved codeblock`)
   } catch (error) {
+    bustLog(`[saveTemplateBodyToTemplate] ERROR: ${error.message || String(error)}`)
     logError(pluginJson, `saveTemplateBodyToTemplate error: ${JSP(error)}`)
   }
 }
