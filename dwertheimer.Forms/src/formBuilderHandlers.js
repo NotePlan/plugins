@@ -514,17 +514,25 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     console.log(`[handleSaveRequest] Fields check passed, proceeding with save`)
 
     // Parse fields if they're strings (shouldn't happen, but just in case)
+    console.log(`[handleSaveRequest] Fields before parsing: type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields?.length || 0}, firstFieldType=${data.fields?.[0] ? typeof data.fields[0] : 'none'}`)
     let fieldsToSave = data.fields
     if (Array.isArray(fieldsToSave) && fieldsToSave.length > 0 && typeof fieldsToSave[0] === 'string') {
+      console.log(`[handleSaveRequest] Fields are strings, attempting to parse`)
       logWarn(pluginJson, `handleSaveRequest: Fields are strings, attempting to parse`)
       fieldsToSave = fieldsToSave.map((field) => {
         try {
-          return typeof field === 'string' ? JSON.parse(field) : field
+          const parsed = typeof field === 'string' ? JSON.parse(field) : field
+          console.log(`[handleSaveRequest] Parsed field: ${JSON.stringify(parsed).substring(0, 100)}`)
+          return parsed
         } catch (e) {
+          console.log(`[handleSaveRequest] Error parsing field: ${e.message}`)
           logError(pluginJson, `handleSaveRequest: Error parsing field: ${e.message}`)
           return field
         }
       })
+      console.log(`[handleSaveRequest] Finished parsing ${fieldsToSave.length} fields`)
+    } else {
+      console.log(`[handleSaveRequest] Fields are already objects, no parsing needed`)
     }
 
     // Clean up markdown-preview fields: remove empty string values
