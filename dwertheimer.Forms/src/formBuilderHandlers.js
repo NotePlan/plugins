@@ -490,8 +490,11 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     }
     const finalTemplateFilename = templateFilename || fallbackTemplateFilename
     console.log(`[handleSaveRequest] finalTemplateFilename="${finalTemplateFilename}"`)
+    console.log(`[handleSaveRequest] About to call logDebug for finalTemplateFilename`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: finalTemplateFilename="${finalTemplateFilename}"`)
+    console.log(`[handleSaveRequest] logDebug for finalTemplateFilename completed`)
 
+    console.log(`[handleSaveRequest] About to check if finalTemplateFilename is empty`)
     if (!finalTemplateFilename) {
       console.log(`[handleSaveRequest] ERROR: No template filename provided`)
       return {
