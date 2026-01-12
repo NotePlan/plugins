@@ -477,13 +477,10 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     const windowId = data?.__windowId || FORMBUILDER_WINDOW_ID
     let fallbackTemplateFilename = ''
     try {
-      // Add timeout to prevent hanging if getGlobalSharedData is stuck
+      // Note: getGlobalSharedData may hang if window is in bad state, but we can't use Promise.race
+      // in NotePlan's JSContext (Promise is not a constructor). Just try it and let it fail naturally.
       console.log(`[handleSaveRequest] Attempting to get window data for windowId="${windowId}"`)
-      const reactWindowDataPromise = getGlobalSharedData(windowId)
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('getGlobalSharedData timeout after 2 seconds')), 2000)
-      )
-      const reactWindowData = await Promise.race([reactWindowDataPromise, timeoutPromise])
+      const reactWindowData = await getGlobalSharedData(windowId)
       fallbackTemplateFilename = reactWindowData?.pluginData?.templateFilename || ''
       console.log(`[handleSaveRequest] Got window data, fallbackTemplateFilename="${fallbackTemplateFilename}"`)
     } catch (e) {
