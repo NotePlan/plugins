@@ -4,6 +4,19 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.8] 2026-01-12 @dwertheimer
+
+### Fixed
+- Fixed calendar picker showing incorrectly in Processing Template note chooser - now suppressed via `showCalendarChooserIcon={false}`
+- Fixed "Open" button not working after creating a new processing template - now reloads notes and retries if note not immediately found
+- Fixed infinite loop crash when saving forms - prevented recursive updates when saving processing templates that have their own `receivingTemplateTitle`
+- Fixed Processing Template note chooser showing empty - added `includeTemplatesAndForms={true}` to allow notes from `@Forms` and `@Templates` folders to be displayed
+- Fixed Processing Template note chooser filtering too aggressively - now accepts both `forms-processor` and `template-runner` types using array syntax, and searches across all folders (not just @Forms)
+- Improved Processing Template note chooser display - now shows note title on line 1 and folder path on line 2 for better readability in small fields (via `shortDescriptionOnLine2={true}`)
+
+### Changed
+- **NoteChooser**: Enhanced `filterByType` prop to accept either a single string or an array of strings, allowing filtering by multiple frontmatter types (e.g., `filterByType={['forms-processor', 'template-runner']}`)
+
 ## [1.0.7] 2026-01-11 @dwertheimer
 
 ### Fixed

@@ -925,3 +925,41 @@
   white-space: nowrap !important;
   align-self: center !important;
 }
+
+/* Processing Template Chooser - maximize horizontal space */
+.processing-template-chooser-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.processing-template-chooser-wrapper {
+  flex: 1;
+  min-width: 0; /* Allow shrinking below content size */
+}
+
+/* When there's an open button, constrain the wrapper more */
+.note-chooser-with-open-button .processing-template-chooser-wrapper {
+  max-width: calc(100% - 5rem); /* Account for "Open" button + gap */
+}
+
+/* When there's no open button, use full width */
+.note-chooser-no-open-button .processing-template-chooser-wrapper {
+  max-width: 100%;
+}
+
+/* Ensure the note chooser itself fills its wrapper */
+.processing-template-chooser-wrapper .note-chooser-container {
+  width: 100%;
+}
+
+.processing-template-chooser-wrapper .note-chooser-input-wrapper {
+  width: 100%;
+  min-width: 0; /* Allow shrinking */
+}
+
+.processing-template-chooser-wrapper .note-chooser-input {
+  width: 100%;
+  min-width: 0; /* Allow text truncation */
+}

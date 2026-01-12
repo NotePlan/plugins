@@ -438,8 +438,9 @@ export async function saveFrontmatterToTemplate(templateFilename: string, frontm
       }
 
       // Allow empty strings for specific fields that users may want to blank out (formTitle, windowTitle)
+      // receivingTemplateTitle should also be allowed to be empty (to clear it)
       // For other fields, skip empty strings to avoid writing "" to frontmatter
-      const fieldsThatAllowEmpty = ['formTitle', 'windowTitle']
+      const fieldsThatAllowEmpty = ['formTitle', 'windowTitle', 'receivingTemplateTitle']
       const shouldInclude = stringValue !== '' || fieldsThatAllowEmpty.includes(key)
       if (shouldInclude) {
         frontmatterAsStrings[key] = stringValue
@@ -464,9 +465,12 @@ export async function saveFrontmatterToTemplate(templateFilename: string, frontm
  * @returns {Promise<{success: boolean, message?: string, data?: any}>}
  */
 export async function handleSaveRequest(data: any): Promise<{ success: boolean, message?: string, data?: any }> {
+  const saveId = `SAVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  logDebug(pluginJson, `[${saveId}] handleSaveRequest: ENTRY - Starting save request`)
   try {
     // Get the template filename from the data passed from React, or fall back to reactWindowData
     const templateFilename = data?.templateFilename
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: templateFilename="${templateFilename}"`)
     // Try to get window data using the windowId from the request (if provided), otherwise use the default
     const windowId = data?.__windowId || FORMBUILDER_WINDOW_ID
     let fallbackTemplateFilename = ''
@@ -478,6 +482,7 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       logDebug(pluginJson, `handleSaveRequest: Could not get window data for windowId="${windowId}", using templateFilename from data`)
     }
     const finalTemplateFilename = templateFilename || fallbackTemplateFilename
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: finalTemplateFilename="${finalTemplateFilename}"`)
 
     if (!finalTemplateFilename) {
       return {
@@ -536,9 +541,10 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       return field
     })
 
-    logDebug(pluginJson, `handleSaveRequest: Saving ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Saving ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
 
     await saveFormFieldsToTemplate(finalTemplateFilename, fieldsToSave)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Fields saved to template`)
 
     // Extract TemplateRunner processing variables from frontmatter
     // These contain template tags and should be stored in codeblock, not frontmatter
@@ -580,50 +586,77 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     // Save frontmatter if provided (but exclude TemplateRunner args and templateBody as they're in codeblocks)
     if (data?.frontmatter) {
       const frontmatterForSave = { ...data.frontmatter }
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter to save: ${JSON.stringify(frontmatterForSave)}`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: receivingTemplateTitle="${frontmatterForSave.receivingTemplateTitle || 'MISSING'}"`)
       // Remove TemplateRunner args and templateBody from frontmatter
       delete frontmatterForSave.templateBody
       templateRunnerArgKeys.forEach((key) => {
         delete frontmatterForSave[key]
       })
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter after cleanup: ${JSON.stringify(frontmatterForSave)}`)
       await saveFrontmatterToTemplate(finalTemplateFilename, frontmatterForSave)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter saved`)
+    } else {
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: No frontmatter provided in data`)
     }
 
     // Get template note for success message and cleanup
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Getting template note...`)
     const templateNote = await getNoteByFilename(finalTemplateFilename)
     const templateTitle = templateNote?.title || finalTemplateFilename
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Template note found: title="${templateTitle}", type="${templateNote?.frontmatterAttributes?.type || 'none'}"`)
 
     // Remove empty lines from the note
     if (templateNote) {
       removeEmptyLinesFromNote(templateNote)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Removed empty lines from note`)
     }
 
     // Check if we should update the receiving template
     // Use try-catch to ensure form saving continues even if template update fails
     // Update automatically without prompting (user requested automatic update)
     // Note: We await this so it completes, but errors don't stop the save
+    // IMPORTANT: Skip updating the receiving template if this is being called recursively
+    // (i.e., if we're already saving a processing template itself)
+    // This prevents infinite loops when the processing template has its own receivingTemplateTitle
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Checking if we need to update receiving template...`)
     if (templateNote) {
-      const receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle
-      if (receivingTemplateTitle) {
-        // Strip double quotes before passing to updateReceivingTemplateWithFields
-        const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle)
-        try {
-          // Await the update but don't let errors stop the save
-          await updateReceivingTemplateWithFields(cleanedReceivingTemplateTitle, fieldsToSave)
-          logDebug(pluginJson, `handleSaveRequest: Successfully updated processing template "${cleanedReceivingTemplateTitle}"`)
-        } catch (error) {
-          // Log error but don't stop form saving
-          logError(pluginJson, `handleSaveRequest: Error updating receiving template: ${error.message || String(error)}`)
+      const isProcessingTemplateSave = templateNote.frontmatterAttributes?.type === 'forms-processor'
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: isProcessingTemplateSave=${String(isProcessingTemplateSave)}`)
+      if (!isProcessingTemplateSave) {
+        const receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle
+        logDebug(pluginJson, `[${saveId}] handleSaveRequest: receivingTemplateTitle="${receivingTemplateTitle || 'none'}"`)
+        if (receivingTemplateTitle) {
+          // Strip double quotes before passing to updateReceivingTemplateWithFields
+          const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle)
+          logDebug(pluginJson, `[${saveId}] handleSaveRequest: About to call updateReceivingTemplateWithFields for "${cleanedReceivingTemplateTitle}"`)
+          try {
+            // Await the update but don't let errors stop the save
+            await updateReceivingTemplateWithFields(cleanedReceivingTemplateTitle, fieldsToSave, saveId)
+            logDebug(pluginJson, `[${saveId}] handleSaveRequest: Successfully updated processing template "${cleanedReceivingTemplateTitle}"`)
+          } catch (error) {
+            // Log error but don't stop form saving
+            logError(pluginJson, `[${saveId}] handleSaveRequest: Error updating receiving template: ${error.message || String(error)}`)
+          }
+        } else {
+          logDebug(pluginJson, `[${saveId}] handleSaveRequest: No receivingTemplateTitle found, skipping update`)
         }
+      } else {
+        logDebug(pluginJson, `[${saveId}] handleSaveRequest: Skipping recursive update of receiving template for processing template "${templateNote.title || ''}"`)
       }
+    } else {
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: No template note found, skipping receiving template update`)
     }
 
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: EXIT - Save completed successfully`)
     return {
       success: true,
       message: `Form saved successfully to "${templateTitle}"`,
       data: { templateFilename: finalTemplateFilename, templateTitle },
     }
   } catch (error) {
-    logError(pluginJson, `handleSaveRequest error: ${error.message || String(error)}`)
+    logError(pluginJson, `[${saveId}] handleSaveRequest: EXIT - ERROR: ${error.message || String(error)}`)
+    logError(pluginJson, `[${saveId}] handleSaveRequest: Stack trace: ${error.stack || 'No stack trace'}`)
     return {
       success: false,
       message: `Error saving form: ${error.message || String(error)}`,

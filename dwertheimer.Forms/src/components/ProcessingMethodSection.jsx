@@ -4,14 +4,16 @@
 // Handles the form processing method selection and related configuration
 //--------------------------------------------------------------------------
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { TemplateTagInserter } from './TemplateTagInserter.jsx'
 import { TemplateTagEditor } from './TemplateTagEditor.jsx'
+import { useAppContext } from './AppContext.jsx'
 import { NoteChooser, type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { HeadingChooser } from '@helpers/react/DynamicDialog/HeadingChooser.jsx'
 import { FolderChooser } from '@helpers/react/DynamicDialog/FolderChooser.jsx'
 import { SpaceChooser } from '@helpers/react/DynamicDialog/SpaceChooser.jsx'
 import { InfoIcon } from '@helpers/react/InfoIcon.jsx'
+import { logDebug } from '@helpers/react/reactDev'
 
 export type ProcessingMethodSectionProps = {
   processingMethod: string,
@@ -62,6 +64,9 @@ export function ProcessingMethodSection({
   setTagInserterFieldKey,
   fields,
 }: ProcessingMethodSectionProps): React$Node {
+  // Get pluginData from context for buffer buster logging
+  const { pluginData } = useAppContext()
+
   const [tagInserterAnchorElement, setTagInserterAnchorElement] = useState<?HTMLElement>(null)
   // Track the selected processing template filename so we can open it
   const [selectedProcessingTemplateFilename, setSelectedProcessingTemplateFilename] = useState<string>('')
@@ -597,14 +602,18 @@ export function ProcessingMethodSection({
       {/* Option D: Run JS Only */}
       {processingMethod === 'run-js-only' && (
         <>
-          <div className="frontmatter-field" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--bg-alt-color, #f5f5f5)', borderRadius: '4px', border: '1px solid var(--divider-color, #ddd)' }}>
+          <div
+            className="frontmatter-field"
+            style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--bg-alt-color, #f5f5f5)', borderRadius: '4px', border: '1px solid var(--divider-color, #ddd)' }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
               <strong>JavaScript Template Code:</strong>
               <InfoIcon text="For 'run-js-only' method, include a TemplateJS block field in your form fields. The JavaScript code in that field will be executed when the form is submitted. No note creation or validation is performed." />
             </div>
             <div style={{ fontSize: '0.9rem', color: 'var(--fg-main-color, #333)', lineHeight: '1.5' }}>
               <p style={{ margin: '0 0 0.5rem 0' }}>
-                To use this method, add a <strong>TemplateJS Block</strong> field to your form fields list. The JavaScript code in that field will be executed when the form is submitted.
+                To use this method, add a <strong>TemplateJS Block</strong> field to your form fields list. The JavaScript code in that field will be executed when the form is
+                submitted.
               </p>
               <p style={{ margin: '0', fontStyle: 'italic', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))' }}>
                 Form values are available as variables in the TemplateJS code. No note creation or validation is performed - the code runs directly.
@@ -653,8 +662,12 @@ export function ProcessingMethodSection({
               Processing Template:
               <InfoIcon text="A separate template note that will process the form submission. This template should be in the @Forms directory and have type 'forms-processor'. The template receives the form data as JSON and can perform complex processing logic." />
             </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ flex: 1, minWidth: '250px', maxWidth: '400px' }}>
+            <div
+              className={`processing-template-chooser-container ${
+                frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle ? 'note-chooser-with-open-button' : 'note-chooser-no-open-button'
+              }`}
+            >
+              <div className="processing-template-chooser-wrapper">
                 <NoteChooser
                   label=""
                   value={frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''}
@@ -662,8 +675,14 @@ export function ProcessingMethodSection({
                   onChange={(noteTitle: string, noteFilename: string) => {
                     // Ensure we're setting the note title (not filename) to receivingTemplateTitle
                     const trimmedTitle = noteTitle ? noteTitle.trim() : ''
+                    logDebug(
+                      pluginData,
+                      'ProcessingMethodSection',
+                      `NoteChooser onChange called: noteTitle="${noteTitle}", noteFilename="${noteFilename}", trimmedTitle="${trimmedTitle}"`,
+                    )
                     setSelectedProcessingTemplateFilename(noteFilename || '')
                     if (trimmedTitle) {
+                      logDebug(pluginData, 'ProcessingMethodSection', `Setting receivingTemplateTitle to: "${trimmedTitle}"`)
                       onFrontmatterChange('receivingTemplateTitle', trimmedTitle)
                       // Also clear formProcessorTitle if it exists and is different (for backward compatibility cleanup)
                       if (frontmatter.formProcessorTitle && frontmatter.formProcessorTitle !== trimmedTitle) {
@@ -671,6 +690,7 @@ export function ProcessingMethodSection({
                       }
                     } else {
                       // If empty, clear both
+                      logDebug(pluginData, 'ProcessingMethodSection', 'Clearing receivingTemplateTitle')
                       onFrontmatterChange('receivingTemplateTitle', '')
                       if (frontmatter.formProcessorTitle) {
                         onFrontmatterChange('formProcessorTitle', '')
@@ -683,27 +703,26 @@ export function ProcessingMethodSection({
                   includeRelativeNotes={false}
                   includeTeamspaceNotes={true}
                   spaceFilter={frontmatter.space || ''}
-                  startFolder="@Forms"
-                  filterByType="forms-processor"
-                  allowBackwardsCompatible={true} // Allow backwards compatible matches but also show all filtered notes
-                  compactDisplay={true}
+                  filterByType={['forms-processor', 'template-runner']}
+                  includeTemplatesAndForms={true}
+                  allowBackwardsCompatible={true}
                   requestFromPlugin={requestFromPlugin}
                   onNotesChanged={() => {
                     onLoadNotes(true) // Load only project notes for processing templates (faster)
                   }}
-                  onOpen={async () => {
+                  onOpen={() => {
                     // Lazy load notes when dropdown opens - always reload to ensure fresh data
                     // For processing templates, only need project notes (faster)
-                    try {
-                      await onLoadNotes(true, true) // Force reload to get all available templates
-                    } catch (error) {
+                    onLoadNotes(true, true).catch((error) => {
                       console.error('Error loading notes:', error)
-                    }
+                    })
                   }}
                   isLoading={notes.length === 0 && loadingNotes}
+                  showCalendarChooserIcon={false}
+                  shortDescriptionOnLine2={true}
                 />
               </div>
-              {(selectedProcessingTemplateFilename || (frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle)) && (
+              {(selectedProcessingTemplateFilename || frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle) && (
                 <button
                   type="button"
                   onClick={async () => {
@@ -724,7 +743,7 @@ export function ProcessingMethodSection({
                       console.error('openNote: Error opening note:', error)
                     }
                   }}
-                  className="PCButton"
+                  className="PCButton processing-template-open-button"
                   style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
                   title={`Open "${frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''}" in NotePlan`}
                 >

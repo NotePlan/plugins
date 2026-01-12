@@ -340,23 +340,26 @@ export async function loadCustomCSSFromTemplate(templateNoteOrFilename: CoreNote
  * @param {Array<Object>} fields - The form fields array
  * @returns {Promise<void>}
  */
-export async function updateReceivingTemplateWithFields(receivingTemplateTitle: string, fields: Array<Object>): Promise<void> {
+export async function updateReceivingTemplateWithFields(receivingTemplateTitle: string, fields: Array<Object>, parentSaveId?: string): Promise<void> {
+  const updateId = parentSaveId ? `${parentSaveId}-UPDATE` : `UPDATE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   try {
     // Strip double quotes from the template title at the start
     const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle)
-    logDebug(pluginJson, `updateReceivingTemplateWithFields: Starting for template "${cleanedReceivingTemplateTitle}"`)
+    logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: ENTRY - Starting for template "${cleanedReceivingTemplateTitle}"`)
 
     // Find the receiving template by searching all notes (not just template folder)
     // Search all project notes for forms-processor type templates
+    logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Searching ${DataStore.projectNotes.length} project notes...`)
     let receivingNote: ?TNote = null
     const allNotes = DataStore.projectNotes
     for (const note of allNotes) {
       const noteType = note.frontmatterAttributes?.type
-      if (noteType === 'forms-processor') {
+      if (noteType === 'forms-processor' || noteType === 'template-runner') {
         const noteTitle = stripDoubleQuotes(note.title || '')
+        logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Checking note "${noteTitle}" (type="${noteType}")`)
         if (noteTitle === cleanedReceivingTemplateTitle) {
           receivingNote = note
-          logDebug(pluginJson, `updateReceivingTemplateWithFields: Found processing template "${cleanedReceivingTemplateTitle}" at "${note.filename}"`)
+          logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Found processing template "${cleanedReceivingTemplateTitle}" at "${note.filename}"`)
           break
         }
       }
@@ -364,8 +367,9 @@ export async function updateReceivingTemplateWithFields(receivingTemplateTitle: 
 
     // Fallback: try getTemplateList if direct search didn't find it
     if (!receivingNote) {
-      logDebug(pluginJson, `updateReceivingTemplateWithFields: Direct search didn't find template, trying getTemplateList`)
+      logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Direct search didn't find template, trying getTemplateList`)
       const templateList = await NPTemplating.getTemplateList('forms-processor')
+      logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Found ${templateList.length} forms-processor templates`)
       const receivingTemplate = templateList.find((t) => {
         // Strip double quotes from both sides for comparison
         const templateLabel = stripDoubleQuotes(t.label)
@@ -373,20 +377,23 @@ export async function updateReceivingTemplateWithFields(receivingTemplateTitle: 
       })
 
       if (receivingTemplate) {
+        logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Found template in getTemplateList, loading note...`)
         receivingNote = await getNoteByFilename(receivingTemplate.value)
       }
     }
 
     if (!receivingNote) {
-      logError(pluginJson, `updateReceivingTemplateWithFields: Could not find receiving template "${cleanedReceivingTemplateTitle}"`)
+      logError(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Could not find receiving template "${cleanedReceivingTemplateTitle}"`)
       // Don't show error message or throw - just log and continue
       return
     }
+    
+    logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Found receiving note: "${receivingNote.filename}", type="${receivingNote.frontmatterAttributes?.type || 'none'}"`)
 
     // Extract fields that have keys (only fields that have keys, excluding separators and headings)
     const fieldsWithKeys = fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')
 
-    logDebug(pluginJson, `updateReceivingTemplateWithFields: Found ${fieldsWithKeys.length} fields with keys to add`)
+    logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Found ${fieldsWithKeys.length} fields with keys to add`)
 
     // Build the code block content: varsInForm followed by lines like "<label>: <%- key %>"
     const codeBlockLines = [varsInForm]
@@ -395,15 +402,19 @@ export async function updateReceivingTemplateWithFields(receivingTemplateTitle: 
       codeBlockLines.push(`${label}: <%- ${field.key} %>`)
     }
     const codeBlockContent = codeBlockLines.join('\n')
+    logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: About to replace code block (${codeBlockContent.length} chars)`)
 
     // Use the helper function to replace code block content
+    logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Calling replaceCodeBlockContent...`)
     const success = replaceCodeBlockContent(receivingNote, varsCodeBlockType, codeBlockContent, pluginJson.id)
+    const successStr = success ? 'true' : 'false'
+    logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: replaceCodeBlockContent returned: ${successStr}`)
     if (!success) {
-      logError(pluginJson, `updateReceivingTemplateWithFields: Failed to replace code block content`)
+      logError(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Failed to replace code block content`)
       // Don't show error message or throw - just log and continue
       return
     }
-    logDebug(pluginJson, `updateReceivingTemplateWithFields: Updated receiving template with ${fieldsWithKeys.length} field variables`)
+    logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: EXIT - Updated receiving template with ${fieldsWithKeys.length} field variables`)
     // Don't show message - let the form save message handle user feedback
   } catch (error) {
     // Log error but don't throw or stop execution - form saving should continue

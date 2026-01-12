@@ -1,4 +1,4 @@
-# Forms Noteplan Plugin
+# 📝 Forms Plugin for NotePlan
 
 ## Latest Updates
 
@@ -6,478 +6,644 @@ See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/
 
 ## About This Plugin
 
-The Forms plugin enables you to create dynamic, interactive forms in NotePlan. You define form fields in a template, and when you fill out the form and click "Submit", the data is automatically processed through a template to create notes, tasks, or other content.
+The Forms plugin enables you to create dynamic, interactive forms in NotePlan. You define form fields using the visual **Form Builder**, and when you fill out the form and click "Submit", the data is automatically processed to create notes or write to existing notes - **no coding or template writing required!**
 
 > **⚠️ Beta Warning:** This is an early beta release and may not yet be fully functional. Features may change, and you may encounter bugs or incomplete functionality. Please report issues to @dwertheimer on Discord.
 
-| Form Definition > | Form Entry > | Form Processor > | Result |
-|--------|----------|-------------|---------|
-| <img width="962" height="1778" alt="Screen Cap 2025-12-17 at 23 12 54@2x" src="https://github.com/user-attachments/assets/5ffe85dd-51b8-47ae-84a8-1fbf6061ae92" /> | <img width="756" height="938" alt="Screen Cap 2025-12-17 at 23 16 26@2x" src="https://github.com/user-attachments/assets/e2681277-de53-4fcd-84b2-ae8638f2bc15" /> | <img width="922" height="932" alt="Screen Cap 2025-12-17 at 23 17 09@2x" src="https://github.com/user-attachments/assets/ffd7b7b1-fead-4853-83b9-8ce93049438c" /> | <img width="864" height="692" alt="Screen Cap 2025-12-17 at 23 17 40@2x" src="https://github.com/user-attachments/assets/67929891-ded3-4b4e-9ac5-490e97e1e4f0" /> |
+## Quick Start (3 Steps!)
+
+1. **Open the Form Builder**: Type `/builder` in the command bar
+2. **Create your form**: Add fields, configure how you want the data saved (new note or add to existing)
+3. **Use your form**: Type `/form` and select your form, fill it out, and submit!
+
+**That's it!** No templates to write, no JSON to edit, no advanced configuration needed for typical use cases.
 
 ## How It Works
 
-1. You create a **Form Template** that defines the fields to be filled out
-2. When the form command is triggered, a dialog window opens with your form fields
-3. Fill out the form and click "Submit"
-4. The form data is automatically sent to a **Processing Template** (specified by `receivingTemplateTitle`)
-5. The processing template uses the form data to create a note or other content. You can use any Templating capabilities in your processing template to do just about anything you want.
+1. You use the **Form Builder** to visually create a form (no coding required)
+2. In the Form Builder, you configure how to handle the data:
+   - **Create a new note** - Form data creates a new note with the content you specify
+   - **Write to existing note** - Form data gets added to an existing note (today's note, a specific note, etc.)
+   - **Run JavaScript** - Execute custom JavaScript code (advanced)
+   - **Use custom template** - Use a processing template for complex scenarios (advanced)
+3. When someone fills out the form and clicks "Submit", the plugin automatically handles everything based on your configuration
 
-## Quick Start
+## Form Builder - Your Main Tool
 
-1. **Open the Form Builder**: Type `/📝 Forms: Form Builder` (or `/builder` or `/buildform`) in the command bar
-2. **Create a new form**: Choose "Create New Template" and enter a name for your form
-3. **Add fields**: Click "+ Add Field" to add form fields and configure them
-4. **Set up processing**: The Form Builder will prompt you to create a processing template
-5. **Save and launch**: Click "Save Form" and then use `/📝 Forms: Open Template Form` to launch your form
+The **Form Builder** is where you'll do everything. It's a visual interface that lets you:
 
-## Form Builder
+- Add form fields by clicking a button (text inputs, dropdowns, date pickers, switches, etc.)
+- Configure each field (label, description, default value, required/optional)
+- Arrange fields by dragging them
+- **Configure output**: Choose whether to create a new note, write to an existing note, or use advanced options
+- Preview your form in real-time
+- Save and test your form
 
-The **Form Builder** is a visual tool that makes it easy to create and edit forms without writing JSON manually. You should use the Form Builder for all form creation - it's the recommended way to build forms!
+### Opening the Form Builder
 
-> **Note:** When you create a new form using the Form Builder, a launch link (`[Run Form: Form Name](...)`) is automatically added to the top of your form template body. This link contains the x-callback-url that launches your form. You can copy this link and paste it anywhere you want (daily notes, project notes, etc.) to quickly access your form.
+Type any of these commands:
+- `/builder`
+- `/buildform`
+- `/📝 Forms: Form Builder/Editor`
 
-### Using the Form Builder
+### Creating Your First Form
 
-1. **Launch the Form Builder**:
-   - Command: `/📝 Forms: Form Builder` (or `/builder` or `/buildform`)
-   - Choose to create a new form template or edit an existing one
+1. **Launch Form Builder**: Type `/builder`
 
-2. **Add and Configure Fields**:
-   - Click "+ Add Field" in the "Form Fields" section
-   - Select a field type from the menu (input, dropdown, switch, calendar picker, etc.)
-   - Click on any field to edit its properties:
-     - **Label**: The text shown to users
-     - **Key**: Variable name used in processing templates (auto-generated but editable)
-     - **Description**: Help text shown below the field
-     - **Default Value**: Pre-filled value for the field
-     - **Required**: Mark fields as required (must be filled)
-     - **Compact Display**: Show label and field side-by-side
-     - **Dependencies**: Make fields conditional on other fields
+2. **Create New Form**: Click "Create New Form" and give it a name (e.g., "Project Form")
 
-3. **Configure Form Settings** (left sidebar):
-   - **Receiving Template**: The template that processes form submissions (required)
-   - **Window Title**: Title shown in the form window
-   - **Form Title**: Title shown inside the form dialog
-   - **Window Size**: Width and height of the form window
-   - **Hide Dependent Items**: Hide dependent fields until parent is enabled
-   - **Allow Empty Submit**: Allow submitting form with empty required fields
+3. **Add Fields**: Click "+ Add Field" and select field types:
+   - **Text Input** - For entering text (project name, description, etc.)
+   - **Textarea** - For longer text entries
+   - **Number** - For numeric values
+   - **Switch** - For yes/no options
+   - **Dropdown** - For selecting from a list
+   - **Date Picker** - For selecting dates
+   - **Note Chooser** - For selecting a note
+   - **Folder Chooser** - For selecting a folder
+   - And many more...
 
-4. **Preview Your Form** (right side):
-   - See a live preview of how your form will look
-   - The preview updates as you make changes
+4. **Configure Each Field**: Click on a field to edit:
+   - **Label**: What the user sees
+   - **Key**: Internal name (auto-generated, usually don't need to change)
+   - **Description**: Help text below the field
+   - **Default Value**: Pre-filled value
+   - **Required**: Must be filled out
+   - **Compact Display**: Show label and field side-by-side
 
-5. **Reorder Fields**:
-   - Drag fields up or down using the grip handle (☰) on the left
-   - Fields appear in the order they're listed
+5. **Configure Form Output** (left sidebar under "Form Settings"):
+   
+   **Option 1: Create New Note** (most common)
+   - Choose "Create New Note" as processing method
+   - Set "New Note Title" template (e.g., `<%- projectName %>`)
+   - Choose folder where notes should be created
+   - Define the note content template
 
-6. **Delete Fields**:
-   - Click the trash icon (🗑️) next to any field to remove it
+   **Option 2: Write to Existing Note**
+   - Choose "Write to Existing Note" as processing method
+   - Specify target note (`<today>` for today's note, or a specific note title)
+   - Choose where to write (append, prepend, under a heading)
+   - Define the content template
 
-7. **Save Your Form**:
-   - Click "Save Form" to save your changes
-   - The Form Builder automatically creates the JSON codeblock in your template
-   - If you've made changes, you'll see an "Unsaved changes" warning
+6. **Save Your Form**: Click "Save Form" button
 
-8. **Open Your Form**:
-   - Once saved, use the "Open Form" button to test your form
-   - Or use `/📝 Forms: Open Template Form` from the command bar
+7. **Test Your Form**: Click "Open Form" to test it right away
 
-### Form Builder Tips
+### Form Output Configuration
 
-- **Use descriptive labels**: Clear labels help users understand what each field is for
-- **Set defaults**: Pre-fill commonly-used values to save time
-- **Add descriptions**: Help text clarifies what each field should contain
-- **Group related fields**: Use headings and separators to organize complex forms
-- **Test as you go**: Use the "Open Form" button to test your form before finishing
+The Form Builder lets you configure exactly what happens when the form is submitted:
 
-## Launching Forms
+#### Creating New Notes
 
-### From Command Bar
+Perfect for: Project notes, meeting notes, person notes, etc.
 
-1. Type `/form` or `/dialog` or `/📝 Forms: Open Template Form`
-2. Select your form template from the list
-3. Fill out and submit the form
+**Configuration:**
+- **New Note Title**: Use form fields in the title like `<%- projectName %>`
+- **Folder**: Where to create the note (can use `<select>` to choose each time)
+- **Space**: Private or a specific Teamspace
+- **Note Content**: Write a template using form fields like:
+  ```
+  # <%- projectName %>
+  
+  **Start Date:** <%- startDate %>
+  **Team:** <%- team %>
+  
+  ## Description
+  <%- description %>
+  ```
 
-### From x-callback-url
+#### Writing to Existing Notes
 
-When you create a new form using the Form Builder, a launch link is automatically added to the top of your form template. You can copy this link from your template and paste it anywhere you want to quickly launch your form.
+Perfect for: Adding to today's note, logging entries, appending to project notes, etc.
 
-You can also manually create links to launch forms:
+**Configuration:**
+- **Target Note**: 
+  - `<today>` - Today's daily note
+  - `<current>` - Currently open note
+  - `<choose>` - Prompt to choose note each time
+  - Specific note title
+- **Write Location**: Where to add content
+  - **Append** - Add to end of note
+  - **Prepend** - Add to beginning of note
+  - **Under Heading** - Add under a specific heading
+- **Content Template**: What to write using form fields
 
-```markdown
-[Launch Project Form](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Open%20Template%20Form&arg0=jgclark%20Project%20Form)
-```
+### Tips for Form Builder
 
-Replace `jgclark%20Project%20Form` with your form template title (URL-encoded).
+- **Start Simple**: Create a form with just 2-3 fields first to learn how it works
+- **Use Descriptions**: Help text makes forms easier to use
+- **Test Early**: Use "Open Form" button frequently to test as you build
+- **Use Headings**: Group related fields with heading elements
+- **Add Separators**: Visual dividers help organize long forms
+- **Preview Updates Live**: The preview pane shows changes as you make them
 
-> **Tip:** Instead of manually creating x-callback-url links, consider using the [np.CallbackURLs](../np.CallbackURLs/README.md) plugin to create callback links with a user-friendly wizard. This plugin helps you build these URLs correctly without having to URL-encode template names manually. Or simply copy the link that's automatically added to your form template!
+## Using Forms
 
-## Creating the Processing Template
+### Launching a Form
 
-The processing template receives the form data and uses it to generate content. It's a standard NotePlan template with the type `forms-processor`.
+**Method 1: Command Bar** (easiest)
+1. Type `/form` or `/dialog`
+2. Select your form from the list
+3. Fill out and submit
 
-### Accessing Form Data
+**Method 2: x-callback URL Link**
 
-All form field `key` values become available as variables in your processing template. Use them with `<%- variableName %>` syntax.
+When you create a form, a launch link is automatically added to the top of your form template. Copy that link and paste it anywhere (daily notes, project notes, etc.) to launch the form with one click.
 
-### Example Processing Template
+Example: `[Launch My Form](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Open%20Template%20Form&arg0=My%20Form)`
 
+**Method 3: Auto-Open on Note Open** (advanced)
+
+Forms can auto-open when you open certain notes by adding this to the note's frontmatter:
 ```yaml
----
-title: Project Form Processing Template
-type: forms-processor
-newNoteTitle: <%- noteTitle %>
-folder: <select Projects>
-start: <%- startDateEntry ? date.format("YYYY-MM-DD", startDateEntry) : '' %>
-due: <%- dueDateEntry ? date.format("YYYY-MM-DD", dueDateEntry) : '' %>
----
-#project @start(<%- start %>) @due(<%- due %>) @review(<%- interval %>)
-
-**Aim:** <%- aim %>
-
-**Context:** <%- context %>
-
-**Team:** <%- team %>
-
-Progress: 0@<%- start %>: project started
+triggers: onOpen => dwertheimer.Forms.triggerOpenForm
 ```
 
-### Date Handling
+### Form Browser
 
-Date fields from `calendarpicker` return ISO date strings. You can format them using the `date.format()` function:
+View all your forms in a browsable interface:
 
-```ejs
-<%- startDateEntry ? date.format("YYYY-MM-DD", startDateEntry) : '' %>
-```
+Type `/browser` or `/formbrowser`
 
-### Conditional Rendering
+The Form Browser shows all your forms in a two-column layout where you can:
+- Browse available forms
+- Preview form details
+- Launch forms directly
+- Edit forms in Form Builder
 
-You can use conditional logic in your processing template:
+## Available Field Types
 
-```ejs
-<% if (isUrgent) { %>
-**URGENT:** This task requires immediate attention
-<% } %>
-```
+The Form Builder includes these field types:
+
+### Basic Fields
+- **Text Input** - Single-line text
+- **Textarea** - Multi-line text (expandable)
+- **Number** - Numeric input with +/- buttons
+- **Read-only Field** - Display-only text
+
+### Selection Fields
+- **Dropdown** - Select from a list
+- **Switch** - Toggle on/off
+- **Button Group** - Choose one option from buttons
+
+### Date & Time
+- **Date Picker** - Calendar for selecting dates
+
+### NotePlan Selectors
+- **Note Chooser** - Search and select a note
+- **Folder Chooser** - Search and select a folder
+- **Space Chooser** - Select Private or a Teamspace
+- **Heading Chooser** - Select a heading from a note
+- **Event Chooser** - Select a calendar event
+- **Tag Chooser** - Select multiple hashtags
+- **Mention Chooser** - Select multiple @mentions
+- **Frontmatter Key Chooser** - Select values from frontmatter keys across notes
+
+### Display Elements
+- **Heading** - Section title
+- **Separator** - Horizontal divider line
+- **Text** - Instructions or descriptions
+- **Markdown Preview** - Display formatted markdown content
+- **Table of Contents** - Clickable links to form sections
+
+### Advanced Fields
+- **Hidden Field** - Store data without displaying it
+- **JSON Editor** - Edit JSON data
+- **Button** - Clickable action button
+- **Autosave** - Auto-save form progress
+- **TemplateJS Block** - Execute JavaScript code (advanced)
+
+## Additional Commands
+
+### Restore from Autosave
+
+Forms automatically save your progress. If a form is closed before submitting, you can restore it:
+
+Type `/restoreautosave` or `/restoreform`
+
+Autosave files are stored in `@Trash/Autosave-{timestamp}` by default.
+
+### Form Browser
+
+Browse all your forms in a visual interface:
+
+Type `/browser` or `/formbrowser`
+
+Can open as a floating window: `/formbrowser true`
+
+## Plugin Settings
+
+The Forms plugin has one main setting:
+
+**Enable Autosave for All Forms** (default: ON)
+- When enabled, all forms automatically save progress every 30 seconds
+- Protects against data loss from crashes or accidental closes
+- Autosave files are stored in @Trash folder
+
+You can disable this globally and add autosave to specific forms only if preferred.
 
 ## Tips and Best Practices
 
-1. **Use descriptive keys**: Field keys become variable names in your processing template, so use clear, descriptive names
-2. **Provide defaults**: Use default values for commonly-used fields to save time
-3. **Add descriptions**: Help users understand what each field is for
-4. **Validate input**: Use required fields and validation for critical fields
-5. **Group related fields**: Use headings and separators to organize complex forms
-6. **Test thoroughly**: Make sure your processing template handles all field combinations correctly
-7. **Date formatting**: Always check date formatting in your processing template - date picker returns ISO strings
+1. **Start with the Form Builder** - Don't try to edit JSON manually
+2. **Test frequently** - Use the "Open Form" button to test as you build
+3. **Use meaningful field labels** - Clear labels make forms easy to use
+4. **Add descriptions** - Help text prevents confusion
+5. **Set good defaults** - Pre-fill common values to save time
+6. **Group with headings** - Organize long forms with section headings
+7. **Use conditional fields** - Hide advanced fields until needed (use `dependsOnKey`)
+8. **Create separate forms for different use cases** - Don't try to make one giant form do everything
 
 ## Troubleshooting
 
 ### Form won't open
+- Check Plugin Console (NotePlan → Help → Plugin Console) for errors
+- Try re-saving the form in Form Builder
+- Make sure the form template has `type: template-form` in frontmatter
 
-- Check that your template has the `template-form` type
-- Verify the `formfields` code block is correctly formatted JSON
-- Check the Plugin Console for error messages
-- Try using the Form Builder to edit the form and save it again
+### Form doesn't save data correctly
+- Check your output configuration in Form Builder
+- For "Create New Note": Verify folder path and note title template
+- For "Write to Existing Note": Verify target note exists
+- Check Plugin Console for error messages
 
-### Form data not appearing in processing template
+### Form Builder shows errors
+- Close and reopen Form Builder
+- Check Plugin Console for details
+- Try creating a new simple form to test
 
-- Verify all field keys are spelled correctly (case-sensitive)
-- Check that `receivingTemplateTitle` matches your processing template title exactly
-- Ensure variables are referenced correctly in the processing template (e.g., `<%- variableName %>`)
-
-### Date fields not working
-
-- Date picker returns ISO date strings - format them using `date.format()` if needed
-- Check date parsing in your processing template
-
-### Form Builder issues
-
-- If the Form Builder shows errors, check the Plugin Console
-- Try closing and reopening the Form Builder
-- If a form has duplicate codeblocks, use the Form Builder to edit and save - it will fix duplicates automatically
+### Lost form data
+- Check @Trash folder for autosave files
+- Use `/restoreautosave` command
+- Enable autosave in plugin settings if it's disabled
 
 ---
 
-## Advanced / API Reference
+## Advanced Topics
 
-The following sections provide detailed reference information for manually editing form templates. **You typically don't need this** - use the Form Builder instead! This reference is for advanced users or when you need to understand the underlying structure.
+**Most users won't need anything below this line.** The sections below are for advanced users who need custom processing logic or want to understand the underlying structure.
 
-### Creating a Form Template Manually
+### Custom Processing Templates
 
-Form templates should have the `template-form` type. Each form template consists of:
+For advanced use cases that can't be handled by the Form Builder's built-in options, you can create custom processing templates.
 
-- **Frontmatter** with configuration settings
-- A **`formfields` code block** containing an array of field definitions
+**When you might need this:**
+- Complex conditional logic beyond what Form Builder supports
+- Advanced date/time calculations
+- Integration with other plugins
+- Custom note structure generation
 
-### Form Template Frontmatter
+**Creating a Processing Template:**
 
-The frontmatter controls the form's appearance and behavior:
+1. Run `/createprocessor` or `/newprocessor`
+2. Follow the wizard to set up basic configuration
+3. Edit the template to add custom logic using EJS templating
+
+**Processing Template Structure:**
 
 ```yaml
 ---
-title: My Form Template
-type: template-form
-receivingTemplateTitle: "My Processing Template"
-windowTitle: "My Form"
-formTitle: "Fill Out This Form"
-hideDependentItems: false
-allowEmptySubmit: false
-width: 750
-height: 750
+title: My Processing Template
+type: forms-processor
+newNoteTitle: <%- fieldName %>
+folder: /Projects
 ---
+# Template body here
+Use form fields like: <%- fieldName %>
 ```
 
-#### Frontmatter Options
+All form field `key` values become variables in your template.
 
-| Option | Required | Description | Default |
-|--------|----------|-------------|---------|
-| `title` | Yes | The name of your form template | - |
-| `receivingTemplateTitle` | Yes | Title of the template that will process the form data | - |
-| `type` | Yes | Set to `template-form` so it comes up in the forms chooser | - |
-| `windowTitle` | No | Title shown in the form window | "Form" |
-| `formTitle` | No | Title shown inside the form dialog | "Form Entry" |
-| `width` | No | Width of the form window in pixels | Auto |
-| `height` | No | Height of the form window in pixels | Auto |
-| `hideDependentItems` | No | Hide dependent fields until parent is enabled | `false` |
-| `allowEmptySubmit` | No | Allow submitting form with empty required fields | `false` |
+**Date Formatting Example:**
 
-### Form Fields Code Block
+```ejs
+<%- startDate ? date.format("YYYY-MM-DD", startDate) : '' %>
+```
 
-After the frontmatter, include a code block with type `formfields` containing a JSON array of field definitions.
+**Conditional Logic Example:**
 
-> **Important:** We highly recommend using [JSONLint](http://jsonlint.com/) to validate your JSON code (copy only the content inside the code block, not including the backticks). This will help catch syntax errors like missing commas, incorrect quotes, or malformed structures before you try to use the form.
+```ejs
+<% if (isUrgent) { %>
+**URGENT:** Requires immediate attention
+<% } %>
+```
 
-````markdown
-\`\`\`formfields
-[
-  {
-    key: 'fieldName',
-    label: 'Field Label',
-    type: 'input',
-    description: 'Help text for this field'
-  }
-]
-\`\`\`
-````
+### Processing Methods
 
-### Field Types Reference
+The Form Builder uses these processing methods:
 
-The Forms plugin supports the following field types:
+1. **form-processor** - Uses a custom processing template (advanced)
+2. **create-new** - Creates a new note (handled by Form Builder)
+3. **write-existing** - Writes to existing note (handled by Form Builder)
+4. **run-js-only** - Executes JavaScript only (advanced, requires TemplateJS Block fields)
 
-#### Input Fields
+### Manual Template Editing
 
-##### `input`
+**You typically don't need this** - use Form Builder instead!
 
-A standard text input field.
+Form templates are stored as NotePlan notes with:
+- `type: template-form` in frontmatter
+- A `formfields` code block with JSON array of field definitions
+- Optional launch links (auto-generated by Form Builder)
 
+See the end of this document for complete JSON field reference if you need to edit manually.
+
+### TemplateJS Blocks
+
+For executing custom JavaScript during form processing:
+
+1. Add a "TemplateJS Block" field in Form Builder
+2. Write JavaScript code that executes when form is submitted
+3. Useful for: creating folders, moving files, custom data processing
+
+Example:
+```javascript
+// Create a folder based on form data
+const folderPath = `${parentFolder}/${projectName}`;
+DataStore.createFolder(folderPath);
+```
+
+### Reserved Field Keys
+
+Don't use these as field keys (the plugin uses them internally):
+- `__isJSON__`, `submit`, `location`, `writeUnderHeading`
+- `openNoteTitle`, `writeNoteTitle`, `getNoteTitled`
+- `replaceNoteContents`, `createMissingHeading`
+- `receivingTemplateTitle`, `windowTitle`, `formTitle`
+- `width`, `height`, `hideDependentItems`, `allowEmptySubmit`, `title`
+
+---
+
+## Complete Field Reference (Advanced)
+
+**Note:** You typically don't need this - the Form Builder provides a visual interface for all field types. This reference is for users who need to manually edit form JSON or understand field properties in detail.
+
+### Common Field Properties
+
+All fields support these properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `key` | string | Variable name (required for most types) |
+| `label` | string | Field label displayed to user |
+| `type` | string | Field type (required) |
+| `description` | string | Help text shown below field |
+| `default` | any | Default value for the field |
+| `value` | any | Initial/current value |
+| `compactDisplay` | boolean | Label and field side-by-side |
+| `dependsOnKey` | string | Make field conditional on another field |
+| `required` | boolean | Field must be filled |
+| `placeholder` | string | Placeholder text (for input fields) |
+
+### Input Field Types
+
+**`input`** - Text input field
 ```javascript
 {
   key: 'projectName',
   label: 'Project Name',
   type: 'input',
-  description: 'Enter the name of your project',
-  default: 'My Project',
   required: true,
   compactDisplay: true,
-  focus: false, // Set to true to focus this field when form opens
-  validationType: 'email' | 'number' | 'date-interval' // Optional validation
+  validationType: 'email' // optional: 'email', 'number', 'date-interval'
 }
 ```
 
-**Properties:**
-
-- `key` (required): Variable name used in processing template
-- `label` (required): Label displayed to user
-- `type`: `'input'`
-- `description`: Help text shown below the field
-- `default`: Default value
-- `required`: If `true`, field must be filled
-- `compactDisplay`: If `true`, label and field are side-by-side
-- `focus`: If `true`, field receives focus when form opens
-- `validationType`: `'email'`, `'number'`, or `'date-interval'` for validation
-
-##### `input-readonly`
-
-A read-only text input field (display only).
-
+**`textarea`** - Multi-line expandable text field
 ```javascript
 {
-  key: 'readonlyField',
-  label: 'Read-only Info',
-  type: 'input-readonly',
-  default: 'This cannot be changed',
-  compactDisplay: true
+  key: 'description',
+  label: 'Description',
+  type: 'textarea',
+  placeholder: 'Enter description...'
 }
 ```
 
-##### `number`
-
-A numeric input with increment/decrement buttons.
-
+**`number`** - Numeric input
 ```javascript
 {
   key: 'quantity',
   label: 'Quantity',
   type: 'number',
-  default: 0,
-  step: 1, // Increment/decrement amount
-  compactDisplay: true
+  default: 1,
+  step: 1 // increment amount
 }
 ```
 
-**Properties:**
+**`input-readonly`** - Read-only display field
+```javascript
+{
+  key: 'displayOnly',
+  label: 'Read-only',
+  type: 'input-readonly',
+  value: 'Cannot be changed'
+}
+```
 
-- `step`: Number to increment/decrement by (default: 1)
+### Selection Field Types
 
-#### Selection Fields
-
-##### `dropdown-select`
-
-A dropdown menu (simple select).
-
+**`dropdown-select`** - Simple dropdown
 ```javascript
 {
   key: 'team',
   label: 'Team',
   type: 'dropdown-select',
-  options: ['Team Alpha', 'Team Beta', 'Team Charlie'],
-  default: 'Team Beta',
-  fixedWidth: 300, // Optional: fixed width in pixels
-  isEditable: false, // If true, user can type to search/edit
-  placeholder: 'Select a team', // Optional: placeholder text
-  compactDisplay: true
+  options: ['Alpha', 'Beta', 'Charlie'],
+  // or with explicit values:
+  // options: [{label: 'Alpha', value: 'a'}, {label: 'Beta', value: 'b'}],
+  default: 'Beta'
 }
 ```
 
-**Properties:**
+**`switch`** - Toggle on/off
+```javascript
+{
+  key: 'isUrgent',
+  label: 'Urgent',
+  type: 'switch',
+  default: false
+}
+```
 
-- `options`: Array of strings or objects `{label: 'Display', value: 'value'}`
-- `fixedWidth`: Fixed width in pixels
-- `isEditable`: Allow user to edit/type in dropdown
-- `placeholder`: Text shown when no option is selected (won't be submitted)
-
-##### `combo`
-
-An advanced dropdown with search capabilities (react-select).
-
+**`button-group`** - Mutually exclusive buttons
 ```javascript
 {
   key: 'priority',
   label: 'Priority',
-  type: 'combo',
-  options: ['High', 'Medium', 'Low'],
-  default: 'Medium',
-  compactDisplay: true,
-  noWrapOptions: false, // If true, truncate options instead of wrapping
-  placeholder: 'Select priority' // Optional: placeholder text
+  type: 'button-group',
+  options: [
+    {label: 'High', value: 'high'},
+    {label: 'Medium', value: 'med', isDefault: true},
+    {label: 'Low', value: 'low'}
+  ],
+  vertical: false // true to stack vertically
 }
 ```
 
-**Properties:**
+### Date Field Types
 
-- `options`: Array of strings or objects `{label: 'Display', value: 'value'}`
-- `noWrapOptions`: If `true`, truncate labels instead of wrapping
-- `placeholder`: Text shown when no option is selected (won't be submitted)
-
-#### Boolean Fields
-
-##### `switch`
-
-A toggle switch (on/off).
-
-```javascript
-{
-  key: 'isUrgent',
-  label: 'Mark as Urgent',
-  type: 'switch',
-  default: false,
-  compactDisplay: true
-}
-```
-
-**Properties:**
-
-- `default`: `true` or `false`
-
-#### Date Fields
-
-##### `calendarpicker`
-
-A date picker for selecting dates.
-
+**`calendarpicker`** - Date picker
 ```javascript
 {
   key: 'dueDate',
-  label: 'Due Date', // Optional: label for the calendar picker
-  buttonText: 'Select Due Date', // Text on button (optional if visible: true)
+  label: 'Due Date',
   type: 'calendarpicker',
-  selectedDate: new Date(), // Optional: initially selected date
-  numberOfMonths: 1, // Optional: number of months to show
-  visible: false, // If true, show calendar by default (no button needed if no buttonText)
-  size: 0.75 // Optional: scale factor (0.5 = 50%, 1.0 = 100%, default: 0.75)
+  buttonText: 'Select Date',
+  visible: false, // true to show calendar by default
+  numberOfMonths: 1,
+  size: 0.75 // scale factor
 }
 ```
 
-**Properties:**
+### NotePlan Chooser Field Types
 
-- `label`: Label displayed for the calendar picker
-- `buttonText`: Text shown on the date picker button (not needed if `visible: true` and no button desired)
-- `selectedDate`: Initially selected date (Date object)
-- `numberOfMonths`: Number of calendar months to display
-- `visible`: If `true`, calendar is shown by default (button only shown if `buttonText` is provided)
-- `size`: Scale factor for calendar size (default: 0.75 = 75% of full size)
+**`note-chooser`** - Searchable note selector
+```javascript
+{
+  key: 'targetNote',
+  label: 'Select Note',
+  type: 'note-chooser',
+  placeholder: 'Search notes...',
+  showValue: false // false=show title, true=show filename
+}
+```
 
-#### Layout Elements
+**`folder-chooser`** - Searchable folder selector
+```javascript
+{
+  key: 'targetFolder',
+  label: 'Select Folder',
+  type: 'folder-chooser',
+  placeholder: 'Search folders...'
+}
+```
 
-##### `heading`
+**`space-chooser`** - Space/Teamspace selector
+```javascript
+{
+  key: 'space',
+  label: 'Space',
+  type: 'space-chooser',
+  placeholder: 'Select space...'
+}
+```
 
-A section heading.
+**`heading-chooser`** - Heading selector (static or dynamic)
+```javascript
+{
+  key: 'heading',
+  label: 'Select Heading',
+  type: 'heading-chooser',
+  noteFilename: 'project.md', // static note
+  // OR
+  noteFieldKey: 'targetNote', // get note from another field
+  placeholder: 'Select heading...'
+}
+```
 
+**`event-chooser`** - Calendar event selector
+```javascript
+{
+  key: 'meeting',
+  label: 'Select Event',
+  type: 'event-chooser',
+  date: '2024-01-15', // static date
+  // OR
+  dateFieldKey: 'eventDate', // get date from another field
+  placeholder: 'Select event...'
+}
+```
+
+**`tag-chooser`** - Multi-select hashtags
+```javascript
+{
+  key: 'tags',
+  label: 'Tags',
+  type: 'tag-chooser',
+  returnAsArray: false // false=comma-separated, true=array
+}
+```
+
+**`mention-chooser`** - Multi-select @mentions
+```javascript
+{
+  key: 'people',
+  label: 'People',
+  type: 'mention-chooser',
+  returnAsArray: false
+}
+```
+
+**`frontmatter-key-chooser`** - Frontmatter value selector
+```javascript
+{
+  key: 'status',
+  label: 'Status',
+  type: 'frontmatter-key-chooser',
+  frontmatterKey: 'status', // which frontmatter key to search
+  returnAsArray: false
+}
+```
+
+### Display Field Types
+
+**`heading`** - Section heading
 ```javascript
 {
   type: 'heading',
   label: 'Section Title',
-  description: 'Optional description text'
+  description: 'Optional subtitle'
 }
 ```
 
-**Note:** No `key` required for headings.
-
-##### `separator`
-
-A horizontal line separator.
-
+**`separator`** - Horizontal line
 ```javascript
 {
   type: 'separator'
 }
 ```
 
-**Note:** No `key` required for separators.
-
-##### `text`
-
-Display-only text for instructions or descriptions.
-
+**`text`** - Display-only text
 ```javascript
 {
-  key: 'instructions', // Optional but recommended
   type: 'text',
-  label: 'Instructions',
-  textType: 'description' // 'title' | 'description' | 'separator'
+  label: 'Instructions text here',
+  textType: 'description' // 'title', 'description', or 'separator'
 }
 ```
 
-**Properties:**
+**`markdown-preview`** - Display markdown
+```javascript
+{
+  type: 'markdown-preview',
+  content: '# Hello\n\nMarkdown content', // static content
+  // OR
+  noteFilename: 'preview.md', // load from note
+  // OR
+  noteFieldKey: 'selectedNote', // load from another field
+  height: 300 // optional fixed height
+}
+```
 
-- `textType`: `'title'`, `'description'`, or `'separator'`
+**`table-of-contents`** - Clickable form section links
+```javascript
+{
+  type: 'table-of-contents',
+  label: 'Form Sections'
+}
+```
 
-#### Advanced Fields
+### Advanced Field Types
 
-##### `json`
+**`hidden`** - Hidden field (not displayed)
+```javascript
+{
+  key: 'hiddenData',
+  type: 'hidden',
+  value: 'some-value'
+}
+```
 
-A JSON editor for complex data structures.
-
+**`json`** - JSON editor
 ```javascript
 {
   key: 'metadata',
@@ -487,213 +653,111 @@ A JSON editor for complex data structures.
 }
 ```
 
-##### `button`
-
-A clickable button that triggers an action.
-
+**`button`** - Clickable button
 ```javascript
 {
-  key: 'actionButton',
+  key: 'actionBtn',
   type: 'button',
   label: 'Click Me',
-  isDefault: false // If true, appears as primary button
+  isDefault: false // true for primary styling
 }
 ```
 
-##### `button-group`
-
-A group of mutually exclusive selectable buttons (like a toggle group or radio buttons).
-
+**`autosave`** - Auto-save form state
 ```javascript
 {
-  key: 'option',
-  type: 'button-group',
-  label: 'Choose Option',
-  options: [
-    { label: 'Option 1', value: 'opt1' },
-    { label: 'Option 2', value: 'opt2', isDefault: true },
-    { label: 'Option 3', value: 'opt3' }
-  ],
-  vertical: false // If true, stack buttons vertically
+  type: 'autosave',
+  key: 'formAutosave',
+  saveLocation: '@Trash/Autosave-<ISO8601>',
+  autoSaveInterval: 30000, // milliseconds
+  showStatus: true
 }
 ```
 
-**Properties:**
-
-- `options`: Array of strings or objects `{label: 'Display', value: 'value', isDefault: true}`
-- `vertical`: If `true`, stack buttons vertically
-
-##### `hidden`
-
-A hidden field (not displayed, but value is passed to processing template).
-
+**`templatejs-block`** - JavaScript execution (advanced)
 ```javascript
 {
-  key: 'hiddenValue',
-  type: 'hidden',
-  value: 'some-value'
+  type: 'templatejs-block',
+  key: 'myScript',
+  label: 'Script',
+  templateJSContent: 'const result = await doSomething(); return result;',
+  executeTiming: 'after' // 'before' or 'after'
 }
 ```
 
-### Conditional Fields (Dependencies)
+### Conditional Fields
 
-You can make fields conditional using `dependsOnKey`. A field will only be enabled/visible when the field it depends on is `true` (for switches) or has a value (for other types).
+Make fields dependent on other fields:
 
 ```javascript
 {
   key: 'showAdvanced',
-  label: 'Show Advanced Options',
+  label: 'Show Advanced',
   type: 'switch',
-  default: false,
-  compactDisplay: true
+  default: false
 },
 {
-  key: 'advancedSetting',
-  label: 'Advanced Setting',
+  key: 'advancedOption',
+  label: 'Advanced Option',
   type: 'input',
-  dependsOnKey: 'showAdvanced', // Only enabled when showAdvanced is true
-  compactDisplay: true
+  dependsOnKey: 'showAdvanced' // only enabled when showAdvanced is true
 }
 ```
 
-**Properties:**
-
-- `dependsOnKey`: The `key` of another field this field depends on
-
-### Common Field Properties
-
-All fields support these common properties:
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `key` | string | Variable name (required for most types) |
-| `label` | string | Field label displayed to user |
-| `type` | string | Field type (required) |
-| `description` | string | Help text shown below field |
-| `default` | any | Default value for the field |
-| `compactDisplay` | boolean | If `true`, label and field display side-by-side |
-| `dependsOnKey` | string | Make field conditional on another field |
-| `required` | boolean | Field must be filled (for input fields) |
-
-### Reserved Keys
-
-The following keys are reserved and should not be used as field keys:
-
-- `__isJSON__`
-- `submit`
-- `location`
-- `writeUnderHeading`
-- `openNoteTitle`
-- `writeNoteTitle`
-- `getNoteTitled`
-- `replaceNoteContents`
-- `createMissingHeading`
-- `receivingTemplateTitle`
-- `windowTitle`
-- `formTitle`
-- `width`
-- `height`
-- `hideDependentItems`
-- `allowEmptySubmit`
-- `title`
-
-### Complete Example
-
-#### Form Template
+### Complete Example Form Template
 
 ````markdown
 ---
-title: jgclark Project Form
+title: Project Form
 type: template-form
-receivingTemplateTitle: "Project Form Processing Template"
-windowTitle: "Project"
-formTitle: "Create New Project"
-hideDependentItems: false
-allowEmptySubmit: false
+processingMethod: create-new
+windowTitle: "New Project"
 width: 750
-height: 750
+height: 600
 ---
+
+[Run Form: Project Form](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Open%20Template%20Form&arg0=Project%20Form)
+
 ```formfields
 [
   {
-    key: 'noteTitle',
-    label: 'Project Title',
-    description: 'This will be the name/title of the project.',
+    type: 'heading',
+    label: 'Project Details'
+  },
+  {
+    key: 'projectName',
+    label: 'Project Name',
     type: 'input',
-    compactDisplay: true,
     required: true,
+    compactDisplay: true
   },
   {
-    key: 'startDateEntry',
+    key: 'startDate',
     label: 'Start Date',
-    buttonText: 'Start date',
     type: 'calendarpicker',
-    visible: false,
-  },
-  {
-    key: 'dueDateEntry',
-    label: 'Due Date',
-    buttonText: 'Due date',
-    type: 'calendarpicker',
-    visible: false,
-  },
-  {
-    key: 'aim',
-    label: 'Aim',
-    description: 'The aim/purpose of the project.',
-    type: 'input',
-    compactDisplay: true,
-  },
-  {
-    key: 'context',
-    label: 'Context',
-    description: 'The context of the project.',
-    type: 'input',
-    compactDisplay: true,
+    buttonText: 'Select Date'
   },
   {
     key: 'team',
     label: 'Team',
     type: 'dropdown-select',
-    options: ['team alpha', 'team beta', 'team charlie'],
-    default: 'team beta',
-    compactDisplay: true,
+    options: ['Alpha', 'Beta', 'Charlie'],
+    compactDisplay: true
   },
   {
-    key: 'interval',
-    label: 'Review Interval',
-    description: 'Enter the review interval in the format: nn[bdwmqy]',
-    compactDisplay: true,
-    type: 'input',
-    validationType: 'date-interval'
+    type: 'separator'
   },
+  {
+    key: 'description',
+    label: 'Description',
+    type: 'textarea',
+    placeholder: 'Enter project description...'
+  }
 ]
 ```
 ````
 
-#### Processing Template
-
-```yaml
----
-title: Project Form Processing Template
-type: forms-processor
-newNoteTitle: <%- noteTitle %>
-folder: <select Projects>
-start: <%- startDateEntry ? date.format("YYYY-MM-DD", startDateEntry) : '' %>
-due: <%- dueDateEntry ? date.format("YYYY-MM-DD", dueDateEntry) : '' %>
----
-#project @start(<%- start %>) @due(<%- due %>) @review(<%- interval %>)
-
-**Aim:** <%- aim %>
-
-**Context:** <%- context %>
-
-**Team:** <%- team %>
-
-Progress: 0@<%- start %>: project started
-```
-
 ## See Also
 
-- [np.Templating Documentation](../np.Templating/README.md) - For advanced template processing
-- [DynamicDialog Component Documentation](../../helpers/react/DynamicDialog/_README.md) - For technical details on field rendering
+- [np.Templating Plugin](../np.Templating/README.md) - For advanced template processing
+- [np.CallbackURLs Plugin](../np.CallbackURLs/README.md) - For creating x-callback-url links easily

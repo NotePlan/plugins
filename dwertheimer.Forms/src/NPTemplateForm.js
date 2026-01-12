@@ -831,7 +831,7 @@ export async function openFormBrowser(_showFloating: boolean = false): Promise<v
       pluginData,
       title: 'Form Browser',
       logProfilingMessage: false,
-      debug: true, // Enable debug mode to show test buttons
+      debug: false, // Enable debug mode to show test buttons
       ENV_MODE,
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormBrowserAction' },
       componentPath: `../dwertheimer.Forms/react.c.FormBrowserView.bundle.dev.js`,
