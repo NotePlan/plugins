@@ -369,6 +369,27 @@ export function MyComponent(): Node {
 
 **Fix:** Use specific properties only if needed. Note: `__windowId` is automatically injected by Root.jsx, so you don't need `pluginData?.windowId` in dependencies
 
+### 6. Including Derived/Computed Values in Dependency Arrays
+
+**Symptom:** Infinite loops when derived values are recalculated on every render
+
+**Fix:** Only include the source values that the derived value depends on, not the derived value itself
+
+**Example:**
+```javascript
+// ❌ WRONG - causes infinite loop
+const canOpenForm = Boolean(isSaved && !isNewForm && templateTitle && onOpenForm)
+useEffect(() => {
+  // ...
+}, [isSaved, isNewForm, templateTitle, onOpenForm, canOpenForm]) // canOpenForm is derived!
+
+// ✅ CORRECT - only include source values
+const canOpenForm = Boolean(isSaved && !isNewForm && templateTitle && onOpenForm)
+useEffect(() => {
+  // ...
+}, [isSaved, isNewForm, templateTitle, onOpenForm]) // canOpenForm is NOT in dependencies
+```
+
 ## Automatic __windowId Injection
 
 **Root.jsx automatically injects `__windowId`** into all `SEND_TO_PLUGIN` dispatches if not already present.
@@ -408,6 +429,8 @@ requestFromPlugin('getFolders', { excludeTrash: true })
 6. **Document dependencies** - add comments explaining why each dependency is needed
 7. **Use TypeScript/Flow** - helps catch missing dependencies
 8. **Don't manually add `__windowId`** - Root.jsx handles it automatically for all `SEND_TO_PLUGIN` dispatches
+9. **Use Log Buffer Buster for debugging** - When debugging infinite loops or missing logs, enable `logBufferBuster: true` in your `pluginData` to flush NotePlan's log buffer. See [REACT_UTILITIES.md](REACT_UTILITIES.md#log-buffer-buster) for details.
+10. **Use useEffectGuard for loop detection** - Use `@helpers/react/useEffectGuard` to automatically detect and warn about excessive useEffect runs that indicate infinite loops
 
 ## Router and Handler Organization
 

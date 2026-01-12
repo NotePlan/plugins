@@ -2,7 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
-## [1.0.5] @dwertheimer 2026-01-10 (not released yet)
+## [1.0.5] @dwertheimer 2026-01-12 (not released yet)
+### Added
+- **Log Buffer Buster**: Added console method override feature to flush log buffers when debugging infinite loops or missing logs. When `logBufferBuster` is enabled in `pluginData`, all `console.log`, `console.error`, `console.info`, and `console.warn` calls will have 10000 dots appended to help flush NotePlan's log buffer. See ReactSkeleton documentation for usage instructions.
+
 ### Changed
 - Added logging to Root.jsx to reduce confusing logging about request/response patterns
 

@@ -74,6 +74,90 @@ truncateText('This is a very long note title that needs to be truncated', 15)
 - Showing long text in table cells
 - Truncating user input previews
 
+### Log Buffer Buster
+
+The Log Buffer Buster is a debugging utility built into `np.Shared` that helps flush NotePlan's log buffer when debugging infinite loops or missing log output. When enabled, it automatically appends 10000 dots to every console log statement to force the log buffer to flush.
+
+**Why it's needed:**
+NotePlan's log buffer can sometimes hold onto log output, especially during rapid re-renders or infinite loops. This makes it difficult to see what's happening in the logs. The Log Buffer Buster forces the buffer to flush by adding a large amount of padding to each log statement.
+
+**How to enable:**
+
+Pass `logBufferBuster: true` in your `pluginData` when opening a React window:
+
+```javascript
+// In your plugin's windowManagement.js or similar
+const pluginData = {
+  // ... your other plugin data
+  logBufferBuster: true, // Enable log buffer buster
+}
+
+await NPReactLocal.showInMainWindow({
+  windowId: 'MyPlugin React Window',
+  pluginData,
+  // ... other options
+})
+```
+
+Or when using `openReactWindow`:
+
+```javascript
+await openReactWindow({
+  windowId: 'MyPlugin React Window',
+  pluginData: {
+    // ... your other plugin data
+    logBufferBuster: true, // Enable log buffer buster
+  },
+  // ... other options
+})
+```
+
+**What it does:**
+
+When enabled, the Log Buffer Buster:
+- Overrides `console.log`, `console.error`, `console.info`, and `console.warn`
+- Appends `\n` followed by 10000 dots (`/`) to the first argument of each console call
+- Ensures all logs are flushed from NotePlan's buffer
+- Automatically restores original console methods when the window closes or `logBufferBuster` is disabled
+
+**Example output:**
+
+Without Log Buffer Buster:
+```
+[WebView Log] 2026-01-12 13:06:23 | DEBUG | FormBuilder, canOpenForm calculation
+```
+
+With Log Buffer Buster:
+```
+[WebView Log] 2026-01-12 13:06:23 | DEBUG | FormBuilder, canOpenForm calculation
+..................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................../
+```
+
+**When to use:**
+
+- Debugging infinite loops in `useEffect` hooks
+- Investigating missing log output
+- Troubleshooting rapid re-renders
+- When logs appear to be cut off or delayed
+
+**Important notes:**
+
+- The padding is added to the **first argument** of each console call (NotePlan only captures the first 2 arguments)
+- The padding will appear in your logs - this is expected and helps flush the buffer
+- Only enable when debugging - disable it for normal operation to keep logs clean
+- The feature is automatically cleaned up when the window closes
+
+**Disabling:**
+
+To disable, simply remove `logBufferBuster: true` from your `pluginData` or set it to `false`:
+
+```javascript
+const pluginData = {
+  // ... your other plugin data
+  logBufferBuster: false, // Disable log buffer buster
+}
+```
+
 ## Usage in React Components
 
 ```javascript
@@ -116,6 +200,8 @@ export function MyComponent({ note, folderPath }) {
 ## See Also
 
 - `@helpers/react/reactUtils.js` - Source code for these utilities
+- `np.Shared/src/react/Root.jsx` - Log Buffer Buster implementation
+- `@helpers/react/useEffectGuard.js` - Utility to detect infinite loops in useEffect hooks
 - [REACT_COMMUNICATION_PATTERNS.md](REACT_COMMUNICATION_PATTERNS.md) - Communication patterns guide
 
 
