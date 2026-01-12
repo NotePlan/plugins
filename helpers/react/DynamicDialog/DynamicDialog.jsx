@@ -326,6 +326,7 @@ const DynamicDialog = ({
   const dependencyMapRef = useRef<{ [sourceKey: string]: Array<{ fieldKey: string, clearValue?: boolean }> }>({}) // Map of source field -> dependent fields (generic, no hardcoded knowledge)
   const isClearingValuesRef = useRef<boolean>(false) // Track if we're currently clearing values to prevent infinite loops
   const previousIsOpenRef = useRef<boolean>(false) // Track previous isOpen state to detect dialog open/close transitions
+  const previousItemsRef = useRef<Array<TSettingItem>>([]) // Track previous items to prevent unnecessary dependency map rebuilds
   const [fieldLoadingStates, setFieldLoadingStates] = useState<{ [fieldKey: string]: boolean }>({}) // Track loading state for dependent fields (can be set by parent component)
 
   useEffect(() => {
@@ -334,6 +335,28 @@ const DynamicDialog = ({
 
   // Build dependency map: track which fields depend on which other fields (generic, no hardcoded knowledge)
   useEffect(() => {
+    // Guard: Skip if items haven't actually changed (compare by keys and dependency properties)
+    const itemsChanged = 
+      previousItemsRef.current.length !== items.length ||
+      items.some((item, index) => {
+        const prevItem = previousItemsRef.current[index]
+        if (!prevItem) return true
+        // Compare key and dependency properties
+        return (
+          item.key !== prevItem.key ||
+          (item: any).sourceSpaceKey !== (prevItem: any).sourceSpaceKey ||
+          (item: any).sourceFolderKey !== (prevItem: any).sourceFolderKey ||
+          (item: any).sourceNoteKey !== (prevItem: any).sourceNoteKey ||
+          (item: any).sourceDateKey !== (prevItem: any).sourceDateKey ||
+          (item: any).sourceKeyKey !== (prevItem: any).sourceKeyKey
+        )
+      })
+    
+    if (!itemsChanged && previousItemsRef.current.length > 0) {
+      logDebug('DynamicDialog', `[PERF] Skipping dependency map rebuild - items unchanged`)
+      return
+    }
+    
     const buildStartTime = performance.now()
     logDebug('DynamicDialog', `[PERF] Building dependency map - START`)
     const dependencyMap: { [sourceKey: string]: Array<{ fieldKey: string, clearValue?: boolean }> } = {}
@@ -394,6 +417,7 @@ const DynamicDialog = ({
     })
 
     dependencyMapRef.current = dependencyMap
+    previousItemsRef.current = items // Store current items for next comparison
     const buildElapsed = performance.now() - buildStartTime
     logDebug('DynamicDialog', `[PERF] Built dependency map: ${Object.keys(dependencyMap).length} source fields with dependents - elapsed=${buildElapsed.toFixed(2)}ms`)
   }, [items])
@@ -488,22 +512,24 @@ const DynamicDialog = ({
       })
     }
 
-    // Update previous settings for next comparison
-    if (isOpen) {
-      previousSettingsRef.current = { ...currentSettings }
-    }
-
     // Update settings if we cleared any values
     if (needsUpdate) {
       isClearingValuesRef.current = true
+      // Update previous settings BEFORE updating state to prevent re-triggering
+      // This ensures the next run won't see the cleared values as a change
+      previousSettingsRef.current = { ...newSettings }
       setUpdatedSettings(newSettings)
       updatedSettingsRef.current = newSettings
-      // Update previous settings to include cleared values to prevent re-triggering
-      previousSettingsRef.current = { ...newSettings }
-      // Reset flag after state update completes
+      // Reset flag after state update completes (use longer timeout to ensure state has updated)
       setTimeout(() => {
         isClearingValuesRef.current = false
-      }, 0)
+      }, 10)
+    } else {
+      // Only update previous settings if we didn't make changes (to track future changes)
+      // But only if dialog is open (don't track when closed)
+      if (isOpen) {
+        previousSettingsRef.current = { ...currentSettings }
+      }
     }
   }, [updatedSettings, isOpen])
 
