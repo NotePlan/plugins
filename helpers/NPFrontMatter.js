@@ -1110,6 +1110,14 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
     })
     if (paragraphsToDelete.length > 0) {
       note.removeParagraphs(paragraphsToDelete)
+      
+      // After deletion, check if frontmatter is now empty (only separators left)
+      // If so, remove the entire frontmatter block
+      const remainingFMParas = getFrontmatterParagraphs(note, false) // Get paragraphs without separators
+      if (!remainingFMParas || remainingFMParas.length === 0) {
+        logDebug(pluginJson, `updateFrontMatterVars: No frontmatter fields remain after deletion, removing entire frontmatter block`)
+        removeFrontMatter(note, true) // Remove frontmatter including separators
+      }
     }
 
     return true
