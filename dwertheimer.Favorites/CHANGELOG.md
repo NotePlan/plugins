@@ -1,5 +1,10 @@
 # Favorites Plugin Changelog
 
+## [1.3.2] - 2026-01-11 @dwertheimer
+
+### Fixed
+- Fixed bug where removing a favorite note would remove the star from the title but not remove the frontmatter field. Now properly passes `deleteMissingAttributes: true` to `updateFrontMatterVars()` to ensure the frontmatter key is actually deleted. Thanks @stacey for the detailed bug report!
+
 ## [1.3.1] - 2026-01-11 @dwertheimer
 
 ### Fixed

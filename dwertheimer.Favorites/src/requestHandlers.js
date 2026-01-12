@@ -312,7 +312,8 @@ export async function handleRemoveFavoriteNote(requestData: Object): Promise<Req
       if (typeof fm === 'object' && fm !== null && fm[favoriteKey]) {
         const updatedFm = { ...fm }
         delete updatedFm[favoriteKey]
-        updateFrontMatterVars(note, updatedFm)
+        // Pass true for deleteMissingAttributes to actually remove the deleted key from frontmatter
+        updateFrontMatterVars(note, updatedFm, true)
       }
     }
 
