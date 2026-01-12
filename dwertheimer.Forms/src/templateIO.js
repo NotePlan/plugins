@@ -124,9 +124,8 @@ export async function saveTemplateBodyToTemplate(templateFilename: string, templ
     // IMPORTANT: Check if the content coming from React is already corrupted
     // This can happen if the data was corrupted when sent through the bridge
     // We should fix it before saving to prevent the corruption from persisting
-    bustLog(`[saveTemplateBodyToTemplate] About to import encodingFix.js`)
-    const { isDoubleEncoded, fixDoubleEncoded } = await import('./utils/encodingFix.js')
-    bustLog(`[saveTemplateBodyToTemplate] Successfully imported encodingFix.js`)
+    // Note: isDoubleEncoded and fixDoubleEncoded are already imported at the top of the file
+    bustLog(`[saveTemplateBodyToTemplate] About to check for double encoding`)
     if (cleanedBody && isDoubleEncoded(cleanedBody)) {
       logDebug(pluginJson, `saveTemplateBodyToTemplate: Detected corruption in content from React, fixing before save`)
       const fixed = fixDoubleEncoded(cleanedBody)
