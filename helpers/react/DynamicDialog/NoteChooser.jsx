@@ -52,7 +52,7 @@ export type NoteChooserProps = {
   dependsOnFolderKey?: string, // Key of a folder-chooser field to filter notes by folder
   folderFilter?: ?string, // Current folder value from dependsOnFolderKey field (for filtering notes) - can be null
   startFolder?: ?string, // Start folder to filter notes (e.g., '@Templates/Forms')
-  filterByType?: ?string, // Filter notes by frontmatter type (e.g., 'forms-processor')
+  filterByType?: ?(string | Array<string>), // Filter notes by frontmatter type (e.g., 'forms-processor' or ['forms-processor', 'template-runner'])
   allowBackwardsCompatible?: boolean, // If true, allow notes that don't match filters if they match the current value
   spaceFilter?: ?string, // Space ID to filter by (empty string = Private, teamspace ID = specific teamspace, null/undefined = all spaces)
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request note creation from plugin
@@ -397,10 +397,12 @@ export function NoteChooser({
         }
       }
 
-      // Filter by type if filterByType is provided
+      // Filter by type if filterByType is provided (supports string or array of strings)
       if (filterByType && !isRelativeNote) {
         const noteType = note.frontmatterAttributes?.type
-        if (noteType !== filterByType) {
+        // Support both single string and array of strings
+        const allowedTypes = Array.isArray(filterByType) ? filterByType : [filterByType]
+        if (!allowedTypes.includes(noteType)) {
           return false
         }
       }
@@ -576,6 +578,12 @@ export function NoteChooser({
     },
     getOptionTitle: (note: NoteOption) => {
       const decoration = getNoteDecoration(note)
+      // If shortDescriptionOnLine2 is true, the folder path is already shown on line 2,
+      // so don't duplicate it in the tooltip - just show filename and title
+      if (shortDescriptionOnLine2 && decoration.shortDescription) {
+        return `${note.title} (${note.filename})`
+      }
+      // Otherwise, show filename and shortDescription if available
       return decoration.shortDescription ? `${note.filename} - ${decoration.shortDescription}` : note.filename
     },
     truncateDisplay: truncateText,

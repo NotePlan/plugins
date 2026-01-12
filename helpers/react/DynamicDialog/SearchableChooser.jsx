@@ -248,12 +248,31 @@ export function SearchableChooser({
 
       // Calculate position immediately
       updatePosition()
+      
+      // Listen for window scroll and resize
       window.addEventListener('scroll', updatePosition, true)
       window.addEventListener('resize', updatePosition)
+
+      // Also listen for scroll events on all scrollable parent elements
+      // This ensures the dropdown repositions when a parent container scrolls
+      const scrollableParents: Array<HTMLElement> = []
+      let parent = inputRef.current.parentElement
+      while (parent) {
+        const overflowY = window.getComputedStyle(parent).overflowY
+        if (overflowY === 'scroll' || overflowY === 'auto') {
+          scrollableParents.push(parent)
+          parent.addEventListener('scroll', updatePosition)
+        }
+        parent = parent.parentElement
+      }
 
       return () => {
         window.removeEventListener('scroll', updatePosition, true)
         window.removeEventListener('resize', updatePosition)
+        // Remove scroll listeners from parent elements
+        scrollableParents.forEach((el) => {
+          el.removeEventListener('scroll', updatePosition)
+        })
       }
     } else {
       setDropdownPosition(null)
