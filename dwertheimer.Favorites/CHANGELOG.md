@@ -1,9 +1,14 @@
 # Favorites Plugin Changelog
 
+## [1.3.3 - waiting for np 3.20.1 release (change showReloadButton to true)] - 2026-01-11 @dwertheimer
+
+- Added reload button to favorites browser window to allow for easy reloading of the window when changes are made to the plugin or the underlying note data.
+
 ## [1.3.2] - 2026-01-11 @dwertheimer
 
 ### Fixed
 - Fixed bug where removing a favorite note would remove the star from the title but not remove the frontmatter field. Now properly passes `deleteMissingAttributes: true` to `updateFrontMatterVars()` to ensure the frontmatter key is actually deleted. Thanks @stacey for the detailed bug report!
+
 
 ## [1.3.1] - 2026-01-11 @dwertheimer
 
