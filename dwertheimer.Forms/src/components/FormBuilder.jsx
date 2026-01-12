@@ -432,6 +432,22 @@ export function FormBuilder({
   const [isSaving, setIsSaving] = useState<boolean>(false)
 
   const handleSave = async () => {
+    // Guard: Prevent saving with empty fields array to avoid errors and infinite loops
+    if (!fields || !Array.isArray(fields) || fields.length === 0) {
+      dispatch('SHOW_TOAST', {
+        type: 'ERROR',
+        msg: 'Cannot save form with no fields. Please add at least one field before saving.',
+        timeout: 5000,
+      })
+      return
+    }
+
+    // Guard: Prevent duplicate saves
+    if (isSaving) {
+      logDebug('FormBuilder', 'handleSave: Already saving, skipping duplicate save request')
+      return
+    }
+
     setIsSaving(true)
     try {
       const result = await onSave(fields, frontmatter)

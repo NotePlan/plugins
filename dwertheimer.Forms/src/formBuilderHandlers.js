@@ -492,7 +492,8 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       }
     }
 
-    if (!data?.fields) {
+    // Check for missing or empty fields array
+    if (!data?.fields || !Array.isArray(data.fields) || data.fields.length === 0) {
       return {
         success: false,
         message: 'No fields provided to save',
