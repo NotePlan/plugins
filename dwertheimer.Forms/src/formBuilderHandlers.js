@@ -466,6 +466,8 @@ export async function saveFrontmatterToTemplate(templateFilename: string, frontm
  */
 export async function handleSaveRequest(data: any): Promise<{ success: boolean, message?: string, data?: any }> {
   const saveId = `SAVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  // Add immediate console.log to catch hangs before logDebug
+  console.log(`[handleSaveRequest] ENTRY - saveId=${saveId}`)
   logDebug(pluginJson, `[${saveId}] handleSaveRequest: ENTRY - Starting save request`)
   try {
     // Get the template filename from the data passed from React, or fall back to reactWindowData
@@ -475,10 +477,18 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     const windowId = data?.__windowId || FORMBUILDER_WINDOW_ID
     let fallbackTemplateFilename = ''
     try {
-      const reactWindowData = await getGlobalSharedData(windowId)
+      // Add timeout to prevent hanging if getGlobalSharedData is stuck
+      console.log(`[handleSaveRequest] Attempting to get window data for windowId="${windowId}"`)
+      const reactWindowDataPromise = getGlobalSharedData(windowId)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('getGlobalSharedData timeout after 2 seconds')), 2000)
+      )
+      const reactWindowData = await Promise.race([reactWindowDataPromise, timeoutPromise])
       fallbackTemplateFilename = reactWindowData?.pluginData?.templateFilename || ''
+      console.log(`[handleSaveRequest] Got window data, fallbackTemplateFilename="${fallbackTemplateFilename}"`)
     } catch (e) {
       // If we can't get window data, that's ok - we'll use templateFilename from data
+      console.log(`[handleSaveRequest] Could not get window data: ${e.message || String(e)}`)
       logDebug(pluginJson, `handleSaveRequest: Could not get window data for windowId="${windowId}", using templateFilename from data`)
     }
     const finalTemplateFilename = templateFilename || fallbackTemplateFilename

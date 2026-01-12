@@ -199,6 +199,8 @@ export function newCommsRouter({
   return async function router(actionType: string, data: any = null): Promise<any> {
     const requestStartTime = new Date() // Start timing when request is received
     try {
+      // Add immediate logging to catch hangs early
+      console.log(`[${routerName}] Router called with actionType="${actionType}"`)
       logDebug(pluginJson, `${routerName} received actionType="${actionType}"`)
       clo(data, `${routerName} data=`)
 
