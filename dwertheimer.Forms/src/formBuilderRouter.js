@@ -25,12 +25,20 @@ import { logDebug, logError, logWarn } from '@helpers/dev'
 async function routeFormBuilderRequest(actionType: string, data: any): Promise<RequestResponse> {
   // Add immediate logging to catch hangs
   console.log(`[routeFormBuilderRequest] Called with actionType="${actionType}", data.type="${data?.type || 'none'}"`)
+  console.log(`[routeFormBuilderRequest] data.fields type: ${Array.isArray(data?.fields) ? 'array' : typeof data?.fields}, length: ${data?.fields?.length || 0}`)
+  if (data?.fields?.length > 0) {
+    console.log(`[routeFormBuilderRequest] First field type: ${typeof data.fields[0]}, is string: ${typeof data.fields[0] === 'string'}`)
+  }
   
   // Handle save action as a special case (it's not a standard request)
   const actualActionType = data?.type
+  console.log(`[routeFormBuilderRequest] actualActionType="${actualActionType}"`)
   if (actualActionType === 'save') {
-    console.log(`[routeFormBuilderRequest] Routing to handleSaveRequest`)
-    return await handleSaveRequest(data)
+    console.log(`[routeFormBuilderRequest] Routing to handleSaveRequest with fields type: ${typeof data.fields}, isArray: ${Array.isArray(data.fields)}`)
+    console.log(`[routeFormBuilderRequest] About to call handleSaveRequest`)
+    const result = await handleSaveRequest(data)
+    console.log(`[routeFormBuilderRequest] handleSaveRequest returned, success: ${result?.success}`)
+    return result
   }
 
   // Route to form builder specific handlers

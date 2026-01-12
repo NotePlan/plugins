@@ -468,7 +468,13 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
   const saveId = `SAVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   // Add immediate console.log to catch hangs before logDebug
   console.log(`[handleSaveRequest] ENTRY - saveId=${saveId}`)
+  console.log(`[handleSaveRequest] data.fields: ${data?.fields ? `exists, type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields.length || 0}` : 'missing'}`)
+  if (data?.fields?.length > 0) {
+    console.log(`[handleSaveRequest] First field: ${typeof data.fields[0] === 'string' ? data.fields[0].substring(0, 50) : JSON.stringify(data.fields[0]).substring(0, 50)}`)
+  }
+  console.log(`[handleSaveRequest] About to call logDebug`)
   logDebug(pluginJson, `[${saveId}] handleSaveRequest: ENTRY - Starting save request`)
+  console.log(`[handleSaveRequest] logDebug completed`)
   try {
     // Get the template filename from the data passed from React, or fall back to reactWindowData
     const templateFilename = data?.templateFilename
