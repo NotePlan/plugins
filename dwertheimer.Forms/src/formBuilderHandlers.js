@@ -640,10 +640,11 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     }
 
     // Get template note for success message and cleanup
-    console.log(`[handleSaveRequest] Getting template note for "${finalTemplateFilename}"...`)
+    bustLog(`[handleSaveRequest] Getting template note for "${finalTemplateFilename}"...`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: Getting template note...`)
     const templateNote = await getNoteByFilename(finalTemplateFilename)
     const templateTitle = templateNote?.title || finalTemplateFilename
+    bustLog(`[handleSaveRequest] Template note found: title="${templateTitle}", type="${templateNote?.frontmatterAttributes?.type || 'none'}"`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: Template note found: title="${templateTitle}", type="${templateNote?.frontmatterAttributes?.type || 'none'}"`)
 
     // Remove empty lines from the note
