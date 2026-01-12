@@ -539,6 +539,8 @@ export function FormBuilder({
   const canOpenForm = Boolean(isSaved && !isNewForm && templateTitle && onOpenForm)
 
   // Log canOpenForm calculation whenever dependencies change
+  // NOTE: canOpenForm is NOT in dependencies because it's derived from the other dependencies
+  // Including it would cause infinite loops since it's recalculated on every render
   useEffect(() => {
     logDebug(
       'FormBuilder',
@@ -554,7 +556,7 @@ export function FormBuilder({
         )}`,
       )
     }
-  }, [isSaved, isNewForm, templateTitle, onOpenForm, canOpenForm])
+  }, [isSaved, isNewForm, templateTitle, onOpenForm])
 
   //----------------------------------------------------------------------
   // Render
