@@ -28,6 +28,7 @@ import { log, logError, clo, logDebug } from '@helpers/dev'
 import { getNote } from '@helpers/note'
 import { journalingQuestion } from './support/modules/journal'
 import FrontmatterModule from './support/modules/FrontmatterModule'
+import NoteModule from './support/modules/NoteModule'
 import { isCommandAvailable, invokePluginCommandByName, transformInternationalDateFormat } from './utils'
 
 /**
@@ -162,7 +163,7 @@ const globals = {
   },
 
   getRandomLine: async (noteTitle: string): Promise<string> => {
-    const noteModule = new (await import('./support/modules/NoteModule')).default({})
+    const noteModule = new NoteModule({})
     return await noteModule.getRandomLine(noteTitle)
   },
 

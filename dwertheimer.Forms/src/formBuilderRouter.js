@@ -36,7 +36,7 @@ async function routeFormBuilderRequest(actionType: string, data: any): Promise<R
   if (data?.fields?.length > 0) {
     bustLog(`[routeFormBuilderRequest] First field type: ${typeof data.fields[0]}, is string: ${typeof data.fields[0] === 'string'}`)
   }
-  
+
   // Handle save action as a special case (it's not a standard request)
   const actualActionType = data?.type
   bustLog(`[routeFormBuilderRequest] actualActionType="${actualActionType}"`)

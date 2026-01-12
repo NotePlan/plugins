@@ -2,6 +2,7 @@
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getNoteByFilename } from '@helpers/note'
+import { showMessage } from '@helpers/userInput'
 
 export type CodeBlock = { type: string, code: string, paragraphs: Array<TParagraph> }
 
@@ -222,7 +223,6 @@ export async function saveCodeBlockToNote(
       const errorMsg = `Note not found: ${noteFilename}`
       logError(pluginIdentifier, `saveCodeBlockToNote: ${errorMsg}`)
       if (showMessageOnError) {
-        const { showMessage } = await import('@helpers/userInput')
         await showMessage(errorMsg)
       }
       return false
@@ -237,7 +237,6 @@ export async function saveCodeBlockToNote(
       const errorMsg = `Failed to save codeblock "${codeBlockType}" to note`
       logError(pluginIdentifier, `saveCodeBlockToNote: ${errorMsg}`)
       if (showMessageOnError) {
-        const { showMessage } = await import('@helpers/userInput')
         await showMessage(errorMsg)
       }
       return false
@@ -249,7 +248,6 @@ export async function saveCodeBlockToNote(
     const errorMsg = `Error saving codeblock: ${error.message}`
     logError(pluginIdentifier, `saveCodeBlockToNote error: ${JSP(error)}`)
     if (showMessageOnError) {
-      const { showMessage } = await import('@helpers/userInput')
       await showMessage(errorMsg)
     }
     return false

@@ -14,6 +14,7 @@ import { getAffirmation } from './affirmation'
 import { getStoicQuote } from './stoicQuotes'
 import { journalingQuestion } from './journal'
 import { getNotePlanWeather } from './notePlanWeather'
+import NoteModule from './NoteModule'
 
 export default class WebModule {
   async advice(): Promise<string> {
@@ -62,7 +63,7 @@ export default class WebModule {
   }
 
   async getRandomLine(noteTitle: string): Promise<string> {
-    const noteModule = new (await import('./NoteModule')).default({})
+    const noteModule = new NoteModule({})
     return await noteModule.getRandomLine(noteTitle)
   }
 }

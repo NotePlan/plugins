@@ -15,6 +15,7 @@ import { getNoteByFilename, getNote } from '@helpers/note'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { getFolderFromFilename } from '@helpers/folders'
 import { showMessage } from '@helpers/userInput'
+import { sendBannerMessage } from '@helpers/HTMLView'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { openFormBuilderWindow } from './windowManagement'
 import { ensureFrontmatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
@@ -201,7 +202,6 @@ export async function getFormFields(params: { templateFilename?: string, templat
         
         // Send banner message to React window if windowId is provided
         if (params.windowId && typeof params.windowId === 'string' && params.windowId.length > 0) {
-          const { sendBannerMessage } = await import('@helpers/HTMLView')
           // $FlowFixMe[incompatible-call] - We've checked that windowId is a string above
           await sendBannerMessage(params.windowId, warningMsg, 'WARN', 10000)
         }

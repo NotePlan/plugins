@@ -22,6 +22,7 @@ import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { chooseOption, showMessage } from '@helpers/userInput'
+import { onMessageFromHTMLView } from './routeRequestsFromReact'
 
 //------------------------------------------------------------------------------
 // Constants
@@ -478,7 +479,6 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
  */
 export async function updateReactWindowData(actionType: string, data: any = null): Promise<any> {
   try {
-    const { onMessageFromHTMLView } = await import('./routeRequestsFromReact')
     await onMessageFromHTMLView(actionType, data)
   } catch (error) {
     logError(`updateReactWindowData`, `Error "${error.message}" for action '${actionType}'`)

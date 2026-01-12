@@ -4,6 +4,7 @@ import pluginJson from '../plugin.json'
 import { logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { getWindowFromId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
+import { onMessageFromHTMLView } from './router'
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
@@ -76,8 +77,7 @@ export async function updateReactWindowData(actionType: string, data: any = null
     logError(pluginJson, `updateReactWindowData('${actionType}'): Window with ID ${WEBVIEW_WINDOW_ID} not found. Could not update data.`)
     return
   }
-  // Import and call the router function
-  const { onMessageFromHTMLView } = await import('./router')
+  // Call the router function
   return await onMessageFromHTMLView(actionType, data)
 }
 
