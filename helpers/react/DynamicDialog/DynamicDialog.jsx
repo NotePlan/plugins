@@ -62,6 +62,7 @@ export type TSettingItemType =
   | 'markdown-preview' // Non-editable markdown preview (static text, note by filename/title, or note from another field)
   | 'autosave' // Autosave field that saves form state periodically
   | 'table-of-contents' // Table of contents that links to headings in the form
+  | 'comment' // Comment field for Form Builder - expandable markdown textarea that doesn't render in form output
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -145,6 +146,9 @@ export type TSettingItem = {
   markdownText?: string, // for markdown-preview, static markdown text to display (if not using note)
   markdownNoteFilename?: string, // for markdown-preview, filename of note to display (alternative to markdownText)
   markdownNoteTitle?: string, // for markdown-preview, title of note to display (alternative to markdownText and markdownNoteFilename)
+  // comment options (Form Builder only - doesn't render in form output)
+  commentText?: string, // for comment, markdown text content for the comment
+  expanded?: boolean, // for comment, whether the comment is expanded (default: true)
   selectedCalendars?: Array<string>, // for event-chooser, array of calendar titles to filter events by (ignored if allCalendars=true)
   allCalendars?: boolean, // for event-chooser, if true, include events from all calendars NotePlan can access (bypasses selectedCalendars)
   calendarFilterRegex?: string, // for event-chooser, optional regex pattern to filter calendars after fetching (applied when allCalendars=true)

@@ -198,7 +198,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
     onSave(editedField)
   }
 
-  const needsKey = editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'autosave' && editedField.type !== 'table-of-contents'
+  const needsKey = editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'autosave' && editedField.type !== 'table-of-contents' && editedField.type !== 'comment'
 
   // Construct header title with label, key, and type
   const headerTitle = needsKey && editedField.key ? `Editing ${editedField.type}: ${editedField.label || ''} (${editedField.key})` : `Editing: ${editedField.type}`
@@ -237,7 +237,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             </div>
           )}
 
-          {editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'table-of-contents' && editedField.type !== 'calendarpicker' && editedField.type !== 'autosave' && (
+          {editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'table-of-contents' && editedField.type !== 'calendarpicker' && editedField.type !== 'autosave' && editedField.type !== 'comment' && (
             <div className="field-editor-row">
               <label>
                 <input type="checkbox" checked={editedField.compactDisplay || false} onChange={(e) => updateField({ compactDisplay: e.target.checked })} />
@@ -288,7 +288,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             </div>
           )}
 
-          {editedField.type !== 'separator' && (
+          {editedField.type !== 'separator' && editedField.type !== 'comment' && (
             <div className="field-editor-row">
               <label>Description (help text):</label>
               <textarea
@@ -1746,6 +1746,41 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   </>
                 )
               })()}
+            </>
+          )}
+
+          {editedField.type === 'comment' && (
+            <>
+              <div className="field-editor-row">
+                <label>Comment Text (Markdown):</label>
+                <textarea
+                  value={((editedField: any): { commentText?: string }).commentText || ''}
+                  onChange={(e) => {
+                    updateField((({ commentText: e.target.value }: any): Partial<TSettingItem>))
+                  }}
+                  placeholder="Enter your comment or notes here (supports markdown)..."
+                  rows={10}
+                  style={{ width: '100%' }}
+                />
+                <div className="field-editor-help">
+                  Enter markdown text for your comment. This field is only visible in Form Builder and will not appear in the form output.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { expanded?: boolean }).expanded !== false}
+                    onChange={(e) => {
+                      updateField((({ expanded: e.target.checked }: any): Partial<TSettingItem>))
+                    }}
+                  />
+                  Expanded by default
+                </label>
+                <div className="field-editor-help">
+                  If checked, the comment will be expanded (showing content) by default in Form Builder. If unchecked, it will be collapsed.
+                </div>
+              </div>
             </>
           )}
 

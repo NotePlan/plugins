@@ -677,12 +677,11 @@ export function ProcessingMethodSection({
                     const trimmedTitle = noteTitle ? noteTitle.trim() : ''
                     logDebug(
                       pluginData,
-                      'ProcessingMethodSection',
-                      `NoteChooser onChange called: noteTitle="${noteTitle}", noteFilename="${noteFilename}", trimmedTitle="${trimmedTitle}"`,
+                      `ProcessingMethodSection: NoteChooser onChange called: noteTitle="${noteTitle}", noteFilename="${noteFilename}", trimmedTitle="${trimmedTitle}"`,
                     )
                     setSelectedProcessingTemplateFilename(noteFilename || '')
                     if (trimmedTitle) {
-                      logDebug(pluginData, 'ProcessingMethodSection', `Setting receivingTemplateTitle to: "${trimmedTitle}"`)
+                      logDebug(pluginData, `ProcessingMethodSection: Setting receivingTemplateTitle to: "${trimmedTitle}"`)
                       onFrontmatterChange('receivingTemplateTitle', trimmedTitle)
                       // Also clear formProcessorTitle if it exists and is different (for backward compatibility cleanup)
                       if (frontmatter.formProcessorTitle && frontmatter.formProcessorTitle !== trimmedTitle) {
@@ -690,7 +689,7 @@ export function ProcessingMethodSection({
                       }
                     } else {
                       // If empty, clear both
-                      logDebug(pluginData, 'ProcessingMethodSection', 'Clearing receivingTemplateTitle')
+                      logDebug(pluginData, 'ProcessingMethodSection: Clearing receivingTemplateTitle')
                       onFrontmatterChange('receivingTemplateTitle', '')
                       if (frontmatter.formProcessorTitle) {
                         onFrontmatterChange('formProcessorTitle', '')
@@ -729,17 +728,32 @@ export function ProcessingMethodSection({
                     try {
                       // If we have a filename, use it; otherwise try to find it from the title
                       let filenameToOpen = selectedProcessingTemplateFilename
+                      const currentTitle = frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''
+
+                      logDebug(
+                        pluginData,
+                        `ProcessingMethodSection: Open button clicked: selectedProcessingTemplateFilename="${selectedProcessingTemplateFilename}", currentTitle="${currentTitle}", notes.length=${notes.length}`,
+                      )
+
+                      // If no filename and we have notes, try to find it
                       if (!filenameToOpen && notes.length > 0) {
-                        const currentTitle = frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''
                         const matchingNote = notes.find((note: NoteOption) => note.title === currentTitle)
                         filenameToOpen = matchingNote?.filename || ''
+                        logDebug(pluginData, `ProcessingMethodSection: Found matching note: ${matchingNote ? `filename="${matchingNote.filename}"` : 'not found'}`)
                       }
+
                       if (filenameToOpen) {
+                        logDebug(pluginData, `ProcessingMethodSection: Opening note with filename="${filenameToOpen}"`)
                         await requestFromPlugin('openNote', {
                           filename: filenameToOpen,
                         })
+                      } else {
+                        const errorMsg = `Could not find filename for processing template "${currentTitle}". Please select the template again.`
+                        logDebug(pluginData, `ProcessingMethodSection: ${errorMsg}`)
+                        console.error(errorMsg)
                       }
                     } catch (error) {
+                      logDebug(pluginData, `ProcessingMethodSection: Error opening note: ${error.message}`)
                       console.error('openNote: Error opening note:', error)
                     }
                   }}
@@ -763,7 +777,7 @@ export function ProcessingMethodSection({
                     formTemplateTitle: templateTitle,
                     formTemplateFilename: templateFilename,
                   })
-                  console.log('createProcessingTemplate: Received result:', result, 'type:', typeof result, 'JSON:', JSON.stringify(result))
+                  console.log(`createProcessingTemplate: Received result: ${JSON.stringify(result)}, type: ${typeof result}, JSON: ${JSON.stringify(result)}`)
                   let processingTitle = null
                   let processingFilename = null
 
@@ -786,7 +800,7 @@ export function ProcessingMethodSection({
                   }
 
                   if (processingTitle) {
-                    console.log('createProcessingTemplate: Updating receivingTemplateTitle to:', processingTitle, 'filename:', processingFilename)
+                    console.log(`createProcessingTemplate: Updating receivingTemplateTitle to: ${processingTitle}, filename: ${processingFilename || 'null'}`)
                     onFrontmatterChange('receivingTemplateTitle', processingTitle)
                     if (processingFilename) {
                       setSelectedProcessingTemplateFilename(processingFilename)
@@ -794,7 +808,7 @@ export function ProcessingMethodSection({
                     // Reload notes so the new processing template appears in the dropdown
                     await onLoadNotes(true) // Load only project notes for processing templates
                   } else {
-                    console.warn('createProcessingTemplate: Unexpected result format:', result, 'typeof:', typeof result, 'JSON:', JSON.stringify(result))
+                    console.warn(`createProcessingTemplate: Unexpected result format: ${JSON.stringify(result)}, typeof: ${typeof result}, JSON: ${JSON.stringify(result)}`)
                   }
                 } catch (error) {
                   const errorMessage = error?.message || error?.toString() || String(error) || 'Unknown error'

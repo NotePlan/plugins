@@ -498,7 +498,7 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
         windowId: windowId, // Store window ID in pluginData so React can send it in requests
         templateTeamspaceID: templateTeamspaceID, // Pass template's teamspace ID as default space for form operations
         templateTeamspaceTitle: templateTeamspaceTitle, // Pass template's teamspace title for display
-        logBufferBuster: true, // Enable buffer buster for logging infinite renders to prevent log when buffering is keeping it from showing all messages
+        // logBufferBuster: true, // Enable buffer buster for logging infinite renders to prevent log when buffering is keeping it from showing all messages
       },
       title: templateTitleForWindow
         ? templateTeamspaceTitle

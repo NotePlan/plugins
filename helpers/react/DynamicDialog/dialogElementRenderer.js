@@ -888,6 +888,10 @@ export function renderItem({
           </div>
         )
       }
+      case 'comment': {
+        // Comment fields are Form Builder only - they don't render in form output
+        return null
+      }
       case 'space-chooser': {
         const label = item.label || ''
         const compactDisplay = item.compactDisplay || false

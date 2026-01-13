@@ -73,7 +73,30 @@ export function FormBuilder({
   const templateTeamspaceID = pluginData?.templateTeamspaceID || ''
   const templateTeamspaceTitle = pluginData?.templateTeamspaceTitle || ''
 
-  const [fields, setFields] = useState<Array<TSettingItem>>(initialFields)
+  // Add default comment field for new forms
+  const defaultCommentField: TSettingItem = {
+    type: 'comment',
+    label: 'Getting Started',
+    commentText: `# Welcome to Form Builder
+
+Use this form builder to create your form:
+
+1. **Add Fields**: Click the "+ Add Field" button to add form fields (text inputs, dropdowns, date pickers, etc.)
+2. **Edit Fields**: Click any field to edit its properties (label, key, validation, etc.)
+3. **Reorder Fields**: Drag fields by their grip handle to reorder them
+4. **Preview**: Use the preview pane on the right to see how your form will look
+5. **Settings**: Use the settings panel on the left to configure form behavior and processing options
+
+You can edit or delete this comment field - it's just a note to help you get started!`,
+    expanded: true,
+  }
+  const [fields, setFields] = useState<Array<TSettingItem>>(() => {
+    // If this is a new form and no initial fields, add default comment field
+    if (isNewForm && (!initialFields || initialFields.length === 0)) {
+      return [defaultCommentField]
+    }
+    return initialFields
+  })
   const [editingIndex, setEditingIndex] = useState<?number>(null)
   const [draggedIndex, setDraggedIndex] = useState<?number>(null)
   const [dragOverIndex, setDragOverIndex] = useState<?number>(null)

@@ -411,7 +411,8 @@ export async function updateReceivingTemplateWithFields(receivingTemplateTitle: 
         f.type !== 'templatejs-block' &&
         f.type !== 'markdown-preview' &&
         f.type !== 'button' &&
-        f.type !== 'table-of-contents',
+        f.type !== 'table-of-contents' &&
+        f.type !== 'comment',
     )
 
     logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Found ${fieldsWithKeys.length} fields with keys to add`)
