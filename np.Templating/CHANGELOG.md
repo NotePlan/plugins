@@ -18,10 +18,15 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
   - Updated `getTemplateNote` to use shared utility function (now searches all teamspaces, not just private root)
   - Updated `getFilenameFromTemplate` to use shared utility function (filters notes from all template folders in all spaces)
   - Updated `getTemplateContent` to use shared utility function (searches in all template folders when finding templates)
+  - Updated `templateInsert` and `templateAppend` to use `getTemplateNote` (searches all folders/spaces)
+  - Updated `<current>` prompt validation to check if note is in any template folder (not just @Templates)
+  - Updated `addFrontmatterToTemplate` in NPTemplateRunner to use `getTemplateNote`
+  - Updated `chooseTemplate` to use `DataStore.preference` for localized template folder name in display
+  - Updated `templateExists` to search in all template folders (Templates, Forms, all spaces)
   - All functions now use `DataStore.preference('templateFolder')` for localized template folder names instead of hardcoded '@Templates'
   - All functions now use `DataStore.preference('formsFolder')` for localized forms folder names (with '@Forms' fallback)
   - Fixes issue where form processing templates stored in @Forms weren't found by `templateRunner` and `getTemplateNote` when processing form submissions
-  - Fixes issue where templates in teamspaces weren't found by `getTemplateNote`
+  - Fixes issue where templates in teamspaces weren't found by template search functions
   - Templates can now be stored in @Forms directory (for form processing) or @Templates directory (for regular templates), in both private root and teamspace root folders
 
 ## [2.2.8] 2026-01-XX @dwertheimer
