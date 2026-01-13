@@ -12,11 +12,14 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
   - Includes timing logs for performance monitoring (setup, config, engine creation, context building, total time)
   - Allows other plugins to reuse templating context without duplicating code
   - Accessible via `DataStore.invokePluginCommandByName('getRenderContext', 'np.Templating', [userData])`
-- Expand `getFilteredTemplateList` to search in both @Templates and @Forms directories
-  - Now searches for templates in both private root and all teamspace root folders
-  - Uses `DataStore.preference('templateFolder')` for localized template folder names instead of hardcoded '@Templates'
-  - Uses `DataStore.preference('formsFolder')` for localized forms folder names (with '@Forms' fallback)
-  - Fixes issue where form processing templates stored in @Forms weren't found by `templateRunner` when processing form submissions
+- Expand template search functions to search in both @Templates and @Forms directories
+  - Updated `getFilteredTemplateList` to search for templates in both private root and all teamspace root folders
+  - Updated `getTemplateNote` to search in both template and forms folders
+  - Updated `getFilenameFromTemplate` to filter notes from both folders
+  - Updated `getTemplateContent` to search in both folders when finding templates
+  - All functions now use `DataStore.preference('templateFolder')` for localized template folder names instead of hardcoded '@Templates'
+  - All functions now use `DataStore.preference('formsFolder')` for localized forms folder names (with '@Forms' fallback)
+  - Fixes issue where form processing templates stored in @Forms weren't found by `templateRunner` and `getTemplateNote` when processing form submissions
   - Templates can now be stored in @Forms directory (for form processing) or @Templates directory (for regular templates)
 
 ## [2.2.8] 2026-01-XX @dwertheimer
