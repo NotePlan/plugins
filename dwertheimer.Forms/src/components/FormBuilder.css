@@ -346,7 +346,7 @@
   position: relative;
   overflow: auto;
   min-height: 0; /* Critical: allows flex child to shrink below content size */
-  max-height: 100%; /* Constrain to parent height */
+  height: 100%; /* Ensure full height in flex container */
 }
 
 /* Warning message when preview is scaled - shown in Form Builder */
@@ -410,6 +410,7 @@
   width: 100% !important;
   min-width: 0 !important;
   max-width: 100% !important;
+  height: 100% !important; /* Fill parent height */
   max-height: 100% !important; /* Constrain dialog to content area */
   box-shadow: none !important;
   border: none !important;
