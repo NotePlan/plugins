@@ -14,6 +14,7 @@ import { normalizeToNotePlanFilename } from '../utils'
 import { getTemplateFolder } from '../config'
 import { clo } from '@helpers/dev'
 import { getContentWithLinks } from '@helpers/content'
+import { getAllTeamspaceIDsAndTitles, getTeamspaceRootIdentifier } from '@helpers/NPTeamspace'
 
 /**
  * Helper function to get filtered template list by attribute (type or tags).
@@ -53,9 +54,46 @@ export async function getFilteredTemplateList(
     const filterValues = Array.isArray(filters) ? filters : filters.split(',').map((filter: string) => filter.trim())
     logDebug(`getFilteredTemplateList: ${debugPrefix} 1: filterValues: ${filterValues}`)
 
+    // Get template folder name from DataStore.preference (localized) or fall back to environment variable
+    // DataStore.preference('templateFolder') returns the localized template folder name
+    const templateFolderPreference = DataStore.preference('templateFolder')
+    const templateFolderName: string = (typeof templateFolderPreference === 'string' && templateFolderPreference) || templateFolder || '@Templates'
+
+    // Get Forms folder name - check if there's a preference, otherwise use default
+    // Forms folder typically follows the same pattern as Templates folder
+    const formsFolderPreference = DataStore.preference('formsFolder')
+    const formsFolderName: string = (typeof formsFolderPreference === 'string' && formsFolderPreference) || '@Forms'
+
+    // Build list of all possible template folder prefixes
+    // Include Templates and Forms folders in both private root and all teamspace root folders
+    const templateFolderPrefixes: Array<string> = []
+
+    // Private root folders
+    templateFolderPrefixes.push(templateFolderName)
+    templateFolderPrefixes.push(formsFolderName)
+
+    // Teamspace root folders
+    const teamspaces = getAllTeamspaceIDsAndTitles()
+    const teamspacePrefix = getTeamspaceRootIdentifier()
+    for (const teamspace of teamspaces) {
+      templateFolderPrefixes.push(`${teamspacePrefix}/${teamspace.id}/${templateFolderName}`)
+      templateFolderPrefixes.push(`${teamspacePrefix}/${teamspace.id}/${formsFolderName}`)
+    }
+
+    logDebug(
+      pluginJson,
+      `getFilteredTemplateList: ${debugPrefix} Searching in ${templateFolderPrefixes.length} template folder prefixes: ${templateFolderPrefixes.slice(0, 4).join(', ')}${
+        templateFolderPrefixes.length > 4 ? '...' : ''
+      }`,
+    )
+
     // Get all templates with basic filtering
+    // Check if filename starts with any of the template folder prefixes
     const allTemplates = DataStore.projectNotes
-      .filter((n) => n.filename?.startsWith(templateFolder))
+      .filter((n) => {
+        if (!n.filename) return false
+        return templateFolderPrefixes.some((prefix) => n.filename.startsWith(prefix))
+      })
       .filter((n) => !filterFrontmatterTypes || !n.frontmatterTypes.includes('ignore'))
       .filter((n) => !filterFrontmatterTypes || !n.frontmatterTypes.includes('template-helper'))
       .filter((n) => !n.title?.startsWith('_configuration'))
@@ -66,9 +104,9 @@ export async function getFilteredTemplateList(
     const { matches, exclude } = buildFilterMatches(filterValues)
 
     // Filter templates in a single pass
-    const templateList = []
+    const templateList: Array<{ label: string, value: string, note?: TNote }> = []
     for (const note of allTemplates) {
-      if (note.title == null) continue
+      if (note.title == null || !note.filename) continue
 
       // Get attributes efficiently
       const attrs =
@@ -79,11 +117,12 @@ export async function getFilteredTemplateList(
 
       // Check if template matches filters
       if (templateMatchesFilters(attributeValues, matches, exclude, filterValues)) {
-        const result = { label: note.title, value: note.filename }
-        if (includeNoteObject) {
-          // $FlowIgnore
-          result.note = note
-        }
+        // We already checked note.title != null and note.filename above, so it's safe to use here
+        // $FlowFixMe - Flow doesn't understand that we've already filtered out null titles/filenames
+        const title: string = (note.title: any) || ''
+        const filename: string = (note.filename: any) || ''
+        // $FlowFixMe - Flow has issues with optional properties in object literals
+        const result: { label: string, value: string, note?: TNote } = includeNoteObject ? { label: title, value: filename, note } : { label: title, value: filename }
         templateList.push(result)
       }
     }
@@ -202,7 +241,7 @@ export async function chooseTemplate(tags?: any = '*', promptMessage: string = '
     logDebug(pluginJson, `getTemplateContent: pulled together ${options.length} templates in ${timer(start)}`)
     clo(options[0], 'chooseTemplate options[0]:')
     // TODO: use chooseNoteV2 instead of chooseOption
-    return await chooseOption<TNote, void>(promptMessage, options)
+    return await chooseOption(promptMessage, options)
   } catch (error) {
     logError(pluginJson, error)
     return null
