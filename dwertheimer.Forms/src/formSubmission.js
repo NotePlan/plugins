@@ -78,10 +78,125 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
           await showMessage('No Processing Template was Provided; You should set a processing template in your form settings.')
           return null
         }
-        const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, JSON.stringify(formValues)]
-        clo(argumentsToSend, `handleSubmitButtonClick: Using form-processor, calling templateRunner with arguments`)
+
+        // Build initial context from formValues
+        const formValuesForRendering = { ...formValues }
+        delete formValuesForRendering.__isJSON__
+
+        // Execute templatejs blocks in order (top to bottom) and merge their returned objects into context
+        const formFields = reactWindowData?.pluginData?.formFields || []
+        let context = { ...formValuesForRendering }
+
+        // Extract and execute templatejs blocks in order
+        // Note: templatejs-block fields don't need keys - they're only used for logging/error messages
+        const templateJSBlocks: Array<{ field: Object, code: string, order: number }> = []
+        formFields.forEach((field, index) => {
+          if (field.type === 'templatejs-block' && field.templateJSContent) {
+            const code = String(field.templateJSContent).trim()
+            if (code) {
+              const executeTiming = field.executeTiming || 'after'
+              // Only include 'after' blocks - they run after form fields are available
+              if (executeTiming === 'after') {
+                templateJSBlocks.push({ field, code, order: index })
+              }
+            }
+          }
+        })
+
+        // Sort by order (top to bottom) and execute each block
+        templateJSBlocks.sort((a, b) => a.order - b.order)
+
+        // Helper function to check if a key is a valid JavaScript identifier
+        const isValidIdentifier = (key: string): boolean => {
+          // JavaScript identifier: starts with letter/underscore/$ and contains only letters, digits, underscore, $
+          return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)
+        }
+
+        // Helper function to generate a key from label + random string
+        // Returns a valid JavaScript identifier for use in error messages
+        const generateKeyFromLabel = (label: string, index: number): string => {
+          // Sanitize label: remove special chars, replace spaces/hyphens with underscores, ensure starts with letter/underscore
+          let sanitized = (label || 'templatejs-block')
+            .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove special chars except spaces, hyphens, underscores
+            .replace(/[\s-]+/g, '_') // Replace spaces and hyphens with underscores
+            .replace(/_+/g, '_') // Replace multiple underscores with single underscore
+            .substring(0, 30) // Limit length
+            .toLowerCase()
+            .trim()
+
+          // Ensure it starts with a letter or underscore (valid JS identifier requirement)
+          if (sanitized.length === 0 || !/^[a-zA-Z_]/.test(sanitized)) {
+            sanitized = `block_${sanitized}`
+          }
+
+          // Generate random string (4 chars) for uniqueness
+          const randomStr = Math.random().toString(36).substring(2, 6)
+          return `${sanitized}_${randomStr}_${index + 1}`
+        }
+
+        for (let blockIndex = 0; blockIndex < templateJSBlocks.length; blockIndex++) {
+          const { field, code } = templateJSBlocks[blockIndex]
+          // Generate key from label + random string if no key exists
+          const fieldIdentifier = field.key || generateKeyFromLabel(field.label || '', blockIndex)
+          try {
+            logDebug(pluginJson, `handleSubmitButtonClick: Executing templatejs block from field "${fieldIdentifier}"`)
+            // Execute the JavaScript code with context as 'params' variable
+            // The code should return an object that will be spread into the context
+            // Using Function constructor to safely execute with context
+            // Make all context properties available as variables in the function
+            // Only create variables for keys that are valid JavaScript identifiers (no hyphens, etc.)
+            // Invalid identifiers can still be accessed via params['key-name']
+            const contextVars = Object.keys(context)
+              .map((key) => {
+                if (isValidIdentifier(key)) {
+                  return `const ${key} = params.${key};`
+                }
+                // For invalid identifiers, don't create a variable - user can access via params['key-name']
+                return `// Key "${key}" is not a valid JavaScript identifier - access via params['${key}']`
+              })
+              .join('\n')
+            const functionBody = `
+              ${contextVars}
+              // Execute user's code
+              ${code}
+            `
+            // $FlowIgnore[prop-missing] - Function constructor is safe here as code comes from form definition
+            const fn = Function.apply(null, ['params', functionBody])
+            const result = fn(context)
+
+            // If the code returns an object, spread it into context
+            if (result && typeof result === 'object' && !Array.isArray(result)) {
+              context = { ...context, ...result }
+              logDebug(pluginJson, `handleSubmitButtonClick: TemplateJS block "${fieldIdentifier}" returned object with keys: ${Object.keys(result).join(', ')}`)
+            } else if (result !== undefined) {
+              logError(pluginJson, `handleSubmitButtonClick: TemplateJS block "${fieldIdentifier}" should return an object, but returned: ${typeof result}`)
+              await showMessage(
+                `TemplateJS block "${fieldIdentifier}" should return an object, but returned ${typeof result}. Please update your code to return an object (e.g., return { key: value }).`,
+              )
+            } else {
+              logError(pluginJson, `handleSubmitButtonClick: TemplateJS block "${fieldIdentifier}" did not return anything. It should return an object.`)
+              await showMessage(`TemplateJS block "${fieldIdentifier}" did not return anything. Please update your code to return an object (e.g., return { key: value }).`)
+            }
+          } catch (error) {
+            logError(pluginJson, `handleSubmitButtonClick: Error executing templatejs block "${fieldIdentifier}": ${error.message}`)
+            await showMessage(`Error executing TemplateJS block "${fieldIdentifier}": ${error.message}`)
+            return null
+          }
+        }
+
+        // Pass the merged context (with all templatejs block results) to templateRunner
+        // No need for __templateJSBlocks__ anymore since we've executed them here
+        const templateRunnerArgs = { ...context }
+
+        const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, templateRunnerArgs]
+        clo(argumentsToSend, `handleSubmitButtonClick: Using form-processor, calling templateRunner with arguments (after executing ${templateJSBlocks.length} templatejs blocks)`)
         const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
-        logDebug(pluginJson, `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(templateRunnerResult?.includes?.('==**Templating Error Found**') || false)}`)
+        logDebug(
+          pluginJson,
+          `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(
+            templateRunnerResult?.includes?.('==**Templating Error Found**') || false,
+          )}`,
+        )
         // Check if result contains AI analysis (error message from template rendering)
         if (templateRunnerResult && typeof templateRunnerResult === 'string' && templateRunnerResult.includes('==**Templating Error Found**')) {
           logDebug(pluginJson, `handleSubmitButtonClick: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
@@ -90,7 +205,10 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
             reactWindowData.pluginData = {}
           }
           ;(reactWindowData.pluginData: any).aiAnalysisResult = templateRunnerResult
-          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
+          logDebug(
+            pluginJson,
+            `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`,
+          )
         } else {
           logDebug(pluginJson, `handleSubmitButtonClick: No AI analysis result detected in templateRunner result`)
         }
@@ -168,7 +286,12 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
 
         clo(templateRunnerArgs, `handleSubmitButtonClick: Using write-existing, calling templateRunner with args`)
         const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
-        logDebug(pluginJson, `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(templateRunnerResult?.includes?.('==**Templating Error Found**') || false)}`)
+        logDebug(
+          pluginJson,
+          `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(
+            templateRunnerResult?.includes?.('==**Templating Error Found**') || false,
+          )}`,
+        )
         // Check if result contains AI analysis (error message from template rendering)
         if (templateRunnerResult && typeof templateRunnerResult === 'string' && templateRunnerResult.includes('==**Templating Error Found**')) {
           logDebug(pluginJson, `handleSubmitButtonClick: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
@@ -177,7 +300,10 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
             reactWindowData.pluginData = {}
           }
           ;(reactWindowData.pluginData: any).aiAnalysisResult = templateRunnerResult
-          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
+          logDebug(
+            pluginJson,
+            `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`,
+          )
         } else {
           logDebug(pluginJson, `handleSubmitButtonClick: No AI analysis result detected in templateRunner result`)
         }
@@ -185,9 +311,9 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
         // Option D: Run JS Only (no note creation)
         // Get TemplateJS blocks from form fields (templatejs-block type)
         const formFields = reactWindowData?.pluginData?.formFields || []
-        
+
         logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: formFields.length=${formFields.length}`)
-        
+
         // Find all TemplateJS blocks from form fields
         const templateJSBlocks: Array<string> = []
         formFields.forEach((field) => {
@@ -200,7 +326,7 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
             }
           }
         })
-        
+
         if (templateJSBlocks.length === 0) {
           await showMessage('No TemplateJS block found in form fields. Please add a TemplateJS Block field to your form with the JavaScript code to execute.')
           return null
@@ -222,8 +348,13 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
         try {
           logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: About to execute JavaScript with form values: ${JSON.stringify(formValuesForRendering)}`)
           const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [finalTemplateBody, formValuesForRendering])
-          logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: render result type=${typeof result}, length=${result?.length || 0}, includes AI marker=${String(result?.includes?.('==**Templating Error Found**') || false)}`)
-          
+          logDebug(
+            pluginJson,
+            `handleSubmitButtonClick: run-js-only: render result type=${typeof result}, length=${result?.length || 0}, includes AI marker=${String(
+              result?.includes?.('==**Templating Error Found**') || false,
+            )}`,
+          )
+
           // Check if result contains AI analysis (error message from template rendering)
           if (result && typeof result === 'string' && result.includes('==**Templating Error Found**')) {
             logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
@@ -232,11 +363,16 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
               reactWindowData.pluginData = {}
             }
             ;(reactWindowData.pluginData: any).aiAnalysisResult = result
-            logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
+            logDebug(
+              pluginJson,
+              `handleSubmitButtonClick: run-js-only: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${
+                reactWindowData.pluginData.aiAnalysisResult?.length || 0
+              }`,
+            )
           } else {
             logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: No AI analysis result detected in render result`)
           }
-          
+
           logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: JavaScript executed successfully, result length: ${result?.length || 0} chars`)
           // Result is typically empty for JS-only execution (no output expected, just side effects like creating folders)
           // Note: If folders aren't being created, check that the JavaScript code uses the correct folder paths
@@ -297,7 +433,7 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
         // If space (teamspace) is set and folder doesn't already have teamspace prefix, prepend it
         // Don't pass null as DataStore.newNote treats null as the literal string "null"
         let folderPath = newNoteFolder && newNoteFolder.trim() ? newNoteFolder.trim() : '/'
-        
+
         // If space is set (teamspace) and folder doesn't already have teamspace prefix, prepend it
         if (space && space.trim() && !folderPath.startsWith('%%NotePlanCloud%%')) {
           // Construct teamspace folder path: %%NotePlanCloud%%/{teamspaceID}/{folder}
@@ -311,12 +447,17 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
           }
           logDebug(pluginJson, `handleSubmitButtonClick: Prefixed folder with teamspace: ${folderPath}`)
         }
-        
+
         templateRunnerArgs.folder = folderPath
 
         clo(templateRunnerArgs, `handleSubmitButtonClick: Using create-new, calling templateRunner with args`)
         const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
-        logDebug(pluginJson, `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(templateRunnerResult?.includes?.('==**Templating Error Found**') || false)}`)
+        logDebug(
+          pluginJson,
+          `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(
+            templateRunnerResult?.includes?.('==**Templating Error Found**') || false,
+          )}`,
+        )
         // Check if result contains AI analysis (error message from template rendering)
         if (templateRunnerResult && typeof templateRunnerResult === 'string' && templateRunnerResult.includes('==**Templating Error Found**')) {
           logDebug(pluginJson, `handleSubmitButtonClick: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
@@ -325,7 +466,10 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
             reactWindowData.pluginData = {}
           }
           ;(reactWindowData.pluginData: any).aiAnalysisResult = templateRunnerResult
-          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
+          logDebug(
+            pluginJson,
+            `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`,
+          )
         } else {
           logDebug(pluginJson, `handleSubmitButtonClick: No AI analysis result detected in templateRunner result`)
         }
@@ -340,6 +484,11 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
   } else {
     logDebug(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
   }
-  logDebug(pluginJson, `handleSubmitButtonClick: Returning reactWindowData, has aiAnalysisResult=${String(!!reactWindowData?.pluginData?.aiAnalysisResult)}, aiAnalysisResult length=${reactWindowData?.pluginData?.aiAnalysisResult?.length || 0}`)
+  logDebug(
+    pluginJson,
+    `handleSubmitButtonClick: Returning reactWindowData, has aiAnalysisResult=${String(!!reactWindowData?.pluginData?.aiAnalysisResult)}, aiAnalysisResult length=${
+      reactWindowData?.pluginData?.aiAnalysisResult?.length || 0
+    }`,
+  )
   return reactWindowData
 }

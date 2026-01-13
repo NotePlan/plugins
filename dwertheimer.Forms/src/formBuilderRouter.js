@@ -22,29 +22,21 @@ import { logDebug, logError, logWarn } from '@helpers/dev'
  * @param {any} data - Request data
  * @returns {Promise<RequestResponse>}
  */
-// Buffer buster padding for NotePlan's console
-const BUFFER_BUSTER_PAD = `${'\n'.repeat(5)}${'.'.repeat(10000)}/`
-
-function bustLog(message: string): void {
-  console.log(`${message}${BUFFER_BUSTER_PAD}`)
-}
-
 async function routeFormBuilderRequest(actionType: string, data: any): Promise<RequestResponse> {
-  // Add immediate logging to catch hangs with buffer busting
-  bustLog(`[routeFormBuilderRequest] Called with actionType="${actionType}", data.type="${data?.type || 'none'}"`)
-  bustLog(`[routeFormBuilderRequest] data.fields type: ${Array.isArray(data?.fields) ? 'array' : typeof data?.fields}, length: ${data?.fields?.length || 0}`)
+  logDebug(pluginJson, `[routeFormBuilderRequest] Called with actionType="${actionType}", data.type="${data?.type || 'none'}"`)
+  logDebug(pluginJson, `[routeFormBuilderRequest] data.fields type: ${Array.isArray(data?.fields) ? 'array' : typeof data?.fields}, length: ${data?.fields?.length || 0}`)
   if (data?.fields?.length > 0) {
-    bustLog(`[routeFormBuilderRequest] First field type: ${typeof data.fields[0]}, is string: ${typeof data.fields[0] === 'string'}`)
+    logDebug(pluginJson, `[routeFormBuilderRequest] First field type: ${typeof data.fields[0]}, is string: ${String(typeof data.fields[0] === 'string')}`)
   }
 
   // Handle save action as a special case (it's not a standard request)
   const actualActionType = data?.type
-  bustLog(`[routeFormBuilderRequest] actualActionType="${actualActionType}"`)
+  logDebug(pluginJson, `[routeFormBuilderRequest] actualActionType="${actualActionType}"`)
   if (actualActionType === 'save') {
-    bustLog(`[routeFormBuilderRequest] Routing to handleSaveRequest with fields type: ${typeof data.fields}, isArray: ${Array.isArray(data.fields)}`)
-    bustLog(`[routeFormBuilderRequest] About to call handleSaveRequest`)
+    logDebug(pluginJson, `[routeFormBuilderRequest] Routing to handleSaveRequest with fields type: ${typeof data.fields}, isArray: ${String(Array.isArray(data.fields))}`)
+    logDebug(pluginJson, `[routeFormBuilderRequest] About to call handleSaveRequest`)
     const result = await handleSaveRequest(data)
-    bustLog(`[routeFormBuilderRequest] handleSaveRequest returned, success: ${result?.success}`)
+    logDebug(pluginJson, `[routeFormBuilderRequest] handleSaveRequest returned, success: ${String(result?.success ?? 'undefined')}`)
     return result
   }
 

@@ -603,7 +603,16 @@ export function SearchableChooser({
         ? createPortal(
             <div
               ref={dropdownRef}
-              className={`searchable-chooser-dropdown-portal ${classNamePrefix}-dropdown ${dropdownPosition?.openAbove ? 'open-above' : ''}`}
+              className={`searchable-chooser-dropdown-portal ${classNamePrefix}-dropdown ${dropdownPosition?.openAbove ? 'open-above' : ''} ${(() => {
+                // Check if any items have icons or shortDescriptions
+                const itemsToCheck = maxResults != null && maxResults > 0 ? filteredItems.slice(0, maxResults) : filteredItems
+                const hasIconsOrDescriptions = itemsToCheck.some((item: any) => {
+                  const hasIcon = getOptionIcon ? getOptionIcon(item) : false
+                  const hasShortDesc = getOptionShortDescription ? getOptionShortDescription(item) : false
+                  return hasIcon || hasShortDesc
+                })
+                return !hasIconsOrDescriptions ? 'simple-list-no-icons-descriptions' : ''
+              })()}`}
               style={{
                 position: 'fixed',
                 top: dropdownPosition ? `${dropdownPosition.top}px` : '0px',
@@ -659,6 +668,14 @@ export function SearchableChooser({
                 if (debugLogging) {
                   console.log(`${fieldType}: Rendering ${itemsToShow.length} options (filtered from ${filteredItems.length} total, maxResults=${maxResults || 'unlimited'})`)
                 }
+                
+                // Check if any items have icons or shortDescriptions (calculate once for all items)
+                const hasIconsOrDescriptions = itemsToShow.some((item: any) => {
+                  const hasIcon = getOptionIcon ? getOptionIcon(item) : false
+                  const hasShortDesc = getOptionShortDescription ? getOptionShortDescription(item) : false
+                  return hasIcon || hasShortDesc
+                })
+                
                 return itemsToShow.map((item: any, index: number) => {
                   const optionText = getOptionText(item)
                   // Only apply JavaScript truncation for very long items (>dropdownMaxLength)
@@ -768,10 +785,12 @@ export function SearchableChooser({
                   }
 
                   // Single-line layout (default): icon + label + description on one line
+                  // Check if this is a simple list (no icons or descriptions)
+                  const isSimpleItem = !optionIcon && !optionShortDesc && !hasIconsOrDescriptions
                   return (
                     <div
                       key={`${fieldType}-${index}`}
-                      className={`searchable-chooser-option ${classNamePrefix}-option ${showOptionClickHint ? 'option-click-hint' : ''} ${isSelected ? 'option-selected' : ''}`}
+                      className={`searchable-chooser-option ${classNamePrefix}-option ${showOptionClickHint ? 'option-click-hint' : ''} ${isSelected ? 'option-selected' : ''} ${isSimpleItem ? 'simple-item' : ''}`}
                       onClick={(e) => handleItemSelect(item, e)}
                       onMouseEnter={() => setHoveredIndex(index)}
                       onMouseLeave={() => setHoveredIndex(null)}
@@ -812,16 +831,19 @@ export function SearchableChooser({
                       </span>
                       {/* Always render right side to reserve space, even if empty */}
                       {/* In single-line mode (not shortDescriptionOnLine2), reserve space even when empty */}
-                      <span
-                        className={`searchable-chooser-option-right ${classNamePrefix}-option-right`}
-                        style={{
-                          color: optionColor ? `var(--${optionColor}, var(--gray-500, #666))` : undefined,
-                          // Reserve minimum space when in single-line mode and no shortDescription
-                          minWidth: !shortDescriptionOnLine2 && !optionShortDesc ? '8rem' : undefined,
-                        }}
-                      >
-                        {optionShortDesc || ''}
-                      </span>
+                      {/* But hide it completely for simple lists */}
+                      {!isSimpleItem && (
+                        <span
+                          className={`searchable-chooser-option-right ${classNamePrefix}-option-right`}
+                          style={{
+                            color: optionColor ? `var(--${optionColor}, var(--gray-500, #666))` : undefined,
+                            // Reserve minimum space when in single-line mode and no shortDescription
+                            minWidth: !shortDescriptionOnLine2 && !optionShortDesc ? '8rem' : undefined,
+                          }}
+                        >
+                          {optionShortDesc || ''}
+                        </span>
+                      )}
                     </div>
                   )
                 })

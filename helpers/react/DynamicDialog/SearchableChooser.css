@@ -584,3 +584,19 @@
   margin-top: 0.5rem;
   padding-left: calc(8rem + 1rem); /* Align with input field: 8rem (label width) + 1rem (label padding-right) */
 }
+
+/* Simple list mode: when no items have icons or shortDescriptions, make labels full width */
+.searchable-chooser-dropdown-portal.simple-list-no-icons-descriptions .searchable-chooser-option.simple-item {
+  justify-content: flex-start; /* Left-align the entire option */
+}
+
+.searchable-chooser-dropdown-portal.simple-list-no-icons-descriptions .searchable-chooser-option.simple-item .searchable-chooser-option-left {
+  flex: 1 1 auto; /* Take full width */
+  max-width: 100%; /* Allow full width */
+  min-width: 0; /* Allow shrinking if needed */
+}
+
+.searchable-chooser-dropdown-portal.simple-list-no-icons-descriptions .searchable-chooser-option.simple-item .searchable-chooser-option-text {
+  width: 100%; /* Take full width of left side */
+  max-width: 100%; /* Don't constrain width */
+}
