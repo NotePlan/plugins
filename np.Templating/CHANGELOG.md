@@ -12,22 +12,28 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
   - Includes timing logs for performance monitoring (setup, config, engine creation, context building, total time)
   - Allows other plugins to reuse templating context without duplicating code
   - Accessible via `DataStore.invokePluginCommandByName('getRenderContext', 'np.Templating', [userData])`
-- Expand template search functions to search in both @Templates and @Forms directories
-  - Created shared utility function `getTemplateFolderPrefixes()` that builds complete list of folder prefixes including private root and all teamspace root folders
-  - Updated `getFilteredTemplateList` to use shared utility function (searches in both private root and all teamspace root folders)
-  - Updated `getTemplateNote` to use shared utility function (now searches all teamspaces, not just private root)
-  - Updated `getFilenameFromTemplate` to use shared utility function (filters notes from all template folders in all spaces)
-  - Updated `getTemplateContent` to use shared utility function (searches in all template folders when finding templates)
-  - Updated `templateInsert` and `templateAppend` to use `getTemplateNote` (searches all folders/spaces)
-  - Updated `<current>` prompt validation to check if note is in any template folder (not just @Templates)
-  - Updated `addFrontmatterToTemplate` in NPTemplateRunner to use `getTemplateNote`
-  - Updated `chooseTemplate` to use `DataStore.preference` for localized template folder name in display
-  - Updated `templateExists` to search in all template folders (Templates, Forms, all spaces)
-  - All functions now use `DataStore.preference('templateFolder')` for localized template folder names instead of hardcoded '@Templates'
-  - All functions now use `DataStore.preference('formsFolder')` for localized forms folder names (with '@Forms' fallback)
-  - Fixes issue where form processing templates stored in @Forms weren't found by `templateRunner` and `getTemplateNote` when processing form submissions
-  - Fixes issue where templates in teamspaces weren't found by template search functions
-  - Templates can now be stored in @Forms directory (for form processing) or @Templates directory (for regular templates), in both private root and teamspace root folders
+- **Comprehensive template search refactoring** - Expand template search functions to search in both @Templates and @Forms directories across all spaces
+  - **New shared utility**: Created `getTemplateFolderPrefixes()` function that builds complete list of folder prefixes including:
+    - Private root folders: `@Templates` and `@Forms` (or localized equivalents)
+    - All teamspace root folders: `%%NotePlanCloud%%/<teamspaceID>/@Templates` and `%%NotePlanCloud%%/<teamspaceID>/@Forms`
+  - **Core template search functions updated**:
+    - `getFilteredTemplateList` - Now searches in both private root and all teamspace root folders
+    - `getTemplateNote` - Now searches all teamspaces, not just private root
+    - `getFilenameFromTemplate` - Filters notes from all template folders in all spaces
+    - `getTemplateContent` - Searches in all template folders when finding templates
+    - `templateExists` - Searches in all template folders (Templates, Forms, all spaces)
+  - **User-facing commands updated**:
+    - `templateInsert` and `templateAppend` - Now use `getTemplateNote` (searches all folders/spaces)
+    - `<current>` prompt validation - Now checks if note is in any template folder (not just @Templates)
+    - `addFrontmatterToTemplate` (NPTemplateRunner) - Now uses `getTemplateNote`
+    - `chooseTemplate` - Now uses `DataStore.preference` for localized template folder name in display
+  - **Localization support**:
+    - All functions now use `DataStore.preference('templateFolder')` for localized template folder names instead of hardcoded '@Templates'
+    - All functions now use `DataStore.preference('formsFolder')` for localized forms folder names (with '@Forms' fallback)
+  - **Bug fixes**:
+    - Fixes issue where form processing templates stored in @Forms weren't found by `templateRunner` and `getTemplateNote` when processing form submissions
+    - Fixes issue where templates in teamspaces weren't found by template search functions
+  - **Impact**: Templates can now be stored in @Forms directory (for form processing) or @Templates directory (for regular templates), in both private root and teamspace root folders, and all search functions will find them correctly
 
 ## [2.2.8] 2026-01-XX @dwertheimer
 - Add triggerTemplateRunner command to automatically run templates when notes are opened
