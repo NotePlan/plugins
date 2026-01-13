@@ -735,11 +735,42 @@ export function ProcessingMethodSection({
                         `ProcessingMethodSection: Open button clicked: selectedProcessingTemplateFilename="${selectedProcessingTemplateFilename}", currentTitle="${currentTitle}", notes.length=${notes.length}`,
                       )
 
-                      // If no filename and we have notes, try to find it
-                      if (!filenameToOpen && notes.length > 0) {
-                        const matchingNote = notes.find((note: NoteOption) => note.title === currentTitle)
-                        filenameToOpen = matchingNote?.filename || ''
-                        logDebug(pluginData, `ProcessingMethodSection: Found matching note: ${matchingNote ? `filename="${matchingNote.filename}"` : 'not found'}`)
+                      // If no filename, try to find it from notes
+                      if (!filenameToOpen && currentTitle) {
+                        // If notes aren't loaded yet, load them directly via requestFromPlugin
+                        // This ensures we have the notes data immediately in this async function
+                        let notesToSearch = notes
+                        if (notes.length === 0) {
+                          logDebug(pluginData, `ProcessingMethodSection: Notes not loaded, loading notes for processing templates via requestFromPlugin...`)
+                          try {
+                            const notesData = await requestFromPlugin('getNotes', {
+                              includePersonalNotes: true,
+                              includeCalendarNotes: false, // Skip calendar notes for processing templates (performance)
+                              includeRelativeNotes: false, // Skip relative notes for processing templates
+                              includeTeamspaceNotes: true,
+                              space: frontmatter.space || '', // Filter by selected space
+                              filterByType: ['forms-processor', 'template-runner'],
+                              includeTemplatesAndForms: true,
+                            })
+                            if (Array.isArray(notesData)) {
+                              notesToSearch = notesData
+                              logDebug(pluginData, `ProcessingMethodSection: Loaded ${notesData.length} notes via requestFromPlugin`)
+                            }
+                          } catch (error) {
+                            logDebug(pluginData, `ProcessingMethodSection: Error loading notes: ${error.message}`)
+                          }
+                        }
+
+                        // Try to find the note in the notes array
+                        if (notesToSearch.length > 0) {
+                          const matchingNote = notesToSearch.find((note: NoteOption) => note.title === currentTitle)
+                          if (matchingNote && matchingNote.filename) {
+                            filenameToOpen = matchingNote.filename
+                            logDebug(pluginData, `ProcessingMethodSection: Found matching note: filename="${matchingNote.filename}"`)
+                          } else {
+                            logDebug(pluginData, `ProcessingMethodSection: No matching note found in ${notesToSearch.length} notes for title="${currentTitle}"`)
+                          }
+                        }
                       }
 
                       if (filenameToOpen) {
@@ -747,8 +778,20 @@ export function ProcessingMethodSection({
                         await requestFromPlugin('openNote', {
                           filename: filenameToOpen,
                         })
+                      } else if (currentTitle) {
+                        // Fallback: try to open by title directly
+                        logDebug(pluginData, `ProcessingMethodSection: No filename found, trying to open by title: "${currentTitle}"`)
+                        try {
+                          await requestFromPlugin('openNote', {
+                            title: currentTitle,
+                          })
+                        } catch (titleError) {
+                          const errorMsg = `Could not find or open processing template "${currentTitle}". Please select the template again.`
+                          logDebug(pluginData, `ProcessingMethodSection: ${errorMsg}`)
+                          console.error(errorMsg)
+                        }
                       } else {
-                        const errorMsg = `Could not find filename for processing template "${currentTitle}". Please select the template again.`
+                        const errorMsg = `Could not find filename for processing template. Please select the template again.`
                         logDebug(pluginData, `ProcessingMethodSection: ${errorMsg}`)
                         console.error(errorMsg)
                       }

@@ -53,7 +53,7 @@ async function routeFormBuilderRequest(actionType: string, data: any): Promise<R
     case 'createProcessingTemplate':
       return await handleCreateProcessingTemplate(data)
     case 'openNote':
-      return handleOpenNote(data)
+      return await handleOpenNote(data)
     case 'copyFormUrl':
       return handleCopyFormUrl(data)
     case 'duplicateForm':

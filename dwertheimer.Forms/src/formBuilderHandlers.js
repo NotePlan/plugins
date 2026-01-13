@@ -21,7 +21,7 @@ import {
   updateReceivingTemplateWithFields,
 } from './templateIO'
 import { removeEmptyLinesFromNote, updateFormLinksInNote } from './requestHandlers'
-import { getNoteByFilename } from '@helpers/note'
+import { getNoteByFilename, getNote } from '@helpers/note'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
 import { updateFrontMatterVars, ensureFrontmatter, endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
@@ -91,28 +91,55 @@ export async function handleCreateProcessingTemplate(params: Object): Promise<Re
 /**
  * Handle opening a note from FormBuilder
  * @param {Object} params - Request parameters
- * @param {string} params.filename - The note filename to open
+ * @param {string} params.filename - The note filename to open (preferred)
+ * @param {string} params.title - The note title to open (fallback if filename not provided)
  * @returns {RequestResponse}
  */
-export function handleOpenNote(params: { filename?: string }): RequestResponse {
+export async function handleOpenNote(params: { filename?: string, title?: string }): Promise<RequestResponse> {
   try {
     const filename = params.filename
-    if (!filename) {
+    const title = params.title
+
+    if (!filename && !title) {
       return {
         success: false,
-        message: 'filename is required',
+        message: 'filename or title is required',
         data: null,
       }
     }
 
-    logDebug(pluginJson, `handleOpenNote: filename="${filename}"`)
-
-    // Open the note in the editor
-    Editor.openNoteByFilename(filename)
+    if (filename) {
+      logDebug(pluginJson, `handleOpenNote: Opening by filename="${filename}"`)
+      // Open the note in the editor
+      Editor.openNoteByFilename(filename)
+      return {
+        success: true,
+        message: 'Note opened successfully',
+        data: null,
+      }
+    } else if (title) {
+      logDebug(pluginJson, `handleOpenNote: Opening by title="${title}"`)
+      // Find note by title using getNote helper
+      const note = await getNote(title)
+      if (!note) {
+        return {
+          success: false,
+          message: `Note not found: ${title}`,
+          data: null,
+        }
+      }
+      // Open the note in the editor
+      Editor.openNoteByFilename(note.filename || '')
+      return {
+        success: true,
+        message: 'Note opened successfully',
+        data: null,
+      }
+    }
 
     return {
-      success: true,
-      message: 'Note opened successfully',
+      success: false,
+      message: 'No filename or title provided',
       data: null,
     }
   } catch (error) {
@@ -475,7 +502,9 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
   const saveId = `SAVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   // Add immediate console.log to catch hangs before logDebug with buffer busting
   bustLog(`[handleSaveRequest] ENTRY - saveId=${saveId}`)
-  bustLog(`[handleSaveRequest] data.fields: ${data?.fields ? `exists, type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields.length || 0}` : 'missing'}`)
+  bustLog(
+    `[handleSaveRequest] data.fields: ${data?.fields ? `exists, type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields.length || 0}` : 'missing'}`,
+  )
   if (data?.fields?.length > 0) {
     bustLog(`[handleSaveRequest] First field: ${typeof data.fields[0] === 'string' ? data.fields[0].substring(0, 50) : JSON.stringify(data.fields[0]).substring(0, 50)}`)
   }
@@ -507,7 +536,7 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: finalTemplateFilename="${finalTemplateFilename}"`)
     bustLog(`[handleSaveRequest] logDebug for finalTemplateFilename completed`)
 
-      bustLog(`[handleSaveRequest] About to check if finalTemplateFilename is empty`)
+    bustLog(`[handleSaveRequest] About to check if finalTemplateFilename is empty`)
     if (!finalTemplateFilename) {
       bustLog(`[handleSaveRequest] ERROR: No template filename provided`)
       return {
@@ -530,7 +559,11 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     bustLog(`[handleSaveRequest] Fields check passed, proceeding with save`)
 
     // Parse fields if they're strings (shouldn't happen, but just in case)
-    bustLog(`[handleSaveRequest] Fields before parsing: type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields?.length || 0}, firstFieldType=${data.fields?.[0] ? typeof data.fields[0] : 'none'}`)
+    bustLog(
+      `[handleSaveRequest] Fields before parsing: type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields?.length || 0}, firstFieldType=${
+        data.fields?.[0] ? typeof data.fields[0] : 'none'
+      }`,
+    )
     let fieldsToSave = data.fields
     if (Array.isArray(fieldsToSave) && fieldsToSave.length > 0 && typeof fieldsToSave[0] === 'string') {
       bustLog(`[handleSaveRequest] Fields are strings, attempting to parse`)
