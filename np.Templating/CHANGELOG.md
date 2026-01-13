@@ -12,6 +12,12 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
   - Includes timing logs for performance monitoring (setup, config, engine creation, context building, total time)
   - Allows other plugins to reuse templating context without duplicating code
   - Accessible via `DataStore.invokePluginCommandByName('getRenderContext', 'np.Templating', [userData])`
+- Expand `getFilteredTemplateList` to search in both @Templates and @Forms directories
+  - Now searches for templates in both private root and all teamspace root folders
+  - Uses `DataStore.preference('templateFolder')` for localized template folder names instead of hardcoded '@Templates'
+  - Uses `DataStore.preference('formsFolder')` for localized forms folder names (with '@Forms' fallback)
+  - Fixes issue where form processing templates stored in @Forms weren't found by `templateRunner` when processing form submissions
+  - Templates can now be stored in @Forms directory (for form processing) or @Templates directory (for regular templates)
 
 ## [2.2.8] 2026-01-XX @dwertheimer
 - Add triggerTemplateRunner command to automatically run templates when notes are opened
