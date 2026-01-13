@@ -25,6 +25,8 @@ import { getAffirmation } from '../lib/support/modules/affirmation'
 import { getAdvice } from '../lib/support/modules/advice'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
+import globals from '../lib/globals'
+import { getProperyValue } from '../lib/utils'
 
 import { initConfiguration, updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
@@ -34,6 +36,7 @@ import { getNoteTitleFromTemplate, getNoteTitleFromRenderedContent, analyzeTempl
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
+import TemplatingEngine from '../lib/TemplatingEngine'
 
 // Editor
 import { templateRunnerExecute } from './NPTemplateRunner'
@@ -966,6 +969,130 @@ export async function render(inTemplateData: string = '', userData: any = {}, us
 
 export async function renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
   return await NPTemplating.renderTemplate(templateName, userData, userOptions)
+}
+
+/**
+ * Get templating render context with all globals and modules
+ * This is a hidden command for use by other plugins (e.g., Forms plugin)
+ *
+ * The `userData` parameter allows you to add custom variables/properties to the context.
+ * These will be merged with all templating globals and modules, making them available
+ * alongside templating functions. You can structure userData as:
+ * - Flat object: `{ myVar: 'value', anotherVar: 123 }` - properties are merged directly
+ * - Structured: `{ data: { myVar: 'value' }, methods: { myFunc: () => {} } }` - data and methods are merged separately
+ *
+ * @param {any} [userData={}] - User data to merge into the context. Can be a flat object or structured with `data` and `methods` properties.
+ * @returns {Promise<Object>} The full render context object containing:
+ *
+ * **Templating Modules:**
+ * - `date` - DateModule instance (date.format(), date.now(), etc.)
+ * - `time` - TimeModule instance (time formatting functions)
+ * - `note` - NoteModule instance (note operations)
+ * - `tasks` - TasksModule instance (task operations)
+ * - `frontmatter` - FrontmatterModule instance (frontmatter operations)
+ * - `helpers` - HelpersModule instance (utility helpers)
+ * - `utility` - UtilityModule instance (utility functions)
+ * - `system` - SystemModule instance (system operations)
+ * - `web` - WebModule instance (web services: advice, quote, weather, etc.)
+ * - `user` - User info object ({ first, last, email, phone })
+ *
+ * **Templating Globals:**
+ * - `moment` - Moment.js instance for date manipulation
+ * - `affirmation`, `advice`, `quote`, `verse`, `stoicQuote`, `wotd` - Web service functions
+ * - `weather`, `datePicker`, `format`, `now`, `timestamp`, `currentDate`, `currentTime` - Date/time functions
+ * - `events`, `listTodaysEvents`, `matchingEvents` - Event functions
+ * - `getNote`, `getFrontmatterAttributes`, `updateFrontmatterVars` - Note operations
+ * - Plus all other globals from globals.js
+ *
+ * **Special Properties:**
+ * - `np` - Copy of the entire render context (for namespaced access)
+ * - Any properties from `userData` parameter
+ *
+ * **NotePlan Globals:**
+ * - `DataStore`, `Editor`, `CommandBar`, `Calendar`, `NotePlan`, `HTMLView`, `Clipboard` - Available in execution context
+ *
+ * @example
+ * // Basic usage - get context with custom form values
+ * const formValues = { company: 'Acme', topic: 'Meeting' }
+ * const context = await DataStore.invokePluginCommandByName('getRenderContext', 'np.Templating', [formValues])
+ *
+ * // Now context contains:
+ * // - All templating modules: context.date, context.time, context.note, etc.
+ * // - All templating globals: context.moment, context.affirmation, etc.
+ * // - Your form values: context.company, context.topic
+ *
+ * // Use in templatejs block execution:
+ * const fn = Function.apply(null, ['params', 'moment', 'date', 'DataStore', functionBody])
+ * const result = fn(context, context.moment, context.date, DataStore)
+ *
+ * @example
+ * // Structured userData with data and methods
+ * const userData = {
+ *   data: { projectName: 'My Project', status: 'active' },
+ *   methods: { calculateTotal: (a, b) => a + b }
+ * }
+ * const context = await DataStore.invokePluginCommandByName('getRenderContext', 'np.Templating', [userData])
+ * // context.projectName, context.status, and context.calculateTotal are all available
+ *
+ * @example
+ * // Using templating functions in your code
+ * // After getting context, you can use:
+ * // - context.moment().format('YYYY-MM-DD') for date formatting
+ * // - context.date.format('MM/DD/YYYY', '2024-01-15') for formatted dates
+ * // - context.note.getRandomLine('Note Title') for note operations
+ * // - All other templating functions are available
+ */
+export async function getRenderContext(userData: any = {}): Promise<Object> {
+  const startTime = Date.now()
+  logDebug(pluginJson, `getRenderContext: ENTRY - userData keys: ${Object.keys(userData || {}).join(', ')}`)
+
+  try {
+    // Ensure templating is set up (loads config)
+    // Create a temporary instance to get templateConfig
+    const tempInstance = new NPTemplating()
+    await NPTemplating.setup.call(tempInstance)
+    const setupTime = Date.now()
+    logDebug(pluginJson, `getRenderContext: Setup completed in ${setupTime - startTime}ms`)
+
+    // Get templateConfig from the instance
+    const templateConfig = tempInstance.templateConfig || {}
+    const configTime = Date.now()
+    logDebug(pluginJson, `getRenderContext: Config retrieved in ${configTime - setupTime}ms`)
+
+    // Create TemplatingEngine instance with config
+    const templatingEngine = new TemplatingEngine(templateConfig, '', [])
+    const engineTime = Date.now()
+    logDebug(pluginJson, `getRenderContext: Engine created in ${engineTime - configTime}ms`)
+
+    // Get render data with all methods and modules
+    // Pass empty template string since we just want the context, not to render anything
+    let renderContext = await templatingEngine.getRenderDataWithMethods('', userData)
+
+    // Load globals (moment, affirmation, etc.) - they're not included in getRenderDataWithMethods
+    // but are loaded via loadGlobalHelpers in the render pipeline
+    // Since loadGlobalHelpers is not exported, we'll manually load globals the same way it does
+    Object.getOwnPropertyNames(globals).forEach((key) => {
+      renderContext[key] = getProperyValue(globals, key)
+    })
+
+    const contextTime = Date.now()
+    logDebug(pluginJson, `getRenderContext: Context built in ${contextTime - engineTime}ms`)
+    logDebug(
+      pluginJson,
+      `getRenderContext: Context has ${Object.keys(renderContext).length} keys: ${Object.keys(renderContext).slice(0, 20).join(', ')}${
+        Object.keys(renderContext).length > 20 ? '...' : ''
+      }`,
+    )
+
+    const totalTime = Date.now() - startTime
+    logDebug(pluginJson, `getRenderContext: EXIT - Total time: ${totalTime}ms`)
+
+    return renderContext
+  } catch (error) {
+    const totalTime = Date.now() - startTime
+    logError(pluginJson, `getRenderContext: ERROR after ${totalTime}ms - ${error.message}`)
+    throw error
+  }
 }
 
 export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = ''): Promise<string | void> {

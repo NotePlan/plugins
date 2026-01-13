@@ -6,6 +6,13 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.2.9] 2026-01-XX @dwertheimer
+- Add new hidden command `getRenderContext` for use by other plugins (e.g., Forms plugin)
+  - Returns the full templating render context object with all globals, modules, and helpers (date, time, note, tasks, moment, etc.)
+  - Includes timing logs for performance monitoring (setup, config, engine creation, context building, total time)
+  - Allows other plugins to reuse templating context without duplicating code
+  - Accessible via `DataStore.invokePluginCommandByName('getRenderContext', 'np.Templating', [userData])`
+
 ## [2.2.8] 2026-01-XX @dwertheimer
 - Add triggerTemplateRunner command to automatically run templates when notes are opened
 - New hidden command `triggerTemplateRunner` checks for `runTemplateOnOpen` frontmatter attribute

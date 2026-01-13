@@ -195,8 +195,8 @@ The new `TemplatingEngine.render()` method is now clean and focused:
 
 ```javascript
 async render(templateData, userData, ejsOptions) {
-  // Import the render orchestrator
-  const { orchestrateRender } = await import('./engine/renderOrchestrator')
+  // Import the render orchestrator (static import at top of file)
+  // import { orchestrateRender } from './engine/renderOrchestrator'
   
   // Prepare rendering options
   const options = { ...{ async: true, rmWhitespace: false }, ...ejsOptions }
