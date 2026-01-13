@@ -267,11 +267,24 @@ export async function getFilenameFromTemplate(note: string = ''): Promise<string
   if (notes == null) {
     return 'INCOMPLETE'
   }
-  const finalNotes = notes.filter((note) => note.filename.startsWith(NotePlan.environment.templateFolder))
+  
+  // Get template folder name from DataStore.preference (localized) or fall back to environment variable
+  const templateFolderEnv = await getTemplateFolder()
+  const templateFolderPreference = DataStore.preference('templateFolder')
+  const templateFolderName: string = (typeof templateFolderPreference === 'string' && templateFolderPreference) || templateFolderEnv || '@Templates'
+  
+  // Get Forms folder name - check if there's a preference, otherwise use default
+  const formsFolderPreference = DataStore.preference('formsFolder')
+  const formsFolderName: string = (typeof formsFolderPreference === 'string' && formsFolderPreference) || '@Forms'
+  
+  // Filter notes to only include those in Templates or Forms folders
+  const finalNotes = notes.filter((note) => note.filename.startsWith(templateFolderName) || note.filename.startsWith(formsFolderName))
   if (finalNotes.length > 1) {
     return 'MULTIPLE NOTES FOUND'
+  } else if (finalNotes.length === 1) {
+    return finalNotes[0].filename
   } else {
-    return notes[0].filename
+    return 'INCOMPLETE'
   }
 }
 
@@ -328,18 +341,39 @@ export async function getTemplateContent(templateName: string = '', options: any
   const parts = templateName.split('/')
   const filename = parts.pop()
 
-  let templateFolderName = await getTemplateFolder()
+  // Get template folder name from DataStore.preference (localized) or fall back to environment variable
+  const templateFolderEnv = await getTemplateFolder()
+  const templateFolderPreference = DataStore.preference('templateFolder')
+  const templateFolderName: string = (typeof templateFolderPreference === 'string' && templateFolderPreference) || templateFolderEnv || '@Templates'
+  
+  // Get Forms folder name - check if there's a preference, otherwise use default
+  const formsFolderPreference = DataStore.preference('formsFolder')
+  const formsFolderName: string = (typeof formsFolderPreference === 'string' && formsFolderPreference) || '@Forms'
+  
+  // Build list of folders to search in
+  const searchFolders: Array<string> = [templateFolderName, formsFolderName]
+  
   let originalFilename = templateName
   let templateFilename = templateName
-  if (!templateName.includes(templateFolderName)) {
+  
+  // Check if templateName already includes a folder path
+  const hasFolderPath = searchFolders.some((folder) => templateName.startsWith(`${folder}/`))
+  if (!hasFolderPath) {
+    // Try template folder first (for backward compatibility)
     templateFilename = `${templateFolderName}/${templateName}`
   }
   let selectedTemplate: TNote | null = null
 
   try {
     if (isFilename) {
+      // First try the constructed filename
       const fullFilename = templateFilename
       selectedTemplate = (await DataStore.projectNoteByFilename(fullFilename)) || null
+      
+      // If not found, try with Forms folder
+      if (!selectedTemplate && !hasFolderPath) {
+        selectedTemplate = (await DataStore.projectNoteByFilename(`${formsFolderName}/${templateName}`)) || null
+      }
 
       // if the template can't be found using actual filename (as it is on disk)
       // this will occur due to an issue in NotePlan where name on disk does not match note (or template) name
@@ -365,20 +399,26 @@ export async function getTemplateContent(templateName: string = '', options: any
         templates = foundTemplates ? Array.from(foundTemplates) : []
         logDebug(pluginJson, `getTemplateContent: Found ${templates.length} notes in DataStore matching title: ${filename || ''}`)
         if (parts.length > 0 && templates && templates.length > 0) {
-          // ensure the path part matched
+          // ensure the path part matched - check against both folders
           let path = parts.join('/')
-          if (!path.startsWith(templateFolderName)) {
+          const pathMatchesFolder = searchFolders.some((folder) => path.startsWith(`${folder}/`))
+          if (!pathMatchesFolder) {
+            // Try template folder first (for backward compatibility)
             path = templateFolderName + (path.startsWith('/') ? path : `/${path}`)
           }
-          templates = templates.filter((template) => template.filename.startsWith(path)) || []
+          templates = templates.filter((template) => searchFolders.some((folder) => template.filename.startsWith(folder)) && template.filename.startsWith(path)) || []
           logDebug(pluginJson, `getTemplateContent: Found ${templates.length} notes matching title: ${filename || ''} and path: ${path}`)
+        } else {
+          // Filter to only templates in Templates or Forms folders
+          templates = templates.filter((template) => searchFolders.some((folder) => template.filename.startsWith(folder))) || []
         }
       }
       if (templates && templates.length > 1) {
         logWarn(pluginJson, `getTemplateContent: Multiple templates found for "${templateFilename || ''}"`)
         let templatesSecondary = []
         for (const template of templates) {
-          if (template && template.filename.startsWith(templateFolderName)) {
+          // Include templates from both Templates and Forms folders
+          if (template && searchFolders.some((folder) => template.filename.startsWith(folder))) {
             const parts = template.filename.split('/')
             parts.pop()
             // $FlowIgnore
