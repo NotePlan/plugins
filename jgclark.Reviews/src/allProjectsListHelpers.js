@@ -9,7 +9,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { Project } from './projectClass.js'
+import { Project, calcReviewFieldsForProject } from './projectClass.js'
 import {
   getReviewSettings,
   type ReviewConfig,
@@ -38,13 +38,57 @@ const SEQUENTIAL_TAG_DEFAULT = '#sequential'
 // Helper functions
 
 /**
+ * Convert date strings to Date objects for a project loaded from JSON
+ * JSON.parse() converts Date objects to strings, so we need to restore them
+ * @param {any} project - Project object loaded from JSON
+ * @returns {any} Project object with Date fields converted to Date objects
+ * @private
+ */
+function convertProjectDatesFromJSON(project: any): any {
+  // Convert date string fields to Date objects
+  const dateFields = ['startDate', 'dueDate', 'reviewedDate', 'nextReviewDate', 'completedDate', 'cancelledDate']
+  const converted = { ...project }
+  
+  for (const field of dateFields) {
+    if (converted[field] != null && typeof converted[field] === 'string') {
+      // Parse ISO date string to Date object
+      const dateObj = new Date(converted[field])
+      // Only convert if the date is valid
+      if (!isNaN(dateObj.getTime())) {
+        converted[field] = dateObj
+      } else {
+        logWarn('convertProjectDatesFromJSON', `Invalid date string for ${field}: ${converted[field]}`)
+        converted[field] = null
+      }
+    }
+  }
+  
+  return converted
+}
+
+/**
+ * Check if a project is ready for review (works with both Project instances and plain objects from JSON)
+ * @param {Project | any} project - Project instance or plain object
+ * @returns {boolean} True if project is ready for review
+ * @private
+ */
+function isProjectReadyForReview(project: Project | any): boolean {
+  // Check if it's a Project instance with the getter
+  if (typeof project.isReadyForReview === 'boolean') {
+    return project.isReadyForReview
+  }
+  // For plain objects from JSON, check the condition directly
+  return !project.isPaused && !project.isCompleted && project.nextReviewDays != null && !isNaN(project.nextReviewDays) && project.nextReviewDays <= 0
+}
+
+/**
  * Find the first project ready for review from a sorted list
  * @param {Array<Project>} projects - Sorted array of projects
  * @returns {?Project} First ready project or null
  * @private
  */
 function findFirstReadyProject(projects: Array<Project>): ?Project {
-  return projects.find((project) => project.isReadyForReview) ?? null
+  return projects.find((project) => isProjectReadyForReview(project)) ?? null
 }
 
 /**
@@ -62,7 +106,7 @@ function findReadyProjects(projects: Array<Project>, maxCount: number = 0): Arra
     const thisNoteFilename = thisProject.filename ?? ERROR_FILENAME_PLACEHOLDER
 
     // Skip if duplicate or not ready
-    if (thisNoteFilename === lastFilename || !thisProject.isReadyForReview) {
+    if (thisNoteFilename === lastFilename || !isProjectReadyForReview(thisProject)) {
       lastFilename = thisNoteFilename
       continue
     }
@@ -435,6 +479,16 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
       const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
       // Make objects from this (except .note)
       projectInstances = JSON.parse(content)
+      
+      // Convert date strings to Date objects (JSON.parse converts Date objects to strings)
+      logDebug('getAllProjectsFromList', `Converting date strings to Date objects for ${projectInstances.length} projects`)
+      projectInstances = projectInstances.map((project) => convertProjectDatesFromJSON(project))
+      
+      // Recalculate review fields for all projects since nextReviewDays may be stale
+      // This is necessary because the JSON was written at a previous time, and nextReviewDays
+      // needs to be recalculated based on the current date
+      logDebug('getAllProjectsFromList', `Recalculating review fields for ${projectInstances.length} projects loaded from JSON`)
+      projectInstances = projectInstances.map((project) => calcReviewFieldsForProject(project))
     }
     logTimer(`getAllProjectsFromList`, startTime, `- read ${projectInstances.length} Projects from allProjects list`)
 
