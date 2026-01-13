@@ -1,7 +1,7 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { getTemplateFolder } from './config/configManager'
+import { getTemplateFolderPrefixes } from './core/templateManager'
 import { log, logError, logDebug, timer, clo, clof, JSP } from '@helpers/dev'
 import { getNote } from '@helpers/note'
 
@@ -13,26 +13,20 @@ import { getNote } from '@helpers/note'
  * @returns {Promise<TNote | null>}
  */
 export async function getTemplateNote(_templateName: string = '', runSilently: boolean = false): Promise<TNote | null> {
-  // Get template folder name from DataStore.preference (localized) or fall back to environment variable
-  const templateFolderEnv = await getTemplateFolder()
-  const templateFolderPreference = DataStore.preference('templateFolder')
-  const templateFolderName: string = (typeof templateFolderPreference === 'string' && templateFolderPreference) || templateFolderEnv || '@Templates'
-  
-  // Get Forms folder name - check if there's a preference, otherwise use default
-  const formsFolderPreference = DataStore.preference('formsFolder')
-  const formsFolderName: string = (typeof formsFolderPreference === 'string' && formsFolderPreference) || '@Forms'
-  
-  // Build list of folders to search in
-  const searchFolders: Array<string> = [templateFolderName, formsFolderName]
+  // Get all template folder prefixes (includes private root and all teamspace root folders)
+  const searchFolders = await getTemplateFolderPrefixes()
   
   const isFilename = _templateName.endsWith('.md') || _templateName.endsWith('.txt')
   const containsFolder = _templateName.includes('/')
-  const startsWithTemplateFolder = _templateName.startsWith(`${templateFolderName}/`) || _templateName.startsWith(`${formsFolderName}/`)
+  
+  // Check if template name starts with any of the search folder prefixes
+  const startsWithTemplateFolder = searchFolders.some((folder) => _templateName.startsWith(`${folder}/`))
+  
   logDebug(
     pluginJson,
     `getTemplateNote: _templateName="${_templateName}" isFilename=${String(isFilename)} containsFolder=${String(containsFolder)} startsWithTemplateFolder=${String(
       startsWithTemplateFolder,
-    )} searching in folders: ${searchFolders.join(', ')}`,
+    )} searching in ${searchFolders.length} folders`,
   )
   let theNote: TNote | null = null
   if (_templateName) {
@@ -46,10 +40,9 @@ export async function getTemplateNote(_templateName: string = '', runSilently: b
     }
   }
   if (!runSilently) {
-    const folderList = searchFolders.join(' or ')
-    logError(pluginJson, `Unable to locate template "${_templateName}" in ${folderList}`)
-    await CommandBar.prompt(`Unable to locate template "${_templateName}"`, `Unable to locate template "${_templateName}" in ${folderList}`)
+    logError(pluginJson, `Unable to locate template "${_templateName}" in any of ${searchFolders.length} template folders`)
+    await CommandBar.prompt(`Unable to locate template "${_templateName}"`, `Unable to locate template "${_templateName}" in any template folder (searched ${searchFolders.length} folders)`)
   }
-  logDebug(pluginJson, `getTemplateNote: Unable to locate template "${_templateName}" in ${searchFolders.join(' or ')}`)
+  logDebug(pluginJson, `getTemplateNote: Unable to locate template "${_templateName}" in any of ${searchFolders.length} template folders`)
   return null
 }

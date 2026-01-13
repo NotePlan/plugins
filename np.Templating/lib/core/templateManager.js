@@ -17,6 +17,42 @@ import { getContentWithLinks } from '@helpers/content'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceRootIdentifier } from '@helpers/NPTeamspace'
 
 /**
+ * Builds a list of all possible template folder prefixes including private root and all teamspace root folders.
+ * This includes both @Templates and @Forms directories in all spaces.
+ * @async
+ * @returns {Promise<Array<string>>} Array of folder prefixes to search for templates
+ */
+export async function getTemplateFolderPrefixes(): Promise<Array<string>> {
+  const templateFolder = await getTemplateFolder()
+  
+  // Get template folder name from DataStore.preference (localized) or fall back to environment variable
+  const templateFolderPreference = DataStore.preference('templateFolder')
+  const templateFolderName: string = (typeof templateFolderPreference === 'string' && templateFolderPreference) || templateFolder || '@Templates'
+  
+  // Get Forms folder name - check if there's a preference, otherwise use default
+  const formsFolderPreference = DataStore.preference('formsFolder')
+  const formsFolderName: string = (typeof formsFolderPreference === 'string' && formsFolderPreference) || '@Forms'
+  
+  // Build list of all possible template folder prefixes
+  // Include Templates and Forms folders in both private root and all teamspace root folders
+  const templateFolderPrefixes: Array<string> = []
+  
+  // Private root folders
+  templateFolderPrefixes.push(templateFolderName)
+  templateFolderPrefixes.push(formsFolderName)
+  
+  // Teamspace root folders
+  const teamspaces = getAllTeamspaceIDsAndTitles()
+  const teamspacePrefix = getTeamspaceRootIdentifier()
+  for (const teamspace of teamspaces) {
+    templateFolderPrefixes.push(`${teamspacePrefix}/${teamspace.id}/${templateFolderName}`)
+    templateFolderPrefixes.push(`${teamspacePrefix}/${teamspace.id}/${formsFolderName}`)
+  }
+  
+  return templateFolderPrefixes
+}
+
+/**
  * Helper function to get filtered template list by attribute (type or tags).
  * This function consolidates the common logic between getTemplateList and getTemplateListByTags.
  * @async
@@ -54,32 +90,9 @@ export async function getFilteredTemplateList(
     const filterValues = Array.isArray(filters) ? filters : filters.split(',').map((filter: string) => filter.trim())
     logDebug(`getFilteredTemplateList: ${debugPrefix} 1: filterValues: ${filterValues}`)
 
-    // Get template folder name from DataStore.preference (localized) or fall back to environment variable
-    // DataStore.preference('templateFolder') returns the localized template folder name
-    const templateFolderPreference = DataStore.preference('templateFolder')
-    const templateFolderName: string = (typeof templateFolderPreference === 'string' && templateFolderPreference) || templateFolder || '@Templates'
-
-    // Get Forms folder name - check if there's a preference, otherwise use default
-    // Forms folder typically follows the same pattern as Templates folder
-    const formsFolderPreference = DataStore.preference('formsFolder')
-    const formsFolderName: string = (typeof formsFolderPreference === 'string' && formsFolderPreference) || '@Forms'
-
-    // Build list of all possible template folder prefixes
-    // Include Templates and Forms folders in both private root and all teamspace root folders
-    const templateFolderPrefixes: Array<string> = []
-
-    // Private root folders
-    templateFolderPrefixes.push(templateFolderName)
-    templateFolderPrefixes.push(formsFolderName)
-
-    // Teamspace root folders
-    const teamspaces = getAllTeamspaceIDsAndTitles()
-    const teamspacePrefix = getTeamspaceRootIdentifier()
-    for (const teamspace of teamspaces) {
-      templateFolderPrefixes.push(`${teamspacePrefix}/${teamspace.id}/${templateFolderName}`)
-      templateFolderPrefixes.push(`${teamspacePrefix}/${teamspace.id}/${formsFolderName}`)
-    }
-
+    // Get all template folder prefixes (includes private root and all teamspace root folders)
+    const templateFolderPrefixes = await getTemplateFolderPrefixes()
+    
     logDebug(
       pluginJson,
       `getFilteredTemplateList: ${debugPrefix} Searching in ${templateFolderPrefixes.length} template folder prefixes: ${templateFolderPrefixes.slice(0, 4).join(', ')}${
@@ -268,17 +281,11 @@ export async function getFilenameFromTemplate(note: string = ''): Promise<string
     return 'INCOMPLETE'
   }
   
-  // Get template folder name from DataStore.preference (localized) or fall back to environment variable
-  const templateFolderEnv = await getTemplateFolder()
-  const templateFolderPreference = DataStore.preference('templateFolder')
-  const templateFolderName: string = (typeof templateFolderPreference === 'string' && templateFolderPreference) || templateFolderEnv || '@Templates'
+  // Get all template folder prefixes (includes private root and all teamspace root folders)
+  const templateFolderPrefixes = await getTemplateFolderPrefixes()
   
-  // Get Forms folder name - check if there's a preference, otherwise use default
-  const formsFolderPreference = DataStore.preference('formsFolder')
-  const formsFolderName: string = (typeof formsFolderPreference === 'string' && formsFolderPreference) || '@Forms'
-  
-  // Filter notes to only include those in Templates or Forms folders
-  const finalNotes = notes.filter((note) => note.filename.startsWith(templateFolderName) || note.filename.startsWith(formsFolderName))
+  // Filter notes to only include those in Templates or Forms folders (in any space)
+  const finalNotes = notes.filter((note) => templateFolderPrefixes.some((prefix) => note.filename.startsWith(prefix)))
   if (finalNotes.length > 1) {
     return 'MULTIPLE NOTES FOUND'
   } else if (finalNotes.length === 1) {
@@ -341,17 +348,11 @@ export async function getTemplateContent(templateName: string = '', options: any
   const parts = templateName.split('/')
   const filename = parts.pop()
 
-  // Get template folder name from DataStore.preference (localized) or fall back to environment variable
-  const templateFolderEnv = await getTemplateFolder()
-  const templateFolderPreference = DataStore.preference('templateFolder')
-  const templateFolderName: string = (typeof templateFolderPreference === 'string' && templateFolderPreference) || templateFolderEnv || '@Templates'
+  // Get all template folder prefixes (includes private root and all teamspace root folders)
+  const searchFolders = await getTemplateFolderPrefixes()
   
-  // Get Forms folder name - check if there's a preference, otherwise use default
-  const formsFolderPreference = DataStore.preference('formsFolder')
-  const formsFolderName: string = (typeof formsFolderPreference === 'string' && formsFolderPreference) || '@Forms'
-  
-  // Build list of folders to search in
-  const searchFolders: Array<string> = [templateFolderName, formsFolderName]
+  // Get template folder name for backward compatibility (first folder in list is typically the main template folder)
+  const templateFolderName = searchFolders[0] || '@Templates'
   
   let originalFilename = templateName
   let templateFilename = templateName
@@ -370,9 +371,12 @@ export async function getTemplateContent(templateName: string = '', options: any
       const fullFilename = templateFilename
       selectedTemplate = (await DataStore.projectNoteByFilename(fullFilename)) || null
       
-      // If not found, try with Forms folder
+      // If not found, try searching in all template folders
       if (!selectedTemplate && !hasFolderPath) {
-        selectedTemplate = (await DataStore.projectNoteByFilename(`${formsFolderName}/${templateName}`)) || null
+        for (const folder of searchFolders) {
+          selectedTemplate = (await DataStore.projectNoteByFilename(`${folder}/${templateName}`)) || null
+          if (selectedTemplate) break
+        }
       }
 
       // if the template can't be found using actual filename (as it is on disk)
@@ -399,7 +403,7 @@ export async function getTemplateContent(templateName: string = '', options: any
         templates = foundTemplates ? Array.from(foundTemplates) : []
         logDebug(pluginJson, `getTemplateContent: Found ${templates.length} notes in DataStore matching title: ${filename || ''}`)
         if (parts.length > 0 && templates && templates.length > 0) {
-          // ensure the path part matched - check against both folders
+          // ensure the path part matched - check against all template folders
           let path = parts.join('/')
           const pathMatchesFolder = searchFolders.some((folder) => path.startsWith(`${folder}/`))
           if (!pathMatchesFolder) {
@@ -409,7 +413,7 @@ export async function getTemplateContent(templateName: string = '', options: any
           templates = templates.filter((template) => searchFolders.some((folder) => template.filename.startsWith(folder)) && template.filename.startsWith(path)) || []
           logDebug(pluginJson, `getTemplateContent: Found ${templates.length} notes matching title: ${filename || ''} and path: ${path}`)
         } else {
-          // Filter to only templates in Templates or Forms folders
+          // Filter to only templates in Templates or Forms folders (in any space)
           templates = templates.filter((template) => searchFolders.some((folder) => template.filename.startsWith(folder))) || []
         }
       }
@@ -417,7 +421,7 @@ export async function getTemplateContent(templateName: string = '', options: any
         logWarn(pluginJson, `getTemplateContent: Multiple templates found for "${templateFilename || ''}"`)
         let templatesSecondary = []
         for (const template of templates) {
-          // Include templates from both Templates and Forms folders
+          // Include templates from all template folders (Templates and Forms in all spaces)
           if (template && searchFolders.some((folder) => template.filename.startsWith(folder))) {
             const parts = template.filename.split('/')
             parts.pop()
