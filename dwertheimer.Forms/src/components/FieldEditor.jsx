@@ -294,6 +294,13 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
               <textarea
                 value={editedField.description || ''}
                 onChange={(e) => updateField({ description: e.target.value })}
+                onKeyDown={(e) => {
+                  // Stop Enter key from bubbling to prevent any form submission
+                  if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    e.stopPropagation()
+                    // Don't prevent default - let textarea handle Enter naturally
+                  }
+                }}
                 placeholder="Help text shown below the field"
                 rows={2}
               />
@@ -333,7 +340,19 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             <>
               <div className="field-editor-row">
                 <label>Default Value:</label>
-                <textarea value={editedField.default || ''} onChange={(e) => updateField({ default: e.target.value })} placeholder="Default value (multi-line)" rows={3} />
+                <textarea
+                  value={editedField.default || ''}
+                  onChange={(e) => updateField({ default: e.target.value })}
+                  onKeyDown={(e) => {
+                    // Stop Enter key from bubbling to prevent any form submission
+                    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                      e.stopPropagation()
+                      // Don't prevent default - let textarea handle Enter naturally
+                    }
+                  }}
+                  placeholder="Default value (multi-line)"
+                  rows={3}
+                />
               </div>
               <div className="field-editor-row">
                 <label>
@@ -362,6 +381,13 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   value={((editedField: any): { templateJSContent?: string }).templateJSContent || ''}
                   onChange={(e) => {
                     updateField((({ templateJSContent: e.target.value }: any): Partial<TSettingItem>))
+                  }}
+                  onKeyDown={(e) => {
+                    // Stop Enter key from bubbling to prevent any form submission
+                    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                      e.stopPropagation()
+                      // Don't prevent default - let textarea handle Enter naturally
+                    }
                   }}
                   placeholder="// Enter JavaScript to run for this form"
                   rows={10}
@@ -1076,6 +1102,13 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                       .filter((h) => h.length > 0)
                     setEditedField(updated)
                   }}
+                  onKeyDown={(e) => {
+                    // Stop Enter key from bubbling to prevent any form submission
+                    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                      e.stopPropagation()
+                      // Don't prevent default - let textarea handle Enter naturally
+                    }
+                  }}
                   placeholder="Enter one heading per line&#10;Tasks&#10;Projects&#10;Archive"
                   rows={5}
                 />
@@ -1657,16 +1690,23 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                     {sourceType === 'static' && (
                       <div className="field-editor-row">
                         <label>Markdown Text:</label>
-                        <textarea
-                          value={((editedField: any): { markdownText?: string }).markdownText || ''}
-                          onChange={(e) => {
-                            const updated = { ...editedField }
-                            ;(updated: any).markdownText = e.target.value
-                            setEditedField(updated)
-                          }}
-                          placeholder="Enter markdown text to display..."
-                          rows={10}
-                        />
+                <textarea
+                  value={((editedField: any): { markdownText?: string }).markdownText || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).markdownText = e.target.value
+                    setEditedField(updated)
+                  }}
+                  onKeyDown={(e) => {
+                    // Stop Enter key from bubbling to prevent any form submission
+                    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                      e.stopPropagation()
+                      // Don't prevent default - let textarea handle Enter naturally
+                    }
+                  }}
+                  placeholder="Enter markdown text to display..."
+                  rows={10}
+                />
                         <div className="field-editor-help">Enter the markdown text to display (e.g., instructions)</div>
                       </div>
                     )}
@@ -1757,6 +1797,13 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   value={((editedField: any): { commentText?: string }).commentText || ''}
                   onChange={(e) => {
                     updateField((({ commentText: e.target.value }: any): Partial<TSettingItem>))
+                  }}
+                  onKeyDown={(e) => {
+                    // Stop Enter key from bubbling to prevent any form submission
+                    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                      e.stopPropagation()
+                      // Don't prevent default - let textarea handle Enter naturally
+                    }
                   }}
                   placeholder="Enter your comment or notes here (supports markdown)..."
                   rows={10}

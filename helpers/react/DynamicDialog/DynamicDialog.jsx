@@ -574,6 +574,12 @@ const DynamicDialog = ({
       // For regular Enter, check if the focused element is within a field that consumes Enter key
       const activeElement = document.activeElement
       if (activeElement instanceof HTMLElement) {
+        // First, check if the active element itself is a textarea (most common case)
+        if (activeElement.tagName === 'TEXTAREA') {
+          // Textareas should never submit on Enter - they create newlines
+          return
+        }
+
         // Look for the closest parent with data-field-type attribute
         const fieldContainer = activeElement.closest('[data-field-type]')
         if (fieldContainer instanceof HTMLElement) {
