@@ -13,6 +13,8 @@ import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
 import { getNote } from '@helpers/note'
 import { getTemplateFolder } from '../lib/config/configManager'
+import { getTemplateNote } from '../lib/NPTemplateNoteHelpers'
+import { getTemplateFolderPrefixes } from '../lib/core/templateManager'
 import { helpInfo } from '../lib/helpers'
 import { getSetting } from '@helpers/NPConfiguration'
 import { smartPrependPara, smartAppendPara } from '@helpers/paragraph'
@@ -114,15 +116,23 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
       let templateData, templateNote
       if (/<current>/i.test(selectedTemplate)) {
-        if (!Editor.filename.startsWith(`@Templates`)) {
-          logError(pluginJson, `You cannot use the <current> prompt in a template that is not located in the @Templates folder; Editor.filename=${Editor.filename}`)
-          await showMessage(pluginJson, `OK`, `You cannot use the <current> prompt in a template that is not located in the @Templates folder`)
+        // Check if current note is in any template folder (Templates or Forms, in any space)
+        const templateFolderPrefixes = await getTemplateFolderPrefixes()
+        const isInTemplateFolder = templateFolderPrefixes.some((prefix) => Editor.filename.startsWith(prefix))
+        if (!isInTemplateFolder) {
+          const templateFolderName = templateFolderPrefixes[0] || '@Templates'
+          logError(pluginJson, `You cannot use the <current> prompt in a template that is not located in a template folder; Editor.filename=${Editor.filename}`)
+          await showMessage(pluginJson, `OK`, `You cannot use the <current> prompt in a template that is not located in a template folder (e.g., ${templateFolderName})`)
           return
         }
         templateNote = Editor.note
         templateData = getContentWithLinks(Editor.note)
       } else {
-        templateNote = await getNote(selectedTemplate, true, `@Templates`)
+        templateNote = await getTemplateNote(selectedTemplate, true)
+        if (!templateNote) {
+          logError(pluginJson, `Unable to locate template "${selectedTemplate}"`)
+          return
+        }
         templateData = getContentWithLinks(templateNote)
       }
       const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
@@ -164,15 +174,23 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
       let templateData, templateNote
       if (/<current>/i.test(selectedTemplate)) {
-        if (!Editor.filename.startsWith(`@Templates`)) {
-          logError(pluginJson, `You cannot use the <current> prompt in a template that is not located in the @Templates folder; Editor.filename=${Editor.filename}`)
-          await showMessage(pluginJson, `OK`, `You cannot use the <current> prompt in a template that is not located in the @Templates folder`)
+        // Check if current note is in any template folder (Templates or Forms, in any space)
+        const templateFolderPrefixes = await getTemplateFolderPrefixes()
+        const isInTemplateFolder = templateFolderPrefixes.some((prefix) => Editor.filename.startsWith(prefix))
+        if (!isInTemplateFolder) {
+          const templateFolderName = templateFolderPrefixes[0] || '@Templates'
+          logError(pluginJson, `You cannot use the <current> prompt in a template that is not located in a template folder; Editor.filename=${Editor.filename}`)
+          await showMessage(pluginJson, `OK`, `You cannot use the <current> prompt in a template that is not located in a template folder (e.g., ${templateFolderName})`)
           return
         }
         templateNote = Editor.note
         templateData = getContentWithLinks(Editor.note)
       } else {
-        templateNote = await getNote(selectedTemplate, true, `@Templates`)
+        templateNote = await getTemplateNote(selectedTemplate, true)
+        if (!templateNote) {
+          logError(pluginJson, `Unable to locate template "${selectedTemplate}"`)
+          return
+        }
         templateData = getContentWithLinks(templateNote)
       }
 

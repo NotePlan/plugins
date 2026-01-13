@@ -13,6 +13,7 @@ import { logError, logDebug, JSP, clo, overrideSettingsWithStringArgs, timer, lo
 import { getISOWeekAndYear, getISOWeekString, isValidCalendarNoteTitleStr } from '@helpers/dateTime'
 import { getNPWeekData } from '@helpers/NPdateTime'
 import { getNote } from '@helpers/note'
+import { getTemplateNote } from '../lib/NPTemplateNoteHelpers'
 import { chooseNote } from '@helpers/userInput'
 import { getNoteTitleFromTemplate } from '@helpers/NPFrontMatter'
 import { replaceDoubleDashes } from '../lib/engine/templateRenderer'
@@ -1029,7 +1030,7 @@ export async function addFrontmatterToTemplate(_templateToGet?: string = '', ope
     const templateToGet = _templateToGet || Editor.filename || ''
     let theNote = null
     if (templateToGet) {
-      theNote = await getNote(templateToGet, null, NotePlan.environment.templateFolder || '@Templates')
+      theNote = await getTemplateNote(templateToGet, true)
     } else {
       theNote = Editor.note || null
     }
