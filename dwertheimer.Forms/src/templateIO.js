@@ -402,8 +402,17 @@ export async function updateReceivingTemplateWithFields(receivingTemplateTitle: 
     
     logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Found receiving note: "${receivingNote.filename}", type="${receivingNote.frontmatterAttributes?.type || 'none'}"`)
 
-    // Extract fields that have keys (only fields that have keys, excluding separators and headings)
-    const fieldsWithKeys = fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')
+    // Extract fields that have keys (only fields that have keys, excluding separators, headings, templatejs-block, and other display-only fields)
+    const fieldsWithKeys = fields.filter(
+      (f) =>
+        f.key &&
+        f.type !== 'separator' &&
+        f.type !== 'heading' &&
+        f.type !== 'templatejs-block' &&
+        f.type !== 'markdown-preview' &&
+        f.type !== 'button' &&
+        f.type !== 'table-of-contents',
+    )
 
     logDebug(pluginJson, `[${updateId}] updateReceivingTemplateWithFields: Found ${fieldsWithKeys.length} fields with keys to add`)
 
