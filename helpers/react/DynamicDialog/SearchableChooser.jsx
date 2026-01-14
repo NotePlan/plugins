@@ -239,11 +239,19 @@ export function SearchableChooser({
   // Calculate dropdown position when it opens and on scroll/resize
   useEffect(() => {
     if (isOpen && inputRef.current) {
+      let rafId: ?number = null
       const updatePosition = () => {
+        // Coalesce bursts of layout changes (async data loads can trigger many resizes)
+        if (rafId != null) {
+          cancelAnimationFrame(rafId)
+        }
+        rafId = requestAnimationFrame(() => {
+          rafId = null
         const position = calculateDropdownPosition()
         if (position) {
           setDropdownPosition(position)
         }
+        })
       }
 
       // Calculate position immediately
@@ -269,6 +277,21 @@ export function SearchableChooser({
         }
       }
 
+      // Handle layout shifts that *aren't* scroll/resize events (e.g. async data changes dialog height)
+      // Use ResizeObserver while dropdown is open to keep the portal aligned.
+      let resizeObserver: any = null
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => updatePosition())
+        // Observe the nearest dialog (if present) and the chooser container itself
+        const dialogEl = inputEl instanceof HTMLElement ? inputEl.closest('.dynamic-dialog') : null
+        if (dialogEl instanceof HTMLElement) {
+          resizeObserver.observe(dialogEl)
+        }
+        if (containerRef.current instanceof HTMLElement) {
+          resizeObserver.observe(containerRef.current)
+        }
+      }
+
       return () => {
         window.removeEventListener('scroll', updatePosition, true)
         window.removeEventListener('resize', updatePosition)
@@ -276,6 +299,12 @@ export function SearchableChooser({
         scrollableParents.forEach((el) => {
           el.removeEventListener('scroll', updatePosition)
         })
+        if (resizeObserver) {
+          resizeObserver.disconnect()
+        }
+        if (rafId != null) {
+          cancelAnimationFrame(rafId)
+        }
       }
     } else {
       setDropdownPosition(null)
