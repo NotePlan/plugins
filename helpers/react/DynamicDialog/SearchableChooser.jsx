@@ -407,6 +407,19 @@ export function SearchableChooser({
       return
     }
 
+    // Handle Tab key: close dropdown and allow normal tab navigation
+    if (e.key === 'Tab') {
+      if (isOpen) {
+        // Close dropdown when Tab is pressed, but don't prevent default
+        // This allows normal tab navigation to proceed
+        setIsOpen(false)
+        setSearchTerm('')
+        setHoveredIndex(null)
+      }
+      // Don't prevent default - allow Tab to move to next field
+      return
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault() // Prevent form submission
       e.stopPropagation() // Stop event from bubbling to DynamicDialog
