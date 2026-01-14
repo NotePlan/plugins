@@ -432,29 +432,26 @@ export async function getTemplateContent(templateName: string = '', options: any
       }
       if (templates && templates.length > 1) {
         logWarn(pluginJson, `getTemplateContent: Multiple templates found for "${templateFilename || ''}"`)
-        let templatesSecondary = []
-        for (const template of templates) {
-          // Include templates from all template folders (Templates and Forms in all spaces)
-          if (template && searchFolders.some((folder) => template.filename.startsWith(folder))) {
-            const parts = template.filename.split('/')
-            parts.pop()
-            // $FlowIgnore
-            templatesSecondary.push({ value: template.filename, label: `${parts.join('/')}/${template.title}`, title: template.title })
-          }
-        }
+        // Filter templates to only include those in template folders (Templates and Forms in all spaces)
+        const filteredTemplates = templates.filter((template) => template && searchFolders.some((folder) => template.filename.startsWith(folder)))
 
-        if (templatesSecondary.length > 1) {
-          logDebug(pluginJson, `getTemplateContent: pulled together ${templatesSecondary.length} templates in ${timer(startTime)}`)
-          // TODO: use chooseNoteV2 instead of chooseOption
-          // $FlowIgnore
-          let selectedItem = (await chooseOption<TNote, void>('Choose Template', templatesSecondary)) || null
-          if (selectedItem) {
-            // $FlowIgnore
-            selectedTemplate = await DataStore.projectNoteByFilename(selectedItem)
+        if (filteredTemplates.length > 1) {
+          logDebug(pluginJson, `getTemplateContent: pulled together ${filteredTemplates.length} templates in ${timer(startTime)}`)
+          // Use chooseNoteV2 to show decorated note selection (includes icons, colors, folder paths, etc.)
+          // This will show templates from both @Templates and @Forms directories across all spaces
+          const selectedNote = await chooseNoteV2(
+            'Choose Template',
+            filteredTemplates,
+            false, // includeCalendarNotes - templates are always regular notes
+            false, // includeFutureCalendarNotes
+            false, // currentNoteFirst
+            false, // allowNewRegularNoteCreation - don't allow creating new notes from template chooser
+          )
+          if (selectedNote) {
+            selectedTemplate = selectedNote
           }
-        } else if (templatesSecondary.length === 1) {
-          // $FlowIgnore
-          selectedTemplate = await DataStore.projectNoteByFilename(templatesSecondary[0].value)
+        } else if (filteredTemplates.length === 1) {
+          selectedTemplate = filteredTemplates[0]
         } else {
           logError(pluginJson, `getTemplateContent: No templates found for ${templateFilename}`)
         }

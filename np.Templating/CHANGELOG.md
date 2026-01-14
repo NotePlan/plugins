@@ -37,11 +37,16 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
     - Fixes issue where form processing templates stored in @Forms weren't found by `templateRunner` and `getTemplateNote` when processing form submissions
     - Fixes issue where templates in teamspaces weren't found by template search functions
   - **Impact**: Templates can now be stored in @Forms directory (for form processing) or @Templates directory (for regular templates), in both private root and teamspace root folders, and all search functions will find them correctly
-- Replace `chooseNote` with `chooseNoteV2` in template runner and template chooser
+- Replace `chooseNote` with `chooseNoteV2` throughout np.Templating
   - Updated `handleNoteSelection` function in `NPTemplateRunner.js` to use `chooseNoteV2` instead of deprecated `chooseNote`
+    - Uses `DataStore.projectNotes` which includes notes from all spaces (private and teamspaces)
   - Updated `chooseTemplate` function in `templateManager.js` to use `chooseNoteV2` instead of `chooseOption`
+    - Templates from both @Templates and @Forms directories (across all spaces) are properly displayed
+  - Updated `getTemplateContent` function in `templateManager.js` to use `chooseNoteV2` instead of `chooseOption`
+    - When multiple templates match, user selection now shows decorated UI with folder paths
+    - Templates from all template folders (Templates, Forms, all teamspaces) are included
   - `chooseNoteV2` provides better UI with decorated options, icons, colors, and folder paths
-  - Templates from both @Templates and @Forms directories (across all spaces) are now properly displayed with their full paths
+  - All note selection now searches across all spaces (private root and all teamspace root folders)
   - Updated test mocks to use `chooseNoteV2`
   - Note: `chooseNote` is still available in templates via `helpers.chooseNote` for backward compatibility, but `helpers.chooseNoteV2` is recommended for new templates
 
