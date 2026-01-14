@@ -561,8 +561,8 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
 
       let win: HTMLView | TEditor | false
       let success: boolean = false
-      logInfo('showHTMLV2', `- NotePlan build ${NotePlan.environment.buildVersion} on platform ${NotePlan.environment.platform}`)
-      logInfo('showHTMLV2', `- opts.showInMainWindow: ${String(opts.showInMainWindow)} and usersVersionHas('showInMainWindow'): ${String(usersVersionHas('showInMainWindow'))}`)
+      logDebug('showHTMLV2', `- NotePlan build ${NotePlan.environment.buildVersion} on platform ${NotePlan.environment.platform}`)
+      logDebug('showHTMLV2', `- opts.showInMainWindow: ${String(opts.showInMainWindow)} and usersVersionHas('showInMainWindow'): ${String(usersVersionHas('showInMainWindow'))}`)
 
       // Decided what type of window to use.
       // - If macOS v3.20.0 or later, then choice of main/split/new, otherwise show in floating window.
