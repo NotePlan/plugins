@@ -60,10 +60,10 @@ Type any of these commands:
 2. **Create New Form**: Click "Create New Form" and give it a name (e.g., "Project Form")
 
 3. **Add Fields**: Click "+ Add Field" and select field types:
-   - **Text Input** - For entering text (project name, description, etc.)
-   - **Textarea** - For longer text entries
+   - **Text Input** - For entering short, single-line text (project name, description, etc.)
+   - **Textarea** - For longer text entries, potentially multiple lines of text
    - **Number** - For numeric values
-   - **Switch** - For yes/no options
+   - **Switch** - For yes/no (true/false) options
    - **Dropdown** - For selecting from a list
    - **Date Picker** - For selecting dates
    - **Note Chooser** - For selecting a note
@@ -76,7 +76,7 @@ Type any of these commands:
    - **Description**: Help text below the field
    - **Default Value**: Pre-filled value
    - **Required**: Must be filled out
-   - **Compact Display**: Show label and field side-by-side
+   - **Compact Display**: Show label and field side-by-side on one line (default is label above, field below)
 
 5. **Configure Form Output** (left sidebar under "Form Settings"):
    
