@@ -19,6 +19,158 @@
   margin: 0 !important;
 }
 
+/* Template Form Specific Styles */
+.dynamic-dialog.template-form .ui-button-group {
+  justify-content: normal;
+}
+
+/* CSS Variables for template form compact mode sizing */
+/* These can be overridden via inline styles or form-specific CSS */
+.dynamic-dialog.template-form {
+  --template-form-compact-label-width: 10rem; /* Default label width - can be overridden */
+  --template-form-compact-input-width: 180px; /* Default input width - can be overridden */
+}
+
+/* Ensure dynamic-dialog-content doesn't add extra left padding that misaligns labels */
+.dynamic-dialog.template-form .dynamic-dialog-content {
+  /* Keep the padding for spacing, but ensure it's consistent */
+  /* The padding is already set in DynamicDialog.css, we just need to ensure labels align within it */
+}
+
+/* For template forms, ensure all compact labels are right-aligned with consistent width */
+/* This ensures all labels line up vertically in compact mode */
+/* Override the min-width: fit-content rule from DynamicDialog.css and SearchableChooser.css */
+.dynamic-dialog.template-form .input-box-container-compact .input-box-label,
+.dynamic-dialog.template-form [class*="-chooser-container"].compact [class*="-chooser-label"],
+.dynamic-dialog.template-form [class*="-chooser-container"].compact label,
+.dynamic-dialog.template-form [class*="-chooser-label-compact"],
+.dynamic-dialog.template-form .contained-multi-select-label-compact,
+.dynamic-dialog.template-form .contained-multi-select-container.compact label,
+.dynamic-dialog.template-form .searchable-chooser-base.compact [class*="-chooser-label"],
+.dynamic-dialog.template-form .searchable-chooser-base.compact label,
+.dynamic-dialog.template-form .searchable-chooser-base.compact > label,
+.dynamic-dialog.template-form .expandable-textarea-container.compact .expandable-textarea-label,
+.dynamic-dialog.template-form .autosave-field-container.compact .autosave-field-label {
+  text-align: right !important;
+  min-width: var(--template-form-compact-label-width, 10rem) !important;
+  max-width: var(--template-form-compact-label-width, 10rem) !important;
+  width: var(--template-form-compact-label-width, 10rem) !important;
+  padding-right: 1rem !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  margin-bottom: 0 !important;
+  align-self: center !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  order: -1 !important; /* Ensure labels come first in flex container */
+  display: block !important; /* Override any inline-flex or other display values */
+}
+
+/* Ensure the compact container itself uses flex to align labels */
+/* Also target nested containers to remove all left spacing */
+.dynamic-dialog.template-form .input-box-container-compact,
+.dynamic-dialog.template-form [class*="-chooser-container"].compact,
+.dynamic-dialog.template-form .searchable-chooser-base.compact,
+.dynamic-dialog.template-form .expandable-textarea-container.compact,
+.dynamic-dialog.template-form .autosave-field-container.compact,
+.dynamic-dialog.template-form [class*="-chooser-container"].compact [class*="-chooser-container"].compact,
+.dynamic-dialog.template-form [class*="-chooser-container"].compact .searchable-chooser-base,
+.dynamic-dialog.template-form [data-field-type] [class*="-chooser-container"].compact,
+.dynamic-dialog.template-form [data-field-type] .searchable-chooser-base.compact {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Ensure parent containers don't add extra spacing that would misalign labels */
+.dynamic-dialog.template-form .ui-item,
+.dynamic-dialog.template-form .dynamic-dialog-item {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Ensure all compact field containers start at the same horizontal position */
+/* Target all nested wrapper divs to remove any spacing */
+.dynamic-dialog.template-form .ui-item > .input-box-container-compact,
+.dynamic-dialog.template-form .ui-item > [class*="-chooser-container"].compact,
+.dynamic-dialog.template-form .ui-item > .searchable-chooser-base.compact,
+.dynamic-dialog.template-form .ui-item > .expandable-textarea-container.compact,
+.dynamic-dialog.template-form .ui-item > .autosave-field-container.compact,
+.dynamic-dialog.template-form .ui-item > div > .input-box-container-compact,
+.dynamic-dialog.template-form .ui-item > div > [class*="-chooser-container"].compact,
+.dynamic-dialog.template-form .ui-item > div > .searchable-chooser-base.compact,
+.dynamic-dialog.template-form .ui-item [data-field-type] > [class*="-chooser-container"].compact,
+.dynamic-dialog.template-form .ui-item [data-field-type] > .searchable-chooser-base.compact,
+.dynamic-dialog.template-form [class*="-chooser-container"].compact [class*="-chooser-container"].compact,
+.dynamic-dialog.template-form [class*="-chooser-container"].compact .searchable-chooser-base {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Ensure labels are positioned at exactly the same left edge by removing any margin/padding */
+/* Also ensure any wrapper divs don't add spacing */
+.dynamic-dialog.template-form .input-box-container-compact .input-box-label,
+.dynamic-dialog.template-form [class*="-chooser-container"].compact [class*="-chooser-label"],
+.dynamic-dialog.template-form [class*="-chooser-container"].compact label,
+.dynamic-dialog.template-form [class*="-chooser-label-compact"],
+.dynamic-dialog.template-form .contained-multi-select-label-compact,
+.dynamic-dialog.template-form .contained-multi-select-container.compact label,
+.dynamic-dialog.template-form .searchable-chooser-base.compact [class*="-chooser-label"],
+.dynamic-dialog.template-form .searchable-chooser-base.compact label,
+.dynamic-dialog.template-form .expandable-textarea-container.compact .expandable-textarea-label,
+.dynamic-dialog.template-form .autosave-field-container.compact .autosave-field-label,
+.dynamic-dialog.template-form .input-box-container-compact > div:first-child.input-box-label {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Target nested wrapper divs that contain compact fields - remove all left spacing */
+/* Target the outer data-field-type wrapper and its direct children when they contain compact fields */
+.dynamic-dialog.template-form [data-field-type="dropdown-select"],
+.dynamic-dialog.template-form [data-field-type="folder-chooser"],
+.dynamic-dialog.template-form [data-field-type="note-chooser"],
+.dynamic-dialog.template-form [data-field-type="space-chooser"],
+.dynamic-dialog.template-form [data-field-type="heading-chooser"],
+.dynamic-dialog.template-form [data-field-type="event-chooser"],
+.dynamic-dialog.template-form [data-field-type="tag-chooser"],
+.dynamic-dialog.template-form [data-field-type="mention-chooser"],
+.dynamic-dialog.template-form [data-field-type="frontmatter-key-chooser"] {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+.dynamic-dialog.template-form [data-field-type] > div[class*="-chooser-container"],
+.dynamic-dialog.template-form [data-field-type] > div[class*="-chooser-container"] > div {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Use CSS variable for input field widths in template forms */
+/* This allows both labels and inputs to align their right edges */
+/* Cover all field types: InputBox, SearchableChooser, ThemedSelect, ExpandableTextarea, CalendarPicker, AutosaveField */
+.dynamic-dialog.template-form .input-box-container-compact .input-box-wrapper,
+.dynamic-dialog.template-form .input-box-container-compact .input-box-input,
+.dynamic-dialog.template-form [class*="-chooser-container"].compact [class*="-chooser-input-wrapper"],
+.dynamic-dialog.template-form .searchable-chooser-base.compact [class*="-chooser-input-wrapper"],
+.dynamic-dialog.template-form .input-box-container-compact .input-box-wrapper > div, /* ThemedSelect react-select container */
+.dynamic-dialog.template-form .input-box-container-compact .input-box-wrapper .react-select__control,
+.dynamic-dialog.template-form .expandable-textarea-container.compact .expandable-textarea-input,
+.dynamic-dialog.template-form .calendarpicker-container.compact .calendarpicker-input-wrapper,
+.dynamic-dialog.template-form .autosave-field-container.compact .autosave-field-input-wrapper,
+.dynamic-dialog.template-form .autosave-field-container.compact .autosave-field-input {
+  width: var(--template-form-compact-input-width, 180px) !important;
+  min-width: var(--template-form-compact-input-width, 180px) !important;
+  max-width: var(--template-form-compact-input-width, 180px) !important;
+}
+
 /* Form View Styles */
 .form-view {
   label {

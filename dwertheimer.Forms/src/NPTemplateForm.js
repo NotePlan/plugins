@@ -272,16 +272,22 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
     // These contain template tags that reference form field values and should not be processed during form opening
     if (templateNote) {
       if (templateNote) {
+        // Remove customCSS from frontmatter (it should only come from codeblock)
+        delete frontmatterAttributes.customCSS
+
         // Load templateBody from codeblock
         const templateBodyFromCodeblock = await loadTemplateBodyFromTemplate(templateNote)
         if (templateBodyFromCodeblock) {
           frontmatterAttributes.templateBody = templateBodyFromCodeblock
         }
 
-        // Load custom CSS from codeblock
+        // Load custom CSS from codeblock (always use codeblock, not frontmatter)
         const customCSSFromCodeblock = await loadCustomCSSFromTemplate(templateNote)
         if (customCSSFromCodeblock) {
           frontmatterAttributes.customCSS = customCSSFromCodeblock
+        } else {
+          // Ensure it's empty if codeblock doesn't exist
+          frontmatterAttributes.customCSS = ''
         }
 
         // Load TemplateRunner args from codeblock

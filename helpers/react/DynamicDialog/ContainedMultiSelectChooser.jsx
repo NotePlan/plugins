@@ -32,6 +32,7 @@ export type ContainedMultiSelectChooserProps = {
   onCreate?: (newItem: string) => Promise<void> | void, // Callback when creating a new item
   singleValue?: boolean, // If true, allow selecting only one value (no checkboxes, returns single value) (default: false)
   renderAsDropdown?: boolean, // If true and singleValue is true, render as dropdown-select instead of filterable chooser (default: false)
+  fieldKey?: string, // Unique key for this field instance (used to generate unique input id)
 }
 
 /**
@@ -64,12 +65,16 @@ export function ContainedMultiSelectChooser({
   onCreate,
   singleValue = false,
   renderAsDropdown = false,
+  fieldKey,
 }: ContainedMultiSelectChooserProps): React$Node {
   const searchInputRef = useRef<?HTMLInputElement>(null)
   const [showCreateMode, setShowCreateMode] = useState<boolean>(false)
   const [createValue, setCreateValue] = useState<string>('')
   const [isCreating, setIsCreating] = useState<boolean>(false)
   const [showList, setShowList] = useState<boolean>(true) // For single-value mode: show list or show selected value
+  
+  // Generate unique input id - use fieldKey if provided, otherwise fallback to fieldType with random suffix
+  const inputId = fieldKey ? `${fieldType}-${fieldKey}-search` : `${fieldType}-search-${Math.random().toString(36).substr(2, 9)}`
 
   // Filter items based on include/exclude patterns
   const filteredItems = useMemo(() => {
@@ -458,13 +463,14 @@ export function ContainedMultiSelectChooser({
         {/* Top row: Label (compact), Filter, Clear, Select All, Select None */}
         <div className="contained-multi-select-header">
           {label && compactDisplay && (
-            <label className="contained-multi-select-label-compact" htmlFor={`${fieldType}-search`}>
+            <label className="contained-multi-select-label-compact" htmlFor={inputId}>
               {label}
             </label>
           )}
           <div className="contained-multi-select-search-wrapper">
             <input
-              id={`${fieldType}-search`}
+              id={inputId}
+              name={fieldKey || inputId}
               ref={searchInputRef}
               type="text"
               className={`contained-multi-select-search-input ${showCreateMode ? 'create-mode' : ''} ${singleValue && hasSelectedValue && !showList ? 'single-value-selected' : ''}`}

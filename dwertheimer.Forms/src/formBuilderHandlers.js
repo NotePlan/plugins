@@ -676,9 +676,10 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       const frontmatterForSave = { ...data.frontmatter }
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter to save: ${JSON.stringify(frontmatterForSave)}`)
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: receivingTemplateTitle="${frontmatterForSave.receivingTemplateTitle || 'MISSING'}"`)
-      // Remove TemplateRunner args and templateBody from frontmatter
-      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Removing TemplateRunner args from frontmatter`)
+      // Remove TemplateRunner args, templateBody, and customCSS from frontmatter (they're in codeblocks)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Removing TemplateRunner args, templateBody, and customCSS from frontmatter`)
       delete frontmatterForSave.templateBody
+      delete frontmatterForSave.customCSS
       templateRunnerArgKeys.forEach((key) => {
         delete frontmatterForSave[key]
       })
