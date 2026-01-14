@@ -368,6 +368,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
     let selectedTemplate
     let formFields: Array<Object> = []
     let templateNote = null
+    let isNewForm = false // Track if this is a newly created form
     const receivingTemplateTitle: string = '' // Track receiving template title for newly created forms
 
     if (templateTitle?.trim().length) {
@@ -527,6 +528,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         }
 
         selectedTemplate = filename
+        isNewForm = true // Mark this as a new form so default comment field is added
         logDebug(pluginJson, `openFormBuilder: Set frontmatter and selectedTemplate = ${selectedTemplate}, receivingTemplateTitle = "${receivingTemplateTitle}"`)
 
         // Generate processing template link if receiving template exists
@@ -737,6 +739,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
       templateFilename: selectedTemplate,
       templateTitle: templateNote?.title || '',
       initialReceivingTemplateTitle: initialReceivingTemplateTitle,
+      isNewForm: isNewForm, // Pass isNewForm flag so default comment field is added
     })
     logDebug(pluginJson, `openFormBuilder: openFormBuilderWindow call completed`)
   } catch (error) {
