@@ -4,6 +4,7 @@
 // by @jgclark, @dwertheimer
 //-----------------------------------------------------------------------------
 
+import { trimString } from '@helpers/dataManipulation'
 import {
   getNPWeekStr,
   RE_ISO_DATE,
@@ -632,4 +633,12 @@ export function validateObjectString(str: string): Array<string> {
   }
 
   return errors
+}
+
+export function prepAndTruncateMarkdownForDisplay(markdownIn: string, maxLength: number): string {
+  // Trim markdown links just to show [title] from [title](url)
+  // Replace [title](url) with just the [title] part, stripping the url
+  const simplifiedLinks = markdownIn.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '[$1]')
+  const textOut = trimString(simplifiedLinks, maxLength)
+  return textOut
 }

@@ -3,19 +3,19 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-01-11 for v1.3.0.b3, @jgclark
+// Last updated 2026-01-14 for v1.3.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
 import { addFAIcon } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
-import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
+import { logWarn } from '@helpers/dev'
+import { getFolderDisplayNameForHTML } from '@helpers/folders'
 import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 import { makePluginCommandButton, makeSVGPercentRing, redToGreenInterpolation } from '@helpers/HTMLView'
+import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getLineMainContentPos } from '@helpers/search'
-import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
-import { getFolderDisplayNameForHTML } from '@helpers/folders'
-import { logWarn } from '@helpers/dev'
+import { encodeRFC3986URIComponent, prepAndTruncateMarkdownForDisplay } from '@helpers/stringTransforms'
 
 //-----------------------------------------------------------------------------
 // Project Row HTML Generation
@@ -72,7 +72,7 @@ export function generateProjectOutputLine(
  */
 function generateRichHTMLRow(thisProject: Project, config: any, statsProgress: string): string {
   const parts: Array<string> = []
-  parts.push('\t<tr class="projectRow">\n\t\t')
+  parts.push(`\t<tr class="projectRow">\n\t\t`)
   parts.push(generateCircleIndicator(thisProject))
 
   // Column 2a: Project name / link / edit dialog trigger button
@@ -153,7 +153,8 @@ function generateProgressSection(thisProject: Project, config: any, statsProgres
 }
 
 /**
- * Generate next actions section HTML
+ * Generate next actions text lines as HTML <divs>.
+ * Prepares and truncates long next actions to 80 characters, with ellipsis if truncated. Also simplifies Markdown links to just the [title].
  * @param {any} config
  * @param {Array<string>} nextActionsContent
  * @returns {string}
@@ -164,7 +165,9 @@ function generateNextActionsSection(config: any, nextActionsContent: Array<strin
 
   const parts: Array<string> = []
   for (const NAContent of nextActionsContent) {
-    parts.push(`\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${NAContent}</span></div>`)
+    // const truncatedNAContent = trimString(NAContent, 80)
+    const truncatedNAContent = prepAndTruncateMarkdownForDisplay(NAContent, 80)
+    parts.push(`\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${truncatedNAContent}</span></div>`)
   }
   return parts.join('')
 }
