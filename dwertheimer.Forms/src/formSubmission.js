@@ -312,30 +312,62 @@ async function processWriteExisting(data: any, reactWindowData: PassedData): Pro
   const { getNoteTitled, location, writeUnderHeading, createMissingHeading, formValues, shouldOpenInEditor } = data
 
   if (!getNoteTitled) {
-    await showMessage('No target note was specified. Please set a target note in your form settings.')
+    logError(pluginJson, `processWriteExisting: No target note was specified. Please set a target note in your form settings.`)
+    // await showMessage('No target note was specified. Please set a target note in your form settings.')
     return null
   }
 
-  // Step 1: Build template body
+  // Step 1: Prepare form values and get templating context
+  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  const templatingContext = await getTemplatingContext(formValuesForRendering)
+
+  // Step 2: Extract and execute templatejs blocks
   const formFields = reactWindowData?.pluginData?.formFields || []
+  const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
+
+  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext)
+  if (fullContext === null) {
+    return null // Error occurred during templatejs block execution
+  }
+
+  // Step 3: Extract only form-specific variables (form values + templatejs block results)
+  // Don't pass templating context (modules, globals) to templateRunner - it will add those itself
+  const templatingContextKeys = new Set(Object.keys(templatingContext))
+
+  // Build a clean object with only form-specific variables
+  const formSpecificVars: { [string]: any } = {}
+  Object.keys(fullContext).forEach((key) => {
+    // Only include keys that are NOT in the templating context (i.e., form values or templatejs block results)
+    if (!templatingContextKeys.has(key)) {
+      formSpecificVars[key] = fullContext[key]
+    }
+  })
+
+  // Also include original form values (in case templatejs blocks didn't add them)
+  Object.keys(formValuesForRendering).forEach((key) => {
+    if (!(key in formSpecificVars)) {
+      formSpecificVars[key] = formValuesForRendering[key]
+    }
+  })
+
+  // Step 4: Build template body (DO NOT insert templatejs blocks - they're already executed)
   const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
-  const baseTemplateBody =
+  const finalTemplateBody =
     templateBody ||
-    Object.keys(formValues)
+    Object.keys(formSpecificVars)
       .filter((key) => key !== '__isJSON__')
       .map((key) => `${key}: <%- ${key} %>`)
       .join('\n')
 
-  // Step 2: Insert TemplateJS blocks into templateBody
-  const finalTemplateBody = insertTemplateJSBlocks(baseTemplateBody, formFields)
-
-  // Step 3: Prepare form values and build templateRunner args
-  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  // Step 5: Build templateRunner args with form-specific variables
   const templateRunnerArgs: { [string]: any } = {
     getNoteTitled,
     templateBody: finalTemplateBody,
-    ...formValuesForRendering,
   }
+  // Add form-specific variables (spread after explicit keys to avoid Flow error)
+  Object.keys(formSpecificVars).forEach((key) => {
+    templateRunnerArgs[key] = formSpecificVars[key]
+  })
 
   // Step 4: Handle location options
   if (location === 'replace') {
@@ -389,43 +421,45 @@ async function processRunJSOnly(data: any, reactWindowData: PassedData): Promise
 
   logDebug(pluginJson, `processRunJSOnly: formFields.length=${formFields.length}`)
 
-  // Step 1: Extract all TemplateJS blocks
-  const templateJSBlocks: Array<string> = []
-  formFields.forEach((field) => {
-    if (field.type === 'templatejs-block' && field.templateJSContent && field.key) {
-      const rawCode = String(field.templateJSContent).trim()
-      // Sanitize the code (replace smart quotes, etc.)
-      const code = sanitizeTemplateJSCode(rawCode)
-      logDebug(pluginJson, `processRunJSOnly: Found templatejs-block field "${field.key}" with ${code.length} chars of code`)
-      if (code) {
-        templateJSBlocks.push(code)
-      }
-    }
-  })
+  // Step 1: Prepare form values and get templating context
+  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  const templatingContext = await getTemplatingContext(formValuesForRendering)
+
+  // Step 2: Extract and execute templatejs blocks
+  const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
 
   if (templateJSBlocks.length === 0) {
     await showMessage('No TemplateJS block found in form fields. Please add a TemplateJS Block field to your form with the JavaScript code to execute.')
     return null
   }
 
-  // Step 2: Combine all TemplateJS blocks
-  const finalTemplateBody = templateJSBlocks.map((code) => `\`\`\`templatejs\n${code}\n\`\`\``).join('\n')
+  logDebug(pluginJson, `processRunJSOnly: Found ${templateJSBlocks.length} templatejs blocks to execute`)
 
-  // Step 3: Prepare form values
-  const formValuesForRendering = prepareFormValuesForRendering(formValues)
-  logDebug(pluginJson, `processRunJSOnly: formValues keys: ${Object.keys(formValuesForRendering).join(', ')}`)
-
-  // Step 4: Execute JavaScript directly using templating plugin's render command
-  try {
-    logDebug(pluginJson, `processRunJSOnly: About to execute JavaScript with form values`)
-    const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [finalTemplateBody, formValuesForRendering])
-    handleTemplateRunnerResult(result, reactWindowData)
-    logDebug(pluginJson, `processRunJSOnly: JavaScript executed successfully`)
-  } catch (error) {
-    logError(pluginJson, `processRunJSOnly: Error executing JavaScript: ${error.message}`)
-    await showMessage(`Error executing JavaScript: ${error.message}`)
-    return null
+  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext)
+  if (fullContext === null) {
+    return null // Error occurred during templatejs block execution
   }
+
+  // Step 3: Extract only form-specific variables (form values + templatejs block results)
+  // Don't pass templating context (modules, globals) - we just want the results
+  const templatingContextKeys = new Set(Object.keys(templatingContext))
+
+  // Build a clean object with only form-specific variables (the results)
+  const results: { [string]: any } = {}
+  Object.keys(fullContext).forEach((key) => {
+    // Only include keys that are NOT in the templating context (i.e., form values or templatejs block results)
+    if (!templatingContextKeys.has(key)) {
+      results[key] = fullContext[key]
+    }
+  })
+
+  // Step 4: Show results to user (or store in reactWindowData for display)
+  const resultsString = Object.keys(results)
+    .map((key) => `${key}: ${JSON.stringify(results[key])}`)
+    .join('\n')
+
+  logDebug(pluginJson, `processRunJSOnly: JavaScript executed successfully. Results: ${resultsString}`)
+  await showMessage(`JavaScript executed successfully.\n\nResults:\n${resultsString}`)
 
   return reactWindowData
 }
@@ -446,26 +480,57 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
     return null
   }
 
-  // Step 2: Build template body
+  // Step 2: Prepare form values and get templating context
+  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  const templatingContext = await getTemplatingContext(formValuesForRendering)
+
+  // Step 3: Extract and execute templatejs blocks
   const formFields = reactWindowData?.pluginData?.formFields || []
+  const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
+
+  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext)
+  if (fullContext === null) {
+    return null // Error occurred during templatejs block execution
+  }
+
+  // Step 4: Extract only form-specific variables (form values + templatejs block results)
+  // Don't pass templating context (modules, globals) to templateRunner - it will add those itself
+  const templatingContextKeys = new Set(Object.keys(templatingContext))
+
+  // Build a clean object with only form-specific variables
+  const formSpecificVars: { [string]: any } = {}
+  Object.keys(fullContext).forEach((key) => {
+    // Only include keys that are NOT in the templating context (i.e., form values or templatejs block results)
+    if (!templatingContextKeys.has(key)) {
+      formSpecificVars[key] = fullContext[key]
+    }
+  })
+
+  // Also include original form values (in case templatejs blocks didn't add them)
+  Object.keys(formValuesForRendering).forEach((key) => {
+    if (!(key in formSpecificVars)) {
+      formSpecificVars[key] = formValuesForRendering[key]
+    }
+  })
+
+  // Step 5: Build template body (DO NOT insert templatejs blocks - they're already executed)
   const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
-  const baseTemplateBody =
+  const finalTemplateBody =
     templateBody ||
-    Object.keys(formValues)
+    Object.keys(formSpecificVars)
       .filter((key) => key !== '__isJSON__')
       .map((key) => `${key}: <%- ${key} %>`)
       .join('\n')
 
-  // Step 3: Insert TemplateJS blocks
-  const finalTemplateBody = insertTemplateJSBlocks(baseTemplateBody, formFields)
-
-  // Step 4: Prepare form values and build templateRunner args
-  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  // Step 6: Build templateRunner args with form-specific variables
   const templateRunnerArgs: { [string]: any } = {
     newNoteTitle: cleanedNewNoteTitle,
     templateBody: finalTemplateBody,
-    ...formValuesForRendering,
   }
+  // Add form-specific variables (spread after explicit keys to avoid Flow error)
+  Object.keys(formSpecificVars).forEach((key) => {
+    templateRunnerArgs[key] = formSpecificVars[key]
+  })
 
   // Step 5: Handle folder path and teamspace
   let folderPath = newNoteFolder && newNoteFolder.trim() ? newNoteFolder.trim() : '/'
@@ -579,10 +644,12 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
   let result: PassedData | null = null
   if (method === 'form-processor') {
     result = await processFormProcessor(data, reactWindowData)
-    result = await processWriteExisting(data, reactWindowData)
-    result = await processRunJSOnly(data, reactWindowData)
   } else if (method === 'create-new') {
     result = await processCreateNew(data, reactWindowData)
+  } else if (method === 'write-existing') {
+    result = await processWriteExisting(data, reactWindowData)
+  } else if (method === 'run-js-only') {
+    result = await processRunJSOnly(data, reactWindowData)
   } else {
     logError(pluginJson, `handleSubmitButtonClick: Unknown processing method: ${method}`)
     await showMessage(`Unknown processing method: ${method}`)
