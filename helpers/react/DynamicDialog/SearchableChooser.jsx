@@ -772,7 +772,11 @@ export function SearchableChooser({
                     }
                     const optionIcon = getOptionIcon ? getOptionIcon(item) : null
                     const optionColor = getOptionColor ? getOptionColor(item) : null
-                    const optionShortDesc = getOptionShortDescription ? getOptionShortDescription(item) : null
+                    let optionShortDesc = getOptionShortDescription ? getOptionShortDescription(item) : null
+                    // Hide short description if it's identical to the label text
+                    if (optionShortDesc && optionText && optionShortDesc.trim() === optionText.trim()) {
+                      optionShortDesc = null
+                    }
                     const isHovered = hoveredIndex === index
                     const isSelected = hoveredIndex === index // For keyboard navigation highlighting
                     const showOptionClickHint: boolean = Boolean(optionKeyPressed && isHovered && !!onOptionClick)

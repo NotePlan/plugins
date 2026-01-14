@@ -20,6 +20,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 - **SpaceChooser**: Updated to use proper Font Awesome icon classes (`TEAMSPACE_FA_ICON`, `PRIVATE_FA_ICON`) instead of generic icon names
 - **Color system**: All Tailwind color names (e.g., `gray-500`, `blue-500`, `orange-500`, `green-700`) now automatically convert to their hex values via comprehensive palette mapping
 - **Special color mappings**: `green-700` and `green-800` prefer `--teamspace-color` CSS variable when available, with Tailwind hex fallback
+- **SearchableChooser**: Hide short description when it's identical to the label text to avoid redundant display
 
 ## [1.0.9] 2026-01-13 @dwertheimer
 
