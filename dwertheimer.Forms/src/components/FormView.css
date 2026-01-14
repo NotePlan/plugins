@@ -132,7 +132,7 @@
   margin-right: 0 !important;
 }
 
-/* Target nested wrapper divs that contain compact fields - remove all left spacing */
+/* Target nested wrapper divs that contain compact fields - remove all left spacing and ensure consistent bottom spacing */
 /* Target the outer data-field-type wrapper and its direct children when they contain compact fields */
 .dynamic-dialog.template-form [data-field-type="dropdown-select"],
 .dynamic-dialog.template-form [data-field-type="folder-chooser"],
@@ -145,12 +145,29 @@
 .dynamic-dialog.template-form [data-field-type="frontmatter-key-chooser"] {
   padding-left: 0 !important;
   margin-left: 0 !important;
+  margin-bottom: 0 !important; /* Ensure consistent spacing - spacing is handled by .dynamic-dialog-item gap */
 }
 
 .dynamic-dialog.template-form [data-field-type] > div[class*="-chooser-container"],
 .dynamic-dialog.template-form [data-field-type] > div[class*="-chooser-container"] > div {
   padding-left: 0 !important;
   margin-left: 0 !important;
+  margin-bottom: 0 !important; /* Ensure consistent spacing - spacing is handled by .dynamic-dialog-item gap */
+}
+
+/* Ensure all field wrapper divs have consistent spacing */
+/* Spacing between fields is handled by .dynamic-dialog-content gap, not individual field margins */
+.dynamic-dialog.template-form .ui-item,
+.dynamic-dialog.template-form [data-field-type],
+.dynamic-dialog.template-form .input-box-container,
+.dynamic-dialog.template-form .input-box-container-compact,
+.dynamic-dialog.template-form [class*="-chooser-container"],
+.dynamic-dialog.template-form .searchable-chooser-base,
+.dynamic-dialog.template-form .folder-chooser-wrapper,
+.dynamic-dialog.template-form .folder-chooser-wrapper-compact,
+.dynamic-dialog.template-form .dropdown-select-chooser-container {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 /* Use CSS variable for input field widths in template forms */
