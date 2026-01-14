@@ -470,6 +470,10 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
       // No templateFilename means this is a new form
       isNewForm = true
     }
+    // Allow explicit override (e.g., when creating a new form but note already exists)
+    if (argObj.isNewForm !== undefined) {
+      isNewForm = argObj.isNewForm
+    }
 
     // Generate unique window ID based on template title/filename
     const windowId = getFormBuilderWindowId(templateTitleForWindow, argObj.templateFilename)
