@@ -4,6 +4,23 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.1.0] 2026-01-13 @dwertheimer
+
+### Added
+- **Comprehensive Tailwind CSS color palette support**: Added full Tailwind color mapping (gray, red, orange, yellow, green, blue, indigo, purple, pink with shades 50-950) to `helpers/colors.js`
+- **Color support for chooser icons and descriptions**: NoteChooser and SpaceChooser now display colored icons and short descriptions matching `chooseNoteV2` behavior
+- **New `getColorStyle()` helper function**: Centralized color conversion utility that handles CSS variables, Tailwind color names, and direct hex/rgb colors with proper fallbacks
+
+### Fixed
+- Fixed empty label showing "?" in read-only text elements (now shows empty string)
+- Fixed SpaceChooser using incorrect icons - now uses `fa-regular fa-cube` for teamspaces and `fa-solid fa-user` for private (matching Dashboard, Filer, NoteHelpers)
+- Fixed teamspace colors appearing gray - now correctly displays green using `--teamspace-color` CSS variable with proper fallback
+
+### Changed
+- **SpaceChooser**: Updated to use proper Font Awesome icon classes (`TEAMSPACE_FA_ICON`, `PRIVATE_FA_ICON`) instead of generic icon names
+- **Color system**: All Tailwind color names (e.g., `gray-500`, `blue-500`, `orange-500`, `green-700`) now automatically convert to their hex values via comprehensive palette mapping
+- **Special color mappings**: `green-700` and `green-800` prefer `--teamspace-color` CSS variable when available, with Tailwind hex fallback
+
 ## [1.0.9] 2026-01-13 @dwertheimer
 
 ### Added

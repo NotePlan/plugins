@@ -284,7 +284,7 @@ export function renderItem({
         )
       }
       case 'text':
-        return <TextComponent disabled={disabled} key={`text${index}`} textType={item.textType || 'description'} label={thisLabel} />
+        return <TextComponent disabled={disabled} key={`text${index}`} textType={item.textType || 'description'} label={item.label || ''} />
       case 'separator':
         return <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
       case 'heading': {

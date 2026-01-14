@@ -45,7 +45,7 @@ export type NoteOption = {
 
 const pluginJson = 'NPnote.js'
 
-export const TEAMSPACE_ICON_COLOR = 'green-800'
+export const TEAMSPACE_ICON_COLOR = 'green-700'
 
 // Define icons to use in decorated CommandBar options
 export const defaultNoteIconDetails = { icon: 'file-lines', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 }
@@ -252,7 +252,7 @@ export function getNoteDecorationForReact(note: TNote | NoteOption): { icon: str
   const folderIconDetails = noteIconsToUse.find((details) => details.firstLevelFolder === noteTypeForIcon) ?? defaultNoteIconDetails
 
   // Determine color - use same logic as chooseNoteV2
-  const isTeamspace = possTeamspaceDetails.isTeamspace || (note.isTeamspaceNote === true)
+  const isTeamspace = possTeamspaceDetails.isTeamspace || note.isTeamspaceNote === true
   const color = isTeamspace ? TEAMSPACE_ICON_COLOR : userSetIconColor ? userSetIconColor : folderIconDetails.color
 
   // Short description - use same logic as chooseNoteV2
