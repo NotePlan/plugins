@@ -207,13 +207,23 @@ export function ContainedMultiSelectChooser({
   }, [height, maxRows, maxHeight])
 
   // Filter items based on search term
+  // Also include selected items that aren't in filteredItems yet (e.g., newly created items)
   const displayItems = useMemo(() => {
     if (!searchTerm.trim()) {
-      return filteredItems
+      // No search term: show all filtered items plus any selected items not yet in the list
+      const selectedNotInList = selectedValues.filter((selected: string) => !filteredItems.includes(selected))
+      return [...filteredItems, ...selectedNotInList]
     }
     const term = searchTerm.toLowerCase()
-    return filteredItems.filter((item: string) => item.toLowerCase().includes(term))
-  }, [filteredItems, searchTerm])
+    const filtered = filteredItems.filter((item: string) => item.toLowerCase().includes(term))
+    // Also include selected items that match the search term but aren't in filteredItems yet
+    const selectedMatching = selectedValues.filter(
+      (selected: string) => 
+        !filteredItems.includes(selected) && 
+        selected.toLowerCase().includes(term)
+    )
+    return [...filtered, ...selectedMatching]
+  }, [filteredItems, searchTerm, selectedValues])
 
   // For single-value mode: determine if we should show the list or the selected value
   const hasSelectedValue = singleValue && selectedValues.length > 0
@@ -400,12 +410,12 @@ export function ContainedMultiSelectChooser({
       lastSyncedValueRef.current = newValue
       onChange(newValue)
 
-      // Reset create mode but keep the search term so the newly created item is visible and checked
-      logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Resetting create mode, keeping search term="${trimmedValue}"`)
+      // Reset create mode and clear search term
+      // The newly created item is now in selectedValues and will be visible in the selected items
+      logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Resetting create mode, clearing search term`)
       setShowCreateMode(false)
       setCreateValue('')
-      // Keep the search term set to the newly created item so it appears in the filtered list
-      setSearchTerm(trimmedValue)
+      setSearchTerm('') // Clear search term so the list shows all items, including the newly created one when items are refreshed
       if (searchInputRef.current) {
         searchInputRef.current.focus()
       }
