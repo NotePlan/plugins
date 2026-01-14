@@ -271,6 +271,31 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 type="text"
                 value={((editedField: any): { width?: string }).width || ''}
                 onChange={(e) => {
+                  const rawValue = e.target.value
+                  const widthValue = rawValue.trim()
+                  const updated = { ...editedField }
+                  if (widthValue === '') {
+                    delete (updated: any).width
+                    setWidthError('')
+                  } else {
+                    // Always save the raw value while typing (allows partial/invalid values during typing)
+                    ;(updated: any).width = rawValue
+                    // Only validate if the trimmed value is complete (has a valid CSS unit or is a valid calc())
+                    // This allows typing intermediate values like "80", "80v", "calc(" without errors
+                    if (isValidCSSWidth(widthValue)) {
+                      // Valid complete value - trim and save trimmed version
+                      ;(updated: any).width = widthValue
+                      setWidthError('')
+                    } else {
+                      // Invalid or incomplete - keep raw value for typing, but don't show error yet
+                      // Error will be shown on blur if still invalid
+                      setWidthError('')
+                    }
+                  }
+                  setEditedField(updated)
+                }}
+                onBlur={(e) => {
+                  // Validate on blur when user is done typing
                   const widthValue = e.target.value.trim()
                   const updated = { ...editedField }
                   if (widthValue === '') {
@@ -280,6 +305,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                     ;(updated: any).width = widthValue
                     setWidthError('')
                   } else {
+                    ;(updated: any).width = widthValue
                     setWidthError('Invalid CSS width value. Use px, %, em, rem, vw, vh, or calc()')
                   }
                   setEditedField(updated)
@@ -1358,8 +1384,33 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   type="text"
                   value={((editedField: any): { width?: string }).width || ''}
                   onChange={(e) => {
+                    const rawValue = e.target.value
+                    const widthValue = rawValue.trim()
                     const updated = { ...editedField }
+                    if (widthValue === '') {
+                      delete (updated: any).width
+                      setWidthError('')
+                    } else {
+                      // Always save the raw value while typing (allows partial/invalid values during typing)
+                      ;(updated: any).width = rawValue
+                      // Only validate if the trimmed value is complete (has a valid CSS unit or is a valid calc())
+                      // This allows typing intermediate values like "80", "80v", "calc(" without errors
+                      if (isValidCSSWidth(widthValue)) {
+                        // Valid complete value - trim and save trimmed version
+                        ;(updated: any).width = widthValue
+                        setWidthError('')
+                      } else {
+                        // Invalid or incomplete - keep raw value for typing, but don't show error yet
+                        // Error will be shown on blur if still invalid
+                        setWidthError('')
+                      }
+                    }
+                    setEditedField(updated)
+                  }}
+                  onBlur={(e) => {
+                    // Validate on blur when user is done typing
                     const widthValue = e.target.value.trim()
+                    const updated = { ...editedField }
                     if (widthValue === '') {
                       delete (updated: any).width
                       setWidthError('')
@@ -1367,6 +1418,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                       ;(updated: any).width = widthValue
                       setWidthError('')
                     } else {
+                      ;(updated: any).width = widthValue
                       setWidthError('Invalid CSS width value. Use px, %, em, rem, vw, vh, or calc()')
                     }
                     setEditedField(updated)
@@ -1557,8 +1609,33 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   type="text"
                   value={((editedField: any): { width?: string }).width || ''}
                   onChange={(e) => {
+                    const rawValue = e.target.value
+                    const widthValue = rawValue.trim()
                     const updated = { ...editedField }
+                    if (widthValue === '') {
+                      delete (updated: any).width
+                      setWidthError('')
+                    } else {
+                      // Always save the raw value while typing (allows partial/invalid values during typing)
+                      ;(updated: any).width = rawValue
+                      // Only validate if the trimmed value is complete (has a valid CSS unit or is a valid calc())
+                      // This allows typing intermediate values like "80", "80v", "calc(" without errors
+                      if (isValidCSSWidth(widthValue)) {
+                        // Valid complete value - trim and save trimmed version
+                        ;(updated: any).width = widthValue
+                        setWidthError('')
+                      } else {
+                        // Invalid or incomplete - keep raw value for typing, but don't show error yet
+                        // Error will be shown on blur if still invalid
+                        setWidthError('')
+                      }
+                    }
+                    setEditedField(updated)
+                  }}
+                  onBlur={(e) => {
+                    // Validate on blur when user is done typing
                     const widthValue = e.target.value.trim()
+                    const updated = { ...editedField }
                     if (widthValue === '') {
                       delete (updated: any).width
                       setWidthError('')
@@ -1566,6 +1643,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                       ;(updated: any).width = widthValue
                       setWidthError('')
                     } else {
+                      ;(updated: any).width = widthValue
                       setWidthError('Invalid CSS width value. Use px, %, em, rem, vw, vh, or calc()')
                     }
                     setEditedField(updated)
