@@ -498,6 +498,14 @@ export function ContainedMultiSelectChooser({
               }}
               onClick={handleInputClick}
               onKeyDown={(e) => {
+                // Prevent Enter key from submitting the form
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  // Don't do anything else - just prevent form submission
+                  // The input is for filtering/searching, not for submitting
+                  return
+                }
                 // Prevent space key for tag-chooser and mention-chooser when in create mode
                 if (showCreateMode && (fieldType === 'tag-chooser' || fieldType === 'mention-chooser') && e.key === ' ') {
                   e.preventDefault()
