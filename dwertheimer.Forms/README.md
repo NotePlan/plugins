@@ -6,7 +6,7 @@ See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/
 
 ## About This Plugin
 
-The Forms plugin enables you to create dynamic, interactive forms in NotePlan. You define form fields using the visual **Form Builder**, and when you fill out the form and click "Submit", the data is automatically processed to create notes or write to existing notes - **no coding or template writing required!**
+The Forms plugin enables you to create dynamic, interactive forms in NotePlan for things you do frequently -- e.g. create meeting note, contact notes, etc. You define form fields using the visual **Form Builder**, and when you fill out the form and click "Submit", the data is automatically processed to create notes or write to existing notes - **no coding or template writing required!**
 
 > **⚠️ Beta Warning:** This is an early beta release and may not yet be fully functional. Features may change, and you may encounter bugs or incomplete functionality. Please report issues to @dwertheimer on Discord.
 
