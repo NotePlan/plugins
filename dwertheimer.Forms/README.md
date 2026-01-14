@@ -10,6 +10,8 @@ The Forms plugin enables you to create dynamic, interactive forms in NotePlan. Y
 
 > **⚠️ Beta Warning:** This is an early beta release and may not yet be fully functional. Features may change, and you may encounter bugs or incomplete functionality. Please report issues to @dwertheimer on Discord.
 
+<img width="2358" height="1572" alt="Screen Cap 2026-01-14 at 15 15 01@2x" src="https://github.com/user-attachments/assets/7cca764e-90ec-43a0-a2c2-33ecb091a15b" />
+
 ## Quick Start (3 Steps!)
 
 1. **Open the Form Builder**: Type `/builder` in the command bar
