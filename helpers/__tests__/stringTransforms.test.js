@@ -629,4 +629,234 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(st.removeDateTagsAndToday(`test >2000-W02 >2020-01-01 <2020-02-02 >2020-09-28`, true)).toEqual('test')
     })
   })
+
+  /*
+   * prepAndTruncateMarkdownForDisplay()
+   */
+  describe('prepAndTruncateMarkdownForDisplay()', () => {
+    test('should be empty from empty', () => {
+      const result = st.prepAndTruncateMarkdownForDisplay('', 100)
+      expect(result).toEqual('')
+    })
+    test('should return unchanged string if no markdown links and under maxLength', () => {
+      const input = 'This is a simple text string'
+      const result = st.prepAndTruncateMarkdownForDisplay(input, 100)
+      expect(result).toEqual(input)
+    })
+    test('should truncate string if no markdown links and over maxLength', () => {
+      const input = 'This is a simple text string that is too long'
+      const result = st.prepAndTruncateMarkdownForDisplay(input, 20)
+      expect(result).toEqual('This is a simple tex ...')
+    })
+    test('should strip URL from single markdown link', () => {
+      const input = 'Check out [this link](https://example.com) for more info'
+      const result = st.prepAndTruncateMarkdownForDisplay(input, 100)
+      expect(result).toEqual('Check out [this link] for more info')
+    })
+    test('should strip URL from multiple markdown links', () => {
+      const input = 'See [link1](https://example.com) and [link2](https://test.com) here'
+      const result = st.prepAndTruncateMarkdownForDisplay(input, 100)
+      expect(result).toEqual('See [link1] and [link2] here')
+    })
+    test('should strip URL and truncate if result exceeds maxLength', () => {
+      const input = 'Check out [this link](https://example.com) for more information about the topic'
+      const result = st.prepAndTruncateMarkdownForDisplay(input, 30)
+      expect(result).toEqual('Check out [this link] for more ...')
+    })
+    test('should handle markdown link at start of string', () => {
+      const input = '[Start link](https://example.com) and then some text'
+      const result = st.prepAndTruncateMarkdownForDisplay(input, 100)
+      expect(result).toEqual('[Start link] and then some text')
+    })
+    test('should handle markdown link at end of string', () => {
+      const input = 'Some text and [end link](https://example.com)'
+      const result = st.prepAndTruncateMarkdownForDisplay(input, 100)
+      expect(result).toEqual('Some text and [end link]')
+    })
+    test('should handle markdown link with complex URL', () => {
+      const input = 'Link [here](https://example.com/path?query=value&other=123) works'
+      const result = st.prepAndTruncateMarkdownForDisplay(input, 100)
+      expect(result).toEqual('Link [here] works')
+    })
+    test('should handle markdown link with spaces in title', () => {
+      const input = 'See [my long link title](https://example.com) now'
+      const result = st.prepAndTruncateMarkdownForDisplay(input, 100)
+      expect(result).toEqual('See [my long link title] now')
+    })
+    test('should not truncate a bare URL', () => {
+      const input = 'https://example.com is a website'
+      const result = st.prepAndTruncateMarkdownForDisplay(input, 50)
+      expect(result).toEqual('https://example.com is a website')
+    })
+  })
+
+  /*
+   * stripHashtagsFromString()
+   */
+  describe('stripHashtagsFromString()', () => {
+    test('should be empty from empty', () => {
+      const result = st.stripHashtagsFromString('')
+      expect(result).toEqual('')
+    })
+    test('should return unchanged string if no hashtags found', () => {
+      const input = 'This is a simple text string with no hashtags'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual(input)
+    })
+    test('should strip single hashtag at start', () => {
+      const input = '#tag at the beginning'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('at the beginning')
+    })
+    test('should strip single hashtag in middle', () => {
+      const input = 'This has #tag in the middle'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('This has in the middle')
+    })
+    test('should strip single hashtag at end', () => {
+      const input = 'Text at the end #tag'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('Text at the end')
+    })
+    test('should strip multiple hashtags', () => {
+      const input = 'This has #tag1 and #tag2 and #tag3 here'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('This has and and here')
+    })
+    test('should strip hashtag after space', () => {
+      const input = 'Text #hashtag more text'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('Text more text')
+    })
+    test('should strip hashtag after quote', () => {
+      const input = '"quote" #hashtag text'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('"quote" text')
+    })
+    test('should strip hashtag in parenthesis', () => {
+      const input = 'Text (#hashtag) more'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('Text () more')
+    })
+    test('should strip multi-part hashtag', () => {
+      const input = 'Text #Ephesians/3/20 more'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('Text more')
+    })
+    test('should strip hashtag with underscores', () => {
+      const input = 'Text #tag_with_underscores here'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('Text here')
+    })
+    test('should strip hashtag with numbers', () => {
+      const input = 'Text #tag123 here'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('Text here')
+    })
+    test('should not strip hashtag starting with number', () => {
+      const input = 'Text #123tag should remain'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('Text #123tag should remain')
+    })
+    test('should clean up multiple spaces after stripping', () => {
+      const input = 'Text #tag1 #tag2 more'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('Text more')
+    })
+    test('should trim right after stripping', () => {
+      const input = 'Text #tag '
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('Text')
+    })
+  })
+
+  /*
+   * stripMentionsFromString()
+   */
+  describe('stripMentionsFromString()', () => {
+    test('should be empty from empty', () => {
+      const result = st.stripMentionsFromString('')
+      expect(result).toEqual('')
+    })
+    test('should return unchanged string if no mentions found', () => {
+      const input = 'This is a simple text string with no mentions'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual(input)
+    })
+    test('should strip single mention at start', () => {
+      const input = '@mention at the beginning'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('at the beginning')
+    })
+    test('should strip single mention in middle', () => {
+      const input = 'This has @mention in the middle'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('This has in the middle')
+    })
+    test('should strip single mention at end', () => {
+      const input = 'Text at the end @mention'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('Text at the end')
+    })
+    test('should strip multiple mentions', () => {
+      const input = 'This has @mention1 and @mention2 and @mention3 here'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('This has and and here')
+    })
+    test('should strip mention after space', () => {
+      const input = 'Text @mention more text'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('Text more text')
+    })
+    test('should strip mention after quote', () => {
+      const input = '"quote" @mention text'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('"quote" text')
+    })
+    test('should strip mention in parenthesis', () => {
+      const input = 'Text (@mention) more'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('Text () more')
+    })
+    test('should strip multi-part mention', () => {
+      const input = 'Text @staff/Bob more'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('Text more')
+    })
+    test('should strip mention with dots', () => {
+      const input = 'Text @mention.with.dots here'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('Text here')
+    })
+    test('should strip mention with dashes', () => {
+      const input = 'Text @mention-with-dashes here'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('Text here')
+    })
+    test('should strip mention with numbers', () => {
+      const input = 'Text @mention123 here'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('Text here')
+    })
+    test('should strip mention with parentheses in name', () => {
+      const input = 'Text @mention(123) here'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('Text here')
+    })
+    test('should not strip mention starting with number', () => {
+      const input = 'Text @123mention should remain'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('Text @123mention should remain')
+    })
+    test('should clean up multiple spaces after stripping', () => {
+      const input = 'Text @mention1 @mention2 more'
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('Text more')
+    })
+    test('should trim right after stripping', () => {
+      const input = 'Text @mention '
+      const result = st.stripMentionsFromString(input)
+      expect(result).toEqual('Text')
+    })
+  })
 })
