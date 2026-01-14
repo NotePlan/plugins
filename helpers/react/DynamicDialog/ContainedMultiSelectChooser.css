@@ -58,8 +58,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1;
-  min-width: 150px;
+  flex: 0.6;
+  min-width: 130px;
 }
 
 .contained-multi-select-search-input {
@@ -136,9 +136,13 @@
   border-radius: 4px;
   color: var(--tint-color, #dc8a78);
   cursor: pointer;
-  font-size: 0.85rem;
-  padding: 0.4rem 0.75rem;
-  white-space: nowrap;
+  font-size: 0.9rem;
+  padding: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
   background-color: var(--bg-main-color, #eff1f5);
 }
 
@@ -205,9 +209,13 @@
   border-radius: 4px;
   color: var(--tint-color, #dc8a78);
   cursor: pointer;
-  font-size: 0.85rem;
-  padding: 0.4rem 0.75rem;
-  white-space: nowrap;
+  font-size: 0.9rem;
+  padding: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
   background-color: var(--bg-main-color, #eff1f5);
 }
 
@@ -218,6 +226,39 @@
 
 .contained-multi-select-select-all-btn:disabled,
 .contained-multi-select-select-none-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background-color: var(--bg-disabled-color, #f5f5f5);
+}
+
+/* Checked filter button */
+.contained-multi-select-checked-filter-btn {
+  background: none;
+  border: 1px solid var(--divider-color, #CDCFD0);
+  border-radius: 4px;
+  color: var(--tint-color, #dc8a78);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  background-color: var(--bg-main-color, #eff1f5);
+}
+
+.contained-multi-select-checked-filter-btn:hover {
+  background-color: var(--bg-alt-color, #e6e9ef);
+}
+
+.contained-multi-select-checked-filter-btn.active {
+  background-color: var(--tint-color, #dc8a78);
+  color: var(--bg-main-color, #eff1f5);
+  border-color: var(--tint-color, #dc8a78);
+}
+
+.contained-multi-select-checked-filter-btn:disabled {
   cursor: not-allowed;
   opacity: 0.5;
   background-color: var(--bg-disabled-color, #f5f5f5);

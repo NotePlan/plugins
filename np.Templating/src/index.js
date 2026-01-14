@@ -37,6 +37,7 @@ export { getTemplateContent } from './Templating'
 export { renderFrontmatter } from './Templating'
 export { render } from './Templating'
 export { renderTemplate } from './Templating'
+export { getRenderContext } from './Templating'
 
 export { templateFileByTitle } from './Templating'
 

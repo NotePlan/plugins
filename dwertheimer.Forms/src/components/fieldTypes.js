@@ -40,4 +40,5 @@ export const FIELD_TYPES: Array<FieldTypeOption> = [
   { value: 'templatejs-block', label: 'TemplateJS Block', description: 'JavaScript code block that executes during template processing' },
   { value: 'autosave', label: 'Autosave', description: 'Automatically saves form state periodically (shows "Saved x ago" status)' },
   { value: 'table-of-contents', label: 'Table of Contents', description: 'Clickable table of contents that links to headings in the form' },
+  { value: 'comment', label: 'Comment', description: 'Comment/note field for Form Builder only - doesn\'t render in form output. Use for notes to yourself while building forms.' },
 ]

@@ -6,6 +6,56 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.2.9] 2026-01-XX @dwertheimer
+- Add new hidden command `getRenderContext` for use by other plugins (e.g., Forms plugin)
+  - Returns the full templating render context object with all globals, modules, and helpers (date, time, note, tasks, moment, etc.)
+  - Includes timing logs for performance monitoring (setup, config, engine creation, context building, total time)
+  - Allows other plugins to reuse templating context without duplicating code
+  - Accessible via `DataStore.invokePluginCommandByName('getRenderContext', 'np.Templating', [userData])`
+- **Comprehensive template search refactoring** - Expand template search functions to search in both @Templates and @Forms directories across all spaces
+  - **New shared utility**: Created `getTemplateFolderPrefixes()` function that builds complete list of folder prefixes including:
+    - Private root folders: `@Templates` and `@Forms` (or localized equivalents)
+    - All teamspace root folders: `%%NotePlanCloud%%/<teamspaceID>/@Templates` and `%%NotePlanCloud%%/<teamspaceID>/@Forms`
+  - **Core template search functions updated**:
+    - `getFilteredTemplateList` - Now searches in both private root and all teamspace root folders
+    - `getTemplateNote` - Now searches all teamspaces, not just private root
+    - `getFilenameFromTemplate` - Filters notes from all template folders in all spaces
+    - `getTemplateContent` - Searches in all template folders when finding templates
+    - `templateExists` - Searches in all template folders (Templates, Forms, all spaces)
+  - **User-facing commands updated**:
+    - `templateInsert` and `templateAppend` - Now use `getTemplateNote` (searches all folders/spaces)
+    - `<current>` prompt validation - Now checks if note is in any template folder (not just @Templates)
+    - `addFrontmatterToTemplate` (NPTemplateRunner) - Now uses `getTemplateNote`
+    - `chooseTemplate` - Now uses `chooseNoteV2` for decorated note selection UI (shows icons, colors, folder paths)
+      - Automatically displays templates from both @Templates and @Forms directories across all spaces
+      - No longer limited to just @Templates folder in display logic
+      - Improved user experience with visual decorations and better folder path display
+  - **Localization support**:
+    - All functions now use `DataStore.preference('templateFolder')` for localized template folder names instead of hardcoded '@Templates'
+    - All functions now use `DataStore.preference('formsFolder')` for localized forms folder names (with '@Forms' fallback)
+  - **Bug fixes**:
+    - Fixes issue where form processing templates stored in @Forms weren't found by `templateRunner` and `getTemplateNote` when processing form submissions
+    - Fixes issue where templates in teamspaces weren't found by template search functions
+  - **Impact**: Templates can now be stored in @Forms directory (for form processing) or @Templates directory (for regular templates), in both private root and teamspace root folders, and all search functions will find them correctly
+- **Replace `chooseNote`/`chooseOption` with `chooseNoteV2` throughout np.Templating** - Modernize all note selection UI
+  - **All functions updated to use `chooseNoteV2`**:
+    - `handleNoteSelection` in `NPTemplateRunner.js` - Replaced deprecated `chooseNote` with `chooseNoteV2`
+      - Uses `DataStore.projectNotes` which automatically includes notes from all spaces (private and teamspaces)
+      - When templates use `<choose>` or `<select>` placeholders, users now see decorated note selection UI
+    - `chooseTemplate` in `templateManager.js` - Replaced `chooseOption` with `chooseNoteV2`
+      - Templates from both @Templates and @Forms directories (across all spaces) are properly displayed with full paths
+      - Removed complex label manipulation code that only handled @Templates folder
+    - `getTemplateContent` in `templateManager.js` - Replaced `chooseOption` with `chooseNoteV2`
+      - When multiple templates match the same name, user selection now shows decorated UI with folder paths
+      - Templates from all template folders (Templates, Forms, all teamspaces) are included in selection
+  - **Benefits**:
+    - Better UI with decorated options showing icons, colors, and folder paths
+    - All note selection now searches across all spaces (private root and all teamspace root folders)
+    - Consistent user experience across all template selection functions
+    - Visual distinction between templates in different folders and spaces
+  - **Backward compatibility**: `chooseNote` is still available in templates via `helpers.chooseNote` for backward compatibility, but `helpers.chooseNoteV2` is recommended for new templates
+  - **Testing**: Updated all test mocks to use `chooseNoteV2` and added `DataStore.preference` mocks for template folder localization
+
 ## [2.2.8] 2026-01-XX @dwertheimer
 - Add triggerTemplateRunner command to automatically run templates when notes are opened
 - New hidden command `triggerTemplateRunner` checks for `runTemplateOnOpen` frontmatter attribute

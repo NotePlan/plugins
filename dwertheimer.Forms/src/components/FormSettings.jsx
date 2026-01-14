@@ -233,6 +233,67 @@ export function FormSettings({
                     </div>
                   </div>
                 </div>
+                <div className="frontmatter-field frontmatter-field-compact-mode-sizing" style={{ marginTop: '1rem' }}>
+                  <label className="frontmatter-field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
+                    Compact Mode Sizing:
+                    <InfoIcon text="Control the width of labels and input fields in compact mode. Labels are right-aligned and inputs are left-aligned. Use CSS units like '10rem' for labels and '180px' for inputs. Leave empty to use defaults (10rem for labels, 180px for inputs)." />
+                  </label>
+                  <div className="frontmatter-field-compact-mode-sizing-controls" style={{ marginTop: '0.5rem' }}>
+                    <div className="frontmatter-field-compact-mode-sizing-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                      <div className="frontmatter-field-compact-mode-sizing-field frontmatter-field-compact-label-width" style={{ flex: '1 1 0', minWidth: '120px' }}>
+                        <label className="frontmatter-field-compact-mode-sizing-label" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>
+                          Label Width:
+                        </label>
+                        <input
+                          className="frontmatter-field-input frontmatter-field-input-compact-label-width"
+                          type="text"
+                          value={frontmatter.compactLabelWidth || ''}
+                          onChange={(e) => onFrontmatterChange('compactLabelWidth', e.target.value || undefined)}
+                          onBlur={(e) => {
+                            const value = e.target.value.trim()
+                            if (value) {
+                              // Validate CSS width value (rem, em, px, %, vw, vh, or calc())
+                              const cssWidthPattern = /^(\d+(\.\d+)?(rem|em|px|%|vw|vh)|calc\(.+\))$/i
+                              if (!cssWidthPattern.test(value)) {
+                                alert('Label width must be a valid CSS width value (e.g., 10rem, 12em, 150px, 20%, or calc(10rem + 2px)).')
+                                onFrontmatterChange('compactLabelWidth', undefined)
+                              }
+                            }
+                          }}
+                          placeholder="10rem (default)"
+                          style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <div className="frontmatter-field-compact-mode-sizing-field frontmatter-field-compact-input-width" style={{ flex: '1 1 0', minWidth: '120px' }}>
+                        <label className="frontmatter-field-compact-mode-sizing-label" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>
+                          Input Width:
+                        </label>
+                        <input
+                          className="frontmatter-field-input frontmatter-field-input-compact-input-width"
+                          type="text"
+                          value={frontmatter.compactInputWidth || ''}
+                          onChange={(e) => onFrontmatterChange('compactInputWidth', e.target.value || undefined)}
+                          onBlur={(e) => {
+                            const value = e.target.value.trim()
+                            if (value) {
+                              // Validate CSS width value (rem, em, px, %, vw, vh, or calc())
+                              const cssWidthPattern = /^(\d+(\.\d+)?(rem|em|px|%|vw|vh)|calc\(.+\))$/i
+                              if (!cssWidthPattern.test(value)) {
+                                alert('Input width must be a valid CSS width value (e.g., 180px, 12rem, 20%, or calc(180px + 2rem)).')
+                                onFrontmatterChange('compactInputWidth', undefined)
+                              }
+                            }
+                          }}
+                          placeholder="180px (default)"
+                          style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                    </div>
+                    <div className="frontmatter-field-compact-mode-sizing-help-text" style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                      Use CSS units like '10rem' or '12em' for labels, and '180px' or '200px' for inputs. Labels are right-aligned and inputs are left-aligned in compact mode. Leave empty to use defaults.
+                    </div>
+                  </div>
+                </div>
                 <div className="frontmatter-field frontmatter-field-custom-css" style={{ marginTop: '1rem' }}>
                   <label className="frontmatter-field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
                     Custom CSS:

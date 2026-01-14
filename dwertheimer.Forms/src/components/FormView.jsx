@@ -775,7 +775,11 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
               reloadNotes()
             }}
             className="template-form"
-            style={{ content: { paddingLeft: '1.5rem', paddingRight: '1.5rem' } }}
+            style={{
+              content: { paddingLeft: '1.5rem', paddingRight: '1.5rem' },
+              '--template-form-compact-label-width': pluginData?.compactLabelWidth || undefined,
+              '--template-form-compact-input-width': pluginData?.compactInputWidth || undefined,
+            }}
           />
         </div>
         {/* end of replace */}

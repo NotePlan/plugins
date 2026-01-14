@@ -24,6 +24,8 @@ type InputBoxProps = {
   validationType?: 'email' | 'number' | 'date-interval',
   debounceOnChange?: boolean, // If true, debounce onChange callback (useful when this input provides a key for another field)
   debounceMs?: number, // Debounce delay in milliseconds (default: 500ms)
+  id?: string, // Optional unique id for the input (if not provided, will be generated)
+  name?: string, // Optional name attribute for the input
 }
 
 const InputBox = ({
@@ -43,6 +45,8 @@ const InputBox = ({
   validationType,
   debounceOnChange = true, // Default to true: debounce onChange to prevent excessive updates when input provides a key for another field
   debounceMs = 500,
+  id,
+  name,
 }: InputBoxProps): React$Node => {
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
@@ -51,6 +55,10 @@ const InputBox = ({
   const inputRef = useRef<?HTMLInputElement>(null) // Create a ref for the input element
   const [validationError, setValidationError] = useState<string | null>(null) // Add state for validation error message
   const debounceTimeoutRef = useRef<?TimeoutID>(null) // Track debounce timeout
+  
+  // Generate unique id if not provided - use label or fallback
+  const inputId = id || `input-${label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}-${Math.random().toString(36).substr(2, 9)}`
+  const inputName = name || id || inputId // Use name if provided, otherwise use id or generated id
 
   const validateInput = (value: string): string | null => {
     if (required && value.trim() === '') {
@@ -145,9 +153,11 @@ const InputBox = ({
 
   return (
     <div className={`${disabled ? 'disabled' : ''} ${className} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'}`}>
-      <label className="input-box-label">{label}</label>
+      <label className="input-box-label" htmlFor={inputId}>{label}</label>
       <div className="input-box-wrapper">
         <input
+          id={inputId}
+          name={inputName}
           ref={inputRef} // Attach the ref to the input element
           type={inputType}
           readOnly={readOnly}
