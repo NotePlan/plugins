@@ -4,6 +4,26 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.9] 2026-01-13 @dwertheimer
+
+### Added
+- Auto-focus first field when form opens for faster data entry
+- Enter key reopens dropdown when closed (allows changing selection after initial choice)
+- Tab key closes dropdown and moves to next field when dropdown is open
+- ResizeObserver for portal dropdown positioning to handle dynamic form height changes
+
+### Fixed
+- Fixed click selection not working after programmatic refocus (dropdown was reopening immediately)
+- Fixed tab navigation blocked when dropdown is open
+- Fixed portal dropdown position when form layout shifts due to async data loading
+- Fixed ContainedMultiSelectChooser preventing "is:checked" from being saved as a value
+- Fixed bottom element clipping in scrolling dialogs (added extra padding)
+
+### Changed
+- Improved ContainedMultiSelectChooser header: narrower filter field (40% reduction), icon-only buttons (All/None/Filter/New)
+- Refactored template-form CSS to use nested namespace selectors for better maintainability
+- Improved compact mode label alignment using CSS variables for customizable widths
+
 ## [1.0.8] 2026-01-12 @dwertheimer
 
 ### Fixed
