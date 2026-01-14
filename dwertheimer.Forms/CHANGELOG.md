@@ -4,7 +4,7 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
-## [1.1.0] 2026-01-13 @dwertheimer
+## [1.0.10] 2026-01-14 @dwertheimer
 
 ### Added
 - **Comprehensive Tailwind CSS color palette support**: Added full Tailwind color mapping (gray, red, orange, yellow, green, blue, indigo, purple, pink with shades 50-950) to `helpers/colors.js`
@@ -15,7 +15,8 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 - Fixed empty label showing "?" in read-only text elements (now shows empty string)
 - Fixed SpaceChooser using incorrect icons - now uses `fa-regular fa-cube` for teamspaces and `fa-solid fa-user` for private (matching Dashboard, Filer, NoteHelpers)
 - Fixed teamspace colors appearing gray - now correctly displays green using `--teamspace-color` CSS variable with proper fallback
-- Fixed default comment field not appearing when creating a new form - now explicitly passes `isNewForm: true` to FormBuilder
+- Fixed default comment field not appearing when creating a new form - now explicitly passes `isNewForm: true` to FormBuilder (works for both command bar and FormBrowserView creation)
+- Fixed NoteChooser calendar picker displaying filename (e.g., "20260117.md") instead of ISO date format (e.g., "2026-01-17") - now displays ISO 8601 format (YYYY-MM-DD) in the field
 
 ### Changed
 - **SpaceChooser**: Updated to use proper Font Awesome icon classes (`TEAMSPACE_FA_ICON`, `PRIVATE_FA_ICON`) instead of generic icon names
