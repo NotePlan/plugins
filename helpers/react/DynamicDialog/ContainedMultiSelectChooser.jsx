@@ -72,6 +72,7 @@ export function ContainedMultiSelectChooser({
   const [createValue, setCreateValue] = useState<string>('')
   const [isCreating, setIsCreating] = useState<boolean>(false)
   const [showList, setShowList] = useState<boolean>(true) // For single-value mode: show list or show selected value
+  const [showCheckedOnly, setShowCheckedOnly] = useState<boolean>(false) // Toggle to show only checked items
   
   // Generate unique input id - use fieldKey if provided, otherwise fallback to fieldType with random suffix
   const inputId = fieldKey ? `${fieldType}-${fieldKey}-search` : `${fieldType}-search-${Math.random().toString(36).substr(2, 9)}`
@@ -206,15 +207,29 @@ export function ContainedMultiSelectChooser({
     return maxHeight
   }, [height, maxRows, maxHeight])
 
-  // Filter items based on search term
+  // Filter items based on search term and checked filter
   // Also include selected items that aren't in filteredItems yet (e.g., newly created items)
   const displayItems = useMemo(() => {
+    // If checked filter is active, show only checked items
+    if (showCheckedOnly) {
+      return selectedValues
+    }
+    
+    // Normal filtering based on search term
     if (!searchTerm.trim()) {
       // No search term: show all filtered items plus any selected items not yet in the list
       const selectedNotInList = selectedValues.filter((selected: string) => !filteredItems.includes(selected))
       return [...filteredItems, ...selectedNotInList]
     }
+    
     const term = searchTerm.toLowerCase()
+    // Check if search term is "is:checked" to show only checked items
+    if (term === 'is:checked') {
+      // Show only checked items
+      return selectedValues
+    }
+    
+    // Regular search filtering
     const filtered = filteredItems.filter((item: string) => item.toLowerCase().includes(term))
     // Also include selected items that match the search term but aren't in filteredItems yet
     const selectedMatching = selectedValues.filter(
@@ -223,7 +238,7 @@ export function ContainedMultiSelectChooser({
         selected.toLowerCase().includes(term)
     )
     return [...filtered, ...selectedMatching]
-  }, [filteredItems, searchTerm, selectedValues])
+  }, [filteredItems, searchTerm, selectedValues, showCheckedOnly])
 
   // For single-value mode: determine if we should show the list or the selected value
   const hasSelectedValue = singleValue && selectedValues.length > 0
@@ -240,10 +255,11 @@ export function ContainedMultiSelectChooser({
   }, [singleValue, selectedValues.length])
 
   // Show create mode automatically when search has no matches and allowCreate is true
+  // Skip create mode when "is:checked" filter is active
   useEffect(() => {
-    logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Effect triggered: searchTerm="${searchTerm}", displayItems.length=${displayItems.length}, filteredItems.length=${filteredItems.length}, showCreateMode=${String(showCreateMode)}`)
+    logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Effect triggered: searchTerm="${searchTerm}", displayItems.length=${displayItems.length}, filteredItems.length=${filteredItems.length}, showCreateMode=${String(showCreateMode)}, showCheckedOnly=${String(showCheckedOnly)}`)
     
-    if (allowCreate && searchTerm.trim() && displayItems.length === 0 && filteredItems.length > 0) {
+    if (allowCreate && searchTerm.trim() && searchTerm.toLowerCase() !== 'is:checked' && !showCheckedOnly && displayItems.length === 0 && filteredItems.length > 0) {
       // No matches found for the search term, show create mode with the search term pre-filled
       if (!showCreateMode) {
         logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Auto-showing create mode with searchTerm="${searchTerm.trim()}"`)
@@ -256,7 +272,7 @@ export function ContainedMultiSelectChooser({
       setShowCreateMode(false)
       setCreateValue('')
     }
-  }, [displayItems.length, searchTerm, filteredItems.length, allowCreate, showCreateMode])
+  }, [displayItems.length, searchTerm, filteredItems.length, allowCreate, showCreateMode, showCheckedOnly])
 
   // Handle checkbox toggle (multi-select) or item selection (single-value)
   const handleToggle = (itemName: string) => {
@@ -350,6 +366,7 @@ export function ContainedMultiSelectChooser({
   // Clear search
   const handleClearSearch = () => {
     setSearchTerm('')
+    setShowCheckedOnly(false)
     setShowCreateMode(false)
     setCreateValue('')
     if (searchInputRef.current) {
@@ -504,6 +521,13 @@ export function ContainedMultiSelectChooser({
                   setCreateValue(inputValue)
                 } else {
                   setSearchTerm(inputValue)
+                  // Auto-toggle checked filter when user types "is:checked"
+                  if (inputValue.toLowerCase() === 'is:checked') {
+                    setShowCheckedOnly(true)
+                  } else if (showCheckedOnly && inputValue.toLowerCase() !== 'is:checked') {
+                    // If checked filter is on but search term changed, turn off the filter
+                    setShowCheckedOnly(false)
+                  }
                 }
               }}
               onClick={handleInputClick}
@@ -593,7 +617,7 @@ export function ContainedMultiSelectChooser({
                 disabled={disabled || displayItems.length === 0 || showCreateMode}
                 title="Select all"
               >
-                Select All
+                all
               </button>
               <button
                 type="button"
@@ -602,7 +626,24 @@ export function ContainedMultiSelectChooser({
                 disabled={disabled || selectedValues.length === 0}
                 title="Select none"
               >
-                Select None
+                none
+              </button>
+              <button
+                type="button"
+                className={`contained-multi-select-checked-filter-btn ${showCheckedOnly ? 'active' : ''}`}
+                onClick={() => {
+                  setShowCheckedOnly(!showCheckedOnly)
+                  // If toggling on, set search term to "is:checked", otherwise clear it
+                  if (!showCheckedOnly) {
+                    setSearchTerm('is:checked')
+                  } else {
+                    setSearchTerm('')
+                  }
+                }}
+                disabled={disabled || showCreateMode}
+                title="Show only checked items"
+              >
+                is:checked
               </button>
             </>
           )}
