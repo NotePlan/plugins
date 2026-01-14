@@ -447,6 +447,43 @@ const DynamicDialog = ({
     previousIsOpenRef.current = isNowOpen
   }, [isOpen, updatedSettings]) // Keep updatedSettings for reading current values
 
+  // Auto-focus the first focusable field when dialog opens
+  useEffect(() => {
+    if (!isOpen) return
+
+    // Wait for DOM to be ready, then find and focus the first focusable field
+    const focusFirstField = () => {
+      const dialogElement = dialogRef.current
+      if (!dialogElement) return
+
+      // Find all focusable inputs in DOM order (excluding hidden and disabled)
+      const allInputs = Array.from(dialogElement.querySelectorAll('input:not([type="hidden"]):not([disabled])'))
+      
+      // Filter to only inputs that are visible (not in hidden containers)
+      const visibleInputs = allInputs.filter((input) => {
+        if (!(input instanceof HTMLElement)) return false
+        const style = window.getComputedStyle(input)
+        return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0'
+      })
+
+      // Take the first input in DOM order (which matches the visual order of fields)
+      // This ensures we focus the first field in the form, regardless of its type
+      const firstInput = visibleInputs.length > 0 ? visibleInputs[0] : null
+
+      if (firstInput && firstInput instanceof HTMLInputElement) {
+        // Small delay to ensure the dialog is fully rendered and any animations complete
+        setTimeout(() => {
+          firstInput.focus()
+          logDebug('DynamicDialog', `Auto-focused first field: ${firstInput.id || 'unnamed'}`)
+        }, 100)
+      }
+    }
+
+    // Use a small delay to ensure DOM is ready
+    const timeoutId = setTimeout(focusFirstField, 150)
+    return () => clearTimeout(timeoutId)
+  }, [isOpen, items]) // Re-run when dialog opens or items change
+
   // Watch for dependency changes and clear values (generic - no hardcoded reload logic)
   // Handles cascading dependencies recursively (e.g., space -> note -> heading)
   useEffect(() => {

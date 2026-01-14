@@ -256,14 +256,17 @@ export function SearchableChooser({
       // Also listen for scroll events on all scrollable parent elements
       // This ensures the dropdown repositions when a parent container scrolls
       const scrollableParents: Array<HTMLElement> = []
-      let parent = inputRef.current.parentElement
-      while (parent) {
-        const overflowY = window.getComputedStyle(parent).overflowY
-        if (overflowY === 'scroll' || overflowY === 'auto') {
-          scrollableParents.push(parent)
-          parent.addEventListener('scroll', updatePosition)
+      const inputEl = inputRef.current
+      if (inputEl) {
+        let parentNode: ?Node = inputEl.parentNode
+        while (parentNode && parentNode instanceof HTMLElement) {
+          const overflowY = window.getComputedStyle(parentNode).overflowY
+          if (overflowY === 'scroll' || overflowY === 'auto') {
+            scrollableParents.push(parentNode)
+            parentNode.addEventListener('scroll', updatePosition)
+          }
+          parentNode = parentNode.parentNode
         }
-        parent = parent.parentElement
       }
 
       return () => {
@@ -369,6 +372,25 @@ export function SearchableChooser({
     if (e.key === 'Enter') {
       e.preventDefault() // Prevent form submission
       e.stopPropagation() // Stop event from bubbling to DynamicDialog
+      
+      // If dropdown is closed, reopen it
+      if (!isOpen) {
+        setIsOpen(true)
+        setSearchTerm('')
+        setHoveredIndex(null)
+        // Calculate position immediately when opening
+        const position = calculateDropdownPosition()
+        if (position) {
+          setDropdownPosition(position)
+        }
+        // Trigger lazy loading if needed
+        if (onOpen) {
+          onOpen()
+        }
+        return
+      }
+      
+      // Dropdown is open: select an item
       // If an item is hovered/highlighted, select that one; otherwise select first
       const itemToSelect =
         hoveredIndex != null && hoveredIndex >= 0 && hoveredIndex < filteredItems.length ? filteredItems[hoveredIndex] : filteredItems.length > 0 ? filteredItems[0] : null
@@ -382,8 +404,11 @@ export function SearchableChooser({
         onSelect(manualEntryItem)
         setIsOpen(false)
         setSearchTerm('')
+        // Keep focus on the input to allow tab navigation to continue working
         if (inputRef.current) {
-          inputRef.current.blur()
+          setTimeout(() => {
+            inputRef.current?.focus()
+          }, 0)
         }
       }
     } else if (e.key === 'Escape' || e.key === 'Esc') {
@@ -413,8 +438,12 @@ export function SearchableChooser({
     onSelect(item)
     setIsOpen(false)
     setSearchTerm('')
+    // Keep focus on the input to allow tab navigation to continue working
+    // Use setTimeout to ensure the dropdown closes first, then refocus
     if (inputRef.current) {
-      inputRef.current.blur()
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 0)
     }
   }
 
