@@ -182,24 +182,37 @@ export function NoteChooser({
   }
 
   /**
-   * Format a date string (YYYYMMDD) for display using moment
-   * @param {string} dateStr - Date string in YYYYMMDD format
-   * @returns {string} - Formatted date string (e.g., "Daily Note: Tuesday, Jan 22, 2026")
+   * Check if a value is an ISO date string (YYYY-MM-DD format)
+   * @param {string} value - The value to check
+   * @returns {boolean}
+   */
+  const isISODateString = (value: string): boolean => {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value)
+  }
+
+  /**
+   * Format a date string (YYYYMMDD or YYYY-MM-DD) for display using moment
+   * @param {string} dateStr - Date string in YYYYMMDD or YYYY-MM-DD format
+   * @returns {string} - ISO 8601 date string (YYYY-MM-DD) for display
    */
   const formatDateStringForDisplay = (dateStr: string): string => {
-    if (!isDateString(dateStr)) return dateStr
-    try {
-      const year = dateStr.substring(0, 4)
-      const month = dateStr.substring(4, 6)
-      const day = dateStr.substring(6, 8)
-      const date = moment(`${year}-${month}-${day}`, 'YYYY-MM-DD')
-      if (!date.isValid()) return dateStr
-      // Format as "Daily Note: Tuesday, Jan 22, 2026"
-      return `Daily Note: ${date.format('dddd, MMM D, YYYY')}`
-    } catch (error) {
-      logError('NoteChooser', `Error formatting date: ${error.message}`)
+    // If already in ISO format, return as-is (user wants ISO format, not formatted date)
+    if (isISODateString(dateStr)) {
       return dateStr
     }
+    // If in YYYYMMDD format, convert to ISO format
+    if (isDateString(dateStr)) {
+      try {
+        const year = dateStr.substring(0, 4)
+        const month = dateStr.substring(4, 6)
+        const day = dateStr.substring(6, 8)
+        return `${year}-${month}-${day}`
+      } catch (error) {
+        logError('NoteChooser', `Error formatting date: ${error.message}`)
+        return dateStr
+      }
+    }
+    return dateStr
   }
 
   /**
@@ -615,9 +628,9 @@ export function NoteChooser({
     shortDescriptionOnLine2,
   }
 
-  // Format value for display if it's a date string
+  // Format value for display if it's a date string (YYYYMMDD or YYYY-MM-DD format)
   const displayValue = useMemo(() => {
-    if (value && isDateString(value)) {
+    if (value && (isDateString(value) || isISODateString(value))) {
       return formatDateStringForDisplay(value)
     }
     return value
@@ -685,7 +698,11 @@ export function NoteChooser({
             >
               <DayPicker
                 mode="single"
-                selected={value && isDateString(value) ? new Date(formatDateStringForDisplay(value)) : null}
+                selected={
+                  value && (isDateString(value) || isISODateString(value))
+                    ? new Date(formatDateStringForDisplay(value))
+                    : null
+                }
                 onSelect={handleCalendarDateSelect}
                 numberOfMonths={1}
                 fixedHeight
