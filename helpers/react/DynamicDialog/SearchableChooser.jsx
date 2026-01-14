@@ -148,6 +148,9 @@ export function SearchableChooser({
   const containerRef = useRef<?HTMLDivElement>(null)
   const inputRef = useRef<?HTMLInputElement>(null)
   const dropdownRef = useRef<?HTMLDivElement>(null)
+  // When we programmatically refocus the input (e.g. after clicking an option),
+  // we sometimes *don't* want focus to immediately reopen the dropdown.
+  const suppressOpenOnFocusRef = useRef<boolean>(false)
   const [closeDropdownTriggered, setCloseDropdownTriggered] = useState<boolean>(false)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number, left: number, width: number, openAbove: boolean } | null>(null)
 
@@ -239,7 +242,9 @@ export function SearchableChooser({
   // Calculate dropdown position when it opens and on scroll/resize
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      let rafId: ?number = null
+      // Flow typing for requestAnimationFrame / cancelAnimationFrame can vary by environment
+      // so we keep this as `any` to avoid incompatible-call noise.
+      let rafId: any = null
       const updatePosition = () => {
         // Coalesce bursts of layout changes (async data loads can trigger many resizes)
         if (rafId != null) {
@@ -354,6 +359,10 @@ export function SearchableChooser({
   }
 
   const handleInputFocus = () => {
+    if (suppressOpenOnFocusRef.current) {
+      suppressOpenOnFocusRef.current = false
+      return
+    }
     if (debugLogging) {
       console.log(`${fieldType}: Input focused, opening dropdown. items=${items.length}, filteredItems=${filteredItems.length}`)
     }
@@ -471,6 +480,7 @@ export function SearchableChooser({
     // Use setTimeout to ensure the dropdown closes first, then refocus
     if (inputRef.current) {
       setTimeout(() => {
+        suppressOpenOnFocusRef.current = true
         inputRef.current?.focus()
       }, 0)
     }
