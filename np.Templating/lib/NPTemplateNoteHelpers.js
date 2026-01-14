@@ -15,13 +15,13 @@ import { getNote } from '@helpers/note'
 export async function getTemplateNote(_templateName: string = '', runSilently: boolean = false): Promise<TNote | null> {
   // Get all template folder prefixes (includes private root and all teamspace root folders)
   const searchFolders = await getTemplateFolderPrefixes()
-  
+
   const isFilename = _templateName.endsWith('.md') || _templateName.endsWith('.txt')
   const containsFolder = _templateName.includes('/')
-  
+
   // Check if template name starts with any of the search folder prefixes
   const startsWithTemplateFolder = searchFolders.some((folder) => _templateName.startsWith(`${folder}/`))
-  
+
   logDebug(
     pluginJson,
     `getTemplateNote: _templateName="${_templateName}" isFilename=${String(isFilename)} containsFolder=${String(containsFolder)} startsWithTemplateFolder=${String(
@@ -41,7 +41,10 @@ export async function getTemplateNote(_templateName: string = '', runSilently: b
   }
   if (!runSilently) {
     logError(pluginJson, `Unable to locate template "${_templateName}" in any of ${searchFolders.length} template folders`)
-    await CommandBar.prompt(`Unable to locate template "${_templateName}"`, `Unable to locate template "${_templateName}" in any template folder (searched ${searchFolders.length} folders)`)
+    await CommandBar.prompt(
+      `Unable to locate template "${_templateName}"`,
+      `Unable to locate template "${_templateName}" in any template folder (searched ${searchFolders.length} folders)`,
+    )
   }
   logDebug(pluginJson, `getTemplateNote: Unable to locate template "${_templateName}" in any of ${searchFolders.length} template folders`)
   return null
