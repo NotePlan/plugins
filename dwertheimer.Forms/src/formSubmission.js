@@ -165,7 +165,7 @@ function executeTemplateJSBlock(field: Object, code: string, context: Object, bl
     // Validate that the code returned an object
     if (result && typeof result === 'object' && !Array.isArray(result)) {
       logDebug(pluginJson, `executeTemplateJSBlock: TemplateJS block "${fieldIdentifier}" returned object with keys: ${Object.keys(result).join(', ')}`)
-      return result
+      return Promise.resolve(result)
     } else if (result !== undefined) {
       const errorMessage = `TemplateJS block "${fieldIdentifier}" should return an object, but returned ${typeof result}. Please update your code to return an object (e.g., return { key: value }).`
       logError(pluginJson, `executeTemplateJSBlock: ${errorMessage}`)
@@ -174,7 +174,7 @@ function executeTemplateJSBlock(field: Object, code: string, context: Object, bl
         reactWindowData.pluginData = {}
       }
       ;(reactWindowData.pluginData: any).formSubmissionError = errorMessage
-      return null
+      return Promise.resolve(null)
     } else {
       const errorMessage = `TemplateJS block "${fieldIdentifier}" did not return anything. Please update your code to return an object (e.g., return { key: value }).`
       logError(pluginJson, `executeTemplateJSBlock: ${errorMessage}`)
@@ -183,7 +183,7 @@ function executeTemplateJSBlock(field: Object, code: string, context: Object, bl
         reactWindowData.pluginData = {}
       }
       ;(reactWindowData.pluginData: any).formSubmissionError = errorMessage
-      return null
+      return Promise.resolve(null)
     }
   } catch (error) {
     const errorMessage = `Error executing TemplateJS block "${fieldIdentifier}": ${error.message}`
@@ -193,7 +193,7 @@ function executeTemplateJSBlock(field: Object, code: string, context: Object, bl
       reactWindowData.pluginData = {}
     }
     ;(reactWindowData.pluginData: any).formSubmissionError = errorMessage
-    return null
+    return Promise.resolve(null)
   }
 }
 
