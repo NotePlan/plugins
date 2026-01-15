@@ -10,6 +10,12 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 - **Multi-select NoteChooser**: Added ability to select multiple notes in a note-chooser field with configurable output format (wikilink, pretty-link, raw-url) and separator (space, comma, newline)
 - **Calendar Picker Button Control**: Added setting in FieldEditor to control visibility of calendar picker button in note-chooser fields
 - **Form Tester Examples**: Added multi-select note chooser examples to Form Tester with different output formats and separators
+- **Calendar Picker Date Format Setting**: Added configurable output format for calendarpicker fields using moment.js formatting:
+  - Default format is ISO 8601 (YYYY-MM-DD) instead of returning Date object
+  - Choose from 30+ date format options (US format, European format, long format, date & time, etc.)
+  - Use `[Object]` option to return Date object for backward compatibility
+  - Formatting applies when selecting from calendar picker or typing directly in the input field
+  - Supports locale-aware formatting using moment-with-locales based on NotePlan environment settings
 
 ### Fixed
 - Fixed calendar picker button showing when "Include Calendar Notes" is disabled - now only shows when calendar notes are included (or explicitly enabled via setting)
@@ -20,6 +26,8 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 - **NoteChooser**: Calendar picker button now respects "Include Calendar Notes" setting by default - only appears when calendar notes are included
 - **FieldEditor**: Added "Show Calendar Picker Button" checkbox in note-chooser field editor for explicit control
 - **NoteChooser**: Multi-select mode uses ContainedMultiSelectChooser component with checkboxes for better UX
+- **CalendarPicker**: Default behavior changed from returning Date object to returning ISO 8601 formatted string (YYYY-MM-DD) - use `dateFormat: '__object__'` to return Date object
+- **CalendarPicker**: Dates typed directly in the input field are now parsed and formatted according to the selected dateFormat option
 
 ## [1.0.10] 2026-01-14 @dwertheimer
 
