@@ -559,6 +559,67 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   </label>
                 </div>
               )}
+              <div className="field-editor-row">
+                <label>Output Format:</label>
+                <select
+                  value={((editedField: any): { dateFormat?: string }).dateFormat || 'YYYY-MM-DD'}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).dateFormat = e.target.value
+                    setEditedField(updated)
+                  }}
+                >
+                  {(() => {
+                    // Import date format options dynamically (avoiding circular dependency issues)
+                    // Use inline options array for now - we can refactor to use helper later if needed
+                    const options = [
+                      { value: '__object__', label: '[Object] - Return Date object' },
+                      { value: 'YYYY-MM-DD', label: '8601 Date (default) - YYYY-MM-DD' },
+                      { value: 'YYYY-MM-DD HH:mm', label: 'YYYY-MM-DD HH:mm - ISO date and time (24-hour)' },
+                      { value: 'YYYY-MM-DD HH:mm:ss', label: 'YYYY-MM-DD HH:mm:ss - ISO date and time with seconds' },
+                      { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY - US date format' },
+                      { value: 'MM/DD/YY', label: 'MM/DD/YY - US date format (short year)' },
+                      { value: 'M/D/YYYY', label: 'M/D/YYYY - US date format (no leading zeros)' },
+                      { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY - European date format' },
+                      { value: 'DD/MM/YY', label: 'DD/MM/YY - European date format (short year)' },
+                      { value: 'D/M/YYYY', label: 'D/M/YYYY - European date format (no leading zeros)' },
+                      { value: 'MMMM Do, YYYY', label: 'MMMM Do, YYYY - Long date format (e.g., December 22nd, 2024)' },
+                      { value: 'dddd, MMMM Do, YYYY', label: 'dddd, MMMM Do, YYYY - Full date with weekday' },
+                      { value: 'MMMM Do', label: 'MMMM Do - Month and day (e.g., December 22nd)' },
+                      { value: 'h:mm A', label: 'h:mm A - Time (12-hour with AM/PM)' },
+                      { value: 'hh:mm A', label: 'hh:mm A - Time (12-hour with AM/PM, leading zero)' },
+                      { value: 'h:mm:ss A', label: 'h:mm:ss A - Time with seconds (12-hour with AM/PM)' },
+                      { value: 'HH:mm', label: 'HH:mm - Time (24-hour)' },
+                      { value: 'HH:mm:ss', label: 'HH:mm:ss - Time with seconds (24-hour)' },
+                      { value: 'MM/DD/YYYY h:mm A', label: 'MM/DD/YYYY h:mm A - US date and time (12-hour)' },
+                      { value: 'MM/DD/YYYY HH:mm', label: 'MM/DD/YYYY HH:mm - US date and time (24-hour)' },
+                      { value: 'DD/MM/YYYY h:mm A', label: 'DD/MM/YYYY h:mm A - European date and time (12-hour)' },
+                      { value: 'DD/MM/YYYY HH:mm', label: 'DD/MM/YYYY HH:mm - European date and time (24-hour)' },
+                      { value: 'MMMM Do, YYYY h:mm A', label: 'MMMM Do, YYYY h:mm A - Long date and time (12-hour)' },
+                      { value: 'MMMM Do, YYYY HH:mm', label: 'MMMM Do, YYYY HH:mm - Long date and time (24-hour)' },
+                      { value: 'dddd', label: 'dddd - Day of week (full name)' },
+                      { value: 'ddd', label: 'ddd - Day of week (abbreviated)' },
+                      { value: 'MMMM', label: 'MMMM - Month name (full)' },
+                      { value: 'MMM', label: 'MMM - Month name (abbreviated)' },
+                      { value: 'YYYY', label: 'YYYY - Year (4 digits)' },
+                      { value: 'YY', label: 'YY - Year (2 digits)' },
+                      { value: 'Do', label: 'Do - Day of month with ordinal (e.g., 22nd)' },
+                      { value: 'D', label: 'D - Day of month (no leading zero)' },
+                      { value: 'DD', label: 'DD - Day of month (with leading zero)' },
+                      { value: 'wo [week of] YYYY', label: 'wo [week of] YYYY - Week number and year' },
+                      { value: 'Qo [quarter] YYYY', label: 'Qo [quarter] YYYY - Quarter and year' },
+                    ]
+                    return options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))
+                  })()}
+                </select>
+                <div className="field-editor-help">
+                  Choose how to format the selected date. Default is ISO 8601 (YYYY-MM-DD). Use &quot;[Object]&quot; to return a Date object instead of a formatted string.
+                </div>
+              </div>
             </>
           )}
 

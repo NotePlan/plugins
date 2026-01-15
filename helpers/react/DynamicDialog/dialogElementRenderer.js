@@ -458,16 +458,20 @@ export function renderItem({
         )
       }
       case 'calendarpicker': {
-        const selectedDate: ?Date = item.selectedDate || null
+        const selectedDate: ?Date | ?string = item.selectedDate || null
         const label = item.label || ''
         const compactDisplay = item.compactDisplay || false
+        const dateFormat = (item: any).dateFormat || 'YYYY-MM-DD' // Default to ISO 8601
 
-        const handleDateChange = (date: Date) => {
+        const handleDateChange = (date: Date | string) => {
           if (item.key) {
-            // Handle cleared date (NaN date means cleared)
-            if (isNaN(date.getTime())) {
+            // Handle cleared date/string
+            if (date instanceof Date && isNaN(date.getTime())) {
+              handleFieldChange(item.key, null)
+            } else if (typeof date === 'string' && date === '') {
               handleFieldChange(item.key, null)
             } else {
+              // Store the value as-is (formatted string or Date object)
               handleFieldChange(item.key, date)
             }
           }
@@ -480,7 +484,12 @@ export function renderItem({
             className={`${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'} ${indent ? 'indent' : ''}`}
           >
             <label className="input-box-label">{label}</label>
-            <GenericDatePicker startingSelectedDate={selectedDate ?? undefined} onSelectDate={handleDateChange} disabled={disabled} />
+            <GenericDatePicker
+              startingSelectedDate={selectedDate ?? undefined}
+              onSelectDate={handleDateChange}
+              disabled={disabled}
+              dateFormat={dateFormat}
+            />
           </div>
         )
       }

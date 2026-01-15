@@ -88,7 +88,7 @@ export type TSettingItem = {
   vertical?: boolean, // Add vertical property for button-group
   isDefault?: boolean, // Add isDefault property for button items
   fixedWidth?: number, // for dropdowns, set a fixed width
-  selectedDate?: Date, // for calendarpicker, the selected date
+  selectedDate?: Date | string, // for calendarpicker, the selected date (Date object or formatted string)
   numberOfMonths?: number, // for calendarpicker, the number of months to show
   size?: number, // for calendarpicker, the size scale factor (0.5 = 50%, default)
   required?: boolean, // for input fields, require the field to be filled out
@@ -97,6 +97,7 @@ export type TSettingItem = {
   placeholder?: string, // for dropdown-select, placeholder text when no value is selected
   buttonText?: string, // for calendarpicker and button, text to display on button
   visible?: boolean, // for calendarpicker, whether calendar is shown by default
+  dateFormat?: string, // for calendarpicker, moment.js format string (e.g., 'YYYY-MM-DD', 'MM/DD/YYYY'). If '__object__', returns Date object. Default: 'YYYY-MM-DD' (ISO 8601)
   // folder-chooser options (matching chooseFolder function parameters)
   includeArchive?: boolean, // for folder-chooser, include the Archive folder in the list
   includeNewFolderOption?: boolean, // for folder-chooser, add a 'New Folder' option that allows creating a new folder
