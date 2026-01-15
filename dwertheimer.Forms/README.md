@@ -496,14 +496,28 @@ All fields support these properties:
 
 ### NotePlan Chooser Field Types
 
-**`note-chooser`** - Searchable note selector
+**`note-chooser`** - Searchable note selector (single or multi-select)
 ```javascript
 {
   key: 'targetNote',
   label: 'Select Note',
   type: 'note-chooser',
   placeholder: 'Search notes...',
-  showValue: false // false=show title, true=show filename
+  showValue: false, // false=show title, true=show filename
+  // Multi-select options:
+  allowMultiSelect: true, // Enable multi-select mode (default: false)
+  noteOutputFormat: 'wikilink', // 'wikilink' | 'pretty-link' | 'raw-url' (default: 'wikilink')
+  noteSeparator: 'space', // 'space' | 'comma' | 'newline' (default: 'space')
+  // Filter options:
+  includePersonalNotes: true, // Include personal/project notes (default: true)
+  includeCalendarNotes: false, // Include calendar notes (default: false)
+  includeRelativeNotes: false, // Include relative notes like <today> (default: false)
+  includeTeamspaceNotes: true, // Include teamspace notes (default: true)
+  includeTemplatesAndForms: false, // Include @Templates and @Forms folders (default: false)
+  // Display options:
+  showCalendarChooserIcon: true, // Show calendar picker button (default: true if calendar notes included)
+  showTitleOnly: false, // Show only title, not path/title (default: false)
+  shortDescriptionOnLine2: false // Show description on second line (default: false)
 }
 ```
 
