@@ -620,12 +620,11 @@ export function renderItem({
             `note-chooser: handleNoteChange called with noteTitle="${noteTitle}", noteFilename="${noteFilename}", item.key="${item.key || 'undefined'}"`,
           )
           if (item.key) {
-            // Store both title and filename - using filename as the value for consistency
-            // but you could also store as an object: { title: noteTitle, filename: noteFilename }
-            logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${item.key}", value="${noteFilename}"`)
-            handleFieldChange(item.key, noteFilename)
-            // If you want to store title separately, you could use a compound key like `${item.key}Title`
-            // For now, we'll store filename as the value
+            // For multi-select mode, noteTitle contains the formatted string and noteFilename is empty
+            // For single-select mode, noteFilename contains the filename
+            const valueToStore = (item: any).allowMultiSelect ? noteTitle : noteFilename
+            logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${item.key}", value="${valueToStore}"`)
+            handleFieldChange(item.key, valueToStore)
           } else {
             logError('dialogElementRenderer', `note-chooser: handleNoteChange called but item.key is undefined`)
           }
@@ -662,8 +661,26 @@ export function renderItem({
               showValue={item.showValue ?? false}
               shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
               showTitleOnly={item.showTitleOnly ?? false}
-              showCalendarChooserIcon={item.showCalendarChooserIcon ?? true}
+              showCalendarChooserIcon={(() => {
+                // Only show calendar picker if:
+                // 1. Calendar notes are included (includeCalendarNotes is true), OR
+                // 2. Explicitly enabled (showCalendarChooserIcon is true)
+                // If explicitly set to false, respect that and hide it
+                const includeCalendar = item.includeCalendarNotes ?? false
+                const explicitSetting = (item: any).showCalendarChooserIcon
+                if (explicitSetting === false) {
+                  return false // Explicitly disabled
+                }
+                if (explicitSetting === true) {
+                  return true // Explicitly enabled
+                }
+                // Default: only show if calendar notes are included
+                return includeCalendar
+              })()}
               isLoading={isLoading}
+              allowMultiSelect={Boolean((item: any).allowMultiSelect)}
+              noteOutputFormat={(item: any).noteOutputFormat || 'wikilink'}
+              noteSeparator={(item: any).noteSeparator || 'space'}
             />
           </div>
         )

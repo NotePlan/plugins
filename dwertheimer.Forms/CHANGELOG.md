@@ -4,6 +4,23 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.11] 2026-01-17 @dwertheimer
+
+### Added
+- **Multi-select NoteChooser**: Added ability to select multiple notes in a note-chooser field with configurable output format (wikilink, pretty-link, raw-url) and separator (space, comma, newline)
+- **Calendar Picker Button Control**: Added setting in FieldEditor to control visibility of calendar picker button in note-chooser fields
+- **Form Tester Examples**: Added multi-select note chooser examples to Form Tester with different output formats and separators
+
+### Fixed
+- Fixed calendar picker button showing when "Include Calendar Notes" is disabled - now only shows when calendar notes are included (or explicitly enabled via setting)
+- Fixed multi-select NoteChooser not rendering correctly - now properly detects `allowMultiSelect` prop and renders ContainedMultiSelectChooser instead of dropdown
+- Fixed syntax error in NoteChooser.jsx that prevented Rollup from building (replaced Flow type guard with explicit array building)
+
+### Changed
+- **NoteChooser**: Calendar picker button now respects "Include Calendar Notes" setting by default - only appears when calendar notes are included
+- **FieldEditor**: Added "Show Calendar Picker Button" checkbox in note-chooser field editor for explicit control
+- **NoteChooser**: Multi-select mode uses ContainedMultiSelectChooser component with checkboxes for better UX
+
 ## [1.0.10] 2026-01-14 @dwertheimer
 
 ### Added

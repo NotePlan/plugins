@@ -10,6 +10,7 @@ import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
 import moment from 'moment/min/moment-with-locales'
 import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
+import ContainedMultiSelectChooser from './ContainedMultiSelectChooser.jsx'
 import { truncateText, calculatePortalPosition } from '@helpers/react/reactUtils.js'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { getNoteDecorationForReact, TEAMSPACE_ICON_COLOR } from '@helpers/NPnote.js'
@@ -62,6 +63,9 @@ export type NoteChooserProps = {
   shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
   showTitleOnly?: boolean, // If true, show only the note title in the label (not "path / title") (default: false)
   showCalendarChooserIcon?: boolean, // If true, show a calendar button next to the chooser (default: true)
+  allowMultiSelect?: boolean, // If true, enable multi-select mode using ContainedMultiSelectChooser (default: false)
+  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link', // For multi-select, output format (default: 'wikilink')
+  noteSeparator?: 'space' | 'comma' | 'newline', // For multi-select, separator between notes (default: 'space')
 }
 
 /**
@@ -109,6 +113,9 @@ export function NoteChooser({
   shortDescriptionOnLine2 = false,
   showTitleOnly = false,
   showCalendarChooserIcon = true,
+  allowMultiSelect = false,
+  noteOutputFormat = 'wikilink',
+  noteSeparator = 'space',
 }: NoteChooserProps): React$Node {
   const [isCreatingNote, setIsCreatingNote] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -238,6 +245,87 @@ export function NoteChooser({
     const day = String(date.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
   }
+
+  /**
+   * Format a note based on output format
+   * @param {NoteOption} note - The note to format
+   * @param {string} format - Output format: 'raw-url', 'wikilink', or 'pretty-link'
+   * @returns {string} - Formatted note string
+   */
+  const formatNote = useCallback(
+    (note: NoteOption, format: 'raw-url' | 'wikilink' | 'pretty-link'): string => {
+      const noteTitle = note.title || note.filename || ''
+      const noteFilename = note.filename || ''
+
+      switch (format) {
+        case 'raw-url':
+          // Return the noteplan:// URL format
+          return `noteplan://x-callback-url/openNote?noteTitle=${encodeURIComponent(noteTitle)}`
+        case 'wikilink':
+          // Return [[note title]] format
+          return `[[${noteTitle}]]`
+        case 'pretty-link':
+          // Return [note title](noteplan://...) format
+          return `[${noteTitle}](noteplan://x-callback-url/openNote?noteTitle=${encodeURIComponent(noteTitle)})`
+        default:
+          return noteTitle
+      }
+    },
+    [],
+  )
+
+  /**
+   * Format multiple notes with separator
+   * @param {Array<NoteOption>} notes - Array of notes to format
+   * @param {string} format - Output format
+   * @param {string} separator - Separator between notes
+   * @returns {string} - Formatted string
+   */
+  const formatNotes = useCallback(
+    (notes: Array<NoteOption>, format: 'raw-url' | 'wikilink' | 'pretty-link', separator: 'space' | 'comma' | 'newline'): string => {
+      const formatted = notes.map((note) => formatNote(note, format))
+      const sep = separator === 'space' ? ' ' : separator === 'comma' ? ', ' : '\n'
+      return formatted.join(sep)
+    },
+    [formatNote],
+  )
+
+  /**
+   * Parse formatted value back to note filenames
+   * @param {string} formattedValue - Formatted string value
+   * @param {string} format - Output format used
+   * @param {string} separator - Separator used
+   * @returns {Array<string>} - Array of note titles (for matching)
+   */
+  const parseFormattedValue = useCallback(
+    (formattedValue: string, format: 'raw-url' | 'wikilink' | 'pretty-link', separator: 'space' | 'comma' | 'newline'): Array<string> => {
+      if (!formattedValue) return []
+
+      const sep = separator === 'space' ? ' ' : separator === 'comma' ? ',' : '\n'
+      const parts = formattedValue.split(sep).map((s) => s.trim()).filter((s) => s.length > 0)
+
+      switch (format) {
+        case 'wikilink':
+          // Extract titles from [[title]] format
+          return parts.map((part) => part.replace(/^\[\[|\]\]$/g, ''))
+        case 'pretty-link':
+          // Extract titles from [title](url) format
+          return parts.map((part) => {
+            const match = part.match(/^\[([^\]]+)\]/)
+            return match ? match[1] : part
+          })
+        case 'raw-url':
+          // Extract titles from noteplan:// URLs
+          return parts.map((part) => {
+            const match = part.match(/noteTitle=([^&]+)/)
+            return match ? decodeURIComponent(match[1]) : part
+          })
+        default:
+          return parts
+      }
+    },
+    [],
+  )
 
   /**
    * Handle calendar date selection
@@ -636,6 +724,101 @@ export function NoteChooser({
     return value
   }, [value])
 
+  // For multi-select mode: parse value to get selected note filenames
+  const selectedNoteFilenames: Array<string> = useMemo(() => {
+    if (!allowMultiSelect || !value) return ([]: Array<string>)
+    const parsedTitles = parseFormattedValue(value, noteOutputFormat, noteSeparator)
+    // Find notes matching the parsed titles
+    return filteredNotes
+      .filter((note) => parsedTitles.includes(note.title) || parsedTitles.includes(note.filename))
+      .map((note) => note.filename)
+  }, [allowMultiSelect, value, noteOutputFormat, noteSeparator, filteredNotes, parseFormattedValue])
+
+  // Handle multi-select onChange
+  const handleMultiSelectChange = useCallback(
+    (selectedFilenames: string | Array<string>) => {
+      const filenamesArray = Array.isArray(selectedFilenames) ? selectedFilenames : [selectedFilenames]
+      // Find notes by filename
+      const selectedNotes: Array<NoteOption> = []
+      filenamesArray.forEach((filename) => {
+        const note = filteredNotes.find((n) => n.filename === filename)
+        if (note != null) {
+          selectedNotes.push(note)
+        }
+      })
+
+      if (selectedNotes.length > 0) {
+        const formatted = formatNotes(selectedNotes, noteOutputFormat, noteSeparator)
+        // Call parent onChange with formatted string as title and empty string as filename
+        onChange(formatted, '')
+      } else {
+        // No notes selected
+        onChange('', '')
+      }
+    },
+    [filteredNotes, formatNotes, noteOutputFormat, noteSeparator, onChange],
+  )
+
+  // If multi-select mode, render ContainedMultiSelectChooser
+  // Explicitly check for true (not just truthy) to avoid string "true" issues
+  if (allowMultiSelect === true) {
+    const allowMultiSelectStr = allowMultiSelect ? 'true' : 'false'
+    logDebug('NoteChooser', `Multi-select mode enabled: allowMultiSelect=${allowMultiSelectStr} (type: ${typeof allowMultiSelect}), filteredNotes.length=${filteredNotes.length}`)
+    // Get note filenames as items for ContainedMultiSelectChooser
+    const noteFilenames = filteredNotes.map((note) => note.filename)
+    logDebug('NoteChooser', `Rendering ContainedMultiSelectChooser with ${noteFilenames.length} items, selectedNoteFilenames=${JSON.stringify(selectedNoteFilenames)}`)
+
+    return (
+      <ContainedMultiSelectChooser
+        label={label}
+        value={selectedNoteFilenames}
+        onChange={handleMultiSelectChange}
+        disabled={disabled}
+        compactDisplay={compactDisplay}
+        placeholder={placeholder}
+        items={noteFilenames}
+        getItemDisplayLabel={(filename: string) => {
+          const note = filteredNotes.find((n) => n.filename === filename)
+          if (!note) return filename
+          // Use the same display logic as single-select mode
+          if (showTitleOnly) {
+            return note.title || filename
+          }
+          const decoration = getNoteDecoration(note)
+          if (decoration.shortDescription) {
+            return note.title || filename
+          }
+          if (note.type === 'Notes' || !note.type) {
+            const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
+            let folder = getFolderFromFilename(note.filename)
+            if (possTeamspaceDetails.isTeamspace) {
+              folder = getFilenameWithoutTeamspaceID(folder) || '/'
+            }
+            if (folder === '/' || !folder) {
+              return note.title || filename
+            }
+            const folderWithoutSlash = folder.replace(/^\/+|\/+$/g, '')
+            const titleContainsFolder = note.title.includes(folderWithoutSlash) || note.title.includes(folder)
+            if (titleContainsFolder) {
+              return note.title || filename
+            }
+            return `${folder} / ${note.title || filename}`
+          }
+          return note.title || filename
+        }}
+        returnAsArray={true}
+        maxHeight="200px"
+        width={width}
+        fieldType="note-chooser"
+        allowCreate={false}
+        fieldKey={label ? `note-chooser-${label}` : undefined}
+        emptyMessageNoItems="No notes available"
+        emptyMessageNoMatch="No notes match your search"
+      />
+    )
+  }
+
+  // Single-select mode: render SearchableChooser (existing behavior)
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', width: '100%' }}>
@@ -653,7 +836,7 @@ export function NoteChooser({
             isLoading={isLoading}
           />
         </div>
-        {showCalendarChooserIcon && !disabled && (
+        {showCalendarChooserIcon && !disabled && !allowMultiSelect && (
           <button
             ref={calendarButtonRef}
             type="button"

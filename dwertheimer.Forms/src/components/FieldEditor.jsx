@@ -804,6 +804,87 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   When enabled, displays only the note title in the label (not &quot;path / title&quot;). The path will still appear in the short description if enabled.
                 </div>
               </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { showCalendarChooserIcon?: boolean }).showCalendarChooserIcon ?? true}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).showCalendarChooserIcon = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Show Calendar Picker Button
+                </label>
+                <div className="field-editor-help">
+                  When enabled, shows a calendar icon button on the right side of the chooser to quickly select calendar notes. The button will only appear if &quot;Include Calendar Notes&quot; is enabled, or if you explicitly enable this option.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { allowMultiSelect?: boolean }).allowMultiSelect || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).allowMultiSelect = e.target.checked
+                      // Reset output format and separator to defaults when enabling
+                      if (e.target.checked) {
+                        ;(updated: any).noteOutputFormat = 'wikilink'
+                        ;(updated: any).noteSeparator = 'space'
+                      } else {
+                        // Clear multi-select options when disabling
+                        ;(updated: any).noteOutputFormat = undefined
+                        ;(updated: any).noteSeparator = undefined
+                      }
+                      setEditedField(updated)
+                    }}
+                  />
+                  Allow Multi-Select
+                </label>
+                <div className="field-editor-help">
+                  When enabled, allows selecting multiple notes. The chooser will display as a multi-select list with checkboxes.
+                </div>
+              </div>
+              {((editedField: any): { allowMultiSelect?: boolean }).allowMultiSelect && (
+                <>
+                  <div className="field-editor-row">
+                    <label>Output Format:</label>
+                    <select
+                      value={((editedField: any): { noteOutputFormat?: string }).noteOutputFormat || 'wikilink'}
+                      onChange={(e) => {
+                        const updated = { ...editedField }
+                        ;(updated: any).noteOutputFormat = e.target.value
+                        setEditedField(updated)
+                      }}
+                    >
+                      <option value="wikilink">Wikilink: [[Note Title]]</option>
+                      <option value="pretty-link">Pretty Link: [Note Title](noteplan://...)</option>
+                      <option value="raw-url">Raw URL: noteplan://x-callback-url/openNote?noteTitle=...</option>
+                    </select>
+                    <div className="field-editor-help">
+                      Choose how to format the selected notes in the output. Wikilink format is compatible with NotePlan&apos;s native linking.
+                    </div>
+                  </div>
+                  <div className="field-editor-row">
+                    <label>Separator:</label>
+                    <select
+                      value={((editedField: any): { noteSeparator?: string }).noteSeparator || 'space'}
+                      onChange={(e) => {
+                        const updated = { ...editedField }
+                        ;(updated: any).noteSeparator = e.target.value
+                        setEditedField(updated)
+                      }}
+                    >
+                      <option value="space">Space</option>
+                      <option value="comma">Comma</option>
+                      <option value="newline">Newline</option>
+                    </select>
+                    <div className="field-editor-help">Choose how to separate multiple selected notes in the output.</div>
+                  </div>
+                </>
+              )}
             </>
           )}
 
