@@ -312,9 +312,14 @@ async function processWriteExisting(data: any, reactWindowData: PassedData): Pro
   const { getNoteTitled, location, writeUnderHeading, createMissingHeading, formValues, shouldOpenInEditor } = data
 
   if (!getNoteTitled) {
-    logError(pluginJson, `processWriteExisting: No target note was specified. Please set a target note in your form settings.`)
-    // await showMessage('No target note was specified. Please set a target note in your form settings.')
-    return null
+    const errorMessage = 'No target note was specified. Please set a target note in your form settings.'
+    logError(pluginJson, `processWriteExisting: ${errorMessage}`)
+    // Store error in reactWindowData so it can be displayed in the UI
+    if (!reactWindowData.pluginData) {
+      reactWindowData.pluginData = {}
+    }
+    ;(reactWindowData.pluginData: any).formSubmissionError = errorMessage
+    return reactWindowData
   }
 
   // Step 1: Prepare form values and get templating context
@@ -656,8 +661,12 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
     return null
   }
 
-  // Return result (null on error, or updated reactWindowData on success)
+  // Return result - even if null, check if there's an error message to display
   if (result === null) {
+    // If result is null, return reactWindowData if it has an error message, otherwise return null
+    if (reactWindowData?.pluginData?.formSubmissionError) {
+      return reactWindowData
+    }
     return null
   }
   logDebug(

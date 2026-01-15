@@ -190,7 +190,7 @@ The Form Builder includes these field types:
 - **Date Picker** - Calendar for selecting dates
 
 ### NotePlan Selectors
-- **Note Chooser** - Search and select a note
+- **Note Chooser** - Search and select a note (supports single or multi-select with configurable output format)
 - **Folder Chooser** - Search and select a folder
 - **Space Chooser** - Select Private or a Teamspace
 - **Heading Chooser** - Select a heading from a note

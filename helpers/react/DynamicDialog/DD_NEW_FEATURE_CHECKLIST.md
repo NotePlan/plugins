@@ -42,6 +42,13 @@ Quick checklist for adding a new feature or setting to an existing DynamicDialog
 - [ ] Add descriptive `key` (e.g., `testNoteMultiSelectWikilink`)
 - [ ] Add helpful `description` explaining what the example demonstrates
 
+### 6. Forms README
+**File:** `dwertheimer.Forms/README.md`
+- [ ] Update "Available Field Types" section (if adding new field type or significant feature)
+- [ ] Update field type JSON reference section (if adding new properties or options)
+- [ ] Add examples if the feature significantly changes usage patterns
+- [ ] Update any relevant "Tips and Best Practices" sections
+
 ## Critical Notes
 
 ### ❌ Never Use Dynamic Imports

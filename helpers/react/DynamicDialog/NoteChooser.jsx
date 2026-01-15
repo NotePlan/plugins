@@ -737,21 +737,28 @@ export function NoteChooser({
   // Handle multi-select onChange
   const handleMultiSelectChange = useCallback(
     (selectedFilenames: string | Array<string>) => {
+      logDebug('NoteChooser', `handleMultiSelectChange called with selectedFilenames=${JSON.stringify(selectedFilenames)}`)
       const filenamesArray = Array.isArray(selectedFilenames) ? selectedFilenames : [selectedFilenames]
+      logDebug('NoteChooser', `handleMultiSelectChange: filenamesArray=${JSON.stringify(filenamesArray)}, filteredNotes.length=${filteredNotes.length}`)
       // Find notes by filename
       const selectedNotes: Array<NoteOption> = []
       filenamesArray.forEach((filename) => {
         const note = filteredNotes.find((n) => n.filename === filename)
         if (note != null) {
           selectedNotes.push(note)
+        } else {
+          logDebug('NoteChooser', `handleMultiSelectChange: Note not found for filename="${filename}"`)
         }
       })
 
+      logDebug('NoteChooser', `handleMultiSelectChange: selectedNotes.length=${selectedNotes.length}`)
       if (selectedNotes.length > 0) {
         const formatted = formatNotes(selectedNotes, noteOutputFormat, noteSeparator)
+        logDebug('NoteChooser', `handleMultiSelectChange: formatted="${formatted}"`)
         // Call parent onChange with formatted string as title and empty string as filename
         onChange(formatted, '')
       } else {
+        logDebug('NoteChooser', `handleMultiSelectChange: No notes selected, calling onChange('', '')`)
         // No notes selected
         onChange('', '')
       }
@@ -777,6 +784,7 @@ export function NoteChooser({
         compactDisplay={compactDisplay}
         placeholder={placeholder}
         items={noteFilenames}
+        returnAsArray={true}
         getItemDisplayLabel={(filename: string) => {
           const note = filteredNotes.find((n) => n.filename === filename)
           if (!note) return filename

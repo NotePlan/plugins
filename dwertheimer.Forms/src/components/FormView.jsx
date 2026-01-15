@@ -414,14 +414,17 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       const hasAiAnalysis = pluginData?.aiAnalysisResult && typeof pluginData.aiAnalysisResult === 'string' && pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
       logDebug('FormView', `[AI ANALYSIS] formSubmitted=${String(formSubmitted)}, hasAiAnalysis=${String(hasAiAnalysis)}, aiAnalysisResult exists=${String(!!pluginData?.aiAnalysisResult)}, length=${pluginData?.aiAnalysisResult?.length || 0}`)
       
-      if (!hasAiAnalysis) {
-        // No AI analysis result - close the dialog after a short delay to allow data to update
-        logDebug('FormView', `[AI ANALYSIS] No AI analysis result, will close dialog after 500ms delay`)
+      const hasFormSubmissionError = pluginData?.formSubmissionError && typeof pluginData.formSubmissionError === 'string'
+      
+      if (!hasAiAnalysis && !hasFormSubmissionError) {
+        // No AI analysis result and no form submission error - close the dialog after a short delay to allow data to update
+        logDebug('FormView', `[AI ANALYSIS] No AI analysis result, no form submission error, will close dialog after 500ms delay`)
         const timeoutId = setTimeout(() => {
-          // Double-check there's still no AI analysis result
+          // Double-check there's still no AI analysis result or form submission error
           const stillNoAiAnalysis = !pluginData?.aiAnalysisResult || !pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
-          logDebug('FormView', `[AI ANALYSIS] After 500ms delay, stillNoAiAnalysis=${String(stillNoAiAnalysis)}, closing dialog`)
-          if (stillNoAiAnalysis) {
+          const stillNoFormError = !pluginData?.formSubmissionError
+          logDebug('FormView', `[AI ANALYSIS] After 500ms delay, stillNoAiAnalysis=${String(stillNoAiAnalysis)}, stillNoFormError=${String(stillNoFormError)}, closing dialog`)
+          if (stillNoAiAnalysis && stillNoFormError) {
             closeDialog()
             setFormSubmitted(false)
           }
@@ -429,11 +432,11 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
         
         return () => clearTimeout(timeoutId)
       } else {
-        logDebug('FormView', `[AI ANALYSIS] AI analysis result detected, keeping dialog open`)
-        // If there's an AI analysis result, keep the dialog open (don't close)
+        logDebug('FormView', `[AI ANALYSIS] AI analysis result or form submission error detected, keeping dialog open`)
+        // If there's an AI analysis result or form submission error, keep the dialog open (don't close)
       }
     }
-  }, [formSubmitted, pluginData?.aiAnalysisResult])
+  }, [formSubmitted, pluginData?.aiAnalysisResult, pluginData?.formSubmissionError])
 
   const handleSave = (formValues: Object, windowId?: string) => {
     clo(formValues, 'DynamicDialog: handleSave: formValues')
@@ -671,11 +674,18 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
 
   // Check for AI analysis result in pluginData
   const aiAnalysisResult = pluginData?.aiAnalysisResult || ''
+  
+  // Check for form submission error in pluginData
+  const formSubmissionError = pluginData?.formSubmissionError || ''
 
   // State for rendered markdown HTML and visibility
   const [aiAnalysisHtml, setAiAnalysisHtml] = useState<string>('')
   const [showAiAnalysis, setShowAiAnalysis] = useState<boolean>(false)
   const bannerShownRef = useRef<boolean>(false)
+  
+  // State for form submission error visibility
+  const [showFormSubmissionError, setShowFormSubmissionError] = useState<boolean>(false)
+  const formErrorShownRef = useRef<boolean>(false)
 
   // Render markdown when AI analysis result is received (only once)
   useEffect(() => {
@@ -714,6 +724,19 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     }
   }, [aiAnalysisResult, requestFromPlugin])
 
+  // Display form submission error when received (similar to AI analysis)
+  useEffect(() => {
+    if (formSubmissionError && typeof formSubmissionError === 'string' && !formErrorShownRef.current) {
+      logDebug('FormView', `[FORM SUBMISSION ERROR] Processing form submission error (length=${formSubmissionError.length})`)
+      formErrorShownRef.current = true
+      setShowFormSubmissionError(true)
+    } else if (!formSubmissionError) {
+      // Reset error shown flag when error is cleared
+      formErrorShownRef.current = false
+      setShowFormSubmissionError(false)
+    }
+  }, [formSubmissionError])
+
   return (
     <AppProvider
       sendActionToPlugin={sendActionToPlugin}
@@ -727,7 +750,30 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     >
       <div className={`webview ${pluginData.platform || ''}`}>
         {/* replace all this code with your own component(s) */}
-        <div style={{ maxWidth: '100vw', width: '100vw', paddingTop: showAiAnalysis ? '4rem' : '0' }}>
+        <div
+          style={{
+            maxWidth: '100vw',
+            width: '100vw',
+            paddingTop: showAiAnalysis || showFormSubmissionError ? '4rem' : '0',
+          }}
+        >
+          {/* Display form submission error at the top if present */}
+          {showFormSubmissionError && formSubmissionError && (
+            <div className="form-ai-analysis-error">
+              <div className="form-ai-analysis-header">
+                <div className="form-ai-analysis-title">⚠️ Form Submission Error:</div>
+                <button
+                  type="button"
+                  className="form-ai-analysis-close"
+                  onClick={() => setShowFormSubmissionError(false)}
+                  title="Close"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="form-ai-analysis-content">{formSubmissionError}</div>
+            </div>
+          )}
           {/* Display AI analysis result at the top if present */}
           {showAiAnalysis && aiAnalysisResult && (
             <div className="form-ai-analysis-error">
