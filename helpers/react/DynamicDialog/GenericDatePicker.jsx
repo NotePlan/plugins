@@ -72,11 +72,42 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
     return `${year}-${month}-${day}`
   }
 
-  // Convert YYYY-MM-DD string to Date
+  // Convert input string to Date - tries multiple parsing strategies
+  // First tries as YYYY-MM-DD (HTML date input format)
+  // Then tries parsing with current dateFormat if it's not '__object__'
+  // Finally falls back to standard Date parsing
   const inputValueToDate = (value: string): Date | void => {
-    if (!value) return undefined
-    const parsed = new Date(`${value}T00:00:00`) // Add time to avoid timezone issues
-    return isNaN(parsed.getTime()) ? undefined : parsed
+    if (!value || value.trim() === '') return undefined
+    
+    // First try: HTML date input format (YYYY-MM-DD)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+      const parsed = new Date(`${value.trim()}T00:00:00`) // Add time to avoid timezone issues
+      if (!isNaN(parsed.getTime())) {
+        return parsed
+      }
+    }
+    
+    // Second try: Parse with current dateFormat (if not '__object__')
+    if (dateFormat !== '__object__' && dateFormat) {
+      const parsed = moment(value.trim(), dateFormat, true) // strict parsing
+      if (parsed.isValid()) {
+        return parsed.toDate()
+      }
+    }
+    
+    // Third try: Standard Date parsing (handles various formats)
+    const parsed = new Date(value.trim())
+    if (!isNaN(parsed.getTime())) {
+      return parsed
+    }
+    
+    // Fourth try: Try ISO format as fallback
+    const isoParsed = moment(value.trim(), 'YYYY-MM-DD', true)
+    if (isoParsed.isValid()) {
+      return isoParsed.toDate()
+    }
+    
+    return undefined
   }
 
   const [inputValue, setInputValue] = useState<string>(dateToInputValue(normalizeDate(startingSelectedDate)))
@@ -97,21 +128,60 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
   // Handle direct input change (user types or picks from native picker)
   const handleInputChange = (e: SyntheticInputEvent<HTMLInputElement>) => {
     const value = e.target.value
-    setInputValue(value)
+    // When user is typing, keep the raw input value in the input field
+    // But still try to parse and format if valid
     const date = inputValueToDate(value)
+    
     if (date) {
-      // Format the date according to dateFormat prop, or return Date object
+      // Date was successfully parsed - format it according to dateFormat
       const formatted = formatDate(date)
-      onSelectDate(formatted) // Propagate the change up to the parent component (formatted string or Date object)
-    } else if (!value) {
+      // For HTML date input (type="date"), we need to keep it as YYYY-MM-DD format
+      // The input field itself will always show YYYY-MM-DD due to HTML date input limitations
+      // But we can format the value we pass to onSelectDate
+      setInputValue(dateToInputValue(date)) // Keep input as YYYY-MM-DD for HTML date input
+      onSelectDate(formatted) // Propagate the formatted value to parent
+    } else if (!value || value.trim() === '') {
       // Value was cleared
+      setInputValue('')
       if (dateFormat === '__object__' || !dateFormat) {
         onSelectDate(new Date(NaN)) // Return invalid Date to indicate cleared
       } else {
         onSelectDate('') // Return empty string if using formatted output
       }
+    } else {
+      // Invalid date format - keep the input as-is (user might still be typing)
+      // Don't update the stored value until it's valid
+      setInputValue(value)
     }
     // Note: Native HTML date picker automatically closes after selection, no need to blur
+  }
+  
+  // Handle input blur - try to parse and format one more time when user finishes typing
+  const handleInputBlur = (e: SyntheticInputEvent<HTMLInputElement>) => {
+    const value = e.target.value.trim()
+    if (!value) {
+      // Already handled in onChange
+      return
+    }
+    
+    const date = inputValueToDate(value)
+    if (date) {
+      // Valid date - format it and update the input to show the standard YYYY-MM-DD format
+      // (HTML date input always displays YYYY-MM-DD)
+      setInputValue(dateToInputValue(date))
+      const formatted = formatDate(date)
+      onSelectDate(formatted)
+    } else {
+      // Invalid date - clear the input or keep it as-is?
+      // For now, we'll clear it to show the user the input was invalid
+      // But you could also keep it and show an error message
+      setInputValue('')
+      if (dateFormat === '__object__' || !dateFormat) {
+        onSelectDate(new Date(NaN))
+      } else {
+        onSelectDate('')
+      }
+    }
   }
 
   // Handle clear button click
@@ -166,6 +236,7 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
         type="date"
         value={inputValue}
         onChange={handleInputChange}
+        onBlur={handleInputBlur}
         onFocus={handleInputFocus}
         disabled={disabled}
         className="generic-date-picker-input input-box-input"
