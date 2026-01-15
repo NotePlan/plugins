@@ -127,9 +127,10 @@ function sanitizeTemplateJSCode(code: string): string {
  * @param {string} code - The JavaScript code to execute
  * @param {Object} context - The execution context
  * @param {number} blockIndex - The index of this block (for error messages)
+ * @param {PassedData} reactWindowData - The React window data to store errors in
  * @returns {Promise<Object|null>} - The returned object from the block, or null on error
  */
-async function executeTemplateJSBlock(field: Object, code: string, context: Object, blockIndex: number): Promise<Object | null> {
+async function executeTemplateJSBlock(field: Object, code: string, context: Object, blockIndex: number, reactWindowData: PassedData): Promise<Object | null> {
   const fieldIdentifier = field.key || generateKeyFromLabel(field.label || '', blockIndex)
   try {
     logDebug(pluginJson, `executeTemplateJSBlock: Executing templatejs block from field "${fieldIdentifier}"`)
@@ -167,19 +168,32 @@ async function executeTemplateJSBlock(field: Object, code: string, context: Obje
       logDebug(pluginJson, `executeTemplateJSBlock: TemplateJS block "${fieldIdentifier}" returned object with keys: ${Object.keys(result).join(', ')}`)
       return result
     } else if (result !== undefined) {
-      logError(pluginJson, `executeTemplateJSBlock: TemplateJS block "${fieldIdentifier}" should return an object, but returned: ${typeof result}`)
-      await showMessage(
-        `TemplateJS block "${fieldIdentifier}" should return an object, but returned ${typeof result}. Please update your code to return an object (e.g., return { key: value }).`,
-      )
+      const errorMessage = `TemplateJS block "${fieldIdentifier}" should return an object, but returned ${typeof result}. Please update your code to return an object (e.g., return { key: value }).`
+      logError(pluginJson, `executeTemplateJSBlock: ${errorMessage}`)
+      // Store error in reactWindowData instead of using showMessage
+      if (!reactWindowData.pluginData) {
+        reactWindowData.pluginData = {}
+      }
+      ;(reactWindowData.pluginData: any).formSubmissionError = errorMessage
       return null
     } else {
-      logError(pluginJson, `executeTemplateJSBlock: TemplateJS block "${fieldIdentifier}" did not return anything. It should return an object.`)
-      await showMessage(`TemplateJS block "${fieldIdentifier}" did not return anything. Please update your code to return an object (e.g., return { key: value }).`)
+      const errorMessage = `TemplateJS block "${fieldIdentifier}" did not return anything. Please update your code to return an object (e.g., return { key: value }).`
+      logError(pluginJson, `executeTemplateJSBlock: ${errorMessage}`)
+      // Store error in reactWindowData instead of using showMessage
+      if (!reactWindowData.pluginData) {
+        reactWindowData.pluginData = {}
+      }
+      ;(reactWindowData.pluginData: any).formSubmissionError = errorMessage
       return null
     }
   } catch (error) {
-    logError(pluginJson, `executeTemplateJSBlock: Error executing templatejs block "${fieldIdentifier}": ${error.message}`)
-    await showMessage(`Error executing TemplateJS block "${fieldIdentifier}": ${error.message}`)
+    const errorMessage = `Error executing TemplateJS block "${fieldIdentifier}": ${error.message}`
+    logError(pluginJson, `executeTemplateJSBlock: ${errorMessage}`)
+    // Store error in reactWindowData instead of using showMessage
+    if (!reactWindowData.pluginData) {
+      reactWindowData.pluginData = {}
+    }
+    ;(reactWindowData.pluginData: any).formSubmissionError = errorMessage
     return null
   }
 }
@@ -188,17 +202,19 @@ async function executeTemplateJSBlock(field: Object, code: string, context: Obje
  * Execute all templatejs blocks in order and merge their results into context
  * @param {Array<{field: Object, code: string, order: number}>} blocks - The templatejs blocks to execute
  * @param {Object} initialContext - The initial execution context
- * @returns {Promise<Object|null>} - The merged context, or null on error
+ * @param {PassedData} reactWindowData - The React window data to store errors in
+ * @returns {Promise<Object|null>} - The merged context, or null on error (errors are stored in reactWindowData.pluginData.formSubmissionError)
  */
-async function executeTemplateJSBlocks(blocks: Array<{ field: Object, code: string, order: number }>, initialContext: Object): Promise<Object | null> {
+async function executeTemplateJSBlocks(blocks: Array<{ field: Object, code: string, order: number }>, initialContext: Object, reactWindowData: PassedData): Promise<Object | null> {
   let context = { ...initialContext }
 
   for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
     const { field, code } = blocks[blockIndex]
-    const result = await executeTemplateJSBlock(field, code, context, blockIndex)
+    const result = await executeTemplateJSBlock(field, code, context, blockIndex, reactWindowData)
 
     if (result === null) {
-      // Error occurred, abort
+      // Error occurred and was stored in reactWindowData.pluginData.formSubmissionError
+      // Abort execution
       return null
     }
 
@@ -266,9 +282,10 @@ async function processFormProcessor(data: any, reactWindowData: PassedData): Pro
   const formFields = reactWindowData?.pluginData?.formFields || []
   const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
 
-  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext)
+  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext, reactWindowData)
   if (fullContext === null) {
-    return null // Error occurred during templatejs block execution
+    // Error occurred and was stored in reactWindowData.pluginData.formSubmissionError
+    return reactWindowData // Return reactWindowData with error, not null
   }
 
   // Step 3: Extract only form-specific variables (form values + templatejs block results)
@@ -330,9 +347,10 @@ async function processWriteExisting(data: any, reactWindowData: PassedData): Pro
   const formFields = reactWindowData?.pluginData?.formFields || []
   const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
 
-  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext)
+  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext, reactWindowData)
   if (fullContext === null) {
-    return null // Error occurred during templatejs block execution
+    // Error occurred and was stored in reactWindowData.pluginData.formSubmissionError
+    return reactWindowData // Return reactWindowData with error, not null
   }
 
   // Step 3: Extract only form-specific variables (form values + templatejs block results)
@@ -434,15 +452,22 @@ async function processRunJSOnly(data: any, reactWindowData: PassedData): Promise
   const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
 
   if (templateJSBlocks.length === 0) {
-    await showMessage('No TemplateJS block found in form fields. Please add a TemplateJS Block field to your form with the JavaScript code to execute.')
-    return null
+    const errorMessage = 'No TemplateJS block found in form fields. Please add a TemplateJS Block field to your form with the JavaScript code to execute.'
+    logError(pluginJson, `processRunJSOnly: ${errorMessage}`)
+    // Store error in reactWindowData instead of using showMessage
+    if (!reactWindowData.pluginData) {
+      reactWindowData.pluginData = {}
+    }
+    ;(reactWindowData.pluginData: any).formSubmissionError = errorMessage
+    return reactWindowData // Return reactWindowData with error, not null
   }
 
   logDebug(pluginJson, `processRunJSOnly: Found ${templateJSBlocks.length} templatejs blocks to execute`)
 
-  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext)
+  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext, reactWindowData)
   if (fullContext === null) {
-    return null // Error occurred during templatejs block execution
+    // Error occurred and was stored in reactWindowData.pluginData.formSubmissionError
+    return reactWindowData // Return reactWindowData with error, not null
   }
 
   // Step 3: Extract only form-specific variables (form values + templatejs block results)
