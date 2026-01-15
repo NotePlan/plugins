@@ -6,7 +6,6 @@
 import pluginJson from '../plugin.json'
 import { type PassedData } from './NPTemplateForm.js'
 import { logError, logDebug, clo, JSP } from '@helpers/dev'
-import { showMessage } from '@helpers/userInput'
 import { replaceSmartQuotes } from '@templating/utils/stringUtils'
 
 // ============================================================================
@@ -130,7 +129,7 @@ function sanitizeTemplateJSCode(code: string): string {
  * @param {PassedData} reactWindowData - The React window data to store errors in
  * @returns {Promise<Object|null>} - The returned object from the block, or null on error
  */
-async function executeTemplateJSBlock(field: Object, code: string, context: Object, blockIndex: number, reactWindowData: PassedData): Promise<Object | null> {
+function executeTemplateJSBlock(field: Object, code: string, context: Object, blockIndex: number, reactWindowData: PassedData): Promise<Object | null> {
   const fieldIdentifier = field.key || generateKeyFromLabel(field.label || '', blockIndex)
   try {
     logDebug(pluginJson, `executeTemplateJSBlock: Executing templatejs block from field "${fieldIdentifier}"`)
@@ -269,8 +268,14 @@ async function processFormProcessor(data: any, reactWindowData: PassedData): Pro
   const { receivingTemplateTitle, formValues, shouldOpenInEditor } = data
 
   if (!receivingTemplateTitle) {
-    await showMessage('No Processing Template was Provided; You should set a processing template in your form settings.')
-    return null
+    const errorMessage = 'No Processing Template was Provided; You should set a processing template in your form settings.'
+    logError(pluginJson, `processFormProcessor: ${errorMessage}`)
+    // Store error in reactWindowData instead of using showMessage
+    if (!reactWindowData.pluginData) {
+      reactWindowData.pluginData = {}
+    }
+    ;(reactWindowData.pluginData: any).formSubmissionError = errorMessage
+    return reactWindowData // Return reactWindowData with error, not null
   }
 
   // Step 1: Prepare form values and get templating context
@@ -489,7 +494,10 @@ async function processRunJSOnly(data: any, reactWindowData: PassedData): Promise
     .join('\n')
 
   logDebug(pluginJson, `processRunJSOnly: JavaScript executed successfully. Results: ${resultsString}`)
-  await showMessage(`JavaScript executed successfully.\n\nResults:\n${resultsString}`)
+  // Store success results in reactWindowData for display in React UI (or use logInfo for console only)
+  // Note: This is a success message, not an error, but we can store it for display if needed
+  // For now, just log it - user can see results in console
+  // If we want to show in UI, we could use formSubmissionError but change the styling to indicate success
 
   return reactWindowData
 }
@@ -619,9 +627,10 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
   const formFields = reactWindowData?.pluginData?.formFields || []
   const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
 
-  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext)
+  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext, reactWindowData)
   if (fullContext === null) {
-    return null // Error occurred during templatejs block execution
+    // Error occurred and was stored in reactWindowData.pluginData.formSubmissionError
+    return reactWindowData // Return reactWindowData with error, not null
   }
 
   // Step 6: Extract only form-specific variables (form values + templatejs block results)
@@ -798,9 +807,14 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
   } else if (method === 'run-js-only') {
     result = await processRunJSOnly(data, reactWindowData)
   } else {
-    logError(pluginJson, `handleSubmitButtonClick: Unknown processing method: ${method}`)
-    await showMessage(`Unknown processing method: ${method}`)
-    return null
+    const errorMessage = `Unknown processing method: ${method}`
+    logError(pluginJson, `handleSubmitButtonClick: ${errorMessage}`)
+    // Store error in reactWindowData instead of using showMessage
+    if (!reactWindowData.pluginData) {
+      reactWindowData.pluginData = {}
+    }
+    ;(reactWindowData.pluginData: any).formSubmissionError = errorMessage
+    return reactWindowData // Return reactWindowData with error, not null
   }
 
   // Return result - even if null, check if there's an error message to display
