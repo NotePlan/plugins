@@ -481,7 +481,7 @@ All fields support these properties:
 
 ### Date Field Types
 
-**`calendarpicker`** - Date picker
+**`calendarpicker`** - Date picker with configurable output format
 ```javascript
 {
   key: 'dueDate',
@@ -490,7 +490,15 @@ All fields support these properties:
   buttonText: 'Select Date',
   visible: false, // true to show calendar by default
   numberOfMonths: 1,
-  size: 0.75 // scale factor
+  size: 0.75, // scale factor
+  dateFormat: 'YYYY-MM-DD', // moment.js format string (default: 'YYYY-MM-DD' ISO 8601)
+  // Use '__object__' to return Date object instead of formatted string
+  // Examples:
+  // dateFormat: 'MM/DD/YYYY' - US format (12/25/2024)
+  // dateFormat: 'DD/MM/YYYY' - European format (25/12/2024)
+  // dateFormat: 'MMMM Do, YYYY' - Long format (December 25th, 2024)
+  // dateFormat: 'YYYY-MM-DD HH:mm' - ISO with time (2024-12-25 14:30)
+  // dateFormat: '__object__' - Returns Date object
 }
 ```
 
