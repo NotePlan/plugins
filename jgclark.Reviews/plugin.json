@@ -11,7 +11,7 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
   "plugin.version": "1.3.0.b4",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "1.3.0.b4: 'Start Reviews' bug fix\n1.3.0.b3: can now display the first open task/checklist in a project as the 'next action' by adding a new 'Sequential project marker' to the frontmatter (e.g. `project: #sequential`).\n1.3.0.b2: now supports 'show in main window' setting. Other small improvements and fixes.\n1.3.0.b1: now supports projects in (Team)Space notes, using the Perspective setting from Dashboard v2.4 which allows you to specify which (Team)Spaces you wish to include.\n1.2.4: improve inter-plugin communication with the Dashboard.\n1.2.3: bug fixes.\n.1.2.2: fix bug with 'Finish + Next' review.\n1.2.1: small improvements and bug fixes and under-the-hood changes for integration with Dashboard plugin.\n1.2.0: new settings that affect how plugin calculates % completion for a project.\n1.1.2: fix bug with 'next action' setting.\n1.1.1: turn off background refresh of Dashboard plugin after every change to Project List, as it was causing problems.\n1.1.0: new option to use current 'Perspective' from the Dashboard plugin. New simpler top bar. Other small improvements and fixes.\n1.0.2: theme font size can now be overriden by user setting in NP.\n1.0.1: fix bug with 'next action' setting.\n1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.",
+  "plugin.lastUpdateInfo": "1.3.0.b4: 'Start Reviews' bug fix and various layout  improvements.\n1.3.0.b3: can now display the first open task/checklist in a project as the 'next action' by adding a new 'Sequential project marker' to the frontmatter (e.g. `project: #sequential`).\n1.3.0.b2: now supports 'show in main window' setting. Other small improvements and fixes.\n1.3.0.b1: now supports projects in (Team)Space notes, using the Perspective setting from Dashboard v2.4 which allows you to specify which (Team)Spaces you wish to include.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {
@@ -49,12 +49,18 @@
       "arguments": [
         "setting keys and their values in JSON format (optional)",
         "position to scroll window to (optional, only for HTML view)"
-      ]
+      ],
+      "sidebarView": {
+        "windowID": "jgclark.Reviews.rich-review-list",
+        "title": "Project Lists",
+        "icon": "fa-chart-gantt",
+        "iconColor": "orange-600"
+      }
     },
     {
       "hidden": true,
       "name": "generateProjectListsAndRenderIfOpen",
-      "description": "genererate Project Lists And Render If Open -- called internally and by Dashboard plugin to refresh Projects list",
+      "description": "Genererate Project Lists And Render If Open -- called internally and by Dashboard plugin to refresh Projects list",
       "jsFunction": "generateProjectListsAndRenderIfOpen"
     },
     {
@@ -157,18 +163,6 @@
       ],
       "description": "prompts for a short description and percentage completion number for the open project note, and writes it to the metadata area of the note",
       "jsFunction": "addProgressUpdate"
-    },
-    {
-      "hidden": true,
-      "name": "toggleDisplayOnlyDue",
-      "description": "callback entry point for toggleShowOnlyDue",
-      "jsFunction": "toggleDisplayOnlyDue"
-    },
-    {
-      "hidden": true,
-      "name": "toggleDisplayFinished",
-      "description": "callback entry point for toggleDisplayFinished",
-      "jsFunction": "toggleDisplayFinished"
     },
     {
       "name": "removeAllDueDates",
