@@ -470,6 +470,48 @@ async function processRunJSOnly(data: any, reactWindowData: PassedData): Promise
 }
 
 /**
+ * Parse frontmatter from a string (extracts key: value pairs between --- markers)
+ * @param {string} content - The content string to parse
+ * @returns {Object} - Parsed frontmatter attributes
+ */
+function parseFrontmatterFromString(content: string): { [string]: string } {
+  const attributes: { [string]: string } = {}
+  if (!content || typeof content !== 'string') {
+    return attributes
+  }
+
+  // Match frontmatter between --- markers (can be at start or anywhere)
+  const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n/)
+  if (!frontmatterMatch) {
+    return attributes
+  }
+
+  const frontmatterContent = frontmatterMatch[1]
+  const lines = frontmatterContent.split('\n')
+
+  for (const line of lines) {
+    const trimmedLine = line.trim()
+    if (!trimmedLine || trimmedLine.startsWith('#')) {
+      continue // Skip empty lines and comments
+    }
+
+    // Match key: value pattern
+    const match = trimmedLine.match(/^([^:]+):\s*(.*)$/)
+    if (match) {
+      const key = match[1].trim()
+      let value = match[2].trim()
+      // Remove quotes if present
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1)
+      }
+      attributes[key] = value
+    }
+  }
+
+  return attributes
+}
+
+/**
  * Process form submission using create-new method
  * @param {Object} data - The submission data
  * @param {PassedData} reactWindowData - The React window data
@@ -478,18 +520,69 @@ async function processRunJSOnly(data: any, reactWindowData: PassedData): Promise
 async function processCreateNew(data: any, reactWindowData: PassedData): Promise<PassedData | null> {
   const { newNoteTitle, newNoteFolder, space, formValues, shouldOpenInEditor } = data
 
-  // Step 1: Validate and clean new note title
-  const cleanedNewNoteTitle = newNoteTitle ? String(newNoteTitle).replace(/\n/g, ' ').trim() : ''
-  if (!cleanedNewNoteTitle) {
-    await showMessage('No new note title was specified. Please set a new note title in your form settings.')
-    return null
+  // Step 1: Get newNoteTitle from multiple sources (templateRunnerArgs, data, or template body frontmatter)
+  let newNoteTitleToUse = newNoteTitle || reactWindowData?.pluginData?.newNoteTitle || ''
+  
+  // If still empty, try to parse from template body frontmatter
+  if (!newNoteTitleToUse || !newNoteTitleToUse.trim()) {
+    const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
+    if (templateBody) {
+      const templateFrontmatter = parseFrontmatterFromString(templateBody)
+      if (templateFrontmatter.newNoteTitle) {
+        newNoteTitleToUse = templateFrontmatter.newNoteTitle
+        logDebug(pluginJson, `processCreateNew: Extracted newNoteTitle from template body frontmatter: "${newNoteTitleToUse}"`)
+      }
+    }
   }
 
-  // Step 2: Prepare form values and get templating context
+  // Also check for folder in template body frontmatter if not provided
+  let newNoteFolderToUse = newNoteFolder || reactWindowData?.pluginData?.newNoteFolder || ''
+  if (!newNoteFolderToUse || !newNoteFolderToUse.trim()) {
+    const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
+    if (templateBody) {
+      const templateFrontmatter = parseFrontmatterFromString(templateBody)
+      if (templateFrontmatter.folder) {
+        newNoteFolderToUse = templateFrontmatter.folder
+        logDebug(pluginJson, `processCreateNew: Extracted folder from template body frontmatter: "${newNoteFolderToUse}"`)
+      }
+    }
+  }
+
+  // Step 2: Prepare form values and get templating context (needed to render template tags)
   const formValuesForRendering = prepareFormValuesForRendering(formValues)
   const templatingContext = await getTemplatingContext(formValuesForRendering)
 
-  // Step 3: Extract and execute templatejs blocks
+  // Step 3: Render newNoteTitle template tags if present
+  let renderedNewNoteTitle = newNoteTitleToUse
+  if (newNoteTitleToUse && typeof newNoteTitleToUse === 'string' && (newNoteTitleToUse.includes('<%') || newNoteTitleToUse.includes('${'))) {
+    try {
+      // Use templating plugin to render the title (it contains template tags like <%- Contact_Name %>)
+      const renderedTitleResult = await DataStore.invokePluginCommandByName('render', 'np.Templating', [newNoteTitleToUse, templatingContext])
+      if (renderedTitleResult && typeof renderedTitleResult === 'string') {
+        renderedNewNoteTitle = renderedTitleResult
+        logDebug(pluginJson, `processCreateNew: Rendered newNoteTitle from "${newNoteTitleToUse}" to "${renderedNewNoteTitle}"`)
+      } else {
+        logError(pluginJson, `processCreateNew: Invalid result from render for newNoteTitle: ${typeof renderedTitleResult}`)
+      }
+    } catch (error) {
+      logError(pluginJson, `processCreateNew: Error rendering newNoteTitle template: ${error.message}`)
+      // Continue with original value - might just be plain text
+    }
+  }
+
+  // Step 4: Validate and clean rendered new note title
+  const cleanedNewNoteTitle = renderedNewNoteTitle ? String(renderedNewNoteTitle).replace(/\n/g, ' ').trim() : ''
+  if (!cleanedNewNoteTitle) {
+    logError(pluginJson, 'processCreateNew: No new note title was specified. Please set a new note title in your form settings.')
+    // Store error in reactWindowData instead of using showMessage
+    if (!reactWindowData.pluginData) {
+      reactWindowData.pluginData = {}
+    }
+    ;(reactWindowData.pluginData: any).formSubmissionError = 'No new note title was specified. Please set a new note title in your form settings.'
+    return reactWindowData // Return reactWindowData with error, not null
+  }
+
+  // Step 5: Extract and execute templatejs blocks
   const formFields = reactWindowData?.pluginData?.formFields || []
   const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
 
@@ -498,7 +591,7 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
     return null // Error occurred during templatejs block execution
   }
 
-  // Step 4: Extract only form-specific variables (form values + templatejs block results)
+  // Step 6: Extract only form-specific variables (form values + templatejs block results)
   // Don't pass templating context (modules, globals) to templateRunner - it will add those itself
   const templatingContextKeys = new Set(Object.keys(templatingContext))
 
@@ -518,7 +611,7 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
     }
   })
 
-  // Step 5: Build template body (DO NOT insert templatejs blocks - they're already executed)
+  // Step 7: Build template body (DO NOT insert templatejs blocks - they're already executed)
   const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
   const finalTemplateBody =
     templateBody ||
@@ -527,7 +620,7 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
       .map((key) => `${key}: <%- ${key} %>`)
       .join('\n')
 
-  // Step 6: Build templateRunner args with form-specific variables
+  // Step 8: Build templateRunner args with form-specific variables
   const templateRunnerArgs: { [string]: any } = {
     newNoteTitle: cleanedNewNoteTitle,
     templateBody: finalTemplateBody,
@@ -537,8 +630,24 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
     templateRunnerArgs[key] = formSpecificVars[key]
   })
 
-  // Step 5: Handle folder path and teamspace
-  let folderPath = newNoteFolder && newNoteFolder.trim() ? newNoteFolder.trim() : '/'
+  // Step 9: Handle folder path and teamspace (use extracted folder if available)
+  let folderPath = newNoteFolderToUse && newNoteFolderToUse.trim() ? newNoteFolderToUse.trim() : '/'
+  
+  // Render folder template tags if present
+  if (folderPath && typeof folderPath === 'string' && (folderPath.includes('<%') || folderPath.includes('${'))) {
+    try {
+      const renderedFolderResult = await DataStore.invokePluginCommandByName('render', 'np.Templating', [folderPath, templatingContext])
+      if (renderedFolderResult && typeof renderedFolderResult === 'string') {
+        folderPath = renderedFolderResult
+        logDebug(pluginJson, `processCreateNew: Rendered folder from "${newNoteFolderToUse}" to "${folderPath}"`)
+      } else {
+        logError(pluginJson, `processCreateNew: Invalid result from render for folder: ${typeof renderedFolderResult}`)
+      }
+    } catch (error) {
+      logError(pluginJson, `processCreateNew: Error rendering folder template: ${error.message}`)
+      // Continue with original value
+    }
+  }
   if (space && space.trim() && !folderPath.startsWith('%%NotePlanCloud%%')) {
     if (folderPath === '/' || folderPath === '') {
       folderPath = `%%NotePlanCloud%%/${space}/`
@@ -550,7 +659,7 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
   }
   templateRunnerArgs.folder = folderPath
 
-  // Step 6: Call templateRunner
+  // Step 10: Call templateRunner
   clo(templateRunnerArgs, `processCreateNew: Calling templateRunner with args`)
   const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
   handleTemplateRunnerResult(templateRunnerResult, reactWindowData)
