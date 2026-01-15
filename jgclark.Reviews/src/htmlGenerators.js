@@ -9,7 +9,8 @@
 import { Project } from './projectClass'
 import { addFAIcon } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
-import { logWarn } from '@helpers/dev'
+import { tailwindToHsl } from '@helpers/colors'
+import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayNameForHTML } from '@helpers/folders'
 import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 import { makePluginCommandButton, makeSVGPercentRing, redToGreenInterpolation } from '@helpers/HTMLView'
@@ -72,7 +73,7 @@ export function generateProjectOutputLine(
  */
 function generateRichHTMLRow(thisProject: Project, config: any, statsProgress: string): string {
   const parts: Array<string> = []
-  parts.push(`\t<tr class="projectRow">\n\t\t`)
+  parts.push(`\t<tr class="projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}">\n\t\t`)
   parts.push(generateCircleIndicator(thisProject))
 
   // Column 2a: Project name / link / edit dialog trigger button
@@ -240,7 +241,17 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
       // Note: now using splitView if running in the main window on macOS
       const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
       const extraClasses = (thisProject.isCompleted) ? 'checked' : (thisProject.isCancelled) ? 'cancelled' : (thisProject.isPaused) ? 'paused' : ''
-      return `<a class="noteTitle" href="${noteOpenActionURL}"><span class="noteTitleIcon"><i class="fa-regular fa-file-lines"></i></span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a>`
+      
+      // Use icon from frontmatter if available, otherwise default to fa-file-lines
+      const iconClass = thisProject.icon != null && thisProject.icon !== '' ? thisProject.icon : 'file-lines'
+      const tailwindColor = thisProject.iconColor != null && thisProject.iconColor !== '' ? thisProject.iconColor : ''
+      // TEST: remove this line to see if it helps the look and feel
+      const iconColorStyle = '' // tailwindColor !== '' ? ` style="color: ${tailwindToHsl(tailwindColor)};"` : ''
+      const iconHTML = `<i class="fa-regular fa-${iconClass}"${iconColorStyle}></i>`
+      logInfo('decoratedProjectTitle', `${thisProject.filename}: icon: ${thisProject.icon ?? '-'}, color: ${thisProject.iconColor ?? '-'}`)
+      logInfo('decoratedProjectTitle', `${thisProject.filename}:iconClass: ${iconClass}, tailwindColor: ${tailwindColor}, iconColorStyle: ${iconColorStyle}`)
+      
+      return `<a class="noteTitle" href="${noteOpenActionURL}"><span class="noteTitleIcon">${iconHTML}</span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a>`
     }
 
     case 'Markdown': {
@@ -464,10 +475,10 @@ export function generateTableStructureHTML(config: any, noteCount: number): stri
     if (config.displayDates) {
       parts.push(`<thead>
 <colgroup>
-\t<col style="width: 2.6em">
+\t<col style="width: 3.2rem">
 \t<col>
-\t<col style="width: 6em">
-\t<col style="width: 6em">
+\t<col style="width: 5.5rem">
+\t<col style="width: 5.5rem">
 </colgroup>
 `)
     } else if (config.displayProgress) {
