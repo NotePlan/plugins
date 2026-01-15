@@ -470,7 +470,7 @@ async function processRunJSOnly(data: any, reactWindowData: PassedData): Promise
 }
 
 /**
- * Parse frontmatter from a string (extracts key: value pairs between --- markers)
+ * Parse frontmatter from a string (extracts key: value pairs between -- or --- markers)
  * @param {string} content - The content string to parse
  * @returns {Object} - Parsed frontmatter attributes
  */
@@ -480,9 +480,15 @@ function parseFrontmatterFromString(content: string): { [string]: string } {
     return attributes
   }
 
-  // Match frontmatter between --- markers (can be at start or anywhere)
-  const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n/)
+  // Match frontmatter between -- or --- markers (can be at start or anywhere)
+  // Try --- first (standard YAML frontmatter), then -- (NotePlan style)
+  // The closing marker may or may not be followed by a newline
+  let frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---(?:\s*\n|$)/)
   if (!frontmatterMatch) {
+    frontmatterMatch = content.match(/^--\s*\n([\s\S]*?)\n--(?:\s*\n|$)/)
+  }
+  if (!frontmatterMatch) {
+    logDebug(pluginJson, `parseFrontmatterFromString: No frontmatter markers found in content (length=${content.length}, first 100 chars: "${content.substring(0, 100)}")`)
     return attributes
   }
 
@@ -505,9 +511,11 @@ function parseFrontmatterFromString(content: string): { [string]: string } {
         value = value.slice(1, -1)
       }
       attributes[key] = value
+      logDebug(pluginJson, `parseFrontmatterFromString: Extracted ${key}="${value.substring(0, 50)}${value.length > 50 ? '...' : ''}"`)
     }
   }
 
+  logDebug(pluginJson, `parseFrontmatterFromString: Parsed ${Object.keys(attributes).length} attributes: ${Object.keys(attributes).join(', ')}`)
   return attributes
 }
 
