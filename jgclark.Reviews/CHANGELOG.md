@@ -7,6 +7,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - use a note's icon in the project list, if set in the note's frontmatter
 - trying out some layout tweaks, for better display in narrower Editor windows
 - add new `sidebarView` keys to plugin.json
+- fix to 'Start Reviews' (thanks, @Garba)
 
 ## [1.3.0.b3] - 2026-01-11
 - can now display the first open task/checklist in a project note as the 'next action' by adding a new 'Sequential project marker' to its frontmatter (e.g. `project: #sequential`).
