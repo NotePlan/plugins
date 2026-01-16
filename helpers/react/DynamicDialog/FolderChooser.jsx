@@ -464,7 +464,7 @@ export function FolderChooser({
     // Folder decoration functions - use shared helper from @helpers/userInput.js
     getOptionIcon: (item: string) => {
       if (item === '__NEW_FOLDER__') return 'folder-plus'
-      if (isStaticOption(item)) return 'fa-circle-question' // Default icon for static options
+      if (isStaticOption(item)) return 'fa-solid fa-circle-question' // Default icon for static options
       const decoration = getFolderDecorationFromPath(item, includeFolderPath, teamspaces)
       if (item.startsWith('%%NotePlanCloud%%') && teamspaces.length > 0) {
         logDebug('FolderChooser', `getOptionIcon for teamspace folder "${item}": icon=${decoration.icon}, teamspaces.length=${teamspaces.length}`)

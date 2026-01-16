@@ -427,7 +427,8 @@ export function ProcessingMethodSection({
               placeholder="Select folder (optional)"
               includeNewFolderOption={true}
               spaceFilter={frontmatter.space || ''}
-              compactDisplay={true}
+              compactDisplay={false}
+              includeFolderPath={false}
               requestFromPlugin={requestFromPlugin}
               onFoldersChanged={() => {
                 onLoadFolders(true) // Force reload after creating folder
@@ -436,7 +437,7 @@ export function ProcessingMethodSection({
               width="100%"
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Leave empty for root folder, or use &quot;Prompt Each Time&quot; to be prompted each time for the folder
+              Where to put the new note. Leave empty for root folder, or use &quot;Prompt Each Time&quot; to be prompted each time for the folder
             </div>
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
@@ -518,7 +519,7 @@ export function ProcessingMethodSection({
               }
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Use template tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%- date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates
+              (Without folder path). Use template tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%- date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates
             </div>
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
