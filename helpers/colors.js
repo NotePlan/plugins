@@ -184,3 +184,55 @@ export const getColorStyle = (color) => {
   // Otherwise, treat it as a CSS variable name (fallback to inherit if not defined)
   return `var(--${color}, inherit)`
 }
+
+/**
+ * Convert Tailwind color definitions to HSL format suitable for CSS style statements
+ * Accepts Tailwind color names (e.g., "amber-200", "slate-800") or any chroma-parseable color format
+ * @param {string} color - Tailwind color name (e.g., "amber-200", "slate-800") or hex/rgb/rgba string
+ * @param {boolean} includeAlpha - Whether to include alpha channel in output (default: false)
+ * @returns {string} - HSL color string in format "hsl(h, s%, l%)" or "hsla(h, s%, l%, a)"
+ * @example
+ * tailwindToHsl('amber-200') // returns "hsl(45, 93%, 77%)"
+ * tailwindToHsl('slate-800') // returns "hsl(222, 47%, 11%)"
+ * tailwindToHsl('blue-500') // returns "hsl(217, 91%, 60%)"
+ * tailwindToHsl('#3b82f6', true) // returns "hsla(217, 91%, 60%, 1)"
+ */
+// NOTE: DO NOT FLOW TYPE THIS FUNCTION. IT IS IMPORTED BY JSX FILE AND FOR SOME REASON, ROLLUP CHOKES ON FLOW
+export const tailwindToHsl = (color, includeAlpha = false) => {
+  if (!color) return null
+  
+  try {
+    let colorValue = color
+    
+    // Check if it's a Tailwind color name (e.g., "amber-200")
+    if (typeof color === 'string' && /^[a-z]+-\d+$/i.test(color)) {
+      const [colorName, shade] = color.split('-')
+      const shadeNum = parseInt(shade, 10)
+      
+      if (TAILWIND_COLORS[colorName] && TAILWIND_COLORS[colorName][shadeNum]) {
+        colorValue = TAILWIND_COLORS[colorName][shadeNum]
+      } else {
+        // Invalid Tailwind color name
+        return null
+      }
+    }
+    
+    const chromaColor = chroma(colorValue)
+    const hsl = chromaColor.hsl()
+    
+    // chroma returns [h, s, l] where h is 0-360, s and l are 0-1
+    const h = Math.round(hsl[0] || 0)
+    const s = Math.round(hsl[1] * 100)
+    const l = Math.round(hsl[2] * 100)
+    
+    if (includeAlpha) {
+      const alpha = chromaColor.alpha()
+      return `hsla(${h}, ${s}%, ${l}%, ${alpha})`
+    }
+    
+    return `hsl(${h}, ${s}%, ${l}%)`
+  } catch (error) {
+    // If chroma can't parse the color, return null
+    return null
+  }
+}
