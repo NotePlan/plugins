@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-12-10 for v1.3.0.b2, @jgclark
+// Last updated 2026-12-16 for v1.3.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -33,9 +33,7 @@ import {
   generateAllProjectsList,
   updateProjectInAllProjectsList,
 } from './allProjectsListHelpers.js'
-import {
-  calcReviewFieldsForProject,
-} from './projectClass'
+import { calcReviewFieldsForProject, Project } from './projectClass'
 import {
   generateProjectOutputLine,
   generateTopBarHTML,
@@ -45,28 +43,18 @@ import {
   generateFolderHeaderHTML,
 } from './htmlGenerators'
 import { checkString } from '@helpers/checkType'
-import {
-  getDateObjFromDateString,
-  getTodaysDateHyphenated,
-  RE_DATE, RE_DATE_INTERVAL, todaysDateISOString
-} from '@helpers/dateTime'
+import { getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import { saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
-import {
-  createRunPluginCallbackUrl, displayTitle,
-} from '@helpers/general'
-import {
-  makePluginCommandButton,
-  showHTMLV2
-} from '@helpers/HTMLView'
+import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
+import { showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
 import { numberOfOpenItemsInNote } from '@helpers/note'
 import { calcOffsetDateStr, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
-import {
-  isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId,
-} from '@helpers/NPWindows'
+import { isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
+import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -78,14 +66,51 @@ const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
 const customRichWinId = `${pluginID}.rich-review-list`
 const customMarkdownWinId = `markdown-review-list`
 
+//-----------------------------------------------------------------------------
+// Helpers
+//-----------------------------------------------------------------------------
+
+/**
+ * Tell the Project List HTML window which project is currently being reviewed.
+ * Adds or removes the 'reviewing' class on the matching projectRow, if the window is open.
+ * @param {CoreNoteFields | TNote | any} note - note being reviewed
+ * @param {boolean} isReviewing - whether this note is now being reviewed
+ */
+async function setReviewingProjectInHTML(note: any, isReviewing: boolean): Promise<void> {
+  try {
+    if (!note || note.type !== 'Notes') {
+      return
+    }
+    if (!isHTMLWindowOpen(customRichWinId)) {
+      return
+    }
+    const encodedFilename = encodeRFC3986URIComponent(note.filename)
+    await sendToHTMLWindow(customRichWinId, 'SET_REVIEWING_PROJECT', { encodedFilename, isReviewing })
+  } catch (error) {
+    logError('setReviewingProjectInHTML', error.message)
+  }
+}
+
+async function clearProjectReviewingInHTML(): Promise<void> {
+  try {
+    await sendToHTMLWindow(customRichWinId, 'CLEAR_REVIEWING_PROJECT')
+    if (!isHTMLWindowOpen(customRichWinId)) {
+      return
+    }
+  } catch (error) {
+    logError('clearProjectReviewingInHTML', error.message)
+  }
+}
+
 //-------------------------------------------------------------------------------
 // JS scripts
 
-const faLinksInHeader = `
+const stylesheetinksInHeader = `
 <!-- Load in Project List-specific CSS -->
 <link href="projectList.css" rel="stylesheet">
 <link href="projectListDialog.css" rel="stylesheet">
-
+`
+const faLinksInHeader = `
 <!-- Load in fontawesome assets (licensed for NotePlan) -->
 <link href="../np.Shared/fontawesome.css" rel="stylesheet">
 <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
@@ -350,8 +375,6 @@ export async function renderProjectLists(
   scrollPos: number = 0
 ): Promise<void> {
   try {
-    logDebug(pluginJson, `--------------------------------------------------------------`)
-    logDebug('renderProjectLists', `Starting ${configIn ? 'with given config' : '*without config*'}. shouldOpen ${String(shouldOpen)} / scrollPos ${scrollPos}`)
     const config = (configIn) ? configIn : await getReviewSettings()
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
@@ -363,7 +386,7 @@ export async function renderProjectLists(
       await renderProjectListsHTML(config, shouldOpen, scrollPos)
     }
   } catch (error) {
-    clo(configIn, '❗️ERROR❗️  configIn at start of renderProjectLists:')
+    logError('renderProjectLists', `Error: ${error.message}. configIn: ${JSP(configIn, 2)}`)
   }
 }
 
@@ -374,8 +397,7 @@ export async function renderProjectLists(
 export async function renderProjectListsIfOpen(
 ): Promise<any> {
   try {
-    logDebug(pluginJson, `--------------------------------------------------------------`)
-    logDebug('renderProjectListsIfOpen', `Starting`)
+    logInfo(pluginJson, `renderProjectListsIfOpen ----------------------------------------`)
     const config = await getReviewSettings()
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
@@ -420,6 +442,7 @@ export async function renderProjectListsHTML(
     }
 
     const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+    logInfo(pluginJson, `renderProjectLists ----------------------------------------`)
     logDebug('renderProjectListsHTML', `Starting for ${String(config.projectTypeTags)} tags`)
 
     // Test to see if we have the font resources we want
@@ -485,7 +508,7 @@ export async function renderProjectListsHTML(
     const winOptions = {
       windowTitle: windowTitle,
       customId: customRichWinId,
-      headerTags: `${faLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
+      headerTags: `${faLinksInHeader}${stylesheetinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // now in requiredFiles/reviewListCSS instead
       makeModal: false, // = not modal window
@@ -567,7 +590,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         // Do the main work
         const note: ?TNote = await getOrMakeRegularNoteInFolder(noteTitleWithoutHash, config.folderToStore)
         if (note != null) {
-          const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`{"projectTypeTags":["${tag}"]}`)) //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`projectTypeTags=${tag}`)
+          const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`{"projectTypeTags":["${tag}"]}`))
 
           // Get the summary line for each revelant project
           const [outputArray, noteCount, due] = await generateReviewOutputLines(tag, 'Markdown', config)
@@ -653,7 +676,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
 }
 
 /**
- * Re-display the project list from saved HTML file, if available, or if not then render the project list.
+ * Re-display the project list from saved HTML file, if available, or if not then render the current all projects list.
  * Note: this is a test function that does not re-calculate the data.
  * @author @jgclark
  */
@@ -696,12 +719,10 @@ export async function redisplayProjectListHTML(): Promise<void> {
 }
 
 //-------------------------------------------------------------------------------
+
 /**
  * Return summary of notes that contain a specified 'projectTag', for all relevant folders, in 'Markdown' or 'Rich' style.
- * V2: Changed to read from the TSV file 'data/full-review-list.md' folder rather than calcuate from scratch.
- * V3: Now doesn't handle output before the main list(s) start. That is now done in the calling function.
- * v4: Changed to read from the allProjects JSON file.
- *     Also added nextAction outputs.
+ * Reads from the already generated allProjects JSON file.
  * @author @jgclark
  *
  * @param {string} projectTag - the current hashtag (only now used in logging)
@@ -714,10 +735,10 @@ export async function redisplayProjectListHTML(): Promise<void> {
 export async function generateReviewOutputLines(projectTag: string, style: string, config: ReviewConfig): Promise<[Array<string>, number, number]> {
   try {
     const startTime = new Date()
-    logInfo('generateReviewOutputLines', `Starting for tag(s) '${projectTag}' in ${style} style`)
+    logDebug('generateReviewOutputLines', `Starting for tag(s) '${projectTag}' in ${style} style`)
 
     // Get all wanted projects (in useful order and filtered)
-    const projectsToReview = await filterAndSortProjectsList(config, projectTag)
+    const projectsToReview: Array<Project> = await filterAndSortProjectsList(config, projectTag)
     let lastFolder = ''
     let noteCount = 0
     let due = 0
@@ -792,45 +813,6 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
   }
 }
 
-// --------------------------------------------------------------------
-
-/**
- * Start a series of project reviews.
- * This starts by generating a new machine-readable list of project-type notes ready
- * for review, ordered by oldest next review date.
- * Then offers to load the first note to review.
- * @author @jgclark
- */
-export async function startReviews(): Promise<void> {
-  try {
-    const config: ReviewConfig = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
-
-    // Make/update list of projects ready for review
-    // await makeFullReviewList(config, true)
-    await generateAllProjectsList(config, true)
-
-    // Now offer first review
-    const noteToReview = await getNextNoteToReview()
-    // Open that note in editor
-    if (noteToReview != null) {
-      if (config.confirmNextReview) {
-        const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
-        if (res !== 'OK') {
-          return
-        }
-      }
-      logInfo('startReviews', `Opening '${displayTitle(noteToReview)}' note to review ...`)
-      await Editor.openNoteByFilename(noteToReview.filename)
-    } else {
-      logInfo('startReviews', '🎉 No notes to review!')
-      await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
-    }
-  } catch (error) {
-    logError('startReviews', error.message)
-  }
-}
-
 //-------------------------------------------------------------------------------
 
 /**
@@ -852,7 +834,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       for (const naTag of config.nextActionTags) {
         logDebug('finishReviewCoreLogic', `Checking for Next Action tag '${naTag}' in '${displayTitle(note)}' ... with ${numOpenItems} open items`)
         const nextActionLineIndex = getNextActionLineIndex(note, naTag)
-        logDebug('finishReviewCoreLogic', `nextActionLineIndex= '${String(nextActionLineIndex)}'`)
+        logDebug('finishReviewCoreLogic', `- nextActionLineIndex= '${String(nextActionLineIndex)}'`)
 
         if (!isNaN(nextActionLineIndex)) {
           nextActionTagLineIndexes.push(nextActionLineIndex)
@@ -863,14 +845,14 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
           `There's no Next Action tag in '${displayTitle(note)}'. Do you wish to continue finishing this review?`,
         )
         if (res === 'No') {
-          logDebug('finishReviewCoreLogic', `- user cancelled command by clicking '${res}' button.`)
+          logDebug('finishReviewCoreLogic', `User cancelled command by clicking '${res}' button.`)
           return
         }
       }
     }
 
     if (Editor.filename === note.filename) {
-      logDebug('finishReviewCoreLogic', `- updating Editor ...`)
+      logDebug('finishReviewCoreLogic', `Updating Editor ...`)
       // First update @review(date) on current open note
       updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
@@ -881,7 +863,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       await Editor.save()
       // DataStore.updateCache(Editor.note, true)
     } else {
-      logDebug('finishReviewCoreLogic', `- updating note ...`)
+      logDebug('finishReviewCoreLogic', `Updating note ...`)
       // First update @review(date) on the note
       updateMetadataInNote(note, [reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
@@ -889,18 +871,24 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       // $FlowIgnore[prop-missing]
       DataStore.updateCache(note, true)
     }
-    logDebug('finishReviewCoreLogic', `- after metadata updates`)
+    logDebug('finishReviewCoreLogic', `- done`)
 
     // Then update the Project instance
     // v1:
     // const thisNoteAsProject = new Project(noteToUse)
     // v2: Try to find this project in allProjects, and update that as well
-    let thisNoteAsProject = await getSpecificProjectFromList(note.filename)
+    let thisNoteAsProject: ?Project = await getSpecificProjectFromList(note.filename)
     if (thisNoteAsProject) {
       thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-      thisNoteAsProject =
-        calcReviewFieldsForProject(thisNoteAsProject)
-      logDebug('finishReviewCoreLogic', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDate)})`)
+      // Clear nextReviewDateStr so it recalculates from the new reviewedDate and reviewInterval
+      thisNoteAsProject.nextReviewDateStr = null
+      thisNoteAsProject = calcReviewFieldsForProject(thisNoteAsProject)
+      const nextReviewDays = thisNoteAsProject.nextReviewDays
+      if (nextReviewDays < 0) {
+        logWarn('finishReviewCoreLogic', `- project.nextReviewDays is still negative (${String(nextReviewDays)}). This should not happen.`)
+      } else {
+        logDebug('finishReviewCoreLogic', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDateStr)})`)
+      }
 
       // Save changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
@@ -911,6 +899,10 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       logWarn('finishReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
       await generateProjectListsAndRenderIfOpen()
     }
+
+    // Ensure the Project List window (if open) no longer shows this project as being actively reviewed
+    await clearProjectReviewingInHTML()
+
     logDebug('finishReviewCoreLogic', `- finished successfully`)
   }
   catch (error) {
@@ -918,8 +910,49 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
   }
 }
 
+// --------------------------------------------------------------------
+
 /**
- * Complete the current review on the current note in the Editor.
+ * Start a series of project reviews.
+ * This starts by generating a new machine-readable list of project-type notes ready
+ * for review, ordered by oldest next review date.
+ * Then offers to load the first note to review.
+ * @author @jgclark
+ */
+export async function startReviews(): Promise<void> {
+  try {
+    const config: ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
+    // Make/update list of projects ready for review
+    // Note: Now turned off, as its unlikely that the list will be out of date.
+    // await generateAllProjectsList(config, true)
+
+    // Now offer first review
+    const noteToReview = await getNextNoteToReview()
+    // Open that note in editor
+    if (noteToReview != null) {
+      if (config.confirmNextReview) {
+        const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
+        if (res !== 'OK') {
+          return
+        }
+      }
+      logInfo('startReviews', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
+      await Editor.openNoteByFilename(noteToReview.filename)
+      // Highlight this project in the Project List window (if open)
+      await setReviewingProjectInHTML(noteToReview, true)
+    } else {
+      logInfo('startReviews', '🎉 No notes to review!')
+      await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
+    }
+  } catch (error) {
+    logError('startReviews', error.message)
+  }
+}
+
+/**
+ * Complete the current review on the current Editor note
  * @author @jgclark
  */
 export async function finishReview(): Promise<void> {
@@ -946,9 +979,10 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
   try {
     if (!noteToUse || noteToUse.type !== 'Notes') {
       logWarn('finishReviewForNote', `- There's no valid project note to finish reviewing.`)
+    } else {
+      logInfo('finishReviewForNote', `Starting for passed note '${displayTitle(noteToUse)}'`)
+      await finishReviewCoreLogic(noteToUse)
     }
-    logInfo('finishReviewForNote', `Starting for passed note '${displayTitle(noteToUse)}'`)
-    await finishReviewCoreLogic(noteToUse)
   }
   catch (error) {
     logError('finishReviewForNote', error.message)
@@ -965,7 +999,7 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
     const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
-    // Finish review
+    // Finish review of the current project
     await finishReview()
     logDebug('finishReviewAndStartNextReview', `- Returned from finishReview() and will now look for next review ...`)
 
@@ -981,6 +1015,9 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
         }
       }
       await Editor.openNoteByFilename(noteToReview.filename)
+
+      // Highlight this as the newly active review in the Project List window (if open)
+      await setReviewingProjectInHTML(noteToReview, true)
     } else {
       logInfo('finishReviewAndStartNextReview', `- 🎉 No more notes to review!`)
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
@@ -1037,24 +1074,24 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
     }
 
     // create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)` below.
-    const nextReviewDate = getDateObjFromDateString(newDateStr)
     const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
-    logDebug('skipReviewCoreLogic', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
+    logDebug('skipReviewCoreLogic', `- nextReviewDateStr: ${newDateStr} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
 
     if (Editor.filename === note.filename) {
       // Update metadata in the current open note
-      logDebug('skipReviewCoreLogic', `- updating Editor ...`)
+      logDebug('skipReviewCoreLogic', `Updating Editor ...`)
       updateMetadataInEditor([nextReviewMetadataStr])
 
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
       await saveEditorIfNecessary()
+      logDebug('skipReviewCoreLogic', `- done`)
     } else {
       // add/update metadata on the note
-      logDebug('skipReviewCoreLogic', `- updating note ...`)
+      logDebug('skipReviewCoreLogic', `Updating note ...`)
       updateMetadataInNote(note, [nextReviewMetadataStr])
     }
-    logDebug('skipReviewCoreLogic', `- after metadata updates`)
+    logDebug('skipReviewCoreLogic', `- done`)
 
     // Save changes to allProjects list
     // v1:
@@ -1067,7 +1104,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
     if (thisNoteAsProject) {
       thisNoteAsProject.nextReviewDateStr = newDateStr
       thisNoteAsProject = calcReviewFieldsForProject(thisNoteAsProject)
-      logDebug('skipReviewCoreLogic', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
+      logDebug('skipReviewCoreLogic', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDateStr = ${String(thisNoteAsProject.nextReviewDateStr)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
       // Write changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't open window if not open already)
@@ -1177,16 +1214,17 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     // Update `@review(int)` metadata in the current open note in Editor, or the given note
     if (!noteArg) {
       // Update metadata in the current open note
-      logDebug('setNewReviewInterval', `- updating metadata in Editor`)
+      logDebug('setNewReviewInterval', `Updating metadata in Editor`)
       updateMetadataInEditor([`@review(${newIntervalStr})`])
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
       await saveEditorIfNecessary()
     } else {
       // update metadata on the note
-      logDebug('setNewReviewInterval', `- updating metadata in note`)
+      logDebug('setNewReviewInterval', `Updating metadata in note`)
       updateMetadataInNote(note, [`@review(${newIntervalStr})`])
     }
+    logDebug('setNewReviewInterval', `- done`)
 
     // Save changes to allProjects list
     // v1:
@@ -1200,7 +1238,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     if (thisNoteAsProject) {
       thisNoteAsProject.reviewInterval = newIntervalStr
       thisNoteAsProject = calcReviewFieldsForProject(thisNoteAsProject)
-      logDebug('setNewReviewInterval', `-> reviewInterval = ${String(thisNoteAsProject.reviewInterval)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
+      logDebug('setNewReviewInterval', `-> reviewInterval = ${String(thisNoteAsProject.reviewInterval)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDateStr = ${String(thisNoteAsProject.nextReviewDateStr)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
       // Write changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't focus)

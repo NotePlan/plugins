@@ -1,6 +1,13 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.3.0.b4] - 2026-01-16
+- highlight the project in the list that is currently being reviewed
+- smartly truncate long next action lines
+- use a note's icon in the project list, if set in the note's frontmatter
+- trying out some layout tweaks, for better display in narrower Editor windows
+- add new `sidebarView` keys to plugin.json
+
 ## [1.3.0.b3] - 2026-01-11
 - can now display the first open task/checklist in a project note as the 'next action' by adding a new 'Sequential project marker' to its frontmatter (e.g. `project: #sequential`).
 - added new display toggle for "next actions"

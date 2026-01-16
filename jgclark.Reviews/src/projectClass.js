@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-01-11 for v1.3.0.b3, @jgclark
+// Last updated 2026-01-14 for v1.3.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -26,11 +26,10 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import { getContentFromBrackets, getStringFromList } from '@helpers/general'
+import { displayTitle, getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { getFrontmatterAttribute } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
 import { findStartOfActivePartOfNote, simplifyRawContent } from '@helpers/paragraph'
-// encodeRFC3986URIComponent moved to htmlGenerators.js
 import {
   getInputTrimmed,
   inputIntegerBounded,
@@ -38,12 +37,36 @@ import {
 import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
 
 //-----------------------------------------------------------------------------
+// Types
 
 export type Progress = {
   lineIndex: number,
   percentComplete: number,
   date: Date,
   comment: string
+}
+
+//-----------------------------------------------------------------------------
+// Helpers
+
+/**
+ * Calculate duration string for a date, optionally relative to a start date.
+ * If startDate is provided, returns "after X" format. Otherwise returns relative time (e.g., "2 days ago", "today").
+ * @param {Date} date - The date to calculate duration for
+ * @param {?Date} startDate - Optional start date for calculating duration between dates
+ * @returns {string} Duration string
+ * @private
+ */
+function formatDurationString(date: Date, startDate?: Date): string {
+  if (startDate != null && startDate instanceof Date) {
+    return `after ${moment(startDate).to(moment(date), true)}`
+  } else {
+    let duration = moment(date).fromNow()
+    if (duration.includes('hours')) {
+      duration = 'today'
+    }
+    return duration
+  }
 }
 
 /**
@@ -66,8 +89,7 @@ export class Project {
   dueDays: number = NaN
   reviewedDate: ?Date
   reviewInterval: string // later will default to '1w' if needed
-  nextReviewDate: ?Date
-  nextReviewDateStr: ?string // can be set by user (temporarily) but not otherwise populated
+  nextReviewDateStr: ?string // The next review date in YYYY-MM-DD format (can be set by user or calculated)
   nextReviewDays: number = NaN
   completedDate: ?Date
   completedDuration: ?string // string description of time to completion, or how long ago completed
@@ -86,6 +108,8 @@ export class Project {
   mostRecentProgressLineIndex: number = NaN
   nextActionsRawContent: Array<string> = []
   ID: string // required when making HTML views
+  icon: ?string // icon from frontmatter (optional)
+  iconColor: ?string // iconColor from frontmatter (optional)
 
   constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = [], sequentialTag: string = '') {
     try {
@@ -128,7 +152,7 @@ export class Project {
       const metadataLine = paras[metadataLineIndex].content
       if (mentions.length === 0) {
         logDebug('Project', `- Grr: .mentions empty: will use metadata line instead`)
-        // Note: If necessary, fall back to getting mentions just from the metadataline
+        // Note: If necessary, fall back to getting mentions just from the metadataLine
         mentions = (`${metadataLine} `).split(' ').filter((f) => f[0] === '@')
       }
       if (hashtags.length === 0) {
@@ -172,9 +196,14 @@ export class Project {
         const dateMatch = nextReviewStr.match(/@nextReview\((\d{4}-\d{2}-\d{2})\)/)
         if (dateMatch && dateMatch[1]) {
           this.nextReviewDateStr = dateMatch[1]
-          this.nextReviewDate = moment(this.nextReviewDateStr, "YYYY-MM-DD").toDate()
         }
       }
+
+      // read in icon and iconColor from frontmatter (if present)
+      const iconValue = getFrontmatterAttribute(note, 'icon')
+      this.icon = iconValue != null && iconValue !== '' ? iconValue : undefined
+      const iconColorValue = getFrontmatterAttribute(note, 'icon-color')
+      this.iconColor = iconColorValue != null && iconColorValue !== '' ? iconColorValue : undefined
 
       // count tasks (includes both tasks and checklists)
       const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
@@ -256,12 +285,12 @@ export class Project {
 
   /**
    * Parse a date mention from the mentions list
-   * @param {Array<string>} mentions - Array of mention strings
+   * @param {Array<string>|$ReadOnlyArray<string>} mentions - Array of mention strings
    * @param {string} mentionKey - The preference key for the mention string
    * @returns {?Date} Parsed date or undefined
    * @private
    */
-  parseDateMention(mentions: Array<string>, mentionKey: string): ?Date {
+  parseDateMention(mentions: $ReadOnlyArray<string>, mentionKey: string): ?Date {
     const tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference(mentionKey)))
     return tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
   }
@@ -285,23 +314,14 @@ export class Project {
   }
 
   /**
-   * Calculate duration string for completed/cancelled date
+   * Calculate duration string for completed/cancelled date since startDate if available. If not, then do time since completion/cancellation date.
    * @param {Date} date - The completion or cancellation date
-   * @param {boolean} hasStartDate - Whether start date exists
    * @param {?Date} startDate - Optional start date
    * @returns {string} Duration string
    * @private
    */
-  calculateDurationString(date: Date, hasStartDate: boolean, startDate?: Date): string {
-    if (hasStartDate && startDate) {
-      return `after ${moment(startDate).to(moment(date), true)}`
-    } else {
-      let duration = moment(date).fromNow()
-      if (duration.includes('hours')) {
-        duration = 'today'
-      }
-      return duration
-    }
+  calculateDurationString(date: Date, startDate?: Date): string {
+    return formatDurationString(date, startDate)
   }
 
   /**
@@ -354,10 +374,10 @@ export class Project {
       // Calculate durations or time since cancel/complete
       // logDebug('calculateCompletedOrCancelledDurations', String(this.startDate ?? 'no startDate'))
       if (this.completedDate != null) {
-        this.completedDuration = this.calculateDurationString(this.completedDate, this.startDate != null, this.startDate)
+        this.completedDuration = this.calculateDurationString(this.completedDate, this.startDate ?? undefined)
         // logDebug('calculateCompletedOrCancelledDurations', `-> completedDuration = ${this.completedDuration}`)
       } else if (this.cancelledDate != null) {
-        this.cancelledDuration = this.calculateDurationString(this.cancelledDate, this.startDate != null, this.startDate)
+        this.cancelledDuration = this.calculateDurationString(this.cancelledDate, this.startDate ?? undefined)
         // logDebug('calculateCompletedOrCancelledDurations', `-> cancelledDuration = ${this.cancelledDuration}`)
       }
     } catch (error) {
@@ -365,45 +385,51 @@ export class Project {
     }
   }
 
-  calcNextReviewDate(): ?Date {
+  calcNextReviewDate(): ?string {
     try {
-      // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
+      // Calculate next review due date, if there isn't already a nextReviewDateStr, and there's a review interval.
       const now = moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
-      // First check to see if project start is in future: if so set nextReviewDate to project start
-      if (this.startDate) {
-        const momTSD = moment(this.startDate)
+      // First check to see if project start is in future: if so set nextReviewDateStr to project start
+      if (this.startDate != null && this.startDate instanceof Date) {
+        const thisStartDate: Date = this.startDate // to satisfy flow
+        const momTSD = moment(thisStartDate)
         if (momTSD.isAfter(now)) {
-          this.nextReviewDate = this.startDate
-          this.nextReviewDays = daysBetween(now, momTSD.toDate())
+          this.nextReviewDateStr = toISODateString(thisStartDate)
+          this.nextReviewDays = daysBetween(now, thisStartDate)
           logDebug('calcNextReviewDate', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(this.nextReviewDays)} interval`)
-          return this.startDate
+          return this.nextReviewDateStr
         }
       }
 
-      // Now check to see if we have a specific nextReviewDate
+      // Now check to see if we have a specific nextReviewDateStr
       if (this.nextReviewDateStr != null) {
         this.nextReviewDays = daysBetween(now, this.nextReviewDateStr)
-        logDebug('calcNextReviewDate', `already had a nextReviewDateStr ${this.nextReviewDateStr ?? '?'} -> ${String(this.nextReviewDays)} interval`)
+        // logDebug('calcNextReviewDate', `already had a nextReviewDateStr ${this.nextReviewDateStr ?? '?'} -> ${String(this.nextReviewDays)} interval`)
+        return this.nextReviewDateStr
       }
       else if (this.reviewInterval != null) {
         if (this.reviewedDate != null) {
-          this.nextReviewDate = calcNextReviewDate(this.reviewedDate, this.reviewInterval)
-          if (this.nextReviewDate != null) {
+          const calculatedNextReviewDate = calcNextReviewDate(this.reviewedDate, this.reviewInterval)
+          if (calculatedNextReviewDate != null) {
+            // Convert Date to ISO date string (YYYY-MM-DD)
+            this.nextReviewDateStr = toISODateString(calculatedNextReviewDate)
             // this now uses moment and truncated (not rounded) date diffs in number of days
-            this.nextReviewDays = daysBetween(now, this.nextReviewDate)
-            // logDebug('calcNextReviewDate', `${String(this.reviewedDate)} + ${this.reviewInterval ?? ''} -> nextReviewDate: ${this.nextReviewDateStr ?? ''} = ${String(this.nextReviewDays) ?? '-'}`)
+            this.nextReviewDays = daysBetween(now, this.nextReviewDateStr)
+            // logDebug('calcNextReviewDate', `${String(this.reviewedDate)} + ${this.reviewInterval ?? ''} -> nextReviewDateStr: ${this.nextReviewDateStr ?? ''} = ${String(this.nextReviewDays) ?? '-'}`)
+            return this.nextReviewDateStr
           } else {
-            throw new Error(`nextReviewDate is null; reviewedDate = ${String(this.reviewedDate)}`)
+            throw new Error(`calculated nextReviewDate is null; reviewedDate = ${String(this.reviewedDate)}`)
           }
         } else {
           // no next review date, so set at today
-          this.nextReviewDate = now
+          this.nextReviewDateStr = toISODateString(now)
           this.nextReviewDays = 0
+          return this.nextReviewDateStr
         }
       }
-      // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(this.reviewedDate)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
-      return this.nextReviewDate
+      // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(this.reviewedDate)} / nextReviewDateStr = ${String(this.nextReviewDateStr)} / nextReviewDays = ${String(this.nextReviewDays)}`)
+      return this.nextReviewDateStr
     } catch (error) {
       logError('calcNextReviewDate', error.message)
       return null
@@ -686,23 +712,28 @@ export class Project {
     const parts: Array<string> = []
     parts.push(this.projectTag)
     if (this.isPaused) parts.push('#paused')
-    if (this.startDate != null) {
-      parts.push(`${checkString(DataStore.preference('startMentionStr'))}(${toISODateString(this.startDate)})`)
+    if (this.startDate != null && this.startDate instanceof Date) {
+      const thisStartDate: Date = this.startDate // to satisfy flow
+      parts.push(`${checkString(DataStore.preference('startMentionStr'))}(${toISODateString(thisStartDate)})`)
     }
-    if (this.dueDate != null) {
-      parts.push(`${checkString(DataStore.preference('dueMentionStr'))}(${toISODateString(this.dueDate)})`)
+    if (this.dueDate != null && this.dueDate instanceof Date) {
+      const thisDueDate: Date = this.dueDate // to satisfy flow
+      parts.push(`${checkString(DataStore.preference('dueMentionStr'))}(${toISODateString(thisDueDate)})`)
     }
     if (this.reviewInterval != null) {
       parts.push(`${checkString(DataStore.preference('reviewIntervalMentionStr'))}(${checkString(this.reviewInterval)})`)
     }
-    if (this.reviewedDate != null) {
-      parts.push(`${checkString(DataStore.preference('reviewedMentionStr'))}(${toISODateString(this.reviewedDate)})`)
+    if (this.reviewedDate != null && this.reviewedDate instanceof Date) {
+      const thisReviewedDate: Date = this.reviewedDate // to satisfy flow
+      parts.push(`${checkString(DataStore.preference('reviewedMentionStr'))}(${toISODateString(thisReviewedDate)})`)
     }
-    if (this.completedDate != null) {
-      parts.push(`${checkString(DataStore.preference('completedMentionStr'))}(${toISODateString(this.completedDate)})`)
+    if (this.completedDate != null && this.completedDate instanceof Date) {
+      const thisCompletedDate: Date = this.completedDate // to satisfy flow
+      parts.push(`${checkString(DataStore.preference('completedMentionStr'))}(${toISODateString(thisCompletedDate)})`)
     }
-    if (this.cancelledDate != null) {
-      parts.push(`${checkString(DataStore.preference('cancelledMentionStr'))}(${toISODateString(this.cancelledDate)})`)
+    if (this.cancelledDate != null && this.cancelledDate instanceof Date) {
+      const thisCancelledDate: Date = this.cancelledDate // to satisfy flow
+      parts.push(`${checkString(DataStore.preference('cancelledMentionStr'))}(${toISODateString(thisCancelledDate)})`)
     }
     return parts.join(' ')
   }
@@ -749,7 +780,7 @@ export class Project {
  */
 type ProjectUpdates = {
   dueDays?: number,
-  nextReviewDate?: ?Date,
+  nextReviewDateStr?: ?string,
   nextReviewDays?: number,
   completedDuration?: ?string,
   cancelledDuration?: ?string,
@@ -776,8 +807,7 @@ function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = 
     dueDays: updates.dueDays !== undefined ? updates.dueDays : project.dueDays,
     reviewedDate: project.reviewedDate,
     reviewInterval: project.reviewInterval,
-    nextReviewDate: updates.nextReviewDate !== undefined ? updates.nextReviewDate : project.nextReviewDate,
-    nextReviewDateStr: project.nextReviewDateStr,
+    nextReviewDateStr: updates.nextReviewDateStr !== undefined ? updates.nextReviewDateStr : project.nextReviewDateStr,
     nextReviewDays: updates.nextReviewDays !== undefined ? updates.nextReviewDays : project.nextReviewDays,
     completedDate: project.completedDate,
     completedDuration: updates.completedDuration !== undefined ? updates.completedDuration : project.completedDuration,
@@ -796,6 +826,8 @@ function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = 
     mostRecentProgressLineIndex: project.mostRecentProgressLineIndex,
     nextActionsRawContent: project.nextActionsRawContent,
     ID: project.ID,
+    icon: project.icon,
+    iconColor: project.iconColor,
   }
 }
 
@@ -816,32 +848,19 @@ export function calcDurationsForProject(thisProjectIn: Project): Project {
       : NaN
 
     // Calculate durations or time since cancel/complete
-    logDebug('calcDurationsForProject', String(thisProjectIn.startDate ?? 'no startDate'))
+    // logDebug('calcDurationsForProject', String(thisProjectIn.startDate ?? 'no startDate'))
     
     let completedDuration = thisProjectIn.completedDuration
     let cancelledDuration = thisProjectIn.cancelledDuration
-    
-    // Helper function to calculate duration string
-    const calculateDuration = (date: Date, hasStartDate: boolean, startDate?: Date): string => {
-      if (hasStartDate && startDate) {
-        return `after ${moment(startDate).to(moment(date), true)}`
-      } else {
-        let duration = moment(date).fromNow()
-        if (duration.includes('hours')) {
-          duration = 'today'
-        }
-        return duration
-      }
-    }
 
     if (thisProjectIn.completedDate != null) {
-      completedDuration = calculateDuration(thisProjectIn.completedDate, thisProjectIn.startDate != null, thisProjectIn.startDate)
-      logDebug('calcDurationsForProject', `-> completedDuration = ${completedDuration}`)
+      completedDuration = formatDurationString(thisProjectIn.completedDate, thisProjectIn.startDate ?? undefined)
+      // logDebug('calcDurationsForProject', `-> completedDuration = ${completedDuration}`)
     } else if (thisProjectIn.cancelledDate != null) {
-      cancelledDuration = calculateDuration(thisProjectIn.cancelledDate, thisProjectIn.startDate != null, thisProjectIn.startDate)
-      logDebug('calcDurationsForProject', `-> cancelledDuration = ${cancelledDuration}`)
+      cancelledDuration = formatDurationString(thisProjectIn.cancelledDate, thisProjectIn.startDate ?? undefined)
+      // logDebug('calcDurationsForProject', `-> cancelledDuration = ${cancelledDuration}`)
     } else {
-      logDebug('calcDurationsForProject', `No completed or cancelled dates.`)
+      // logDebug('calcDurationsForProject', `No completed or cancelled dates.`)
     }
     
     return createImmutableProjectCopy(thisProjectIn, {
@@ -864,52 +883,55 @@ export function calcDurationsForProject(thisProjectIn: Project): Project {
  */
 export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
   try {
-    // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
+    // logDebug('calcReviewFieldsForProject', `Starting for '${thisProjectIn.title}' ...`)
     const now = moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
-    let nextReviewDate: ?Date = thisProjectIn.nextReviewDate
+    // Calculate next review due date, if there isn't already a nextReviewDateStr, and there's a review interval.
+    let nextReviewDateStr: ?string = thisProjectIn.nextReviewDateStr
     let nextReviewDays: number = thisProjectIn.nextReviewDays
 
-    // First check to see if project start is in future: if so set nextReviewDate to project start
-    if (thisProjectIn.startDate) {
+    // First check to see if project start is in future: if so set nextReviewDateStr to project start
+    if (thisProjectIn.startDate != null && thisProjectIn.startDate instanceof Date) {
+      const thisStartDate: Date = thisProjectIn.startDate // to satisfy flow
       const momTSD = moment(thisProjectIn.startDate)
       if (momTSD.isAfter(now)) {
-        nextReviewDate = thisProjectIn.startDate
-        nextReviewDays = daysBetween(now, momTSD.toDate())
-        logDebug('calcNextReviewDate', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(nextReviewDays)} interval`)
+        nextReviewDateStr = toISODateString(thisStartDate)
+        nextReviewDays = daysBetween(now, thisStartDate)
+        logDebug('calcReviewFieldsForProject', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(nextReviewDays)} interval`)
       }
     }
 
-    // Now check to see if we have a specific nextReviewDate
+    // Now check to see if we have a specific nextReviewDateStr
     if (thisProjectIn.nextReviewDateStr != null) {
       nextReviewDays = daysBetween(now, thisProjectIn.nextReviewDateStr)
-      logDebug('calcNextReviewDate', `already had a nextReviewDateStr ${thisProjectIn.nextReviewDateStr ?? '?'} -> ${String(nextReviewDays)} interval`)
+      logDebug('calcReviewFieldsForProject', `- already had a nextReviewDateStr ${thisProjectIn.nextReviewDateStr ?? '?'} -> ${String(nextReviewDays)} interval`)
     }
     else if (thisProjectIn.reviewInterval != null) {
       if (thisProjectIn.reviewedDate != null) {
         const calculatedNextReviewDate = calcNextReviewDate(thisProjectIn.reviewedDate, thisProjectIn.reviewInterval)
         if (calculatedNextReviewDate != null) {
+          // Convert Date to ISO date string (YYYY-MM-DD)
+          nextReviewDateStr = toISODateString(calculatedNextReviewDate)
           // this now uses moment and truncated (not rounded) date diffs in number of days
-          nextReviewDate = calculatedNextReviewDate
-          nextReviewDays = daysBetween(now, calculatedNextReviewDate)
-    // logDebug('calcNextReviewDate', `${String(thisProjectIn.reviewedDate)} + ${thisProjectIn.reviewInterval ?? ''} -> nextReviewDate: ${thisProjectIn.nextReviewDateStr ?? ''} = ${String(nextReviewDays) ?? '-'}`)
+          nextReviewDays = daysBetween(now, nextReviewDateStr)
+          // logDebug('calcReviewFieldsForProject', `${String(thisProjectIn.reviewedDate)} + ${thisProjectIn.reviewInterval ?? ''} -> nextReviewDateStr: ${nextReviewDateStr ?? ''} = ${String(nextReviewDays) ?? '-'}`)
         } else {
-          throw new Error(`nextReviewDate is null; reviewedDate = ${String(thisProjectIn.reviewedDate)}`)
+          throw new Error(`calculated nextReviewDate is null; reviewedDate = ${String(thisProjectIn.reviewedDate)}`)
         }
       } else {
         // no next review date, so set at today
-        nextReviewDate = now
+        nextReviewDateStr = toISODateString(now)
         nextReviewDays = 0
       }
     }
-    // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisProjectIn.reviewedDate)} / nextReviewDate = ${String(nextReviewDate)} / nextReviewDays = ${String(nextReviewDays)}`)
+    // logDebug('calcReviewFieldsForProject', `-> reviewedDate = ${String(thisProjectIn.reviewedDate)} / nextReviewDateStr = ${String(nextReviewDateStr)} / nextReviewDays = ${String(nextReviewDays)}`)
     
     return createImmutableProjectCopy(thisProjectIn, {
-      nextReviewDate,
+      nextReviewDateStr,
       nextReviewDays,
     })
   } catch (error) {
-    logError('calcNextReviewDate', error.message)
+    logError('calcReviewFieldsForProject', error.message)
     return thisProjectIn
   }
 }

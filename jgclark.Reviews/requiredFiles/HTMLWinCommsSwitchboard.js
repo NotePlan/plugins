@@ -1,5 +1,8 @@
-/**
- * HTMLWinCommsSwitchboard.js - in the HTMLWindow process data and logic to/from the plugin
+//--------------------------------------------------------------------------------------
+//  HTMLWinCommsSwitchboard.js - in the HTMLWindow process data and logic to/from the plugin
+// Last updated: 2026-01-16 for v1.3.0.b4 by @jgclark
+//--------------------------------------------------------------------------------------
+/** 
  * This file is loaded by the browser via <script> tag in the HTML file
  * IMPORTANT NOTE: you can use flow and eslint to give you feedback but DO NOT put any type annotations in the actual code:
  * the file will fail silently and you will be scratching your head for why it doesn't work!
@@ -31,10 +34,16 @@ function onMessageFromPlugin(type, data) {
     case 'removeItem':
       deleteItemRow(data)
       break
+    case 'SET_REVIEWING_PROJECT':
+      setReviewingProject(data)
+      break
+    case 'CLEAR_REVIEWING_PROJECT':
+      clearReviewingProject(data)
+      break
+    // ...call other functions to process the data for other types of messages from the plugin
     default:
       console.log(`- unknown type: ${type}`)
       showError(`onMessageFromPlugin: received unknown type: ${type}`)
-    // ...call other functions to process the data for other types of messages from the plugin
   }
 }
 
@@ -61,6 +70,60 @@ function deleteItemRow(data) {
   const { itemID } = data
   console.log(`deleteItemRow: for itemID: ${itemID}`)
   deleteHTMLItem(itemID)
+}
+
+/**
+ * Set a project row as "reviewing" - marks it visually and updates the display
+ * @param { { encodedFilename: string } } data
+ */
+function setReviewingProject(data) {
+  const encodedFilename = data.encodedFilename
+  if (!encodedFilename) {
+    console.log(`setReviewingProject: no encodedFilename provided`)
+    return
+  }
+
+  console.log(`setReviewingProject: for encodedFilename: ${encodedFilename}`)
+
+  // First clear any existing 'reviewing' state on all project rows
+  const allRows = document.querySelectorAll('tr.projectRow.reviewing')
+  for (const row of allRows) {
+    row.classList.remove('reviewing')
+  }
+
+  // Then set 'reviewing' on the matching row
+  const matchingRows = document.querySelectorAll('tr.projectRow')
+  for (const row of matchingRows) {
+    if (row.dataset.encodedFilename === encodedFilename) {
+      row.classList.add('reviewing')
+      // And replace the third child <td> with content 'Under Review'
+      // Note: This is a hack, and should be dealt with in the generator, but this will do for now.
+      const thirdChild = row.children[2]
+      thirdChild.innerHTML = '<p class="underReviewText">Under Review</p>'
+    }
+  }
+}
+
+/**
+ * Clear the "reviewing" state from all project rows
+ * @param { { encodedFilename: string } } data
+ */
+function clearReviewingProject(data) {
+  // Don't need filename here, though leaving for future use
+  // const encodedFilename = data.encodedFilename
+  // if (!encodedFilename) {
+  //   console.log(`clearReviewingProject: no encodedFilename provided`)
+  //   return
+  // }
+  // console.log(`clearReviewingProject: for encodedFilename: ${encodedFilename}`)
+
+  console.log(`clearReviewingProject: clearing all reviewing states`)
+
+  // Clear any existing 'reviewing' state on all project rows
+  const allRows = document.querySelectorAll('tr.projectRow.reviewing')
+  for (const row of allRows) {
+    row.classList.remove('reviewing')
+  }
 }
 
 /**

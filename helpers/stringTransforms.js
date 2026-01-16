@@ -4,6 +4,7 @@
 // by @jgclark, @dwertheimer
 //-----------------------------------------------------------------------------
 
+import { trimString } from '@helpers/dataManipulation'
 import {
   getNPWeekStr,
   RE_ISO_DATE,
@@ -323,7 +324,7 @@ export function stripWikiLinksFromString(original: string): string {
 
 /**
  * Strip all #hashtags from string
- * TODO: write tests
+ * @tests in jest file
  * @author @jgclark
  * @param {string} original
  * @returns {string} changed line
@@ -332,16 +333,23 @@ export function stripHashtagsFromString(original: string): string {
   let output = original
   // Note: the regex from @EduardMe's file is /(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/ but :punct: doesn't work in JS, so here's my simplified version
   // TODO: matchAll?
-  const captures = output.match(/(?:\s|^|\"|\(|\)|\')(#[A-Za-z]\w*)/g)
+  const captures = output.match(/(?:\s|^|\"|\(|\)|\')(#[A-Za-z][\w\/]*)/g)
   if (captures) {
     // clo(captures, 'results from hashtag matches:')
     for (const capture of captures) {
-      const match = capture.slice(1)
-      // logDebug('hashtag match', match)
-      output = output
-        .replace(match, '')
-        .replace(/\s{2,}/, ' ')
-        .trimRight()
+      // Extract the full hashtag including #, handling both cases where capture starts with prefix or just the hashtag
+      const hashtagMatch = capture.match(/#[A-Za-z][\w\/]*/)
+      if (hashtagMatch) {
+        const fullHashtag = hashtagMatch[0]
+        // Check if the hashtag is at the start of the string (after removing any prefix from capture)
+        const wasAtStart = capture.startsWith('#') || (capture.length > 0 && output.indexOf(capture) === 0)
+        output = output.replace(fullHashtag, '')
+        output = output.replace(/\s{2,}/, ' ')
+        if (wasAtStart) {
+          output = output.trimLeft()
+        }
+        output = output.trimRight()
+      }
     }
   }
   return output
@@ -349,7 +357,7 @@ export function stripHashtagsFromString(original: string): string {
 
 /**
  * Strip all @mentions from string,
- * TODO: write tests
+ * @tests in jest file
  * @author @jgclark
  * @param {string} original
  * @returns {string} changed line
@@ -357,16 +365,39 @@ export function stripHashtagsFromString(original: string): string {
 export function stripMentionsFromString(original: string): string {
   let output = original
   // Note: the regex from @EduardMe's file is /(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/ but :punct: doesn't work in JS, so here's my simplified version
-  const captures = output.match(/(?:\s|^|\"|\(|\)\')(@[A-Za-z][\w\d\.\-\(\)]*)/g)
+  // Match mentions with parenthesized content first (like @mention(123)) - these include the closing paren
+  output = output.replace(/(?:\s|^|\"|\(|\)|\')(@[A-Za-z][\w\d\.\-\(\/]*\([^)]*\))/g, (match) => {
+    const mentionOnly = match.match(/@[A-Za-z][\w\d\.\-\(\/]*\([^)]*\)/)
+    if (mentionOnly) {
+      const wasAtStart = match.startsWith('@')
+      let result = match.replace(mentionOnly[0], '')
+      result = result.replace(/\s{2,}/, ' ')
+      if (wasAtStart) {
+        result = result.trimLeft()
+      }
+      result = result.trimRight()
+      return result
+    }
+    return match
+  })
+  // Then match simple mentions (without parenthesized content) - these don't include closing parens
+  const captures = output.match(/(?:\s|^|\"|\(|\)|\')(@[A-Za-z][\w\d\.\-\(\/]*)/g)
   if (captures) {
     // clo(captures, 'results from mention matches:')
     for (const capture of captures) {
-      const match = capture.slice(1)
-      // logDebug('mention match', match)
-      output = output
-        .replace(match, '')
-        .replace(/\s{2,}/, ' ')
-        .trimRight()
+      // Extract the full mention including @
+      const mentionMatch = capture.match(/@[A-Za-z][\w\d\.\-\(\/]*/)
+      if (mentionMatch) {
+        const fullMention = mentionMatch[0]
+        // Check if the mention is at the start of the string
+        const wasAtStart = capture.startsWith('@') || (capture.length > 0 && output.indexOf(capture) === 0)
+        output = output.replace(fullMention, '')
+        output = output.replace(/\s{2,}/, ' ')
+        if (wasAtStart) {
+          output = output.trimLeft()
+        }
+        output = output.trimRight()
+      }
     }
   }
   return output
@@ -632,4 +663,20 @@ export function validateObjectString(str: string): Array<string> {
   }
 
   return errors
+}
+
+/**
+ * Prepares and truncates long Markdown links to just the [title] part, stripping the url.
+ * Note: calls trimString() to truncate the string.
+ * @author @jgclark
+ * @tests in jest file
+ * @param {string} markdownIn - The Markdown input string.
+ * @param {number} maxLength - The maximum length of the output string.
+ * @returns {string}
+ */
+export function prepAndTruncateMarkdownForDisplay(markdownIn: string, maxLength: number): string {
+  // Replace [title](url) with just the [title] part, stripping the url
+  const simplifiedLinks = markdownIn.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '[$1]')
+  const textOut = trimString(simplifiedLinks, maxLength)
+  return textOut
 }

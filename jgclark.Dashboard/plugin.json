@@ -3,8 +3,11 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Dashboard",
   "plugin.name": "🎛 Dashboard",
-  "plugin.description": "A Dashboard for NotePlan, that in one place shows\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- Similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next notes ready to review (if you use the 'Projects and Reviews' plugin).",
+  "plugin.icon": "fa-gauge-high",
+  "plugin.iconColor": "purple-600",
+  "plugin.description": "A Dashboard for NotePlan, that in one place shows:\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next notes ready to review (if you use the 'Projects and Reviews' plugin).\nIt includes many other ways of speeding up managing your tasks: see the website for more details.",
   "plugin.author": "@jgclark",
+  "plugin.comment": "TODO: On full release, change minAppVersion down to 3.7?",
   "plugin.version": "2.4.0.b14",
   "plugin.releaseStatus": "beta",
   "plugin.hidden": false,
@@ -36,7 +39,13 @@
       "arguments": [
         "Sections to load (sectionCodes, comma-separated -- see README for list)",
         "perspectiveName"
-      ]
+      ],
+      "sidebarView": {
+        "windowID": "jgclark.Dashboard.dashboard",
+        "title": "Dashboard",
+        "icon": "fa-gauge-high",
+        "iconColor": "purple-600"
+      }
     },
     {
       "hidden": true,

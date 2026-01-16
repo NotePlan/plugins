@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
-// Last updated: 2025-02-06 for v1.1.0 by @jgclark
+// Last updated: 2026-01-16 for v1.3.0.b4 by @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handlers
@@ -50,7 +50,6 @@ function showProjectControlDialog(dataObject) {
   console.log(`showProjectControlDialog() starting for filename '${thisFilename}', interval '${thisReviewInterval}', title '${thisTitle}'`)
 
   const possibleControlTypes = [
-    // { displayString: 'Finish Review <i class="fa-solid fa-flag-checkered"></i>', controlStr: 'reviewed', handlingFunction: 'reviewFinished' },
     { controlStr: 'finish', handlingFunction: 'reviewFinished' },
     { controlStr: 'nr+1w', handlingFunction: 'setNextReviewDate' },
     { controlStr: 'nr+2w', handlingFunction: 'setNextReviewDate' },
@@ -128,8 +127,6 @@ function showProjectControlDialog(dataObject) {
   // For clicking on dialog buttons
   function handleButtonClick(functionToInvoke, controlStr, encodedFilename, metaModifier) {
     console.log(`Button clicked on encodedFilename: ${encodedFilename} with controlStr: ${controlStr}, metaModifier: ${metaModifier}`)
-
-    // onClickProjectListItem({ itemID: '-', controlStr: controlStr, encodedFilename: encodedFilename}) // = sendMessageToPlugin('onClickProjectListItem', ...)
     sendMessageToPlugin('onClickProjectListItem', { itemID: '-', type: functionToInvoke, controlStr: controlStr, encodedFilename: encodedFilename, metaModifier: metaModifier })
     // Dismiss dialog
     closeDialog()
@@ -137,6 +134,7 @@ function showProjectControlDialog(dataObject) {
 }
 
 //--------------------------------------------------------------------------------------
+
 // Set place in the HTML window for dialog to appear
 function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event) {
   const fudgeFactor = 20 // pixels to take account of scrollbars etc.
@@ -280,7 +278,7 @@ function addReviewProjectEventListeners() {
       handleIconClick(thisID, 'review', thisEncodedFilename, '-', event.metaKey)
     }, false)
   }
-  console.log(`${String(allReviewItems.length)} review ELs added`)
+  // console.log(`${String(allReviewItems.length)} review ELs added`)
 }
 
 /**
@@ -291,22 +289,21 @@ function addCommandButtonEventListeners() {
   allPCButtons = document.getElementsByClassName("PCButton")
   let added = 0
   for (const button of allPCButtons) {
-  // const thisURL = button.dataset.callbackUrl
     // add event handler and make visible
-    console.log(`- displaying button for PCB function ${button.dataset.command}`)
+    // console.log(`- displaying button for PCB function ${button.dataset.command}`)
     button.addEventListener('click', function (event) {
       event.preventDefault()
-      console.log(`Attempting to send plugin command '${button.dataset.command}' ...`)
+      // console.log(`Attempting to send plugin command '${button.dataset.command}' ...`)
       const theseCommandArgs = (button.dataset.commandArgs).split(',')
       sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
     }, false)
     added++
   }
-  console.log(`- ${String(added)} PCButton ELs added`)
+  // console.log(`- ${String(added)} PCButton ELs added`)
 }
 
 //--------------------------------------------------------------------------------------
-// Handle various clicks
+// Click Handlers
 
 /**
  * Handle clicking on item icons
@@ -337,7 +334,7 @@ function handleIconClick(id, itemType, encodedfilename, encodedcontent, metaModi
 }
 
 /** 
- *  For clicking on main 'paragraph encodedcontent'
+ *  Clicking on main 'paragraph encodedcontent'
  */
 function handleContentClick(event, id, encodedfilename, encodedcontent) {
   console.log(`handleContentClick( ${id} / ${encodedfilename} / ${encodedcontent} ) for event currentTarget: ${event.currentTarget}`)

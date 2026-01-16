@@ -6,9 +6,16 @@ See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/
 
 ## About This Plugin
 
-The Forms plugin enables you to create dynamic, interactive forms in NotePlan. You define form fields using the visual **Form Builder**, and when you fill out the form and click "Submit", the data is automatically processed to create notes or write to existing notes - **no coding or template writing required!**
+The Forms plugin enables you to create dynamic, interactive forms in NotePlan for things you do frequently -- e.g. create meeting note, contact notes, etc. You define form fields using the visual **Form Builder**, and when you fill out the form and click "Submit", the data is automatically processed to create notes or write to existing notes - **no coding or template writing required!**
 
 > **⚠️ Beta Warning:** This is an early beta release and may not yet be fully functional. Features may change, and you may encounter bugs or incomplete functionality. Please report issues to @dwertheimer on Discord.
+
+> Build the form once in the Form Builder:
+<img width="75%" alt="Screen Cap 2026-01-14 at 15 15 01@2x" src="https://github.com/user-attachments/assets/7cca764e-90ec-43a0-a2c2-33ecb091a15b" />
+
+> Then use the form every day to create new notes with whatever information you want:
+<img width="50%" alt="Screen Cap 2026-01-14 at 15 18 04@2x" src="https://github.com/user-attachments/assets/31b91fd6-3fc5-4f88-887e-39d7efbe75fe" />
+
 
 ## Quick Start (3 Steps!)
 
@@ -53,10 +60,10 @@ Type any of these commands:
 2. **Create New Form**: Click "Create New Form" and give it a name (e.g., "Project Form")
 
 3. **Add Fields**: Click "+ Add Field" and select field types:
-   - **Text Input** - For entering text (project name, description, etc.)
-   - **Textarea** - For longer text entries
+   - **Text Input** - For entering short, single-line text (project name, description, etc.)
+   - **Textarea** - For longer text entries, potentially multiple lines of text
    - **Number** - For numeric values
-   - **Switch** - For yes/no options
+   - **Switch** - For yes/no (true/false) options
    - **Dropdown** - For selecting from a list
    - **Date Picker** - For selecting dates
    - **Note Chooser** - For selecting a note
@@ -69,7 +76,7 @@ Type any of these commands:
    - **Description**: Help text below the field
    - **Default Value**: Pre-filled value
    - **Required**: Must be filled out
-   - **Compact Display**: Show label and field side-by-side
+   - **Compact Display**: Show label and field side-by-side on one line (default is label above, field below)
 
 5. **Configure Form Output** (left sidebar under "Form Settings"):
    

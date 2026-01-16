@@ -3,19 +3,20 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-01-11 for v1.3.0.b3, @jgclark
+// Last updated 2026-01-14 for v1.3.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
 import { addFAIcon } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
-import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
-import { makePluginCommandButton, makeSVGPercentRing, redToGreenInterpolation } from '@helpers/HTMLView'
-import { getLineMainContentPos } from '@helpers/search'
-import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
+import { tailwindToHsl } from '@helpers/colors'
+import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayNameForHTML } from '@helpers/folders'
-import { logWarn } from '@helpers/dev'
+import { createOpenOrDeleteNoteCallbackUrl, displayTitle } from '@helpers/general'
+import { makePluginCommandButton, makeSVGPercentRing, redToGreenInterpolation } from '@helpers/HTMLView'
+import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
+import { getLineMainContentPos } from '@helpers/search'
+import { encodeRFC3986URIComponent, prepAndTruncateMarkdownForDisplay } from '@helpers/stringTransforms'
 
 //-----------------------------------------------------------------------------
 // Project Row HTML Generation
@@ -35,6 +36,7 @@ export function generateProjectOutputLine(
   config: any,
   style: string,
 ): string {
+  // logDebug('generateProjectOutputLine', `- ${thisProject.title}: nRD ${thisProject.nextReviewDays} / due ${thisProject.dueDays}`)
   const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
   let output = ''
   let statsProgress = ''
@@ -72,7 +74,7 @@ export function generateProjectOutputLine(
  */
 function generateRichHTMLRow(thisProject: Project, config: any, statsProgress: string): string {
   const parts: Array<string> = []
-  parts.push('\t<tr class="projectRow">\n\t\t')
+  parts.push(`\t<tr class="projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}">\n\t\t`)
   parts.push(generateCircleIndicator(thisProject))
 
   // Column 2a: Project name / link / edit dialog trigger button
@@ -153,7 +155,8 @@ function generateProgressSection(thisProject: Project, config: any, statsProgres
 }
 
 /**
- * Generate next actions section HTML
+ * Generate next actions text lines as HTML <divs>.
+ * Prepares and truncates long next actions to 80 characters, with ellipsis if truncated. Also simplifies Markdown links to just the [title].
  * @param {any} config
  * @param {Array<string>} nextActionsContent
  * @returns {string}
@@ -164,7 +167,9 @@ function generateNextActionsSection(config: any, nextActionsContent: Array<strin
 
   const parts: Array<string> = []
   for (const NAContent of nextActionsContent) {
-    parts.push(`\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${NAContent}</span></div>`)
+    // const truncatedNAContent = trimString(NAContent, 80)
+    const truncatedNAContent = prepAndTruncateMarkdownForDisplay(NAContent, 80)
+    parts.push(`\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${truncatedNAContent}</span></div>`)
   }
   return parts.join('')
 }
@@ -237,7 +242,17 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
       // Note: now using splitView if running in the main window on macOS
       const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
       const extraClasses = (thisProject.isCompleted) ? 'checked' : (thisProject.isCancelled) ? 'cancelled' : (thisProject.isPaused) ? 'paused' : ''
-      return `<a class="noteTitle" href="${noteOpenActionURL}"><span class="noteTitleIcon"><i class="fa-regular fa-file-lines"></i></span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a>`
+      
+      // Use icon from frontmatter if available, otherwise default to fa-file-lines
+      const iconClass = thisProject.icon != null && thisProject.icon !== '' ? thisProject.icon : 'file-lines'
+      // TEST: commenting out colour, to see if it helps the look and feel
+      // const tailwindColor = thisProject.iconColor != null && thisProject.iconColor !== '' ? thisProject.iconColor : ''
+      const iconColorStyle = '' // tailwindColor !== '' ? ` style="color: ${tailwindToHsl(tailwindColor)};"` : ''
+      const iconHTML = `<i class="fa-regular fa-${iconClass}"${iconColorStyle}></i>`
+      // logDebug('decoratedProjectTitle', `${thisProject.filename}: icon: ${thisProject.icon ?? '-'}, color: ${thisProject.iconColor ?? '-'}`)
+      // logDebug('decoratedProjectTitle', `${thisProject.filename}:iconClass: ${iconClass}, tailwindColor: ${tailwindColor}, iconColorStyle: ${iconColorStyle}`)
+      
+      return `<a class="noteTitle" href="${noteOpenActionURL}"><span class="noteTitleIcon">${iconHTML}</span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a>`
     }
 
     case 'Markdown': {
@@ -461,10 +476,10 @@ export function generateTableStructureHTML(config: any, noteCount: number): stri
     if (config.displayDates) {
       parts.push(`<thead>
 <colgroup>
-\t<col style="width: 2.6em">
+\t<col style="width: 3.2rem">
 \t<col>
-\t<col style="width: 6em">
-\t<col style="width: 6em">
+\t<col style="width: 5.5rem">
+\t<col style="width: 5.5rem">
 </colgroup>
 `)
     } else if (config.displayProgress) {

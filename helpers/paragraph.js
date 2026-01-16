@@ -553,14 +553,14 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
     if (endOfFMIndex === 0) {
       // No frontmatter found
       if (paras[0].type === 'title' && paras[0].headingLevel === 1) {
-        logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter, but H1 title found -> next line`)
+        // logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter, but H1 title found -> next line`)
         startOfActive = 1
       } else {
-        logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter or H1 title found -> first line`)
+        // logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter or H1 title found -> first line`)
         startOfActive = 0
       }
     } else {
-      logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, finishing at line ${String(endOfFMIndex)}, so looking at line after it`)
+      // logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, finishing at line ${String(endOfFMIndex)}, so looking at line after it`)
       startOfActive = endOfFMIndex + 1
       // But if that line is a `# title` line, then skip it
       if (paras[startOfActive].type === 'title' && paras[startOfActive].headingLevel === 1) {
