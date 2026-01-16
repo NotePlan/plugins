@@ -430,6 +430,9 @@ export function ProcessingMethodSection({
               onFoldersChanged={() => {
                 onLoadFolders(true) // Force reload after creating folder
               }}
+              staticOptions={[
+                { label: 'Select...', value: '<select>' },
+              ]}
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               Leave empty for root folder, or use &lt;select&gt; to prompt each time
