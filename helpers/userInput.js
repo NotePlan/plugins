@@ -419,13 +419,13 @@ export async function chooseFolder(
       // logDebug('userInput / chooseFolder', `User chose: result.index:${ result.index } ${ includeNewFolderOption ? `(actualIndex in folders array: ${actualIndex} because running with includeNewFolderOption),` : '' } optClickedOnFolder: ${ String(optClickedOnFolder) } `)
       // logDebug output a map of the folders arrray with 3 items on either side of the chosen index
       // realizing that folder index could be 0, so we need to handle that
-      if (actualIndex > -1) {
-        const foldersSample = folders.map((f, i) => ({ ...(typeof f === 'string' ? { label: f, value: f } : f), index: i })).slice(Math.max(0, actualIndex - 3), actualIndex + 3)
-        logDebug('userInput / chooseFolder', `foldersSample +/- 3 of chosen index`)
-        foldersSample.forEach((folder) => {
-          logDebug('userInput / chooseFolder', `  [${folder.index}]: ${folder.label}${folder.index === actualIndex ? ' <== (chosen)' : ''}`)
-        })
-      }
+      // if (actualIndex > -1) {
+      //   const foldersSample = folders.map((f, i) => ({ ...(typeof f === 'string' ? { label: f, value: f } : f), index: i })).slice(Math.max(0, actualIndex - 3), actualIndex + 3)
+      //   logDebug('userInput / chooseFolder', `foldersSample +/- 3 of chosen index`)
+      //   foldersSample.forEach((folder) => {
+      //     logDebug('userInput / chooseFolder', `  [${folder.index}]: ${folder.label}${folder.index === actualIndex ? ' <== (chosen)' : ''}`)
+      //   })
+      // }
       logDebug(`userInput / chooseFolder`, ` -> folder:${folder} keyModifiers:${String(keyModifiers)}`)
     } else {
       // ✅ for both private + teamspace
