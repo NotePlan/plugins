@@ -353,7 +353,7 @@
     },
     {
       "key": "preferredWindowType",
-      "title": "Open Project Lists in what sort of macOS window?",
+      "title": "Open 'Rich' Project List in what sort of macOS window?",
       "description": "On NotePlan v3.20+ on macOS only, you can open the 'Rich' output window in different ways: 'New Window' for a separate window; 'Main Window' to take over the main window; 'Split View' for a split view in the main window.",
       "type": "string",
       "default": "New Window",

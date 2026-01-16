@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-01-11 for v1.3.0.b3, @jgclark
+// Last updated 2026-01-16 for v1.3.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -16,6 +16,7 @@ import {
   updateDashboardIfOpen,
 } from './reviewHelpers.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
+import { toISODateString } from '@helpers/dateTime'
 import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { findNotesMatchingHashtagOrMentionFromList, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
@@ -45,13 +46,19 @@ const SEQUENTIAL_TAG_DEFAULT = '#sequential'
  * @private
  */
 function convertProjectDatesFromJSON(project: any): any {
-  // Convert date string fields to Date objects
-  const dateFields = ['startDate', 'dueDate', 'reviewedDate', 'nextReviewDate', 'completedDate', 'cancelledDate']
+  // Convert date string fields back to Date objects
+  // Handles both old format (full ISO datetime: "2022-03-31T23:00:00.000Z") and new format (simple ISO date: "2022-03-31")
+  // The new format stores dates as simple ISO date strings (YYYY-MM-DD) with no time component
+  // Note: nextReviewDateStr is kept as a string (YYYY-MM-DD format), not converted to Date
+  const dateFields = ['startDate', 'dueDate', 'reviewedDate', 'completedDate', 'cancelledDate']
   const converted = { ...project }
   
   for (const field of dateFields) {
     if (converted[field] != null && typeof converted[field] === 'string') {
       // Parse ISO date string to Date object
+      // new Date() can parse both "YYYY-MM-DD" and "YYYY-MM-DDTHH:mm:ss.sssZ" formats
+      // For "YYYY-MM-DD", it creates a Date at midnight UTC (which may be a different day in local time)
+      // but this is fine since we only use the date part for calculations via daysBetween() which handles timezones
       const dateObj = new Date(converted[field])
       // Only convert if the date is valid
       if (!isNaN(dateObj.getTime())) {
@@ -165,12 +172,44 @@ function buildSortingSpecification(config: ReviewConfig): Array<string> {
 function stringifyProjectObjects(objArray: Array<any>): string {
   /**
    * a function for JSON.stringify to pass through all except .note property
+   * and convert Date objects to simple ISO date strings (YYYY-MM-DD)
+   * This includes: startDate, dueDate, reviewedDate, completedDate, cancelledDate
+   * The time portion is never used, so we only store the date part (YYYY-MM-DD)
+   * Also normalizes any existing date strings to YYYY-MM-DD format
    * @returns {any}
    */
+  const dateFieldNames = ['startDate', 'dueDate', 'reviewedDate', 'completedDate', 'cancelledDate']
+  const RE_ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/
+  
   function stringifyReplacer(key: string, value: any) {
     // Filtering out properties
     if (key === "note") {
       return undefined
+    }
+    // Remove any old nextReviewDate field (shouldn't exist, but handle legacy data)
+    if (key === "nextReviewDate" && value != null) {
+      return undefined // Remove this field entirely
+    }
+    // Only include icon and iconColor if they are set (not null/undefined/empty)
+    if ((key === "icon" || key === "iconColor") && (value == null || value === '')) {
+      return undefined // Don't include empty/null icon or iconColor
+    }
+    // Convert Date objects to simple ISO date strings (YYYY-MM-DD)
+    // The time portion is never used, so we only store the date part
+    if (value instanceof Date) {
+      return toISODateString(value)
+    }
+    // Normalize date strings: if it's a date field and already a string, ensure it's in YYYY-MM-DD format
+    // (handles old JSON files that might have full ISO datetime strings)
+    if (dateFieldNames.includes(key) && typeof value === 'string' && value !== '') {
+      // If it's a full ISO datetime string, extract just the date part
+      if (RE_ISO_DATETIME.test(value)) {
+        return value.substring(0, 10) // Extract YYYY-MM-DD from YYYY-MM-DDTHH:mm:ss.sssZ
+      }
+      // If it's already in YYYY-MM-DD format, return as-is
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value
+      }
     }
     return value
   }
@@ -400,21 +439,20 @@ export async function generateAllProjectsList(configIn: any, runInForeground: bo
 
 export async function writeAllProjectsList(projectInstances: Array<Project>): Promise<void> {
   try {
-    logDebug('writeAllProjectsList', `starting`)
-
     // write summary to allProjects JSON file, using a replacer to suppress .note
-    logInfo('writeAllProjectsList', `Writing ${projectInstances.length} projects to ${allProjectsListFilename}`)
+    logInfo('writeAllProjectsList', `Writing ${projectInstances.length} projects to ${allProjectsListFilename} ...`)
     const res = DataStore.saveData(stringifyProjectObjects(projectInstances), allProjectsListFilename, true)
 
     // If this appears to have worked:
     // - update the datestamp of the Reviews preference
-    // - refresh Dashboard if open
+    // - update Dashboard window if open
     if (res) {
       const reviewListDate = Date.now()
       DataStore.setPreference(generatedDatePrefName, reviewListDate)
-      await updateDashboardIfOpen()
+      logInfo('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
+      // await updateDashboardIfOpen() // TEST: leaving to calling functions
     } else {
-      logWarn(`writeAllProjectsList`, `Seems to be a problem saving JSON to '${allProjectsListFilename}'`)
+      throw new Error(`Error writing JSON to '${allProjectsListFilename}'`)
     }
   } catch (error) {
     logError('writeAllProjectsList', JSP(error))
@@ -428,22 +466,21 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
  */
 export async function updateProjectInAllProjectsList(projectToUpdate: Project): Promise<void> {
   try {
-    logDebug('updateProjectInAllProjectsList', `Starting ...`)
     const allProjects = await getAllProjectsFromList()
-    logDebug('updateProjectInAllProjectsList', `- with ${allProjects.length} projectInstances`)
+    logDebug('updateProjectInAllProjectsList', `Starting with ${allProjects.length} projectInstances`)
 
     // find the Project with matching filename
     const projectIndex = allProjects.findIndex((project) => project.filename === projectToUpdate.filename)
     if (projectIndex === -1) {
-      logWarn('updateProjectInAllProjectsList', `Couldn't find project with filename '${projectToUpdate.filename}' to update`)
+      logWarn('updateProjectInAllProjectsList', `- couldn't find project with filename '${projectToUpdate.filename}' to update`)
       return
     }
     allProjects[projectIndex] = projectToUpdate
-    logDebug('updateProjectInAllProjectsList', `- will update project #${projectIndex} filename ${projectToUpdate.filename}`)
+    logDebug('updateProjectInAllProjectsList', `- will update project #${String(projectIndex+1)} filename ${projectToUpdate.filename}`)
 
     // write to allProjects JSON file
-    logDebug('updateProjectInAllProjectsList', `Writing ${allProjects.length} projects to ${allProjectsListFilename}`)
     await writeAllProjectsList(allProjects)
+    logDebug('updateProjectInAllProjectsList', `- done writing to allProjects list 🔸`)
   } catch (error) {
     logError('updateProjectInAllProjectsList', JSP(error))
   }
@@ -466,28 +503,29 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
       if (DataStore.fileExists(allProjectsListFilename)) {
         const fileAgeMs = getFileAgeMs(generatedDatePrefName)
         const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
-        logDebug('getAllProjectsFromList', `Regenerating allProjects list as more than ${String(maxAgeAllProjectsListInHours)} hours old (currently ${fileAgeHours} hours)`)
+        logDebug('getAllProjectsFromList', `- Regenerating allProjects list as more than ${String(maxAgeAllProjectsListInHours)} hours old (currently ${fileAgeHours} hours)`)
       } else {
-        logDebug('getAllProjectsFromList', `Generating allProjects list as can't find it`)
+        logDebug('getAllProjectsFromList', `- Generating allProjects list as can't find it`)
       }
       projectInstances = await generateAllProjectsList()
     } else {
       // Read from the list
       const fileAgeMs = getFileAgeMs(generatedDatePrefName)
       const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
-      logDebug('getAllProjectsFromList', `Reading from allProjectsList (as only ${fileAgeHours} hours old)`)
+      logDebug('getAllProjectsFromList', `- Reading from current allProjectsList (as only ${fileAgeHours} hours old)`)
       const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
       // Make objects from this (except .note)
       projectInstances = JSON.parse(content)
       
       // Convert date strings to Date objects (JSON.parse converts Date objects to strings)
-      logDebug('getAllProjectsFromList', `Converting date strings to Date objects for ${projectInstances.length} projects`)
+      // TODO(later): is this still needed?
+      logDebug('getAllProjectsFromList', `- Converting date strings to Date objects for ${projectInstances.length} projects`)
       projectInstances = projectInstances.map((project) => convertProjectDatesFromJSON(project))
       
       // Recalculate review fields for all projects since nextReviewDays may be stale
       // This is necessary because the JSON was written at a previous time, and nextReviewDays
       // needs to be recalculated based on the current date
-      logDebug('getAllProjectsFromList', `Recalculating review fields for ${projectInstances.length} projects loaded from JSON`)
+      logDebug('getAllProjectsFromList', `- Recalculating review fields for ${projectInstances.length} projects loaded from JSON`)
       projectInstances = projectInstances.map((project) => calcReviewFieldsForProject(project))
     }
     logTimer(`getAllProjectsFromList`, startTime, `- read ${projectInstances.length} Projects from allProjects list`)
@@ -526,15 +564,15 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
 
 /**
  * Filter and sort the list of Projects. Used by renderProjectLists().
+ * (Last I checked it was running in 2ms.)
  * @param {ReviewConfig} config 
  * @param {string?} projectTag to filter by (optional)
  * @returns 
  */
 export async function filterAndSortProjectsList(config: ReviewConfig, projectTag: string = ''): Promise<Array<Project>> {
   try {
-    // const startTime = new Date()
     let projectInstances = await getAllProjectsFromList()
-    logDebug('reviews/filterAndSortProjectsList', `Starting with tag '${projectTag}' => ${projectInstances.length} projects`)
+    logInfo('filterAndSortProjectsList', `Starting with tag '${projectTag}' for ${projectInstances.length} projects`)
 
     // Filter out projects that are not tagged with the projectTag
     if (projectTag !== '') {
@@ -546,14 +584,14 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
     // if (displayFinished === 'hide') {
     if (!displayFinished) {
       projectInstances = projectInstances.filter((pi) => !pi.isCompleted).filter((pi) => !pi.isCancelled)
-      logDebug('reviews/filterAndSortProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
+      logDebug('filterAndSortProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
     }
 
     // Filter out non-due projects if required
     const displayOnlyDue = config.displayOnlyDue ?? false
     if (displayOnlyDue) {
       projectInstances = projectInstances.filter((pi) => pi.nextReviewDays <= 0)
-      logDebug('reviews/filterAndSortProjectsList', `- after filtering out non-due, ${projectInstances.length} projects`)
+      logDebug('filterAndSortProjectsList', `- after filtering out non-due, ${projectInstances.length} projects`)
     }
 
     // Need to extend projectInstances with a proxy for the 'projectTag' field, so that we can sort by it according to the order it was given in config.projectTypeTags
@@ -564,15 +602,14 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
 
     // Sort projects by projectTagOrder > folder > [nextReviewDays | dueDays | title]
     const sortingSpecification = buildSortingSpecification(config)
-    logDebug('reviews/filterAndSortProjectsList', `- sorting by ${String(sortingSpecification)}`)
+    logDebug('filterAndSortProjectsList', `- sorting by ${String(sortingSpecification)}`)
     const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)
     // sortedProjectInstances.forEach(pi => logDebug('', `${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
 
-    // logTimer(`reviews/filterAndSortProjectsList`, startTime, `Sorted ${sortedProjectInstances.length} projects`) // 2ms
     return sortedProjectInstances
   }
   catch (error) {
-    logError('reviews/filterAndSortProjectsList', `error: ${error.message}`)
+    logError('filterAndSortProjectsList', `error: ${error.message}`)
     return []
   }
 }
@@ -633,7 +670,7 @@ export async function updateAllProjectsListAfterChange(
     }
     // re-form the file
     await writeAllProjectsList(allProjects)
-    logInfo('updateAllProjectsListAfterChange', `- Wrote ${allProjects.length} items to updated list`)
+    logInfo('updateAllProjectsListAfterChange', `- done writing ${allProjects.length} items to updated list 🔸`)
 
     // Finally, refresh Dashboard
     await updateDashboardIfOpen()
@@ -654,7 +691,7 @@ export async function updateAllProjectsListAfterChange(
  */
 export async function getNextNoteToReview(): Promise<?TNote> {
   try {
-    // logDebug('getNextNoteToReview', `Starting ...`)
+    logDebug(pluginJson, `getNextNoteToReview() starting ...`)
     const config: ReviewConfig = await getReviewSettings()
 
     // Get all available Projects -- not filtering by projectTag here
@@ -662,10 +699,10 @@ export async function getNextNoteToReview(): Promise<?TNote> {
 
     if (!allProjectsSorted || allProjectsSorted.length === 0) {
       // Depending where this is called from, this may be quite possible or more of an error. With Perspective, review this.
-      logInfo(pluginJson, 'getNextNoteToReview(): No active projects found, so stopping.')
+      logInfo('getNextNoteToReview', '- No active projects found, so stopping.')
       return null
     }
-    logDebug(pluginJson, `Starting projects/getNextNoteToReview() with ${allProjectsSorted.length} projects in total`)
+    logDebug('getNextNoteToReview', `- ${allProjectsSorted.length} in projects list`)
 
     // Find first project ready for review
     const nextProject = findFirstReadyProject(allProjectsSorted)

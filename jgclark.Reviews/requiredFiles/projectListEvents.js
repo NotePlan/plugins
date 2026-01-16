@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
-// Last updated: 2026-01-14 for v1.3.0.b3 by @jgclark
+// Last updated: 2026-01-16 for v1.3.0.b4 by @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handlers
@@ -12,68 +12,6 @@
 // addReviewProjectEventListeners()
 
 addCommandButtonEventListeners()
-
-//--------------------------------------------------------------------------------------
-// Handle messages from the plugin (via window.postMessage)
-//--------------------------------------------------------------------------------------
-
-/**
- * Handle messages sent from the plugin to update the Project List UI.
- * Currently used to mark/unmark a projectRow as "reviewing".
- * The plugin sends an encodedFilename and an isReviewing boolean.
- */
-window.addEventListener('message', function (event) {
-  try {
-    const msg = event.data
-    if (!msg || !msg.type || !msg.payload) {
-      return
-    }
-    console.log(`projectListEvents: addEventListener for message type '${msg.type}' with payload: ${JSON.stringify(event)}`)
-
-    if (msg.type === 'SET_REVIEWING_PROJECT') {
-      const payload = msg.payload
-      const encodedFilename = payload.encodedFilename
-      if (!encodedFilename) {
-        return
-      }
-
-      // First clear any existing 'reviewing' state on all project rows
-      const allRows = document.querySelectorAll('tr.projectRow.reviewing')
-      for (const row of allRows) {
-        row.classList.remove('reviewing')
-      }
-
-      // Then set 'reviewing' on the matching row
-      const matchingRows = document.querySelectorAll('tr.projectRow')
-      for (const row of matchingRows) {
-        if (row.dataset.encodedFilename === encodedFilename) {
-          row.classList.add('reviewing')
-          // And replace the third child <td> with content 'Under Review'
-          // Note: This is a hack, and should be dealt with in the generator, but this will do for now.
-          const thirdChild = row.children[2]
-          thirdChild.innerHTML = '<p class="underReviewText">Under Review</p>'
-        }
-      }
-    }
-
-    if (msg.type === 'CLEAR_REVIEWING_PROJECT') {
-      const payload = msg.payload
-      const encodedFilename = payload.encodedFilename
-      if (!encodedFilename) {
-        return
-      }
-
-      // Clear any existing 'reviewing' state on all project rows
-      const allRows = document.querySelectorAll('tr.projectRow.reviewing')
-      for (const row of allRows) {
-        row.classList.remove('reviewing')
-      }
-    }
-
-  } catch (error) {
-    console.log(`projectListEvents: error handling postMessage: ${error.message}`)
-  }
-}, false)
 
 //--------------------------------------------------------------------------------------
 // Show Modal Dialog

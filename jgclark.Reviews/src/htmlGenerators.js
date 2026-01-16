@@ -12,7 +12,7 @@ import { checkBoolean, checkString } from '@helpers/checkType'
 import { tailwindToHsl } from '@helpers/colors'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayNameForHTML } from '@helpers/folders'
-import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
+import { createOpenOrDeleteNoteCallbackUrl, displayTitle } from '@helpers/general'
 import { makePluginCommandButton, makeSVGPercentRing, redToGreenInterpolation } from '@helpers/HTMLView'
 import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getLineMainContentPos } from '@helpers/search'
@@ -36,6 +36,7 @@ export function generateProjectOutputLine(
   config: any,
   style: string,
 ): string {
+  // logDebug('generateProjectOutputLine', `- ${thisProject.title}: nRD ${thisProject.nextReviewDays} / due ${thisProject.dueDays}`)
   const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
   let output = ''
   let statsProgress = ''
@@ -244,12 +245,12 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
       
       // Use icon from frontmatter if available, otherwise default to fa-file-lines
       const iconClass = thisProject.icon != null && thisProject.icon !== '' ? thisProject.icon : 'file-lines'
-      const tailwindColor = thisProject.iconColor != null && thisProject.iconColor !== '' ? thisProject.iconColor : ''
-      // TEST: remove this line to see if it helps the look and feel
+      // TEST: commenting out colour, to see if it helps the look and feel
+      // const tailwindColor = thisProject.iconColor != null && thisProject.iconColor !== '' ? thisProject.iconColor : ''
       const iconColorStyle = '' // tailwindColor !== '' ? ` style="color: ${tailwindToHsl(tailwindColor)};"` : ''
       const iconHTML = `<i class="fa-regular fa-${iconClass}"${iconColorStyle}></i>`
-      logInfo('decoratedProjectTitle', `${thisProject.filename}: icon: ${thisProject.icon ?? '-'}, color: ${thisProject.iconColor ?? '-'}`)
-      logInfo('decoratedProjectTitle', `${thisProject.filename}:iconClass: ${iconClass}, tailwindColor: ${tailwindColor}, iconColorStyle: ${iconColorStyle}`)
+      // logDebug('decoratedProjectTitle', `${thisProject.filename}: icon: ${thisProject.icon ?? '-'}, color: ${thisProject.iconColor ?? '-'}`)
+      // logDebug('decoratedProjectTitle', `${thisProject.filename}:iconClass: ${iconClass}, tailwindColor: ${tailwindColor}, iconColorStyle: ${iconColorStyle}`)
       
       return `<a class="noteTitle" href="${noteOpenActionURL}"><span class="noteTitleIcon">${iconHTML}</span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a>`
     }
