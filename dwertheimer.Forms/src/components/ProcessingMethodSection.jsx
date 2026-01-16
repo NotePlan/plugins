@@ -191,6 +191,7 @@ export function ProcessingMethodSection({
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
               showValue={false}
+              width="100%"
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               {frontmatter.space ? 'Only notes from the selected space will be shown' : 'Private notes (default) - only private notes will be shown'}
@@ -405,6 +406,7 @@ export function ProcessingMethodSection({
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
               showValue={false}
+              width="100%"
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               {frontmatter.space ? 'New note will be created in the selected space' : 'Private notes (default) - new note will be created in Private space'}
@@ -430,12 +432,11 @@ export function ProcessingMethodSection({
               onFoldersChanged={() => {
                 onLoadFolders(true) // Force reload after creating folder
               }}
-              staticOptions={[
-                { label: 'Select...', value: '<select>' },
-              ]}
+              staticOptions={[{ label: 'Select...', value: '<select>' }]}
+              width="100%"
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Leave empty for root folder, or use &lt;select&gt; to prompt each time
+              Leave empty for root folder, or use &quot;Prompt Each Time&quot; to be prompted each time for the folder
             </div>
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
@@ -655,6 +656,7 @@ export function ProcessingMethodSection({
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
               showValue={false}
+              width="100%"
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               {frontmatter.space ? 'Only templates from the selected space will be shown' : 'Private notes (default) - only private templates will be shown'}
