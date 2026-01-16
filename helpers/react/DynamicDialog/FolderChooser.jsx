@@ -502,7 +502,10 @@ export function FolderChooser({
   }
 
   return (
-    <div className={compactDisplay ? 'folder-chooser-wrapper-compact' : 'folder-chooser-wrapper'}>
+    <div 
+      className={compactDisplay ? 'folder-chooser-wrapper-compact' : 'folder-chooser-wrapper'}
+      style={width ? { width: width } : undefined}
+    >
       <SearchableChooser
         label={label}
         value={value}
