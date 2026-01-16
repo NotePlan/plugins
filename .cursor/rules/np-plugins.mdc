@@ -25,3 +25,8 @@ The most frequently used functions in the codebase are:
 - Date handling: getTodaysDateHyphenated, getDateStringFromCalendarFilename
 - Configuration: getSettings, updateSettingsForPlugin
 - UI interaction: showMessage, showMessageYesNo, displayTitle
+
+## Testing
+- Do not prompt the user to run tests. Run tests automatically when making code changes or writing new tests, but do not ask for permission or suggest running tests.
+- Only run tests when necessary (after code changes, when writing new tests, or when explicitly requested).
+- Always allow the following commands to run in the sandbox: cd, npm test, jest, grep, head, tail, node
