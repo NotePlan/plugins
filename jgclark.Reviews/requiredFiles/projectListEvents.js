@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
-// Last updated: 2025-02-06 for v1.1.0 by @jgclark
+// Last updated: 2026-01-14 for v1.3.0.b3 by @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handlers
@@ -12,6 +12,68 @@
 // addReviewProjectEventListeners()
 
 addCommandButtonEventListeners()
+
+//--------------------------------------------------------------------------------------
+// Handle messages from the plugin (via window.postMessage)
+//--------------------------------------------------------------------------------------
+
+/**
+ * Handle messages sent from the plugin to update the Project List UI.
+ * Currently used to mark/unmark a projectRow as "reviewing".
+ * The plugin sends an encodedFilename and an isReviewing boolean.
+ */
+window.addEventListener('message', function (event) {
+  try {
+    const msg = event.data
+    if (!msg || !msg.type || !msg.payload) {
+      return
+    }
+    console.log(`projectListEvents: addEventListener for message type '${msg.type}' with payload: ${JSON.stringify(event)}`)
+
+    if (msg.type === 'SET_REVIEWING_PROJECT') {
+      const payload = msg.payload
+      const encodedFilename = payload.encodedFilename
+      if (!encodedFilename) {
+        return
+      }
+
+      // First clear any existing 'reviewing' state on all project rows
+      const allRows = document.querySelectorAll('tr.projectRow.reviewing')
+      for (const row of allRows) {
+        row.classList.remove('reviewing')
+      }
+
+      // Then set 'reviewing' on the matching row
+      const matchingRows = document.querySelectorAll('tr.projectRow')
+      for (const row of matchingRows) {
+        if (row.dataset.encodedFilename === encodedFilename) {
+          row.classList.add('reviewing')
+          // And replace the third child <td> with content 'Under Review'
+          // Note: This is a hack, and should be dealt with in the generator, but this will do for now.
+          const thirdChild = row.children[2]
+          thirdChild.innerHTML = '<p class="underReviewText">Under Review</p>'
+        }
+      }
+    }
+
+    if (msg.type === 'CLEAR_REVIEWING_PROJECT') {
+      const payload = msg.payload
+      const encodedFilename = payload.encodedFilename
+      if (!encodedFilename) {
+        return
+      }
+
+      // Clear any existing 'reviewing' state on all project rows
+      const allRows = document.querySelectorAll('tr.projectRow.reviewing')
+      for (const row of allRows) {
+        row.classList.remove('reviewing')
+      }
+    }
+
+  } catch (error) {
+    console.log(`projectListEvents: error handling postMessage: ${error.message}`)
+  }
+}, false)
 
 //--------------------------------------------------------------------------------------
 // Show Modal Dialog
@@ -50,7 +112,6 @@ function showProjectControlDialog(dataObject) {
   console.log(`showProjectControlDialog() starting for filename '${thisFilename}', interval '${thisReviewInterval}', title '${thisTitle}'`)
 
   const possibleControlTypes = [
-    // { displayString: 'Finish Review <i class="fa-solid fa-flag-checkered"></i>', controlStr: 'reviewed', handlingFunction: 'reviewFinished' },
     { controlStr: 'finish', handlingFunction: 'reviewFinished' },
     { controlStr: 'nr+1w', handlingFunction: 'setNextReviewDate' },
     { controlStr: 'nr+2w', handlingFunction: 'setNextReviewDate' },
@@ -128,8 +189,6 @@ function showProjectControlDialog(dataObject) {
   // For clicking on dialog buttons
   function handleButtonClick(functionToInvoke, controlStr, encodedFilename, metaModifier) {
     console.log(`Button clicked on encodedFilename: ${encodedFilename} with controlStr: ${controlStr}, metaModifier: ${metaModifier}`)
-
-    // onClickProjectListItem({ itemID: '-', controlStr: controlStr, encodedFilename: encodedFilename}) // = sendMessageToPlugin('onClickProjectListItem', ...)
     sendMessageToPlugin('onClickProjectListItem', { itemID: '-', type: functionToInvoke, controlStr: controlStr, encodedFilename: encodedFilename, metaModifier: metaModifier })
     // Dismiss dialog
     closeDialog()
@@ -137,6 +196,7 @@ function showProjectControlDialog(dataObject) {
 }
 
 //--------------------------------------------------------------------------------------
+
 // Set place in the HTML window for dialog to appear
 function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event) {
   const fudgeFactor = 20 // pixels to take account of scrollbars etc.
@@ -280,7 +340,7 @@ function addReviewProjectEventListeners() {
       handleIconClick(thisID, 'review', thisEncodedFilename, '-', event.metaKey)
     }, false)
   }
-  console.log(`${String(allReviewItems.length)} review ELs added`)
+  // console.log(`${String(allReviewItems.length)} review ELs added`)
 }
 
 /**
@@ -291,22 +351,21 @@ function addCommandButtonEventListeners() {
   allPCButtons = document.getElementsByClassName("PCButton")
   let added = 0
   for (const button of allPCButtons) {
-  // const thisURL = button.dataset.callbackUrl
     // add event handler and make visible
-    console.log(`- displaying button for PCB function ${button.dataset.command}`)
+    // console.log(`- displaying button for PCB function ${button.dataset.command}`)
     button.addEventListener('click', function (event) {
       event.preventDefault()
-      console.log(`Attempting to send plugin command '${button.dataset.command}' ...`)
+      // console.log(`Attempting to send plugin command '${button.dataset.command}' ...`)
       const theseCommandArgs = (button.dataset.commandArgs).split(',')
       sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
     }, false)
     added++
   }
-  console.log(`- ${String(added)} PCButton ELs added`)
+  // console.log(`- ${String(added)} PCButton ELs added`)
 }
 
 //--------------------------------------------------------------------------------------
-// Handle various clicks
+// Click Handlers
 
 /**
  * Handle clicking on item icons
@@ -337,7 +396,7 @@ function handleIconClick(id, itemType, encodedfilename, encodedcontent, metaModi
 }
 
 /** 
- *  For clicking on main 'paragraph encodedcontent'
+ *  Clicking on main 'paragraph encodedcontent'
  */
 function handleContentClick(event, id, encodedfilename, encodedcontent) {
   console.log(`handleContentClick( ${id} / ${encodedfilename} / ${encodedcontent} ) for event currentTarget: ${event.currentTarget}`)

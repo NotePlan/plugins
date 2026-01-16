@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-12-14 for v1.3.0.b4, @jgclark 
+ * Last updated 2026-12-16 for v1.3.0.b4, @jgclark 
  */
 
 body {
@@ -222,10 +222,26 @@ tr.projectRow:nth-child(even) {
   background-color: var(--bg-alt-color);
 }
 
-/* to indicate that a project is being reviewed, add this class to the row */
+/* row class to indicate that a project is being reviewed */
 tr.projectRow.reviewing {
   background-color: rgba(from var(--tint-color) r g b / 0.15);
   border: 1px solid rgba(from var(--tint-color) r g b / 1);
+}
+
+/* in-line label to indicate that a project is being reviewed */
+/* Note: Not being used currently: using following instead */
+/* .underReviewLabel {
+  color: var(--bg-main-color);
+  background-color: var(--tint-color);
+  padding: 2px 4px 0px;
+  border-radius: 8px;
+  font-weight: 600;
+} */
+
+/* in-line label to indicate that a project is being reviewed */
+.underReviewText {
+  color: var(--tint-color);
+  font-weight: 600;
 }
 
 /* allow multi-column flow: set max columns and min width, and some other bits and pieces */
