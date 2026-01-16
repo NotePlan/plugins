@@ -563,7 +563,7 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
 
   // Step 1: Get newNoteTitle from multiple sources (templateRunnerArgs, data, or template body frontmatter)
   let newNoteTitleToUse = newNoteTitle || reactWindowData?.pluginData?.newNoteTitle || ''
-  
+
   // If still empty, try to parse from template body frontmatter
   if (!newNoteTitleToUse || !newNoteTitleToUse.trim()) {
     const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
@@ -674,7 +674,7 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
 
   // Step 9: Handle folder path and teamspace (use extracted folder if available)
   let folderPath = newNoteFolderToUse && newNoteFolderToUse.trim() ? newNoteFolderToUse.trim() : '/'
-  
+
   // Render folder template tags if present
   if (folderPath && typeof folderPath === 'string' && (folderPath.includes('<%') || folderPath.includes('${'))) {
     try {

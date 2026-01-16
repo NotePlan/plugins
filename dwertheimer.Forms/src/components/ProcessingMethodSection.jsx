@@ -412,6 +412,31 @@ export function ProcessingMethodSection({
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Folder:
+              <InfoIcon text="The folder where the new note will be created. Leave empty to create the note in the root folder, or select a specific folder. You can also create a new folder by using Option-click on a folder." />
+            </label>
+            <FolderChooser
+              label=""
+              value={frontmatter.newNoteFolder || ''}
+              folders={folders}
+              onChange={(folder: string) => {
+                onFrontmatterChange('newNoteFolder', folder)
+              }}
+              placeholder="Select folder (optional)"
+              includeNewFolderOption={true}
+              spaceFilter={frontmatter.space || ''}
+              compactDisplay={true}
+              requestFromPlugin={requestFromPlugin}
+              onFoldersChanged={() => {
+                onLoadFolders(true) // Force reload after creating folder
+              }}
+            />
+            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+              Leave empty for root folder, or use &lt;select&gt; to prompt each time
+            </div>
+          </div>
+          <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               New Note Title:
               <InfoIcon text="The title for the new note that will be created. You can use template tags like <%- fieldKey %> to dynamically generate the title based on form field values. The field expands to show long template tags." />
             </label>
@@ -569,31 +594,6 @@ export function ProcessingMethodSection({
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               Enter the template content that will be used to create the new note. Use tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%-
               date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates.
-            </div>
-          </div>
-          <div className="frontmatter-field">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              Folder:
-              <InfoIcon text="The folder where the new note will be created. Leave empty to create the note in the root folder, or select a specific folder. You can also create a new folder by using Option-click on a folder." />
-            </label>
-            <FolderChooser
-              label=""
-              value={frontmatter.newNoteFolder || ''}
-              folders={folders}
-              onChange={(folder: string) => {
-                onFrontmatterChange('newNoteFolder', folder)
-              }}
-              placeholder="Select folder (optional)"
-              includeNewFolderOption={true}
-              spaceFilter={frontmatter.space || ''}
-              compactDisplay={true}
-              requestFromPlugin={requestFromPlugin}
-              onFoldersChanged={() => {
-                onLoadFolders(true) // Force reload after creating folder
-              }}
-            />
-            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Leave empty for root folder, or use &lt;select&gt; to prompt each time
             </div>
           </div>
         </>
