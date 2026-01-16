@@ -605,7 +605,7 @@ const DynamicDialog = ({
 
   // Field types that should consume Enter key (prevent form submission)
   // These are fields where Enter has a specific meaning (e.g., selecting an option, creating new lines)
-  const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'space-chooser', 'dropdown-select', 'combo', 'textarea']
+  const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'space-chooser', 'dropdown-select', 'combo', 'textarea', 'calendarpicker']
 
   const handleEnterKey = (event: KeyboardEvent) => {
     // CMD+ENTER (or CTRL+ENTER on Windows/Linux) should always submit, bypassing ENTER_CONSUMING_FIELD_TYPES
