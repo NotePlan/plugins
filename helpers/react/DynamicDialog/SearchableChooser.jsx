@@ -641,7 +641,20 @@ export function SearchableChooser({
           {label}
         </label>
       )}
-      <div className={`${classNamePrefix}-input-wrapper`} style={width ? { width: width, maxWidth: width, minWidth: width } : undefined}>
+      <div
+        className={`${classNamePrefix}-input-wrapper`}
+        style={
+          width
+            ? {
+                width: width,
+                maxWidth: width,
+                // Only set min-width for fixed pixel values, not percentages or viewport units
+                // This prevents wrapping issues while allowing flexible sizing
+                minWidth: width.includes('px') ? width : undefined,
+              }
+            : undefined
+        }
+      >
         <input
           id={`${classNamePrefix}-${label || 'default'}`}
           ref={inputRef}
