@@ -241,6 +241,7 @@ export function SearchableChooser({
   }, [])
 
   // Calculate dropdown position when it opens and on scroll/resize
+  // Also recalculate when loading completes (for async data loads that might change layout)
   useEffect(() => {
     if (isOpen && inputRef.current) {
       // Flow typing for requestAnimationFrame / cancelAnimationFrame can vary by environment
@@ -315,7 +316,7 @@ export function SearchableChooser({
     } else {
       setDropdownPosition(null)
     }
-  }, [isOpen])
+  }, [isOpen, isLoading]) // Recalculate position when loading state changes (for async data loads)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -618,6 +619,28 @@ export function SearchableChooser({
       openAbove,
     }
   }
+
+  // Recalculate dropdown position when async loading completes
+  // This ensures positioning is correct after data finishes loading and DOM layout stabilizes
+  // Useful for choosers with async data loading (e.g., EventChooser)
+  // This runs separately from the main positioning effect to handle the case where loading
+  // completes after the dropdown is already open, ensuring accurate positioning after data loads
+  useEffect(() => {
+    if (isOpen && !isLoading && inputRef.current) {
+      // Use a small delay to ensure DOM has fully updated after loading completes
+      // This handles cases where data loading triggers re-renders that affect layout
+      const timeoutId = setTimeout(() => {
+        const position = calculateDropdownPosition()
+        if (position) {
+          setDropdownPosition(position)
+        }
+      }, 50) // Small delay to allow DOM to settle after data loads
+
+      return () => {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [isLoading, isOpen]) // Recalculate when loading completes
 
   // Debug logging (disabled for cleaner console output)
   // if (debugLogging && displayValue) {

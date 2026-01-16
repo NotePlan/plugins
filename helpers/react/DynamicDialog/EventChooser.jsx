@@ -202,11 +202,51 @@ export function EventChooser({
   initialEvents,
 }: EventChooserProps): React$Node {
   // Initialize from preloaded data if available (for static HTML testing)
+  // Preloaded events come as ISO strings (from getEvents serialization) and need to be converted to Date objects
   const hasInitialEvents = Array.isArray(initialEvents) && initialEvents.length > 0
   const [events, setEvents] = useState<Array<EventOption>>(() => {
     if (hasInitialEvents && initialEvents) {
-      logDebug('EventChooser', `Using initial events: ${initialEvents.length} events`)
-      return initialEvents
+      logDebug('EventChooser', `Converting initial events: ${initialEvents.length} events`)
+      // Convert preloaded events (ISO strings) to EventOption format with Date objects
+      // This matches the format EventChooser expects after processing requestFromPlugin response
+      const eventOptions: Array<EventOption> = initialEvents
+        .map((event: any) => {
+          // Plugin returns events with date/endDate as ISO strings that need to be converted to Date objects
+          return {
+            id: event.id || '',
+            title: event.title || '',
+            date: event.date ? new Date(event.date) : new Date(),
+            endDate: event.endDate ? new Date(event.endDate) : null,
+            calendar: event.calendar || '',
+            isAllDay: event.isAllDay || false,
+            type: event.type || 'event',
+            isCompleted: event.isCompleted || false,
+            notes: event.notes || '',
+            url: event.url || '',
+            availability: event.availability ?? -1,
+            attendees: event.attendees || [],
+            attendeeNames: event.attendeeNames || [],
+            calendarItemLink: event.calendarItemLink || '',
+            location: event.location || '',
+            isCalendarWritable: event.isCalendarWritable || false,
+            isRecurring: event.isRecurring || false,
+            occurrences: event.occurrences ? event.occurrences.map((d: string) => new Date(d)) : [],
+          }
+        })
+        .filter((event: EventOption) => event.id) // Only include events with IDs
+        .sort((a: EventOption, b: EventOption) => {
+          // Sort all-day events first, then by time
+          if (a.isAllDay && !b.isAllDay) return -1
+          if (!a.isAllDay && b.isAllDay) return 1
+          if (a.isAllDay && b.isAllDay) {
+            // Both all-day, sort by title
+            return a.title.localeCompare(b.title)
+          }
+          // Both timed, sort by start time
+          return a.date.getTime() - b.date.getTime()
+        })
+      logDebug('EventChooser', `Converted ${eventOptions.length} initial events to EventOption format`)
+      return eventOptions
     }
     return []
   })

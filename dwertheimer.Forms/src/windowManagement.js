@@ -472,9 +472,9 @@ export async function getPluginData(argObj: Object): Promise<{ [string]: mixed }
   const requirements = detectFieldRequirements(formFields)
   logDebug(
     pluginJson,
-    `getPluginData: needsFolders=${String(requirements.needsFolders)}, needsNotes=${String(requirements.needsNotes)}, needsSpaces=${String(requirements.needsSpaces)}, needsMentions=${String(
-      requirements.needsMentions,
-    )}, needsHashtags=${String(requirements.needsHashtags)}, needsEvents=${String(requirements.needsEvents)}`,
+    `getPluginData: needsFolders=${String(requirements.needsFolders)}, needsNotes=${String(requirements.needsNotes)}, needsSpaces=${String(
+      requirements.needsSpaces,
+    )}, needsMentions=${String(requirements.needsMentions)}, needsHashtags=${String(requirements.needsHashtags)}, needsEvents=${String(requirements.needsEvents)}`,
   )
 
   const pluginData = { platform: NotePlan.environment.platform, ...argObj }
