@@ -75,7 +75,7 @@
   & [data-field-type] .searchable-chooser-base.compact {
     display: flex !important;
     align-items: center !important;
-    gap: 1rem !important;
+    gap: .5rem !important;
     padding-left: 0 !important;
     margin-left: 0 !important;
   }
@@ -174,9 +174,9 @@
   & .calendarpicker-container.compact .calendarpicker-input-wrapper,
   & .autosave-field-container.compact .autosave-field-input-wrapper,
   & .autosave-field-container.compact .autosave-field-input {
-    width: var(--template-form-compact-input-width, 180px) !important;
-    min-width: var(--template-form-compact-input-width, 180px) !important;
-    max-width: var(--template-form-compact-input-width, 180px) !important;
+    width: var(--template-form-compact-input-width, 300px) !important;
+    min-width: var(--template-form-compact-input-width, 300px) !important;
+    max-width: var(--template-form-compact-input-width, 300px) !important;
   }
 
   /* Override item-description margin-left in compact mode to align with input field values */

@@ -124,6 +124,11 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
       returnValue?.pluginData?.aiAnalysisResult &&
       typeof returnValue.pluginData.aiAnalysisResult === 'string' &&
       returnValue.pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
+    
+    // Check if there's a form submission error
+    const hasFormSubmissionError =
+      returnValue?.pluginData?.formSubmissionError &&
+      typeof returnValue.pluginData.formSubmissionError === 'string'
     logDebug(
       pluginJson,
       `handleFormSubmitAction: returnValue !== null=${String(returnValue !== null)}, hasAiAnalysis=${String(hasAiAnalysis)}, keepOpenOnSubmit=${String(data.keepOpenOnSubmit)}`,
@@ -141,13 +146,23 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
       returnValue?.pluginData?.aiAnalysisResult &&
       (!reactWindowData?.pluginData?.aiAnalysisResult || returnValue.pluginData.aiAnalysisResult !== reactWindowData.pluginData.aiAnalysisResult)
 
-    // Always send SET_DATA if there's an AI analysis result, even if object reference is the same
-    // Check if we need to send SET_DATA (either object changed OR has AI analysis)
-    const shouldSendSetData = returnValue && (returnValue !== reactWindowData || hasPluginDataChanges || hasAiAnalysis)
+    // Always send SET_DATA if there's an AI analysis result or form submission error, even if object reference is the same
+    // Check if we need to send SET_DATA (either object changed OR has AI analysis OR has form submission error)
+    const hasErrorChanges =
+      returnValue?.pluginData?.formSubmissionError &&
+      (!reactWindowData?.pluginData?.formSubmissionError || returnValue.pluginData.formSubmissionError !== reactWindowData.pluginData.formSubmissionError)
+    const shouldSendSetData = returnValue && (returnValue !== reactWindowData || hasPluginDataChanges || hasAiAnalysis || hasFormSubmissionError || hasErrorChanges)
 
     if (shouldSendSetData && returnValue) {
-      const updateText = hasAiAnalysis ? 'AI Analysis Error Detected' : `After onSubmitClick, data was updated`
-      logDebug(pluginJson, `handleFormSubmitAction: Sending SET_DATA to windowId="${windowId}", has aiAnalysisResult=${String(!!returnValue.pluginData?.aiAnalysisResult)}`)
+      const updateText = hasAiAnalysis
+        ? 'AI Analysis Error Detected'
+        : hasFormSubmissionError
+        ? 'Form Submission Error Detected'
+        : `After onSubmitClick, data was updated`
+      logDebug(
+        pluginJson,
+        `handleFormSubmitAction: Sending SET_DATA to windowId="${windowId}", has aiAnalysisResult=${String(!!returnValue.pluginData?.aiAnalysisResult)}, has formSubmissionError=${String(hasFormSubmissionError)}`,
+      )
       clo(returnValue, `handleFormSubmitAction: after updating window data,returnValue=`)
       sendToHTMLWindow(windowId, 'SET_DATA', returnValue, updateText)
       logDebug(pluginJson, `handleFormSubmitAction: SET_DATA sent to windowId="${windowId}"`)
@@ -158,11 +173,15 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
     // Close the window after successful submission, unless:
     // 1. keepOpenOnSubmit is true (e.g., for Form Browser context)
     // 2. There's an AI analysis result (keep window open to show the error)
-    if (returnValue !== null && !data.keepOpenOnSubmit && !hasAiAnalysis) {
+    // 3. There's a form submission error (keep window open to show the error)
+    if (returnValue !== null && !data.keepOpenOnSubmit && !hasAiAnalysis && !hasFormSubmissionError) {
       logDebug(pluginJson, `handleFormSubmitAction: Closing window windowId="${windowId}" (no keepOpenOnSubmit, no AI analysis)`)
       closeWindowFromCustomId(windowId)
-    } else if (returnValue !== null && (data.keepOpenOnSubmit || hasAiAnalysis)) {
-      logDebug(pluginJson, `handleFormSubmitAction: NOT closing window - keepOpenOnSubmit=${String(data.keepOpenOnSubmit)} or hasAiAnalysis=${String(hasAiAnalysis)}`)
+    } else if (returnValue !== null && (data.keepOpenOnSubmit || hasAiAnalysis || hasFormSubmissionError)) {
+      logDebug(
+        pluginJson,
+        `handleFormSubmitAction: NOT closing window - keepOpenOnSubmit=${String(data.keepOpenOnSubmit)} or hasAiAnalysis=${String(hasAiAnalysis)} or hasFormSubmissionError=${String(hasFormSubmissionError)}`,
+      )
     } else if (returnValue === null) {
       logDebug(pluginJson, `handleFormSubmitAction: returnValue is null, not closing window`)
     }

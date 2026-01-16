@@ -197,7 +197,7 @@ The Form Builder includes these field types:
 - **Date Picker** - Calendar for selecting dates
 
 ### NotePlan Selectors
-- **Note Chooser** - Search and select a note
+- **Note Chooser** - Search and select a note (supports single or multi-select with configurable output format)
 - **Folder Chooser** - Search and select a folder
 - **Space Chooser** - Select Private or a Teamspace
 - **Heading Chooser** - Select a heading from a note
@@ -288,6 +288,32 @@ You can disable this globally and add autosave to specific forms only if preferr
 ## Advanced Topics
 
 **Most users won't need anything below this line.** The sections below are for advanced users who need custom processing logic or want to understand the underlying structure.
+
+### Preloading Chooser Data for Static HTML Testing
+
+When developing or testing forms, you may want to open the saved HTML file in Chrome without being connected to NotePlan. By default, chooser fields (folder-chooser, note-chooser, space-chooser, etc.) load their data dynamically from NotePlan, which requires an active connection.
+
+**To enable preloaded data:**
+
+Add this to your form's frontmatter:
+
+```yaml
+preloadChooserData: true
+```
+
+When `preloadChooserData: true` is set, the form will preload all chooser data when the HTML file is created:
+- **Folders** - All folders for folder-chooser fields
+- **Notes** - All notes for note-chooser fields  
+- **Teamspaces** - All teamspaces for space-chooser and folder-chooser decoration
+- **Mentions** - All mentions for mention-chooser fields
+- **Hashtags** - All hashtags for tag-chooser fields
+
+The preloaded data is embedded in the saved HTML file (`form_output.html`), allowing you to:
+- Test the form in Chrome without NotePlan
+- Debug CSS and layout issues
+- Share static HTML files for design review
+
+**Note:** Preloaded data is a snapshot taken when the HTML is generated. For production use, leave `preloadChooserData` unset (or `false`) to use dynamic loading for up-to-date data.
 
 ### Custom Processing Templates
 
@@ -488,7 +514,7 @@ All fields support these properties:
 
 ### Date Field Types
 
-**`calendarpicker`** - Date picker
+**`calendarpicker`** - Date picker with configurable output format
 ```javascript
 {
   key: 'dueDate',
@@ -497,20 +523,42 @@ All fields support these properties:
   buttonText: 'Select Date',
   visible: false, // true to show calendar by default
   numberOfMonths: 1,
-  size: 0.75 // scale factor
+  size: 0.75, // scale factor
+  dateFormat: 'YYYY-MM-DD', // moment.js format string (default: 'YYYY-MM-DD' ISO 8601)
+  // Use '__object__' to return Date object instead of formatted string
+  // Examples:
+  // dateFormat: 'MM/DD/YYYY' - US format (12/25/2024)
+  // dateFormat: 'DD/MM/YYYY' - European format (25/12/2024)
+  // dateFormat: 'MMMM Do, YYYY' - Long format (December 25th, 2024)
+  // dateFormat: 'YYYY-MM-DD HH:mm' - ISO with time (2024-12-25 14:30)
+  // dateFormat: '__object__' - Returns Date object
 }
 ```
 
 ### NotePlan Chooser Field Types
 
-**`note-chooser`** - Searchable note selector
+**`note-chooser`** - Searchable note selector (single or multi-select)
 ```javascript
 {
   key: 'targetNote',
   label: 'Select Note',
   type: 'note-chooser',
   placeholder: 'Search notes...',
-  showValue: false // false=show title, true=show filename
+  showValue: false, // false=show title, true=show filename
+  // Multi-select options:
+  allowMultiSelect: true, // Enable multi-select mode (default: false)
+  noteOutputFormat: 'wikilink', // 'wikilink' | 'pretty-link' | 'raw-url' (default: 'wikilink')
+  noteSeparator: 'space', // 'space' | 'comma' | 'newline' (default: 'space')
+  // Filter options:
+  includePersonalNotes: true, // Include personal/project notes (default: true)
+  includeCalendarNotes: false, // Include calendar notes (default: false)
+  includeRelativeNotes: false, // Include relative notes like <today> (default: false)
+  includeTeamspaceNotes: true, // Include teamspace notes (default: true)
+  includeTemplatesAndForms: false, // Include @Templates and @Forms folders (default: false)
+  // Display options:
+  showCalendarChooserIcon: true, // Show calendar picker button (default: true if calendar notes included)
+  showTitleOnly: false, // Show only title, not path/title (default: false)
+  shortDescriptionOnLine2: false // Show description on second line (default: false)
 }
 ```
 
@@ -520,9 +568,22 @@ All fields support these properties:
   key: 'targetFolder',
   label: 'Select Folder',
   type: 'folder-chooser',
-  placeholder: 'Search folders...'
+  placeholder: 'Search folders...',
+  includeNewFolderOption: true, // Allow creating new folders
+  staticOptions: [ // Static options that appear at top of list
+    { label: 'Select...', value: '<select>' } // TemplateRunner will prompt user each time
+  ]
 }
 ```
+
+**Folder Chooser Options:**
+- `includeArchive` (boolean) - Include Archive folder in list
+- `includeNewFolderOption` (boolean) - Add "New Folder" option to create folders
+- `startFolder` (string) - Limit folders to a specific subfolder (e.g., "/Projects")
+- `includeFolderPath` (boolean) - Show full folder path, not just folder name (default: true)
+- `excludeTeamspaces` (boolean) - Exclude teamspace folders from list
+- `staticOptions` (array) - Static options to add at top of list. Each option is `{label: string, value: string}`. Useful for TemplateRunner special values like `<select>` which prompts the user each time.
+- `sourceSpaceKey` (string) - Value dependency: key of a space-chooser field to filter folders by space
 
 **`space-chooser`** - Space/Teamspace selector
 ```javascript

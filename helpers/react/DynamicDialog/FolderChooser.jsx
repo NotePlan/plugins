@@ -34,6 +34,7 @@ export type FolderChooserProps = {
   showValue?: boolean, // If true, display the selected value below the input
   onFoldersChanged?: () => void, // Callback to request folder list reload after creating a folder
   shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
+  staticOptions?: Array<{ label: string, value: string }>, // Static options to add to the chooser (e.g., [{label: 'Select...', value: '<select>'}])
 }
 
 /**
@@ -61,6 +62,7 @@ export function FolderChooser({
   showValue = false,
   onFoldersChanged,
   shortDescriptionOnLine2 = false,
+  staticOptions = [],
 }: FolderChooserProps): React$Node {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -347,20 +349,53 @@ export function FolderChooser({
     return parts.length > 0 ? parts[parts.length - 1] : '/'
   }
 
-  // Prepare folder list with "New Folder" option if needed
-  const folderListWithNewOption = useMemo(() => {
-    const list = [...filteredFolders]
-    if (includeNewFolderOption) {
-      // Add "New Folder" option at the beginning
-      list.unshift('__NEW_FOLDER__')
+  // Prepare folder list with static options and "New Folder" option if needed
+  const folderListWithOptions = useMemo(() => {
+    const list: Array<string> = []
+
+    // Add static options first (e.g., '<select>', '<choose>', etc.)
+    if (staticOptions && staticOptions.length > 0) {
+      staticOptions.forEach((option) => {
+        list.push(option.value) // Use the value as the item identifier
+      })
+      logDebug(
+        'FolderChooser',
+        `Added ${staticOptions.length} static option(s) to list:`,
+        staticOptions.map((opt) => opt.label),
+      )
     }
+
+    // Add "New Folder" option if needed
+    if (includeNewFolderOption) {
+      list.push('__NEW_FOLDER__')
+    }
+
+    // Add actual folders
+    list.push(...filteredFolders)
+
+    logDebug('FolderChooser', `folderListWithOptions: total items=${list.length}, staticOptions=${staticOptions?.length || 0}, folders=${filteredFolders.length}`)
     return list
-  }, [filteredFolders, includeNewFolderOption])
+  }, [filteredFolders, includeNewFolderOption, staticOptions])
+
+  // Helper to check if an item is a static option
+  const isStaticOption = (item: string): boolean => {
+    return staticOptions.some((opt) => opt.value === item)
+  }
+
+  // Helper to get static option label
+  const getStaticOptionLabel = (item: string): string | null => {
+    const option = staticOptions.find((opt) => opt.value === item)
+    return option ? option.label : null
+  }
 
   // Configure the SearchableChooser
   const config: ChooserConfig = {
-    items: folderListWithNewOption,
+    items: folderListWithOptions,
     filterFn: (item: string, searchTerm: string) => {
+      // Always show static options (like '<select>'), regardless of search term
+      if (isStaticOption(item)) {
+        return true
+      }
       if (item === '__NEW_FOLDER__') {
         return 'new folder'.includes(searchTerm.toLowerCase())
       }
@@ -371,6 +406,10 @@ export function FolderChooser({
       if (item === '__NEW_FOLDER__') {
         return 'New Folder'
       }
+      if (isStaticOption(item)) {
+        const label = getStaticOptionLabel(item)
+        return label || item
+      }
       // Use formatFolderDisplayForSelected for selected values to show more context
       return formatFolderDisplayForSelected(item)
     },
@@ -378,11 +417,19 @@ export function FolderChooser({
       if (item === '__NEW_FOLDER__') {
         return 'New Folder'
       }
+      if (isStaticOption(item)) {
+        const label = getStaticOptionLabel(item)
+        return label || item
+      }
       return formatFolderDisplay(item)
     },
     getOptionTitle: (item: string) => {
       if (item === '__NEW_FOLDER__') {
         return 'Create a new folder'
+      }
+      if (isStaticOption(item)) {
+        const label = getStaticOptionLabel(item)
+        return label || item
       }
       return item // Full path as tooltip
     },
@@ -390,6 +437,10 @@ export function FolderChooser({
     onSelect: (item: string) => {
       if (item === '__NEW_FOLDER__') {
         handleNewFolderClick()
+      } else if (isStaticOption(item)) {
+        // Static options (like '<select>') are passed through as-is
+        logDebug('FolderChooser', `Selected static option: ${item}`)
+        onChange(item)
       } else {
         logDebug('FolderChooser', `Selected folder: ${item}`)
         onChange(item)
@@ -398,7 +449,7 @@ export function FolderChooser({
     emptyMessageNoItems: 'No folders available',
     emptyMessageNoMatch: 'No folders match',
     classNamePrefix: 'folder-chooser',
-    iconClass: 'fa-folder',
+    iconClass: 'fa-solid fa-folder',
     fieldType: 'folder-chooser',
     debugLogging: true,
     maxResults: 25,
@@ -417,6 +468,7 @@ export function FolderChooser({
     // Folder decoration functions - use shared helper from @helpers/userInput.js
     getOptionIcon: (item: string) => {
       if (item === '__NEW_FOLDER__') return 'folder-plus'
+      if (isStaticOption(item)) return 'fa-solid fa-circle-question' // Default icon for static options
       const decoration = getFolderDecorationFromPath(item, includeFolderPath, teamspaces)
       if (item.startsWith('%%NotePlanCloud%%') && teamspaces.length > 0) {
         logDebug('FolderChooser', `getOptionIcon for teamspace folder "${item}": icon=${decoration.icon}, teamspaces.length=${teamspaces.length}`)
@@ -425,6 +477,7 @@ export function FolderChooser({
     },
     getOptionColor: (item: string) => {
       if (item === '__NEW_FOLDER__') return 'orange-500'
+      if (isStaticOption(item)) return 'blue-500' // Default color for static options
       const decoration = getFolderDecorationFromPath(item, includeFolderPath, teamspaces)
       if (item.startsWith('%%NotePlanCloud%%') && teamspaces.length > 0) {
         logDebug('FolderChooser', `getOptionColor for teamspace folder "${item}": color=${decoration.color}, teamspaces.length=${teamspaces.length}`)
@@ -433,6 +486,13 @@ export function FolderChooser({
     },
     getOptionShortDescription: (item: string) => {
       if (item === '__NEW_FOLDER__') return 'Add new'
+      if (isStaticOption(item)) {
+        // For static options like '<select>', show a helpful description
+        if (item === '<select>' || item === '<SELECT>') {
+          return 'Prompt each time'
+        }
+        return undefined
+      }
       const decoration = getFolderDecorationFromPath(item, includeFolderPath, teamspaces)
       if (item.startsWith('%%NotePlanCloud%%') && teamspaces.length > 0) {
         logDebug(
@@ -446,7 +506,7 @@ export function FolderChooser({
   }
 
   return (
-    <div className={compactDisplay ? 'folder-chooser-wrapper-compact' : 'folder-chooser-wrapper'}>
+    <div className={compactDisplay ? 'folder-chooser-wrapper-compact' : 'folder-chooser-wrapper'} style={width ? { width: width } : undefined}>
       <SearchableChooser
         label={label}
         value={value}

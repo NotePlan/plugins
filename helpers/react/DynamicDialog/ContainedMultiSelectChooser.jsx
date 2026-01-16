@@ -308,9 +308,10 @@ export function ContainedMultiSelectChooser({
         : [...currentSelected, itemName]
 
       setSelectedValues(newSelected)
-      // Format items using getItemDisplayLabel and return (already unique)
-      const formattedItems = newSelected.map((item: string) => getItemDisplayLabel(item))
-      const newValue = returnAsArray ? formattedItems : formattedItems.join(',')
+      // Return format based on returnAsArray prop
+      // If returnAsArray is true, return original item values (not formatted labels)
+      // If returnAsArray is false, return formatted display labels joined by comma
+      const newValue = returnAsArray ? newSelected : newSelected.map((item: string) => getItemDisplayLabel(item)).join(',')
       // Update ref before calling onChange to prevent re-sync
       lastSyncedValueRef.current = newValue
       onChange(newValue)

@@ -59,9 +59,9 @@ function validateFormFields(formFields: Array<Object>): boolean {
       showMessage(`Field "${field.label || ''}" (index ${i}) does not have a type. Please set a type for every field.`)
       return false
     }
-    // every field that is not a separator, heading, or markdown-preview must have a key
-    // (markdown-preview is display-only like heading/separator)
-    if (field.type !== 'separator' && field.type !== 'heading' && field.type !== 'markdown-preview' && !field.key) {
+    // every field that is not a separator, heading, markdown-preview, or comment must have a key
+    // (markdown-preview and comment are display-only like heading/separator)
+    if (field.type !== 'separator' && field.type !== 'heading' && field.type !== 'markdown-preview' && field.type !== 'comment' && !field.key) {
       showMessage(`Field "${field.label || ''}" (index ${i}) does not have a key. Please set a key for every field.`)
       return false
     }

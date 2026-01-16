@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.Forms",
   "plugin.name": "📝 Template Forms",
-  "plugin.version": "1.0.10",
+  "plugin.version": "1.0.12",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "Improved form UX: auto-focus, tab navigation, and chooser controls",
   "plugin.description": "Dynamic Forms for NotePlan using Templating -- fill out a multi-field form and have the data sent to a template for processing",

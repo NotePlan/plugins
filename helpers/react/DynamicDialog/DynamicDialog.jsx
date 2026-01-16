@@ -88,7 +88,7 @@ export type TSettingItem = {
   vertical?: boolean, // Add vertical property for button-group
   isDefault?: boolean, // Add isDefault property for button items
   fixedWidth?: number, // for dropdowns, set a fixed width
-  selectedDate?: Date, // for calendarpicker, the selected date
+  selectedDate?: Date | string, // for calendarpicker, the selected date (Date object or formatted string)
   numberOfMonths?: number, // for calendarpicker, the number of months to show
   size?: number, // for calendarpicker, the size scale factor (0.5 = 50%, default)
   required?: boolean, // for input fields, require the field to be filled out
@@ -97,12 +97,14 @@ export type TSettingItem = {
   placeholder?: string, // for dropdown-select, placeholder text when no value is selected
   buttonText?: string, // for calendarpicker and button, text to display on button
   visible?: boolean, // for calendarpicker, whether calendar is shown by default
+  dateFormat?: string, // for calendarpicker, moment.js format string (e.g., 'YYYY-MM-DD', 'MM/DD/YYYY'). If '__object__', returns Date object. Default: 'YYYY-MM-DD' (ISO 8601)
   // folder-chooser options (matching chooseFolder function parameters)
   includeArchive?: boolean, // for folder-chooser, include the Archive folder in the list
   includeNewFolderOption?: boolean, // for folder-chooser, add a 'New Folder' option that allows creating a new folder
   startFolder?: string, // for folder-chooser, folder to start the list in (e.g. to limit folders to a specific subfolder)
   includeFolderPath?: boolean, // for folder-chooser, show the folder path (or most of it), not just the last folder name
   excludeTeamspaces?: boolean, // for folder-chooser, exclude teamspace folders from the list
+  staticOptions?: Array<{ label: string, value: string }>, // for folder-chooser, static options to add to the chooser (e.g., [{label: '<Select>', value: '<select>'}])
   dependsOnSpaceKey?: string, // DEPRECATED: use sourceSpaceKey instead. For folder-chooser, key of a space-chooser field to filter folders by space (value dependency)
   sourceSpaceKey?: string, // Value dependency: for folder-chooser, key of a space-chooser field to filter folders by space
   // heading-chooser options
@@ -125,6 +127,9 @@ export type TSettingItem = {
   showTitleOnly?: boolean, // for note-chooser, show only the note title in the label (not "path / title") (default: false)
   showCalendarChooserIcon?: boolean, // for note-chooser, show a calendar button next to the chooser (default: true)
   onOpen?: () => void | Promise<void>, // for note-chooser and other choosers, callback when dropdown opens (for lazy loading)
+  allowMultiSelect?: boolean, // for note-chooser, enable multi-select mode (default: false)
+  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link', // for note-chooser multi-select, output format (default: 'wikilink')
+  noteSeparator?: 'space' | 'comma' | 'newline', // for note-chooser multi-select, separator between notes (default: 'space')
   // showValue option for SearchableChooser-based fields
   showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
   // space-chooser options
@@ -226,6 +231,10 @@ export type TDynamicDialogProps = {
   templateTitle?: string, // Template title for autosave field
   errorMessage?: ?string, // Optional error message to display in a banner inside the dialog
   fieldLoadingStates?: { [fieldKey: string]: boolean }, // Optional external loading states for fields (overrides internal state if provided)
+  preloadedTeamspaces?: Array<{ id: string, title: string }>, // Preloaded teamspaces for static HTML testing (avoids dynamic loading)
+  preloadedMentions?: Array<string>, // Preloaded mentions for static HTML testing (avoids dynamic loading)
+  preloadedHashtags?: Array<string>, // Preloaded hashtags for static HTML testing (avoids dynamic loading)
+  preloadedEvents?: Array<any>, // Preloaded events for static HTML testing (avoids dynamic loading)
 }
 
 //--------------------------------------------------------------------------
@@ -265,6 +274,10 @@ const DynamicDialog = ({
   templateTitle,
   errorMessage,
   fieldLoadingStates: externalFieldLoadingStates,
+  preloadedTeamspaces = [],
+  preloadedMentions = [],
+  preloadedHashtags = [],
+  preloadedEvents = [],
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || []
@@ -340,7 +353,7 @@ const DynamicDialog = ({
   // Build dependency map: track which fields depend on which other fields (generic, no hardcoded knowledge)
   useEffect(() => {
     // Guard: Skip if items haven't actually changed (compare by keys and dependency properties)
-    const itemsChanged = 
+    const itemsChanged =
       previousItemsRef.current.length !== items.length ||
       items.some((item, index) => {
         const prevItem = previousItemsRef.current[index]
@@ -355,12 +368,12 @@ const DynamicDialog = ({
           (item: any).sourceKeyKey !== (prevItem: any).sourceKeyKey
         )
       })
-    
+
     if (!itemsChanged && previousItemsRef.current.length > 0) {
       logDebug('DynamicDialog', `[PERF] Skipping dependency map rebuild - items unchanged`)
       return
     }
-    
+
     const buildStartTime = performance.now()
     logDebug('DynamicDialog', `[PERF] Building dependency map - START`)
     const dependencyMap: { [sourceKey: string]: Array<{ fieldKey: string, clearValue?: boolean }> } = {}
@@ -458,7 +471,7 @@ const DynamicDialog = ({
 
       // Find all focusable inputs in DOM order (excluding hidden and disabled)
       const allInputs = Array.from(dialogElement.querySelectorAll('input:not([type="hidden"]):not([disabled])'))
-      
+
       // Filter to only inputs that are visible (not in hidden containers)
       const visibleInputs = allInputs.filter((input) => {
         if (!(input instanceof HTMLElement)) return false
@@ -837,6 +850,10 @@ const DynamicDialog = ({
             templateTitle: templateTitle, // Pass template title for autosave field
             onRegisterAutosaveTrigger: item.type === 'autosave' ? registerAutosaveTrigger : undefined,
             fieldLoadingStates, // Pass loading states for dependent fields
+            preloadedTeamspaces, // Pass preloaded teamspaces for static HTML testing
+            preloadedMentions, // Pass preloaded mentions for static HTML testing
+            preloadedHashtags, // Pass preloaded hashtags for static HTML testing
+            preloadedEvents, // Pass preloaded events for static HTML testing
           }
           if (item.type === 'combo' || item.type === 'dropdown-select') {
             renderItemProps.inputRef = dropdownRef

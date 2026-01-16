@@ -7,6 +7,7 @@ import pluginJson from '../plugin.json'
 import { type PassedData } from './shared/types.js'
 import { FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID } from './shared/constants.js'
 import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate } from './templateIO.js'
+import { getFolders, getNotes, getTeamspaces, getMentions, getHashtags, getEvents } from './requestHandlers'
 import { getNoteByFilename } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { logDebug, logError, timer, JSP, clo } from '@helpers/dev'
@@ -146,11 +147,11 @@ export function parseWindowDimension(value: ?(number | string), screenDimension:
  * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin
  * @returns {PassedData} the React Data Window object
  */
-export function createWindowInitData(argObj: Object): PassedData {
+export async function createWindowInitData(argObj: Object): Promise<PassedData> {
   const startTime = new Date()
   logDebug(pluginJson, `createWindowInitData: ENTRY - argObj keys: ${Object.keys(argObj || {}).join(', ')}`)
   // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-  const pluginData = getPluginData(argObj)
+  const pluginData = await getPluginData(argObj)
   const foldersArray = Array.isArray(pluginData.folders) ? pluginData.folders : []
   logDebug(pluginJson, `createWindowInitData: After getPluginData - folders.length=${foldersArray.length}`)
   const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
@@ -194,27 +195,41 @@ export function createWindowInitData(argObj: Object): PassedData {
 }
 
 /**
- * Gather data you want passed to the React Window (e.g. what you you will use to display)
- * You will likely use this function to pull together your starting window data
- * Must return an object, with any number of properties, however you cannot use the following reserved
- * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
- * @returns {[string]: mixed} - the data that your React Window will start with
+ * Detect which chooser types are needed based on form fields
+ * @param {Array<Object>} formFields - The form fields to analyze
+ * @returns {Object} Object with boolean flags for each chooser type
  */
-export function getPluginData(argObj: Object): { [string]: mixed } {
-  logDebug(pluginJson, `getPluginData: ENTRY - argObj keys: ${Object.keys(argObj || {}).join(', ')}`)
+function detectFieldRequirements(formFields: Array<Object>): {
+  needsFolders: boolean,
+  needsNotes: boolean,
+  needsSpaces: boolean,
+  needsMentions: boolean,
+  needsHashtags: boolean,
+  needsEvents: boolean,
+} {
+  return {
+    needsFolders: formFields.some((field) => field.type === 'folder-chooser'),
+    needsNotes: formFields.some((field) => field.type === 'note-chooser'),
+    needsSpaces: formFields.some((field) => field.type === 'space-chooser' || field.type === 'folder-chooser'),
+    needsMentions: formFields.some((field) => field.type === 'mention-chooser'),
+    needsHashtags: formFields.some((field) => field.type === 'tag-chooser'),
+    needsEvents: formFields.some((field) => field.type === 'event-chooser'),
+  }
+}
 
-  // Check if form fields include folder-chooser or note-chooser
-  let formFields = argObj.formFields || []
-  logDebug(pluginJson, `getPluginData: Checking ${formFields.length} form fields for folder-chooser/note-chooser`)
-
-  // Check if autosave is enabled in plugin settings and add autosave field if needed
+/**
+ * Ensure autosave field is added if autosave is enabled in settings
+ * @param {Array<Object>} formFields - The form fields array
+ * @param {Object} argObj - The argObj to update if autosave field is added
+ * @returns {Array<Object>} Updated form fields array
+ */
+function ensureAutosaveField(formFields: Array<Object>, argObj: Object): Array<Object> {
   const autosaveEnabled = DataStore.settings?.autosave === true
   const hasAutosaveField = formFields.some((field) => field.type === 'autosave')
 
   if (autosaveEnabled && !hasAutosaveField) {
-    logDebug(pluginJson, `getPluginData: Autosave enabled in settings, adding invisible autosave field`)
-    // Add an invisible autosave field silently
-    formFields = [
+    logDebug(pluginJson, `ensureAutosaveField: Autosave enabled in settings, adding invisible autosave field`)
+    const updatedFields = [
       ...formFields,
       {
         type: 'autosave',
@@ -224,36 +239,277 @@ export function getPluginData(argObj: Object): { [string]: mixed } {
       },
     ]
     // Update argObj with the modified formFields
-    argObj.formFields = formFields
+    argObj.formFields = updatedFields
+    return updatedFields
   }
+
+  return formFields
+}
+
+/**
+ * Initialize empty arrays for all chooser data types
+ * @param {Object} pluginData - The plugin data object to initialize
+ */
+function initializeEmptyChooserData(pluginData: Object): void {
+  pluginData.folders = []
+  pluginData.notes = []
+  pluginData.preloadedTeamspaces = []
+  pluginData.preloadedMentions = []
+  pluginData.preloadedHashtags = []
+  pluginData.preloadedEvents = []
+}
+
+/**
+ * Preload folders data if needed
+ * @param {Object} pluginData - The plugin data object to populate
+ * @param {boolean} needsFolders - Whether folders are needed
+ */
+function preloadFolders(pluginData: Object, needsFolders: boolean): void {
+  if (!needsFolders) {
+    pluginData.folders = []
+    return
+  }
+
+  try {
+    const foldersResult = getFolders({ excludeTrash: true, space: null })
+    if (foldersResult.success && Array.isArray(foldersResult.data)) {
+      pluginData.folders = foldersResult.data
+      logDebug(pluginJson, `preloadFolders: Preloaded ${foldersResult.data.length} folders`)
+    } else {
+      pluginData.folders = []
+      logError(pluginJson, `preloadFolders: Failed to preload folders`)
+    }
+  } catch (error) {
+    pluginData.folders = []
+    logError(pluginJson, `preloadFolders: Error preloading folders: ${error.message}`)
+  }
+}
+
+/**
+ * Preload notes data if needed
+ * @param {Object} pluginData - The plugin data object to populate
+ * @param {boolean} needsNotes - Whether notes are needed
+ */
+function preloadNotes(pluginData: Object, needsNotes: boolean): void {
+  if (!needsNotes) {
+    pluginData.notes = []
+    return
+  }
+
+  try {
+    const notesResult = getNotes({
+      includeCalendarNotes: true,
+      includePersonalNotes: true,
+      includeRelativeNotes: true,
+      includeTeamspaceNotes: true,
+    })
+    if (notesResult.success && Array.isArray(notesResult.data)) {
+      pluginData.notes = notesResult.data
+      logDebug(pluginJson, `preloadNotes: Preloaded ${notesResult.data.length} notes`)
+    } else {
+      pluginData.notes = []
+      logError(pluginJson, `preloadNotes: Failed to preload notes`)
+    }
+  } catch (error) {
+    pluginData.notes = []
+    logError(pluginJson, `preloadNotes: Error preloading notes: ${error.message}`)
+  }
+}
+
+/**
+ * Preload teamspaces data if needed
+ * @param {Object} pluginData - The plugin data object to populate
+ * @param {boolean} needsSpaces - Whether teamspaces are needed
+ */
+function preloadTeamspaces(pluginData: Object, needsSpaces: boolean): void {
+  if (!needsSpaces) {
+    pluginData.preloadedTeamspaces = []
+    return
+  }
+
+  try {
+    const teamspacesResult = getTeamspaces({})
+    if (teamspacesResult.success && Array.isArray(teamspacesResult.data)) {
+      pluginData.preloadedTeamspaces = teamspacesResult.data
+      logDebug(pluginJson, `preloadTeamspaces: Preloaded ${teamspacesResult.data.length} teamspaces`)
+    } else {
+      pluginData.preloadedTeamspaces = []
+      logError(pluginJson, `preloadTeamspaces: Failed to preload teamspaces`)
+    }
+  } catch (error) {
+    pluginData.preloadedTeamspaces = []
+    logError(pluginJson, `preloadTeamspaces: Error preloading teamspaces: ${error.message}`)
+  }
+}
+
+/**
+ * Preload mentions data if needed
+ * @param {Object} pluginData - The plugin data object to populate
+ * @param {boolean} needsMentions - Whether mentions are needed
+ */
+function preloadMentions(pluginData: Object, needsMentions: boolean): void {
+  if (!needsMentions) {
+    pluginData.preloadedMentions = []
+    return
+  }
+
+  try {
+    const mentionsResult = getMentions({})
+    if (mentionsResult.success && Array.isArray(mentionsResult.data)) {
+      pluginData.preloadedMentions = mentionsResult.data
+      logDebug(pluginJson, `preloadMentions: Preloaded ${mentionsResult.data.length} mentions`)
+    } else {
+      pluginData.preloadedMentions = []
+      logError(pluginJson, `preloadMentions: Failed to preload mentions`)
+    }
+  } catch (error) {
+    pluginData.preloadedMentions = []
+    logError(pluginJson, `preloadMentions: Error preloading mentions: ${error.message}`)
+  }
+}
+
+/**
+ * Preload hashtags data if needed
+ * @param {Object} pluginData - The plugin data object to populate
+ * @param {boolean} needsHashtags - Whether hashtags are needed
+ */
+function preloadHashtags(pluginData: Object, needsHashtags: boolean): void {
+  if (!needsHashtags) {
+    pluginData.preloadedHashtags = []
+    return
+  }
+
+  try {
+    const hashtagsResult = getHashtags({})
+    if (hashtagsResult.success && Array.isArray(hashtagsResult.data)) {
+      pluginData.preloadedHashtags = hashtagsResult.data
+      logDebug(pluginJson, `preloadHashtags: Preloaded ${hashtagsResult.data.length} hashtags`)
+    } else {
+      pluginData.preloadedHashtags = []
+      logError(pluginJson, `preloadHashtags: Failed to preload hashtags`)
+    }
+  } catch (error) {
+    pluginData.preloadedHashtags = []
+    logError(pluginJson, `preloadHashtags: Error preloading hashtags: ${error.message}`)
+  }
+}
+
+/**
+ * Preload events data if needed (preloads today's events by default)
+ * @param {Object} pluginData - The plugin data object to populate
+ * @param {boolean} needsEvents - Whether events are needed
+ */
+async function preloadEvents(pluginData: Object, needsEvents: boolean): Promise<void> {
+  if (!needsEvents) {
+    pluginData.preloadedEvents = []
+    return
+  }
+
+  try {
+    // Get today's date in YYYY-MM-DD format for preloading
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    const todayString = `${year}-${month}-${day}`
+
+    const eventsResult = await getEvents({
+      dateString: todayString,
+      allCalendars: true, // Preload all calendars for maximum compatibility
+      includeReminders: true, // Include reminders for comprehensive data
+    })
+    if (eventsResult.success && Array.isArray(eventsResult.data)) {
+      pluginData.preloadedEvents = eventsResult.data
+      logDebug(pluginJson, `preloadEvents: Preloaded ${eventsResult.data.length} events for ${todayString}`)
+    } else {
+      pluginData.preloadedEvents = []
+      logError(pluginJson, `preloadEvents: Failed to preload events`)
+    }
+  } catch (error) {
+    pluginData.preloadedEvents = []
+    logError(pluginJson, `preloadEvents: Error preloading events: ${error.message}`)
+  }
+}
+
+/**
+ * Preload all chooser data if preloadChooserData is enabled
+ * @param {Object} pluginData - The plugin data object to populate
+ * @param {Object} requirements - Object with boolean flags for each chooser type
+ */
+async function preloadAllChooserData(pluginData: Object, requirements: Object): Promise<void> {
+  logDebug(pluginJson, `preloadAllChooserData: Loading chooser data upfront for static HTML testing`)
+
+  preloadFolders(pluginData, requirements.needsFolders)
+  preloadNotes(pluginData, requirements.needsNotes)
+  preloadTeamspaces(pluginData, requirements.needsSpaces)
+  preloadMentions(pluginData, requirements.needsMentions)
+  preloadHashtags(pluginData, requirements.needsHashtags)
+  await preloadEvents(pluginData, requirements.needsEvents)
+}
+
+/**
+ * Gather data you want passed to the React Window (e.g. what you you will use to display)
+ * You will likely use this function to pull together your starting window data
+ * Must return an object, with any number of properties, however you cannot use the following reserved
+ * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
+ * @returns {Promise<{[string]: mixed}>} - the data that your React Window will start with
+ */
+export async function getPluginData(argObj: Object): Promise<{ [string]: mixed }> {
+  logDebug(pluginJson, `getPluginData: ENTRY - argObj keys: ${Object.keys(argObj || {}).join(', ')}`)
+
+  // Check if form fields include folder-chooser or note-chooser
+  let formFields = argObj.formFields || []
+  logDebug(pluginJson, `getPluginData: Checking ${formFields.length} form fields for chooser types`)
+
+  // Ensure autosave field is added if needed
+  formFields = ensureAutosaveField(formFields, argObj)
 
   // Log field types for debugging
   const fieldTypes = formFields.map((f) => f.type).filter(Boolean)
   logDebug(pluginJson, `getPluginData: Field types found: ${fieldTypes.join(', ')}`)
 
-  const needsFolders = formFields.some((field) => field.type === 'folder-chooser')
-  const needsNotes = formFields.some((field) => field.type === 'note-chooser')
-
-  logDebug(pluginJson, `getPluginData: needsFolders=${String(needsFolders)}, needsNotes=${String(needsNotes)}`)
+  // Detect which chooser types are needed
+  const requirements = detectFieldRequirements(formFields)
+  logDebug(
+    pluginJson,
+    `getPluginData: needsFolders=${String(requirements.needsFolders)}, needsNotes=${String(requirements.needsNotes)}, needsSpaces=${String(
+      requirements.needsSpaces,
+    )}, needsMentions=${String(requirements.needsMentions)}, needsHashtags=${String(requirements.needsHashtags)}, needsEvents=${String(requirements.needsEvents)}`,
+  )
 
   const pluginData = { platform: NotePlan.environment.platform, ...argObj }
 
-  // Always initialize folders and notes arrays as empty
-  // Both FormView and FormBuilder now load folders/notes dynamically via requestFromPlugin
-  // This is more consistent and allows for better error handling and on-demand loading
-  pluginData.folders = []
-  pluginData.notes = []
+  // Check if preloadChooserData option is enabled (for testing in Chrome without NotePlan connection)
+  // Handle both boolean true and string "true" from frontmatter
+  const preloadChooserData = argObj.preloadChooserData === true || argObj.preloadChooserData === 'true'
 
-  if (needsFolders) {
-    logDebug(pluginJson, `getPluginData: Folder-chooser field detected - folders will be loaded dynamically by FormView`)
-  }
-  if (needsNotes) {
-    logDebug(pluginJson, `getPluginData: Note-chooser field detected - notes will be loaded dynamically by FormView`)
+  if (preloadChooserData) {
+    await preloadAllChooserData(pluginData, requirements)
+  } else {
+    // Always initialize folders and notes arrays as empty
+    // Both FormView and FormBuilder now load folders/notes dynamically via requestFromPlugin
+    // This is more consistent and allows for better error handling and on-demand loading
+    initializeEmptyChooserData(pluginData)
+
+    if (requirements.needsFolders) {
+      logDebug(pluginJson, `getPluginData: Folder-chooser field detected - folders will be loaded dynamically by FormView`)
+    }
+    if (requirements.needsNotes) {
+      logDebug(pluginJson, `getPluginData: Note-chooser field detected - notes will be loaded dynamically by FormView`)
+    }
   }
 
   const foldersArray = Array.isArray(pluginData.folders) ? pluginData.folders : []
   const notesArray = Array.isArray(pluginData.notes) ? pluginData.notes : []
-  logDebug(pluginJson, `getPluginData: EXIT - pluginData keys: ${Object.keys(pluginData).join(', ')}, folders.length=${foldersArray.length}, notes.length=${notesArray.length}`)
+  const teamspacesArray = Array.isArray(pluginData.preloadedTeamspaces) ? pluginData.preloadedTeamspaces : []
+  const mentionsArray = Array.isArray(pluginData.preloadedMentions) ? pluginData.preloadedMentions : []
+  const hashtagsArray = Array.isArray(pluginData.preloadedHashtags) ? pluginData.preloadedHashtags : []
+  logDebug(
+    pluginJson,
+    `getPluginData: EXIT - pluginData keys: ${Object.keys(pluginData).join(', ')}, folders.length=${foldersArray.length}, notes.length=${notesArray.length}, teamspaces.length=${
+      teamspacesArray.length
+    }, mentions.length=${mentionsArray.length}, hashtags.length=${hashtagsArray.length}`,
+  )
   return pluginData // this could be any object full of data you want to pass to the window
 }
 

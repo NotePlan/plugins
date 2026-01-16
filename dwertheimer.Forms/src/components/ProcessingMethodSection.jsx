@@ -191,6 +191,7 @@ export function ProcessingMethodSection({
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
               showValue={false}
+              width="100%"
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               {frontmatter.space ? 'Only notes from the selected space will be shown' : 'Private notes (default) - only private notes will be shown'}
@@ -405,9 +406,38 @@ export function ProcessingMethodSection({
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
               showValue={false}
+              width="100%"
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               {frontmatter.space ? 'New note will be created in the selected space' : 'Private notes (default) - new note will be created in Private space'}
+            </div>
+          </div>
+          <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Folder:
+              <InfoIcon text="The folder where the new note will be created. Leave empty to create the note in the root folder, or select a specific folder. You can also create a new folder by using Option-click on a folder." />
+            </label>
+            <FolderChooser
+              label=""
+              value={frontmatter.newNoteFolder || ''}
+              folders={folders}
+              onChange={(folder: string) => {
+                onFrontmatterChange('newNoteFolder', folder)
+              }}
+              placeholder="Select folder (optional)"
+              includeNewFolderOption={true}
+              spaceFilter={frontmatter.space || ''}
+              compactDisplay={false}
+              includeFolderPath={false}
+              requestFromPlugin={requestFromPlugin}
+              onFoldersChanged={() => {
+                onLoadFolders(true) // Force reload after creating folder
+              }}
+              staticOptions={[{ label: '<Select>', value: '<select>' }]}
+              width="100%"
+            />
+            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+              Where to put the new note. Leave empty for root folder, or use &quot;&lt;Select&gt;&quot; to be prompted each time for the folder
             </div>
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
@@ -489,7 +519,7 @@ export function ProcessingMethodSection({
               }
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Use template tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%- date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates
+              (Without folder path). Use template tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%- date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates
             </div>
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
@@ -571,31 +601,6 @@ export function ProcessingMethodSection({
               date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates.
             </div>
           </div>
-          <div className="frontmatter-field">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              Folder:
-              <InfoIcon text="The folder where the new note will be created. Leave empty to create the note in the root folder, or select a specific folder. You can also create a new folder by using Option-click on a folder." />
-            </label>
-            <FolderChooser
-              label=""
-              value={frontmatter.newNoteFolder || ''}
-              folders={folders}
-              onChange={(folder: string) => {
-                onFrontmatterChange('newNoteFolder', folder)
-              }}
-              placeholder="Select folder (optional)"
-              includeNewFolderOption={true}
-              spaceFilter={frontmatter.space || ''}
-              compactDisplay={true}
-              requestFromPlugin={requestFromPlugin}
-              onFoldersChanged={() => {
-                onLoadFolders(true) // Force reload after creating folder
-              }}
-            />
-            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Leave empty for root folder, or use &lt;select&gt; to prompt each time
-            </div>
-          </div>
         </>
       )}
 
@@ -652,6 +657,7 @@ export function ProcessingMethodSection({
               compactDisplay={true}
               requestFromPlugin={requestFromPlugin}
               showValue={false}
+              width="100%"
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               {frontmatter.space ? 'Only templates from the selected space will be shown' : 'Private notes (default) - only private templates will be shown'}
