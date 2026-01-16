@@ -4,6 +4,15 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.12] 2026-01-17 @dwertheimer
+
+### Fixed
+- Fixed chooser width wrapping in compact mode - removed `min-width` for percentage and viewport unit widths to prevent wrapping issues
+- Choosers with `width="100%"` or other percentage/viewport units now properly respect container boundaries without wrapping
+
+### Changed
+- **SearchableChooser**: Width prop now only sets `min-width` for fixed pixel values, allowing flexible sizing for percentages and viewport units
+
 ## [1.0.11] 2026-01-17 @dwertheimer
 
 ### Added
