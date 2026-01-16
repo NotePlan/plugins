@@ -30,6 +30,7 @@ export type TagChooserProps = {
   renderAsDropdown?: boolean, // If true and singleValue is true, render as dropdown-select instead of filterable chooser (default: false)
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request data from plugin
   fieldKey?: string, // Unique key for this field instance (used to generate unique input id)
+  initialHashtags?: Array<string>, // Preloaded hashtags for static HTML testing
 }
 
 /**
@@ -58,16 +59,25 @@ export function TagChooser({
   renderAsDropdown = false,
   requestFromPlugin,
   fieldKey,
+  initialHashtags,
 }: TagChooserProps): React$Node {
-  const [hashtags, setHashtags] = useState<Array<string>>([])
-  const [loaded, setLoaded] = useState<boolean>(false)
+  // Initialize from preloaded data if available (for static HTML testing)
+  const hasInitialHashtags = Array.isArray(initialHashtags) && initialHashtags.length > 0
+  const [hashtags, setHashtags] = useState<Array<string>>(() => {
+    if (hasInitialHashtags && initialHashtags) {
+      logDebug('TagChooser', `Using initial hashtags: ${initialHashtags.length} hashtags`)
+      return initialHashtags
+    }
+    return []
+  })
+  const [loaded, setLoaded] = useState<boolean>(hasInitialHashtags) // If preloaded, mark as loaded
   const [loading, setLoading] = useState<boolean>(false)
 
-  // Load hashtags from plugin via REQUEST
+  // Load hashtags from plugin via REQUEST (skip if initial data was provided)
   // Delay the request to yield to TOC rendering and other critical UI elements
   // This prevents blocking the initial render with data loading
   useEffect(() => {
-    if (requestFromPlugin && !loaded && !loading) {
+    if (requestFromPlugin && !loaded && !loading && !hasInitialHashtags) {
       // Use setTimeout to delay the request, allowing TOC and other UI to render first
       const timeoutId = setTimeout(() => {
         setLoading(true)

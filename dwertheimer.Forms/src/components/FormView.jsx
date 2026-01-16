@@ -73,11 +73,33 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   // Key: correlationId, Value: { resolve, reject, timeoutId }
   const pendingRequestsRef = useRef<Map<string, { resolve: (data: any) => void, reject: (error: Error) => void, timeoutId: any }>>(new Map())
 
-  // State for dynamically loaded folders and notes (loaded on demand, not pre-loaded)
-  const [folders, setFolders] = useState<Array<string>>([])
-  const [notes, setNotes] = useState<Array<NoteOption>>([])
-  const [foldersLoaded, setFoldersLoaded] = useState<boolean>(false)
-  const [notesLoaded, setNotesLoaded] = useState<boolean>(false)
+  // State for dynamically loaded folders and notes (loaded on demand, or pre-loaded from pluginData if available)
+  // Check if preloaded data exists in pluginData (for static HTML testing with preloadChooserData: true)
+  const [folders, setFolders] = useState<Array<string>>(() => {
+    // Initialize from preloaded data if available
+    const preloadedFolders = pluginData?.folders
+    if (Array.isArray(preloadedFolders) && preloadedFolders.length > 0) {
+      logDebug('FormView', `Using preloaded folders: ${preloadedFolders.length} folders`)
+      return preloadedFolders
+    }
+    logDebug('FormView', `No preloaded folders found, will load dynamically (folders type: ${typeof preloadedFolders}, length: ${preloadedFolders?.length || 0})`)
+    return []
+  })
+  const [notes, setNotes] = useState<Array<NoteOption>>(() => {
+    // Initialize from preloaded data if available
+    const preloadedNotes = pluginData?.notes
+    if (Array.isArray(preloadedNotes) && preloadedNotes.length > 0) {
+      logDebug('FormView', `Using preloaded notes: ${preloadedNotes.length} notes`)
+      return preloadedNotes
+    }
+    logDebug('FormView', `No preloaded notes found, will load dynamically (notes type: ${typeof preloadedNotes}, length: ${preloadedNotes?.length || 0})`)
+    return []
+  })
+  // Check if preloaded data exists (for setting loaded flags)
+  const hasPreloadedFolders = Array.isArray(pluginData?.folders) && pluginData.folders.length > 0
+  const hasPreloadedNotes = Array.isArray(pluginData?.notes) && pluginData.notes.length > 0
+  const [foldersLoaded, setFoldersLoaded] = useState<boolean>(hasPreloadedFolders) // If preloaded, mark as loaded
+  const [notesLoaded, setNotesLoaded] = useState<boolean>(hasPreloadedNotes) // If preloaded, mark as loaded
   const [loadingFolders, setLoadingFolders] = useState<boolean>(false)
   const [loadingNotes, setLoadingNotes] = useState<boolean>(false)
 
@@ -814,6 +836,10 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
             defaultValues={pluginData?.defaultValues || {}} // Pass default values for form pre-population
             templateFilename={pluginData?.templateFilename || ''} // Pass template filename for autosave
             templateTitle={pluginData?.templateTitle || ''} // Pass template title for autosave
+            preloadedTeamspaces={pluginData?.preloadedTeamspaces || []} // Preloaded teamspaces for static HTML testing
+            preloadedMentions={pluginData?.preloadedMentions || []} // Preloaded mentions for static HTML testing
+            preloadedHashtags={pluginData?.preloadedHashtags || []} // Preloaded hashtags for static HTML testing
+            preloadedEvents={pluginData?.preloadedEvents || []} // Preloaded events for static HTML testing
             onFoldersChanged={() => {
               reloadFolders()
             }}

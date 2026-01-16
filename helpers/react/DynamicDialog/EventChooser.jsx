@@ -51,6 +51,7 @@ export type EventChooserProps = {
   includeReminders?: boolean, // If true, include reminders in the list
   reminderLists?: Array<string>, // Optional array of reminder list titles to filter reminders by
   shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
+  initialEvents?: Array<EventOption>, // Preloaded events for static HTML testing
 }
 
 /**
@@ -198,9 +199,18 @@ export function EventChooser({
   includeReminders = false,
   reminderLists,
   shortDescriptionOnLine2 = false,
+  initialEvents,
 }: EventChooserProps): React$Node {
-  const [events, setEvents] = useState<Array<EventOption>>([])
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+  // Initialize from preloaded data if available (for static HTML testing)
+  const hasInitialEvents = Array.isArray(initialEvents) && initialEvents.length > 0
+  const [events, setEvents] = useState<Array<EventOption>>(() => {
+    if (hasInitialEvents && initialEvents) {
+      logDebug('EventChooser', `Using initial events: ${initialEvents.length} events`)
+      return initialEvents
+    }
+    return []
+  })
+  const [isLoading, setIsLoading] = useState<boolean>(!hasInitialEvents) // If preloaded, not loading
   const [error, setError] = useState<?string>(null)
   const lastLoadedDateRef = useRef<?string>(null) // Track last loaded date to prevent re-loading
   const isLoadingRef = useRef<boolean>(false) // Track loading state to prevent concurrent loads
@@ -244,7 +254,11 @@ export function EventChooser({
   // This prevents blocking the initial render with data loading
   useEffect(() => {
     // Prevent re-loading if we've already loaded this exact date or are currently loading
-    if (lastLoadedDateRef.current === targetDateString || isLoadingRef.current) {
+    // Also skip if initial events were provided (for static HTML testing)
+    if (lastLoadedDateRef.current === targetDateString || isLoadingRef.current || hasInitialEvents) {
+      if (hasInitialEvents) {
+        logDebug('EventChooser', `Skipping load - using initial events (${initialEvents?.length || 0} events)`)
+      }
       return
     }
     

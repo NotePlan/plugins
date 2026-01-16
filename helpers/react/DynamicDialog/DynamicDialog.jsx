@@ -231,6 +231,10 @@ export type TDynamicDialogProps = {
   templateTitle?: string, // Template title for autosave field
   errorMessage?: ?string, // Optional error message to display in a banner inside the dialog
   fieldLoadingStates?: { [fieldKey: string]: boolean }, // Optional external loading states for fields (overrides internal state if provided)
+  preloadedTeamspaces?: Array<{ id: string, title: string }>, // Preloaded teamspaces for static HTML testing (avoids dynamic loading)
+  preloadedMentions?: Array<string>, // Preloaded mentions for static HTML testing (avoids dynamic loading)
+  preloadedHashtags?: Array<string>, // Preloaded hashtags for static HTML testing (avoids dynamic loading)
+  preloadedEvents?: Array<any>, // Preloaded events for static HTML testing (avoids dynamic loading)
 }
 
 //--------------------------------------------------------------------------
@@ -270,6 +274,10 @@ const DynamicDialog = ({
   templateTitle,
   errorMessage,
   fieldLoadingStates: externalFieldLoadingStates,
+  preloadedTeamspaces = [],
+  preloadedMentions = [],
+  preloadedHashtags = [],
+  preloadedEvents = [],
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || []
@@ -842,6 +850,10 @@ const DynamicDialog = ({
             templateTitle: templateTitle, // Pass template title for autosave field
             onRegisterAutosaveTrigger: item.type === 'autosave' ? registerAutosaveTrigger : undefined,
             fieldLoadingStates, // Pass loading states for dependent fields
+            preloadedTeamspaces, // Pass preloaded teamspaces for static HTML testing
+            preloadedMentions, // Pass preloaded mentions for static HTML testing
+            preloadedHashtags, // Pass preloaded hashtags for static HTML testing
+            preloadedEvents, // Pass preloaded events for static HTML testing
           }
           if (item.type === 'combo' || item.type === 'dropdown-select') {
             renderItemProps.inputRef = dropdownRef

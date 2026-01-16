@@ -68,7 +68,7 @@ export function FormBuilder({
 }: FormBuilderProps): Node {
   // Get requestFromPlugin and sendActionToPlugin from context (needed early for useState)
   const { requestFromPlugin, dispatch, pluginData } = useAppContext()
-  
+
   // Get template's teamspace ID and title from pluginData (if form is in a teamspace, preserve that context)
   const templateTeamspaceID = pluginData?.templateTeamspaceID || ''
   const templateTeamspaceTitle = pluginData?.templateTeamspaceTitle || ''
@@ -103,6 +103,8 @@ You can edit or delete this comment field - it's just a note to help you get sta
   const [showAddField, setShowAddField] = useState<boolean>(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
   const [isSaved, setIsSaved] = useState<boolean>(!isNewForm)
+  // Track if form has been saved at least once (for new forms, this becomes true after first save)
+  const [hasBeenSavedOnce, setHasBeenSavedOnce] = useState<boolean>(!isNewForm)
   const [folders, setFolders] = useState<Array<string>>([])
   const [notes, setNotes] = useState<Array<NoteOption>>([])
   const [foldersLoaded, setFoldersLoaded] = useState<boolean>(false)
@@ -163,13 +165,13 @@ You can edit or delete this comment field - it's just a note to help you get sta
         mergedFrontmatter[key] = templateRunnerArgs[key]
       }
     })
-    
+
     // If space is not set in templateRunnerArgs and template is in a teamspace, set it as default
     // This ensures forms opened in a teamspace default to that teamspace for creating/loading notes
     if (templateTeamspaceID && !mergedFrontmatter.space) {
       mergedFrontmatter.space = templateTeamspaceID
     }
-    
+
     return mergedFrontmatter
   })
 
@@ -477,6 +479,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
       if (result.success) {
         setHasUnsavedChanges(false)
         setIsSaved(true)
+        setHasBeenSavedOnce(true) // Mark that the form has been saved at least once
         // Show success toast with green color
         dispatch('SHOW_TOAST', {
           type: 'SUCCESS',
@@ -575,7 +578,8 @@ You can edit or delete this comment field - it's just a note to help you get sta
     onOpenForm(templateTitle)
   }
 
-  const canOpenForm = Boolean(isSaved && !isNewForm && templateTitle && onOpenForm)
+  // Allow opening form if saved and not new, OR if it has been saved at least once (for new forms after first save)
+  const canOpenForm = Boolean(isSaved && (!isNewForm || hasBeenSavedOnce) && templateTitle && onOpenForm)
 
   // Log canOpenForm calculation whenever dependencies change
   // NOTE: canOpenForm is NOT in dependencies because it's derived from the other dependencies
@@ -621,10 +625,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
                 }}
                 style={{ cursor: templateFilename ? 'pointer' : 'default', fontSize: '0.875rem', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))' }}
               >
-                Form:{' '}
-                {templateTeamspaceTitle && (
-                  <i className="fa-regular fa-cube" style={{ marginRight: '0.25rem', color: 'var(--item-icon-color, #1e66f5)' }} />
-                )}
+                Form: {templateTeamspaceTitle && <i className="fa-regular fa-cube" style={{ marginRight: '0.25rem', color: 'var(--item-icon-color, #1e66f5)' }} />}
                 {(() => {
                   const windowTitle = frontmatter.windowTitle || ''
                   const formTitle = frontmatter.formTitle || templateTitle || ''
@@ -652,12 +653,12 @@ You can edit or delete this comment field - it's just a note to help you get sta
           )}
         </div>
         <div className="form-builder-actions">
-          {!isNewForm && templateFilename && (
+          {(!isNewForm || hasBeenSavedOnce) && templateFilename && (
             <button className="PCButton" onClick={handleCopyFormUrl} title="Copy the form's callback URL to clipboard" style={{ marginRight: '0.5rem' }}>
               Form URL
             </button>
           )}
-          {!isNewForm && templateFilename && (
+          {(!isNewForm || hasBeenSavedOnce) && templateFilename && (
             <button className="PCButton" onClick={handleDuplicateForm} title="Create a duplicate of this form" style={{ marginRight: '0.5rem' }}>
               Duplicate
             </button>

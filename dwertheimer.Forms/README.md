@@ -282,6 +282,32 @@ You can disable this globally and add autosave to specific forms only if preferr
 
 **Most users won't need anything below this line.** The sections below are for advanced users who need custom processing logic or want to understand the underlying structure.
 
+### Preloading Chooser Data for Static HTML Testing
+
+When developing or testing forms, you may want to open the saved HTML file in Chrome without being connected to NotePlan. By default, chooser fields (folder-chooser, note-chooser, space-chooser, etc.) load their data dynamically from NotePlan, which requires an active connection.
+
+**To enable preloaded data:**
+
+Add this to your form's frontmatter:
+
+```yaml
+preloadChooserData: true
+```
+
+When `preloadChooserData: true` is set, the form will preload all chooser data when the HTML file is created:
+- **Folders** - All folders for folder-chooser fields
+- **Notes** - All notes for note-chooser fields  
+- **Teamspaces** - All teamspaces for space-chooser and folder-chooser decoration
+- **Mentions** - All mentions for mention-chooser fields
+- **Hashtags** - All hashtags for tag-chooser fields
+
+The preloaded data is embedded in the saved HTML file (`form_output.html`), allowing you to:
+- Test the form in Chrome without NotePlan
+- Debug CSS and layout issues
+- Share static HTML files for design review
+
+**Note:** Preloaded data is a snapshot taken when the HTML is generated. For production use, leave `preloadChooserData` unset (or `false`) to use dynamic loading for up-to-date data.
+
 ### Custom Processing Templates
 
 For advanced use cases that can't be handled by the Form Builder's built-in options, you can create custom processing templates.

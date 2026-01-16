@@ -67,6 +67,10 @@ type RenderItemProps = {
   templateTitle?: string, // Template title for autosave field
   onRegisterAutosaveTrigger?: (triggerFn: () => Promise<void>) => void, // Register autosave trigger function
   fieldLoadingStates?: { [fieldKey: string]: boolean }, // Loading states for dependent fields
+  preloadedTeamspaces?: Array<{ id: string, title: string }>, // Preloaded teamspaces for static HTML testing
+  preloadedMentions?: Array<string>, // Preloaded mentions for static HTML testing
+  preloadedHashtags?: Array<string>, // Preloaded hashtags for static HTML testing
+  preloadedEvents?: Array<any>, // Preloaded events for static HTML testing
 }
 
 /**
@@ -103,6 +107,10 @@ export function renderItem({
   templateTitle, // Template title for autosave field
   onRegisterAutosaveTrigger, // Register autosave trigger function
   fieldLoadingStates = {}, // Loading states for dependent fields
+  preloadedTeamspaces = [], // Preloaded teamspaces for static HTML testing
+  preloadedMentions = [], // Preloaded mentions for static HTML testing
+  preloadedHashtags = [], // Preloaded hashtags for static HTML testing
+  preloadedEvents = [], // Preloaded events for static HTML testing
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -823,6 +831,7 @@ export function renderItem({
               includeReminders={includeReminders}
               reminderLists={reminderLists}
               shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
+              initialEvents={preloadedEvents.length > 0 ? preloadedEvents : undefined}
             />
           </div>
         )
@@ -960,6 +969,7 @@ export function renderItem({
               showValue={item.showValue ?? false}
               includeAllOption={item.includeAllOption ?? false}
               shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
+              initialSpaces={preloadedTeamspaces.length > 0 ? preloadedTeamspaces : undefined}
             />
           </div>
         )
@@ -1009,6 +1019,7 @@ export function renderItem({
               renderAsDropdown={renderAsDropdown}
               requestFromPlugin={requestFromPlugin}
               fieldKey={item.key}
+              initialHashtags={preloadedHashtags.length > 0 ? preloadedHashtags : undefined}
             />
           </div>
         )
@@ -1058,6 +1069,7 @@ export function renderItem({
               renderAsDropdown={renderAsDropdown}
               requestFromPlugin={requestFromPlugin}
               fieldKey={item.key}
+              initialMentions={preloadedMentions.length > 0 ? preloadedMentions : undefined}
             />
           </div>
         )
