@@ -358,6 +358,7 @@ export function FolderChooser({
       staticOptions.forEach((option) => {
         list.push(option.value) // Use the value as the item identifier
       })
+      logDebug('FolderChooser', `Added ${staticOptions.length} static option(s) to list:`, staticOptions.map(opt => opt.label))
     }
     
     // Add "New Folder" option if needed
@@ -368,6 +369,7 @@ export function FolderChooser({
     // Add actual folders
     list.push(...filteredFolders)
     
+    logDebug('FolderChooser', `folderListWithOptions: total items=${list.length}, staticOptions=${staticOptions?.length || 0}, folders=${filteredFolders.length}`)
     return list
   }, [filteredFolders, includeNewFolderOption, staticOptions])
   
@@ -386,12 +388,12 @@ export function FolderChooser({
   const config: ChooserConfig = {
     items: folderListWithOptions,
     filterFn: (item: string, searchTerm: string) => {
+      // Always show static options (like '<select>'), regardless of search term
+      if (isStaticOption(item)) {
+        return true
+      }
       if (item === '__NEW_FOLDER__') {
         return 'new folder'.includes(searchTerm.toLowerCase())
-      }
-      if (isStaticOption(item)) {
-        const label = getStaticOptionLabel(item)
-        return label ? label.toLowerCase().includes(searchTerm.toLowerCase()) : false
       }
       const displayFolder = formatFolderDisplay(item)
       return displayFolder.toLowerCase().includes(searchTerm.toLowerCase())
