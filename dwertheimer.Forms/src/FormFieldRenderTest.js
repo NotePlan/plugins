@@ -403,7 +403,23 @@ export async function testFormFieldRender(): Promise<void> {
         includeNewFolderOption: true,
         showValue: true,
         staticOptions: [{ label: 'Select...', value: '<select>' }],
-        description: 'This folder chooser filters folders by the space selected above. Select a space first, then this will show only folders from that space.',
+        description: 'This folder chooser filters folders by the space selected above. Select a space first, then this will show only folders from that space. Includes static option "Select..." which prompts the user each time.',
+      },
+      {
+        type: 'heading',
+        label: 'Folder Chooser: Static Options',
+      },
+      {
+        type: 'folder-chooser',
+        label: 'Folder Chooser (with Static Options)',
+        key: 'testFolderStaticOptions',
+        includeNewFolderOption: true,
+        staticOptions: [
+          { label: 'Select...', value: '<select>' },
+          { label: 'Choose...', value: '<choose>' },
+        ],
+        showValue: true,
+        description: 'Folder chooser with static options at the top. The "Select..." option uses TemplateRunner\'s <select> value which prompts the user each time.',
       },
       {
         type: 'note-chooser',
