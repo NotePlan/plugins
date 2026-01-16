@@ -677,12 +677,11 @@ export function ProcessingMethodSection({
                     const trimmedTitle = noteTitle ? noteTitle.trim() : ''
                     logDebug(
                       pluginData,
-                      'ProcessingMethodSection',
-                      `NoteChooser onChange called: noteTitle="${noteTitle}", noteFilename="${noteFilename}", trimmedTitle="${trimmedTitle}"`,
+                      `ProcessingMethodSection: NoteChooser onChange called: noteTitle="${noteTitle}", noteFilename="${noteFilename}", trimmedTitle="${trimmedTitle}"`,
                     )
                     setSelectedProcessingTemplateFilename(noteFilename || '')
                     if (trimmedTitle) {
-                      logDebug(pluginData, 'ProcessingMethodSection', `Setting receivingTemplateTitle to: "${trimmedTitle}"`)
+                      logDebug(pluginData, `ProcessingMethodSection: Setting receivingTemplateTitle to: "${trimmedTitle}"`)
                       onFrontmatterChange('receivingTemplateTitle', trimmedTitle)
                       // Also clear formProcessorTitle if it exists and is different (for backward compatibility cleanup)
                       if (frontmatter.formProcessorTitle && frontmatter.formProcessorTitle !== trimmedTitle) {
@@ -690,7 +689,7 @@ export function ProcessingMethodSection({
                       }
                     } else {
                       // If empty, clear both
-                      logDebug(pluginData, 'ProcessingMethodSection', 'Clearing receivingTemplateTitle')
+                      logDebug(pluginData, 'ProcessingMethodSection: Clearing receivingTemplateTitle')
                       onFrontmatterChange('receivingTemplateTitle', '')
                       if (frontmatter.formProcessorTitle) {
                         onFrontmatterChange('formProcessorTitle', '')
@@ -729,17 +728,75 @@ export function ProcessingMethodSection({
                     try {
                       // If we have a filename, use it; otherwise try to find it from the title
                       let filenameToOpen = selectedProcessingTemplateFilename
-                      if (!filenameToOpen && notes.length > 0) {
-                        const currentTitle = frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''
-                        const matchingNote = notes.find((note: NoteOption) => note.title === currentTitle)
-                        filenameToOpen = matchingNote?.filename || ''
+                      const currentTitle = frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || ''
+
+                      logDebug(
+                        pluginData,
+                        `ProcessingMethodSection: Open button clicked: selectedProcessingTemplateFilename="${selectedProcessingTemplateFilename}", currentTitle="${currentTitle}", notes.length=${notes.length}`,
+                      )
+
+                      // If no filename, try to find it from notes
+                      if (!filenameToOpen && currentTitle) {
+                        // If notes aren't loaded yet, load them directly via requestFromPlugin
+                        // This ensures we have the notes data immediately in this async function
+                        let notesToSearch = notes
+                        if (notes.length === 0) {
+                          logDebug(pluginData, `ProcessingMethodSection: Notes not loaded, loading notes for processing templates via requestFromPlugin...`)
+                          try {
+                            const notesData = await requestFromPlugin('getNotes', {
+                              includePersonalNotes: true,
+                              includeCalendarNotes: false, // Skip calendar notes for processing templates (performance)
+                              includeRelativeNotes: false, // Skip relative notes for processing templates
+                              includeTeamspaceNotes: true,
+                              space: frontmatter.space || '', // Filter by selected space
+                              filterByType: ['forms-processor', 'template-runner'],
+                              includeTemplatesAndForms: true,
+                            })
+                            if (Array.isArray(notesData)) {
+                              notesToSearch = notesData
+                              logDebug(pluginData, `ProcessingMethodSection: Loaded ${notesData.length} notes via requestFromPlugin`)
+                            }
+                          } catch (error) {
+                            logDebug(pluginData, `ProcessingMethodSection: Error loading notes: ${error.message}`)
+                          }
+                        }
+
+                        // Try to find the note in the notes array
+                        if (notesToSearch.length > 0) {
+                          const matchingNote = notesToSearch.find((note: NoteOption) => note.title === currentTitle)
+                          if (matchingNote && matchingNote.filename) {
+                            filenameToOpen = matchingNote.filename
+                            logDebug(pluginData, `ProcessingMethodSection: Found matching note: filename="${matchingNote.filename}"`)
+                          } else {
+                            logDebug(pluginData, `ProcessingMethodSection: No matching note found in ${notesToSearch.length} notes for title="${currentTitle}"`)
+                          }
+                        }
                       }
+
                       if (filenameToOpen) {
+                        logDebug(pluginData, `ProcessingMethodSection: Opening note with filename="${filenameToOpen}"`)
                         await requestFromPlugin('openNote', {
                           filename: filenameToOpen,
                         })
+                      } else if (currentTitle) {
+                        // Fallback: try to open by title directly
+                        logDebug(pluginData, `ProcessingMethodSection: No filename found, trying to open by title: "${currentTitle}"`)
+                        try {
+                          await requestFromPlugin('openNote', {
+                            title: currentTitle,
+                          })
+                        } catch (titleError) {
+                          const errorMsg = `Could not find or open processing template "${currentTitle}". Please select the template again.`
+                          logDebug(pluginData, `ProcessingMethodSection: ${errorMsg}`)
+                          console.error(errorMsg)
+                        }
+                      } else {
+                        const errorMsg = `Could not find filename for processing template. Please select the template again.`
+                        logDebug(pluginData, `ProcessingMethodSection: ${errorMsg}`)
+                        console.error(errorMsg)
                       }
                     } catch (error) {
+                      logDebug(pluginData, `ProcessingMethodSection: Error opening note: ${error.message}`)
                       console.error('openNote: Error opening note:', error)
                     }
                   }}
@@ -763,7 +820,7 @@ export function ProcessingMethodSection({
                     formTemplateTitle: templateTitle,
                     formTemplateFilename: templateFilename,
                   })
-                  console.log('createProcessingTemplate: Received result:', result, 'type:', typeof result, 'JSON:', JSON.stringify(result))
+                  console.log(`createProcessingTemplate: Received result: ${JSON.stringify(result)}, type: ${typeof result}, JSON: ${JSON.stringify(result)}`)
                   let processingTitle = null
                   let processingFilename = null
 
@@ -786,7 +843,7 @@ export function ProcessingMethodSection({
                   }
 
                   if (processingTitle) {
-                    console.log('createProcessingTemplate: Updating receivingTemplateTitle to:', processingTitle, 'filename:', processingFilename)
+                    console.log(`createProcessingTemplate: Updating receivingTemplateTitle to: ${processingTitle}, filename: ${processingFilename || 'null'}`)
                     onFrontmatterChange('receivingTemplateTitle', processingTitle)
                     if (processingFilename) {
                       setSelectedProcessingTemplateFilename(processingFilename)
@@ -794,7 +851,7 @@ export function ProcessingMethodSection({
                     // Reload notes so the new processing template appears in the dropdown
                     await onLoadNotes(true) // Load only project notes for processing templates
                   } else {
-                    console.warn('createProcessingTemplate: Unexpected result format:', result, 'typeof:', typeof result, 'JSON:', JSON.stringify(result))
+                    console.warn(`createProcessingTemplate: Unexpected result format: ${JSON.stringify(result)}, typeof: ${typeof result}, JSON: ${JSON.stringify(result)}`)
                   }
                 } catch (error) {
                   const errorMessage = error?.message || error?.toString() || String(error) || 'Unknown error'
@@ -819,45 +876,47 @@ export function ProcessingMethodSection({
       )}
 
       {/* Debug JSON Viewer */}
-      <div className="frontmatter-field" style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--divider-color, #CDCFD0)' }}>
-        <label style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>Debug: Frontmatter Values (JSON)</label>
-        <div
-          style={{
-            backgroundColor: 'var(--bg-alt-color, #f5f5f5)',
-            border: '1px solid var(--divider-color, #CDCFD0)',
-            borderRadius: '4px',
-            padding: '0.75rem',
-            fontFamily: 'Menlo, monospace',
-            fontSize: '0.8em',
-            maxHeight: '300px',
-            overflowY: 'auto',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-          }}
-        >
-          {JSON.stringify(
-            {
-              processingMethod: frontmatter.processingMethod,
-              shouldOpenInEditor: frontmatter.shouldOpenInEditor,
-              getNoteTitled: frontmatter.getNoteTitled,
-              getNoteFilename: frontmatter.getNoteFilename,
-              location: frontmatter.location,
-              writeUnderHeading: frontmatter.writeUnderHeading,
-              replaceNoteContents: frontmatter.replaceNoteContents,
-              createMissingHeading: frontmatter.createMissingHeading,
-              newNoteTitle: frontmatter.newNoteTitle,
-              newNoteFolder: frontmatter.newNoteFolder,
-              templateBody: frontmatter.templateBody,
-              receivingTemplateTitle: frontmatter.receivingTemplateTitle,
-            },
-            null,
-            2,
-          )}
+      {false && (
+        <div className="frontmatter-field" style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--divider-color, #CDCFD0)' }}>
+          <label style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>Debug: Frontmatter Values (JSON)</label>
+          <div
+            style={{
+              backgroundColor: 'var(--bg-alt-color, #f5f5f5)',
+              border: '1px solid var(--divider-color, #CDCFD0)',
+              borderRadius: '4px',
+              padding: '0.75rem',
+              fontFamily: 'Menlo, monospace',
+              fontSize: '0.8em',
+              maxHeight: '300px',
+              overflowY: 'auto',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {JSON.stringify(
+              {
+                processingMethod: frontmatter.processingMethod,
+                shouldOpenInEditor: frontmatter.shouldOpenInEditor,
+                getNoteTitled: frontmatter.getNoteTitled,
+                getNoteFilename: frontmatter.getNoteFilename,
+                location: frontmatter.location,
+                writeUnderHeading: frontmatter.writeUnderHeading,
+                replaceNoteContents: frontmatter.replaceNoteContents,
+                createMissingHeading: frontmatter.createMissingHeading,
+                newNoteTitle: frontmatter.newNoteTitle,
+                newNoteFolder: frontmatter.newNoteFolder,
+                templateBody: frontmatter.templateBody,
+                receivingTemplateTitle: frontmatter.receivingTemplateTitle,
+              },
+              null,
+              2,
+            )}
+          </div>
+          <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+            Current frontmatter values for debugging. This shows what will be saved.
+          </div>
         </div>
-        <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-          Current frontmatter values for debugging. This shows what will be saved.
-        </div>
-      </div>
+      )}
 
       {/* Template Tag Inserter Modal */}
       {showTagInserter && (

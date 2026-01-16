@@ -36,6 +36,12 @@ DataStore.calendarNoteByDateString = jest.fn()
 DataStore.newNote = jest.fn()
 DataStore.invokePluginCommandByName = jest.fn()
 DataStore.updateCache = jest.fn()
+DataStore.preference = jest.fn((key: string) => {
+  // Return default values for common preferences
+  if (key === 'templateFolder') return '@Templates'
+  if (key === 'formsFolder') return '@Forms'
+  return null
+})
 
 Editor.type = 'Notes'
 Editor.openNoteByDate = jest.fn()
@@ -84,12 +90,12 @@ jest.mock('@helpers/paragraph', () => ({
 }))
 
 jest.mock('@helpers/userInput', () => ({
-  chooseNote: jest.fn(),
   chooseHeading: jest.fn(),
   showMessage: jest.fn().mockResolvedValue('OK'),
 }))
 
 jest.mock('@helpers/NPnote', () => ({
+  chooseNoteV2: jest.fn(),
   getNoteFromIdentifier: jest.fn(),
   getOrMakeRegularNoteInFolder: jest.fn(),
   getOrMakeCalendarNote: jest.fn(),
@@ -205,12 +211,12 @@ describe('NPTemplateRunner', () => {
     NPnote.getOrMakeRegularNoteInFolder.mockResolvedValue(mockNote)
     // $FlowFixMe - Mock functions
     NPnote.getOrMakeCalendarNote.mockResolvedValue(mockNote)
-
+    // $FlowFixMe - Mock functions
+    NPnote.chooseNoteV2.mockResolvedValue({ title: 'Chosen Note' })
+    // $FlowFixMe - Mock functions
     const userInput = require('@helpers/userInput')
-    // $FlowFixMe - Mock functions
-    userInput.chooseNote.mockResolvedValue({ title: 'Chosen Note' })
-    // $FlowFixMe - Mock functions
-    userInput.chooseHeading.mockResolvedValue('Test Heading')
+    // $FlowFixMe[prop-missing] - Mock function
+    ;(userInput.chooseHeading: any).mockResolvedValue('Test Heading')
 
     const NPdateTime = require('@helpers/NPdateTime')
     // $FlowFixMe - Mock functions
@@ -372,7 +378,7 @@ describe('NPTemplateRunner', () => {
     test('should handle choose placeholder', async () => {
       const mockChosenNote = { title: 'Chosen Note' }
       // $FlowFixMe - Mock functions
-      require('@helpers/userInput').chooseNote.mockResolvedValue(mockChosenNote)
+      require('@helpers/NPnote').chooseNoteV2.mockResolvedValue(mockChosenNote)
 
       const result = await NPTemplateRunner.handleNoteSelection('<choose>')
 
@@ -382,7 +388,7 @@ describe('NPTemplateRunner', () => {
     test('should handle select placeholder', async () => {
       const mockChosenNote = { title: 'Selected Note' }
       // $FlowFixMe - Mock functions
-      require('@helpers/userInput').chooseNote.mockResolvedValue(mockChosenNote)
+      require('@helpers/NPnote').chooseNoteV2.mockResolvedValue(mockChosenNote)
 
       const result = await NPTemplateRunner.handleNoteSelection('<select>')
 
@@ -391,7 +397,7 @@ describe('NPTemplateRunner', () => {
 
     test('should throw error when chosen note has no title', async () => {
       // $FlowFixMe - Mock functions
-      require('@helpers/userInput').chooseNote.mockResolvedValue({ title: '' })
+      require('@helpers/NPnote').chooseNoteV2.mockResolvedValue({ title: '' })
 
       await expect(NPTemplateRunner.handleNoteSelection('<choose>')).rejects.toThrow("Selected note has no title and can't be used")
     })

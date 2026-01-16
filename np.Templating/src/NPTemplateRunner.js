@@ -13,7 +13,8 @@ import { logError, logDebug, JSP, clo, overrideSettingsWithStringArgs, timer, lo
 import { getISOWeekAndYear, getISOWeekString, isValidCalendarNoteTitleStr } from '@helpers/dateTime'
 import { getNPWeekData } from '@helpers/NPdateTime'
 import { getNote } from '@helpers/note'
-import { chooseNote } from '@helpers/userInput'
+import { getTemplateNote } from '../lib/NPTemplateNoteHelpers'
+import { chooseNoteV2 } from '@helpers/NPnote'
 import { getNoteTitleFromTemplate } from '@helpers/NPFrontMatter'
 import { replaceDoubleDashes } from '../lib/engine/templateRenderer'
 import { getContentWithLinks } from '@helpers/content'
@@ -580,7 +581,11 @@ export function extractTitleAndShouldOpenSettings(frontmatterAttributes: Object,
 export async function handleNoteSelection(noteTitle: string): Promise<string> {
   if (/<choose>/i.test(noteTitle) || /<select>/i.test(noteTitle)) {
     logDebug(pluginJson, `templateRunnerExecute Inside choose code`)
-    const chosenNote = await chooseNote()
+    const chosenNote = await chooseNoteV2('Choose a note', DataStore.projectNotes, true, false, false, false)
+    if (!chosenNote) {
+      await showMessage('No note selected')
+      throw new Error('No note selected')
+    }
     const selectedTitle = chosenNote?.title || ''
     if (!selectedTitle?.length) {
       await showMessage("Selected note has no title and can't be used")
@@ -1029,7 +1034,7 @@ export async function addFrontmatterToTemplate(_templateToGet?: string = '', ope
     const templateToGet = _templateToGet || Editor.filename || ''
     let theNote = null
     if (templateToGet) {
-      theNote = await getNote(templateToGet, null, NotePlan.environment.templateFolder || '@Templates')
+      theNote = await getTemplateNote(templateToGet, true)
     } else {
       theNote = Editor.note || null
     }

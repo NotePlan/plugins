@@ -53,6 +53,7 @@
         gap: 1rem;
         background-color: var(--bg-mid-color);
         padding: 0.75rem 1.0rem;
+        padding-bottom: 1.5rem; /* Extra bottom padding to prevent clipping of last element */
         border-radius: 8px;
         flex: 1;
         overflow-y: auto;

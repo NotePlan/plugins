@@ -118,7 +118,12 @@ export function ExpandableTextarea({
       }, 0)
       return
     }
-    // Allow all other keys including Enter to work normally
+    // Stop Enter key from bubbling up to prevent form submission
+    // Textareas should create newlines, not submit forms
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.stopPropagation() // Prevent event from bubbling to DynamicDialog
+      // Don't prevent default - let the textarea handle Enter naturally to create newline
+    }
     // Call custom onKeyDown if provided
     if (onKeyDown) {
       onKeyDown(e)

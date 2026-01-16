@@ -22,21 +22,36 @@ export async function renderTemplateWithEJS(processedTemplateData: string, rende
   logDebug(pluginJson, `EJS render: ${Object.keys(renderData).length} data keys available`)
 
   // Convert EJS closing tags to prevent unwanted whitespace
-  processedTemplateData = convertEJSClosingTags(processedTemplateData)
+  const convertedTemplateData = convertEJSClosingTags(processedTemplateData)
 
-  const result = await ejs.render(processedTemplateData, renderData, options)
+  const result = await ejs.render(convertedTemplateData, renderData, options)
 
   return result
 }
 
 /**
  * Post-processes the rendered result to clean up common issues.
- * @param {string} result - The raw rendered result
- * @returns {string} The cleaned up result
+ * @param {string|any} result - The raw rendered result (may be string, object, or other type)
+ * @returns {string} The cleaned up result (always returns a string)
  */
-export function postProcessResult(result: string): string {
+export function postProcessResult(result: string | any): string {
+  // Ensure result is a string before processing
+  // If result is not a string (e.g., object, undefined, null), convert it to string
+  let resultString: string
+  if (typeof result === 'string') {
+    resultString = result
+  } else if (result === null || result === undefined) {
+    resultString = ''
+  } else if (typeof result === 'object') {
+    // If result is an object, stringify it (but this shouldn't normally happen in EJS rendering)
+    logDebug(pluginJson, `postProcessResult: result is an object, stringifying it: ${JSON.stringify(result)}`)
+    resultString = JSON.stringify(result)
+  } else {
+    resultString = String(result)
+  }
+
   // Clean up undefined values and promise objects
-  let cleanedResult = (result && result?.replace(/undefined/g, '')) || ''
+  let cleanedResult = resultString.replace(/undefined/g, '')
   cleanedResult = cleanedResult.replace(
     /\[object Promise\]/g,
     `[object Promise] (**Templating was not able to get the result of this tag. Try adding an 'await' before the function call. See documentation for more information.**)`,

@@ -19,6 +19,12 @@ global.DataStore = {
   projectNoteByTitle: jest.fn(),
   projectNoteByFilename: jest.fn(),
   settings: { _logLevel: 'none' },
+  preference: jest.fn((key: string) => {
+    // Return default values for common preferences
+    if (key === 'templateFolder') return '@Templates'
+    if (key === 'formsFolder') return '@Forms'
+    return null
+  }),
 }
 
 global.Editor = {

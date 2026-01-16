@@ -48,6 +48,12 @@ describe('NPTemplateNoteHelpers', () => {
   beforeEach(() => {
     global.DataStore = {
       settings: { _logLevel: 'none' },
+      preference: jest.fn((key: string) => {
+        // Return default values for common preferences
+        if (key === 'templateFolder') return '@Templates'
+        if (key === 'formsFolder') return '@Forms'
+        return null
+      }),
     }
   })
   describe('getTemplateNote', () => {
@@ -130,7 +136,11 @@ describe('NPTemplateNoteHelpers', () => {
       // Verify correct parameters were passed to getNote
       expect(note.getNote).toHaveBeenCalledWith('Non-existent Template', false, '@Templates')
       expect(result).toBeNull()
-      expect(CommandBar.prompt).toHaveBeenCalledWith('Unable to locate template "Non-existent Template"', 'Unable to locate template "Non-existent Template" in @Templates')
+      // Updated message to reflect that we now search in multiple folders
+      expect(CommandBar.prompt).toHaveBeenCalledWith(
+        'Unable to locate template "Non-existent Template"',
+        expect.stringContaining('Unable to locate template "Non-existent Template"'),
+      )
     })
 
     test('should not show prompt when template is not found and runSilently is true', async () => {
@@ -152,6 +162,12 @@ describe('NPTemplateNoteHelpers', () => {
     test('should use custom template folder from NotePlan.environment', async () => {
       // Change the template folder
       NotePlan.environment.templateFolder = '@Custom Templates'
+      // Also update the preference mock to return the custom folder
+      global.DataStore.preference.mockImplementation((key: string) => {
+        if (key === 'templateFolder') return '@Custom Templates'
+        if (key === 'formsFolder') return '@Forms'
+        return null
+      })
 
       // Mock successful note retrieval
       const mockNote = { filename: '@Custom Templates/Template.md', title: 'Template' }
@@ -163,6 +179,13 @@ describe('NPTemplateNoteHelpers', () => {
       // Verify correct parameters were passed to getNote with the custom folder
       expect(note.getNote).toHaveBeenCalledWith('Template', false, '@Custom Templates')
       expect(result).toEqual(mockNote)
+      
+      // Reset preference mock for other tests
+      global.DataStore.preference.mockImplementation((key: string) => {
+        if (key === 'templateFolder') return '@Templates'
+        if (key === 'formsFolder') return '@Forms'
+        return null
+      })
     })
 
     test('should handle empty template name', async () => {

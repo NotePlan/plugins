@@ -68,12 +68,35 @@ export function FormBuilder({
 }: FormBuilderProps): Node {
   // Get requestFromPlugin and sendActionToPlugin from context (needed early for useState)
   const { requestFromPlugin, dispatch, pluginData } = useAppContext()
-  
+
   // Get template's teamspace ID and title from pluginData (if form is in a teamspace, preserve that context)
   const templateTeamspaceID = pluginData?.templateTeamspaceID || ''
   const templateTeamspaceTitle = pluginData?.templateTeamspaceTitle || ''
 
-  const [fields, setFields] = useState<Array<TSettingItem>>(initialFields)
+  // Add default comment field for new forms
+  const defaultCommentField: TSettingItem = {
+    type: 'comment',
+    label: 'Getting Started',
+    commentText: `# Welcome to Form Builder
+
+Use this form builder to create your form:
+
+1. **Add Fields**: Click the "+ Add Field" button to add form fields (text inputs, dropdowns, date pickers, etc.)
+2. **Edit Fields**: Click any field to edit its properties (label, key, validation, etc.)
+3. **Reorder Fields**: Drag fields by their grip handle to reorder them
+4. **Preview**: Use the preview pane on the right to see how your form will look
+5. **Settings**: Use the settings panel on the left to configure form behavior and processing options
+
+You can edit or delete this **comment field** by clicking the pencil icon on the right - it's just a note to help you get started (does not appear in the form output)!`,
+    expanded: true,
+  }
+  const [fields, setFields] = useState<Array<TSettingItem>>(() => {
+    // If this is a new form and no initial fields, add default comment field
+    if (isNewForm && (!initialFields || initialFields.length === 0)) {
+      return [defaultCommentField]
+    }
+    return initialFields
+  })
   const [editingIndex, setEditingIndex] = useState<?number>(null)
   const [draggedIndex, setDraggedIndex] = useState<?number>(null)
   const [dragOverIndex, setDragOverIndex] = useState<?number>(null)
@@ -140,13 +163,13 @@ export function FormBuilder({
         mergedFrontmatter[key] = templateRunnerArgs[key]
       }
     })
-    
+
     // If space is not set in templateRunnerArgs and template is in a teamspace, set it as default
     // This ensures forms opened in a teamspace default to that teamspace for creating/loading notes
     if (templateTeamspaceID && !mergedFrontmatter.space) {
       mergedFrontmatter.space = templateTeamspaceID
     }
-    
+
     return mergedFrontmatter
   })
 
@@ -598,10 +621,7 @@ export function FormBuilder({
                 }}
                 style={{ cursor: templateFilename ? 'pointer' : 'default', fontSize: '0.875rem', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))' }}
               >
-                Form:{' '}
-                {templateTeamspaceTitle && (
-                  <i className="fa-regular fa-cube" style={{ marginRight: '0.25rem', color: 'var(--item-icon-color, #1e66f5)' }} />
-                )}
+                Form: {templateTeamspaceTitle && <i className="fa-regular fa-cube" style={{ marginRight: '0.25rem', color: 'var(--item-icon-color, #1e66f5)' }} />}
                 {(() => {
                   const windowTitle = frontmatter.windowTitle || ''
                   const formTitle = frontmatter.formTitle || templateTitle || ''

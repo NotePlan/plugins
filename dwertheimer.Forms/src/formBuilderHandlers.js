@@ -21,7 +21,7 @@ import {
   updateReceivingTemplateWithFields,
 } from './templateIO'
 import { removeEmptyLinesFromNote, updateFormLinksInNote } from './requestHandlers'
-import { getNoteByFilename } from '@helpers/note'
+import { getNoteByFilename, getNote } from '@helpers/note'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
 import { updateFrontMatterVars, ensureFrontmatter, endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
@@ -91,28 +91,55 @@ export async function handleCreateProcessingTemplate(params: Object): Promise<Re
 /**
  * Handle opening a note from FormBuilder
  * @param {Object} params - Request parameters
- * @param {string} params.filename - The note filename to open
+ * @param {string} params.filename - The note filename to open (preferred)
+ * @param {string} params.title - The note title to open (fallback if filename not provided)
  * @returns {RequestResponse}
  */
-export function handleOpenNote(params: { filename?: string }): RequestResponse {
+export async function handleOpenNote(params: { filename?: string, title?: string }): Promise<RequestResponse> {
   try {
     const filename = params.filename
-    if (!filename) {
+    const title = params.title
+
+    if (!filename && !title) {
       return {
         success: false,
-        message: 'filename is required',
+        message: 'filename or title is required',
         data: null,
       }
     }
 
-    logDebug(pluginJson, `handleOpenNote: filename="${filename}"`)
-
-    // Open the note in the editor
-    Editor.openNoteByFilename(filename)
+    if (filename) {
+      logDebug(pluginJson, `handleOpenNote: Opening by filename="${filename}"`)
+      // Open the note in the editor
+      Editor.openNoteByFilename(filename)
+      return {
+        success: true,
+        message: 'Note opened successfully',
+        data: null,
+      }
+    } else if (title) {
+      logDebug(pluginJson, `handleOpenNote: Opening by title="${title}"`)
+      // Find note by title using getNote helper
+      const note = await getNote(title)
+      if (!note) {
+        return {
+          success: false,
+          message: `Note not found: ${title}`,
+          data: null,
+        }
+      }
+      // Open the note in the editor
+      Editor.openNoteByFilename(note.filename || '')
+      return {
+        success: true,
+        message: 'Note opened successfully',
+        data: null,
+      }
+    }
 
     return {
-      success: true,
-      message: 'Note opened successfully',
+      success: false,
+      message: 'No filename or title provided',
       data: null,
     }
   } catch (error) {
@@ -465,23 +492,22 @@ export async function saveFrontmatterToTemplate(templateFilename: string, frontm
  * @returns {Promise<{success: boolean, message?: string, data?: any}>}
  */
 // Buffer buster padding for NotePlan's console
-const BUFFER_BUSTER_PAD = `${'\n'.repeat(5)}${'.'.repeat(10000)}/`
-
-function bustLog(message: string): void {
-  console.log(`${message}${BUFFER_BUSTER_PAD}`)
-}
-
 export async function handleSaveRequest(data: any): Promise<{ success: boolean, message?: string, data?: any }> {
   const saveId = `SAVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  // Add immediate console.log to catch hangs before logDebug with buffer busting
-  bustLog(`[handleSaveRequest] ENTRY - saveId=${saveId}`)
-  bustLog(`[handleSaveRequest] data.fields: ${data?.fields ? `exists, type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields.length || 0}` : 'missing'}`)
+  logDebug(pluginJson, `[${saveId}] handleSaveRequest: ENTRY - saveId=${saveId}`)
+  logDebug(
+    pluginJson,
+    `[${saveId}] handleSaveRequest: data.fields: ${
+      data?.fields ? `exists, type=${typeof data.fields}, isArray=${String(Array.isArray(data.fields))}, length=${data.fields.length || 0}` : 'missing'
+    }`,
+  )
   if (data?.fields?.length > 0) {
-    bustLog(`[handleSaveRequest] First field: ${typeof data.fields[0] === 'string' ? data.fields[0].substring(0, 50) : JSON.stringify(data.fields[0]).substring(0, 50)}`)
+    logDebug(
+      pluginJson,
+      `[${saveId}] handleSaveRequest: First field: ${typeof data.fields[0] === 'string' ? data.fields[0].substring(0, 50) : JSON.stringify(data.fields[0]).substring(0, 50)}`,
+    )
   }
-  bustLog(`[handleSaveRequest] About to call logDebug`)
   logDebug(pluginJson, `[${saveId}] handleSaveRequest: ENTRY - Starting save request`)
-  bustLog(`[handleSaveRequest] logDebug completed`)
   try {
     // Get the template filename from the data passed from React, or fall back to reactWindowData
     const templateFilename = data?.templateFilename
@@ -492,24 +518,20 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     try {
       // Note: getGlobalSharedData may hang if window is in bad state, but we can't use Promise.race
       // in NotePlan's JSContext (Promise is not a constructor). Just try it and let it fail naturally.
-      bustLog(`[handleSaveRequest] Attempting to get window data for windowId="${windowId}"`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Attempting to get window data for windowId="${windowId}"`)
       const reactWindowData = await getGlobalSharedData(windowId)
       fallbackTemplateFilename = reactWindowData?.pluginData?.templateFilename || ''
-      bustLog(`[handleSaveRequest] Got window data, fallbackTemplateFilename="${fallbackTemplateFilename}"`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Got window data, fallbackTemplateFilename="${fallbackTemplateFilename}"`)
     } catch (e) {
       // If we can't get window data, that's ok - we'll use templateFilename from data
-      bustLog(`[handleSaveRequest] Could not get window data: ${e.message || String(e)}`)
-      logDebug(pluginJson, `handleSaveRequest: Could not get window data for windowId="${windowId}", using templateFilename from data`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Could not get window data: ${e.message || String(e)}`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Could not get window data for windowId="${windowId}", using templateFilename from data`)
     }
     const finalTemplateFilename = templateFilename || fallbackTemplateFilename
-    bustLog(`[handleSaveRequest] finalTemplateFilename="${finalTemplateFilename}"`)
-    bustLog(`[handleSaveRequest] About to call logDebug for finalTemplateFilename`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: finalTemplateFilename="${finalTemplateFilename}"`)
-    bustLog(`[handleSaveRequest] logDebug for finalTemplateFilename completed`)
 
-      bustLog(`[handleSaveRequest] About to check if finalTemplateFilename is empty`)
     if (!finalTemplateFilename) {
-      bustLog(`[handleSaveRequest] ERROR: No template filename provided`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: ERROR: No template filename provided`)
       return {
         success: false,
         message: 'No template filename provided',
@@ -518,37 +540,47 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     }
 
     // Check for missing or empty fields array
-    bustLog(`[handleSaveRequest] Checking fields: data?.fields=${data?.fields ? 'exists' : 'missing'}, isArray=${Array.isArray(data?.fields)}, length=${data?.fields?.length || 0}`)
+    logDebug(
+      pluginJson,
+      `[${saveId}] handleSaveRequest: Checking fields: data?.fields=${data?.fields ? 'exists' : 'missing'}, isArray=${String(Array.isArray(data?.fields))}, length=${
+        data?.fields?.length || 0
+      }`,
+    )
     if (!data?.fields || !Array.isArray(data.fields) || data.fields.length === 0) {
-      bustLog(`[handleSaveRequest] ERROR: No fields provided to save`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: ERROR: No fields provided to save`)
       return {
         success: false,
         message: 'No fields provided to save',
         data: null,
       }
     }
-    bustLog(`[handleSaveRequest] Fields check passed, proceeding with save`)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Fields check passed, proceeding with save`)
 
     // Parse fields if they're strings (shouldn't happen, but just in case)
-    bustLog(`[handleSaveRequest] Fields before parsing: type=${typeof data.fields}, isArray=${Array.isArray(data.fields)}, length=${data.fields?.length || 0}, firstFieldType=${data.fields?.[0] ? typeof data.fields[0] : 'none'}`)
+    logDebug(
+      pluginJson,
+      `[${saveId}] handleSaveRequest: Fields before parsing: type=${typeof data.fields}, isArray=${String(Array.isArray(data.fields))}, length=${
+        data.fields?.length || 0
+      }, firstFieldType=${data.fields?.[0] ? typeof data.fields[0] : 'none'}`,
+    )
     let fieldsToSave = data.fields
     if (Array.isArray(fieldsToSave) && fieldsToSave.length > 0 && typeof fieldsToSave[0] === 'string') {
-      bustLog(`[handleSaveRequest] Fields are strings, attempting to parse`)
-      logWarn(pluginJson, `handleSaveRequest: Fields are strings, attempting to parse`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Fields are strings, attempting to parse`)
+      logWarn(pluginJson, `[${saveId}] handleSaveRequest: Fields are strings, attempting to parse`)
       fieldsToSave = fieldsToSave.map((field) => {
         try {
           const parsed = typeof field === 'string' ? JSON.parse(field) : field
-          bustLog(`[handleSaveRequest] Parsed field: ${JSON.stringify(parsed).substring(0, 100)}`)
+          logDebug(pluginJson, `[${saveId}] handleSaveRequest: Parsed field: ${JSON.stringify(parsed).substring(0, 100)}`)
           return parsed
         } catch (e) {
-          bustLog(`[handleSaveRequest] Error parsing field: ${e.message}`)
-          logError(pluginJson, `handleSaveRequest: Error parsing field: ${e.message}`)
+          logDebug(pluginJson, `[${saveId}] handleSaveRequest: Error parsing field: ${e.message}`)
+          logError(pluginJson, `[${saveId}] handleSaveRequest: Error parsing field: ${e.message}`)
           return field
         }
       })
-      bustLog(`[handleSaveRequest] Finished parsing ${fieldsToSave.length} fields`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Finished parsing ${fieldsToSave.length} fields`)
     } else {
-      bustLog(`[handleSaveRequest] Fields are already objects, no parsing needed`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Fields are already objects, no parsing needed`)
     }
 
     // Clean up markdown-preview fields: remove empty string values
@@ -578,17 +610,14 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       return field
     })
 
-    bustLog(`[handleSaveRequest] About to save ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
-    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Saving ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: About to save ${fieldsToSave.length} fields to template "${finalTemplateFilename}"`)
 
     await saveFormFieldsToTemplate(finalTemplateFilename, fieldsToSave)
-    bustLog(`[handleSaveRequest] Fields saved to template successfully`)
-    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Fields saved to template`)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Fields saved to template successfully`)
 
-    bustLog(`[handleSaveRequest] About to extract TemplateRunner processing variables from frontmatter`)
     // Extract TemplateRunner processing variables from frontmatter
     // These contain template tags and should be stored in codeblock, not frontmatter
-    bustLog(`[handleSaveRequest] Creating templateRunnerArgs object`)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Creating templateRunnerArgs object`)
     const templateRunnerArgs: { [string]: any } = {}
     const templateRunnerArgKeys = [
       'newNoteTitle', // Contains template tags like <%- field1 %>
@@ -601,74 +630,71 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     ]
 
     // Extract TemplateRunner args from frontmatter
-    bustLog(`[handleSaveRequest] Checking if frontmatter exists: ${data?.frontmatter ? 'yes' : 'no'}`)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Checking if frontmatter exists: ${data?.frontmatter ? 'yes' : 'no'}`)
     if (data?.frontmatter) {
-      bustLog(`[handleSaveRequest] Extracting TemplateRunner args from frontmatter`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Extracting TemplateRunner args from frontmatter`)
       templateRunnerArgKeys.forEach((key) => {
         if (data.frontmatter[key] !== undefined) {
           templateRunnerArgs[key] = data.frontmatter[key]
         }
       })
-      bustLog(`[handleSaveRequest] Extracted ${Object.keys(templateRunnerArgs).length} TemplateRunner args`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Extracted ${Object.keys(templateRunnerArgs).length} TemplateRunner args`)
     } else {
-      bustLog(`[handleSaveRequest] No frontmatter found, skipping TemplateRunner args extraction`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: No frontmatter found, skipping TemplateRunner args extraction`)
     }
 
     // Save templateBody to codeblock if provided
-    bustLog(`[handleSaveRequest] Checking templateBody: ${data?.frontmatter?.templateBody !== undefined ? 'exists' : 'missing'}`)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Checking templateBody: ${data?.frontmatter?.templateBody !== undefined ? 'exists' : 'missing'}`)
     if (data?.frontmatter?.templateBody !== undefined) {
-      bustLog(`[handleSaveRequest] About to save templateBody to codeblock`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: About to save templateBody to codeblock`)
       await saveTemplateBodyToTemplate(finalTemplateFilename, data.frontmatter.templateBody || '')
-      bustLog(`[handleSaveRequest] templateBody saved to codeblock`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: templateBody saved to codeblock`)
     }
 
     // Save custom CSS to codeblock if provided
-    bustLog(`[handleSaveRequest] Checking customCSS: ${data?.frontmatter?.customCSS !== undefined ? 'exists' : 'missing'}`)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Checking customCSS: ${data?.frontmatter?.customCSS !== undefined ? 'exists' : 'missing'}`)
     if (data?.frontmatter?.customCSS !== undefined) {
-      bustLog(`[handleSaveRequest] About to save customCSS to codeblock`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: About to save customCSS to codeblock`)
       await saveCustomCSSToTemplate(finalTemplateFilename, data.frontmatter.customCSS || '')
-      bustLog(`[handleSaveRequest] customCSS saved to codeblock`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: customCSS saved to codeblock`)
     }
 
     // Save TemplateRunner args to codeblock if any exist
-    bustLog(`[handleSaveRequest] Checking TemplateRunner args: ${Object.keys(templateRunnerArgs).length} keys`)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Checking TemplateRunner args: ${Object.keys(templateRunnerArgs).length} keys`)
     if (Object.keys(templateRunnerArgs).length > 0) {
-      bustLog(`[handleSaveRequest] About to save TemplateRunner args to codeblock`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: About to save TemplateRunner args to codeblock`)
       await saveTemplateRunnerArgsToTemplate(finalTemplateFilename, templateRunnerArgs)
-      bustLog(`[handleSaveRequest] TemplateRunner args saved to codeblock`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: TemplateRunner args saved to codeblock`)
     } else {
-      bustLog(`[handleSaveRequest] No TemplateRunner args to save`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: No TemplateRunner args to save`)
     }
 
     // Save frontmatter if provided (but exclude TemplateRunner args and templateBody as they're in codeblocks)
-    bustLog(`[handleSaveRequest] About to check if frontmatter needs to be saved`)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: About to check if frontmatter needs to be saved`)
     if (data?.frontmatter) {
-      bustLog(`[handleSaveRequest] Frontmatter exists, preparing for save`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter exists, preparing for save`)
       const frontmatterForSave = { ...data.frontmatter }
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter to save: ${JSON.stringify(frontmatterForSave)}`)
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: receivingTemplateTitle="${frontmatterForSave.receivingTemplateTitle || 'MISSING'}"`)
-      // Remove TemplateRunner args and templateBody from frontmatter
-      bustLog(`[handleSaveRequest] Removing TemplateRunner args from frontmatter`)
+      // Remove TemplateRunner args, templateBody, and customCSS from frontmatter (they're in codeblocks)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Removing TemplateRunner args, templateBody, and customCSS from frontmatter`)
       delete frontmatterForSave.templateBody
+      delete frontmatterForSave.customCSS
       templateRunnerArgKeys.forEach((key) => {
         delete frontmatterForSave[key]
       })
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter after cleanup: ${JSON.stringify(frontmatterForSave)}`)
-      bustLog(`[handleSaveRequest] About to save frontmatter to template`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: About to save frontmatter to template`)
       await saveFrontmatterToTemplate(finalTemplateFilename, frontmatterForSave)
-      bustLog(`[handleSaveRequest] Frontmatter saved successfully`)
-      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter saved`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter saved successfully`)
     } else {
-      bustLog(`[handleSaveRequest] No frontmatter provided in data`)
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: No frontmatter provided in data`)
     }
 
     // Get template note for success message and cleanup
-    bustLog(`[handleSaveRequest] Getting template note for "${finalTemplateFilename}"...`)
-    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Getting template note...`)
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Getting template note for "${finalTemplateFilename}"...`)
     const templateNote = await getNoteByFilename(finalTemplateFilename)
     const templateTitle = templateNote?.title || finalTemplateFilename
-    bustLog(`[handleSaveRequest] Template note found: title="${templateTitle}", type="${templateNote?.frontmatterAttributes?.type || 'none'}"`)
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: Template note found: title="${templateTitle}", type="${templateNote?.frontmatterAttributes?.type || 'none'}"`)
 
     // Remove empty lines from the note
