@@ -4,6 +4,46 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.10] 2026-01-14 @dwertheimer
+
+### Added
+- **Comprehensive Tailwind CSS color palette support**: Added full Tailwind color mapping (gray, red, orange, yellow, green, blue, indigo, purple, pink with shades 50-950) to `helpers/colors.js`
+- **Color support for chooser icons and descriptions**: NoteChooser and SpaceChooser now display colored icons and short descriptions matching `chooseNoteV2` behavior
+- **New `getColorStyle()` helper function**: Centralized color conversion utility that handles CSS variables, Tailwind color names, and direct hex/rgb colors with proper fallbacks
+
+### Fixed
+- Fixed empty label showing "?" in read-only text elements (now shows empty string)
+- Fixed SpaceChooser using incorrect icons - now uses `fa-regular fa-cube` for teamspaces and `fa-solid fa-user` for private (matching Dashboard, Filer, NoteHelpers)
+- Fixed teamspace colors appearing gray - now correctly displays green using `--teamspace-color` CSS variable with proper fallback
+- Fixed default comment field not appearing when creating a new form - now explicitly passes `isNewForm: true` to FormBuilder (works for both command bar and FormBrowserView creation)
+- Fixed NoteChooser calendar picker displaying filename (e.g., "20260117.md") instead of ISO date format (e.g., "2026-01-17") - now displays ISO 8601 format (YYYY-MM-DD) in the field
+
+### Changed
+- **SpaceChooser**: Updated to use proper Font Awesome icon classes (`TEAMSPACE_FA_ICON`, `PRIVATE_FA_ICON`) instead of generic icon names
+- **Color system**: All Tailwind color names (e.g., `gray-500`, `blue-500`, `orange-500`, `green-700`) now automatically convert to their hex values via comprehensive palette mapping
+- **Special color mappings**: `green-700` and `green-800` prefer `--teamspace-color` CSS variable when available, with Tailwind hex fallback
+- **SearchableChooser**: Hide short description when it's identical to the label text to avoid redundant display
+
+## [1.0.9] 2026-01-13 @dwertheimer
+
+### Added
+- Auto-focus first field when form opens for faster data entry
+- Enter key reopens dropdown when closed (allows changing selection after initial choice)
+- Tab key closes dropdown and moves to next field when dropdown is open
+- ResizeObserver for portal dropdown positioning to handle dynamic form height changes
+
+### Fixed
+- Fixed click selection not working after programmatic refocus (dropdown was reopening immediately)
+- Fixed tab navigation blocked when dropdown is open
+- Fixed portal dropdown position when form layout shifts due to async data loading
+- Fixed ContainedMultiSelectChooser preventing "is:checked" from being saved as a value
+- Fixed bottom element clipping in scrolling dialogs (added extra padding)
+
+### Changed
+- Improved ContainedMultiSelectChooser header: narrower filter field (40% reduction), icon-only buttons (All/None/Filter/New)
+- Refactored template-form CSS to use nested namespace selectors for better maintainability
+- Improved compact mode label alignment using CSS variables for customizable widths
+
 ## [1.0.8] 2026-01-12 @dwertheimer
 
 ### Fixed

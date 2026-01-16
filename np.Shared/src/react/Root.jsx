@@ -648,8 +648,6 @@ export function Root(/* props: Props */): Node {
           }
         })
       }
-    } else {
-      logDebug(`Root`, ` logBufferBuster is DISABLED or missing in pluginData`)
     }
   }, [npData])
 

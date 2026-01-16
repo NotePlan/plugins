@@ -471,11 +471,12 @@ export async function handleCreateNewForm(params: { formName?: string, space?: s
     // Update cache to ensure note is available
     DataStore.updateCache(templateNote, true)
 
-    // Open FormBuilder with the new form
+    // Open FormBuilder with the new form (pass isNewForm: true so default comment field is added)
     await openFormBuilderWindow({
       formFields: [],
       templateFilename: filename,
       templateTitle: newTitle,
+      isNewForm: true,
     })
 
     return {

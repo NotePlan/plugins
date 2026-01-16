@@ -470,6 +470,10 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
       // No templateFilename means this is a new form
       isNewForm = true
     }
+    // Allow explicit override (e.g., when creating a new form but note already exists)
+    if (argObj.isNewForm !== undefined) {
+      isNewForm = argObj.isNewForm
+    }
 
     // Generate unique window ID based on template title/filename
     const windowId = getFormBuilderWindowId(templateTitleForWindow, argObj.templateFilename)
@@ -498,7 +502,7 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
         windowId: windowId, // Store window ID in pluginData so React can send it in requests
         templateTeamspaceID: templateTeamspaceID, // Pass template's teamspace ID as default space for form operations
         templateTeamspaceTitle: templateTeamspaceTitle, // Pass template's teamspace title for display
-        logBufferBuster: true, // Enable buffer buster for logging infinite renders to prevent log when buffering is keeping it from showing all messages
+        // logBufferBuster: true, // Enable buffer buster for logging infinite renders to prevent log when buffering is keeping it from showing all messages
       },
       title: templateTitleForWindow
         ? templateTeamspaceTitle

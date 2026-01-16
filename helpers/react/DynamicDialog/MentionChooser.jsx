@@ -29,6 +29,7 @@ export type MentionChooserProps = {
   singleValue?: boolean, // If true, allow selecting only one value (no checkboxes, returns single value) (default: false)
   renderAsDropdown?: boolean, // If true and singleValue is true, render as dropdown-select instead of filterable chooser (default: false)
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request data from plugin
+  fieldKey?: string, // Unique key for this field instance (used to generate unique input id)
 }
 
 /**
@@ -56,6 +57,7 @@ export function MentionChooser({
   singleValue = false,
   renderAsDropdown = false,
   requestFromPlugin,
+  fieldKey,
 }: MentionChooserProps): React$Node {
   const [mentions, setMentions] = useState<Array<string>>([])
   const [loaded, setLoaded] = useState<boolean>(false)
@@ -184,6 +186,7 @@ export function MentionChooser({
         allowCreate={allowCreate}
         singleValue={singleValue}
         onCreate={handleCreateMention}
+        fieldKey={fieldKey}
       />
     </div>
   )

@@ -8,12 +8,50 @@
 
 import { log, logError, logDebug, logWarn, timer } from '@helpers/dev'
 import { chooseOption, chooseFolder, showMessageYesNo } from '@helpers/userInput'
+import { chooseNoteV2 } from '@helpers/NPnote'
 import pluginJson from '../../plugin.json'
 import FrontmatterModule from '../support/modules/FrontmatterModule'
 import { normalizeToNotePlanFilename } from '../utils'
 import { getTemplateFolder } from '../config'
 import { clo } from '@helpers/dev'
 import { getContentWithLinks } from '@helpers/content'
+import { getAllTeamspaceIDsAndTitles, getTeamspaceRootIdentifier } from '@helpers/NPTeamspace'
+
+/**
+ * Builds a list of all possible template folder prefixes including private root and all teamspace root folders.
+ * This includes both @Templates and @Forms directories in all spaces.
+ * @async
+ * @returns {Promise<Array<string>>} Array of folder prefixes to search for templates
+ */
+export async function getTemplateFolderPrefixes(): Promise<Array<string>> {
+  const templateFolder = await getTemplateFolder()
+
+  // Get template folder name from DataStore.preference (localized) or fall back to environment variable
+  const templateFolderPreference = DataStore.preference('templateFolder')
+  const templateFolderName: string = (typeof templateFolderPreference === 'string' && templateFolderPreference) || templateFolder || '@Templates'
+
+  // Get Forms folder name - check if there's a preference, otherwise use default
+  const formsFolderPreference = DataStore.preference('formsFolder')
+  const formsFolderName: string = (typeof formsFolderPreference === 'string' && formsFolderPreference) || '@Forms'
+
+  // Build list of all possible template folder prefixes
+  // Include Templates and Forms folders in both private root and all teamspace root folders
+  const templateFolderPrefixes: Array<string> = []
+
+  // Private root folders
+  templateFolderPrefixes.push(templateFolderName)
+  templateFolderPrefixes.push(formsFolderName)
+
+  // Teamspace root folders
+  const teamspaces = getAllTeamspaceIDsAndTitles()
+  const teamspacePrefix = getTeamspaceRootIdentifier()
+  for (const teamspace of teamspaces) {
+    templateFolderPrefixes.push(`${teamspacePrefix}/${teamspace.id}/${templateFolderName}`)
+    templateFolderPrefixes.push(`${teamspacePrefix}/${teamspace.id}/${formsFolderName}`)
+  }
+
+  return templateFolderPrefixes
+}
 
 /**
  * Helper function to get filtered template list by attribute (type or tags).
@@ -53,9 +91,23 @@ export async function getFilteredTemplateList(
     const filterValues = Array.isArray(filters) ? filters : filters.split(',').map((filter: string) => filter.trim())
     logDebug(`getFilteredTemplateList: ${debugPrefix} 1: filterValues: ${filterValues}`)
 
+    // Get all template folder prefixes (includes private root and all teamspace root folders)
+    const templateFolderPrefixes = await getTemplateFolderPrefixes()
+
+    logDebug(
+      pluginJson,
+      `getFilteredTemplateList: ${debugPrefix} Searching in ${templateFolderPrefixes.length} template folder prefixes: ${templateFolderPrefixes.slice(0, 4).join(', ')}${
+        templateFolderPrefixes.length > 4 ? '...' : ''
+      }`,
+    )
+
     // Get all templates with basic filtering
+    // Check if filename starts with any of the template folder prefixes
     const allTemplates = DataStore.projectNotes
-      .filter((n) => n.filename?.startsWith(templateFolder))
+      .filter((n) => {
+        if (!n.filename) return false
+        return templateFolderPrefixes.some((prefix) => n.filename.startsWith(prefix))
+      })
       .filter((n) => !filterFrontmatterTypes || !n.frontmatterTypes.includes('ignore'))
       .filter((n) => !filterFrontmatterTypes || !n.frontmatterTypes.includes('template-helper'))
       .filter((n) => !n.title?.startsWith('_configuration'))
@@ -66,9 +118,9 @@ export async function getFilteredTemplateList(
     const { matches, exclude } = buildFilterMatches(filterValues)
 
     // Filter templates in a single pass
-    const templateList = []
+    const templateList: Array<{ label: string, value: string, note?: TNote }> = []
     for (const note of allTemplates) {
-      if (note.title == null) continue
+      if (note.title == null || !note.filename) continue
 
       // Get attributes efficiently
       const attrs =
@@ -79,11 +131,12 @@ export async function getFilteredTemplateList(
 
       // Check if template matches filters
       if (templateMatchesFilters(attributeValues, matches, exclude, filterValues)) {
-        const result = { label: note.title, value: note.filename }
-        if (includeNoteObject) {
-          // $FlowIgnore
-          result.note = note
-        }
+        // We already checked note.title != null and note.filename above, so it's safe to use here
+        // $FlowFixMe - Flow doesn't understand that we've already filtered out null titles/filenames
+        const title: string = (note.title: any) || ''
+        const filename: string = (note.filename: any) || ''
+        // $FlowFixMe - Flow has issues with optional properties in object literals
+        const result: { label: string, value: string, note?: TNote } = includeNoteObject ? { label: title, value: filename, note } : { label: title, value: filename }
         templateList.push(result)
       }
     }
@@ -184,25 +237,37 @@ export async function chooseTemplate(tags?: any = '*', promptMessage: string = '
       templateGroupTemplatesByFolder = userOptions.templateGroupTemplatesByFolder
     }
 
-    const templateList = await getTemplateList(tags) // an array of {label: the title, value: the filename}
+    const templateList = await getTemplateList(tags) // an array of {label: the title, value: the filename, note?: TNote}
 
-    let options = []
-    for (const template of templateList) {
-      const parts = template.value.split('/')
-      const filename = parts.pop()
-      let label = template.value.replace(`${NotePlan.environment.templateFolder}/`, '').replace(filename, template.label.replace('/', '-'))
-      if (!templateGroupTemplatesByFolder) {
-        const parts = label.split('/')
-        label = parts[parts.length - 1]
-      }
-      options.push({ label, value: template.value })
+    // Filter out any templates that don't have note objects (shouldn't happen with includeNoteObject: true, but safety check)
+    const templateNotes = templateList.filter((template) => template.note != null).map((template) => template.note)
+
+    if (templateNotes.length === 0) {
+      logWarn(pluginJson, `chooseTemplate: No templates found with tags "${tags}"`)
+      return null
     }
 
     // $FlowIgnore
-    logDebug(pluginJson, `getTemplateContent: pulled together ${options.length} templates in ${timer(start)}`)
-    clo(options[0], 'chooseTemplate options[0]:')
-    // TODO: use chooseNoteV2 instead of chooseOption
-    return await chooseOption<TNote, void>(promptMessage, options)
+    logDebug(pluginJson, `chooseTemplate: Found ${templateNotes.length} templates in ${timer(start)}`)
+
+    // Use chooseNoteV2 to show decorated note selection (includes icons, colors, folder paths, etc.)
+    // This will show templates from both @Templates and @Forms directories across all spaces
+    const selectedNote = await chooseNoteV2(
+      promptMessage,
+      templateNotes,
+      false, // includeCalendarNotes - templates are always regular notes
+      false, // includeFutureCalendarNotes
+      false, // currentNoteFirst
+      false, // allowNewRegularNoteCreation - don't allow creating new notes from template chooser
+    )
+
+    if (!selectedNote) {
+      logDebug(pluginJson, `chooseTemplate: User cancelled template selection`)
+      return null
+    }
+
+    // Return the filename (to maintain backward compatibility with code that expects a filename string)
+    return selectedNote.filename || null
   } catch (error) {
     logError(pluginJson, error)
     return null
@@ -228,11 +293,18 @@ export async function getFilenameFromTemplate(note: string = ''): Promise<string
   if (notes == null) {
     return 'INCOMPLETE'
   }
-  const finalNotes = notes.filter((note) => note.filename.startsWith(NotePlan.environment.templateFolder))
+
+  // Get all template folder prefixes (includes private root and all teamspace root folders)
+  const templateFolderPrefixes = await getTemplateFolderPrefixes()
+
+  // Filter notes to only include those in Templates or Forms folders (in any space)
+  const finalNotes = notes.filter((note) => templateFolderPrefixes.some((prefix) => note.filename.startsWith(prefix)))
   if (finalNotes.length > 1) {
     return 'MULTIPLE NOTES FOUND'
+  } else if (finalNotes.length === 1) {
+    return finalNotes[0].filename
   } else {
-    return notes[0].filename
+    return 'INCOMPLETE'
   }
 }
 
@@ -289,18 +361,36 @@ export async function getTemplateContent(templateName: string = '', options: any
   const parts = templateName.split('/')
   const filename = parts.pop()
 
-  let templateFolderName = await getTemplateFolder()
+  // Get all template folder prefixes (includes private root and all teamspace root folders)
+  const searchFolders = await getTemplateFolderPrefixes()
+
+  // Get template folder name for backward compatibility (first folder in list is typically the main template folder)
+  const templateFolderName = searchFolders[0] || '@Templates'
+
   let originalFilename = templateName
   let templateFilename = templateName
-  if (!templateName.includes(templateFolderName)) {
+
+  // Check if templateName already includes a folder path
+  const hasFolderPath = searchFolders.some((folder) => templateName.startsWith(`${folder}/`))
+  if (!hasFolderPath) {
+    // Try template folder first (for backward compatibility)
     templateFilename = `${templateFolderName}/${templateName}`
   }
   let selectedTemplate: TNote | null = null
 
   try {
     if (isFilename) {
+      // First try the constructed filename
       const fullFilename = templateFilename
       selectedTemplate = (await DataStore.projectNoteByFilename(fullFilename)) || null
+
+      // If not found, try searching in all template folders
+      if (!selectedTemplate && !hasFolderPath) {
+        for (const folder of searchFolders) {
+          selectedTemplate = (await DataStore.projectNoteByFilename(`${folder}/${templateName}`)) || null
+          if (selectedTemplate) break
+        }
+      }
 
       // if the template can't be found using actual filename (as it is on disk)
       // this will occur due to an issue in NotePlan where name on disk does not match note (or template) name
@@ -326,39 +416,42 @@ export async function getTemplateContent(templateName: string = '', options: any
         templates = foundTemplates ? Array.from(foundTemplates) : []
         logDebug(pluginJson, `getTemplateContent: Found ${templates.length} notes in DataStore matching title: ${filename || ''}`)
         if (parts.length > 0 && templates && templates.length > 0) {
-          // ensure the path part matched
+          // ensure the path part matched - check against all template folders
           let path = parts.join('/')
-          if (!path.startsWith(templateFolderName)) {
+          const pathMatchesFolder = searchFolders.some((folder) => path.startsWith(`${folder}/`))
+          if (!pathMatchesFolder) {
+            // Try template folder first (for backward compatibility)
             path = templateFolderName + (path.startsWith('/') ? path : `/${path}`)
           }
-          templates = templates.filter((template) => template.filename.startsWith(path)) || []
+          templates = templates.filter((template) => searchFolders.some((folder) => template.filename.startsWith(folder)) && template.filename.startsWith(path)) || []
           logDebug(pluginJson, `getTemplateContent: Found ${templates.length} notes matching title: ${filename || ''} and path: ${path}`)
+        } else {
+          // Filter to only templates in Templates or Forms folders (in any space)
+          templates = templates.filter((template) => searchFolders.some((folder) => template.filename.startsWith(folder))) || []
         }
       }
       if (templates && templates.length > 1) {
         logWarn(pluginJson, `getTemplateContent: Multiple templates found for "${templateFilename || ''}"`)
-        let templatesSecondary = []
-        for (const template of templates) {
-          if (template && template.filename.startsWith(templateFolderName)) {
-            const parts = template.filename.split('/')
-            parts.pop()
-            // $FlowIgnore
-            templatesSecondary.push({ value: template.filename, label: `${parts.join('/')}/${template.title}`, title: template.title })
-          }
-        }
+        // Filter templates to only include those in template folders (Templates and Forms in all spaces)
+        const filteredTemplates = templates.filter((template) => template && searchFolders.some((folder) => template.filename.startsWith(folder)))
 
-        if (templatesSecondary.length > 1) {
-          logDebug(pluginJson, `getTemplateContent: pulled together ${templatesSecondary.length} templates in ${timer(startTime)}`)
-          // TODO: use chooseNoteV2 instead of chooseOption
-          // $FlowIgnore
-          let selectedItem = (await chooseOption<TNote, void>('Choose Template', templatesSecondary)) || null
-          if (selectedItem) {
-            // $FlowIgnore
-            selectedTemplate = await DataStore.projectNoteByFilename(selectedItem)
+        if (filteredTemplates.length > 1) {
+          logDebug(pluginJson, `getTemplateContent: pulled together ${filteredTemplates.length} templates in ${timer(startTime)}`)
+          // Use chooseNoteV2 to show decorated note selection (includes icons, colors, folder paths, etc.)
+          // This will show templates from both @Templates and @Forms directories across all spaces
+          const selectedNote = await chooseNoteV2(
+            'Choose Template',
+            filteredTemplates,
+            false, // includeCalendarNotes - templates are always regular notes
+            false, // includeFutureCalendarNotes
+            false, // currentNoteFirst
+            false, // allowNewRegularNoteCreation - don't allow creating new notes from template chooser
+          )
+          if (selectedNote) {
+            selectedTemplate = selectedNote
           }
-        } else if (templatesSecondary.length === 1) {
-          // $FlowIgnore
-          selectedTemplate = await DataStore.projectNoteByFilename(templatesSecondary[0].value)
+        } else if (filteredTemplates.length === 1) {
+          selectedTemplate = filteredTemplates[0]
         } else {
           logError(pluginJson, `getTemplateContent: No templates found for ${templateFilename}`)
         }
@@ -459,16 +552,33 @@ export async function createTemplate(title: string = '', metaData: any, content:
  * @returns {Promise<boolean>} True if the template exists, false otherwise
  */
 export async function templateExists(title: string = ''): Promise<boolean> {
-  const templateFolder = await getTemplateFolder()
+  // Get all template folder prefixes (includes private root and all teamspace root folders)
+  const templateFolderPrefixes = await getTemplateFolderPrefixes()
 
-  let templateFilename = (await getTemplateFolder()) + title.replace(/@Templates/gi, '').replace(/\/\//, '/')
+  // Get template folder name for constructing filename (use first folder for backward compatibility)
+  const templateFolder = templateFolderPrefixes[0] || '@Templates'
+
+  let templateFilename = templateFolder + title.replace(/@Templates/gi, '').replace(/\/\//, '/')
   templateFilename = await normalizeToNotePlanFilename(templateFilename)
   try {
+    // First try the constructed filename
     let note: TNote | null | void = undefined
     note = await DataStore.projectNoteByFilename(`${templateFilename}.md`)
 
     if (typeof note === 'undefined') {
       note = await DataStore.projectNoteByFilename(`${templateFilename}.txt`)
+    }
+
+    // If not found, try searching in all template folders
+    if (typeof note === 'undefined') {
+      for (const folderPrefix of templateFolderPrefixes) {
+        const testFilename = `${folderPrefix}/${title.replace(/@Templates/gi, '').replace(/\/\//, '/')}`
+        const normalizedTestFilename = await normalizeToNotePlanFilename(testFilename)
+        note = await DataStore.projectNoteByFilename(`${normalizedTestFilename}.md`)
+        if (typeof note !== 'undefined') break
+        note = await DataStore.projectNoteByFilename(`${normalizedTestFilename}.txt`)
+        if (typeof note !== 'undefined') break
+      }
     }
 
     return typeof note !== 'undefined'

@@ -272,16 +272,22 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
     // These contain template tags that reference form field values and should not be processed during form opening
     if (templateNote) {
       if (templateNote) {
+        // Remove customCSS from frontmatter (it should only come from codeblock)
+        delete frontmatterAttributes.customCSS
+
         // Load templateBody from codeblock
         const templateBodyFromCodeblock = await loadTemplateBodyFromTemplate(templateNote)
         if (templateBodyFromCodeblock) {
           frontmatterAttributes.templateBody = templateBodyFromCodeblock
         }
 
-        // Load custom CSS from codeblock
+        // Load custom CSS from codeblock (always use codeblock, not frontmatter)
         const customCSSFromCodeblock = await loadCustomCSSFromTemplate(templateNote)
         if (customCSSFromCodeblock) {
           frontmatterAttributes.customCSS = customCSSFromCodeblock
+        } else {
+          // Ensure it's empty if codeblock doesn't exist
+          frontmatterAttributes.customCSS = ''
         }
 
         // Load TemplateRunner args from codeblock
@@ -362,6 +368,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
     let selectedTemplate
     let formFields: Array<Object> = []
     let templateNote = null
+    let isNewForm = false // Track if this is a newly created form
     const receivingTemplateTitle: string = '' // Track receiving template title for newly created forms
 
     if (templateTitle?.trim().length) {
@@ -521,6 +528,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         }
 
         selectedTemplate = filename
+        isNewForm = true // Mark this as a new form so default comment field is added
         logDebug(pluginJson, `openFormBuilder: Set frontmatter and selectedTemplate = ${selectedTemplate}, receivingTemplateTitle = "${receivingTemplateTitle}"`)
 
         // Generate processing template link if receiving template exists
@@ -731,6 +739,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
       templateFilename: selectedTemplate,
       templateTitle: templateNote?.title || '',
       initialReceivingTemplateTitle: initialReceivingTemplateTitle,
+      isNewForm: isNewForm, // Pass isNewForm flag so default comment field is added
     })
     logDebug(pluginJson, `openFormBuilder: openFormBuilderWindow call completed`)
   } catch (error) {

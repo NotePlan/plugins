@@ -9,9 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b14] 2026-01-09
+## [2.4.0.b14] 2026-01-16
 ### Changed
 - force iPad and iPhone to run in "main window" mode, not "floating window" mode, if it can.  Where it does, then change layout of right-hand-side of Header.
+- now supports the updated Plugins Preference from NP 3.20.1, which includes the ability to add the plugin to the sidebar.
 
 ## [2.4.0.b13] 2026-01-09
 ### Changed

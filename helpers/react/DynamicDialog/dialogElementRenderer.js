@@ -149,6 +149,8 @@ export function renderItem({
             validationType={item.validationType || undefined}
             debounceOnChange={(item: any).debounceOnChange !== false} // Default to true, allow opt-out
             debounceMs={(item: any).debounceMs || 500}
+            id={item.key ? `input-${item.key}` : undefined}
+            name={item.key || undefined}
           />
         )
       case 'input-readonly':
@@ -211,6 +213,8 @@ export function renderItem({
             step={item.step} // Pass the step prop
             debounceOnChange={(item: any).debounceOnChange !== false} // Default to true, allow opt-out
             debounceMs={(item: any).debounceMs || 500}
+            id={item.key ? `input-${item.key}` : undefined}
+            name={item.key || undefined}
           />
         )
       case 'combo': {
@@ -280,7 +284,7 @@ export function renderItem({
         )
       }
       case 'text':
-        return <TextComponent disabled={disabled} key={`text${index}`} textType={item.textType || 'description'} label={thisLabel} />
+        return <TextComponent disabled={disabled} key={`text${index}`} textType={item.textType || 'description'} label={item.label || ''} />
       case 'separator':
         return <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
       case 'heading': {
@@ -424,23 +428,33 @@ export function renderItem({
           : []
         // Get current value from item.value or item.default
         const currentValue = item.value || item.default || ''
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+
+        // Render similar to InputBox/calendarpicker - label and button group in a container
+        // Use div instead of label since button-group has no form input to associate with
         return (
-          <ButtonGroup
+          <div
             key={`btn-group${index}`}
-            options={normalizedButtonOptions}
-            selectedValue={currentValue}
-            disabled={disabled}
-            onClick={(value) => {
-              if (item.key) {
-                const key = item.key
-                handleButtonClick(key, value)
-                handleFieldChange(key, value)
-              } else {
-                console.error('Button group item is missing a key')
-              }
-            }}
-            vertical={item.vertical}
-          />
+            className={`${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'} ${indent ? 'indent' : ''}`}
+          >
+            {label && <div className="input-box-label">{label}</div>}
+            <ButtonGroup
+              options={normalizedButtonOptions}
+              selectedValue={currentValue}
+              disabled={disabled}
+              onClick={(value) => {
+                if (item.key) {
+                  const key = item.key
+                  handleButtonClick(key, value)
+                  handleFieldChange(key, value)
+                } else {
+                  console.error('Button group item is missing a key')
+                }
+              }}
+              vertical={item.vertical}
+            />
+          </div>
         )
       }
       case 'calendarpicker': {
@@ -888,6 +902,10 @@ export function renderItem({
           </div>
         )
       }
+      case 'comment': {
+        // Comment fields are Form Builder only - they don't render in form output
+        return null
+      }
       case 'space-chooser': {
         const label = item.label || ''
         const compactDisplay = item.compactDisplay || false
@@ -962,6 +980,7 @@ export function renderItem({
               singleValue={singleValue}
               renderAsDropdown={renderAsDropdown}
               requestFromPlugin={requestFromPlugin}
+              fieldKey={item.key}
             />
           </div>
         )
@@ -1010,6 +1029,7 @@ export function renderItem({
               singleValue={singleValue}
               renderAsDropdown={renderAsDropdown}
               requestFromPlugin={requestFromPlugin}
+              fieldKey={item.key}
             />
           </div>
         )
@@ -1079,6 +1099,7 @@ export function renderItem({
               folderString={folderString}
               fullPathMatch={fullPathMatch}
               requestFromPlugin={requestFromPlugin}
+              fieldKey={item.key}
             />
           </div>
         )
@@ -1120,6 +1141,8 @@ export function renderItem({
   let classNameToUse = className
   if (indent) classNameToUse += ' indent'
   if (disabled) classNameToUse += ' disabled'
+  // Add itemkey-XXX class for easy CSS targeting
+  if (item.key) classNameToUse += ` itemkey-${item.key}`
 
   // TODO: data-settings-key can be used by the Dynamic Dialog to scroll to the element when the gear icon is clicked (see Dashboard/SettingsDialog)
   return (

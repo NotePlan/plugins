@@ -34,6 +34,7 @@ export type FrontmatterKeyChooserProps = {
   folderString?: string, // Folder to limit search to (optional)
   fullPathMatch?: boolean, // Whether to match full path (default: false)
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request data from plugin
+  fieldKey?: string, // Unique key for this field instance (used to generate unique input id)
 }
 
 /**
@@ -66,6 +67,7 @@ export function FrontmatterKeyChooser({
   folderString = '',
   fullPathMatch = false,
   requestFromPlugin,
+  fieldKey,
 }: FrontmatterKeyChooserProps): React$Node {
   const [values, setValues] = useState<Array<string>>([])
   const [loaded, setLoaded] = useState<boolean>(false)
@@ -244,6 +246,7 @@ export function FrontmatterKeyChooser({
         allowCreate={allowCreate}
         singleValue={singleValue}
         onCreate={handleCreateValue}
+        fieldKey={fieldKey}
       />
     </div>
   )

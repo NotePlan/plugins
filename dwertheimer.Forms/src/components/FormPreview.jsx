@@ -391,7 +391,14 @@ export function FormPreview({
               onSave={onSave || (() => {})}
               onCancel={onCancel || (() => {})}
               handleButtonClick={() => {}}
-              style={{ width: '100%', maxWidth: '100%', margin: 0, content: { paddingLeft: '1.5rem', paddingRight: '1.5rem' } }}
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                margin: 0,
+                content: { paddingLeft: '1.5rem', paddingRight: '1.5rem' },
+                '--template-form-compact-label-width': frontmatter?.compactLabelWidth || undefined,
+                '--template-form-compact-input-width': frontmatter?.compactInputWidth || undefined,
+              }}
               allowEmptySubmit={allowEmptySubmit || frontmatter.allowEmptySubmit || false}
               hideDependentItems={frontmatter.hideDependentItems || false}
               folders={folders}

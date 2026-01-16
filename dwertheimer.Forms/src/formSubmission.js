@@ -7,6 +7,551 @@ import pluginJson from '../plugin.json'
 import { type PassedData } from './NPTemplateForm.js'
 import { logError, logDebug, clo, JSP } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
+import { replaceSmartQuotes } from '@templating/utils/stringUtils'
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Check if a key is a valid JavaScript identifier
+ * @param {string} key - The key to check
+ * @returns {boolean} - True if the key is a valid JavaScript identifier
+ */
+function isValidIdentifier(key: string): boolean {
+  // JavaScript identifier: starts with letter/underscore/$ and contains only letters, digits, underscore, $
+  return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)
+}
+
+/**
+ * Generate a key from label + random string for use in error messages
+ * @param {string} label - The field label
+ * @param {number} index - The field index
+ * @returns {string} - A valid JavaScript identifier
+ */
+function generateKeyFromLabel(label: string, index: number): string {
+  // Sanitize label: remove special chars, replace spaces/hyphens with underscores, ensure starts with letter/underscore
+  let sanitized = (label || 'templatejs-block')
+    .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove special chars except spaces, hyphens, underscores
+    .replace(/[\s-]+/g, '_') // Replace spaces and hyphens with underscores
+    .replace(/_+/g, '_') // Replace multiple underscores with single underscore
+    .substring(0, 30) // Limit length
+    .toLowerCase()
+    .trim()
+
+  // Ensure it starts with a letter or underscore (valid JS identifier requirement)
+  if (sanitized.length === 0 || !/^[a-zA-Z_]/.test(sanitized)) {
+    sanitized = `block_${sanitized}`
+  }
+
+  // Generate random string (4 chars) for uniqueness
+  const randomStr = Math.random().toString(36).substring(2, 6)
+  return `${sanitized}_${randomStr}_${index + 1}`
+}
+
+/**
+ * Prepare form values for rendering by removing internal flags
+ * @param {Object} formValues - The raw form values
+ * @returns {Object} - Cleaned form values
+ */
+function prepareFormValuesForRendering(formValues: Object): Object {
+  const cleaned = { ...formValues }
+  delete cleaned.__isJSON__
+  return cleaned
+}
+
+/**
+ * Get the full templating context with form values merged in
+ * @param {Object} formValues - The form values to merge into context
+ * @returns {Promise<Object>} - The full templating context
+ */
+async function getTemplatingContext(formValues: Object): Promise<Object> {
+  logDebug(pluginJson, `getTemplatingContext: Getting templating render context...`)
+  const templatingContext = await DataStore.invokePluginCommandByName('getRenderContext', 'np.Templating', [formValues])
+  logDebug(pluginJson, `getTemplatingContext: Got templating context with ${Object.keys(templatingContext).length} keys`)
+  return templatingContext
+}
+
+/**
+ * Extract templatejs blocks from form fields
+ * @param {Array<Object>} formFields - The form fields array
+ * @param {string} executeTiming - Filter by execute timing ('before' or 'after')
+ * @returns {Array<{field: Object, code: string, order: number}>} - Array of templatejs blocks
+ */
+function extractTemplateJSBlocks(formFields: Array<Object>, executeTiming?: string): Array<{ field: Object, code: string, order: number }> {
+  const blocks: Array<{ field: Object, code: string, order: number }> = []
+  formFields.forEach((field, index) => {
+    if (field.type === 'templatejs-block' && field.templateJSContent) {
+      const rawCode = String(field.templateJSContent).trim()
+      // Sanitize the code when extracting (replace smart quotes, etc.)
+      const code = sanitizeTemplateJSCode(rawCode)
+      if (code) {
+        const fieldExecuteTiming = field.executeTiming || 'after'
+        if (!executeTiming || fieldExecuteTiming === executeTiming) {
+          blocks.push({ field, code, order: index })
+        }
+      }
+    }
+  })
+  // Sort by order (top to bottom)
+  blocks.sort((a, b) => a.order - b.order)
+  return blocks
+}
+
+/**
+ * Sanitize templateJS code before execution
+ * - Replaces smart quotes with straight quotes
+ * - Removes any other problematic characters
+ * @param {string} code - The raw templateJS code
+ * @returns {string} - The sanitized code
+ */
+function sanitizeTemplateJSCode(code: string): string {
+  if (!code || typeof code !== 'string') {
+    return code || ''
+  }
+
+  // Replace smart quotes with straight quotes
+  let sanitized = replaceSmartQuotes(code)
+
+  // Ensure it's still a string after processing
+  if (typeof sanitized !== 'string') {
+    sanitized = String(sanitized)
+  }
+
+  return sanitized
+}
+
+/**
+ * Execute a single templatejs block with the given context
+ * @param {Object} field - The field object
+ * @param {string} code - The JavaScript code to execute
+ * @param {Object} context - The execution context
+ * @param {number} blockIndex - The index of this block (for error messages)
+ * @returns {Promise<Object|null>} - The returned object from the block, or null on error
+ */
+async function executeTemplateJSBlock(field: Object, code: string, context: Object, blockIndex: number): Promise<Object | null> {
+  const fieldIdentifier = field.key || generateKeyFromLabel(field.label || '', blockIndex)
+  try {
+    logDebug(pluginJson, `executeTemplateJSBlock: Executing templatejs block from field "${fieldIdentifier}"`)
+
+    // Sanitize the code before execution (replace smart quotes, etc.)
+    const sanitizedCode = sanitizeTemplateJSCode(code)
+    if (sanitizedCode !== code) {
+      logDebug(pluginJson, `executeTemplateJSBlock: Code was sanitized (smart quotes replaced)`)
+    }
+
+    // Build context variables - only create variables for valid JavaScript identifiers
+    const contextVars = Object.keys(context)
+      .map((key) => {
+        if (isValidIdentifier(key)) {
+          return `const ${key} = params.${key};`
+        }
+        // For invalid identifiers, don't create a variable - user can access via params['key-name']
+        return `// Key "${key}" is not a valid JavaScript identifier - access via params['${key}']`
+      })
+      .join('\n')
+
+    const functionBody = `
+      ${contextVars}
+      // Execute user's code
+      // All templating functions are available: moment, date, note, tasks, etc.
+      ${sanitizedCode}
+    `
+
+    // $FlowIgnore[prop-missing] - Function constructor is safe here as code comes from form definition
+    const fn = Function.apply(null, ['params', functionBody])
+    const result = fn(context)
+
+    // Validate that the code returned an object
+    if (result && typeof result === 'object' && !Array.isArray(result)) {
+      logDebug(pluginJson, `executeTemplateJSBlock: TemplateJS block "${fieldIdentifier}" returned object with keys: ${Object.keys(result).join(', ')}`)
+      return result
+    } else if (result !== undefined) {
+      logError(pluginJson, `executeTemplateJSBlock: TemplateJS block "${fieldIdentifier}" should return an object, but returned: ${typeof result}`)
+      await showMessage(
+        `TemplateJS block "${fieldIdentifier}" should return an object, but returned ${typeof result}. Please update your code to return an object (e.g., return { key: value }).`,
+      )
+      return null
+    } else {
+      logError(pluginJson, `executeTemplateJSBlock: TemplateJS block "${fieldIdentifier}" did not return anything. It should return an object.`)
+      await showMessage(`TemplateJS block "${fieldIdentifier}" did not return anything. Please update your code to return an object (e.g., return { key: value }).`)
+      return null
+    }
+  } catch (error) {
+    logError(pluginJson, `executeTemplateJSBlock: Error executing templatejs block "${fieldIdentifier}": ${error.message}`)
+    await showMessage(`Error executing TemplateJS block "${fieldIdentifier}": ${error.message}`)
+    return null
+  }
+}
+
+/**
+ * Execute all templatejs blocks in order and merge their results into context
+ * @param {Array<{field: Object, code: string, order: number}>} blocks - The templatejs blocks to execute
+ * @param {Object} initialContext - The initial execution context
+ * @returns {Promise<Object|null>} - The merged context, or null on error
+ */
+async function executeTemplateJSBlocks(blocks: Array<{ field: Object, code: string, order: number }>, initialContext: Object): Promise<Object | null> {
+  let context = { ...initialContext }
+
+  for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+    const { field, code } = blocks[blockIndex]
+    const result = await executeTemplateJSBlock(field, code, context, blockIndex)
+
+    if (result === null) {
+      // Error occurred, abort
+      return null
+    }
+
+    // Merge the returned object into context
+    context = { ...context, ...result }
+  }
+
+  return context
+}
+
+/**
+ * Handle template runner result - check for AI analysis and store in reactWindowData
+ * @param {any} templateRunnerResult - The result from templateRunner
+ * @param {PassedData} reactWindowData - The React window data to update
+ */
+function handleTemplateRunnerResult(templateRunnerResult: any, reactWindowData: PassedData): void {
+  logDebug(
+    pluginJson,
+    `handleTemplateRunnerResult: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(
+      templateRunnerResult?.includes?.('==**Templating Error Found**') || false,
+    )}`,
+  )
+
+  // Check if result contains AI analysis (error message from template rendering)
+  if (templateRunnerResult && typeof templateRunnerResult === 'string' && templateRunnerResult.includes('==**Templating Error Found**')) {
+    logDebug(pluginJson, `handleTemplateRunnerResult: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
+    // Store AI analysis result in reactWindowData so it can be passed back to React window
+    if (!reactWindowData.pluginData) {
+      reactWindowData.pluginData = {}
+    }
+    ;(reactWindowData.pluginData: any).aiAnalysisResult = templateRunnerResult
+    logDebug(
+      pluginJson,
+      `handleTemplateRunnerResult: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`,
+    )
+  } else {
+    logDebug(pluginJson, `handleTemplateRunnerResult: No AI analysis result detected in templateRunner result`)
+  }
+}
+
+// ============================================================================
+// Processing Method Handlers
+// ============================================================================
+
+/**
+ * Process form submission using form-processor method
+ * @param {Object} data - The submission data
+ * @param {PassedData} reactWindowData - The React window data
+ * @returns {Promise<PassedData | null>} - Updated React window data or null on error
+ */
+async function processFormProcessor(data: any, reactWindowData: PassedData): Promise<PassedData | null> {
+  const { receivingTemplateTitle, formValues, shouldOpenInEditor } = data
+
+  if (!receivingTemplateTitle) {
+    await showMessage('No Processing Template was Provided; You should set a processing template in your form settings.')
+    return null
+  }
+
+  // Step 1: Prepare form values and get templating context
+  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  const templatingContext = await getTemplatingContext(formValuesForRendering)
+
+  // Step 2: Extract and execute templatejs blocks
+  // Note: We use the full templating context for execution so templatejs blocks have access to moment, date, etc.
+  const formFields = reactWindowData?.pluginData?.formFields || []
+  const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
+
+  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext)
+  if (fullContext === null) {
+    return null // Error occurred during templatejs block execution
+  }
+
+  // Step 3: Extract only form-specific variables (form values + templatejs block results)
+  // Don't pass templating context (modules, globals) to templateRunner - it will add those itself
+  // Track which keys are templating context keys (these should be excluded)
+  const templatingContextKeys = new Set(Object.keys(templatingContext))
+
+  // Build a clean object with only form-specific variables
+  const formSpecificVars: { [string]: any } = {}
+  Object.keys(fullContext).forEach((key) => {
+    // Only include keys that are NOT in the templating context (i.e., form values or templatejs block results)
+    if (!templatingContextKeys.has(key)) {
+      formSpecificVars[key] = fullContext[key]
+    }
+  })
+
+  // Also include original form values (in case templatejs blocks didn't add them)
+  Object.keys(formValuesForRendering).forEach((key) => {
+    if (!(key in formSpecificVars)) {
+      formSpecificVars[key] = formValuesForRendering[key]
+    }
+  })
+
+  // Step 4: Call templateRunner with only form-specific variables
+  const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, formSpecificVars]
+  clo(argumentsToSend, `processFormProcessor: Calling templateRunner with form-specific variables only (after executing ${templateJSBlocks.length} templatejs blocks)`)
+
+  const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
+  handleTemplateRunnerResult(templateRunnerResult, reactWindowData)
+
+  return reactWindowData
+}
+
+/**
+ * Process form submission using write-existing method
+ * @param {Object} data - The submission data
+ * @param {PassedData} reactWindowData - The React window data
+ * @returns {Promise<PassedData | null>} - Updated React window data or null on error
+ */
+async function processWriteExisting(data: any, reactWindowData: PassedData): Promise<PassedData | null> {
+  const { getNoteTitled, location, writeUnderHeading, createMissingHeading, formValues, shouldOpenInEditor } = data
+
+  if (!getNoteTitled) {
+    logError(pluginJson, `processWriteExisting: No target note was specified. Please set a target note in your form settings.`)
+    // await showMessage('No target note was specified. Please set a target note in your form settings.')
+    return null
+  }
+
+  // Step 1: Prepare form values and get templating context
+  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  const templatingContext = await getTemplatingContext(formValuesForRendering)
+
+  // Step 2: Extract and execute templatejs blocks
+  const formFields = reactWindowData?.pluginData?.formFields || []
+  const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
+
+  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext)
+  if (fullContext === null) {
+    return null // Error occurred during templatejs block execution
+  }
+
+  // Step 3: Extract only form-specific variables (form values + templatejs block results)
+  // Don't pass templating context (modules, globals) to templateRunner - it will add those itself
+  const templatingContextKeys = new Set(Object.keys(templatingContext))
+
+  // Build a clean object with only form-specific variables
+  const formSpecificVars: { [string]: any } = {}
+  Object.keys(fullContext).forEach((key) => {
+    // Only include keys that are NOT in the templating context (i.e., form values or templatejs block results)
+    if (!templatingContextKeys.has(key)) {
+      formSpecificVars[key] = fullContext[key]
+    }
+  })
+
+  // Also include original form values (in case templatejs blocks didn't add them)
+  Object.keys(formValuesForRendering).forEach((key) => {
+    if (!(key in formSpecificVars)) {
+      formSpecificVars[key] = formValuesForRendering[key]
+    }
+  })
+
+  // Step 4: Build template body (DO NOT insert templatejs blocks - they're already executed)
+  const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
+  const finalTemplateBody =
+    templateBody ||
+    Object.keys(formSpecificVars)
+      .filter((key) => key !== '__isJSON__')
+      .map((key) => `${key}: <%- ${key} %>`)
+      .join('\n')
+
+  // Step 5: Build templateRunner args with form-specific variables
+  const templateRunnerArgs: { [string]: any } = {
+    getNoteTitled,
+    templateBody: finalTemplateBody,
+  }
+  // Add form-specific variables (spread after explicit keys to avoid Flow error)
+  Object.keys(formSpecificVars).forEach((key) => {
+    templateRunnerArgs[key] = formSpecificVars[key]
+  })
+
+  // Step 4: Handle location options
+  if (location === 'replace') {
+    templateRunnerArgs.replaceNoteContents = true
+  } else if (location === 'prepend-under-heading') {
+    templateRunnerArgs.location = 'prepend'
+    if (writeUnderHeading) {
+      templateRunnerArgs.writeUnderHeading = writeUnderHeading
+      if (createMissingHeading !== undefined) {
+        templateRunnerArgs.createMissingHeading = createMissingHeading
+      }
+    }
+  } else if (location === 'append-under-heading') {
+    templateRunnerArgs.location = 'append'
+    if (writeUnderHeading) {
+      templateRunnerArgs.writeUnderHeading = writeUnderHeading
+      if (createMissingHeading !== undefined) {
+        templateRunnerArgs.createMissingHeading = createMissingHeading
+      }
+    }
+  } else {
+    // For other location values (append, prepend, cursor, insert)
+    if (location) {
+      templateRunnerArgs.location = location
+    }
+    if (writeUnderHeading) {
+      templateRunnerArgs.writeUnderHeading = writeUnderHeading
+      if (createMissingHeading !== undefined) {
+        templateRunnerArgs.createMissingHeading = createMissingHeading
+      }
+    }
+  }
+
+  // Step 5: Call templateRunner
+  clo(templateRunnerArgs, `processWriteExisting: Calling templateRunner with args`)
+  const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
+  handleTemplateRunnerResult(templateRunnerResult, reactWindowData)
+
+  return reactWindowData
+}
+
+/**
+ * Process form submission using run-js-only method
+ * @param {Object} data - The submission data
+ * @param {PassedData} reactWindowData - The React window data
+ * @returns {Promise<PassedData | null>} - Updated React window data or null on error
+ */
+async function processRunJSOnly(data: any, reactWindowData: PassedData): Promise<PassedData | null> {
+  const { formValues } = data
+  const formFields = reactWindowData?.pluginData?.formFields || []
+
+  logDebug(pluginJson, `processRunJSOnly: formFields.length=${formFields.length}`)
+
+  // Step 1: Prepare form values and get templating context
+  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  const templatingContext = await getTemplatingContext(formValuesForRendering)
+
+  // Step 2: Extract and execute templatejs blocks
+  const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
+
+  if (templateJSBlocks.length === 0) {
+    await showMessage('No TemplateJS block found in form fields. Please add a TemplateJS Block field to your form with the JavaScript code to execute.')
+    return null
+  }
+
+  logDebug(pluginJson, `processRunJSOnly: Found ${templateJSBlocks.length} templatejs blocks to execute`)
+
+  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext)
+  if (fullContext === null) {
+    return null // Error occurred during templatejs block execution
+  }
+
+  // Step 3: Extract only form-specific variables (form values + templatejs block results)
+  // Don't pass templating context (modules, globals) - we just want the results
+  const templatingContextKeys = new Set(Object.keys(templatingContext))
+
+  // Build a clean object with only form-specific variables (the results)
+  const results: { [string]: any } = {}
+  Object.keys(fullContext).forEach((key) => {
+    // Only include keys that are NOT in the templating context (i.e., form values or templatejs block results)
+    if (!templatingContextKeys.has(key)) {
+      results[key] = fullContext[key]
+    }
+  })
+
+  // Step 4: Show results to user (or store in reactWindowData for display)
+  const resultsString = Object.keys(results)
+    .map((key) => `${key}: ${JSON.stringify(results[key])}`)
+    .join('\n')
+
+  logDebug(pluginJson, `processRunJSOnly: JavaScript executed successfully. Results: ${resultsString}`)
+  await showMessage(`JavaScript executed successfully.\n\nResults:\n${resultsString}`)
+
+  return reactWindowData
+}
+
+/**
+ * Process form submission using create-new method
+ * @param {Object} data - The submission data
+ * @param {PassedData} reactWindowData - The React window data
+ * @returns {Promise<PassedData | null>} - Updated React window data or null on error
+ */
+async function processCreateNew(data: any, reactWindowData: PassedData): Promise<PassedData | null> {
+  const { newNoteTitle, newNoteFolder, space, formValues, shouldOpenInEditor } = data
+
+  // Step 1: Validate and clean new note title
+  const cleanedNewNoteTitle = newNoteTitle ? String(newNoteTitle).replace(/\n/g, ' ').trim() : ''
+  if (!cleanedNewNoteTitle) {
+    await showMessage('No new note title was specified. Please set a new note title in your form settings.')
+    return null
+  }
+
+  // Step 2: Prepare form values and get templating context
+  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  const templatingContext = await getTemplatingContext(formValuesForRendering)
+
+  // Step 3: Extract and execute templatejs blocks
+  const formFields = reactWindowData?.pluginData?.formFields || []
+  const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
+
+  const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext)
+  if (fullContext === null) {
+    return null // Error occurred during templatejs block execution
+  }
+
+  // Step 4: Extract only form-specific variables (form values + templatejs block results)
+  // Don't pass templating context (modules, globals) to templateRunner - it will add those itself
+  const templatingContextKeys = new Set(Object.keys(templatingContext))
+
+  // Build a clean object with only form-specific variables
+  const formSpecificVars: { [string]: any } = {}
+  Object.keys(fullContext).forEach((key) => {
+    // Only include keys that are NOT in the templating context (i.e., form values or templatejs block results)
+    if (!templatingContextKeys.has(key)) {
+      formSpecificVars[key] = fullContext[key]
+    }
+  })
+
+  // Also include original form values (in case templatejs blocks didn't add them)
+  Object.keys(formValuesForRendering).forEach((key) => {
+    if (!(key in formSpecificVars)) {
+      formSpecificVars[key] = formValuesForRendering[key]
+    }
+  })
+
+  // Step 5: Build template body (DO NOT insert templatejs blocks - they're already executed)
+  const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
+  const finalTemplateBody =
+    templateBody ||
+    Object.keys(formSpecificVars)
+      .filter((key) => key !== '__isJSON__')
+      .map((key) => `${key}: <%- ${key} %>`)
+      .join('\n')
+
+  // Step 6: Build templateRunner args with form-specific variables
+  const templateRunnerArgs: { [string]: any } = {
+    newNoteTitle: cleanedNewNoteTitle,
+    templateBody: finalTemplateBody,
+  }
+  // Add form-specific variables (spread after explicit keys to avoid Flow error)
+  Object.keys(formSpecificVars).forEach((key) => {
+    templateRunnerArgs[key] = formSpecificVars[key]
+  })
+
+  // Step 5: Handle folder path and teamspace
+  let folderPath = newNoteFolder && newNoteFolder.trim() ? newNoteFolder.trim() : '/'
+  if (space && space.trim() && !folderPath.startsWith('%%NotePlanCloud%%')) {
+    if (folderPath === '/' || folderPath === '') {
+      folderPath = `%%NotePlanCloud%%/${space}/`
+    } else {
+      const cleanFolder = folderPath.startsWith('/') ? folderPath.slice(1) : folderPath
+      folderPath = `%%NotePlanCloud%%/${space}/${cleanFolder}`
+    }
+    logDebug(pluginJson, `processCreateNew: Prefixed folder with teamspace: ${folderPath}`)
+  }
+  templateRunnerArgs.folder = folderPath
+
+  // Step 6: Call templateRunner
+  clo(templateRunnerArgs, `processCreateNew: Calling templateRunner with args`)
+  const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
+  handleTemplateRunnerResult(templateRunnerResult, reactWindowData)
+
+  return reactWindowData
+}
 
 /**
  * Insert TemplateJS blocks into templateBody based on executeTiming
@@ -25,7 +570,9 @@ export function insertTemplateJSBlocks(templateBody: string, formFields: Array<O
   // Extract TemplateJS blocks from form fields
   formFields.forEach((field) => {
     if (field.type === 'templatejs-block' && field.templateJSContent && field.key) {
-      const code = String(field.templateJSContent).trim()
+      const rawCode = String(field.templateJSContent).trim()
+      // Sanitize the code (replace smart quotes, etc.)
+      const code = sanitizeTemplateJSCode(rawCode)
       if (code) {
         // Format as templatejs code block (no extra whitespace)
         const codeBlock = `\`\`\`templatejs\n${code}\n\`\`\``
@@ -61,285 +608,63 @@ export function insertTemplateJSBlocks(templateBody: string, formFields: Array<O
  * @param {any} reactWindowData - the current data in the React Window
  * @returns {any} - the updated data to send back to the React Window
  */
+/**
+ * When someone clicks a "Submit" button in the React Window, it calls the router (onMessageFromHTMLView)
+ * which sees the actionType === "onSubmitClick" so it routes to this function for processing
+ * @param {any} data - the data sent from the React Window for the action 'onSubmitClick'
+ * @param {any} reactWindowData - the current data in the React Window
+ * @returns {any} - the updated data to send back to the React Window
+ */
 export async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): Promise<PassedData | null> {
   const { type, formValues, processingMethod, receivingTemplateTitle } = data
   clo(data, `handleSubmitButtonClick: data BEFORE acting on it`)
-  if (type === 'submit') {
-    if (formValues) {
-      formValues['__isJSON__'] = true // include a flag to indicate that the formValues are JSON for use in the Templating plugin later
-      const shouldOpenInEditor = data.shouldOpenInEditor !== false // Default to true if not set
 
-      // Get processing method from data or fall back to form-processor for backward compatibility
-      const method = processingMethod || (receivingTemplateTitle ? 'form-processor' : 'write-existing')
-
-      if (method === 'form-processor') {
-        // Option C: Use Form Processor (existing behavior)
-        if (!receivingTemplateTitle) {
-          await showMessage('No Processing Template was Provided; You should set a processing template in your form settings.')
-          return null
-        }
-        const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, JSON.stringify(formValues)]
-        clo(argumentsToSend, `handleSubmitButtonClick: Using form-processor, calling templateRunner with arguments`)
-        const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
-        logDebug(pluginJson, `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(templateRunnerResult?.includes?.('==**Templating Error Found**') || false)}`)
-        // Check if result contains AI analysis (error message from template rendering)
-        if (templateRunnerResult && typeof templateRunnerResult === 'string' && templateRunnerResult.includes('==**Templating Error Found**')) {
-          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
-          // Store AI analysis result in reactWindowData so it can be passed back to React window
-          if (!reactWindowData.pluginData) {
-            reactWindowData.pluginData = {}
-          }
-          ;(reactWindowData.pluginData: any).aiAnalysisResult = templateRunnerResult
-          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
-        } else {
-          logDebug(pluginJson, `handleSubmitButtonClick: No AI analysis result detected in templateRunner result`)
-        }
-      } else if (method === 'write-existing') {
-        // Option A: Write to Existing File
-        const { getNoteTitled, location, writeUnderHeading, createMissingHeading } = data
-        if (!getNoteTitled) {
-          await showMessage('No target note was specified. Please set a target note in your form settings.')
-          return null
-        }
-
-        // Get templateBody from reactWindowData (loaded from template codeblock) or from data, otherwise build from form values
-        const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
-        const baseTemplateBody =
-          templateBody ||
-          Object.keys(formValues)
-            .filter((key) => key !== '__isJSON__')
-            .map((key) => `${key}: <%- ${key} %>`)
-            .join('\n')
-
-        // Insert TemplateJS blocks into templateBody based on executeTiming
-        const formFields = reactWindowData?.pluginData?.formFields || []
-        const finalTemplateBody = insertTemplateJSBlocks(baseTemplateBody, formFields)
-
-        // NOTE: For 'write-existing', we do NOT pre-render templateBody here.
-        // TemplateRunner will render it at line 764 using renderTemplate(frontmatterBody, data).
-        // The form values are spread into templateRunnerArgs below so TemplateRunner can access them for rendering.
-        // Pre-rendering here would cause double-rendering, which is safe (already-rendered content with no <% tags
-        // will pass through unchanged), but unnecessary.
-
-        // Build frontmatter object for TemplateRunner
-        // Spread formValues into templateRunnerArgs so they're available for rendering template tags in templateBody
-        // Filter out __isJSON__ flag as it's not needed for rendering
-        const formValuesForRendering = { ...formValues }
-        delete formValuesForRendering.__isJSON__
-
-        const templateRunnerArgs: { [string]: any } = {
-          getNoteTitled,
-          templateBody: finalTemplateBody, // TemplateRunner will render this with form values at line 764
-          ...formValuesForRendering, // Spread form values so TemplateRunner can render template tags like <%- field1 %>
-        }
-
-        // Handle location options
-        if (location === 'replace') {
-          templateRunnerArgs.replaceNoteContents = true
-        } else if (location === 'prepend-under-heading') {
-          templateRunnerArgs.location = 'prepend'
-          if (writeUnderHeading) {
-            templateRunnerArgs.writeUnderHeading = writeUnderHeading
-            if (createMissingHeading !== undefined) {
-              templateRunnerArgs.createMissingHeading = createMissingHeading
-            }
-          }
-        } else if (location === 'append-under-heading') {
-          templateRunnerArgs.location = 'append'
-          if (writeUnderHeading) {
-            templateRunnerArgs.writeUnderHeading = writeUnderHeading
-            if (createMissingHeading !== undefined) {
-              templateRunnerArgs.createMissingHeading = createMissingHeading
-            }
-          }
-        } else {
-          // For other location values (append, prepend, cursor, insert)
-          if (location) {
-            templateRunnerArgs.location = location
-          }
-          // Only set writeUnderHeading if it's provided (for backward compatibility)
-          if (writeUnderHeading) {
-            templateRunnerArgs.writeUnderHeading = writeUnderHeading
-            if (createMissingHeading !== undefined) {
-              templateRunnerArgs.createMissingHeading = createMissingHeading
-            }
-          }
-        }
-
-        clo(templateRunnerArgs, `handleSubmitButtonClick: Using write-existing, calling templateRunner with args`)
-        const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
-        logDebug(pluginJson, `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(templateRunnerResult?.includes?.('==**Templating Error Found**') || false)}`)
-        // Check if result contains AI analysis (error message from template rendering)
-        if (templateRunnerResult && typeof templateRunnerResult === 'string' && templateRunnerResult.includes('==**Templating Error Found**')) {
-          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
-          // Store AI analysis result in reactWindowData so it can be passed back to React window
-          if (!reactWindowData.pluginData) {
-            reactWindowData.pluginData = {}
-          }
-          ;(reactWindowData.pluginData: any).aiAnalysisResult = templateRunnerResult
-          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
-        } else {
-          logDebug(pluginJson, `handleSubmitButtonClick: No AI analysis result detected in templateRunner result`)
-        }
-      } else if (method === 'run-js-only') {
-        // Option D: Run JS Only (no note creation)
-        // Get TemplateJS blocks from form fields (templatejs-block type)
-        const formFields = reactWindowData?.pluginData?.formFields || []
-        
-        logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: formFields.length=${formFields.length}`)
-        
-        // Find all TemplateJS blocks from form fields
-        const templateJSBlocks: Array<string> = []
-        formFields.forEach((field) => {
-          if (field.type === 'templatejs-block' && field.templateJSContent && field.key) {
-            const code = String(field.templateJSContent).trim()
-            logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: Found templatejs-block field "${field.key}" with ${code.length} chars of code`)
-            logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: JavaScript code: ${code.substring(0, 200)}${code.length > 200 ? '...' : ''}`)
-            if (code) {
-              templateJSBlocks.push(code)
-            }
-          }
-        })
-        
-        if (templateJSBlocks.length === 0) {
-          await showMessage('No TemplateJS block found in form fields. Please add a TemplateJS Block field to your form with the JavaScript code to execute.')
-          return null
-        }
-
-        // Combine all TemplateJS blocks (they will be executed in order)
-        // Format as templatejs code blocks
-        const finalTemplateBody = templateJSBlocks.map((code) => `\`\`\`templatejs\n${code}\n\`\`\``).join('\n')
-
-        // Build form values for rendering (filter out __isJSON__ flag)
-        const formValuesForRendering = { ...formValues }
-        delete formValuesForRendering.__isJSON__
-
-        logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: formValues keys: ${Object.keys(formValuesForRendering).join(', ')}`)
-        logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: templateBody length: ${finalTemplateBody.length} chars`)
-
-        // Execute JavaScript directly using templating plugin's render command
-        // This will process the templatejs blocks, convert them to EJS, and execute them with form values as context
-        try {
-          logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: About to execute JavaScript with form values: ${JSON.stringify(formValuesForRendering)}`)
-          const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [finalTemplateBody, formValuesForRendering])
-          logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: render result type=${typeof result}, length=${result?.length || 0}, includes AI marker=${String(result?.includes?.('==**Templating Error Found**') || false)}`)
-          
-          // Check if result contains AI analysis (error message from template rendering)
-          if (result && typeof result === 'string' && result.includes('==**Templating Error Found**')) {
-            logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
-            // Store AI analysis result in reactWindowData so it can be passed back to React window
-            if (!reactWindowData.pluginData) {
-              reactWindowData.pluginData = {}
-            }
-            ;(reactWindowData.pluginData: any).aiAnalysisResult = result
-            logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
-          } else {
-            logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: No AI analysis result detected in render result`)
-          }
-          
-          logDebug(pluginJson, `handleSubmitButtonClick: run-js-only: JavaScript executed successfully, result length: ${result?.length || 0} chars`)
-          // Result is typically empty for JS-only execution (no output expected, just side effects like creating folders)
-          // Note: If folders aren't being created, check that the JavaScript code uses the correct folder paths
-          // For example, if parentFolder is "DELETEME" and folderName is "tetpara", the code should use:
-          // DataStore.createFolder(`${parentFolder}/${folderName}`) or similar
-        } catch (error) {
-          logError(pluginJson, `handleSubmitButtonClick: run-js-only: Error executing JavaScript: ${error.message}`)
-          logError(pluginJson, `handleSubmitButtonClick: run-js-only: Error stack: ${error.stack}`)
-          await showMessage(`Error executing JavaScript: ${error.message}`)
-          return null
-        }
-      } else if (method === 'create-new') {
-        // Option B: Create New Note
-        const { newNoteTitle, newNoteFolder, space } = data
-        // Clean newNoteTitle: trim and remove any newlines (defensive)
-        const cleanedNewNoteTitle = newNoteTitle ? String(newNoteTitle).replace(/\n/g, ' ').trim() : ''
-        if (!cleanedNewNoteTitle) {
-          await showMessage('No new note title was specified. Please set a new note title in your form settings.')
-          return null
-        }
-
-        // NOTE: We do NOT pre-render newNoteTitle here anymore.
-        // TemplateRunner now handles rendering in handleNewNoteCreation.
-        // This ensures consistent behavior: TemplateRunner always renders newNoteTitle, regardless of which path is taken.
-        // The form values are spread into templateRunnerArgs below so TemplateRunner can access them for rendering.
-
-        // Get templateBody from reactWindowData (loaded from template codeblock) or from data, otherwise build from form values
-        const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
-        const baseTemplateBody =
-          templateBody ||
-          Object.keys(formValues)
-            .filter((key) => key !== '__isJSON__')
-            .map((key) => `${key}: <%- ${key} %>`)
-            .join('\n')
-
-        // Insert TemplateJS blocks into templateBody based on executeTiming
-        const formFields = reactWindowData?.pluginData?.formFields || []
-        const finalTemplateBody = insertTemplateJSBlocks(baseTemplateBody, formFields)
-
-        // NOTE: We do NOT pre-render templateBody here anymore.
-        // TemplateRunner now handles rendering in handleNewNoteCreation (for create-new) and renderTemplate (for write-existing).
-        // This ensures consistent behavior: TemplateRunner always renders templateBody, regardless of which path is taken.
-        // The form values are spread into templateRunnerArgs below so TemplateRunner can access them for rendering.
-
-        // Build frontmatter object for TemplateRunner
-        // Spread formValues into templateRunnerArgs so they're available for rendering template tags in templateBody
-        // Filter out __isJSON__ flag as it's not needed for rendering
-        const formValuesForRendering = { ...formValues }
-        delete formValuesForRendering.__isJSON__
-
-        const templateRunnerArgs: { [string]: any } = {
-          newNoteTitle: cleanedNewNoteTitle, // TemplateRunner will render this with form values in handleNewNoteCreation
-          templateBody: finalTemplateBody, // TemplateRunner will render this with form values in handleNewNoteCreation
-          ...formValuesForRendering, // Spread form values so TemplateRunner can render template tags like <%- field1 %>
-        }
-
-        // Set folder - use '/' for root folder if empty, otherwise use the specified folder
-        // If space (teamspace) is set and folder doesn't already have teamspace prefix, prepend it
-        // Don't pass null as DataStore.newNote treats null as the literal string "null"
-        let folderPath = newNoteFolder && newNoteFolder.trim() ? newNoteFolder.trim() : '/'
-        
-        // If space is set (teamspace) and folder doesn't already have teamspace prefix, prepend it
-        if (space && space.trim() && !folderPath.startsWith('%%NotePlanCloud%%')) {
-          // Construct teamspace folder path: %%NotePlanCloud%%/{teamspaceID}/{folder}
-          // Note: teamspace folder format requires / after %%NotePlanCloud%%
-          if (folderPath === '/' || folderPath === '') {
-            folderPath = `%%NotePlanCloud%%/${space}/`
-          } else {
-            // Remove leading slash from folderPath if present (we'll add it after teamspace prefix)
-            const cleanFolder = folderPath.startsWith('/') ? folderPath.slice(1) : folderPath
-            folderPath = `%%NotePlanCloud%%/${space}/${cleanFolder}`
-          }
-          logDebug(pluginJson, `handleSubmitButtonClick: Prefixed folder with teamspace: ${folderPath}`)
-        }
-        
-        templateRunnerArgs.folder = folderPath
-
-        clo(templateRunnerArgs, `handleSubmitButtonClick: Using create-new, calling templateRunner with args`)
-        const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', ['', shouldOpenInEditor, templateRunnerArgs])
-        logDebug(pluginJson, `handleSubmitButtonClick: templateRunner result type=${typeof templateRunnerResult}, length=${templateRunnerResult?.length || 0}, includes AI marker=${String(templateRunnerResult?.includes?.('==**Templating Error Found**') || false)}`)
-        // Check if result contains AI analysis (error message from template rendering)
-        if (templateRunnerResult && typeof templateRunnerResult === 'string' && templateRunnerResult.includes('==**Templating Error Found**')) {
-          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis result detected, storing in reactWindowData.pluginData.aiAnalysisResult`)
-          // Store AI analysis result in reactWindowData so it can be passed back to React window
-          if (!reactWindowData.pluginData) {
-            reactWindowData.pluginData = {}
-          }
-          ;(reactWindowData.pluginData: any).aiAnalysisResult = templateRunnerResult
-          logDebug(pluginJson, `handleSubmitButtonClick: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`)
-        } else {
-          logDebug(pluginJson, `handleSubmitButtonClick: No AI analysis result detected in templateRunner result`)
-        }
-      } else {
-        logError(pluginJson, `handleSubmitButtonClick: Unknown processing method: ${method}`)
-        await showMessage(`Unknown processing method: ${method}`)
-        return null
-      }
-    } else {
-      logError(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
-    }
-  } else {
-    logDebug(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
+  // Validate submission type
+  if (type !== 'submit') {
+    logDebug(pluginJson, `handleSubmitButtonClick: type is not 'submit', returning`)
+    return reactWindowData
   }
-  logDebug(pluginJson, `handleSubmitButtonClick: Returning reactWindowData, has aiAnalysisResult=${String(!!reactWindowData?.pluginData?.aiAnalysisResult)}, aiAnalysisResult length=${reactWindowData?.pluginData?.aiAnalysisResult?.length || 0}`)
+
+  if (!formValues) {
+    logError(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
+    return reactWindowData
+  }
+
+  // Mark form values as JSON for templating plugin
+  formValues['__isJSON__'] = true
+  const shouldOpenInEditor = data.shouldOpenInEditor !== false // Default to true if not set
+
+  // Determine processing method
+  const method = processingMethod || (receivingTemplateTitle ? 'form-processor' : 'write-existing')
+
+  // Add shouldOpenInEditor to data for processing functions
+  data.shouldOpenInEditor = shouldOpenInEditor
+
+  // Route to appropriate processing method
+  let result: PassedData | null = null
+  if (method === 'form-processor') {
+    result = await processFormProcessor(data, reactWindowData)
+  } else if (method === 'create-new') {
+    result = await processCreateNew(data, reactWindowData)
+  } else if (method === 'write-existing') {
+    result = await processWriteExisting(data, reactWindowData)
+  } else if (method === 'run-js-only') {
+    result = await processRunJSOnly(data, reactWindowData)
+  } else {
+    logError(pluginJson, `handleSubmitButtonClick: Unknown processing method: ${method}`)
+    await showMessage(`Unknown processing method: ${method}`)
+    return null
+  }
+
+  // Return result (null on error, or updated reactWindowData on success)
+  if (result === null) {
+    return null
+  }
+  logDebug(
+    pluginJson,
+    `handleSubmitButtonClick: Returning reactWindowData, has aiAnalysisResult=${String(!!reactWindowData?.pluginData?.aiAnalysisResult)}, aiAnalysisResult length=${
+      reactWindowData?.pluginData?.aiAnalysisResult?.length || 0
+    }`,
+  )
   return reactWindowData
 }

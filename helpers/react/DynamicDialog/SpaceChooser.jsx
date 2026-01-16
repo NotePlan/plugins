@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { TEAMSPACE_ICON_COLOR } from '@helpers/NPnote.js'
+import { TEAMSPACE_FA_ICON, PRIVATE_FA_ICON } from '@helpers/teamspace'
 import { truncateText } from '@helpers/react/reactUtils.js'
 import './SpaceChooser.css'
 
@@ -202,7 +203,7 @@ export function SpaceChooser({
     },
     getOptionTitle: (space: SpaceOption) => {
       if (space.id === '__all__') {
-        return 'All Private notes and all Teamspaces'
+        return ''
       }
       return space.isPrivate ? 'Private notes (default)' : `Teamspace: ${space.title}`
     },
@@ -217,28 +218,30 @@ export function SpaceChooser({
     emptyMessageNoItems: 'No spaces available',
     emptyMessageNoMatch: 'No spaces match',
     classNamePrefix: 'space-chooser',
-    iconClass: 'fa-cube', // Icon for the input field (will be prefixed with fa-solid by SearchableChooser)
+    iconClass: TEAMSPACE_FA_ICON, // Use full icon class: 'fa-regular fa-cube' (SearchableChooser will handle it)
     fieldType: 'space-chooser',
     debugLogging: true,
     maxResults: 25,
     inputMaxLength: 100,
     dropdownMaxLength: 80,
     getOptionIcon: (space: SpaceOption) => {
-      // TEAMSPACE_FA_ICON is 'fa-regular fa-cube', we need just 'cube' for fa-solid
+      // Return full Font Awesome class names to match Dashboard, Filer, and NoteHelpers
       if (space.id === '__all__') {
-        return 'layer-group' // Icon representing "all" or multiple layers
+        return 'fa-solid fa-layer-group' // Icon representing "all" or multiple layers
       }
-      return space.isPrivate ? 'user' : 'cube'
+      return space.isPrivate ? PRIVATE_FA_ICON : TEAMSPACE_FA_ICON
     },
     getOptionColor: (space: SpaceOption) => {
       if (space.id === '__all__') {
-        return undefined // Use default color for "All" option
+        // Use tint-color for "All Private + Spaces" option
+        return 'tint-color'
       }
+      // Use TEAMSPACE_ICON_COLOR (green-800) for teamspace cube icon and shortDescription (matches Dashboard, Filer, NoteHelpers)
       return space.isPrivate ? undefined : TEAMSPACE_ICON_COLOR
     },
     getOptionShortDescription: (space: SpaceOption) => {
       if (space.id === '__all__') {
-        return 'All Private notes and Teamspaces'
+        return ''
       }
       return space.isPrivate ? 'Your private notes' : 'Teamspace'
     },

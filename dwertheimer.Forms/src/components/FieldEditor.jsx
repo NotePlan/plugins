@@ -27,6 +27,16 @@ function isValidCSSWidth(value: string): boolean {
   return cssWidthRegex.test(value.trim())
 }
 
+/**
+ * Check if a field type is NOT in the excluded types array
+ * @param {string} fieldType - The field type to check
+ * @param {Array<string>} excludedTypes - Array of field types to exclude
+ * @returns {boolean} - True if field type is NOT in excluded types
+ */
+function shouldDisplayFieldType(fieldType: string, excludedTypes: Array<string>): boolean {
+  return !excludedTypes.some((excludedType) => fieldType === excludedType)
+}
+
 export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlugin }: FieldEditorProps): Node {
   const [editedField, setEditedField] = useState<TSettingItem>({ ...field })
   const [calendars, setCalendars] = useState<Array<string>>([])
@@ -37,6 +47,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
   const reminderListsLoadingRef = useRef<boolean>(false)
   const requestFromPluginRef = useRef<typeof requestFromPlugin>(requestFromPlugin)
   const [widthError, setWidthError] = useState<string>('')
+  const [templateJSError, setTemplateJSError] = useState<string>('')
 
   // Track previous field key to detect actual field changes
   const prevFieldKeyRef = useRef<string | void>(field.key)
@@ -198,7 +209,8 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
     onSave(editedField)
   }
 
-  const needsKey = editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'autosave' && editedField.type !== 'table-of-contents'
+  // templatejs-block fields don't need keys - they're auto-generated at execution time
+  const needsKey = shouldDisplayFieldType(editedField.type, ['separator', 'heading', 'autosave', 'table-of-contents', 'comment', 'templatejs-block'])
 
   // Construct header title with label, key, and type
   const headerTitle = needsKey && editedField.key ? `Editing ${editedField.type}: ${editedField.label || ''} (${editedField.key})` : `Editing: ${editedField.type}`
@@ -237,7 +249,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             </div>
           )}
 
-          {editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'table-of-contents' && editedField.type !== 'calendarpicker' && editedField.type !== 'autosave' && (
+          {shouldDisplayFieldType(editedField.type, ['separator', 'heading', 'table-of-contents', 'calendarpicker', 'autosave', 'comment']) && (
             <div className="field-editor-row">
               <label>
                 <input type="checkbox" checked={editedField.compactDisplay || false} onChange={(e) => updateField({ compactDisplay: e.target.checked })} />
@@ -259,6 +271,31 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 type="text"
                 value={((editedField: any): { width?: string }).width || ''}
                 onChange={(e) => {
+                  const rawValue = e.target.value
+                  const widthValue = rawValue.trim()
+                  const updated = { ...editedField }
+                  if (widthValue === '') {
+                    delete (updated: any).width
+                    setWidthError('')
+                  } else {
+                    // Always save the raw value while typing (allows partial/invalid values during typing)
+                    ;(updated: any).width = rawValue
+                    // Only validate if the trimmed value is complete (has a valid CSS unit or is a valid calc())
+                    // This allows typing intermediate values like "80", "80v", "calc(" without errors
+                    if (isValidCSSWidth(widthValue)) {
+                      // Valid complete value - trim and save trimmed version
+                      ;(updated: any).width = widthValue
+                      setWidthError('')
+                    } else {
+                      // Invalid or incomplete - keep raw value for typing, but don't show error yet
+                      // Error will be shown on blur if still invalid
+                      setWidthError('')
+                    }
+                  }
+                  setEditedField(updated)
+                }}
+                onBlur={(e) => {
+                  // Validate on blur when user is done typing
                   const widthValue = e.target.value.trim()
                   const updated = { ...editedField }
                   if (widthValue === '') {
@@ -268,6 +305,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                     ;(updated: any).width = widthValue
                     setWidthError('')
                   } else {
+                    ;(updated: any).width = widthValue
                     setWidthError('Invalid CSS width value. Use px, %, em, rem, vw, vh, or calc()')
                   }
                   setEditedField(updated)
@@ -288,12 +326,19 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             </div>
           )}
 
-          {editedField.type !== 'separator' && (
+          {shouldDisplayFieldType(editedField.type, ['separator', 'comment']) && (
             <div className="field-editor-row">
               <label>Description (help text):</label>
               <textarea
                 value={editedField.description || ''}
                 onChange={(e) => updateField({ description: e.target.value })}
+                onKeyDown={(e) => {
+                  // Stop Enter key from bubbling to prevent any form submission
+                  if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    e.stopPropagation()
+                    // Don't prevent default - let textarea handle Enter naturally
+                  }
+                }}
                 placeholder="Help text shown below the field"
                 rows={2}
               />
@@ -333,7 +378,19 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             <>
               <div className="field-editor-row">
                 <label>Default Value:</label>
-                <textarea value={editedField.default || ''} onChange={(e) => updateField({ default: e.target.value })} placeholder="Default value (multi-line)" rows={3} />
+                <textarea
+                  value={editedField.default || ''}
+                  onChange={(e) => updateField({ default: e.target.value })}
+                  onKeyDown={(e) => {
+                    // Stop Enter key from bubbling to prevent any form submission
+                    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                      e.stopPropagation()
+                      // Don't prevent default - let textarea handle Enter naturally
+                    }
+                  }}
+                  placeholder="Default value (multi-line)"
+                  rows={3}
+                />
               </div>
               <div className="field-editor-row">
                 <label>
@@ -361,14 +418,46 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 <textarea
                   value={((editedField: any): { templateJSContent?: string }).templateJSContent || ''}
                   onChange={(e) => {
-                    updateField((({ templateJSContent: e.target.value }: any): Partial<TSettingItem>))
+                    const newValue = e.target.value
+                    // Check for illegal backticks (```) - these are not allowed in templatejs blocks
+                    if (newValue.includes('```')) {
+                      // Remove backticks and show error
+                      const cleanedValue = newValue.replace(/```/g, '')
+                      updateField((({ templateJSContent: cleanedValue }: any): Partial<TSettingItem>))
+                      // Show error message
+                      setTemplateJSError('Backticks (```) are not allowed in TemplateJS blocks. They have been removed.')
+                      // Clear error after 3 seconds
+                      setTimeout(() => setTemplateJSError(''), 3000)
+                    } else {
+                      updateField((({ templateJSContent: newValue }: any): Partial<TSettingItem>))
+                      // Clear any previous error
+                      if (templateJSError) setTemplateJSError('')
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    // Stop Enter key from bubbling to prevent any form submission
+                    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                      e.stopPropagation()
+                      // Don't prevent default - let textarea handle Enter naturally
+                    }
                   }}
                   placeholder="// Enter JavaScript to run for this form"
                   rows={10}
-                  style={{ width: '100%', fontFamily: 'Menlo, monospace' }}
+                  style={{ width: '100%', fontFamily: 'Menlo, monospace', borderColor: templateJSError ? 'red' : undefined }}
                 />
+                {templateJSError && <div style={{ color: 'red', fontSize: '0.9rem', marginTop: '0.25rem' }}>{templateJSError}</div>}
                 <div className="field-editor-help">
-                  Enter without the backticks.Stored as plain text in the form definition. The form executor will wrap it in a <code>templateJS</code> code block at runtime.
+                  Enter without the backticks. Stored as plain text in the form definition.
+                  <br />
+                  <strong>Important:</strong> To set variables, your code must <strong>return an object</strong>. The returned object will be merged into the template context,
+                  making all its properties available to the template and later templatejs blocks.
+                  <br />
+                  Example:{' '}
+                  <code>
+                    return {'{'} bgColor: &apos;blue-50&apos;, iconColor: &apos;blue-500&apos; {'}'};
+                  </code>
+                  <br />
+                  All form field values are available as variables in your code. Blocks execute top-to-bottom, so later blocks can use values from earlier blocks.
                 </div>
               </div>
               <div className="field-editor-row">
@@ -462,7 +551,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
 
           {editedField.type === 'calendarpicker' && (
             <>
-              {editedField.type !== 'separator' && editedField.type !== 'heading' && (
+              {shouldDisplayFieldType(editedField.type, ['separator', 'heading']) && (
                 <div className="field-editor-row">
                   <label>
                     <input type="checkbox" checked={editedField.compactDisplay || false} onChange={(e) => updateField({ compactDisplay: e.target.checked })} />
@@ -1076,6 +1165,13 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                       .filter((h) => h.length > 0)
                     setEditedField(updated)
                   }}
+                  onKeyDown={(e) => {
+                    // Stop Enter key from bubbling to prevent any form submission
+                    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                      e.stopPropagation()
+                      // Don't prevent default - let textarea handle Enter naturally
+                    }
+                  }}
                   placeholder="Enter one heading per line&#10;Tasks&#10;Projects&#10;Archive"
                   rows={5}
                 />
@@ -1155,9 +1251,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   }}
                   placeholder="e.g., status, category, priority"
                 />
-                <div className="field-editor-help">
-                  Enter the frontmatter key name (e.g., &quot;status&quot;). Leave empty if using a source field below.
-                </div>
+                <div className="field-editor-help">Enter the frontmatter key name (e.g., &quot;status&quot;). Leave empty if using a source field below.</div>
               </div>
               <div className="field-editor-row">
                 <label>Source Key Field (value dependency, optional):</label>
@@ -1241,7 +1335,9 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   />
                   Choose Single Value
                 </label>
-                <div className="field-editor-help">If checked, allows selecting only one value (no checkboxes, returns single value). Clicking an item or pressing Enter selects it immediately.</div>
+                <div className="field-editor-help">
+                  If checked, allows selecting only one value (no checkboxes, returns single value). Clicking an item or pressing Enter selects it immediately.
+                </div>
               </div>
               <div className="field-editor-row">
                 <label>
@@ -1277,7 +1373,10 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   placeholder="e.g., 5 or 5.5"
                   min="0.1"
                 />
-                <div className="field-editor-help">Limit the height to show only this many result rows (overrides Max Height if provided). Assumes ~40px per row. Decimal values allowed (e.g., 5.5 for finer control).</div>
+                <div className="field-editor-help">
+                  Limit the height to show only this many result rows (overrides Max Height if provided). Assumes ~40px per row. Decimal values allowed (e.g., 5.5 for finer
+                  control).
+                </div>
               </div>
               <div className="field-editor-row">
                 <label>Custom Width (optional):</label>
@@ -1285,8 +1384,33 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   type="text"
                   value={((editedField: any): { width?: string }).width || ''}
                   onChange={(e) => {
+                    const rawValue = e.target.value
+                    const widthValue = rawValue.trim()
                     const updated = { ...editedField }
+                    if (widthValue === '') {
+                      delete (updated: any).width
+                      setWidthError('')
+                    } else {
+                      // Always save the raw value while typing (allows partial/invalid values during typing)
+                      ;(updated: any).width = rawValue
+                      // Only validate if the trimmed value is complete (has a valid CSS unit or is a valid calc())
+                      // This allows typing intermediate values like "80", "80v", "calc(" without errors
+                      if (isValidCSSWidth(widthValue)) {
+                        // Valid complete value - trim and save trimmed version
+                        ;(updated: any).width = widthValue
+                        setWidthError('')
+                      } else {
+                        // Invalid or incomplete - keep raw value for typing, but don't show error yet
+                        // Error will be shown on blur if still invalid
+                        setWidthError('')
+                      }
+                    }
+                    setEditedField(updated)
+                  }}
+                  onBlur={(e) => {
+                    // Validate on blur when user is done typing
                     const widthValue = e.target.value.trim()
+                    const updated = { ...editedField }
                     if (widthValue === '') {
                       delete (updated: any).width
                       setWidthError('')
@@ -1294,6 +1418,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                       ;(updated: any).width = widthValue
                       setWidthError('')
                     } else {
+                      ;(updated: any).width = widthValue
                       setWidthError('Invalid CSS width value. Use px, %, em, rem, vw, vh, or calc()')
                     }
                     setEditedField(updated)
@@ -1306,7 +1431,8 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                     <span style={{ color: 'red' }}>{widthError}</span>
                   ) : (
                     <>
-                      Custom width for the entire control. Overrides default width. Examples: <code>300px</code>, <code>80%</code>, <code>calc(100% - 20px)</code>. Leave empty to use default width.
+                      Custom width for the entire control. Overrides default width. Examples: <code>300px</code>, <code>80%</code>, <code>calc(100% - 20px)</code>. Leave empty to
+                      use default width.
                     </>
                   )}
                 </div>
@@ -1328,7 +1454,10 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   }}
                   placeholder="e.g., 400px"
                 />
-                <div className="field-editor-help">Custom height for the entire control. Overrides Max Height and Max Result Rows. Examples: <code>400px</code>, <code>50vh</code>. Leave empty to use default height.</div>
+                <div className="field-editor-help">
+                  Custom height for the entire control. Overrides Max Height and Max Result Rows. Examples: <code>400px</code>, <code>50vh</code>. Leave empty to use default
+                  height.
+                </div>
               </div>
               <div className="field-editor-row">
                 <label>Include Pattern (regex, optional):</label>
@@ -1431,7 +1560,9 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   />
                   Choose Single Value
                 </label>
-                <div className="field-editor-help">If checked, allows selecting only one value (no checkboxes, returns single value). Clicking an item or pressing Enter selects it immediately.</div>
+                <div className="field-editor-help">
+                  If checked, allows selecting only one value (no checkboxes, returns single value). Clicking an item or pressing Enter selects it immediately.
+                </div>
               </div>
               <div className="field-editor-row">
                 <label>
@@ -1467,7 +1598,10 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   placeholder="e.g., 5 or 5.5"
                   min="0.1"
                 />
-                <div className="field-editor-help">Limit the height to show only this many result rows (overrides Max Height if provided). Assumes ~40px per row. Decimal values allowed (e.g., 5.5 for finer control).</div>
+                <div className="field-editor-help">
+                  Limit the height to show only this many result rows (overrides Max Height if provided). Assumes ~40px per row. Decimal values allowed (e.g., 5.5 for finer
+                  control).
+                </div>
               </div>
               <div className="field-editor-row">
                 <label>Custom Width (optional):</label>
@@ -1475,8 +1609,33 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   type="text"
                   value={((editedField: any): { width?: string }).width || ''}
                   onChange={(e) => {
+                    const rawValue = e.target.value
+                    const widthValue = rawValue.trim()
                     const updated = { ...editedField }
+                    if (widthValue === '') {
+                      delete (updated: any).width
+                      setWidthError('')
+                    } else {
+                      // Always save the raw value while typing (allows partial/invalid values during typing)
+                      ;(updated: any).width = rawValue
+                      // Only validate if the trimmed value is complete (has a valid CSS unit or is a valid calc())
+                      // This allows typing intermediate values like "80", "80v", "calc(" without errors
+                      if (isValidCSSWidth(widthValue)) {
+                        // Valid complete value - trim and save trimmed version
+                        ;(updated: any).width = widthValue
+                        setWidthError('')
+                      } else {
+                        // Invalid or incomplete - keep raw value for typing, but don't show error yet
+                        // Error will be shown on blur if still invalid
+                        setWidthError('')
+                      }
+                    }
+                    setEditedField(updated)
+                  }}
+                  onBlur={(e) => {
+                    // Validate on blur when user is done typing
                     const widthValue = e.target.value.trim()
+                    const updated = { ...editedField }
                     if (widthValue === '') {
                       delete (updated: any).width
                       setWidthError('')
@@ -1484,6 +1643,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                       ;(updated: any).width = widthValue
                       setWidthError('')
                     } else {
+                      ;(updated: any).width = widthValue
                       setWidthError('Invalid CSS width value. Use px, %, em, rem, vw, vh, or calc()')
                     }
                     setEditedField(updated)
@@ -1496,7 +1656,8 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                     <span style={{ color: 'red' }}>{widthError}</span>
                   ) : (
                     <>
-                      Custom width for the entire control. Overrides default width. Examples: <code>300px</code>, <code>80%</code>, <code>calc(100% - 20px)</code>. Leave empty to use default width.
+                      Custom width for the entire control. Overrides default width. Examples: <code>300px</code>, <code>80%</code>, <code>calc(100% - 20px)</code>. Leave empty to
+                      use default width.
                     </>
                   )}
                 </div>
@@ -1518,7 +1679,10 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   }}
                   placeholder="e.g., 400px"
                 />
-                <div className="field-editor-help">Custom height for the entire control. Overrides Max Height and Max Result Rows. Examples: <code>400px</code>, <code>50vh</code>. Leave empty to use default height.</div>
+                <div className="field-editor-help">
+                  Custom height for the entire control. Overrides Max Height and Max Result Rows. Examples: <code>400px</code>, <code>50vh</code>. Leave empty to use default
+                  height.
+                </div>
               </div>
               <div className="field-editor-row">
                 <label>Include Pattern (regex, optional):</label>
@@ -1627,7 +1791,8 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   <option value="field">Note from Another Field</option>
                 </select>
                 <div className="field-editor-help">
-                  Choose how to get the markdown content to display. <strong>Note:</strong> This is a very basic markdown renderer that does not display full NotePlan formatted tasks and items. It's intended for a quick preview, not a faithful rendering.
+                  Choose how to get the markdown content to display. <strong>Note:</strong> This is a very basic markdown renderer that does not display full NotePlan formatted
+                  tasks and items. It&apos;s intended for a quick preview, not a faithful rendering.
                 </div>
               </div>
 
@@ -1663,6 +1828,13 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                             const updated = { ...editedField }
                             ;(updated: any).markdownText = e.target.value
                             setEditedField(updated)
+                          }}
+                          onKeyDown={(e) => {
+                            // Stop Enter key from bubbling to prevent any form submission
+                            if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                              e.stopPropagation()
+                              // Don't prevent default - let textarea handle Enter naturally
+                            }
                           }}
                           placeholder="Enter markdown text to display..."
                           rows={10}
@@ -1746,6 +1918,44 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   </>
                 )
               })()}
+            </>
+          )}
+
+          {editedField.type === 'comment' && (
+            <>
+              <div className="field-editor-row">
+                <label>Comment Text (Markdown):</label>
+                <textarea
+                  value={((editedField: any): { commentText?: string }).commentText || ''}
+                  onChange={(e) => {
+                    updateField((({ commentText: e.target.value }: any): Partial<TSettingItem>))
+                  }}
+                  onKeyDown={(e) => {
+                    // Stop Enter key from bubbling to prevent any form submission
+                    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                      e.stopPropagation()
+                      // Don't prevent default - let textarea handle Enter naturally
+                    }
+                  }}
+                  placeholder="Enter your comment or notes here (supports markdown)..."
+                  rows={10}
+                  style={{ width: '100%' }}
+                />
+                <div className="field-editor-help">Enter markdown text for your comment. This field is only visible in Form Builder and will not appear in the form output.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { expanded?: boolean }).expanded !== false}
+                    onChange={(e) => {
+                      updateField((({ expanded: e.target.checked }: any): Partial<TSettingItem>))
+                    }}
+                  />
+                  Expanded by default
+                </label>
+                <div className="field-editor-help">If checked, the comment will be expanded (showing content) by default in Form Builder. If unchecked, it will be collapsed.</div>
+              </div>
             </>
           )}
 
