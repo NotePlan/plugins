@@ -145,10 +145,11 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
       setInputValue(newInputValue) // Keep input as YYYY-MM-DD for HTML date input
       
       // Only call onSelectDate if the value actually changed (prevents infinite loops)
+      const lastSent = lastSentValueRef.current
       const valueChanged = 
-        (formatted instanceof Date && lastSentValueRef.current instanceof Date)
-          ? formatted.getTime() !== lastSentValueRef.current.getTime()
-          : formatted !== lastSentValueRef.current
+        (formatted instanceof Date && lastSent instanceof Date)
+          ? formatted.getTime() !== lastSent.getTime()
+          : formatted !== lastSent
       
       if (valueChanged) {
         lastSentValueRef.current = formatted
