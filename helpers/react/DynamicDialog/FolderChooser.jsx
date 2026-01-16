@@ -352,32 +352,36 @@ export function FolderChooser({
   // Prepare folder list with static options and "New Folder" option if needed
   const folderListWithOptions = useMemo(() => {
     const list: Array<string> = []
-    
+
     // Add static options first (e.g., '<select>', '<choose>', etc.)
     if (staticOptions && staticOptions.length > 0) {
       staticOptions.forEach((option) => {
         list.push(option.value) // Use the value as the item identifier
       })
-      logDebug('FolderChooser', `Added ${staticOptions.length} static option(s) to list:`, staticOptions.map(opt => opt.label))
+      logDebug(
+        'FolderChooser',
+        `Added ${staticOptions.length} static option(s) to list:`,
+        staticOptions.map((opt) => opt.label),
+      )
     }
-    
+
     // Add "New Folder" option if needed
     if (includeNewFolderOption) {
       list.push('__NEW_FOLDER__')
     }
-    
+
     // Add actual folders
     list.push(...filteredFolders)
-    
+
     logDebug('FolderChooser', `folderListWithOptions: total items=${list.length}, staticOptions=${staticOptions?.length || 0}, folders=${filteredFolders.length}`)
     return list
   }, [filteredFolders, includeNewFolderOption, staticOptions])
-  
+
   // Helper to check if an item is a static option
   const isStaticOption = (item: string): boolean => {
     return staticOptions.some((opt) => opt.value === item)
   }
-  
+
   // Helper to get static option label
   const getStaticOptionLabel = (item: string): string | null => {
     const option = staticOptions.find((opt) => opt.value === item)
@@ -502,10 +506,7 @@ export function FolderChooser({
   }
 
   return (
-    <div 
-      className={compactDisplay ? 'folder-chooser-wrapper-compact' : 'folder-chooser-wrapper'}
-      style={width ? { width: width } : undefined}
-    >
+    <div className={compactDisplay ? 'folder-chooser-wrapper-compact' : 'folder-chooser-wrapper'} style={width ? { width: width } : undefined}>
       <SearchableChooser
         label={label}
         value={value}

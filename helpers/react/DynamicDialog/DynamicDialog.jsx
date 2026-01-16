@@ -104,7 +104,7 @@ export type TSettingItem = {
   startFolder?: string, // for folder-chooser, folder to start the list in (e.g. to limit folders to a specific subfolder)
   includeFolderPath?: boolean, // for folder-chooser, show the folder path (or most of it), not just the last folder name
   excludeTeamspaces?: boolean, // for folder-chooser, exclude teamspace folders from the list
-  staticOptions?: Array<{ label: string, value: string }>, // for folder-chooser, static options to add to the chooser (e.g., [{label: 'Select...', value: '<select>'}])
+  staticOptions?: Array<{ label: string, value: string }>, // for folder-chooser, static options to add to the chooser (e.g., [{label: '<Select>', value: '<select>'}])
   dependsOnSpaceKey?: string, // DEPRECATED: use sourceSpaceKey instead. For folder-chooser, key of a space-chooser field to filter folders by space (value dependency)
   sourceSpaceKey?: string, // Value dependency: for folder-chooser, key of a space-chooser field to filter folders by space
   // heading-chooser options
@@ -345,7 +345,7 @@ const DynamicDialog = ({
   // Build dependency map: track which fields depend on which other fields (generic, no hardcoded knowledge)
   useEffect(() => {
     // Guard: Skip if items haven't actually changed (compare by keys and dependency properties)
-    const itemsChanged = 
+    const itemsChanged =
       previousItemsRef.current.length !== items.length ||
       items.some((item, index) => {
         const prevItem = previousItemsRef.current[index]
@@ -360,12 +360,12 @@ const DynamicDialog = ({
           (item: any).sourceKeyKey !== (prevItem: any).sourceKeyKey
         )
       })
-    
+
     if (!itemsChanged && previousItemsRef.current.length > 0) {
       logDebug('DynamicDialog', `[PERF] Skipping dependency map rebuild - items unchanged`)
       return
     }
-    
+
     const buildStartTime = performance.now()
     logDebug('DynamicDialog', `[PERF] Building dependency map - START`)
     const dependencyMap: { [sourceKey: string]: Array<{ fieldKey: string, clearValue?: boolean }> } = {}
@@ -463,7 +463,7 @@ const DynamicDialog = ({
 
       // Find all focusable inputs in DOM order (excluding hidden and disabled)
       const allInputs = Array.from(dialogElement.querySelectorAll('input:not([type="hidden"]):not([disabled])'))
-      
+
       // Filter to only inputs that are visible (not in hidden containers)
       const visibleInputs = allInputs.filter((input) => {
         if (!(input instanceof HTMLElement)) return false

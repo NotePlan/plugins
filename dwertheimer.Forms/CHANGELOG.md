@@ -28,6 +28,18 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 - **NoteChooser**: Multi-select mode uses ContainedMultiSelectChooser component with checkboxes for better UX
 - **CalendarPicker**: Default behavior changed from returning Date object to returning ISO 8601 formatted string (YYYY-MM-DD) - use `dateFormat: '__object__'` to return Date object
 - **CalendarPicker**: Dates typed directly in the input field are now parsed and formatted according to the selected dateFormat option
+- **FolderChooser**: Static options (like `<select>`) now always appear at the top of the dropdown, regardless of search term
+- **FormBuilder**: Space and Folder choosers in left sidebar now extend to 100% width for better layout
+- **FolderChooser**: Fixed folder icon class to use complete Font Awesome class name (`fa-solid fa-folder`) for proper rendering
+- **FolderChooser**: Static option icon now uses complete Font Awesome class name (`fa-solid fa-circle-question`) for proper rendering
+
+### Fixed
+- Fixed calendar picker button showing when "Include Calendar Notes" is disabled - now only shows when calendar notes are included (or explicitly enabled via setting)
+- Fixed multi-select NoteChooser not rendering correctly - now properly detects `allowMultiSelect` prop and renders ContainedMultiSelectChooser instead of dropdown
+- Fixed syntax error in NoteChooser.jsx that prevented Rollup from building (replaced Flow type guard with explicit array building)
+- Fixed folder chooser width constraint in FormBuilder left sidebar - now respects `width="100%"` prop
+- Fixed manual entry indicator showing incorrectly in DropdownSelectChooser (FrontmatterKeyChooser) - now only shows when value is actually a manual entry, not for empty values or during loading
+- Fixed infinite loop in GenericDatePicker when typing or tabbing through input field - added value change detection to prevent unnecessary re-renders
 
 ## [1.0.10] 2026-01-14 @dwertheimer
 

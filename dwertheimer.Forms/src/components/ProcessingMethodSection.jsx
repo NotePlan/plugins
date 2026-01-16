@@ -433,11 +433,11 @@ export function ProcessingMethodSection({
               onFoldersChanged={() => {
                 onLoadFolders(true) // Force reload after creating folder
               }}
-              staticOptions={[{ label: 'Select...', value: '<select>' }]}
+              staticOptions={[{ label: '<Select>', value: '<select>' }]}
               width="100%"
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Where to put the new note. Leave empty for root folder, or use &quot;Prompt Each Time&quot; to be prompted each time for the folder
+              Where to put the new note. Leave empty for root folder, or use &quot;&lt;Select&gt;&quot; to be prompted each time for the folder
             </div>
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
