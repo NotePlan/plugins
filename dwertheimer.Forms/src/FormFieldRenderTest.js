@@ -402,6 +402,7 @@ export async function testFormFieldRender(): Promise<void> {
         sourceSpaceKey: 'testSpaceForFolder',
         includeNewFolderOption: true,
         showValue: true,
+        staticOptions: [{ label: 'Select...', value: '<select>' }],
         description: 'This folder chooser filters folders by the space selected above. Select a space first, then this will show only folders from that space.',
       },
       {

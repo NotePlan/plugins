@@ -503,6 +503,7 @@ export function renderItem({
           startFolder: (item: any).startFolder,
           includeFolderPath: (item: any).includeFolderPath,
           excludeTeamspaces: (item: any).excludeTeamspaces,
+          staticOptions: (item: any).staticOptions,
         }
         // Support both old (dependsOnSpaceKey) and new (sourceSpaceKey) property names for backward compatibility
         const itemAny = (item: any)
@@ -568,6 +569,7 @@ export function renderItem({
               startFolder={folderChooserOptions.startFolder}
               includeFolderPath={folderChooserOptions.includeFolderPath}
               excludeTeamspaces={folderChooserOptions.excludeTeamspaces}
+              staticOptions={folderChooserOptions.staticOptions}
               spaceFilter={spaceFilter}
               requestFromPlugin={requestFromPlugin}
               showValue={item.showValue ?? false}

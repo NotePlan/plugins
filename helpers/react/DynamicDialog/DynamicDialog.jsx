@@ -104,6 +104,7 @@ export type TSettingItem = {
   startFolder?: string, // for folder-chooser, folder to start the list in (e.g. to limit folders to a specific subfolder)
   includeFolderPath?: boolean, // for folder-chooser, show the folder path (or most of it), not just the last folder name
   excludeTeamspaces?: boolean, // for folder-chooser, exclude teamspace folders from the list
+  staticOptions?: Array<{ label: string, value: string }>, // for folder-chooser, static options to add to the chooser (e.g., [{label: 'Select...', value: '<select>'}])
   dependsOnSpaceKey?: string, // DEPRECATED: use sourceSpaceKey instead. For folder-chooser, key of a space-chooser field to filter folders by space (value dependency)
   sourceSpaceKey?: string, // Value dependency: for folder-chooser, key of a space-chooser field to filter folders by space
   // heading-chooser options

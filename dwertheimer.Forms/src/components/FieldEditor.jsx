@@ -703,6 +703,31 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                 <div className="field-editor-help">Exclude teamspace folders from the list of folders</div>
               </div>
               <div className="field-editor-row">
+                <label>Static Options (for TemplateRunner):</label>
+                <textarea
+                  value={
+                    ((editedField: any): { staticOptions?: Array<{ label: string, value: string }> }).staticOptions
+                      ? JSON.stringify((editedField: any).staticOptions, null, 2)
+                      : ''
+                  }
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    try {
+                      const parsed = e.target.value.trim() ? JSON.parse(e.target.value) : undefined
+                      ;(updated: any).staticOptions = Array.isArray(parsed) ? parsed : undefined
+                    } catch (error) {
+                      // Invalid JSON, don't update
+                    }
+                    setEditedField(updated)
+                  }}
+                  placeholder='[{"label": "Select...", "value": "<select>"}]'
+                  style={{ fontFamily: 'monospace', fontSize: '0.85rem', minHeight: '60px' }}
+                />
+                <div className="field-editor-help">
+                  Add static options that appear at the top of the folder list. Useful for TemplateRunner special values like &lt;select&gt; which prompts the user each time. Format: JSON array of objects with &quot;label&quot; and &quot;value&quot; properties.
+                </div>
+              </div>
+              <div className="field-editor-row">
                 <label>
                   <input
                     type="checkbox"

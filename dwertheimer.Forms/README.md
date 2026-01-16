@@ -535,9 +535,22 @@ All fields support these properties:
   key: 'targetFolder',
   label: 'Select Folder',
   type: 'folder-chooser',
-  placeholder: 'Search folders...'
+  placeholder: 'Search folders...',
+  includeNewFolderOption: true, // Allow creating new folders
+  staticOptions: [ // Static options that appear at top of list
+    { label: 'Select...', value: '<select>' } // TemplateRunner will prompt user each time
+  ]
 }
 ```
+
+**Folder Chooser Options:**
+- `includeArchive` (boolean) - Include Archive folder in list
+- `includeNewFolderOption` (boolean) - Add "New Folder" option to create folders
+- `startFolder` (string) - Limit folders to a specific subfolder (e.g., "/Projects")
+- `includeFolderPath` (boolean) - Show full folder path, not just folder name (default: true)
+- `excludeTeamspaces` (boolean) - Exclude teamspace folders from list
+- `staticOptions` (array) - Static options to add at top of list. Each option is `{label: string, value: string}`. Useful for TemplateRunner special values like `<select>` which prompts the user each time.
+- `sourceSpaceKey` (string) - Value dependency: key of a space-chooser field to filter folders by space
 
 **`space-chooser`** - Space/Teamspace selector
 ```javascript
