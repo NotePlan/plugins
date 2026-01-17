@@ -1,5 +1,5 @@
 // @flow
-
+import moment from 'moment/min/moment-with-locales'
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
 
 /**
@@ -373,7 +373,6 @@ export function getDateValue(input: string | Date, defaultValue: Date = new Date
 
   if (typeof input === 'string') {
     try {
-      const moment = require('moment')
       const parsed = moment(input)
       if (parsed.isValid()) {
         return parsed.toDate()
