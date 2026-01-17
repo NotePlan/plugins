@@ -149,13 +149,13 @@ export async function openFavoritesBrowser(_isFloating: boolean | string = false
         </script>
       `,
       // Options for showInMainWindow (main window mode)
-      splitView: false,
       icon: 'star',
-      iconColor: iconColorHex ? iconColorHex : 'blue-500',
+      iconColor: '#F8E160',
+      splitView: false,
       autoTopPadding: true,
-      showReloadButton: false, // TODO: change to true when np 3.20.1 is released
-      reloadPluginID: pluginJson['plugin.id'],
-      reloadCommandName: 'openFavoritesBrowser',
+      showReloadButton: true,
+      reloadPluginID: 'dwertheimer.Favorites',
+      reloadCommandName: 'Sidebar - Open Favorites Browser Sidebar',
     }
 
     // Choose the appropriate command based on whether it's floating or main window
