@@ -25,3 +25,5 @@ The most frequently used functions in the codebase are:
 - Date handling: getTodaysDateHyphenated, getDateStringFromCalendarFilename
 - Configuration: getSettings, updateSettingsForPlugin
 - UI interaction: showMessage, showMessageYesNo, displayTitle
+
+## Code-Specific Rules
