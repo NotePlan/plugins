@@ -876,6 +876,9 @@ export async function openFormBrowser(_showFloating: boolean = false): Promise<v
       icon: 'list',
       iconColor: 'blue-500',
       autoTopPadding: true,
+      showReloadButton: true,
+      reloadPluginID: 'dwertheimer.Forms',
+      reloadCommandName: 'openFormBrowser',
     }
 
     // Choose the appropriate command based on whether it's floating or main window

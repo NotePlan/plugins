@@ -59,6 +59,12 @@
       ],
       "description": "Browse and select template forms in a two-column resizable layout",
       "jsFunction": "openFormBrowser",
+      "sidebarView": {
+        "windowID": "form-browser-window main",
+        "title": "Form Browser",
+        "icon": "list",
+        "iconColor": "blue-500"
+      },
       "arguments": [
         {
           "name": "showFloating",
