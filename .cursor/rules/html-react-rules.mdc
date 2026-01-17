@@ -1,0 +1,82 @@
+---
+alwaysApply: true
+---
+- For NotePlan code, never use require statements. Use import statements at the top of the file -- never inline/dynamically import modules. Rollup will not process them correctly.
+
+- You should not ever try to build the code with "npm run build" -- this will not work. The programmer will have to use Rollup to build the code. There is separate tooling for this described in @README.md. Leave the building to the programmer.
+
+- NotePlan has global variables that are available to all plugins such as DataStore, CommandBar, Editor, and NotePlan. You can use these variables to access the NotePlan API. You do not need to import them.
+
+## Promise Polyfills
+
+NotePlan's JSContext may not have `Promise.resolve()` or `Promise.all()`. Use polyfills from `@helpers/promisePolyfill.js`: `initPromisePolyfills()`, `promiseResolve()`, `promiseAll()`, `waitForCondition()`, `setTimeoutPolyfill()`. After creating/modifying notes, call `DataStore.updateCache(note, true)`.
+
+## React Function Memoization (CRITICAL)
+
+**ALWAYS wrap functions passed to React Context or child components in `useCallback`.** This prevents infinite render loops that crash the app.
+
+```javascript
+// ❌ WRONG - Causes infinite loops
+const requestFromPlugin = (command: string, dataToSend: any = {}) => { ... }
+
+// ✅ CORRECT - Stable function reference
+const requestFromPlugin = useCallback((command: string, dataToSend: any = {}) => {
+  // ... implementation
+}, [dispatch]) // Minimal dependencies
+```
+
+**Functions that MUST be memoized:**
+- `requestFromPlugin`, `sendActionToPlugin`, `sendToPlugin`
+- Any function passed to `AppProvider` props
+- Any function used in `useEffect` dependency arrays
+
+**AppContext MUST use `useMemo`:**
+```javascript
+const contextValue = useMemo(() => ({
+  sendActionToPlugin, sendToPlugin, requestFromPlugin, dispatch, pluginData
+}), [sendActionToPlugin, sendToPlugin, requestFromPlugin, dispatch, pluginData])
+```
+
+**This has caused infinite loops 5+ times. Always verify function memoization before considering code complete.**
+
+📚 For detailed examples, see `@dwertheimer.ReactSkeleton/REACT_COMMUNICATION_PATTERNS.md`
+
+## DynamicDialog Component
+
+Use `DynamicDialog` instead of custom dialog components. Handlers MUST be wrapped in `useCallback`. See `@helpers/react/DynamicDialog/CREATING_NEW_DYNAMICDIALOG_FIELD_TYPES.md` for full guide.
+
+## NotePlan Theme Colors
+
+Use these CSS variables with default fallback values. **DO NOT INVENT NEW CSS VARIABLES.**
+
+```css
+--bg-main-color: #eff1f5;
+--fg-sidebar-color: #242E32;
+--bg-sidebar-color: #ECECEC;
+--divider-color: #CDCFD0;
+--block-id-color: #79A0B5;
+--fg-main-color: #4c4f69;
+--h1-color: #5c5f77;
+--h2-color: #5c5f77;
+--h3-color: #5c5f77;
+--bg-alt-color: #e6e9ef;
+--tint-color: #dc8a78;
+--bg-mid-color: #ebedf2;
+--bg-apple-input-color: #fbfbfb;
+--bg-apple-switch-color: #dadada;
+--fg-apple-switch-color: #ffffff;
+--bg-apple-button-color: #fcfcfc;
+--item-icon-color: #1e66f5;
+--fg-done-color: #04a5e5;
+--fg-canceled-color: #4F57A0E0;
+--hashtag-color: inherit;
+--attag-color: inherit;
+--code-color: #0091f8;
+--fg-placeholder-color: rgba(76, 79, 105, 0.7);
+--fg-error-color: #b85450;
+--bg-error-color: #f5e6e6;
+--fg-disabled-color: #999999;
+--bg-disabled-color: #f5f5f5;
+```
+
+Example: `background: var(--bg-main-color, #eff1f5);`
