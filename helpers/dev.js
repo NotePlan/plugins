@@ -1,5 +1,6 @@
 // @flow
 // Development-related helper functions
+// Note: none of these rely on DataStore.* functions etc., _except_ for the logging functions. However, the DataStore.settings object _is_ available in React windows/components, through @DBW's wizardry.
 
 import isEqual from 'lodash-es/isEqual'
 import isObject from 'lodash-es/isObject'
