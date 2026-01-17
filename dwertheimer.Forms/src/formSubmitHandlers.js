@@ -99,7 +99,11 @@ export async function getFormWindowIdForSubmission(data: any): Promise<string> {
  * @param {string} windowId - Window ID (already determined by router)
  * @returns {Promise<RequestResponse>}
  */
+// Track recent SET_DATA sends to prevent loops (key: windowId, value: last send time)
+const recentSetDataSends = new Map<string, number>()
+
 export async function handleFormSubmitAction(data: any, reactWindowData: any, windowId: string): Promise<RequestResponse> {
+  logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: Called from front-end (onSubmitClick), windowId="${windowId}"`)
   try {
     if (!reactWindowData) {
       logError(pluginJson, `handleFormSubmitAction: reactWindowData is required`)
@@ -107,6 +111,19 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
         success: false,
         message: `reactWindowData is required`,
         data: null,
+      }
+    }
+    
+    // GUARD: Prevent sending SET_DATA too frequently (within 100ms) to same window
+    const lastSendTime = recentSetDataSends.get(windowId) || 0
+    const timeSinceLastSend = Date.now() - lastSendTime
+    if (timeSinceLastSend < 100) {
+      logDebug(pluginJson, `[BACK-END] GUARD: handleFormSubmitAction: SET_DATA sent recently (${timeSinceLastSend}ms ago), skipping to prevent loop`)
+      // Still return success but don't send SET_DATA
+      return {
+        success: true,
+        message: 'Form submission throttled to prevent loop',
+        data: reactWindowData, // Return existing data
       }
     }
 
@@ -117,7 +134,9 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
       reactWindowData.passThroughVars = { ...data.passThroughVars }
     }
 
+    logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: Calling handleSubmitButtonClick...`)
     const returnValue = await handleSubmitButtonClick(data, reactWindowData)
+    logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: handleSubmitButtonClick returned, returnValue !== null=${String(returnValue !== null)}`)
 
     // Check if there's an AI analysis result (error message from template rendering)
     const hasAiAnalysis =
@@ -161,13 +180,24 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
         : `After onSubmitClick, data was updated`
       logDebug(
         pluginJson,
-        `handleFormSubmitAction: Sending SET_DATA to windowId="${windowId}", has aiAnalysisResult=${String(!!returnValue.pluginData?.aiAnalysisResult)}, has formSubmissionError=${String(hasFormSubmissionError)}`,
+        `[BACK-END] handleFormSubmitAction: Sending SET_DATA to windowId="${windowId}", has aiAnalysisResult=${String(!!returnValue.pluginData?.aiAnalysisResult)}, has formSubmissionError=${String(hasFormSubmissionError)}`,
       )
-      clo(returnValue, `handleFormSubmitAction: after updating window data,returnValue=`)
+      logDebug(
+        pluginJson,
+        `[BACK-END] SET_DATA trigger: returnValue !== reactWindowData=${String(returnValue !== reactWindowData)}, hasPluginDataChanges=${String(hasPluginDataChanges)}, hasAiAnalysis=${String(hasAiAnalysis)}, hasFormSubmissionError=${String(hasFormSubmissionError)}, hasErrorChanges=${String(hasErrorChanges)}`,
+      )
+      clo(returnValue, `[BACK-END] handleFormSubmitAction: after updating window data,returnValue=`)
       sendToHTMLWindow(windowId, 'SET_DATA', returnValue, updateText)
-      logDebug(pluginJson, `handleFormSubmitAction: SET_DATA sent to windowId="${windowId}"`)
+      sendToHTMLWindow(windowId, 'SET_DATA', returnValue, updateText)
+      // Track that we sent SET_DATA to prevent rapid resends
+      recentSetDataSends.set(windowId, Date.now())
+      // Clean up old entries after 5 seconds
+      setTimeout(() => {
+        recentSetDataSends.delete(windowId)
+      }, 5000)
+      logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: SET_DATA sent to windowId="${windowId}"`)
     } else {
-      logDebug(pluginJson, `handleFormSubmitAction: Not sending SET_DATA - returnValue === reactWindowData and no changes`)
+      logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: Not sending SET_DATA - returnValue === reactWindowData and no changes`)
     }
 
     // Close the window after successful submission, unless:

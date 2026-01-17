@@ -618,3 +618,48 @@
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
+
+/* Form Submitting Overlay */
+/* Positioned at root level to appear above all content including modals */
+.form-submitting-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6); /* Slightly darker for better visibility */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999 !important; /* Very high z-index to appear above everything (modals are 100-101) */
+  pointer-events: auto; /* Block all interactions during submission */
+}
+
+.form-submitting-message {
+  background-color: var(--tint-color, #007aff);
+  color: white;
+  padding: 1.5rem 2.5rem;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: pulse 2s ease-in-out infinite;
+  text-align: center;
+  pointer-events: auto; /* Make message interactive (though not needed) */
+  min-width: 250px;
+  max-width: 90vw;
+}
+
+.form-submitting-message > div {
+  display: block;
+  line-height: 1.5;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}

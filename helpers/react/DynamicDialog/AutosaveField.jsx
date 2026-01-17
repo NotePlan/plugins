@@ -227,17 +227,26 @@ ${JSON.stringify(stateWithTimestamp, null, 2)}
     [requestFromPlugin, autosaveFilename, formTitle, templateFilename, templateTitle, serializeState, disabled],
   )
 
-  // Create a stable trigger function using useMemo to prevent re-registration on every render
-  const triggerSave = useMemo(() => {
-    return () => performSave(true) // Force save even if state unchanged
-  }, [performSave])
+  // Create a stable trigger function using useRef to prevent re-registration on every render
+  // CRITICAL: Use ref to ensure same function reference across renders, preventing duplicate registrations
+  const triggerSaveRef = useRef<() => Promise<void>>(() => Promise.resolve())
+  triggerSaveRef.current = () => performSave(true) // Update implementation, but keep same reference
 
-  // Register trigger function with parent (only when onRegisterTrigger or triggerSave changes)
+  // Register trigger function with parent ONCE (not on every render)
+  const hasRegisteredRef = useRef<boolean>(false)
   useEffect(() => {
-    if (onRegisterTrigger) {
-      onRegisterTrigger(triggerSave)
+    if (onRegisterTrigger && !hasRegisteredRef.current) {
+      onRegisterTrigger(triggerSaveRef.current)
+      hasRegisteredRef.current = true
+      logDebug('AutosaveField', 'Registered autosave trigger (one-time)')
     }
-  }, [onRegisterTrigger, triggerSave])
+    // Cleanup: reset registration flag if onRegisterTrigger changes (shouldn't happen, but just in case)
+    return () => {
+      if (!onRegisterTrigger) {
+        hasRegisteredRef.current = false
+      }
+    }
+  }, [onRegisterTrigger]) // Only depend on onRegisterTrigger, not performSave
 
   // Update time ago display
   useEffect(() => {
@@ -267,10 +276,18 @@ ${JSON.stringify(stateWithTimestamp, null, 2)}
   }, [lastSaveTime])
 
   // Debounced save effect (only depends on updatedSettings and intervalMs, not performSave)
+  // CRITICAL: Disable autosave timer when disabled prop is true (e.g., during form submission)
   useEffect(() => {
     // Clear existing timer
     if (saveTimerRef.current) {
       clearTimeout((saveTimerRef.current: any))
+      saveTimerRef.current = null
+    }
+
+    // Don't set timer if disabled (e.g., during form submission)
+    if (disabled) {
+      logDebug('AutosaveField', 'Autosave timer disabled - not setting save timer')
+      return
     }
 
     // Set new timer to save after interval
@@ -282,9 +299,10 @@ ${JSON.stringify(stateWithTimestamp, null, 2)}
     return () => {
       if (saveTimerRef.current) {
         clearTimeout((saveTimerRef.current: any))
+        saveTimerRef.current = null
       }
     }
-  }, [updatedSettings, intervalMs]) // Removed performSave from dependencies to prevent timer reset
+  }, [updatedSettings, intervalMs, disabled]) // Added disabled to dependencies - clears timer when disabled becomes true
 
   // Cleanup on unmount
   useEffect(() => {

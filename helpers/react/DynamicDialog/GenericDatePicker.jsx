@@ -78,7 +78,7 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
   // Finally falls back to standard Date parsing
   const inputValueToDate = (value: string): Date | void => {
     if (!value || value.trim() === '') return undefined
-    
+
     // First try: HTML date input format (YYYY-MM-DD)
     if (/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
       const parsed = new Date(`${value.trim()}T00:00:00`) // Add time to avoid timezone issues
@@ -86,7 +86,7 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
         return parsed
       }
     }
-    
+
     // Second try: Parse with current dateFormat (if not '__object__')
     if (dateFormat !== '__object__' && dateFormat) {
       const parsed = moment(value.trim(), dateFormat, true) // strict parsing
@@ -94,19 +94,19 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
         return parsed.toDate()
       }
     }
-    
+
     // Third try: Standard Date parsing (handles various formats)
     const parsed = new Date(value.trim())
     if (!isNaN(parsed.getTime())) {
       return parsed
     }
-    
+
     // Fourth try: Try ISO format as fallback
     const isoParsed = moment(value.trim(), 'YYYY-MM-DD', true)
     if (isoParsed.isValid()) {
       return isoParsed.toDate()
     }
-    
+
     return undefined
   }
 
@@ -129,7 +129,7 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
   const lastSentValueRef = useRef<?(Date | string)>(null)
   // Track the last normalized date we received from parent to prevent loops
   const lastReceivedDateRef = useRef<?Date>(null)
-  
+
   // Handle direct input change (user types or picks from native picker)
   // For HTML date inputs (type="date"), the browser only accepts complete YYYY-MM-DD dates
   // So we only get valid dates here, not partial input
@@ -137,25 +137,22 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
     const value = e.target.value
     // HTML date input only provides complete dates in YYYY-MM-DD format
     const date = inputValueToDate(value)
-    
+
     if (date) {
       // Date was successfully parsed - format it according to dateFormat
       const formatted = formatDate(date)
       // For HTML date input (type="date"), we need to keep it as YYYY-MM-DD format
       const newInputValue = dateToInputValue(date)
-      
+
       // Only update inputValue if it's different (prevents unnecessary re-renders)
       if (newInputValue !== inputValue) {
         setInputValue(newInputValue)
       }
-      
+
       // Only call onSelectDate if the value actually changed (prevents infinite loops)
       const lastSent = lastSentValueRef.current
-      const valueChanged = 
-        (formatted instanceof Date && lastSent instanceof Date)
-          ? formatted.getTime() !== lastSent.getTime()
-          : formatted !== lastSent
-      
+      const valueChanged = formatted instanceof Date && lastSent instanceof Date ? formatted.getTime() !== lastSent.getTime() : formatted !== lastSent
+
       if (valueChanged) {
         lastSentValueRef.current = formatted
         onSelectDate(formatted) // Propagate the formatted value to parent
@@ -166,7 +163,7 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
         setInputValue('')
       }
       const clearedValue = dateFormat === '__object__' || !dateFormat ? new Date(NaN) : ''
-      
+
       // Only call onSelectDate if the value actually changed
       if (lastSentValueRef.current !== clearedValue) {
         lastSentValueRef.current = clearedValue
@@ -175,7 +172,7 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
     }
     // Note: Native HTML date picker automatically closes after selection, no need to blur
   }
-  
+
   // Handle input blur - for HTML date inputs, this is mainly for validation
   // Since HTML date inputs only accept complete dates, this should rarely be needed
   const handleInputBlur = (e: SyntheticInputEvent<HTMLInputElement>) => {
@@ -184,26 +181,23 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
       // Already handled in onChange
       return
     }
-    
+
     // For HTML date inputs, the value should already be valid from onChange
     // But we'll validate one more time just in case
     const date = inputValueToDate(value)
     if (date) {
       const newInputValue = dateToInputValue(date)
       const formatted = formatDate(date)
-      
+
       // Only update if value changed (prevents unnecessary updates)
       if (newInputValue !== inputValue) {
         setInputValue(newInputValue)
       }
-      
+
       // Only call onSelectDate if the value actually changed
       const lastSent = lastSentValueRef.current
-      const valueChanged = 
-        (formatted instanceof Date && lastSent instanceof Date)
-          ? formatted.getTime() !== lastSent.getTime()
-          : formatted !== lastSent
-      
+      const valueChanged = formatted instanceof Date && lastSent instanceof Date ? formatted.getTime() !== lastSent.getTime() : formatted !== lastSent
+
       if (valueChanged) {
         lastSentValueRef.current = formatted
         onSelectDate(formatted)
@@ -211,7 +205,7 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
     }
     // If invalid, onChange already handled it
   }
-  
+
   // Handle Enter key to prevent form submission
   const handleKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -230,7 +224,7 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
     e.stopPropagation()
     setInputValue('')
     const clearedValue = dateFormat === '__object__' || !dateFormat ? new Date(NaN) : ''
-    
+
     // Only call onSelectDate if the value actually changed
     if (lastSentValueRef.current !== clearedValue) {
       lastSentValueRef.current = clearedValue
@@ -263,7 +257,7 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
         // Only update if this is a different date than what we last received
         const lastReceived = lastReceivedDateRef.current
         const dateChanged = !lastReceived || normalized.getTime() !== lastReceived.getTime()
-        
+
         if (dateChanged) {
           lastReceivedDateRef.current = normalized
           const newInputValue = dateToInputValue(normalized)

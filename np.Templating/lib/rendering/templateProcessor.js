@@ -69,7 +69,7 @@ export function logProgress(stepDescription: string, templateData: string, sessi
   const isError = stepDescription.includes('ERROR')
   const isKeyStep = isStart || isCompletion || isError
   const msg = isCompletion ? 'COMPLETE ' : isStart ? 'START ' : isError ? 'ERROR ' : ''
-  
+
   // Reduce logging when there's an error - only log essential info
   if (isError) {
     // For errors, only log a summary, not full template text
@@ -1505,9 +1505,9 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       await showMessage(meetingNoteValidationError, 'OK', 'Template Error')
       throw new Error(`STOPPING RENDER: Render Step 3.5 stopped execution with error: ${meetingNoteValidationError}`)
     }
-      if (verbose) {
-        logProgress('Render Step 3.5 complete: Meeting note template validation', templateData, sessionData, userOptions)
-      }
+    if (verbose) {
+      logProgress('Render Step 3.5 complete: Meeting note template validation', templateData, sessionData, userOptions)
+    }
 
     // Create a single TemplatingEngine instance with the templateConfig
     const templatingEngine = new TemplatingEngine(templateConfig, inputTemplateData)
@@ -1632,7 +1632,7 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
         logDebug('================================')
         logDebug(pluginJson, `_renderWithConfig: Rendering template: "${protectedTemplate}"`)
         logDebug('--------------------------------')
-        clo(sessionData, `_renderWithConfig: Session data`)
+        // clo(sessionData, `_renderWithConfig: Session data`)
         logDebug('--------------------------------')
         clo(userOptions, `_renderWithConfig: User options`)
         logDebug('================================')
