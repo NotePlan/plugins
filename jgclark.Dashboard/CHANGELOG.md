@@ -8,13 +8,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+<!-- - ??? dev: check winowID throughout -->
 
-## [2.4.0.b15] 2026-01-???
+## [2.4.0.b15] 2026-01-17
 ### Changed
-- ??? fix displaying folder names
-- ??? dev: check winowID throughout
-- add note's icon and iconColor to display of note title (if set in note's frontmatter)
-- ??? do same for Projects section
+- fix displaying folder names
+- add note's `icon` and `icon-color`  properties to display of note title (if set in note's frontmatter) in all Sections
 
 ## [2.4.0.b14] 2026-01-16
 ### Changed
