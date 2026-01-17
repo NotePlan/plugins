@@ -1,5 +1,5 @@
 /* CSS specific to Section components and their children.
-/* Last updated 2025-12-05 for v2.4.0 by @jgclark */
+/* Last updated 2026-01-16 for v2.4.0.b16 by @jgclark */
 
 /* Animation keyframes for section appearance and removal */
 @keyframes sectionFadeIn {
@@ -155,7 +155,7 @@
 	column-width: 24rem; /* 25rem; */
 	column-rule: 1px solid var(--divider-color);
 	column-fill: auto;
-	padding-inline-start: 0.5rem;
+	padding-inline-start: 0.75rem;
 	padding-block-start: 0.3rem;
 	padding-block-end: 0.1rem;
 }

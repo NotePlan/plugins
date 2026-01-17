@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate Project section data
-// Last updated 2025-11-22 for v2.3.0.b15, @jgclark
+// Last updated 2026-01-17 for v2.4.0.b15, @jgclark
 //-----------------------------------------------------------------------------
 
 import { getNextProjectsToReview } from '../../jgclark.Reviews/src/allProjectsListHelpers'
@@ -10,7 +10,7 @@ import { getDashboardSettings } from './dashboardHelpers'
 import { nextProjectNoteItems } from './demoData'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import type { TDashboardSettings, TSection, TSectionItem } from './types'
-import { logDebug, logTimer, timer } from '@helpers/dev'
+import { logDebug, logInfo, logTimer, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
@@ -31,7 +31,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
   // const maxProjectsToShow = _config.maxItemsToShowInSection
   let nextProjectsToReview: Array<Project> = []
   const items: Array<TSectionItem> = []
-  logDebug('getProjectSectionData', `------- Gathering Project items for section ${thisSectionCode} --------`)
+  logInfo('getProjectSectionData', `------- Gathering Project items for section ${thisSectionCode} --------`)
   const thisStartTime = new Date()
   const dashboardSettings = await getDashboardSettings()
   const allowedFolders = getCurrentlyAllowedFolders(dashboardSettings)
@@ -57,6 +57,9 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
           reviewInterval: p.reviewInterval ?? '',
           percentComplete: p.percentComplete ?? NaN,
           lastProgressComment: p.lastProgressComment ?? '',
+          icon: p.icon ?? undefined,
+          iconColor: p.iconColor ?? undefined,
+          nextActions: p.nextActionsRawContent ?? [],
         },
       })
       itemCount++
@@ -85,6 +88,9 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
             reviewInterval: p.reviewInterval,
             percentComplete: p.percentComplete,
             lastProgressComment: p.lastProgressComment,
+            icon: p.icon ?? undefined,
+            iconColor: p.iconColor ?? undefined,
+            nextActions: p.nextActionsRawContent ?? [],
           },
         })
         itemCount++
@@ -125,7 +131,8 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
   // console.log(JSON.stringify(section))
   logTimer('getProjectSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
 
-  // Log the start of the generation to a special log note, if we're running. TODO: remove this later.
+  // TODO: remove this later.
+  // Log the start of the generation to a special log note, if we're running. 
   if (config?.FFlag_ShowSectionTimings) {
     const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
     if (logNote) {

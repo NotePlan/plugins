@@ -13,6 +13,7 @@ import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { getAllSectionsData } from './dataGeneration'
 import { getPerspectiveSettings, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
 import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
+import { onMessageFromHTMLView } from './routeRequestsFromReact'
 import { generateTagMentionCache, isTagMentionCacheGenerationScheduled } from './tagMentionCache'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
@@ -22,11 +23,10 @@ import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { chooseOption, showMessage } from '@helpers/userInput'
-import { onMessageFromHTMLView } from './routeRequestsFromReact'
 
 //------------------------------------------------------------------------------
 // Constants
-//------------------------------------------------------------------------------
+
 const pluginID = 'jgclark.Dashboard'
 
 const RESOURCE_LINKS_FOR_HEADER = `
@@ -42,7 +42,7 @@ const RESOURCE_LINKS_FOR_HEADER = `
 
 //------------------------------------------------------------------------------
 // Types
-//------------------------------------------------------------------------------
+
 export type PassedData = {
   pluginData: TPluginData /* Your plugin's data to pass on first launch (or edited later) */,
   returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,

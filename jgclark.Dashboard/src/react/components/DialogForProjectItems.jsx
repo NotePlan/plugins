@@ -11,7 +11,7 @@ import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
-import ProjectIcon from './ProjectIcon'
+import SmallCircularProgressIndicator from './SmallCircularProgressIndicator.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString, relativeDateFromNumber } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logInfo, logWarn } from '@helpers/react/reactDev'
@@ -185,7 +185,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
         {/* Title area ---------------- */}
         <div className="dialogTitle">
           <div className="projectIcon">
-          <ProjectIcon
+            <SmallCircularProgressIndicator
             item={thisItem}
             />
           </div>

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-01-04 for v2.4.0.b by @jgclark
+// Last updated 2026-01-16 for v2.4.0.b15 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -202,6 +202,8 @@ export type TParagraphForDashboard = {
   isAChild?: boolean, // whether it is a child item
   dueDate?: string, // ISO string of due date, or 'none', required for sorting items in display
   isTeamspace?: boolean, // whether this is from a Teamspace note
+  icon?: string, // icon from note's frontmatter 'icon' attribute, if present. Note: this is not a full FA icon class like 'fa-regular fa-calendar-star', but just the icon name like 'calendar-star'
+  iconColor?: string, // icon color from note's frontmatter 'icon-color' attribute, if present. Note: this is a tailwind color name, e.g. 'blue-500', not a CSS color name like 'blue' or '#0000FF'
 }
 
 // a project item within a section
@@ -212,6 +214,9 @@ export type TProjectForDashboard = {
   percentComplete: number /* from the Project instance */,
   lastProgressComment: string /* from the Project instance */,
   nextReviewDays: number /* from the Project instance */,
+  icon?: string, // icon from note's frontmatter 'icon' attribute, if present. Note: this is not a full FA icon class like 'fa-regular fa-calendar-star', but just the icon name like 'calendar-star'
+  iconColor?: string, // icon color from note's frontmatter 'icon-color' attribute, if present. Note: this is a tailwind color name, e.g. 'blue-500', not a CSS color name like 'blue' or '#0000FF'
+  nextActions?: Array<string>, // next actions from the Project instance (nextActionsRawContent)
 }
 
 // details for a UI button

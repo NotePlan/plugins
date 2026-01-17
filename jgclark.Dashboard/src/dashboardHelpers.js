@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-01-03 for v2.4.0.b5, @jgclark
+// Last updated 2026-01-16 for v2.4.0.b15, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -224,7 +224,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
   try {
     const timer = new Date()
 
-    const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p: TParagraph) => {
+    const dashboardParas: Array<TParagraphForDashboard> = origParas.reduce((acc: Array<TParagraphForDashboard>, p: TParagraph) => {
       if (!p) {
         throw new Error(`p is undefined`)
       }
@@ -260,6 +260,23 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
           priorityDelta = getPriorityDeltaFromNote(note)
         }
 
+        // Get icon and icon-color from note's frontmatter, if present.
+        let noteIcon: ?string
+        let noteIconColor: ?string
+        try {
+          const FMAttributes: { [key: string]: string } = getFrontmatterAttributes(note)
+          const iconValue = FMAttributes['icon']
+          if (iconValue) {
+            noteIcon = String(iconValue)
+          }
+          const iconColorValue = FMAttributes['icon-color']
+          if (iconColorValue) {
+            noteIconColor = String(iconColorValue)
+          }
+        } catch (error) {
+          // If frontmatter parsing fails, just continue without icon/icon-color
+        }
+
         const dueDateStr = getDueDateOrStartOfCalendarDate(p)
         const startTime = getStartTimeObjFromParaContent(p.content)
         const startTimeStr = startTime ? getTimeStringFromHM(startTime.hours, startTime.mins) : 'none'
@@ -282,15 +299,18 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
           isAChild: isAChild,
           dueDate: dueDateStr,
           isTeamspace: note.isTeamspaceNote,
+          icon: noteIcon,
+          iconColor: noteIconColor,
         }
         if (p.content.includes('TEST')) {
           logInfo('makeDashboardParas', `👉👉👉 ${JSP(outputPara)}`)
         }
-        return outputPara
+        acc.push(outputPara)
       } else {
         logWarn('makeDashboardParas', `No note found for para {${p.content}} - probably an API teamspace bug?`)
       }
-    })
+      return acc
+    }, [])
     // $FlowIgnore[unsafe-arithmetic]
     logTimer('makeDashboardParas', timer, `- done for ${origParas.length} paras (i.e. average ${((new Date() - timer) / origParas.length).toFixed(1)}ms/para)`)
     return dashboardParas
