@@ -27,3 +27,12 @@ The most frequently used functions in the codebase are:
 - UI interaction: showMessage, showMessageYesNo, displayTitle
 
 ## Code-Specific Rules
+
+For JS, please provide Flow types (as appropriate) and JSDOC with all responses. If you are rewriting a full file, make sure to include all import statements also. Do not remove any console.logs or comments (or logDebug, clo, logInfo, logError statements).
+
+**DO NOT EVER HARD-CODE JEST WORKAROUNDS INTO FUNCTIONS WE ARE TESTING**
+When you run jest tests, always include the flag --no-watch at the end because my jest config by default watches
+
+## Testing Code
+If testing Templating code, run tests like this:
+`jest np.Templating/__tests__/**/*.test.js --no-watch`
