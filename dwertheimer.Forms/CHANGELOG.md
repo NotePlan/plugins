@@ -4,6 +4,62 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.12] 2026-01-17 @dwertheimer
+
+### Added
+- **EventChooser Preloading**: Added support for preloading events data when `preloadChooserData: true` is set in form frontmatter
+- **All Choosers Support Preloading**: All chooser types (FolderChooser, NoteChooser, SpaceChooser, MentionChooser, TagChooser, EventChooser) now support preloading data for static HTML testing
+
+### Fixed
+- Fixed chooser width wrapping in compact mode - removed `min-width` for percentage and viewport unit widths to prevent wrapping issues
+- Choosers with `width="100%"` or other percentage/viewport units now properly respect container boundaries without wrapping
+
+### Changed
+- **SearchableChooser**: Width prop now only sets `min-width` for fixed pixel values, allowing flexible sizing for percentages and viewport units
+- **Code Refactoring**: Refactored `getPluginData` function into smaller, modular helper functions for better maintainability:
+  - `detectFieldRequirements()` - Detects which chooser types are needed
+  - `ensureAutosaveField()` - Adds autosave field if needed
+  - `preloadAllChooserData()` - Orchestrates all preloading operations
+  - Individual preload functions for each chooser type (folders, notes, teamspaces, mentions, hashtags, events)
+  - `initializeEmptyChooserData()` - Initializes empty arrays when not preloading
+
+## [1.0.11] 2026-01-17 @dwertheimer
+
+### Added
+- **Multi-select NoteChooser**: Added ability to select multiple notes in a note-chooser field with configurable output format (wikilink, pretty-link, raw-url) and separator (space, comma, newline)
+- **Calendar Picker Button Control**: Added setting in FieldEditor to control visibility of calendar picker button in note-chooser fields
+- **Form Tester Examples**: Added multi-select note chooser examples to Form Tester with different output formats and separators
+- **Calendar Picker Date Format Setting**: Added configurable output format for calendarpicker fields using moment.js formatting:
+  - Default format is ISO 8601 (YYYY-MM-DD) instead of returning Date object
+  - Choose from 30+ date format options (US format, European format, long format, date & time, etc.)
+  - Use `[Object]` option to return Date object for backward compatibility
+  - Formatting applies when selecting from calendar picker or typing directly in the input field
+  - Supports locale-aware formatting using moment-with-locales based on NotePlan environment settings
+
+### Fixed
+- Fixed calendar picker button showing when "Include Calendar Notes" is disabled - now only shows when calendar notes are included (or explicitly enabled via setting)
+- Fixed multi-select NoteChooser not rendering correctly - now properly detects `allowMultiSelect` prop and renders ContainedMultiSelectChooser instead of dropdown
+- Fixed syntax error in NoteChooser.jsx that prevented Rollup from building (replaced Flow type guard with explicit array building)
+
+### Changed
+- **NoteChooser**: Calendar picker button now respects "Include Calendar Notes" setting by default - only appears when calendar notes are included
+- **FieldEditor**: Added "Show Calendar Picker Button" checkbox in note-chooser field editor for explicit control
+- **NoteChooser**: Multi-select mode uses ContainedMultiSelectChooser component with checkboxes for better UX
+- **CalendarPicker**: Default behavior changed from returning Date object to returning ISO 8601 formatted string (YYYY-MM-DD) - use `dateFormat: '__object__'` to return Date object
+- **CalendarPicker**: Dates typed directly in the input field are now parsed and formatted according to the selected dateFormat option
+- **FolderChooser**: Static options (like `<select>`) now always appear at the top of the dropdown, regardless of search term
+- **FormBuilder**: Space and Folder choosers in left sidebar now extend to 100% width for better layout
+- **FolderChooser**: Fixed folder icon class to use complete Font Awesome class name (`fa-solid fa-folder`) for proper rendering
+- **FolderChooser**: Static option icon now uses complete Font Awesome class name (`fa-solid fa-circle-question`) for proper rendering
+
+### Fixed
+- Fixed calendar picker button showing when "Include Calendar Notes" is disabled - now only shows when calendar notes are included (or explicitly enabled via setting)
+- Fixed multi-select NoteChooser not rendering correctly - now properly detects `allowMultiSelect` prop and renders ContainedMultiSelectChooser instead of dropdown
+- Fixed syntax error in NoteChooser.jsx that prevented Rollup from building (replaced Flow type guard with explicit array building)
+- Fixed folder chooser width constraint in FormBuilder left sidebar - now respects `width="100%"` prop
+- Fixed manual entry indicator showing incorrectly in DropdownSelectChooser (FrontmatterKeyChooser) - now only shows when value is actually a manual entry, not for empty values or during loading
+- Fixed infinite loop in GenericDatePicker when typing or tabbing through input field - added value change detection to prevent unnecessary re-renders
+
 ## [1.0.10] 2026-01-14 @dwertheimer
 
 ### Added

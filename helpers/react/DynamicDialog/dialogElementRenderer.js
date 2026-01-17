@@ -67,6 +67,10 @@ type RenderItemProps = {
   templateTitle?: string, // Template title for autosave field
   onRegisterAutosaveTrigger?: (triggerFn: () => Promise<void>) => void, // Register autosave trigger function
   fieldLoadingStates?: { [fieldKey: string]: boolean }, // Loading states for dependent fields
+  preloadedTeamspaces?: Array<{ id: string, title: string }>, // Preloaded teamspaces for static HTML testing
+  preloadedMentions?: Array<string>, // Preloaded mentions for static HTML testing
+  preloadedHashtags?: Array<string>, // Preloaded hashtags for static HTML testing
+  preloadedEvents?: Array<any>, // Preloaded events for static HTML testing
 }
 
 /**
@@ -103,6 +107,10 @@ export function renderItem({
   templateTitle, // Template title for autosave field
   onRegisterAutosaveTrigger, // Register autosave trigger function
   fieldLoadingStates = {}, // Loading states for dependent fields
+  preloadedTeamspaces = [], // Preloaded teamspaces for static HTML testing
+  preloadedMentions = [], // Preloaded mentions for static HTML testing
+  preloadedHashtags = [], // Preloaded hashtags for static HTML testing
+  preloadedEvents = [], // Preloaded events for static HTML testing
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -458,16 +466,20 @@ export function renderItem({
         )
       }
       case 'calendarpicker': {
-        const selectedDate: ?Date = item.selectedDate || null
+        const selectedDate: ?Date | ?string = item.selectedDate || null
         const label = item.label || ''
         const compactDisplay = item.compactDisplay || false
+        const dateFormat = (item: any).dateFormat || 'YYYY-MM-DD' // Default to ISO 8601
 
-        const handleDateChange = (date: Date) => {
+        const handleDateChange = (date: Date | string) => {
           if (item.key) {
-            // Handle cleared date (NaN date means cleared)
-            if (isNaN(date.getTime())) {
+            // Handle cleared date/string
+            if (date instanceof Date && isNaN(date.getTime())) {
+              handleFieldChange(item.key, null)
+            } else if (typeof date === 'string' && date === '') {
               handleFieldChange(item.key, null)
             } else {
+              // Store the value as-is (formatted string or Date object)
               handleFieldChange(item.key, date)
             }
           }
@@ -480,7 +492,12 @@ export function renderItem({
             className={`${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'} ${indent ? 'indent' : ''}`}
           >
             <label className="input-box-label">{label}</label>
-            <GenericDatePicker startingSelectedDate={selectedDate ?? undefined} onSelectDate={handleDateChange} disabled={disabled} />
+            <GenericDatePicker
+              startingSelectedDate={selectedDate ?? undefined}
+              onSelectDate={handleDateChange}
+              disabled={disabled}
+              dateFormat={dateFormat}
+            />
           </div>
         )
       }
@@ -494,6 +511,7 @@ export function renderItem({
           startFolder: (item: any).startFolder,
           includeFolderPath: (item: any).includeFolderPath,
           excludeTeamspaces: (item: any).excludeTeamspaces,
+          staticOptions: (item: any).staticOptions,
         }
         // Support both old (dependsOnSpaceKey) and new (sourceSpaceKey) property names for backward compatibility
         const itemAny = (item: any)
@@ -559,6 +577,7 @@ export function renderItem({
               startFolder={folderChooserOptions.startFolder}
               includeFolderPath={folderChooserOptions.includeFolderPath}
               excludeTeamspaces={folderChooserOptions.excludeTeamspaces}
+              staticOptions={folderChooserOptions.staticOptions}
               spaceFilter={spaceFilter}
               requestFromPlugin={requestFromPlugin}
               showValue={item.showValue ?? false}
@@ -620,12 +639,11 @@ export function renderItem({
             `note-chooser: handleNoteChange called with noteTitle="${noteTitle}", noteFilename="${noteFilename}", item.key="${item.key || 'undefined'}"`,
           )
           if (item.key) {
-            // Store both title and filename - using filename as the value for consistency
-            // but you could also store as an object: { title: noteTitle, filename: noteFilename }
-            logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${item.key}", value="${noteFilename}"`)
-            handleFieldChange(item.key, noteFilename)
-            // If you want to store title separately, you could use a compound key like `${item.key}Title`
-            // For now, we'll store filename as the value
+            // For multi-select mode, noteTitle contains the formatted string and noteFilename is empty
+            // For single-select mode, noteFilename contains the filename
+            const valueToStore = (item: any).allowMultiSelect ? noteTitle : noteFilename
+            logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${item.key}", value="${valueToStore}"`)
+            handleFieldChange(item.key, valueToStore)
           } else {
             logError('dialogElementRenderer', `note-chooser: handleNoteChange called but item.key is undefined`)
           }
@@ -662,8 +680,26 @@ export function renderItem({
               showValue={item.showValue ?? false}
               shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
               showTitleOnly={item.showTitleOnly ?? false}
-              showCalendarChooserIcon={item.showCalendarChooserIcon ?? true}
+              showCalendarChooserIcon={(() => {
+                // Only show calendar picker if:
+                // 1. Calendar notes are included (includeCalendarNotes is true), OR
+                // 2. Explicitly enabled (showCalendarChooserIcon is true)
+                // If explicitly set to false, respect that and hide it
+                const includeCalendar = item.includeCalendarNotes ?? false
+                const explicitSetting = (item: any).showCalendarChooserIcon
+                if (explicitSetting === false) {
+                  return false // Explicitly disabled
+                }
+                if (explicitSetting === true) {
+                  return true // Explicitly enabled
+                }
+                // Default: only show if calendar notes are included
+                return includeCalendar
+              })()}
               isLoading={isLoading}
+              allowMultiSelect={Boolean((item: any).allowMultiSelect)}
+              noteOutputFormat={(item: any).noteOutputFormat || 'wikilink'}
+              noteSeparator={(item: any).noteSeparator || 'space'}
             />
           </div>
         )
@@ -795,6 +831,7 @@ export function renderItem({
               includeReminders={includeReminders}
               reminderLists={reminderLists}
               shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
+              initialEvents={preloadedEvents.length > 0 ? preloadedEvents : undefined}
             />
           </div>
         )
@@ -932,6 +969,7 @@ export function renderItem({
               showValue={item.showValue ?? false}
               includeAllOption={item.includeAllOption ?? false}
               shortDescriptionOnLine2={item.shortDescriptionOnLine2 ?? false}
+              initialSpaces={preloadedTeamspaces.length > 0 ? preloadedTeamspaces : undefined}
             />
           </div>
         )
@@ -981,6 +1019,7 @@ export function renderItem({
               renderAsDropdown={renderAsDropdown}
               requestFromPlugin={requestFromPlugin}
               fieldKey={item.key}
+              initialHashtags={preloadedHashtags.length > 0 ? preloadedHashtags : undefined}
             />
           </div>
         )
@@ -1030,6 +1069,7 @@ export function renderItem({
               renderAsDropdown={renderAsDropdown}
               requestFromPlugin={requestFromPlugin}
               fieldKey={item.key}
+              initialMentions={preloadedMentions.length > 0 ? preloadedMentions : undefined}
             />
           </div>
         )

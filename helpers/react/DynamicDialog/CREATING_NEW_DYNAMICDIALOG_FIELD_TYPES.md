@@ -404,6 +404,7 @@ After creating your new field type, verify:
 - [ ] Component handles value prop changes correctly
 - [ ] CSS classes are properly namespaced
 - [ ] Component includes `data-field-type` attribute for debugging
+- [ ] Forms README is updated with new field type or feature documentation
 
 ## Troubleshooting
 
@@ -466,9 +467,122 @@ useEffect(() => {
 - Check `useEffect` dependencies - only include what's necessary
 - Verify `useMemo` is used for computed values
 
+## 8. Form Tester Integration
+
+**File:** `dwertheimer.Forms/src/FormFieldRenderTest.js`
+
+Add examples to the `testFormFields` array to demonstrate your new field type or feature. This ensures the feature works correctly and helps catch regressions.
+
+### Adding Examples
+
+Create a new heading section for your field type and add examples for each important configuration:
+
+```typescript
+{
+  type: 'heading',
+  label: 'Your New Field Type',
+  underline: true,
+},
+{
+  type: 'your-new-type',
+  label: 'Your New Field (Basic)',
+  key: 'testYourNewField',
+  placeholder: 'Type to search...',
+  description: 'Basic example of your new field',
+},
+{
+  type: 'your-new-type',
+  label: 'Your New Field (With Custom Property)',
+  key: 'testYourNewFieldCustom',
+  placeholder: 'Type to search...',
+  description: 'Example with custom property set',
+  yourCustomProperty: 'custom-value',
+},
+// ... add more examples for each important parameter
+```
+
+### Best Practices
+
+- Create a heading section for your field type
+- Include examples for:
+  - Basic usage
+  - Each custom property/parameter
+  - Different return formats (string vs array, if applicable)
+  - Different states (default checked, with filters, etc.)
+  - Compact vs non-compact display
+  - Any value dependencies (dependsOnKey, sourceKey, etc.)
+- Use descriptive keys like `testYourNewField`, `testYourNewFieldCustom`, etc.
+- Include helpful descriptions explaining what each example demonstrates
+
+### Example: Multi-Select Note Chooser
+
+```typescript
+{
+  type: 'heading',
+  label: 'Note Chooser: Multi-Select',
+  underline: true,
+},
+{
+  type: 'note-chooser',
+  label: 'Note Chooser (Multi-Select, Wikilink, Space)',
+  key: 'testNoteMultiSelectWikilink',
+  allowMultiSelect: true,
+  noteOutputFormat: 'wikilink',
+  noteSeparator: 'space',
+  includePersonalNotes: true,
+  showValue: true,
+  description: 'Multi-select note chooser with wikilink format ([[Note Title]]) separated by spaces',
+},
+```
+
+## 9. Forms README Documentation
+
+**File:** `dwertheimer.Forms/README.md`
+
+Document your new field type or feature in the Forms plugin README to help users understand and use it.
+
+### Where to Add Documentation
+
+1. **"Available Field Types" Section** (around line 174)
+   - If adding a new field type, add it to the appropriate category (Basic, Selection, Display, Advanced)
+   - Include a brief description of what it does
+   - For significant features on existing types, update the description
+
+2. **Field Type JSON Reference Section** (around line 497+)
+   - Add or update the JSON example for your field type
+   - Document all new properties and options
+   - Include examples showing different configurations
+
+3. **Tips and Best Practices** (around line 246)
+   - Add any relevant tips for using your new feature effectively
+
+### Example: Adding Multi-Select NoteChooser Documentation
+
+**In "Available Field Types" section:**
+```markdown
+- **Note Chooser** - Search and select a note (supports single or multi-select with configurable output format)
+```
+
+**In JSON Reference section:**
+```markdown
+**`note-chooser`** - Searchable note selector
+```javascript
+{
+  key: 'targetNote',
+  label: 'Select Note',
+  type: 'note-chooser',
+  allowMultiSelect: true, // Enable multi-select mode
+  noteOutputFormat: 'wikilink', // 'wikilink' | 'pretty-link' | 'raw-url'
+  noteSeparator: 'space', // 'space' | 'comma' | 'newline'
+  // ... other options
+}
+```
+```
+
 ## Additional Resources
 
 - **DynamicDialog Documentation**: See `_README.md` in this directory
 - **CSS Variables**: See `CSS_VARIABLE_ANALYSIS.md` for available theme colors
 - **React Patterns**: See cursor rules for memoization and React best practices
 - **Existing Examples**: Study `TagChooser`, `MentionChooser`, `NoteChooser`, `FolderChooser`, etc.
+- **Quick Checklist**: See `DD_NEW_FEATURE_CHECKLIST.md` for a concise checklist when adding new features

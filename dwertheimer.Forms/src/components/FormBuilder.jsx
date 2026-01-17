@@ -87,7 +87,7 @@ Use this form builder to create your form:
 4. **Preview**: Use the preview pane on the right to see how your form will look
 5. **Settings**: Use the settings panel on the left to configure form behavior and processing options
 
-You can edit or delete this **comment field** by clicking the pencil icon on the right - it's just a note to help you get started (does not appear in the form output)!`,
+You can edit or delete this comment field - it's just a note to help you get started!`,
     expanded: true,
   }
   const [fields, setFields] = useState<Array<TSettingItem>>(() => {
@@ -103,6 +103,8 @@ You can edit or delete this **comment field** by clicking the pencil icon on the
   const [showAddField, setShowAddField] = useState<boolean>(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
   const [isSaved, setIsSaved] = useState<boolean>(!isNewForm)
+  // Track if form has been saved at least once (for new forms, this becomes true after first save)
+  const [hasBeenSavedOnce, setHasBeenSavedOnce] = useState<boolean>(!isNewForm)
   const [folders, setFolders] = useState<Array<string>>([])
   const [notes, setNotes] = useState<Array<NoteOption>>([])
   const [foldersLoaded, setFoldersLoaded] = useState<boolean>(false)
@@ -477,6 +479,7 @@ You can edit or delete this **comment field** by clicking the pencil icon on the
       if (result.success) {
         setHasUnsavedChanges(false)
         setIsSaved(true)
+        setHasBeenSavedOnce(true) // Mark that the form has been saved at least once
         // Show success toast with green color
         dispatch('SHOW_TOAST', {
           type: 'SUCCESS',
@@ -575,7 +578,8 @@ You can edit or delete this **comment field** by clicking the pencil icon on the
     onOpenForm(templateTitle)
   }
 
-  const canOpenForm = Boolean(isSaved && !isNewForm && templateTitle && onOpenForm)
+  // Allow opening form if saved and not new, OR if it has been saved at least once (for new forms after first save)
+  const canOpenForm = Boolean(isSaved && (!isNewForm || hasBeenSavedOnce) && templateTitle && onOpenForm)
 
   // Log canOpenForm calculation whenever dependencies change
   // NOTE: canOpenForm is NOT in dependencies because it's derived from the other dependencies
@@ -649,12 +653,12 @@ You can edit or delete this **comment field** by clicking the pencil icon on the
           )}
         </div>
         <div className="form-builder-actions">
-          {!isNewForm && templateFilename && (
+          {(!isNewForm || hasBeenSavedOnce) && templateFilename && (
             <button className="PCButton" onClick={handleCopyFormUrl} title="Copy the form's callback URL to clipboard" style={{ marginRight: '0.5rem' }}>
               Form URL
             </button>
           )}
-          {!isNewForm && templateFilename && (
+          {(!isNewForm || hasBeenSavedOnce) && templateFilename && (
             <button className="PCButton" onClick={handleDuplicateForm} title="Create a duplicate of this form" style={{ marginRight: '0.5rem' }}>
               Duplicate
             </button>

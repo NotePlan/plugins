@@ -16,6 +16,11 @@
   position: relative;
 }
 
+/* When width prop is provided, make wrapper full width */
+.folder-chooser-wrapper-compact[style*="width"] {
+  width: 100% !important;
+}
+
 /* Description text - hidden by default, shown on hover */
 /* Use tooltip-style approach: show description on hover of the chooser wrapper */
 .folder-chooser-description {
