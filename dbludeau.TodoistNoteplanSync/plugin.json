@@ -245,7 +245,7 @@
       "key": "projectDateFilter",
       "title": "Date filter for project syncs",
       "description": "Filter which tasks are synced based on due date. Choose 'all' to sync everything.",
-      "choices": ["all", "today", "overdue | today", "7 days"],
+      "choices": ["all", "today", "overdue | today", "3 days", "7 days"],
       "default": "overdue | today",
       "required": false
     },

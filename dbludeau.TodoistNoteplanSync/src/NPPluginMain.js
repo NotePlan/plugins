@@ -439,7 +439,7 @@ async function syncTodayTasks() {
  * Note: Todoist API ignores filter param when project_id is specified, so we filter client-side
  *
  * @param {Array<Object>} tasks - array of task objects from Todoist
- * @param {string} dateFilter - the date filter to apply (today, overdue, overdue | today, 7 days, all)
+ * @param {string} dateFilter - the date filter to apply (today, overdue, overdue | today, 3 days, 7 days, all)
  * @returns {Array<Object>} - filtered tasks
  */
 function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Object> {
@@ -449,6 +449,9 @@ function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Obj
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+
+  const threeDaysFromNow = new Date(today)
+  threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3)
 
   const sevenDaysFromNow = new Date(today)
   sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
@@ -469,6 +472,8 @@ function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Obj
         return dueDate.getTime() < today.getTime()
       case 'overdue | today':
         return dueDate.getTime() <= today.getTime()
+      case '3 days':
+        return dueDate.getTime() <= threeDaysFromNow.getTime()
       case '7 days':
         return dueDate.getTime() <= sevenDaysFromNow.getTime()
       default:

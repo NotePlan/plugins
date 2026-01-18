@@ -43,6 +43,7 @@ By default, project sync commands only fetch tasks that are **overdue or due tod
 | `all` | Sync all tasks regardless of due date |
 | `today` | Only tasks due today |
 | `overdue \| today` | Tasks that are overdue or due today (default) |
+| `3 days` | Tasks due within the next 3 days |
 | `7 days` | Tasks due within the next 7 days |
 
 This setting affects the following commands:
@@ -72,7 +73,7 @@ todoist_filter: current
 ---
 ```
 
-Valid values for `todoist_filter`: `all`, `today`, `overdue`, `current` (same as overdue | today), `7 days`
+Valid values for `todoist_filter`: `all`, `today`, `overdue`, `current` (same as overdue | today), `3 days`, `7 days`
 
 **Filter Priority:**
 1. Command-line argument (e.g., `/todoist sync project today`) - highest
