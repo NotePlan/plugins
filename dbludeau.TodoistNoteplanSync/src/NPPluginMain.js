@@ -31,6 +31,7 @@
 
 import { getFrontmatterAttributes } from '../../helpers/NPFrontMatter'
 import { getTodaysDateAsArrowDate, getTodaysDateUnhyphenated } from '../../helpers/dateTime'
+import { findHeading } from '../../helpers/paragraph'
 import pluginJson from '../plugin.json'
 import { log, logInfo, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 
@@ -644,6 +645,20 @@ function setSettings() {
 }
 
 /**
+ * Ensure a heading exists in the note, creating it if necessary
+ *
+ * @param {TNote} note - the note to check/modify
+ * @param {string} headingName - the heading to ensure exists
+ */
+function ensureHeadingExists(note: TNote, headingName: string): void {
+  const existingHeading = findHeading(note, headingName)
+  if (!existingHeading) {
+    logInfo(pluginJson, `Creating heading: ${headingName}`)
+    note.appendParagraph(`### ${headingName}`, 'text')
+  }
+}
+
+/**
  * Format and write task to correct noteplan note
  *
  * @param {TNote} note - the note object that will get the task
@@ -659,6 +674,7 @@ async function writeOutTask(note: TNote, task: Object) {
       section = JSON.parse(section)
       if (section) {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
+          ensureHeadingExists(note, section.name)
           logInfo(pluginJson, `1. Task will be added to ${note.title} below ${section.name} (${formatted})`)
           note.addTodoBelowHeadingTitle(formatted, section.name, true, true)
 
@@ -686,6 +702,7 @@ async function writeOutTask(note: TNote, task: Object) {
       // if there is a predefined header in settings
       if (setup.header !== '') {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
+          ensureHeadingExists(note, setup.header)
           logInfo(pluginJson, `3. Task will be added to ${note.title} below ${setup.header} (${formatted})`)
           note.addTodoBelowHeadingTitle(formatted, setup.header, true, true)
 
