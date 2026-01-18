@@ -7,21 +7,13 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 ## [1.0.12] 2026-01-17 @dwertheimer
 
 ### Added
-- **EventChooser Preloading**: Added support for preloading events data when `preloadChooserData: true` is set in form frontmatter
-- **All Choosers Support Preloading**: All chooser types (FolderChooser, NoteChooser, SpaceChooser, MentionChooser, TagChooser, EventChooser) now support preloading data for static HTML testing
 
 ### Fixed
-- Fixed chooser width wrapping in compact mode - removed `min-width` for percentage and viewport unit widths to prevent wrapping issues
-- Choosers with `width="100%"` or other percentage/viewport units now properly respect container boundaries without wrapping
 
 ### Changed
-- **SearchableChooser**: Width prop now only sets `min-width` for fixed pixel values, allowing flexible sizing for percentages and viewport units
-- **Code Refactoring**: Refactored `getPluginData` function into smaller, modular helper functions for better maintainability:
-  - `detectFieldRequirements()` - Detects which chooser types are needed
-  - `ensureAutosaveField()` - Adds autosave field if needed
-  - `preloadAllChooserData()` - Orchestrates all preloading operations
-  - Individual preload functions for each chooser type (folders, notes, teamspaces, mentions, hashtags, events)
-  - `initializeEmptyChooserData()` - Initializes empty arrays when not preloading
+- **FormView**: Set text color of dialog to main color for better readability
+Under the hood changes to move all window opening code to the windowManagement.js file.
+
 
 ## [1.0.11] 2026-01-17 @dwertheimer
 

@@ -486,10 +486,14 @@ export function renderItem({
         }
 
         // Render similar to InputBox - label and input in a container
+        // Wrap in div with data-field-type so Enter key prevention works
         return (
           <div
             key={`calendarpicker${index}`}
-            className={`${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'} ${indent ? 'indent' : ''}`}
+            data-field-type="calendarpicker"
+            className={`ui-item ${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'} ${indent ? 'indent' : ''}`}
+            title={item.description || ''}
+            data-settings-key={item.key || ''}
           >
             <label className="input-box-label">{label}</label>
             <GenericDatePicker

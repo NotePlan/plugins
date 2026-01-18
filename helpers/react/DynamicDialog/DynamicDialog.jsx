@@ -605,7 +605,7 @@ const DynamicDialog = ({
 
   // Field types that should consume Enter key (prevent form submission)
   // These are fields where Enter has a specific meaning (e.g., selecting an option, creating new lines)
-  const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'space-chooser', 'dropdown-select', 'combo', 'textarea']
+  const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'space-chooser', 'dropdown-select', 'combo', 'textarea', 'calendarpicker']
 
   const handleEnterKey = (event: KeyboardEvent) => {
     // CMD+ENTER (or CTRL+ENTER on Windows/Linux) should always submit, bypassing ENTER_CONSUMING_FIELD_TYPES
@@ -660,10 +660,18 @@ const DynamicDialog = ({
   }
 
   // Stable callback for registering autosave triggers (created once, not recreated on every render)
+  // CRITICAL: Only allow ONE autosave field to register to prevent loops
+  const autosaveTriggerRegisteredRef = useRef<boolean>(false)
   const registerAutosaveTrigger = useCallback((triggerFn: () => Promise<void>) => {
+    // GUARD: Prevent multiple registrations - only allow one autosave field
+    if (autosaveTriggerRegisteredRef.current) {
+      logDebug('DynamicDialog', `GUARD: Autosave trigger already registered, skipping duplicate registration`)
+      return
+    }
     // Register autosave trigger function
     if (!autosaveTriggersRef.current.includes(triggerFn)) {
       autosaveTriggersRef.current.push(triggerFn)
+      autosaveTriggerRegisteredRef.current = true
       logDebug('DynamicDialog', `Registered autosave trigger (total: ${autosaveTriggersRef.current.length})`)
     }
   }, [])
@@ -832,7 +840,7 @@ const DynamicDialog = ({
               value: typeof item.key === 'undefined' ? '' : updatedSettings[item.key] ?? '',
               checked: typeof item.key === 'undefined' ? false : updatedSettings[item.key] === true,
             },
-            disabled: item.dependsOnKey || item.requiresKey ? !stateOfControllingSetting(item) : false,
+            disabled: (item.dependsOnKey || item.requiresKey ? !stateOfControllingSetting(item) : false) || isSavingRef.current, // Disable all fields (including autosave) during save/submission
             indent: Boolean(item.dependsOnKey || item.requiresKey),
             handleFieldChange,
             handleButtonClick, // Pass handleButtonClick
