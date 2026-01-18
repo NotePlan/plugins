@@ -24,6 +24,7 @@ type FormPreviewProps = {
   hideWindowTitlebar?: boolean,
   keepOpenOnSubmit?: boolean, // If true, don't close the window after submit (e.g., for Form Browser context)
   onFrontmatterChange?: (key: string, value: any) => void, // Optional callback to update frontmatter (for Form Builder)
+  showScaledDisclaimer?: boolean, // If true, show toast warning when preview is scaled (only for Form Builder)
 }
 
 /**
@@ -128,6 +129,7 @@ export function FormPreview({
   hideWindowTitlebar = false,
   keepOpenOnSubmit = false,
   onFrontmatterChange,
+  showScaledDisclaimer = false,
 }: FormPreviewProps): Node {
   const containerRef = useRef<?HTMLDivElement>(null)
   const previewWindowRef = useRef<?HTMLDivElement>(null)
@@ -251,11 +253,11 @@ export function FormPreview({
     return () => clearTimeout(timeoutId)
   }, [previewDimensions.style, measurePreviewWindow])
 
-  const showScaledDisclaimer = previewDimensions.isScaled.width || previewDimensions.isScaled.height
+  const isScaled = previewDimensions.isScaled.width || previewDimensions.isScaled.height
 
   // Calculate warning message when preview is scaled (only for Form Builder)
   const scaledWarningMessage = useMemo(() => {
-    if (!showScaledDisclaimer) {
+    if (!isScaled) {
       return ''
     }
     const isWidthScaled = previewDimensions.isScaled.width
@@ -276,7 +278,7 @@ export function FormPreview({
       reducedText.charAt(0).toUpperCase() + reducedText.slice(1)
     } is reduced for the preview window.`
   }, [
-    showScaledDisclaimer,
+    isScaled,
     previewDimensions.isScaled.width,
     previewDimensions.isScaled.height,
     intendedWidth,
@@ -330,9 +332,9 @@ export function FormPreview({
     })
   }, [onFrontmatterChange, previewWindowDimensions.width, previewWindowDimensions.height, dispatch])
 
-  // Show warning toast when preview is scaled (only in Form Browser, not Form Builder)
+  // Show warning toast when preview is scaled (only when showScaledDisclaimer prop is true, e.g., in Form Builder)
   useEffect(() => {
-    if (hidePreviewHeader && showScaledDisclaimer && !prevShowScaledDisclaimerRef.current) {
+    if (showScaledDisclaimer && isScaled && !prevShowScaledDisclaimerRef.current) {
       const isWidthScaled = previewDimensions.isScaled.width
       const isHeightScaled = previewDimensions.isScaled.height
       let reducedText = ''
@@ -354,10 +356,10 @@ export function FormPreview({
         timeout: 10000,
       })
     }
-    prevShowScaledDisclaimerRef.current = showScaledDisclaimer
+    prevShowScaledDisclaimerRef.current = isScaled
   }, [
-    hidePreviewHeader,
     showScaledDisclaimer,
+    isScaled,
     intendedWidth,
     intendedHeight,
     previewWindowDimensions.width,
@@ -410,7 +412,7 @@ export function FormPreview({
           </div>
         </div>
         {/* Warning message when preview is scaled - only show in Form Builder (when onFrontmatterChange is provided) */}
-        {onFrontmatterChange && showScaledDisclaimer && scaledWarningMessage && <div className="form-preview-scaled-warning">{scaledWarningMessage}</div>}
+        {onFrontmatterChange && isScaled && scaledWarningMessage && <div className="form-preview-scaled-warning">{scaledWarningMessage}</div>}
         {/* Dimension display - only show in Form Builder (when onFrontmatterChange is provided) */}
         {onFrontmatterChange && previewWindowDimensions.width > 0 && previewWindowDimensions.height > 0 && (
           <div className="form-preview-dimensions">

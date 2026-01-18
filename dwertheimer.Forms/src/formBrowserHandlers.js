@@ -31,7 +31,7 @@ export type RequestResponse = {
 }
 
 /**
- * Get list of form templates filtered by space and @Forms folder
+ * Get list of form templates filtered by space and @Forms or @Templates folder
  * @param {Object} params - Request parameters
  * @param {string} params.space - Space ID to filter by (empty string = Private, teamspace ID = specific teamspace)
  * @returns {RequestResponse}
@@ -83,39 +83,50 @@ export function getFormTemplates(params: { space?: string } = {}): RequestRespon
           }
         }
 
-        // Check if note is in the @Forms folder (or a subfolder of @Forms)
-        // For Private: noteFolder should start with '@Forms' or be exactly '@Forms'
-        // For teamspace: noteFolder should start with '%%NotePlanCloud%%/{teamspaceID}/@Forms' (correct format)
+        // Check if note is in the @Forms folder OR @Templates folder (or subfolders)
+        // For Private: noteFolder should start with '@Forms' or '@Templates' or be exactly '@Forms' or '@Templates'
+        // For teamspace: noteFolder should start with '%%NotePlanCloud%%/{teamspaceID}/@Forms' or '%%NotePlanCloud%%/{teamspaceID}/@Templates'
         // Note: We check both formats (with and without the /) for backward compatibility, but the correct format is with the /
         let isInFormsFolder = false
+        let isInTemplatesFolder = false
         if (showAll) {
           // When showing all, check folder based on the note's actual space
           if (isTeamspaceNote && noteTeamspaceID) {
-            // Teamspace note: check if folder starts with '%%NotePlanCloud%%/{teamspaceID}/@Forms'
-            const expectedPrefix1 = `%%NotePlanCloud%%${noteTeamspaceID}/@Forms`
-            const expectedPrefix2 = `%%NotePlanCloud%%/${noteTeamspaceID}/@Forms`
+            // Teamspace note: check if folder starts with '%%NotePlanCloud%%/{teamspaceID}/@Forms' or '@Templates'
+            const formsPrefix1 = `%%NotePlanCloud%%${noteTeamspaceID}/@Forms`
+            const formsPrefix2 = `%%NotePlanCloud%%/${noteTeamspaceID}/@Forms`
+            const templatesPrefix1 = `%%NotePlanCloud%%${noteTeamspaceID}/@Templates`
+            const templatesPrefix2 = `%%NotePlanCloud%%/${noteTeamspaceID}/@Templates`
             isInFormsFolder =
-              noteFolder === expectedPrefix1 || noteFolder.startsWith(`${expectedPrefix1}/`) || noteFolder === expectedPrefix2 || noteFolder.startsWith(`${expectedPrefix2}/`)
+              noteFolder === formsPrefix1 || noteFolder.startsWith(`${formsPrefix1}/`) || noteFolder === formsPrefix2 || noteFolder.startsWith(`${formsPrefix2}/`)
+            isInTemplatesFolder =
+              noteFolder === templatesPrefix1 || noteFolder.startsWith(`${templatesPrefix1}/`) || noteFolder === templatesPrefix2 || noteFolder.startsWith(`${templatesPrefix2}/`)
           } else {
-            // Private note: check if folder is '@Forms' or starts with '@Forms/'
+            // Private note: check if folder is '@Forms' or '@Templates' or starts with '@Forms/' or '@Templates/'
             isInFormsFolder = noteFolder === '@Forms' || noteFolder.startsWith('@Forms/')
+            isInTemplatesFolder = noteFolder === '@Templates' || noteFolder.startsWith('@Templates/')
           }
         } else if (spaceId === '') {
-          // Private: check if folder is '@Forms' or starts with '@Forms/'
+          // Private: check if folder is '@Forms' or '@Templates' or starts with '@Forms/' or '@Templates/'
           isInFormsFolder = noteFolder === '@Forms' || noteFolder.startsWith('@Forms/')
+          isInTemplatesFolder = noteFolder === '@Templates' || noteFolder.startsWith('@Templates/')
         } else {
-          // Teamspace: check if folder starts with '%%NotePlanCloud%%/{teamspaceID}/@Forms' (correct format)
+          // Teamspace: check if folder starts with '%%NotePlanCloud%%/{teamspaceID}/@Forms' or '@Templates' (correct format)
           // Note: getFolderFromFilename may return paths with or without the leading slash after %%NotePlanCloud%%
           // We check both for backward compatibility, but the correct format is: %%NotePlanCloud%%/{teamspaceID}/...
-          const expectedPrefix1 = `%%NotePlanCloud%%${spaceId}/@Forms` // Incorrect format (for backward compatibility)
-          const expectedPrefix2 = `%%NotePlanCloud%%/${spaceId}/@Forms` // Correct format
+          const formsPrefix1 = `%%NotePlanCloud%%${spaceId}/@Forms` // Incorrect format (for backward compatibility)
+          const formsPrefix2 = `%%NotePlanCloud%%/${spaceId}/@Forms` // Correct format
+          const templatesPrefix1 = `%%NotePlanCloud%%${spaceId}/@Templates` // Incorrect format (for backward compatibility)
+          const templatesPrefix2 = `%%NotePlanCloud%%/${spaceId}/@Templates` // Correct format
           isInFormsFolder =
-            noteFolder === expectedPrefix1 || noteFolder.startsWith(`${expectedPrefix1}/`) || noteFolder === expectedPrefix2 || noteFolder.startsWith(`${expectedPrefix2}/`)
+            noteFolder === formsPrefix1 || noteFolder.startsWith(`${formsPrefix1}/`) || noteFolder === formsPrefix2 || noteFolder.startsWith(`${formsPrefix2}/`)
+          isInTemplatesFolder =
+            noteFolder === templatesPrefix1 || noteFolder.startsWith(`${templatesPrefix1}/`) || noteFolder === templatesPrefix2 || noteFolder.startsWith(`${templatesPrefix2}/`)
         }
 
-        if (!isInFormsFolder) {
-          logDebug(pluginJson, `getFormTemplates: Skipping note "${note.title || note.filename}" - folder="${noteFolder}", space="${spaceId || 'Private'}"`)
-          continue // Skip notes not in @Forms folder
+        if (!isInFormsFolder && !isInTemplatesFolder) {
+          logDebug(pluginJson, `getFormTemplates: Skipping note "${note.title || note.filename}" - folder="${noteFolder}", space="${spaceId || 'Private'}" (not in @Forms or @Templates)`)
+          continue // Skip notes not in @Forms or @Templates folder
         }
         inFormsFolderCount++
         spaceMatchCount++
@@ -140,7 +151,7 @@ export function getFormTemplates(params: { space?: string } = {}): RequestRespon
 
     logDebug(
       pluginJson,
-      `getFormTemplates: Scanned ${templateFormCount} template-form notes, ${inFormsFolderCount} in @Forms folder, ${spaceMatchCount} matched space filter, ${formTemplates.length} added to results`,
+      `getFormTemplates: Scanned ${templateFormCount} template-form notes, ${inFormsFolderCount} in @Forms or @Templates folder, ${spaceMatchCount} matched space filter, ${formTemplates.length} added to results`,
     )
 
     // Sort by title

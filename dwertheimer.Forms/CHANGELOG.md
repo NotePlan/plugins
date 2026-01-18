@@ -4,6 +4,15 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.13] 2026-01-XX @dwertheimer
+
+### Changed
+- **CSS Color Variables**: Updated FormBrowserView.css, SimpleDialog.css, and DynamicDialog.css to use only valid NotePlan theme color variables, removing non-existent variables and hard-coded color fallbacks. All colors now properly reference the theme system.
+- **FormPreview**: Added `showScaledDisclaimer` prop to control when the scaled preview warning toast is shown. The toast now only appears in FormBuilder (when `showScaledDisclaimer={true}` is passed), not in FormBrowserView or other contexts.
+
+### Fixed
+- **Form Browser**: Updated `getFormTemplates` to search for forms in both `@Forms` and `@Templates` folders, making it consistent with other parts of the plugin (e.g., Form Builder). Previously, the Form Browser only found forms in `@Forms` folder.
+
 ## [1.0.12] 2026-01-17 @dwertheimer
 
 ### Added

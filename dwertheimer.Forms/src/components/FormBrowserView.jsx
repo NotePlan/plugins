@@ -664,10 +664,6 @@ export function FormBrowserView({
     setCreateFormDialogData({})
   }, [])
 
-  // Handle reload button
-  const handleReload = useCallback(() => {
-    loadTemplates()
-  }, [loadTemplates])
 
   // Handle edit form button
   const handleEditForm = useCallback(
@@ -755,9 +751,7 @@ export function FormBrowserView({
                 </div>
                 <div className="form-browser-list-header">
                   <h3>Template Forms ({filteredTemplates.length})</h3>
-                  <button className="form-browser-button form-browser-button-reload" onClick={handleReload} title="Reload forms list">
-                    ↻
-                  </button>
+
                 </div>
                 <div ref={listRef} className="form-browser-list" onKeyDown={handleKeyDown} tabIndex={0}>
                   {loading && templates.length === 0 ? (
