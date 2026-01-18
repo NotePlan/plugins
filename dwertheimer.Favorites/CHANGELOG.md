@@ -1,5 +1,9 @@
 # Favorites Plugin Changelog
 
+## [1.3.4] - 2026-01-18 @dwertheimer    
+
+- Fixed dark mode issues with favorites browser window by using proper css variables for colors.
+
 ## [1.3.3 - waiting for np 3.20.1 release (change showReloadButton to true)] - 2026-01-11 @dwertheimer
 
 - Added reload button to favorites browser window to allow for easy reloading of the window when changes are made to the plugin or the underlying note data.
