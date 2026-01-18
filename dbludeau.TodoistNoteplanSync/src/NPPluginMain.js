@@ -426,6 +426,49 @@ async function syncTodayTasks() {
 }
 
 /**
+ * Filter tasks by date based on the filter setting
+ * Note: Todoist API ignores filter param when project_id is specified, so we filter client-side
+ *
+ * @param {Array<Object>} tasks - array of task objects from Todoist
+ * @param {string} dateFilter - the date filter to apply (today, overdue, overdue | today, 7 days, all)
+ * @returns {Array<Object>} - filtered tasks
+ */
+function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Object> {
+  if (!dateFilter || dateFilter === 'all') {
+    return tasks
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const sevenDaysFromNow = new Date(today)
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+
+  return tasks.filter((task) => {
+    if (!task.due || !task.due.date) {
+      // Tasks without due dates: only include if filter is 'all'
+      return false
+    }
+
+    const dueDate = new Date(task.due.date)
+    dueDate.setHours(0, 0, 0, 0)
+
+    switch (dateFilter) {
+      case 'today':
+        return dueDate.getTime() === today.getTime()
+      case 'overdue':
+        return dueDate.getTime() < today.getTime()
+      case 'overdue | today':
+        return dueDate.getTime() <= today.getTime()
+      case '7 days':
+        return dueDate.getTime() <= sevenDaysFromNow.getTime()
+      default:
+        return true
+    }
+  })
+}
+
+/**
  * Get Todoist project tasks and write them out one by one
  *
  * @param {TNote} note - note that will be written to
@@ -437,9 +480,17 @@ async function projectSync(note: TNote, id: string, filterOverride: ?string): Pr
   const task_result = await pullTodoistTasksByProject(id, filterOverride)
   const tasks: Array<Object> = JSON.parse(task_result)
 
-  tasks.results.forEach(async (t) => {
+  // Determine which filter to use
+  const dateFilter = filterOverride ?? setup.projectDateFilter
+
+  // Filter tasks client-side (Todoist API ignores filter when project_id is specified)
+  const filteredTasks = filterTasksByDate(tasks.results || [], dateFilter)
+  logInfo(pluginJson, `Filtered ${tasks.results?.length || 0} tasks to ${filteredTasks.length} based on filter: ${dateFilter}`)
+
+  // Use for...of to properly await each task write
+  for (const t of filteredTasks) {
     await writeOutTask(note, t)
-  })
+  }
 }
 
 /**
