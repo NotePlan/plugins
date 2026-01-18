@@ -6,6 +6,7 @@
 import React, { useMemo, useRef, useEffect, useState, useCallback, type Node } from 'react'
 import { useAppContext } from './AppContext.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
+import FormErrorBanner from './FormErrorBanner.jsx'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { stripDoubleQuotes } from '@helpers/stringTransforms'
@@ -25,6 +26,8 @@ type FormPreviewProps = {
   keepOpenOnSubmit?: boolean, // If true, don't close the window after submit (e.g., for Form Browser context)
   onFrontmatterChange?: (key: string, value: any) => void, // Optional callback to update frontmatter (for Form Builder)
   showScaledDisclaimer?: boolean, // If true, show toast warning when preview is scaled (only for Form Builder)
+  aiAnalysisResult?: string, // Optional: AI analysis result from template rendering errors
+  formSubmissionError?: string, // Optional: Form submission error message
 }
 
 /**
@@ -130,6 +133,8 @@ export function FormPreview({
   keepOpenOnSubmit = false,
   onFrontmatterChange,
   showScaledDisclaimer = false,
+  aiAnalysisResult = '',
+  formSubmissionError = '',
 }: FormPreviewProps): Node {
   const containerRef = useRef<?HTMLDivElement>(null)
   const previewWindowRef = useRef<?HTMLDivElement>(null)
@@ -377,6 +382,16 @@ export function FormPreview({
         </div>
       )}
       <div className="form-preview-container" ref={containerRef}>
+        {/* Error banner - only show when not in Form Builder (when onFrontmatterChange is not provided) */}
+        {!onFrontmatterChange && (aiAnalysisResult || formSubmissionError) && (
+          <div style={{ position: 'relative', width: '100%', marginBottom: '1rem' }}>
+            <FormErrorBanner
+              aiAnalysisResult={aiAnalysisResult}
+              formSubmissionError={formSubmissionError}
+              requestFromPlugin={requestFromPlugin}
+            />
+          </div>
+        )}
         <div className="form-preview-window" ref={previewWindowRef} style={previewDimensions.style}>
           {!hideWindowTitlebar && (
             <div className="form-preview-window-titlebar">

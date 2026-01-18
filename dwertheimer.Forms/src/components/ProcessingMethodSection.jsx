@@ -124,7 +124,7 @@ export function ProcessingMethodSection({
 
   return (
     <>
-      <div className="frontmatter-field">
+      <div className="frontmatter-field processing-method-section">
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           Form Processing Method:
           <InfoIcon text="Choose how form submissions should be processed: Write directly to an existing note, create a new note each time, or use a separate processing template for more complex logic." />
@@ -133,6 +133,7 @@ export function ProcessingMethodSection({
           value={processingMethod || 'create-new'}
           onChange={(e) => onFrontmatterChange('processingMethod', e.target.value)}
           style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+          className="processing-method-select"
         >
           <option value="create-new">Create New Note on Each Submission</option>
           <option value="write-existing">Write to Existing Note</option>
@@ -206,8 +207,12 @@ export function ProcessingMethodSection({
               label=""
               value={frontmatter.getNoteTitled || ''}
               notes={notes}
-              onChange={(noteTitle: string, _noteFilename: string) => {
-                onFrontmatterChange('getNoteTitled', noteTitle)
+              onChange={(noteTitle: string, noteFilename: string) => {
+                // For special options (like "Current Note", "Choose Note"), use the filename (template value like "<current>")
+                // instead of the title (display label like "Current Note")
+                // Check if filename is a template value (starts with "<" and ends with ">")
+                const valueToUse = noteFilename && noteFilename.startsWith('<') && noteFilename.endsWith('>') ? noteFilename : noteTitle
+                onFrontmatterChange('getNoteTitled', valueToUse)
               }}
               placeholder="Select note or type <today>, <current>, <thisweek>, etc."
               includePersonalNotes={true}

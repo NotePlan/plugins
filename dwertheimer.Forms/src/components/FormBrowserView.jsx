@@ -812,6 +812,8 @@ export function FormBrowserView({
                         hidePreviewHeader={true}
                         hideWindowTitlebar={true}
                         keepOpenOnSubmit={true} // Don't close the window after submit in Form Browser
+                        aiAnalysisResult={pluginData?.aiAnalysisResult || ''}
+                        formSubmissionError={pluginData?.formSubmissionError || ''}
                       />
                     </div>
                   </div>
