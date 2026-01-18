@@ -269,6 +269,30 @@ export async function syncProject(filterArg: ?string) {
 }
 
 /**
+ * Sync project with 'today' filter
+ * @returns {Promise<void>}
+ */
+export async function syncProjectToday(): Promise<void> {
+  await syncProject('today')
+}
+
+/**
+ * Sync project with 'overdue' filter
+ * @returns {Promise<void>}
+ */
+export async function syncProjectOverdue(): Promise<void> {
+  await syncProject('overdue')
+}
+
+/**
+ * Sync project with 'current' (overdue | today) filter
+ * @returns {Promise<void>}
+ */
+export async function syncProjectCurrent(): Promise<void> {
+  await syncProject('current')
+}
+
+/**
  * Syncronize all linked projects.
  *
  * @returns {Promise<void>} A promise that resolves once synchronization is complete

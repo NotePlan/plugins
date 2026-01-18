@@ -47,11 +47,36 @@
       "alias": [
         "tosp"
       ],
-      "description": "Sync Todoist project. Optional: add 'today', 'overdue', or 'current' (today+overdue) to override date filter",
+      "description": "Sync Todoist project (uses date filter from settings)",
       "jsFunction": "syncProject",
-      "arguments": [
-        "Date filter override (optional): today, overdue, or current"
-      ]
+      "arguments": []
+    },
+    {
+      "name": "todoist sync project today",
+      "alias": [
+        "tospt"
+      ],
+      "description": "Sync Todoist project - only tasks due today",
+      "jsFunction": "syncProjectToday",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync project overdue",
+      "alias": [
+        "tospo"
+      ],
+      "description": "Sync Todoist project - only overdue tasks",
+      "jsFunction": "syncProjectOverdue",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync project current",
+      "alias": [
+        "tospc"
+      ],
+      "description": "Sync Todoist project - overdue + today tasks",
+      "jsFunction": "syncProjectCurrent",
+      "arguments": []
     },
     {
       "name": "todoist sync all linked projects",
