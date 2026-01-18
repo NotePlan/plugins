@@ -9,9 +9,11 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 ### Changed
 - **CSS Color Variables**: Updated FormBrowserView.css, SimpleDialog.css, and DynamicDialog.css to use only valid NotePlan theme color variables, removing non-existent variables and hard-coded color fallbacks. All colors now properly reference the theme system.
 - **FormPreview**: Added `showScaledDisclaimer` prop to control when the scaled preview warning toast is shown. The toast now only appears in FormBuilder (when `showScaledDisclaimer={true}` is passed), not in FormBrowserView or other contexts.
+- **Form Browser**: Replaced SimpleDialog success message with Toast notification. Success messages now appear as non-intrusive toasts, and notes are automatically opened after successful submission.
 
 ### Fixed
 - **Form Browser**: Updated `getFormTemplates` to search for forms in both `@Forms` and `@Templates` folders, making it consistent with other parts of the plugin (e.g., Form Builder). Previously, the Form Browser only found forms in `@Forms` folder.
+- **Form Submission**: Fixed issue where empty form fields were not included in form submission. All fields from the form definition are now included in `formValues`, even if left blank, ensuring templates receive all expected variables.
 
 ## [1.0.12] 2026-01-17 @dwertheimer
 

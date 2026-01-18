@@ -8,7 +8,6 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, type Node } f
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { AppProvider } from './AppContext.jsx'
 import { FormPreview } from './FormPreview.jsx'
-import { SimpleDialog } from '@helpers/react/SimpleDialog'
 import { SpaceChooser as SpaceChooserComponent } from '@helpers/react/DynamicDialog/SpaceChooser'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
@@ -168,9 +167,6 @@ export function FormBrowserView({
   const formPreviewRef = useRef<?HTMLDivElement>(null)
   // Ref to track if we're programmatically updating selection (to prevent useEffect from firing)
   const isUpdatingSelectionRef = useRef<boolean>(false)
-  // Success dialog state
-  const [showSuccessDialog, setShowSuccessDialog] = useState<boolean>(false)
-  const [successDialogData, setSuccessDialogData] = useState<{ noteTitle?: string, processingMethod?: string } | null>(null)
   // Create form dialog state
   const [showCreateFormDialog, setShowCreateFormDialog] = useState<boolean>(false)
   const [createFormDialogData, setCreateFormDialogData] = useState<{ formName?: string, space?: string }>({})
@@ -541,21 +537,30 @@ export function FormBrowserView({
         })
           .then((responseData) => {
             logDebug('FormBrowserView', 'Form submission response:', responseData)
-            // Show success dialog with note information
-            if (responseData?.noteTitle || responseData?.processingMethod) {
-              setSuccessDialogData({
-                noteTitle: responseData.noteTitle || '',
-                processingMethod: responseData.processingMethod || '',
-              })
-              setShowSuccessDialog(true)
-            } else {
-              // Generic success message if no note info
-              setSuccessDialogData({
-                noteTitle: '',
-                processingMethod: '',
-              })
-              setShowSuccessDialog(true)
+            // Show success toast with note information
+            let successMessage = 'Your form has been submitted successfully.'
+            if (responseData?.noteTitle) {
+              const action = responseData.processingMethod === 'create-new' ? 'created' : 'updated'
+              successMessage = `Form submitted successfully. Note "${responseData.noteTitle}" has been ${action}.`
+              
+              // Automatically open the note after a short delay
+              setTimeout(() => {
+                if (requestFromPlugin) {
+                  requestFromPlugin('openNote', {
+                    noteTitle: responseData.noteTitle,
+                  }).catch((error) => {
+                    logError('FormBrowserView', `Error opening note: ${error.message}`)
+                  })
+                }
+              }, 500)
             }
+            
+            dispatch('SHOW_TOAST', {
+              type: 'SUCCESS',
+              msg: successMessage,
+              timeout: 5000,
+            })
+            
             // Reset form after successful submission
             handleCancel()
           })
@@ -572,46 +577,9 @@ export function FormBrowserView({
           })
       }
     },
-    [selectedTemplate, requestFromPlugin, handleCancel],
+    [selectedTemplate, requestFromPlugin, handleCancel, dispatch],
   )
 
-  // Handle success dialog button clicks
-  const handleSuccessDialogButton = useCallback(
-    (value: string) => {
-      // value will be the button label converted to lowercase with hyphens (e.g., "open-note" for "Open Note")
-      if (value === 'open-note' && successDialogData?.noteTitle) {
-        const noteTitleToOpen = successDialogData.noteTitle
-        logDebug('FormBrowserView', `Opening note: "${noteTitleToOpen}"`)
-        if (requestFromPlugin) {
-          requestFromPlugin('openNote', {
-            noteTitle: noteTitleToOpen,
-          })
-            .then(() => {
-              logDebug('FormBrowserView', `Note opened successfully: "${noteTitleToOpen}"`)
-            })
-            .catch((error) => {
-              logError('FormBrowserView', `Error opening note: ${error.message}`)
-              // Show error toast
-              dispatch('SHOW_TOAST', {
-                type: 'ERROR',
-                msg: `Failed to open note: ${error.message}`,
-                timeout: 5000,
-              })
-            })
-        }
-      }
-      // Close dialog after any button click
-      setShowSuccessDialog(false)
-      setSuccessDialogData(null)
-    },
-    [successDialogData, requestFromPlugin, dispatch],
-  )
-
-  // Handle closing success dialog
-  const handleCloseSuccessDialog = useCallback(() => {
-    setShowSuccessDialog(false)
-    setSuccessDialogData(null)
-  }, [])
 
   // Handle new form button - show dialog
   const handleNewForm = useCallback(() => {
@@ -857,22 +825,6 @@ export function FormBrowserView({
           </PanelGroup>
         </div>
       </div>
-      {showSuccessDialog && (
-        <SimpleDialog
-          isOpen={showSuccessDialog}
-          title={successDialogData?.noteTitle ? 'Form Submitted Successfully' : 'Form Submission Complete'}
-          message={
-            successDialogData?.noteTitle
-              ? `Your form has been submitted and the note "${successDialogData.noteTitle}" has been ${
-                  successDialogData.processingMethod === 'create-new' ? 'created' : 'updated'
-                }. Would you like to open it?`
-              : 'Your form has been submitted successfully.'
-          }
-          buttonLabels={successDialogData?.noteTitle ? ['Stay Here', 'Open Note'] : undefined}
-          onButtonClick={handleSuccessDialogButton}
-          onClose={handleCloseSuccessDialog}
-        />
-      )}
       <DynamicDialog
         isOpen={showCreateFormDialog}
         title="Create New Form"

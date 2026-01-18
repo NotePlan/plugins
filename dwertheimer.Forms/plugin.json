@@ -6,7 +6,7 @@
   "plugin.name": "📝 Template Forms",
   "plugin.version": "1.0.13",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "Dark Mode CSS theme color fixes, FormPreview scaled warning improvements, text color styling updates, and Form Browser now finds forms in @Templates folder",
+  "plugin.lastUpdateInfo": "Dark Mode CSS theme color fixes, FormPreview scaled warning improvements, text color styling updates, Form Browser @Templates support, Toast notifications, and fixed form submission to include all fields",
   "plugin.description": "Dynamic Forms for NotePlan using Templating -- fill out a multi-field form and have the data sent to a template for processing",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles": ["react.c.FormView.bundle.dev.js", "react.c.FormBuilderView.bundle.dev.js", "react.c.FormBrowserView.bundle.dev.js"],
