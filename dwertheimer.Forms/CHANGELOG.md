@@ -11,6 +11,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 ### Fixed
 
 ### Changed
+- **FormView**: Set text color of dialog to main color for better readability
+Under the hood changes to move all window opening code to the windowManagement.js file.
+
 
 ## [1.0.11] 2026-01-17 @dwertheimer
 
