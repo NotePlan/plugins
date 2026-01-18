@@ -38,6 +38,51 @@ todoist_id: 2317353827
 ---
 ```
 
+### Multiple Projects Per Note
+
+You can sync multiple Todoist projects to a single note using `todoist_ids` (note the plural):
+
+```
+---
+todoist_ids: ["2317353827", "2317353828"]
+---
+```
+
+Tasks from each project will sync in the order specified. You can configure how projects are visually separated in the plugin settings.
+
+| Separator Option | Result |
+|-----------------|--------|
+| `## Project Name` | Large heading with project name |
+| `### Project Name` | Medium heading with project name (default) |
+| `#### Project Name` | Small heading with project name |
+| `Horizontal Rule` | A `---` line between projects |
+| `No Separator` | No visual separation between projects |
+
+You can also configure how Todoist sections appear within each project:
+
+| Section Format | Result |
+|---------------|--------|
+| `### Section` | Large heading |
+| `#### Section` | Medium heading (default) |
+| `##### Section` | Small heading |
+| `**Section**` | Bold text (not a heading) |
+
+Example with `### Project Name` and `#### Section`:
+
+```
+### Home                    ← Project heading (###)
+- task without section
+#### Backlog                ← Section heading (####)
+- task in Backlog
+#### In Progress
+- task in progress
+
+### Work                    ← Next project
+- another task
+```
+
+Note: The single `todoist_id` format still works for backward compatibility. You can also use `todoist_id` with a JSON array: `todoist_id: ["id1", "id2"]`.
+
 ## Caveats, Warnings and Notes
 - All synced tasks in Noteplan rely on the Todoist ID being present and associated with the task.  This is stored at the end of a synced task in the form of a link to www.todoist.com.
   - These links can be used to view the Todoist task on the web.

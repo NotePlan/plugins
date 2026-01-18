@@ -206,6 +206,34 @@
       "default": false
     },
     {
+      "note": "================== PROJECT SYNC SETTINGS ========================"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Project Sync Settings"
+    },
+    {
+      "type": "string",
+      "key": "projectSeparator",
+      "title": "Separator between multiple projects",
+      "description": "How to visually separate tasks from different Todoist projects when using multiple projects per note (with todoist_ids frontmatter).",
+      "choices": ["## Project Name", "### Project Name", "#### Project Name", "Horizontal Rule", "No Separator"],
+      "default": "### Project Name",
+      "required": false
+    },
+    {
+      "type": "string",
+      "key": "sectionFormat",
+      "title": "Section heading format",
+      "description": "How to format Todoist section headings within multi-project notes.",
+      "choices": ["### Section", "#### Section", "##### Section", "**Section**"],
+      "default": "#### Section",
+      "required": false
+    },
+    {
       "note": "================== DEBUGGING SETTINGS ========================"
     },
     {
