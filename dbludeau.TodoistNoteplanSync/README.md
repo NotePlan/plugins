@@ -29,8 +29,26 @@ NOTE: All sync actions (other then content and status) can be turned on and off 
 ## Configuration
 - This plug in requires an API token from Todoist.  These are available on both the free and paid plans. To get the token follow the instructions [here](https://todoist.com/help/articles/find-your-api-token)
 - You can configure a folder to use for syncing everything, headings that tasks will fall under and what details are synced.
-- Sections in Todoist will become headers in Noteplan.  See [here](https://todoist.com/help/articles/introduction-to-sections) to learn about sections in Todoist.  
+- Sections in Todoist will become headers in Noteplan.  See [here](https://todoist.com/help/articles/introduction-to-sections) to learn about sections in Todoist.
 - Currently the API token is required, everything else is optional.
+
+### Project Date Filter
+By default, project sync commands only fetch tasks that are **overdue or due today**. This keeps your notes focused on actionable items. You can change this behavior in settings:
+
+| Filter Option | Description |
+|---------------|-------------|
+| `all` | Sync all tasks regardless of due date |
+| `today` | Only tasks due today |
+| `overdue \| today` | Tasks that are overdue or due today (default) |
+| `7 days` | Tasks due within the next 7 days |
+
+This setting affects the following commands:
+- `/todoist sync project`
+- `/todoist sync all linked projects`
+- `/todoist sync all linked projects and today` (project portion only)
+- `/todoist sync everything`
+
+Note: The `/todoist sync today` command always filters by today regardless of this setting.
 - To link a Todoist list to a Noteplan note, you need the list ID from Todoist.  To get the ID, open www.todoist.com in a web browser and sign in so you can see your lists.  Open the list you want to link to a Noteplan note.  The list ID is at the end of the URL.  For example, if the end of the Todoist.com URL is /app/project/2317353827, then you want the list ID of 2317353827. You would add frontmatter to the top of your note that would look like (see https://help.noteplan.co/article/136-templates for more information on frontmatter):
 ```
 ---

@@ -206,6 +206,25 @@
       "default": false
     },
     {
+      "note": "================== PROJECT SYNC SETTINGS ========================"
+    },
+    {
+      "type": "heading",
+      "title": "Project Sync Settings"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "string",
+      "key": "projectDateFilter",
+      "title": "Date filter for project syncs",
+      "description": "Filter which tasks are synced based on due date. Choose 'all' to sync everything.",
+      "choices": ["all", "today", "overdue | today", "7 days"],
+      "default": "overdue | today",
+      "required": false
+    },
+    {
       "note": "================== DEBUGGING SETTINGS ========================"
     },
     {

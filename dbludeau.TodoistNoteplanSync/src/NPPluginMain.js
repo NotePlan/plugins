@@ -46,6 +46,7 @@ const setup: {
   teamAccount: boolean,
   addUnassigned: boolean,
   header: string,
+  projectDateFilter: string,
   newFolder: any,
   newToken: any,
   useTeamAccount: any,
@@ -54,6 +55,7 @@ const setup: {
   syncTags: any,
   syncUnassigned: any,
   newHeader: any,
+  newProjectDateFilter: any,
 } = {
   token: '',
   folder: 'Todoist',
@@ -63,6 +65,7 @@ const setup: {
   teamAccount: false,
   addUnassigned: false,
   header: '',
+  projectDateFilter: 'overdue | today',
 
   /**
    * @param {string} passedToken
@@ -114,6 +117,12 @@ const setup: {
    */
   set newHeader(passedHeader: string) {
     setup.header = passedHeader
+  },
+  /**
+   * @param {string} passedProjectDateFilter
+   */
+  set newProjectDateFilter(passedProjectDateFilter: string) {
+    setup.projectDateFilter = passedProjectDateFilter
   },
 }
 
@@ -387,15 +396,31 @@ async function projectSync(note: TNote, id: string): Promise<void> {
  */
 async function pullTodoistTasksByProject(project_id: string): Promise<any> {
   if (project_id !== '') {
-    let filter = ''
+    const filterParts: Array<string> = []
+
+    // Add date filter based on setting (skip if 'all')
+    if (setup.projectDateFilter && setup.projectDateFilter !== 'all') {
+      filterParts.push(setup.projectDateFilter)
+    }
+
+    // Add team account filter if applicable
     if (setup.useTeamAccount) {
       if (setup.addUnassigned) {
-        filter = '& filter=!assigned to: others'
+        filterParts.push('!assigned to: others')
       } else {
-        filter = '& filter=assigned to: me'
+        filterParts.push('assigned to: me')
       }
     }
-    const result = await fetch(`${todo_api}/tasks?project_id=${project_id}${filter}`, getRequestObject())
+
+    // Build the URL with proper encoding
+    let url = `${todo_api}/tasks?project_id=${project_id}`
+    if (filterParts.length > 0) {
+      const filterString = filterParts.join(' & ')
+      url = `${url}&filter=${encodeURIComponent(filterString)}`
+    }
+
+    logDebug(pluginJson, `Fetching tasks from URL: ${url}`)
+    const result = await fetch(url, getRequestObject())
     return result
   }
   return null
@@ -555,6 +580,10 @@ function setSettings() {
 
     if ('headerToUse' in settings && settings.headerToUse !== '') {
       setup.newHeader = settings.headerToUse
+    }
+
+    if ('projectDateFilter' in settings && settings.projectDateFilter !== '') {
+      setup.newProjectDateFilter = settings.projectDateFilter
     }
   }
 }
