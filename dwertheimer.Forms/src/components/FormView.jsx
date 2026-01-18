@@ -35,6 +35,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo, type Node } f
 import { createPortal } from 'react-dom'
 import { type PassedData } from '../shared/types.js'
 import { AppProvider } from './AppContext.jsx'
+import FormErrorBanner from './FormErrorBanner.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
@@ -763,65 +764,6 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   // Check for form submission error in pluginData
   const formSubmissionError = pluginData?.formSubmissionError || ''
 
-  // State for rendered markdown HTML and visibility
-  const [aiAnalysisHtml, setAiAnalysisHtml] = useState<string>('')
-  const [showAiAnalysis, setShowAiAnalysis] = useState<boolean>(false)
-  const bannerShownRef = useRef<boolean>(false)
-  
-  // State for form submission error visibility
-  const [showFormSubmissionError, setShowFormSubmissionError] = useState<boolean>(false)
-  const formErrorShownRef = useRef<boolean>(false)
-
-  // Render markdown when AI analysis result is received (only once)
-  useEffect(() => {
-    if (aiAnalysisResult && typeof aiAnalysisResult === 'string' && aiAnalysisResult.includes('==**Templating Error Found**') && !bannerShownRef.current) {
-      logDebug('FormView', `[AI ANALYSIS] Processing AI analysis result (length=${aiAnalysisResult.length})`)
-      bannerShownRef.current = true
-      setShowAiAnalysis(true)
-      
-      // Render markdown to HTML using requestFromPlugin
-      if (requestFromPlugin) {
-        requestFromPlugin('renderMarkdown', { markdown: aiAnalysisResult })
-          .then((response: any) => {
-            // renderMarkdown returns { success: true, data: html }
-            const html = response?.data || response
-            if (typeof html === 'string') {
-              setAiAnalysisHtml(html)
-              logDebug('FormView', `[AI ANALYSIS] Markdown rendered to HTML (length=${html.length})`)
-            } else {
-              logError('FormView', `[AI ANALYSIS] Invalid response from renderMarkdown: ${JSON.stringify(response)}`)
-              setAiAnalysisHtml(aiAnalysisResult.replace(/\n/g, '<br/>')) // Fallback to simple line breaks
-            }
-          })
-          .catch((error: Error) => {
-            logError('FormView', `[AI ANALYSIS] Error rendering markdown: ${error.message}`)
-            setAiAnalysisHtml(aiAnalysisResult.replace(/\n/g, '<br/>')) // Fallback to simple line breaks
-          })
-      } else {
-        // Fallback if requestFromPlugin not available
-        setAiAnalysisHtml(aiAnalysisResult.replace(/\n/g, '<br/>'))
-      }
-    } else if (!aiAnalysisResult) {
-      // Reset banner shown flag when AI analysis is cleared
-      bannerShownRef.current = false
-      setAiAnalysisHtml('')
-      setShowAiAnalysis(false)
-    }
-  }, [aiAnalysisResult, requestFromPlugin])
-
-  // Display form submission error when received (similar to AI analysis)
-  useEffect(() => {
-    if (formSubmissionError && typeof formSubmissionError === 'string' && !formErrorShownRef.current) {
-      logDebug('FormView', `[FORM SUBMISSION ERROR] Processing form submission error (length=${formSubmissionError.length})`)
-      formErrorShownRef.current = true
-      setShowFormSubmissionError(true)
-    } else if (!formSubmissionError) {
-      // Reset error shown flag when error is cleared
-      formErrorShownRef.current = false
-      setShowFormSubmissionError(false)
-    }
-  }, [formSubmissionError])
-
   return (
     <>
     <AppProvider
@@ -840,50 +782,14 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
           style={{
             maxWidth: '100vw',
             width: '100vw',
-            paddingTop: showAiAnalysis || showFormSubmissionError ? '4rem' : '0',
+            paddingTop: (aiAnalysisResult || formSubmissionError) ? '4rem' : '0',
           }}
         >
-          {/* Display form submission error at the top if present */}
-          {showFormSubmissionError && formSubmissionError && (
-            <div className="form-ai-analysis-error">
-              <div className="form-ai-analysis-header">
-                <div className="form-ai-analysis-title">⚠️ Form Submission Error:</div>
-                <button
-                  type="button"
-                  className="form-ai-analysis-close"
-                  onClick={() => setShowFormSubmissionError(false)}
-                  title="Close"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="form-ai-analysis-content">{formSubmissionError}</div>
-            </div>
-          )}
-          {/* Display AI analysis result at the top if present */}
-          {showAiAnalysis && aiAnalysisResult && (
-            <div className="form-ai-analysis-error">
-              <div className="form-ai-analysis-header">
-                <div className="form-ai-analysis-title">⚠️ Template Error - AI Analysis:</div>
-                <button
-                  type="button"
-                  className="form-ai-analysis-close"
-                  onClick={() => setShowAiAnalysis(false)}
-                  title="Close"
-                >
-                  ×
-                </button>
-              </div>
-              {aiAnalysisHtml ? (
-                <div 
-                  className="form-ai-analysis-content"
-                  dangerouslySetInnerHTML={{ __html: aiAnalysisHtml }} 
-                />
-              ) : (
-                <div>Loading...</div>
-              )}
-            </div>
-          )}
+          <FormErrorBanner
+            aiAnalysisResult={aiAnalysisResult}
+            formSubmissionError={formSubmissionError}
+            requestFromPlugin={requestFromPlugin}
+          />
           <DynamicDialog
             isOpen={true}
             title={pluginData?.formTitle || ''}

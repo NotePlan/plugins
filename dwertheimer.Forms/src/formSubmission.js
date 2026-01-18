@@ -226,6 +226,7 @@ async function executeTemplateJSBlocks(blocks: Array<{ field: Object, code: stri
 
 /**
  * Handle template runner result - check for AI analysis and store in reactWindowData
+ * Also detects when templateRunner returns null/undefined/empty, which indicates an error
  * @param {any} templateRunnerResult - The result from templateRunner
  * @param {PassedData} reactWindowData - The React window data to update
  */
@@ -249,6 +250,16 @@ function handleTemplateRunnerResult(templateRunnerResult: any, reactWindowData: 
       pluginJson,
       `handleTemplateRunnerResult: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`,
     )
+  } else if (!templateRunnerResult || templateRunnerResult === null || templateRunnerResult === undefined || (typeof templateRunnerResult === 'string' && templateRunnerResult.trim() === '')) {
+    // Template runner returned null/undefined/empty - this indicates an error occurred
+    // The error might have been logged by the templating plugin but not returned as a string
+    logError(pluginJson, `handleTemplateRunnerResult: Template runner returned empty/null/undefined result - this indicates an error occurred during template execution`)
+    if (!reactWindowData.pluginData) {
+      reactWindowData.pluginData = {}
+    }
+    // Store a generic error message - the actual error should be in the logs
+    ;(reactWindowData.pluginData: any).formSubmissionError =
+      'Template execution failed. Please check the NotePlan logs for details. The template may have encountered an error during rendering.'
   } else {
     logDebug(pluginJson, `handleTemplateRunnerResult: No AI analysis result detected in templateRunner result`)
   }

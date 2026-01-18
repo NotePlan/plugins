@@ -350,6 +350,29 @@ const DynamicDialog = ({
     updatedSettingsRef.current = updatedSettings
   }, [updatedSettings])
 
+  // Ensure all fields from items are included in updatedSettings, even if empty
+  // This is critical for form submission - all fields must be present in formValues
+  useEffect(() => {
+    if (!isOpen) return // Only update when dialog is open
+    
+    const currentKeys = Object.keys(updatedSettings)
+    const itemKeys = items.filter((item) => item.key).map((item) => item.key)
+    const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
+    
+    if (missingKeys.length > 0) {
+      logDebug('DynamicDialog', `Adding ${missingKeys.length} missing field(s) to updatedSettings: ${missingKeys.join(', ')}`)
+      const newSettings = { ...updatedSettings }
+      items.forEach((item) => {
+        if (item.key && !newSettings.hasOwnProperty(item.key)) {
+          // Initialize missing field with default value, item value, or empty string
+          newSettings[item.key] = defaultValues?.[item.key] ?? item.value ?? item.checked ?? item.default ?? ''
+        }
+      })
+      setUpdatedSettings(newSettings)
+      updatedSettingsRef.current = newSettings
+    }
+  }, [items, isOpen, defaultValues, updatedSettings])
+
   // Build dependency map: track which fields depend on which other fields (generic, no hardcoded knowledge)
   useEffect(() => {
     // Guard: Skip if items haven't actually changed (compare by keys and dependency properties)

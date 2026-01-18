@@ -839,7 +839,7 @@ export async function openFormBrowser(_showFloating: boolean = false): Promise<v
     // Create data object to pass to React
     const dataToPass: PassedData = {
       pluginData,
-      title: 'Form Browser',
+      title: 'Template Forms',
       logProfilingMessage: false,
       debug: false, // Enable debug mode to show test buttons
       ENV_MODE,
@@ -860,7 +860,7 @@ export async function openFormBrowser(_showFloating: boolean = false): Promise<v
     const windowOptions = {
       savedFilename: `../../${pluginJson['plugin.id']}/form_browser_output.html`,
       headerTags: cssTagsString,
-      windowTitle: 'Form Browser',
+      windowTitle: 'Template Forms',
       width: 1200,
       height: 800,
       customId: windowId, // Use unique window ID instead of constant

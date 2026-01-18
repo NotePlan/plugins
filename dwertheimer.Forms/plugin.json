@@ -4,9 +4,9 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.Forms",
   "plugin.name": "📝 Template Forms",
-  "plugin.version": "1.0.12",
+  "plugin.version": "1.0.13",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "Improved form UX: auto-focus, tab navigation, and chooser controls",
+  "plugin.lastUpdateInfo": "Dark Mode CSS theme color fixes, FormPreview scaled warning improvements, text color styling updates, Form Browser @Templates support, Toast notifications, fixed form submission to include all fields, and fixed Target Note field to use template values for special options",
   "plugin.description": "Dynamic Forms for NotePlan using Templating -- fill out a multi-field form and have the data sent to a template for processing",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles": ["react.c.FormView.bundle.dev.js", "react.c.FormBuilderView.bundle.dev.js", "react.c.FormBrowserView.bundle.dev.js"],
@@ -52,7 +52,7 @@
       ]
     },
     {
-      "name": "Form Browser - open in NotePlan Editor",
+      "name": "Sidebar Browser",
       "alias": [
         "browser",
         "formbrowser"
@@ -61,7 +61,7 @@
       "jsFunction": "openFormBrowser",
       "sidebarView": {
         "windowID": "form-browser-window main",
-        "title": "Form Browser",
+        "title": "Template Forms",
         "icon": "list",
         "iconColor": "blue-500"
       },
