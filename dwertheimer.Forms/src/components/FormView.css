@@ -7,6 +7,13 @@
 /* Template Form Dialog Centering - apply same centering logic as DynamicDialog.css */
 /* Only apply centering if no explicit x,y positioning is set via inline styles */
 .dynamic-dialog.template-form {
+
+  /* set the text color of the dialog to the main color */
+  color: var(--fg-main-color);
+  & input, & textarea, & select {
+    color: var(--fg-main-color);
+  }
+
   /* Ensure proper vertical centering - same as DynamicDialog.css */
   /* Center vertically: position top edge at viewport center + toolbar offset, then translateY(-50%) centers it */
   /* Account for toolbar offset: center of available space = 50vh + toolbar-height/2 */
