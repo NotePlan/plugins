@@ -52,12 +52,32 @@ This setting affects the following commands:
 - `/todoist sync everything`
 
 Note: The `/todoist sync today` command always filters by today regardless of this setting.
-- To link a Todoist list to a Noteplan note, you need the list ID from Todoist.  To get the ID, open www.todoist.com in a web browser and sign in so you can see your lists.  Open the list you want to link to a Noteplan note.  The list ID is at the end of the URL.  For example, if the end of the Todoist.com URL is /app/project/2317353827, then you want the list ID of 2317353827. You would add frontmatter to the top of your note that would look like (see https://help.noteplan.co/article/136-templates for more information on frontmatter):
+
+### Linking a Todoist Project
+To link a Todoist list to a Noteplan note, you need the list ID from Todoist. To get the ID, open www.todoist.com in a web browser and sign in so you can see your lists. Open the list you want to link to a Noteplan note. The list ID is at the end of the URL. For example, if the end of the Todoist.com URL is /app/project/2317353827, then you want the list ID of 2317353827.
+
+Add frontmatter to the top of your note (see https://help.noteplan.co/article/136-templates for more information on frontmatter):
 ```
 ---
 todoist_id: 2317353827
 ---
 ```
+
+### Per-Note Date Filter
+You can override the default date filter for a specific note by adding `todoist_filter` to the frontmatter:
+```
+---
+todoist_id: 2317353827
+todoist_filter: current
+---
+```
+
+Valid values for `todoist_filter`: `all`, `today`, `overdue`, `current` (same as overdue | today), `7 days`
+
+**Filter Priority:**
+1. Command-line argument (e.g., `/todoist sync project today`) - highest
+2. Frontmatter `todoist_filter` - second
+3. Plugin settings "Date filter for project syncs" - default
 
 ## Caveats, Warnings and Notes
 - All synced tasks in Noteplan rely on the Todoist ID being present and associated with the task.  This is stored at the end of a synced task in the form of a link to www.todoist.com.

@@ -229,9 +229,9 @@ function parseDateFilterArg(arg: ?string): ?string {
 // eslint-disable-next-line require-await
 export async function syncProject(filterArg: ?string) {
   setSettings()
-  const filterOverride = parseDateFilterArg(filterArg)
-  if (filterOverride) {
-    logInfo(pluginJson, `Using date filter override: ${filterOverride}`)
+  const commandLineFilter = parseDateFilterArg(filterArg)
+  if (commandLineFilter) {
+    logInfo(pluginJson, `Using command-line filter override: ${commandLineFilter}`)
   }
 
   const note: ?TNote = Editor.note
@@ -243,6 +243,15 @@ export async function syncProject(filterArg: ?string) {
     if (frontmatter) {
       if ('todoist_id' in frontmatter) {
         logDebug(pluginJson, `Frontmatter has link to Todoist project -> ${frontmatter.todoist_id}`)
+
+        // Determine filter priority: command-line > frontmatter > settings
+        let filterOverride = commandLineFilter
+        if (!filterOverride && 'todoist_filter' in frontmatter && frontmatter.todoist_filter) {
+          filterOverride = parseDateFilterArg(frontmatter.todoist_filter)
+          if (filterOverride) {
+            logInfo(pluginJson, `Using frontmatter filter: ${filterOverride}`)
+          }
+        }
 
         const paragraphs: ?$ReadOnlyArray<TParagraph> = note.paragraphs
         if (paragraphs) {
