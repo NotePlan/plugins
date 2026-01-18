@@ -22,7 +22,10 @@ NOTE: All sync actions (other then content and status) can be turned on and off 
 ## Available Commands
 - **/todoist sync everything** (alias **/tosa**): sync everything in Todoist to a folder in Noteplan.  Every list in todoist will become a note in Noteplan.  Use this if you want to use Todoist just as a conduit to get tasks into Noteplan.  The folder used in Noteplan can be configured in settings.
 - **/todoist sync today** (alias **/tost**): sync tasks due today from Todoist to your daily note in Noteplan. A header can be configured in settings.
-- **/todoist sync project** (alias **/tosp**): link a single list from Todoist to a note in Note plan using frontmatter.  This command will sync the current project you have open.
+- **/todoist sync project** (alias **/tosp**): link a single list from Todoist to a note in Note plan using frontmatter.  This command will sync the current project you have open. You can optionally add a date filter argument:
+  - `/todoist sync project today` - only tasks due today
+  - `/todoist sync project overdue` - only overdue tasks
+  - `/todoist sync project current` - overdue + today (same as default setting)
 - **/todoist sync all projects** (alias **/tosa**): this will sync all projects that have been linked using frontmatter.
 - **/todoist sync all projects and today** (alias **/tosat** **/toast**): this will sync all projects and the today note.  Running it as one comand instead of individually will check for duplicates.  This command will sync all tasks from projects to their linked note, including tasks due today.  It will sync all tasks from all projects in Todoist that are due today except for those already in the project notes to avoid duplication.
 

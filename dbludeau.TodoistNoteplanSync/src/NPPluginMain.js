@@ -183,7 +183,7 @@ export async function syncEverything() {
 
           // grab the tasks and write them out with sections
           const id: string = projects[i].project_id
-          await projectSync(note, id)
+          await projectSync(note, id, null)
         }
       }
 
@@ -198,13 +198,41 @@ export async function syncEverything() {
 }
 
 /**
+ * Parse the date filter argument from command line
+ *
+ * @param {string} arg - the argument passed to the command
+ * @returns {string | null} - the filter string or null if no override
+ */
+function parseDateFilterArg(arg: ?string): ?string {
+  if (!arg || arg.trim() === '') {
+    return null
+  }
+  const trimmed = arg.trim().toLowerCase()
+  if (trimmed === 'today') {
+    return 'today'
+  } else if (trimmed === 'overdue') {
+    return 'overdue'
+  } else if (trimmed === 'current') {
+    return 'overdue | today'
+  }
+  logWarn(pluginJson, `Unknown date filter argument: ${arg}. Using setting value.`)
+  return null
+}
+
+/**
  * Synchronize the current linked project.
  *
+ * @param {string} filterArg - optional date filter override (today, overdue, current)
  * @returns {Promise<void>} A promise that resolves once synchronization is complete
  */
 // eslint-disable-next-line require-await
-export async function syncProject() {
+export async function syncProject(filterArg: ?string) {
   setSettings()
+  const filterOverride = parseDateFilterArg(filterArg)
+  if (filterOverride) {
+    logInfo(pluginJson, `Using date filter override: ${filterOverride}`)
+  }
+
   const note: ?TNote = Editor.note
   if (note) {
     // check to see if this has any frontmatter
@@ -222,7 +250,7 @@ export async function syncProject() {
           })
         }
 
-        await projectSync(note, frontmatter.todoist_id)
+        await projectSync(note, frontmatter.todoist_id, filterOverride)
 
         //close the tasks in Todoist if they are complete in Noteplan`
         closed.forEach(async (t) => {
@@ -297,7 +325,7 @@ async function syncThemAll() {
           id = id.trim()
 
           logInfo(pluginJson, `Matches up to Todoist project id: ${id}`)
-          await projectSync(note, id)
+          await projectSync(note, id, null)
 
           //close the tasks in Todoist if they are complete in Noteplan`
           closed.forEach(async (t) => {
@@ -377,13 +405,14 @@ async function syncTodayTasks() {
  *
  * @param {TNote} note - note that will be written to
  * @param {string} id - Todoist project ID
+ * @param {string} filterOverride - optional date filter override
  * @returns {Promise<void>}
  */
-async function projectSync(note: TNote, id: string): Promise<void> {
-  const task_result = await pullTodoistTasksByProject(id)
+async function projectSync(note: TNote, id: string, filterOverride: ?string): Promise<void> {
+  const task_result = await pullTodoistTasksByProject(id, filterOverride)
   const tasks: Array<Object> = JSON.parse(task_result)
-  
-  tasks.results.forEach(async (t) => { 
+
+  tasks.results.forEach(async (t) => {
     await writeOutTask(note, t)
   })
 }
@@ -392,15 +421,17 @@ async function projectSync(note: TNote, id: string): Promise<void> {
  * Pull todoist tasks from list matching the ID provided
  *
  * @param {string} project_id - the id of the Todoist project
+ * @param {string} filterOverride - optional date filter override (bypasses setting)
  * @returns {Promise<any>} - promise that resolves into array of task objects or null
  */
-async function pullTodoistTasksByProject(project_id: string): Promise<any> {
+async function pullTodoistTasksByProject(project_id: string, filterOverride: ?string): Promise<any> {
   if (project_id !== '') {
     const filterParts: Array<string> = []
 
-    // Add date filter based on setting (skip if 'all')
-    if (setup.projectDateFilter && setup.projectDateFilter !== 'all') {
-      filterParts.push(setup.projectDateFilter)
+    // Add date filter: use override if provided, otherwise use setting
+    const dateFilter = filterOverride ?? setup.projectDateFilter
+    if (dateFilter && dateFilter !== 'all') {
+      filterParts.push(dateFilter)
     }
 
     // Add team account filter if applicable

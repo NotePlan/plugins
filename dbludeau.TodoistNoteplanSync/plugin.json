@@ -47,10 +47,10 @@
       "alias": [
         "tosp"
       ],
-      "description": "Sync Todoist project (list) linked to the current Noteplan note using frontmatter",
+      "description": "Sync Todoist project. Optional: add 'today', 'overdue', or 'current' (today+overdue) to override date filter",
       "jsFunction": "syncProject",
       "arguments": [
-        ""
+        "Date filter override (optional): today, overdue, or current"
       ]
     },
     {
