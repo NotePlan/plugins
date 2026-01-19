@@ -467,8 +467,9 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
       // if form or template has a newNoteTitle field then we need to call templateNew
       const argsArray = [selectedTemplate, folder || null, newNoteTitle, argObj]
       logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation calling templateNew with args:${JSP(argsArray)} and template:${selectedTemplate}`)
-      await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
-      return true
+      const filename = await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
+      // templateNew now returns the filename (string) on success, or null on failure
+      return filename || false
     } else {
       // this could have been TR calling itself programmatically with newNoteTitle but no template
       logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation calling DataStore.newNote with newNoteTitle:${newNoteTitle} and folder:${folder || null}`)
@@ -863,15 +864,17 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
             logDebug(pluginJson, `templateRunnerExecute: handleNewNoteCreation returned AI analysis error`)
             return newNoteCreated
           }
-          if (openInEditor) {
-            if (typeof newNoteCreated === 'string') {
+          // newNoteCreated is now the filename (string) when successful, or false when failed
+          if (typeof newNoteCreated === 'string') {
+            if (openInEditor) {
               logDebug(pluginJson, `templateRunnerExecute: Opening new note: "${newNoteCreated}"`)
               await Editor.openNoteByFilename(newNoteCreated)
+            } else {
+              logDebug(pluginJson, `templateRunnerExecute: New note created but not opening in editor: "${newNoteCreated}"`)
             }
-          } else {
-            logDebug(pluginJson, `templateRunnerExecute: New note created but not opening in editor: "${String(newNoteCreated)}"`)
+            // Return the filename to indicate success
+            return newNoteCreated
           }
-          return
         }
         logDebug(pluginJson, `TR Total Running Time -  after Step 3: ${timer(start)}`)
 

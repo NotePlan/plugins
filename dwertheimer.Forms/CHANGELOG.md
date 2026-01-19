@@ -4,6 +4,26 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.15] 2026-01-18 @dwertheimer
+
+### Fixed
+- **CRITICAL: Null Value Handling**: Fixed `TypeError: null is not an object (evaluating 'Object.getOwnPropertyNames')` error that occurred when templating plugin tried to process form data containing null values. Added explicit null checks in `JSP`, `getFilteredProps`, and `getAllPropertyNames` helper functions to handle null values correctly (since `typeof null === 'object'` in JavaScript).
+- **Form Submission Success Detection**: Fixed issue where successful form submissions were incorrectly flagged as errors. When `templateRunner` successfully creates a note via `templateNew`, it returns `undefined` (which is valid), but the code was treating this as an error. Now only `null` or empty strings are treated as errors.
+- **Deep Null Sanitization**: Added comprehensive deep sanitization of null/undefined values throughout form data processing. All null/undefined values are now converted to empty strings recursively before being passed to the templating engine, preventing errors in nested data structures.
+- **setTimeout Removal**: Removed `setTimeout` usage in form submission handlers (not available in NotePlan's JSContext). Replaced with proactive cleanup mechanism using a Map to manage debouncing without timeouts.
+
+### Changed
+- **templateNew Return Value**: Updated `templateNew` to return the filename (string) on success or `null` on failure, making the API more consistent and explicit. Previously returned `undefined`, which made it difficult to distinguish success from failure.
+- **templateRunner Return Value**: Updated `templateRunner` to return the filename when a note is successfully created, instead of returning `undefined`. This provides explicit feedback about successful operations.
+- **Error Messages**: Improved error messages to be more specific about null value issues and provide better guidance for debugging template execution problems.
+
+## [1.0.14] 2026-01-18 @dwertheimer
+
+### Fixed
+- **Form Submission Error Detection**: Fixed issue where FormBrowserView showed success message even when template execution failed. Now properly detects and displays errors from template processing, including AI analysis results and form submission errors.
+- **Form Field Validation**: Added validation to ensure all form fields are included in submission, even if left blank. This prevents template errors from missing variables. Validation now occurs both in FormBrowserView handler and in handleSubmitButtonClick.
+- **Error Message Display**: Improved error messages to be more specific. FormBrowserView now shows detailed error messages instead of generic "success" when template execution fails. Error messages include information about missing variables and template rendering issues.
+
 ## [1.0.13] 2026-01-18 @dwertheimer
 
 ### Changed

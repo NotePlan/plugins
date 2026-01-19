@@ -306,7 +306,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
  * @param {Object|string} args - The arguments to pass to the template - can be an object or a stringified object (e.g. JSON.stringify({foo: 'bar'}))
  * @returns {Promise<void>}
  */
-export async function templateNew(templateTitle: string = '', _folder?: string, newNoteTitle?: string, _args?: Object | string): Promise<void> {
+export async function templateNew(templateTitle: string = '', _folder?: string, newNoteTitle?: string, _args?: Object | string): Promise<string | null> {
   try {
     logDebug(pluginJson, `templateNew: STARTING - templateTitle:"${templateTitle}", folder:"${_folder}", newNoteTitle:"${newNoteTitle}" args:${JSON.stringify(_args)}`)
     let args = _args
@@ -387,7 +387,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     if (!noteTitle && templateRequiresNoteTitle) {
       noteTitle = await CommandBar.textPrompt('Template', 'Enter New Note Title', '')
       if (typeof noteTitle === 'boolean' || !noteTitle) {
-        return // user cancelled or didn't provide title
+        return null // user cancelled or didn't provide title
       }
     }
 
@@ -410,7 +410,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     logDebug(pluginJson, `templateNew: final noteTitle: "${finalNoteTitle}"`)
 
     if (typeof finalNoteTitle === 'boolean' || finalNoteTitle.length === 0) {
-      return // user did not provide note title (Cancel) abort
+      return null // user did not provide note title (Cancel) abort
     }
 
     const filename = DataStore.newNote(finalNoteTitle, folder) || ''
@@ -480,11 +480,14 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       }
       selectFirstNonTitleLineInEditor()
       logDebug(`templateNew: FINISHED - note was created with title: "${finalNoteTitle}" in folder: "${folder}" and filename: "${filename}"`)
+      return filename // Return the filename on success
     } else {
       await CommandBar.prompt('New Template', `An error occured creating ${finalNoteTitle} note`)
+      return null // Return null on error
     }
   } catch (error) {
     logError(pluginJson, error)
+    return null // Return null on error
   }
 }
 
