@@ -31,6 +31,7 @@
 
 import { getFrontmatterAttributes } from '../../helpers/NPFrontMatter'
 import { getTodaysDateAsArrowDate, getTodaysDateUnhyphenated } from '../../helpers/dateTime'
+import { findHeading } from '../../helpers/paragraph'
 import pluginJson from '../plugin.json'
 import { log, logInfo, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 
@@ -46,6 +47,7 @@ const setup: {
   teamAccount: boolean,
   addUnassigned: boolean,
   header: string,
+  projectDateFilter: string,
   newFolder: any,
   newToken: any,
   useTeamAccount: any,
@@ -54,6 +56,7 @@ const setup: {
   syncTags: any,
   syncUnassigned: any,
   newHeader: any,
+  newProjectDateFilter: any,
 } = {
   token: '',
   folder: 'Todoist',
@@ -63,6 +66,7 @@ const setup: {
   teamAccount: false,
   addUnassigned: false,
   header: '',
+  projectDateFilter: 'overdue | today',
 
   /**
    * @param {string} passedToken
@@ -114,6 +118,12 @@ const setup: {
    */
   set newHeader(passedHeader: string) {
     setup.header = passedHeader
+  },
+  /**
+   * @param {string} passedProjectDateFilter
+   */
+  set newProjectDateFilter(passedProjectDateFilter: string) {
+    setup.projectDateFilter = passedProjectDateFilter
   },
 }
 
@@ -174,7 +184,7 @@ export async function syncEverything() {
 
           // grab the tasks and write them out with sections
           const id: string = projects[i].project_id
-          await projectSync(note, id)
+          await projectSync(note, id, null)
         }
       }
 
@@ -189,13 +199,41 @@ export async function syncEverything() {
 }
 
 /**
+ * Parse the date filter argument from command line
+ *
+ * @param {string} arg - the argument passed to the command
+ * @returns {string | null} - the filter string or null if no override
+ */
+function parseDateFilterArg(arg: ?string): ?string {
+  if (!arg || arg.trim() === '') {
+    return null
+  }
+  const trimmed = arg.trim().toLowerCase()
+  if (trimmed === 'today') {
+    return 'today'
+  } else if (trimmed === 'overdue') {
+    return 'overdue'
+  } else if (trimmed === 'current') {
+    return 'overdue | today'
+  }
+  logWarn(pluginJson, `Unknown date filter argument: ${arg}. Using setting value.`)
+  return null
+}
+
+/**
  * Synchronize the current linked project.
  *
+ * @param {string} filterArg - optional date filter override (today, overdue, current)
  * @returns {Promise<void>} A promise that resolves once synchronization is complete
  */
 // eslint-disable-next-line require-await
-export async function syncProject() {
+export async function syncProject(filterArg: ?string) {
   setSettings()
+  const commandLineFilter = parseDateFilterArg(filterArg)
+  if (commandLineFilter) {
+    logInfo(pluginJson, `Using command-line filter override: ${commandLineFilter}`)
+  }
+
   const note: ?TNote = Editor.note
   if (note) {
     // check to see if this has any frontmatter
@@ -206,6 +244,15 @@ export async function syncProject() {
       if ('todoist_id' in frontmatter) {
         logDebug(pluginJson, `Frontmatter has link to Todoist project -> ${frontmatter.todoist_id}`)
 
+        // Determine filter priority: command-line > frontmatter > settings
+        let filterOverride = commandLineFilter
+        if (!filterOverride && 'todoist_filter' in frontmatter && frontmatter.todoist_filter) {
+          filterOverride = parseDateFilterArg(frontmatter.todoist_filter)
+          if (filterOverride) {
+            logInfo(pluginJson, `Using frontmatter filter: ${filterOverride}`)
+          }
+        }
+
         const paragraphs: ?$ReadOnlyArray<TParagraph> = note.paragraphs
         if (paragraphs) {
           paragraphs.forEach((paragraph) => {
@@ -213,7 +260,7 @@ export async function syncProject() {
           })
         }
 
-        await projectSync(note, frontmatter.todoist_id)
+        await projectSync(note, frontmatter.todoist_id, filterOverride, true)
 
         //close the tasks in Todoist if they are complete in Noteplan`
         closed.forEach(async (t) => {
@@ -229,6 +276,30 @@ export async function syncProject() {
       logWarn(pluginJson, 'Current note has no Todoist project linked currently')
     }
   }
+}
+
+/**
+ * Sync project with 'today' filter
+ * @returns {Promise<void>}
+ */
+export async function syncProjectToday(): Promise<void> {
+  await syncProject('today')
+}
+
+/**
+ * Sync project with 'overdue' filter
+ * @returns {Promise<void>}
+ */
+export async function syncProjectOverdue(): Promise<void> {
+  await syncProject('overdue')
+}
+
+/**
+ * Sync project with 'current' (overdue | today) filter
+ * @returns {Promise<void>}
+ */
+export async function syncProjectCurrent(): Promise<void> {
+  await syncProject('current')
 }
 
 /**
@@ -288,7 +359,7 @@ async function syncThemAll() {
           id = id.trim()
 
           logInfo(pluginJson, `Matches up to Todoist project id: ${id}`)
-          await projectSync(note, id)
+          await projectSync(note, id, null)
 
           //close the tasks in Todoist if they are complete in Noteplan`
           closed.forEach(async (t) => {
@@ -364,38 +435,114 @@ async function syncTodayTasks() {
 }
 
 /**
+ * Filter tasks by date based on the filter setting
+ * Note: Todoist API ignores filter param when project_id is specified, so we filter client-side
+ *
+ * @param {Array<Object>} tasks - array of task objects from Todoist
+ * @param {string} dateFilter - the date filter to apply (today, overdue, overdue | today, 3 days, 7 days, all)
+ * @returns {Array<Object>} - filtered tasks
+ */
+function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Object> {
+  if (!dateFilter || dateFilter === 'all') {
+    return tasks
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const threeDaysFromNow = new Date(today)
+  threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3)
+
+  const sevenDaysFromNow = new Date(today)
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+
+  return tasks.filter((task) => {
+    if (!task.due || !task.due.date) {
+      // Tasks without due dates: only include if filter is 'all'
+      return false
+    }
+
+    const dueDate = new Date(task.due.date)
+    dueDate.setHours(0, 0, 0, 0)
+
+    switch (dateFilter) {
+      case 'today':
+        return dueDate.getTime() === today.getTime()
+      case 'overdue':
+        return dueDate.getTime() < today.getTime()
+      case 'overdue | today':
+        return dueDate.getTime() <= today.getTime()
+      case '3 days':
+        return dueDate.getTime() <= threeDaysFromNow.getTime()
+      case '7 days':
+        return dueDate.getTime() <= sevenDaysFromNow.getTime()
+      default:
+        return true
+    }
+  })
+}
+
+/**
  * Get Todoist project tasks and write them out one by one
  *
  * @param {TNote} note - note that will be written to
  * @param {string} id - Todoist project ID
+ * @param {string} filterOverride - optional date filter override
+ * @param {boolean} isEditorNote - whether this is the currently open note in Editor
  * @returns {Promise<void>}
  */
-async function projectSync(note: TNote, id: string): Promise<void> {
-  const task_result = await pullTodoistTasksByProject(id)
+async function projectSync(note: TNote, id: string, filterOverride: ?string, isEditorNote: boolean = false): Promise<void> {
+  const task_result = await pullTodoistTasksByProject(id, filterOverride)
   const tasks: Array<Object> = JSON.parse(task_result)
-  
-  tasks.results.forEach(async (t) => { 
-    await writeOutTask(note, t)
-  })
+
+  // Determine which filter to use
+  const dateFilter = filterOverride ?? setup.projectDateFilter
+
+  // Filter tasks client-side (Todoist API ignores filter when project_id is specified)
+  const filteredTasks = filterTasksByDate(tasks.results || [], dateFilter)
+  logInfo(pluginJson, `Filtered ${tasks.results?.length || 0} tasks to ${filteredTasks.length} based on filter: ${dateFilter}`)
+
+  // Use for...of to properly await each task write
+  for (const t of filteredTasks) {
+    await writeOutTask(note, t, isEditorNote)
+  }
 }
 
 /**
  * Pull todoist tasks from list matching the ID provided
  *
  * @param {string} project_id - the id of the Todoist project
+ * @param {string} filterOverride - optional date filter override (bypasses setting)
  * @returns {Promise<any>} - promise that resolves into array of task objects or null
  */
-async function pullTodoistTasksByProject(project_id: string): Promise<any> {
+async function pullTodoistTasksByProject(project_id: string, filterOverride: ?string): Promise<any> {
   if (project_id !== '') {
-    let filter = ''
+    const filterParts: Array<string> = []
+
+    // Add date filter: use override if provided, otherwise use setting
+    const dateFilter = filterOverride ?? setup.projectDateFilter
+    if (dateFilter && dateFilter !== 'all') {
+      filterParts.push(dateFilter)
+    }
+
+    // Add team account filter if applicable
     if (setup.useTeamAccount) {
       if (setup.addUnassigned) {
-        filter = '& filter=!assigned to: others'
+        filterParts.push('!assigned to: others')
       } else {
-        filter = '& filter=assigned to: me'
+        filterParts.push('assigned to: me')
       }
     }
-    const result = await fetch(`${todo_api}/tasks?project_id=${project_id}${filter}`, getRequestObject())
+
+    // Build the URL with proper encoding
+    let url = `${todo_api}/tasks?project_id=${project_id}`
+    if (filterParts.length > 0) {
+      const filterString = filterParts.join(' & ')
+      url = `${url}&filter=${encodeURIComponent(filterString)}`
+    }
+
+    logDebug(pluginJson, `Fetching tasks from URL: ${url}`)
+    const result = await fetch(url, getRequestObject())
     return result
   }
   return null
@@ -556,6 +703,41 @@ function setSettings() {
     if ('headerToUse' in settings && settings.headerToUse !== '') {
       setup.newHeader = settings.headerToUse
     }
+
+    if ('projectDateFilter' in settings && settings.projectDateFilter !== '') {
+      setup.newProjectDateFilter = settings.projectDateFilter
+    }
+  }
+}
+
+/**
+ * Add a task below a heading, creating the heading if it doesn't exist
+ * Uses Editor methods for the currently open note for reliable updates
+ *
+ * @param {TNote} note - the note to modify
+ * @param {string} headingName - the heading to add the task below
+ * @param {string} taskContent - the formatted task content
+ * @param {boolean} isEditorNote - whether this is the currently open note in Editor
+ */
+function addTaskBelowHeading(note: TNote, headingName: string, taskContent: string, isEditorNote: boolean = false): void {
+  const existingHeading = findHeading(note, headingName)
+  if (existingHeading) {
+    // Heading exists, use the standard method
+    if (isEditorNote) {
+      Editor.addTodoBelowHeadingTitle(taskContent, headingName, true, true)
+    } else {
+      note.addTodoBelowHeadingTitle(taskContent, headingName, true, true)
+    }
+  } else {
+    // Heading doesn't exist - append heading and task directly
+    logInfo(pluginJson, `Creating heading: ${headingName}`)
+    if (isEditorNote) {
+      Editor.appendParagraph(`### ${headingName}`, 'text')
+      Editor.appendParagraph(`- [ ] ${taskContent}`, 'text')
+    } else {
+      note.appendParagraph(`### ${headingName}`, 'text')
+      note.appendTodo(taskContent)
+    }
   }
 }
 
@@ -564,10 +746,10 @@ function setSettings() {
  *
  * @param {TNote} note - the note object that will get the task
  * @param {Object} task - the task object that will be written
+ * @param {boolean} isEditorNote - whether this is the currently open note in Editor
  */
-async function writeOutTask(note: TNote, task: Object) {
+async function writeOutTask(note: TNote, task: Object, isEditorNote: boolean = false) {
   if (note) {
-    //console.log(note.content)
     logDebug(pluginJson, task)
     const formatted = formatTaskDetails(task)
     if (task.section_id !== null) {
@@ -576,22 +758,21 @@ async function writeOutTask(note: TNote, task: Object) {
       if (section) {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `1. Task will be added to ${note.title} below ${section.name} (${formatted})`)
-          note.addTodoBelowHeadingTitle(formatted, section.name, true, true)
-
-          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
+          addTaskBelowHeading(note, section.name, formatted, isEditorNote)
           just_written.push(task.id)
         } else {
           logInfo(pluginJson, `Task is already in Noteplan ${task.id}`)
         }
       } else {
         // this one has a section ID but Todoist will not return a name
-        // Put it in with no heading
         logWarn(pluginJson, `Section ID ${task.section_id} did not return a section name`)
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `2. Task will be added to ${note.title} (${formatted})`)
-          note.appendTodo(formatted)
-
-          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
+          if (isEditorNote) {
+            Editor.appendParagraph(`- [ ] ${formatted}`, 'text')
+          } else {
+            note.appendTodo(formatted)
+          }
           just_written.push(task.id)
         } else {
           logInfo(pluginJson, `Task is already in Noteplan (${formatted})`)
@@ -599,21 +780,20 @@ async function writeOutTask(note: TNote, task: Object) {
       }
     } else {
       // check for a default heading
-      // if there is a predefined header in settings
       if (setup.header !== '') {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `3. Task will be added to ${note.title} below ${setup.header} (${formatted})`)
-          note.addTodoBelowHeadingTitle(formatted, setup.header, true, true)
-
-          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
+          addTaskBelowHeading(note, setup.header, formatted, isEditorNote)
           just_written.push(task.id)
         }
       } else {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `4. Task will be added to ${note.title} (${formatted})`)
-          note.appendTodo(formatted)
-
-          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
+          if (isEditorNote) {
+            Editor.appendParagraph(`- [ ] ${formatted}`, 'text')
+          } else {
+            note.appendTodo(formatted)
+          }
           just_written.push(task.id)
         }
       }
