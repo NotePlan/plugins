@@ -722,13 +722,30 @@ const DynamicDialog = ({
         }
       }
 
+      // CRITICAL: Ensure ALL fields from items are included in formValues, even if never touched
+      // This prevents template errors from missing variables
+      const finalFormValues = { ...updatedSettingsRef.current }
+      const currentKeys = Object.keys(finalFormValues)
+      const itemKeys = items.filter((item) => item.key).map((item) => item.key)
+      const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
+      
+      if (missingKeys.length > 0) {
+        logDebug('DynamicDialog', `handleSave: Adding ${missingKeys.length} missing field(s) to formValues before submission: ${missingKeys.join(', ')}`)
+        items.forEach((item) => {
+          if (item.key && !finalFormValues.hasOwnProperty(item.key)) {
+            // Initialize missing field with default value, item value, checked state, or empty string
+            finalFormValues[item.key] = defaultValues?.[item.key] ?? item.value ?? item.checked ?? item.default ?? ''
+          }
+        })
+      }
+
       if (onSave) {
         // Pass keepOpenOnSubmit flag in windowId as a special marker, or pass it separately
         // For now, we'll pass it as part of a special windowId format, or the caller can check the prop
         // Actually, the caller (onSave) can access keepOpenOnSubmit via closure, so we don't need to pass it
-        onSave(updatedSettingsRef.current, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
+        onSave(finalFormValues, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
       }
-      logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current, windowId, keepOpenOnSubmit })
+      logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: finalFormValues, windowId, keepOpenOnSubmit })
     } finally {
       isSavingRef.current = false
     }
