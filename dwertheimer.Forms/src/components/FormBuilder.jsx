@@ -750,6 +750,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
               hideHeaderButtons={false}
               keepOpenOnSubmit={true}
               onFrontmatterChange={handleFrontmatterChange}
+              showScaledDisclaimer={true}
               onSave={(formValues: { [key: string]: any }, windowId?: string) => {
                 // Show toast instead of closing
                 dispatch('SHOW_TOAST', {

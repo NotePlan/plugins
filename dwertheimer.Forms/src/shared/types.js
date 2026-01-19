@@ -21,3 +21,12 @@ export type PassedData = {
   passThroughVars?: any /* any data you want to pass through to the React Window */,
 }
 
+/**
+ * Standardized response type for all request handlers
+ */
+export type RequestResponse = {
+  success: boolean,
+  message?: string,
+  data?: any,
+}
+

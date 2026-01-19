@@ -4,24 +4,48 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.15] 2026-01-18 @dwertheimer
+
+### Fixed
+- **CRITICAL: Null Value Handling**: Fixed `TypeError: null is not an object (evaluating 'Object.getOwnPropertyNames')` error that occurred when templating plugin tried to process form data containing null values. Added explicit null checks in `JSP`, `getFilteredProps`, and `getAllPropertyNames` helper functions to handle null values correctly (since `typeof null === 'object'` in JavaScript).
+- **Form Submission Success Detection**: Fixed issue where successful form submissions were incorrectly flagged as errors. When `templateRunner` successfully creates a note via `templateNew`, it returns `undefined` (which is valid), but the code was treating this as an error. Now only `null` or empty strings are treated as errors.
+- **Deep Null Sanitization**: Added comprehensive deep sanitization of null/undefined values throughout form data processing. All null/undefined values are now converted to empty strings recursively before being passed to the templating engine, preventing errors in nested data structures.
+- **setTimeout Removal**: Removed `setTimeout` usage in form submission handlers (not available in NotePlan's JSContext). Replaced with proactive cleanup mechanism using a Map to manage debouncing without timeouts.
+
+### Changed
+- **templateNew Return Value**: Updated `templateNew` to return the filename (string) on success or `null` on failure, making the API more consistent and explicit. Previously returned `undefined`, which made it difficult to distinguish success from failure.
+- **templateRunner Return Value**: Updated `templateRunner` to return the filename when a note is successfully created, instead of returning `undefined`. This provides explicit feedback about successful operations.
+- **Error Messages**: Improved error messages to be more specific about null value issues and provide better guidance for debugging template execution problems.
+
+## [1.0.14] 2026-01-18 @dwertheimer
+
+### Fixed
+- **Form Submission Error Detection**: Fixed issue where FormBrowserView showed success message even when template execution failed. Now properly detects and displays errors from template processing, including AI analysis results and form submission errors.
+- **Form Field Validation**: Added validation to ensure all form fields are included in submission, even if left blank. This prevents template errors from missing variables. Validation now occurs both in FormBrowserView handler and in handleSubmitButtonClick.
+- **Error Message Display**: Improved error messages to be more specific. FormBrowserView now shows detailed error messages instead of generic "success" when template execution fails. Error messages include information about missing variables and template rendering issues.
+
+## [1.0.13] 2026-01-18 @dwertheimer
+
+### Changed
+- **CSS Color Variables**: Updated FormBrowserView.css, SimpleDialog.css, DynamicDialog.css, and FormBuilder.css to use only valid NotePlan theme color variables, removing non-existent variables and hard-coded color fallbacks. All colors now properly reference the theme system with appropriate fallback values. Variations on theme colors use `color-mix()` for hover states and semi-transparent overlays.
+- **FormPreview**: Added `showScaledDisclaimer` prop to control when the scaled preview warning toast is shown. The toast now only appears in FormBuilder (when `showScaledDisclaimer={true}` is passed), not in FormBrowserView or other contexts.
+- **Form Browser**: Replaced SimpleDialog success message with Toast notification. Success messages now appear as non-intrusive toasts, and notes are automatically opened after successful submission.
+
+### Fixed
+- **Form Browser**: Updated `getFormTemplates` to search for forms in both `@Forms` and `@Templates` folders, making it consistent with other parts of the plugin (e.g., Form Builder). Previously, the Form Browser only found forms in `@Forms` folder.
+- **Form Submission**: Fixed issue where empty form fields were not included in form submission. All fields from the form definition are now included in `formValues`, even if left blank, ensuring templates receive all expected variables. This fix applies to both FormView and FormPreview via DynamicDialog.
+- **Form Builder - Target Note Field**: Fixed issue where selecting special options like "Current Note" or "Choose Note" in the Target Note field was submitting the display label (e.g., "Current Note") instead of the template value (e.g., "<current>"). Now correctly uses the template value for special options while preserving note titles for regular notes.
+
 ## [1.0.12] 2026-01-17 @dwertheimer
 
 ### Added
-- **EventChooser Preloading**: Added support for preloading events data when `preloadChooserData: true` is set in form frontmatter
-- **All Choosers Support Preloading**: All chooser types (FolderChooser, NoteChooser, SpaceChooser, MentionChooser, TagChooser, EventChooser) now support preloading data for static HTML testing
 
 ### Fixed
-- Fixed chooser width wrapping in compact mode - removed `min-width` for percentage and viewport unit widths to prevent wrapping issues
-- Choosers with `width="100%"` or other percentage/viewport units now properly respect container boundaries without wrapping
 
 ### Changed
-- **SearchableChooser**: Width prop now only sets `min-width` for fixed pixel values, allowing flexible sizing for percentages and viewport units
-- **Code Refactoring**: Refactored `getPluginData` function into smaller, modular helper functions for better maintainability:
-  - `detectFieldRequirements()` - Detects which chooser types are needed
-  - `ensureAutosaveField()` - Adds autosave field if needed
-  - `preloadAllChooserData()` - Orchestrates all preloading operations
-  - Individual preload functions for each chooser type (folders, notes, teamspaces, mentions, hashtags, events)
-  - `initializeEmptyChooserData()` - Initializes empty arrays when not preloading
+- **FormView**: Set text color of dialog to main color for better readability
+Under the hood changes to move all window opening code to the windowManagement.js file.
+
 
 ## [1.0.11] 2026-01-17 @dwertheimer
 

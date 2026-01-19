@@ -32,8 +32,10 @@ type Props = {
  ****************************************************************************************************************************/
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, type Node } from 'react'
+import { createPortal } from 'react-dom'
 import { type PassedData } from '../shared/types.js'
 import { AppProvider } from './AppContext.jsx'
+import FormErrorBanner from './FormErrorBanner.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
@@ -422,21 +424,46 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   }
 
   const handleCancel = () => {
+    setIsSubmitting(false) // Hide overlay if canceling during submission
+    setFormSubmitted(false) // Reset submitted state
     sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, { type: 'cancel' })
     closeDialog()
   }
 
   // Track if form was submitted to handle delayed closing
   const [formSubmitted, setFormSubmitted] = useState<boolean>(false)
+  // Track if form is currently submitting (for showing loading overlay)
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  
+  // Debug counters (visible on-screen during freeze)
+  // Use refs for counters to avoid re-renders, only update state when needed (e.g., during submission)
+  const debugCountersRef = useRef<{ renders: number, setDataReceived: number, handleSaveCalls: number }>({ renders: 0, setDataReceived: 0, handleSaveCalls: 0 })
+  const [debugCounters, setDebugCounters] = useState({ renders: 0, setDataReceived: 0, handleSaveCalls: 0 })
+  const handleSaveCallCountRef = useRef<number>(0)
+  const setDataReceivedCountRef = useRef<number>(0)
 
   // Close dialog after submission if there's no AI analysis result
+  // GUARD: Use ref to prevent this effect from running multiple times with same data
+  const formSubmittedEffectRunRef = useRef<string>('')
   useEffect(() => {
     if (formSubmitted) {
+      // Create a signature for this effect run to prevent duplicate processing
+      const signature = `${String(!!pluginData?.aiAnalysisResult)}-${String(!!pluginData?.formSubmissionError)}`
+      if (formSubmittedEffectRunRef.current === signature) {
+        // Already processed this state, skip to prevent loops
+        return
+      }
+      formSubmittedEffectRunRef.current = signature
       // Check if there's an AI analysis result
       const hasAiAnalysis = pluginData?.aiAnalysisResult && typeof pluginData.aiAnalysisResult === 'string' && pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
       logDebug('FormView', `[AI ANALYSIS] formSubmitted=${String(formSubmitted)}, hasAiAnalysis=${String(hasAiAnalysis)}, aiAnalysisResult exists=${String(!!pluginData?.aiAnalysisResult)}, length=${pluginData?.aiAnalysisResult?.length || 0}`)
       
       const hasFormSubmissionError = pluginData?.formSubmissionError && typeof pluginData.formSubmissionError === 'string'
+      
+      // Hide submitting overlay if we received an error or AI analysis result
+      if (hasAiAnalysis || hasFormSubmissionError) {
+        setIsSubmitting(false)
+      }
       
       if (!hasAiAnalysis && !hasFormSubmissionError) {
         // No AI analysis result and no form submission error - close the dialog after a short delay to allow data to update
@@ -447,6 +474,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
           const stillNoFormError = !pluginData?.formSubmissionError
           logDebug('FormView', `[AI ANALYSIS] After 500ms delay, stillNoAiAnalysis=${String(stillNoAiAnalysis)}, stillNoFormError=${String(stillNoFormError)}, closing dialog`)
           if (stillNoAiAnalysis && stillNoFormError) {
+            setIsSubmitting(false) // Hide overlay before closing
             closeDialog()
             setFormSubmitted(false)
           }
@@ -461,8 +489,22 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   }, [formSubmitted, pluginData?.aiAnalysisResult, pluginData?.formSubmissionError])
 
   const handleSave = (formValues: Object, windowId?: string) => {
+    // GUARD: Prevent multiple submissions (critical for preventing loops)
+    if (isSubmitting || formSubmitted) {
+      logDebug('FormView', `[GUARD] handleSave: Already submitting (isSubmitting=${String(isSubmitting)}, formSubmitted=${String(formSubmitted)}), ignoring duplicate call`)
+      return
+    }
+    
+    handleSaveCallCountRef.current += 1
+    debugCountersRef.current.handleSaveCalls = handleSaveCallCountRef.current
+    // Update state to show in overlay
+    setDebugCounters({ ...debugCountersRef.current })
+    
     clo(formValues, 'DynamicDialog: handleSave: formValues')
+    logDebug('FormView', `[FRONT-END] handleSave called (#${handleSaveCallCountRef.current}) - form submission starting, isSubmitting=${String(isSubmitting)}, formSubmitted=${String(formSubmitted)}`)
     setFormSubmitted(true) // Mark form as submitted
+    setIsSubmitting(true) // Show submitting overlay
+    logDebug('FormView', `[FRONT-END] Sending onSubmitClick to back-end (plugin)`)
     sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, {
       type: 'submit',
       formValues,
@@ -677,19 +719,41 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   // Diagnostic: Log render timing (runs on every render to track re-renders)
   // Note: Re-renders from autosave completion are expected (autosave updates state → re-render)
   const renderCountRef = useRef<number>(0)
+  const lastPluginDataRef = useRef<string>('')
   useEffect(() => {
     renderCountRef.current += 1
     const renderStartTime = performance.now()
+    
+    // Track pluginData changes to detect SET_DATA messages from back-end
+    const currentPluginDataStr = JSON.stringify(pluginData)
+    const pluginDataChanged = currentPluginDataStr !== lastPluginDataRef.current
+    if (pluginDataChanged) {
+      lastPluginDataRef.current = currentPluginDataStr
+      setDataReceivedCountRef.current += 1
+      debugCountersRef.current.setDataReceived = setDataReceivedCountRef.current
+      // Don't update state here - would cause infinite loop. Only update when handleSave is called.
+      logDebug('FormView', `[FRONT-END] SET_DATA received from back-end (#${setDataReceivedCountRef.current}) - pluginData changed, triggering re-render #${renderCountRef.current}`)
+      // Log what changed
+      const hasError = pluginData?.formSubmissionError || pluginData?.aiAnalysisResult
+      if (hasError) {
+        logDebug('FormView', `[FRONT-END] SET_DATA contains error: formSubmissionError=${!!pluginData?.formSubmissionError}, aiAnalysisResult=${!!pluginData?.aiAnalysisResult}`)
+      }
+    }
+    
+    // Update render counter in ref only (don't trigger state update - that would cause infinite loop!)
+    debugCountersRef.current.renders = renderCountRef.current
+    
     // Only log first few renders and then periodically to reduce noise
-    const shouldLog = renderCountRef.current <= 3 || renderCountRef.current % 10 === 0
+    // But always log when pluginData changes (back-end activity)
+    const shouldLog = pluginDataChanged || renderCountRef.current <= 3 || renderCountRef.current % 10 === 0
     if (shouldLog) {
-      logDebug('FormView', `[DIAG] FormView RENDER #${renderCountRef.current}: formFields=${formFields.length}, folders=${folders.length}, notes=${notes.length}`)
+      logDebug('FormView', `[FRONT-END] FormView RENDER #${renderCountRef.current}: formFields=${formFields.length}, folders=${folders.length}, notes=${notes.length}, pluginDataChanged=${String(pluginDataChanged)}`)
     }
 
     requestAnimationFrame(() => {
       const renderElapsed = performance.now() - renderStartTime
       if (shouldLog) {
-        logDebug('FormView', `[DIAG] FormView RENDER #${renderCountRef.current} AFTER RAF: elapsed=${renderElapsed.toFixed(2)}ms`)
+        logDebug('FormView', `[FRONT-END] FormView RENDER #${renderCountRef.current} AFTER RAF: elapsed=${renderElapsed.toFixed(2)}ms`)
       }
     })
   })
@@ -700,66 +764,8 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   // Check for form submission error in pluginData
   const formSubmissionError = pluginData?.formSubmissionError || ''
 
-  // State for rendered markdown HTML and visibility
-  const [aiAnalysisHtml, setAiAnalysisHtml] = useState<string>('')
-  const [showAiAnalysis, setShowAiAnalysis] = useState<boolean>(false)
-  const bannerShownRef = useRef<boolean>(false)
-  
-  // State for form submission error visibility
-  const [showFormSubmissionError, setShowFormSubmissionError] = useState<boolean>(false)
-  const formErrorShownRef = useRef<boolean>(false)
-
-  // Render markdown when AI analysis result is received (only once)
-  useEffect(() => {
-    if (aiAnalysisResult && typeof aiAnalysisResult === 'string' && aiAnalysisResult.includes('==**Templating Error Found**') && !bannerShownRef.current) {
-      logDebug('FormView', `[AI ANALYSIS] Processing AI analysis result (length=${aiAnalysisResult.length})`)
-      bannerShownRef.current = true
-      setShowAiAnalysis(true)
-      
-      // Render markdown to HTML using requestFromPlugin
-      if (requestFromPlugin) {
-        requestFromPlugin('renderMarkdown', { markdown: aiAnalysisResult })
-          .then((response: any) => {
-            // renderMarkdown returns { success: true, data: html }
-            const html = response?.data || response
-            if (typeof html === 'string') {
-              setAiAnalysisHtml(html)
-              logDebug('FormView', `[AI ANALYSIS] Markdown rendered to HTML (length=${html.length})`)
-            } else {
-              logError('FormView', `[AI ANALYSIS] Invalid response from renderMarkdown: ${JSON.stringify(response)}`)
-              setAiAnalysisHtml(aiAnalysisResult.replace(/\n/g, '<br/>')) // Fallback to simple line breaks
-            }
-          })
-          .catch((error: Error) => {
-            logError('FormView', `[AI ANALYSIS] Error rendering markdown: ${error.message}`)
-            setAiAnalysisHtml(aiAnalysisResult.replace(/\n/g, '<br/>')) // Fallback to simple line breaks
-          })
-      } else {
-        // Fallback if requestFromPlugin not available
-        setAiAnalysisHtml(aiAnalysisResult.replace(/\n/g, '<br/>'))
-      }
-    } else if (!aiAnalysisResult) {
-      // Reset banner shown flag when AI analysis is cleared
-      bannerShownRef.current = false
-      setAiAnalysisHtml('')
-      setShowAiAnalysis(false)
-    }
-  }, [aiAnalysisResult, requestFromPlugin])
-
-  // Display form submission error when received (similar to AI analysis)
-  useEffect(() => {
-    if (formSubmissionError && typeof formSubmissionError === 'string' && !formErrorShownRef.current) {
-      logDebug('FormView', `[FORM SUBMISSION ERROR] Processing form submission error (length=${formSubmissionError.length})`)
-      formErrorShownRef.current = true
-      setShowFormSubmissionError(true)
-    } else if (!formSubmissionError) {
-      // Reset error shown flag when error is cleared
-      formErrorShownRef.current = false
-      setShowFormSubmissionError(false)
-    }
-  }, [formSubmissionError])
-
   return (
+    <>
     <AppProvider
       sendActionToPlugin={sendActionToPlugin}
       sendToPlugin={sendToPlugin}
@@ -776,50 +782,14 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
           style={{
             maxWidth: '100vw',
             width: '100vw',
-            paddingTop: showAiAnalysis || showFormSubmissionError ? '4rem' : '0',
+            paddingTop: (aiAnalysisResult || formSubmissionError) ? '4rem' : '0',
           }}
         >
-          {/* Display form submission error at the top if present */}
-          {showFormSubmissionError && formSubmissionError && (
-            <div className="form-ai-analysis-error">
-              <div className="form-ai-analysis-header">
-                <div className="form-ai-analysis-title">⚠️ Form Submission Error:</div>
-                <button
-                  type="button"
-                  className="form-ai-analysis-close"
-                  onClick={() => setShowFormSubmissionError(false)}
-                  title="Close"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="form-ai-analysis-content">{formSubmissionError}</div>
-            </div>
-          )}
-          {/* Display AI analysis result at the top if present */}
-          {showAiAnalysis && aiAnalysisResult && (
-            <div className="form-ai-analysis-error">
-              <div className="form-ai-analysis-header">
-                <div className="form-ai-analysis-title">⚠️ Template Error - AI Analysis:</div>
-                <button
-                  type="button"
-                  className="form-ai-analysis-close"
-                  onClick={() => setShowAiAnalysis(false)}
-                  title="Close"
-                >
-                  ×
-                </button>
-              </div>
-              {aiAnalysisHtml ? (
-                <div 
-                  className="form-ai-analysis-content"
-                  dangerouslySetInnerHTML={{ __html: aiAnalysisHtml }} 
-                />
-              ) : (
-                <div>Loading...</div>
-              )}
-            </div>
-          )}
+          <FormErrorBanner
+            aiAnalysisResult={aiAnalysisResult}
+            formSubmissionError={formSubmissionError}
+            requestFromPlugin={requestFromPlugin}
+          />
           <DynamicDialog
             isOpen={true}
             title={pluginData?.formTitle || ''}
@@ -856,6 +826,37 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
         </div>
         {/* end of replace */}
       </div>
+      {/* Submitting overlay - rendered via portal to document.body to appear above everything */}
+      {isSubmitting && typeof document !== 'undefined' && document.body
+        ? createPortal(
+            <div className="form-submitting-overlay">
+              <div className="form-submitting-message">
+                <div>Submitting Form...</div>
+                {/* Debug counters visible during freeze - read from ref to avoid triggering re-renders */}
+                <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
+                  Renders: {debugCountersRef.current.renders} | SET_DATA: {debugCountersRef.current.setDataReceived} | handleSave: {debugCountersRef.current.handleSaveCalls}
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </AppProvider>
+    {/* Submitting overlay - rendered via portal to document.body to appear above everything */}
+    {isSubmitting && typeof document !== 'undefined' && document.body
+      ? createPortal(
+          <div className="form-submitting-overlay">
+            <div className="form-submitting-message">
+              <div>Submitting Form...</div>
+              {/* Debug counters visible during freeze - read from ref to avoid triggering re-renders */}
+              <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
+                Renders: {debugCountersRef.current.renders} | SET_DATA: {debugCountersRef.current.setDataReceived} | handleSave: {debugCountersRef.current.handleSaveCalls}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null}
+    </>
   )
 }

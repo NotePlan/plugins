@@ -49,13 +49,104 @@ function generateKeyFromLabel(label: string, index: number): string {
 }
 
 /**
- * Prepare form values for rendering by removing internal flags
- * @param {Object} formValues - The raw form values
- * @returns {Object} - Cleaned form values
+ * Deep sanitize an object to ensure no null or undefined values exist
+ * Recursively converts null/undefined to empty strings
+ * @param {any} obj - The object to sanitize
+ * @returns {any} - Sanitized object with no null/undefined values
  */
-function prepareFormValuesForRendering(formValues: Object): Object {
-  const cleaned = { ...formValues }
-  delete cleaned.__isJSON__
+function deepSanitizeNulls(obj: any): any {
+  // Handle null/undefined at the root
+  if (obj === null || obj === undefined) {
+    return ''
+  }
+  
+  // Handle arrays - recursively sanitize each item
+  if (Array.isArray(obj)) {
+    return obj.map((item) => deepSanitizeNulls(item))
+  }
+  
+  // Handle objects - but check for null first (typeof null === 'object' in JavaScript!)
+  if (obj === null) {
+    return ''
+  }
+  
+  if (typeof obj === 'object' && !(obj instanceof Date)) {
+    const sanitized: { [string]: any } = {}
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        const value = obj[key]
+        // Convert null/undefined to empty string
+        if (value === null || value === undefined) {
+          sanitized[key] = ''
+        } else {
+          // Recursively sanitize nested structures
+          sanitized[key] = deepSanitizeNulls(value)
+        }
+      }
+    }
+    return sanitized
+  }
+  
+  // For primitives, Dates, etc., return as-is
+  return obj
+}
+
+/**
+ * Ensure all form fields exist in formValues, adding missing ones with empty string values
+ * @param {Object} formValues - The form values object
+ * @param {Array<Object>} formFields - The form fields array
+ * @returns {Object} - Form values with all fields guaranteed to exist
+ */
+function ensureAllFormFieldsExist(formValues: Object, formFields: Array<Object>): Object {
+  if (!formFields || formFields.length === 0) {
+    return formValues
+  }
+
+  const ensured = { ...formValues }
+  const missingFields: Array<string> = []
+  
+  formFields.forEach((field) => {
+    if (field.key) {
+      // Check if key exists (even if value is undefined/null/empty string)
+      if (!(field.key in ensured)) {
+        missingFields.push(field.key)
+        // Add missing field with empty value (or default if available)
+        ensured[field.key] = field.default ?? field.value ?? ''
+      } else if (ensured[field.key] === undefined || ensured[field.key] === null) {
+        // Field exists but is undefined/null - ensure it's at least an empty string
+        missingFields.push(`${field.key} (was undefined/null)`)
+        ensured[field.key] = field.default ?? field.value ?? ''
+      }
+    }
+  })
+  
+  if (missingFields.length > 0) {
+    logDebug(pluginJson, `ensureAllFormFieldsExist: Added/fixed ${missingFields.length} missing field(s): ${missingFields.join(', ')}`)
+  }
+  
+  return ensured
+}
+
+/**
+ * Prepare form values for rendering by removing internal flags and ensuring all fields exist
+ * @param {Object} formValues - The raw form values
+ * @param {Array<Object>} formFields - The form fields array (optional, for validation)
+ * @returns {Object} - Cleaned form values with all fields guaranteed
+ */
+function prepareFormValuesForRendering(formValues: Object, formFields?: Array<Object>): Object {
+  // First ensure all fields exist if formFields is provided
+  const withAllFields = formFields ? ensureAllFormFieldsExist(formValues, formFields) : formValues
+  
+  // Create cleaned object - use explicit iteration to avoid any spread issues
+  const cleaned: { [string]: any } = {}
+  Object.keys(withAllFields).forEach((key) => {
+    if (key !== '__isJSON__') {
+      // Ensure value is never undefined or null - convert to empty string
+      const value = withAllFields[key]
+      cleaned[key] = value === undefined || value === null ? '' : value
+    }
+  })
+  
   return cleaned
 }
 
@@ -68,7 +159,13 @@ async function getTemplatingContext(formValues: Object): Promise<Object> {
   logDebug(pluginJson, `getTemplatingContext: Getting templating render context...`)
   const templatingContext = await DataStore.invokePluginCommandByName('getRenderContext', 'np.Templating', [formValues])
   logDebug(pluginJson, `getTemplatingContext: Got templating context with ${Object.keys(templatingContext).length} keys`)
-  return templatingContext
+  
+  // CRITICAL: The templating context might contain null values from its internal processing
+  // Sanitize it to prevent issues when we merge it with form values
+  const sanitizedContext = deepSanitizeNulls(templatingContext)
+  logDebug(pluginJson, `getTemplatingContext: Sanitized templating context (removed any null/undefined values)`)
+  
+  return sanitizedContext
 }
 
 /**
@@ -226,6 +323,7 @@ async function executeTemplateJSBlocks(blocks: Array<{ field: Object, code: stri
 
 /**
  * Handle template runner result - check for AI analysis and store in reactWindowData
+ * Also detects when templateRunner returns null/undefined/empty, which indicates an error
  * @param {any} templateRunnerResult - The result from templateRunner
  * @param {PassedData} reactWindowData - The React window data to update
  */
@@ -249,8 +347,36 @@ function handleTemplateRunnerResult(templateRunnerResult: any, reactWindowData: 
       pluginJson,
       `handleTemplateRunnerResult: AI analysis stored, reactWindowData.pluginData.aiAnalysisResult length=${reactWindowData.pluginData.aiAnalysisResult?.length || 0}`,
     )
+  } else if (templateRunnerResult === null || (typeof templateRunnerResult === 'string' && templateRunnerResult.trim() === '')) {
+    // Template runner returned null or empty string - this indicates an error occurred
+    // NOTE: undefined is NOT an error - when templateRunner successfully creates a note via templateNew,
+    // it returns undefined (see NPTemplateRunner.js line 874). This is a valid success case.
+    logError(pluginJson, `handleTemplateRunnerResult: Template runner returned null or empty string - this indicates an error occurred during template execution`)
+    if (!reactWindowData.pluginData) {
+      reactWindowData.pluginData = {}
+    }
+    
+    // Provide a more specific error message based on the actual error
+    // The error "null is not an object (evaluating 'Object.getOwnPropertyNames')" indicates
+    // that the templating plugin's JSP function encountered a null value when trying to log/debug
+    const formFields = reactWindowData?.pluginData?.formFields || []
+    const formFieldKeys = formFields.filter((f) => f.key).map((f) => f.key)
+    
+    let errorMessage = 'Template execution failed. The error "null is not an object" typically means the templating plugin encountered a null value when processing the form data.'
+    if (formFieldKeys.length > 0) {
+      errorMessage += ` All form fields were sent: ${formFieldKeys.join(', ')}.`
+    }
+    errorMessage += ' This error occurs when the templating plugin tries to process a null value in the data object.'
+    errorMessage += ' The form data has been sanitized to remove nulls, but the templating plugin may have created null values during frontmatter processing.'
+    errorMessage += ' Please check the NotePlan Plugin Console logs for the detailed error message from the Templating plugin.'
+    ;(reactWindowData.pluginData: any).formSubmissionError = errorMessage
   } else {
-    logDebug(pluginJson, `handleTemplateRunnerResult: No AI analysis result detected in templateRunner result`)
+    // Success case: undefined (note created), string (rendered content), or other valid result
+    logDebug(pluginJson, `handleTemplateRunnerResult: Template execution completed successfully. Result type: ${typeof templateRunnerResult}, value: ${templateRunnerResult === undefined ? 'undefined (note created)' : String(templateRunnerResult).substring(0, 100)}`)
+    // Clear any previous error state
+    if (reactWindowData.pluginData) {
+      delete (reactWindowData.pluginData: any).formSubmissionError
+    }
   }
 }
 
@@ -278,13 +404,34 @@ async function processFormProcessor(data: any, reactWindowData: PassedData): Pro
     return reactWindowData // Return reactWindowData with error, not null
   }
 
+  // Get formFields for validation
+  const formFields = reactWindowData?.pluginData?.formFields || []
+  logDebug(pluginJson, `processFormProcessor: Starting with ${Object.keys(formValues || {}).length} formValues keys, ${formFields.length} formFields`)
+
   // Step 1: Prepare form values and get templating context
-  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  // CRITICAL: Pass formFields to ensure all fields exist
+  const formValuesForRendering = prepareFormValuesForRendering(formValues, formFields)
+  logDebug(pluginJson, `processFormProcessor: After prepareFormValuesForRendering, have ${Object.keys(formValuesForRendering).length} keys: ${Object.keys(formValuesForRendering).join(', ')}`)
+  
+  // Validate that all form fields are present
+  if (formFields && formFields.length > 0) {
+    const missingFields: Array<string> = []
+    formFields.forEach((field) => {
+      if (field.key && !(field.key in formValuesForRendering)) {
+        missingFields.push(field.key)
+      }
+    })
+    if (missingFields.length > 0) {
+      logError(pluginJson, `processFormProcessor: CRITICAL - Missing fields after prepareFormValuesForRendering: ${missingFields.join(', ')}`)
+    } else {
+      logDebug(pluginJson, `processFormProcessor: All ${formFields.length} form fields are present in formValuesForRendering`)
+    }
+  }
+  
   const templatingContext = await getTemplatingContext(formValuesForRendering)
 
   // Step 2: Extract and execute templatejs blocks
   // Note: We use the full templating context for execution so templatejs blocks have access to moment, date, etc.
-  const formFields = reactWindowData?.pluginData?.formFields || []
   const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
 
   const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext, reactWindowData)
@@ -299,23 +446,131 @@ async function processFormProcessor(data: any, reactWindowData: PassedData): Pro
   const templatingContextKeys = new Set(Object.keys(templatingContext))
 
   // Build a clean object with only form-specific variables
+  // CRITICAL: Always include ALL form values first, even if they conflict with templating context
+  // Form values take precedence and must be present (even if empty strings) to prevent template errors
   const formSpecificVars: { [string]: any } = {}
-  Object.keys(fullContext).forEach((key) => {
-    // Only include keys that are NOT in the templating context (i.e., form values or templatejs block results)
-    if (!templatingContextKeys.has(key)) {
-      formSpecificVars[key] = fullContext[key]
-    }
-  })
-
-  // Also include original form values (in case templatejs blocks didn't add them)
+  
+  // First, include ALL original form values (these take precedence and must be present)
+  // Use explicit iteration to avoid any spread issues
   Object.keys(formValuesForRendering).forEach((key) => {
-    if (!(key in formSpecificVars)) {
-      formSpecificVars[key] = formValuesForRendering[key]
+    const value = formValuesForRendering[key]
+    // Ensure value is never undefined or null
+    formSpecificVars[key] = value === undefined || value === null ? '' : value
+  })
+  
+  logDebug(pluginJson, `processFormProcessor: After adding formValues, formSpecificVars has ${Object.keys(formSpecificVars).length} keys: ${Object.keys(formSpecificVars).join(', ')}`)
+  
+  // Then, include templatejs block results (but don't override form values)
+  Object.keys(fullContext).forEach((key) => {
+    // Only include keys that are NOT in the templating context (i.e., templatejs block results)
+    // AND that are not already in formSpecificVars (form values take precedence)
+    if (!templatingContextKeys.has(key) && !(key in formSpecificVars)) {
+      const value = fullContext[key]
+      // Deep sanitize to ensure no null/undefined values exist (including nested objects/arrays)
+      formSpecificVars[key] = deepSanitizeNulls(value)
     }
   })
+  
+  // CRITICAL: Final validation - ensure ALL form fields are present in formSpecificVars
+  if (formFields && formFields.length > 0) {
+    const missingFields: Array<string> = []
+    formFields.forEach((field) => {
+      if (field.key && !(field.key in formSpecificVars)) {
+        missingFields.push(field.key)
+        // Add missing field with empty value
+        formSpecificVars[field.key] = field.default ?? field.value ?? ''
+      } else if (field.key && (formSpecificVars[field.key] === undefined || formSpecificVars[field.key] === null)) {
+        missingFields.push(`${field.key} (was undefined/null)`)
+        // Fix undefined/null values
+        formSpecificVars[field.key] = field.default ?? field.value ?? ''
+      }
+    })
+    if (missingFields.length > 0) {
+      logError(pluginJson, `processFormProcessor: CRITICAL - Fixed missing/null fields in formSpecificVars: ${missingFields.join(', ')}`)
+    } else {
+      logDebug(pluginJson, `processFormProcessor: Final validation - All ${formFields.length} form fields are present in formSpecificVars`)
+    }
+  }
+  
+  logDebug(pluginJson, `processFormProcessor: Final formSpecificVars has ${Object.keys(formSpecificVars).length} keys before calling templateRunner`)
 
-  // Step 4: Call templateRunner with only form-specific variables
-  const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, formSpecificVars]
+  // Step 4: Deep sanitize formSpecificVars to ensure no null/undefined values exist anywhere
+  // This prevents errors in the templating plugin when it tries to process the data
+  const sanitizedFormSpecificVars = deepSanitizeNulls(formSpecificVars)
+  logDebug(pluginJson, `processFormProcessor: After deep sanitization, sanitizedFormSpecificVars has ${Object.keys(sanitizedFormSpecificVars).length} keys`)
+  
+  // CRITICAL: Verify no null/undefined values exist after sanitization
+  // Also do a second pass of sanitization to catch any edge cases
+  const nullCheckResults: Array<string> = []
+  const checkForNulls = (obj: any, path: string = ''): void => {
+    if (obj === null || obj === undefined) {
+      nullCheckResults.push(`${path} is ${obj === null ? 'null' : 'undefined'}`)
+      return
+    }
+    // Check for null explicitly (typeof null === 'object' in JavaScript!)
+    if (obj === null) {
+      nullCheckResults.push(`${path} is null (caught by explicit check)`)
+      return
+    }
+    if (Array.isArray(obj)) {
+      obj.forEach((item, index) => {
+        checkForNulls(item, `${path}[${index}]`)
+      })
+    } else if (typeof obj === 'object') {
+      Object.keys(obj).forEach((key) => {
+        const value = obj[key]
+        const newPath = path ? `${path}.${key}` : key
+        if (value === null || value === undefined) {
+          nullCheckResults.push(`${newPath} is ${value === null ? 'null' : 'undefined'}`)
+        } else {
+          checkForNulls(value, newPath)
+        }
+      })
+    }
+  }
+  checkForNulls(sanitizedFormSpecificVars)
+  if (nullCheckResults.length > 0) {
+    logError(pluginJson, `processFormProcessor: CRITICAL - Found null/undefined values after sanitization: ${nullCheckResults.join(', ')}`)
+    // Force replace any remaining nulls with a second sanitization pass
+    const doubleSanitized = deepSanitizeNulls(sanitizedFormSpecificVars)
+    // Copy all keys from doubleSanitized to sanitizedFormSpecificVars
+    Object.keys(doubleSanitized).forEach((key) => {
+      sanitizedFormSpecificVars[key] = doubleSanitized[key]
+    })
+    // Also check for any keys that might have been missed
+    Object.keys(sanitizedFormSpecificVars).forEach((key) => {
+      if (sanitizedFormSpecificVars[key] === null || sanitizedFormSpecificVars[key] === undefined) {
+        logError(pluginJson, `processFormProcessor: CRITICAL - Key "${key}" is still null/undefined after double sanitization, forcing to empty string`)
+        sanitizedFormSpecificVars[key] = ''
+      }
+    })
+  } else {
+    logDebug(pluginJson, `processFormProcessor: Verified - no null/undefined values found in sanitizedFormSpecificVars`)
+  }
+  
+  // Log the actual structure being passed (first level only to avoid huge logs)
+  const sanitizedKeys = Object.keys(sanitizedFormSpecificVars)
+  const sanitizedPreview: { [string]: string } = {}
+  sanitizedKeys.forEach((key) => {
+    const value = sanitizedFormSpecificVars[key]
+    if (value === null || value === undefined) {
+      sanitizedPreview[key] = `[NULL/UNDEFINED - THIS IS THE PROBLEM]`
+      logError(pluginJson, `processFormProcessor: CRITICAL - Key "${key}" is null/undefined in preview, this will cause JSP to fail!`)
+    } else if (typeof value === 'object' && value !== null) {
+      sanitizedPreview[key] = `[object: ${Array.isArray(value) ? 'array' : 'object'}]`
+    } else {
+      sanitizedPreview[key] = String(value).substring(0, 50)
+    }
+  })
+  logDebug(pluginJson, `processFormProcessor: sanitizedFormSpecificVars preview: ${JSON.stringify(sanitizedPreview, null, 2)}`)
+  
+  // Final safety check: ensure the object itself is not null and has the expected structure
+  if (!sanitizedFormSpecificVars || typeof sanitizedFormSpecificVars !== 'object') {
+    logError(pluginJson, `processFormProcessor: CRITICAL - sanitizedFormSpecificVars is not a valid object: ${typeof sanitizedFormSpecificVars}`)
+  }
+
+  // Step 5: Call templateRunner with only form-specific variables (sanitized)
+  const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, sanitizedFormSpecificVars]
   clo(argumentsToSend, `processFormProcessor: Calling templateRunner with form-specific variables only (after executing ${templateJSBlocks.length} templatejs blocks)`)
 
   const templateRunnerResult = await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
@@ -344,12 +599,15 @@ async function processWriteExisting(data: any, reactWindowData: PassedData): Pro
     return reactWindowData
   }
 
+  // Get formFields for validation
+  const formFields = reactWindowData?.pluginData?.formFields || []
+
   // Step 1: Prepare form values and get templating context
-  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  // CRITICAL: Pass formFields to ensure all fields exist
+  const formValuesForRendering = prepareFormValuesForRendering(formValues, formFields)
   const templatingContext = await getTemplatingContext(formValuesForRendering)
 
   // Step 2: Extract and execute templatejs blocks
-  const formFields = reactWindowData?.pluginData?.formFields || []
   const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
 
   const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext, reactWindowData)
@@ -363,18 +621,21 @@ async function processWriteExisting(data: any, reactWindowData: PassedData): Pro
   const templatingContextKeys = new Set(Object.keys(templatingContext))
 
   // Build a clean object with only form-specific variables
+  // CRITICAL: Always include ALL form values first, even if they conflict with templating context
+  // Form values take precedence and must be present (even if empty strings) to prevent template errors
   const formSpecificVars: { [string]: any } = {}
-  Object.keys(fullContext).forEach((key) => {
-    // Only include keys that are NOT in the templating context (i.e., form values or templatejs block results)
-    if (!templatingContextKeys.has(key)) {
-      formSpecificVars[key] = fullContext[key]
-    }
-  })
-
-  // Also include original form values (in case templatejs blocks didn't add them)
+  
+  // First, include ALL original form values (these take precedence and must be present)
   Object.keys(formValuesForRendering).forEach((key) => {
-    if (!(key in formSpecificVars)) {
-      formSpecificVars[key] = formValuesForRendering[key]
+    formSpecificVars[key] = formValuesForRendering[key]
+  })
+  
+  // Then, include templatejs block results (but don't override form values)
+  Object.keys(fullContext).forEach((key) => {
+    // Only include keys that are NOT in the templating context (i.e., templatejs block results)
+    // AND that are not already in formSpecificVars (form values take precedence)
+    if (!templatingContextKeys.has(key) && !(key in formSpecificVars)) {
+      formSpecificVars[key] = fullContext[key]
     }
   })
 
@@ -450,7 +711,8 @@ async function processRunJSOnly(data: any, reactWindowData: PassedData): Promise
   logDebug(pluginJson, `processRunJSOnly: formFields.length=${formFields.length}`)
 
   // Step 1: Prepare form values and get templating context
-  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  // CRITICAL: Pass formFields to ensure all fields exist
+  const formValuesForRendering = prepareFormValuesForRendering(formValues, formFields)
   const templatingContext = await getTemplatingContext(formValuesForRendering)
 
   // Step 2: Extract and execute templatejs blocks
@@ -480,10 +742,20 @@ async function processRunJSOnly(data: any, reactWindowData: PassedData): Promise
   const templatingContextKeys = new Set(Object.keys(templatingContext))
 
   // Build a clean object with only form-specific variables (the results)
+  // CRITICAL: Always include ALL form values first, even if they conflict with templating context
+  // Form values take precedence and must be present (even if empty strings) to prevent template errors
   const results: { [string]: any } = {}
+  
+  // First, include ALL original form values (these take precedence and must be present)
+  Object.keys(formValuesForRendering).forEach((key) => {
+    results[key] = formValuesForRendering[key]
+  })
+  
+  // Then, include templatejs block results (but don't override form values)
   Object.keys(fullContext).forEach((key) => {
-    // Only include keys that are NOT in the templating context (i.e., form values or templatejs block results)
-    if (!templatingContextKeys.has(key)) {
+    // Only include keys that are NOT in the templating context (i.e., templatejs block results)
+    // AND that are not already in results (form values take precedence)
+    if (!templatingContextKeys.has(key) && !(key in results)) {
       results[key] = fullContext[key]
     }
   })
@@ -589,8 +861,12 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
     }
   }
 
+  // Get formFields for validation
+  const formFields = reactWindowData?.pluginData?.formFields || []
+
   // Step 2: Prepare form values and get templating context (needed to render template tags)
-  const formValuesForRendering = prepareFormValuesForRendering(formValues)
+  // CRITICAL: Pass formFields to ensure all fields exist
+  const formValuesForRendering = prepareFormValuesForRendering(formValues, formFields)
   const templatingContext = await getTemplatingContext(formValuesForRendering)
 
   // Step 3: Render newNoteTitle template tags if present
@@ -624,7 +900,6 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
   }
 
   // Step 5: Extract and execute templatejs blocks
-  const formFields = reactWindowData?.pluginData?.formFields || []
   const templateJSBlocks = extractTemplateJSBlocks(formFields, 'after')
 
   const fullContext = await executeTemplateJSBlocks(templateJSBlocks, templatingContext, reactWindowData)
@@ -638,18 +913,21 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
   const templatingContextKeys = new Set(Object.keys(templatingContext))
 
   // Build a clean object with only form-specific variables
+  // CRITICAL: Always include ALL form values first, even if they conflict with templating context
+  // Form values take precedence and must be present (even if empty strings) to prevent template errors
   const formSpecificVars: { [string]: any } = {}
-  Object.keys(fullContext).forEach((key) => {
-    // Only include keys that are NOT in the templating context (i.e., form values or templatejs block results)
-    if (!templatingContextKeys.has(key)) {
-      formSpecificVars[key] = fullContext[key]
-    }
-  })
-
-  // Also include original form values (in case templatejs blocks didn't add them)
+  
+  // First, include ALL original form values (these take precedence and must be present)
   Object.keys(formValuesForRendering).forEach((key) => {
-    if (!(key in formSpecificVars)) {
-      formSpecificVars[key] = formValuesForRendering[key]
+    formSpecificVars[key] = formValuesForRendering[key]
+  })
+  
+  // Then, include templatejs block results (but don't override form values)
+  Object.keys(fullContext).forEach((key) => {
+    // Only include keys that are NOT in the templating context (i.e., templatejs block results)
+    // AND that are not already in formSpecificVars (form values take precedence)
+    if (!templatingContextKeys.has(key) && !(key in formSpecificVars)) {
+      formSpecificVars[key] = fullContext[key]
     }
   })
 
@@ -783,7 +1061,28 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
 
   if (!formValues) {
     logError(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
+    if (!reactWindowData.pluginData) {
+      reactWindowData.pluginData = {}
+    }
+    ;(reactWindowData.pluginData: any).formSubmissionError = 'Form values are missing. Please try submitting again.'
     return reactWindowData
+  }
+
+  // Validate that all form fields are present in formValues (even if empty)
+  // This ensures templates receive all expected variables
+  const formFields = reactWindowData?.pluginData?.formFields || []
+  if (formFields && formFields.length > 0) {
+    const missingFields: Array<string> = []
+    formFields.forEach((field) => {
+      if (field.key && !(field.key in formValues)) {
+        missingFields.push(field.key)
+        // Add missing field with empty value
+        formValues[field.key] = field.default ?? field.value ?? ''
+      }
+    })
+    if (missingFields.length > 0) {
+      logDebug(pluginJson, `handleSubmitButtonClick: Added ${missingFields.length} missing field(s) to formValues: ${missingFields.join(', ')}`)
+    }
   }
 
   // Mark form values as JSON for templating plugin

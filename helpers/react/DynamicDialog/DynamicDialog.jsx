@@ -350,6 +350,29 @@ const DynamicDialog = ({
     updatedSettingsRef.current = updatedSettings
   }, [updatedSettings])
 
+  // Ensure all fields from items are included in updatedSettings, even if empty
+  // This is critical for form submission - all fields must be present in formValues
+  useEffect(() => {
+    if (!isOpen) return // Only update when dialog is open
+    
+    const currentKeys = Object.keys(updatedSettings)
+    const itemKeys = items.filter((item) => item.key).map((item) => item.key)
+    const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
+    
+    if (missingKeys.length > 0) {
+      logDebug('DynamicDialog', `Adding ${missingKeys.length} missing field(s) to updatedSettings: ${missingKeys.join(', ')}`)
+      const newSettings = { ...updatedSettings }
+      items.forEach((item) => {
+        if (item.key && !newSettings.hasOwnProperty(item.key)) {
+          // Initialize missing field with default value, item value, or empty string
+          newSettings[item.key] = defaultValues?.[item.key] ?? item.value ?? item.checked ?? item.default ?? ''
+        }
+      })
+      setUpdatedSettings(newSettings)
+      updatedSettingsRef.current = newSettings
+    }
+  }, [items, isOpen, defaultValues, updatedSettings])
+
   // Build dependency map: track which fields depend on which other fields (generic, no hardcoded knowledge)
   useEffect(() => {
     // Guard: Skip if items haven't actually changed (compare by keys and dependency properties)
@@ -605,7 +628,7 @@ const DynamicDialog = ({
 
   // Field types that should consume Enter key (prevent form submission)
   // These are fields where Enter has a specific meaning (e.g., selecting an option, creating new lines)
-  const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'space-chooser', 'dropdown-select', 'combo', 'textarea']
+  const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'space-chooser', 'dropdown-select', 'combo', 'textarea', 'calendarpicker']
 
   const handleEnterKey = (event: KeyboardEvent) => {
     // CMD+ENTER (or CTRL+ENTER on Windows/Linux) should always submit, bypassing ENTER_CONSUMING_FIELD_TYPES
@@ -660,10 +683,18 @@ const DynamicDialog = ({
   }
 
   // Stable callback for registering autosave triggers (created once, not recreated on every render)
+  // CRITICAL: Only allow ONE autosave field to register to prevent loops
+  const autosaveTriggerRegisteredRef = useRef<boolean>(false)
   const registerAutosaveTrigger = useCallback((triggerFn: () => Promise<void>) => {
+    // GUARD: Prevent multiple registrations - only allow one autosave field
+    if (autosaveTriggerRegisteredRef.current) {
+      logDebug('DynamicDialog', `GUARD: Autosave trigger already registered, skipping duplicate registration`)
+      return
+    }
     // Register autosave trigger function
     if (!autosaveTriggersRef.current.includes(triggerFn)) {
       autosaveTriggersRef.current.push(triggerFn)
+      autosaveTriggerRegisteredRef.current = true
       logDebug('DynamicDialog', `Registered autosave trigger (total: ${autosaveTriggersRef.current.length})`)
     }
   }, [])
@@ -691,13 +722,30 @@ const DynamicDialog = ({
         }
       }
 
+      // CRITICAL: Ensure ALL fields from items are included in formValues, even if never touched
+      // This prevents template errors from missing variables
+      const finalFormValues = { ...updatedSettingsRef.current }
+      const currentKeys = Object.keys(finalFormValues)
+      const itemKeys = items.filter((item) => item.key).map((item) => item.key)
+      const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
+      
+      if (missingKeys.length > 0) {
+        logDebug('DynamicDialog', `handleSave: Adding ${missingKeys.length} missing field(s) to formValues before submission: ${missingKeys.join(', ')}`)
+        items.forEach((item) => {
+          if (item.key && !finalFormValues.hasOwnProperty(item.key)) {
+            // Initialize missing field with default value, item value, checked state, or empty string
+            finalFormValues[item.key] = defaultValues?.[item.key] ?? item.value ?? item.checked ?? item.default ?? ''
+          }
+        })
+      }
+
       if (onSave) {
         // Pass keepOpenOnSubmit flag in windowId as a special marker, or pass it separately
         // For now, we'll pass it as part of a special windowId format, or the caller can check the prop
         // Actually, the caller (onSave) can access keepOpenOnSubmit via closure, so we don't need to pass it
-        onSave(updatedSettingsRef.current, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
+        onSave(finalFormValues, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
       }
-      logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current, windowId, keepOpenOnSubmit })
+      logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: finalFormValues, windowId, keepOpenOnSubmit })
     } finally {
       isSavingRef.current = false
     }
@@ -832,7 +880,7 @@ const DynamicDialog = ({
               value: typeof item.key === 'undefined' ? '' : updatedSettings[item.key] ?? '',
               checked: typeof item.key === 'undefined' ? false : updatedSettings[item.key] === true,
             },
-            disabled: item.dependsOnKey || item.requiresKey ? !stateOfControllingSetting(item) : false,
+            disabled: (item.dependsOnKey || item.requiresKey ? !stateOfControllingSetting(item) : false) || isSavingRef.current, // Disable all fields (including autosave) during save/submission
             indent: Boolean(item.dependsOnKey || item.requiresKey),
             handleFieldChange,
             handleButtonClick, // Pass handleButtonClick

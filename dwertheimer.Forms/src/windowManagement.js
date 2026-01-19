@@ -7,7 +7,7 @@ import pluginJson from '../plugin.json'
 import { type PassedData } from './shared/types.js'
 import { FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID } from './shared/constants.js'
 import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate } from './templateIO.js'
-import { getFolders, getNotes, getTeamspaces, getMentions, getHashtags, getEvents } from './requestHandlers'
+import { getFolders, getNotes, getTeamspaces, getMentions, getHashtags, getEvents } from './dataHandlers'
 import { getNoteByFilename } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { logDebug, logError, timer, JSP, clo } from '@helpers/dev'
@@ -805,5 +805,91 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
     logError(pluginJson, `openFormBuilderWindow: Error occurred: ${JSP(error)}`)
     logError(pluginJson, error)
     await showMessage(`Error opening Form Builder: ${error.message || String(error)}`)
+  }
+}
+
+/**
+ * Open Form Browser window - browse and select template forms
+ * @param {boolean} _showFloating - If true, use openReactWindow instead of showInMainWindow
+ * @returns {Promise<void>}
+ */
+export async function openFormBrowser(_showFloating: boolean = false): Promise<void> {
+  try {
+    logDebug(pluginJson, `openFormBrowser: Starting, showFloating=${String(_showFloating)}`)
+
+    // Make sure we have np.Shared plugin which has the core react code
+    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true)
+    logDebug(pluginJson, `openFormBrowser: installOrUpdatePluginsByID ['np.Shared'] completed`)
+
+    const startTime = new Date()
+    const ENV_MODE = 'development'
+    const showFloating = _showFloating === true || (typeof _showFloating === 'string' && /true/i.test(_showFloating))
+
+    // Create plugin data
+    // Note: requestFromPlugin is now implemented in FormBrowserView using the dispatch pattern
+    // (functions can't be serialized when passed through HTML/JSON)
+    // Generate unique window ID based on whether it's floating or main window
+    const windowId = showFloating ? getFormBrowserWindowId('floating') : getFormBrowserWindowId('main')
+    const pluginData = {
+      platform: NotePlan.environment.platform,
+      windowId: windowId, // Store window ID in pluginData so React can send it in requests
+      showFloating: showFloating, // Pass showFloating flag so React knows whether to show header
+    }
+
+    // Create data object to pass to React
+    const dataToPass: PassedData = {
+      pluginData,
+      title: 'Template Forms',
+      logProfilingMessage: false,
+      debug: false, // Enable debug mode to show test buttons
+      ENV_MODE,
+      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormBrowserAction' },
+      componentPath: `../dwertheimer.Forms/react.c.FormBrowserView.bundle.dev.js`,
+      startTime,
+    }
+
+    // CSS tags for styling
+    const cssTagsString = `
+      <link rel="stylesheet" href="../np.Shared/css.w3.css">
+      <link href="../np.Shared/fontawesome.css" rel="stylesheet">
+      <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
+
+    // Use the same windowOptions for both floating and main window
+    const windowOptions = {
+      savedFilename: `../../${pluginJson['plugin.id']}/form_browser_output.html`,
+      headerTags: cssTagsString,
+      windowTitle: 'Template Forms',
+      width: 1200,
+      height: 800,
+      customId: windowId, // Use unique window ID instead of constant
+      shouldFocus: true,
+      generalCSSIn: generateCSSFromTheme(),
+      postBodyScript: `
+        <script type="text/javascript" >
+        // Set DataStore.settings so default logDebug etc. logging works in React
+        let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        </script>
+      `,
+      // Options for showInMainWindow (main window mode)
+      splitView: false,
+      icon: 'list',
+      iconColor: 'blue-500',
+      autoTopPadding: true,
+      showReloadButton: true,
+      reloadPluginID: 'dwertheimer.Forms',
+      reloadCommandName: 'openFormBrowser',
+    }
+
+    // Choose the appropriate command based on whether it's floating or main window
+    const windowType = showFloating ? 'openReactWindow' : 'showInMainWindow'
+    logDebug(pluginJson, `openFormBrowser: Using ${windowType} (${showFloating ? 'floating' : 'main'} window)`)
+    await DataStore.invokePluginCommandByName(windowType, 'np.Shared', [dataToPass, windowOptions])
+
+    logDebug(pluginJson, `openFormBrowser: Completed after ${timer(startTime)}`)
+  } catch (error) {
+    logError(pluginJson, `openFormBrowser: Error: ${JSP(error)}`)
+    await showMessage(`Error opening form browser: ${error.message}`)
   }
 }

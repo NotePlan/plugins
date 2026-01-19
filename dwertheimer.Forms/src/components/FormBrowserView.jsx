@@ -8,7 +8,6 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, type Node } f
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { AppProvider } from './AppContext.jsx'
 import { FormPreview } from './FormPreview.jsx'
-import { SimpleDialog } from '@helpers/react/SimpleDialog'
 import { SpaceChooser as SpaceChooserComponent } from '@helpers/react/DynamicDialog/SpaceChooser'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
@@ -168,9 +167,6 @@ export function FormBrowserView({
   const formPreviewRef = useRef<?HTMLDivElement>(null)
   // Ref to track if we're programmatically updating selection (to prevent useEffect from firing)
   const isUpdatingSelectionRef = useRef<boolean>(false)
-  // Success dialog state
-  const [showSuccessDialog, setShowSuccessDialog] = useState<boolean>(false)
-  const [successDialogData, setSuccessDialogData] = useState<{ noteTitle?: string, processingMethod?: string } | null>(null)
   // Create form dialog state
   const [showCreateFormDialog, setShowCreateFormDialog] = useState<boolean>(false)
   const [createFormDialogData, setCreateFormDialogData] = useState<{ formName?: string, space?: string }>({})
@@ -530,6 +526,17 @@ export function FormBrowserView({
   const handleSave = useCallback(
     (formValues: Object, windowId?: string) => {
       logDebug('FormBrowserView', 'Form submitted:', formValues)
+      
+      // Clear any previous errors before submitting
+      dispatch('UPDATE_DATA', {
+        ...data,
+        pluginData: {
+          ...pluginData,
+          formSubmissionError: '',
+          aiAnalysisResult: '',
+        },
+      })
+      
       // Send to plugin for processing
       // Include keepOpenOnSubmit flag so the plugin knows not to close the window
       if (requestFromPlugin) {
@@ -541,21 +548,84 @@ export function FormBrowserView({
         })
           .then((responseData) => {
             logDebug('FormBrowserView', 'Form submission response:', responseData)
-            // Show success dialog with note information
-            if (responseData?.noteTitle || responseData?.processingMethod) {
-              setSuccessDialogData({
-                noteTitle: responseData.noteTitle || '',
-                processingMethod: responseData.processingMethod || '',
-              })
-              setShowSuccessDialog(true)
-            } else {
-              // Generic success message if no note info
-              setSuccessDialogData({
-                noteTitle: '',
-                processingMethod: '',
-              })
-              setShowSuccessDialog(true)
+            
+            // Check if the response indicates success or failure
+            // The responseData may be the data object from a successful response, or it may contain error info
+            if (responseData && typeof responseData === 'object') {
+              // Check for error indicators in the response (from pluginData)
+              const pluginDataFromResponse = responseData.pluginData || {}
+              const hasError = pluginDataFromResponse.formSubmissionError || pluginDataFromResponse.aiAnalysisResult || responseData.formSubmissionError || responseData.aiAnalysisResult
+              if (hasError) {
+                // Extract error message
+                let errorMessage = 'Form submission failed.'
+                const formError = pluginDataFromResponse.formSubmissionError || responseData.formSubmissionError
+                const aiError = pluginDataFromResponse.aiAnalysisResult || responseData.aiAnalysisResult
+                
+                if (formError) {
+                  errorMessage = formError
+                } else if (aiError) {
+                  // Extract a brief summary from AI analysis
+                  const aiMsg = aiError
+                  const firstLine = aiMsg.split('\n')[0] || aiMsg.substring(0, 200)
+                  errorMessage = `Template error: ${firstLine}`
+                }
+                
+                logError('FormBrowserView', `Form submission failed: ${errorMessage}`)
+                
+                // Update pluginData with error so FormErrorBanner can display it
+                dispatch('UPDATE_DATA', {
+                  ...data,
+                  pluginData: {
+                    ...pluginData,
+                    formSubmissionError: formError || errorMessage,
+                    aiAnalysisResult: aiError || '',
+                  },
+                })
+                
+                dispatch('SHOW_TOAST', {
+                  type: 'ERROR',
+                  msg: errorMessage,
+                  timeout: 10000, // Longer timeout for error messages
+                })
+                // Don't reset form on error - keep it open so user can fix and retry
+                return
+              }
             }
+            
+            // Clear any errors on successful submission
+            dispatch('UPDATE_DATA', {
+              ...data,
+              pluginData: {
+                ...pluginData,
+                formSubmissionError: '',
+                aiAnalysisResult: '',
+              },
+            })
+            
+            // Show success toast with note information
+            let successMessage = 'Your form has been submitted successfully.'
+            if (responseData?.noteTitle) {
+              const action = responseData.processingMethod === 'create-new' ? 'created' : 'updated'
+              successMessage = `Form submitted successfully. Note "${responseData.noteTitle}" has been ${action}.`
+              
+              // Automatically open the note after a short delay
+              setTimeout(() => {
+                if (requestFromPlugin) {
+                  requestFromPlugin('openNote', {
+                    noteTitle: responseData.noteTitle,
+                  }).catch((error) => {
+                    logError('FormBrowserView', `Error opening note: ${error.message}`)
+                  })
+                }
+              }, 500)
+            }
+            
+            dispatch('SHOW_TOAST', {
+              type: 'SUCCESS',
+              msg: successMessage,
+              timeout: 5000,
+            })
+            
             // Reset form after successful submission
             handleCancel()
           })
@@ -563,55 +633,29 @@ export function FormBrowserView({
             logError('FormBrowserView', `Error submitting form: ${error.message}`)
             // On error, show Toast notification but don't close the window
             // The window should stay open so user can fix and retry
+            const errorMessage = error.message || 'An error occurred while submitting the form'
+            
+            // Update pluginData with error so FormErrorBanner can display it
+            dispatch('UPDATE_DATA', {
+              ...data,
+              pluginData: {
+                ...pluginData,
+                formSubmissionError: errorMessage,
+              },
+            })
+            
             dispatch('SHOW_TOAST', {
               type: 'ERROR',
-              msg: error.message || 'An error occurred while submitting the form',
-              timeout: 5000,
+              msg: errorMessage,
+              timeout: 10000, // Longer timeout for error messages
             })
             // Don't reset form on error - let user see what they entered
           })
       }
     },
-    [selectedTemplate, requestFromPlugin, handleCancel],
+    [selectedTemplate, requestFromPlugin, handleCancel, dispatch, data, pluginData],
   )
 
-  // Handle success dialog button clicks
-  const handleSuccessDialogButton = useCallback(
-    (value: string) => {
-      // value will be the button label converted to lowercase with hyphens (e.g., "open-note" for "Open Note")
-      if (value === 'open-note' && successDialogData?.noteTitle) {
-        const noteTitleToOpen = successDialogData.noteTitle
-        logDebug('FormBrowserView', `Opening note: "${noteTitleToOpen}"`)
-        if (requestFromPlugin) {
-          requestFromPlugin('openNote', {
-            noteTitle: noteTitleToOpen,
-          })
-            .then(() => {
-              logDebug('FormBrowserView', `Note opened successfully: "${noteTitleToOpen}"`)
-            })
-            .catch((error) => {
-              logError('FormBrowserView', `Error opening note: ${error.message}`)
-              // Show error toast
-              dispatch('SHOW_TOAST', {
-                type: 'ERROR',
-                msg: `Failed to open note: ${error.message}`,
-                timeout: 5000,
-              })
-            })
-        }
-      }
-      // Close dialog after any button click
-      setShowSuccessDialog(false)
-      setSuccessDialogData(null)
-    },
-    [successDialogData, requestFromPlugin, dispatch],
-  )
-
-  // Handle closing success dialog
-  const handleCloseSuccessDialog = useCallback(() => {
-    setShowSuccessDialog(false)
-    setSuccessDialogData(null)
-  }, [])
 
   // Handle new form button - show dialog
   const handleNewForm = useCallback(() => {
@@ -664,10 +708,6 @@ export function FormBrowserView({
     setCreateFormDialogData({})
   }, [])
 
-  // Handle reload button
-  const handleReload = useCallback(() => {
-    loadTemplates()
-  }, [loadTemplates])
 
   // Handle edit form button
   const handleEditForm = useCallback(
@@ -755,9 +795,7 @@ export function FormBrowserView({
                 </div>
                 <div className="form-browser-list-header">
                   <h3>Template Forms ({filteredTemplates.length})</h3>
-                  <button className="form-browser-button form-browser-button-reload" onClick={handleReload} title="Reload forms list">
-                    ↻
-                  </button>
+
                 </div>
                 <div ref={listRef} className="form-browser-list" onKeyDown={handleKeyDown} tabIndex={0}>
                   {loading && templates.length === 0 ? (
@@ -850,6 +888,8 @@ export function FormBrowserView({
                         hidePreviewHeader={true}
                         hideWindowTitlebar={true}
                         keepOpenOnSubmit={true} // Don't close the window after submit in Form Browser
+                        aiAnalysisResult={pluginData?.aiAnalysisResult || ''}
+                        formSubmissionError={pluginData?.formSubmissionError || ''}
                       />
                     </div>
                   </div>
@@ -863,22 +903,6 @@ export function FormBrowserView({
           </PanelGroup>
         </div>
       </div>
-      {showSuccessDialog && (
-        <SimpleDialog
-          isOpen={showSuccessDialog}
-          title={successDialogData?.noteTitle ? 'Form Submitted Successfully' : 'Form Submission Complete'}
-          message={
-            successDialogData?.noteTitle
-              ? `Your form has been submitted and the note "${successDialogData.noteTitle}" has been ${
-                  successDialogData.processingMethod === 'create-new' ? 'created' : 'updated'
-                }. Would you like to open it?`
-              : 'Your form has been submitted successfully.'
-          }
-          buttonLabels={successDialogData?.noteTitle ? ['Stay Here', 'Open Note'] : undefined}
-          onButtonClick={handleSuccessDialogButton}
-          onClose={handleCloseSuccessDialog}
-        />
-      )}
       <DynamicDialog
         isOpen={showCreateFormDialog}
         title="Create New Form"

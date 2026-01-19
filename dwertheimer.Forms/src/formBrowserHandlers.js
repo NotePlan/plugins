@@ -7,17 +7,17 @@
 import pluginJson from '../plugin.json'
 import { openFormBuilder } from './NPTemplateForm'
 import { handleSubmitButtonClick } from './formSubmission'
+import { findDuplicateFormTemplates } from './templateIO'
+import { openFormBuilderWindow } from './windowManagement'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
 import { logDebug, logError, logWarn } from '@helpers/dev'
-import { findDuplicateFormTemplates } from './templateIO'
 import { getNoteByFilename, getNote } from '@helpers/note'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { getFolderFromFilename } from '@helpers/folders'
 import { showMessage } from '@helpers/userInput'
 import { sendBannerMessage } from '@helpers/HTMLView'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
-import { openFormBuilderWindow } from './windowManagement'
 import { ensureFrontmatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { waitForCondition } from '@helpers/promisePolyfill'
 
@@ -31,7 +31,7 @@ export type RequestResponse = {
 }
 
 /**
- * Get list of form templates filtered by space and @Forms folder
+ * Get list of form templates filtered by space and @Forms or @Templates folder
  * @param {Object} params - Request parameters
  * @param {string} params.space - Space ID to filter by (empty string = Private, teamspace ID = specific teamspace)
  * @returns {RequestResponse}
@@ -83,39 +83,50 @@ export function getFormTemplates(params: { space?: string } = {}): RequestRespon
           }
         }
 
-        // Check if note is in the @Forms folder (or a subfolder of @Forms)
-        // For Private: noteFolder should start with '@Forms' or be exactly '@Forms'
-        // For teamspace: noteFolder should start with '%%NotePlanCloud%%/{teamspaceID}/@Forms' (correct format)
+        // Check if note is in the @Forms folder OR @Templates folder (or subfolders)
+        // For Private: noteFolder should start with '@Forms' or '@Templates' or be exactly '@Forms' or '@Templates'
+        // For teamspace: noteFolder should start with '%%NotePlanCloud%%/{teamspaceID}/@Forms' or '%%NotePlanCloud%%/{teamspaceID}/@Templates'
         // Note: We check both formats (with and without the /) for backward compatibility, but the correct format is with the /
         let isInFormsFolder = false
+        let isInTemplatesFolder = false
         if (showAll) {
           // When showing all, check folder based on the note's actual space
           if (isTeamspaceNote && noteTeamspaceID) {
-            // Teamspace note: check if folder starts with '%%NotePlanCloud%%/{teamspaceID}/@Forms'
-            const expectedPrefix1 = `%%NotePlanCloud%%${noteTeamspaceID}/@Forms`
-            const expectedPrefix2 = `%%NotePlanCloud%%/${noteTeamspaceID}/@Forms`
+            // Teamspace note: check if folder starts with '%%NotePlanCloud%%/{teamspaceID}/@Forms' or '@Templates'
+            const formsPrefix1 = `%%NotePlanCloud%%${noteTeamspaceID}/@Forms`
+            const formsPrefix2 = `%%NotePlanCloud%%/${noteTeamspaceID}/@Forms`
+            const templatesPrefix1 = `%%NotePlanCloud%%${noteTeamspaceID}/@Templates`
+            const templatesPrefix2 = `%%NotePlanCloud%%/${noteTeamspaceID}/@Templates`
             isInFormsFolder =
-              noteFolder === expectedPrefix1 || noteFolder.startsWith(`${expectedPrefix1}/`) || noteFolder === expectedPrefix2 || noteFolder.startsWith(`${expectedPrefix2}/`)
+              noteFolder === formsPrefix1 || noteFolder.startsWith(`${formsPrefix1}/`) || noteFolder === formsPrefix2 || noteFolder.startsWith(`${formsPrefix2}/`)
+            isInTemplatesFolder =
+              noteFolder === templatesPrefix1 || noteFolder.startsWith(`${templatesPrefix1}/`) || noteFolder === templatesPrefix2 || noteFolder.startsWith(`${templatesPrefix2}/`)
           } else {
-            // Private note: check if folder is '@Forms' or starts with '@Forms/'
+            // Private note: check if folder is '@Forms' or '@Templates' or starts with '@Forms/' or '@Templates/'
             isInFormsFolder = noteFolder === '@Forms' || noteFolder.startsWith('@Forms/')
+            isInTemplatesFolder = noteFolder === '@Templates' || noteFolder.startsWith('@Templates/')
           }
         } else if (spaceId === '') {
-          // Private: check if folder is '@Forms' or starts with '@Forms/'
+          // Private: check if folder is '@Forms' or '@Templates' or starts with '@Forms/' or '@Templates/'
           isInFormsFolder = noteFolder === '@Forms' || noteFolder.startsWith('@Forms/')
+          isInTemplatesFolder = noteFolder === '@Templates' || noteFolder.startsWith('@Templates/')
         } else {
-          // Teamspace: check if folder starts with '%%NotePlanCloud%%/{teamspaceID}/@Forms' (correct format)
+          // Teamspace: check if folder starts with '%%NotePlanCloud%%/{teamspaceID}/@Forms' or '@Templates' (correct format)
           // Note: getFolderFromFilename may return paths with or without the leading slash after %%NotePlanCloud%%
           // We check both for backward compatibility, but the correct format is: %%NotePlanCloud%%/{teamspaceID}/...
-          const expectedPrefix1 = `%%NotePlanCloud%%${spaceId}/@Forms` // Incorrect format (for backward compatibility)
-          const expectedPrefix2 = `%%NotePlanCloud%%/${spaceId}/@Forms` // Correct format
+          const formsPrefix1 = `%%NotePlanCloud%%${spaceId}/@Forms` // Incorrect format (for backward compatibility)
+          const formsPrefix2 = `%%NotePlanCloud%%/${spaceId}/@Forms` // Correct format
+          const templatesPrefix1 = `%%NotePlanCloud%%${spaceId}/@Templates` // Incorrect format (for backward compatibility)
+          const templatesPrefix2 = `%%NotePlanCloud%%/${spaceId}/@Templates` // Correct format
           isInFormsFolder =
-            noteFolder === expectedPrefix1 || noteFolder.startsWith(`${expectedPrefix1}/`) || noteFolder === expectedPrefix2 || noteFolder.startsWith(`${expectedPrefix2}/`)
+            noteFolder === formsPrefix1 || noteFolder.startsWith(`${formsPrefix1}/`) || noteFolder === formsPrefix2 || noteFolder.startsWith(`${formsPrefix2}/`)
+          isInTemplatesFolder =
+            noteFolder === templatesPrefix1 || noteFolder.startsWith(`${templatesPrefix1}/`) || noteFolder === templatesPrefix2 || noteFolder.startsWith(`${templatesPrefix2}/`)
         }
 
-        if (!isInFormsFolder) {
-          logDebug(pluginJson, `getFormTemplates: Skipping note "${note.title || note.filename}" - folder="${noteFolder}", space="${spaceId || 'Private'}"`)
-          continue // Skip notes not in @Forms folder
+        if (!isInFormsFolder && !isInTemplatesFolder) {
+          logDebug(pluginJson, `getFormTemplates: Skipping note "${note.title || note.filename}" - folder="${noteFolder}", space="${spaceId || 'Private'}" (not in @Forms or @Templates)`)
+          continue // Skip notes not in @Forms or @Templates folder
         }
         inFormsFolderCount++
         spaceMatchCount++
@@ -140,7 +151,7 @@ export function getFormTemplates(params: { space?: string } = {}): RequestRespon
 
     logDebug(
       pluginJson,
-      `getFormTemplates: Scanned ${templateFormCount} template-form notes, ${inFormsFolderCount} in @Forms folder, ${spaceMatchCount} matched space filter, ${formTemplates.length} added to results`,
+      `getFormTemplates: Scanned ${templateFormCount} template-form notes, ${inFormsFolderCount} in @Forms or @Templates folder, ${spaceMatchCount} matched space filter, ${formTemplates.length} added to results`,
     )
 
     // Sort by title
@@ -304,7 +315,7 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       newNoteFolder: stripDoubleQuotes(fm?.newNoteFolder || '') || '',
     }
 
-    // Load formFields from template note (needed for run-js-only to find TemplateJS blocks)
+    // Load formFields from template note (needed for run-js-only to find TemplateJS blocks and validation)
     let formFields: Array<any> = []
     try {
       const loadedFields = await loadCodeBlockFromNote<Array<any>>(templateFilename, 'formfields', pluginJson.id, parseObjectString)
@@ -314,6 +325,22 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
     } catch (error) {
       logError(pluginJson, `handleSubmitForm: Error loading formFields: ${error.message}`)
       // Continue without formFields - will fail validation if run-js-only needs them
+    }
+
+    // Validate that all form fields are present in formValues (even if empty)
+    // This ensures templates receive all expected variables
+    if (formFields && formFields.length > 0) {
+      const missingFields: Array<string> = []
+      formFields.forEach((field) => {
+        if (field.key && !(field.key in formValues)) {
+          missingFields.push(field.key)
+          // Add missing field with empty value
+          formValues[field.key] = field.default ?? field.value ?? ''
+        }
+      })
+      if (missingFields.length > 0) {
+        logDebug(pluginJson, `handleSubmitForm: Added ${missingFields.length} missing field(s) to formValues: ${missingFields.join(', ')}`)
+      }
     }
 
     // Create minimal reactWindowData for handleSubmitButtonClick
@@ -329,6 +356,36 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
     }
 
     const result = await handleSubmitButtonClick(submitData, reactWindowData)
+
+    // Check for errors in result before returning success
+    // handleSubmitButtonClick returns PassedData | null
+    // Even if result is not null, it may contain errors in pluginData
+    const hasError = result && result.pluginData && (result.pluginData.formSubmissionError || result.pluginData.aiAnalysisResult)
+    if (hasError && result) {
+      // Extract error message
+      let errorMessage = 'Template execution failed.'
+      if (result.pluginData.formSubmissionError) {
+        errorMessage = result.pluginData.formSubmissionError
+      } else if (result.pluginData.aiAnalysisResult) {
+        // Extract a brief summary from AI analysis (first line or first sentence)
+        const aiMsg = result.pluginData.aiAnalysisResult
+        const firstLine = aiMsg.split('\n')[0] || aiMsg.substring(0, 200)
+        errorMessage = `Template error: ${firstLine}`
+      }
+      
+      logError(pluginJson, `handleSubmitForm: Form submission failed with error: ${errorMessage}`)
+      // Return error info in data so FormBrowserView can access it even when success=false
+      return {
+        success: false,
+        message: errorMessage,
+        data: {
+          pluginData: result?.pluginData || {},
+          formSubmissionError: result?.pluginData?.formSubmissionError,
+          aiAnalysisResult: result?.pluginData?.aiAnalysisResult,
+          processingMethod,
+        },
+      }
+    }
 
     // handleSubmitButtonClick returns PassedData | null, so check if it's not null
     if (result) {
