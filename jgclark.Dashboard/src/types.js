@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-01-04 for v2.4.0.b by @jgclark
+// Last updated 2026-01-19 for v2.4.0.b16 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -182,36 +182,44 @@ export type TSectionItem = {
   teamspaceTitle?: string, // if this is from a Teamspace note. TODO: should this move to the TParagraphForDashboard type?
 }
 
+// shared properties from note needed for paragraphs and projects
+export type TNoteForDashboard = {
+  filename: string, // Note: can have a Teamspace prefix, even for Calendar note
+  title?: string, // not present for Calendar notes in paragraphs, but required for projects
+  icon?: string, // icon from note's frontmatter 'icon' attribute, if present. Note: this is not a full FA icon class like 'fa-regular fa-calendar-star', but just the icon name like 'calendar-star'
+  iconColor?: string, // icon color from note's frontmatter 'icon-color' attribute, if present. Note: this is a tailwind color name, e.g. 'blue-500', not a CSS color name like 'blue' or '#0000FF'
+}
+
 // reduced paragraph definition
 export type TParagraphForDashboard = {
-  filename: string, // Note: can have a Teamspace prefix, even for Calendar note
+  ...TNoteForDashboard,
+  isTeamspace?: boolean, // whether this is from a Teamspace note
   noteType: NoteType /* Notes | Calendar */,
-  title?: string, // not present for Calendar notes
   type: ParagraphType, // paragraph type
   prefix?: string,
   content: string,
   rawContent: string,
   indents: number, // indent level (i.e. children will be 1+)
   lineIndex: number, // needed for child ordering processing
-  priority: number, // -1, 1 to 4
+  priority: number, // -1 (not set), 0 (no additional priority) to 4
   blockId?: string,
-  startTime?: string, // this is still definitely used to style time blocks
+  startTime?: string, // used to style time blocks
   endTime?: string,
-  changedDate?: Date, // required for sorting items in display
   hasChild?: boolean, // whether it has child item(s)
   isAChild?: boolean, // whether it is a child item
+  changedDate?: Date, // required for sorting items in display
   dueDate?: string, // ISO string of due date, or 'none', required for sorting items in display
-  isTeamspace?: boolean, // whether this is from a Teamspace note
 }
 
 // a project item within a section
 export type TProjectForDashboard = {
-  filename: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
+  ...TNoteForDashboard,
   title: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
   reviewInterval: string /* from the Project instance */,
+  nextReviewDays: number /* from the Project instance */,
   percentComplete: number /* from the Project instance */,
   lastProgressComment: string /* from the Project instance */,
-  nextReviewDays: number /* from the Project instance */,
+  nextActions?: Array<string>, // content of next action(s) from the Project instance (nextActionsRawContent)
 }
 
 // details for a UI button

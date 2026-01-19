@@ -2,17 +2,19 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by ItemRow component
-// Last updated 2025-04-06 for v2.2.0.a12 by @jgclark
+// Last updated 2026-01-19 for v2.4.0.b16 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
 // import { CircularProgressbar, CircularProgressbarWithChildren, buildStyles } from 'react-circular-progressbar'
 // import 'react-circular-progressbar/dist/styles.css'
-import type { TSectionItem } from '../../types.js'
+import type { TSectionItem, MessageDataObject } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import ProjectIcon from './ProjectIcon.jsx'
+import SmallCircularProgressIndicator from './SmallCircularProgressIndicator.jsx'
+import NoteTitleLink from './NoteTitleLink.jsx'
 import { getFolderFromFilename } from '@helpers/folders'
-import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
+import { prepAndTruncateMarkdownForDisplay } from '@helpers/stringTransforms'
+import { logDebug } from '@helpers/react/reactDev.js'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 type Props = {
@@ -20,53 +22,49 @@ type Props = {
 }
 
 function ProjectItem({ item }: Props): Node {
-  const { sendActionToPlugin, setReactSettings, dashboardSettings } = useAppContext()
+  const { setReactSettings, dashboardSettings } = useAppContext()
 
   const itemFilename = item.project?.filename ?? '<no filename>'
-  const noteTitle = item.project?.title ?? '<no title>'
   const folderNamePart = dashboardSettings?.showFolderName && getFolderFromFilename(itemFilename) !== '/' ? `${getFolderFromFilename(itemFilename)} / ` : ''
-  // logInfo(`ProjectItem`, `for ${itemFilename} folder='${getFolderFromFilename(itemFilename)}' (${folderNamePart} / ${noteTitle})`)
-  // const percentComplete = item.project?.percentComplete ?? 0
-  // const percentCompleteStr = isNaN(percentComplete) ? '' : ` ${String(percentComplete)}%`
   const progressText = item.project?.lastProgressComment ?? ''
-  const noteTitleWithOpenAction = (
-    // <a className="noteTitle sectionItem" onClick={(e) => handleTitleClick(e)}>
-    <a className="noteTitle" onClick={(e) => handleTitleClick(e)}>
-      <i className="fa-regular fa-file-lines pad-right"></i>
-      {noteTitle}
-    </a>
-  )
 
+  // Format and display project progress if present
   const progressContent = progressText && (
     <>
       <br></br>
-      <span className="projectProgress">
+      <div className="projectProgress">
         <i className="fa-regular fa-circle-info pad-right"></i>
         {progressText}
-      </span>
+      </div>
     </>
   )
 
-  const dataObjectToPassToControlDialog = {
-    item: item,
-    actionType: '' 
-   }
-
-  function handleTitleClick(e: MouseEvent) {
-    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
-    const dataObjectToPassToFunction = {
-      actionType: 'showNoteInEditorFromFilename', // we only have note-level data for Project items
-      modifierKey: modifierName,
-      filename: item.project?.filename ?? '<no filename>',
-    }
-    sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Project Title clicked in Dialog', true)
-  }
+  // Format and display nextActions if present
+  const nextActions = item.project?.nextActions
+  const nextActionsContent = nextActions && nextActions.length > 0 ? (
+    <>
+      {nextActions.map((nextAction, index) => {
+        const truncatedAction = prepAndTruncateMarkdownForDisplay(nextAction, 100)
+        return (
+          <React.Fragment key={index}>
+            <div className="projectNextAction">
+              <i className="fa-regular fa-circle pad-right"></i>
+              {truncatedAction}
+            </div>
+          </React.Fragment>
+        )
+      })}
+    </>
+  ) : null
 
   const handleClickToOpenDialog = (event: MouseEvent): void => {
-    // clo(dataObjectToPassToControlDialog, 'ProjectItem: handleClickToOpenDialog - setting dataObjectToPassToControlDialog to: ')
     const { metaKey } = extractModifierKeys(event)
     logDebug('ProjectItem/handleClickToOpenDialog', `- metaKey=${String(metaKey)}`)
-    dataObjectToPassToControlDialog.modifierKey = metaKey // boolean
+    const dataObjectToPassToControlDialog: MessageDataObject = {
+      item: item,
+      actionType: 'unknown', // placeholder - actual action handled in dialog
+      ...(metaKey ? { modifierKey: metaKey } : {}),
+    }
     const clickPosition = { clientY: event.clientY, clientX: event.clientX }
     setReactSettings((prev) => ({
       ...prev,
@@ -80,17 +78,27 @@ function ProjectItem({ item }: Props): Node {
   return (
     <div className="sectionItemRow" id={item.ID}>
       <div className="projectIcon">
-        <ProjectIcon item={item} />
+        <SmallCircularProgressIndicator item={item} />
       </div>
 
       <div className="sectionItemContent sectionItem">
         {folderNamePart &&
           <span className="folderName">{folderNamePart}</span>}
-        {noteTitleWithOpenAction}
+        {item.project && (
+          // $FlowFixMe[incompatible-type] - TProjectForDashboard extends TNoteForDashboard, so this is safe
+          <NoteTitleLink
+            item={item}
+            noteData={item.project}
+            actionType="showNoteInEditorFromFilename"
+            defaultIcon="fa-regular fa-file-lines"
+            onClickLabel="Project Title clicked in Dialog"
+          />
+        )}
         <a className="dialogTriggerIcon">
           <i className="pad-left fa-light fa-edit" onClick={handleClickToOpenDialog}></i>
         </a>
         {progressContent}
+        {nextActionsContent}
       </div>
     </div>
   )

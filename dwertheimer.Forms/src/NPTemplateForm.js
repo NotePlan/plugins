@@ -17,7 +17,6 @@ import { getNoteByFilename } from '@helpers/note'
 import { validateObjectString, parseObjectString } from '@helpers/stringTransforms'
 import { updateFrontMatterVars, ensureFrontmatter, noteHasFrontMatter, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
-import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/paragraph'
@@ -59,9 +58,9 @@ function validateFormFields(formFields: Array<Object>): boolean {
       showMessage(`Field "${field.label || ''}" (index ${i}) does not have a type. Please set a type for every field.`)
       return false
     }
-    // every field that is not a separator, heading, or markdown-preview must have a key
-    // (markdown-preview is display-only like heading/separator)
-    if (field.type !== 'separator' && field.type !== 'heading' && field.type !== 'markdown-preview' && !field.key) {
+    // every field that is not a separator, heading, markdown-preview, or comment must have a key
+    // (markdown-preview and comment are display-only like heading/separator)
+    if (field.type !== 'separator' && field.type !== 'heading' && field.type !== 'markdown-preview' && field.type !== 'comment' && !field.key) {
       showMessage(`Field "${field.label || ''}" (index ${i}) does not have a key. Please set a key for every field.`)
       return false
     }
@@ -806,89 +805,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
  */
 // openFormWindow is now imported from windowManagement.js
 
-/**
- * Open Form Browser window - browse and select template forms
- * @param {Object} argObj - Options object
- * @param {boolean} argObj.showFloating - If true, use showReactWindow instead of showInMainWindow
- * @returns {Promise<void>}
- */
-export async function openFormBrowser(_showFloating: boolean = false): Promise<void> {
-  try {
-    logDebug(pluginJson, `openFormBrowser: Starting, showFloating=${String(_showFloating)}`)
-
-    // Make sure we have np.Shared plugin which has the core react code
-    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true)
-    logDebug(pluginJson, `openFormBrowser: installOrUpdatePluginsByID ['np.Shared'] completed`)
-
-    const startTime = new Date()
-    const ENV_MODE = 'development'
-    const showFloating = _showFloating === true || (typeof _showFloating === 'string' && /true/i.test(_showFloating))
-
-    // Create plugin data
-    // Note: requestFromPlugin is now implemented in FormBrowserView using the dispatch pattern
-    // (functions can't be serialized when passed through HTML/JSON)
-    // Generate unique window ID based on whether it's floating or main window
-    const windowId = showFloating ? getFormBrowserWindowId('floating') : getFormBrowserWindowId('main')
-    const pluginData = {
-      platform: NotePlan.environment.platform,
-      windowId: windowId, // Store window ID in pluginData so React can send it in requests
-      showFloating: showFloating, // Pass showFloating flag so React knows whether to show header
-    }
-
-    // Create data object to pass to React
-    const dataToPass: PassedData = {
-      pluginData,
-      title: 'Form Browser',
-      logProfilingMessage: false,
-      debug: false, // Enable debug mode to show test buttons
-      ENV_MODE,
-      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormBrowserAction' },
-      componentPath: `../dwertheimer.Forms/react.c.FormBrowserView.bundle.dev.js`,
-      startTime,
-    }
-
-    // CSS tags for styling
-    const cssTagsString = `
-      <link rel="stylesheet" href="../np.Shared/css.w3.css">
-      <link href="../np.Shared/fontawesome.css" rel="stylesheet">
-      <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
-
-    // Use the same windowOptions for both floating and main window
-    const windowOptions = {
-      savedFilename: `../../${pluginJson['plugin.id']}/form_browser_output.html`,
-      headerTags: cssTagsString,
-      windowTitle: 'Form Browser',
-      width: 1200,
-      height: 800,
-      customId: windowId, // Use unique window ID instead of constant
-      shouldFocus: true,
-      generalCSSIn: generateCSSFromTheme(),
-      postBodyScript: `
-        <script type="text/javascript" >
-        // Set DataStore.settings so default logDebug etc. logging works in React
-        let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
-        </script>
-      `,
-      // Options for showInMainWindow (main window mode)
-      splitView: false,
-      icon: 'list',
-      iconColor: 'blue-500',
-      autoTopPadding: true,
-    }
-
-    // Choose the appropriate command based on whether it's floating or main window
-    const windowType = showFloating ? 'openReactWindow' : 'showInMainWindow'
-    logDebug(pluginJson, `openFormBrowser: Using ${windowType} (${showFloating ? 'floating' : 'main'} window)`)
-    await DataStore.invokePluginCommandByName(windowType, 'np.Shared', [dataToPass, windowOptions])
-
-    logDebug(pluginJson, `openFormBrowser: Completed after ${timer(startTime)}`)
-  } catch (error) {
-    logError(pluginJson, `openFormBrowser: Error: ${JSP(error)}`)
-    await showMessage(`Error opening form browser: ${error.message}`)
-  }
-}
+// openFormBrowser is now imported from windowManagement.js
 
 /**
  * Plugin entrypoint for triggerOpenForm

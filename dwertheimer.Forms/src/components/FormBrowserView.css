@@ -6,21 +6,21 @@
   height: 100vh;
   width: 100%;
   overflow: hidden;
-  background: var(--np-theme-background, #ffffff);
+  background: var(--bg-main-color);
 }
 
 .form-browser-header {
   flex-shrink: 0;
   padding: 1rem;
-  border-bottom: 1px solid var(--np-theme-border, #e0e0e0);
-  background: var(--np-theme-background-secondary, #f5f5f5);
+  border-bottom: 1px solid var(--divider-color);
+  background: var(--bg-alt-color);
 }
 
 .form-browser-title {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--np-theme-text, #000000);
+  color: var(--fg-main-color);
 }
 
 .form-browser-space-chooser {
@@ -44,16 +44,16 @@
   width: 100%;
   padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
-  border: 1px solid var(--np-theme-border, #e0e0e0);
+  border: 1px solid var(--divider-color);
   border-radius: 4px;
-  background: var(--np-theme-background, #ffffff);
-  color: var(--np-theme-text, #000000);
+  background: var(--bg-apple-input-color);
+  color: var(--fg-main-color);
 }
 
 .form-browser-filter-input:focus {
   outline: none;
-  border-color: var(--tint-color, #007aff);
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+  border-color: var(--tint-color);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--tint-color), transparent 90%);
 }
 
 .form-browser-button {
@@ -69,18 +69,18 @@
 }
 
 .form-browser-button-new {
-  background: var(--bg-alt-color);
+  background: var(--bg-mid-color);
   color: var(--fg-main-color);
 }
 
 .form-browser-button-new:hover {
-  background: var(--tint-color, #007aff);
-  color: white;
+  background: var(--tint-color);
+  color: var(--fg-main-color);
 }
 
 .form-browser-button-new:active {
-  background: var(--tint-color, #007aff);
-  color: white;
+  background: var(--tint-color);
+  color: var(--fg-main-color);
   opacity: 0.8;
 }
 
@@ -91,15 +91,15 @@
 }
 
 .form-browser-button-reload {
-  background: var(--np-theme-background-secondary, #f5f5f5);
-  color: var(--np-theme-text, #000000);
-  border: 1px solid var(--np-theme-border, #e0e0e0);
+  background: var(--bg-alt-color);
+  color: var(--fg-main-color);
+  border: 1px solid var(--divider-color);
   font-size: 1.2rem;
   padding: 0.5rem 0.75rem;
 }
 
 .form-browser-button-reload:hover {
-  background: var(--np-theme-border, #e0e0e0);
+  background: var(--bg-mid-color);
 }
 
 .form-browser-content {
@@ -123,14 +123,14 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--np-theme-background-secondary, #f5f5f5);
+  background: var(--bg-alt-color);
 }
 
 .form-browser-left-controls {
   flex-shrink: 0;
   padding: 1rem;
-  border-bottom: 1px solid var(--np-theme-border, #e0e0e0);
-  background: var(--np-theme-background-secondary, #f5f5f5);
+  border-bottom: 1px solid var(--divider-color);
+  background: var(--bg-alt-color);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -139,8 +139,8 @@
 .form-browser-list-header {
   flex-shrink: 0;
   padding: 1rem;
-  border-bottom: 1px solid var(--np-theme-border, #e0e0e0);
-  background: var(--np-theme-background-secondary, #f5f5f5);
+  border-bottom: 1px solid var(--divider-color);
+  background: var(--bg-alt-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -151,7 +151,8 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--np-theme-text, #000000);
+  color: var(--fg-main-color);
+  background: unset;
 }
 
 .form-browser-list {
@@ -165,7 +166,7 @@
 .form-browser-list-empty {
   padding: 2rem;
   text-align: center;
-  color: var(--np-theme-text-secondary, #666666);
+  color: var(--fg-placeholder-color);
   font-style: italic;
 }
 
@@ -174,8 +175,8 @@
   margin-bottom: 0.25rem;
   border-radius: 4px;
   cursor: pointer;
-  background: var(--np-theme-background, #ffffff);
-  border: 1px solid var(--np-theme-border, #e0e0e0);
+  background: var(--bg-main-color);
+  border: 1px solid var(--divider-color);
   transition: all 0.2s;
   outline: none;
   display: flex;
@@ -203,14 +204,14 @@
 .form-browser-list-item-space {
   font-size: 0.75rem;
   opacity: 0.6;
-  color: var(--np-theme-text-secondary, #666666);
+  color: var(--fg-placeholder-color);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .form-browser-list-item.selected .form-browser-list-item-space {
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in oklch, var(--fg-main-color), transparent 20%);
 }
 
 .form-browser-list-item-actions {
@@ -235,11 +236,11 @@
 }
 
 .form-browser-list-item-button:hover {
-  background: var(--np-theme-background-hover, #f0f0f0);
+  background: var(--bg-mid-color);
 }
 
 .form-browser-list-item.selected .form-browser-list-item-button:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in oklch, var(--tint-color), var(--fg-main-color) 20%);
 }
 
 .form-browser-list-item-button-edit {
@@ -252,35 +253,35 @@
 }
 
 .form-browser-list-item:hover {
-  background: var(--np-theme-background-hover, #f0f0f0);
-  border-color: var(--tint-color, #007aff);
+  background: var(--bg-mid-color);
+  border-color: var(--tint-color);
 }
 
 .form-browser-list-item.selected {
-  background: var(--tint-color, #007aff);
-  color: white;
-  border-color: var(--tint-color, #007aff);
+  background: var(--tint-color);
+  color: var(--fg-main-color);
+  border-color: var(--tint-color);
 }
 
 .form-browser-list-item.active {
-  border: 2px solid var(--tint-color, #007aff);
+  border: 2px solid var(--tint-color);
   font-weight: 600;
 }
 
 .form-browser-list-item.active.selected {
-  background: var(--tint-color, #007aff);
-  color: white;
+  background: var(--tint-color);
+  color: var(--fg-main-color);
 }
 
 .form-browser-resize-handle {
-  background-color: var(--divider-color, #e0e0e0);
+  background-color: var(--divider-color);
   width: 4px;
   cursor: col-resize;
   transition: background-color 0.2s;
 }
 
 .form-browser-resize-handle:hover {
-  background-color: #aaa;
+  background-color: var(--bg-mid-color);
 }
 
 .form-browser-form-container {
@@ -288,7 +289,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  background: var(--np-theme-background, #ffffff);
+  background: var(--bg-main-color);
 }
 
 .form-browser-form-wrapper {
@@ -337,15 +338,15 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--bg-mid-color, #ebedf2);
+  background: var(--bg-mid-color);
   opacity: 0.5;
-  color: var(--fg-main-color, #4c4f69);
+  color: var(--fg-main-color);
   padding: 0.5rem 1rem;
   margin-bottom: 0.5rem;
   border-radius: 4px;
   font-size: 0.85rem;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px color-mix(in oklch, var(--bg-main-color), black 20%);
   width: 100%;
   max-width: 90%;
   box-sizing: border-box;
@@ -369,6 +370,14 @@
   max-height: 100% !important;
   box-shadow: none !important;
   margin: 0 !important;
+  /* set the text color of the dialog to the main color */
+  color: var(--fg-main-color);
+}
+
+.form-browser-preview-wrapper .dynamic-dialog input,
+.form-browser-preview-wrapper .dynamic-dialog textarea,
+.form-browser-preview-wrapper .dynamic-dialog select {
+  color: var(--fg-main-color);
 }
 
 .form-browser-form-empty {
@@ -376,7 +385,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--np-theme-text-secondary, #666666);
+  color: var(--fg-placeholder-color);
   font-style: italic;
 }
 

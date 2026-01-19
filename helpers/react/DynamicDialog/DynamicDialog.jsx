@@ -88,7 +88,7 @@ export type TSettingItem = {
   vertical?: boolean, // Add vertical property for button-group
   isDefault?: boolean, // Add isDefault property for button items
   fixedWidth?: number, // for dropdowns, set a fixed width
-  selectedDate?: Date, // for calendarpicker, the selected date
+  selectedDate?: Date | string, // for calendarpicker, the selected date (Date object or formatted string)
   numberOfMonths?: number, // for calendarpicker, the number of months to show
   size?: number, // for calendarpicker, the size scale factor (0.5 = 50%, default)
   required?: boolean, // for input fields, require the field to be filled out
@@ -97,12 +97,14 @@ export type TSettingItem = {
   placeholder?: string, // for dropdown-select, placeholder text when no value is selected
   buttonText?: string, // for calendarpicker and button, text to display on button
   visible?: boolean, // for calendarpicker, whether calendar is shown by default
+  dateFormat?: string, // for calendarpicker, moment.js format string (e.g., 'YYYY-MM-DD', 'MM/DD/YYYY'). If '__object__', returns Date object. Default: 'YYYY-MM-DD' (ISO 8601)
   // folder-chooser options (matching chooseFolder function parameters)
   includeArchive?: boolean, // for folder-chooser, include the Archive folder in the list
   includeNewFolderOption?: boolean, // for folder-chooser, add a 'New Folder' option that allows creating a new folder
   startFolder?: string, // for folder-chooser, folder to start the list in (e.g. to limit folders to a specific subfolder)
   includeFolderPath?: boolean, // for folder-chooser, show the folder path (or most of it), not just the last folder name
   excludeTeamspaces?: boolean, // for folder-chooser, exclude teamspace folders from the list
+  staticOptions?: Array<{ label: string, value: string }>, // for folder-chooser, static options to add to the chooser (e.g., [{label: '<Select>', value: '<select>'}])
   dependsOnSpaceKey?: string, // DEPRECATED: use sourceSpaceKey instead. For folder-chooser, key of a space-chooser field to filter folders by space (value dependency)
   sourceSpaceKey?: string, // Value dependency: for folder-chooser, key of a space-chooser field to filter folders by space
   // heading-chooser options
@@ -125,6 +127,9 @@ export type TSettingItem = {
   showTitleOnly?: boolean, // for note-chooser, show only the note title in the label (not "path / title") (default: false)
   showCalendarChooserIcon?: boolean, // for note-chooser, show a calendar button next to the chooser (default: true)
   onOpen?: () => void | Promise<void>, // for note-chooser and other choosers, callback when dropdown opens (for lazy loading)
+  allowMultiSelect?: boolean, // for note-chooser, enable multi-select mode (default: false)
+  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link', // for note-chooser multi-select, output format (default: 'wikilink')
+  noteSeparator?: 'space' | 'comma' | 'newline', // for note-chooser multi-select, separator between notes (default: 'space')
   // showValue option for SearchableChooser-based fields
   showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
   // space-chooser options
@@ -226,6 +231,10 @@ export type TDynamicDialogProps = {
   templateTitle?: string, // Template title for autosave field
   errorMessage?: ?string, // Optional error message to display in a banner inside the dialog
   fieldLoadingStates?: { [fieldKey: string]: boolean }, // Optional external loading states for fields (overrides internal state if provided)
+  preloadedTeamspaces?: Array<{ id: string, title: string }>, // Preloaded teamspaces for static HTML testing (avoids dynamic loading)
+  preloadedMentions?: Array<string>, // Preloaded mentions for static HTML testing (avoids dynamic loading)
+  preloadedHashtags?: Array<string>, // Preloaded hashtags for static HTML testing (avoids dynamic loading)
+  preloadedEvents?: Array<any>, // Preloaded events for static HTML testing (avoids dynamic loading)
 }
 
 //--------------------------------------------------------------------------
@@ -265,6 +274,10 @@ const DynamicDialog = ({
   templateTitle,
   errorMessage,
   fieldLoadingStates: externalFieldLoadingStates,
+  preloadedTeamspaces = [],
+  preloadedMentions = [],
+  preloadedHashtags = [],
+  preloadedEvents = [],
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || []
@@ -337,10 +350,33 @@ const DynamicDialog = ({
     updatedSettingsRef.current = updatedSettings
   }, [updatedSettings])
 
+  // Ensure all fields from items are included in updatedSettings, even if empty
+  // This is critical for form submission - all fields must be present in formValues
+  useEffect(() => {
+    if (!isOpen) return // Only update when dialog is open
+    
+    const currentKeys = Object.keys(updatedSettings)
+    const itemKeys = items.filter((item) => item.key).map((item) => item.key)
+    const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
+    
+    if (missingKeys.length > 0) {
+      logDebug('DynamicDialog', `Adding ${missingKeys.length} missing field(s) to updatedSettings: ${missingKeys.join(', ')}`)
+      const newSettings = { ...updatedSettings }
+      items.forEach((item) => {
+        if (item.key && !newSettings.hasOwnProperty(item.key)) {
+          // Initialize missing field with default value, item value, or empty string
+          newSettings[item.key] = defaultValues?.[item.key] ?? item.value ?? item.checked ?? item.default ?? ''
+        }
+      })
+      setUpdatedSettings(newSettings)
+      updatedSettingsRef.current = newSettings
+    }
+  }, [items, isOpen, defaultValues, updatedSettings])
+
   // Build dependency map: track which fields depend on which other fields (generic, no hardcoded knowledge)
   useEffect(() => {
     // Guard: Skip if items haven't actually changed (compare by keys and dependency properties)
-    const itemsChanged = 
+    const itemsChanged =
       previousItemsRef.current.length !== items.length ||
       items.some((item, index) => {
         const prevItem = previousItemsRef.current[index]
@@ -355,12 +391,12 @@ const DynamicDialog = ({
           (item: any).sourceKeyKey !== (prevItem: any).sourceKeyKey
         )
       })
-    
+
     if (!itemsChanged && previousItemsRef.current.length > 0) {
       logDebug('DynamicDialog', `[PERF] Skipping dependency map rebuild - items unchanged`)
       return
     }
-    
+
     const buildStartTime = performance.now()
     logDebug('DynamicDialog', `[PERF] Building dependency map - START`)
     const dependencyMap: { [sourceKey: string]: Array<{ fieldKey: string, clearValue?: boolean }> } = {}
@@ -458,7 +494,7 @@ const DynamicDialog = ({
 
       // Find all focusable inputs in DOM order (excluding hidden and disabled)
       const allInputs = Array.from(dialogElement.querySelectorAll('input:not([type="hidden"]):not([disabled])'))
-      
+
       // Filter to only inputs that are visible (not in hidden containers)
       const visibleInputs = allInputs.filter((input) => {
         if (!(input instanceof HTMLElement)) return false
@@ -592,7 +628,7 @@ const DynamicDialog = ({
 
   // Field types that should consume Enter key (prevent form submission)
   // These are fields where Enter has a specific meaning (e.g., selecting an option, creating new lines)
-  const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'space-chooser', 'dropdown-select', 'combo', 'textarea']
+  const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'space-chooser', 'dropdown-select', 'combo', 'textarea', 'calendarpicker']
 
   const handleEnterKey = (event: KeyboardEvent) => {
     // CMD+ENTER (or CTRL+ENTER on Windows/Linux) should always submit, bypassing ENTER_CONSUMING_FIELD_TYPES
@@ -647,10 +683,18 @@ const DynamicDialog = ({
   }
 
   // Stable callback for registering autosave triggers (created once, not recreated on every render)
+  // CRITICAL: Only allow ONE autosave field to register to prevent loops
+  const autosaveTriggerRegisteredRef = useRef<boolean>(false)
   const registerAutosaveTrigger = useCallback((triggerFn: () => Promise<void>) => {
+    // GUARD: Prevent multiple registrations - only allow one autosave field
+    if (autosaveTriggerRegisteredRef.current) {
+      logDebug('DynamicDialog', `GUARD: Autosave trigger already registered, skipping duplicate registration`)
+      return
+    }
     // Register autosave trigger function
     if (!autosaveTriggersRef.current.includes(triggerFn)) {
       autosaveTriggersRef.current.push(triggerFn)
+      autosaveTriggerRegisteredRef.current = true
       logDebug('DynamicDialog', `Registered autosave trigger (total: ${autosaveTriggersRef.current.length})`)
     }
   }, [])
@@ -678,13 +722,30 @@ const DynamicDialog = ({
         }
       }
 
+      // CRITICAL: Ensure ALL fields from items are included in formValues, even if never touched
+      // This prevents template errors from missing variables
+      const finalFormValues = { ...updatedSettingsRef.current }
+      const currentKeys = Object.keys(finalFormValues)
+      const itemKeys = items.filter((item) => item.key).map((item) => item.key)
+      const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
+      
+      if (missingKeys.length > 0) {
+        logDebug('DynamicDialog', `handleSave: Adding ${missingKeys.length} missing field(s) to formValues before submission: ${missingKeys.join(', ')}`)
+        items.forEach((item) => {
+          if (item.key && !finalFormValues.hasOwnProperty(item.key)) {
+            // Initialize missing field with default value, item value, checked state, or empty string
+            finalFormValues[item.key] = defaultValues?.[item.key] ?? item.value ?? item.checked ?? item.default ?? ''
+          }
+        })
+      }
+
       if (onSave) {
         // Pass keepOpenOnSubmit flag in windowId as a special marker, or pass it separately
         // For now, we'll pass it as part of a special windowId format, or the caller can check the prop
         // Actually, the caller (onSave) can access keepOpenOnSubmit via closure, so we don't need to pass it
-        onSave(updatedSettingsRef.current, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
+        onSave(finalFormValues, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
       }
-      logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current, windowId, keepOpenOnSubmit })
+      logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: finalFormValues, windowId, keepOpenOnSubmit })
     } finally {
       isSavingRef.current = false
     }
@@ -819,7 +880,7 @@ const DynamicDialog = ({
               value: typeof item.key === 'undefined' ? '' : updatedSettings[item.key] ?? '',
               checked: typeof item.key === 'undefined' ? false : updatedSettings[item.key] === true,
             },
-            disabled: item.dependsOnKey || item.requiresKey ? !stateOfControllingSetting(item) : false,
+            disabled: (item.dependsOnKey || item.requiresKey ? !stateOfControllingSetting(item) : false) || isSavingRef.current, // Disable all fields (including autosave) during save/submission
             indent: Boolean(item.dependsOnKey || item.requiresKey),
             handleFieldChange,
             handleButtonClick, // Pass handleButtonClick
@@ -837,6 +898,10 @@ const DynamicDialog = ({
             templateTitle: templateTitle, // Pass template title for autosave field
             onRegisterAutosaveTrigger: item.type === 'autosave' ? registerAutosaveTrigger : undefined,
             fieldLoadingStates, // Pass loading states for dependent fields
+            preloadedTeamspaces, // Pass preloaded teamspaces for static HTML testing
+            preloadedMentions, // Pass preloaded mentions for static HTML testing
+            preloadedHashtags, // Pass preloaded hashtags for static HTML testing
+            preloadedEvents, // Pass preloaded events for static HTML testing
           }
           if (item.type === 'combo' || item.type === 'dropdown-select') {
             renderItemProps.inputRef = dropdownRef

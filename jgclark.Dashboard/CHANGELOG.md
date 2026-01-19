@@ -8,6 +8,20 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+<!-- - ??? dev: check winowID throughout -->
+
+## [2.4.0.b16] 2026-01-18
+### Fixes
+- suppress "showing all 0 items" message when "nothing on this list" message also appears
+- stop tag cache source message appearing in Section header when feature flag not turned on
+- changing 'Dashboard Theme' setting will now change straight away rather than next time the Dashboard starts.
+- dev: using new `TProjectForDashboard` type, spread into `TParagraphForDashboard` and `TProjectForDashboard` to show commonality
+- dev: new NoteTitleLink component, used by ProjectItem and ItemNoteLink components
+
+## [2.4.0.b15] 2026-01-17
+### Changed
+- fix displaying folder names
+- add note's `icon` and `icon-color`  properties to display of note title (if set in note's frontmatter) in all Sections
 
 ## [2.4.0.b14] 2026-01-16
 ### Changed

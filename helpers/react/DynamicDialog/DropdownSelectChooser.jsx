@@ -89,8 +89,8 @@ export function DropdownSelectChooser({
         const newValue = (option: any).value
         // Call onCreate asynchronously, but don't wait for it (onSelect should be synchronous)
         const createPromise = onCreate(newValue)
-        if (createPromise && typeof createPromise.then === 'function') {
-          createPromise.catch((error) => {
+        if (createPromise && typeof (createPromise: any).then === 'function') {
+          (createPromise: any).catch((error: any) => {
             logDebug('DropdownSelectChooser', `Error creating new item: ${error.message}`)
           })
         }
@@ -114,6 +114,14 @@ export function DropdownSelectChooser({
     allowManualEntry: allowCreate, // Enable manual entry if allowCreate is true
     isManualEntry: allowCreate
       ? (value: string, items: Array<DropdownOption>) => {
+          // Don't show manual entry indicator for empty values
+          if (!value || value.trim() === '') {
+            return false
+          }
+          // Don't show manual entry indicator if items list is empty (still loading)
+          if (!items || items.length === 0) {
+            return false
+          }
           // A value is a manual entry if it's not in the items list
           return !items.some((item) => item.value === value || item.label === value)
         }

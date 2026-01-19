@@ -1,5 +1,29 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2026-01-02 for v2.4.0.b5 by @jgclark */
+/* Last updated 2026-01-17 for v2.4.0.b15 by @jgclark */
+
+/* ------------------------------------------------------------------ */
+/* Some colours specified from measuring the colour of NP sidebar elements */
+html {
+	--fg-sidebarDaily: #d0703c;
+	--fg-sidebarWeekly: #be23b6;
+	--fg-sidebarMonthly: #f5528b;
+	--fg-sidebarQuarterly: #e08008;
+	--fg-sidebarYearly: #efba13;
+	--fg-sidebarHashtag: var(--hashtag-color);
+	--fg-sidebarMention: var(--attag-color);
+	--fg-sidebarSearch: #9da5a8;
+}
+/* But still need these as named styles for the section headings */
+.sidebarDaily {color: var(--fg-sidebarDaily);}
+.sidebarWeekly {color: var(--fg-sidebarWeekly);}
+.sidebarMonthly {color: var(--fg-sidebarMonthly);}
+.sidebarQuarterly {color: var(--fg-sidebarQuarterly);}
+.sidebarYearly {color: var(--fg-sidebarYearly);}
+.sidebarHashtag {color: var(--hashtag-color);}
+.sidebarMention {color: var(--attag-color);}
+.sidebarSearch {color: var(--fg-sidebarSearch);}
+
+/* ------------------------------------------------------------------ */
 
 html {
 	/* Add a gutter to the scrollbar to prevent it from overlapping with the content. Available in Safari, but not sure when it becomes available in NotePlan. */
@@ -286,11 +310,12 @@ button,
 	padding-bottom: 0.3em;
 }
 
-/* Default for note titles, note links, and folder/teamspace links */
+/* Default colouring/cursors/decorations for note titles, note links, folders, teamspaces, info */
 @layer Default {
 	/* Colour the note titles */
 	.noteTitle {
 		color: var(--tint-color);
+		cursor: pointer;
 	}
 
 	/* Private note link - default layer */
@@ -337,6 +362,26 @@ button,
 		border-style: solid;
 		padding: 0px 3px;
 	}
+
+	/* Project items */
+	.projectProgress {
+		color: var(--fg-placeholder-color);
+		font-size: 0.9rem;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis; /* FIXME: This is not working as expected, so doing truncation in generation instead */
+	}
+	/* .projectProgress i {
+		color: var(--fg-placeholder-color);
+	} */
+
+	.projectNextAction {
+		color: var(--fg-alt-color);
+		font-size: 0.9rem;
+	}
+	.projectNextAction i {
+		color: var(--item-icon-color);
+	}
 }
 
 /* .multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
@@ -355,32 +400,6 @@ button,
 	/* Start from fully visible */
 	transition: opacity 500ms ease-out;
 	opacity: 0;
-}
-
-/* Some headings specified from measuring the colour of NP sidebar elements */
-html {
-	--fg-sidebarDaily: #d0703c;
-	--fg-sidebarWeekly: #be23b6;
-	--fg-sidebarMonthly: #f5528b;
-	--fg-sidebarQuarterly: #e08008;
-	--fg-sidebarYearly: #efba13;
-	--fg-sidebarHashtag: var(--hashtag-color);
-	--fg-sidebarMention: var(--attag-color);
-	--fg-sidebarSearch: #9da5a8;
-}
-/* But still need these as named styles */
-.sidebarDaily {color: var(--fg-sidebarDaily);}
-.sidebarWeekly {color: var(--fg-sidebarWeekly);}
-.sidebarMonthly {color: var(--fg-sidebarMonthly);}
-.sidebarQuarterly {color: var(--fg-sidebarQuarterly);}
-.sidebarYearly {color: var(--fg-sidebarYearly);}
-.sidebarHashtag {color: var(--hashtag-color);}
-.sidebarMention {color: var(--attag-color);}
-.sidebarSearch {color: var(--fg-sidebarSearch);}
-
-/* Note: not currently used */
-#error {
-	background-color: red;
 }
 
 /* --------------------------------------------------------------- */

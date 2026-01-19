@@ -1,5 +1,6 @@
 // @flow
 // Development-related helper functions
+// Note: none of these rely on DataStore.* functions etc., _except_ for the logging functions. However, the DataStore.settings object _is_ available in React windows/components, through @DBW's wizardry.
 
 import isEqual from 'lodash-es/isEqual'
 import isObject from 'lodash-es/isObject'
@@ -44,6 +45,10 @@ export const dtl = (date?: Date): string => {
  * @example console.log(JSP(obj, '\t')) // prints the full object with newlines and tabs for indentation
  */
 export function JSP(obj: any, space: string | number = 2): string {
+  // CRITICAL: Check for null explicitly (typeof null === 'object' in JavaScript!)
+  if (obj === null || obj === undefined) {
+    return String(obj === null ? 'null' : 'undefined')
+  }
   if (typeof obj !== 'object' || obj instanceof Date) {
     return String(obj)
   } else {
@@ -51,7 +56,10 @@ export function JSP(obj: any, space: string | number = 2): string {
       const arrInfo = []
       let isValues = false
       obj.forEach((item, i) => {
-        if (typeof item === 'object') {
+        // Check for null explicitly before processing as object
+        if (item === null || item === undefined) {
+          arrInfo.push(`[${i}] = ${item === null ? 'null' : 'undefined'}`)
+        } else if (typeof item === 'object') {
           arrInfo.push(`[${i}] = ${JSP(item, space)}`)
         } else {
           isValues = true
@@ -432,15 +440,23 @@ export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string
  * @reference https://stackoverflow.com/questions/59228638/console-log-an-object-does-not-log-the-method-added-via-prototype-in-node-js-c
  */
 export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array<string> {
+  // CRITICAL: Check for null/undefined before processing (typeof null === 'object' in JavaScript!)
+  if (inObj === null || inObj === undefined) {
+    return []
+  }
   let obj = inObj
   const props = []
   do {
+    // Additional null check in the loop (Object.getPrototypeOf(null) can cause issues)
+    if (obj === null || obj === undefined) {
+      break
+    }
     Object.getOwnPropertyNames(obj).forEach(function (prop) {
       if (props.indexOf(prop) === -1) {
         props.push(prop)
       }
     })
-  } while ((obj = Object.getPrototypeOf(obj)))
+  } while ((obj = Object.getPrototypeOf(obj)) && obj !== null)
   return props
 }
 
@@ -452,7 +468,8 @@ export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array
  */
 export const getFilteredProps = (object: any): Array<string> => {
   const ignore = ['toString', 'toLocaleString', 'valueOf', 'hasOwnProperty', 'propertyIsEnumerable', 'isPrototypeOf']
-  if (typeof object !== 'object' || Array.isArray(object)) {
+  // CRITICAL: Check for null explicitly (typeof null === 'object' in JavaScript!)
+  if (object === null || object === undefined || typeof object !== 'object' || Array.isArray(object)) {
     // console.log(`getFilteredProps improper type: ${typeof object}`)
     return []
   }

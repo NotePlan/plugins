@@ -15,17 +15,18 @@ type Props = {
   item: TSectionItem,
 }
 
-function ProjectIcon({ item }: Props): Node {
+function SmallCircularProgressIndicator({ item }: Props): Node {
 
   const percentComplete = item.project?.percentComplete ?? 0
 
   // using custom component adapted from https://blog.logrocket.com/build-svg-circular-progress-component-react-hooks/
   return (
     <CircularProgressBar
-      size="1.0rem" // TODO: this only works as "1.0rem" despite number being expected
+      // $FlowIgnore[incompatible-type] - this only works as "1.0rem" despite number being expected
+      size="1.0rem"
       progress={percentComplete}
       backgroundColor="var(--bg-sidebar-color)"
-      trackWidth={8} // outer border width
+      trackWidth={6} // outer border width
       trackColor="var(--item-icon-color)"
       indicatorRadius={25} // (% of container) of middle of indicator
       indicatorWidth={50} // (% of container)
@@ -37,4 +38,4 @@ function ProjectIcon({ item }: Props): Node {
   )
 }
 
-export default ProjectIcon
+export default SmallCircularProgressIndicator

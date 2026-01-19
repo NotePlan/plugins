@@ -30,6 +30,7 @@ export type SpaceChooserProps = {
   showValue?: boolean, // If true, display the selected value below the input
   includeAllOption?: boolean, // If true, include "All Private + Spaces" option that returns "__all__"
   shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
+  initialSpaces?: Array<{ id: string, title: string }>, // Preloaded teamspaces for static HTML testing
 }
 
 /**
@@ -50,9 +51,46 @@ export function SpaceChooser({
   showValue = false,
   includeAllOption = false,
   shortDescriptionOnLine2 = false,
+  initialSpaces,
 }: SpaceChooserProps): React$Node {
-  const [spaces, setSpaces] = useState<Array<SpaceOption>>([])
-  const [spacesLoaded, setSpacesLoaded] = useState<boolean>(false)
+  // Initialize from preloaded data if available (for static HTML testing)
+  const hasInitialSpaces = Array.isArray(initialSpaces) && initialSpaces.length > 0
+  const [spaces, setSpaces] = useState<Array<SpaceOption>>(() => {
+    if (hasInitialSpaces && initialSpaces) {
+      // Convert initial teamspaces to SpaceOption format
+      const teamspaceOptions: Array<SpaceOption> = initialSpaces.map((ts: { id: string, title: string }) => ({
+        id: ts.id,
+        title: ts.title || '(unknown)',
+        isPrivate: false,
+      }))
+
+      // Always include Private as an option
+      const privateOption: SpaceOption = {
+        id: '',
+        title: 'Private',
+        isPrivate: true,
+      }
+
+      // Optionally include "All Private + Spaces" option
+      const allOption: SpaceOption = {
+        id: '__all__',
+        title: 'All Private + Spaces',
+        isPrivate: false,
+      }
+
+      // Combine options: All (if enabled) + Private + Teamspaces
+      const allSpaces: Array<SpaceOption> = includeAllOption ? [allOption, privateOption, ...teamspaceOptions] : [privateOption, ...teamspaceOptions]
+      logDebug(
+        'SpaceChooser',
+        `Using initial spaces: ${allSpaces.length} spaces (${allSpaces.length - teamspaceOptions.length - (includeAllOption ? 1 : 0)} private/all + ${
+          teamspaceOptions.length
+        } teamspaces)`,
+      )
+      return allSpaces
+    }
+    return []
+  })
+  const [spacesLoaded, setSpacesLoaded] = useState<boolean>(hasInitialSpaces) // If preloaded, mark as loaded
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const requestFromPluginRef = useRef<?(command: string, dataToSend?: any, timeout?: number) => Promise<any>>(requestFromPlugin)
   const isLoadingRef = useRef<boolean>(false) // Track loading state to prevent concurrent loads
@@ -73,11 +111,16 @@ export function SpaceChooser({
     }
   }, [includeAllOption, spacesLoaded])
 
-  // Load spaces (teamspaces) from plugin
+  // Load spaces (teamspaces) from plugin (skip if initial data was provided)
   const loadSpaces = async () => {
     const requestFn = requestFromPluginRef.current
-    if (spacesLoaded || !requestFn || isLoadingRef.current) {
-      logDebug('SpaceChooser', `[DIAG] loadSpaces: skipping (spacesLoaded=${String(spacesLoaded)}, hasRequestFn=${String(!!requestFn)}, isLoading=${String(isLoadingRef.current)})`)
+    if (spacesLoaded || !requestFn || isLoadingRef.current || hasInitialSpaces) {
+      logDebug(
+        'SpaceChooser',
+        `[DIAG] loadSpaces: skipping (spacesLoaded=${String(spacesLoaded)}, hasRequestFn=${String(!!requestFn)}, isLoading=${String(
+          isLoadingRef.current,
+        )}, hasInitialSpaces=${String(hasInitialSpaces)})`,
+      )
       return
     }
 
@@ -248,11 +291,9 @@ export function SpaceChooser({
     shortDescriptionOnLine2,
   }
 
-  // Find the current space to get its display title
   // Note: value is the space ID (empty string for Private, "__all__" for All, teamspace ID for teamspaces)
   // We need to pass the ID to SearchableChooser so it can match items correctly
   // SearchableChooser will then look up the display value from the matched item
-  const currentSpace = spaces.find((s) => s.id === value) || (value === '' ? spaces.find((s) => s.isPrivate) : null)
   // Pass the ID (value) to SearchableChooser, not the display title
   // SearchableChooser will match by id first, then fall back to display value matching
   const valueToPass = value || '' // Ensure we pass empty string for Private, not undefined

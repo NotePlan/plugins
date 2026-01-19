@@ -7,6 +7,13 @@
 /* Template Form Dialog Centering - apply same centering logic as DynamicDialog.css */
 /* Only apply centering if no explicit x,y positioning is set via inline styles */
 .dynamic-dialog.template-form {
+
+  /* set the text color of the dialog to the main color */
+  color: var(--fg-main-color);
+  & input, & textarea, & select {
+    color: var(--fg-main-color);
+  }
+
   /* Ensure proper vertical centering - same as DynamicDialog.css */
   /* Center vertically: position top edge at viewport center + toolbar offset, then translateY(-50%) centers it */
   /* Account for toolbar offset: center of available space = 50vh + toolbar-height/2 */
@@ -75,7 +82,7 @@
   & [data-field-type] .searchable-chooser-base.compact {
     display: flex !important;
     align-items: center !important;
-    gap: 1rem !important;
+    gap: .5rem !important;
     padding-left: 0 !important;
     margin-left: 0 !important;
   }
@@ -174,9 +181,9 @@
   & .calendarpicker-container.compact .calendarpicker-input-wrapper,
   & .autosave-field-container.compact .autosave-field-input-wrapper,
   & .autosave-field-container.compact .autosave-field-input {
-    width: var(--template-form-compact-input-width, 180px) !important;
-    min-width: var(--template-form-compact-input-width, 180px) !important;
-    max-width: var(--template-form-compact-input-width, 180px) !important;
+    width: var(--template-form-compact-input-width, 300px) !important;
+    min-width: var(--template-form-compact-input-width, 300px) !important;
+    max-width: var(--template-form-compact-input-width, 300px) !important;
   }
 
   /* Override item-description margin-left in compact mode to align with input field values */
@@ -617,4 +624,49 @@
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: break-word;
+}
+
+/* Form Submitting Overlay */
+/* Positioned at root level to appear above all content including modals */
+.form-submitting-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6); /* Slightly darker for better visibility */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999 !important; /* Very high z-index to appear above everything (modals are 100-101) */
+  pointer-events: auto; /* Block all interactions during submission */
+}
+
+.form-submitting-message {
+  background-color: var(--tint-color, #007aff);
+  color: white;
+  padding: 1.5rem 2.5rem;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: pulse 2s ease-in-out infinite;
+  text-align: center;
+  pointer-events: auto; /* Make message interactive (though not needed) */
+  min-width: 250px;
+  max-width: 90vw;
+}
+
+.form-submitting-message > div {
+  display: block;
+  line-height: 1.5;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }

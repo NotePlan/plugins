@@ -1,5 +1,5 @@
 /* CSS specific to TasksFiltered component.
-/* Last updated 2025-11-23 for v2.3.0.b15, @jgclark */
+/* Last updated 2026-01-16 for v2.4.0.b16, @jgclark */
 
 .sectionItemRow {
 	/* The important trick to avoiding bad wrapping at end of columns */
@@ -32,8 +32,9 @@
 .itemIcon {
 	/* color: var(--item-icon-color); */ /* TEST: set more specifically on each icon type */
 	/* need to override some CSS that comes in the theme */
-	margin-bottom: unset !important;
-	line-height: unset !important;
+	margin-bottom: unset  !important;
+	margin-right: 0.25rem;
+	line-height: unset  !important;
 	font-size: 1.0rem  !important;
 	font-weight: 400;
 	/* position this horizontally centred; vertically at start */

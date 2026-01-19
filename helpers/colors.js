@@ -2,6 +2,7 @@
 // Uses chroma.js, a fantastic utility for deriving colors https://gka.github.io/chroma.js/
 
 import chroma from 'chroma-js'
+import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 
 export const isDark = (bgColor) => chroma(bgColor).luminance() < 0.5
 export const isLight = (bgColor) => !isDark(bgColor)
@@ -199,20 +200,25 @@ export const getColorStyle = (color) => {
  */
 // NOTE: DO NOT FLOW TYPE THIS FUNCTION. IT IS IMPORTED BY JSX FILE AND FOR SOME REASON, ROLLUP CHOKES ON FLOW
 export const tailwindToHsl = (color, includeAlpha = false) => {
-  if (!color) return null
+  if (!color) {
+    logWarn(`tailwindToHsl`, `color is null or undefined`)
+    return null
+  }
   
   try {
     let colorValue = color
     
     // Check if it's a Tailwind color name (e.g., "amber-200")
     if (typeof color === 'string' && /^[a-z]+-\d+$/i.test(color)) {
-      const [colorName, shade] = color.split('-')
-      const shadeNum = parseInt(shade, 10)
+      // const [colorName, shade] = color.split('-')
+      // const shadeNum = parseInt(shade, 10)
       
-      if (TAILWIND_COLORS[colorName] && TAILWIND_COLORS[colorName][shadeNum]) {
-        colorValue = TAILWIND_COLORS[colorName][shadeNum]
+      // if (TAILWIND_COLORS[colorName] && TAILWIND_COLORS[colorName][shadeNum]) {
+      if (TAILWIND_COLORS[color]) {
+        colorValue = TAILWIND_COLORS[color]
       } else {
         // Invalid Tailwind color name
+        logWarn(`tailwindToHsl`, `Invalid Tailwind color name: ${color}`)
         return null
       }
     }
@@ -233,6 +239,7 @@ export const tailwindToHsl = (color, includeAlpha = false) => {
     return `hsl(${h}, ${s}%, ${l}%)`
   } catch (error) {
     // If chroma can't parse the color, return null
+    logError(`tailwindToHsl`, `Error: ${error.message}`)
     return null
   }
 }

@@ -18,7 +18,7 @@
 .list-empty-message {
   padding: 2rem;
   text-align: center;
-  color: var(--np-theme-text-secondary, #666666);
+  color: var(--fg-placeholder-color);
   font-style: italic;
 }
 
@@ -44,23 +44,23 @@
 }
 
 .list-item-noteplan-sidebar:hover {
-  background: var(--np-theme-background-hover, rgba(0, 0, 0, 0.05));
+  background: var(--bg-mid-color);
 }
 
 .list-item-noteplan-sidebar.selected {
-  background: var(--tint-color, #007aff);
-  color: white;
-  border-color: var(--tint-color, #007aff);
+  background: var(--tint-color);
+  color: var(--fg-main-color);
+  border-color: var(--tint-color);
 }
 
 .list-item-noteplan-sidebar.selected .list-item-action-button {
-  color: white;
+  color: var(--fg-main-color);
   opacity: 0.8;
 }
 
 .list-item-noteplan-sidebar.selected .list-item-action-button:hover {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in oklch, var(--tint-color), var(--fg-main-color) 20%);
 }
 
 /* Chips Style */
@@ -73,8 +73,8 @@
   margin-bottom: 0.25rem;
   border-radius: 4px;
   cursor: pointer;
-  background: var(--np-theme-background, #ffffff);
-  border: 1px solid var(--np-theme-border, #e0e0e0);
+  background: var(--bg-main-color);
+  border: 1px solid var(--divider-color);
   transition: all 0.2s;
   outline: none;
   display: flex;
@@ -84,24 +84,24 @@
 }
 
 .list-item-chips:hover {
-  background: var(--np-theme-background-hover, #f0f0f0);
-  border-color: var(--tint-color, #007aff);
+  background: var(--bg-mid-color);
+  border-color: var(--tint-color);
 }
 
 .list-item-chips.selected {
-  background: var(--tint-color, #007aff);
-  color: white;
-  border-color: var(--tint-color, #007aff);
+  background: var(--tint-color);
+  color: var(--fg-main-color);
+  border-color: var(--tint-color);
 }
 
 .list-item-chips.selected .list-item-action-button {
-  color: white;
+  color: var(--fg-main-color);
   opacity: 0.8;
 }
 
 .list-item-chips.selected .list-item-action-button:hover {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in oklch, var(--tint-color), var(--fg-main-color) 20%);
 }
 
 /* Item Content */
@@ -130,7 +130,7 @@
   background: transparent;
   transition: background 0.2s, opacity 0.2s;
   opacity: 0.7;
-  color: var(--np-theme-text, #000000);
+  color: var(--fg-main-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -141,7 +141,7 @@
 }
 
 .list-item-action-button:hover {
-  background: var(--np-theme-background-hover, #f0f0f0);
+  background: var(--bg-mid-color);
 }
 
 /* Cursor Decoration - now handled by ModifierHints component */

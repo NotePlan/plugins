@@ -741,10 +741,10 @@ export async function getNextProjectsToReview(numToReturn: number = 0): Promise<
     const config: ?ReviewConfig = await getReviewSettings(true)
     if (!config) {
       // Shouldn't get here, but this is a safety check.
-      logDebug(pluginJson, 'reviews/getNextProjectsToReview(): No config found, so assume jgclark.Reviews plugin is not installed. Stopping.')
+      logDebug('reviews/getNextProjectsToReview', 'No config found, so assume jgclark.Reviews plugin is not installed. Stopping.')
       return []
     }
-    logDebug(pluginJson, `Starting reviews/getNextProjectsToReview(${String(numToReturn)})) ...`)
+    logDebug('reviews/getNextProjectsToReview', `Called with numToReturn:${String(numToReturn)}`)
 
     // Get all available Projects -- not filtering by projectTag here
     const allProjectsSorted = await filterAndSortProjectsList(config)
@@ -759,9 +759,6 @@ export async function getNextProjectsToReview(numToReturn: number = 0): Promise<
 
     if (projectsToReview.length > 0) {
       logDebug('reviews/getNextProjectsToReview', `- Returning ${projectsToReview.length} project notes ready for review`)
-      // projectsToReview.forEach((p) => {
-      //   logDebug('', `${p.title}`)
-      // })
     } else {
       logDebug('reviews/getNextProjectsToReview', `- No project notes ready for review 🎉`)
     }
