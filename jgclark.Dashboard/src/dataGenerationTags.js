@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-12-03 for v2.3.3, @jgclark
+// Last updated 2026-01-18 for v2.4.0.b, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -247,10 +247,12 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
     // Return section details, even if no items found
     let sectionDescription = `{countWithLimit} open {itemType} ordered by ${config.overdueSortOrder}`
-    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
-    // TODO(later): remove note about the tag cache
-    sectionDescription += `, ${source}`
-    if (comparisonDetails !== '') sectionDescription += ` [${comparisonDetails}]`
+    if (config?.FFlag_ShowSectionTimings) {
+      sectionDescription += ` [${timer(thisStartTime)}]`
+      // TODO(later): remove note about the tag cache
+      sectionDescription += `, ${source}`
+      if (comparisonDetails !== '') sectionDescription += ` [${comparisonDetails}]`
+    }
     const section: TSection = {
       ID: sectionID,
       name: thisTag,
