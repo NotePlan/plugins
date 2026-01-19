@@ -5,7 +5,7 @@
 See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/dbludeau.TodoistNoteplanSync/CHANGELOG.md) for latest updates/changes to this plugin.
 
 ## About
-Commands to sync tasks in Todoist to Noteplan.  Todoist has great quick entry capabilities for all platforms and now you can leverage that to quickly get your thoughts to Noteplan.  You do not need to be on an Apple product or have Noteplan open to quickly add a task anymore.  Todoist has an excellent API that allows for easy integration.  This will work with both the free and paid version of Todoist (I have not paid and was able to do everything in this plugin). 
+Commands to sync tasks in Todoist to Noteplan.  Todoist has great quick entry capabilities for all platforms and now you can leverage that to quickly get your thoughts to Noteplan.  You do not need to be on an Apple product or have Noteplan open to quickly add a task anymore.  Todoist has an excellent API that allows for easy integration.  This will work with both the free and paid version of Todoist (I have not paid and was able to do everything in this plugin).
 
 ### Current Sync Actions
 NOTE: All sync actions (other then content and status) can be turned on and off in settings.  Everything not in this list such as task descriptions, location reminders and times will be ignored (dates can be synced, but times will be ignored).
@@ -79,6 +79,64 @@ Valid values for `todoist_filter`: `all`, `today`, `overdue`, `current` (same as
 1. Command-line argument (e.g., `/todoist sync project today`) - highest
 2. Frontmatter `todoist_filter` - second
 3. Plugin settings "Date filter for project syncs" - default
+
+### Multiple Projects Per Note
+
+You can sync multiple Todoist projects to a single note using `todoist_ids` (note the plural):
+
+```
+---
+todoist_ids: ["2317353827", "2317353828"]
+---
+```
+
+Tasks from each project will sync in the order specified. You can configure how projects are visually separated in the plugin settings.
+
+| Separator Option | Result |
+|-----------------|--------|
+| `## Project Name` | Large heading with project name |
+| `### Project Name` | Medium heading with project name (default) |
+| `#### Project Name` | Small heading with project name |
+| `Horizontal Rule` | A `---` line between projects |
+| `No Separator` | No visual separation between projects |
+
+You can also configure how Todoist sections appear within each project:
+
+| Section Format | Result |
+|---------------|--------|
+| `### Section` | Large heading |
+| `#### Section` | Medium heading (default) |
+| `##### Section` | Small heading |
+| `**Section**` | Bold text (not a heading) |
+
+Example with `### Project Name` and `#### Section`:
+
+```
+### Home                    ← Project heading (###)
+- task without section
+#### Backlog                ← Section heading (####)
+- task in Backlog
+#### In Progress
+- task in progress
+
+### Work                    ← Next project
+- another task
+```
+
+Note: The single `todoist_id` format still works for backward compatibility. You can also use `todoist_id` with a JSON array: `todoist_id: ["id1", "id2"]`.
+
+### Combining Date Filter with Multiple Projects
+
+You can use both features together:
+
+```
+---
+todoist_ids: ["2317353827", "2317353828"]
+todoist_filter: 7 days
+---
+```
+
+This will sync tasks from both projects, but only those due within the next 7 days.
 
 ## Caveats, Warnings and Notes
 - All synced tasks in Noteplan rely on the Todoist ID being present and associated with the task.  This is stored at the end of a synced task in the form of a link to www.todoist.com.

@@ -48,6 +48,8 @@ const setup: {
   addUnassigned: boolean,
   header: string,
   projectDateFilter: string,
+  projectSeparator: string,
+  sectionFormat: string,
   newFolder: any,
   newToken: any,
   useTeamAccount: any,
@@ -57,6 +59,8 @@ const setup: {
   syncUnassigned: any,
   newHeader: any,
   newProjectDateFilter: any,
+  newProjectSeparator: any,
+  newSectionFormat: any,
 } = {
   token: '',
   folder: 'Todoist',
@@ -67,6 +71,8 @@ const setup: {
   addUnassigned: false,
   header: '',
   projectDateFilter: 'overdue | today',
+  projectSeparator: '### Project Name',
+  sectionFormat: '#### Section',
 
   /**
    * @param {string} passedToken
@@ -125,6 +131,18 @@ const setup: {
   set newProjectDateFilter(passedProjectDateFilter: string) {
     setup.projectDateFilter = passedProjectDateFilter
   },
+  /**
+   * @param {string} passedProjectSeparator
+   */
+  set newProjectSeparator(passedProjectSeparator: string) {
+    setup.projectSeparator = passedProjectSeparator
+  },
+  /**
+   * @param {string} passedSectionFormat
+   */
+  set newSectionFormat(passedSectionFormat: string) {
+    setup.sectionFormat = passedSectionFormat
+  },
 }
 
 const closed: Array<any> = []
@@ -141,6 +159,123 @@ const existingHeader: {
   set headerExists(passedHeaderExists: string) {
     existingHeader.exists = !!passedHeaderExists
   },
+}
+
+/**
+ * Multi-project context for organizing tasks under project headings
+ */
+type MultiProjectContext = {
+  projectName: string,
+  projectHeadingLevel: number,
+  isMultiProject: boolean,
+  isEditorNote: boolean,
+}
+
+/**
+ * Parse project IDs from a frontmatter value that could be:
+ * - A single string ID: "12345"
+ * - A JSON array string: '["12345", "67890"]'
+ * - A native array: ["12345", "67890"]
+ *
+ * @param {any} value - The frontmatter value
+ * @returns {Array<string>} Array of project IDs
+ */
+function parseProjectIds(value: any): Array<string> {
+  if (!value) return []
+
+  // Already an array
+  if (Array.isArray(value)) {
+    return value.map((id) => String(id).trim())
+  }
+
+  // String value - could be single ID or JSON array
+  const strValue = String(value).trim()
+
+  // Check if it looks like a JSON array
+  if (strValue.startsWith('[') && strValue.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(strValue)
+      if (Array.isArray(parsed)) {
+        return parsed.map((id) => String(id).trim())
+      }
+    } catch (e) {
+      logWarn(pluginJson, `Failed to parse JSON array from frontmatter: ${strValue}`)
+    }
+  }
+
+  // Single ID
+  return [strValue]
+}
+
+/**
+ * Fetch the project name from Todoist API
+ *
+ * @param {string} projectId - The Todoist project ID
+ * @returns {Promise<string>} The project name or a fallback
+ */
+async function getProjectName(projectId: string): Promise<string> {
+  try {
+    const result = await fetch(`${todo_api}/projects/${projectId}`, getRequestObject())
+    const project = JSON.parse(result)
+    return project?.name ?? `Project ${projectId}`
+  } catch (error) {
+    logWarn(pluginJson, `Unable to fetch project name for ${projectId}`)
+    return `Project ${projectId}`
+  }
+}
+
+/**
+ * Get the heading level (number of #) from the project separator setting
+ *
+ * @returns {number} The heading level (2, 3, or 4), or 0 for non-heading separators
+ */
+function getProjectHeadingLevel(): number {
+  const separator = setup.projectSeparator
+  if (separator === '## Project Name') return 2
+  if (separator === '### Project Name') return 3
+  if (separator === '#### Project Name') return 4
+  return 0 // Horizontal Rule or No Separator
+}
+
+/**
+ * Generate a heading prefix with the specified level
+ *
+ * @param {number} level - The heading level (2, 3, 4, 5, etc.)
+ * @returns {string} The heading prefix (e.g., "###")
+ */
+function getHeadingPrefix(level: number): string {
+  return '#'.repeat(level)
+}
+
+/**
+ * Add a project separator to the note based on settings
+ *
+ * @param {TNote} note - The note to add the separator to
+ * @param {string} projectName - The name of the project
+ * @param {boolean} isEditorNote - Whether to use Editor.appendParagraph
+ * @returns {number} The heading level used (0 if no heading)
+ */
+function addProjectSeparator(note: TNote, projectName: string, isEditorNote: boolean = false): number {
+  const separator = setup.projectSeparator
+  let content = ''
+  const headingLevel = getProjectHeadingLevel()
+
+  if (separator === 'No Separator') {
+    return 0
+  } else if (separator === 'Horizontal Rule') {
+    content = '---'
+  } else if (headingLevel > 0) {
+    content = `${getHeadingPrefix(headingLevel)} ${projectName}`
+  }
+
+  if (content) {
+    if (isEditorNote) {
+      Editor.appendParagraph(content, 'text')
+    } else {
+      note.appendParagraph(content, 'text')
+    }
+  }
+  return headingLevel
 }
 
 /**
@@ -184,7 +319,7 @@ export async function syncEverything() {
 
           // grab the tasks and write them out with sections
           const id: string = projects[i].project_id
-          await projectSync(note, id, null)
+          await projectSync(note, id, null, null)
         }
       }
 
@@ -215,13 +350,19 @@ function parseDateFilterArg(arg: ?string): ?string {
     return 'overdue'
   } else if (trimmed === 'current') {
     return 'overdue | today'
+  } else if (trimmed === '3 days') {
+    return '3 days'
+  } else if (trimmed === '7 days') {
+    return '7 days'
+  } else if (trimmed === 'all') {
+    return 'all'
   }
   logWarn(pluginJson, `Unknown date filter argument: ${arg}. Using setting value.`)
   return null
 }
 
 /**
- * Synchronize the current linked project.
+ * Synchronize the current linked project (supports both single and multiple projects).
  *
  * @param {string} filterArg - optional date filter override (today, overdue, current)
  * @returns {Promise<void>} A promise that resolves once synchronization is complete
@@ -235,46 +376,74 @@ export async function syncProject(filterArg: ?string) {
   }
 
   const note: ?TNote = Editor.note
-  if (note) {
-    // check to see if this has any frontmatter
-    const frontmatter: ?Object = getFrontmatterAttributes(note)
-    clo(frontmatter)
-    let check: boolean = true
-    if (frontmatter) {
-      if ('todoist_id' in frontmatter) {
-        logDebug(pluginJson, `Frontmatter has link to Todoist project -> ${frontmatter.todoist_id}`)
+  if (!note) return
 
-        // Determine filter priority: command-line > frontmatter > settings
-        let filterOverride = commandLineFilter
-        if (!filterOverride && 'todoist_filter' in frontmatter && frontmatter.todoist_filter) {
-          filterOverride = parseDateFilterArg(frontmatter.todoist_filter)
-          if (filterOverride) {
-            logInfo(pluginJson, `Using frontmatter filter: ${filterOverride}`)
-          }
-        }
+  // check to see if this has any frontmatter
+  const frontmatter: ?Object = getFrontmatterAttributes(note)
+  clo(frontmatter)
+  if (!frontmatter) {
+    logWarn(pluginJson, 'Current note has no frontmatter')
+    return
+  }
 
-        const paragraphs: ?$ReadOnlyArray<TParagraph> = note.paragraphs
-        if (paragraphs) {
-          paragraphs.forEach((paragraph) => {
-            checkParagraph(paragraph)
-          })
-        }
+  // Determine filter priority: command-line > frontmatter > settings
+  let filterOverride = commandLineFilter
+  if (!filterOverride && 'todoist_filter' in frontmatter && frontmatter.todoist_filter) {
+    filterOverride = parseDateFilterArg(frontmatter.todoist_filter)
+    if (filterOverride) {
+      logInfo(pluginJson, `Using frontmatter filter: ${filterOverride}`)
+    }
+  }
 
-        await projectSync(note, frontmatter.todoist_id, filterOverride, true)
+  // Check existing tasks in the note
+  const paragraphs: ?$ReadOnlyArray<TParagraph> = note.paragraphs
+  if (paragraphs) {
+    paragraphs.forEach((paragraph) => {
+      checkParagraph(paragraph)
+    })
+  }
 
-        //close the tasks in Todoist if they are complete in Noteplan`
-        closed.forEach(async (t) => {
-          await closeTodoistTask(t)
-        })
-      } else {
-        check = false
+  // Determine project IDs to sync (support both single and multiple)
+  // Check todoist_ids first (plural), then todoist_id (singular)
+  // Both can contain either a single ID or a JSON array string
+  let projectIds: Array<string> = []
+
+  if ('todoist_ids' in frontmatter) {
+    projectIds = parseProjectIds(frontmatter.todoist_ids)
+    logDebug(pluginJson, `Found todoist_ids: ${projectIds.join(', ')}`)
+  } else if ('todoist_id' in frontmatter) {
+    projectIds = parseProjectIds(frontmatter.todoist_id)
+    logDebug(pluginJson, `Found todoist_id: ${projectIds.join(', ')}`)
+  }
+
+  if (projectIds.length === 0) {
+    logWarn(pluginJson, 'No valid todoist_id or todoist_ids found in frontmatter')
+    return
+  }
+
+  // Sync each project
+  const isMultiProject = projectIds.length > 1
+  for (const projectId of projectIds) {
+    let multiProjectContext: ?MultiProjectContext = null
+
+    if (isMultiProject) {
+      const projectName = await getProjectName(projectId)
+      const headingLevel = addProjectSeparator(note, projectName, true)
+
+      multiProjectContext = {
+        projectName: projectName,
+        projectHeadingLevel: headingLevel,
+        isMultiProject: true,
+        isEditorNote: true,
       }
-    } else {
-      check = false
     }
-    if (!check) {
-      logWarn(pluginJson, 'Current note has no Todoist project linked currently')
-    }
+
+    await projectSync(note, projectId, filterOverride, multiProjectContext, true)
+  }
+
+  // Close completed tasks in Todoist
+  for (const t of closed) {
+    await closeTodoistTask(t)
   }
 }
 
@@ -336,44 +505,95 @@ export async function syncAllProjectsAndToday() {
  * @returns {Promise<void>}
  */
 async function syncThemAll() {
-  const search_string = 'todoist_id:'
-  const paragraphs: ?$ReadOnlyArray<TParagraph> = await DataStore.searchProjectNotes(search_string)
+  // Search for both frontmatter formats and collect unique notes
+  const found_notes: Map<string, TNote> = new Map()
 
-  if (paragraphs) {
-    for (let i = 0; i < paragraphs.length; i++) {
-      const filename = paragraphs[i].filename
-      if (filename) {
-        logInfo(pluginJson, `Working on note: ${filename}`)
-        const note: ?TNote = DataStore.projectNoteByFilename(filename)
-
-        if (note) {
-          const paragraphs_to_check: $ReadOnlyArray<TParagraph> = note?.paragraphs
-          if (paragraphs_to_check) {
-            paragraphs_to_check.forEach((paragraph_to_check) => {
-              checkParagraph(paragraph_to_check)
-            })
+  for (const search_string of ['todoist_id:', 'todoist_ids:']) {
+    const paragraphs: ?$ReadOnlyArray<TParagraph> = await DataStore.searchProjectNotes(search_string)
+    if (paragraphs) {
+      for (const p of paragraphs) {
+        if (p.filename && !found_notes.has(p.filename)) {
+          const note = DataStore.projectNoteByFilename(p.filename)
+          if (note) {
+            found_notes.set(p.filename, note)
           }
-
-          // get the ID
-          let id: string = paragraphs[i].content.split(':')[1]
-          id = id.trim()
-
-          logInfo(pluginJson, `Matches up to Todoist project id: ${id}`)
-          await projectSync(note, id, null)
-
-          //close the tasks in Todoist if they are complete in Noteplan`
-          closed.forEach(async (t) => {
-            await closeTodoistTask(t)
-          })
-        } else {
-          logError(pluginJson, `Unable to open note asked requested by script (${filename})`)
         }
-      } else {
-        logError(pluginJson, `Unable to find filename associated with search results`)
       }
     }
-  } else {
-    logInfo(pluginJson, `No results found in notes for term: todoist_id.  Make sure frontmatter is set according to plugin instructions`)
+  }
+
+  if (found_notes.size === 0) {
+    logInfo(pluginJson, 'No results found in notes for todoist_id or todoist_ids. Make sure frontmatter is set according to plugin instructions')
+    return
+  }
+
+  for (const [filename, note] of found_notes) {
+    logInfo(pluginJson, `Working on note: ${filename}`)
+
+    // Check existing paragraphs for task state
+    const paragraphs_to_check: $ReadOnlyArray<TParagraph> = note?.paragraphs ?? []
+    if (paragraphs_to_check) {
+      paragraphs_to_check.forEach((paragraph_to_check) => {
+        checkParagraph(paragraph_to_check)
+      })
+    }
+
+    // Parse frontmatter to get project IDs and filter
+    const frontmatter: ?Object = getFrontmatterAttributes(note)
+    if (!frontmatter) {
+      logWarn(pluginJson, `Note ${filename} has no frontmatter, skipping`)
+      continue
+    }
+
+    // Check for per-note filter override
+    let filterOverride = null
+    if ('todoist_filter' in frontmatter && frontmatter.todoist_filter) {
+      filterOverride = parseDateFilterArg(frontmatter.todoist_filter)
+      if (filterOverride) {
+        logInfo(pluginJson, `Note ${filename} using frontmatter filter: ${filterOverride}`)
+      }
+    }
+
+    let projectIds: Array<string> = []
+
+    if ('todoist_ids' in frontmatter) {
+      projectIds = parseProjectIds(frontmatter.todoist_ids)
+      logDebug(pluginJson, `Found todoist_ids in ${filename}: ${projectIds.join(', ')}`)
+    } else if ('todoist_id' in frontmatter) {
+      projectIds = parseProjectIds(frontmatter.todoist_id)
+      logDebug(pluginJson, `Found todoist_id in ${filename}: ${projectIds.join(', ')}`)
+    }
+
+    if (projectIds.length === 0) {
+      logWarn(pluginJson, `Note ${filename} has no valid todoist_id or todoist_ids, skipping`)
+      continue
+    }
+
+    // Sync each project
+    const isMultiProject = projectIds.length > 1
+    for (const projectId of projectIds) {
+      let multiProjectContext: ?MultiProjectContext = null
+
+      if (isMultiProject) {
+        const projectName = await getProjectName(projectId)
+        const headingLevel = addProjectSeparator(note, projectName, false)
+
+        multiProjectContext = {
+          projectName: projectName,
+          projectHeadingLevel: headingLevel,
+          isMultiProject: true,
+          isEditorNote: false,
+        }
+      }
+
+      logInfo(pluginJson, `Syncing Todoist project id: ${projectId}`)
+      await projectSync(note, projectId, filterOverride, multiProjectContext, false)
+    }
+
+    // Close the tasks in Todoist if they are complete in Noteplan
+    for (const t of closed) {
+      await closeTodoistTask(t)
+    }
   }
 }
 
@@ -483,17 +703,87 @@ function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Obj
 }
 
 /**
- * Get Todoist project tasks and write them out one by one
+ * Fetch all sections for a project from Todoist
+ *
+ * @param {string} projectId - The Todoist project ID
+ * @returns {Promise<Map<string, string>>} Map of section ID to section name
+ */
+async function fetchProjectSections(projectId: string): Promise<Map<string, string>> {
+  const sectionMap: Map<string, string> = new Map()
+  try {
+    const result = await fetch(`${todo_api}/sections?project_id=${projectId}`, getRequestObject())
+    const parsed = JSON.parse(result)
+
+    // Handle both array and {results: [...]} formats
+    const sections = Array.isArray(parsed) ? parsed : (parsed.results || [])
+
+    if (sections && Array.isArray(sections)) {
+      sections.forEach((section) => {
+        if (section.id && section.name) {
+          sectionMap.set(section.id, section.name)
+        }
+      })
+    }
+    logDebug(pluginJson, `Found ${sectionMap.size} sections for project ${projectId}`)
+  } catch (error) {
+    logWarn(pluginJson, `Failed to fetch sections for project ${projectId}: ${String(error)}`)
+  }
+  return sectionMap
+}
+
+/**
+ * Add a section heading under a project heading
+ *
+ * @param {TNote} note - The note to add the heading to
+ * @param {string} sectionName - The section name
+ * @param {number} projectHeadingLevel - The project heading level
+ * @param {boolean} isEditorNote - Whether to use Editor.appendParagraph
+ */
+function addSectionHeading(note: TNote, sectionName: string, projectHeadingLevel: number, isEditorNote: boolean = false): void {
+  // Use the sectionFormat setting to determine how to format section headings
+  const format = setup.sectionFormat
+  let content = ''
+
+  if (format === '### Section') {
+    content = `### ${sectionName}`
+  } else if (format === '#### Section') {
+    content = `#### ${sectionName}`
+  } else if (format === '##### Section') {
+    content = `##### ${sectionName}`
+  } else if (format === '**Section**') {
+    content = `**${sectionName}**`
+  } else {
+    // Fallback: one level deeper than project heading
+    const sectionLevel = projectHeadingLevel + 1
+    content = `${getHeadingPrefix(sectionLevel)} ${sectionName}`
+  }
+
+  if (isEditorNote) {
+    Editor.appendParagraph(content, 'text')
+  } else {
+    note.appendParagraph(content, 'text')
+  }
+}
+
+/**
+ * Get Todoist project tasks and write them out organized by sections
+ * Supports both date filtering and multi-project organization
  *
  * @param {TNote} note - note that will be written to
  * @param {string} id - Todoist project ID
- * @param {string} filterOverride - optional date filter override
+ * @param {?string} filterOverride - optional date filter override
+ * @param {?MultiProjectContext} multiProjectContext - context for multi-project mode
  * @param {boolean} isEditorNote - whether this is the currently open note in Editor
  * @returns {Promise<void>}
  */
-async function projectSync(note: TNote, id: string, filterOverride: ?string, isEditorNote: boolean = false): Promise<void> {
+async function projectSync(note: TNote, id: string, filterOverride: ?string, multiProjectContext: ?MultiProjectContext = null, isEditorNote: boolean = false): Promise<void> {
   const task_result = await pullTodoistTasksByProject(id, filterOverride)
   const tasks: Array<Object> = JSON.parse(task_result)
+
+  if (!tasks.results || tasks.results.length === 0) {
+    logInfo(pluginJson, `No tasks found for project ${id}`)
+    return
+  }
 
   // Determine which filter to use
   const dateFilter = filterOverride ?? setup.projectDateFilter
@@ -502,9 +792,56 @@ async function projectSync(note: TNote, id: string, filterOverride: ?string, isE
   const filteredTasks = filterTasksByDate(tasks.results || [], dateFilter)
   logInfo(pluginJson, `Filtered ${tasks.results?.length || 0} tasks to ${filteredTasks.length} based on filter: ${dateFilter}`)
 
-  // Use for...of to properly await each task write
-  for (const t of filteredTasks) {
-    await writeOutTask(note, t, isEditorNote)
+  if (filteredTasks.length === 0) {
+    logInfo(pluginJson, `No tasks match the filter for project ${id}`)
+    return
+  }
+
+  // If in multi-project mode with a valid heading level, organize by sections
+  if (multiProjectContext && multiProjectContext.isMultiProject && multiProjectContext.projectHeadingLevel > 0) {
+    // Fetch all sections for this project
+    const sectionMap = await fetchProjectSections(id)
+
+    // Group tasks by section
+    const tasksBySection: Map<string, Array<Object>> = new Map()
+    const tasksWithoutSection: Array<Object> = []
+
+    for (const task of filteredTasks) {
+      if (task.section_id && sectionMap.has(task.section_id)) {
+        const sectionName = sectionMap.get(task.section_id) ?? ''
+        if (!tasksBySection.has(sectionName)) {
+          tasksBySection.set(sectionName, [])
+        }
+        tasksBySection.get(sectionName)?.push(task)
+      } else {
+        tasksWithoutSection.push(task)
+      }
+    }
+
+    logDebug(pluginJson, `Organized ${filteredTasks.length} tasks: ${tasksWithoutSection.length} without section, ${tasksBySection.size} sections`)
+
+    const useEditor = multiProjectContext.isEditorNote
+
+    // Write tasks without sections first (directly under project heading)
+    for (const task of tasksWithoutSection) {
+      await writeOutTaskSimple(note, task, useEditor)
+    }
+
+    // Write each section with its tasks
+    for (const [sectionName, sectionTasks] of tasksBySection) {
+      // Add section heading
+      addSectionHeading(note, sectionName, multiProjectContext.projectHeadingLevel, useEditor)
+
+      // Write tasks under this section
+      for (const task of sectionTasks) {
+        await writeOutTaskSimple(note, task, useEditor)
+      }
+    }
+  } else {
+    // Original behavior for single project or non-heading separators
+    for (const t of filteredTasks) {
+      await writeOutTask(note, t, isEditorNote)
+    }
   }
 }
 
@@ -707,6 +1044,14 @@ function setSettings() {
     if ('projectDateFilter' in settings && settings.projectDateFilter !== '') {
       setup.newProjectDateFilter = settings.projectDateFilter
     }
+
+    if ('projectSeparator' in settings && settings.projectSeparator !== '') {
+      setup.newProjectSeparator = settings.projectSeparator
+    }
+
+    if ('sectionFormat' in settings && settings.sectionFormat !== '') {
+      setup.newSectionFormat = settings.sectionFormat
+    }
   }
 }
 
@@ -798,6 +1143,36 @@ async function writeOutTask(note: TNote, task: Object, isEditorNote: boolean = f
         }
       }
     }
+  }
+}
+
+/**
+ * Simple task writer for multi-project mode - just appends tasks without section logic
+ * (section organization is handled by projectSync in multi-project mode)
+ *
+ * @param {TNote} note - the note object that will get the task
+ * @param {Object} task - the task object that will be written
+ * @param {boolean} useEditor - whether to use Editor.appendParagraph
+ */
+async function writeOutTaskSimple(note: TNote, task: Object, useEditor: boolean = false) {
+  if (!note) return
+
+  logDebug(pluginJson, task)
+  const formatted = formatTaskDetails(task)
+
+  if (!existing.includes(task.id) && !just_written.includes(task.id)) {
+    logInfo(pluginJson, `Task will be added to ${note.title}: ${formatted}`)
+
+    if (useEditor) {
+      Editor.appendParagraph(`- ${formatted}`, 'text')
+    } else {
+      note.appendTodo(formatted)
+    }
+
+    // add to just_written so they do not get duplicated
+    just_written.push(task.id)
+  } else {
+    logInfo(pluginJson, `Task is already in Noteplan: ${task.id}`)
   }
 }
 
