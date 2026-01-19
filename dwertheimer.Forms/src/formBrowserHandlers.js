@@ -315,7 +315,7 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       newNoteFolder: stripDoubleQuotes(fm?.newNoteFolder || '') || '',
     }
 
-    // Load formFields from template note (needed for run-js-only to find TemplateJS blocks)
+    // Load formFields from template note (needed for run-js-only to find TemplateJS blocks and validation)
     let formFields: Array<any> = []
     try {
       const loadedFields = await loadCodeBlockFromNote<Array<any>>(templateFilename, 'formfields', pluginJson.id, parseObjectString)
@@ -325,6 +325,22 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
     } catch (error) {
       logError(pluginJson, `handleSubmitForm: Error loading formFields: ${error.message}`)
       // Continue without formFields - will fail validation if run-js-only needs them
+    }
+
+    // Validate that all form fields are present in formValues (even if empty)
+    // This ensures templates receive all expected variables
+    if (formFields && formFields.length > 0) {
+      const missingFields: Array<string> = []
+      formFields.forEach((field) => {
+        if (field.key && !(field.key in formValues)) {
+          missingFields.push(field.key)
+          // Add missing field with empty value
+          formValues[field.key] = field.default ?? field.value ?? ''
+        }
+      })
+      if (missingFields.length > 0) {
+        logDebug(pluginJson, `handleSubmitForm: Added ${missingFields.length} missing field(s) to formValues: ${missingFields.join(', ')}`)
+      }
     }
 
     // Create minimal reactWindowData for handleSubmitButtonClick
@@ -340,6 +356,36 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
     }
 
     const result = await handleSubmitButtonClick(submitData, reactWindowData)
+
+    // Check for errors in result before returning success
+    // handleSubmitButtonClick returns PassedData | null
+    // Even if result is not null, it may contain errors in pluginData
+    const hasError = result && result.pluginData && (result.pluginData.formSubmissionError || result.pluginData.aiAnalysisResult)
+    if (hasError && result) {
+      // Extract error message
+      let errorMessage = 'Template execution failed.'
+      if (result.pluginData.formSubmissionError) {
+        errorMessage = result.pluginData.formSubmissionError
+      } else if (result.pluginData.aiAnalysisResult) {
+        // Extract a brief summary from AI analysis (first line or first sentence)
+        const aiMsg = result.pluginData.aiAnalysisResult
+        const firstLine = aiMsg.split('\n')[0] || aiMsg.substring(0, 200)
+        errorMessage = `Template error: ${firstLine}`
+      }
+      
+      logError(pluginJson, `handleSubmitForm: Form submission failed with error: ${errorMessage}`)
+      // Return error info in data so FormBrowserView can access it even when success=false
+      return {
+        success: false,
+        message: errorMessage,
+        data: {
+          pluginData: result?.pluginData || {},
+          formSubmissionError: result?.pluginData?.formSubmissionError,
+          aiAnalysisResult: result?.pluginData?.aiAnalysisResult,
+          processingMethod,
+        },
+      }
+    }
 
     // handleSubmitButtonClick returns PassedData | null, so check if it's not null
     if (result) {
