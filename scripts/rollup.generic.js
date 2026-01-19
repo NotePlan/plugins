@@ -1,4 +1,5 @@
 const path = require('path')
+const fs = require('fs')
 const notifier = require('node-notifier')
 const colors = require('chalk')
 const messenger = require('@codedungeon/messenger')
@@ -142,6 +143,63 @@ function getRollupConfig(options) {
 
   const exportedFileVarName = options.bundleName || 'reactBundle'
 
+  // Validate entry file exports before building
+  const isRootBundle = exportedFileVarName.includes('Root') || exportedFileVarName.includes('RootBundle')
+  try {
+    const entryFileContent = fs.readFileSync(entryPointPath, 'utf8')
+    
+    if (isRootBundle) {
+      // Root bundles should export React and ReactDOM
+      const hasReact = /export\s+.*\bReact\b/.test(entryFileContent) || /export\s*\{[^}]*\bReact\b/.test(entryFileContent)
+      const hasReactDOM = /export\s+.*\bReactDOM\b/.test(entryFileContent) || /export\s*\{[^}]*\bReactDOM\b/.test(entryFileContent)
+      
+      if (!hasReact || !hasReactDOM) {
+        throw new Error(
+          `\n❌ ROLLUP VALIDATION ERROR: Root bundle entry file "${opts.entryPointPath}" is missing required exports.\n\n` +
+          `Root bundles must export React and ReactDOM for other bundles to use.\n\n` +
+          `Expected exports in your entry file:\n` +
+          `  - React (from 'react')\n` +
+          `  - ReactDOM (from 'react-dom')\n\n` +
+          `Example entry file:\n` +
+          `  export { default as React } from 'react'\n` +
+          `  export { default as ReactDOM } from 'react-dom'\n` +
+          `  export { createRoot } from 'react-dom/client'\n` +
+          `  // ... other exports\n\n` +
+          `Entry file: ${entryPointPath}\n`
+        )
+      }
+    } else {
+      // Non-Root bundles should export WebView
+      const hasWebView = /export\s+.*\bWebView\b/.test(entryFileContent) || 
+                         /export\s*\{[^}]*\bWebView\b/.test(entryFileContent) ||
+                         /export\s*\{[^}]*as\s+WebView/.test(entryFileContent)
+      
+      if (!hasWebView) {
+        throw new Error(
+          `\n❌ ROLLUP VALIDATION ERROR: Entry file "${opts.entryPointPath}" is missing required WebView export.\n\n` +
+          `All React component bundles (except Root) must export a component named "WebView".\n` +
+          `This is what the Root component expects to load dynamically.\n\n` +
+          `To fix this, update your entry file to export your component as WebView:\n\n` +
+          `Option 1: Export your component as WebView directly:\n` +
+          `  export { YourComponent as WebView } from './YourComponent.jsx'\n\n` +
+          `Option 2: If your component is already named WebView:\n` +
+          `  export { WebView } from './YourComponent.jsx'\n\n` +
+          `Example entry file (rollup.YourComponent.entry.js):\n` +
+          `  // Root expects a component called WebView\n` +
+          `  export { YourComponent as WebView } from '../components/YourComponent.jsx'\n\n` +
+          `Entry file: ${entryPointPath}\n` +
+          `Bundle name: ${exportedFileVarName}\n`
+        )
+      }
+    }
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error(`Entry file not found: ${entryPointPath}`)
+    }
+    // Re-throw validation errors
+    throw error
+  }
+
   // Map external module names to their global variable names
   // React and ReactDOM are loaded by np.Shared's Root component
   const externalGlobals = (externalModules || []).reduce((acc, cur) => {
@@ -274,10 +332,9 @@ function getRollupConfig(options) {
     // Assign bundle to global
     footer = `Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, ${exportedFileVarName});`
     
-    // Extract WebView to global scope (Root component expects it as a global)
-    if (exportedFileVarName.includes('FormView') || exportedFileVarName.includes('FormBuilderView')) {
-      footer += `\nif (typeof ${exportedFileVarName} !== 'undefined' && ${exportedFileVarName}.WebView) { typeof(globalThis) == "undefined" ? (this.WebView = ${exportedFileVarName}.WebView) : (globalThis.WebView = ${exportedFileVarName}.WebView); }`
-    }
+    // Extract WebView to global scope if it exists (Root component expects it as a global)
+    // This is generic - any bundle that exports WebView will have it extracted to global scope
+    footer += `\nif (typeof ${exportedFileVarName} !== 'undefined' && ${exportedFileVarName}.WebView) { typeof(globalThis) == "undefined" ? (this.WebView = ${exportedFileVarName}.WebView) : (globalThis.WebView = ${exportedFileVarName}.WebView); }`
     
     // Extract React and ReactDOM to global scope from Root bundle
     // Root bundle now includes React and ReactDOM, and other bundles (like Forms) need them as globals
