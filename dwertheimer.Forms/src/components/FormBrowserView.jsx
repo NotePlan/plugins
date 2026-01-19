@@ -526,6 +526,17 @@ export function FormBrowserView({
   const handleSave = useCallback(
     (formValues: Object, windowId?: string) => {
       logDebug('FormBrowserView', 'Form submitted:', formValues)
+      
+      // Clear any previous errors before submitting
+      dispatch('UPDATE_DATA', {
+        ...data,
+        pluginData: {
+          ...pluginData,
+          formSubmissionError: '',
+          aiAnalysisResult: '',
+        },
+      })
+      
       // Send to plugin for processing
       // Include keepOpenOnSubmit flag so the plugin knows not to close the window
       if (requestFromPlugin) {
@@ -537,6 +548,60 @@ export function FormBrowserView({
         })
           .then((responseData) => {
             logDebug('FormBrowserView', 'Form submission response:', responseData)
+            
+            // Check if the response indicates success or failure
+            // The responseData may be the data object from a successful response, or it may contain error info
+            if (responseData && typeof responseData === 'object') {
+              // Check for error indicators in the response (from pluginData)
+              const pluginDataFromResponse = responseData.pluginData || {}
+              const hasError = pluginDataFromResponse.formSubmissionError || pluginDataFromResponse.aiAnalysisResult || responseData.formSubmissionError || responseData.aiAnalysisResult
+              if (hasError) {
+                // Extract error message
+                let errorMessage = 'Form submission failed.'
+                const formError = pluginDataFromResponse.formSubmissionError || responseData.formSubmissionError
+                const aiError = pluginDataFromResponse.aiAnalysisResult || responseData.aiAnalysisResult
+                
+                if (formError) {
+                  errorMessage = formError
+                } else if (aiError) {
+                  // Extract a brief summary from AI analysis
+                  const aiMsg = aiError
+                  const firstLine = aiMsg.split('\n')[0] || aiMsg.substring(0, 200)
+                  errorMessage = `Template error: ${firstLine}`
+                }
+                
+                logError('FormBrowserView', `Form submission failed: ${errorMessage}`)
+                
+                // Update pluginData with error so FormErrorBanner can display it
+                dispatch('UPDATE_DATA', {
+                  ...data,
+                  pluginData: {
+                    ...pluginData,
+                    formSubmissionError: formError || errorMessage,
+                    aiAnalysisResult: aiError || '',
+                  },
+                })
+                
+                dispatch('SHOW_TOAST', {
+                  type: 'ERROR',
+                  msg: errorMessage,
+                  timeout: 10000, // Longer timeout for error messages
+                })
+                // Don't reset form on error - keep it open so user can fix and retry
+                return
+              }
+            }
+            
+            // Clear any errors on successful submission
+            dispatch('UPDATE_DATA', {
+              ...data,
+              pluginData: {
+                ...pluginData,
+                formSubmissionError: '',
+                aiAnalysisResult: '',
+              },
+            })
+            
             // Show success toast with note information
             let successMessage = 'Your form has been submitted successfully.'
             if (responseData?.noteTitle) {
@@ -568,16 +633,27 @@ export function FormBrowserView({
             logError('FormBrowserView', `Error submitting form: ${error.message}`)
             // On error, show Toast notification but don't close the window
             // The window should stay open so user can fix and retry
+            const errorMessage = error.message || 'An error occurred while submitting the form'
+            
+            // Update pluginData with error so FormErrorBanner can display it
+            dispatch('UPDATE_DATA', {
+              ...data,
+              pluginData: {
+                ...pluginData,
+                formSubmissionError: errorMessage,
+              },
+            })
+            
             dispatch('SHOW_TOAST', {
               type: 'ERROR',
-              msg: error.message || 'An error occurred while submitting the form',
-              timeout: 5000,
+              msg: errorMessage,
+              timeout: 10000, // Longer timeout for error messages
             })
             // Don't reset form on error - let user see what they entered
           })
       }
     },
-    [selectedTemplate, requestFromPlugin, handleCancel, dispatch],
+    [selectedTemplate, requestFromPlugin, handleCancel, dispatch, data, pluginData],
   )
 
 

@@ -102,6 +102,20 @@ export async function getFormWindowIdForSubmission(data: any): Promise<string> {
 // Track recent SET_DATA sends to prevent loops (key: windowId, value: last send time)
 const recentSetDataSends = new Map<string, number>()
 
+/**
+ * Clean up old entries from recentSetDataSends (older than 5 seconds)
+ * This is called proactively when we interact with the Map, avoiding the need for setTimeout
+ */
+function cleanupOldSetDataSends(): void {
+  const now = Date.now()
+  const maxAge = 5000 // 5 seconds
+  for (const [windowId, timestamp] of recentSetDataSends.entries()) {
+    if (now - timestamp > maxAge) {
+      recentSetDataSends.delete(windowId)
+    }
+  }
+}
+
 export async function handleFormSubmitAction(data: any, reactWindowData: any, windowId: string): Promise<RequestResponse> {
   logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: Called from front-end (onSubmitClick), windowId="${windowId}"`)
   try {
@@ -115,6 +129,8 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
     }
     
     // GUARD: Prevent sending SET_DATA too frequently (within 100ms) to same window
+    // Clean up old entries first (proactive cleanup, no setTimeout needed)
+    cleanupOldSetDataSends()
     const lastSendTime = recentSetDataSends.get(windowId) || 0
     const timeSinceLastSend = Date.now() - lastSendTime
     if (timeSinceLastSend < 100) {
@@ -191,10 +207,8 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
       sendToHTMLWindow(windowId, 'SET_DATA', returnValue, updateText)
       // Track that we sent SET_DATA to prevent rapid resends
       recentSetDataSends.set(windowId, Date.now())
-      // Clean up old entries after 5 seconds
-      setTimeout(() => {
-        recentSetDataSends.delete(windowId)
-      }, 5000)
+      // Clean up old entries proactively (no setTimeout needed - cleanup happens on next check/add)
+      cleanupOldSetDataSends()
       logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: SET_DATA sent to windowId="${windowId}"`)
     } else {
       logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: Not sending SET_DATA - returnValue === reactWindowData and no changes`)
