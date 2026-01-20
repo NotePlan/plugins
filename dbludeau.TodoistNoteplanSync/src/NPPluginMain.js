@@ -160,6 +160,65 @@ function getFrontmatterValueFromNote(note: TNote, key: string): ?string {
   return null
 }
 
+/**
+ * Parse a CSV string that supports quoted values containing commas.
+ * Simple values are comma-separated, quoted values preserve internal commas.
+ *
+ * Examples:
+ *   "ARPA-H, Personal, Work" → ["ARPA-H", "Personal", "Work"]
+ *   "ARPA-H, \"Work, Life Balance\", Personal" → ["ARPA-H", "Work, Life Balance", "Personal"]
+ *
+ * @param {string} input - The CSV string to parse
+ * @returns {Array<string>} Array of parsed values, trimmed
+ */
+function parseCSVProjectNames(input: string): Array<string> {
+  const results: Array<string> = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i]
+
+    if (char === '"' && (i === 0 || input[i - 1] !== '\\')) {
+      // Toggle quote state (ignore escaped quotes)
+      inQuotes = !inQuotes
+    } else if (char === ',' && !inQuotes) {
+      // End of value
+      const trimmed = current.trim()
+      if (trimmed) {
+        results.push(trimmed)
+      }
+      current = ''
+    } else {
+      current += char
+    }
+  }
+
+  // Don't forget the last value
+  const trimmed = current.trim()
+  if (trimmed) {
+    results.push(trimmed)
+  }
+
+  logDebug(pluginJson, `parseCSVProjectNames: "${input}" → [${results.join(', ')}]`)
+  return results
+}
+
+/**
+ * Known date filter keywords - used to distinguish project names from filters
+ */
+const DATE_FILTER_KEYWORDS = ['today', 'overdue', 'current', 'all', '3 days', '7 days']
+
+/**
+ * Check if a string looks like a date filter keyword
+ *
+ * @param {string} value - The string to check
+ * @returns {boolean} True if it matches a known filter keyword
+ */
+function isDateFilterKeyword(value: string): boolean {
+  return DATE_FILTER_KEYWORDS.includes(value.toLowerCase().trim())
+}
+
 // set some defaults that can be changed in settings
 const setup: {
   token: string,
@@ -514,32 +573,67 @@ function parseDateFilterArg(arg: ?string): ?string {
 
 /**
  * Synchronize the current linked project (supports both single and multiple projects).
+ * Can specify projects via:
+ *   1. Inline argument: project names as CSV (supports quoted values for names with commas)
+ *   2. Frontmatter: todoist_project_name(s) or todoist_id(s)
  *
- * @param {string} filterArg - optional date filter override (today, overdue, current)
+ * @param {string} firstArg - project names (CSV) OR date filter keyword
+ * @param {string} secondArg - date filter if first arg was project names
  * @returns {Promise<void>} A promise that resolves once synchronization is complete
+ *
+ * @example
+ *   // With frontmatter (existing behavior)
+ *   syncProject()                    // uses frontmatter
+ *   syncProject("today")             // uses frontmatter + filter
+ *
+ *   // With inline project names (new)
+ *   syncProject("ARPA-H")                           // single project
+ *   syncProject("ARPA-H, Personal")                 // multiple projects
+ *   syncProject("ARPA-H, \"Work, Life\"")           // quoted name with comma
+ *   syncProject("ARPA-H, Personal", "today")        // with filter
  */
 // eslint-disable-next-line require-await
-export async function syncProject(filterArg: ?string) {
+export async function syncProject(firstArg: ?string, secondArg: ?string) {
   setSettings()
-  const commandLineFilter = parseDateFilterArg(filterArg)
-  if (commandLineFilter) {
-    logInfo(pluginJson, `Using command-line filter override: ${commandLineFilter}`)
-  }
 
   const note: ?TNote = Editor.note
   if (!note) return
 
-  // check to see if this has any frontmatter
+  // Determine if firstArg is project names or a date filter
+  let inlineProjectNames: Array<string> = []
+  let filterOverride: ?string = null
+
+  if (firstArg && firstArg.trim()) {
+    if (isDateFilterKeyword(firstArg)) {
+      // First arg is a date filter (backward compatible)
+      filterOverride = parseDateFilterArg(firstArg)
+      logInfo(pluginJson, `Using command-line filter override: ${String(filterOverride)}`)
+    } else {
+      // First arg is project name(s)
+      inlineProjectNames = parseCSVProjectNames(firstArg)
+      logInfo(pluginJson, `Using inline project names: ${inlineProjectNames.join(', ')}`)
+
+      // Second arg would be the filter
+      if (secondArg && secondArg.trim()) {
+        filterOverride = parseDateFilterArg(secondArg)
+        if (filterOverride) {
+          logInfo(pluginJson, `Using filter from second argument: ${filterOverride}`)
+        }
+      }
+    }
+  }
+
+  // Get frontmatter (may be null if using inline project names)
   const frontmatter: ?Object = getFrontmatterAttributes(note)
-  clo(frontmatter)
-  if (!frontmatter) {
-    logWarn(pluginJson, 'Current note has no frontmatter')
+
+  // If no inline names and no frontmatter, we need frontmatter
+  if (inlineProjectNames.length === 0 && !frontmatter) {
+    logWarn(pluginJson, 'No project names provided and current note has no frontmatter')
     return
   }
 
   // Determine filter priority: command-line > frontmatter > settings
-  let filterOverride = commandLineFilter
-  if (!filterOverride) {
+  if (!filterOverride && frontmatter) {
     // Try standard frontmatter first, then YAML parsing
     const fmFilter = frontmatter.todoist_filter ?? getFrontmatterValueFromNote(note, 'todoist_filter')
     if (fmFilter) {
@@ -558,57 +652,68 @@ export async function syncProject(filterArg: ?string) {
     })
   }
 
-  // Determine project IDs to sync (support both single and multiple)
-  // Priority: project names first, then IDs (for backward compatibility)
-  // Supports: single name/ID, JSON array, or YAML array format
+  // Determine project IDs to sync
+  // Priority: inline argument > frontmatter project names > frontmatter IDs
   let projectIds: Array<string> = []
 
-  // Try project name-based lookup first (new user-friendly approach)
-  let projectNames: Array<string> = []
-  if ('todoist_project_names' in frontmatter && frontmatter.todoist_project_names) {
-    projectNames = parseProjectIds(frontmatter.todoist_project_names) // reuse array parsing
-    logDebug(pluginJson, `Found todoist_project_names from frontmatter: ${projectNames.join(', ')}`)
-  } else if ('todoist_project_name' in frontmatter && frontmatter.todoist_project_name) {
-    projectNames = parseProjectIds(frontmatter.todoist_project_name)
-    logDebug(pluginJson, `Found todoist_project_name from frontmatter: ${projectNames.join(', ')}`)
-  }
-
-  // Try YAML array format for project names if standard parsing failed
-  if (projectNames.length === 0) {
-    projectNames = parseYamlArrayFromNote(note, 'todoist_project_name')
-    if (projectNames.length > 0) {
-      logDebug(pluginJson, `Found todoist_project_name(s) from YAML array: ${projectNames.join(', ')}`)
-    }
-  }
-
-  // Resolve project names to IDs if found
-  if (projectNames.length > 0) {
-    projectIds = await resolveProjectNamesToIds(projectNames)
-  }
-
-  // Fall back to ID-based lookup (backward compatible)
-  if (projectIds.length === 0) {
-    // Try standard frontmatter parsing first
-    if ('todoist_ids' in frontmatter && frontmatter.todoist_ids) {
-      projectIds = parseProjectIds(frontmatter.todoist_ids)
-      logDebug(pluginJson, `Found todoist_ids from frontmatter: ${projectIds.join(', ')}`)
-    } else if ('todoist_id' in frontmatter && frontmatter.todoist_id) {
-      projectIds = parseProjectIds(frontmatter.todoist_id)
-      logDebug(pluginJson, `Found todoist_id from frontmatter: ${projectIds.join(', ')}`)
-    }
-
-    // If standard parsing failed, try YAML array format from raw paragraphs
+  // 1. If inline project names provided, resolve them
+  if (inlineProjectNames.length > 0) {
+    projectIds = await resolveProjectNamesToIds(inlineProjectNames)
     if (projectIds.length === 0) {
-      logDebug(pluginJson, 'Standard frontmatter parsing failed, trying YAML array format...')
-      projectIds = parseYamlArrayFromNote(note, 'todoist_id')
-      if (projectIds.length > 0) {
-        logDebug(pluginJson, `Found todoist_id(s) from YAML array: ${projectIds.join(', ')}`)
+      logWarn(pluginJson, `Could not resolve any project names: ${inlineProjectNames.join(', ')}`)
+      return
+    }
+  }
+
+  // 2. Otherwise, try frontmatter
+  if (projectIds.length === 0 && frontmatter) {
+    // Try project name-based lookup first (new user-friendly approach)
+    let projectNames: Array<string> = []
+    if ('todoist_project_names' in frontmatter && frontmatter.todoist_project_names) {
+      projectNames = parseProjectIds(frontmatter.todoist_project_names) // reuse array parsing
+      logDebug(pluginJson, `Found todoist_project_names from frontmatter: ${projectNames.join(', ')}`)
+    } else if ('todoist_project_name' in frontmatter && frontmatter.todoist_project_name) {
+      projectNames = parseProjectIds(frontmatter.todoist_project_name)
+      logDebug(pluginJson, `Found todoist_project_name from frontmatter: ${projectNames.join(', ')}`)
+    }
+
+    // Try YAML array format for project names if standard parsing failed
+    if (projectNames.length === 0) {
+      projectNames = parseYamlArrayFromNote(note, 'todoist_project_name')
+      if (projectNames.length > 0) {
+        logDebug(pluginJson, `Found todoist_project_name(s) from YAML array: ${projectNames.join(', ')}`)
+      }
+    }
+
+    // Resolve project names to IDs if found
+    if (projectNames.length > 0) {
+      projectIds = await resolveProjectNamesToIds(projectNames)
+    }
+
+    // Fall back to ID-based lookup (backward compatible)
+    if (projectIds.length === 0) {
+      // Try standard frontmatter parsing first
+      if ('todoist_ids' in frontmatter && frontmatter.todoist_ids) {
+        projectIds = parseProjectIds(frontmatter.todoist_ids)
+        logDebug(pluginJson, `Found todoist_ids from frontmatter: ${projectIds.join(', ')}`)
+      } else if ('todoist_id' in frontmatter && frontmatter.todoist_id) {
+        projectIds = parseProjectIds(frontmatter.todoist_id)
+        logDebug(pluginJson, `Found todoist_id from frontmatter: ${projectIds.join(', ')}`)
+      }
+
+      // If standard parsing failed, try YAML array format from raw paragraphs
+      if (projectIds.length === 0) {
+        logDebug(pluginJson, 'Standard frontmatter parsing failed, trying YAML array format...')
+        projectIds = parseYamlArrayFromNote(note, 'todoist_id')
+        if (projectIds.length > 0) {
+          logDebug(pluginJson, `Found todoist_id(s) from YAML array: ${projectIds.join(', ')}`)
+        }
       }
     }
   }
 
   if (projectIds.length === 0) {
-    logWarn(pluginJson, 'No valid todoist_project_name, todoist_id, or their plural forms found in frontmatter')
+    logWarn(pluginJson, 'No valid project names or IDs found (checked inline argument and frontmatter)')
     return
   }
 

@@ -22,10 +22,10 @@ NOTE: All sync actions (other then content and status) can be turned on and off 
 ## Available Commands
 - **/todoist sync everything** (alias **/tosa**): sync everything in Todoist to a folder in Noteplan.  Every list in todoist will become a note in Noteplan.  Use this if you want to use Todoist just as a conduit to get tasks into Noteplan.  The folder used in Noteplan can be configured in settings.
 - **/todoist sync today** (alias **/tost**): sync tasks due today from Todoist to your daily note in Noteplan. A header can be configured in settings.
-- **/todoist sync project** (alias **/tosp**): link a single list from Todoist to a note in Note plan using frontmatter.  This command will sync the current project you have open. You can optionally add a date filter argument:
-  - `/todoist sync project today` - only tasks due today
-  - `/todoist sync project overdue` - only overdue tasks
-  - `/todoist sync project current` - overdue + today (same as default setting)
+- **/todoist sync project** (alias **/tosp**): sync Todoist projects to the current note. Projects can be specified via frontmatter OR inline arguments:
+  - Using frontmatter (see Configuration section below)
+  - Using inline project names: `/todoist sync project "Project Name"`
+  - With date filter: `/todoist sync project today` or `/todoist sync project "Project Name" today`
 - **/todoist sync all projects** (alias **/tosa**): this will sync all projects that have been linked using frontmatter.
 - **/todoist sync all projects and today** (alias **/tosat** **/toast**): this will sync all projects and the today note.  Running it as one comand instead of individually will check for duplicates.  This command will sync all tasks from projects to their linked note, including tasks due today.  It will sync all tasks from all projects in Todoist that are due today except for those already in the project notes to avoid duplication.
 
@@ -54,8 +54,54 @@ This setting affects the following commands:
 
 Note: The `/todoist sync today` command always filters by today regardless of this setting.
 
-### Linking a Todoist Project
-To link a Todoist list to a Noteplan note, you need the list ID from Todoist. To get the ID, open www.todoist.com in a web browser and sign in so you can see your lists. Open the list you want to link to a Noteplan note. The list ID is at the end of the URL. For example, if the end of the Todoist.com URL is /app/project/2317353827, then you want the list ID of 2317353827.
+### Specifying Todoist Projects
+
+There are three ways to specify which Todoist projects to sync:
+
+#### Option 1: Inline Project Names (Simplest)
+
+Pass project names directly to the sync command—no frontmatter needed:
+
+```
+/todoist sync project "ARPA-H"
+/todoist sync project "ARPA-H, Personal, Work"
+/todoist sync project "ARPA-H" today
+```
+
+**Multiple projects with commas in names:** Use quotes around names that contain commas:
+
+```
+/todoist sync project "ARPA-H, \"Work, Life Balance\", Personal"
+```
+
+This uses standard CSV parsing:
+- Simple names are comma-separated: `"ARPA-H, Personal, Work"`
+- Names containing commas are quoted: `"\"Work, Life Balance\""`
+- Mixed: `"ARPA-H, \"Work, Life\", Personal"`
+
+#### Option 2: Frontmatter with Project Names
+
+Add project names to frontmatter for persistent configuration:
+
+```
+---
+todoist_project_name: ARPA-H
+---
+```
+
+Or multiple projects:
+```
+---
+todoist_project_names:
+  - ARPA-H
+  - Personal
+  - Work
+---
+```
+
+#### Option 3: Frontmatter with Project IDs (Legacy)
+
+To link a Todoist list to a Noteplan note using IDs, you need the list ID from Todoist. To get the ID, open www.todoist.com in a web browser and sign in so you can see your lists. Open the list you want to link to a Noteplan note. The list ID is at the end of the URL. For example, if the end of the Todoist.com URL is /app/project/2317353827, then you want the list ID of 2317353827.
 
 Add frontmatter to the top of your note (see https://help.noteplan.co/article/136-templates for more information on frontmatter):
 ```
@@ -63,6 +109,11 @@ Add frontmatter to the top of your note (see https://help.noteplan.co/article/13
 todoist_id: 2317353827
 ---
 ```
+
+**Priority order:** When syncing, the plugin checks in this order:
+1. Inline project names (command argument)
+2. Frontmatter `todoist_project_name` / `todoist_project_names`
+3. Frontmatter `todoist_id` / `todoist_ids`
 
 ### Per-Note Date Filter
 You can override the default date filter for a specific note by adding `todoist_filter` to the frontmatter:
