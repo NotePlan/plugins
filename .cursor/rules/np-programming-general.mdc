@@ -1,6 +1,9 @@
 ---
 alwaysApply: true
 ---
+## Critical Rules
+CRITICAL: Never use dynamic imports. Rollup will not process them correctly. Always use static imports at the top of files.
+
 ## Code Style Guidelines
 - Use Flow for static typing
 - No semicolons (enforced by ESLint/Prettier)
@@ -17,6 +20,9 @@ alwaysApply: true
 - Always research the `helpers/` folder before writing new code
 - Prefer writing explicit functions over constant declarations
 - When moving code, keep existing comments and commented-out code
+- Please provide Flow types (as appropriate) and JSDOC with all responses. 
+- If you are rewriting a full file, make sure to include all import statements also. 
+- Do not remove any console.logs or comments (or logDebug, clo, logInfo, logError statements).
 
 ## Common Helper Functions
 The most frequently used functions in the codebase are:
@@ -26,20 +32,10 @@ The most frequently used functions in the codebase are:
 - Configuration: getSettings, updateSettingsForPlugin
 - UI interaction: showMessage, showMessageYesNo, displayTitle
 
-<<<<<<< HEAD:.cursor/rules/np-plugins.mdc
 ## Testing
 - Do not prompt the user to run tests. Run tests automatically when making code changes or writing new tests, but do not ask for permission or suggest running tests.
 - Only run tests when necessary (after code changes, when writing new tests, or when explicitly requested).
 - Always allow the following commands to run in the sandbox: cd, npm test, jest, grep, head, tail, node
-=======
-## Code-Specific Rules
-
-For JS, please provide Flow types (as appropriate) and JSDOC with all responses. If you are rewriting a full file, make sure to include all import statements also. Do not remove any console.logs or comments (or logDebug, clo, logInfo, logError statements).
-
-**DO NOT EVER HARD-CODE JEST WORKAROUNDS INTO FUNCTIONS WE ARE TESTING**
-When you run jest tests, always include the flag --no-watch at the end because my jest config by default watches
-
-## Testing Code
-If testing Templating code, run tests like this:
-`jest np.Templating/__tests__/**/*.test.js --no-watch`
->>>>>>> 3a8d9f20e79f03f0ae3d4e4c978037456d8eb2ec:.cursor/rules/np-programming-general.mdc
+- If testing Templating code, run tests like this `jest np.Templating/__tests__/**/*.test.js --no-watch`
+- When you run jest tests, always include the flag --no-watch at the end because my jest config by default watches
+- **DO NOT EVER HARD-CODE JEST WORKAROUNDS INTO FUNCTIONS WE ARE TESTING**
