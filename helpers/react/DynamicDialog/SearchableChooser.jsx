@@ -813,6 +813,31 @@ export function SearchableChooser({
                     if (optionShortDesc && optionText && optionShortDesc.trim() === optionText.trim()) {
                       optionShortDesc = null
                     }
+                    // If shortDescription looks like a path and might be too long for the row,
+                    // shorten it to just the final folder to ensure label takes precedence
+                    if (optionShortDesc && (optionShortDesc.includes('/') || optionShortDesc.includes(' / '))) {
+                      // Extract final folder from path (handles both '/' and ' / ' separators)
+                      const pathParts = optionShortDesc.split(/\/|\s+\/\s+/).filter(Boolean)
+                      if (pathParts.length > 1) {
+                        // If it's a teamspace path (starts with teamspace name), keep teamspace + final folder
+                        // Otherwise, just use final folder
+                        const finalPart = pathParts[pathParts.length - 1]
+                        const secondToLast = pathParts.length > 1 ? pathParts[pathParts.length - 2] : null
+                        // Check if second-to-last part looks like a teamspace name (common patterns)
+                        const isTeamspacePattern = secondToLast && (
+                          secondToLast.includes('Teamspace') || 
+                          secondToLast.includes('👥') ||
+                          /^\[.*\]$/.test(secondToLast)
+                        )
+                        if (isTeamspacePattern && pathParts.length > 2) {
+                          // Keep teamspace name + final folder
+                          optionShortDesc = `${secondToLast} / ${finalPart}`
+                        } else {
+                          // Just use final folder
+                          optionShortDesc = finalPart
+                        }
+                      }
+                    }
                     const isHovered = hoveredIndex === index
                     const isSelected = hoveredIndex === index // For keyboard navigation highlighting
                     const showOptionClickHint: boolean = Boolean(optionKeyPressed && isHovered && !!onOptionClick)

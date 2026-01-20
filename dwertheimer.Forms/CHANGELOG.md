@@ -4,6 +4,21 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.16] 2026-01-19 @dwertheimer
+
+### Added
+- **NoteChooser Output Formats**: Added new output format options for note chooser fields:
+  - **Multi-select mode**: Added `'title'` and `'filename'` output formats (in addition to existing `'wikilink'`, `'pretty-link'`, `'raw-url'`). These return plain note titles or filenames without any formatting.
+  - **Single-select mode**: Added `singleSelectOutputFormat` option to choose between outputting the note title (default) or filename when a single note is selected.
+- **NoteChooser Filtering Options**: Added advanced filtering capabilities to note chooser fields:
+  - **Start Folder**: Filter notes to only show those in a specific folder and its subfolders (e.g., `'@Templates'`).
+  - **Include Regex**: Optional regex pattern to include only notes whose title or filename matches (case-insensitive).
+  - **Exclude Regex**: Optional regex pattern to exclude notes whose title or filename matches (case-insensitive).
+- **SearchableChooser ShortDescription Optimization**: Added automatic shortening of short descriptions to just the final folder name when the option row is too narrow, ensuring the label text takes precedence and remains fully visible.
+
+### Changed
+- **FormView CSS**: Reverted compact label width to 10rem (from 20rem) while keeping input width at 360px (2x the original 180px). This provides better balance between label and input field sizing.
+
 ## [1.0.15] 2026-01-18 @dwertheimer
 
 ### Fixed
@@ -17,12 +32,11 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 - **templateRunner Return Value**: Updated `templateRunner` to return the filename when a note is successfully created, instead of returning `undefined`. This provides explicit feedback about successful operations.
 - **Error Messages**: Improved error messages to be more specific about null value issues and provide better guidance for debugging template execution problems.
 
-## [1.0.14] 2026-01-18 @dwertheimer
+## [1.0.14] 2026-01-19 @dwertheimer
 
-### Fixed
-- **Form Submission Error Detection**: Fixed issue where FormBrowserView showed success message even when template execution failed. Now properly detects and displays errors from template processing, including AI analysis results and form submission errors.
-- **Form Field Validation**: Added validation to ensure all form fields are included in submission, even if left blank. This prevents template errors from missing variables. Validation now occurs both in FormBrowserView handler and in handleSubmitButtonClick.
-- **Error Message Display**: Improved error messages to be more specific. FormBrowserView now shows detailed error messages instead of generic "success" when template execution fails. Error messages include information about missing variables and template rendering issues.
+### Changed
+- **Default Window Width**: Changed default window width for new forms from 25% to 50% when creating a new form in the form builder
+- **Default Compact Field Sizes**: Doubled the default compact field sizes - labels now default to 20rem (was 10rem) and inputs default to 360px (was 180px)
 
 ## [1.0.13] 2026-01-18 @dwertheimer
 

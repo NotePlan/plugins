@@ -64,8 +64,11 @@ export type NoteChooserProps = {
   showTitleOnly?: boolean, // If true, show only the note title in the label (not "path / title") (default: false)
   showCalendarChooserIcon?: boolean, // If true, show a calendar button next to the chooser (default: true)
   allowMultiSelect?: boolean, // If true, enable multi-select mode using ContainedMultiSelectChooser (default: false)
-  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link', // For multi-select, output format (default: 'wikilink')
+  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename', // For multi-select, output format (default: 'wikilink')
   noteSeparator?: 'space' | 'comma' | 'newline', // For multi-select, separator between notes (default: 'space')
+  singleSelectOutputFormat?: 'title' | 'filename', // For regular select mode, output format (default: 'title')
+  includeRegex?: ?string, // Regex pattern to include notes (applied to filename or title)
+  excludeRegex?: ?string, // Regex pattern to exclude notes (applied to filename or title)
 }
 
 /**
@@ -116,6 +119,9 @@ export function NoteChooser({
   allowMultiSelect = false,
   noteOutputFormat = 'wikilink',
   noteSeparator = 'space',
+  singleSelectOutputFormat = 'title',
+  includeRegex,
+  excludeRegex,
 }: NoteChooserProps): React$Node {
   const [isCreatingNote, setIsCreatingNote] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -249,11 +255,11 @@ export function NoteChooser({
   /**
    * Format a note based on output format
    * @param {NoteOption} note - The note to format
-   * @param {string} format - Output format: 'raw-url', 'wikilink', or 'pretty-link'
+   * @param {string} format - Output format: 'raw-url', 'wikilink', 'pretty-link', 'title', or 'filename'
    * @returns {string} - Formatted note string
    */
   const formatNote = useCallback(
-    (note: NoteOption, format: 'raw-url' | 'wikilink' | 'pretty-link'): string => {
+    (note: NoteOption, format: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename'): string => {
       const noteTitle = note.title || note.filename || ''
       const noteFilename = note.filename || ''
 
@@ -267,6 +273,12 @@ export function NoteChooser({
         case 'pretty-link':
           // Return [note title](noteplan://...) format
           return `[${noteTitle}](noteplan://x-callback-url/openNote?noteTitle=${encodeURIComponent(noteTitle)})`
+        case 'title':
+          // Return just the note title
+          return noteTitle
+        case 'filename':
+          // Return just the filename
+          return noteFilename
         default:
           return noteTitle
       }
@@ -282,7 +294,7 @@ export function NoteChooser({
    * @returns {string} - Formatted string
    */
   const formatNotes = useCallback(
-    (notes: Array<NoteOption>, format: 'raw-url' | 'wikilink' | 'pretty-link', separator: 'space' | 'comma' | 'newline'): string => {
+    (notes: Array<NoteOption>, format: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename', separator: 'space' | 'comma' | 'newline'): string => {
       const formatted = notes.map((note) => formatNote(note, format))
       const sep = separator === 'space' ? ' ' : separator === 'comma' ? ', ' : '\n'
       return formatted.join(sep)
@@ -295,10 +307,10 @@ export function NoteChooser({
    * @param {string} formattedValue - Formatted string value
    * @param {string} format - Output format used
    * @param {string} separator - Separator used
-   * @returns {Array<string>} - Array of note titles (for matching)
+   * @returns {Array<string>} - Array of note titles or filenames (for matching)
    */
   const parseFormattedValue = useCallback(
-    (formattedValue: string, format: 'raw-url' | 'wikilink' | 'pretty-link', separator: 'space' | 'comma' | 'newline'): Array<string> => {
+    (formattedValue: string, format: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename', separator: 'space' | 'comma' | 'newline'): Array<string> => {
       if (!formattedValue) return []
 
       const sep = separator === 'space' ? ' ' : separator === 'comma' ? ',' : '\n'
@@ -320,6 +332,10 @@ export function NoteChooser({
             const match = part.match(/noteTitle=([^&]+)/)
             return match ? decodeURIComponent(match[1]) : part
           })
+        case 'title':
+        case 'filename':
+          // For 'title' and 'filename' formats, return parts as-is (they're already plain values)
+          return parts
         default:
           return parts
       }
@@ -578,6 +594,36 @@ export function NoteChooser({
         }
       }
 
+      // Filter by includeRegex if provided
+      if (shouldInclude && includeRegex) {
+        try {
+          const regex = new RegExp(includeRegex, 'i') // Case-insensitive
+          const matchesFilename = regex.test(note.filename || '')
+          const matchesTitle = regex.test(note.title || '')
+          if (!matchesFilename && !matchesTitle) {
+            shouldInclude = false
+          }
+        } catch (error) {
+          // Invalid regex - log error but don't filter (fail open)
+          logError('NoteChooser', `Invalid includeRegex pattern: ${includeRegex}, error: ${error.message}`)
+        }
+      }
+
+      // Filter by excludeRegex if provided
+      if (shouldInclude && excludeRegex) {
+        try {
+          const regex = new RegExp(excludeRegex, 'i') // Case-insensitive
+          const matchesFilename = regex.test(note.filename || '')
+          const matchesTitle = regex.test(note.title || '')
+          if (matchesFilename || matchesTitle) {
+            shouldInclude = false
+          }
+        } catch (error) {
+          // Invalid regex - log error but don't filter (fail open)
+          logError('NoteChooser', `Invalid excludeRegex pattern: ${excludeRegex}, error: ${error.message}`)
+        }
+      }
+
       return shouldInclude
     })
   }, [
@@ -593,6 +639,8 @@ export function NoteChooser({
     allowBackwardsCompatible,
     value,
     spaceFilter,
+    includeRegex,
+    excludeRegex,
   ])
 
   // Add "New Note" option to items if includeNewNoteOption is true
@@ -692,7 +740,9 @@ export function NoteChooser({
       if (note.filename === '__NEW_NOTE__') {
         handleNewNoteClick()
       } else {
-        onChange(note.title, note.filename)
+        // Use singleSelectOutputFormat to determine what to output
+        const outputValue = singleSelectOutputFormat === 'filename' ? note.filename : note.title
+        onChange(outputValue, note.filename)
       }
     },
     emptyMessageNoItems: 'No notes found',
@@ -727,10 +777,17 @@ export function NoteChooser({
   // For multi-select mode: parse value to get selected note filenames
   const selectedNoteFilenames: Array<string> = useMemo(() => {
     if (!allowMultiSelect || !value) return ([]: Array<string>)
-    const parsedTitles = parseFormattedValue(value, noteOutputFormat, noteSeparator)
-    // Find notes matching the parsed titles
+    const parsedValues = parseFormattedValue(value, noteOutputFormat, noteSeparator)
+    // Find notes matching the parsed values (could be titles or filenames depending on format)
     return filteredNotes
-      .filter((note) => parsedTitles.includes(note.title) || parsedTitles.includes(note.filename))
+      .filter((note) => {
+        if (noteOutputFormat === 'filename') {
+          return parsedValues.includes(note.filename)
+        } else {
+          // For other formats, match by title or filename
+          return parsedValues.includes(note.title) || parsedValues.includes(note.filename)
+        }
+      })
       .map((note) => note.filename)
   }, [allowMultiSelect, value, noteOutputFormat, noteSeparator, filteredNotes, parseFormattedValue])
 

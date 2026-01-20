@@ -158,18 +158,6 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
           return
         }
 
-        // Only require receivingTemplateTitle if processing method is 'form-processor'
-        if (processingMethod === 'form-processor') {
-          const receiver = fm && (fm.receivingTemplateTitle || fm.receivingtemplatetitle) // NP has a bug where it sometimes lowercases the frontmatter keys
-          if (!receiver) {
-            await showMessage(
-              `Template "${
-                note.title || ''
-              }" uses "form-processor" processing method but does not have a "receivingTemplateTitle" set in frontmatter. Please set the "receivingTemplateTitle" field in your template frontmatter, or change the processing method.`,
-            )
-            return
-          }
-        }
         // Use generalized helper function to load formFields
         const loadedFormFields = await loadCodeBlockFromNote<Array<Object>>(selectedTemplate, 'formfields', pluginJson.id, parseObjectString)
         if (loadedFormFields) {
@@ -206,6 +194,22 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
               logError(pluginJson, `openTemplateForm: errors: ${errors.join('\n')}`)
               return
             }
+          }
+        }
+        
+        // Only require receivingTemplateTitle if processing method is 'form-processor'
+        // Check both frontmatter and form fields (form field allows dynamic selection)
+        if (processingMethod === 'form-processor') {
+          const receiverInFrontmatter = fm && (fm.receivingTemplateTitle || fm.receivingtemplatetitle) // NP has a bug where it sometimes lowercases the frontmatter keys
+          const receiverInFormField = formFields && Array.isArray(formFields) && formFields.some((field) => field.key === 'receivingTemplateTitle')
+          
+          if (!receiverInFrontmatter && !receiverInFormField) {
+            await showMessage(
+              `Template "${
+                note.title || ''
+              }" uses "form-processor" processing method but does not have a "receivingTemplateTitle" set in frontmatter or as a form field. Please set the "receivingTemplateTitle" field in your template frontmatter, add a form field with key "receivingTemplateTitle", or change the processing method.`,
+            )
+            return
           }
         }
       } else {
@@ -255,12 +259,18 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
     }
 
     // Only require receivingTemplateTitle if processing method is 'form-processor'
-    if (processingMethod === 'form-processor' && !templateFrontmatterAttributes?.receivingTemplateTitle) {
-      logError(pluginJson, 'Template uses form-processor method but does not have a receivingTemplateTitle set')
-      await showMessage(
-        'Template Form uses "form-processor" processing method but does not have a "receivingTemplateTitle" field set. Please set the "receivingTemplateTitle" field in your template frontmatter, or change the processing method.',
-      )
-      return
+    // Check both frontmatter and form fields (form field allows dynamic selection)
+    if (processingMethod === 'form-processor') {
+      const receiverInFrontmatter = templateFrontmatterAttributes?.receivingTemplateTitle || templateFrontmatterAttributes?.receivingtemplatetitle
+      const receiverInFormField = formFields && Array.isArray(formFields) && formFields.some((field) => field.key === 'receivingTemplateTitle')
+      
+      if (!receiverInFrontmatter && !receiverInFormField) {
+        logError(pluginJson, 'Template uses form-processor method but does not have a receivingTemplateTitle set')
+        await showMessage(
+          'Template Form uses "form-processor" processing method but does not have a "receivingTemplateTitle" field set in frontmatter or as a form field. Please set the "receivingTemplateTitle" field in your template frontmatter, add a form field with key "receivingTemplateTitle", or change the processing method.',
+        )
+        return
+      }
     }
 
     //TODO: we may not need this step, ask @codedungeon what he thinks
@@ -486,7 +496,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
 
         // Set initial frontmatter including launchLink and formEditLink
         // Note: title is already set by ensureFrontmatter above
-        // Set default window settings: 25% width, 40% height, center, center
+        // Set default window settings: 50% width, 40% height, center, center
         logDebug(
           pluginJson,
           `openFormBuilder: [STEP 3] Calling updateFrontMatterVars with: ${JSON.stringify({
@@ -496,7 +506,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
             // formTitle: (not set - left blank for user to fill in)
             launchLink,
             formEditLink,
-            width: '25%',
+            width: '50%',
             height: '40%',
             x: 'center',
             y: 'center',
@@ -510,7 +520,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
           launchLink: launchLink,
           formEditLink: formEditLink,
           triggers: 'onOpen => dwertheimer.Forms.triggerOpenForm',
-          width: '25%',
+          width: '50%',
           height: '40%',
           x: 'center',
           y: 'center',
