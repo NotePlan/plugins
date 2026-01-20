@@ -37,6 +37,129 @@ import { log, logInfo, logDebug, logError, logWarn, clo, JSP } from '@helpers/de
 
 const todo_api: string = 'https://api.todoist.com/api/v1'
 
+/**
+ * Parse YAML array values from a note's frontmatter paragraphs
+ * Handles format like:
+ *   todoist_id:
+ *     - abc123
+ *     - def456
+ *
+ * @param {TNote} note - The note to parse
+ * @param {string} key - The frontmatter key to look for (e.g., 'todoist_id')
+ * @returns {Array<string>} Array of values, or empty array if not found
+ */
+function parseYamlArrayFromNote(note: TNote, key: string): Array<string> {
+  const paragraphs = note?.paragraphs ?? []
+  const values: Array<string> = []
+  let inFrontmatter = false
+  let foundKey = false
+
+  logDebug(pluginJson, `parseYamlArrayFromNote: Parsing ${paragraphs.length} paragraphs for key '${key}'`)
+
+  for (let i = 0; i < paragraphs.length; i++) {
+    const para = paragraphs[i]
+    const content = para.content ?? ''
+    const rawContent = para.rawContent ?? ''
+
+    // Log first 15 paragraphs to see frontmatter structure
+    if (i < 15) {
+      logDebug(pluginJson, `  Para[${i}]: type=${para.type}, content="${content.substring(0, 60)}", raw="${rawContent.substring(0, 60)}"`)
+    }
+
+    // Track frontmatter boundaries
+    if (content === '---' || rawContent === '---') {
+      if (!inFrontmatter) {
+        inFrontmatter = true
+        logDebug(pluginJson, `  -> Entered frontmatter at para ${i}`)
+        continue
+      } else {
+        logDebug(pluginJson, `  -> Exited frontmatter at para ${i}`)
+        break
+      }
+    }
+
+    if (!inFrontmatter) continue
+
+    // Check if this line starts the key we're looking for (todoist_id or todoist_ids)
+    const keyMatch = content.match(new RegExp(`^(${key}s?):(.*)$`))
+    if (keyMatch) {
+      foundKey = true
+      logDebug(pluginJson, `  -> Found key '${keyMatch[1]}' at para ${i}`)
+      // Check if there's a value on the same line
+      const inlineValue = keyMatch[2].trim()
+      if (inlineValue && !inlineValue.startsWith('-')) {
+        values.push(inlineValue)
+        foundKey = false
+      }
+      continue
+    }
+
+    // If we found the key, look for array items
+    if (foundKey) {
+      // NotePlan converts YAML "- item" to "* item" (list type)
+      // The content is already just the value without the bullet
+      if (para.type === 'list' && content.trim()) {
+        const value = content.trim()
+        logDebug(pluginJson, `  -> Found list item: "${value}"`)
+        values.push(value)
+        continue
+      }
+
+      // Also check for YAML array item in text format (dash or asterisk)
+      const arrayItemMatch = content.match(/^\s*[-*]\s*(.+)$/) || rawContent.match(/^\s*[-*]\s*(.+)$/)
+      if (arrayItemMatch) {
+        const value = arrayItemMatch[1].trim()
+        logDebug(pluginJson, `  -> Found array item: "${value}"`)
+        values.push(value)
+        continue
+      }
+
+      // If we hit another key (something:), we're done with this array
+      if (content.match(/^\w+:/)) {
+        logDebug(pluginJson, `  -> Hit new key, ending array search`)
+        foundKey = false
+      }
+    }
+  }
+
+  logDebug(pluginJson, `parseYamlArrayFromNote: Found ${values.length} values for key '${key}': ${values.join(', ')}`)
+  return values
+}
+
+/**
+ * Get a single frontmatter value from note paragraphs (handles YAML format)
+ *
+ * @param {TNote} note - The note to parse
+ * @param {string} key - The frontmatter key to look for
+ * @returns {?string} The value or null if not found
+ */
+function getFrontmatterValueFromNote(note: TNote, key: string): ?string {
+  const paragraphs = note?.paragraphs ?? []
+  let inFrontmatter = false
+
+  for (const para of paragraphs) {
+    const content = para.content ?? ''
+
+    if (content === '---') {
+      if (!inFrontmatter) {
+        inFrontmatter = true
+        continue
+      } else {
+        break
+      }
+    }
+
+    if (!inFrontmatter) continue
+
+    const match = content.match(new RegExp(`^${key}:\\s*(.+)$`))
+    if (match) {
+      return match[1].trim()
+    }
+  }
+
+  return null
+}
+
 // set some defaults that can be changed in settings
 const setup: {
   token: string,
@@ -225,6 +348,34 @@ async function getProjectName(projectId: string): Promise<string> {
 }
 
 /**
+ * Resolve project names to IDs by fetching all projects and matching.
+ * Supports exact match and case-insensitive matching as a fallback.
+ *
+ * @param {Array<string>} names - Array of project names to resolve
+ * @returns {Promise<Array<string>>} Array of project IDs (may be shorter if some names not found)
+ */
+async function resolveProjectNamesToIds(names: Array<string>): Promise<Array<string>> {
+  const projects = await getTodoistProjects()
+  const ids: Array<string> = []
+
+  for (const name of names) {
+    // Try exact match first
+    let match = projects.find((p) => p.project_name === name)
+    // Fall back to case-insensitive
+    if (!match) {
+      match = projects.find((p) => p.project_name.toLowerCase() === name.toLowerCase())
+    }
+    if (match) {
+      logDebug(pluginJson, `Resolved project name "${name}" to ID: ${match.project_id}`)
+      ids.push(match.project_id)
+    } else {
+      logWarn(pluginJson, `No Todoist project found matching: "${name}"`)
+    }
+  }
+  return ids
+}
+
+/**
  * Get the heading level (number of #) from the project separator setting
  *
  * @returns {number} The heading level (2, 3, or 4), or 0 for non-heading separators
@@ -270,7 +421,7 @@ function addProjectSeparator(note: TNote, projectName: string, isEditorNote: boo
 
   if (content) {
     if (isEditorNote) {
-      Editor.appendParagraph(content, 'text')
+      Editor.insertTextAtCursor(`${content}\n`)
     } else {
       note.appendParagraph(content, 'text')
     }
@@ -388,10 +539,14 @@ export async function syncProject(filterArg: ?string) {
 
   // Determine filter priority: command-line > frontmatter > settings
   let filterOverride = commandLineFilter
-  if (!filterOverride && 'todoist_filter' in frontmatter && frontmatter.todoist_filter) {
-    filterOverride = parseDateFilterArg(frontmatter.todoist_filter)
-    if (filterOverride) {
-      logInfo(pluginJson, `Using frontmatter filter: ${filterOverride}`)
+  if (!filterOverride) {
+    // Try standard frontmatter first, then YAML parsing
+    const fmFilter = frontmatter.todoist_filter ?? getFrontmatterValueFromNote(note, 'todoist_filter')
+    if (fmFilter) {
+      filterOverride = parseDateFilterArg(fmFilter)
+      if (filterOverride) {
+        logInfo(pluginJson, `Using frontmatter filter: ${filterOverride}`)
+      }
     }
   }
 
@@ -404,20 +559,56 @@ export async function syncProject(filterArg: ?string) {
   }
 
   // Determine project IDs to sync (support both single and multiple)
-  // Check todoist_ids first (plural), then todoist_id (singular)
-  // Both can contain either a single ID or a JSON array string
+  // Priority: project names first, then IDs (for backward compatibility)
+  // Supports: single name/ID, JSON array, or YAML array format
   let projectIds: Array<string> = []
 
-  if ('todoist_ids' in frontmatter) {
-    projectIds = parseProjectIds(frontmatter.todoist_ids)
-    logDebug(pluginJson, `Found todoist_ids: ${projectIds.join(', ')}`)
-  } else if ('todoist_id' in frontmatter) {
-    projectIds = parseProjectIds(frontmatter.todoist_id)
-    logDebug(pluginJson, `Found todoist_id: ${projectIds.join(', ')}`)
+  // Try project name-based lookup first (new user-friendly approach)
+  let projectNames: Array<string> = []
+  if ('todoist_project_names' in frontmatter && frontmatter.todoist_project_names) {
+    projectNames = parseProjectIds(frontmatter.todoist_project_names) // reuse array parsing
+    logDebug(pluginJson, `Found todoist_project_names from frontmatter: ${projectNames.join(', ')}`)
+  } else if ('todoist_project_name' in frontmatter && frontmatter.todoist_project_name) {
+    projectNames = parseProjectIds(frontmatter.todoist_project_name)
+    logDebug(pluginJson, `Found todoist_project_name from frontmatter: ${projectNames.join(', ')}`)
+  }
+
+  // Try YAML array format for project names if standard parsing failed
+  if (projectNames.length === 0) {
+    projectNames = parseYamlArrayFromNote(note, 'todoist_project_name')
+    if (projectNames.length > 0) {
+      logDebug(pluginJson, `Found todoist_project_name(s) from YAML array: ${projectNames.join(', ')}`)
+    }
+  }
+
+  // Resolve project names to IDs if found
+  if (projectNames.length > 0) {
+    projectIds = await resolveProjectNamesToIds(projectNames)
+  }
+
+  // Fall back to ID-based lookup (backward compatible)
+  if (projectIds.length === 0) {
+    // Try standard frontmatter parsing first
+    if ('todoist_ids' in frontmatter && frontmatter.todoist_ids) {
+      projectIds = parseProjectIds(frontmatter.todoist_ids)
+      logDebug(pluginJson, `Found todoist_ids from frontmatter: ${projectIds.join(', ')}`)
+    } else if ('todoist_id' in frontmatter && frontmatter.todoist_id) {
+      projectIds = parseProjectIds(frontmatter.todoist_id)
+      logDebug(pluginJson, `Found todoist_id from frontmatter: ${projectIds.join(', ')}`)
+    }
+
+    // If standard parsing failed, try YAML array format from raw paragraphs
+    if (projectIds.length === 0) {
+      logDebug(pluginJson, 'Standard frontmatter parsing failed, trying YAML array format...')
+      projectIds = parseYamlArrayFromNote(note, 'todoist_id')
+      if (projectIds.length > 0) {
+        logDebug(pluginJson, `Found todoist_id(s) from YAML array: ${projectIds.join(', ')}`)
+      }
+    }
   }
 
   if (projectIds.length === 0) {
-    logWarn(pluginJson, 'No valid todoist_id or todoist_ids found in frontmatter')
+    logWarn(pluginJson, 'No valid todoist_project_name, todoist_id, or their plural forms found in frontmatter')
     return
   }
 
@@ -505,10 +696,10 @@ export async function syncAllProjectsAndToday() {
  * @returns {Promise<void>}
  */
 async function syncThemAll() {
-  // Search for both frontmatter formats and collect unique notes
+  // Search for all frontmatter formats (ID-based and name-based) and collect unique notes
   const found_notes: Map<string, TNote> = new Map()
 
-  for (const search_string of ['todoist_id:', 'todoist_ids:']) {
+  for (const search_string of ['todoist_id:', 'todoist_ids:', 'todoist_project_name:', 'todoist_project_names:']) {
     const paragraphs: ?$ReadOnlyArray<TParagraph> = await DataStore.searchProjectNotes(search_string)
     if (paragraphs) {
       for (const p of paragraphs) {
@@ -523,7 +714,7 @@ async function syncThemAll() {
   }
 
   if (found_notes.size === 0) {
-    logInfo(pluginJson, 'No results found in notes for todoist_id or todoist_ids. Make sure frontmatter is set according to plugin instructions')
+    logInfo(pluginJson, 'No results found in notes for todoist_id, todoist_ids, todoist_project_name, or todoist_project_names. Make sure frontmatter is set according to plugin instructions')
     return
   }
 
@@ -545,10 +736,11 @@ async function syncThemAll() {
       continue
     }
 
-    // Check for per-note filter override
+    // Check for per-note filter override (try standard, then YAML parsing)
     let filterOverride = null
-    if ('todoist_filter' in frontmatter && frontmatter.todoist_filter) {
-      filterOverride = parseDateFilterArg(frontmatter.todoist_filter)
+    const fmFilter = frontmatter.todoist_filter ?? getFrontmatterValueFromNote(note, 'todoist_filter')
+    if (fmFilter) {
+      filterOverride = parseDateFilterArg(fmFilter)
       if (filterOverride) {
         logInfo(pluginJson, `Note ${filename} using frontmatter filter: ${filterOverride}`)
       }
@@ -556,16 +748,52 @@ async function syncThemAll() {
 
     let projectIds: Array<string> = []
 
-    if ('todoist_ids' in frontmatter) {
-      projectIds = parseProjectIds(frontmatter.todoist_ids)
-      logDebug(pluginJson, `Found todoist_ids in ${filename}: ${projectIds.join(', ')}`)
-    } else if ('todoist_id' in frontmatter) {
-      projectIds = parseProjectIds(frontmatter.todoist_id)
-      logDebug(pluginJson, `Found todoist_id in ${filename}: ${projectIds.join(', ')}`)
+    // Try project name-based lookup first (new user-friendly approach)
+    let projectNames: Array<string> = []
+    if ('todoist_project_names' in frontmatter && frontmatter.todoist_project_names) {
+      projectNames = parseProjectIds(frontmatter.todoist_project_names) // reuse array parsing
+      logDebug(pluginJson, `Found todoist_project_names in ${filename}: ${projectNames.join(', ')}`)
+    } else if ('todoist_project_name' in frontmatter && frontmatter.todoist_project_name) {
+      projectNames = parseProjectIds(frontmatter.todoist_project_name)
+      logDebug(pluginJson, `Found todoist_project_name in ${filename}: ${projectNames.join(', ')}`)
+    }
+
+    // Try YAML array format for project names
+    if (projectNames.length === 0) {
+      projectNames = parseYamlArrayFromNote(note, 'todoist_project_name')
+      if (projectNames.length > 0) {
+        logDebug(pluginJson, `Found todoist_project_name(s) from YAML array in ${filename}: ${projectNames.join(', ')}`)
+      }
+    }
+
+    // Resolve project names to IDs if found
+    if (projectNames.length > 0) {
+      projectIds = await resolveProjectNamesToIds(projectNames)
+    }
+
+    // Fall back to ID-based lookup (backward compatible)
+    if (projectIds.length === 0) {
+      // Try standard frontmatter parsing first
+      if ('todoist_ids' in frontmatter && frontmatter.todoist_ids) {
+        projectIds = parseProjectIds(frontmatter.todoist_ids)
+        logDebug(pluginJson, `Found todoist_ids in ${filename}: ${projectIds.join(', ')}`)
+      } else if ('todoist_id' in frontmatter && frontmatter.todoist_id) {
+        projectIds = parseProjectIds(frontmatter.todoist_id)
+        logDebug(pluginJson, `Found todoist_id in ${filename}: ${projectIds.join(', ')}`)
+      }
+
+      // If standard parsing failed, try YAML array format
+      if (projectIds.length === 0) {
+        logDebug(pluginJson, `Standard frontmatter parsing failed for ${filename}, trying YAML array format...`)
+        projectIds = parseYamlArrayFromNote(note, 'todoist_id')
+        if (projectIds.length > 0) {
+          logDebug(pluginJson, `Found todoist_id(s) from YAML array in ${filename}: ${projectIds.join(', ')}`)
+        }
+      }
     }
 
     if (projectIds.length === 0) {
-      logWarn(pluginJson, `Note ${filename} has no valid todoist_id or todoist_ids, skipping`)
+      logWarn(pluginJson, `Note ${filename} has no valid todoist_project_name, todoist_id, or their plural forms, skipping`)
       continue
     }
 
@@ -759,7 +987,7 @@ function addSectionHeading(note: TNote, sectionName: string, projectHeadingLevel
   }
 
   if (isEditorNote) {
-    Editor.appendParagraph(content, 'text')
+    Editor.insertTextAtCursor(`${content}\n`)
   } else {
     note.appendParagraph(content, 'text')
   }
@@ -1074,11 +1302,10 @@ function addTaskBelowHeading(note: TNote, headingName: string, taskContent: stri
       note.addTodoBelowHeadingTitle(taskContent, headingName, true, true)
     }
   } else {
-    // Heading doesn't exist - append heading and task directly
+    // Heading doesn't exist - insert at cursor for Editor, append for background
     logInfo(pluginJson, `Creating heading: ${headingName}`)
     if (isEditorNote) {
-      Editor.appendParagraph(`### ${headingName}`, 'text')
-      Editor.appendParagraph(`- [ ] ${taskContent}`, 'text')
+      Editor.insertTextAtCursor(`### ${headingName}\n- [ ] ${taskContent}\n`)
     } else {
       note.appendParagraph(`### ${headingName}`, 'text')
       note.appendTodo(taskContent)
@@ -1114,7 +1341,7 @@ async function writeOutTask(note: TNote, task: Object, isEditorNote: boolean = f
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `2. Task will be added to ${note.title} (${formatted})`)
           if (isEditorNote) {
-            Editor.appendParagraph(`- [ ] ${formatted}`, 'text')
+            Editor.insertTextAtCursor(`- [ ] ${formatted}\n`)
           } else {
             note.appendTodo(formatted)
           }
@@ -1135,7 +1362,7 @@ async function writeOutTask(note: TNote, task: Object, isEditorNote: boolean = f
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `4. Task will be added to ${note.title} (${formatted})`)
           if (isEditorNote) {
-            Editor.appendParagraph(`- [ ] ${formatted}`, 'text')
+            Editor.insertTextAtCursor(`- [ ] ${formatted}\n`)
           } else {
             note.appendTodo(formatted)
           }
@@ -1164,7 +1391,7 @@ async function writeOutTaskSimple(note: TNote, task: Object, useEditor: boolean 
     logInfo(pluginJson, `Task will be added to ${note.title}: ${formatted}`)
 
     if (useEditor) {
-      Editor.appendParagraph(`- ${formatted}`, 'text')
+      Editor.insertTextAtCursor(`- [ ] ${formatted}\n`)
     } else {
       note.appendTodo(formatted)
     }
