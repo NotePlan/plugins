@@ -28,7 +28,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpe
 import { saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getFolderFromFilename } from '@helpers/folders'
 import { getContentFromBrackets, getStringFromList } from '@helpers/general'
-import { getFrontmatterAttribute, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { endOfFrontmatterLineIndex, getFrontmatterAttribute, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
 import { findHeading, findStartOfActivePartOfNote, simplifyRawContent, smartCreateSectionsAndPara } from '@helpers/paragraph'
 import {
@@ -585,7 +585,31 @@ export class Project {
             const firstProgressLine = existingProgressLines.reduce((earliest, current) => 
               current.lineIndex < earliest.lineIndex ? current : earliest
             )
-            const firstProgressLineIndex = firstProgressLine.lineIndex
+            let firstProgressLineIndex = firstProgressLine.lineIndex
+            
+            // Ensure we don't insert at line 0 or immediately after frontmatter (which is typically the title)
+            const endOfFMIndex = endOfFrontmatterLineIndex(this.note) || 0
+            const titleLineIndex = endOfFMIndex > 0 ? endOfFMIndex + 1 : 0
+            
+            // Check if the insertion point is at line 0 or at the title line (first line after frontmatter)
+            if (firstProgressLineIndex === 0 || (endOfFMIndex > 0 && firstProgressLineIndex === titleLineIndex)) {
+              // Check if the line at titleLineIndex is actually a title
+              const titlePara = this.note.paragraphs[titleLineIndex]
+              const isTitleLine = titlePara && titlePara.type === 'title' && titlePara.headingLevel === 1
+              
+              if (firstProgressLineIndex === 0) {
+                logWarn('Project::addProgressLine', `First Progress line is at line 0, adjusting to avoid overwriting title`)
+                // If line 0 is a title, insert after it; otherwise insert at line 1
+                firstProgressLineIndex = isTitleLine ? 1 : 1
+              } else if (isTitleLine) {
+                logWarn('Project::addProgressLine', `First Progress line is at title line (${String(titleLineIndex)}), adjusting to avoid overwriting title`)
+                // Insert after the title line
+                firstProgressLineIndex = titleLineIndex + 1
+              } else {
+                // Not a title, but still at the first line after frontmatter - move to at least line 1
+                firstProgressLineIndex = Math.max(1, firstProgressLineIndex + 1)
+              }
+            }
             
             logDebug('Project::addProgressLine', `Inserting heading '${progressHeading}' above first Progress line at line ${String(firstProgressLineIndex)}`)
             
@@ -631,6 +655,12 @@ export class Project {
           logDebug('Project::addProgressLine', `No progress paragraphs found, so will insert new progress line after metadata at line ${String(insertionIndex)}`)
         } else {
           logDebug('Project::addProgressLine', `Will insert new progress line before most recent progress line at ${String(insertionIndex)}.`)
+        }
+        
+        // Ensure we don't insert at line 0 (which is typically the title)
+        if (insertionIndex === 0) {
+          logWarn('Project::addProgressLine', `Insertion index is 0, adjusting to line 1 to avoid overwriting title`)
+          insertionIndex = 1
         }
 
         // And write it to the Editor (if the note is open in it) ...
