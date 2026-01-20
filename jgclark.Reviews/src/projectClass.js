@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-01-14 for v1.3.0.b4, @jgclark
+// Last updated 2026-01-20 for v1.3.0.b5, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -25,11 +25,12 @@ import {
   toISODateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getFolderFromFilename } from '@helpers/folders'
-import { displayTitle, getContentFromBrackets, getStringFromList } from '@helpers/general'
-import { getFrontmatterAttribute } from '@helpers/NPFrontMatter'
+import { getContentFromBrackets, getStringFromList } from '@helpers/general'
+import { getFrontmatterAttribute, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
-import { findStartOfActivePartOfNote, simplifyRawContent } from '@helpers/paragraph'
+import { findHeading, findStartOfActivePartOfNote, simplifyRawContent, smartCreateSectionsAndPara } from '@helpers/paragraph'
 import {
   getInputTrimmed,
   inputIntegerBounded,
@@ -325,21 +326,46 @@ export class Project {
   }
 
   /**
+   * Update metadata line, handling both frontmatter and regular paragraph storage
+   * @param {string} newMetadataLine - The new metadata line content (without "metadata:" prefix)
+   * @private
+   */
+  updateMetadataLine(newMetadataLine: string): void {
+    const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
+    const currentContent = metadataPara.content
+
+    // Check if metadata is stored in frontmatter (content starts with "metadata:")
+    const isInFrontmatter = currentContent.match(/^metadata:\s*/i) != null
+
+    if (isInFrontmatter) {
+      // Update using frontmatter helper to preserve the "metadata:" key
+      logDebug('updateMetadataLine', `Updating frontmatter metadata for '${this.title}'`)
+      const success = updateFrontMatterVars(this.note, { metadata: newMetadataLine })
+      if (success) {
+        DataStore.updateCache(this.note, true)
+      } else {
+        logError('updateMetadataLine', `Failed to update frontmatter metadata for '${this.title}'`)
+      }
+    } else {
+      // Update regular paragraph content (existing behavior)
+      metadataPara.content = newMetadataLine
+      if (Editor && Editor.note && Editor.note === this.note) {
+        Editor.updateParagraph(metadataPara)
+        DataStore.updateCache(this.note, true)
+      } else {
+        this.note.updateParagraph(metadataPara)
+        DataStore.updateCache(this.note, true)
+      }
+    }
+  }
+
+  /**
    * Update metadata paragraph and save to Editor or note
    * @private
    */
   updateMetadataAndSave(): void {
     const newMetadataLine = this.generateMetadataOutputLine()
-    const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
-    metadataPara.content = newMetadataLine
-
-    if (Editor && Editor.note && Editor.note === this.note) {
-      Editor.updateParagraph(metadataPara)
-      DataStore.updateCache(this.note, true)
-    } else {
-      this.note.updateParagraph(metadataPara)
-      DataStore.updateCache(this.note, true)
-    }
+    this.updateMetadataLine(newMetadataLine)
   }
 
   /**
@@ -508,17 +534,14 @@ export class Project {
    */
   async addProgressLine(prompt: string = 'Enter comment about current progress for'): Promise<void> {
     try {
-      // Set insertion point for the new progress line to this paragraph,
-      // or if none exist, to the line after the current metadata line
-      let insertionIndex = this.mostRecentProgressLineIndex
-      if (isNaN(insertionIndex)) {
-        insertionIndex = findStartOfActivePartOfNote(this.note, true)
-        logDebug('Project::addProgressLine', `No progress paragraphs found, so will insert new progress line after metadata at line ${String(insertionIndex)}`)
+      // Figure out if we're working in the Editor or a note
+      const isInEditor = Editor && Editor.note && Editor.note.filename === this.note.filename
+      if (isInEditor) {
+        logDebug('Project::addProgressLine', `Working in EDITOR for note '${this.note.filename}'`)
       } else {
-        // insertionIndex = processMostRecentProgressParagraph(getFieldParagraphsFromNote(this.note, 'progress'))
-        logDebug('Project::addProgressLine', `Will insert new progress line before most recent progress line at ${String(insertionIndex)}.`)
+        logDebug('Project::addProgressLine', `Working on DATASTORE note '${this.note.filename}'`)
       }
-
+      // Get progress heading from config
       const message1 = `${prompt} '${this.title}'`
       const resText = await getInputTrimmed(message1, 'OK', `Add Progress comment`)
       if (!resText) {
@@ -539,27 +562,101 @@ export class Project {
 
       // Update the project's metadata
       this.lastProgressComment = `${comment} (today)`
-      // logDebug('Project::addProgressLine', `-> line ${String(insertionIndex)}: ${this.percentComplete} / '${this.lastProgressComment}'`)
       const newProgressLine = `Progress: ${percentStr}@${todaysDateISOString}: ${comment}`
 
-      // And write it to the Editor (if the note is open in it) ...
-      if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
-        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to Editor at line ${String(insertionIndex)}`)
-        Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
-        logDebug('Project::addProgressLine', `- finished Editor.insertParagraph`)
-        // Also updateCache to make changes more quickly available elsewhere
-        // await DataStore.updateCache(Editor.note, true)
-        await Editor.save()
-        logDebug('Project::addProgressLine', `- after Editor.save`)
+      // Get progress heading and level from config
+      const config = await getReviewSettings()
+      const progressHeading = config?.progressHeading?.trim() ?? ''
+      const progressHeadingLevel = config?.progressHeadingLevel ?? 2
+
+      // If progress heading is configured, use heading-based insertion
+      if (progressHeading !== '') {
+        logDebug('Project::addProgressLine', `Using progress heading: '${progressHeading}'`)
+        
+        // Check if Progress lines already exist
+        const existingProgressLines = getFieldParagraphsFromNote(this.note, 'progress')
+        
+        if (existingProgressLines.length > 0) {
+          // Progress lines exist - check if heading exists
+          const headingPara = findHeading(this.note, progressHeading)
+          
+          if (headingPara == null) {
+            // Heading doesn't exist - insert it above the first Progress line
+            const firstProgressLine = existingProgressLines.reduce((earliest, current) => 
+              current.lineIndex < earliest.lineIndex ? current : earliest
+            )
+            const firstProgressLineIndex = firstProgressLine.lineIndex
+            
+            logDebug('Project::addProgressLine', `Inserting heading '${progressHeading}' above first Progress line at line ${String(firstProgressLineIndex)}`)
+            
+            // Insert heading above first Progress line
+            if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
+              // $FlowFixMe[incompatible-call]
+              Editor.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
+              await Editor.save()
+            } else {
+              // $FlowFixMe[incompatible-call]
+              this.note.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
+              await DataStore.updateCache(this.note, true)
+            }
+          }
+          
+          // Now add the progress line under the heading (heading is guaranteed to exist)
+          logDebug('Project::addProgressLine', `Adding progress line under heading '${progressHeading}'`)
+          this.note.addParagraphBelowHeadingTitle(newProgressLine, 'text', progressHeading, false, false)
+          
+          if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
+            await Editor.save()
+          } else {
+            await DataStore.updateCache(this.note, true)
+          }
+        } else {
+          // No Progress lines exist: add new Progress Section heading (if needed) and the first progress line
+          logDebug('Project::addProgressLine', `No existing Progress lines, so creating new Section heading '${progressHeading}' if needed`)
+          smartCreateSectionsAndPara(this.note, newProgressLine, 'text', [progressHeading], progressHeadingLevel, false)
+          
+          if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
+            await Editor.save()
+          } else {
+            await DataStore.updateCache(this.note, true)
+          }
+        }
+      } else {
+        // No progress heading configured - use existing logic
+        // Set insertion point for the new progress line to this paragraph,
+        // or if none exist, to the line after the current metadata line
+        let insertionIndex = this.mostRecentProgressLineIndex
+        if (isNaN(insertionIndex)) {
+          insertionIndex = findStartOfActivePartOfNote(this.note, true)
+          logDebug('Project::addProgressLine', `No progress paragraphs found, so will insert new progress line after metadata at line ${String(insertionIndex)}`)
+        } else {
+          logDebug('Project::addProgressLine', `Will insert new progress line before most recent progress line at ${String(insertionIndex)}.`)
+        }
+
+        // And write it to the Editor (if the note is open in it) ...
+        if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
+          logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to Editor at line ${String(insertionIndex)}`)
+          Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
+          logDebug('Project::addProgressLine', `- finished Editor.insertParagraph`)
+          await Editor.save()
+          logDebug('Project::addProgressLine', `- after Editor.save`)
+        }
+        // ... or the project's note
+        else {
+          logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to project note '${this.note.filename}' at line ${String(insertionIndex)}`)
+          this.note.insertParagraph(newProgressLine, insertionIndex, 'text')
+          logDebug('Project::addProgressLine', `- finished this.note.insertParagraph`)
+          await DataStore.updateCache(this.note, true)
+          logDebug('Project::addProgressLine', `- after DataStore.updateCache`)
+        }
       }
-      // ... or the project's note
-      else {
-        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to project note '${this.note.filename}' at line ${String(insertionIndex)}`)
-        this.note.insertParagraph(newProgressLine, insertionIndex, 'text')
-        logDebug('Project::addProgressLine', `- finished this.note.insertParagraph`)
-        // Also updateCache
-        await DataStore.updateCache(this.note, true)
-        logDebug('Project::addProgressLine', `- after DataStore.updateCache`)
+
+      // If we're in Editor, then need to update display
+      if (isInEditor) {
+        await saveEditorIfNecessary()
+        logDebug('Project::addProgressLine', `- Editor saved; will now re-open note in that Editor window`)
+        await Editor.openNoteByFilename(this.note.filename)
+        logDebug('Project::addProgressLine', `- note re-opened in Editor window`)
       }
     } catch (error) {
       logError(`Project::addProgressLine`, JSP(error))
@@ -674,16 +771,10 @@ export class Project {
       logDebug('togglePauseProject', `Paused state now toggled to ${String(this.isPaused)} for '${this.title}' ...`)
       const newMetadataLine = this.generateMetadataOutputLine()
       logDebug('togglePauseProject', `- metadata now '${newMetadataLine}'`)
-      // send update to Editor (if open)
-      // Note: Will need updating when supporting frontmatter for metadata
-      const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
-      metadataPara.content = newMetadataLine
+      // Update metadata using helper that handles both frontmatter and regular paragraphs
+      this.updateMetadataLine(newMetadataLine)
       if (Editor && Editor.note && Editor.note === this.note) {
-        Editor.updateParagraph(metadataPara)
         await Editor.save()
-      } else {
-        this.note.updateParagraph(metadataPara)
-        DataStore.updateCache(this.note, true)
       }
 
       // if we want to remove all due dates on pause, then do that

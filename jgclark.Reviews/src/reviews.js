@@ -896,7 +896,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       await renderProjectLists(config, false)
     } else {
       // Regenerate whole list (and display if window is already open)
-      logWarn('finishReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
+      logInfo('finishReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and will display if list is open.`)
       await generateProjectListsAndRenderIfOpen()
     }
 

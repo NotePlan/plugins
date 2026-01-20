@@ -1,6 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.3.0.b5] - 2026-01-20???
+- New setting "Progress Heading" allows to put a heading wherever you want in a project note for the  `Progress: ...` lines to live. If a note has existing progress lines when this is first set, it will first find them and insert the heading above the lines.
+- fix writing updated metadata wrongly, when using `metadata:` key in frontmatter (thanks, @Doug)
+
 ## [1.3.0.b4] - 2026-01-16
 - highlight the project in the list that is currently being reviewed
 - smartly truncate long next action lines

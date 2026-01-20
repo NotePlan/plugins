@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-01-10 for v1.3.0.b3, @jgclark
+// Last updated 2026-01-20 for v1.3.0.b5, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -67,6 +67,8 @@ export type ReviewConfig = {
   nextActionTags: Array<string>,
   preferredWindowType: string,
   sequentialTag: string,
+  progressHeading?: string,
+  progressHeadingLevel: number,
   _logLevel: string,
   _logTimer: boolean,
 }
