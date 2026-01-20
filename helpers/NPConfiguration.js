@@ -550,19 +550,24 @@ export async function getSettingFromAnotherPlugin(pluginID: string, settingName:
  * @author @jgclark
  * @param {string} pluginID
  * @param {string} reason
+ * @param {boolean?} suppressMessage - (optional; default is false) If true, suppress the showMessage call (default: false)
  * @returns {boolean} true if successful, false if not
  */
-export async function backupSettings(pluginID: string, reason: string = 'backup'): Promise<boolean> {
+export async function backupSettings(pluginID: string, reason: string = 'backup', suppressMessage: boolean = false): Promise<boolean> {
   try {
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     const backupFilename = `settings_${reason}_${moment().format('YYYYMMDDHHmmss')}.json`
     const backupPath = `../${pluginID}/${backupFilename}`
     await DataStore.saveJSON(pluginSettings, backupPath)
-    await showMessage(`Backup of ${pluginID} settings saved to ${backupPath}`, 'OK', `${pluginID} Settings Backup`)
+    if (!suppressMessage) {
+      await showMessage(`Backup of ${pluginID} settings saved to ${backupPath}`, 'OK', `${pluginID} Settings Backup`)
+    }
     logInfo('backupSettings', `Backup of ${pluginID} settings saved to ${backupPath}`)
     return true
   } catch (error) {
-    await showMessage(`Error trying to Backup ${pluginID} settings. Please see Plugin Console log for details.`, 'OK', `${pluginID} Settings Backup`)
+    if (!suppressMessage) {
+      await showMessage(`Error trying to Backup ${pluginID} settings. Please see Plugin Console log for details.`, 'OK', `${pluginID} Settings Backup`)
+    }
     logError('backupSettings', `Error: ${error.message}`)
     return false
   }
