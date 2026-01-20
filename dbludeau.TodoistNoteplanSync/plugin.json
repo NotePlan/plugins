@@ -272,11 +272,29 @@
     },
     {
       "type": "string",
+      "key": "projectPrefix",
+      "title": "Insert before project title",
+      "description": "What to insert before each project title/separator.",
+      "choices": ["Nothing", "Blank Line", "Horizontal Rule", "Blank Line + Horizontal Rule"],
+      "default": "Blank Line",
+      "required": false
+    },
+    {
+      "type": "string",
       "key": "sectionFormat",
       "title": "Section heading format",
       "description": "How to format Todoist section headings within multi-project notes.",
       "choices": ["### Section", "#### Section", "##### Section", "**Section**"],
       "default": "#### Section",
+      "required": false
+    },
+    {
+      "type": "string",
+      "key": "sectionPrefix",
+      "title": "Insert before section heading",
+      "description": "What to insert before each section heading.",
+      "choices": ["Nothing", "Blank Line", "Horizontal Rule", "Blank Line + Horizontal Rule"],
+      "default": "Blank Line",
       "required": false
     },
     {

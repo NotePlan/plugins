@@ -231,7 +231,9 @@ const setup: {
   header: string,
   projectDateFilter: string,
   projectSeparator: string,
+  projectPrefix: string,
   sectionFormat: string,
+  sectionPrefix: string,
   newFolder: any,
   newToken: any,
   useTeamAccount: any,
@@ -242,7 +244,9 @@ const setup: {
   newHeader: any,
   newProjectDateFilter: any,
   newProjectSeparator: any,
+  newProjectPrefix: any,
   newSectionFormat: any,
+  newSectionPrefix: any,
 } = {
   token: '',
   folder: 'Todoist',
@@ -254,7 +258,9 @@ const setup: {
   header: '',
   projectDateFilter: 'overdue | today',
   projectSeparator: '### Project Name',
+  projectPrefix: 'Blank Line',
   sectionFormat: '#### Section',
+  sectionPrefix: 'Blank Line',
 
   /**
    * @param {string} passedToken
@@ -320,10 +326,22 @@ const setup: {
     setup.projectSeparator = passedProjectSeparator
   },
   /**
+   * @param {string} passedProjectPrefix
+   */
+  set newProjectPrefix(passedProjectPrefix: string) {
+    setup.projectPrefix = passedProjectPrefix
+  },
+  /**
    * @param {string} passedSectionFormat
    */
   set newSectionFormat(passedSectionFormat: string) {
     setup.sectionFormat = passedSectionFormat
+  },
+  /**
+   * @param {string} passedSectionPrefix
+   */
+  set newSectionPrefix(passedSectionPrefix: string) {
+    setup.sectionPrefix = passedSectionPrefix
   },
 }
 
@@ -414,7 +432,9 @@ async function getProjectName(projectId: string): Promise<string> {
  * @returns {Promise<Array<string>>} Array of project IDs (may be shorter if some names not found)
  */
 async function resolveProjectNamesToIds(names: Array<string>): Promise<Array<string>> {
+  logDebug(pluginJson, `resolveProjectNamesToIds: Looking up ${names.length} project names`)
   const projects = await getTodoistProjects()
+  logDebug(pluginJson, `resolveProjectNamesToIds: Found ${projects.length} projects in Todoist`)
   const ids: Array<string> = []
 
   for (const name of names) {
@@ -428,9 +448,10 @@ async function resolveProjectNamesToIds(names: Array<string>): Promise<Array<str
       logDebug(pluginJson, `Resolved project name "${name}" to ID: ${match.project_id}`)
       ids.push(match.project_id)
     } else {
-      logWarn(pluginJson, `No Todoist project found matching: "${name}"`)
+      logWarn(pluginJson, `No Todoist project found matching: "${name}". Available projects: ${projects.map((p) => p.project_name).join(', ')}`)
     }
   }
+  logDebug(pluginJson, `resolveProjectNamesToIds: Resolved ${ids.length} of ${names.length} names`)
   return ids
 }
 
@@ -465,8 +486,29 @@ function getHeadingPrefix(level: number): string {
  * @param {boolean} isEditorNote - Whether to use Editor.appendParagraph
  * @returns {number} The heading level used (0 if no heading)
  */
+/**
+ * Convert a prefix setting to actual content to insert
+ *
+ * @param {string} prefixSetting - The prefix setting value
+ * @returns {string} The content to insert (may be empty, newline, ---, or both)
+ */
+function getPrefixContent(prefixSetting: string): string {
+  switch (prefixSetting) {
+    case 'Blank Line':
+      return '\n'
+    case 'Horizontal Rule':
+      return '---\n'
+    case 'Blank Line + Horizontal Rule':
+      return '\n---\n'
+    case 'Nothing':
+    default:
+      return ''
+  }
+}
+
 function addProjectSeparator(note: TNote, projectName: string, isEditorNote: boolean = false): number {
   const separator = setup.projectSeparator
+  const prefix = getPrefixContent(setup.projectPrefix)
   let content = ''
   const headingLevel = getProjectHeadingLevel()
 
@@ -479,9 +521,15 @@ function addProjectSeparator(note: TNote, projectName: string, isEditorNote: boo
   }
 
   if (content) {
+    const fullContent = prefix + content
     if (isEditorNote) {
-      Editor.insertTextAtCursor(`${content}\n`)
+      Editor.insertTextAtCursor(`${fullContent}\n`)
     } else {
+      // For non-editor notes, insert prefix lines separately if needed
+      if (prefix) {
+        const prefixLines = prefix.trim().split('\n')
+        prefixLines.forEach((line) => note.appendParagraph(line, 'text'))
+      }
       note.appendParagraph(content, 'text')
     }
   }
@@ -1133,6 +1181,7 @@ async function fetchProjectSections(projectId: string): Promise<Map<string, stri
 function addSectionHeading(note: TNote, sectionName: string, projectHeadingLevel: number, isEditorNote: boolean = false): void {
   // Use the sectionFormat setting to determine how to format section headings
   const format = setup.sectionFormat
+  const prefix = getPrefixContent(setup.sectionPrefix)
   let content = ''
 
   if (format === '### Section') {
@@ -1149,9 +1198,15 @@ function addSectionHeading(note: TNote, sectionName: string, projectHeadingLevel
     content = `${getHeadingPrefix(sectionLevel)} ${sectionName}`
   }
 
+  const fullContent = prefix + content
   if (isEditorNote) {
-    Editor.insertTextAtCursor(`${content}\n`)
+    Editor.insertTextAtCursor(`${fullContent}\n`)
   } else {
+    // For non-editor notes, insert prefix lines separately if needed
+    if (prefix) {
+      const prefixLines = prefix.trim().split('\n')
+      prefixLines.forEach((line) => note.appendParagraph(line, 'text'))
+    }
     note.appendParagraph(content, 'text')
   }
 }
@@ -1440,8 +1495,16 @@ function setSettings() {
       setup.newProjectSeparator = settings.projectSeparator
     }
 
+    if ('projectPrefix' in settings && settings.projectPrefix !== '') {
+      setup.newProjectPrefix = settings.projectPrefix
+    }
+
     if ('sectionFormat' in settings && settings.sectionFormat !== '') {
       setup.newSectionFormat = settings.sectionFormat
+    }
+
+    if ('sectionPrefix' in settings && settings.sectionPrefix !== '') {
+      setup.newSectionPrefix = settings.sectionPrefix
     }
   }
 }
@@ -1643,14 +1706,28 @@ function reviewExistingNoteplanTasks(note: TNote) {
  */
 async function getTodoistProjects() {
   const project_list = []
-  const results = await fetch(`${todo_api}/projects`, getRequestObject())
-  const projects: ?Array<Object> = JSON.parse(results)
-  if (projects) {
-    projects.forEach((project) => {
-      logDebug(pluginJson, `Project name: ${project.name} Project ID: ${project.id}`)
-      project_list.push({ project_name: project.name, project_id: project.id })
-    })
+  try {
+    logDebug(pluginJson, `getTodoistProjects: Fetching from ${todo_api}/projects`)
+    const results = await fetch(`${todo_api}/projects`, getRequestObject())
+    logDebug(pluginJson, `getTodoistProjects: Raw response type: ${typeof results}`)
+    const parsed = JSON.parse(results)
+    logDebug(pluginJson, `getTodoistProjects: Parsed response keys: ${Object.keys(parsed || {}).join(', ')}`)
+
+    // Handle both array and {results: [...]} formats
+    const projects = Array.isArray(parsed) ? parsed : (parsed?.results || parsed)
+
+    if (projects && Array.isArray(projects)) {
+      projects.forEach((project) => {
+        logDebug(pluginJson, `Project name: ${project.name} Project ID: ${project.id}`)
+        project_list.push({ project_name: project.name, project_id: project.id })
+      })
+    } else {
+      logWarn(pluginJson, `getTodoistProjects: Unexpected response format: ${JSON.stringify(parsed).substring(0, 200)}`)
+    }
+  } catch (error) {
+    logError(pluginJson, `getTodoistProjects: Failed to fetch projects: ${String(error)}`)
   }
+  logDebug(pluginJson, `getTodoistProjects: Returning ${project_list.length} projects`)
   return project_list
 }
 
