@@ -55,6 +55,15 @@
       ]
     },
     {
+      "name": "todoist sync project by name",
+      "alias": [
+        "tospn"
+      ],
+      "description": "Sync Todoist project(s) by name - prompts for project names and filter",
+      "jsFunction": "syncProjectByName",
+      "arguments": []
+    },
+    {
       "name": "todoist sync project today",
       "alias": [
         "tospt"

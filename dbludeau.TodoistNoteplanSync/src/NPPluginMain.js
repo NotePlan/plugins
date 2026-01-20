@@ -787,6 +787,45 @@ export async function syncProjectCurrent(): Promise<void> {
 }
 
 /**
+ * Sync project by name - prompts user for project names and filter
+ * @returns {Promise<void>}
+ */
+export async function syncProjectByName(): Promise<void> {
+  // Prompt for project names
+  const projectNamesInput = await CommandBar.showInput(
+    'Enter Todoist project name(s), comma-separated',
+    'e.g., ARPA-H, Personal'
+  )
+
+  if (!projectNamesInput || !projectNamesInput.trim()) {
+    logWarn(pluginJson, 'No project names entered')
+    return
+  }
+
+  // Prompt for filter (with options)
+  const filterOptions = ['today', 'overdue', 'current (overdue + today)', '7 days', '3 days', 'all', 'use default from settings']
+  const selectedFilter = await CommandBar.showOptions(
+    filterOptions,
+    'Select date filter for tasks'
+  )
+
+  if (!selectedFilter || selectedFilter.index === undefined) {
+    logWarn(pluginJson, 'No filter selected')
+    return
+  }
+
+  // Map selection to filter value
+  let filterArg: ?string = null
+  const filterMap = ['today', 'overdue', 'current', '7 days', '3 days', 'all', null]
+  filterArg = filterMap[selectedFilter.index]
+
+  logInfo(pluginJson, `Syncing projects: "${projectNamesInput}" with filter: ${filterArg ?? 'default'}`)
+
+  // Call syncProject with the inputs
+  await syncProject(projectNamesInput, filterArg)
+}
+
+/**
  * Syncronize all linked projects.
  *
  * @returns {Promise<void>} A promise that resolves once synchronization is complete
