@@ -47,9 +47,12 @@
       "alias": [
         "tosp"
       ],
-      "description": "Sync Todoist project (uses date filter from settings)",
+      "description": "Sync Todoist project by name or from frontmatter",
       "jsFunction": "syncProject",
-      "arguments": []
+      "arguments": [
+        "Project name(s) - comma-separated, or leave blank to use frontmatter",
+        "Date filter (today, overdue, current, 7 days, all) - optional"
+      ]
     },
     {
       "name": "todoist sync project today",
