@@ -198,10 +198,18 @@ You can embed clickable sync commands directly in your notes without using front
 Use array syntax for the cleanest approach—no escaping needed for names with commas:
 
 ```
+<%- await DataStore.invokePluginCommandByName("todoist sync project", "dbludeau.TodoistNoteplanSync", [["ARPA-H", "Personal"], "today"]) -%>
+```
+
+More examples:
+```
+// Single project, no filter (uses settings default)
 <%- await DataStore.invokePluginCommandByName("todoist sync project", "dbludeau.TodoistNoteplanSync", [["ARPA-H"]]) -%>
 
-<%- await DataStore.invokePluginCommandByName("todoist sync project", "dbludeau.TodoistNoteplanSync", [["ARPA-H", "Personal", "Work"]]) -%>
+// Multiple projects with filter
+<%- await DataStore.invokePluginCommandByName("todoist sync project", "dbludeau.TodoistNoteplanSync", [["ARPA-H", "Personal", "Work"], "7 days"]) -%>
 
+// Project names containing commas - no escaping needed with array syntax
 <%- await DataStore.invokePluginCommandByName("todoist sync project", "dbludeau.TodoistNoteplanSync", [["ARPA-H", "Work, Life Balance"], "today"]) -%>
 ```
 
@@ -210,14 +218,21 @@ Use array syntax for the cleanest approach—no escaping needed for names with c
 For clickable links in note content, use x-callback-urls with CSV syntax:
 
 ```markdown
-[Sync ARPA-H](noteplan://x-callback-url/runPlugin?pluginID=dbludeau.TodoistNoteplanSync&command=todoist%20sync%20project&arg0=ARPA-H)
+[Sync ARPA-H and Personal (today)](noteplan://x-callback-url/runPlugin?pluginID=dbludeau.TodoistNoteplanSync&command=todoist%20sync%20project&arg0=ARPA-H%2C%20Personal&arg1=today)
+```
 
-[Sync Multiple Projects](noteplan://x-callback-url/runPlugin?pluginID=dbludeau.TodoistNoteplanSync&command=todoist%20sync%20project&arg0=ARPA-H%2C%20Personal)
+More examples:
+```markdown
+// Single project with filter
+[Sync ARPA-H](noteplan://x-callback-url/runPlugin?pluginID=dbludeau.TodoistNoteplanSync&command=todoist%20sync%20project&arg0=ARPA-H&arg1=today)
 
-[Sync with Filter](noteplan://x-callback-url/runPlugin?pluginID=dbludeau.TodoistNoteplanSync&command=todoist%20sync%20project&arg0=ARPA-H&arg1=today)
+// Multiple projects with filter
+[Sync All Projects](noteplan://x-callback-url/runPlugin?pluginID=dbludeau.TodoistNoteplanSync&command=todoist%20sync%20project&arg0=ARPA-H%2C%20Personal%2C%20Work&arg1=7%20days)
 ```
 
 **Note:** URL values must be percent-encoded (space = `%20`, comma = `%2C`).
+
+**Available filters:** `today`, `overdue`, `current`, `3 days`, `7 days`, `all`
 
 **Tip:** Use the **np.CallbackURLs** plugin's `/Get X-Callback-URL` command to generate these URLs without manual encoding.
 
