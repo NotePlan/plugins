@@ -1,14 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 2026-01-01 for v2.4.0, @jgclark
+// Last updated 2026-01-19 for v2.4.0.b16, @jgclark
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
 
 // NOTE: Dashboard Settings are in the src/dashboardSettingsItems.js file
 
-// Note: Not yet used everwhere
+// Note: Needs to be set in plugin.json file for each sidebarView windowID
 export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 
 export const allSectionDetails: Array<TSectionDetails> = [

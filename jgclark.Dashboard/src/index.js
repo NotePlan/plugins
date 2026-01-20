@@ -95,8 +95,8 @@ export async function onUpdateOrInstall(): Promise<void> {
     // clo(initialSettings, `onUpdateOrInstall - initialSettings:`)
     // Note: this is deceptive because dashboardSettings is one single JSON stringified key inside initialSettings
 
-    // Backup the settings on all new installs
-    await npc.backupSettings('jgclark.Dashboard', `before_onUpdateOrInstall_v${pluginJson["plugin.version"]}`)
+    // Backup the settings on all new installs (quietly)
+    await npc.backupSettings('jgclark.Dashboard', `before_onUpdateOrInstall_v${pluginJson["plugin.version"]}`, true)
 
     // Log warnings if we don't have required files
     await checkForRequiredSharedFiles(pluginJson)

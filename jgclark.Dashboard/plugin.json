@@ -41,10 +41,10 @@
         "perspectiveName"
       ],
       "sidebarView": {
-        "windowID": "jgclark.Dashboard.dashboard",
+        "windowID": "jgclark.Dashboard.main",
         "title": "Dashboard",
         "icon": "fa-gauge-high",
-        "iconColor": "purple-600"
+        "iconColor": "red-600"
       }
     },
     {

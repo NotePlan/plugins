@@ -197,7 +197,7 @@ export async function getPerspectiveSettings(_logAllKeys: boolean = false): Prom
     } else {
       // No perspective settings found, so will need to set from the defaults instead
       logWarn('getPerspectiveSettings', `No perspective settings found, so will load in the defaults. But first, I will save a copy of the settings.json file for investigation.`)
-      await backupSettings('jgclark.Dashboard', 'when_no_perspective_settings_found')
+      await backupSettings('jgclark.Dashboard', 'when_no_perspective_settings_found', true)
       perspectiveSettings = await getPerspectiveSettingDefaults()
       const defaultPersp = getPerspectiveNamed('-', perspectiveSettings)
       if (!defaultPersp) {
