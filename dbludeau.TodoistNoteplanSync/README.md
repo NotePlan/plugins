@@ -189,6 +189,38 @@ todoist_filter: 7 days
 
 This will sync tasks from both projects, but only those due within the next 7 days.
 
+### Embedding Sync Calls in Notes
+
+You can embed clickable sync commands directly in your notes without using frontmatter.
+
+#### Template Tags (np.Templating)
+
+Use array syntax for the cleanest approach—no escaping needed for names with commas:
+
+```
+<%- await DataStore.invokePluginCommandByName("todoist sync project", "dbludeau.TodoistNoteplanSync", [["ARPA-H"]]) -%>
+
+<%- await DataStore.invokePluginCommandByName("todoist sync project", "dbludeau.TodoistNoteplanSync", [["ARPA-H", "Personal", "Work"]]) -%>
+
+<%- await DataStore.invokePluginCommandByName("todoist sync project", "dbludeau.TodoistNoteplanSync", [["ARPA-H", "Work, Life Balance"], "today"]) -%>
+```
+
+#### X-Callback-URL Links (Clickable)
+
+For clickable links in note content, use x-callback-urls with CSV syntax:
+
+```markdown
+[Sync ARPA-H](noteplan://x-callback-url/runPlugin?pluginID=dbludeau.TodoistNoteplanSync&command=todoist%20sync%20project&arg0=ARPA-H)
+
+[Sync Multiple Projects](noteplan://x-callback-url/runPlugin?pluginID=dbludeau.TodoistNoteplanSync&command=todoist%20sync%20project&arg0=ARPA-H%2C%20Personal)
+
+[Sync with Filter](noteplan://x-callback-url/runPlugin?pluginID=dbludeau.TodoistNoteplanSync&command=todoist%20sync%20project&arg0=ARPA-H&arg1=today)
+```
+
+**Note:** URL values must be percent-encoded (space = `%20`, comma = `%2C`).
+
+**Tip:** Use the **np.CallbackURLs** plugin's `/Get X-Callback-URL` command to generate these URLs without manual encoding.
+
 ## Caveats, Warnings and Notes
 - All synced tasks in Noteplan rely on the Todoist ID being present and associated with the task.  This is stored at the end of a synced task in the form of a link to www.todoist.com.
   - These links can be used to view the Todoist task on the web.

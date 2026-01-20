@@ -574,10 +574,10 @@ function parseDateFilterArg(arg: ?string): ?string {
 /**
  * Synchronize the current linked project (supports both single and multiple projects).
  * Can specify projects via:
- *   1. Inline argument: project names as CSV (supports quoted values for names with commas)
+ *   1. Inline argument: array of names OR CSV string (supports quoted values for names with commas)
  *   2. Frontmatter: todoist_project_name(s) or todoist_id(s)
  *
- * @param {string} firstArg - project names (CSV) OR date filter keyword
+ * @param {string | Array<string>} firstArg - project names (array or CSV string) OR date filter keyword
  * @param {string} secondArg - date filter if first arg was project names
  * @returns {Promise<void>} A promise that resolves once synchronization is complete
  *
@@ -586,32 +586,51 @@ function parseDateFilterArg(arg: ?string): ?string {
  *   syncProject()                    // uses frontmatter
  *   syncProject("today")             // uses frontmatter + filter
  *
- *   // With inline project names (new)
+ *   // With inline project names - array syntax (best for templates)
+ *   syncProject(["ARPA-H"])                         // single project
+ *   syncProject(["ARPA-H", "Personal"])             // multiple projects
+ *   syncProject(["ARPA-H", "Work, Life"])           // names with commas - no escaping needed
+ *   syncProject(["ARPA-H", "Personal"], "today")    // with filter
+ *
+ *   // With inline project names - CSV syntax (for x-callback-urls)
  *   syncProject("ARPA-H")                           // single project
  *   syncProject("ARPA-H, Personal")                 // multiple projects
  *   syncProject("ARPA-H, \"Work, Life\"")           // quoted name with comma
  *   syncProject("ARPA-H, Personal", "today")        // with filter
  */
 // eslint-disable-next-line require-await
-export async function syncProject(firstArg: ?string, secondArg: ?string) {
+export async function syncProject(firstArg: ?(string | Array<string>), secondArg: ?string) {
   setSettings()
 
   const note: ?TNote = Editor.note
   if (!note) return
 
   // Determine if firstArg is project names or a date filter
+  // Supports: array of names, CSV string of names, or date filter keyword
   let inlineProjectNames: Array<string> = []
   let filterOverride: ?string = null
 
-  if (firstArg && firstArg.trim()) {
+  if (Array.isArray(firstArg)) {
+    // Array of project names (cleanest for template tags)
+    inlineProjectNames = firstArg.map((name) => String(name).trim()).filter((name) => name.length > 0)
+    logInfo(pluginJson, `Using inline project names (array): ${inlineProjectNames.join(', ')}`)
+
+    // Second arg would be the filter
+    if (secondArg && secondArg.trim()) {
+      filterOverride = parseDateFilterArg(secondArg)
+      if (filterOverride) {
+        logInfo(pluginJson, `Using filter from second argument: ${filterOverride}`)
+      }
+    }
+  } else if (typeof firstArg === 'string' && firstArg.trim()) {
     if (isDateFilterKeyword(firstArg)) {
       // First arg is a date filter (backward compatible)
       filterOverride = parseDateFilterArg(firstArg)
       logInfo(pluginJson, `Using command-line filter override: ${String(filterOverride)}`)
     } else {
-      // First arg is project name(s)
+      // First arg is project name(s) as CSV string
       inlineProjectNames = parseCSVProjectNames(firstArg)
-      logInfo(pluginJson, `Using inline project names: ${inlineProjectNames.join(', ')}`)
+      logInfo(pluginJson, `Using inline project names (CSV): ${inlineProjectNames.join(', ')}`)
 
       // Second arg would be the filter
       if (secondArg && secondArg.trim()) {
