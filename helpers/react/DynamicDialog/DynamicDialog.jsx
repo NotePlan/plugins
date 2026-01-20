@@ -128,8 +128,12 @@ export type TSettingItem = {
   showCalendarChooserIcon?: boolean, // for note-chooser, show a calendar button next to the chooser (default: true)
   onOpen?: () => void | Promise<void>, // for note-chooser and other choosers, callback when dropdown opens (for lazy loading)
   allowMultiSelect?: boolean, // for note-chooser, enable multi-select mode (default: false)
-  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link', // for note-chooser multi-select, output format (default: 'wikilink')
+  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename', // for note-chooser multi-select, output format (default: 'wikilink')
   noteSeparator?: 'space' | 'comma' | 'newline', // for note-chooser multi-select, separator between notes (default: 'space')
+  singleSelectOutputFormat?: 'title' | 'filename', // for note-chooser regular select mode, output format (default: 'title')
+  startFolder?: ?string, // for note-chooser, start folder to filter notes (e.g., '@Templates/Forms')
+  includeRegex?: ?string, // for note-chooser, regex pattern to include notes (applied to filename or title)
+  excludeRegex?: ?string, // for note-chooser, regex pattern to exclude notes (applied to filename or title)
   // showValue option for SearchableChooser-based fields
   showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
   // space-chooser options

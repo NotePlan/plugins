@@ -4,6 +4,21 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.16] 2026-01-19 @dwertheimer
+
+### Added
+- **NoteChooser Output Formats**: Added new output format options for note chooser fields:
+  - **Multi-select mode**: Added `'title'` and `'filename'` output formats (in addition to existing `'wikilink'`, `'pretty-link'`, `'raw-url'`). These return plain note titles or filenames without any formatting.
+  - **Single-select mode**: Added `singleSelectOutputFormat` option to choose between outputting the note title (default) or filename when a single note is selected.
+- **NoteChooser Filtering Options**: Added advanced filtering capabilities to note chooser fields:
+  - **Start Folder**: Filter notes to only show those in a specific folder and its subfolders (e.g., `'@Templates'`).
+  - **Include Regex**: Optional regex pattern to include only notes whose title or filename matches (case-insensitive).
+  - **Exclude Regex**: Optional regex pattern to exclude notes whose title or filename matches (case-insensitive).
+- **SearchableChooser ShortDescription Optimization**: Added automatic shortening of short descriptions to just the final folder name when the option row is too narrow, ensuring the label text takes precedence and remains fully visible.
+
+### Changed
+- **FormView CSS**: Reverted compact label width to 10rem (from 20rem) while keeping input width at 360px (2x the original 180px). This provides better balance between label and input field sizing.
+
 ## [1.0.15] 2026-01-18 @dwertheimer
 
 ### Fixed

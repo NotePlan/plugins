@@ -644,8 +644,17 @@ export function renderItem({
           )
           if (item.key) {
             // For multi-select mode, noteTitle contains the formatted string and noteFilename is empty
-            // For single-select mode, noteFilename contains the filename
-            const valueToStore = (item: any).allowMultiSelect ? noteTitle : noteFilename
+            // For single-select mode, use singleSelectOutputFormat to determine what to store
+            const itemAny = (item: any)
+            let valueToStore: string
+            if (itemAny.allowMultiSelect) {
+              // Multi-select: noteTitle contains the formatted string
+              valueToStore = noteTitle
+            } else {
+              // Single-select: respect singleSelectOutputFormat (defaults to 'title')
+              const outputFormat = itemAny.singleSelectOutputFormat || 'title'
+              valueToStore = outputFormat === 'filename' ? noteFilename : noteTitle
+            }
             logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${item.key}", value="${valueToStore}"`)
             handleFieldChange(item.key, valueToStore)
           } else {
@@ -704,6 +713,10 @@ export function renderItem({
               allowMultiSelect={Boolean((item: any).allowMultiSelect)}
               noteOutputFormat={(item: any).noteOutputFormat || 'wikilink'}
               noteSeparator={(item: any).noteSeparator || 'space'}
+              singleSelectOutputFormat={(item: any).singleSelectOutputFormat || 'title'}
+              startFolder={(item: any).startFolder}
+              includeRegex={(item: any).includeRegex}
+              excludeRegex={(item: any).excludeRegex}
             />
           </div>
         )
