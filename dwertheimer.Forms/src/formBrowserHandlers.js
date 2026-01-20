@@ -300,12 +300,17 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
     // Call the form submission handler
     // handleSubmitButtonClick expects (data, reactWindowData) but we'll create a minimal reactWindowData
     // Strip quotes from string values that may have been stored with quotes in frontmatter
+    // receivingTemplateTitle can come from formValues (dynamic) or frontmatter (static)
+    const receivingTemplateTitleFromForm = formValues?.receivingTemplateTitle || ''
+    const receivingTemplateTitleFromFrontmatter = stripDoubleQuotes(fm?.receivingTemplateTitle || '') || ''
+    const receivingTemplateTitle = receivingTemplateTitleFromForm || receivingTemplateTitleFromFrontmatter
+    
     const submitData = {
       type: 'submit',
       formValues,
       windowId: windowId || '',
       processingMethod,
-      receivingTemplateTitle: stripDoubleQuotes(fm?.receivingTemplateTitle || '') || '',
+      receivingTemplateTitle: receivingTemplateTitle,
       getNoteTitled: stripDoubleQuotes(fm?.getNoteTitled || '') || '',
       location: fm?.location || 'append',
       writeUnderHeading: stripDoubleQuotes(fm?.writeUnderHeading || '') || '',

@@ -28,7 +28,7 @@
   /* CSS Variables for template form compact mode sizing */
   /* These can be overridden via inline styles or form-specific CSS */
   --template-form-compact-label-width: 10rem; /* Default label width - can be overridden */
-  --template-form-compact-input-width: 180px; /* Default input width - can be overridden */
+  --template-form-compact-input-width: 360px; /* Default input width - can be overridden (2x previous default) */
 
   /* Template Form Specific Styles */
   & .ui-button-group {
@@ -50,9 +50,9 @@
   & .expandable-textarea-container.compact .expandable-textarea-label,
   & .autosave-field-container.compact .autosave-field-label {
     text-align: right !important;
-    min-width: var(--template-form-compact-label-width, 10rem) !important;
-    max-width: var(--template-form-compact-label-width, 10rem) !important;
-    width: var(--template-form-compact-label-width, 10rem) !important;
+    min-width: var(--template-form-compact-label-width, 20rem) !important;
+    max-width: var(--template-form-compact-label-width, 20rem) !important;
+    width: var(--template-form-compact-label-width, 20rem) !important;
     padding-right: 1rem !important;
     padding-left: 0 !important;
     margin-left: 0 !important;
@@ -189,7 +189,7 @@
   /* Override item-description margin-left in compact mode to align with input field values */
   /* Uses label width (CSS variable) + gap (1rem) to align with the start of input field values */
   & [data-compact-display="true"] .item-description {
-    margin-left: calc(var(--template-form-compact-label-width, 10rem) + 1rem) !important;
+    margin-left: calc(var(--template-form-compact-label-width, 20rem) + 1rem) !important;
   }
 }
 

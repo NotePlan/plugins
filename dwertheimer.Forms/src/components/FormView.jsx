@@ -505,12 +505,18 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     setFormSubmitted(true) // Mark form as submitted
     setIsSubmitting(true) // Show submitting overlay
     logDebug('FormView', `[FRONT-END] Sending onSubmitClick to back-end (plugin)`)
+    // receivingTemplateTitle can come from formValues (dynamic) or pluginData (static from frontmatter)
+    // Form field value takes precedence for dynamic selection
+    const receivingTemplateTitleFromForm = formValues?.receivingTemplateTitle || ''
+    const receivingTemplateTitleFromPluginData = pluginData['receivingTemplateTitle'] || ''
+    const receivingTemplateTitle = receivingTemplateTitleFromForm || receivingTemplateTitleFromPluginData
+    
     sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, {
       type: 'submit',
       formValues,
       windowId: windowId || pluginData.windowId || '', // Pass windowId if available from DynamicDialog or pluginData
-      processingMethod: pluginData['processingMethod'] || (pluginData['receivingTemplateTitle'] ? 'form-processor' : 'write-existing'),
-      receivingTemplateTitle: pluginData['receivingTemplateTitle'] || '',
+      processingMethod: pluginData['processingMethod'] || (receivingTemplateTitle ? 'form-processor' : 'write-existing'),
+      receivingTemplateTitle: receivingTemplateTitle,
       // Option A: Write to existing file
       getNoteTitled: pluginData['getNoteTitled'] || '',
       location: pluginData['location'] || 'append',

@@ -17,12 +17,11 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 - **templateRunner Return Value**: Updated `templateRunner` to return the filename when a note is successfully created, instead of returning `undefined`. This provides explicit feedback about successful operations.
 - **Error Messages**: Improved error messages to be more specific about null value issues and provide better guidance for debugging template execution problems.
 
-## [1.0.14] 2026-01-18 @dwertheimer
+## [1.0.14] 2026-01-19 @dwertheimer
 
-### Fixed
-- **Form Submission Error Detection**: Fixed issue where FormBrowserView showed success message even when template execution failed. Now properly detects and displays errors from template processing, including AI analysis results and form submission errors.
-- **Form Field Validation**: Added validation to ensure all form fields are included in submission, even if left blank. This prevents template errors from missing variables. Validation now occurs both in FormBrowserView handler and in handleSubmitButtonClick.
-- **Error Message Display**: Improved error messages to be more specific. FormBrowserView now shows detailed error messages instead of generic "success" when template execution fails. Error messages include information about missing variables and template rendering issues.
+### Changed
+- **Default Window Width**: Changed default window width for new forms from 25% to 50% when creating a new form in the form builder
+- **Default Compact Field Sizes**: Doubled the default compact field sizes - labels now default to 20rem (was 10rem) and inputs default to 360px (was 180px)
 
 ## [1.0.13] 2026-01-18 @dwertheimer
 
