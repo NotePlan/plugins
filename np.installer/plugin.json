@@ -21,7 +21,7 @@
 			"name": "development install",
 			"description": "Load a list of plugins and lets you install one, including hidden ones",
 			"jsFunction": "installPluginsIncludingHidden"
-		},
+		}
 	],
 	"plugin.preferences": []
 }

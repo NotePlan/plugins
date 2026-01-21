@@ -10,6 +10,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 -->
 <!-- - ??? dev: check winowID throughout -->
 
+## [2.4.0.b17] 2026-01-21
+### New
+- added new way to select items to show from Calendar sections: "Calendar note Sections to Include". There is already a way to exclude specific sections in a calendar note; this adds a way to only include specific sections. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all sections are still included.
+
 ## [2.4.0.b16] 2026-01-20
 ### Fixes
 - suppress "showing all 0 items" message when "nothing on this list" message also appears

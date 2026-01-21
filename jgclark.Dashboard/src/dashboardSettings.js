@@ -99,7 +99,16 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'includedFolders',
     label: 'Folders to Include',
     description:
-      "Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included. Note: Calendar notes are always included, where relevant.",
+      "Comma-separated list of folder(s) to include when selecting open items to show. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included. Note: Calendar notes are always included, where relevant.",
+    type: 'input',
+    default: '',
+    compactDisplay: true,
+  },
+  {
+    key: 'includedCalendarSections',
+    label: 'Calendar note Sections to Include',
+    description:
+      "Comma-separated list of calendar note section headings to include when selecting open tasks/checklists to show. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all sections are included.",
     type: 'input',
     default: '',
     compactDisplay: true,
@@ -108,13 +117,12 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'excludedFolders',
     label: 'Folders to Exclude',
     description:
-      "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. The matches are partial, so 'Work' will exclude 'Work' and 'Work/CompanyA' etc. To ignore notes at the top-level (not in a folder), include '/' in the list. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)",
+      "Comma-separated list of folder(s) to ignore when selecting open tasks/checklists to show. The matches are partial, so 'Work' will exclude 'Work' and 'Work/CompanyA' etc. To ignore notes at the top-level (not in a folder), include '/' in the list. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)",
     type: 'input',
     default: '@Archive, @Templates, Saved Searches',
     compactDisplay: true,
   },
   {
-    // Note: replaces earlier "ignoreTagMentionsWithPhrase" which applied only to the Tag/Mention section
     key: 'ignoreItemsWithTerms',
     label: 'Ignore items in notes with term(s)',
     description:

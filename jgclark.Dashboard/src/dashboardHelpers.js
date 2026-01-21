@@ -427,17 +427,18 @@ export function getOpenItemParasForTimePeriod(
     const latestDate = todayHyphenated > theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
     // logDebug('getOpenItemPFCTP', `timeframe:${calendarPeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
 
-    // Keep only non-empty open tasks (and checklists if wanted),
-    // and now add in other timeblock lines (if wanted), other than checklists (if excluded)
+    // Keep only non-empty open tasks and checklists,
+    // and now add in other timeblock lines if wanted
     let openParas = alsoReturnTimeblockLines ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString)) : parasToUse.filter((p) => isOpen(p))
     logDebug('getOpenItemPFCTP', `- after initial pull: ${openParas.length} para(s):`)
 
+    // Filter out checklists, if requested
     if (dashboardSettings.ignoreChecklistItems) {
       openParas = openParas.filter((p) => !(p.type === 'checklist'))
       logDebug('getOpenItemPFCTP', `- after filtering out checklists: ${openParas.length} para(s)`)
     }
 
-    // Filter out checklists with timeblocks, if wanted
+    // Filter out checklists with timeblocks, if requested
     if (dashboardSettings.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
     }
@@ -459,7 +460,10 @@ export function getOpenItemParasForTimePeriod(
     // Filter out anything from 'ignoreItemsWithTerms' setting
     openParas = filterParasByIgnoreTerms(openParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
 
-    // Additionally apply to calendar headings in this note
+    // Filter out anything not matching 'includedCalendarSections' setting, if set
+    openParas = filterParasByIncludedCalendarSections(openParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
+
+    // Filter out anything matching 'ignoreItemsWithTerms' setting, if set
     openParas = filterParasByCalendarHeadingSections(openParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
 
     // -------------------------------------------------------------
@@ -667,6 +671,35 @@ export function filterParasByIgnoreTerms(
 
   const filteredParas = paras.filter((p) => !isLineDisallowedByIgnoreTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
   logTimer(functionName, startTime, `- after ignoreItemsWithTerms (${dashboardSettings.ignoreItemsWithTerms}) filter: ${filteredParas.length} paras`)
+  return filteredParas
+}
+
+/**
+ * Filter paragraphs to only include those from included calendar sections.
+ * @param {Array<TParagraph>} paras - paragraphs to filter
+ * @param {TDashboardSettings} dashboardSettings - dashboard settings containing included calendar sections
+ * @param {Date} startTime - timer start time for logging
+ * @param {string} functionName - name of calling function for logging
+ * @returns {Array<TParagraph>} filtered paragraphs
+ */
+export function filterParasByIncludedCalendarSections(
+  paras: Array<TParagraph>,
+  dashboardSettings: TDashboardSettings,
+  startTime: Date,
+  functionName: string
+): Array<TParagraph> {
+  if (!dashboardSettings.includedCalendarSections) {
+    return paras
+  }
+
+  const filteredParas = paras.filter((p) => {
+    // only apply to calendar notes
+    if (p.note?.type !== 'Calendar') return true
+    // Apply to all H4/H3/H2 headings in the hierarchy for this para
+    const theseHeadings = getHeadingHierarchyForThisPara(p)
+    return theseHeadings.some((h) => dashboardSettings.includedCalendarSections.includes(h))
+  })
+  logTimer(functionName, startTime, `- after filtering out calendar headings: ${filteredParas.length} paras`)
   return filteredParas
 }
 
