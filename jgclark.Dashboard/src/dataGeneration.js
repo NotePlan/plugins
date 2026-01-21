@@ -10,6 +10,7 @@ import type { TDashboardSettings, TParagraphForDashboard, TSectionCode, TSection
 import { allSectionCodes } from './constants.js'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
+  appendCalendarSectionsFilterToDescription,
   createSectionOpenItemsFromParas,
   getDashboardSettings,
   getListOfEnabledSections,
@@ -252,7 +253,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'month').toDate(), 'month')
     const nextPeriodFilename = nextPeriodNote?.filename ?? '(error)'
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename, true, true, config)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
@@ -294,6 +295,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     )
 
     let sectionDescription = `{closedOrOpenTaskCount} from ${dateStr}`
+    sectionDescription = appendCalendarSectionsFilterToDescription(sectionDescription, config)
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
@@ -446,7 +448,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'quarter').toDate(), 'quarter')
     const nextPeriodFilename = nextPeriodNote?.filename ?? ''
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename, true, true, config)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
@@ -488,6 +490,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     )
 
     let sectionDescription = `{countWithLimit} from ${dateStr}`
+    sectionDescription = appendCalendarSectionsFilterToDescription(sectionDescription, config)
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
@@ -634,7 +637,7 @@ export function getThisYearSectionData(config: TDashboardSettings, useDemoData: 
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'year').toDate(), 'year')
     const nextPeriodFilename = nextPeriodNote?.filename ?? ''
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename, true, true, config)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
@@ -676,6 +679,7 @@ export function getThisYearSectionData(config: TDashboardSettings, useDemoData: 
     )
 
     let sectionDescription = `{countWithLimit} from ${dateStr}`
+    sectionDescription = appendCalendarSectionsFilterToDescription(sectionDescription, config)
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {

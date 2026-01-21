@@ -515,6 +515,9 @@ export function getOpenItemParasForTimePeriod(
         // Filter out anything from 'ignoreItemsWithTerms' setting
         refOpenParas = filterParasByIgnoreTerms(refOpenParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
 
+        // Filter out anything not matching 'includedCalendarSections' setting, if set
+        refOpenParas = filterParasByIncludedCalendarSections(refOpenParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
+
         // TODO: now do any priority delta calculations if there is FM field 'note-priority-delta' set
       }
     }
@@ -688,19 +691,53 @@ export function filterParasByIncludedCalendarSections(
   startTime: Date,
   functionName: string
 ): Array<TParagraph> {
-  if (!dashboardSettings.includedCalendarSections) {
+  // Convert comma-separated string to array, similar to includedFolders
+  const includedCalendarSectionsRaw = dashboardSettings.includedCalendarSections
+  if (!includedCalendarSectionsRaw) {
     return paras
   }
 
+  // Convert comma-separated string to array
+  const includedCalendarSections: Array<string> = stringListOrArrayToArray(includedCalendarSectionsRaw, ',').map((section) => section.trim())
+
   const filteredParas = paras.filter((p) => {
     // only apply to calendar notes
-    if (p.note?.type !== 'Calendar') return true
+    if (p.note?.type !== 'Calendar') {
+      return true
+    }
+    
     // Apply to all H4/H3/H2 headings in the hierarchy for this para
     const theseHeadings = getHeadingHierarchyForThisPara(p)
-    return theseHeadings.some((h) => dashboardSettings.includedCalendarSections.includes(h))
+    
+    // Check if any heading contains (as substring) any of the included calendar sections
+    // This allows partial matching, e.g., "Medawar" will match "Medawar Tasks" or "Medawar Section"
+    return theseHeadings.some((heading) => 
+      includedCalendarSections.some((section) => 
+        heading.toLowerCase().includes(section.toLowerCase())
+      )
+    )
   })
+  
   logTimer(functionName, startTime, `- after filtering out calendar headings: ${filteredParas.length} paras`)
   return filteredParas
+}
+
+/**
+ * Append information about includedCalendarSections filter to section description if active.
+ * @param {string} sectionDescription - current section description
+ * @param {TDashboardSettings} dashboardSettings - dashboard settings
+ * @returns {string} section description with filter info appended if applicable
+ */
+export function appendCalendarSectionsFilterToDescription(
+  sectionDescription: string,
+  dashboardSettings: TDashboardSettings
+): string {
+  if (dashboardSettings.includedCalendarSections) {
+    const sections = stringListOrArrayToArray(dashboardSettings.includedCalendarSections, ',').map((s) => s.trim())
+    const sectionsStr = sections.length === 1 ? sections[0] : sections.join(', ')
+    return `${sectionDescription} (showing ${sectionsStr} only)`
+  }
+  return sectionDescription
 }
 
 /**

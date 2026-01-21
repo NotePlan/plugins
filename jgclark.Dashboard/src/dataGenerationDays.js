@@ -9,6 +9,7 @@ import pluginJson from '../plugin.json'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
 import { getDoneCountsForToday, getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
+  appendCalendarSectionsFilterToDescription,
   createSectionItemObject,
   createSectionOpenItemsFromParas,
   getNotePlanSettings,
@@ -169,6 +170,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     )
 
     let sectionDescription = `{closedOrOpenTaskCount} from ${todayDateLocale}`
+    sectionDescription = appendCalendarSectionsFilterToDescription(sectionDescription, config)
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
@@ -451,8 +453,9 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       }
     }
     // Note: this only counts from yesterday's note
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename, true, true, config)
     let sectionDescription = `{closedOrOpenTaskCount} from ${yesterdayDateLocale}`
+    sectionDescription = appendCalendarSectionsFilterToDescription(sectionDescription, config)
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
@@ -607,6 +610,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     )
 
     let sectionDescription = `{count} from ${tomorrowDateLocale}`
+    sectionDescription = appendCalendarSectionsFilterToDescription(sectionDescription, config)
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {

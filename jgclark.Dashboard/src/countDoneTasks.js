@@ -6,9 +6,11 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import type { TDoneCount, TDoneTodayNotes } from './types'
+import type { TDashboardSettings, TDoneCount, TDoneTodayNotes } from './types'
 import { todaysDateISOString } from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { getNotesChangedInInterval, getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { smartPrependPara } from '@helpers/paragraph'
 
@@ -55,12 +57,14 @@ const LAST_TIME_THIS_WAS_RUN_PREF = 'jgclark.Dashboard.todayDoneCountsList.lastT
  * @param {string} filename
  * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open (default: true)
  * @param {boolean} onlyCountTasksCompletedToday? only count tasks in the note completed today (default: true)
+ * @param {TDashboardSettings?} dashboardSettings? optional dashboard settings to filter by includedCalendarSections
  * @returns {TDoneCount} {completedTasks, lastUpdated}
  */
 export function getNumCompletedTasksFromNote(
   filename: string,
   useEditorWherePossible: boolean = true,
-  onlyCountTasksCompletedToday: boolean = true
+  onlyCountTasksCompletedToday: boolean = true,
+  dashboardSettings?: TDashboardSettings
 ): TDoneCount {
   try {
     // Note: This is a quick operation, so no longer needing to time
@@ -86,9 +90,30 @@ export function getNumCompletedTasksFromNote(
     const RE_DONE_TODAY = new RegExp(`@done\\(${todaysDateISOString}.*\\)`)
     // logDebug('getNumCompletedTasksFromNote', `RE_DONE_TODAY: ${RE_DONE_TODAY}`)
     const RE_DONE_ANY_TIME = new RegExp(`@done\\(.*\\)`)
-    const completedTasks = onlyCountTasksCompletedToday
+    let completedTasks = onlyCountTasksCompletedToday
       ? parasToUse.filter((p) => p.type === 'done' && RE_DONE_TODAY.test(p.content))
       : parasToUse.filter((p) => p.type === 'done' && RE_DONE_ANY_TIME.test(p.content))
+    
+    // Filter by includedCalendarSections if setting is provided and tasks are from calendar notes
+    if (dashboardSettings?.includedCalendarSections) {
+      const includedCalendarSections: Array<string> = stringListOrArrayToArray(dashboardSettings.includedCalendarSections, ',').map((section) => section.trim())
+      
+      completedTasks = completedTasks.filter((p) => {
+        // only apply to calendar notes
+        if (p.note?.type !== 'Calendar') return true
+        
+        // Apply to all H4/H3/H2 headings in the hierarchy for this para
+        const theseHeadings = getHeadingHierarchyForThisPara(p)
+        
+        // Check if any heading contains (as substring) any of the included calendar sections
+        return theseHeadings.some((heading) => 
+          includedCalendarSections.some((section) => 
+            heading.toLowerCase().includes(section.toLowerCase())
+          )
+        )
+      })
+    }
+    
     // logDebug('getNumCompletedTasksFromNote', `- ${filename}'s completed tasks: ${completedTasks.map((t) => t.content).join('\n')} `)
     const numCompletedTasks = completedTasks.length
 

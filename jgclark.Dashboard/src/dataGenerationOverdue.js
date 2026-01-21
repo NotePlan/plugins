@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { createSectionItemObject, filterParasByRelevantFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections, filterParasByAllowedTeamspaces, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
+import { createSectionItemObject, filterParasByRelevantFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections, filterParasByIncludedCalendarSections, filterParasByAllowedTeamspaces, makeDashboardParas, getNotePlanSettings, appendCalendarSectionsFilterToDescription } from './dashboardHelpers'
 import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -137,6 +137,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       sectionDescription += ` from last ${String(config.lookBackDaysForOverdue)} days`
     }
     if (overdueParas.length > 0) sectionDescription += ` ordered by ${config.overdueSortOrder}`
+    sectionDescription = appendCalendarSectionsFilterToDescription(sectionDescription, config)
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
 
     // If we have more than the limit, then we need to show the total count as an extra information message
@@ -219,6 +220,9 @@ export async function getRelevantOverdueTasks(
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     filteredOverdueParas = filterParasByIgnoreTerms(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
+
+    // Filter out anything not matching 'includedCalendarSections' setting, if set
+    filteredOverdueParas = filterParasByIncludedCalendarSections(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
 
     // Also if wanted, apply to calendar headings in this note
     filteredOverdueParas = filterParasByCalendarHeadingSections(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
