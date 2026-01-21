@@ -81,6 +81,7 @@ export type TDashboardSettings = {
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use
   includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
+  includedCalendarSections?: string, // Comma-separated string of calendar section headings (H2/H3/H4) to include. Note: Run through stringListOrArrayToArray() before use
   showFolderName: boolean, // Note: was includeFolderName before 2.2.0.
   showScheduledDates: boolean, // Note: was includeScheduledDates before 2.2.0.rename to show...
   showTaskContext: boolean, // Note: was includeTaskContext before 2.2.0.

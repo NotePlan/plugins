@@ -9,6 +9,7 @@ import pluginJson from '../plugin.json'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
+  appendCalendarSectionsFilterToDescription,
   createSectionOpenItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
@@ -73,7 +74,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'week').toDate(), 'week')
     const nextPeriodFilename = nextPeriodNote?.filename ?? '(error)'
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename, true, true, config)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
@@ -115,6 +116,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         : [],
     )
     let sectionDescription = `{countWithLimit} {itemType} from ${dateStr}`
+    sectionDescription = appendCalendarSectionsFilterToDescription(sectionDescription, config)
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
@@ -274,8 +276,9 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
       }
     }
 
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename, true, true, config)
     let sectionDescription = `{countWithLimit} {itemType} from ${dateStr}`
+    sectionDescription = appendCalendarSectionsFilterToDescription(sectionDescription, config)
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {

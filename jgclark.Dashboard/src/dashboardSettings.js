@@ -108,7 +108,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'includedCalendarSections',
     label: 'Calendar note Sections to Include',
     description:
-      "Comma-separated list of calendar note section headings to include when selecting open tasks/checklists to show. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all sections are included.",
+      "Comma-separated list of calendar note section headings to include when selecting open tasks/checklists to show. This applies to all headings in the H4->H2 hierarchy for each line. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all items for this section are included.",
     type: 'input',
     default: '',
     compactDisplay: true,
