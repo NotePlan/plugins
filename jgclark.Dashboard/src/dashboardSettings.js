@@ -108,7 +108,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'includedCalendarSections',
     label: 'Calendar note Sections to Include',
     description:
-      "Comma-separated list of calendar note section headings to include when selecting open tasks/checklists to show. This applies to all headings in the H4->H2 hierarchy for each line. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all items for this section are included.",
+      "Comma-separated list of calendar section headings to include when selecting open tasks/checklists to show. Tasks are included if: (1) they are under a heading containing the term (applies to all headings in the H4->H2 hierarchy for each line), or (2) the task content itself contains the term (e.g., #ACME, @ACME, or just 'ACME'). Matches are partial and case-insensitive, so 'ACME' will match 'ACME Tasks', '#ACME', or 'The ACME Section'. When this filter is active, day sections (Today, Tomorrow, etc.) take priority over TAG sections for duplicate items. If left blank, all items are included.",
     type: 'input',
     default: '',
     compactDisplay: true,

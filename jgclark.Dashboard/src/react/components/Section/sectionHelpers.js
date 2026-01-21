@@ -115,8 +115,30 @@ export function getSectionsWithoutDuplicateLines(
     // Deep copy the sections to avoid mutating the original data
     const sections = JSON.parse(JSON.stringify(_sections))
 
+    // If includedCalendarSections is set, prioritize day sections (DT, DY, DO, W, LW, M, Q, Y) over TAG
+    let adjustedUseFirst = useFirst
+    if (dashboardSettings.includedCalendarSections) {
+      const daySectionCodes: Array<TSectionCode> = ['DT', 'DY', 'DO', 'W', 'LW', 'M', 'Q', 'Y']
+      const tagIndex = useFirst.indexOf('TAG')
+      if (tagIndex >= 0) {
+        // Reorder: keep everything before TAG, then day sections, then TAG, then everything after TAG
+        const beforeTag = useFirst.slice(0, tagIndex)
+        const afterTag = useFirst.slice(tagIndex + 1)
+        const daySectionsInOrder = useFirst.filter((code) => daySectionCodes.includes(code))
+        const nonDaySectionsBeforeTag = beforeTag.filter((code) => !daySectionCodes.includes(code))
+        const nonDaySectionsAfterTag = afterTag.filter((code) => !daySectionCodes.includes(code))
+        
+        adjustedUseFirst = [
+          ...nonDaySectionsBeforeTag,
+          ...daySectionsInOrder,
+          'TAG',
+          ...nonDaySectionsAfterTag,
+        ]
+      }
+    }
+
     // Get ordered list of sectionCodes based on visibility and priority
-    const useFirstVisibleOnly: Array<TSectionCode> = getUseFirstButVisible(useFirst, dashboardSettings, sections)
+    const useFirstVisibleOnly: Array<TSectionCode> = getUseFirstButVisible(adjustedUseFirst, dashboardSettings, sections)
 
     // Create an array of ordered sections based on the `useFirstVisibleOnly` priority list.
     // For each section code (`st`) in `useFirstVisibleOnly`, use `flatMap` to:

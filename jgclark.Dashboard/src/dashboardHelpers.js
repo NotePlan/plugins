@@ -706,16 +706,24 @@ export function filterParasByIncludedCalendarSections(
       return true
     }
     
+    // Check if task content contains any of the filter terms (e.g., #ACME, @ACME, or just ACME)
+    const contentLower = p.content.toLowerCase()
+    const contentMatches = includedCalendarSections.some((section) => 
+      contentLower.includes(section.toLowerCase())
+    )
+    if (contentMatches) return true
+    
     // Apply to all H4/H3/H2 headings in the hierarchy for this para
     const theseHeadings = getHeadingHierarchyForThisPara(p)
     
     // Check if any heading contains (as substring) any of the included calendar sections
-    // This allows partial matching, e.g., "Medawar" will match "Medawar Tasks" or "Medawar Section"
-    return theseHeadings.some((heading) => 
+    // This allows partial matching, e.g., "ACME" will match "ACME Tasks" or "ACME Section"
+    const headingMatches = theseHeadings.some((heading) => 
       includedCalendarSections.some((section) => 
         heading.toLowerCase().includes(section.toLowerCase())
       )
     )
+    return headingMatches
   })
   
   logTimer(functionName, startTime, `- after filtering out calendar headings: ${filteredParas.length} paras`)

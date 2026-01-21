@@ -102,6 +102,13 @@ export function getNumCompletedTasksFromNote(
         // only apply to calendar notes
         if (p.note?.type !== 'Calendar') return true
         
+        // Check if task content contains any of the filter terms (e.g., #ACME, @ACME, or just ACME)
+        const contentLower = p.content.toLowerCase()
+        const contentMatches = includedCalendarSections.some((section) => 
+          contentLower.includes(section.toLowerCase())
+        )
+        if (contentMatches) return true
+        
         // Apply to all H4/H3/H2 headings in the hierarchy for this para
         const theseHeadings = getHeadingHierarchyForThisPara(p)
         
