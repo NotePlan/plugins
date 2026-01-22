@@ -1056,6 +1056,3 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
     return thisProjectIn
   }
 }
-
-// HTML generation functions have been moved to htmlGenerators.js
-// Import generateProjectOutputLine directly from htmlGenerators.js instead

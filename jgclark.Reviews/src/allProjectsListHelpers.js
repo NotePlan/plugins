@@ -564,6 +564,8 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
 
 /**
  * Filter and sort the list of Projects. Used by renderProjectLists().
+ * TODO: Should this filter out paused projects?
+ * TODO: Should this filter out cancelled projects?
  * (Last I checked it was running in 2ms.)
  * @param {ReviewConfig} config 
  * @param {string?} projectTag to filter by (optional)
@@ -729,7 +731,7 @@ export async function getNextNoteToReview(): Promise<?TNote> {
 }
 
 /**
- * Get list of the next Project(s) to review (if any).
+ * Get list of the next Project(s) ready to review (if any).
  * Note: v2, using the allProjects JSON file (not ordered but detailed).
  * Note: This is a variant of the original singular version above, and is only used by jgclark.Dashboard/src/dataGenerationProjects.js
  * @author @jgclark
@@ -766,6 +768,41 @@ export async function getNextProjectsToReview(numToReturn: number = 0): Promise<
   }
   catch (error) {
     logError('reviews/getNextProjectsToReview', JSP(error))
+    return []
+  }
+}
+
+/**
+ * Get list of all active Project(s). This is filtered according to the plugin settings, which may come from the Perspective set by the Dashboard.
+ * @author @jgclark
+ * @return { Array<Project> } all Projects for current perspective. Can be an empty array. Note: not a TNote but Project object.
+ */
+export async function getAllActiveProjects(): Promise<Array<Project>> {
+  try {
+    const config: ?ReviewConfig = await getReviewSettings(true)
+    if (!config) {
+      // Shouldn't get here, but this is a safety check.
+      logDebug('reviews/getAllActiveProjects', 'No config found, so assume jgclark.Reviews plugin is not installed. Stopping.')
+      return []
+    }
+    logDebug('reviews/getAllActiveProjects', `Starting for perspective ${config.perspectiveName}`)
+
+    // Get all active Projects, according to the current perspective settings (which are overriden in config)
+    const allActiveProjectsSorted = await filterAndSortProjectsList(config)
+    if (!allActiveProjectsSorted || allActiveProjectsSorted.length === 0) {
+      logWarn('getNextNoteToReview', `No active projects found, so stopping`)
+      return []
+    }
+    if (allActiveProjectsSorted.length > 0) {
+      logDebug('reviews/getAllActiveProjects', `- Returning ${allActiveProjectsSorted.length} projects for current perspective`)
+    } else {
+      logDebug('reviews/getAllActiveProjects', `- No projects found for current perspective 🎉`)
+    }
+    log
+    return allActiveProjectsSorted
+  }
+  catch (error) {
+    logError('reviews/getAllActiveProjects', JSP(error))
     return []
   }
 }
