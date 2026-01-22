@@ -29,6 +29,34 @@ NOTE: All sync actions (other then content and status) can be turned on and off 
 - **/todoist sync all projects** (alias **/tosa**): this will sync all projects that have been linked using frontmatter.
 - **/todoist sync all projects and today** (alias **/tosat** **/toast**): this will sync all projects and the today note.  Running it as one comand instead of individually will check for duplicates.  This command will sync all tasks from projects to their linked note, including tasks due today.  It will sync all tasks from all projects in Todoist that are due today except for those already in the project notes to avoid duplication.
 
+### Global Sync By Project Commands
+
+These commands sync tasks across ALL your Todoist projects based on a date filter, organizing the results by project name and section. No frontmatter required—just run the command on any note.
+
+| Command | Alias | What it syncs |
+|---------|-------|---------------|
+| **/todoist sync today by project** | tostbp | Only tasks due today (API semantics: excludes overdue) |
+| **/todoist sync overdue by project** | tosobp | Only overdue tasks |
+| **/todoist sync current by project** | toscbp | Today + overdue (like Todoist UI "Today" view) |
+| **/todoist sync week by project** | toswbp | Tasks due within 7 days (excludes overdue) |
+
+**Example output:**
+```markdown
+### Project A
+- task 1 from Project A
+
+#### Section Name
+- task 2 in section
+
+### Project B
+- task 3 from Project B
+```
+
+These commands respect your plugin settings for:
+- Project heading format (##, ###, ####, Horizontal Rule, or No Separator)
+- Section heading format (###, ####, #####, or **bold**)
+- Prefix settings (blank lines, horizontal rules before headings)
+
 ## Configuration
 - This plug in requires an API token from Todoist.  These are available on both the free and paid plans. To get the token follow the instructions [here](https://todoist.com/help/articles/find-your-api-token)
 - You can configure a folder to use for syncing everything, headings that tasks will fall under and what details are synced.

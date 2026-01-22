@@ -113,6 +113,42 @@
       ]
     },
     {
+      "name": "todoist sync today by project",
+      "alias": [
+        "tostbp"
+      ],
+      "description": "Sync Todoist tasks due today (API semantics: only today, no overdue), organized by project",
+      "jsFunction": "syncTodayByProject",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync overdue by project",
+      "alias": [
+        "tosobp"
+      ],
+      "description": "Sync all overdue Todoist tasks, organized by project",
+      "jsFunction": "syncOverdueByProject",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync current by project",
+      "alias": [
+        "toscbp"
+      ],
+      "description": "Sync current Todoist tasks (today + overdue), organized by project",
+      "jsFunction": "syncCurrentByProject",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync week by project",
+      "alias": [
+        "toswbp"
+      ],
+      "description": "Sync all Todoist tasks due within 7 days, organized by project",
+      "jsFunction": "syncWeekByProject",
+      "arguments": []
+    },
+    {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "Todoist Noteplan Sync: Version",
       "description": "Update + Check Version",

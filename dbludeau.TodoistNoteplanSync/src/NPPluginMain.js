@@ -506,6 +506,31 @@ function getPrefixContent(prefixSetting: string): string {
   }
 }
 
+/**
+ * Check if a heading with the given content already exists in the note
+ *
+ * @param {TNote} note - The note to check
+ * @param {string} headingContent - The heading text to look for (e.g., "### Project Name")
+ * @returns {boolean} True if the heading exists
+ */
+function headingExists(note: TNote, headingContent: string): boolean {
+  if (!note || !note.paragraphs) return false
+
+  const normalizedTarget = headingContent.trim()
+
+  for (const para of note.paragraphs) {
+    if (para.type === 'title' && para.content && para.content.trim() === normalizedTarget) {
+      return true
+    }
+    // Also check rawContent for heading markers like ###
+    if (para.rawContent && para.rawContent.trim() === normalizedTarget) {
+      return true
+    }
+  }
+
+  return false
+}
+
 function addProjectSeparator(note: TNote, projectName: string, isEditorNote: boolean = false): number {
   const separator = setup.projectSeparator
   const prefix = getPrefixContent(setup.projectPrefix)
@@ -521,6 +546,12 @@ function addProjectSeparator(note: TNote, projectName: string, isEditorNote: boo
   }
 
   if (content) {
+    // Check if this heading already exists
+    if (headingExists(note, content)) {
+      logDebug(pluginJson, `Project heading already exists: ${content}`)
+      return headingLevel
+    }
+
     const fullContent = prefix + content
     if (isEditorNote) {
       Editor.insertTextAtCursor(`${fullContent}\n`)
@@ -545,6 +576,11 @@ function addProjectSeparator(note: TNote, projectName: string, isEditorNote: boo
 export async function syncEverything() {
   setSettings()
 
+  // Clear global arrays to ensure clean state for this sync
+  closed.length = 0
+  just_written.length = 0
+  existing.length = 0
+
   logDebug(pluginJson, `Folder for everything notes: ${setup.folder}`)
   const folders: Array<any> = DataStore.folders.filter((f) => f.startsWith(setup.folder)) ?? []
 
@@ -565,6 +601,11 @@ export async function syncEverything() {
 
   if (projects.length > 0) {
     for (let i = 0; i < projects.length; i++) {
+      // Clear arrays for each project/note (don't carry state between notes)
+      closed.length = 0
+      just_written.length = 0
+      existing.length = 0
+
       // see if there is an existing note or create it if not
       const note_info: ?Object = getExistingNote(projects[i].project_name)
       if (note_info) {
@@ -652,6 +693,11 @@ export async function syncProject(firstArg: ?(string | Array<string>), secondArg
 
   const note: ?TNote = Editor.note
   if (!note) return
+
+  // Clear global arrays to ensure clean state for this sync
+  closed.length = 0
+  just_written.length = 0
+  existing.length = 0
 
   // Determine if firstArg is project names or a date filter
   // Supports: array of names, CSV string of names, or date filter keyword
@@ -907,6 +953,11 @@ export async function syncAllProjectsAndToday() {
  * @returns {Promise<void>}
  */
 async function syncThemAll() {
+  // Clear global arrays to ensure clean state for this sync
+  closed.length = 0
+  just_written.length = 0
+  existing.length = 0
+
   // Search for all frontmatter formats (ID-based and name-based) and collect unique notes
   const found_notes: Map<string, TNote> = new Map()
 
@@ -931,6 +982,11 @@ async function syncThemAll() {
 
   for (const [filename, note] of found_notes) {
     logInfo(pluginJson, `Working on note: ${filename}`)
+
+    // Clear arrays for this specific note (don't carry state between notes)
+    closed.length = 0
+    just_written.length = 0
+    existing.length = 0
 
     // Check existing paragraphs for task state
     const paragraphs_to_check: $ReadOnlyArray<TParagraph> = note?.paragraphs ?? []
@@ -1055,7 +1111,11 @@ export async function syncToday() {
  * @returns {Promise<void>}
  */
 async function syncTodayTasks() {
-  console.log(existing)
+  // Clear global arrays to ensure clean state for this sync
+  closed.length = 0
+  just_written.length = 0
+  existing.length = 0
+
   // get todays date in the correct format
   const date: string = getTodaysDateUnhyphenated() ?? ''
   const date_string: string = getTodaysDateAsArrowDate() ?? ''
@@ -1077,11 +1137,10 @@ async function syncTodayTasks() {
     }
 
     logInfo(pluginJson, `Todays note was found, pulling Today Todoist tasks...`)
-    const response = await pullTodoistTasksForToday()
-    const tasks: Array<Object> = JSON.parse(response)
+    const tasks: Array<Object> = await pullAllTodoistTasksByDateFilter('today')
 
-    if (tasks.results && note) {
-      tasks.results.forEach(async (t) => {
+    if (tasks && tasks.length > 0 && note) {
+      tasks.forEach(async (t) => {
         await writeOutTask(note, t)
       })
 
@@ -1121,8 +1180,10 @@ function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Obj
       return false
     }
 
-    const dueDate = new Date(task.due.date)
-    dueDate.setHours(0, 0, 0, 0)
+    // Parse YYYY-MM-DD as local date (not UTC)
+    // new Date("2026-01-21") parses as UTC, causing timezone issues
+    const dateParts = task.due.date.split('-')
+    const dueDate = new Date(parseInt(dateParts[0], 10), parseInt(dateParts[1], 10) - 1, parseInt(dateParts[2], 10))
 
     switch (dateFilter) {
       case 'today':
@@ -1196,6 +1257,12 @@ function addSectionHeading(note: TNote, sectionName: string, projectHeadingLevel
     // Fallback: one level deeper than project heading
     const sectionLevel = projectHeadingLevel + 1
     content = `${getHeadingPrefix(sectionLevel)} ${sectionName}`
+  }
+
+  // Check if this heading already exists
+  if (headingExists(note, content)) {
+    logDebug(pluginJson, `Section heading already exists: ${content}`)
+    return
   }
 
   const fullContent = prefix + content
@@ -1308,14 +1375,8 @@ async function pullTodoistTasksByProject(project_id: string, filterOverride: ?st
       filterParts.push(dateFilter)
     }
 
-    // Add team account filter if applicable
-    if (setup.useTeamAccount) {
-      if (setup.addUnassigned) {
-        filterParts.push('!assigned to: others')
-      } else {
-        filterParts.push('assigned to: me')
-      }
-    }
+    // Always filter to exclude tasks assigned to others
+    filterParts.push('!assigned to: others')
 
     // Build the URL with proper encoding
     let url = `${todo_api}/tasks?project_id=${project_id}`
@@ -1332,24 +1393,214 @@ async function pullTodoistTasksByProject(project_id: string, filterOverride: ?st
 }
 
 /**
- * Pull todoist tasks with a due date of today
+ * Pull Todoist tasks matching a date filter across ALL projects
  *
+ * @param {string} dateFilter - The date filter to apply (today, overdue, overdue | today, 3 days, 7 days)
  * @returns {Promise<any>} - promise that resolves into array of task objects or null
  */
-async function pullTodoistTasksForToday(): Promise<any> {
-  let filter = '?filter=today'
-  if (setup.useTeamAccount) {
-    if (setup.addUnassigned) {
-      filter = `${filter} & !assigned to: others`
-    } else {
-      filter = `${filter} & assigned to: me`
+async function pullTodoistTasksByDateFilter(dateFilter: string, cursor: ?string = null): Promise<any> {
+  // Build the query string - combining date filter with assignment filter
+  // Always filter to only show tasks assigned to me or unassigned (exclude tasks assigned to others)
+  let queryFilter = `${dateFilter} & !assigned to: others`
+
+  let queryString = `?query=${encodeURIComponent(queryFilter)}`
+
+  // Add cursor for pagination if provided
+  if (cursor) {
+    queryString = `${queryString}&cursor=${encodeURIComponent(cursor)}`
+  }
+
+  const url = `${todo_api}/tasks/filter${queryString}`
+  logDebug(pluginJson, `pullTodoistTasksByDateFilter: Fetching from URL: ${url}`)
+  const result = await fetch(url, getRequestObject())
+  logDebug(pluginJson, `pullTodoistTasksByDateFilter: Raw response (first 500 chars): ${String(result).substring(0, 500)}`)
+  return result
+}
+
+/**
+ * Fetch all tasks matching filter, handling pagination
+ *
+ * @param {string} dateFilter - The date filter to apply (e.g., 'today', 'overdue')
+ * @returns {Promise<Array<Object>>} Array of all task objects
+ */
+async function pullAllTodoistTasksByDateFilter(dateFilter: string): Promise<Array<Object>> {
+  let allTasks: Array<Object> = []
+  let cursor: ?string = null
+  let pageCount = 0
+
+  do {
+    pageCount++
+    logDebug(pluginJson, `pullAllTodoistTasksByDateFilter: Fetching page ${pageCount}${cursor ? ` with cursor ${cursor.substring(0, 20)}...` : ''}`)
+
+    const response = await pullTodoistTasksByDateFilter(dateFilter, cursor)
+    const parsed = JSON.parse(response)
+
+    const tasks = parsed.results || parsed || []
+    allTasks = allTasks.concat(tasks)
+
+    cursor = parsed.next_cursor
+
+    logDebug(pluginJson, `pullAllTodoistTasksByDateFilter: Page ${pageCount} returned ${tasks.length} tasks. Total so far: ${allTasks.length}. Has more: ${!!cursor}`)
+
+    // Safety limit to prevent infinite loops
+    if (pageCount >= 100) {
+      logWarn(pluginJson, `pullAllTodoistTasksByDateFilter: Reached safety limit of 100 pages. Stopping pagination.`)
+      break
+    }
+  } while (cursor)
+
+  logInfo(pluginJson, `pullAllTodoistTasksByDateFilter: Fetched ${allTasks.length} total tasks across ${pageCount} pages`)
+  return allTasks
+}
+
+/**
+ * Group tasks by project, returning Map of projectName → tasks
+ *
+ * @param {Array<Object>} tasks - Array of task objects from Todoist
+ * @returns {Promise<Map<string, Array<Object>>>} Map of project name to array of tasks
+ */
+async function groupTasksByProject(tasks: Array<Object>): Promise<Map<string, Array<Object>>> {
+  const tasksByProject: Map<string, Array<Object>> = new Map()
+  const projectCache: Map<string, string> = new Map() // projectId → projectName
+
+  for (const task of tasks) {
+    const projectId = task.project_id
+
+    // Cache project name lookup
+    if (!projectCache.has(projectId)) {
+      const name = await getProjectName(projectId)
+      projectCache.set(projectId, name)
+    }
+
+    const projectName = projectCache.get(projectId) ?? `Project ${projectId}`
+
+    if (!tasksByProject.has(projectName)) {
+      tasksByProject.set(projectName, [])
+    }
+    tasksByProject.get(projectName)?.push(task)
+  }
+
+  logDebug(pluginJson, `groupTasksByProject: Grouped ${tasks.length} tasks into ${tasksByProject.size} projects`)
+  return tasksByProject
+}
+
+/**
+ * Sync tasks by date filter across all projects, organized by project and section
+ *
+ * @param {string} dateFilter - The date filter to apply
+ * @returns {Promise<void>}
+ */
+async function syncByProjectWithDateFilter(dateFilter: string): Promise<void> {
+  setSettings()
+
+  const note: ?TNote = Editor.note
+  if (!note) {
+    logWarn(pluginJson, 'No note open in Editor')
+    return
+  }
+
+  // Clear global arrays to ensure clean state for this sync
+  closed.length = 0
+  just_written.length = 0
+  existing.length = 0
+
+  // Fetch all tasks matching filter (handles pagination automatically)
+  const allTasks = await pullAllTodoistTasksByDateFilter(dateFilter)
+  logDebug(pluginJson, `syncByProjectWithDateFilter: allTasks is array: ${Array.isArray(allTasks)}, length: ${allTasks.length}`)
+
+  logInfo(pluginJson, `syncByProjectWithDateFilter: Found ${allTasks.length} tasks matching filter: ${dateFilter}`)
+
+  if (allTasks.length === 0) {
+    logInfo(pluginJson, `No tasks found matching filter: ${dateFilter}`)
+    return
+  }
+
+  // Check existing tasks to avoid duplicates
+  const paragraphs = note.paragraphs
+  if (paragraphs) {
+    paragraphs.forEach((p) => checkParagraph(p))
+  }
+
+  // Group by project
+  const tasksByProject = await groupTasksByProject(allTasks)
+
+  // Write each project with its tasks
+  for (const [projectName, projectTasks] of tasksByProject) {
+    // Add project heading
+    const headingLevel = addProjectSeparator(note, projectName, true)
+
+    // Get section map for this project (all tasks in same project have same project_id)
+    const firstTask = projectTasks[0]
+    const sectionMap = await fetchProjectSections(firstTask.project_id)
+
+    // Separate sectioned and unsectioned tasks
+    const tasksBySection: Map<string, Array<Object>> = new Map()
+    const unsectionedTasks: Array<Object> = []
+
+    for (const task of projectTasks) {
+      if (task.section_id && sectionMap.has(task.section_id)) {
+        const sectionName = sectionMap.get(task.section_id) ?? ''
+        if (!tasksBySection.has(sectionName)) {
+          tasksBySection.set(sectionName, [])
+        }
+        tasksBySection.get(sectionName)?.push(task)
+      } else {
+        unsectionedTasks.push(task)
+      }
+    }
+
+    logDebug(pluginJson, `Project "${projectName}": ${unsectionedTasks.length} unsectioned, ${tasksBySection.size} sections`)
+
+    // Write unsectioned tasks first
+    for (const task of unsectionedTasks) {
+      await writeOutTaskSimple(note, task, true)
+    }
+
+    // Write each section
+    for (const [sectionName, sectionTasks] of tasksBySection) {
+      addSectionHeading(note, sectionName, headingLevel, true)
+      for (const task of sectionTasks) {
+        await writeOutTaskSimple(note, task, true)
+      }
     }
   }
-  const result = await fetch(`${todo_api}/tasks${filter}`, getRequestObject())
-  if (result) {
-    return result
+
+  // Close completed tasks
+  for (const t of closed) {
+    await closeTodoistTask(t)
   }
-  return null
+}
+
+/**
+ * Sync tasks due today (API semantics: only today, no overdue), organized by project
+ * @returns {Promise<void>}
+ */
+export async function syncTodayByProject(): Promise<void> {
+  await syncByProjectWithDateFilter('today')
+}
+
+/**
+ * Sync all overdue Todoist tasks, organized by project
+ * @returns {Promise<void>}
+ */
+export async function syncOverdueByProject(): Promise<void> {
+  await syncByProjectWithDateFilter('overdue')
+}
+
+/**
+ * Sync current tasks (today + overdue), organized by project
+ * @returns {Promise<void>}
+ */
+export async function syncCurrentByProject(): Promise<void> {
+  await syncByProjectWithDateFilter('today | overdue')
+}
+
+/**
+ * Sync all Todoist tasks due within 7 days, organized by project
+ * @returns {Promise<void>}
+ */
+export async function syncWeekByProject(): Promise<void> {
+  await syncByProjectWithDateFilter('7 days')
 }
 
 /**
