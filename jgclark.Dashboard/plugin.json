@@ -4,7 +4,7 @@
   "plugin.id": "jgclark.Dashboard",
   "plugin.name": "🎛 Dashboard",
   "plugin.icon": "fa-gauge-high",
-  "plugin.iconColor": "purple-600",
+  "plugin.iconColor": "red-600",
   "plugin.description": "A Dashboard for NotePlan, that in one place shows:\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next notes ready to review (if you use the 'Projects and Reviews' plugin).\nIt includes many other ways of speeding up managing your tasks: see the website for more details.",
   "plugin.author": "@jgclark",
   "plugin.comment": "TODO: On full release, change minAppVersion down to 3.7?",

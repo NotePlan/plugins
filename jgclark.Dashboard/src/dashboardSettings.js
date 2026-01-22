@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2025-12-04 for v2.4.0, @jgclark
+// Last updated 2026-01-22 for v2.4.0.b17, @jgclark
 //-----------------------------------------------------------------------------
 
 import { defaultSectionDisplayOrder } from './constants.js'
@@ -82,7 +82,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'heading',
     label: 'What to Include and Exclude',
     description:
-      "These settings control what Spaces, folders and items are included and excluded in Dashboard's many sections. It will first use only the included Spaces. Then, it includes the folders from the next setting, and removes any specified from the following setting. Finally, individual lines in notes can be ignored by adding terms to the last setting.",
+      "These settings control what Spaces, folders and items are included and excluded in Dashboard's many sections. It will first use only the included Spaces. Then, it includes the folders from the next setting, and removes any specified from the following setting. Then certain Sections within Calendar notes can be included. Finally, individual lines in notes can be ignored by adding terms to the last setting.",
   },
   {
     key: 'includedTeamspaces',
@@ -105,21 +105,21 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     compactDisplay: true,
   },
   {
-    key: 'includedCalendarSections',
-    label: 'Calendar note Sections to Include',
-    description:
-      "Comma-separated list of calendar note section headings to include when selecting open tasks/checklists to show. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all sections are included.",
-    type: 'input',
-    default: '',
-    compactDisplay: true,
-  },
-  {
     key: 'excludedFolders',
     label: 'Folders to Exclude',
     description:
       "Comma-separated list of folder(s) to ignore when selecting open tasks/checklists to show. The matches are partial, so 'Work' will exclude 'Work' and 'Work/CompanyA' etc. To ignore notes at the top-level (not in a folder), include '/' in the list. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)",
     type: 'input',
     default: '@Archive, @Templates, Saved Searches',
+    compactDisplay: true,
+  },
+  {
+    key: 'includedCalendarSections',
+    label: 'Calendar note Sections to Include',
+    description:
+      "Comma-separated list of calendar note section headings to include when selecting open tasks/checklists to show. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all sections are included.",
+    type: 'input',
+    default: '',
     compactDisplay: true,
   },
   {

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-01-19 for v2.4.0.b16 by @jgclark
+// Last updated 2026-01-22 for v2.4.0.b17 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -79,8 +79,9 @@ export type TDashboardSettings = {
   hidePriorityMarkers: boolean,
   ignoreChecklistItems: boolean,
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use
-  includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
+  includedCalendarSections: string, // Note: Run through stringListOrArrayToArray() before use
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
+  includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
   showFolderName: boolean, // Note: was includeFolderName before 2.2.0.
   showScheduledDates: boolean, // Note: was includeScheduledDates before 2.2.0.rename to show...
   showTaskContext: boolean, // Note: was includeTaskContext before 2.2.0.

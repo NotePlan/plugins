@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-01-16 for v2.4.0.b15, @jgclark
+// Last updated 2026-01-22 for v2.4.0.b17, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -691,13 +691,14 @@ export function filterParasByIncludedCalendarSections(
   if (!dashboardSettings.includedCalendarSections) {
     return paras
   }
+  const includedCalendarSections = stringListOrArrayToArray(dashboardSettings.includedCalendarSections, ',')
 
   const filteredParas = paras.filter((p) => {
     // only apply to calendar notes
     if (p.note?.type !== 'Calendar') return true
     // Apply to all H4/H3/H2 headings in the hierarchy for this para
     const theseHeadings = getHeadingHierarchyForThisPara(p)
-    return theseHeadings.some((h) => dashboardSettings.includedCalendarSections.includes(h))
+    return theseHeadings.some((h) => includedCalendarSections.includes(h))
   })
   logTimer(functionName, startTime, `- after filtering out calendar headings: ${filteredParas.length} paras`)
   return filteredParas
