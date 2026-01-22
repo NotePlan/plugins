@@ -110,7 +110,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description:
       "Comma-separated list of folder(s) to ignore when selecting open tasks/checklists to show. The matches are partial, so 'Work' will exclude 'Work' and 'Work/CompanyA' etc. To ignore notes at the top-level (not in a folder), include '/' in the list. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)",
     type: 'input',
-    default: '@Archive, @Templates, Saved Searches',
+    default: '@Archive, @Templates, @Searches, @WindowSets',
     compactDisplay: true,
   },
   {

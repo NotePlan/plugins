@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-12-01 for v2.3.1
+// Last updated 2026-01-22 for v2.4.0.b17, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -287,28 +287,38 @@ export function replacePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef
  * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all
  * @param {string} name
  * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns {Array<TPerspectiveDef>}
+ * @returns {Array<TPerspectiveDef>} the revised perspectiveSettings array
  */
 export function setActivePerspective(name: string, perspectiveSettings: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
   // map over perspectiveSettings, setting isActive to true for the one with name === name, and false for all others
-  return perspectiveSettings ? perspectiveSettings.map((s) => ({ ...s, isActive: s.name === name, isModified: false })) : []
+  return perspectiveSettings ? perspectiveSettings.map((s) => ({
+    ...s,
+    isActive: s.name === name,
+    isModified: false,
+  })) : []
 }
 
 /**
- * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all
- * @param {string} name
+ * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all. The isModified flag is only reset for the renamed perspective.
+ * @param {string} oldName
+ * @param {string} newName - the new name for the perspective
  * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns {Array<TPerspectiveDef>}
+ * @returns {Array<TPerspectiveDef>} the revised perspectiveSettings array
  */
 export function renamePerspective(oldName: string, newName: string, perspectiveSettings: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
-  return perspectiveSettings.map((s) => ({ ...s, name: s.name === oldName ? newName : s.name }))
+  return perspectiveSettings.map((s) => (
+    {
+      ...s,
+      name: s.name === oldName ? newName : s.name,
+      isModified: s.name === oldName ? false : s.isModified  // Reset isModified for renamed perspective
+    }))
 }
 
 /**
  * Private function to add a new Perspective definition to the array
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @param {TPerspectiveDef} newDef
- * @returns {Array<TPerspectiveDef>}
+ * @returns {Array<TPerspectiveDef>} the revised perspectiveSettings array
  */
 function addPerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, newDef: TPerspectiveDef): Array<TPerspectiveDef> {
   return [...perspectiveSettings, newDef]
@@ -318,7 +328,7 @@ function addPerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, newDef: 
  * Private function to delete a Perspective definition from the array
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @param {string} name
- * @returns {Array<TPerspectiveDef>}
+ * @returns {Array<TPerspectiveDef>} the revised perspectiveSettings array
  */
 function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, name: string): Array<TPerspectiveDef> {
   return perspectiveSettings.filter((s) => s.name !== name)
@@ -726,17 +736,6 @@ export async function addNewPerspective(nameArg?: string): Promise<void> {
  */
 export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   logDebug('deleteAllNamedPerspectiveSettings', `Attempting to delete all Perspective settings (other than default) ...`)
-  // v1
-  // const pluginSettings = DataStore.settings
-  // pluginSettings.perspectiveSettings = "[]"
-  // const dSettings = await getDashboardSettings()
-  // $FlowIgnore
-  // delete dSettings.perspectiveSettings
-  // pluginSettings.dashboardSettings = JSON.stringify(dSettings)
-  // clo(pluginSettings.perspectiveSettings, `... leaves: pluginSettings.perspectiveSettings =`)
-  // DataStore.settings = pluginSettings
-
-  // V2
   let allDefs = await getPerspectiveSettings()
   for (const p of allDefs) {
     if (p.name !== '-') {
@@ -745,15 +744,16 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   }
   logDebug('deleteAllNamedPerspectiveSettings', `Deleted all named perspectives, other than default.`)
 
-  allDefs = await getPerspectiveSettings()
-  const updatedListOfPerspectives = getDisplayListOfPerspectiveNames(allDefs)
+  const onlyDefaultPerspectiveDef: Array<TPerspectiveDef> = await getPerspectiveSettings()
+  const updatedListOfPerspectives = getDisplayListOfPerspectiveNames(onlyDefaultPerspectiveDef)
   logDebug('deleteAllNamedPerspectiveSettings', `New default list of available perspectives: [${String(updatedListOfPerspectives ?? [])}]`)
 
   // Set current perspective to default ("-")
-  const newPerspectiveSettings = await switchToPerspective('-', allDefs)
+  const newPerspectiveSettings = await switchToPerspective('-', onlyDefaultPerspectiveDef)
   await setPluginData({ perspectiveSettings: newPerspectiveSettings }, `_Deleted all named perspectives`)
 
-  // TODO: Update tagCache definition list json
+  // Update tagCache definition list json
+  updateTagMentionCacheDefinitionsFromAllPerspectives(onlyDefaultPerspectiveDef)
   logDebug('deleteAllNamedPerspectiveSettings', `Result of switchToPerspective("-"): ${String(newPerspectiveSettings)}`)
 }
 

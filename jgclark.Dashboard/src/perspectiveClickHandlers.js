@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-06-04 for v2.3.0
+// Last updated 2026-01-22 for v2.4.0.b17
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
@@ -27,23 +27,25 @@ import {
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 
-/****************************************************************************************************************************
- *                             NOTES
- ****************************************************************************************************************************
-
+/**
+ * -----------------------------------------------------------------------------
+*  Notes
+* -------------------------------------------------------------------------------
 - Handlers should use the standard return type of TBridgeClickHandlerResult
 - handlerResult() can be used to create the result object
 - Types are defined in types.js
     - type TActionOnReturn = 'UPDATE_CONTENT' | 'REMOVE_LINE' | 'REFRESH_JSON' | 'START_DELAYED_REFRESH_TIMER' etc.
+*/
 
-/****************************************************************************************************************************
- *                             Data types + constants
- ****************************************************************************************************************************/
+//-----------------------------------------------------------------------------
+// Constants
+//-----------------------------------------------------------------------------
 
 const pluginID = 'jgclark.Dashboard'
-/****************************************************************************************************************************
- *                             HANDLERS
- ****************************************************************************************************************************/
+
+//-----------------------------------------------------------------------------
+// Handlers
+//-----------------------------------------------------------------------------
 
 export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   clo(_data, `doAddNewPerspective starting ...`)
@@ -115,12 +117,25 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
   if (newName === '') return handlerResult(false, [], { errorMsg: `doRenamePerspective: newName is empty` })
   if (origName === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" cannot be renamed` })
   if (newName === '-') return handlerResult(false, [], { errorMsg: `Perspectives cannot be renamed to "-".` })
+  const dashboardSettings = await getDashboardSettings()
   const perspectiveSettings = await getPerspectiveSettings()
   const existingDef = getPerspectiveNamed(origName, perspectiveSettings)
-  if (!existingDef) return handlerResult(false, [], { errorMsg: `can't get definition for perspective ${origName}` })
+  if (!existingDef) return handlerResult(false, [], { errorMsg: `Can't find the definition for perspective "${origName}"` })
   const revisedDefs = renamePerspective(origName, newName, perspectiveSettings)
-  if (!revisedDefs) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
-  const res = await savePerspectiveSettings(revisedDefs)
+  if (!revisedDefs) return handlerResult(false, [], { errorMsg: `renamePerspective failed` })
+
+  // v1
+  // const res = await savePerspectiveSettings(revisedDefs)
+  // if (!res) {
+  //   return handlerResult(false, [], { errorMsg: `saveSettings failed` })
+  // }
+  // v2. But still not saving the dashboardSettings.
+  const res = await saveSettings(pluginID, {
+    ...(await getSettings('jgclark.Dashboard')),
+    dashboardSettings: dashboardSettings,
+    perspectiveSettings: revisedDefs,
+  })
+
   await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${newName}`)
   if (!res) {
     return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })

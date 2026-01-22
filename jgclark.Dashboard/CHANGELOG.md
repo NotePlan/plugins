@@ -8,11 +8,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
-<!-- - ??? dev: check winowID throughout -->
 
 ## [2.4.0.b17] 2026-01-21
 ### New
 - added new way to select items to show from Calendar sections: "Calendar note Sections to Include". There is already a way to exclude specific sections in a calendar note; this adds a way to only include specific sections. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all sections are still included.
+- WIP: tried and failed to get 'Rename Perspective' to actually save it fully to settings.json
 
 ## [2.4.0.b16] 2026-01-20
 ### Fixes
@@ -24,6 +24,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dev: suppress "backup settings" messages to users on upgrades
 - align the two different sidebar icon colours
 - dev: fix a wrong windowID that had crept in
+- dev: check using same winowID throughout
 
 ## [2.4.0.b15] 2026-01-17
 ### Changed
