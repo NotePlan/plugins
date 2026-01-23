@@ -1,6 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.3.0.b6] - 2026-01-23
+- improved messages to users under certain error conditions
+- dev: updated semver checking to hopefully remove unnecessary logged errors
+
 ## [1.3.0.b5] - 2026-01-20
 - new setting "Progress Heading" allows to put a heading wherever you want in a project note for the  `Progress: ...` lines to live. If a note has existing progress lines when this is first set, it will first find them and insert the heading above the lines. (Requested by @Harold.)
 - fixed edge case when writing progress lines (thanks, @Mourique)
