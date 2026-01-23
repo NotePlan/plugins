@@ -166,9 +166,34 @@ export const findLongestStringInArray = (arr: Array<string>): string =>
 export function semverVersionToNumber(version: string): number {
   try {
     // Trim the version string at the first non-numeric, non-period character
-    const trimmedVersion = version.split(/[^0-9.]/)[0]
+    let trimmedVersion = version.split(/[^0-9.]/)[0]
+    const originalEndedWithPeriod = version.endsWith('.')
+    const trimmedEndsWithPeriod = trimmedVersion.endsWith('.')
+    
+    // If trimmed version ends with a period, check if what follows indicates an invalid version part
+    if (trimmedEndsWithPeriod && trimmedVersion.length < version.length) {
+      const trimmedPart = version.substring(trimmedVersion.length)
+      // Check if what was trimmed indicates an invalid version part:
+      // - Starts with period followed by single letter or negative number (e.g., ".a" or ".-3")
+      // - Starts with "-" followed by digit (negative number after period, e.g., "-3" from "1.2.-3")
+      // - Is a single letter (non-numeric part, e.g., "a" from "1.2.a")
+      // Note: We allow letter+digit combinations like "b5" as they might be valid suffixes
+      if (trimmedPart && (/^\.([a-zA-Z]|-\d)/.test(trimmedPart) || /^-\d/.test(trimmedPart) || /^[a-zA-Z]$/.test(trimmedPart))) {
+        throw new Error(`Invalid version part: version=${version}`)
+      }
+    }
+    
+    // Remove trailing periods that can occur when version has a period before suffix (e.g., "1.3.0.b5" -> "1.3.0.")
+    // But only if the original version didn't end with a period (which would be invalid)
+    if (trimmedEndsWithPeriod && !originalEndedWithPeriod) {
+      trimmedVersion = trimmedVersion.replace(/\.+$/, '')
+    }
 
     const parts = trimmedVersion.split('.').map((part) => {
+      // Check for empty parts - these are invalid
+      if (part === '') {
+        throw new Error(`Invalid version part: version=${version} part=${part}`)
+      }
       const numberPart = parseInt(part, 10)
       if (isNaN(numberPart) || numberPart < 0) {
         throw new Error(`Invalid version part: version=${version} part=${part}`)
