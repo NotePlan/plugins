@@ -117,31 +117,19 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
   if (newName === '') return handlerResult(false, [], { errorMsg: `doRenamePerspective: newName is empty` })
   if (origName === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" cannot be renamed` })
   if (newName === '-') return handlerResult(false, [], { errorMsg: `Perspectives cannot be renamed to "-".` })
-  const dashboardSettings = await getDashboardSettings()
   const perspectiveSettings = await getPerspectiveSettings()
   const existingDef = getPerspectiveNamed(origName, perspectiveSettings)
   if (!existingDef) return handlerResult(false, [], { errorMsg: `Can't find the definition for perspective "${origName}"` })
   const revisedDefs = renamePerspective(origName, newName, perspectiveSettings)
   if (!revisedDefs) return handlerResult(false, [], { errorMsg: `renamePerspective failed` })
 
-  // v1
-  // const res = await savePerspectiveSettings(revisedDefs)
-  // if (!res) {
-  //   return handlerResult(false, [], { errorMsg: `saveSettings failed` })
-  // }
-  // v2. But still not saving the dashboardSettings.
-  const res = await saveSettings(pluginID, {
-    ...(await getSettings('jgclark.Dashboard')),
-    dashboardSettings: dashboardSettings,
-    perspectiveSettings: revisedDefs,
-  })
-
-  await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${newName}`)
+  // FIXME: this appears to save Dashboard settings OK to the settings.json file, but not the perspectiveSettings part of that file
+  const res = await savePerspectiveSettings(revisedDefs)
   if (!res) {
     return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
-  } else {
-    return handlerResult(true, [])
   }
+  await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${newName}`)
+  return handlerResult(true, [])
 }
 
 /**

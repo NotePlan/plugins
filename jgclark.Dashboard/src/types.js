@@ -120,8 +120,7 @@ export type TDashboardSettings = {
   customSectionDisplayOrder: ?Array<TSectionCode>
 }
 
-export type TPerspectiveSettings = Array<TPerspectiveDef>
-
+// Type for a perspective definition; this includes (most) TDashboardSettings
 export type TPerspectiveDef = {
   name: string,
   dashboardSettings: Partial<TDashboardSettings>,
@@ -130,6 +129,9 @@ export type TPerspectiveDef = {
   lastModified?: number,
 }
 
+export type TPerspectiveSettings = Array<TPerspectiveDef>
+
+// Type for all the plugin settings in the settings.json file
 export type TDashboardPluginSettings = {
   ...TDashboardLoggingConfig,
   pluginID: string,

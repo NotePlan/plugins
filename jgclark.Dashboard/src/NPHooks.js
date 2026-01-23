@@ -1,11 +1,10 @@
 /* eslint-disable require-await */
 // @flow
-// Last updated 2024-12-17 for v2.1.0.b3 by @jgclark
+// Last updated 2026-01-22 for v2.4.0 by @jgclark
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
 // import { getLogSettings, setPluginData } from './dashboardHelpers'
-import { log, logError, logInfo, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
+import { logError, JSP } from '@helpers/dev'
 // import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
@@ -16,22 +15,6 @@ import { showMessage } from '@helpers/userInput'
  * It is unlikely you will need to edit/add anything below this line
  *
  */
-
-/**
- * NotePlan calls this function after the plugin is installed or updated.
- * The `updateSettingData` function looks through the new plugin settings in plugin.json and updates
- * the user preferences to include any new fields
- */
-export async function onUpdateOrInstall(): Promise<void> {
-  try {
-    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall started`)
-    // Tell user the plugin has been updated
-    await updateSettingData(pluginJson)
-    await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` })
-  } catch (error) {
-    logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
-  }
-}
 
 /**
  * NotePlan calls this function every time the plugin is run (any command in this plugin, including triggers)

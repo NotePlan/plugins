@@ -13,12 +13,19 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ### New
 - added new way to select items to show from Calendar sections: "Calendar note Sections to Include". There is already a way to exclude specific sections in a calendar note; this adds a way to only include specific sections. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all sections are still included.
 - WIP: tried and failed to get 'Rename Perspective' to actually save it fully to settings.json
+### Dev
+- remove redundant code in index.js::onUpdateOrInstall() now that key renaming doesn't happen there
+- removing unused old copy of onUpdateOrInstall() in NPHooks.js
 
 ## [2.4.0.b16] 2026-01-20
+### New
+- the Projects section now shows the latest Project Progress summary for each project, if present.
+- the Projects section now shows the first of any 'Next Actions' as defined by the settings in the Projects plugin.
 ### Fixes
 - suppress "showing all 0 items" message when "nothing on this list" message also appears
 - stop tag cache source message appearing in Section header when feature flag not turned on
 - changing 'Dashboard Theme' setting will now change straight away rather than next time the Dashboard starts.
+### Dev
 - dev: using new `TProjectForDashboard` type, spread into `TParagraphForDashboard` and `TProjectForDashboard` to show commonality
 - dev: new NoteTitleLink component, used by ProjectItem and ItemNoteLink components
 - dev: suppress "backup settings" messages to users on upgrades
