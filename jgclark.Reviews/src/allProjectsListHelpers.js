@@ -4,17 +4,14 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-01-16 for v1.3.0.b4, @jgclark
+// Last updated 2026-01-24 for v1.3.0.b7, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { Project, calcReviewFieldsForProject } from './projectClass.js'
-import {
-  getReviewSettings,
-  type ReviewConfig,
-  updateDashboardIfOpen,
-} from './reviewHelpers.js'
+import { getReviewSettings, updateDashboardIfOpen } from './reviewHelpers.js'
+import type { ReviewConfig } from './reviewHelpers.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toISODateString } from '@helpers/dateTime'
 import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
@@ -422,11 +419,13 @@ export async function generateAllProjectsList(configIn: any, runInForeground: bo
     const projectInstances = await getAllMatchingProjects(configIn, runInForeground)
 
     // Log the start this full generation to a special log note
-    // Note: This logging may be removed in a future version
-    const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
-    if (logNote) {
-      const newLogLine = `${new Date().toLocaleString()}: Reviews (generateAllProjectsList) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
-      smartPrependPara(logNote, newLogLine, 'list')
+    // TODO: Remove when v1.3.0 or v1.4.0 is released
+    if (configIn?._logLevel === 'DEBUG' || configIn?._logLevel === 'DEV') {
+      const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
+      if (logNote) {
+        const newLogLine = `${new Date().toLocaleString()}: Reviews (generateAllProjectsList) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
+        smartPrependPara(logNote, newLogLine, 'list')
+      }
     }
 
     await writeAllProjectsList(projectInstances)
@@ -450,7 +449,7 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
       const reviewListDate = Date.now()
       DataStore.setPreference(generatedDatePrefName, reviewListDate)
       logInfo('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
-      // await updateDashboardIfOpen() // TEST: leaving to calling functions
+      await updateDashboardIfOpen()
     } else {
       throw new Error(`Error writing JSON to '${allProjectsListFilename}'`)
     }
@@ -673,9 +672,6 @@ export async function updateAllProjectsListAfterChange(
     // re-form the file
     await writeAllProjectsList(allProjects)
     logInfo('updateAllProjectsListAfterChange', `- done writing ${allProjects.length} items to updated list 🔸`)
-
-    // Finally, refresh Dashboard
-    await updateDashboardIfOpen()
   }
   catch (error) {
     logError('updateAllProjectsListAfterChange', JSP(error))
