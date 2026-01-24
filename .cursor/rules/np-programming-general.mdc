@@ -1,6 +1,8 @@
 ---
+description: 
 alwaysApply: true
 ---
+
 ## Critical Rules
 CRITICAL: Never use dynamic imports. Rollup will not process them correctly. Always use static imports at the top of files.
 
@@ -39,3 +41,6 @@ The most frequently used functions in the codebase are:
 - If testing Templating code, run tests like this `jest np.Templating/__tests__/**/*.test.js --no-watch`
 - When you run jest tests, always include the flag --no-watch at the end because my jest config by default watches
 - **DO NOT EVER HARD-CODE JEST WORKAROUNDS INTO FUNCTIONS WE ARE TESTING**
+
+## Developer Documentation
+- Add updates to the first H2 section in the plugin's CHANGELOG.md file -- this should match the release number as found in the relevant plugin.json file
