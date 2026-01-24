@@ -2719,6 +2719,7 @@ declare class HTMLView {
   *   - showReloadButton: boolean - Show a reload button in the navigation bar (default: false)
   *   - reloadPluginID: string - The plugin ID to use by the reload button.
   *   - reloadCommandName: string - The command name to use by the reload button.
+  *   - reloadCommandArgs: array of strings - The arguments to pass to the reload command.
   * @returns { Promise<{boolean, string}> } Returns a promise that resolves with { success: true, windowID: String }
   *
   * @example
