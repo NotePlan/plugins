@@ -16,6 +16,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - To make it clearer, renamed the existing "Projects" section to "Projects to Review".
 - Generation of sections now happens in the same (possibly-custom) order that they are displayed.
 - Turned back on automatic updates from Project plugin's Project List window (if both plugins are running). [Requires Project + Reviews plugin v1.3.0 beta 7 or later]
+### Fix
+- Display of name of Project notes if they were from a (Team)Space. 
 
 ## [2.4.0.b17] 2026-01-21
 ### New
