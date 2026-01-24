@@ -1,6 +1,9 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.3.0.b7] - 2026-01-24
+- update next action processing to only the first tagged item is returned, or if none, then the first open item if sequential tag is present in the frontmatter.
+
 ## [1.3.0.b6] - 2026-01-23
 - improved messages to users under certain error conditions
 - dev: updated semver checking to hopefully remove unnecessary logged errors

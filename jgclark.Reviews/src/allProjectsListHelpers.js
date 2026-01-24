@@ -798,7 +798,6 @@ export async function getAllActiveProjects(): Promise<Array<Project>> {
     } else {
       logDebug('reviews/getAllActiveProjects', `- No projects found for current perspective 🎉`)
     }
-    log
     return allActiveProjectsSorted
   }
   catch (error) {

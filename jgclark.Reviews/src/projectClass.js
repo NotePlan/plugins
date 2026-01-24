@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-01-20 for v1.3.0.b5, @jgclark
+// Last updated 2026-01-24 for v1.3.0.b7, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -499,17 +499,7 @@ export class Project {
       }
     }
 
-    // If sequential tag found, add first open task/checklist
-    if (hasSequentialTag) {
-      const firstOpenParas = paras.filter(isOpen)
-      if (firstOpenParas.length > 0) {
-        const firstOpenAction = firstOpenParas[0].rawContent
-        this.nextActionsRawContent.push(simplifyRawContent(firstOpenAction))
-        logDebug('Project', `  - found sequential nextActionRawContent = ${firstOpenAction}`)
-      }
-    }
-
-  // Process tagged next actions
+    // First, look for tagged next actions - use the first one found
     for (const nextActionTag of nextActionTags) {
       const nextActionParas = paras.filter(isOpen).filter((p) => p.content.match(nextActionTag))
 
@@ -517,11 +507,18 @@ export class Project {
         const thisNextAction = nextActionParas[0].rawContent
         this.nextActionsRawContent.push(simplifyRawContent(thisNextAction))
         logDebug('Project', `  - found nextActionRawContent = ${thisNextAction}`)
+        return // Found a tagged action, so we're done (at most 1 next action)
       }
     }
-    // If we have more than one next action, then its rare but possible to get valid duplicates, so dedupe them to make it look more sensible
-    if (this.nextActionsRawContent.length > 1) {
-      this.nextActionsRawContent = this.nextActionsRawContent.filter((na, index, self) => self.indexOf(na) === index)
+
+    // If no tagged next actions found, and hasSequentialTag is true, use first open item
+    if (hasSequentialTag) {
+      const firstOpenParas = paras.filter(isOpen)
+      if (firstOpenParas.length > 0) {
+        const firstOpenAction = firstOpenParas[0].rawContent
+        this.nextActionsRawContent.push(simplifyRawContent(firstOpenAction))
+        logDebug('Project', `  - found sequential nextActionRawContent = ${firstOpenAction}`)
+      }
     }
   }
 
