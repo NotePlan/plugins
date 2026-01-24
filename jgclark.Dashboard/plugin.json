@@ -161,6 +161,15 @@
     },
     {
       "hidden": true,
+      "name": "refreshSectionsByCode",
+      "description": "Refresh sections with section codes",
+      "jsFunction": "refreshSectionsByCode",
+      "arguments": [
+        "array of section codes to refresh"
+      ]
+    },
+    {
+      "hidden": true,
       "name": "onMessageFromHTMLView",
       "description": "React Window calling back to plugin",
       "jsFunction": "onMessageFromHTMLView"

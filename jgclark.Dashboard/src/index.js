@@ -2,21 +2,17 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2026-01-22 for v2.4.0.b17
+// last updated 2026-01-24 for v2.4.0.b18
 // ----------------------------------------------------------------------------
 
 /**
  * Imports
  */
 import pluginJson from '../plugin.json'
-// import { getDashboardSettingsDefaultsWithSectionsSetToFalse } from './dashboardHelpers'
-// import { showDashboardReact } from './reactMain'
 import { parseSettings } from './shared'
 import { generateTagMentionCache } from './tagMentionCache'
-// import { renameKeys } from '@helpers/dataManipulation'
 import {
   clo, JSP, logDebug, logError, logInfo, logWarn,
-  // compareObjects
 } from '@helpers/dev'
 import * as npc from '@helpers/NPConfiguration'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
@@ -36,7 +32,8 @@ export { editSettings } from '@helpers/NPSettings'
 export {
   decideWhetherToUpdateDashboard, /// TODO(later): remove, now that onEditorWillSave is here
   onEditorWillSave,
-  refreshSectionByCode
+  refreshSectionByCode,
+  refreshSectionsByCode
 } from './dashboardHooks.js'
 
 export { generateDiagnosticsFile } from './diagnosticGenerator'

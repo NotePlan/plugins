@@ -185,11 +185,28 @@ export async function refreshSectionByCode(sectionCode: TSectionCode): Promise<v
     logDebug('refreshSectionByCode', `Dashboard not open, so won't proceed ...`)
     return
   }
-  logDebug('refreshSectionByCode', `Dashboard is open, so starting ...`)
+  logDebug('refreshSectionByCode', `Dashboard is open, so will refresh section ${sectionCode} ...`)
   const data: MessageDataObject = {
     sectionCodes: [sectionCode],
     actionType: 'refreshSomeSections',
   }
   const res = await refreshSomeSections(data, true)
   logDebug('refreshSectionByCode', `done.`)
+}
+
+/**
+ * Refresh a section given by its code -- if the Dashboard is open already.
+ */
+export async function refreshSectionsByCode(sectionCodes: Array<TSectionCode>): Promise<void> {
+  if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
+    logDebug('refreshSectionsByCode', `Dashboard not open, so won't proceed ...`)
+    return
+  }
+  logDebug('refreshSectionsByCode', `Dashboard is open, so will refresh sections ${String(sectionCodes)} ...`)
+  const data: MessageDataObject = {
+    sectionCodes: sectionCodes,
+    actionType: 'refreshSomeSections',
+  }
+  const res = await refreshSomeSections(data, true)
+  logDebug('refreshSectionsByCode', `done.`)
 }

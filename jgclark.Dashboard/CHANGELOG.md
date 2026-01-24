@@ -9,12 +9,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b18] 2026-01-23
+## [2.4.0.b18] 2026-01-24
 ### New
 - New Section "Active Projects", which shows a list of all the currently-active projects from the separate Project & Reviews plugin. This includes any currently open projects (i.e. not completed, cancelled or paused) that match its settings, or are included in the current Perspective, if that option is set.  It's designed to complement the existing Projects Section. It also shows the first of any 'Next Actions' as defined by the settings in the Projects plugin.
 ### Changed
 - To make it clearer, renamed the existing "Projects" section to "Projects to Review".
 - Generation of sections now happens in the same (possibly-custom) order that they are displayed.
+- Turned back on automatic updates from Project plugin's Project List window (if both plugins are running). [Requires Project + Reviews plugin v1.3.0 beta 7 or later]
 
 ## [2.4.0.b17] 2026-01-21
 ### New
