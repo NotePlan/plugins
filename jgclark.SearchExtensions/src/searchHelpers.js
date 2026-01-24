@@ -1,4 +1,3 @@
-/* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
@@ -255,7 +254,7 @@ export function normaliseSearchTerms(searchArg: string): Array<string> {
     // NB: Allows full unicode letter characters (\p{L}) and numbers (\p{N}) rather than ASCII (\w): (info from Dash.)
     // NB: To make the regex easier, add a space to start and end, and switch the order of any [-+!]['"]
     const RE_WOW = new RegExp(/(([\p{L}\p{N}\s\-\/@\(\)#*?.+!']*)(?="\s)|([\p{L}\p{N}\-@\/\(\)#.+!'\*\?]*))/gu)
-    let searchArgPadded = ' ' + searchArg + ' '
+    let searchArgPadded = ` ${searchArg} `
     searchArgPadded = searchArgPadded
       .replace(/\s-"/, ' "-').replace(/\s\+"/, ' "+').replace(/\s!"/, ' "!')
     const reResults = searchArgPadded.match(RE_WOW)
@@ -398,8 +397,8 @@ export function optimiseOrderOfSearchTerms(inputTerms: Array<typedSearchTerm>): 
  */
 export function noteAndLineIntersection(arrA: Array<noteAndLine>, arrB: Array<noteAndLine>):
   Array<noteAndLine> {
-  const modA = arrA.map((m) => m.noteFilename + ':::' + String(m.index) + ':::' + m.line)
-  const modB = arrB.map((m) => m.noteFilename + ':::' + String(m.index) + ':::' + m.line)
+  const modA = arrA.map((m) => `${m.noteFilename}:::${String(m.index)}:::${m.line}`)
+  const modB = arrB.map((m) => `${m.noteFilename}:::${String(m.index)}:::${m.line}`)
   const intersectionModArr = modA.filter(f => modB.includes(f))
   const intersectionArr: Array<noteAndLine> = intersectionModArr.map((m) => {
     const parts = m.split(':::')
@@ -453,7 +452,7 @@ export function applySearchOperators(
   const mustResultObjects: Array<resultObjectType> = termsResults.filter((t) => t.searchTerm.type === 'must')
   const mayResultObjects: Array<resultObjectType> = termsResults.filter((t) => t.searchTerm.type === 'may')
   const notResultObjects: Array<resultObjectType> = termsResults.filter((t) => t.searchTerm.type.startsWith('not'))
-  logDebug('applySearchOperators', `Starting with ${getSearchTermsRep(termsResults.map(m => m.searchTerm))}: ${mustResultObjects.length} must terms; ${mayResultObjects.length} may terms; ${notResultObjects.length} not terms. Limiting to ${resultLimit} results. ${(fromDateStr && toDateStr) ? '- with dates from ' + fromDateStr + ' to ' + toDateStr : 'with no dates'}`)
+  logDebug('applySearchOperators', `Starting with ${getSearchTermsRep(termsResults.map((m) => m.searchTerm))}: ${mustResultObjects.length} must terms; ${mayResultObjects.length} may terms; ${notResultObjects.length} not terms. Limiting to ${resultLimit} results. ${(fromDateStr && toDateStr) ? `- with dates from ${fromDateStr} to ${toDateStr}` : 'with no dates'}`)
 
   let consolidatedNALs: Array<noteAndLine> = []
   let consolidatedNoteCount = 0
@@ -657,7 +656,7 @@ export function applySearchOperators(
  * @tests in jest file
  */
 export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteAndLine> {
-  const simplifiedArray = inArray.map((m) => m.noteFilename + ':::' + String(m.index) + ':::' + m.line)
+  const simplifiedArray = inArray.map((m) => `${m.noteFilename}:::${String(m.index)}:::${m.line}`)
   // const sortedArray = simplifiedArray.sort()
   const reducedArray = [... new Set(simplifiedArray)]
   const outputArray: Array<noteAndLine> = reducedArray.map((m) => {
@@ -707,7 +706,7 @@ export async function runExtendedSearches(
     const termsResults: Array<resultObjectType> = []
     let resultCount = 0
     let outerStartTime = new Date()
-    logDebug('runExtendedSearches', `Starting with ${termsToMatchArr.length} search term(s) and paraTypes '${String(paraTypesToInclude)}'. ${config.caseSensitiveSearching ? 'caseSensitive ON. ' : ''}${config.fullWordSearching ? 'fullWord ON. ' : ''}(With ${(fromDateStr && toDateStr) ? fromDateStr + '-' + toDateStr : 'no'} dates.)`)
+    logDebug('runExtendedSearches', `Starting with ${termsToMatchArr.length} search term(s) and paraTypes '${String(paraTypesToInclude)}'. ${config.caseSensitiveSearching ? 'caseSensitive ON. ' : ''}${config.fullWordSearching ? 'fullWord ON. ' : ''}(With ${(fromDateStr && toDateStr) ? `${fromDateStr}-${toDateStr}` : 'no'} dates.)`)
     logDebug('runExtendedSearches', `- config.syncOpenResultItems: ${String(config.syncOpenResultItems)}`)
     // Now optimise the order we tackle the search terms
     const orderedSearchTerms = optimiseOrderOfSearchTerms(termsToMatchArr)
@@ -817,8 +816,8 @@ export async function runExtendedSearch(
     const foldersToInclude = searchOptions.foldersToInclude || []
     const foldersToExclude = searchOptions.foldersToExclude || []
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
-    const fromDateStr = searchOptions.fromDateStr || ''
-    const toDateStr = searchOptions.toDateStr || ''
+    // const fromDateStr = searchOptions.fromDateStr || ''
+    // const toDateStr = searchOptions.toDateStr || ''
 
     // const headingMarker = '#'.repeat(config.headingLevel)
     const fullSearchTerm = typedSearchTerm.term
@@ -856,7 +855,7 @@ export async function runExtendedSearch(
 
     //-------------------------------------------------------
     // Finally, the actual Search API Call!
-    CommandBar.showLoading(true, `Running search for ${fullSearchTerm} ${fullSearchTerm !== searchTerm ? '(via ' + searchTerm + ') ' : ''}...`)
+    CommandBar.showLoading(true, `Running search for ${fullSearchTerm} ${fullSearchTerm !== searchTerm ? `(via ${searchTerm}) ` : ''}...`)
 
     const response = await DataStore.search(searchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, false)
     let tempResult: Array<TParagraph> = response.slice() // to convert from $ReadOnlyArray to $Array
@@ -883,7 +882,7 @@ export async function runExtendedSearch(
     // - replace ? with .
     // - replace * with [^\s]*? (i.e. any anything within the same 'word')
     if (wildcardedSearch) {
-      const regexSearchTerm = new RegExp('\\b' + fullSearchTerm.replace(/\?/g, '.').replace(/\*/g, '[^\\s]*?') + '\\b')
+      const regexSearchTerm = new RegExp(`\\b${fullSearchTerm.replace(/\?/g, '.').replace(/\*/g, '[^\\s]*?')}\\b`)
       logDebug('runExtendedSearch', `wildcard: before regex filtering with ${String(regexSearchTerm)}: ${String(tempResult.length)}`)
       tempResult = tempResult.filter(tr => regexSearchTerm.test(tr.content))
       logDebug('runExtendedSearch', `wildcard: after filtering: ${String(tempResult.length)}`)
@@ -1044,7 +1043,7 @@ export async function writeSearchResultsToNote(
     let resultsContent = ''
     // First check if we have any results
     if (resultSet.resultCount > 0) {
-      resultsContent = '\n' + createFormattedResultLines(resultSet, config).join('\n')
+      resultsContent = `\n${createFormattedResultLines(resultSet, config).join('\n')}`
       const resultCountsStr = resultCounts(resultSet)
       headingLine += `${searchTermsRepStr} ${resultCountsStr}`
     }
