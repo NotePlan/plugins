@@ -100,7 +100,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     if (workingSections.length >= 1 && dashboardSettings?.hideDuplicates) {
       // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
 
-      // These sections need to be ignored here, as they have different item types: TB, PROJ, TAG, INFO, SEARCH, SAVEDSEARCH
+      // Sections other than the standard task-based ones need to be ignored here
       const dedupedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dontDedupeSectionCodes, dashboardSettings)
       workingSections = dedupedSections
     }

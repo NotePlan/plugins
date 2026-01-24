@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-01-22 for v2.4.0.b17, @jgclark
+// Last updated 2026-01-23 for v2.4.0.b18, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -92,6 +92,15 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
       // Merge with defaults to ensure any new settings are added (existing settings take precedence)
       const defaults = getDashboardSettingsDefaults()
       parsedDashboardSettings = { ...defaults, ...parsedDashboardSettings, showSearchSection: true }
+
+      // Migration: Convert old showProjectSection to showProjectReviewSection
+      // @jgclark 2026-01-23: Renamed PROJ to PROJREVIEW and added PROJACT
+      if (parsedDashboardSettings.showProjectSection !== undefined && parsedDashboardSettings.showProjectReviewSection === undefined) {
+        logInfo('getDashboardSettings', `Migrating showProjectSection to showProjectReviewSection`)
+        parsedDashboardSettings.showProjectReviewSection = parsedDashboardSettings.showProjectSection
+        // Don't delete the old setting yet, in case user wants to roll back
+        // delete parsedDashboardSettings.showProjectSection
+      }
     }
 
     // Note: I can't find the underlying issue, but we need to ensure number setting types are numbers, and not strings
@@ -203,7 +212,8 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   if (config.showMonthSection) sectionsToShow.push('M')
   if (config.showQuarterSection) sectionsToShow.push('Q')
   if (config.showYearSection) sectionsToShow.push('Y')
-  if (config.showProjectSection) sectionsToShow.push('PROJ')
+  if (config.showProjectActiveSection) sectionsToShow.push('PROJACT')
+  if (config.showProjectReviewSection) sectionsToShow.push('PROJREVIEW')
   if (config.tagsToShow) sectionsToShow.push('TAG')
   if (config.showOverdueSection) sectionsToShow.push('OVERDUE')
   if (config.showPrioritySection) sectionsToShow.push('PRIORITY')

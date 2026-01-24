@@ -1,13 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-01-08 for v2.4.0.b10, @jgclark
+// Last updated 2026-01-23 for v2.4.0.b18, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import type { TDashboardSettings, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSettingItem } from './types'
-import { allSectionCodes } from './constants.js'
+import { allSectionCodes, defaultSectionDisplayOrder } from './constants.js'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionOpenItemsFromParas,
@@ -19,7 +19,7 @@ import {
 import { getTodaySectionData, getTimeBlockSectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
 import { getOverdueSectionData } from './dataGenerationOverdue'
 import { getPrioritySectionData } from './dataGenerationPriority'
-import { getProjectSectionData } from './dataGenerationProjects'
+import { getProjectReviewSectionData, getProjectActiveSectionData } from './dataGenerationProjects'
 import { getSavedSearchResults } from './dataGenerationSearch'
 import { getTaggedSectionData } from './dataGenerationTags'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
@@ -78,7 +78,7 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean,
 ): Promise<Array<TSection>> {
   try {
-    // logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
+    logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
     const config: TDashboardSettings = await getDashboardSettings()
 
     // TODO: change generation order to suit the new custom section display order
@@ -100,11 +100,16 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('Y') && config.showYearSection) sections.push(...getThisYearSectionData(config, useDemoData, useEditorWherePossible))
 
     // moderately quick to generate
-    if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) {
+    if (sectionCodesToGet.includes('PROJACT') && config.showProjectActiveSection) {
       logInfo('getSomeSectionsData', `🔹 Getting Project section data as part of ${sectionCodesToGet.toString()}`)
-      const projectSection = await getProjectSectionData(config, useDemoData)
+      const projectSection = await getProjectActiveSectionData(config, useDemoData)
       if (projectSection) sections.push(projectSection)
     }
+  if (sectionCodesToGet.includes('PROJREVIEW') && config.showProjectReviewSection) {
+    logInfo('getSomeSectionsData', `🔹 Getting Project section data as part of ${sectionCodesToGet.toString()}`)
+    const projectSection = await getProjectReviewSectionData(config, useDemoData)
+    if (projectSection) sections.push(projectSection)
+  }
 
     // The rest can all be slow to generate
     if (sectionCodesToGet.includes('SAVEDSEARCH')) sections.push(...(await getSavedSearchResults(config, useDemoData)))

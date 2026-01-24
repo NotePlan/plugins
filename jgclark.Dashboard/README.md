@@ -354,7 +354,8 @@ For the `setSetting` callbacks, the names of the possible settings (described ab
 | showQuarterSection | true / false |
 | showOverdueSection | true / false |
 | showPrioritySection | true / false |
-| showProjectSection | true / false |
+| showProjectActiveSection | true / false |
+| showProjectReviewSection | true / false |
 | maxItemsToShowInSection | number |
 | overdueSortOrder | string |
 | tagsToShow | string |

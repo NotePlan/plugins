@@ -30,7 +30,7 @@ export type RequestResponse = {
 export function addTaskToNote(params: { filename: string, taskText: string, heading?: ?string, space?: ?string }, pluginJson: any): RequestResponse {
   try {
     const { filename, taskText, heading, space } = params
-    logDebug(pluginJson, `[Dashboard/requestHandlers] addTaskToNote: filename="${filename}", taskText="${taskText}", heading="${heading || 'none'}", space="${space || 'private'}"`)
+    logDebug('Dashboard/requestHandlers] addTaskToNote', `Starting with filename="${filename}", taskText="${taskText}", heading="${heading || 'none'}", space="${space || 'private'}"`)
 
     // TODO(@jgclark): Implement actual task adding logic here
     // This could call doAddItem or similar function from clickHandlers

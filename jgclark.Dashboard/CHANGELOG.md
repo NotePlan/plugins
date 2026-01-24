@@ -9,6 +9,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b18] 2026-01-23
+### New
+- New Section "Active Projects", which shows a list of all the currently-active projects from the separate Project & Reviews plugin. This includes any currently open projects (i.e. not completed, cancelled or paused) that match its settings, or are included in the current Perspective, if that option is set.  It's designed to complement the existing Projects Section. It also shows the first of any 'Next Actions' as defined by the settings in the Projects plugin.
+### Changed
+- To make it clearer, renamed the existing "Projects" section to "Projects to Review".
+- Generation of sections now happens in the same (possibly-custom) order that they are displayed.
+
 ## [2.4.0.b17] 2026-01-21
 ### New
 - added new way to select items to show from Calendar sections: "Calendar note Sections to Include". There is already a way to exclude specific sections in a calendar note; this adds a way to only include specific sections. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all sections are still included.
