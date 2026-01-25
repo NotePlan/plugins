@@ -2511,3 +2511,30 @@ export async function syncStatusOnly(): Promise<void> {
   await CommandBar.prompt('Status Sync Complete', message)
   logInfo(pluginJson, `syncStatusOnly: ${message}`)
 }
+
+// ============================================================================
+// EXPORTS FOR TESTING
+// These functions are exported to allow unit testing of pure logic
+// ============================================================================
+
+export {
+  // Parsing functions
+  extractTodoistTaskId,
+  parseTaskDetailsForTodoist,
+  isNonTodoistOpenTask,
+  isDateFilterKeyword,
+  parseDateFilterArg,
+  filterTasksByDate,
+  getTaskWithSubtasks,
+  parseCSVProjectNames,
+  parseProjectIds,
+  // API functions (for mocking tests)
+  fetchTodoistTask,
+  closeTodoistTask,
+  createTodoistTaskInInbox,
+  pullTodoistTasksByDateFilter,
+  pullAllTodoistTasksByDateFilter,
+  // Helper functions
+  getRequestObject,
+  postRequestObject,
+}
