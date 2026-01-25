@@ -264,9 +264,16 @@ export function ContainedMultiSelectChooser({
   // Show create mode automatically when search has no matches and allowCreate is true
   // Skip create mode when "is:checked" filter is active
   useEffect(() => {
-    logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Effect triggered: searchTerm="${searchTerm}", displayItems.length=${displayItems.length}, filteredItems.length=${filteredItems.length}, showCreateMode=${String(showCreateMode)}, showCheckedOnly=${String(showCheckedOnly)}`)
+    logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Effect triggered: searchTerm="${searchTerm}", displayItems.length=${displayItems.length}, filteredItems.length=${filteredItems.length}, items.length=${items.length}, showCreateMode=${String(showCreateMode)}, showCheckedOnly=${String(showCheckedOnly)}`)
     
-    if (allowCreate && searchTerm.trim() && searchTerm.toLowerCase() !== 'is:checked' && !showCheckedOnly && displayItems.length === 0 && filteredItems.length > 0) {
+    // Allow create mode when:
+    // 1. allowCreate is true
+    // 2. There's a search term (not empty)
+    // 3. Search term is not "is:checked"
+    // 4. "is:checked" filter is not active
+    // 5. No display items match the search (displayItems.length === 0)
+    // Note: Allow creation even when items.length is 0 (empty list) - user should be able to create new items
+    if (allowCreate && searchTerm.trim() && searchTerm.toLowerCase() !== 'is:checked' && !showCheckedOnly && displayItems.length === 0) {
       // No matches found for the search term, show create mode with the search term pre-filled
       if (!showCreateMode) {
         logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Auto-showing create mode with searchTerm="${searchTerm.trim()}"`)
@@ -279,7 +286,7 @@ export function ContainedMultiSelectChooser({
       setShowCreateMode(false)
       setCreateValue('')
     }
-  }, [displayItems.length, searchTerm, filteredItems.length, allowCreate, showCreateMode, showCheckedOnly])
+  }, [displayItems.length, searchTerm, filteredItems.length, items.length, allowCreate, showCreateMode, showCheckedOnly])
 
   // Handle checkbox toggle (multi-select) or item selection (single-value)
   const handleToggle = (itemName: string) => {
@@ -561,12 +568,16 @@ export function ContainedMultiSelectChooser({
               }}
               onClick={handleInputClick}
               onKeyDown={(e) => {
-                // Prevent Enter key from submitting the form
+                // Handle Enter key
                 if (e.key === 'Enter') {
                   e.preventDefault()
                   e.stopPropagation()
-                  // Don't do anything else - just prevent form submission
-                  // The input is for filtering/searching, not for submitting
+                  // If in create mode, confirm creation
+                  if (showCreateMode && createValue.trim() && !disabled && !isCreating) {
+                    handleCreateConfirm()
+                    return
+                  }
+                  // Otherwise, just prevent form submission
                   return
                 }
                 // Prevent space key for tag-chooser and mention-chooser when in create mode
@@ -607,10 +618,10 @@ export function ContainedMultiSelectChooser({
               <div className="contained-multi-select-create-actions">
                 <button
                   type="button"
-                  className="contained-multi-select-create-confirm-btn"
+                  className="contained-multi-select-create-confirm-btn contained-multi-select-create-confirm-btn-highlighted"
                   onClick={handleCreateConfirm}
                   disabled={disabled || isCreating || !createValue.trim()}
-                  title="Create new item"
+                  title="Create new item (Press Enter)"
                 >
                   ✓
                 </button>

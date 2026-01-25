@@ -6,7 +6,7 @@
 import pluginJson from '../plugin.json'
 import { type PassedData } from './shared/types.js'
 import { FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID } from './shared/constants.js'
-import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate } from './templateIO.js'
+import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, loadNewNoteFrontmatterFromTemplate } from './templateIO.js'
 import { getFolders, getNotes, getTeamspaces, getMentions, getHashtags, getEvents } from './dataHandlers'
 import { getNoteByFilename } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
@@ -669,6 +669,7 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
     let templateBody = ''
     let templateRunnerArgs = null
     let customCSSValue = ''
+    let newNoteFrontmatter = ''
     let templateTitleForWindow = argObj.templateTitle || ''
     let launchLink = '' // Will be generated or read from frontmatter
 
@@ -706,14 +707,16 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
         y = typeof yStr === 'number' ? yStr : String(yStr)
       }
 
-      // Load templateBody, TemplateRunner args, and custom CSS in parallel (performance optimization)
+      // Load templateBody, TemplateRunner args, custom CSS, and new note frontmatter in parallel (performance optimization)
       // Start all promises to run in parallel, then await them
       const templateBodyPromise = loadTemplateBodyFromTemplate(templateNote)
       const templateRunnerArgsPromise = loadTemplateRunnerArgsFromTemplate(templateNote)
       const customCSSPromise = loadCustomCSSFromTemplate(templateNote)
+      const newNoteFrontmatterPromise = loadNewNoteFrontmatterFromTemplate(templateNote)
       templateBody = await templateBodyPromise
       templateRunnerArgs = await templateRunnerArgsPromise
       customCSSValue = await customCSSPromise
+      newNoteFrontmatter = await newNoteFrontmatterPromise
 
       // Merge TemplateRunner args into the data object that will be passed to FormBuilder
       // These will override any values that might be in frontmatter
@@ -753,6 +756,7 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
         processingMethod: processingMethod, // Pass processingMethod from frontmatter
         templateBody: templateBody, // Load from codeblock
         customCSS: customCSSValue || '', // Load custom CSS from codeblock
+        newNoteFrontmatter: newNoteFrontmatter || '', // Load from codeblock
         isNewForm: isNewForm,
         launchLink: launchLink, // Add launchLink to pluginData
         windowId: windowId, // Store window ID in pluginData so React can send it in requests

@@ -18,6 +18,7 @@ import {
   saveTemplateBodyToTemplate,
   saveTemplateRunnerArgsToTemplate,
   saveCustomCSSToTemplate,
+  saveNewNoteFrontmatterToTemplate,
   updateReceivingTemplateWithFields,
 } from './templateIO'
 import { removeEmptyLinesFromNote, updateFormLinksInNote } from './requestHandlers'
@@ -657,6 +658,14 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: About to save customCSS to codeblock`)
       await saveCustomCSSToTemplate(finalTemplateFilename, data.frontmatter.customCSS || '')
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: customCSS saved to codeblock`)
+    }
+
+    // Save newNoteFrontmatter to codeblock if provided
+    logDebug(pluginJson, `[${saveId}] handleSaveRequest: Checking newNoteFrontmatter: ${data?.frontmatter?.newNoteFrontmatter !== undefined ? 'exists' : 'missing'}`)
+    if (data?.frontmatter?.newNoteFrontmatter !== undefined) {
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: About to save newNoteFrontmatter to codeblock`)
+      await saveNewNoteFrontmatterToTemplate(finalTemplateFilename, data.frontmatter.newNoteFrontmatter || '')
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: newNoteFrontmatter saved to codeblock`)
     }
 
     // Save TemplateRunner args to codeblock if any exist

@@ -932,13 +932,70 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
   })
 
   // Step 7: Build template body (DO NOT insert templatejs blocks - they're already executed)
+  // Get new note frontmatter and body content (templateBody)
+  let newNoteFrontmatter = reactWindowData?.pluginData?.newNoteFrontmatter || data?.newNoteFrontmatter || ''
   const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
-  const finalTemplateBody =
-    templateBody ||
-    Object.keys(formSpecificVars)
-      .filter((key) => key !== '__isJSON__')
-      .map((key) => `${key}: <%- ${key} %>`)
-      .join('\n')
+  
+  // Ensure title is preserved: if frontmatter exists, check if it has a title field
+  // If not, and body doesn't start with "# <%- newNoteTitle %>", add title to frontmatter
+  if (newNoteFrontmatter && newNoteFrontmatter.trim()) {
+    // Parse frontmatter to check for title field
+    const frontmatterLines = newNoteFrontmatter.trim().split('\n')
+    let hasTitleField = false
+    
+    for (const line of frontmatterLines) {
+      const trimmedLine = line.trim()
+      // Check if line matches "title:" (case-insensitive, with optional whitespace)
+      if (trimmedLine.match(/^title\s*:/i)) {
+        hasTitleField = true
+        break
+      }
+    }
+    
+    // If no title field exists, check body content
+    if (!hasTitleField) {
+      const bodyFirstLine = templateBody.trim().split('\n')[0] || ''
+      const hasTitleHeading = bodyFirstLine.trim() === '# <%- newNoteTitle %>'
+      
+      // If body doesn't have the title heading, add title to frontmatter
+      if (!hasTitleHeading) {
+        // Use the original newNoteTitle template tag if it contains template syntax,
+        // otherwise use the newNoteTitle variable (which will be available in template context)
+        const originalNewNoteTitle = newNoteTitleToUse || reactWindowData?.pluginData?.newNoteTitle || data?.newNoteTitle || ''
+        
+        // If newNoteTitle contains template tags, use them directly; otherwise reference newNoteTitle variable
+        let titleTemplateTag = '<%- newNoteTitle %>'
+        if (originalNewNoteTitle && typeof originalNewNoteTitle === 'string' && originalNewNoteTitle.includes('<%')) {
+          // Use the original template tag (e.g., "<%- Contact_Name %>")
+          titleTemplateTag = originalNewNoteTitle
+        }
+        
+        // Add title field to the top of frontmatter
+        newNoteFrontmatter = `title: ${titleTemplateTag}\n${newNoteFrontmatter.trim()}`
+        logDebug(pluginJson, `processCreateNew: Added title field to frontmatter to preserve title from being overwritten: title: ${titleTemplateTag}`)
+      }
+    }
+  }
+  
+  let finalTemplateBody = ''
+  
+  // If we have frontmatter, combine it with templateBody using -- delimiters
+  if (newNoteFrontmatter && newNoteFrontmatter.trim()) {
+    const parts = ['--', newNoteFrontmatter.trim(), '--']
+    if (templateBody && templateBody.trim()) {
+      parts.push(templateBody.trim())
+    }
+    finalTemplateBody = parts.join('\n')
+    logDebug(pluginJson, `processCreateNew: Combined newNoteFrontmatter and templateBody with -- delimiters`)
+  } else {
+    // No frontmatter, just use templateBody (backward compatibility - old forms may have -- in templateBody)
+    finalTemplateBody =
+      templateBody ||
+      Object.keys(formSpecificVars)
+        .filter((key) => key !== '__isJSON__')
+        .map((key) => `${key}: <%- ${key} %>`)
+        .join('\n')
+  }
 
   // Step 8: Build templateRunner args with form-specific variables
   const templateRunnerArgs: { [string]: any } = {
