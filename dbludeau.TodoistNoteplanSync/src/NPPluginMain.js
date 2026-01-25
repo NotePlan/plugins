@@ -2378,3 +2378,136 @@ export async function convertToTodoistTask(): Promise<void> {
 
   logInfo(pluginJson, `convertToTodoistTask: Completed. Success: ${successCount}, Failures: ${failureCount}`)
 }
+
+// ============================================================================
+// SYNC STATUS ONLY FUNCTIONALITY
+// ============================================================================
+
+/**
+ * Extract Todoist task ID from paragraph content
+ *
+ * @param {string} content - The paragraph content
+ * @returns {?string} The Todoist task ID or null if not found
+ */
+function extractTodoistTaskId(content: string): ?string {
+  const match = content.match(/app\/task\/(\d+)\)/)
+  return match ? match[1] : null
+}
+
+/**
+ * Fetch a single Todoist task by ID
+ *
+ * @param {string} taskId - The Todoist task ID
+ * @returns {Promise<?Object>} The task object or null if not found
+ */
+async function fetchTodoistTask(taskId: string): Promise<?Object> {
+  try {
+    const result = await fetch(`${todo_api}/tasks/${taskId}`, getRequestObject())
+    const parsed = JSON.parse(result)
+    return parsed
+  } catch (error) {
+    logWarn(pluginJson, `fetchTodoistTask: Could not fetch task ${taskId}: ${String(error)}`)
+    return null
+  }
+}
+
+/**
+ * Sync only task completion status between NotePlan and Todoist.
+ * Does NOT add or remove any tasks - only syncs status.
+ *
+ * For each Todoist-linked task in the current note:
+ * - If NotePlan task is done/cancelled but Todoist is open → close in Todoist
+ * - If NotePlan task is open but Todoist is completed → mark done in NotePlan
+ *
+ * @returns {Promise<void>}
+ */
+export async function syncStatusOnly(): Promise<void> {
+  setSettings()
+
+  const note = Editor.note
+  if (!note) {
+    logWarn(pluginJson, 'syncStatusOnly: No note open')
+    return
+  }
+
+  const paragraphs = note.paragraphs
+  if (!paragraphs || paragraphs.length === 0) {
+    logInfo(pluginJson, 'syncStatusOnly: No paragraphs in note')
+    return
+  }
+
+  let closedInTodoist = 0
+  let closedInNotePlan = 0
+  let errors = 0
+  let processed = 0
+
+  logInfo(pluginJson, `syncStatusOnly: Scanning ${paragraphs.length} paragraphs for Todoist tasks`)
+
+  for (const para of paragraphs) {
+    const content = para.content ?? ''
+    const taskId = extractTodoistTaskId(content)
+
+    if (!taskId) {
+      continue // Not a Todoist-linked task
+    }
+
+    processed++
+    const npStatus = para.type // 'open', 'done', 'cancelled', etc.
+
+    // Fetch current Todoist status
+    const todoistTask = await fetchTodoistTask(taskId)
+    if (!todoistTask) {
+      logWarn(pluginJson, `syncStatusOnly: Could not fetch Todoist task ${taskId}`)
+      errors++
+      continue
+    }
+
+    const todoistCompleted = todoistTask.is_completed === true
+
+    logDebug(pluginJson, `Task ${taskId}: NP=${npStatus}, Todoist=${todoistCompleted ? 'completed' : 'open'}`)
+
+    // Case 1: NotePlan is done/cancelled, Todoist is open → close in Todoist
+    if ((npStatus === 'done' || npStatus === 'cancelled') && !todoistCompleted) {
+      logInfo(pluginJson, `Closing task ${taskId} in Todoist (marked done in NotePlan)`)
+      try {
+        await closeTodoistTask(taskId)
+        closedInTodoist++
+      } catch (error) {
+        logError(pluginJson, `Failed to close task ${taskId} in Todoist: ${String(error)}`)
+        errors++
+      }
+    }
+
+    // Case 2: NotePlan is open, Todoist is completed → mark done in NotePlan
+    if (npStatus === 'open' && todoistCompleted) {
+      logInfo(pluginJson, `Marking task ${taskId} done in NotePlan (completed in Todoist)`)
+      para.type = 'done'
+      Editor.updateParagraph(para)
+      closedInNotePlan++
+    }
+
+    // Case 3: NotePlan is done/cancelled, Todoist is also completed → already in sync
+    // Case 4: NotePlan is open, Todoist is also open → already in sync
+  }
+
+  // Build result message
+  const changes: Array<string> = []
+  if (closedInTodoist > 0) changes.push(`${closedInTodoist} closed in Todoist`)
+  if (closedInNotePlan > 0) changes.push(`${closedInNotePlan} marked done in NotePlan`)
+
+  let message: string
+  if (processed === 0) {
+    message = 'No Todoist-linked tasks found in this note.'
+  } else if (changes.length === 0) {
+    message = `All ${processed} Todoist task(s) already in sync.`
+  } else {
+    message = `Synced ${processed} task(s): ${changes.join(', ')}.`
+  }
+
+  if (errors > 0) {
+    message += ` (${errors} error(s))`
+  }
+
+  await CommandBar.prompt('Status Sync Complete', message)
+  logInfo(pluginJson, `syncStatusOnly: ${message}`)
+}

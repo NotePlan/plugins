@@ -159,6 +159,16 @@
       "arguments": []
     },
     {
+      "name": "todoist sync status only",
+      "alias": [
+        "tosso",
+        "toss"
+      ],
+      "description": "Sync only task completion status between NotePlan and Todoist (no add/remove)",
+      "jsFunction": "syncStatusOnly",
+      "arguments": []
+    },
+    {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "Todoist Noteplan Sync: Version",
       "description": "Update + Check Version",
