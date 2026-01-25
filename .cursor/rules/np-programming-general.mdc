@@ -16,7 +16,7 @@ CRITICAL: Never use dynamic imports. Rollup will not process them correctly. Alw
 - Use async/await and handle promises properly (no floating promises)
 - Follow existing naming patterns in the codebase
 - Proper error handling with try/catch blocks
-- Follow import order: external libs -> internal libs -> local files
+- Follow import order: external libs -> internal libs -> local files. Within that put in alphabetical order of source filename.
 - Keep code DRY and modular with clear function responsibilities
 - Add JSDoc comments for all functions
 - Always research the `helpers/` folder before writing new code

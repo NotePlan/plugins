@@ -2,10 +2,15 @@
 //--------------------------------------------------------------------------
 // Request Handler: addTaskToNote
 // Adds a task to a specified note
+// Last updated 2026-01-25 for v2.4.0.b19 by @jgclark
 //--------------------------------------------------------------------------
 
-import pluginJson from '../../plugin.json'
+import { getDashboardSettings } from '../dashboardHelpers'
+import { isValidCalendarNoteFilename, convertISOToYYYYMMDD, isDailyDateStr } from '@helpers/dateTime'
 import { logDebug, logError } from '@helpers/dev'
+import { coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
+import { getNoteFromFilename } from '@helpers/NPnote'
+import { processChosenHeading } from '@helpers/userInput'
 
 // RequestResponse type definition
 export type RequestResponse = {
@@ -16,43 +21,108 @@ export type RequestResponse = {
 
 /**
  * Add a task to a specified note
- * TODO(@jgclark): Implement actual task adding logic here
- * This could call doAddItem or similar function from clickHandlers
- *
  * @param {Object} params - Request parameters
  * @param {string} params.filename - Filename of the note to add the task to
  * @param {string} params.taskText - The task text to add
  * @param {string?} params.heading - Optional heading to add the task under
- * @param {string?} params.space - Optional space ID (for teamspace notes)
+ * @param {string?} params.space - Optional space ID (empty string for Private, teamspace ID for teamspace notes)
  * @param {Object} pluginJson - Plugin JSON object for logging
  * @returns {RequestResponse}
  */
-export function addTaskToNote(params: { filename: string, taskText: string, heading?: ?string, space?: ?string }, pluginJson: any): RequestResponse {
+export async function addTaskToNote(params: { filename: string, taskText: string, heading?: ?string, space?: ?string }, pluginJson: any): Promise<RequestResponse> {
   try {
     const { filename, taskText, heading, space } = params
     logDebug('Dashboard/requestHandlers] addTaskToNote', `Starting with filename="${filename}", taskText="${taskText}", heading="${heading || 'none'}", space="${space || 'private'}"`)
 
-    // TODO(@jgclark): Implement actual task adding logic here
-    // This could call doAddItem or similar function from clickHandlers
-    // Or import some code from /qath or something else -- you know best
+    // Validate inputs
+    if (!filename || !taskText || !taskText.trim()) {
+      return {
+        success: false,
+        message: 'Filename and task text are required',
+        data: null,
+      }
+    }
 
-    // you may want to trigger a refresh of the appropriate section before returning a value
+    // Normalize filename: convert ISO date format (YYYY-MM-DD) to NotePlan format (YYYYMMDD) if needed
+    // Check if filename (without extension) is a daily date string in ISO format
+    const filenameWithoutExt = filename.replace(/\.(md|txt)$/, '')
+    let normalizedFilename = filename
+    if (isDailyDateStr(filenameWithoutExt)) {
+      // Convert ISO format to NotePlan format for calendar notes
+      const convertedDate = convertISOToYYYYMMDD(filenameWithoutExt)
+      if (convertedDate !== filenameWithoutExt) {
+        // Conversion happened - reconstruct filename with NotePlan format
+        const ext = filename.match(/\.(md|txt)$/)?.[0] || '.md'
+        normalizedFilename = `${convertedDate}${ext}`
+        logDebug('[Dashboard/requestHandlers] addTaskToNote', `Converted ISO date filename "${filename}" to NotePlan format "${normalizedFilename}"`)
+      }
+    }
 
-    // For now, returning a message indicating it's not implemented yet, with the data so @jgclark knows what to implement
+    // Get dashboard settings for heading configuration
+    const config = await getDashboardSettings()
+    if (!config) {
+      return {
+        success: false,
+        message: 'Failed to load dashboard settings',
+        data: null,
+      }
+    }
+
+    // Get the note - handle teamspace notes if space is provided
+    let destNote = null
+    if (space && space !== '' && space !== 'Private') {
+      // Teamspace note - use DataStore APIs with teamspace ID
+      const isCalendarNote = isValidCalendarNoteFilename(normalizedFilename)
+      if (isCalendarNote) {
+        // Extract date string from normalized filename (without extension) for calendarNoteByDateString
+        const dateStr = normalizedFilename.replace(/\.(md|txt)$/, '')
+        // calendarNoteByDateString accepts both ISO (YYYY-MM-DD) and NotePlan (YYYYMMDD) formats,
+        // but we've normalized to NotePlan format, so use that
+        destNote = DataStore.calendarNoteByDateString(dateStr, space)
+      } else {
+        destNote = DataStore.noteByFilename(normalizedFilename, 'Notes', space)
+      }
+    } else {
+      // Private note - use getNoteFromFilename helper which handles both regular and calendar notes
+      // getNoteFromFilename should handle ISO format conversion internally, but we'll use normalized filename for consistency
+      destNote = getNoteFromFilename(normalizedFilename)
+    }
+
+    if (!destNote) {
+      return {
+        success: false,
+        message: `Unable to locate note: ${filename}${space && space !== '' && space !== 'Private' ? ` in teamspace ${space}` : ''}`,
+        data: null,
+      }
+    }
+
+    // Process heading if provided, otherwise use default from config
+    const newHeadingLevel = config.newTaskSectionHeadingLevel || 2
+    const headingToUse = heading
+      ? await processChosenHeading(destNote, heading, newHeadingLevel)
+      : config.newTaskSectionHeading || ''
+
+    // Add the task to the note
+    // logDebug('[Dashboard/requestHandlers] addTaskToNote', `Adding task to note: "${destNote?.title || '?'}" with heading: "${headingToUse}"`)
+    const resultingPara = coreAddTaskToNoteHeading(destNote, headingToUse, taskText.trim(), newHeadingLevel, true)
+    // logDebug('[Dashboard/requestHandlers] addTaskToNote', `Resulting paragraph: "${resultingPara?.rawContent || '?'}"`)
+
+    if (!resultingPara) {
+      return {
+        success: false,
+        message: 'Failed to add task to note',
+        data: null,
+      }
+    }
+
+    logDebug('Dashboard/requestHandlers] addTaskToNote', `Successfully added task "${taskText}" to note "${filename}" under heading "${headingToUse || 'default'}"`)
     return {
-      success: false,
-      message: `⚠️ This request was sent to the backend but needs @jgclark to implement it in the new addTaskToNote() request handler. Data received:\n${JSON.stringify({
-        filename,
-        taskText,
-        heading: heading || null,
-        space: space || null,
-      })}`,
-      // Sending the data field back may not be strictly necessary unless you want to do an optomistic update
-      // Just here as an example
+      success: true,
+      message: `Task added successfully to ${destNote.title || filename}`,
       data: {
         filename,
         taskText,
-        heading: heading || null,
+        heading: headingToUse || null,
         space: space || null,
       },
     }

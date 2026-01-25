@@ -9,6 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b19] 2026-01-25
+- finish hooking up addTaskToNote
+- dev: refactor getOpenItemParasForTimePeriod() and add tests to the new smaller functions.
+
 ## [2.4.0.b18] 2026-01-24
 ### New
 - New Section "Active Projects", which shows a list of all the currently-active projects from the separate Project & Reviews plugin. This includes any currently open projects (i.e. not completed, cancelled or paused) that match its settings, or are included in the current Perspective, if that option is set.  It's designed to complement the existing Projects Section. It also shows the first of any 'Next Actions' as defined by the settings in the Projects plugin.
