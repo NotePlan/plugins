@@ -508,11 +508,48 @@ export function SearchableChooser({
   let isManualEntryValue = false
 
   // Check if current value is a manual entry
-  // Don't show manual entry indicator for empty/blank values
-  if (allowManualEntry && displayValue && displayValue.trim() !== '' && isManualEntry) {
+  // Don't show manual entry indicator for empty/blank values or placeholder text
+  const trimmedDisplayValue = displayValue ? displayValue.trim() : ''
+  const isPlaceholderValue = placeholder && trimmedDisplayValue === placeholder.trim()
+  
+  if (allowManualEntry && trimmedDisplayValue !== '' && !isPlaceholderValue && isManualEntry) {
     // Don't show manual entry indicator if items list is empty (still loading)
     if (items && items.length > 0) {
-      isManualEntryValue = isManualEntry(displayValue, items)
+      // DEBUG: Log manual entry check details
+      console.log(`[SearchableChooser:${fieldType}] Manual entry check:`, {
+        value: `"${value}"`,
+        displayValue: `"${displayValue}"`,
+        trimmedDisplayValue: `"${trimmedDisplayValue}"`,
+        isPlaceholderValue,
+        placeholder: `"${placeholder}"`,
+        allowManualEntry,
+        hasIsManualEntryFn: !!isManualEntry,
+        itemsLength: items.length,
+        isOpen,
+      })
+      const manualEntryResult = isManualEntry(trimmedDisplayValue, items)
+      console.log(`[SearchableChooser:${fieldType}] isManualEntry returned:`, manualEntryResult)
+      isManualEntryValue = manualEntryResult
+      console.log(`[SearchableChooser:${fieldType}] Final isManualEntryValue:`, isManualEntryValue, `(will show pencil: ${isManualEntryValue && !isOpen})`)
+    } else {
+      console.log(`[SearchableChooser:${fieldType}] Skipping manual entry check - items list empty or loading:`, {
+        itemsLength: items?.length || 0,
+        hasItems: !!items,
+      })
+    }
+  } else {
+    // DEBUG: Log why manual entry check was skipped
+    if (allowManualEntry && isManualEntry) {
+      console.log(`[SearchableChooser:${fieldType}] Skipping manual entry check:`, {
+        allowManualEntry,
+        hasDisplayValue: !!displayValue,
+        displayValue: `"${displayValue}"`,
+        trimmedDisplayValue: trimmedDisplayValue || 'N/A',
+        isEmpty: trimmedDisplayValue === '',
+        isPlaceholderValue,
+        placeholder: `"${placeholder}"`,
+        hasIsManualEntryFn: !!isManualEntry,
+      })
     }
   }
 

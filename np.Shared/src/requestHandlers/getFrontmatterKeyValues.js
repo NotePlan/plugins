@@ -56,7 +56,15 @@ export async function getFrontmatterKeyValues(
     const values = await getValuesForFrontmatterTag(params.frontmatterKey, noteType, caseSensitive, folderString, fullPathMatch)
 
     // Convert all values to strings (frontmatter values can be various types)
-    const stringValues = values.map((v: any) => String(v))
+    let stringValues = values.map((v: any) => String(v))
+
+    // Filter out templating syntax values (containing "<%") - these are template code, not actual values
+    // This prevents templating errors when forms load and process frontmatter
+    const beforeFilterCount = stringValues.length
+    stringValues = stringValues.filter((v: string) => !v.includes('<%'))
+    if (beforeFilterCount !== stringValues.length) {
+      logDebug(pluginJson, `[np.Shared/requestHandlers] getFrontmatterKeyValues: Filtered out ${beforeFilterCount - stringValues.length} templating syntax values`)
+    }
 
     const totalElapsed: number = Date.now() - startTime
     logDebug(pluginJson, `[np.Shared/requestHandlers] getFrontmatterKeyValues COMPLETE: totalElapsed=${totalElapsed}ms, found=${stringValues.length} values for key "${params.frontmatterKey}"`)

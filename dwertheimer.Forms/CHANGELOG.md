@@ -9,6 +9,11 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 ### Fixed
 - **SearchableChooser Templating Field Filter**: Fixed SearchableChooser to automatically filter out options containing templating fields (e.g., containing "<%") by default. This prevents templating syntax from appearing in frontmatter key chooser and other dropdown option lists.
 - **SearchableChooser Manual Entry Indicator**: Fixed issue where the pencil icon (manual entry indicator) was incorrectly appearing in empty/blank fields. The indicator now only appears when a non-empty value has been entered that is not in the items list, and only after the items list has finished loading.
+- **Frontmatter Key Values Filtering**: Fixed `getFrontmatterKeyValues` to filter out templating syntax values (containing "<%") at the source, preventing templating errors when forms load. Templating syntax values are now excluded from frontmatter key chooser dropdowns.
+
+### Changed
+- **GenericDatePicker Calendar Auto-Close**: Improved date picker UX by automatically closing the calendar picker immediately after selecting a date. Previously, users had to click the date and then click outside the picker to close it. Now a single click on a date both selects it and closes the calendar.
+- **SearchableChooser Debug Logging**: Added comprehensive debug logging to SearchableChooser to help diagnose manual entry indicator issues. Logs include value checks, placeholder matching, and manual entry determination logic.
 
 ## [1.0.16] 2026-01-19 @dwertheimer
 
