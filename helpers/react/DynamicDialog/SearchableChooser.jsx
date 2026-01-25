@@ -179,13 +179,20 @@ export function SearchableChooser({
   //   }
   // }, [items, isOpen, filteredItems.length, debugLogging, fieldType, getDisplayValue])
 
-  // Filter items: first apply itemFilter (if provided), then apply search filter
+  // Filter items: first apply itemFilter (if provided), then apply default templating filter, then apply search filter
   useEffect(() => {
     // Apply itemFilter first (if provided) - this filters items regardless of search term
     let preFilteredItems = items
     if (itemFilter) {
       preFilteredItems = items.filter((item: any) => itemFilter(item))
     }
+
+    // Apply default filter to screen out templating fields (containing "<%")
+    // This prevents templating syntax from appearing in option lists
+    preFilteredItems = preFilteredItems.filter((item: any) => {
+      const optionText = getOptionText(item)
+      return !optionText.includes('<%')
+    })
 
     // Then apply search filter if there's a search term
     if (!searchTerm.trim()) {
@@ -194,7 +201,7 @@ export function SearchableChooser({
       const filtered = preFilteredItems.filter((item: any) => filterFn(item, searchTerm))
       setFilteredItems(filtered)
     }
-  }, [searchTerm, items, filterFn, itemFilter])
+  }, [searchTerm, items, filterFn, itemFilter, getOptionText])
 
   // Scroll highlighted item into view when hoveredIndex changes
   useEffect(() => {
@@ -501,8 +508,12 @@ export function SearchableChooser({
   let isManualEntryValue = false
 
   // Check if current value is a manual entry
-  if (allowManualEntry && displayValue && isManualEntry) {
-    isManualEntryValue = isManualEntry(displayValue, items)
+  // Don't show manual entry indicator for empty/blank values
+  if (allowManualEntry && displayValue && displayValue.trim() !== '' && isManualEntry) {
+    // Don't show manual entry indicator if items list is empty (still loading)
+    if (items && items.length > 0) {
+      isManualEntryValue = isManualEntry(displayValue, items)
+    }
   }
 
   if (displayValue && items && items.length > 0 && !isManualEntryValue) {

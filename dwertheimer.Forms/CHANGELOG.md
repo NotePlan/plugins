@@ -4,6 +4,12 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.17] 2026-01-25 @dwertheimer
+
+### Fixed
+- **SearchableChooser Templating Field Filter**: Fixed SearchableChooser to automatically filter out options containing templating fields (e.g., containing "<%") by default. This prevents templating syntax from appearing in frontmatter key chooser and other dropdown option lists.
+- **SearchableChooser Manual Entry Indicator**: Fixed issue where the pencil icon (manual entry indicator) was incorrectly appearing in empty/blank fields. The indicator now only appears when a non-empty value has been entered that is not in the items list, and only after the items list has finished loading.
+
 ## [1.0.16] 2026-01-19 @dwertheimer
 
 ### Added
