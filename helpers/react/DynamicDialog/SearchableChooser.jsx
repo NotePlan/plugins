@@ -548,11 +548,6 @@ export function SearchableChooser({
     if (foundItem) {
       // Use the display label from the found item
       displayValue = getDisplayValue(foundItem)
-            if (item && typeof item === 'object' && 'filename' in item) return `{title: "${item.title}", filename: "${item.filename}"}`
-            return String(item)
-          })
-        }
-      }
     }
   }
 
