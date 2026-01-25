@@ -415,6 +415,9 @@ export async function chooseFolder(
         result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions)
         clo(result, 'chooseFolder chooseDecoratedOptionWithModifiers result') // ✅
         actualIndex = result.index
+        if (actualIndex >= 0 && actualIndex < folders.length) {
+          folder = folders[actualIndex]
+        }
       }
       // logDebug('userInput / chooseFolder', `User chose: result.index:${ result.index } ${ includeNewFolderOption ? `(actualIndex in folders array: ${actualIndex} because running with includeNewFolderOption),` : '' } optClickedOnFolder: ${ String(optClickedOnFolder) } `)
       // logDebug output a map of the folders arrray with 3 items on either side of the chosen index
@@ -477,7 +480,6 @@ export async function chooseFolder(
           throw new Error(`Failed to create new folder "${folder}"`)
         }
       }
-      newFolderWanted = result?.index === -1
     }
     logDebug(`userInput / chooseFolder`, ` -> folder:${folder} keyModifiers:${String(keyModifiers)}`)
     return folder
