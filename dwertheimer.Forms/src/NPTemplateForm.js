@@ -4,7 +4,7 @@ import pluginJson from '../plugin.json'
 import { type PassedData } from './shared/types.js'
 // Note: getAllNotesAsOptions is no longer used here - FormView loads notes dynamically via requestFromPlugin
 import { testRequestHandlers, updateFormLinksInNote, removeEmptyLinesFromNote } from './requestHandlers'
-import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, getFormTemplateList, findDuplicateFormTemplates } from './templateIO.js'
+import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, loadNewNoteFrontmatterFromTemplate, getFormTemplateList, findDuplicateFormTemplates } from './templateIO.js'
 import { openFormWindow, openFormBuilderWindow, getFormBrowserWindowId, getFormBuilderWindowId, getFormWindowId } from './windowManagement.js'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
@@ -15,7 +15,7 @@ import { waitForCondition } from '@helpers/promisePolyfill'
 import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
 import { validateObjectString, parseObjectString } from '@helpers/stringTransforms'
-import { updateFrontMatterVars, ensureFrontmatter, noteHasFrontMatter, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
+import { updateFrontMatterVars, ensureFrontmatter, noteHasFrontMatter, getFrontmatterAttributes, getSanitizedFmParts } from '@helpers/NPFrontMatter'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { getFolderFromFilename } from '@helpers/folders'
@@ -273,9 +273,18 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
       }
     }
 
-    //TODO: we may not need this step, ask @codedungeon what he thinks
-    // for now, we'll call renderFrontmatter() via DataStore.invokePluginCommandByName()
-    const { _, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateData])
+    // Parse frontmatter WITHOUT rendering templating syntax during form initialization
+    // Templating syntax in frontmatter attributes will be rendered later when form is submitted
+    // Use getFrontmatterAttributes to get parsed but unrendered frontmatter attributes
+    // This prevents errors when frontmatter contains templating syntax referencing form fields that don't exist yet
+    let frontmatterAttributes = getFrontmatterAttributes(templateNote) || {}
+    
+    // If frontmatterAttributes is empty, try parsing from templateData directly (without rendering)
+    if (!frontmatterAttributes || Object.keys(frontmatterAttributes).length === 0) {
+      // Fallback: parse frontmatter from templateData without rendering
+      const fmParts = getSanitizedFmParts(templateData, false)
+      frontmatterAttributes = fmParts.attributes || {}
+    }
 
     // Load TemplateRunner processing variables from codeblock (not frontmatter)
     // These contain template tags that reference form field values and should not be processed during form opening
@@ -297,6 +306,12 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
         } else {
           // Ensure it's empty if codeblock doesn't exist
           frontmatterAttributes.customCSS = ''
+        }
+
+        // Load new note frontmatter from codeblock
+        const newNoteFrontmatterFromCodeblock = await loadNewNoteFrontmatterFromTemplate(templateNote)
+        if (newNoteFrontmatterFromCodeblock) {
+          frontmatterAttributes.newNoteFrontmatter = newNoteFrontmatterFromCodeblock
         }
 
         // Load TemplateRunner args from codeblock

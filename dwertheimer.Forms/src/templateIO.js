@@ -4,7 +4,7 @@
 //--------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { templateBodyCodeBlockType, templateRunnerArgsCodeBlockType, varsCodeBlockType, varsInForm, customCSSCodeBlockType } from './ProcessingTemplate'
+import { templateBodyCodeBlockType, templateRunnerArgsCodeBlockType, varsCodeBlockType, varsInForm, customCSSCodeBlockType, newNoteFrontmatterCodeBlockType } from './ProcessingTemplate'
 import { getNoteByFilename } from '@helpers/note'
 import { saveCodeBlockToNote, loadCodeBlockFromNote, replaceCodeBlockContent } from '@helpers/codeBlocks'
 import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
@@ -335,6 +335,70 @@ export async function loadCustomCSSFromTemplate(templateNoteOrFilename: CoreNote
     return content || ''
   } catch (error) {
     logError(pluginJson, `loadCustomCSSFromTemplate error: ${JSP(error)}`)
+    return ''
+  }
+}
+
+/**
+ * Save newNoteFrontmatter to template as code block
+ * @param {string} templateFilename - The template filename
+ * @param {string} newNoteFrontmatter - The frontmatter content
+ * @returns {Promise<void>}
+ */
+export async function saveNewNoteFrontmatterToTemplate(templateFilename: string, newNoteFrontmatter: string): Promise<void> {
+  try {
+    logDebug(pluginJson, `saveNewNoteFrontmatterToTemplate: Saving frontmatter (length=${newNoteFrontmatter?.length || 0})`)
+    let cleanedFrontmatter = newNoteFrontmatter || ''
+    
+    // Check for double encoding issues
+    if (cleanedFrontmatter && isDoubleEncoded(cleanedFrontmatter)) {
+      logDebug(pluginJson, `saveNewNoteFrontmatterToTemplate: Detected corruption, fixing before save`)
+      const fixed = fixDoubleEncoded(cleanedFrontmatter)
+      if (fixed !== cleanedFrontmatter) {
+        cleanedFrontmatter = fixed
+      }
+    }
+    
+    await saveCodeBlockToNote(
+      templateFilename,
+      newNoteFrontmatterCodeBlockType,
+      cleanedFrontmatter,
+      pluginJson.id,
+      null, // No format function needed
+      false, // Don't show error messages to user (silent operation)
+    )
+    logDebug(pluginJson, `saveNewNoteFrontmatterToTemplate: Successfully saved codeblock`)
+  } catch (error) {
+    logDebug(pluginJson, `saveNewNoteFrontmatterToTemplate: ERROR: ${error.message || String(error)}`)
+    logError(pluginJson, `saveNewNoteFrontmatterToTemplate error: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Load newNoteFrontmatter from template code block
+ * @param {CoreNoteFields | string} templateNoteOrFilename - The template note or filename
+ * @returns {Promise<string>} - The frontmatter content, or empty string if not found
+ */
+export async function loadNewNoteFrontmatterFromTemplate(templateNoteOrFilename: CoreNoteFields | string): Promise<string> {
+  try {
+    const content = await loadCodeBlockFromNote<string>(templateNoteOrFilename, newNoteFrontmatterCodeBlockType, pluginJson.id, null)
+    const loadedContent = content || ''
+    
+    // Check for and fix double-encoded UTF-8 issues
+    if (loadedContent && (isDoubleEncoded(loadedContent) || loadedContent.includes('ðŸ') || loadedContent.includes('ô€') || loadedContent.includes('ï¿¼'))) {
+      logDebug(pluginJson, `loadNewNoteFrontmatterFromTemplate: Detected double-encoded UTF-8, attempting fix`)
+      const fixed = fixDoubleEncoded(loadedContent)
+      if (fixed !== loadedContent && typeof templateNoteOrFilename === 'string') {
+        logDebug(pluginJson, `loadNewNoteFrontmatterFromTemplate: Auto-saving fixed content back to template`)
+        await saveNewNoteFrontmatterToTemplate(templateNoteOrFilename, fixed)
+        return fixed
+      }
+      return fixed
+    }
+    
+    return loadedContent
+  } catch (error) {
+    logError(pluginJson, `loadNewNoteFrontmatterFromTemplate error: ${JSP(error)}`)
     return ''
   }
 }

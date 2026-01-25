@@ -4,6 +4,24 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.17] 2026-01-25 @dwertheimer
+
+### Fixed
+- **SearchableChooser Templating Field Filter**: Fixed SearchableChooser to automatically filter out options containing templating fields (e.g., containing "<%") by default. This prevents templating syntax from appearing in frontmatter key chooser and other dropdown option lists.
+- **SearchableChooser Manual Entry Indicator**: Fixed issue where the pencil icon (manual entry indicator) was incorrectly appearing in empty/blank fields. The indicator now only appears when a non-empty value has been entered that is not in the items list, and only after the items list has finished loading.
+- **Frontmatter Key Values Filtering**: Fixed `getFrontmatterKeyValues` to filter out templating syntax values (containing "<%") at the source, preventing templating errors when forms load. Templating syntax values are now excluded from frontmatter key chooser dropdowns.
+- **ContainedMultiSelectChooser Create Mode**: Fixed issue where ContainedMultiSelectChooser was not allowing creation of new items when the list was empty. Now allows creating new items even when `items.length === 0`, as long as `allowCreate` is true and there's a search term with no matches.
+
+### Changed
+- **GenericDatePicker Calendar Auto-Close**: Improved date picker UX by automatically closing the calendar picker immediately after selecting a date. Previously, users had to click the date and then click outside the picker to close it. Now a single click on a date both selects it and closes the calendar.
+- **SearchableChooser Debug Logging**: Added comprehensive debug logging to SearchableChooser to help diagnose manual entry indicator issues. Logs include value checks, placeholder matching, and manual entry determination logic.
+- **FormBuilder Create-New Mode Fields**: Split "Content to Insert" into two separate fields when processing method is "Create New Note":
+  - **New Note Frontmatter**: Separate field for frontmatter content (saved to `template:ignore newNoteFrontmatter` codeblock)
+  - **New Note Body Content**: Renamed from "Content to Insert" to clarify it's the body content (saved to `template:ignore templateBody` codeblock)
+  - Frontmatter and body content are automatically combined with `--` delimiters when sending to TemplateRunner
+  - Fields are ordered with Frontmatter above Body Content for better workflow
+- **TemplateTagEditor Raw Mode**: All template tag editor fields (NewNoteTitle, Content to Insert, New Note Frontmatter, New Note Body Content) now default to raw mode with the toggle hidden, showing monospace text directly instead of pill/chip display for better readability
+
 ## [1.0.16] 2026-01-19 @dwertheimer
 
 ### Added
