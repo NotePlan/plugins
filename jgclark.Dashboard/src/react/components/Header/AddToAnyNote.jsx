@@ -5,10 +5,10 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useAppContext } from '../AppContext.jsx'
+import { logTimer } from '@helpers/dev'
 import DynamicDialog, { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 import type { NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
-import { logTimer } from '@helpers/dev'
 import { getElementCoordinates } from '@helpers/react/reactUtils.js'
 import './AddToAnyNote.css' // Import CSS for dialog positioning
 
@@ -23,8 +23,7 @@ type Props = {
  * @param {Props} props
  * @returns {React$Node}
  */
-const AddToAnyNote = React.memo(
-  ({ sendActionToPlugin }: Props): React$Node => {
+const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
     const { dispatch } = useAppContext()
     // ----------------------------------------------------------------------
     // State
@@ -105,7 +104,14 @@ const AddToAnyNote = React.memo(
               pendingRequestsRef.current.delete(correlationId)
               clearTimeout(pending.timeoutId)
               if (success) {
-                pending.resolve(data)
+                // Resolve with full payload so caller can access success, message (via error field), and data
+                // Note: The payload structure is { correlationId, success, data, error }
+                // We reconstruct the RequestResponse object for the caller
+                pending.resolve({
+                  success: true,
+                  message: error || undefined, // error field contains the message when success=true
+                  data: data,
+                })
               } else {
                 pending.reject(new Error(error || 'Request failed'))
               }
@@ -647,13 +653,17 @@ const AddToAnyNote = React.memo(
         )}
       </>
     )
-  },
-  (prevProps, nextProps) => {
-    // Custom comparison: only re-render if sendActionToPlugin reference changes
-    // This prevents re-renders when parent re-renders but props haven't changed
-    return prevProps.sendActionToPlugin === nextProps.sendActionToPlugin
-  },
-)
+}
+
+// Custom comparison function for memoization
+const arePropsEqual = (prevProps: Props, nextProps: Props): boolean => {
+  // Only re-render if sendActionToPlugin reference changes
+  // This prevents re-renders when parent re-renders but props haven't changed
+  return prevProps.sendActionToPlugin === nextProps.sendActionToPlugin
+}
+
+// Memoize the component with custom comparison function
+const AddToAnyNote: React$ComponentType<Props> = React.memo(AddToAnyNoteComponent, arePropsEqual)
 
 AddToAnyNote.displayName = 'AddToAnyNote'
 
