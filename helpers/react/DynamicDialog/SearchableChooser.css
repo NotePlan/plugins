@@ -143,6 +143,26 @@
   background-color: var(--bg-alt-color, #f5f5f5);
 }
 
+/* Loading state - show wait cursor and adjust padding for spinner */
+.searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"].loading,
+[class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"].loading {
+  cursor: wait !important;
+  padding-right: 2.5rem; /* Extra padding for spinner icon */
+}
+
+/* Loading spinner icon */
+.searchable-chooser-base [class*="-chooser-loading-spinner"],
+[class*="-chooser-loading-spinner"] {
+  position: absolute;
+  right: 0.5rem;
+  top: 56%;
+  transform: translateY(-50%);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
+  pointer-events: none;
+  z-index: 10;
+  font-size: 0.9rem;
+}
+
 /* Manual entry indicator */
 .searchable-chooser-base [class*="-chooser-manual-entry-indicator"],
 [class*="-chooser-manual-entry-indicator"] {
@@ -258,6 +278,19 @@
   height: auto !important;
   min-height: 50px !important;
   margin-top: 0;
+}
+
+/* When showing empty state (not loading), reduce min-height to prevent extra blank line */
+/* Target empty state that doesn't contain spinner (i.e., "No Options Available" message) */
+.searchable-chooser-dropdown-portal .searchable-chooser-empty:not(:has(.fa-spinner)) {
+  padding-bottom: 0.5rem;
+  margin-bottom: 0;
+}
+
+/* Reduce min-height when only showing empty state (not loading) */
+.searchable-chooser-dropdown-portal:has(.searchable-chooser-empty:not(:has(.fa-spinner))) {
+  min-height: auto !important;
+  padding-bottom: 0;
 }
 
 /* When dropdown opens above, adjust border radius */
@@ -555,6 +588,12 @@
   color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
   font-size: 0.9rem;
+  line-height: 1.2;
+  margin: 0;
+  border-bottom: none;
+  cursor: default;
+  pointer-events: none; /* Prevent clicking on empty state */
+  user-select: none; /* Prevent text selection */
 }
 
 .searchable-chooser-base [class*="-chooser-empty"],
@@ -563,6 +602,12 @@
   color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
   font-size: 0.9rem;
+  line-height: 1.2;
+  margin: 0;
+  border-bottom: none;
+  cursor: default;
+  pointer-events: none; /* Prevent clicking on empty state */
+  user-select: none; /* Prevent text selection */
 }
 
 /* Value display - show selected value for debugging */

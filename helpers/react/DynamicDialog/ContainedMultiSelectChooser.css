@@ -99,6 +99,23 @@
   cursor: not-allowed;
 }
 
+/* Loading state */
+.contained-multi-select-search-input.loading {
+  cursor: wait !important;
+  padding-right: 2.5rem; /* Extra padding for spinner icon */
+}
+
+.contained-multi-select-loading-spinner {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
+  pointer-events: none;
+  z-index: 10;
+  font-size: 0.9rem;
+}
+
 /* Single-value selected state - show selected value in input */
 .contained-multi-select-search-input.single-value-selected {
   cursor: pointer;

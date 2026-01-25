@@ -499,11 +499,19 @@ const DynamicDialog = ({
       // Find all focusable inputs in DOM order (excluding hidden and disabled)
       const allInputs = Array.from(dialogElement.querySelectorAll('input:not([type="hidden"]):not([disabled])'))
 
-      // Filter to only inputs that are visible (not in hidden containers)
+      // Filter to only inputs that are visible (not in hidden containers) and not loading
       const visibleInputs = allInputs.filter((input) => {
         if (!(input instanceof HTMLElement)) return false
         const style = window.getComputedStyle(input)
-        return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0'
+        // Skip if hidden
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+          return false
+        }
+        // Skip if input has loading class (indicates it's loading data)
+        if (input.classList.contains('loading') || input.closest('[data-field-type]')?.querySelector('.fa-spinner.fa-spin')) {
+          return false
+        }
+        return true
       })
 
       // Take the first input in DOM order (which matches the visual order of fields)
@@ -522,6 +530,80 @@ const DynamicDialog = ({
     // Use a small delay to ensure DOM is ready
     const timeoutId = setTimeout(focusFirstField, 150)
     return () => clearTimeout(timeoutId)
+  }, [isOpen, items]) // Re-run when dialog opens or items change
+
+  // Re-focus the first field when it finishes loading
+  // This handles the case where the first field was skipped because it was loading,
+  // and focus went to a later field instead
+  useEffect(() => {
+    if (!isOpen) return
+
+    const checkAndRefocus = () => {
+      const dialogElement = dialogRef.current
+      if (!dialogElement) return
+
+      // Find all focusable inputs in DOM order
+      const allInputs = Array.from(dialogElement.querySelectorAll('input:not([type="hidden"]):not([disabled])'))
+
+      // Filter to visible inputs that are NOT loading
+      const visibleNonLoadingInputs = allInputs.filter((input) => {
+        if (!(input instanceof HTMLElement)) return false
+        const style = window.getComputedStyle(input)
+        // Skip if hidden
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+          return false
+        }
+        // Skip if input has loading class or spinner
+        if (input.classList.contains('loading') || input.closest('[data-field-type]')?.querySelector('.fa-spinner.fa-spin')) {
+          return false
+        }
+        return true
+      })
+
+      // Get the first non-loading input (should be the first field if it's done loading)
+      const firstReadyInput = visibleNonLoadingInputs.length > 0 ? visibleNonLoadingInputs[0] : null
+
+      // Check if focus is currently on a later field (not the first one)
+      const currentlyFocused = document.activeElement
+      if (!(currentlyFocused instanceof HTMLInputElement)) return
+
+      const currentlyFocusedIndex = allInputs.indexOf(currentlyFocused)
+      const firstReadyIndex = firstReadyInput ? allInputs.indexOf(firstReadyInput) : -1
+
+      // If the first field is ready and focus is on a later field, move focus to the first field
+      if (
+        firstReadyInput &&
+        firstReadyInput instanceof HTMLInputElement &&
+        firstReadyIndex >= 0 &&
+        currentlyFocusedIndex > firstReadyIndex &&
+        currentlyFocused !== firstReadyInput
+      ) {
+        // Only refocus if the currently focused field is not the first ready field
+        // and the first ready field was previously loading (indicated by it being earlier in DOM order)
+        firstReadyInput.focus()
+        logDebug('DynamicDialog', `Re-focused first field after loading completed: ${firstReadyInput.id || 'unnamed'}`)
+      }
+    }
+
+    // Check periodically for loading completion (every 300ms for up to 6 seconds)
+    // This handles the case where the first field finishes loading after focus was set to a later field
+    let checkCount = 0
+    const maxChecks = 20 // 20 * 300ms = 6 seconds (should be enough for most loading scenarios)
+    const intervalId = setInterval(() => {
+      checkCount++
+      checkAndRefocus()
+      if (checkCount >= maxChecks) {
+        clearInterval(intervalId)
+      }
+    }, 300)
+
+    // Also check immediately after a short delay
+    const timeoutId = setTimeout(checkAndRefocus, 300)
+
+    return () => {
+      clearInterval(intervalId)
+      clearTimeout(timeoutId)
+    }
   }, [isOpen, items]) // Re-run when dialog opens or items change
 
   // Watch for dependency changes and clear values (generic - no hardcoded reload logic)

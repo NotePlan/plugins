@@ -71,7 +71,9 @@ export function FrontmatterKeyChooser({
 }: FrontmatterKeyChooserProps): React$Node {
   const [values, setValues] = useState<Array<string>>([])
   const [loaded, setLoaded] = useState<boolean>(false)
-  const [loading, setLoading] = useState<boolean>(false)
+  // Initialize loading as true if we have a frontmatterKey
+  // This prevents the placeholder from flipping from "Type to search values..." to "Loading Values..."
+  const [loading, setLoading] = useState<boolean>(() => Boolean(frontmatterKey))
   const lastLoadedKeyRef = useRef<string>('') // Track the last key we loaded data for
   const debounceTimeoutRef = useRef<?TimeoutID>(null) // Track debounce timeout
   const loadingKeyRef = useRef<string>('') // Track the key we're currently loading (to detect changes during async)
@@ -91,6 +93,7 @@ export function FrontmatterKeyChooser({
       // No key provided, reset values immediately
       setValues([])
       setLoaded(false)
+      setLoading(false)
       lastLoadedKeyRef.current = ''
       loadingKeyRef.current = ''
       return
@@ -101,16 +104,27 @@ export function FrontmatterKeyChooser({
       return
     }
 
+    // If we have a key but haven't loaded yet (or key changed), set loading to true immediately
+    // This prevents the placeholder from flipping from "Type to search values..." to "Loading Values..."
+    if (frontmatterKey && lastLoadedKeyRef.current !== frontmatterKey) {
+      setLoading(true)
+      setLoaded(false) // Reset loaded state when key changes
+    }
+
     // Debounce: wait 500ms after the last key change before loading
     // This prevents loading on every keystroke when key comes from another field
     debounceTimeoutRef.current = setTimeout(() => {
       // Double-check the key hasn't changed during the debounce delay
       if (lastLoadedKeyRef.current === frontmatterKey && loaded) {
+        setLoading(false) // Reset loading if already loaded
         return // Already loaded for this key
       }
 
-      if (requestFromPlugin && frontmatterKey && !loading) {
-        setLoading(true)
+      if (requestFromPlugin && frontmatterKey) {
+        // Only set loading if not already loading (to avoid redundant state updates)
+        if (!loading) {
+          setLoading(true)
+        }
         // Capture the key at the start of the async call to detect if it changes during load
         loadingKeyRef.current = frontmatterKey
         logDebug('FrontmatterKeyChooser', `Loading values for key "${frontmatterKey}" from plugin`)
@@ -216,6 +230,7 @@ export function FrontmatterKeyChooser({
           width={width}
           allowCreate={allowCreate}
           onCreate={handleCreateValue}
+          isLoading={loading}
         />
       </div>
     )
@@ -247,6 +262,7 @@ export function FrontmatterKeyChooser({
         singleValue={singleValue}
         onCreate={handleCreateValue}
         fieldKey={fieldKey}
+        isLoading={loading}
       />
     </div>
   )

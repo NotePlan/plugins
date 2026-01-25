@@ -33,6 +33,7 @@ export type ContainedMultiSelectChooserProps = {
   singleValue?: boolean, // If true, allow selecting only one value (no checkboxes, returns single value) (default: false)
   renderAsDropdown?: boolean, // If true and singleValue is true, render as dropdown-select instead of filterable chooser (default: false)
   fieldKey?: string, // Unique key for this field instance (used to generate unique input id)
+  isLoading?: boolean, // If true, show loading spinner and wait cursor (default: false)
 }
 
 /**
@@ -66,6 +67,7 @@ export function ContainedMultiSelectChooser({
   singleValue = false,
   renderAsDropdown = false,
   fieldKey,
+  isLoading = false,
 }: ContainedMultiSelectChooserProps): React$Node {
   const searchInputRef = useRef<?HTMLInputElement>(null)
   const [showCreateMode, setShowCreateMode] = useState<boolean>(false)
@@ -530,14 +532,16 @@ export function ContainedMultiSelectChooser({
               {label}
             </label>
           )}
-          <div className="contained-multi-select-search-wrapper">
+          <div className="contained-multi-select-search-wrapper" style={{ position: 'relative' }}>
             <input
               id={inputId}
               name={fieldKey || inputId}
               ref={searchInputRef}
               type="text"
-              className={`contained-multi-select-search-input ${showCreateMode ? 'create-mode' : ''} ${singleValue && hasSelectedValue && !showList ? 'single-value-selected' : ''}`}
+              className={`contained-multi-select-search-input ${showCreateMode ? 'create-mode' : ''} ${singleValue && hasSelectedValue && !showList ? 'single-value-selected' : ''} ${isLoading ? 'loading' : ''}`}
               value={singleValue && hasSelectedValue && !showList ? selectedDisplayValue : showCreateMode ? createValue : searchTerm}
+              style={isLoading ? { cursor: 'wait' } : undefined}
+              data-is-loading={String(isLoading)}
               onChange={(e) => {
                 // In single-value mode with selected value, typing should clear selection and show list
                 if (singleValue && hasSelectedValue && !showList) {
@@ -593,6 +597,26 @@ export function ContainedMultiSelectChooser({
               disabled={disabled || isCreating}
               readOnly={singleValue && hasSelectedValue && !showList}
             />
+            {isLoading && (
+              <i 
+                className="fa-solid fa-spinner fa-spin contained-multi-select-loading-spinner" 
+                style={{ 
+                  position: 'absolute', 
+                  right: '0.5rem', 
+                  top: '50%', 
+                  transform: 'translateY(-50%)', 
+                  color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))', 
+                  pointerEvents: 'none', 
+                  zIndex: 10, 
+                  fontSize: '0.9rem',
+                  display: 'block',
+                  visibility: 'visible',
+                  opacity: 1
+                }}
+                data-testid="loading-spinner"
+                aria-hidden="true"
+              ></i>
+            )}
             {singleValue && hasSelectedValue && !showList ? (
               <button
                 type="button"

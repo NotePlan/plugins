@@ -369,12 +369,18 @@ export function SearchableChooser({
     if (!isOpen && onOpen) {
       onOpen() // Trigger lazy loading callback
     }
-    setIsOpen(true)
-    // Calculate position immediately when opening (synchronously)
-    const position = calculateDropdownPosition()
-    if (position) {
-      setDropdownPosition(position)
+    // Only open dropdown if items are loaded (not loading and items exist)
+    // If loading or no items, wait for items to load before opening
+    if (!isLoading && items.length > 0) {
+      setIsOpen(true)
+      // Calculate position immediately when opening (synchronously)
+      const position = calculateDropdownPosition()
+      if (position) {
+        setDropdownPosition(position)
+      }
     }
+    // If loading or no items, the dropdown will auto-open when items finish loading
+    // (handled by useEffect below)
   }
 
   const handleInputKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
@@ -611,6 +617,23 @@ export function SearchableChooser({
     }
   }, [isLoading, isOpen]) // Recalculate when loading completes
 
+  // Auto-open dropdown when items finish loading if input is focused
+  // This handles the case where focus was set before items were loaded
+  useEffect(() => {
+    if (!isLoading && items.length > 0 && !isOpen && inputRef.current) {
+      // Check if input is currently focused
+      if (document.activeElement === inputRef.current) {
+        // Input is focused and items are now loaded - open the dropdown
+        setIsOpen(true)
+        // Calculate position immediately when opening
+        const position = calculateDropdownPosition()
+        if (position) {
+          setDropdownPosition(position)
+        }
+      }
+    }
+  }, [isLoading, items.length, isOpen]) // Watch for loading completion and items availability
+
   // Debug logging (disabled for cleaner console output)
   // if (debugLogging && displayValue) {
   //   console.log(`${fieldType}: displayValue="${displayValue}", length=${displayValue.length}`)
@@ -651,21 +674,24 @@ export function SearchableChooser({
           id={`${classNamePrefix}-${label || 'default'}`}
           ref={inputRef}
           type="text"
-          className={`${classNamePrefix}-input ${isManualEntryValue ? 'manual-entry' : ''}`}
+          className={`${classNamePrefix}-input ${isManualEntryValue ? 'manual-entry' : ''} ${isLoading ? 'loading' : ''}`}
           value={isOpen ? searchTerm : truncatedDisplayValue}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onKeyDown={handleInputKeyDown}
-          placeholder={placeholder}
+          placeholder={isLoading ? 'Loading Values...' : placeholder}
           disabled={disabled}
-          title={isManualEntryValue ? `${displayValue} (${manualEntryIndicator})` : displayValue || placeholder}
+          title={isManualEntryValue ? `${displayValue} (${manualEntryIndicator})` : displayValue || (isLoading ? 'Loading Values...' : placeholder)}
+          style={isLoading ? { cursor: 'wait' } : undefined}
         />
         {isManualEntryValue && !isOpen && (
           <span className={`${classNamePrefix}-manual-entry-indicator`} title={manualEntryIndicator}>
             {manualEntryIndicator}
           </span>
         )}
-        {showArrow ? (
+        {isLoading ? (
+          <i className={`fa-solid fa-spinner fa-spin ${classNamePrefix}-loading-spinner`} style={{ position: 'absolute', right: '0.5rem', top: '56%', transform: 'translateY(-50%)', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))', pointerEvents: 'none', zIndex: 10, fontSize: '0.9rem' }}></i>
+        ) : showArrow ? (
           <i className={`fa-solid fa-chevron-down ${classNamePrefix}-arrow ${isOpen ? 'open' : ''}`}></i>
         ) : iconClass ? (
           <i
@@ -875,8 +901,6 @@ export function SearchableChooser({
                           >
                             {optionShortDesc}
                           </div>
-                          {/* Placeholder div to reserve space for validation message - outside input wrapper so it doesn't constrain dropdown */}
-                          <div className="validation-message validation-message-placeholder" aria-hidden="true"></div>
                         </div>
                       )
                     }

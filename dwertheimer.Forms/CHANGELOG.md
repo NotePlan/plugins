@@ -4,6 +4,21 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.18] 2026-01-25 @dwertheimer
+
+### Fixed
+- **SearchableChooser Loading State**: Fixed multiple issues with SearchableChooser when fields are loading data:
+  - **Loading Spinner**: Added FontAwesome spinner icon (`fa-spinner fa-spin`) that appears in the input field when loading. Spinner is properly centered vertically and positioned on the right side of the input.
+  - **Auto-Open Prevention**: Fixed issue where dropdown would auto-open when field received focus but items were still loading, showing "No Options Available" instead of loading state. Dropdown now only opens automatically when items have finished loading.
+  - **Placeholder Management**: Fixed placeholder to show "Loading Values..." from initial render when loading is needed, preventing visual flip from "Type to search values..." to "Loading Values...".
+  - **Focus Management**: Fixed focus behavior so that when the first field finishes loading, focus automatically moves back to it if focus was previously set on a later field (e.g., 3rd field) while the first field was loading.
+  - **Empty State Blank Line**: Fixed issue where a blank, clickable line appeared in the dropdown when showing "No Options Available". Removed validation-message-placeholder div from dropdown options and made empty state non-clickable.
+  - **Loading State Propagation**: Added `isLoading` prop support to `DropdownSelectChooser` and `ContainedMultiSelectChooser` to properly show loading state in all chooser variants.
+- **FrontmatterKeyChooser Loading Initialization**: Fixed loading state initialization to start as `true` when a frontmatterKey is provided, ensuring "Loading Values..." placeholder appears immediately instead of showing normal placeholder first.
+
+### Changed
+- **SearchableChooser Loading UX**: Improved loading experience by showing spinner icon and wait cursor, preventing dropdown from opening prematurely, and ensuring proper focus management when loading completes.
+
 ## [1.0.17] 2026-01-25 @dwertheimer
 
 ### Fixed
