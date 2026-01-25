@@ -568,12 +568,16 @@ export function ContainedMultiSelectChooser({
               }}
               onClick={handleInputClick}
               onKeyDown={(e) => {
-                // Prevent Enter key from submitting the form
+                // Handle Enter key
                 if (e.key === 'Enter') {
                   e.preventDefault()
                   e.stopPropagation()
-                  // Don't do anything else - just prevent form submission
-                  // The input is for filtering/searching, not for submitting
+                  // If in create mode, confirm creation
+                  if (showCreateMode && createValue.trim() && !disabled && !isCreating) {
+                    handleCreateConfirm()
+                    return
+                  }
+                  // Otherwise, just prevent form submission
                   return
                 }
                 // Prevent space key for tag-chooser and mention-chooser when in create mode
@@ -614,10 +618,10 @@ export function ContainedMultiSelectChooser({
               <div className="contained-multi-select-create-actions">
                 <button
                   type="button"
-                  className="contained-multi-select-create-confirm-btn"
+                  className="contained-multi-select-create-confirm-btn contained-multi-select-create-confirm-btn-highlighted"
                   onClick={handleCreateConfirm}
                   disabled={disabled || isCreating || !createValue.trim()}
-                  title="Create new item"
+                  title="Create new item (Press Enter)"
                 >
                   ✓
                 </button>
