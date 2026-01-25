@@ -31,7 +31,6 @@
 
 import { getFrontmatterAttributes } from '../../helpers/NPFrontMatter'
 import { getTodaysDateAsArrowDate, getTodaysDateUnhyphenated } from '../../helpers/dateTime'
-import { findHeading } from '../../helpers/paragraph'
 import pluginJson from '../plugin.json'
 import { log, logInfo, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 
@@ -260,7 +259,7 @@ export async function syncProject(filterArg: ?string) {
           })
         }
 
-        await projectSync(note, frontmatter.todoist_id, filterOverride, true)
+        await projectSync(note, frontmatter.todoist_id, filterOverride)
 
         //close the tasks in Todoist if they are complete in Noteplan`
         closed.forEach(async (t) => {
@@ -488,10 +487,9 @@ function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Obj
  * @param {TNote} note - note that will be written to
  * @param {string} id - Todoist project ID
  * @param {string} filterOverride - optional date filter override
- * @param {boolean} isEditorNote - whether this is the currently open note in Editor
  * @returns {Promise<void>}
  */
-async function projectSync(note: TNote, id: string, filterOverride: ?string, isEditorNote: boolean = false): Promise<void> {
+async function projectSync(note: TNote, id: string, filterOverride: ?string): Promise<void> {
   const task_result = await pullTodoistTasksByProject(id, filterOverride)
   const tasks: Array<Object> = JSON.parse(task_result)
 
@@ -504,7 +502,7 @@ async function projectSync(note: TNote, id: string, filterOverride: ?string, isE
 
   // Use for...of to properly await each task write
   for (const t of filteredTasks) {
-    await writeOutTask(note, t, isEditorNote)
+    await writeOutTask(note, t)
   }
 }
 
@@ -711,45 +709,14 @@ function setSettings() {
 }
 
 /**
- * Add a task below a heading, creating the heading if it doesn't exist
- * Uses Editor methods for the currently open note for reliable updates
- *
- * @param {TNote} note - the note to modify
- * @param {string} headingName - the heading to add the task below
- * @param {string} taskContent - the formatted task content
- * @param {boolean} isEditorNote - whether this is the currently open note in Editor
- */
-function addTaskBelowHeading(note: TNote, headingName: string, taskContent: string, isEditorNote: boolean = false): void {
-  const existingHeading = findHeading(note, headingName)
-  if (existingHeading) {
-    // Heading exists, use the standard method
-    if (isEditorNote) {
-      Editor.addTodoBelowHeadingTitle(taskContent, headingName, true, true)
-    } else {
-      note.addTodoBelowHeadingTitle(taskContent, headingName, true, true)
-    }
-  } else {
-    // Heading doesn't exist - append heading and task directly
-    logInfo(pluginJson, `Creating heading: ${headingName}`)
-    if (isEditorNote) {
-      Editor.appendParagraph(`### ${headingName}`, 'text')
-      Editor.appendParagraph(`- [ ] ${taskContent}`, 'text')
-    } else {
-      note.appendParagraph(`### ${headingName}`, 'text')
-      note.appendTodo(taskContent)
-    }
-  }
-}
-
-/**
  * Format and write task to correct noteplan note
  *
  * @param {TNote} note - the note object that will get the task
  * @param {Object} task - the task object that will be written
- * @param {boolean} isEditorNote - whether this is the currently open note in Editor
  */
-async function writeOutTask(note: TNote, task: Object, isEditorNote: boolean = false) {
+async function writeOutTask(note: TNote, task: Object) {
   if (note) {
+    //console.log(note.content)
     logDebug(pluginJson, task)
     const formatted = formatTaskDetails(task)
     if (task.section_id !== null) {
@@ -758,21 +725,22 @@ async function writeOutTask(note: TNote, task: Object, isEditorNote: boolean = f
       if (section) {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `1. Task will be added to ${note.title} below ${section.name} (${formatted})`)
-          addTaskBelowHeading(note, section.name, formatted, isEditorNote)
+          note.addTodoBelowHeadingTitle(formatted, section.name, true, true)
+
+          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
           just_written.push(task.id)
         } else {
           logInfo(pluginJson, `Task is already in Noteplan ${task.id}`)
         }
       } else {
         // this one has a section ID but Todoist will not return a name
+        // Put it in with no heading
         logWarn(pluginJson, `Section ID ${task.section_id} did not return a section name`)
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `2. Task will be added to ${note.title} (${formatted})`)
-          if (isEditorNote) {
-            Editor.appendParagraph(`- [ ] ${formatted}`, 'text')
-          } else {
-            note.appendTodo(formatted)
-          }
+          note.appendTodo(formatted)
+
+          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
           just_written.push(task.id)
         } else {
           logInfo(pluginJson, `Task is already in Noteplan (${formatted})`)
@@ -780,20 +748,21 @@ async function writeOutTask(note: TNote, task: Object, isEditorNote: boolean = f
       }
     } else {
       // check for a default heading
+      // if there is a predefined header in settings
       if (setup.header !== '') {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `3. Task will be added to ${note.title} below ${setup.header} (${formatted})`)
-          addTaskBelowHeading(note, setup.header, formatted, isEditorNote)
+          note.addTodoBelowHeadingTitle(formatted, setup.header, true, true)
+
+          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
           just_written.push(task.id)
         }
       } else {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `4. Task will be added to ${note.title} (${formatted})`)
-          if (isEditorNote) {
-            Editor.appendParagraph(`- [ ] ${formatted}`, 'text')
-          } else {
-            note.appendTodo(formatted)
-          }
+          note.appendTodo(formatted)
+
+          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
           just_written.push(task.id)
         }
       }
