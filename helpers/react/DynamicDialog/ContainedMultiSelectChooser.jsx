@@ -272,10 +272,8 @@ export function ContainedMultiSelectChooser({
     // 3. Search term is not "is:checked"
     // 4. "is:checked" filter is not active
     // 5. No display items match the search (displayItems.length === 0)
-    // 6. There are items available OR allowCreate is true (allow creation even if all items were filtered out)
-    // Note: We check items.length > 0 instead of filteredItems.length > 0 to allow creation even when
-    // all items are filtered out (e.g., by templating syntax filter)
-    if (allowCreate && searchTerm.trim() && searchTerm.toLowerCase() !== 'is:checked' && !showCheckedOnly && displayItems.length === 0 && items.length > 0) {
+    // Note: Allow creation even when items.length is 0 (empty list) - user should be able to create new items
+    if (allowCreate && searchTerm.trim() && searchTerm.toLowerCase() !== 'is:checked' && !showCheckedOnly && displayItems.length === 0) {
       // No matches found for the search term, show create mode with the search term pre-filled
       if (!showCreateMode) {
         logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Auto-showing create mode with searchTerm="${searchTerm.trim()}"`)

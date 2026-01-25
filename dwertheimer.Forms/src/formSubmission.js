@@ -932,13 +932,29 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
   })
 
   // Step 7: Build template body (DO NOT insert templatejs blocks - they're already executed)
+  // Get new note frontmatter and body content (templateBody)
+  const newNoteFrontmatter = reactWindowData?.pluginData?.newNoteFrontmatter || data?.newNoteFrontmatter || ''
   const templateBody = reactWindowData?.pluginData?.templateBody || data?.templateBody || ''
-  const finalTemplateBody =
-    templateBody ||
-    Object.keys(formSpecificVars)
-      .filter((key) => key !== '__isJSON__')
-      .map((key) => `${key}: <%- ${key} %>`)
-      .join('\n')
+  
+  let finalTemplateBody = ''
+  
+  // If we have frontmatter, combine it with templateBody using -- delimiters
+  if (newNoteFrontmatter && newNoteFrontmatter.trim()) {
+    const parts = ['--', newNoteFrontmatter.trim(), '--']
+    if (templateBody && templateBody.trim()) {
+      parts.push(templateBody.trim())
+    }
+    finalTemplateBody = parts.join('\n')
+    logDebug(pluginJson, `processCreateNew: Combined newNoteFrontmatter and templateBody with -- delimiters`)
+  } else {
+    // No frontmatter, just use templateBody (backward compatibility - old forms may have -- in templateBody)
+    finalTemplateBody =
+      templateBody ||
+      Object.keys(formSpecificVars)
+        .filter((key) => key !== '__isJSON__')
+        .map((key) => `${key}: <%- ${key} %>`)
+        .join('\n')
+  }
 
   // Step 8: Build templateRunner args with form-specific variables
   const templateRunnerArgs: { [string]: any } = {

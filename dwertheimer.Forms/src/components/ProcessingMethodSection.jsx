@@ -324,6 +324,8 @@ export function ProcessingMethodSection({
               minRows={5}
               maxRows={15}
               fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+              defaultRawMode={true}
+              hideRawToggle={true}
               actionButtons={
                 <>
                   <button
@@ -531,8 +533,8 @@ export function ProcessingMethodSection({
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              Content to Insert:
-              <InfoIcon text="The template content that will be used to create the new note. Click +Field or +Date buttons to insert tags. Or use template tags like <%- fieldKey %> to insert form field values, or <%- date.format('YYYY-MM-DD') %> for dates." />
+              New Note Body Content:
+              <InfoIcon text="The body content that will be used to create the new note. Click +Field or +Date buttons to insert tags. Or use template tags like <%- fieldKey %> to insert form field values, or <%- date.format('YYYY-MM-DD') %> for dates." />
             </label>
             <TemplateTagEditor
               value={frontmatter.templateBody || ''}
@@ -548,6 +550,8 @@ export function ProcessingMethodSection({
               minRows={5}
               maxRows={15}
               fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+              defaultRawMode={true}
+              hideRawToggle={true}
               actionButtons={
                 <>
                   <button

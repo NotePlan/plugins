@@ -4,7 +4,7 @@ import pluginJson from '../plugin.json'
 import { type PassedData } from './shared/types.js'
 // Note: getAllNotesAsOptions is no longer used here - FormView loads notes dynamically via requestFromPlugin
 import { testRequestHandlers, updateFormLinksInNote, removeEmptyLinesFromNote } from './requestHandlers'
-import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, getFormTemplateList, findDuplicateFormTemplates } from './templateIO.js'
+import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, loadNewNoteFrontmatterFromTemplate, getFormTemplateList, findDuplicateFormTemplates } from './templateIO.js'
 import { openFormWindow, openFormBuilderWindow, getFormBrowserWindowId, getFormBuilderWindowId, getFormWindowId } from './windowManagement.js'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
@@ -306,6 +306,12 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
         } else {
           // Ensure it's empty if codeblock doesn't exist
           frontmatterAttributes.customCSS = ''
+        }
+
+        // Load new note frontmatter from codeblock
+        const newNoteFrontmatterFromCodeblock = await loadNewNoteFrontmatterFromTemplate(templateNote)
+        if (newNoteFrontmatterFromCodeblock) {
+          frontmatterAttributes.newNoteFrontmatter = newNoteFrontmatterFromCodeblock
         }
 
         // Load TemplateRunner args from codeblock

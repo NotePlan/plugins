@@ -13,6 +13,7 @@ export const templateBodyCodeBlockType = 'template:ignore templateBody'
 export const templateRunnerArgsCodeBlockType = 'template:ignore templateRunnerArgs'
 export const templateJSCodeBlockType = 'template:ignore templateJS'
 export const customCSSCodeBlockType = 'template:ignore customCSS'
+export const newNoteFrontmatterCodeBlockType = 'template:ignore newNoteFrontmatter'
 
 /**
  * Create a form processing template (standalone command or called from Form Builder)

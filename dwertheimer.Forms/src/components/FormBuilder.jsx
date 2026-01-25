@@ -31,6 +31,7 @@ type FormBuilderProps = {
   y?: ?number | ?string,
   templateBody?: string, // Load from codeblock
   customCSS?: string, // Load from codeblock
+  newNoteFrontmatter?: string, // Load from codeblock
   templateRunnerArgs?: { [key: string]: any }, // TemplateRunner processing variables (loaded from codeblock)
   isNewForm?: boolean,
   templateTitle?: string,
@@ -57,6 +58,7 @@ export function FormBuilder({
   y,
   templateBody = '', // Load from codeblock
   customCSS = '', // Load from codeblock
+  newNoteFrontmatter = '', // Load from codeblock
   templateRunnerArgs = {}, // TemplateRunner processing variables (loaded from codeblock)
   isNewForm = false,
   templateTitle = '',
@@ -156,6 +158,8 @@ You can edit or delete this comment field - it's just a note to help you get sta
       templateBody: templateBody || '',
       // Custom CSS (loaded from codeblock)
       customCSS: customCSS || '',
+      // New note frontmatter (loaded from codeblock)
+      newNoteFrontmatter: newNoteFrontmatter || '',
     }
 
     // Merge TemplateRunner args from codeblock (these override defaults)
