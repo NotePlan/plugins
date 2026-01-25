@@ -434,6 +434,22 @@ async function syncTodayTasks() {
 }
 
 /**
+ * Parse an ISO date string (YYYY-MM-DD) into a local Date object at midnight.
+ * This avoids timezone issues that occur when using new Date('YYYY-MM-DD'),
+ * which interprets the date as UTC midnight rather than local midnight.
+ *
+ * @param {string} isoDateString - date string in YYYY-MM-DD format
+ * @returns {Date} - Date object at local midnight
+ */
+function parseLocalDate(isoDateString: string): Date {
+  const parts = isoDateString.split('-')
+  const year = parseInt(parts[0], 10)
+  const month = parseInt(parts[1], 10) - 1 // JavaScript months are 0-indexed
+  const day = parseInt(parts[2], 10)
+  return new Date(year, month, day, 0, 0, 0, 0)
+}
+
+/**
  * Filter tasks by date based on the filter setting
  * Note: Todoist API ignores filter param when project_id is specified, so we filter client-side
  *
@@ -461,8 +477,9 @@ function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Obj
       return false
     }
 
-    const dueDate = new Date(task.due.date)
-    dueDate.setHours(0, 0, 0, 0)
+    // Parse the due date as a local date to avoid timezone issues
+    // Todoist returns dates in YYYY-MM-DD format
+    const dueDate = parseLocalDate(task.due.date)
 
     switch (dateFilter) {
       case 'today':
