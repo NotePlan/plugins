@@ -18,6 +18,13 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 
 ### Changed
 - **SearchableChooser Loading UX**: Improved loading experience by showing spinner icon and wait cursor, preventing dropdown from opening prematurely, and ensuring proper focus management when loading completes.
+- **EventChooser Icon**: Updated EventChooser dropdown icon from `fa-calendar` to `fa-solid fa-calendar-alt` for a more specific calendar-related icon that better represents event selection.
+- **SearchableChooser CSS Improvements**: 
+  - Fixed loading spinner vertical centering (changed from `top: 56%` to `top: 50%` with proper transform)
+  - Improved spinner sizing to match arrow icon size (0.75rem) with proper line-height and height constraints
+  - Fixed dropdown portal spacing issues by removing fixed min-height and ensuring no extra padding/margins
+  - Fixed last option spacing to maintain consistent padding
+- **SearchableChooser Filtering**: Enhanced default filter to also exclude blank/whitespace-only options in addition to templating syntax, preventing empty options from appearing in dropdown lists.
 
 ## [1.0.17] 2026-01-25 @dwertheimer
 

@@ -150,17 +150,21 @@
   padding-right: 2.5rem; /* Extra padding for spinner icon */
 }
 
-/* Loading spinner icon */
+/* Loading spinner icon - center vertically in input */
 .searchable-chooser-base [class*="-chooser-loading-spinner"],
 [class*="-chooser-loading-spinner"] {
   position: absolute;
   right: 0.5rem;
-  top: 56%;
+  top: 50%;
   transform: translateY(-50%);
   color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   pointer-events: none;
   z-index: 10;
-  font-size: 0.9rem;
+  font-size: 0.75rem; /* Match arrow font-size */
+  line-height: 1; /* Prevent extra vertical space */
+  height: 0.75rem; /* Constrain height to font-size */
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Manual entry indicator */
@@ -276,8 +280,11 @@
   visibility: visible !important;
   opacity: 1 !important;
   height: auto !important;
-  min-height: 50px !important;
+  min-height: auto !important; /* Remove fixed min-height to prevent extra space */
   margin-top: 0;
+  margin-bottom: 0;
+  padding: 0; /* Ensure no padding that could create blank space */
+  padding-bottom: 0 !important; /* Explicitly remove bottom padding */
 }
 
 /* When showing empty state (not loading), reduce min-height to prevent extra blank line */
@@ -290,7 +297,14 @@
 /* Reduce min-height when only showing empty state (not loading) */
 .searchable-chooser-dropdown-portal:has(.searchable-chooser-empty:not(:has(.fa-spinner))) {
   min-height: auto !important;
-  padding-bottom: 0;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Ensure dropdown has no bottom spacing when showing options */
+.searchable-chooser-dropdown-portal:has(.searchable-chooser-option) {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 /* When dropdown opens above, adjust border radius */
@@ -465,6 +479,14 @@
   display: flex;
 }
 
+/* Ensure last two-line option has no bottom margin/padding */
+.searchable-chooser-option-two-line:last-child,
+.searchable-chooser-base [class*="-chooser-option-two-line"]:last-child,
+[class*="-chooser-option-two-line"]:last-child {
+  margin-bottom: 0 !important;
+  padding-bottom: 0.5rem !important; /* Match padding-top to maintain spacing */
+}
+
 .searchable-chooser-base [class*="-chooser-option-first-line"],
 [class*="-chooser-option-first-line"] {
   display: flex;
@@ -522,7 +544,9 @@
 .searchable-chooser-option:last-child,
 .searchable-chooser-base [class*="-chooser-option"]:last-child,
 [class*="-chooser-option"]:last-child {
-  border-bottom: none;
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0.15rem; /* Match the padding-top to maintain consistent spacing */
 }
 
 /* Column-based layout support for custom rendering */

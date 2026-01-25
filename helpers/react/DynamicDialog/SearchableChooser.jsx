@@ -187,11 +187,19 @@ export function SearchableChooser({
       preFilteredItems = items.filter((item: any) => itemFilter(item))
     }
 
-    // Apply default filter to screen out templating fields (containing "<%")
-    // This prevents templating syntax from appearing in option lists
+    // Apply default filter to screen out templating fields (containing "<%") and blank options
+    // This prevents templating syntax and empty options from appearing in option lists
     preFilteredItems = preFilteredItems.filter((item: any) => {
       const optionText = getOptionText(item)
-      return !optionText.includes('<%')
+      // Filter out templating syntax and blank/whitespace-only options
+      if (optionText.includes('<%')) {
+        return false
+      }
+      // Filter out blank or whitespace-only options
+      if (!optionText || optionText.trim() === '') {
+        return false
+      }
+      return true
     })
 
     // Then apply search filter if there's a search term
@@ -690,7 +698,7 @@ export function SearchableChooser({
           </span>
         )}
         {isLoading ? (
-          <i className={`fa-solid fa-spinner fa-spin ${classNamePrefix}-loading-spinner`} style={{ position: 'absolute', right: '0.5rem', top: '56%', transform: 'translateY(-50%)', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))', pointerEvents: 'none', zIndex: 10, fontSize: '0.9rem' }}></i>
+          <i className={`fa-solid fa-spinner fa-spin ${classNamePrefix}-loading-spinner`} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))', pointerEvents: 'none', zIndex: 10, fontSize: '0.75rem', lineHeight: '1', height: '0.75rem', display: 'inline-flex', alignItems: 'center' }}></i>
         ) : showArrow ? (
           <i className={`fa-solid fa-chevron-down ${classNamePrefix}-arrow ${isOpen ? 'open' : ''}`}></i>
         ) : iconClass ? (
@@ -733,6 +741,9 @@ export function SearchableChooser({
                 zIndex: 99999,
                 opacity: dropdownPosition ? 1 : 0,
                 pointerEvents: dropdownPosition ? 'auto' : 'none',
+                padding: 0,
+                paddingBottom: 0,
+                marginBottom: 0,
               }}
               data-debug-isopen={String(isOpen)}
               data-debug-filtered-count={filteredItems.length}
@@ -778,7 +789,13 @@ export function SearchableChooser({
                     return hasIcon || hasShortDesc
                   })
 
-                  return itemsToShow.map((item: any, index: number) => {
+                  // Filter out blank options before mapping
+                  const validItemsToShow = itemsToShow.filter((item: any) => {
+                    const optionText = getOptionText(item)
+                    return optionText && optionText.trim() !== ''
+                  })
+
+                  return validItemsToShow.map((item: any, index: number) => {
                     const optionText = getOptionText(item)
                     // Only apply JavaScript truncation for very long items (>dropdownMaxLength)
                     // For shorter items, let CSS handle truncation based on actual width
