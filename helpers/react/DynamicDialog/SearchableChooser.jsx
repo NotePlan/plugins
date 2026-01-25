@@ -366,9 +366,6 @@ export function SearchableChooser({
       suppressOpenOnFocusRef.current = false
       return
     }
-    if (debugLogging) {
-      console.log(`${fieldType}: Input focused, opening dropdown. items=${items.length}, filteredItems=${filteredItems.length}`)
-    }
     if (!isOpen && onOpen) {
       onOpen() // Trigger lazy loading callback
     }
@@ -515,113 +512,42 @@ export function SearchableChooser({
   if (allowManualEntry && trimmedDisplayValue !== '' && !isPlaceholderValue && isManualEntry) {
     // Don't show manual entry indicator if items list is empty (still loading)
     if (items && items.length > 0) {
-      // DEBUG: Log manual entry check details
-      console.log(`[SearchableChooser:${fieldType}] Manual entry check:`, {
-        value: `"${value}"`,
-        displayValue: `"${displayValue}"`,
-        trimmedDisplayValue: `"${trimmedDisplayValue}"`,
-        isPlaceholderValue,
-        placeholder: `"${placeholder}"`,
-        allowManualEntry,
-        hasIsManualEntryFn: !!isManualEntry,
-        itemsLength: items.length,
-        isOpen,
-      })
       const manualEntryResult = isManualEntry(trimmedDisplayValue, items)
-      console.log(`[SearchableChooser:${fieldType}] isManualEntry returned:`, manualEntryResult)
       isManualEntryValue = manualEntryResult
-      console.log(`[SearchableChooser:${fieldType}] Final isManualEntryValue:`, isManualEntryValue, `(will show pencil: ${isManualEntryValue && !isOpen})`)
-    } else {
-      console.log(`[SearchableChooser:${fieldType}] Skipping manual entry check - items list empty or loading:`, {
-        itemsLength: items?.length || 0,
-        hasItems: !!items,
-      })
-    }
-  } else {
-    // DEBUG: Log why manual entry check was skipped
-    if (allowManualEntry && isManualEntry) {
-      console.log(`[SearchableChooser:${fieldType}] Skipping manual entry check:`, {
-        allowManualEntry,
-        hasDisplayValue: !!displayValue,
-        displayValue: `"${displayValue}"`,
-        trimmedDisplayValue: trimmedDisplayValue || 'N/A',
-        isEmpty: trimmedDisplayValue === '',
-        isPlaceholderValue,
-        placeholder: `"${placeholder}"`,
-        hasIsManualEntryFn: !!isManualEntry,
-      })
     }
   }
 
   if (displayValue && items && items.length > 0 && !isManualEntryValue) {
-    if (debugLogging) {
-      console.log(`${fieldType}: Looking up display value for stored value: "${value}"`)
-      console.log(`${fieldType}: Items available: ${items.length}, first item type:`, typeof items[0])
-      if (items.length > 0 && typeof items[0] === 'object') {
-        console.log(`${fieldType}: First item keys:`, Object.keys(items[0]))
-      }
-    }
-
     // Try to find the item that matches this value
     // For notes, we need to match by filename; for folders, by path
     const foundItem = items.find((item: any) => {
       // Check if this item's value matches our stored value
       // For note objects, compare filename; for folder strings, compare the string itself
       if (typeof item === 'string') {
-        const matches = item === displayValue
-        if (debugLogging && matches) {
-          console.log(`${fieldType}: Matched string item: "${item}" === "${displayValue}"`)
-        }
-        return matches
+        return item === displayValue
       } else if (item && typeof item === 'object' && 'filename' in item) {
         // It's a note object, match by filename
-        const matches = item.filename === displayValue
-        if (debugLogging && matches) {
-          console.log(`${fieldType}: Matched note item by filename: "${item.filename}" === "${displayValue}", title: "${item.title}"`)
-        }
-        return matches
+        return item.filename === displayValue
       } else if (item && typeof item === 'object' && 'id' in item) {
         // It's an object with an id property (event, space, etc.), match by id first
         const matchesById = item.id === displayValue
         if (matchesById) {
-          if (debugLogging) {
-            console.log(`${fieldType}: Matched item by id: "${item.id}" === "${displayValue}", title: "${item.title || ''}"`)
-          }
           return true
         }
         // If id doesn't match, also check display value as fallback
         // This handles cases where value is a display string (e.g., "Private") instead of id (e.g., "")
         const displayVal = getDisplayValue(item)
-        const matchesByDisplay = displayVal === displayValue
-        if (debugLogging && matchesByDisplay) {
-          console.log(`${fieldType}: Matched item by display value: "${displayVal}" === "${displayValue}", id: "${item.id || ''}"`)
-        }
-        return matchesByDisplay
+        return displayVal === displayValue
       }
       // For other object types, try to match by comparing getDisplayValue result
       // or by checking if the item itself is the value
       const displayVal = getDisplayValue(item)
-      const matches = item === displayValue || displayVal === displayValue
-      if (debugLogging && matches) {
-        console.log(`${fieldType}: Matched object item:`, item)
-      }
-      return matches
+      return item === displayValue || displayVal === displayValue
     })
 
     if (foundItem) {
       // Use the display label from the found item
-      const originalDisplayValue = displayValue
       displayValue = getDisplayValue(foundItem)
-      if (debugLogging) {
-        console.log(`${fieldType}: Found item! Original value: "${originalDisplayValue}" -> Display value: "${displayValue}"`)
-      }
-    } else {
-      if (debugLogging) {
-        console.log(`${fieldType}: No item found for value "${value}", will display value directly`)
-        // Show a few examples of what we're searching through
-        if (items.length > 0) {
-          const examples = items.slice(0, 3).map((item: any) => {
-            if (typeof item === 'string') return item
             if (item && typeof item === 'object' && 'filename' in item) return `{title: "${item.title}", filename: "${item.filename}"}`
             return String(item)
           })
@@ -792,12 +718,6 @@ export function SearchableChooser({
               data-debug-items-count={items.length}
               data-debug-isloading={String(isLoading)}
             >
-              {debugLogging &&
-                console.log(
-                  `${fieldType}: Rendering dropdown, isOpen=${String(isOpen)}, isLoading=${String(isLoading)}, items.length=${items.length}, filteredItems.length=${
-                    filteredItems.length
-                  }`,
-                )}
               {isLoading ? (
                 <div
                   className={`searchable-chooser-empty ${classNamePrefix}-empty`}
@@ -829,9 +749,6 @@ export function SearchableChooser({
                 (() => {
                   // Show all items if maxResults is undefined, otherwise limit to maxResults
                   const itemsToShow = maxResults != null && maxResults > 0 ? filteredItems.slice(0, maxResults) : filteredItems
-                  if (debugLogging) {
-                    console.log(`${fieldType}: Rendering ${itemsToShow.length} options (filtered from ${filteredItems.length} total, maxResults=${maxResults || 'unlimited'})`)
-                  }
 
                   // Check if any items have icons or shortDescriptions (calculate once for all items)
                   const hasIconsOrDescriptions = itemsToShow.some((item: any) => {
@@ -846,14 +763,6 @@ export function SearchableChooser({
                     // For shorter items, let CSS handle truncation based on actual width
                     const truncatedText = optionText.length > dropdownMaxLength ? truncateDisplay(optionText, dropdownMaxLength) : optionText
                     const optionTitle = getOptionTitle(item)
-                    if (debugLogging && index < 3) {
-                      const jsTruncated = optionText.length > dropdownMaxLength
-                      console.log(
-                        `${fieldType}: Dropdown option[${index}]: original="${optionText}", length=${optionText.length}, truncated="${truncatedText}", length=${
-                          truncatedText.length
-                        }, maxLength=${dropdownMaxLength}, jsTruncated=${String(jsTruncated)}`,
-                      )
-                    }
                     const optionIcon = getOptionIcon ? getOptionIcon(item) : null
                     const optionColor = getOptionColor ? getOptionColor(item) : null
                     let optionShortDesc = getOptionShortDescription ? getOptionShortDescription(item) : null
