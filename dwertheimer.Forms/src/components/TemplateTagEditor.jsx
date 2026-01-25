@@ -28,6 +28,8 @@ export type TemplateTagEditorProps = {
   className?: string,
   style?: { [key: string]: any },
   actionButtons?: React$Node, // Buttons to display in the toggle area
+  defaultRawMode?: boolean, // If true, start in raw mode (default: false)
+  hideRawToggle?: boolean, // If true, hide the raw mode toggle switch (default: false)
 }
 
 /**
@@ -127,26 +129,7 @@ function reconstructText(pills: Array<TemplateTagPill>): string {
   return pills.map((pill) => (pill.type === 'tag' ? pill.content : pill.content)).join('')
 }
 
-/**
- * Replace leading and trailing spaces with visible space indicator for display
- * Also replaces newlines with <return> indicators
- * Only shows space indicators at the start or end of text, not in the middle
- * @param {string} text - The text to process
- * @returns {string} Text with leading/trailing spaces replaced by "<space>" and newlines by "<return>"
- */
-function displayTextWithSpaces(text: string): string {
-  // First, replace all newlines with <return>
-  let processedText = text.replace(/\n/g, '<return>')
-
-  // Then replace leading spaces and trailing spaces separately
-  // Leading spaces: ^\s+
-  // Trailing spaces: \s+$
-  // Middle spaces are left as-is
-  processedText = processedText.replace(/^(\s+)/, (match) => '<space>'.repeat(match.length))
-  processedText = processedText.replace(/(\s+)$/, (match) => '<space>'.repeat(match.length))
-
-  return processedText
-}
+// Removed displayTextWithSpaces function - now showing text directly with whitespace preserved
 
 /**
  * TemplateTagEditor Component
@@ -164,8 +147,10 @@ export function TemplateTagEditor({
   className = '',
   style = {},
   actionButtons,
+  defaultRawMode = false,
+  hideRawToggle = false,
 }: TemplateTagEditorProps): React$Node {
-  const [showRaw, setShowRaw] = useState<boolean>(false)
+  const [showRaw, setShowRaw] = useState<boolean>(defaultRawMode)
   const [pills, setPills] = useState<Array<TemplateTagPill>>([])
   const [selectedPillId, setSelectedPillId] = useState<?string>(null)
   const [editingTextIndex, setEditingTextIndex] = useState<?number>(null)
@@ -670,7 +655,7 @@ export function TemplateTagEditor({
                 style={{ cursor: isDragging ? 'text' : 'text', fontFamily: 'Menlo, monospace' }}
               >
                 {showDropIndicatorBefore && <div className="template-tag-drop-indicator" />}
-                {displayTextWithSpaces(pill.content)}
+                {pill.content}
                 {showDropIndicatorAfter && <div className="template-tag-drop-indicator" />}
               </div>
               {/* Drop zone for between pills - also clickable for text input */}
@@ -724,9 +709,34 @@ export function TemplateTagEditor({
 
   return (
     <div className={`template-tag-editor ${className}`} style={style} ref={containerRef} data-field-type="textarea">
-      {/* Toggle switch for raw mode */}
-      <div className="template-tag-editor-toggle">
-        {actionButtons && (
+      {/* Toggle switch for raw mode - hidden if hideRawToggle is true */}
+      {!hideRawToggle && (
+        <div className="template-tag-editor-toggle">
+          {actionButtons && (
+            <div
+              className="template-tag-editor-action-buttons"
+              onClick={(e) => {
+                // Ensure button clicks work
+                e.stopPropagation()
+              }}
+              onMouseDown={(e) => {
+                // Ensure button clicks work
+                e.stopPropagation()
+              }}
+            >
+              {actionButtons}
+            </div>
+          )}
+          <label className="template-tag-toggle-switch">
+            <input type="checkbox" checked={showRaw} onChange={handleRawToggle} />
+            <span className="template-tag-toggle-slider"></span>
+            <span className="template-tag-toggle-label">Show RAW template code</span>
+          </label>
+        </div>
+      )}
+      {/* Show action buttons even when toggle is hidden */}
+      {hideRawToggle && actionButtons && (
+        <div className="template-tag-editor-toggle">
           <div
             className="template-tag-editor-action-buttons"
             onClick={(e) => {
@@ -740,13 +750,8 @@ export function TemplateTagEditor({
           >
             {actionButtons}
           </div>
-        )}
-        <label className="template-tag-toggle-switch">
-          <input type="checkbox" checked={showRaw} onChange={handleRawToggle} />
-          <span className="template-tag-toggle-slider"></span>
-          <span className="template-tag-toggle-label">Show RAW template code</span>
-        </label>
-      </div>
+        </div>
+      )}
 
       {/* Raw mode - simple textarea */}
       {showRaw ? (

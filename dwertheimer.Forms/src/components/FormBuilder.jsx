@@ -146,6 +146,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
       // Option B: Create new note (defaults)
       newNoteTitle: '',
       newNoteFolder: '',
+      newNoteFrontmatter: '', // Frontmatter for new note (saved to codeblock)
       // Option C: Form processor
       formProcessorTitle: cleanedReceivingTemplateTitle, // Set to receivingTemplateTitle for backward compatibility
       // Space selection (empty string = Private, teamspace ID = Teamspace)
