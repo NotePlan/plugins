@@ -2,6 +2,12 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [1.0.6] @dwertheimer 2026-01-25
+
+### Fixed
+- **Infinite Loop Prevention**: Added guard in Root.jsx to skip empty SET_DATA/UPDATE_DATA updates that only contain metadata (lastUpdated, NPWindowID). This prevents infinite render loops when empty responses trigger re-renders.
+- **DynamicDialog Request Handler**: Fixed `getFrontmatterKeyValues` request handler (used by DynamicDialog choosers) to filter out templating syntax values (containing '<%') at the source. This prevents templating errors when forms load and process frontmatter that contains template code instead of actual values.
+
 ## [1.0.5] @dwertheimer 2026-01-12 (not released yet)
 ### Added
 - **Log Buffer Buster**: Added console method override feature to flush log buffers when debugging infinite loops or missing logs. When `logBufferBuster` is enabled in `pluginData`, all `console.log`, `console.error`, `console.info`, and `console.warn` calls will have 10000 dots appended to help flush NotePlan's log buffer. See ReactSkeleton documentation for usage instructions.
