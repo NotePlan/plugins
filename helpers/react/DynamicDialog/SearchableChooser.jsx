@@ -903,9 +903,15 @@ export function SearchableChooser({
                             )}
                             <span
                               className={`searchable-chooser-option-text ${classNamePrefix}-option-text`}
-                              style={{
-                                color: getColorStyle(optionColor),
-                              }}
+                              style={(() => {
+                                // Only apply inline color if optionColor is explicitly set and not a default gray-500
+                                // This allows CSS default color to be used when optionColor is null/undefined or default
+                                if (!optionColor || optionColor === 'gray-500') {
+                                  return undefined
+                                }
+                                const colorStyle = getColorStyle(optionColor)
+                                return colorStyle ? { color: colorStyle } : undefined
+                              })()}
                             >
                               {truncatedText}
                             </span>
@@ -946,7 +952,7 @@ export function SearchableChooser({
                               style={{
                                 marginRight: '0.5rem',
                                 opacity: 0.7,
-                                color: getColorStyle(optionColor),
+                                ...(optionColor ? { color: getColorStyle(optionColor) } : {}),
                               }}
                             />
                           )}
@@ -962,9 +968,15 @@ export function SearchableChooser({
                           )}
                           <span
                             className={`searchable-chooser-option-text ${classNamePrefix}-option-text`}
-                            style={{
-                              color: getColorStyle(optionColor),
-                            }}
+                            style={(() => {
+                              // Only apply inline color if optionColor is explicitly set and not a default gray-500
+                              // This allows CSS default color to be used when optionColor is null/undefined or default
+                              if (!optionColor || optionColor === 'gray-500') {
+                                return undefined
+                              }
+                              const colorStyle = getColorStyle(optionColor)
+                              return colorStyle ? { color: colorStyle } : undefined
+                            })()}
                           >
                             {truncatedText}
                           </span>

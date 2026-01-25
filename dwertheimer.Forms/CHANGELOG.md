@@ -15,6 +15,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
   - **Empty State Blank Line**: Fixed issue where a blank, clickable line appeared in the dropdown when showing "No Options Available". Removed validation-message-placeholder div from dropdown options and made empty state non-clickable.
   - **Loading State Propagation**: Added `isLoading` prop support to `DropdownSelectChooser` and `ContainedMultiSelectChooser` to properly show loading state in all chooser variants.
 - **FrontmatterKeyChooser Loading Initialization**: Fixed loading state initialization to start as `true` when a frontmatterKey is provided, ensuring "Loading Values..." placeholder appears immediately instead of showing normal placeholder first.
+- **SearchableChooser Color Override**: Fixed issue where inline color styles were overriding the default CSS color (`var(--fg-main-color, #4c4f69)`) even when `optionColor` was `null`, `undefined`, or the default `'gray-500'` value. Now only applies inline color styles when an explicit non-default color is provided, allowing the CSS default to be used otherwise.
 
 ### Changed
 - **SearchableChooser Loading UX**: Improved loading experience by showing spinner icon and wait cursor, preventing dropdown from opening prematurely, and ensuring proper focus management when loading completes.
