@@ -1996,3 +1996,385 @@ async function closeTodoistTask(task_id: string) {
     logError(pluginJson, `Unable to close task (${task_id}) ${JSON.stringify(error)}`)
   }
 }
+
+// ============================================================================
+// CONVERT TO TODOIST TASK FUNCTIONALITY
+// ============================================================================
+
+/**
+ * Check if a paragraph is a non-Todoist open task
+ * (i.e., an open task that doesn't already have a Todoist link)
+ *
+ * @param {TParagraph} para - The paragraph to check
+ * @returns {boolean} True if this is an open task without a Todoist link
+ */
+function isNonTodoistOpenTask(para: TParagraph): boolean {
+  // Check if it's an open task or checklist item
+  if (para.type !== 'open' && para.type !== 'checklist') {
+    return false
+  }
+
+  // Check if content already has a Todoist link
+  const content = para.content ?? ''
+  const todoistLinkPattern = /\[\^?\]\(https:\/\/app\.todoist\.com\/app\/task\/\d+\)/
+  if (todoistLinkPattern.test(content)) {
+    return false
+  }
+
+  // Check if content is empty
+  if (!content.trim()) {
+    return false
+  }
+
+  return true
+}
+
+/**
+ * Parse task details from NotePlan content for Todoist API
+ *
+ * @param {string} content - The raw task content from NotePlan
+ * @returns {Object} Object with content, priority, dueDate, and labels
+ */
+function parseTaskDetailsForTodoist(content: string): { content: string, priority: number, dueDate: ?string, labels: Array<string> } {
+  let cleanContent = content.trim()
+  let priority = 1 // Todoist default (lowest)
+  let dueDate: ?string = null
+  const labels: Array<string> = []
+
+  // Extract priority (!!! = p4/highest, !! = p3, ! = p2)
+  // Note: Todoist priority is inverted - 4 is highest, 1 is lowest
+  if (cleanContent.startsWith('!!! ')) {
+    priority = 4
+    cleanContent = cleanContent.substring(4)
+  } else if (cleanContent.startsWith('!! ')) {
+    priority = 3
+    cleanContent = cleanContent.substring(3)
+  } else if (cleanContent.startsWith('! ')) {
+    priority = 2
+    cleanContent = cleanContent.substring(2)
+  }
+
+  // Extract due date (>YYYY-MM-DD or >today, >tomorrow, etc.)
+  const dateMatch = cleanContent.match(/\s*>([\d-]+|today|tomorrow)\s*/)
+  if (dateMatch) {
+    const dateValue = dateMatch[1]
+    if (dateValue === 'today') {
+      const today = new Date()
+      dueDate = today.toISOString().split('T')[0]
+    } else if (dateValue === 'tomorrow') {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      dueDate = tomorrow.toISOString().split('T')[0]
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+      dueDate = dateValue
+    }
+    cleanContent = cleanContent.replace(dateMatch[0], ' ').trim()
+  }
+
+  // Extract hashtag labels (#label1 #label2)
+  // Be careful not to match heading markers or other # uses
+  const labelMatches = cleanContent.match(/\s#([a-zA-Z0-9_-]+)/g)
+  if (labelMatches) {
+    for (const match of labelMatches) {
+      const label = match.trim().substring(1) // Remove leading space and #
+      if (label && !labels.includes(label)) {
+        labels.push(label)
+      }
+    }
+    // Remove labels from content
+    cleanContent = cleanContent.replace(/\s#([a-zA-Z0-9_-]+)/g, '').trim()
+  }
+
+  // Clean up any extra whitespace
+  cleanContent = cleanContent.replace(/\s+/g, ' ').trim()
+
+  logDebug(pluginJson, `parseTaskDetailsForTodoist: "${content}" -> content="${cleanContent}", priority=${priority}, dueDate=${dueDate ?? 'none'}, labels=[${labels.join(', ')}]`)
+
+  return { content: cleanContent, priority, dueDate, labels }
+}
+
+/**
+ * Create a task in Todoist Inbox via POST API
+ *
+ * @param {string} content - The task content
+ * @param {number} priority - Todoist priority (1-4, where 4 is highest)
+ * @param {?string} dueDate - Due date in YYYY-MM-DD format (optional)
+ * @param {Array<string>} labels - Array of label names (optional)
+ * @param {?string} parentId - Parent task ID for subtasks (optional)
+ * @returns {Promise<?Object>} The created task object with id, or null on failure
+ */
+async function createTodoistTaskInInbox(
+  content: string,
+  priority: number = 1,
+  dueDate: ?string = null,
+  labels: Array<string> = [],
+  parentId: ?string = null
+): Promise<?Object> {
+  try {
+    const body: Object = {
+      content: content,
+      priority: priority,
+    }
+
+    // Add optional fields
+    if (dueDate) {
+      body.due_date = dueDate
+    }
+    if (labels.length > 0) {
+      body.labels = labels
+    }
+    if (parentId) {
+      body.parent_id = parentId
+    }
+
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${setup.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    }
+
+    logDebug(pluginJson, `createTodoistTaskInInbox: Creating task with body: ${JSON.stringify(body)}`)
+    const result = await fetch(`${todo_api}/tasks`, requestOptions)
+    const parsed = JSON.parse(result)
+
+    if (parsed && parsed.id) {
+      logInfo(pluginJson, `createTodoistTaskInInbox: Created task ${parsed.id}: "${content}"`)
+      return parsed
+    } else {
+      logError(pluginJson, `createTodoistTaskInInbox: Failed to create task, response: ${JSON.stringify(parsed)}`)
+      return null
+    }
+  } catch (error) {
+    logError(pluginJson, `createTodoistTaskInInbox: Error creating task: ${String(error)}`)
+    return null
+  }
+}
+
+/**
+ * Get the target paragraphs based on current selection
+ *
+ * @returns {Array<TParagraph>} Array of paragraphs to process
+ */
+function getTargetParagraphs(): Array<TParagraph> {
+  const note = Editor.note
+  if (!note) {
+    return []
+  }
+
+  // Check if there's a selection spanning multiple lines
+  const selection = Editor.selection
+  const selectedParagraphs = Editor.selectedParagraphs
+
+  logDebug(pluginJson, `getTargetParagraphs: selection=${JSON.stringify(selection)}, selectedParagraphs count=${selectedParagraphs?.length ?? 0}`)
+
+  // If we have multiple selected paragraphs (selection spans lines), return them all
+  if (selectedParagraphs && selectedParagraphs.length > 1) {
+    logDebug(pluginJson, `getTargetParagraphs: Returning ${selectedParagraphs.length} selected paragraphs`)
+    // $FlowIgnore - selectedParagraphs is readonly but we need to convert to array
+    return [...selectedParagraphs]
+  }
+
+  // Otherwise, get the current paragraph (cursor line)
+  // If selectedParagraphs has 1 item, use that
+  if (selectedParagraphs && selectedParagraphs.length === 1) {
+    logDebug(pluginJson, `getTargetParagraphs: Returning single selected paragraph`)
+    return [selectedParagraphs[0]]
+  }
+
+  // Fallback: find paragraph at cursor position
+  if (selection && note.paragraphs) {
+    const cursorPos = selection.start
+    for (const para of note.paragraphs) {
+      if (para.contentRange && cursorPos >= para.contentRange.start && cursorPos <= para.contentRange.end) {
+        logDebug(pluginJson, `getTargetParagraphs: Found paragraph at cursor: "${para.content?.substring(0, 50) ?? ''}"`)
+        return [para]
+      }
+    }
+  }
+
+  logDebug(pluginJson, `getTargetParagraphs: No paragraphs found`)
+  return []
+}
+
+/**
+ * Get a task and its subtasks (indented tasks below it)
+ *
+ * @param {TParagraph} para - The parent task paragraph
+ * @param {$ReadOnlyArray<TParagraph>} allParagraphs - All paragraphs in the note
+ * @returns {{ parent: TParagraph, subtasks: Array<TParagraph> }} Parent and subtasks
+ */
+function getTaskWithSubtasks(para: TParagraph, allParagraphs: $ReadOnlyArray<TParagraph>): { parent: TParagraph, subtasks: Array<TParagraph> } {
+  const subtasks: Array<TParagraph> = []
+  const parentIndent = para.indents ?? 0
+  const parentIndex = allParagraphs.findIndex((p) => p.lineIndex === para.lineIndex)
+
+  if (parentIndex === -1) {
+    return { parent: para, subtasks: [] }
+  }
+
+  // Look at consecutive paragraphs after the parent
+  for (let i = parentIndex + 1; i < allParagraphs.length; i++) {
+    const nextPara = allParagraphs[i]
+    const nextIndent = nextPara.indents ?? 0
+
+    // If indent is greater than parent, it's a potential subtask
+    if (nextIndent > parentIndent) {
+      // Only include if it's an open task or checklist and not already a Todoist task
+      if (isNonTodoistOpenTask(nextPara)) {
+        subtasks.push(nextPara)
+      }
+    } else {
+      // If we hit same or lower indent, stop
+      break
+    }
+  }
+
+  logDebug(pluginJson, `getTaskWithSubtasks: Found ${subtasks.length} subtasks for "${para.content?.substring(0, 30) ?? ''}"`)
+  return { parent: para, subtasks }
+}
+
+/**
+ * Create Todoist task from paragraph and update the paragraph with link
+ *
+ * @param {TParagraph} para - The paragraph to convert
+ * @param {TNote} _note - The note containing the paragraph (unused, kept for API consistency)
+ * @param {?string} parentId - Parent Todoist task ID for subtasks
+ * @returns {Promise<?string>} The created Todoist task ID, or null on failure
+ */
+async function createTodoistTaskAndUpdateParagraph(para: TParagraph, _note: TNote, parentId: ?string = null): Promise<?string> {
+  const content = para.content ?? ''
+  if (!content.trim()) {
+    logWarn(pluginJson, `createTodoistTaskAndUpdateParagraph: Empty content, skipping`)
+    return null
+  }
+
+  // Parse task details
+  const { content: cleanContent, priority, dueDate, labels } = parseTaskDetailsForTodoist(content)
+
+  // Create task in Todoist
+  const todoistTask = await createTodoistTaskInInbox(cleanContent, priority, dueDate, labels, parentId)
+  if (!todoistTask || !todoistTask.id) {
+    return null
+  }
+
+  // Append Todoist link to the original paragraph content
+  const todoistLink = `[^](https://app.todoist.com/app/task/${todoistTask.id})`
+  const newContent = `${content} ${todoistLink}`
+
+  // Update the paragraph
+  para.content = newContent
+  if (para.note) {
+    para.note.updateParagraph(para)
+  } else {
+    Editor.updateParagraph(para)
+  }
+
+  logInfo(pluginJson, `createTodoistTaskAndUpdateParagraph: Updated paragraph with Todoist link for task ${todoistTask.id}`)
+  return todoistTask.id
+}
+
+/**
+ * Convert selected non-Todoist tasks to Todoist tasks in the Inbox.
+ * If text selected spanning multiple lines: find all non-Todoist open tasks in selection.
+ * If no selection OR selection within a single line: operate on current line only.
+ *
+ * @returns {Promise<void>}
+ */
+export async function convertToTodoistTask(): Promise<void> {
+  // Load settings (includes API token)
+  setSettings()
+
+  const note = Editor.note
+  if (!note) {
+    logWarn(pluginJson, 'convertToTodoistTask: No note open')
+    return
+  }
+
+  // Get target paragraphs based on selection
+  const targetParagraphs = getTargetParagraphs()
+  if (targetParagraphs.length === 0) {
+    logWarn(pluginJson, 'convertToTodoistTask: No paragraphs found at cursor/selection')
+    await CommandBar.prompt('No tasks found', 'Could not find any paragraphs at the current cursor position.')
+    return
+  }
+
+  logDebug(pluginJson, `convertToTodoistTask: Processing ${targetParagraphs.length} target paragraphs`)
+
+  // Filter to non-Todoist open tasks only
+  const eligibleTasks = targetParagraphs.filter((p) => isNonTodoistOpenTask(p))
+
+  if (eligibleTasks.length === 0) {
+    // Check if there were tasks that already had Todoist links
+    const alreadyTodoist = targetParagraphs.filter((p) => {
+      const content = p.content ?? ''
+      return (p.type === 'open' || p.type === 'checklist') && /\[\^?\]\(https:\/\/app\.todoist\.com\/app\/task\/\d+\)/.test(content)
+    })
+
+    if (alreadyTodoist.length > 0) {
+      await CommandBar.prompt('Already Todoist tasks', `${alreadyTodoist.length} task(s) already have Todoist links.`)
+    } else {
+      await CommandBar.prompt('No open tasks found', 'No open tasks found in the selection.')
+    }
+    return
+  }
+
+  logInfo(pluginJson, `convertToTodoistTask: Found ${eligibleTasks.length} eligible tasks to convert`)
+
+  // Get all paragraphs for subtask detection
+  const allParagraphs = note.paragraphs ?? []
+
+  // Track results
+  let successCount = 0
+  let failureCount = 0
+  const processedLineIndexes: Set<number> = new Set()
+
+  // Process each eligible task
+  for (const task of eligibleTasks) {
+    // Skip if we already processed this task as a subtask of another
+    if (processedLineIndexes.has(task.lineIndex)) {
+      continue
+    }
+
+    // Check for subtasks
+    const { parent, subtasks } = getTaskWithSubtasks(task, allParagraphs)
+
+    // Create parent task
+    const parentTodoistId = await createTodoistTaskAndUpdateParagraph(parent, note, null)
+    processedLineIndexes.add(parent.lineIndex)
+
+    if (parentTodoistId) {
+      successCount++
+
+      // Create subtasks with parent_id
+      for (const subtask of subtasks) {
+        // Skip if already processed
+        if (processedLineIndexes.has(subtask.lineIndex)) {
+          continue
+        }
+
+        const subtaskTodoistId = await createTodoistTaskAndUpdateParagraph(subtask, note, parentTodoistId)
+        processedLineIndexes.add(subtask.lineIndex)
+
+        if (subtaskTodoistId) {
+          successCount++
+        } else {
+          failureCount++
+        }
+      }
+    } else {
+      failureCount++
+    }
+  }
+
+  // Report results
+  if (failureCount === 0) {
+    await CommandBar.prompt('Tasks converted', `Successfully converted ${successCount} task(s) to Todoist.`)
+  } else {
+    await CommandBar.prompt('Conversion complete', `Converted ${successCount} task(s). ${failureCount} failed.`)
+  }
+
+  logInfo(pluginJson, `convertToTodoistTask: Completed. Success: ${successCount}, Failures: ${failureCount}`)
+}

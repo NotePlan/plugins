@@ -149,6 +149,16 @@
       "arguments": []
     },
     {
+      "name": "todoist convert to todoist task",
+      "alias": [
+        "cttt",
+        "toct"
+      ],
+      "description": "Convert selected non-Todoist tasks to Todoist tasks in the Inbox",
+      "jsFunction": "convertToTodoistTask",
+      "arguments": []
+    },
+    {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "Todoist Noteplan Sync: Version",
       "description": "Update + Check Version",
