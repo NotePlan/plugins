@@ -1636,7 +1636,7 @@ function checkParagraph(paragraph: TParagraph) {
       logInfo(pluginJson, `Todoist ID found in Noteplan note (${found[1]})`)
       // check to see if it is already closed in Todoist.
       fetch(`${todo_api}/tasks/${found[1]}`, getRequestObject()).then((task_info: Object) => {
-        const completed: boolean = task_info?.is_completed ?? false
+        const completed: boolean = task_info?.checked === true
         if (completed === true) {
           logDebug(pluginJson, `Going to mark this one closed in Noteplan: ${task_info.content}`)
           paragraph.type = 'done'
@@ -2403,8 +2403,12 @@ function extractTodoistTaskId(content: string): ?string {
  */
 async function fetchTodoistTask(taskId: string): Promise<?Object> {
   try {
-    const result = await fetch(`${todo_api}/tasks/${taskId}`, getRequestObject())
+    const url = `${todo_api}/tasks/${taskId}`
+    logDebug(pluginJson, `fetchTodoistTask: Fetching ${url}`)
+    const result = await fetch(url, getRequestObject())
+    logDebug(pluginJson, `fetchTodoistTask: Raw response for ${taskId}: ${result}`)
     const parsed = JSON.parse(result)
+    logDebug(pluginJson, `fetchTodoistTask: checked=${parsed.checked}, content=${parsed.content?.substring(0, 50)}`)
     return parsed
   } catch (error) {
     logWarn(pluginJson, `fetchTodoistTask: Could not fetch task ${taskId}: ${String(error)}`)
@@ -2463,7 +2467,7 @@ export async function syncStatusOnly(): Promise<void> {
       continue
     }
 
-    const todoistCompleted = todoistTask.is_completed === true
+    const todoistCompleted = todoistTask.checked === true
 
     logDebug(pluginJson, `Task ${taskId}: NP=${npStatus}, Todoist=${todoistCompleted ? 'completed' : 'open'}`)
 
