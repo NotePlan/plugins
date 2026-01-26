@@ -2390,7 +2390,8 @@ export async function convertToTodoistTask(): Promise<void> {
  * @returns {?string} The Todoist task ID or null if not found
  */
 function extractTodoistTaskId(content: string): ?string {
-  const match = content.match(/app\/task\/(\d+)\)/)
+  // Task IDs can be numeric or alphanumeric (e.g., 6X4P4Mp38MWX3MW4)
+  const match = content.match(/app\/task\/([a-zA-Z0-9]+)\)/)
   return match ? match[1] : null
 }
 
