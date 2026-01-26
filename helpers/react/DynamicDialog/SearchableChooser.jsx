@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { calculatePortalPosition } from '@helpers/react/reactUtils.js'
 import { getColorStyle } from '@helpers/colors.js'
+import { logDebug } from '@helpers/react/reactDev.js'
 import './SearchableChooser.css'
 
 /**
@@ -142,6 +143,11 @@ export function SearchableChooser({
   } = config
 
   const [isOpen, setIsOpen] = useState<boolean>(false)
+  
+  // Log isOpen state changes for debugging
+  useEffect(() => {
+    logDebug('SearchableChooser', `[${classNamePrefix}] isOpen state changed to: ${isOpen}`)
+  }, [isOpen, classNamePrefix])
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [filteredItems, setFilteredItems] = useState<Array<any>>(items)
   const [optionKeyPressed, setOptionKeyPressed] = useState<boolean>(false)
@@ -340,11 +346,31 @@ export function SearchableChooser({
       if (containerRef.current && target instanceof HTMLElement && !containerRef.current.contains(target) && dropdownRef.current && !dropdownRef.current.contains(target)) {
         setIsOpen(false)
         setSearchTerm('')
+        setHoveredIndex(null)
+      }
+    }
+
+    // Listen for focus events from other SearchableChooser instances
+    const handleOtherFocus = (event: Event) => {
+      // If another chooser got focus and it's not this one, close this dropdown
+      // Flow doesn't know about CustomEvent, so we need to access detail via any
+      const customEvent: any = event
+      logDebug('SearchableChooser', `[${classNamePrefix}] Received searchableChooserFocus event, detail=${JSON.stringify(customEvent.detail)}, isOpen=${isOpen}`)
+      if (customEvent.detail && customEvent.detail.classNamePrefix !== classNamePrefix) {
+        logDebug('SearchableChooser', `[${classNamePrefix}] Closing dropdown: another chooser (${customEvent.detail.classNamePrefix}) got focus`)
+        setIsOpen(false)
+        setSearchTerm('')
+        setHoveredIndex(null)
+      } else {
+        logDebug('SearchableChooser', `[${classNamePrefix}] Ignoring focus event: same chooser or no detail`)
       }
     }
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
+      if (typeof window !== 'undefined') {
+        window.addEventListener('searchableChooserFocus', handleOtherFocus)
+      }
       // Focus input when dropdown opens
       if (inputRef.current) {
         setTimeout(() => inputRef.current?.focus(), 0)
@@ -353,8 +379,11 @@ export function SearchableChooser({
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('searchableChooserFocus', handleOtherFocus)
+      }
     }
-  }, [isOpen])
+  }, [isOpen, classNamePrefix])
 
   const handleInputChange = (e: SyntheticInputEvent<HTMLInputElement>) => {
     const newSearchTerm = e.target.value
@@ -370,25 +399,74 @@ export function SearchableChooser({
   }
 
   const handleInputFocus = () => {
+    logDebug('SearchableChooser', `[${classNamePrefix}] handleInputFocus called, suppressOpenOnFocusRef=${suppressOpenOnFocusRef.current}, isOpen=${isOpen}, isLoading=${isLoading}, items.length=${items.length}`)
     if (suppressOpenOnFocusRef.current) {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Suppressing open on focus`)
       suppressOpenOnFocusRef.current = false
       return
     }
+    // Close all other dropdowns when this one gets focus
+    // Dispatch a custom event that other SearchableChooser instances can listen to
+    if (typeof window !== 'undefined') {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Dispatching searchableChooserFocus event`)
+      window.dispatchEvent(new CustomEvent('searchableChooserFocus', { detail: { fieldType, classNamePrefix } }))
+    }
     if (!isOpen && onOpen) {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Calling onOpen callback`)
       onOpen() // Trigger lazy loading callback
     }
     // Only open dropdown if items are loaded (not loading and items exist)
     // If loading or no items, wait for items to load before opening
     if (!isLoading && items.length > 0) {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Opening dropdown on focus`)
       setIsOpen(true)
       // Calculate position immediately when opening (synchronously)
       const position = calculateDropdownPosition()
       if (position) {
         setDropdownPosition(position)
       }
+    } else {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Not opening dropdown: isLoading=${isLoading}, items.length=${items.length}`)
     }
     // If loading or no items, the dropdown will auto-open when items finish loading
     // (handled by useEffect below)
+  }
+
+  const handleInputBlur = (e: SyntheticFocusEvent<HTMLInputElement>) => {
+    logDebug('SearchableChooser', `[${classNamePrefix}] handleInputBlur called, isOpen=${isOpen}`)
+    // Don't close if clicking on the dropdown itself
+    // Use setTimeout to check if the new focus target is within our container
+    setTimeout(() => {
+      const relatedTarget = e.relatedTarget || document.activeElement
+      logDebug('SearchableChooser', `[${classNamePrefix}] Blur timeout: relatedTarget=${relatedTarget?.tagName || 'null'}, activeElement=${document.activeElement?.tagName || 'null'}`)
+      if (containerRef.current && relatedTarget instanceof HTMLElement) {
+        // If the new focus is within our container or dropdown, don't close
+        if (containerRef.current.contains(relatedTarget) || (dropdownRef.current && dropdownRef.current.contains(relatedTarget))) {
+          logDebug('SearchableChooser', `[${classNamePrefix}] Not closing: focus is within container or dropdown`)
+          return
+        }
+        // If the new focus is another input field, close this dropdown
+        // This ensures only one dropdown is open at a time
+        if (relatedTarget instanceof HTMLInputElement && relatedTarget !== inputRef.current) {
+          logDebug('SearchableChooser', `[${classNamePrefix}] Closing dropdown: focus moved to another input`)
+          setIsOpen(false)
+          setSearchTerm('')
+          setHoveredIndex(null)
+          return
+        }
+      }
+      // Only close if we're not suppressing (e.g., after item selection, we want to keep it closed)
+      // If suppressOpenOnFocusRef is set, the dropdown should already be closed, so this is just cleanup
+      if (!suppressOpenOnFocusRef.current) {
+        // Close dropdown when input loses focus (and focus isn't going to another input in our container)
+        logDebug('SearchableChooser', `[${classNamePrefix}] Closing dropdown: input lost focus`)
+        setIsOpen(false)
+        setSearchTerm('')
+        setHoveredIndex(null)
+      } else {
+        logDebug('SearchableChooser', `[${classNamePrefix}] Not closing on blur: suppressOpenOnFocusRef is set`)
+      }
+    }, 200) // Increased delay to allow click events on dropdown items and other inputs to process
   }
 
   const handleInputKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
@@ -435,11 +513,13 @@ export function SearchableChooser({
     }
 
     if (e.key === 'Enter') {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Enter key pressed, isOpen=${isOpen}, hoveredIndex=${hoveredIndex}, filteredItems.length=${filteredItems.length}`)
       e.preventDefault() // Prevent form submission
       e.stopPropagation() // Stop event from bubbling to DynamicDialog
 
       // If dropdown is closed, reopen it
       if (!isOpen) {
+        logDebug('SearchableChooser', `[${classNamePrefix}] Opening dropdown on Enter`)
         setIsOpen(true)
         setSearchTerm('')
         setHoveredIndex(null)
@@ -462,21 +542,21 @@ export function SearchableChooser({
       const itemToSelect =
         hoveredIndex != null && hoveredIndex >= 0 && hoveredIndex < filteredItems.length ? filteredItems[hoveredIndex] : filteredItems.length > 0 ? filteredItems[0] : null
 
+      logDebug('SearchableChooser', `[${classNamePrefix}] Enter with dropdown open, itemToSelect=${itemToSelect ? (getOptionText ? getOptionText(itemToSelect) : 'found') : 'null'}`)
       if (itemToSelect) {
         handleItemSelect(itemToSelect)
       } else if (allowManualEntry && searchTerm.trim()) {
         // Allow manual entry if enabled and there's text typed
         // Create a special manual entry item
+        // Set suppress flag BEFORE closing dropdown to prevent auto-reopen on refocus
+        suppressOpenOnFocusRef.current = true
         const manualEntryItem = { __manualEntry__: true, value: searchTerm.trim(), display: searchTerm.trim() }
         onSelect(manualEntryItem)
         setIsOpen(false)
         setSearchTerm('')
-        // Keep focus on the input to allow tab navigation to continue working
-        if (inputRef.current) {
-          setTimeout(() => {
-            inputRef.current?.focus()
-          }, 0)
-        }
+        setHoveredIndex(null)
+        // Don't refocus the input after selection - let it blur naturally
+        // This prevents the dropdown from reopening
       }
     } else if (e.key === 'Escape' || e.key === 'Esc') {
       // Close dropdown on ESC, but only if it's open
@@ -495,6 +575,7 @@ export function SearchableChooser({
   }
 
   const handleItemSelect = (item: any, event?: SyntheticMouseEvent<HTMLDivElement>) => {
+    logDebug('SearchableChooser', `[${classNamePrefix}] handleItemSelect called, isOpen=${isOpen}, item=${getOptionText ? getOptionText(item) : JSON.stringify(item)}`)
     // Check if Option/Alt key is pressed
     if (event && (event.altKey || event.metaKey) && onOptionClick) {
       event.preventDefault()
@@ -502,23 +583,18 @@ export function SearchableChooser({
       onOptionClick(item)
       return
     }
-    // Set suppress flag BEFORE closing dropdown to prevent auto-reopen on refocus
+    // Set suppress flag BEFORE closing dropdown to prevent auto-reopen
+    // This flag will prevent both the focus handler and the auto-open useEffect from reopening
     suppressOpenOnFocusRef.current = true
+    logDebug('SearchableChooser', `[${classNamePrefix}] Setting suppressOpenOnFocusRef=true, calling onSelect, closing dropdown`)
     onSelect(item)
     setIsOpen(false)
     setSearchTerm('')
     setHoveredIndex(null)
-    // Keep focus on the input to allow tab navigation to continue working
-    // Use setTimeout to ensure the dropdown closes first, then refocus
-    if (inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus()
-        // Clear the suppress flag after focus to allow normal behavior on next focus
-        setTimeout(() => {
-          suppressOpenOnFocusRef.current = false
-        }, 100)
-      }, 0)
-    }
+    // Don't refocus the input after selection - let it blur naturally
+    // This prevents the dropdown from reopening
+    // The suppress flag will be cleared by the auto-open useEffect after a delay
+    logDebug('SearchableChooser', `[${classNamePrefix}] Dropdown should now be closed, suppressOpenOnFocusRef=${suppressOpenOnFocusRef.current}`)
   }
 
   // When displaying the selected value, try to find the item by value and use its display label
@@ -635,11 +711,25 @@ export function SearchableChooser({
 
   // Auto-open dropdown when items finish loading if input is focused
   // This handles the case where focus was set before items were loaded
+  // BUT: Don't auto-open if suppressOpenOnFocusRef is set (e.g., after item selection)
   useEffect(() => {
     if (!isLoading && items.length > 0 && !isOpen && inputRef.current) {
+      // Check if we should suppress auto-open (e.g., after item selection)
+      if (suppressOpenOnFocusRef.current) {
+        logDebug('SearchableChooser', `[${classNamePrefix}] Items finished loading but suppressing auto-open (suppressOpenOnFocusRef=true)`)
+        // Clear the suppress flag after a delay to allow normal behavior on next focus
+        setTimeout(() => {
+          suppressOpenOnFocusRef.current = false
+          logDebug('SearchableChooser', `[${classNamePrefix}] Cleared suppressOpenOnFocusRef flag`)
+        }, 300)
+        return
+      }
       // Check if input is currently focused
-      if (document.activeElement === inputRef.current) {
+      const isFocused = document.activeElement === inputRef.current
+      logDebug('SearchableChooser', `[${classNamePrefix}] Items finished loading: isLoading=${isLoading}, items.length=${items.length}, isOpen=${isOpen}, isFocused=${isFocused}`)
+      if (isFocused) {
         // Input is focused and items are now loaded - open the dropdown
+        logDebug('SearchableChooser', `[${classNamePrefix}] Auto-opening dropdown: input is focused and items are loaded`)
         setIsOpen(true)
         // Calculate position immediately when opening
         const position = calculateDropdownPosition()
@@ -648,7 +738,7 @@ export function SearchableChooser({
         }
       }
     }
-  }, [isLoading, items.length, isOpen]) // Watch for loading completion and items availability
+  }, [isLoading, items.length, isOpen, classNamePrefix]) // Watch for loading completion and items availability
 
   // Debug logging (disabled for cleaner console output)
   // if (debugLogging && displayValue) {
@@ -694,6 +784,7 @@ export function SearchableChooser({
           value={isOpen ? searchTerm : truncatedDisplayValue}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
           onKeyDown={handleInputKeyDown}
           placeholder={isLoading ? 'Loading Values...' : placeholder}
           disabled={disabled}

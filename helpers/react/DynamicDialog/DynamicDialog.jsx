@@ -351,6 +351,7 @@ const DynamicDialog = ({
   const previousIsOpenRef = useRef<boolean>(false) // Track previous isOpen state to detect dialog open/close transitions
   const previousItemsRef = useRef<Array<TSettingItem>>([]) // Track previous items to prevent unnecessary dependency map rebuilds
   const [fieldLoadingStates, setFieldLoadingStates] = useState<{ [fieldKey: string]: boolean }>({}) // Track loading state for dependent fields (can be set by parent component)
+  const userHasInteractedRef = useRef<boolean>(false) // Track if user has manually interacted with the form (clicked on a field)
 
   useEffect(() => {
     updatedSettingsRef.current = updatedSettings
@@ -489,6 +490,37 @@ const DynamicDialog = ({
     previousIsOpenRef.current = isNowOpen
   }, [isOpen, updatedSettings]) // Keep updatedSettings for reading current values
 
+  // Reset user interaction flag when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      userHasInteractedRef.current = false
+    }
+  }, [isOpen])
+
+  // Track user clicks on input fields to prevent auto-focus from stealing focus
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleInputClick = (e: MouseEvent) => {
+      const target = e.target
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+        // User has manually clicked on an input field
+        userHasInteractedRef.current = true
+      }
+    }
+
+    const dialogElement = dialogRef.current
+    if (dialogElement) {
+      dialogElement.addEventListener('mousedown', handleInputClick, true) // Use capture phase to catch all clicks
+    }
+
+    return () => {
+      if (dialogElement) {
+        dialogElement.removeEventListener('mousedown', handleInputClick, true)
+      }
+    }
+  }, [isOpen])
+
   // Auto-focus the first focusable field when dialog opens
   useEffect(() => {
     if (!isOpen) return
@@ -537,10 +569,18 @@ const DynamicDialog = ({
   // Re-focus the first field when it finishes loading
   // This handles the case where the first field was skipped because it was loading,
   // and focus went to a later field instead
+  // BUT: Only do this if the user hasn't manually interacted with the form yet
   useEffect(() => {
     if (!isOpen) return
 
     const checkAndRefocus = () => {
+      // Don't auto-focus if user has already interacted with the form
+      if (userHasInteractedRef.current) {
+        logDebug('DynamicDialog', 'Skipping auto-refocus: user has interacted with form')
+        return
+      }
+      logDebug('DynamicDialog', 'checkAndRefocus: checking if first field should be refocused')
+
       const dialogElement = dialogRef.current
       if (!dialogElement) return
 
@@ -573,6 +613,7 @@ const DynamicDialog = ({
       const firstReadyIndex = firstReadyInput ? allInputs.indexOf(firstReadyInput) : -1
 
       // If the first field is ready and focus is on a later field, move focus to the first field
+      // BUT only if user hasn't interacted yet
       if (
         firstReadyInput &&
         firstReadyInput instanceof HTMLInputElement &&
@@ -582,8 +623,8 @@ const DynamicDialog = ({
       ) {
         // Only refocus if the currently focused field is not the first ready field
         // and the first ready field was previously loading (indicated by it being earlier in DOM order)
+        logDebug('DynamicDialog', `Re-focusing first field after loading completed: ${firstReadyInput.id || 'unnamed'}, currently focused: ${currentlyFocused.id || 'unnamed'}`)
         firstReadyInput.focus()
-        logDebug('DynamicDialog', `Re-focused first field after loading completed: ${firstReadyInput.id || 'unnamed'}`)
       }
     }
 
