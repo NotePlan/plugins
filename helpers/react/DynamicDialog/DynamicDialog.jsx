@@ -28,6 +28,31 @@ import { logWarn, timer, logDebug, logError } from '@helpers/react/reactDev.js'
 import { type NoteOption } from './NoteChooser.jsx'
 
 //--------------------------------------------------------------------------
+// Configuration Constants
+//--------------------------------------------------------------------------
+
+/**
+ * Auto-focus first field feature flag
+ * 
+ * DISABLED: This feature was causing infinite focus loops between fields,
+ * especially when fields are loading data asynchronously. The focus management
+ * was interfering with SearchableChooser components that handle their own focus
+ * and blur events, causing rapid focus switching between fields.
+ * 
+ * The issue manifests as:
+ * - Fields rapidly gaining/losing focus
+ * - Dropdowns opening/closing repeatedly
+ * - User unable to interact with the form
+ * 
+ * TODO: Re-enable with a more robust implementation that:
+ * - Better detects when fields are truly ready (not just not-loading)
+ * - Respects SearchableChooser's own focus management
+ * - Has better guards against focus loops
+ * - Only focuses once on dialog open, not repeatedly
+ */
+const FOCUS_FIRST_FIELD = false
+
+//--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
 
@@ -523,7 +548,7 @@ const DynamicDialog = ({
 
   // Auto-focus the first focusable field when dialog opens
   useEffect(() => {
-    if (!isOpen) return
+    if (!FOCUS_FIRST_FIELD || !isOpen) return
 
     // Wait for DOM to be ready, then find and focus the first focusable field
     const focusFirstField = () => {
@@ -571,7 +596,7 @@ const DynamicDialog = ({
   // and focus went to a later field instead
   // BUT: Only do this if the user hasn't manually interacted with the form yet
   useEffect(() => {
-    if (!isOpen) return
+    if (!FOCUS_FIRST_FIELD || !isOpen) return
 
     const checkAndRefocus = () => {
       // Don't auto-focus if user has already interacted with the form

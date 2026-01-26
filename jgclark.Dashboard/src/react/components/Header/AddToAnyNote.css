@@ -9,5 +9,18 @@
 	right: var(--add-dialog-right, auto);
 	transform: none !important; /* Override default centering transform */
 	margin: 0 !important; /* Override default centering margin */
+	/* Ensure dialog stays within viewport when window is resized */
+	max-width: min(700px, calc(100vw - 20px)); /* Max width with 10px padding on each side */
+	max-height: calc(100vh - var(--add-dialog-top, 0px) - 20px); /* Max height: viewport height minus top position minus padding */
+	overflow-y: auto; /* Allow scrolling if content exceeds max-height */
+	/* Ensure dialog doesn't go off bottom of screen */
+	bottom: auto; /* Let top/right positioning work */
+}
+
+/* Ensure dialog content adjusts when window is resized */
+.add-to-any-note-dialog.dynamic-dialog .dynamic-dialog-content {
+	max-height: calc(100vh - var(--add-dialog-top, 0px) - 120px); /* Account for header (~80px) and padding (~40px) */
+	overflow-y: auto;
+	overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
