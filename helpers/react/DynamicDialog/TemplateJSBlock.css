@@ -56,6 +56,12 @@
   background-color: var(--bg-main-color, #fff);
 }
 
+.templatejs-block-editor-wrapper:focus-within {
+  border-color: var(--tint-color, #dc8a78);
+  border-width: 2px;
+  box-shadow: 0 0 0 2px rgba(220, 138, 120, 0.2);
+}
+
 .templatejs-block-editor:disabled {
   background-color: var(--bg-alt-color, #f5f5f5);
   color: var(--fg-disabled-color, #999999);

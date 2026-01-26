@@ -452,6 +452,8 @@ export function SearchableChooser({
         if (onOpen) {
           onOpen()
         }
+        // If items are already loaded, ensure dropdown is ready for navigation
+        // The useEffect will handle opening when items finish loading if they're not ready yet
         return
       }
 
@@ -500,15 +502,21 @@ export function SearchableChooser({
       onOptionClick(item)
       return
     }
+    // Set suppress flag BEFORE closing dropdown to prevent auto-reopen on refocus
+    suppressOpenOnFocusRef.current = true
     onSelect(item)
     setIsOpen(false)
     setSearchTerm('')
+    setHoveredIndex(null)
     // Keep focus on the input to allow tab navigation to continue working
     // Use setTimeout to ensure the dropdown closes first, then refocus
     if (inputRef.current) {
       setTimeout(() => {
-        suppressOpenOnFocusRef.current = true
         inputRef.current?.focus()
+        // Clear the suppress flag after focus to allow normal behavior on next focus
+        setTimeout(() => {
+          suppressOpenOnFocusRef.current = false
+        }, 100)
       }, 0)
     }
   }

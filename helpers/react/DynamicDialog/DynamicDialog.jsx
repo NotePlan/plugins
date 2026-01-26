@@ -239,6 +239,7 @@ export type TDynamicDialogProps = {
   preloadedMentions?: Array<string>, // Preloaded mentions for static HTML testing (avoids dynamic loading)
   preloadedHashtags?: Array<string>, // Preloaded hashtags for static HTML testing (avoids dynamic loading)
   preloadedEvents?: Array<any>, // Preloaded events for static HTML testing (avoids dynamic loading)
+  preloadedFrontmatterValues?: { [string]: Array<string> }, // Preloaded frontmatter key values for static HTML testing (keyed by frontmatter key)
 }
 
 //--------------------------------------------------------------------------
@@ -282,6 +283,7 @@ const DynamicDialog = ({
   preloadedMentions = [],
   preloadedHashtags = [],
   preloadedEvents = [],
+  preloadedFrontmatterValues = {},
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || []
@@ -988,6 +990,7 @@ const DynamicDialog = ({
             preloadedMentions, // Pass preloaded mentions for static HTML testing
             preloadedHashtags, // Pass preloaded hashtags for static HTML testing
             preloadedEvents, // Pass preloaded events for static HTML testing
+            preloadedFrontmatterValues, // Pass preloaded frontmatter key values for static HTML testing
           }
           if (item.type === 'combo' || item.type === 'dropdown-select') {
             renderItemProps.inputRef = dropdownRef

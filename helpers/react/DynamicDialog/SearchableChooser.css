@@ -110,6 +110,22 @@
   min-height: calc(0.85rem * 1.2 + 8px); /* font-size * line-height + vertical padding (4px top + 4px bottom) */
 }
 
+/* Focus state - must come immediately after base styles to override */
+/* Use exact same selector as base style but with :focus for maximum specificity */
+.searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus,
+[class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus {
+  outline: none !important;
+  border: 2px solid var(--tint-color, #dc8a78) !important;
+  box-shadow: 0 0 0 2px rgba(220, 138, 120, 0.2) !important;
+}
+
+/* Additional fallback selector for inputs that might not have the wrapper class */
+input[type="text"][class*="-chooser-input"]:focus {
+  outline: none !important;
+  border: 2px solid var(--tint-color, #dc8a78) !important;
+  box-shadow: 0 0 0 2px rgba(220, 138, 120, 0.2) !important;
+}
+
 /* Also support the simpler selector for backward compatibility, but exclude dropdown options */
 .searchable-chooser-base [class*="-chooser-input"]:not([class*="-chooser-option"]):not([class*="-chooser-dropdown"]),
 [class*="-chooser-input"]:not([class*="-chooser-option"]):not([class*="-chooser-dropdown"]) {
@@ -121,13 +137,6 @@
 .searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]::placeholder,
 [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]::placeholder {
   text-indent: 0.75rem;
-}
-
-.searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus,
-[class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus {
-  outline: none;
-  border-color: var(--tint-color, #dc8a78);
-  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
 }
 
 .searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:disabled,

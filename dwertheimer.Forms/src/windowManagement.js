@@ -206,7 +206,16 @@ function detectFieldRequirements(formFields: Array<Object>): {
   needsMentions: boolean,
   needsHashtags: boolean,
   needsEvents: boolean,
+  frontmatterKeys: Array<string>, // Array of unique frontmatter keys to preload
 } {
+  // Collect unique frontmatter keys from frontmatter-key-chooser fields
+  const frontmatterKeys = new Set<string>()
+  formFields.forEach((field) => {
+    if (field.type === 'frontmatter-key-chooser' && field.frontmatterKey) {
+      frontmatterKeys.add(field.frontmatterKey)
+    }
+  })
+  
   return {
     needsFolders: formFields.some((field) => field.type === 'folder-chooser'),
     needsNotes: formFields.some((field) => field.type === 'note-chooser'),
@@ -214,6 +223,7 @@ function detectFieldRequirements(formFields: Array<Object>): {
     needsMentions: formFields.some((field) => field.type === 'mention-chooser'),
     needsHashtags: formFields.some((field) => field.type === 'tag-chooser'),
     needsEvents: formFields.some((field) => field.type === 'event-chooser'),
+    frontmatterKeys: Array.from(frontmatterKeys),
   }
 }
 
@@ -257,6 +267,7 @@ function initializeEmptyChooserData(pluginData: Object): void {
   pluginData.preloadedMentions = []
   pluginData.preloadedHashtags = []
   pluginData.preloadedEvents = []
+  pluginData.preloadedFrontmatterValues = {}
 }
 
 /**
@@ -432,6 +443,55 @@ async function preloadEvents(pluginData: Object, needsEvents: boolean): Promise<
 }
 
 /**
+ * Preload frontmatter key values if needed
+ * @param {Object} pluginData - The plugin data object to populate
+ * @param {Array<string>} frontmatterKeys - Array of frontmatter keys to preload values for
+ */
+/**
+ * Preload frontmatter key values if needed
+ * @param {Object} pluginData - The plugin data object to populate
+ * @param {Array<string>} frontmatterKeys - Array of frontmatter keys to preload values for
+ */
+async function preloadFrontmatterKeyValues(pluginData: Object, frontmatterKeys: Array<string>): Promise<void> {
+  if (!frontmatterKeys || frontmatterKeys.length === 0) {
+    pluginData.preloadedFrontmatterValues = {}
+    return
+  }
+
+  try {
+    const { getFrontmatterKeyValues } = await import('./requestHandlers.js')
+    const preloadedValues: { [string]: Array<string> } = {}
+    
+    // Preload values for each unique frontmatter key
+    for (const key of frontmatterKeys) {
+      try {
+        const result = await getFrontmatterKeyValues({
+          frontmatterKey: key,
+          noteType: 'All',
+          caseSensitive: false,
+        })
+        if (result.success && Array.isArray(result.data)) {
+          preloadedValues[key] = result.data
+          logDebug(pluginJson, `preloadFrontmatterKeyValues: Preloaded ${result.data.length} values for key "${key}"`)
+        } else {
+          preloadedValues[key] = []
+          logError(pluginJson, `preloadFrontmatterKeyValues: Failed to preload values for key "${key}"`)
+        }
+      } catch (error) {
+        preloadedValues[key] = []
+        logError(pluginJson, `preloadFrontmatterKeyValues: Error preloading values for key "${key}": ${error.message}`)
+      }
+    }
+    
+    pluginData.preloadedFrontmatterValues = preloadedValues
+    logDebug(pluginJson, `preloadFrontmatterKeyValues: Preloaded values for ${Object.keys(preloadedValues).length} frontmatter keys`)
+  } catch (error) {
+    pluginData.preloadedFrontmatterValues = {}
+    logError(pluginJson, `preloadFrontmatterKeyValues: Error preloading frontmatter values: ${error.message}`)
+  }
+}
+
+/**
  * Preload all chooser data if preloadChooserData is enabled
  * @param {Object} pluginData - The plugin data object to populate
  * @param {Object} requirements - Object with boolean flags for each chooser type
@@ -445,6 +505,7 @@ async function preloadAllChooserData(pluginData: Object, requirements: Object): 
   preloadMentions(pluginData, requirements.needsMentions)
   preloadHashtags(pluginData, requirements.needsHashtags)
   await preloadEvents(pluginData, requirements.needsEvents)
+  await preloadFrontmatterKeyValues(pluginData, requirements.frontmatterKeys || [])
 }
 
 /**
@@ -474,7 +535,7 @@ export async function getPluginData(argObj: Object): Promise<{ [string]: mixed }
     pluginJson,
     `getPluginData: needsFolders=${String(requirements.needsFolders)}, needsNotes=${String(requirements.needsNotes)}, needsSpaces=${String(
       requirements.needsSpaces,
-    )}, needsMentions=${String(requirements.needsMentions)}, needsHashtags=${String(requirements.needsHashtags)}, needsEvents=${String(requirements.needsEvents)}`,
+    )}, needsMentions=${String(requirements.needsMentions)}, needsHashtags=${String(requirements.needsHashtags)}, needsEvents=${String(requirements.needsEvents)}, frontmatterKeys=[${(requirements.frontmatterKeys || []).join(', ')}]`,
   )
 
   const pluginData = { platform: NotePlan.environment.platform, ...argObj }

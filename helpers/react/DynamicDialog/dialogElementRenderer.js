@@ -71,6 +71,7 @@ type RenderItemProps = {
   preloadedMentions?: Array<string>, // Preloaded mentions for static HTML testing
   preloadedHashtags?: Array<string>, // Preloaded hashtags for static HTML testing
   preloadedEvents?: Array<any>, // Preloaded events for static HTML testing
+  preloadedFrontmatterValues?: { [string]: Array<string> }, // Preloaded frontmatter key values for static HTML testing (keyed by frontmatter key)
 }
 
 /**
@@ -111,6 +112,7 @@ export function renderItem({
   preloadedMentions = [], // Preloaded mentions for static HTML testing
   preloadedHashtags = [], // Preloaded hashtags for static HTML testing
   preloadedEvents = [], // Preloaded events for static HTML testing
+  preloadedFrontmatterValues = {}, // Preloaded frontmatter key values for static HTML testing (keyed by frontmatter key)
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -1123,6 +1125,11 @@ export function renderItem({
           }
         }
 
+        // Get preloaded values for this frontmatter key if available
+        const initialValues = frontmatterKey && preloadedFrontmatterValues && typeof preloadedFrontmatterValues === 'object'
+          ? preloadedFrontmatterValues[frontmatterKey]
+          : undefined
+
         const handleValueChange = (values: string | Array<string>) => {
           if (item.key) {
             handleFieldChange(item.key, values)
@@ -1157,6 +1164,7 @@ export function renderItem({
               fullPathMatch={fullPathMatch}
               requestFromPlugin={requestFromPlugin}
               fieldKey={item.key}
+              initialValues={initialValues}
             />
           </div>
         )

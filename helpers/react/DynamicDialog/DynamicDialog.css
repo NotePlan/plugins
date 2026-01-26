@@ -534,9 +534,10 @@
 
     /* Focus style for non-readonly input-box-input */
     .input-box-input:not(:read-only):focus {
-        border-color: var(--hashtag-color);
+        border-color: var(--tint-color, #dc8a78);
+        border-width: 2px;
         outline: none;
-        box-shadow: 0 0 3px var(--hashtag-color);
+        box-shadow: 0 0 0 2px rgba(220, 138, 120, 0.2);
     }
 
     /* For optional 'save' button on Input Box */
@@ -617,9 +618,10 @@
 
     /* Focus style for dropdown-input */
     .dropdown-input:focus {
-        border-color: var(--hashtag-color);
+        border-color: var(--tint-color, #dc8a78);
+        border-width: 2px;
         outline: none;
-        box-shadow: 0 0 3px var(--hashtag-color);
+        box-shadow: 0 0 0 2px rgba(220, 138, 120, 0.2);
     }
 
     /* Style for dropdown-arrow */

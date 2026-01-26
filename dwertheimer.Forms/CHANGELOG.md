@@ -7,6 +7,10 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 ## [1.0.18] 2026-01-25 @dwertheimer
 
 ### Fixed
+- **Form Field Focus Styles**: Updated all form field focus styles to use `--tint-color` with a heavier 2px border stroke for better visibility:
+  - Input boxes, dropdowns, textareas, date pickers, and all chooser components now show a prominent `--tint-color` border when focused
+  - Added consistent box-shadow glow effect for all focused fields
+  - Fixed SearchableChooser focus styles to properly override base border styles using `!important` flags
 - **SearchableChooser Loading State**: Fixed multiple issues with SearchableChooser when fields are loading data:
   - **Loading Spinner**: Added FontAwesome spinner icon (`fa-spinner fa-spin`) that appears in the input field when loading. Spinner is properly centered vertically and positioned on the right side of the input.
   - **Auto-Open Prevention**: Fixed issue where dropdown would auto-open when field received focus but items were still loading, showing "No Options Available" instead of loading state. Dropdown now only opens automatically when items have finished loading.

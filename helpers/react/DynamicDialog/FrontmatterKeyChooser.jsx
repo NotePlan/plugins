@@ -35,6 +35,7 @@ export type FrontmatterKeyChooserProps = {
   fullPathMatch?: boolean, // Whether to match full path (default: false)
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request data from plugin
   fieldKey?: string, // Unique key for this field instance (used to generate unique input id)
+  initialValues?: Array<string>, // Preloaded values for static HTML testing
 }
 
 /**
@@ -68,12 +69,21 @@ export function FrontmatterKeyChooser({
   fullPathMatch = false,
   requestFromPlugin,
   fieldKey,
+  initialValues,
 }: FrontmatterKeyChooserProps): React$Node {
-  const [values, setValues] = useState<Array<string>>([])
-  const [loaded, setLoaded] = useState<boolean>(false)
-  // Initialize loading as true if we have a frontmatterKey
+  // Initialize from preloaded data if available (for static HTML testing)
+  const hasInitialValues = Array.isArray(initialValues) && initialValues.length > 0
+  const [values, setValues] = useState<Array<string>>(() => {
+    if (hasInitialValues && initialValues) {
+      logDebug('FrontmatterKeyChooser', `Using initial values: ${initialValues.length} values`)
+      return initialValues
+    }
+    return []
+  })
+  const [loaded, setLoaded] = useState<boolean>(hasInitialValues) // If preloaded, mark as loaded
+  // Initialize loading as true if we have a frontmatterKey and no preloaded data
   // This prevents the placeholder from flipping from "Type to search values..." to "Loading Values..."
-  const [loading, setLoading] = useState<boolean>(() => Boolean(frontmatterKey))
+  const [loading, setLoading] = useState<boolean>(() => Boolean(frontmatterKey) && !hasInitialValues)
   const lastLoadedKeyRef = useRef<string>('') // Track the last key we loaded data for
   const debounceTimeoutRef = useRef<?TimeoutID>(null) // Track debounce timeout
   const loadingKeyRef = useRef<string>('') // Track the key we're currently loading (to detect changes during async)
@@ -99,6 +109,12 @@ export function FrontmatterKeyChooser({
       return
     }
 
+    // Skip loading if initial values were provided (for static HTML testing)
+    if (hasInitialValues) {
+      logDebug('FrontmatterKeyChooser', `Skipping load - using initial values (${initialValues?.length || 0} values)`)
+      return
+    }
+    
     // If we've already loaded data for this exact key, don't reload
     if (lastLoadedKeyRef.current === frontmatterKey && loaded && !loading) {
       return
@@ -176,7 +192,7 @@ export function FrontmatterKeyChooser({
         debounceTimeoutRef.current = null
       }
     }
-  }, [requestFromPlugin, frontmatterKey, noteType, caseSensitive, folderString, fullPathMatch]) // Removed loaded and loading from dependencies to prevent loops
+  }, [requestFromPlugin, frontmatterKey, noteType, caseSensitive, folderString, fullPathMatch, hasInitialValues, initialValues]) // Removed loaded and loading from dependencies to prevent loops
 
   // Function to format value for display (no prefix needed, just return as-is)
   // Memoized with useCallback to prevent recreation on every render
