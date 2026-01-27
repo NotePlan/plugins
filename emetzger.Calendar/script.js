@@ -634,7 +634,7 @@ function getCalendarHTML() {
 
     .event-slot {
       height: 18px;
-      padding: 2px 6px;
+      padding: 0 6px;
       margin: 1px 4px;
       border-radius: 4px;
       font-size: 11px;
@@ -647,6 +647,9 @@ function getCalendarHTML() {
       box-sizing: border-box;
       position: relative;
       z-index: 2;
+      display: flex;
+      align-items: center;
+      line-height: 1;
     }
 
     .event-slot:hover {
@@ -1399,6 +1402,65 @@ function getCalendarHTML() {
       }
     }
 
+    /* iPad specific adjustments */
+    @media (min-width: 481px) and (max-width: 1024px) {
+      .header {
+        padding: 10px 12px;
+      }
+
+      .nav-btn, .today-circle-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+      }
+
+      .nav-title {
+        font-size: 17px;
+      }
+
+      .view-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+
+      .quick-add-input {
+        padding: 8px 12px;
+        font-size: 15px;
+      }
+
+      .quick-add-calendar-btn {
+        height: 34px;
+        padding: 0 10px;
+        font-size: 14px;
+      }
+
+      .quick-add-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 14px;
+      }
+
+      .calendar-filter-button {
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+
+      /* Month view event sizing for iPad */
+      .event-slot {
+        height: 20px !important;
+        font-size: 12px !important;
+      }
+
+      .event-chip {
+        font-size: 11px !important;
+        padding: 2px 6px !important;
+      }
+
+      .day-column {
+        min-height: 85px !important;
+      }
+    }
+
     /* Mobile phones */
     @media (max-width: 480px) {
       .header {
@@ -1419,35 +1481,63 @@ function getCalendarHTML() {
       }
 
       .header-right {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 6px;
       }
 
+      /* Move quick-add to bottom of screen */
       .quick-add-container {
-        order: 3;
-        width: 100%;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--bg-primary);
+        border-top: 1px solid var(--border-color);
+        padding: 8px;
+        padding-bottom: max(8px, env(safe-area-inset-bottom));
+        z-index: 100;
+        display: flex;
+        gap: 6px;
+      }
+
+      .calendar-container {
+        padding-bottom: 60px !important;
       }
 
       .quick-add-input {
-        font-size: 14px;
-        padding: 8px 10px;
+        font-size: 16px;
+        padding: 10px 12px;
+        flex: 1;
       }
 
       .quick-add-input::placeholder {
-        font-size: 11px;
+        font-size: 13px;
       }
 
       .quick-add-calendar-btn {
-        padding: 4px 6px;
-        max-width: 100px;
+        padding: 6px 10px;
+        max-width: 120px;
+        height: 40px;
+      }
+
+      .quick-add-btn {
+        width: 40px;
+        height: 40px;
       }
 
       .quick-add-cal-name {
-        font-size: 11px;
+        font-size: 12px;
       }
 
       .quick-add-cal-arrow {
         display: none;
+      }
+
+      .quick-add-calendar-dropdown {
+        bottom: 100%;
+        top: auto;
+        margin-bottom: 4px;
+        margin-top: 0;
       }
 
       .view-switcher {
@@ -1470,27 +1560,71 @@ function getCalendarHTML() {
         padding: 8px !important;
       }
 
-      /* Month view */
-      .day-column {
-        min-height: 60px !important;
-        padding: 2px !important;
-      }
-
-      .single-day-events, .multi-day-slots, .more-events {
+      /* Month view - remove vertical dividers, keep horizontal */
+      .day-column::after {
         display: none !important;
       }
 
-      .day-column.has-events::after {
-        content: '';
-        position: absolute;
-        bottom: 4px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 6px;
-        height: 6px;
-        background: var(--accent-color);
-        border-radius: 50%;
-        z-index: 5;
+      .day-number-cell {
+        border-right: none !important;
+      }
+
+      .day-column {
+        min-height: 70px !important;
+        padding: 2px 0 !important;
+      }
+
+      .multi-day-slots {
+        margin-top: 1px !important;
+      }
+
+      /* Multi-day events - edge to edge, continuous across days */
+      .event-slot {
+        height: 14px !important;
+        font-size: 9px !important;
+        padding: 0 3px !important;
+        margin: 0 0 1px 0 !important;
+        border-radius: 0 !important;
+      }
+
+      /* Start of event (no left continuation) */
+      .event-slot:not(.continues-left) {
+        margin-left: 2px !important;
+        border-top-left-radius: 3px !important;
+        border-bottom-left-radius: 3px !important;
+      }
+
+      /* End of event (no right continuation) */
+      .event-slot:not(.continues-right) {
+        margin-right: 2px !important;
+        border-top-right-radius: 3px !important;
+        border-bottom-right-radius: 3px !important;
+      }
+
+      .single-day-events {
+        gap: 1px !important;
+        padding: 0 2px !important;
+      }
+
+      .event-chip {
+        font-size: 9px !important;
+        padding: 0 3px !important;
+        height: 14px !important;
+        line-height: 14px !important;
+      }
+
+      .event-chip.timed .event-color-bar {
+        width: 2px !important;
+        height: 10px !important;
+      }
+
+      .event-chip.timed .event-time {
+        display: none !important;
+      }
+
+      .more-events {
+        font-size: 9px !important;
+        padding: 0 3px !important;
       }
 
       /* Week view - show only 3 days */
@@ -1597,9 +1731,12 @@ function getCalendarHTML() {
 
     /* Touch device optimizations */
     @media (hover: none) and (pointer: coarse) {
-      .nav-btn, .today-circle-btn, .view-btn, .quick-add-btn {
-        min-width: 44px;
+      .nav-btn, .today-circle-btn, .view-btn, .quick-add-btn, .quick-add-calendar-btn, .calendar-filter-button {
         min-height: 44px;
+      }
+
+      .nav-btn, .today-circle-btn {
+        min-width: 44px;
       }
 
       .day-column, .day-number-cell, .mini-day {
@@ -1607,7 +1744,8 @@ function getCalendarHTML() {
         -webkit-tap-highlight-color: transparent;
       }
 
-      .event-slot, .timed-event, .event-chip {
+      /* Increase touch target for day/week view timed events */
+      .timed-event {
         padding: 6px 8px !important;
       }
     }
@@ -3724,6 +3862,11 @@ function getCalendarHTML() {
             adjustMoreIndicators();
           }
         }, 150);
+      });
+
+      // Re-render when color scheme changes (light/dark mode)
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+        switchView(state.currentView);
       });
     }
 
