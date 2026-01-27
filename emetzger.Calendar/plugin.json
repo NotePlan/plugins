@@ -1,0 +1,24 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.20",
+  "plugin.id": "emetzger.Calendar",
+  "plugin.name": "Calendar",
+  "plugin.description": "Apple Calendar-style view with Year, Month, Week, and Day views. Navigate between dates, filter calendars, and manage events.",
+  "plugin.author": "emetzger",
+  "plugin.version": "1.0.0",
+  "plugin.dependencies": [],
+  "plugin.requiredFiles": [],
+  "plugin.script": "script.js",
+  "plugin.commands": [
+    {
+      "name": "showCalendar",
+      "description": "Show the calendar view",
+      "jsFunction": "showCalendar",
+      "sidebarView": {
+        "title": "Calendar",
+        "icon": "calendar",
+        "iconColor": "red-500"
+      }
+    }
+  ]
+}

@@ -237,7 +237,12 @@ function getCalendarHTML(currentYear) {
             align-items: center;
             gap: 8px;
       cursor: pointer;
+      margin-bottom: 8px;
           }
+
+    .settings-checkbox-row:last-child {
+      margin-bottom: 0;
+    }
           
     .settings-checkbox {
             width: 16px;
@@ -586,7 +591,7 @@ function getCalendarHTML(currentYear) {
             text-overflow: ellipsis;
             cursor: pointer;
       line-height: 1.3;
-      border-radius: 3px;
+      border-radius: 6px;
       margin: 0 1px;
             display: flex;
             align-items: center;
@@ -1221,11 +1226,17 @@ function getCalendarHTML(currentYear) {
               <input type="checkbox" class="settings-checkbox" id="obfuscateCheckbox">
               <span class="settings-checkbox-label">Obfuscate event text</span>
             </label>
-          </div>
-          <div class="settings-section">
             <label class="settings-checkbox-row">
               <input type="checkbox" class="settings-checkbox" id="hideSingleDayEventsCheckbox">
               <span class="settings-checkbox-label">Hide single-day events</span>
+            </label>
+            <label class="settings-checkbox-row">
+              <input type="checkbox" class="settings-checkbox" id="showOnlyAllDayEventsCheckbox">
+              <span class="settings-checkbox-label">Show only all-day events</span>
+            </label>
+            <label class="settings-checkbox-row">
+              <input type="checkbox" class="settings-checkbox" id="dynamicRowHeightCheckbox">
+              <span class="settings-checkbox-label">Dynamic row height</span>
             </label>
           </div>
         </div>
@@ -1437,17 +1448,29 @@ function getCalendarHTML(currentYear) {
       return '#' + toHex(textR) + toHex(textG) + toHex(textB);
     }
     
-    function openNote(date, inSplitView = false) {
+    function openNote(date, inSplitView = false, inNewWindow = false) {
       if (!date) return;
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
       const dateStr = \`\${year}-\${month}-\${day}\`;
       let url = \`noteplan://x-callback-url/openNote?noteDate=\${dateStr}&view=daily&timeframe=day\`;
-      if (inSplitView) {
-        url += '&splitView=yes';
+      if (inNewWindow) {
+        url += '&subWindow=yes';
+      } else if (inSplitView) {
+        url += '&splitView=yes&reuseSplitView=yes';
       }
-      window.location.href = url;
+      console.log('openNote: Opening URL: ' + url);
+
+      // Use hidden link click to trigger xcallback URL (WebView workaround)
+      const link = document.createElement('a');
+      link.href = url;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(function() {
+        document.body.removeChild(link);
+      }, 100);
     }
     
     // ============================================
@@ -2007,7 +2030,10 @@ function getCalendarHTML(currentYear) {
       
       const hideSingleDayEventsCheckbox = document.getElementById('hideSingleDayEventsCheckbox');
       const hideSingleDayEvents = hideSingleDayEventsCheckbox?.checked || false;
-      
+
+      const showOnlyAllDayEventsCheckbox = document.getElementById('showOnlyAllDayEventsCheckbox');
+      const showOnlyAllDayEvents = showOnlyAllDayEventsCheckbox?.checked || false;
+
       return rawEvents.filter(event => {
         // Filter by selected calendars
         if (!selectedCalendars.has(event.calendarTitle)) {
@@ -2029,6 +2055,10 @@ function getCalendarHTML(currentYear) {
           if (isSingleDay) {
             return false;
           }
+        }
+        // Filter out non-all-day events if option is enabled
+        if (showOnlyAllDayEvents && !event.isAllDay) {
+          return false;
         }
         return true;
       });
@@ -2109,9 +2139,12 @@ function getCalendarHTML(currentYear) {
             dayHeader.dataset.month = month;
             
             dayHeader.addEventListener('click', (event) => {
-              if (event.metaKey || event.altKey) {
-                // Modifier+click opens note
-                openNote(date, true);
+              if (event.metaKey) {
+                // Command+click opens note in new window
+                openNote(date, false, true);
+              } else if (event.altKey) {
+                // Option+click opens note in split view
+                openNote(date, true, false);
               } else {
                 // Normal click creates event
                 const clickedDate = new Date(displayYear, month, day);
@@ -2266,9 +2299,12 @@ function getCalendarHTML(currentYear) {
           dayCell.dataset.month = month;
           
           dayCell.addEventListener('click', (event) => {
-            if (event.metaKey || event.altKey) {
-              // Modifier+click opens note
-              openNote(date, true);
+            if (event.metaKey) {
+              // Command+click opens note in new window
+              openNote(date, false, true);
+            } else if (event.altKey) {
+              // Option+click opens note in split view
+              openNote(date, true, false);
             } else {
               // Normal click creates event
               const clickedDate = new Date(displayYear, month, day);
@@ -2326,35 +2362,45 @@ function getCalendarHTML(currentYear) {
     function renderEventSegments(segmentsByMonth, maxLanesPerMonth) {
       const shouldObfuscate = document.getElementById('obfuscateCheckbox')?.checked || false;
       const alpha = isDarkMode() ? 0.35 : 0.35;
-      
+      const dynamicRowHeight = document.getElementById('dynamicRowHeightCheckbox')?.checked || false;
+
       // Calculate global maximum lanes across all months to ensure consistent height
       const globalMaxLanes = getGlobalMaxLanes(maxLanesPerMonth);
-      
-      // Calculate fixed height based on global maximum
+
+      // Calculate height constants
       const laneHeight = parseInt(getComputedStyle(document.body).getPropertyValue('--lane-height')) || 16;
       const laneGap = parseInt(getComputedStyle(document.body).getPropertyValue('--lane-gap')) || 2;
       const headerHeight = 28; // Day headers
-      const eventsHeight = globalMaxLanes * (laneHeight + laneGap) + 8;
-      const fixedMonthHeight = headerHeight + eventsHeight;
-      
+
       for (let month = 0; month < 12; month++) {
         const eventsLayer = document.getElementById(\`events-layer-\${month}\`);
         if (!eventsLayer) continue;
-        
+
         eventsLayer.innerHTML = '';
-        
+
         const segments = segmentsByMonth[month];
-        
-        // Use global maximum for all months to ensure consistent height
-        eventsLayer.style.minHeight = (globalMaxLanes * (laneHeight + laneGap) + 4) + 'px';
-        
-        // Set fixed height for month row (same for all months)
+
+        // Calculate lanes for this month: use per-month lanes if dynamic, otherwise global
+        let monthLanes;
+        if (dynamicRowHeight) {
+          // Use actual lanes for this month, minimum 1 for clickability
+          monthLanes = Math.max(1, Math.min(maxLanesPerMonth[month] || 0, globalMaxLanes));
+        } else {
+          monthLanes = globalMaxLanes;
+        }
+
+        const eventsHeight = monthLanes * (laneHeight + laneGap) + 8;
+        const monthHeight = headerHeight + eventsHeight;
+
+        eventsLayer.style.minHeight = (monthLanes * (laneHeight + laneGap) + 4) + 'px';
+
+        // Set height for month row
         const monthRow = eventsLayer.parentElement;
         if (monthRow) {
-          monthRow.style.minHeight = fixedMonthHeight + 'px';
-          monthRow.style.height = fixedMonthHeight + 'px'; // Fixed height, not just min
+          monthRow.style.minHeight = monthHeight + 'px';
+          monthRow.style.height = dynamicRowHeight ? 'auto' : monthHeight + 'px';
         }
-        
+
         // For Fixed Week layout, calculate the weekday offset for this month
         let weekdayOffset = 0;
         if (layoutMode === 'fixedWeek') {
@@ -2681,11 +2727,23 @@ function getCalendarHTML(currentYear) {
           }
         }
         
+        // Save isRecurring before closing modal (which sets editingEvent = null)
+        const wasRecurring = editingEvent && editingEvent.isRecurring;
+
         // Close modal
         closeEventModal();
-        
+
         // Force reload events for affected months to show the new/updated event
-        await forceReloadEventsForMonths(startDate, endDate);
+        // For recurring events, reload the entire displayed year since changes
+        // may affect occurrences throughout the year
+        let reloadStartDate = startDate;
+        let reloadEndDate = endDate;
+        if (wasRecurring) {
+          reloadStartDate = new Date(displayYear, 0, 1);
+          reloadEndDate = new Date(displayYear, 11, 31);
+          console.log('Recurring event update - reloading entire year');
+        }
+        await forceReloadEventsForMonths(reloadStartDate, reloadEndDate);
         
       } catch (error) {
         console.log('ERROR saving event: ' + String(error));
@@ -2735,14 +2793,29 @@ function getCalendarHTML(currentYear) {
         console.log('Delete object: ' + JSON.stringify(deleteObject));
         console.log('Calling Calendar.remove...');
         
+        // Save isRecurring before closing modal (which sets editingEvent = null)
+        const wasRecurring = editingEvent.isRecurring || false;
+
         const removeResult = await Calendar.remove(deleteObject);
         console.log('Calendar.remove result: ' + (removeResult ? 'success' : 'returned undefined'));
-        
+
         closeEventModal();
-        
+
         // Force reload affected months
+        // For recurring events, reload the entire displayed year since the original
+        // event date may be from a different year than what's being displayed
         console.log('Reloading events...');
-        await forceReloadEventsForMonths(eventStart, eventEnd);
+        console.log('wasRecurring = ' + wasRecurring);
+        let reloadStartDate = eventStart;
+        let reloadEndDate = eventEnd;
+        if (wasRecurring) {
+          reloadStartDate = new Date(displayYear, 0, 1);
+          reloadEndDate = new Date(displayYear, 11, 31);
+          console.log('Recurring event - reloading entire year: ' + reloadStartDate.toISOString() + ' to ' + reloadEndDate.toISOString());
+        } else {
+          console.log('NOT a recurring event - reloading only affected months: ' + reloadStartDate.toISOString() + ' to ' + reloadEndDate.toISOString());
+        }
+        await forceReloadEventsForMonths(reloadStartDate, reloadEndDate);
         console.log('Delete complete');
       } catch (error) {
         console.log('ERROR deleting event: ' + String(error));
@@ -2799,21 +2872,48 @@ function getCalendarHTML(currentYear) {
       if (event.target.classList.contains('event-segment') && !event.target.classList.contains('dummy-event')) {
         return;
       }
-      
+
       const eventsLayer = event.currentTarget;
       const dayCell = getDayCellFromPosition(event, eventsLayer, month);
-      
+
       if (!dayCell || dayCell.day < 1 || dayCell.day > getDaysInMonth(displayYear, month)) {
         return;
       }
-      
+
+      const clickedDate = new Date(displayYear, month, dayCell.day);
+
+      // Debug logging for modifier keys
+      console.log('=== MouseDown Event Debug ===');
+      console.log('event.type: ' + event.type);
+      console.log('event.metaKey (Command): ' + event.metaKey);
+      console.log('event.altKey (Option): ' + event.altKey);
+      console.log('event.ctrlKey (Control): ' + event.ctrlKey);
+      console.log('event.shiftKey (Shift): ' + event.shiftKey);
+      console.log('event.button: ' + event.button);
+      console.log('clickedDate: ' + clickedDate.toISOString());
+
+      // Handle modifier keys to open notes instead of creating events
+      if (event.metaKey) {
+        console.log('→ Action: Command+click → opening in new window');
+        openNote(clickedDate, false, true);
+        event.preventDefault();
+        return;
+      } else if (event.altKey) {
+        console.log('→ Action: Option+click → opening in split view');
+        openNote(clickedDate, true, false);
+        event.preventDefault();
+        return;
+      } else {
+        console.log('→ Action: Normal click → starting drag/event creation');
+      }
+
       isDragging = true;
       dragStartMonth = month;
-      dragStartDate = new Date(displayYear, month, dayCell.day);
-      dragEndDate = new Date(displayYear, month, dayCell.day);
-      
+      dragStartDate = clickedDate;
+      dragEndDate = clickedDate;
+
       createDummyEvent(month, dayCell.day, dayCell.day);
-      
+
       event.preventDefault();
     }
     
@@ -2929,8 +3029,10 @@ function getCalendarHTML(currentYear) {
           
           if (calendarItem) {
             console.log('Opening modal with fetched calendarItem');
-            openEventModal(new Date(calendarItem.date || calendarItem.startDate), 
-                          new Date(calendarItem.endDate), 
+            console.log('calendarItem.isRecurring = ' + calendarItem.isRecurring);
+            console.log('calendarItem properties: ' + Object.keys(calendarItem).join(', '));
+            openEventModal(new Date(calendarItem.date || calendarItem.startDate),
+                          new Date(calendarItem.endDate),
                           calendarItem);
             return;
           } else {
@@ -2945,6 +3047,8 @@ function getCalendarHTML(currentYear) {
       
       // Fallback: use the segment data if we couldn't fetch the actual event
       console.log('Using fallback - opening modal with segment data');
+      console.log('eventData.isRecurring = ' + eventData.isRecurring);
+      console.log('eventData properties: ' + Object.keys(eventData).join(', '));
       openEventModal(new Date(eventData.startDate), new Date(eventData.endDate), eventData);
     }
     
@@ -3087,7 +3191,17 @@ function getCalendarHTML(currentYear) {
       const savedHideSingleDay = localStorage.getItem('calendarHideSingleDayEvents');
       // Default: unchecked (show single-day events by default)
       hideSingleDayEventsCheckbox.checked = savedHideSingleDay === 'true';
-      
+
+      const showOnlyAllDayEventsCheckbox = document.getElementById('showOnlyAllDayEventsCheckbox');
+      const savedShowOnlyAllDay = localStorage.getItem('calendarShowOnlyAllDayEvents');
+      // Default: unchecked (show all events by default)
+      showOnlyAllDayEventsCheckbox.checked = savedShowOnlyAllDay === 'true';
+
+      const dynamicRowHeightCheckbox = document.getElementById('dynamicRowHeightCheckbox');
+      const savedDynamicRowHeight = localStorage.getItem('calendarDynamicRowHeight');
+      // Default: unchecked (fixed height by default)
+      dynamicRowHeightCheckbox.checked = savedDynamicRowHeight === 'true';
+
       // Load layout mode and first day of week
       const savedLayoutMode = localStorage.getItem('calendarLayoutMode');
       if (savedLayoutMode === 'fixedWeek' || savedLayoutMode === 'dateGrid') {
@@ -3173,10 +3287,25 @@ function getCalendarHTML(currentYear) {
         localStorage.setItem('calendarHideSingleDayEvents', e.target.checked.toString());
         updateCalendarDisplay();
       });
-      
+
+      showOnlyAllDayEventsCheckbox.addEventListener('change', (e) => {
+        localStorage.setItem('calendarShowOnlyAllDayEvents', e.target.checked.toString());
+        updateCalendarDisplay();
+      });
+
+      dynamicRowHeightCheckbox.addEventListener('change', (e) => {
+        localStorage.setItem('calendarDynamicRowHeight', e.target.checked.toString());
+        updateCalendarDisplay();
+      });
+
       document.getElementById('yearPrev').addEventListener('click', () => changeYear(-1));
       document.getElementById('yearNext').addEventListener('click', () => changeYear(1));
-      
+
+      // Listen for dark mode changes to update event label colors
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        updateCalendarDisplay();
+      });
+
       // Setup event modal listeners
       setupEventModalListeners();
       
@@ -3240,4 +3369,27 @@ function getCalendarHTML(currentYear) {
         </script>
       </body>
 </html>`
+}
+
+/**
+ * Plugin initialization - called by NotePlan when the plugin loads
+ * Checks for updates in the background
+ */
+function init() {
+  try {
+    // Check for plugin updates silently in the background
+    // Parameters: (pluginIDs, showPromptIfSuccessful, showProgressPrompt, showFailedPrompt)
+    DataStore.installOrUpdatePluginsByID(['emetzger.LinearCalendar'], false, false, false);
+  } catch (error) {
+    // Silently ignore update check failures
+    console.log('LinearCalendar: Update check failed:', error);
+  }
+}
+
+/**
+ * Called after the plugin is updated or installed
+ * Can be used for settings migrations or user notifications
+ */
+function onUpdateOrInstall() {
+  console.log('LinearCalendar: Plugin updated to latest version');
 }
