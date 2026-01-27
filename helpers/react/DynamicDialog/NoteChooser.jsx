@@ -63,9 +63,9 @@ export type NoteChooserProps = {
   showTitleOnly?: boolean, // If true, show only the note title in the label (not "path / title") (default: false)
   showCalendarChooserIcon?: boolean, // If true, show a calendar button next to the chooser (default: true)
   allowMultiSelect?: boolean, // If true, enable multi-select mode using ContainedMultiSelectChooser (default: false)
-  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename', // For multi-select, output format (default: 'wikilink')
+  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename', // Output format for both single and multi-select (default: 'wikilink' for multi-select, 'title' for single-select)
   noteSeparator?: 'space' | 'comma' | 'newline', // For multi-select, separator between notes (default: 'space')
-  singleSelectOutputFormat?: 'title' | 'filename', // For regular select mode, output format (default: 'title')
+  singleSelectOutputFormat?: 'title' | 'filename', // DEPRECATED: Use noteOutputFormat instead. Kept for backwards compatibility only.
   includeRegex?: ?string, // Regex pattern to include notes (applied to filename or title)
   excludeRegex?: ?string, // Regex pattern to exclude notes (applied to filename or title)
 }
@@ -116,12 +116,40 @@ export function NoteChooser({
   showTitleOnly = false,
   showCalendarChooserIcon = true,
   allowMultiSelect = false,
-  noteOutputFormat = 'wikilink',
+  noteOutputFormat,
   noteSeparator = 'space',
-  singleSelectOutputFormat = 'title',
+  singleSelectOutputFormat, // DEPRECATED: kept for backwards compatibility
   includeRegex,
   excludeRegex,
 }: NoteChooserProps): React$Node {
+  // Determine effective output format with backwards compatibility
+  // For backwards compatibility: check singleSelectOutputFormat first, then noteOutputFormat
+  // For single-select: if format is wikilink/pretty-link/raw-url, treat as 'title' (those formats don't make sense for single-select)
+  const effectiveOutputFormat = useMemo(() => {
+    if (allowMultiSelect) {
+      // Multi-select: use noteOutputFormat, default to 'wikilink'
+      return noteOutputFormat || 'wikilink'
+    } else {
+      // Single-select: check deprecated singleSelectOutputFormat first for backwards compatibility
+      if (singleSelectOutputFormat) {
+        return singleSelectOutputFormat
+      }
+      // Then check noteOutputFormat
+      if (noteOutputFormat) {
+        // For single-select, only 'title' and 'filename' make sense
+        // If format is wikilink/pretty-link/raw-url, treat as 'title'
+        if (noteOutputFormat === 'title' || noteOutputFormat === 'filename') {
+          return noteOutputFormat
+        } else {
+          // wikilink, pretty-link, or raw-url -> treat as 'title' for single-select
+          return 'title'
+        }
+      }
+      // Default to 'title' for single-select
+      return 'title'
+    }
+  }, [allowMultiSelect, noteOutputFormat, singleSelectOutputFormat])
+
   const [isCreatingNote, setIsCreatingNote] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [newNoteTitle, setNewNoteTitle] = useState('')
@@ -741,8 +769,9 @@ export function NoteChooser({
       if (note.filename === '__NEW_NOTE__') {
         handleNewNoteClick()
       } else {
-        // Use singleSelectOutputFormat to determine what to output
-        const outputValue = singleSelectOutputFormat === 'filename' ? note.filename : note.title
+        // Use effectiveOutputFormat to determine what to output
+        // For single-select, effectiveOutputFormat will be 'title' or 'filename'
+        const outputValue = effectiveOutputFormat === 'filename' ? note.filename : note.title
         onChange(outputValue, note.filename)
       }
     },
@@ -776,13 +805,16 @@ export function NoteChooser({
   }, [value])
 
   // For multi-select mode: parse value to get selected note filenames
+  // Use noteOutputFormat directly for multi-select (effectiveOutputFormat will match it for multi-select)
   const selectedNoteFilenames: Array<string> = useMemo(() => {
     if (!allowMultiSelect || !value) return ([]: Array<string>)
-    const parsedValues = parseFormattedValue(value, noteOutputFormat, noteSeparator)
+    // For multi-select, use noteOutputFormat directly (defaults to 'wikilink')
+    const multiSelectFormat = noteOutputFormat || 'wikilink'
+    const parsedValues = parseFormattedValue(value, multiSelectFormat, noteSeparator)
     // Find notes matching the parsed values (could be titles or filenames depending on format)
     return filteredNotes
       .filter((note) => {
-        if (noteOutputFormat === 'filename') {
+        if (multiSelectFormat === 'filename') {
           return parsedValues.includes(note.filename)
         } else {
           // For other formats, match by title or filename
@@ -811,7 +843,9 @@ export function NoteChooser({
 
       logDebug('NoteChooser', `handleMultiSelectChange: selectedNotes.length=${selectedNotes.length}`)
       if (selectedNotes.length > 0) {
-        const formatted = formatNotes(selectedNotes, noteOutputFormat, noteSeparator)
+        // For multi-select, use noteOutputFormat directly (defaults to 'wikilink')
+        const multiSelectFormat = noteOutputFormat || 'wikilink'
+        const formatted = formatNotes(selectedNotes, multiSelectFormat, noteSeparator)
         logDebug('NoteChooser', `handleMultiSelectChange: formatted="${formatted}"`)
         // Call parent onChange with formatted string as title and empty string as filename
         onChange(formatted, '')

@@ -153,9 +153,9 @@ export type TSettingItem = {
   showCalendarChooserIcon?: boolean, // for note-chooser, show a calendar button next to the chooser (default: true)
   onOpen?: () => void | Promise<void>, // for note-chooser and other choosers, callback when dropdown opens (for lazy loading)
   allowMultiSelect?: boolean, // for note-chooser, enable multi-select mode (default: false)
-  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename', // for note-chooser multi-select, output format (default: 'wikilink')
+  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename', // for note-chooser, output format for both single and multi-select (default: 'wikilink' for multi-select, 'title' for single-select). For single-select, only 'title' and 'filename' are valid (wikilink/pretty-link/raw-url are treated as 'title').
   noteSeparator?: 'space' | 'comma' | 'newline', // for note-chooser multi-select, separator between notes (default: 'space')
-  singleSelectOutputFormat?: 'title' | 'filename', // for note-chooser regular select mode, output format (default: 'title')
+  singleSelectOutputFormat?: 'title' | 'filename', // DEPRECATED: Use noteOutputFormat instead. Kept for backwards compatibility only.
   startFolder?: ?string, // for note-chooser, start folder to filter notes (e.g., '@Templates/Forms')
   includeRegex?: ?string, // for note-chooser, regex pattern to include notes (applied to filename or title)
   excludeRegex?: ?string, // for note-chooser, regex pattern to exclude notes (applied to filename or title)

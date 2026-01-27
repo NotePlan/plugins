@@ -679,7 +679,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
           onOpen: handleNoteChooserOpen, // Lazy load notes when dropdown opens
           value: getTodaysDateISO(), // Default to today's date in ISO 8601 format (YYYY-MM-DD)
           compactDisplay: false,
-          noteOutputFormat: 'filename',
+          noteOutputFormat: 'filename', // Return filename so addTaskToNote receives note path
         },
         {
           type: 'heading-chooser',

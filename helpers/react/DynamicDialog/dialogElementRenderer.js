@@ -684,15 +684,27 @@ export function renderItem({
           )
           if (item.key) {
             // For multi-select mode, noteTitle contains the formatted string and noteFilename is empty
-            // For single-select mode, use singleSelectOutputFormat to determine what to store
+            // For single-select mode, use noteOutputFormat (with backwards compatibility for singleSelectOutputFormat)
             const itemAny = (item: any)
             let valueToStore: string
             if (itemAny.allowMultiSelect) {
               // Multi-select: noteTitle contains the formatted string
               valueToStore = noteTitle
             } else {
-              // Single-select: respect singleSelectOutputFormat (defaults to 'title')
-              const outputFormat = itemAny.singleSelectOutputFormat || 'title'
+              // Single-select: check deprecated singleSelectOutputFormat first for backwards compatibility
+              // Then check noteOutputFormat (only 'title' or 'filename' are valid for single-select)
+              let outputFormat = itemAny.singleSelectOutputFormat // Backwards compatibility
+              if (!outputFormat && itemAny.noteOutputFormat) {
+                // Use noteOutputFormat if singleSelectOutputFormat not set
+                // For single-select, only 'title' and 'filename' make sense
+                // If format is wikilink/pretty-link/raw-url, treat as 'title'
+                if (itemAny.noteOutputFormat === 'title' || itemAny.noteOutputFormat === 'filename') {
+                  outputFormat = itemAny.noteOutputFormat
+                } else {
+                  outputFormat = 'title' // Default for wikilink/pretty-link/raw-url in single-select
+                }
+              }
+              outputFormat = outputFormat || 'title' // Final default
               valueToStore = outputFormat === 'filename' ? noteFilename : noteTitle
             }
             logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${item.key}", value="${valueToStore}"`)
@@ -751,9 +763,9 @@ export function renderItem({
               })()}
               isLoading={isLoading}
               allowMultiSelect={Boolean((item: any).allowMultiSelect)}
-              noteOutputFormat={(item: any).noteOutputFormat || 'wikilink'}
+              noteOutputFormat={(item: any).noteOutputFormat}
               noteSeparator={(item: any).noteSeparator || 'space'}
-              singleSelectOutputFormat={(item: any).singleSelectOutputFormat || 'title'}
+              singleSelectOutputFormat={(item: any).singleSelectOutputFormat}
               startFolder={(item: any).startFolder}
               includeRegex={(item: any).includeRegex}
               excludeRegex={(item: any).excludeRegex}
