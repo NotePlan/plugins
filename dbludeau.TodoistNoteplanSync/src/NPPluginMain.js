@@ -2426,27 +2426,24 @@ async function fetchTodoistTask(taskId: string): Promise<?Object> {
  *
  * @returns {Promise<void>}
  */
-export async function syncStatusOnly(): Promise<void> {
-  setSettings()
-
-  const note = Editor.note
-  if (!note) {
-    logWarn(pluginJson, 'syncStatusOnly: No note open')
-    return
-  }
-
+/**
+ * Core function to sync status for a single note.
+ * Returns stats about what was synced.
+ *
+ * @param {TNote} note - The note to sync
+ * @param {boolean} useEditor - Whether to use Editor.updateParagraph (true for current note) or note.updateParagraph
+ * @returns {Promise<{processed: number, closedInTodoist: number, closedInNotePlan: number, errors: number}>}
+ */
+async function syncStatusForNote(note: TNote, useEditor: boolean): Promise<{ processed: number, closedInTodoist: number, closedInNotePlan: number, errors: number }> {
   const paragraphs = note.paragraphs
   if (!paragraphs || paragraphs.length === 0) {
-    logInfo(pluginJson, 'syncStatusOnly: No paragraphs in note')
-    return
+    return { processed: 0, closedInTodoist: 0, closedInNotePlan: 0, errors: 0 }
   }
 
   let closedInTodoist = 0
   let closedInNotePlan = 0
   let errors = 0
   let processed = 0
-
-  logInfo(pluginJson, `syncStatusOnly: Scanning ${paragraphs.length} paragraphs for Todoist tasks`)
 
   for (const para of paragraphs) {
     const content = para.content ?? ''
@@ -2462,7 +2459,7 @@ export async function syncStatusOnly(): Promise<void> {
     // Fetch current Todoist status
     const todoistTask = await fetchTodoistTask(taskId)
     if (!todoistTask) {
-      logWarn(pluginJson, `syncStatusOnly: Could not fetch Todoist task ${taskId}`)
+      logWarn(pluginJson, `syncStatus: Could not fetch Todoist task ${taskId}`)
       errors++
       continue
     }
@@ -2487,7 +2484,11 @@ export async function syncStatusOnly(): Promise<void> {
     if (npStatus === 'open' && todoistCompleted) {
       logInfo(pluginJson, `Marking task ${taskId} done in NotePlan (completed in Todoist)`)
       para.type = 'done'
-      Editor.updateParagraph(para)
+      if (useEditor) {
+        Editor.updateParagraph(para)
+      } else {
+        note.updateParagraph(para)
+      }
       closedInNotePlan++
     }
 
@@ -2495,26 +2496,123 @@ export async function syncStatusOnly(): Promise<void> {
     // Case 4: NotePlan is open, Todoist is also open → already in sync
   }
 
-  // Build result message
-  const changes: Array<string> = []
-  if (closedInTodoist > 0) changes.push(`${closedInTodoist} closed in Todoist`)
-  if (closedInNotePlan > 0) changes.push(`${closedInNotePlan} marked done in NotePlan`)
+  return { processed, closedInTodoist, closedInNotePlan, errors }
+}
 
-  let message: string
-  if (processed === 0) {
-    message = 'No Todoist-linked tasks found in this note.'
-  } else if (changes.length === 0) {
-    message = `All ${processed} Todoist task(s) already in sync.`
-  } else {
-    message = `Synced ${processed} task(s): ${changes.join(', ')}.`
+/**
+ * Sync task completion status for the current note only.
+ * Renamed from syncStatusOnly to syncStatus.
+ *
+ * @returns {Promise<void>}
+ */
+export async function syncStatus(): Promise<void> {
+  setSettings()
+
+  const note = Editor.note
+  if (!note) {
+    logWarn(pluginJson, 'syncStatus: No note open')
+    return
   }
 
-  if (errors > 0) {
-    message += ` (${errors} error(s))`
+  logInfo(pluginJson, `syncStatus: Scanning ${note.paragraphs?.length ?? 0} paragraphs for Todoist tasks`)
+
+  const stats = await syncStatusForNote(note, true)
+
+  // Build result message
+  const changes: Array<string> = []
+  if (stats.closedInTodoist > 0) changes.push(`${stats.closedInTodoist} closed in Todoist`)
+  if (stats.closedInNotePlan > 0) changes.push(`${stats.closedInNotePlan} marked done in NotePlan`)
+
+  let message: string
+  if (stats.processed === 0) {
+    message = 'No Todoist-linked tasks found in this note.'
+  } else if (changes.length === 0) {
+    message = `All ${stats.processed} Todoist task(s) already in sync.`
+  } else {
+    message = `Synced ${stats.processed} task(s): ${changes.join(', ')}.`
+  }
+
+  if (stats.errors > 0) {
+    message += ` (${stats.errors} error(s))`
   }
 
   await CommandBar.prompt('Status Sync Complete', message)
-  logInfo(pluginJson, `syncStatusOnly: ${message}`)
+  logInfo(pluginJson, `syncStatus: ${message}`)
+}
+
+/**
+ * Sync task completion status across all notes with Todoist frontmatter.
+ * Searches for notes with todoist_id, todoist_ids, todoist_project_name, or todoist_project_names.
+ *
+ * @returns {Promise<void>}
+ */
+export async function syncStatusAll(): Promise<void> {
+  setSettings()
+
+  // Search for all frontmatter formats (ID-based and name-based) and collect unique notes
+  const found_notes: Map<string, TNote> = new Map()
+
+  for (const search_string of ['todoist_id:', 'todoist_ids:', 'todoist_project_name:', 'todoist_project_names:']) {
+    const paragraphs: ?$ReadOnlyArray<TParagraph> = await DataStore.searchProjectNotes(search_string)
+    if (paragraphs) {
+      for (const p of paragraphs) {
+        if (p.filename && !found_notes.has(p.filename)) {
+          const note = DataStore.projectNoteByFilename(p.filename)
+          if (note) {
+            found_notes.set(p.filename, note)
+          }
+        }
+      }
+    }
+  }
+
+  if (found_notes.size === 0) {
+    await CommandBar.prompt('Status Sync Complete', 'No notes found with Todoist frontmatter (todoist_id, todoist_ids, todoist_project_name, or todoist_project_names).')
+    return
+  }
+
+  logInfo(pluginJson, `syncStatusAll: Found ${found_notes.size} notes with Todoist frontmatter`)
+
+  let totalProcessed = 0
+  let totalClosedInTodoist = 0
+  let totalClosedInNotePlan = 0
+  let totalErrors = 0
+  let notesWithTasks = 0
+
+  for (const [filename, note] of found_notes) {
+    logInfo(pluginJson, `syncStatusAll: Processing ${filename}`)
+    const stats = await syncStatusForNote(note, false)
+
+    totalProcessed += stats.processed
+    totalClosedInTodoist += stats.closedInTodoist
+    totalClosedInNotePlan += stats.closedInNotePlan
+    totalErrors += stats.errors
+
+    if (stats.processed > 0) {
+      notesWithTasks++
+    }
+  }
+
+  // Build result message
+  const changes: Array<string> = []
+  if (totalClosedInTodoist > 0) changes.push(`${totalClosedInTodoist} closed in Todoist`)
+  if (totalClosedInNotePlan > 0) changes.push(`${totalClosedInNotePlan} marked done in NotePlan`)
+
+  let message: string
+  if (totalProcessed === 0) {
+    message = `Scanned ${found_notes.size} note(s), no Todoist-linked tasks found.`
+  } else if (changes.length === 0) {
+    message = `All ${totalProcessed} task(s) across ${notesWithTasks} note(s) already in sync.`
+  } else {
+    message = `Synced ${totalProcessed} task(s) across ${notesWithTasks} note(s): ${changes.join(', ')}.`
+  }
+
+  if (totalErrors > 0) {
+    message += ` (${totalErrors} error(s))`
+  }
+
+  await CommandBar.prompt('Status Sync Complete', message)
+  logInfo(pluginJson, `syncStatusAll: ${message}`)
 }
 
 // ============================================================================

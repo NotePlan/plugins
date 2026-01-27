@@ -159,13 +159,21 @@
       "arguments": []
     },
     {
-      "name": "todoist sync status only",
+      "name": "todoist sync status",
       "alias": [
-        "tosso",
         "toss"
       ],
-      "description": "Sync only task completion status between NotePlan and Todoist (no add/remove)",
-      "jsFunction": "syncStatusOnly",
+      "description": "Sync task completion status between NotePlan and Todoist for current note (no add/remove)",
+      "jsFunction": "syncStatus",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync status all",
+      "alias": [
+        "tossa"
+      ],
+      "description": "Sync task completion status between NotePlan and Todoist across all linked notes",
+      "jsFunction": "syncStatusAll",
       "arguments": []
     },
     {
