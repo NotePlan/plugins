@@ -88,6 +88,7 @@ export type TSettingItemType =
   | 'autosave' // Autosave field that saves form state periodically
   | 'table-of-contents' // Table of contents that links to headings in the form
   | 'comment' // Comment field for Form Builder - expandable markdown textarea that doesn't render in form output
+  | 'conditional-values' // Derived field: sets this field's value based on matching another field's value against matchTerm/value pairs
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -205,7 +206,7 @@ export type TSettingItem = {
   frontmatterKey?: string, // for frontmatter-key-chooser, the frontmatter key to get values for (can be fixed or from sourceKeyKey)
   sourceKeyKey?: string, // Value dependency: for frontmatter-key-chooser, key of another field to get the frontmatter key from dynamically
   noteType?: 'Notes' | 'Calendar' | 'All', // for frontmatter-key-chooser, type of notes to search (default: 'All')
-  caseSensitive?: boolean, // for frontmatter-key-chooser, whether to perform case-sensitive search (default: false)
+  caseSensitive?: boolean, // for frontmatter-key-chooser: search; for conditional-values: case-sensitive matching (default: false)
   folderString?: string, // for frontmatter-key-chooser, folder to limit search to (optional)
   fullPathMatch?: boolean, // for frontmatter-key-chooser, whether to match full path (default: false)
   // multi-select options
@@ -224,6 +225,13 @@ export type TSettingItem = {
   width?: string, // Custom width for the chooser input (e.g., '80vw', '79%', '70px', '300px'). Overrides default width even in compact mode. Must be valid CSS width value.
   // heading options
   underline?: boolean, // for heading, add an underline directly under the heading with minimal margin/padding
+  // conditional-values options (derived field from another field's value)
+  sourceFieldKey?: string, // Value dependency: for conditional-values, key of the field to watch (e.g. input or dropdown-select)
+  conditions?: Array<{ matchTerm: string, value: string }>, // For conditional-values: when source value matches matchTerm, output value. First match wins.
+  matchMode?: 'regex' | 'string', // For conditional-values: match matchTerm as regex or simple string (default: 'string')
+  defaultWhenNoMatch?: string, // For conditional-values: value to set when no condition matches (optional; if omitted, field is cleared on no match)
+  trimSourceBeforeMatch?: boolean, // For conditional-values: trim whitespace from source value before matching (default: true)
+  showResolvedValue?: boolean, // For conditional-values: show resolved value read-only (default: true)
 }
 
 export type TDynamicDialogProps = {
@@ -320,11 +328,17 @@ const DynamicDialog = ({
   function getInitialItemStateObject(items: Array<TSettingItem>, defaultValues?: { [key: string]: any }): { [key: string]: any } {
     const initialItemValues: { [key: string]: any } = {}
     items.forEach((item) => {
-      // $FlowFixMe[prop-missing]
-      if (item.key) {
-        // Use defaultValues if provided, otherwise fall back to item.value, item.checked, item.default, or empty string
-        initialItemValues[item.key] = defaultValues?.[item.key] ?? item.value ?? item.checked ?? item.default ?? ''
+      const key = item.key
+      if (!key) return
+      // Conditional-values are resolved only at submit on the backend; do not add them to form state
+      if ((item: any).type === 'conditional-values') return
+      let val = defaultValues?.[key] ?? item.value ?? item.checked ?? item.default ?? ''
+      // Button-group: use option with isDefault when no value is set
+      if ((item: any).type === 'button-group' && Array.isArray((item: any).options) && (val === '' || val == null)) {
+        const defOpt = (item: any).options.find((o: any) => o && (o.isDefault === true || o.isDefault === 'true'))
+        if (defOpt && defOpt.value != null) val = String(defOpt.value)
       }
+      initialItemValues[key] = val ?? ''
     })
     return initialItemValues
   }
@@ -383,21 +397,27 @@ const DynamicDialog = ({
   }, [updatedSettings])
 
   // Ensure all fields from items are included in updatedSettings, even if empty
-  // This is critical for form submission - all fields must be present in formValues
+  // Conditional-values are resolved only at submit on the backend; do not add them here
   useEffect(() => {
     if (!isOpen) return // Only update when dialog is open
     
     const currentKeys = Object.keys(updatedSettings)
-    const itemKeys = items.filter((item) => item.key).map((item) => item.key)
+    const itemKeys = items.filter((item) => item.key && (item: any).type !== 'conditional-values').map((item) => item.key)
     const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
     
     if (missingKeys.length > 0) {
       logDebug('DynamicDialog', `Adding ${missingKeys.length} missing field(s) to updatedSettings: ${missingKeys.join(', ')}`)
       const newSettings = { ...updatedSettings }
       items.forEach((item) => {
-        if (item.key && !newSettings.hasOwnProperty(item.key)) {
-          // Initialize missing field with default value, item value, or empty string
-          newSettings[item.key] = defaultValues?.[item.key] ?? item.value ?? item.checked ?? item.default ?? ''
+        if ((item: any).type === 'conditional-values') return
+        const key = item.key
+        if (key && !newSettings.hasOwnProperty(key)) {
+          let val = defaultValues?.[key] ?? item.value ?? item.checked ?? item.default ?? ''
+          if ((item: any).type === 'button-group' && Array.isArray((item: any).options) && (val === '' || val == null)) {
+            const defOpt = (item: any).options.find((o: any) => o && (o.isDefault === true || o.isDefault === 'true'))
+            if (defOpt && defOpt.value != null) val = String(defOpt.value)
+          }
+          newSettings[key] = val ?? ''
         }
       })
       setUpdatedSettings(newSettings)
@@ -420,7 +440,8 @@ const DynamicDialog = ({
           (item: any).sourceFolderKey !== (prevItem: any).sourceFolderKey ||
           (item: any).sourceNoteKey !== (prevItem: any).sourceNoteKey ||
           (item: any).sourceDateKey !== (prevItem: any).sourceDateKey ||
-          (item: any).sourceKeyKey !== (prevItem: any).sourceKeyKey
+          (item: any).sourceKeyKey !== (prevItem: any).sourceKeyKey ||
+          (item: any).sourceFieldKey !== (prevItem: any).sourceFieldKey
         )
       })
 
@@ -485,6 +506,15 @@ const DynamicDialog = ({
           dependencyMap[sourceKeyKey] = []
         }
         dependencyMap[sourceKeyKey].push({ fieldKey, clearValue: true })
+      }
+
+      // Check for conditional-values source field dependency (do not clear on source change - component recomputes)
+      const sourceFieldKey = itemAny.sourceFieldKey
+      if (sourceFieldKey) {
+        if (!dependencyMap[sourceFieldKey]) {
+          dependencyMap[sourceFieldKey] = []
+        }
+        dependencyMap[sourceFieldKey].push({ fieldKey, clearValue: false })
       }
     })
 
@@ -877,18 +907,24 @@ const DynamicDialog = ({
       }
 
       // CRITICAL: Ensure ALL fields from items are included in formValues, even if never touched
-      // This prevents template errors from missing variables
+      // Conditional-values are resolved only at submit on the backend; do not add them here
       const finalFormValues = { ...updatedSettingsRef.current }
       const currentKeys = Object.keys(finalFormValues)
-      const itemKeys = items.filter((item) => item.key).map((item) => item.key)
+      const itemKeys = items.filter((item) => item.key && (item: any).type !== 'conditional-values').map((item) => item.key)
       const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
       
       if (missingKeys.length > 0) {
         logDebug('DynamicDialog', `handleSave: Adding ${missingKeys.length} missing field(s) to formValues before submission: ${missingKeys.join(', ')}`)
         items.forEach((item) => {
-          if (item.key && !finalFormValues.hasOwnProperty(item.key)) {
-            // Initialize missing field with default value, item value, checked state, or empty string
-            finalFormValues[item.key] = defaultValues?.[item.key] ?? item.value ?? item.checked ?? item.default ?? ''
+          if ((item: any).type === 'conditional-values') return
+          const key = item.key
+          if (key && !finalFormValues.hasOwnProperty(key)) {
+            let val = defaultValues?.[key] ?? item.value ?? item.checked ?? item.default ?? ''
+            if ((item: any).type === 'button-group' && Array.isArray((item: any).options) && (val === '' || val == null)) {
+              const defOpt = (item: any).options.find((o: any) => o && (o.isDefault === true || o.isDefault === 'true'))
+              if (defOpt && defOpt.value != null) val = String(defOpt.value)
+            }
+            finalFormValues[key] = val ?? ''
           }
         })
       }

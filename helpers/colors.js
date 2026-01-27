@@ -301,6 +301,9 @@ const TAILWIND_COLORS = {
   'violet-950': '#270847',
 }
 
+/** Ordered list of Tailwind color names (e.g. 'amber-100', 'red-500') for pickers. */
+export const TAILWIND_COLOR_NAMES = Object.keys(TAILWIND_COLORS)
+
 /**
  * Convert a color value to CSS color string
  * Supports CSS variables (e.g., 'teamspace-color'), Tailwind color names (e.g., 'gray-500', 'blue-500', 'green-700'),

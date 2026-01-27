@@ -92,6 +92,93 @@ function deepSanitizeNulls(obj: any): any {
 }
 
 /**
+ * Resolve a single conditional-values output from source value and conditions.
+ * First match wins. Used only at form submission; conditional-values are not rendered in the dialog.
+ *
+ * @param {string} sourceVal - Raw value from the watched field
+ * @param {Array<{ matchTerm: string, value: string }>} conds - matchTerm/value pairs
+ * @param {'regex'|'string'} mode - Match mode
+ * @param {boolean} caseSens - Case-sensitive matching
+ * @param {boolean} trim - Trim source before matching
+ * @param {string} [defaultVal] - Value when no condition matches
+ * @returns {string} Resolved value
+ */
+function resolveConditionalValue(
+  sourceVal: string,
+  conds: Array<{ matchTerm: string, value: string }>,
+  mode: 'regex' | 'string',
+  caseSens: boolean,
+  trim: boolean,
+  defaultVal?: string,
+): string {
+  const toMatch = trim ? (typeof sourceVal === 'string' ? sourceVal : String(sourceVal ?? '')).trim() : String(sourceVal ?? '')
+  if (!Array.isArray(conds) || conds.length === 0) {
+    return defaultVal ?? ''
+  }
+  for (let i = 0; i < conds.length; i++) {
+    const c = conds[i]
+    const term = c?.matchTerm ?? ''
+    const outVal = c?.value ?? ''
+    if (mode === 'regex') {
+      try {
+        const flags = caseSens ? 'u' : 'iu'
+        const re = new RegExp(term, flags)
+        if (re.test(toMatch)) {
+          return outVal
+        }
+      } catch (e) {
+        logError(pluginJson, `resolveConditionalValue: invalid regex matchTerm "${term}": ${(e: any).message}`)
+        continue
+      }
+    } else {
+      const eq = caseSens ? toMatch === term : toMatch.toLowerCase() === term.toLowerCase()
+      if (eq) {
+        return outVal
+      }
+    }
+  }
+  return defaultVal ?? ''
+}
+
+/**
+ * Resolve conditional-values fields from current form values. Conditional-values are only for
+ * final form submission processing; they are not rendered in the dialog.
+ *
+ * @param {Object} formValues - Current form values (source fields must already be present)
+ * @param {Array<Object>} formFields - Form fields array
+ * @returns {Object} formValues with conditional-values keys set to resolved values
+ */
+function resolveConditionalValuesFields(formValues: Object, formFields: Array<Object>): Object {
+  if (!formFields || formFields.length === 0) {
+    return formValues
+  }
+  const out = { ...formValues }
+  formFields.forEach((field) => {
+    if (field.type !== 'conditional-values' || !field.key) {
+      return
+    }
+    const sourceFieldKey = field.sourceFieldKey || ''
+    const sourceValue = sourceFieldKey ? String(out[sourceFieldKey] ?? '') : ''
+    const rawConditions = Array.isArray(field.conditions) ? field.conditions : []
+    const conditions = rawConditions.filter((c) => (c?.matchTerm ?? '').trim() !== '')
+    const matchMode = field.matchMode === 'regex' ? 'regex' : 'string'
+    const caseSensitive = field.caseSensitive ?? false
+    const trimSourceBeforeMatch = field.trimSourceBeforeMatch !== false
+    const defaultWhenNoMatch = field.defaultWhenNoMatch
+    const resolved = resolveConditionalValue(
+      sourceValue,
+      conditions,
+      matchMode,
+      caseSensitive,
+      trimSourceBeforeMatch,
+      defaultWhenNoMatch,
+    )
+    out[field.key] = resolved
+  })
+  return out
+}
+
+/**
  * Ensure all form fields exist in formValues, adding missing ones with empty string values
  * @param {Object} formValues - The form values object
  * @param {Array<Object>} formFields - The form fields array
@@ -106,17 +193,17 @@ function ensureAllFormFieldsExist(formValues: Object, formFields: Array<Object>)
   const missingFields: Array<string> = []
   
   formFields.forEach((field) => {
-    if (field.key) {
-      // Check if key exists (even if value is undefined/null/empty string)
-      if (!(field.key in ensured)) {
-        missingFields.push(field.key)
-        // Add missing field with empty value (or default if available)
-        ensured[field.key] = field.default ?? field.value ?? ''
-      } else if (ensured[field.key] === undefined || ensured[field.key] === null) {
-        // Field exists but is undefined/null - ensure it's at least an empty string
-        missingFields.push(`${field.key} (was undefined/null)`)
-        ensured[field.key] = field.default ?? field.value ?? ''
-      }
+    // Conditional-values are resolved only at submit via resolveConditionalValuesFields; do not add them here
+    if (field.type === 'conditional-values' || !field.key) return
+    // Check if key exists (even if value is undefined/null/empty string)
+    if (!(field.key in ensured)) {
+      missingFields.push(field.key)
+      // Add missing field with empty value (or default if available)
+      ensured[field.key] = field.default ?? field.value ?? ''
+    } else if (ensured[field.key] === undefined || ensured[field.key] === null) {
+      // Field exists but is undefined/null - ensure it's at least an empty string
+      missingFields.push(`${field.key} (was undefined/null)`)
+      ensured[field.key] = field.default ?? field.value ?? ''
     }
   })
   
@@ -134,8 +221,10 @@ function ensureAllFormFieldsExist(formValues: Object, formFields: Array<Object>)
  * @returns {Object} - Cleaned form values with all fields guaranteed
  */
 function prepareFormValuesForRendering(formValues: Object, formFields?: Array<Object>): Object {
-  // First ensure all fields exist if formFields is provided
-  const withAllFields = formFields ? ensureAllFormFieldsExist(formValues, formFields) : formValues
+  // Resolve conditional-values from current form values (only at submission; not rendered in dialog)
+  const withConditionalsResolved = formFields ? resolveConditionalValuesFields(formValues, formFields) : formValues
+  // Then ensure all fields exist if formFields is provided
+  const withAllFields = formFields ? ensureAllFormFieldsExist(withConditionalsResolved, formFields) : withConditionalsResolved
   
   // Create cleaned object - use explicit iteration to avoid any spread issues
   const cleaned: { [string]: any } = {}
@@ -1136,11 +1225,12 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
   }
 
   // Validate that all form fields are present in formValues (even if empty)
-  // This ensures templates receive all expected variables
+  // Conditional-values are resolved in prepareFormValuesForRendering; do not add them here
   const formFields = reactWindowData?.pluginData?.formFields || []
   if (formFields && formFields.length > 0) {
     const missingFields: Array<string> = []
     formFields.forEach((field) => {
+      if (field.type === 'conditional-values') return
       if (field.key && !(field.key in formValues)) {
         missingFields.push(field.key)
         // Add missing field with empty value

@@ -333,10 +333,11 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
     }
 
     // Validate that all form fields are present in formValues (even if empty)
-    // This ensures templates receive all expected variables
+    // Conditional-values are resolved in prepareFormValuesForRendering; do not add them here
     if (formFields && formFields.length > 0) {
       const missingFields: Array<string> = []
       formFields.forEach((field) => {
+        if (field.type === 'conditional-values') return
         if (field.key && !(field.key in formValues)) {
           missingFields.push(field.key)
           // Add missing field with empty value

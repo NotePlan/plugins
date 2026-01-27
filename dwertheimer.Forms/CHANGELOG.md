@@ -4,6 +4,17 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.21] 2026-01-27 @dwertheimer
+
+### Fixed
+- **Conditional-values excluded from form until submit**: Fields with type `conditional-values` (e.g. `bgColor` derived from a button-group) are no longer added to form state, autosave, or the submit payload until the backend runs `resolveConditionalValuesFields` in `prepareFormValuesForRendering`. Previously they appeared with empty values in the form and autosave.
+- **Button-group default applied on open and submit**: When a form field has type `button-group` and an option with `isDefault: true`, that option's value is now used as the initial value when the form opens and when building the submit payload, so the source field (e.g. `theType`) is set correctly and conditional-values (e.g. `bgColor`) resolve as intended.
+
+### Edited in this release
+- `dwertheimer.Forms/src/formSubmission.js` — `ensureAllFormFieldsExist` and `handleSubmitButtonClick` skip conditional-values when adding missing fields.
+- `dwertheimer.Forms/src/formBrowserHandlers.js` — `handleSubmitForm` skips conditional-values when adding missing fields.
+- `helpers/react/DynamicDialog/DynamicDialog.jsx` — `getInitialItemStateObject`, "ensure all fields" effect, and `handleSave` skip conditional-values and apply button-group `isDefault` when initializing or filling missing keys.
+
 ## [1.0.20] 2026-01-26 @dwertheimer
 
 ### Fixed

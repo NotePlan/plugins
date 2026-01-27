@@ -4,6 +4,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useState, useEffect, useMemo, useRef, type Node } from 'react'
+import { ConditionsEditor } from './ConditionsEditor.jsx'
 import { OptionsEditor } from './OptionsEditor.jsx'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 
@@ -206,7 +207,14 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
   }
 
   const handleSave = () => {
-    onSave(editedField)
+    let fieldToSave = editedField
+    if (editedField.type === 'conditional-values' && Array.isArray((editedField: any).conditions)) {
+      const filtered = ((editedField: any).conditions: Array<{ matchTerm: string, value: string }>).filter(
+        (c) => (c?.matchTerm ?? '').trim() !== '',
+      )
+      fieldToSave = { ...editedField, conditions: filtered }
+    }
+    onSave(fieldToSave)
   }
 
   // templatejs-block fields don't need keys - they're auto-generated at execution time
@@ -2202,6 +2210,114 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   Expanded by default
                 </label>
                 <div className="field-editor-help">If checked, the comment will be expanded (showing content) by default in Form Builder. If unchecked, it will be collapsed.</div>
+              </div>
+            </>
+          )}
+
+          {editedField.type === 'conditional-values' && (
+            <>
+              <div className="field-editor-row">
+                <label>Source Field (value dependency):</label>
+                <select
+                  value={((editedField: any): { sourceFieldKey?: string }).sourceFieldKey || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).sourceFieldKey = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                >
+                  <option value="">— Select field to watch —</option>
+                  {allFields
+                    .filter((f) => f.key && f.key !== editedField.key)
+                    .map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label || f.key} ({f.key}) - {f.type}
+                      </option>
+                    ))}
+                </select>
+                <div className="field-editor-help">
+                  This field&apos;s value will be set based on the selected field&apos;s value. When it matches a condition below, this field gets the paired value.
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <ConditionsEditor
+                  conditions={((editedField: any): { conditions?: Array<{ matchTerm: string, value: string }> }).conditions || []}
+                  onChange={(newConditions) => updateField({ conditions: newConditions })}
+                />
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { caseSensitive?: boolean }).caseSensitive || false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).caseSensitive = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Case sensitive
+                </label>
+                <div className="field-editor-help">If checked, matching is case-sensitive. Otherwise &quot;Trip&quot; and &quot;trip&quot; are equivalent.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Match mode:</label>
+                <select
+                  value={((editedField: any): { matchMode?: 'regex' | 'string' }).matchMode || 'string'}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).matchMode = (e.target.value === 'regex' ? 'regex' : 'string')
+                    setEditedField(updated)
+                  }}
+                >
+                  <option value="string">Simple string (exact match)</option>
+                  <option value="regex">Regex</option>
+                </select>
+                <div className="field-editor-help">String: &quot;Match&quot; must equal the source value. Regex: &quot;Match&quot; is a regular expression.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Default when no match:</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { defaultWhenNoMatch?: string }).defaultWhenNoMatch || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).defaultWhenNoMatch = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                  placeholder="Leave blank to clear on no match"
+                />
+                <div className="field-editor-help">Value to set when the source does not match any condition. Leave blank to clear this field.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { trimSourceBeforeMatch?: boolean }).trimSourceBeforeMatch !== false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).trimSourceBeforeMatch = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Trim source value before matching
+                </label>
+                <div className="field-editor-help">If checked, leading/trailing spaces are removed from the source value before matching. Default: on.</div>
+              </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { showResolvedValue?: boolean }).showResolvedValue !== false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).showResolvedValue = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Show resolved value
+                </label>
+                <div className="field-editor-help">If checked, the resolved value is shown read-only in the form. Uncheck for a hidden derived field.</div>
               </div>
             </>
           )}

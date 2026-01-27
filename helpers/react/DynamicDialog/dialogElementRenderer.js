@@ -114,6 +114,11 @@ export function renderItem({
   preloadedEvents = [], // Preloaded events for static HTML testing
   preloadedFrontmatterValues = {}, // Preloaded frontmatter key values for static HTML testing (keyed by frontmatter key)
 }: RenderItemProps): React$Node {
+  // Conditional-values are resolved only at form submission; never output in the dialog
+  if (item.type === 'conditional-values') {
+    return null
+  }
+
   const element = () => {
     const thisLabel = item.label || '?'
     switch (item.type) {

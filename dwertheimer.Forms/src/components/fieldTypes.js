@@ -41,4 +41,10 @@ export const FIELD_TYPES: Array<FieldTypeOption> = [
   { value: 'autosave', label: 'Autosave', description: 'Automatically saves form state periodically (shows "Saved x ago" status)' },
   { value: 'table-of-contents', label: 'Table of Contents', description: 'Clickable table of contents that links to headings in the form' },
   { value: 'comment', label: 'Comment', description: 'Comment/note field for Form Builder only - doesn\'t render in form output. Use for notes to yourself while building forms.' },
+  {
+    value: 'conditional-values',
+    label: 'Conditional Values',
+    description:
+      'Derived field: sets this field\'s value based on another field\'s value. Define matchTerm/value pairs (e.g. "Trip"→"red-500", "Beach"→"yellow-500"). First match wins. Supports string or regex matching.',
+  },
 ]
