@@ -32,7 +32,7 @@ export type RequestResponse = {
 export async function addTaskToNote(params: { filename: string, taskText: string, heading?: ?string, space?: ?string }, pluginJson: any): Promise<RequestResponse> {
   try {
     const { filename, taskText, heading, space } = params
-    logDebug('Dashboard/requestHandlers] addTaskToNote', `Starting with filename="${filename}", taskText="${taskText}", heading="${heading || 'none'}", space="${space || 'private'}"`)
+    logDebug('requestHandlers/addTaskToNote', `Starting with filename="${filename}", taskText="${taskText}", heading="${heading || 'none'}", space="${space || 'private'}"`)
 
     // Validate inputs
     if (!filename || !taskText || !taskText.trim()) {
@@ -54,9 +54,10 @@ export async function addTaskToNote(params: { filename: string, taskText: string
         // Conversion happened - reconstruct filename with NotePlan format
         const ext = filename.match(/\.(md|txt)$/)?.[0] || '.md'
         normalizedFilename = `${convertedDate}${ext}`
-        logDebug('[Dashboard/requestHandlers] addTaskToNote', `Converted ISO date filename "${filename}" to NotePlan format "${normalizedFilename}"`)
+        logDebug('requestHandlers/addTaskToNote', `Converted ISO date filename "${filename}" to NotePlan format "${normalizedFilename}"`)
       }
     }
+    logDebug('requestHandlers/addTaskToNote', `normalizedFilename: "${normalizedFilename}"`)
 
     // Get dashboard settings for heading configuration
     const config = await getDashboardSettings()
@@ -68,7 +69,7 @@ export async function addTaskToNote(params: { filename: string, taskText: string
       }
     }
 
-    // Get the note - handle teamspace notes if space is provided
+    // FIXME: Get the note - handle teamspace notes if space is provided
     let destNote = null
     if (space && space !== '' && space !== 'Private') {
       // Teamspace note - use DataStore APIs with teamspace ID
@@ -103,9 +104,9 @@ export async function addTaskToNote(params: { filename: string, taskText: string
       : config.newTaskSectionHeading || ''
 
     // Add the task to the note
-    // logDebug('[Dashboard/requestHandlers] addTaskToNote', `Adding task to note: "${destNote?.title || '?'}" with heading: "${headingToUse}"`)
+    // logDebug('requestHandlers/addTaskToNote', `Adding task to note: "${destNote?.title || '?'}" with heading: "${headingToUse}"`)
     const resultingPara = coreAddTaskToNoteHeading(destNote, headingToUse, taskText.trim(), newHeadingLevel, true)
-    // logDebug('[Dashboard/requestHandlers] addTaskToNote', `Resulting paragraph: "${resultingPara?.rawContent || '?'}"`)
+    // logDebug('requestHandlers/addTaskToNote', `Resulting paragraph: "${resultingPara?.rawContent || '?'}"`)
 
     if (!resultingPara) {
       return {
@@ -115,7 +116,7 @@ export async function addTaskToNote(params: { filename: string, taskText: string
       }
     }
 
-    logDebug('Dashboard/requestHandlers] addTaskToNote', `Successfully added task "${taskText}" to note "${filename}" under heading "${headingToUse || 'default'}"`)
+    logDebug('requestHandlers/addTaskToNote', `Successfully added task "${taskText}" to note "${filename}" under heading "${headingToUse || 'default'}"`)
     return {
       success: true,
       message: `Task added successfully to ${destNote.title || filename}`,
@@ -127,7 +128,7 @@ export async function addTaskToNote(params: { filename: string, taskText: string
       },
     }
   } catch (error) {
-    logError(pluginJson, `[Dashboard/requestHandlers] addTaskToNote ERROR: ${error.message}`)
+    logError(pluginJson, `requestHandlers/addTaskToNote ERROR: ${error.message}`)
     return {
       success: false,
       message: `Error adding task: ${error.message}`,

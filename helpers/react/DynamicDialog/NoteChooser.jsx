@@ -8,7 +8,6 @@ import React, { useMemo, useState, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
-import moment from 'moment/min/moment-with-locales'
 import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
 import ContainedMultiSelectChooser from './ContainedMultiSelectChooser.jsx'
 import { truncateText, calculatePortalPosition } from '@helpers/react/reactUtils.js'
@@ -94,7 +93,7 @@ export function NoteChooser({
   onChange,
   disabled = false,
   compactDisplay = false,
-  placeholder = 'Type to search notes...',
+  placeholder = 'Type to search note titles...',
   width,
   includeCalendarNotes = false,
   includePersonalNotes = true,
@@ -262,6 +261,7 @@ export function NoteChooser({
     (note: NoteOption, format: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename'): string => {
       const noteTitle = note.title || note.filename || ''
       const noteFilename = note.filename || ''
+      logDebug('NoteChooser', `formatNote: noteTitle="${noteTitle}", noteFilename="${noteFilename}", format="${format}"`)
 
       switch (format) {
         case 'raw-url':
@@ -315,6 +315,7 @@ export function NoteChooser({
 
       const sep = separator === 'space' ? ' ' : separator === 'comma' ? ',' : '\n'
       const parts = formattedValue.split(sep).map((s) => s.trim()).filter((s) => s.length > 0)
+      logDebug('NoteChooser', `parseFormattedValue: formattedValue="${formattedValue}", format="${format}", separator="${separator}", parts=[${String(parts)}]`)
 
       switch (format) {
         case 'wikilink':
@@ -871,7 +872,6 @@ export function NoteChooser({
           }
           return note.title || filename
         }}
-        returnAsArray={true}
         maxHeight="200px"
         width={width}
         fieldType="note-chooser"

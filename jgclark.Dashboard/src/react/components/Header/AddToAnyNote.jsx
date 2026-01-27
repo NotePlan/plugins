@@ -649,6 +649,15 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
     const addTaskFormFields: Array<TSettingItem> = useMemo(
       () => [
         {
+          type: 'input',
+          key: 'task',
+          label: 'Task',
+          placeholder: 'Enter task text...',
+          focus: true,
+          required: true,
+          value: '',
+        },
+        {
           type: 'space-chooser',
           key: 'space',
           label: 'Space',
@@ -665,10 +674,12 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
           includePersonalNotes: true,
           includeRelativeNotes: true,
           includeTeamspaceNotes: true,
+          includeTemplatesAndForms: false,
           sourceSpaceKey: 'space', // Filter notes by selected space
           onOpen: handleNoteChooserOpen, // Lazy load notes when dropdown opens
           value: getTodaysDateISO(), // Default to today's date in ISO 8601 format (YYYY-MM-DD)
           compactDisplay: false,
+          noteOutputFormat: 'filename',
         },
         {
           type: 'heading-chooser',
@@ -676,15 +687,6 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
           label: 'Under Heading',
           placeholder: 'Select heading...',
           sourceNoteKey: 'note', // Get headings from selected note
-          value: '',
-        },
-        {
-          type: 'input',
-          key: 'task',
-          label: 'Task',
-          placeholder: 'Enter task text...',
-          focus: true,
-          required: true,
           value: '',
         },
       ],

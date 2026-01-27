@@ -96,7 +96,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     let result: TBridgeClickHandlerResult = { success: false }
 
     logInfo(`************* bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} *************`)
-    // clo(data, 'bridgeClickDashboardItem received data object; data=')
+    clo(data, 'bridgeClickDashboardItem received data object; data=')
     if (actionType !== 'refreshEnabledSections' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
     // Allow for a combination of button click and a content update

@@ -500,8 +500,17 @@ export function SearchableChooser({
     }
 
     // Handle Tab key: close dropdown and allow normal tab navigation
+    // Also handle manual entry selection if enabled (similar to Enter key)
     if (e.key === 'Tab') {
       if (isOpen) {
+        // Check if we should create a manual entry (same logic as Enter key)
+        // Only create manual entry if there are no filtered items to select
+        if (allowManualEntry && searchTerm.trim() && filteredItems.length === 0) {
+          // Create manual entry item (same as Enter key behavior)
+          suppressOpenOnFocusRef.current = true
+          const manualEntryItem = { __manualEntry__: true, value: searchTerm.trim(), display: searchTerm.trim() }
+          onSelect(manualEntryItem)
+        }
         // Close dropdown when Tab is pressed, but don't prevent default
         // This allows normal tab navigation to proceed
         setIsOpen(false)
@@ -1002,15 +1011,16 @@ export function SearchableChooser({
                             )}
                             <span
                               className={`searchable-chooser-option-text ${classNamePrefix}-option-text`}
-                              style={(() => {
-                                // Only apply inline color if optionColor is explicitly set and not a default gray-500
-                                // This allows CSS default color to be used when optionColor is null/undefined or default
-                                if (!optionColor || optionColor === 'gray-500') {
-                                  return undefined
-                                }
-                                const colorStyle = getColorStyle(optionColor)
-                                return colorStyle ? { color: colorStyle } : undefined
-                              })()}
+                              // TEST: @jgc turning off inline color for text for now, but leaving it on for the icons
+                              // style={(() => {
+                              //   // Only apply inline color if optionColor is explicitly set and not a default gray-500
+                              //   // This allows CSS default color to be used when optionColor is null/undefined or default
+                              //   if (!optionColor || optionColor === 'gray-500') {
+                              //     return undefined
+                              //   }
+                              //   const colorStyle = getColorStyle(optionColor)
+                              //   return colorStyle ? { color: colorStyle } : undefined
+                              // })()}
                             >
                               {truncatedText}
                             </span>

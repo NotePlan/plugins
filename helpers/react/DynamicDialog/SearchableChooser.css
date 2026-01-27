@@ -294,6 +294,7 @@ input[type="text"][class*="-chooser-input"]:focus {
   margin-bottom: 0;
   padding: 0; /* Ensure no padding that could create blank space */
   padding-bottom: 0 !important; /* Explicitly remove bottom padding */
+  font-family: system-ui;
 }
 
 /* When showing empty state (not loading), reduce min-height to prevent extra blank line */
@@ -344,7 +345,7 @@ input[type="text"][class*="-chooser-input"]:focus {
 
 /* Option - use direct class name for maximum compatibility */
 .searchable-chooser-option {
-  padding: 0.15rem 0.75rem;
+  padding: 0.15rem 0.4rem;
   cursor: pointer;
   border-bottom: 1px solid var(--divider-color, #CDCFD0);
   color: var(--fg-main-color, #4c4f69);

@@ -9,9 +9,14 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b19] 2026-01-25
-- finish hooking up addTaskToNote
+## [2.4.0.b19] 2026-01-27
+- finish hooking up addTaskToNote + UI improvements
 - dev: refactor getOpenItemParasForTimePeriod() and add tests to the new smaller functions.
+- dev: updates to SearchableChooser etc. from DBW
+- fix to refresh after adding task using buttons in today and week section headings
+- UX fixes to SearchableChooser, including allowing <Tab> out on new items, not just <Enter>, and using consistent font
+- UI fix to validation-message for InputBox ...
+- ... but also turn that off, and use a simpler validation-error-highlight instead on <Input>s
 
 ## [2.4.0.b18] 2026-01-24
 ### New
