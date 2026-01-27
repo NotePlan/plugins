@@ -444,7 +444,7 @@ export function ProcessingMethodSection({
               width="100%"
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Where to put the new note. Leave empty for root folder, or use &quot;&lt;Select&gt;&quot; to be prompted each time for the folder
+              Where to put the new note. Leave empty for root folder, or use &quot;&lt;Select&gt;&quot; to be prompted each time for the folder. If you have a field named &quot;folder&quot;, it will be used to set the folder for the new note.
             </div>
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>

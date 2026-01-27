@@ -117,7 +117,44 @@ export function renderItem({
   const element = () => {
     const thisLabel = item.label || '?'
     switch (item.type) {
-      case 'switch':
+      case 'switch': {
+        const compactDisplay = item.compactDisplay || false
+        
+        // In compact mode, wrap in container with label on left and switch on right
+        // This matches the pattern used by InputBox, button-group, and calendarpicker
+        if (compactDisplay) {
+          // Generate a valid HTML ID for the switch input
+          // Switch component uses label as id, so we need a sanitized version
+          const switchId = item.key
+            ? `switch-${item.key}`
+            : `switch-${thisLabel.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}-${index}`
+          return (
+            <div
+              key={`sw${index}`}
+              className={`${disabled ? 'disabled' : ''} input-box-container-compact ${indent ? 'indent' : ''}`}
+            >
+              {thisLabel && <label className="input-box-label" htmlFor={switchId}>{thisLabel}</label>}
+              <div className="switch-compact-wrapper">
+                <Switch
+                  label={switchId} // Use sanitized ID - Switch component uses this as the input id
+                  checked={item.checked || false}
+                  disabled={disabled}
+                  onChange={(e) => {
+                    if (item.key) {
+                      item.key && handleFieldChange(item.key, e.target.checked)
+                      item.key && handleSwitchChange(item.key, e)
+                    }
+                  }}
+                  labelPosition="right" // Switch's internal label will be hidden by CSS in compact mode
+                  description={item.description || ''}
+                  className=""
+                />
+              </div>
+            </div>
+          )
+        }
+        
+        // Non-compact mode: render Switch normally
         return (
           <Switch
             key={`sw${index}`}
@@ -135,6 +172,7 @@ export function renderItem({
             className={indent ? 'indent' : ''}
           />
         )
+      }
       case 'input':
         return (
           <InputBox

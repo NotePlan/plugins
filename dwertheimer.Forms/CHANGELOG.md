@@ -4,6 +4,19 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.20] 2026-01-26 @dwertheimer
+
+### Fixed
+- **DynamicDialog Switch compact mode**: Switch type now renders correctly in compact mode. Label is on the left and the switch on the right, matching other compactDisplay elements (InputBox, button-group, calendarpicker). Uses `input-box-container-compact` wrapper; Switch’s internal label is hidden via CSS when compact.
+
+## [1.0.19] 2026-01-26 @dwertheimer
+
+### Fixed
+- **Create-new folder override**: When creating a new note, a form field named `folder` now overrides any folder value from the form definition (newNoteFolder, template frontmatter, etc.) when passing data to templateRunner. Empty form `folder` is ignored; form definition is used as fallback.
+
+### Changed
+- **ProcessingMethodSection**: Folder field help text now states that a form field named `folder` is used to set the folder for the new note.
+
 ## [1.0.18] 2026-01-25 @dwertheimer
 
 ### Fixed

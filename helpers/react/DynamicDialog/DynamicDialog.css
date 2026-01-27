@@ -207,6 +207,11 @@
         margin: 0;
     }
 
+    /* Hide Switch's internal label when in compact mode (we render label separately) */
+    .input-box-container-compact .switch-line .switch-label {
+        display: none;
+    }
+    
     /* Style for switch-label */
     .switch-label {
         font-weight: 600;

@@ -1008,7 +1008,17 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
   })
 
   // Step 9: Handle folder path and teamspace (use extracted folder if available)
-  let folderPath = newNoteFolderToUse && newNoteFolderToUse.trim() ? newNoteFolderToUse.trim() : '/'
+  // If form has a field named "folder", it overrides the form definition (see ProcessingMethodSection)
+  const formFolderRaw = formSpecificVars['folder']
+  const formFolder =
+    formFolderRaw != null && String(formFolderRaw).trim() !== '' ? String(formFolderRaw).trim() : ''
+  let folderSource =
+    newNoteFolderToUse && newNoteFolderToUse.trim() ? newNoteFolderToUse.trim() : ''
+  if (formFolder !== '') {
+    folderSource = formFolder
+    logDebug(pluginJson, `processCreateNew: Using form field "folder" override: "${folderSource}"`)
+  }
+  let folderPath = folderSource || '/'
 
   // Render folder template tags if present
   if (folderPath && typeof folderPath === 'string' && (folderPath.includes('<%') || folderPath.includes('${'))) {
@@ -1016,7 +1026,7 @@ async function processCreateNew(data: any, reactWindowData: PassedData): Promise
       const renderedFolderResult = await DataStore.invokePluginCommandByName('render', 'np.Templating', [folderPath, templatingContext])
       if (renderedFolderResult && typeof renderedFolderResult === 'string') {
         folderPath = renderedFolderResult
-        logDebug(pluginJson, `processCreateNew: Rendered folder from "${newNoteFolderToUse}" to "${folderPath}"`)
+        logDebug(pluginJson, `processCreateNew: Rendered folder to "${folderPath}"`)
       } else {
         logError(pluginJson, `processCreateNew: Invalid result from render for folder: ${typeof renderedFolderResult}`)
       }
