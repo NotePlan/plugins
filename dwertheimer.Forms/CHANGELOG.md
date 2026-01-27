@@ -4,6 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.22] 2026-01-27 @dwertheimer
+
+### Changed
+- **ValueInsertButtons use shared constants**: The +Color, +Icon, +Pattern, and +IconStyle insert buttons (ValueInsertButtons) now import `PATTERNS`, `ICON_STYLES`, and `FA_ICON_NAMES` from `@helpers/react/DynamicDialog/valueInsertData`, so they use the same options as the color/icon/pattern/icon-style choosers in the Form Builder.
+
+### Edited in this release
+- `dwertheimer.Forms/src/components/ValueInsertButtons.jsx` — Replaced inline PATTERNS, ICON_STYLES, FA_ICON_NAMES with imports from valueInsertData.
+
 ## [1.0.21] 2026-01-27 @dwertheimer
 
 ### Fixed
