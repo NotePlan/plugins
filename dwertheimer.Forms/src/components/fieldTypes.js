@@ -47,4 +47,12 @@ export const FIELD_TYPES: Array<FieldTypeOption> = [
     description:
       'Derived field: sets this field\'s value based on another field\'s value. Define matchTerm/value pairs (e.g. "Trip"→"red-500", "Beach"→"yellow-500"). First match wins. Supports string or regex matching.',
   },
+  { value: 'color-chooser', label: 'Color Chooser', description: 'Single-value searchable chooser for Tailwind color names (e.g. amber-200, blue-500)' },
+  {
+    value: 'icon-chooser',
+    label: 'Icon Chooser',
+    description: 'Single-value searchable chooser for Font Awesome icon names. Output is short name only (e.g. circle, star) for NotePlan compatibility.',
+  },
+  { value: 'pattern-chooser', label: 'Pattern Chooser', description: 'Single-value searchable chooser for pattern names (lined, squared, mini-squared, dotted)' },
+  { value: 'icon-style-chooser', label: 'Icon Style Chooser', description: 'Single-value searchable chooser for Font Awesome style (solid, light, regular)' },
 ]

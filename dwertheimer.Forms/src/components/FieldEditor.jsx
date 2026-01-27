@@ -272,7 +272,11 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
             editedField.type === 'space-chooser' ||
             editedField.type === 'heading-chooser' ||
             editedField.type === 'dropdown-select' ||
-            editedField.type === 'event-chooser') && (
+            editedField.type === 'event-chooser' ||
+            editedField.type === 'color-chooser' ||
+            editedField.type === 'icon-chooser' ||
+            editedField.type === 'pattern-chooser' ||
+            editedField.type === 'icon-style-chooser') && (
             <div className="field-editor-row">
               <label>Custom Width (optional):</label>
               <input

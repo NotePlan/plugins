@@ -89,6 +89,10 @@ export type TSettingItemType =
   | 'table-of-contents' // Table of contents that links to headings in the form
   | 'comment' // Comment field for Form Builder - expandable markdown textarea that doesn't render in form output
   | 'conditional-values' // Derived field: sets this field's value based on matching another field's value against matchTerm/value pairs
+  | 'color-chooser' // Single-value SearchableChooser for Tailwind color names
+  | 'icon-chooser' // Single-value SearchableChooser for Font Awesome icon names (value: fa-{style} fa-{name})
+  | 'pattern-chooser' // Single-value SearchableChooser for pattern names (lined, squared, etc.)
+  | 'icon-style-chooser' // Single-value SearchableChooser for icon style (solid, light, regular)
 
 export type TSettingItem = {
   type: TSettingItemType,

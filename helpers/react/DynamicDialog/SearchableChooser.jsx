@@ -41,7 +41,7 @@ export type ChooserConfig = {
 
   // Optional
   debugLogging?: boolean,
-  maxResults?: number, // Max items to show in dropdown (default: 10)
+  maxResults?: number, // Max items to show in dropdown (default: 25). Use 0 for unlimited (show all, scroll).
   inputMaxLength?: number, // Max length for input truncation (default: 40)
   dropdownMaxLength?: number, // Max length for dropdown truncation (default: 50)
   onOptionClick?: (item: any) => void, // Optional handler for Option-click on options (replaces right-click)
@@ -887,7 +887,7 @@ export function SearchableChooser({
                 </div>
               ) : (
                 (() => {
-                  // Show all items if maxResults is undefined, otherwise limit to maxResults
+                  // Show all items if maxResults is 0 or omitted/undefined; otherwise limit to maxResults
                   const itemsToShow = maxResults != null && maxResults > 0 ? filteredItems.slice(0, maxResults) : filteredItems
 
                   // Check if any items have icons or shortDescriptions (calculate once for all items)
@@ -950,7 +950,14 @@ export function SearchableChooser({
                     // If custom renderOption is provided, use it
                     if (renderOption) {
                       return (
-                        <div key={`${fieldType}-${index}`} onMouseEnter={() => setHoveredIndex(index)} onMouseLeave={() => setHoveredIndex(null)}>
+                        <div
+                          key={`${fieldType}-${index}`}
+                          className={`searchable-chooser-option ${classNamePrefix}-option ${isSelected ? 'option-selected' : ''} searchable-chooser-option-wrapper ${classNamePrefix}-option-wrapper`}
+                          onClick={(e) => handleItemSelect(item, e)}
+                          onMouseEnter={() => setHoveredIndex(index)}
+                          onMouseLeave={() => setHoveredIndex(null)}
+                          style={{ cursor: 'pointer' }}
+                        >
                           {renderOption(item, {
                             index,
                             isHovered,

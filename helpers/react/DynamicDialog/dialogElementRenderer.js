@@ -25,6 +25,10 @@ import MultiSelectChooser from './MultiSelectChooser.jsx'
 import TagChooser from './TagChooser.jsx'
 import MentionChooser from './MentionChooser.jsx'
 import FrontmatterKeyChooser from './FrontmatterKeyChooser.jsx'
+import ColorChooser from './ColorChooser.jsx'
+import IconChooser from './IconChooser.jsx'
+import PatternChooser from './PatternChooser.jsx'
+import IconStyleChooser from './IconStyleChooser.jsx'
 import { ExpandableTextarea } from './ExpandableTextarea.jsx'
 import { TemplateJSBlock } from './TemplateJSBlock.jsx'
 import { MarkdownPreview } from './MarkdownPreview.jsx'
@@ -330,6 +334,90 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder}
+              width={(item: any).width}
+              showValue={item.showValue ?? false}
+            />
+          </div>
+        )
+      }
+      case 'color-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        return (
+          <div key={`color-chooser${index}`} className="dialog-element-renderer-color-chooser" data-field-type="color-chooser">
+            <ColorChooser
+              label={label}
+              value={currentValue}
+              onChange={(value: string) => {
+                if (item.key) handleFieldChange(item.key, value)
+              }}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={(item: any).placeholder || 'Type to search colors...'}
+              width={(item: any).width}
+              showValue={item.showValue ?? false}
+            />
+          </div>
+        )
+      }
+      case 'icon-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        return (
+          <div key={`icon-chooser${index}`} className="dialog-element-renderer-icon-chooser" data-field-type="icon-chooser">
+            <IconChooser
+              label={label}
+              value={currentValue}
+              onChange={(value: string) => {
+                if (item.key) handleFieldChange(item.key, value)
+              }}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={(item: any).placeholder || 'Type to search icons...'}
+              width={(item: any).width}
+              showValue={item.showValue ?? false}
+            />
+          </div>
+        )
+      }
+      case 'pattern-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        return (
+          <div key={`pattern-chooser${index}`} className="dialog-element-renderer-pattern-chooser" data-field-type="pattern-chooser">
+            <PatternChooser
+              label={label}
+              value={currentValue}
+              onChange={(value: string) => {
+                if (item.key) handleFieldChange(item.key, value)
+              }}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={(item: any).placeholder || 'Type to search patterns...'}
+              width={(item: any).width}
+              showValue={item.showValue ?? false}
+            />
+          </div>
+        )
+      }
+      case 'icon-style-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        return (
+          <div key={`icon-style-chooser${index}`} className="dialog-element-renderer-icon-style-chooser" data-field-type="icon-style-chooser">
+            <IconStyleChooser
+              label={label}
+              value={currentValue}
+              onChange={(value: string) => {
+                if (item.key) handleFieldChange(item.key, value)
+              }}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={(item: any).placeholder || 'Type to search icon styles...'}
               width={(item: any).width}
               showValue={item.showValue ?? false}
             />

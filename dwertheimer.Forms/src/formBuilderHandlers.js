@@ -41,6 +41,40 @@ export type RequestResponse = {
 }
 
 /**
+ * Allowlist of keys that are written to the form note's YAML frontmatter when saving.
+ * Only these keys are passed to saveFrontmatterToTemplate; all others are ignored.
+ *
+ * We use an allowlist (not a blocklist) so that:
+ * - New codeblock-only fields (templateBody, customCSS, newNoteFrontmatter, TemplateRunner args)
+ *   can never accidentally leak into frontmatter if someone forgets to add them to a blocklist.
+ * - The form frontmatter schema is a single source of truth.
+ *
+ * Keys that live in code blocks and must NOT be in this list:
+ * - templateBody, customCSS, newNoteFrontmatter (template:ignore code blocks)
+ * - newNoteTitle, getNoteTitled, location, writeUnderHeading, replaceNoteContents,
+ *   createMissingHeading, newNoteFolder (template:ignore templateRunnerArgs code block)
+ */
+const FORM_FRONTMATTER_ALLOWLIST = [
+  'type',
+  'title',
+  'windowTitle',
+  'formTitle',
+  'launchLink',
+  'formEditLink',
+  'allowEmptySubmit',
+  'hideDependentItems',
+  'width',
+  'height',
+  'x',
+  'y',
+  'processingMethod',
+  'receivingTemplateTitle',
+  'formProcessorTitle',
+  'space',
+  'shouldOpenInEditor',
+]
+
+/**
  * Handle creating a processing template from FormBuilder
  * @param {Object} params - Request parameters
  * @returns {RequestResponse}
@@ -678,21 +712,19 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: No TemplateRunner args to save`)
     }
 
-    // Save frontmatter if provided (but exclude TemplateRunner args and templateBody as they're in codeblocks)
+    // Save frontmatter using allowlist: only prescribed keys get written to the form note's YAML.
+    // All other keys (templateBody, customCSS, newNoteFrontmatter, TemplateRunner args) live in code blocks.
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: About to check if frontmatter needs to be saved`)
     if (data?.frontmatter) {
-      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter exists, preparing for save`)
-      const frontmatterForSave = { ...data.frontmatter }
-      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter to save: ${JSON.stringify(frontmatterForSave)}`)
-      logDebug(pluginJson, `[${saveId}] handleSaveRequest: receivingTemplateTitle="${frontmatterForSave.receivingTemplateTitle || 'MISSING'}"`)
-      // Remove TemplateRunner args, templateBody, and customCSS from frontmatter (they're in codeblocks)
-      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Removing TemplateRunner args, templateBody, and customCSS from frontmatter`)
-      delete frontmatterForSave.templateBody
-      delete frontmatterForSave.customCSS
-      templateRunnerArgKeys.forEach((key) => {
-        delete frontmatterForSave[key]
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Building frontmatter from FORM_FRONTMATTER_ALLOWLIST`)
+      const frontmatterForSave: { [string]: any } = {}
+      FORM_FRONTMATTER_ALLOWLIST.forEach((key) => {
+        if (data.frontmatter[key] !== undefined) {
+          frontmatterForSave[key] = data.frontmatter[key]
+        }
       })
-      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter after cleanup: ${JSON.stringify(frontmatterForSave)}`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter to save (allowlist): ${JSON.stringify(frontmatterForSave)}`)
+      logDebug(pluginJson, `[${saveId}] handleSaveRequest: receivingTemplateTitle="${frontmatterForSave.receivingTemplateTitle || 'MISSING'}"`)
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: About to save frontmatter to template`)
       await saveFrontmatterToTemplate(finalTemplateFilename, frontmatterForSave)
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter saved successfully`)
