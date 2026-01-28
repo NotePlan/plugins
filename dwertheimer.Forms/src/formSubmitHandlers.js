@@ -2,13 +2,18 @@
 //--------------------------------------------------------------------------
 // Form Submit Request Handlers
 // Handlers for requests from FormView component (form submission)
+// REQUEST/RESPONSE path does not read or write reactWindowData; form is loaded by filename.
 //--------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { handleSubmitButtonClick } from './formSubmission'
+import { loadTemplateBodyFromTemplate, loadNewNoteFrontmatterFromTemplate } from './templateIO'
 import { WEBVIEW_WINDOW_ID, getFormWindowId, findFormWindowId } from './windowManagement'
 import { closeWindowFromCustomId } from '@helpers/NPWindows'
+import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
+import { getNoteByFilename } from '@helpers/note'
+import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
 import { logDebug, logError, clo } from '@helpers/dev'
 
 // RequestResponse type definition (shared with other handler files)
@@ -24,8 +29,8 @@ export type RequestResponse = {
  * @returns {Promise<string>} - The window ID to use
  */
 export async function getFormWindowIdForSubmission(data: any): Promise<string> {
-  // Window ID lookup: Use windowId from data if provided (most reliable), otherwise use fallback strategies
-  let windowId = data?.windowId || ''
+  // Window ID lookup: __windowId (from REQUEST bridge), then windowId from data, then fallback strategies
+  let windowId = data?.__windowId || data?.windowId || ''
 
   // If windowId was provided in data, use it directly
   if (windowId) {
@@ -90,6 +95,120 @@ export async function getFormWindowIdForSubmission(data: any): Promise<string> {
   }
 
   return windowId
+}
+
+/**
+ * Load form definition and template content from the form file (by filename).
+ * Used by REQUEST/RESPONSE submit so we do not read reactWindowData.
+ * @param {string} formTemplateFilename - Filename of the form template note
+ * @returns {Promise<{ formFields: Array<Object>, templateBody: string, newNoteTitle: string, newNoteFolder: string, newNoteFrontmatter: string } | null>}
+ */
+export async function loadFormContextFromFilename(
+  formTemplateFilename: string,
+): Promise<{
+  formFields: Array<Object>,
+  templateBody: string,
+  newNoteTitle: string,
+  newNoteFolder: string,
+  newNoteFrontmatter: string,
+} | null> {
+  if (!formTemplateFilename || !formTemplateFilename.trim()) {
+    return null
+  }
+  try {
+    const templateNote = await getNoteByFilename(formTemplateFilename)
+    if (!templateNote) {
+      logError(pluginJson, `loadFormContextFromFilename: Template not found: ${formTemplateFilename}`)
+      return null
+    }
+    const fm = templateNote.frontmatterAttributes || {}
+    let formFields: Array<Object> = []
+    try {
+      const loaded = await loadCodeBlockFromNote<Array<any>>(formTemplateFilename, 'formfields', pluginJson.id, parseObjectString)
+      if (loaded && Array.isArray(loaded)) {
+        formFields = loaded
+      }
+    } catch (e) {
+      logError(pluginJson, `loadFormContextFromFilename: Error loading formFields: ${e instanceof Error ? e.message : String(e)}`)
+    }
+    const templateBody = (await loadTemplateBodyFromTemplate(formTemplateFilename)) || ''
+    const newNoteFrontmatter = (await loadNewNoteFrontmatterFromTemplate(formTemplateFilename)) || ''
+    return {
+      formFields,
+      templateBody,
+      newNoteTitle: stripDoubleQuotes(fm?.newNoteTitle || '') || '',
+      newNoteFolder: stripDoubleQuotes(fm?.newNoteFolder || '') || '',
+      newNoteFrontmatter,
+    }
+  } catch (error) {
+    logError(pluginJson, `loadFormContextFromFilename: Error: ${error instanceof Error ? error.message : String(error)}`)
+    return null
+  }
+}
+
+/**
+ * Execute form submission as a REQUEST (no SET_DATA, no close).
+ * Used when front-end calls requestFromPlugin('submitForm', payload).
+ * Does not read or write reactWindowData: requires formTemplateFilename and loads the form from the file.
+ * Returns { success, data: { formSubmissionError?, aiAnalysisResult? }, message } so the form can display errors before closing.
+ *
+ * @param {Object} data - Request payload (formValues, formTemplateFilename, processingMethod, etc.)
+ * @returns {Promise<RequestResponse>}
+ */
+export async function submitFormRequest(data: any): Promise<RequestResponse> {
+  logDebug(pluginJson, `submitFormRequest: Called (REQUEST path - no reactWindowData), formTemplateFilename="${data?.formTemplateFilename || 'NOT SET'}"`)
+  try {
+    const formTemplateFilename = data?.formTemplateFilename || ''
+    if (!formTemplateFilename || !formTemplateFilename.trim()) {
+      logError(pluginJson, `submitFormRequest: formTemplateFilename is required; form must submit the filename of the form that was filled out.`)
+      return {
+        success: false,
+        message: 'Form template filename is required. The form must submit the filename of the form that was filled out.',
+        data: { formSubmissionError: 'Form template filename is required.' },
+      }
+    }
+    logDebug(pluginJson, `submitFormRequest: Loading form from file "${formTemplateFilename}"`)
+    const formContext = await loadFormContextFromFilename(formTemplateFilename)
+    if (!formContext) {
+      return {
+        success: false,
+        message: `Could not load form from "${formTemplateFilename}". Template not found or invalid.`,
+        data: { formSubmissionError: `Could not load form from "${formTemplateFilename}".` },
+      }
+    }
+    // Minimal PassedData-shaped object so handleSubmitButtonClick can read pluginData; we never read/write reactWindowData in this path
+    const fakeWindowData = {
+      pluginData: formContext,
+      componentPath: '',
+      debug: false,
+      logProfilingMessage: false,
+      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormSubmitFromHTMLView' },
+    }
+    logDebug(pluginJson, `submitFormRequest: [DIAG] calling handleSubmitButtonClick with loaded form (no reactWindowData)`)
+    const returnValue = await handleSubmitButtonClick(data, fakeWindowData)
+    const hasError = returnValue?.pluginData?.formSubmissionError
+    const success = returnValue !== null && !hasError
+    const responseData = {
+      formSubmissionError: returnValue?.pluginData?.formSubmissionError,
+      aiAnalysisResult: returnValue?.pluginData?.aiAnalysisResult,
+    }
+    logDebug(
+      pluginJson,
+      `submitFormRequest: handleSubmitButtonClick done, success=${String(success)}, hasFormSubmissionError=${String(!!hasError)}`,
+    )
+    return {
+      success,
+      data: responseData,
+      message: success ? 'Form submitted' : (hasError || 'Form submission failed'),
+    }
+  } catch (error) {
+    logError(pluginJson, `submitFormRequest: Error: ${error.message}`)
+    return {
+      success: false,
+      message: `Form submission error: ${error.message}`,
+      data: { formSubmissionError: error.message || 'Form submission failed' },
+    }
+  }
 }
 
 /**
@@ -203,7 +322,6 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
         `[BACK-END] SET_DATA trigger: returnValue !== reactWindowData=${String(returnValue !== reactWindowData)}, hasPluginDataChanges=${String(hasPluginDataChanges)}, hasAiAnalysis=${String(hasAiAnalysis)}, hasFormSubmissionError=${String(hasFormSubmissionError)}, hasErrorChanges=${String(hasErrorChanges)}`,
       )
       clo(returnValue, `[BACK-END] handleFormSubmitAction: after updating window data,returnValue=`)
-      sendToHTMLWindow(windowId, 'SET_DATA', returnValue, updateText)
       sendToHTMLWindow(windowId, 'SET_DATA', returnValue, updateText)
       // Track that we sent SET_DATA to prevent rapid resends
       recentSetDataSends.set(windowId, Date.now())

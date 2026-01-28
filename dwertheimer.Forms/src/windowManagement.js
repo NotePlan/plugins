@@ -215,7 +215,7 @@ function detectFieldRequirements(formFields: Array<Object>): {
       frontmatterKeys.add(field.frontmatterKey)
     }
   })
-  
+
   return {
     needsFolders: formFields.some((field) => field.type === 'folder-chooser'),
     needsNotes: formFields.some((field) => field.type === 'note-chooser'),
@@ -229,6 +229,7 @@ function detectFieldRequirements(formFields: Array<Object>): {
 
 /**
  * Ensure autosave field is added if autosave is enabled in settings
+ * TODO: Re-enable autosave by default once templatejs-block freeze issue is resolved
  * @param {Array<Object>} formFields - The form fields array
  * @param {Object} argObj - The argObj to update if autosave field is added
  * @returns {Array<Object>} Updated form fields array
@@ -461,7 +462,7 @@ async function preloadFrontmatterKeyValues(pluginData: Object, frontmatterKeys: 
   try {
     const { getFrontmatterKeyValues } = await import('./requestHandlers.js')
     const preloadedValues: { [string]: Array<string> } = {}
-    
+
     // Preload values for each unique frontmatter key
     for (const key of frontmatterKeys) {
       try {
@@ -482,7 +483,7 @@ async function preloadFrontmatterKeyValues(pluginData: Object, frontmatterKeys: 
         logError(pluginJson, `preloadFrontmatterKeyValues: Error preloading values for key "${key}": ${error.message}`)
       }
     }
-    
+
     pluginData.preloadedFrontmatterValues = preloadedValues
     logDebug(pluginJson, `preloadFrontmatterKeyValues: Preloaded values for ${Object.keys(preloadedValues).length} frontmatter keys`)
   } catch (error) {
@@ -535,7 +536,9 @@ export async function getPluginData(argObj: Object): Promise<{ [string]: mixed }
     pluginJson,
     `getPluginData: needsFolders=${String(requirements.needsFolders)}, needsNotes=${String(requirements.needsNotes)}, needsSpaces=${String(
       requirements.needsSpaces,
-    )}, needsMentions=${String(requirements.needsMentions)}, needsHashtags=${String(requirements.needsHashtags)}, needsEvents=${String(requirements.needsEvents)}, frontmatterKeys=[${(requirements.frontmatterKeys || []).join(', ')}]`,
+    )}, needsMentions=${String(requirements.needsMentions)}, needsHashtags=${String(requirements.needsHashtags)}, needsEvents=${String(
+      requirements.needsEvents,
+    )}, frontmatterKeys=[${(requirements.frontmatterKeys || []).join(', ')}]`,
   )
 
   const pluginData = { platform: NotePlan.environment.platform, ...argObj }
@@ -823,7 +826,6 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
         windowId: windowId, // Store window ID in pluginData so React can send it in requests
         templateTeamspaceID: templateTeamspaceID, // Pass template's teamspace ID as default space for form operations
         templateTeamspaceTitle: templateTeamspaceTitle, // Pass template's teamspace title for display
-        // logBufferBuster: true, // Enable buffer buster for logging infinite renders to prevent log when buffering is keeping it from showing all messages
       },
       title: templateTitleForWindow
         ? templateTeamspaceTitle

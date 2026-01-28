@@ -335,7 +335,8 @@ const DynamicDialog = ({
       const key = item.key
       if (!key) return
       // Conditional-values are resolved only at submit on the backend; do not add them to form state
-      if ((item: any).type === 'conditional-values') return
+      // Templatejs-block keys are output-only (computed by the block at submit); do not add to form state
+      if ((item: any).type === 'conditional-values' || (item: any).type === 'templatejs-block') return
       let val = defaultValues?.[key] ?? item.value ?? item.checked ?? item.default ?? ''
       // Button-group: use option with isDefault when no value is set
       if ((item: any).type === 'button-group' && Array.isArray((item: any).options) && (val === '' || val == null)) {
@@ -406,14 +407,16 @@ const DynamicDialog = ({
     if (!isOpen) return // Only update when dialog is open
     
     const currentKeys = Object.keys(updatedSettings)
-    const itemKeys = items.filter((item) => item.key && (item: any).type !== 'conditional-values').map((item) => item.key)
+    const itemKeys = items
+      .filter((item) => item.key && (item: any).type !== 'conditional-values' && (item: any).type !== 'templatejs-block')
+      .map((item) => item.key)
     const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
-    
+
     if (missingKeys.length > 0) {
       logDebug('DynamicDialog', `Adding ${missingKeys.length} missing field(s) to updatedSettings: ${missingKeys.join(', ')}`)
       const newSettings = { ...updatedSettings }
       items.forEach((item) => {
-        if ((item: any).type === 'conditional-values') return
+        if ((item: any).type === 'conditional-values' || (item: any).type === 'templatejs-block') return
         const key = item.key
         if (key && !newSettings.hasOwnProperty(key)) {
           let val = defaultValues?.[key] ?? item.value ?? item.checked ?? item.default ?? ''
@@ -808,86 +811,21 @@ const DynamicDialog = ({
   // Handlers
   //----------------------------------------------------------------------
 
-  const handleEscapeKey = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      onCancel && onCancel()
-    }
-  }
+  const handleEscapeKey = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onCancel && onCancel()
+      }
+    },
+    [onCancel],
+  )
 
   // Field types that should consume Enter key (prevent form submission)
   // These are fields where Enter has a specific meaning (e.g., selecting an option, creating new lines)
   const ENTER_CONSUMING_FIELD_TYPES: Array<string> = ['folder-chooser', 'note-chooser', 'space-chooser', 'dropdown-select', 'combo', 'textarea', 'calendarpicker']
 
-  const handleEnterKey = (event: KeyboardEvent) => {
-    // CMD+ENTER (or CTRL+ENTER on Windows/Linux) should always submit, bypassing ENTER_CONSUMING_FIELD_TYPES
-    const isCmdEnter = (event.metaKey || event.ctrlKey) && event.key === 'Enter'
-
-    if (event.key === 'Enter' && submitOnEnter) {
-      // If CMD+ENTER, always submit regardless of field type
-      if (isCmdEnter) {
-        event.preventDefault()
-        event.stopPropagation() // Prevent event from bubbling up
-        event.stopImmediatePropagation() // Prevent other handlers from firing
-        handleSave()
-        return
-      }
-
-      // For regular Enter, check if the focused element is within a field that consumes Enter key
-      const activeElement = document.activeElement
-      if (activeElement instanceof HTMLElement) {
-        // First, check if the active element itself is a textarea (most common case)
-        if (activeElement.tagName === 'TEXTAREA') {
-          // Textareas should never submit on Enter - they create newlines
-          return
-        }
-
-        // Look for the closest parent with data-field-type attribute
-        const fieldContainer = activeElement.closest('[data-field-type]')
-        if (fieldContainer instanceof HTMLElement) {
-          const fieldType = fieldContainer.getAttribute('data-field-type')
-          if (fieldType && ENTER_CONSUMING_FIELD_TYPES.includes(fieldType)) {
-            // This field type consumes Enter, don't submit the form
-            return
-          }
-        }
-      }
-
-      event.preventDefault() // Prevent default action if needed
-      handleSave() // see the note below about why we use the ref inside of handleSave
-    }
-  }
-
-  const handleFieldChange = (key: string, value: any) => {
-    setChangesMade(true)
-    setUpdatedSettings((prevSettings) => {
-      const newSettings = { ...prevSettings, [key]: value }
-      updatedSettingsRef.current = newSettings
-      // Call onFieldChange callback if provided (for parent to react to changes)
-      if (onFieldChange) {
-        onFieldChange(key, value, newSettings)
-      }
-      return newSettings
-    })
-  }
-
-  // Stable callback for registering autosave triggers (created once, not recreated on every render)
-  // CRITICAL: Only allow ONE autosave field to register to prevent loops
-  const autosaveTriggerRegisteredRef = useRef<boolean>(false)
-  const registerAutosaveTrigger = useCallback((triggerFn: () => Promise<void>) => {
-    // GUARD: Prevent multiple registrations - only allow one autosave field
-    if (autosaveTriggerRegisteredRef.current) {
-      logDebug('DynamicDialog', `GUARD: Autosave trigger already registered, skipping duplicate registration`)
-      return
-    }
-    // Register autosave trigger function
-    if (!autosaveTriggersRef.current.includes(triggerFn)) {
-      autosaveTriggersRef.current.push(triggerFn)
-      autosaveTriggerRegisteredRef.current = true
-      logDebug('DynamicDialog', `Registered autosave trigger (total: ${autosaveTriggersRef.current.length})`)
-    }
-  }, [])
-
-  const handleSave = async () => {
+  // handleSave defined before handleEnterKey so it can be used in handleEnterKey and in useCallback deps
+  const handleSave = useCallback(async () => {
     // Guard against multiple simultaneous saves
     if (isSavingRef.current) {
       logDebug('DynamicDialog', 'Save already in progress, skipping duplicate save')
@@ -912,15 +850,18 @@ const DynamicDialog = ({
 
       // CRITICAL: Ensure ALL fields from items are included in formValues, even if never touched
       // Conditional-values are resolved only at submit on the backend; do not add them here
+      // Templatejs-block keys are output-only (computed by the block at submit); do not add to formValues
       const finalFormValues = { ...updatedSettingsRef.current }
       const currentKeys = Object.keys(finalFormValues)
-      const itemKeys = items.filter((item) => item.key && (item: any).type !== 'conditional-values').map((item) => item.key)
+      const itemKeys = items
+        .filter((item) => item.key && (item: any).type !== 'conditional-values' && (item: any).type !== 'templatejs-block')
+        .map((item) => item.key)
       const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
-      
+
       if (missingKeys.length > 0) {
         logDebug('DynamicDialog', `handleSave: Adding ${missingKeys.length} missing field(s) to formValues before submission: ${missingKeys.join(', ')}`)
         items.forEach((item) => {
-          if ((item: any).type === 'conditional-values') return
+          if ((item: any).type === 'conditional-values' || (item: any).type === 'templatejs-block') return
           const key = item.key
           if (key && !finalFormValues.hasOwnProperty(key)) {
             let val = defaultValues?.[key] ?? item.value ?? item.checked ?? item.default ?? ''
@@ -934,16 +875,88 @@ const DynamicDialog = ({
       }
 
       if (onSave) {
-        // Pass keepOpenOnSubmit flag in windowId as a special marker, or pass it separately
-        // For now, we'll pass it as part of a special windowId format, or the caller can check the prop
-        // Actually, the caller (onSave) can access keepOpenOnSubmit via closure, so we don't need to pass it
         onSave(finalFormValues, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
       }
       logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: finalFormValues, windowId, keepOpenOnSubmit })
     } finally {
       isSavingRef.current = false
     }
-  }
+  }, [onSave, windowId, keepOpenOnSubmit, items, defaultValues])
+
+  const handleEnterKey = useCallback(
+    (event: KeyboardEvent) => {
+      // CMD+ENTER (or CTRL+ENTER on Windows/Linux) should always submit, bypassing ENTER_CONSUMING_FIELD_TYPES
+      const isCmdEnter = (event.metaKey || event.ctrlKey) && event.key === 'Enter'
+
+      if (event.key === 'Enter' && submitOnEnter) {
+        // If CMD+ENTER, always submit regardless of field type
+        if (isCmdEnter) {
+          event.preventDefault()
+          event.stopPropagation() // Prevent event from bubbling up
+          event.stopImmediatePropagation() // Prevent other handlers from firing
+          handleSave()
+          return
+        }
+
+        // For regular Enter, check if the focused element is within a field that consumes Enter key
+        const activeElement = document.activeElement
+        if (activeElement instanceof HTMLElement) {
+          // First, check if the active element itself is a textarea (most common case)
+          if (activeElement.tagName === 'TEXTAREA') {
+            // Textareas should never submit on Enter - they create newlines
+            return
+          }
+
+          // Look for the closest parent with data-field-type attribute
+          const fieldContainer = activeElement.closest('[data-field-type]')
+          if (fieldContainer instanceof HTMLElement) {
+            const fieldType = fieldContainer.getAttribute('data-field-type')
+            if (fieldType && ENTER_CONSUMING_FIELD_TYPES.includes(fieldType)) {
+              // This field type consumes Enter, don't submit the form
+              return
+            }
+          }
+        }
+
+        event.preventDefault() // Prevent default action if needed
+        handleSave()
+      }
+    },
+    [submitOnEnter, handleSave],
+  )
+
+  const handleFieldChange = useCallback(
+    (key: string, value: any) => {
+      setChangesMade(true)
+      setUpdatedSettings((prevSettings) => {
+        const newSettings = { ...prevSettings, [key]: value }
+        updatedSettingsRef.current = newSettings
+        // Call onFieldChange callback if provided (for parent to react to changes)
+        if (onFieldChange) {
+          onFieldChange(key, value, newSettings)
+        }
+        return newSettings
+      })
+    },
+    [onFieldChange],
+  )
+
+  // Stable callback for registering autosave triggers (created once, not recreated on every render)
+  // CRITICAL: Only allow ONE autosave field to register to prevent loops
+  const autosaveTriggerRegisteredRef = useRef<boolean>(false)
+  const registerAutosaveTrigger = useCallback((triggerFn: () => Promise<void>) => {
+    // GUARD: Prevent multiple registrations - only allow one autosave field
+    if (autosaveTriggerRegisteredRef.current) {
+      logDebug('DynamicDialog', `GUARD: Autosave trigger already registered, skipping duplicate registration`)
+      return
+    }
+    // Register autosave trigger function
+    if (!autosaveTriggersRef.current.includes(triggerFn)) {
+      autosaveTriggersRef.current.push(triggerFn)
+      autosaveTriggerRegisteredRef.current = true
+      logDebug('DynamicDialog', `Registered autosave trigger (total: ${autosaveTriggersRef.current.length})`)
+    }
+  }, [])
 
   const handleDropdownOpen = () => {
     setTimeout(() => {
@@ -967,7 +980,7 @@ const DynamicDialog = ({
     return () => {
       document.removeEventListener('keydown', handleEscapeKey)
     }
-  }, [isOpen])
+  }, [isOpen, handleEscapeKey])
 
   useEffect(() => {
     const dropdown = dropdownRef.current
@@ -992,7 +1005,7 @@ const DynamicDialog = ({
       document.removeEventListener('keydown', handleEnterKey)
       document.removeEventListener('keydown', handleEscapeKey)
     }
-  }, [isOpen, submitOnEnter])
+  }, [isOpen, submitOnEnter, handleEnterKey, handleEscapeKey])
 
   //----------------------------------------------------------------------
   // ONLY attach an ESC listener if isModal = false
