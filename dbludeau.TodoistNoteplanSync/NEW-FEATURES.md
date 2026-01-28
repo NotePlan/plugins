@@ -11,31 +11,45 @@ This document summarizes all new features and improvements made to the Todoist N
 
 Four new commands to sync project tasks with specific date filters:
 
-| Command | Alias | Description |
-|---------|-------|-------------|
-| `/todoist sync project today` | `tospt` | Sync only tasks due today |
-| `/todoist sync project overdue` | `tospo` | Sync only overdue tasks |
-| `/todoist sync project current` | `tospc` | Sync overdue + today tasks |
-| `/todoist sync project by name` | `tospn` | Interactive prompts for project names and filter |
+| Command | Alias | Scope | Description |
+|---------|-------|-------|-------------|
+| `/todoist sync project today` | `tospt` | Current note | Sync only tasks due today |
+| `/todoist sync project overdue` | `tospo` | Current note | Sync only overdue tasks |
+| `/todoist sync project current` | `tospc` | Current note | Sync overdue + today tasks |
+| `/todoist sync project by name` | `tospn` | Current note | Interactive prompts for project names and filter |
+
+**Use cases:**
+- *"Show me just what's due today for this project"* → `tospt`
+- *"What have I let slip? Show me overdue items"* → `tospo`
+- *"What needs attention right now (overdue + today)?"* → `tospc`
+- *"I want to pick which projects and date range to sync"* → `tospn`
 
 ### 2. "By Project" Commands for Current Note
 **Branch:** `feature/todoist-date-filter`
 
 Four new commands that sync tasks to the current note, organized by project headings:
 
-| Command | Alias | Description |
-|---------|-------|-------------|
-| `/todoist sync today by project` | `tostbp` | Today's tasks, grouped by project |
-| `/todoist sync overdue by project` | `tosobp` | Overdue tasks, grouped by project |
-| `/todoist sync current by project` | `toscbp` | Today + overdue, grouped by project |
-| `/todoist sync week by project` | `toswbp` | Next 7 days, grouped by project |
+| Command | Alias | Scope | Description |
+|---------|-------|-------|-------------|
+| `/todoist sync today by project` | `tostbp` | Current note | Today's tasks, grouped by project |
+| `/todoist sync overdue by project` | `tosobp` | Current note | Overdue tasks, grouped by project |
+| `/todoist sync current by project` | `toscbp` | Current note | Today + overdue, grouped by project |
+| `/todoist sync week by project` | `toswbp` | Current note | Next 7 days, grouped by project |
+
+**Use cases:**
+- *"What do I need to work on today, across all projects?"* → `tostbp`
+- *"Show me everything overdue, organized by project so I can prioritize"* → `tosobp`
+- *"Give me a unified view of what needs attention now"* → `toscbp`
+- *"What's my week look like across all projects?"* → `toswbp`
 
 ### 3. Convert to Todoist Task
 **Branch:** `feature/convert-to-todoist-task`
 
-| Command | Alias | Description |
-|---------|-------|-------------|
-| `/todoist convert to todoist task` | `cttt`, `toct` | Convert selected NotePlan tasks to Todoist Inbox tasks |
+| Command | Alias | Scope | Description |
+|---------|-------|-------|-------------|
+| `/todoist convert to todoist task` | `cttt`, `toct` | Selected text | Convert selected NotePlan tasks to Todoist Inbox tasks |
+
+**Use case:** *"I created tasks in NotePlan but now want to track them in Todoist too"*
 
 - Converts one or multiple selected tasks
 - Creates tasks in Todoist Inbox with link back
@@ -46,11 +60,17 @@ Four new commands that sync tasks to the current note, organized by project head
 ### 4. Status Sync Commands
 **Branch:** `feature/sync-status-only`
 
-| Command | Alias | Description |
-|---------|-------|-------------|
-| `/todoist sync status` | `toss` | Sync completion status for current note only |
-| `/todoist sync status all` | `tossa` | Sync completion status across all linked notes |
+| Command | Alias | Scope | Description |
+|---------|-------|-------|-------------|
+| `/todoist sync status` | `toss` | Current note | Sync completion status for current note only |
+| `/todoist sync status all` | `tossa` | All linked notes | Sync completion status across all linked notes |
 
+**Use cases:**
+- *"I completed tasks in NotePlan, push that to Todoist"* → `toss`
+- *"I completed tasks in Todoist, pull that into NotePlan"* → `toss`
+- *"Sync completion status everywhere without re-syncing all tasks"* → `tossa`
+
+Features:
 - Bidirectional sync: NotePlan done → closes in Todoist; Todoist done → marks done in NotePlan
 - No add/remove of tasks - only syncs completion state
 - Reports summary: "Synced X task(s): N closed in Todoist, M marked done in NotePlan"
@@ -70,12 +90,19 @@ Four new commands that sync tasks to the current note, organized by project head
 | `sectionFormat` | ### / #### / ##### Section, **Section** | #### Section | Format for Todoist section headings |
 | `sectionPrefix` | Nothing, Blank Line, Horizontal Rule, Blank Line + Horizontal Rule | Blank Line | What to insert before section headings |
 
+**Use cases:**
+- *"I only want to see actionable tasks, not the whole backlog"* → Set `projectDateFilter` to `overdue | today`
+- *"I want cleaner visual separation between projects"* → Adjust `projectSeparator` and `projectPrefix`
+- *"Todoist sections should be smaller headings than projects"* → Set `sectionFormat` to `#### Section`
+
 ---
 
 ## New Frontmatter Options
 
 ### Multi-Project Support
 **Branch:** `feature/todoist-multi-project`
+
+**Use case:** *"I have a NotePlan note for 'Q1 Goals' that pulls from multiple Todoist projects"*
 
 Link multiple Todoist projects to a single NotePlan note:
 
@@ -96,6 +123,8 @@ todoist_project_names: ["Work", "Personal"]
 ### Per-Note Date Filter Override
 **Branch:** `feature/todoist-date-filter`
 
+**Use case:** *"Most notes should show current tasks, but my 'Weekly Review' note needs to show 7 days"*
+
 Override the global date filter for a specific note:
 
 ```yaml
@@ -109,6 +138,8 @@ Valid values: `all`, `today`, `overdue`, `overdue | today`, `3 days`, `7 days`
 
 ### Project Name Lookup
 **Branch:** `feature/todoist-project-name-lookup`
+
+**Use case:** *"I don't want to look up project IDs - just let me use the project name"*
 
 Reference projects by name instead of ID:
 
@@ -190,17 +221,29 @@ The existing `syncProject` command now supports:
 
 ---
 
+## Command Scope Reference
+
+| Scope | Description | Commands |
+|-------|-------------|----------|
+| **Current note** | Operates on the note open in the editor | `tospt`, `tospo`, `tospc`, `tospn`, `tostbp`, `tosobp`, `toscbp`, `toswbp`, `toss` |
+| **Selected text** | Operates on selected paragraphs | `toct` (convert to todoist task) |
+| **All linked notes** | Searches all notes with Todoist frontmatter | `tossa` (sync status all) |
+| **Today's daily note** | Writes to today's date note | `tost` (existing command) |
+| **Todoist folder** | Creates/updates notes in dedicated folder | `tose` (existing command) |
+
+---
+
 ## Summary by PR Candidate
 
-| Feature Area | Branch | New Commands | New Settings | Complexity |
-|--------------|--------|--------------|--------------|------------|
-| Date Filtering | `feature/todoist-date-filter` | 8 | 1 | Medium |
-| Multi-Project | `feature/todoist-multi-project` | 0 | 2 | Medium |
-| Project Names | `feature/todoist-project-name-lookup` | 0 | 0 | Low |
-| Prefix Settings | `feature/todoist-prefix-settings` | 0 | 2 | Low |
-| Convert Task | `feature/convert-to-todoist-task` | 1 | 0 | Medium |
-| Status Sync | `feature/sync-status-only` | 2 | 0 | Medium |
-| API Fixes | `feature/todoist-api-fixes` | 0 | 0 | Low |
-| Test Suite | `feature/introduce-comprehensive-testing` | 0 | 0 | Low |
+| Feature Area | Branch | New Commands | New Settings | Scope | Complexity |
+|--------------|--------|--------------|--------------|-------|------------|
+| Date Filtering | `feature/todoist-date-filter` | 8 | 1 | Current note | Medium |
+| Multi-Project | `feature/todoist-multi-project` | 0 | 2 | Current note | Medium |
+| Project Names | `feature/todoist-project-name-lookup` | 0 | 0 | Current note | Low |
+| Prefix Settings | `feature/todoist-prefix-settings` | 0 | 2 | Current note | Low |
+| Convert Task | `feature/convert-to-todoist-task` | 1 | 0 | Selected text | Medium |
+| Status Sync | `feature/sync-status-only` | 2 | 0 | Current note + All notes | Medium |
+| API Fixes | `feature/todoist-api-fixes` | 0 | 0 | N/A | Low |
+| Test Suite | `feature/introduce-comprehensive-testing` | 0 | 0 | N/A | Low |
 
 **Integration Branch:** `todoist-integration-testing` contains all features merged together for testing.
