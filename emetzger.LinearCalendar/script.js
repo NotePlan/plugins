@@ -23,7 +23,7 @@ async function showLinearCalendar(year) {
       iconColor: "green-500",
     })
   } catch (error) {
-    console.log("Error showing linear calendar:", error)
+    // Error handled silently
   }
 }
 
@@ -133,7 +133,126 @@ function getCalendarHTML(currentYear) {
       gap: 8px;
       margin-left: auto;
     }
-    
+
+    /* Event Filter - Collapsible */
+    .event-filter {
+      display: flex;
+      align-items: center;
+      position: relative;
+      background: transparent;
+      border-radius: 6px;
+      height: 28px;
+      overflow: hidden;
+    }
+
+    .event-filter-toggle {
+      width: 28px;
+      height: 28px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+
+    .event-filter-toggle:hover {
+      background: #f5f5f7;
+    }
+
+    .event-filter-icon {
+      color: #86868b;
+      font-size: 13px;
+    }
+
+    .event-filter.expanded .event-filter-icon,
+    .event-filter.has-value .event-filter-icon {
+      color: #FF8800;
+    }
+
+    .event-filter-input {
+      border: none;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      font-size: 13px;
+      width: 0;
+      max-width: 0;
+      outline: none;
+      padding: 0;
+      opacity: 0;
+      border-radius: 6px;
+      height: 28px;
+      transition: width 0.2s ease, max-width 0.2s ease, opacity 0.15s ease, padding 0.2s ease;
+    }
+
+    .event-filter.expanded .event-filter-input {
+      width: 140px;
+      max-width: 140px;
+      padding: 0 8px;
+      opacity: 1;
+      margin-left: 4px;
+    }
+
+    .event-filter-input::placeholder {
+      color: #86868b;
+      font-size: 12px;
+    }
+
+    .event-filter-clear {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 0;
+      height: 18px;
+      border: none;
+      background: #e5e5e7;
+      color: #86868b;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 10px;
+      flex-shrink: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: width 0.15s ease, opacity 0.15s ease, margin 0.15s ease;
+    }
+
+    .event-filter-clear:hover {
+      background: #d1d1d6;
+      color: #1d1d1f;
+    }
+
+    .event-filter.expanded.has-value .event-filter-clear {
+      width: 18px;
+      opacity: 1;
+      margin-left: 4px;
+    }
+
+    /* Dark mode event filter */
+    @media (prefers-color-scheme: dark) {
+      .event-filter-toggle:hover {
+        background: #2c2c2e;
+      }
+      .event-filter-input {
+        background: #2c2c2e;
+        color: #f5f5f7;
+      }
+      .event-filter.expanded .event-filter-icon,
+      .event-filter.has-value .event-filter-icon {
+        color: #FF7700;
+      }
+      .event-filter-clear {
+        background: #3a3a3c;
+        color: #98989d;
+      }
+      .event-filter-clear:hover {
+        background: #48484a;
+        color: #f5f5f7;
+      }
+    }
+
     /* Settings dropdown */
     .settings-container {
       position: relative;
@@ -297,35 +416,52 @@ function getCalendarHTML(currentYear) {
     }
     
     .calendar-filter-button {
-      padding: 4px 12px;
+      width: 28px;
+      height: 28px;
+      padding: 0;
       margin-bottom: 2px;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       background: transparent;
-            font-size: 14px;
-            font-weight: 400;
-            color: #1d1d1f;
-            cursor: pointer;
-            outline: none;
-            text-align: left;
-            position: relative;
+      color: #86868b;
+      cursor: pointer;
+      outline: none;
+      position: relative;
       transition: background-color 0.15s;
-      opacity: 1;
       display: flex;
       align-items: center;
-      gap: 6px;
-      white-space: nowrap;
+      justify-content: center;
     }
-    
+
     .calendar-filter-icon {
       font-size: 14px;
-      display: inline-block;
-      flex-shrink: 0;
-          }
-          
-          .calendar-filter-button:hover {
+    }
+
+    .calendar-filter-badge {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      background: #FF8800;
+      color: white;
+      font-size: 9px;
+      font-weight: 600;
+      min-width: 14px;
+      height: 14px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 3px;
+    }
+
+    .calendar-filter-badge.all-selected {
+      display: none;
+    }
+
+    .calendar-filter-button:hover {
       background: #f5f5f7;
-          }
+      color: #1d1d1f;
+    }
           
           .calendar-filter-dropdown {
             position: absolute;
@@ -379,7 +515,27 @@ function getCalendarHTML(currentYear) {
             color: #1d1d1f;
             user-select: none;
           }
-          
+
+          .calendar-filter-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+
+          .calendar-filter-item.disabled .calendar-filter-checkbox {
+            cursor: not-allowed;
+          }
+
+          .calendar-filter-item.disabled .calendar-filter-item-label {
+            font-style: italic;
+          }
+
+          .calendar-filter-disabled-note {
+            font-size: 10px;
+            color: #86868b;
+            margin-left: auto;
+            font-style: normal;
+          }
+
           .calendar-filter-action-item {
             display: flex;
             align-items: center;
@@ -863,21 +1019,7 @@ function getCalendarHTML(currentYear) {
       0%, 100% { opacity: 0.7; }
       50% { opacity: 1; }
     }
-    
-    /* Calendar color indicator in select */
-    .calendar-option-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .calendar-color-dot-option {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    
+
     /* Calendar source group headers */
     .calendar-source-header {
       padding: 8px 12px 4px 12px;
@@ -944,13 +1086,18 @@ function getCalendarHTML(currentYear) {
       .calendar-filter-button,
       .settings-button {
         background: transparent;
-              color: #f5f5f7;
+              color: #98989d;
             }
-            
+
       .calendar-filter-button:hover,
       .settings-button:hover {
               background: #2c2c2e;
+              color: #f5f5f7;
             }
+
+      .calendar-filter-badge {
+        background: #FF7700;
+      }
             
       .calendar-filter-dropdown,
       .settings-dropdown {
@@ -966,7 +1113,11 @@ function getCalendarHTML(currentYear) {
             .calendar-filter-item-label {
               color: #f5f5f7;
             }
-            
+
+            .calendar-filter-disabled-note {
+              color: #86868b;
+            }
+
             .calendar-filter-action-item {
               border-bottom-color: #38383a;
               color: #FF7700;
@@ -1163,10 +1314,19 @@ function getCalendarHTML(currentYear) {
             <button class="year-button" id="yearNext">›</button>
           </div>
     <div class="controls-right">
+      <div class="event-filter" id="eventFilterContainer">
+        <button class="event-filter-toggle" id="eventFilterToggle" title="Filter events (⌘F)">
+          <i class="fa-solid fa-magnifying-glass event-filter-icon"></i>
+        </button>
+        <input type="text" id="eventFilterInput" class="event-filter-input" placeholder="Filter events...">
+        <button class="event-filter-clear" id="eventFilterClear" title="Clear filter">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
       <div class="calendar-filter">
-        <button class="calendar-filter-button" id="calendarFilterButton" onclick="toggleCalendarDropdown(event)">
+        <button class="calendar-filter-button" id="calendarFilterButton" onclick="toggleCalendarDropdown(event)" title="Filter calendars">
           <i class="far fa-calendar calendar-filter-icon"></i>
-          <span id="calendarFilterText">Loading...</span>
+          <span class="calendar-filter-badge" id="calendarFilterBadge"></span>
         </button>
         <div class="calendar-filter-dropdown" id="calendarFilterDropdown"></div>
           </div>
@@ -1460,8 +1620,6 @@ function getCalendarHTML(currentYear) {
       } else if (inSplitView) {
         url += '&splitView=yes&reuseSplitView=yes';
       }
-      console.log('openNote: Opening URL: ' + url);
-
       // Use hidden link click to trigger xcallback URL (WebView workaround)
       const link = document.createElement('a');
       link.href = url;
@@ -1653,8 +1811,6 @@ function getCalendarHTML(currentYear) {
       const endMonth = endDate.getMonth();
       const endYear = endDate.getFullYear();
       
-      console.log('Force reloading events from ' + startYear + '-' + startMonth + ' to ' + endYear + '-' + endMonth);
-      
       // Clear cache for affected months
       let currentYear = startYear;
       let currentMonth = startMonth;
@@ -1799,9 +1955,12 @@ function getCalendarHTML(currentYear) {
     function updateToggleAllButton() {
       const toggleAllItem = document.getElementById('toggleAllCalendars');
       if (!toggleAllItem) return;
-      
-      const calendars = Array.from(calendarInfoMap.keys());
-      const allSelected = calendars.length > 0 && calendars.every(cal => selectedCalendars.has(cal));
+
+      // Only consider enabled calendars
+      const enabledCalendars = Array.from(calendarInfoMap.entries())
+        .filter(([_, info]) => info.isEnabled)
+        .map(([title, _]) => title);
+      const allSelected = enabledCalendars.length > 0 && enabledCalendars.every(cal => selectedCalendars.has(cal));
       toggleAllItem.textContent = allSelected ? 'Unselect All' : 'Select All';
     }
     
@@ -1815,33 +1974,29 @@ function getCalendarHTML(currentYear) {
             calendars.forEach(cal => {
           calendarInfoMap.set(cal.title, {
             name: cal.title,
-            color: cal.color || "#5A9FD4"
+            color: cal.color || "#5A9FD4",
+            isEnabled: cal.isEnabled !== false
           });
             });
             
             // Load saved selection from localStorage or default to all selected
             const savedSelection = localStorage.getItem('calendarFilterSelection');
-            console.log('Loading calendar selection from localStorage:', savedSelection);
             if (savedSelection) {
               try {
                 const saved = JSON.parse(savedSelection);
-                console.log('Parsed saved selection:', saved);
                 // Use saved selection exactly as-is to preserve user's explicit choices
                 selectedCalendars = new Set(saved);
                 // Filter out any calendars that no longer exist in the system
                 const existingCalendarTitles = new Set(calendars.map(cal => cal.title));
                 selectedCalendars = new Set([...selectedCalendars].filter(title => existingCalendarTitles.has(title)));
-                console.log('Final selected calendars after filtering:', Array.from(selectedCalendars));
                 // Don't add missing calendars back - they were either unchecked or are new
                 // User can manually check new calendars if they want to see them
               } catch (e) {
-                console.error('Error parsing saved calendar selection:', e);
                 // If parsing fails, default to all selected
                 selectedCalendars = new Set(calendars.map(cal => cal.title));
               }
             } else {
               // No saved selection, default to all selected
-              console.log('No saved selection found, defaulting to all calendars selected');
               selectedCalendars = new Set(calendars.map(cal => cal.title));
             }
             
@@ -1850,33 +2005,35 @@ function getCalendarHTML(currentYear) {
             toggleAllItem.className = 'calendar-filter-action-item';
             toggleAllItem.id = 'toggleAllCalendars';
             
-            // Set initial text content directly
-            const allSelected = calendars.length > 0 && calendars.every(cal => selectedCalendars.has(cal.title));
+            // Set initial text content directly (only consider enabled calendars)
+            const enabledCalendars = calendars.filter(cal => cal.isEnabled !== false);
+            const allSelected = enabledCalendars.length > 0 && enabledCalendars.every(cal => selectedCalendars.has(cal.title));
             toggleAllItem.textContent = allSelected ? 'Unselect All' : 'Select All';
-            
+
             toggleAllItem.addEventListener('click', (e) => {
               e.preventDefault();
               e.stopPropagation();
-              const allSelected = calendars.length > 0 && calendars.every(cal => selectedCalendars.has(cal.title));
-              
-              if (allSelected) {
+              const enabledCals = calendars.filter(cal => cal.isEnabled !== false);
+              const allSel = enabledCals.length > 0 && enabledCals.every(cal => selectedCalendars.has(cal.title));
+
+              if (allSel) {
                 // Unselect all calendars
                 selectedCalendars.clear();
-                const checkboxes = calendarFilterDropdown.querySelectorAll('.calendar-filter-checkbox');
+                const checkboxes = calendarFilterDropdown.querySelectorAll('.calendar-filter-checkbox:not(:disabled)');
                 checkboxes.forEach(checkbox => {
                   checkbox.checked = false;
                 });
               } else {
-                // Select all calendars
-                calendars.forEach(cal => {
+                // Select all enabled calendars
+                enabledCals.forEach(cal => {
                   selectedCalendars.add(cal.title);
                 });
-                const checkboxes = calendarFilterDropdown.querySelectorAll('.calendar-filter-checkbox');
+                const checkboxes = calendarFilterDropdown.querySelectorAll('.calendar-filter-checkbox:not(:disabled)');
                 checkboxes.forEach(checkbox => {
                   checkbox.checked = true;
                 });
               }
-              
+
               // Save and update display
               const selectionArray = Array.from(selectedCalendars);
               localStorage.setItem('calendarFilterSelection', JSON.stringify(selectionArray));
@@ -1918,44 +2075,58 @@ function getCalendarHTML(currentYear) {
               
               // Add calendars for this source
               calendarsBySource[source].forEach(calendar => {
+                const isDisabled = calendar.isEnabled === false;
                 const item = document.createElement('div');
-                item.className = 'calendar-filter-item';
-                
+                item.className = 'calendar-filter-item' + (isDisabled ? ' disabled' : '');
+
                 const colorDot = document.createElement('div');
                 colorDot.className = 'calendar-filter-color-dot';
                 colorDot.style.backgroundColor = calendar.color || "#5A9FD4";
-                
+
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.className = 'calendar-filter-checkbox';
                 checkbox.value = calendar.title;
-                checkbox.checked = selectedCalendars.has(calendar.title);
-                checkbox.addEventListener('change', handleCalendarFilterChange);
-                
+                checkbox.checked = selectedCalendars.has(calendar.title) && !isDisabled;
+                checkbox.disabled = isDisabled;
+
                 const label = document.createElement('span');
                 label.className = 'calendar-filter-item-label';
                 label.textContent = calendar.title;
-                
+
                 item.appendChild(checkbox);
                 item.appendChild(colorDot);
                 item.appendChild(label);
-                
-                item.addEventListener('click', (e) => {
-                  if (e.target === checkbox) return;
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // Toggle checkbox state
-                  checkbox.checked = !checkbox.checked;
-                  // Create a proper event-like object with the updated checked state
-                  const syntheticEvent = {
-                    target: {
-                      value: checkbox.value,
-                      checked: checkbox.checked
-                    }
-                  };
-                  handleCalendarFilterChange(syntheticEvent);
-                });
-                
+
+                // Add "disabled" note for calendars disabled in NotePlan settings
+                if (isDisabled) {
+                  const note = document.createElement('span');
+                  note.className = 'calendar-filter-disabled-note';
+                  note.textContent = 'off';
+                  note.title = 'Disabled in NotePlan Settings';
+                  item.appendChild(note);
+                }
+
+                if (!isDisabled) {
+                  checkbox.addEventListener('change', handleCalendarFilterChange);
+
+                  item.addEventListener('click', (e) => {
+                    if (e.target === checkbox) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Toggle checkbox state
+                    checkbox.checked = !checkbox.checked;
+                    // Create a proper event-like object with the updated checked state
+                    const syntheticEvent = {
+                      target: {
+                        value: checkbox.value,
+                        checked: checkbox.checked
+                      }
+                    };
+                    handleCalendarFilterChange(syntheticEvent);
+                  });
+                }
+
                 calendarFilterDropdown.appendChild(item);
               });
             });
@@ -1981,28 +2152,35 @@ function getCalendarHTML(currentYear) {
             // Save to localStorage
             const selectionArray = Array.from(selectedCalendars);
             localStorage.setItem('calendarFilterSelection', JSON.stringify(selectionArray));
-            console.log('Saved calendar selection:', selectionArray);
-            
+
             updateToggleAllButton();
             updateCalendarFilterDisplay();
             updateCalendarDisplay();
           }
           
           function updateCalendarFilterDisplay() {
-            const totalCount = calendarInfoMap.size;
-            const selectedCount = selectedCalendars.size;
-      const calendarFilterText = document.getElementById('calendarFilterText');
-      
-      if (!calendarFilterText) return;
-            
-            if (selectedCount === 0) {
-        calendarFilterText.textContent = 'No calendars';
-            } else if (selectedCount === totalCount) {
-        calendarFilterText.textContent = 'All calendars';
+            // Only count enabled calendars
+            const enabledCalendars = Array.from(calendarInfoMap.entries())
+              .filter(([_, info]) => info.isEnabled)
+              .map(([title, _]) => title);
+            const totalCount = enabledCalendars.length;
+            const selectedCount = enabledCalendars.filter(cal => selectedCalendars.has(cal)).length;
+            const badge = document.getElementById('calendarFilterBadge');
+            const filterBtn = document.getElementById('calendarFilterButton');
+
+            if (!badge) return;
+
+            // Show badge with selected count, hide if all selected
+            if (selectedCount === totalCount && selectedCount > 0) {
+              badge.classList.add('all-selected');
+              badge.textContent = '';
+              if (filterBtn) filterBtn.title = 'All ' + totalCount + ' calendars selected';
             } else {
-        calendarFilterText.textContent = \`\${selectedCount} of \${totalCount} calendars\`;
-      }
-    }
+              badge.classList.remove('all-selected');
+              badge.textContent = selectedCount;
+              if (filterBtn) filterBtn.title = selectedCount + ' of ' + totalCount + ' calendars';
+            }
+          }
     
     // ============================================
     // Calendar Rendering
@@ -2057,8 +2235,13 @@ function getCalendarHTML(currentYear) {
           }
         }
         // Filter out non-all-day events if option is enabled
-        if (showOnlyAllDayEvents && !event.isAllDay) {
-          return false;
+        // Detect all-day events: either has isAllDay flag or starts/ends at midnight
+        if (showOnlyAllDayEvents) {
+          const isAllDay = event.isAllDay || (
+            eventStart.getHours() === 0 && eventStart.getMinutes() === 0 &&
+            eventEnd.getHours() === 0 && eventEnd.getMinutes() === 0
+          );
+          if (!isAllDay) return false;
         }
         return true;
       });
@@ -2674,9 +2857,6 @@ function getCalendarHTML(currentYear) {
       try {
         if (editingEvent && editingEvent.id) {
           // Update existing event - build a proper object for the bridge
-          console.log('Updating event - id: ' + editingEvent.id + ' title: ' + title + ' calendar: ' + calendarTitle);
-          console.log('Original editingEvent: ' + JSON.stringify(editingEvent));
-          
           const updateObject = {
             id: editingEvent.id,
             title: title,
@@ -2691,18 +2871,11 @@ function getCalendarHTML(currentYear) {
             availability: editingEvent.availability || 0,
             isRecurring: editingEvent.isRecurring || false
           };
-          
-          console.log('Update object: ' + JSON.stringify(updateObject));
-          console.log('Calling Calendar.update...');
-          
-          const updateResult = await Calendar.update(updateObject);
-          console.log('Calendar.update result: ' + (updateResult ? 'success' : 'returned undefined'));
+
+          await Calendar.update(updateObject);
         } else {
           // Create new event by passing a plain object to Calendar.add()
           // The bridge converts dictionaries to CalendarItem internally
-          console.log('Creating event - title: ' + title + ' start: ' + startDate.toISOString() + ' end: ' + endDate.toISOString() + ' calendar: ' + calendarTitle);
-          
-          // Build event object with required properties
           const eventObject = {
             title: title,
             date: startDate,
@@ -2715,18 +2888,10 @@ function getCalendarHTML(currentYear) {
             url: '',
             availability: 0
           };
-          
-          console.log('Calling Calendar.add with event object...');
-          const result = await Calendar.add(eventObject);
-          console.log('Calendar.add returned: ' + (result ? JSON.stringify(result) : 'undefined/null'));
-          
-          if (!result) {
-            console.log('WARNING: Calendar.add returned undefined - event may not have been created');
-          } else {
-            console.log('Event created successfully with id: ' + (result.id || 'no id'));
-          }
+
+          await Calendar.add(eventObject);
         }
-        
+
         // Save isRecurring before closing modal (which sets editingEvent = null)
         const wasRecurring = editingEvent && editingEvent.isRecurring;
 
@@ -2741,42 +2906,24 @@ function getCalendarHTML(currentYear) {
         if (wasRecurring) {
           reloadStartDate = new Date(displayYear, 0, 1);
           reloadEndDate = new Date(displayYear, 11, 31);
-          console.log('Recurring event update - reloading entire year');
         }
         await forceReloadEventsForMonths(reloadStartDate, reloadEndDate);
-        
+
       } catch (error) {
-        console.log('ERROR saving event: ' + String(error));
-        console.log('Error name: ' + (error && error.name ? error.name : 'none'));
-        console.log('Error message: ' + (error && error.message ? error.message : 'none'));
         alert('Failed to save event: ' + String(error));
       }
     }
-    
+
     async function deleteEvent() {
-      console.log('deleteEvent called');
-      console.log('editingEvent: ' + JSON.stringify(editingEvent));
-      
-      if (!editingEvent) {
-        console.log('No editingEvent - returning');
-        return;
-      }
-      
-      if (!editingEvent.id) {
-        console.log('No event id - cannot delete');
-        return;
-      }
+      if (!editingEvent) return;
+      if (!editingEvent.id) return;
       
       // Note: confirm() doesn't work in WebViews, so we delete directly
-      // TODO: Add a custom confirmation modal if needed
       try {
         // Get event dates before deleting
         const eventStart = new Date(editingEvent.date || editingEvent.startDate);
         const eventEnd = new Date(editingEvent.endDate || eventStart);
-        
-        console.log('Deleting event - id: ' + editingEvent.id);
-        console.log('Event dates: ' + eventStart.toISOString() + ' to ' + eventEnd.toISOString());
-        
+
         // Build proper object for the bridge
         const deleteObject = {
           id: editingEvent.id,
@@ -2789,41 +2936,29 @@ function getCalendarHTML(currentYear) {
           isCompleted: false,
           isRecurring: editingEvent.isRecurring || false
         };
-        
-        console.log('Delete object: ' + JSON.stringify(deleteObject));
-        console.log('Calling Calendar.remove...');
-        
+
         // Save isRecurring before closing modal (which sets editingEvent = null)
         const wasRecurring = editingEvent.isRecurring || false;
 
-        const removeResult = await Calendar.remove(deleteObject);
-        console.log('Calendar.remove result: ' + (removeResult ? 'success' : 'returned undefined'));
+        await Calendar.remove(deleteObject);
 
         closeEventModal();
 
         // Force reload affected months
         // For recurring events, reload the entire displayed year since the original
         // event date may be from a different year than what's being displayed
-        console.log('Reloading events...');
-        console.log('wasRecurring = ' + wasRecurring);
         let reloadStartDate = eventStart;
         let reloadEndDate = eventEnd;
         if (wasRecurring) {
           reloadStartDate = new Date(displayYear, 0, 1);
           reloadEndDate = new Date(displayYear, 11, 31);
-          console.log('Recurring event - reloading entire year: ' + reloadStartDate.toISOString() + ' to ' + reloadEndDate.toISOString());
-        } else {
-          console.log('NOT a recurring event - reloading only affected months: ' + reloadStartDate.toISOString() + ' to ' + reloadEndDate.toISOString());
         }
         await forceReloadEventsForMonths(reloadStartDate, reloadEndDate);
-        console.log('Delete complete');
       } catch (error) {
-        console.log('ERROR deleting event: ' + String(error));
-        console.log('Error name: ' + (error && error.name ? error.name : 'none'));
-        console.log('Error message: ' + (error && error.message ? error.message : 'none'));
+        console.error('Failed to delete event:', error);
       }
     }
-    
+
     // ============================================
     // Drag-to-Create Event Functions
     // ============================================
@@ -2882,29 +3017,15 @@ function getCalendarHTML(currentYear) {
 
       const clickedDate = new Date(displayYear, month, dayCell.day);
 
-      // Debug logging for modifier keys
-      console.log('=== MouseDown Event Debug ===');
-      console.log('event.type: ' + event.type);
-      console.log('event.metaKey (Command): ' + event.metaKey);
-      console.log('event.altKey (Option): ' + event.altKey);
-      console.log('event.ctrlKey (Control): ' + event.ctrlKey);
-      console.log('event.shiftKey (Shift): ' + event.shiftKey);
-      console.log('event.button: ' + event.button);
-      console.log('clickedDate: ' + clickedDate.toISOString());
-
       // Handle modifier keys to open notes instead of creating events
       if (event.metaKey) {
-        console.log('→ Action: Command+click → opening in new window');
         openNote(clickedDate, false, true);
         event.preventDefault();
         return;
       } else if (event.altKey) {
-        console.log('→ Action: Option+click → opening in split view');
         openNote(clickedDate, true, false);
         event.preventDefault();
         return;
-      } else {
-        console.log('→ Action: Normal click → starting drag/event creation');
       }
 
       isDragging = true;
@@ -3016,50 +3137,34 @@ function getCalendarHTML(currentYear) {
     
     async function handleEventSegmentClick(event, eventData) {
       event.stopPropagation();
-      
-      console.log('Event segment clicked');
-      console.log('eventData: ' + JSON.stringify(eventData));
-      
+
       try {
         // Fetch the actual CalendarItem from the API
         if (eventData.id) {
-          console.log('Fetching event by ID: ' + eventData.id);
           const calendarItem = await Calendar.eventByID(eventData.id);
-          console.log('Calendar.eventByID returned: ' + JSON.stringify(calendarItem));
-          
+
           if (calendarItem) {
-            console.log('Opening modal with fetched calendarItem');
-            console.log('calendarItem.isRecurring = ' + calendarItem.isRecurring);
-            console.log('calendarItem properties: ' + Object.keys(calendarItem).join(', '));
             openEventModal(new Date(calendarItem.date || calendarItem.startDate),
                           new Date(calendarItem.endDate),
                           calendarItem);
             return;
-          } else {
-            console.log('calendarItem was null/undefined');
           }
-        } else {
-          console.log('No event ID in eventData');
         }
       } catch (error) {
-        console.log('Error fetching event: ' + String(error));
+        // Fall through to fallback
       }
-      
+
       // Fallback: use the segment data if we couldn't fetch the actual event
-      console.log('Using fallback - opening modal with segment data');
-      console.log('eventData.isRecurring = ' + eventData.isRecurring);
-      console.log('eventData properties: ' + Object.keys(eventData).join(', '));
       openEventModal(new Date(eventData.startDate), new Date(eventData.endDate), eventData);
     }
-    
+
     async function loadWritableCalendars() {
       try {
         const allCalendars = await Calendar.availableCalendars({ writeOnly: true, enabledOnly: true });
         // Filter to only writable calendars (extra safety)
         writableCalendars = (allCalendars || []).filter(cal => cal.isWritable !== false);
-        console.log('Loaded ' + writableCalendars.length + ' writable calendars');
       } catch (error) {
-        console.log('Error loading writable calendars: ' + String(error));
+        console.error('Failed to load writable calendars:', error);
         writableCalendars = [];
       }
     }
@@ -3154,9 +3259,115 @@ function getCalendarHTML(currentYear) {
     }
     
     // ============================================
+    // Event Filter
+    // ============================================
+    let filterText = '';
+
+    function initEventFilter() {
+      const input = document.getElementById('eventFilterInput');
+      const clearBtn = document.getElementById('eventFilterClear');
+      const toggle = document.getElementById('eventFilterToggle');
+      const container = document.getElementById('eventFilterContainer');
+
+      if (!input || !container) return;
+
+      function expandFilter() {
+        container.classList.add('expanded');
+        input.focus();
+      }
+
+      function collapseFilter() {
+        if (!input.value.trim()) {
+          container.classList.remove('expanded');
+        }
+      }
+
+      // Toggle button expands filter
+      if (toggle) {
+        toggle.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (container.classList.contains('expanded')) {
+            input.focus();
+          } else {
+            expandFilter();
+          }
+        });
+      }
+
+      // Cmd+F / Ctrl+F to expand and focus
+      document.addEventListener('keydown', function(e) {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+          e.preventDefault();
+          expandFilter();
+        }
+      });
+
+      input.addEventListener('input', function() {
+        filterText = this.value.trim().toLowerCase();
+
+        // Toggle has-value class for clear button visibility
+        container.classList.toggle('has-value', this.value.length > 0);
+
+        applyEventFilter();
+      });
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          this.value = '';
+          filterText = '';
+          container.classList.remove('has-value');
+          container.classList.remove('expanded');
+          applyEventFilter();
+          this.blur();
+        }
+      });
+
+      // Collapse on blur if empty and focus left the container
+      input.addEventListener('blur', function() {
+        setTimeout(function() {
+          // Don't collapse if focus is still within the event filter
+          // (e.g., user clicked the toggle button or clear button)
+          if (document.activeElement && document.activeElement.closest('.event-filter')) {
+            return;
+          }
+          collapseFilter();
+        }, 150);
+      });
+
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+          input.value = '';
+          filterText = '';
+          container.classList.remove('has-value');
+          applyEventFilter();
+          input.focus();
+        });
+      }
+    }
+
+    function applyEventFilter() {
+      // Find all event elements in the linear calendar (uses event-segment class)
+      const eventElements = document.querySelectorAll('.event-segment:not(.dummy-event)');
+
+      eventElements.forEach(function(el) {
+        const eventTitle = (el.title || el.textContent || '').toLowerCase();
+        const matches = !filterText || eventTitle.includes(filterText);
+
+        if (matches) {
+          el.style.visibility = '';
+          el.style.opacity = '';
+        } else {
+          // Use visibility hidden to maintain layout
+          el.style.visibility = 'hidden';
+          el.style.opacity = '0';
+        }
+      });
+    }
+
+    // ============================================
     // Initialization
     // ============================================
-    
+
     async function initialize() {
       const cellWidthSlider = document.getElementById('cellWidthSlider');
       const cellWidthValue = document.getElementById('cellWidthValue');
@@ -3216,7 +3427,10 @@ function getCalendarHTML(currentYear) {
       // Update layout button states
       updateLayoutButtons();
       updateFirstDayButtons();
-      
+
+      // Event filter initialization
+      initEventFilter();
+
       // Event listeners for layout buttons
       document.getElementById('layoutDateGrid').addEventListener('click', () => {
         layoutMode = 'dateGrid';
@@ -3382,7 +3596,6 @@ function init() {
     DataStore.installOrUpdatePluginsByID(['emetzger.LinearCalendar'], false, false, false);
   } catch (error) {
     // Silently ignore update check failures
-    console.log('LinearCalendar: Update check failed:', error);
   }
 }
 
@@ -3391,5 +3604,5 @@ function init() {
  * Can be used for settings migrations or user notifications
  */
 function onUpdateOrInstall() {
-  console.log('LinearCalendar: Plugin updated to latest version');
+  // Plugin updated successfully
 }

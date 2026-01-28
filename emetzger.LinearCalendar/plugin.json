@@ -6,7 +6,7 @@
   "plugin.name": "📅 Linear Calendar",
   "plugin.description": "Display a linear year view calendar with calendar events. Navigate between years, adjust cell width, filter calendars, and obfuscate event text for privacy.",
   "plugin.author": "emetzger",
-  "plugin.version": "1.0.4",
+  "plugin.version": "1.0.5",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [],
   "plugin.script": "script.js",

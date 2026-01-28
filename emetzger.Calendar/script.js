@@ -15,7 +15,7 @@ async function showCalendar() {
       iconColor: "red-500",
     })
   } catch (error) {
-    console.log("Error showing calendar:", error)
+    // Error handled silently
   }
 }
 
@@ -212,7 +212,7 @@ function getCalendarHTML() {
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
-    /* Quick Add Input */
+    /* Quick Add - Collapsible */
     .quick-add-container {
       position: relative;
       display: flex;
@@ -220,12 +220,49 @@ function getCalendarHTML() {
       gap: 4px;
     }
 
+    .quick-add-toggle {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+      order: 1;
+    }
+
+    .quick-add-toggle:hover {
+      background: var(--accent-color);
+      border-color: var(--accent-color);
+      color: white;
+    }
+
+    .quick-add-expanded {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow: hidden;
+      max-width: 0;
+      opacity: 0;
+      transition: max-width 0.25s ease, opacity 0.2s ease;
+    }
+
+    .quick-add-container.expanded .quick-add-expanded {
+      max-width: 300px;
+      opacity: 1;
+    }
+
     .quick-add-input {
       padding: 6px 12px;
       border: 1px solid var(--border-color);
       border-radius: 6px;
       font-size: 13px;
-      width: 200px;
+      width: 160px;
       background: var(--bg-primary);
       color: var(--text-primary);
       outline: none;
@@ -242,33 +279,13 @@ function getCalendarHTML() {
       font-size: 12px;
     }
 
-    .quick-add-btn {
-      width: 28px;
-      height: 28px;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      background: var(--bg-primary);
-      color: var(--text-secondary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s;
-    }
-
-    .quick-add-btn:hover {
-      background: var(--accent-color);
-      border-color: var(--accent-color);
-      color: white;
-    }
-
-    /* Quick Add Calendar Selector */
+    /* Quick Add Calendar Selector - Compact */
     .quick-add-calendar-btn {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
       height: 28px;
-      padding: 0 8px;
+      padding: 0 6px;
       border: 1px solid var(--border-color);
       border-radius: 6px;
       background: var(--bg-primary);
@@ -277,7 +294,6 @@ function getCalendarHTML() {
       font-size: 12px;
       color: var(--text-primary);
       white-space: nowrap;
-      max-width: 140px;
       box-sizing: border-box;
     }
 
@@ -287,16 +303,14 @@ function getCalendarHTML() {
     }
 
     .quick-add-cal-dot {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       flex-shrink: 0;
     }
 
     .quick-add-cal-name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
+      display: none;
     }
 
     .quick-add-cal-arrow {
@@ -370,6 +384,103 @@ function getCalendarHTML() {
     }
 
     /* Calendar Filter Dropdown */
+    /* Event Filter - Collapsible */
+    .event-filter {
+      display: flex;
+      align-items: center;
+      position: relative;
+      background: transparent;
+      border-radius: 6px;
+      height: 28px;
+      overflow: hidden;
+    }
+
+    .event-filter-toggle {
+      width: 28px;
+      height: 28px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+
+    .event-filter-toggle:hover {
+      background: var(--hover-bg);
+    }
+
+    .event-filter-icon {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .event-filter.expanded .event-filter-icon,
+    .event-filter.has-value .event-filter-icon {
+      color: var(--accent-color);
+    }
+
+    .event-filter-input {
+      border: none;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 13px;
+      width: 0;
+      max-width: 0;
+      outline: none;
+      padding: 0;
+      opacity: 0;
+      border-radius: 6px;
+      height: 28px;
+      transition: width 0.2s ease, max-width 0.2s ease, opacity 0.15s ease, padding 0.2s ease;
+    }
+
+    .event-filter.expanded .event-filter-input {
+      width: 140px;
+      max-width: 140px;
+      padding: 0 8px;
+      opacity: 1;
+      margin-left: 4px;
+    }
+
+    .event-filter-input::placeholder {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .event-filter-clear {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 0;
+      height: 18px;
+      border: none;
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 10px;
+      flex-shrink: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: width 0.15s ease, opacity 0.15s ease, margin 0.15s ease;
+    }
+
+    .event-filter-clear:hover {
+      background: var(--hover-bg);
+      color: var(--text-primary);
+    }
+
+    .event-filter.expanded.has-value .event-filter-clear {
+      width: 18px;
+      opacity: 1;
+      margin-left: 4px;
+    }
+
+    /* Calendar Filter */
     .calendar-filter {
       display: flex;
       align-items: center;
@@ -378,32 +489,50 @@ function getCalendarHTML() {
     }
 
     .calendar-filter-button {
-      padding: 4px 12px;
+      width: 28px;
+      height: 28px;
+      padding: 0;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       background: transparent;
-      font-size: 14px;
-      font-weight: 400;
-      color: var(--text-primary);
+      color: var(--text-secondary);
       cursor: pointer;
       outline: none;
-      text-align: left;
       position: relative;
       transition: background-color 0.15s;
       display: flex;
       align-items: center;
-      gap: 6px;
-      white-space: nowrap;
+      justify-content: center;
     }
 
     .calendar-filter-button:hover {
       background: var(--hover-bg);
+      color: var(--text-primary);
     }
 
     .calendar-filter-icon {
       font-size: 14px;
-      display: inline-block;
-      flex-shrink: 0;
+    }
+
+    .calendar-filter-badge {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      background: var(--accent-color);
+      color: white;
+      font-size: 9px;
+      font-weight: 600;
+      min-width: 14px;
+      height: 14px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 3px;
+    }
+
+    .calendar-filter-badge.all-selected {
+      display: none;
     }
 
     .calendar-filter-dropdown {
@@ -477,6 +606,26 @@ function getCalendarHTML() {
       font-size: 13px;
       color: var(--text-primary);
       user-select: none;
+    }
+
+    .calendar-filter-item.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .calendar-filter-item.disabled .calendar-filter-checkbox {
+      cursor: not-allowed;
+    }
+
+    .calendar-filter-item.disabled .calendar-filter-item-label {
+      font-style: italic;
+    }
+
+    .calendar-filter-disabled-note {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-left: auto;
+      font-style: normal;
     }
 
     /* ============================================
@@ -1252,6 +1401,55 @@ function getCalendarHTML() {
        Responsive Styles
        ============================================ */
 
+    /* Medium screens - start shrinking toolbar items */
+    @media (max-width: 1100px) {
+      .quick-add-input {
+        width: 140px;
+      }
+
+      .event-filter.expanded .event-filter-input {
+        width: 120px;
+        max-width: 120px;
+      }
+    }
+
+    /* Smaller medium screens - wrap to second row */
+    @media (max-width: 950px) {
+      .header {
+        flex-wrap: wrap;
+        height: auto;
+        gap: 8px;
+      }
+
+      .nav-title {
+        flex: 1;
+      }
+
+      .header-right {
+        width: 100%;
+        order: 3;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .quick-add-container.expanded .quick-add-expanded {
+        max-width: 250px;
+      }
+
+      .quick-add-input {
+        width: 140px;
+      }
+
+      .event-filter {
+        flex: 0 0 auto;
+      }
+
+      .event-filter.expanded .event-filter-input {
+        width: 100px;
+        max-width: 100px;
+      }
+    }
+
     /* Tablet and below */
     @media (max-width: 768px) {
       :root {
@@ -1277,14 +1475,12 @@ function getCalendarHTML() {
         order: 3;
       }
 
-      .quick-add-container {
-        flex: 1;
-        max-width: none;
+      .quick-add-container.expanded .quick-add-expanded {
+        max-width: 220px;
       }
 
       .quick-add-input {
-        width: 100%;
-        min-width: 0;
+        width: 120px;
       }
 
       .view-btn {
@@ -1292,12 +1488,9 @@ function getCalendarHTML() {
         font-size: 12px;
       }
 
-      .calendar-filter-button {
-        padding: 4px 8px;
-      }
-
-      #calendarFilterText {
-        display: none;
+      .event-filter.expanded .event-filter-input {
+        width: 100px;
+        max-width: 100px;
       }
 
       /* Year view adjustments */
@@ -1434,15 +1627,16 @@ function getCalendarHTML() {
         font-size: 14px;
       }
 
-      .quick-add-btn {
+      .quick-add-toggle {
         width: 34px;
         height: 34px;
         font-size: 14px;
       }
 
-      .calendar-filter-button {
-        padding: 8px 12px;
-        font-size: 14px;
+      .calendar-filter-button,
+      .event-filter-toggle {
+        width: 34px;
+        height: 34px;
       }
 
       /* Month view event sizing for iPad */
@@ -1485,7 +1679,7 @@ function getCalendarHTML() {
         gap: 6px;
       }
 
-      /* Move quick-add to bottom of screen */
+      /* Move quick-add to bottom of screen - always expanded on mobile */
       .quick-add-container {
         position: fixed;
         bottom: 0;
@@ -1500,6 +1694,19 @@ function getCalendarHTML() {
         gap: 6px;
       }
 
+      /* Always show expanded state on mobile */
+      .quick-add-expanded {
+        max-width: none !important;
+        opacity: 1 !important;
+        flex: 1;
+      }
+
+      .quick-add-toggle {
+        order: 0;
+        width: 40px;
+        height: 40px;
+      }
+
       .calendar-container {
         padding-bottom: 60px !important;
       }
@@ -1508,6 +1715,7 @@ function getCalendarHTML() {
         font-size: 16px;
         padding: 10px 12px;
         flex: 1;
+        width: auto !important;
       }
 
       .quick-add-input::placeholder {
@@ -1516,17 +1724,8 @@ function getCalendarHTML() {
 
       .quick-add-calendar-btn {
         padding: 6px 10px;
-        max-width: 120px;
+        max-width: 80px;
         height: 40px;
-      }
-
-      .quick-add-btn {
-        width: 40px;
-        height: 40px;
-      }
-
-      .quick-add-cal-name {
-        font-size: 12px;
       }
 
       .quick-add-cal-arrow {
@@ -1549,8 +1748,17 @@ function getCalendarHTML() {
         font-size: 11px;
       }
 
-      .calendar-filter {
+      .event-filter {
         order: 2;
+      }
+
+      .event-filter.expanded .event-filter-input {
+        width: 100px;
+        max-width: 100px;
+      }
+
+      .calendar-filter {
+        order: 3;
       }
 
       /* Year view - single column on small phones */
@@ -1731,8 +1939,9 @@ function getCalendarHTML() {
 
     /* Touch device optimizations */
     @media (hover: none) and (pointer: coarse) {
-      .nav-btn, .today-circle-btn, .view-btn, .quick-add-btn, .quick-add-calendar-btn, .calendar-filter-button {
+      .nav-btn, .today-circle-btn, .view-btn, .quick-add-toggle, .quick-add-calendar-btn, .calendar-filter-button, .event-filter-toggle {
         min-height: 44px;
+        min-width: 44px;
       }
 
       .nav-btn, .today-circle-btn {
@@ -1761,15 +1970,17 @@ function getCalendarHTML() {
     <div class="nav-title" id="navTitle">January 2026</div>
 
     <div class="header-right">
-      <div class="quick-add-container">
-        <input type="text" id="quickAddInput" class="quick-add-input"
-               placeholder="meeting tomorrow 3pm">
-        <button class="quick-add-calendar-btn" id="quickAddCalendarBtn" title="Select calendar">
-          <span class="quick-add-cal-dot" id="quickAddCalDot"></span>
-          <span class="quick-add-cal-name" id="quickAddCalName">Calendar</span>
-          <i class="fa-solid fa-chevron-down quick-add-cal-arrow"></i>
-        </button>
-        <button id="quickAddBtn" class="quick-add-btn" title="Add event (Enter)">
+      <div class="quick-add-container" id="quickAddContainer">
+        <div class="quick-add-expanded">
+          <input type="text" id="quickAddInput" class="quick-add-input"
+                 placeholder="meeting tomorrow 3pm">
+          <button class="quick-add-calendar-btn" id="quickAddCalendarBtn" title="Select calendar">
+            <span class="quick-add-cal-dot" id="quickAddCalDot"></span>
+            <span class="quick-add-cal-name" id="quickAddCalName">Calendar</span>
+            <i class="fa-solid fa-chevron-down quick-add-cal-arrow"></i>
+          </button>
+        </div>
+        <button id="quickAddToggle" class="quick-add-toggle" title="Add event">
           <i class="fa-solid fa-plus"></i>
         </button>
         <div class="quick-add-calendar-dropdown" id="quickAddCalendarDropdown"></div>
@@ -1781,10 +1992,20 @@ function getCalendarHTML() {
         <button class="view-btn" data-view="day">Day</button>
       </div>
 
+      <div class="event-filter" id="eventFilterContainer">
+        <button class="event-filter-toggle" id="eventFilterToggle" title="Filter events (⌘F)">
+          <i class="fa-solid fa-magnifying-glass event-filter-icon"></i>
+        </button>
+        <input type="text" id="eventFilterInput" class="event-filter-input" placeholder="Filter events...">
+        <button class="event-filter-clear" id="eventFilterClear" title="Clear filter">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
       <div class="calendar-filter">
-        <button class="calendar-filter-button" id="filterBtn">
+        <button class="calendar-filter-button" id="filterBtn" title="Filter calendars">
           <i class="far fa-calendar calendar-filter-icon"></i>
-          <span id="calendarFilterText">Loading...</span>
+          <span class="calendar-filter-badge" id="calendarFilterBadge"></span>
         </button>
         <div class="calendar-filter-dropdown" id="filterDropdown">
           <div class="calendar-filter-action-item" id="toggleAllCalendars">Select All</div>
@@ -1864,11 +2085,25 @@ function getCalendarHTML() {
       selectedCalendars: new Set(),
       writableCalendars: [],
       editingEvent: null,
-      isLoading: false,
+      filterText: '',
+      use12HourFormat: false,
       settings: {
         firstDayOfWeek: parseInt(localStorage.getItem('calendar_firstDayOfWeek') || '0')
       }
     };
+
+    // Detect user's time format preference (12h vs 24h) using system locale
+    function detectTimeFormat() {
+      try {
+        const testDate = new Date(2000, 0, 1, 13, 0);  // 1 PM
+        const formatter = new Intl.DateTimeFormat(undefined, { hour: 'numeric' });
+        const parts = formatter.formatToParts(testDate);
+        return parts.some(function(part) { return part.type === 'dayPeriod'; });
+      } catch (e) {
+        console.error('Failed to detect time format:', e);
+        return false;  // Default to 24-hour format
+      }
+    }
 
     const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -1890,9 +2125,16 @@ function getCalendarHTML() {
     }
 
     function formatTime(date) {
-      const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
-      return hours + ':' + minutes;
+      if (state.use12HourFormat) {
+        let hours = date.getHours();
+        const period = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;  // Convert 0 to 12 for midnight
+        return hours + ':' + minutes + ' ' + period;
+      } else {
+        const hours = String(date.getHours()).padStart(2, '0');
+        return hours + ':' + minutes;
+      }
     }
 
     function parseTime(timeStr, baseDate) {
@@ -1943,27 +2185,29 @@ function getCalendarHTML() {
       return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
 
-    function colorWithOpacity(hex, alpha) {
-      if (!hex) return 'rgba(90, 159, 212, 0.35)';
+    function parseHexColor(hex) {
+      if (!hex) return null;
       hex = hex.replace('#', '');
       if (hex.length === 3) {
         hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
       }
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-      return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
+      return {
+        r: parseInt(hex.substring(0, 2), 16),
+        g: parseInt(hex.substring(2, 4), 16),
+        b: parseInt(hex.substring(4, 6), 16)
+      };
+    }
+
+    function colorWithOpacity(hex, alpha) {
+      const rgb = parseHexColor(hex);
+      if (!rgb) return 'rgba(90, 159, 212, 0.35)';
+      return 'rgba(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', ' + alpha + ')';
     }
 
     function getTextColorForBackground(hex, alpha) {
-      if (!hex) return isDarkMode() ? '#f5f5f7' : '#1d1d1f';
-      hex = hex.replace('#', '');
-      if (hex.length === 3) {
-        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-      }
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
+      const rgb = parseHexColor(hex);
+      if (!rgb) return isDarkMode() ? '#f5f5f7' : '#1d1d1f';
+      const r = rgb.r, g = rgb.g, b = rgb.b;
       // Blend with background
       const bgR = isDarkMode() ? 28 : 255;
       const bgG = isDarkMode() ? 28 : 255;
@@ -2039,7 +2283,7 @@ function getCalendarHTML() {
 
         populateCalendarFilter();
       } catch (error) {
-        console.log('Error loading calendars:', error);
+        console.error('Failed to load calendars:', error);
         state.allCalendars = [];
         state.writableCalendars = [];
       }
@@ -2050,7 +2294,7 @@ function getCalendarHTML() {
         const events = await Calendar.eventsBetween(startDate, endDate, "") || [];
         state.events = events.filter(function(e) { return state.selectedCalendars.has(e.calendar); });
       } catch (error) {
-        console.log('Error loading events:', error);
+        console.error('Failed to load events:', error);
         state.events = [];
       }
     }
@@ -2111,11 +2355,10 @@ function getCalendarHTML() {
 
       try {
         const result = await Calendar.add(eventObject);
-        console.log('Event created:', result);
         await refreshEvents();
         return result;
       } catch (error) {
-        console.log('Error creating event:', error);
+        console.error('Failed to create event:', error);
         return null;
       }
     }
@@ -2141,11 +2384,10 @@ function getCalendarHTML() {
         };
 
         await Calendar.update(updateObject);
-        console.log('Event updated');
         await refreshEvents();
         return true;
       } catch (error) {
-        console.log('Error updating event:', error);
+        console.error('Failed to update event:', error);
         return false;
       }
     }
@@ -2168,11 +2410,10 @@ function getCalendarHTML() {
         };
 
         await Calendar.remove(deleteObject);
-        console.log('Event deleted');
         await refreshEvents();
         return true;
       } catch (error) {
-        console.log('Error deleting event:', error);
+        console.error('Failed to delete event:', error);
         return false;
       }
     }
@@ -2283,13 +2524,15 @@ function getCalendarHTML() {
 
         bySource[source].forEach(function(cal) {
           const item = document.createElement('div');
-          item.className = 'calendar-filter-item';
+          const isDisabled = cal.isEnabled === false;
+          item.className = 'calendar-filter-item' + (isDisabled ? ' disabled' : '');
 
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
           checkbox.className = 'calendar-filter-checkbox';
           checkbox.dataset.calendar = cal.title;
-          checkbox.checked = state.selectedCalendars.has(cal.title);
+          checkbox.checked = state.selectedCalendars.has(cal.title) && !isDisabled;
+          checkbox.disabled = isDisabled;
 
           const colorDot = document.createElement('div');
           colorDot.className = 'calendar-filter-color-dot';
@@ -2303,17 +2546,28 @@ function getCalendarHTML() {
           item.appendChild(colorDot);
           item.appendChild(label);
 
-          checkbox.addEventListener('change', function(e) {
-            if (e.target.checked) {
-              state.selectedCalendars.add(cal.title);
-            } else {
-              state.selectedCalendars.delete(cal.title);
-            }
-            saveCalendarSelection();
-            updateToggleAllText();
-            updateCalendarFilterText();
-            refreshEvents();
-          });
+          // Add "disabled" note for calendars disabled in NotePlan settings
+          if (isDisabled) {
+            const note = document.createElement('span');
+            note.className = 'calendar-filter-disabled-note';
+            note.textContent = 'off';
+            note.title = 'Disabled in NotePlan Settings';
+            item.appendChild(note);
+          }
+
+          if (!isDisabled) {
+            checkbox.addEventListener('change', function(e) {
+              if (e.target.checked) {
+                state.selectedCalendars.add(cal.title);
+              } else {
+                state.selectedCalendars.delete(cal.title);
+              }
+              saveCalendarSelection();
+              updateToggleAllText();
+              updateCalendarFilterText();
+              refreshEvents();
+            });
+          }
 
           dropdown.appendChild(item);
         });
@@ -2325,36 +2579,43 @@ function getCalendarHTML() {
 
     function updateToggleAllText() {
       const toggleBtn = document.getElementById('toggleAllCalendars');
-      const allSelected = state.allCalendars.every(function(c) { return state.selectedCalendars.has(c.title); });
+      const enabledCalendars = state.allCalendars.filter(function(c) { return c.isEnabled !== false; });
+      const allSelected = enabledCalendars.length > 0 && enabledCalendars.every(function(c) { return state.selectedCalendars.has(c.title); });
       toggleBtn.textContent = allSelected ? 'Unselect All' : 'Select All';
     }
 
     function updateCalendarFilterText() {
-      const selectedCount = state.selectedCalendars.size;
-      const totalCount = state.allCalendars.length;
-      const calendarFilterText = document.getElementById('calendarFilterText');
+      const enabledCalendars = state.allCalendars.filter(function(c) { return c.isEnabled !== false; });
+      const selectedCount = enabledCalendars.filter(function(c) { return state.selectedCalendars.has(c.title); }).length;
+      const totalCount = enabledCalendars.length;
+      const badge = document.getElementById('calendarFilterBadge');
+      const filterBtn = document.getElementById('filterBtn');
 
-      if (!calendarFilterText) return;
+      if (!badge) return;
 
-      if (selectedCount === 0) {
-        calendarFilterText.textContent = 'No calendars';
-      } else if (selectedCount === totalCount) {
-        calendarFilterText.textContent = 'All calendars';
+      // Show badge with selected count, hide if all selected
+      if (selectedCount === totalCount && selectedCount > 0) {
+        badge.classList.add('all-selected');
+        badge.textContent = '';
+        if (filterBtn) filterBtn.title = 'All ' + totalCount + ' calendars selected';
       } else {
-        calendarFilterText.textContent = selectedCount + ' of ' + totalCount + ' calendars';
+        badge.classList.remove('all-selected');
+        badge.textContent = selectedCount;
+        if (filterBtn) filterBtn.title = selectedCount + ' of ' + totalCount + ' calendars';
       }
     }
 
     function toggleAllCalendars() {
-      const allSelected = state.allCalendars.every(function(c) { return state.selectedCalendars.has(c.title); });
+      const enabledCalendars = state.allCalendars.filter(function(c) { return c.isEnabled !== false; });
+      const allSelected = enabledCalendars.length > 0 && enabledCalendars.every(function(c) { return state.selectedCalendars.has(c.title); });
 
       if (allSelected) {
         state.selectedCalendars.clear();
       } else {
-        state.allCalendars.forEach(function(c) { state.selectedCalendars.add(c.title); });
+        enabledCalendars.forEach(function(c) { state.selectedCalendars.add(c.title); });
       }
 
-      document.querySelectorAll('.calendar-filter-checkbox').forEach(function(cb) {
+      document.querySelectorAll('.calendar-filter-checkbox:not(:disabled)').forEach(function(cb) {
         cb.checked = state.selectedCalendars.has(cb.dataset.calendar);
       });
 
@@ -3114,7 +3375,7 @@ function getCalendarHTML() {
               openEventModal({ event: event });
             }
           } catch (error) {
-            console.log('Error fetching event:', error);
+            // Error handled silently
           }
         });
       });
@@ -3332,7 +3593,7 @@ function getCalendarHTML() {
               openEventModal({ event: event });
             }
           } catch (error) {
-            console.log('Error fetching event:', error);
+            // Error handled silently
           }
         });
       });
@@ -3399,6 +3660,139 @@ function getCalendarHTML() {
     }
 
     // ============================================
+    // Event Filter
+    // ============================================
+    function initEventFilter() {
+      const input = document.getElementById('eventFilterInput');
+      const clearBtn = document.getElementById('eventFilterClear');
+      const toggle = document.getElementById('eventFilterToggle');
+      const container = document.getElementById('eventFilterContainer');
+
+      if (!input || !container) return;
+
+      function expandFilter() {
+        container.classList.add('expanded');
+        input.focus();
+      }
+
+      function collapseFilter() {
+        if (!input.value.trim()) {
+          container.classList.remove('expanded');
+        }
+      }
+
+      // Toggle button expands filter
+      if (toggle) {
+        toggle.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (container.classList.contains('expanded')) {
+            input.focus();
+          } else {
+            expandFilter();
+          }
+        });
+      }
+
+      // Cmd+F / Ctrl+F to expand and focus
+      document.addEventListener('keydown', function(e) {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+          e.preventDefault();
+          expandFilter();
+        }
+      });
+
+      input.addEventListener('input', function() {
+        state.filterText = this.value.trim().toLowerCase();
+
+        // Toggle has-value class for clear button visibility
+        container.classList.toggle('has-value', this.value.length > 0);
+
+        applyEventFilter();
+      });
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          this.value = '';
+          state.filterText = '';
+          container.classList.remove('has-value');
+          container.classList.remove('expanded');
+          applyEventFilter();
+          this.blur();
+        }
+      });
+
+      // Collapse on blur if empty and focus left the container
+      input.addEventListener('blur', function() {
+        setTimeout(function() {
+          // Don't collapse if focus is still within the event filter
+          // (e.g., user clicked the toggle button or clear button)
+          if (document.activeElement && document.activeElement.closest('.event-filter')) {
+            return;
+          }
+          collapseFilter();
+        }, 150);
+      });
+
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+          input.value = '';
+          state.filterText = '';
+          container.classList.remove('has-value');
+          applyEventFilter();
+          input.focus();
+        });
+      }
+    }
+
+    function applyEventFilter() {
+      const filterText = state.filterText;
+
+      // Find all event elements
+      const eventElements = document.querySelectorAll('.event-slot:not(.empty), .event-chip, .timed-event');
+
+      eventElements.forEach(function(el) {
+        const eventTitle = (el.textContent || '').toLowerCase();
+        const matches = !filterText || eventTitle.includes(filterText);
+
+        if (matches) {
+          el.style.display = '';
+          el.style.visibility = '';
+        } else {
+          // Use visibility hidden to maintain layout for multi-day events
+          if (el.classList.contains('event-slot')) {
+            el.style.visibility = 'hidden';
+          } else {
+            el.style.display = 'none';
+          }
+        }
+      });
+
+      // Update more indicators after filtering
+      if (state.currentView === 'month') {
+        updateMoreIndicatorsAfterFilter();
+      }
+    }
+
+    function updateMoreIndicatorsAfterFilter() {
+      document.querySelectorAll('.more-events').forEach(function(indicator) {
+        const dayColumn = indicator.closest('.day-column');
+        if (!dayColumn) return;
+
+        const visibleChips = dayColumn.querySelectorAll('.event-chip:not([style*="display: none"])');
+        const hiddenCount = dayColumn.querySelectorAll('.event-chip[style*="display: none"]').length;
+
+        // Update or hide the more indicator based on visible events
+        const totalHidden = parseInt(indicator.dataset.originalCount || '0') - hiddenCount;
+        if (totalHidden > 0 && !state.filterText) {
+          indicator.textContent = '+' + totalHidden + ' more';
+          indicator.style.display = '';
+        } else {
+          indicator.style.display = 'none';
+        }
+      });
+    }
+
+    // ============================================
     // Quick Add (Natural Language Event Input)
     // ============================================
     let pendingQuickAddEvent = null;
@@ -3406,29 +3800,57 @@ function getCalendarHTML() {
     let selectedQuickAddCalendar = null;
 
     function initQuickAdd() {
-      console.log('QuickAdd: initQuickAdd called');
       const input = document.getElementById('quickAddInput');
-      const btn = document.getElementById('quickAddBtn');
+      const toggle = document.getElementById('quickAddToggle');
+      const container = document.getElementById('quickAddContainer');
       const calBtn = document.getElementById('quickAddCalendarBtn');
-      const calDropdown = document.getElementById('quickAddCalendarDropdown');
 
-      if (!input) {
-        console.log('QuickAdd: No input found, returning');
-        return;
-      }
+      if (!input || !container) return;
 
       // Initialize calendar selector
       initQuickAddCalendarSelector();
+
+      function expandQuickAdd() {
+        container.classList.add('expanded');
+        input.focus();
+      }
+
+      function collapseQuickAdd() {
+        if (!input.value.trim()) {
+          container.classList.remove('expanded');
+          hideQuickAddCalendarDropdown();
+        }
+      }
 
       async function submitQuickAdd() {
         if (input.value.trim() && !isQuickAddProcessing) {
           isQuickAddProcessing = true;
           try {
             await handleQuickAdd(input.value.trim());
+            // Only collapse if event was created (input is cleared by createQuickAddEvent)
+            if (!input.value.trim()) {
+              container.classList.remove('expanded');
+            }
           } finally {
             isQuickAddProcessing = false;
           }
         }
+      }
+
+      // Toggle button: expand if collapsed, submit if expanded with value
+      if (toggle) {
+        toggle.addEventListener('click', async function(e) {
+          e.stopPropagation();
+          if (container.classList.contains('expanded')) {
+            if (input.value.trim()) {
+              await submitQuickAdd();
+            } else {
+              input.focus();
+            }
+          } else {
+            expandQuickAdd();
+          }
+        });
       }
 
       input.addEventListener('keydown', async function(e) {
@@ -3438,16 +3860,22 @@ function getCalendarHTML() {
         } else if (e.key === 'Escape') {
           this.value = '';
           hideQuickAddCalendarDropdown();
+          container.classList.remove('expanded');
           this.blur();
         }
       });
 
-      if (btn) {
-        btn.addEventListener('click', async function(e) {
-          e.stopPropagation();
-          await submitQuickAdd();
-        });
-      }
+      // Collapse on blur if empty and focus left the container
+      input.addEventListener('blur', function() {
+        setTimeout(function() {
+          // Don't collapse if focus is still within the quick-add container
+          // (e.g., user clicked the toggle button or calendar selector)
+          if (document.activeElement && document.activeElement.closest('.quick-add-container')) {
+            return;
+          }
+          collapseQuickAdd();
+        }, 200);
+      });
 
       // Calendar selector button
       if (calBtn) {
@@ -3461,6 +3889,7 @@ function getCalendarHTML() {
       document.addEventListener('click', function(e) {
         if (!e.target.closest('.quick-add-container')) {
           hideQuickAddCalendarDropdown();
+          collapseQuickAdd();
         }
       });
     }
@@ -3580,19 +4009,14 @@ function getCalendarHTML() {
     }
 
     async function handleQuickAdd(inputText) {
-      console.log('QuickAdd: handleQuickAdd called with [' + inputText + ']');
-
       // Try to use NotePlan's Calendar.parseDateText API
-      console.log('QuickAdd: Checking Calendar.parseDateText availability');
       if (typeof Calendar === 'undefined' || typeof Calendar.parseDateText !== 'function') {
-        console.log('QuickAdd: Calendar.parseDateText not available');
         // Fallback to simple parsing
         var parseResult = simpleParseDate(inputText);
         if (!parseResult) {
           showQuickAddError('Could not parse date. Try: "meeting tomorrow at 3pm"');
           return;
         }
-        console.log('QuickAdd: Simple parse result - date: ' + parseResult.date + ', title: ' + parseResult.title);
 
         pendingQuickAddEvent = {
           title: parseResult.title,
@@ -3602,10 +4026,8 @@ function getCalendarHTML() {
         };
       } else {
         // Use NotePlan's native parser
-        console.log('QuickAdd: Using Calendar.parseDateText');
         try {
           var results = await Calendar.parseDateText(inputText);
-          console.log('QuickAdd: parseDateText result = ' + JSON.stringify(results));
 
           // API returns an array of parsed date results
           if (!results || !Array.isArray(results) || results.length === 0 || !results[0].start) {
@@ -3634,8 +4056,6 @@ function getCalendarHTML() {
             endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
           }
 
-          console.log('QuickAdd: Parsed - title: ' + title + ', start: ' + startDate + ', end: ' + endDate);
-
           pendingQuickAddEvent = {
             title: title,
             date: startDate,
@@ -3643,13 +4063,10 @@ function getCalendarHTML() {
             isAllDay: isAllDay
           };
         } catch (err) {
-          console.log('QuickAdd: parseDateText error: ' + err);
           showQuickAddError('Could not parse date. Try: "meeting tomorrow at 3pm"');
           return;
         }
       }
-
-      console.log('QuickAdd: pendingQuickAddEvent stored');
 
       // Use pre-selected calendar
       if (!selectedQuickAddCalendar) {
@@ -3657,7 +4074,6 @@ function getCalendarHTML() {
         return;
       }
 
-      console.log('QuickAdd: Creating event on ' + selectedQuickAddCalendar.title);
       await createQuickAddEvent(selectedQuickAddCalendar.title);
     }
 
@@ -3760,11 +4176,7 @@ function getCalendarHTML() {
     }
 
     async function createQuickAddEvent(calendarTitle) {
-      console.log('QuickAdd: createQuickAddEvent called for calendar ' + calendarTitle);
-      if (!pendingQuickAddEvent) {
-        console.log('QuickAdd: No pending event, returning');
-        return;
-      }
+      if (!pendingQuickAddEvent) return;
 
       // Save data locally before clearing pending state
       const eventData = {
@@ -3774,7 +4186,6 @@ function getCalendarHTML() {
         isAllDay: pendingQuickAddEvent.isAllDay,
         calendar: calendarTitle
       };
-      console.log('QuickAdd: Event data prepared - title: ' + eventData.title + ', calendar: ' + eventData.calendar);
       const navigateToDate = new Date(pendingQuickAddEvent.date);
 
       // Clear UI state first
@@ -3785,9 +4196,7 @@ function getCalendarHTML() {
       state.viewDate = navigateToDate;
 
       // Use existing createEvent function for consistency
-      console.log('QuickAdd: Calling createEvent...');
       const result = await createEvent(eventData);
-      console.log('QuickAdd: createEvent result = ' + (result ? 'success' : 'failed'));
       if (!result) {
         showQuickAddError('Failed to create event');
       }
@@ -3801,6 +4210,9 @@ function getCalendarHTML() {
     // Initialization
     // ============================================
     async function initialize() {
+      // Detect user's time format preference (12h vs 24h)
+      state.use12HourFormat = detectTimeFormat();
+
       await loadCalendars();
       await refreshEvents();
       initQuickAdd();
@@ -3818,6 +4230,9 @@ function getCalendarHTML() {
       });
 
       document.getElementById('toggleAllCalendars').addEventListener('click', toggleAllCalendars);
+
+      // Event filter handlers
+      initEventFilter();
 
       document.addEventListener('click', function(e) {
         if (!e.target.closest('.calendar-filter')) {
@@ -3911,7 +4326,6 @@ function init() {
     DataStore.installOrUpdatePluginsByID(['emetzger.Calendar'], false, false, false);
   } catch (error) {
     // Silently ignore update check failures
-    console.log('Calendar: Update check failed:', error);
   }
 }
 
@@ -3920,5 +4334,5 @@ function init() {
  * Can be used for settings migrations or user notifications
  */
 function onUpdateOrInstall() {
-  console.log('Calendar: Plugin updated to latest version');
+  // Plugin updated successfully
 }

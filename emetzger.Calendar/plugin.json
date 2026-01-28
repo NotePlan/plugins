@@ -5,7 +5,7 @@
   "plugin.name": "📅 Calendar",
   "plugin.description": "Apple Calendar-style view with Year, Month, Week, and Day views. Navigate between dates, filter calendars, and manage events.",
   "plugin.author": "emetzger",
-  "plugin.version": "1.0.1",
+  "plugin.version": "1.0.2",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [],
   "plugin.script": "script.js",
