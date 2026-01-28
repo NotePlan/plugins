@@ -3670,6 +3670,13 @@ function getCalendarHTML() {
 
       if (!input || !container) return;
 
+      // Track if user is interacting within the container (for blur handling)
+      let isInteractingWithFilter = false;
+
+      container.addEventListener('mousedown', function() {
+        isInteractingWithFilter = true;
+      });
+
       function expandFilter() {
         container.classList.add('expanded');
         input.focus();
@@ -3681,12 +3688,17 @@ function getCalendarHTML() {
         }
       }
 
-      // Toggle button expands filter
+      // Toggle button toggles filter (expand/collapse)
       if (toggle) {
         toggle.addEventListener('click', function(e) {
           e.stopPropagation();
           if (container.classList.contains('expanded')) {
-            input.focus();
+            // Already expanded - collapse it and clear
+            input.value = '';
+            state.filterText = '';
+            container.classList.remove('has-value');
+            container.classList.remove('expanded');
+            applyEventFilter();
           } else {
             expandFilter();
           }
@@ -3721,12 +3733,11 @@ function getCalendarHTML() {
         }
       });
 
-      // Collapse on blur if empty and focus left the container
+      // Collapse on blur if empty and user isn't interacting with filter
       input.addEventListener('blur', function() {
         setTimeout(function() {
-          // Don't collapse if focus is still within the event filter
-          // (e.g., user clicked the toggle button or clear button)
-          if (document.activeElement && document.activeElement.closest('.event-filter')) {
+          if (isInteractingWithFilter) {
+            isInteractingWithFilter = false; // Reset for next interaction
             return;
           }
           collapseFilter();
@@ -3810,6 +3821,13 @@ function getCalendarHTML() {
       // Initialize calendar selector
       initQuickAddCalendarSelector();
 
+      // Track if user is interacting within the container (for blur handling)
+      let isInteractingWithContainer = false;
+
+      container.addEventListener('mousedown', function() {
+        isInteractingWithContainer = true;
+      });
+
       function expandQuickAdd() {
         container.classList.add('expanded');
         input.focus();
@@ -3837,15 +3855,18 @@ function getCalendarHTML() {
         }
       }
 
-      // Toggle button: expand if collapsed, submit if expanded with value
+      // Toggle button: expand if collapsed, collapse if expanded (empty), submit if expanded with value
       if (toggle) {
         toggle.addEventListener('click', async function(e) {
           e.stopPropagation();
           if (container.classList.contains('expanded')) {
             if (input.value.trim()) {
+              // Has content - submit it
               await submitQuickAdd();
             } else {
-              input.focus();
+              // Empty - collapse it
+              container.classList.remove('expanded');
+              hideQuickAddCalendarDropdown();
             }
           } else {
             expandQuickAdd();
@@ -3868,9 +3889,10 @@ function getCalendarHTML() {
       // Collapse on blur if empty and focus left the container
       input.addEventListener('blur', function() {
         setTimeout(function() {
-          // Don't collapse if focus is still within the quick-add container
-          // (e.g., user clicked the toggle button or calendar selector)
-          if (document.activeElement && document.activeElement.closest('.quick-add-container')) {
+          // Don't collapse if user is interacting with the container
+          // (e.g., clicked the toggle button or calendar selector)
+          if (isInteractingWithContainer) {
+            isInteractingWithContainer = false; // Reset for next interaction
             return;
           }
           collapseQuickAdd();
@@ -3895,7 +3917,11 @@ function getCalendarHTML() {
     }
 
     function initQuickAddCalendarSelector() {
-      const calendars = state.writableCalendars;
+      // Filter to only truly writable calendars (same filter as populateQuickAddCalendarDropdown)
+      const calendars = state.writableCalendars.filter(function(cal) {
+        if (cal.isWritable === false) return false;
+        return true;
+      });
       if (calendars.length === 0) return;
 
       // Try to restore saved calendar
@@ -3946,9 +3972,17 @@ function getCalendarHTML() {
 
       dropdown.innerHTML = '';
 
+      // Filter to only truly writable calendars (double-check isWritable property)
+      const writableOnly = state.writableCalendars.filter(function(cal) {
+        // Exclude calendars that are explicitly marked as not writable
+        // or have "Holidays" in the name (subscribed calendars)
+        if (cal.isWritable === false) return false;
+        return true;
+      });
+
       // Group calendars by source
       const bySource = {};
-      state.writableCalendars.forEach(function(cal) {
+      writableOnly.forEach(function(cal) {
         const source = cal.source || 'Other';
         if (!bySource[source]) bySource[source] = [];
         bySource[source].push(cal);

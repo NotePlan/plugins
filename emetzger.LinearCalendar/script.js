@@ -3271,6 +3271,13 @@ function getCalendarHTML(currentYear) {
 
       if (!input || !container) return;
 
+      // Track if user is interacting within the container (for blur handling)
+      let isInteractingWithFilter = false;
+
+      container.addEventListener('mousedown', function() {
+        isInteractingWithFilter = true;
+      });
+
       function expandFilter() {
         container.classList.add('expanded');
         input.focus();
@@ -3282,12 +3289,17 @@ function getCalendarHTML(currentYear) {
         }
       }
 
-      // Toggle button expands filter
+      // Toggle button toggles filter (expand/collapse)
       if (toggle) {
         toggle.addEventListener('click', function(e) {
           e.stopPropagation();
           if (container.classList.contains('expanded')) {
-            input.focus();
+            // Already expanded - collapse it and clear
+            input.value = '';
+            filterText = '';
+            container.classList.remove('has-value');
+            container.classList.remove('expanded');
+            applyEventFilter();
           } else {
             expandFilter();
           }
@@ -3322,12 +3334,11 @@ function getCalendarHTML(currentYear) {
         }
       });
 
-      // Collapse on blur if empty and focus left the container
+      // Collapse on blur if empty and user isn't interacting with filter
       input.addEventListener('blur', function() {
         setTimeout(function() {
-          // Don't collapse if focus is still within the event filter
-          // (e.g., user clicked the toggle button or clear button)
-          if (document.activeElement && document.activeElement.closest('.event-filter')) {
+          if (isInteractingWithFilter) {
+            isInteractingWithFilter = false; // Reset for next interaction
             return;
           }
           collapseFilter();
