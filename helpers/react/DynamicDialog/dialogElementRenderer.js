@@ -71,6 +71,7 @@ type RenderItemProps = {
   preloadedMentions?: Array<string>, // Preloaded mentions for static HTML testing
   preloadedHashtags?: Array<string>, // Preloaded hashtags for static HTML testing
   preloadedEvents?: Array<any>, // Preloaded events for static HTML testing
+  preloadedFrontmatterValues?: { [string]: Array<string> }, // Preloaded frontmatter key values for static HTML testing (keyed by frontmatter key)
 }
 
 /**
@@ -111,11 +112,49 @@ export function renderItem({
   preloadedMentions = [], // Preloaded mentions for static HTML testing
   preloadedHashtags = [], // Preloaded hashtags for static HTML testing
   preloadedEvents = [], // Preloaded events for static HTML testing
+  preloadedFrontmatterValues = {}, // Preloaded frontmatter key values for static HTML testing (keyed by frontmatter key)
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
     switch (item.type) {
-      case 'switch':
+      case 'switch': {
+        const compactDisplay = item.compactDisplay || false
+        
+        // In compact mode, wrap in container with label on left and switch on right
+        // This matches the pattern used by InputBox, button-group, and calendarpicker
+        if (compactDisplay) {
+          // Generate a valid HTML ID for the switch input
+          // Switch component uses label as id, so we need a sanitized version
+          const switchId = item.key
+            ? `switch-${item.key}`
+            : `switch-${thisLabel.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}-${index}`
+          return (
+            <div
+              key={`sw${index}`}
+              className={`${disabled ? 'disabled' : ''} input-box-container-compact ${indent ? 'indent' : ''}`}
+            >
+              {thisLabel && <label className="input-box-label" htmlFor={switchId}>{thisLabel}</label>}
+              <div className="switch-compact-wrapper">
+                <Switch
+                  label={switchId} // Use sanitized ID - Switch component uses this as the input id
+                  checked={item.checked || false}
+                  disabled={disabled}
+                  onChange={(e) => {
+                    if (item.key) {
+                      item.key && handleFieldChange(item.key, e.target.checked)
+                      item.key && handleSwitchChange(item.key, e)
+                    }
+                  }}
+                  labelPosition="right" // Switch's internal label will be hidden by CSS in compact mode
+                  description={item.description || ''}
+                  className=""
+                />
+              </div>
+            </div>
+          )
+        }
+        
+        // Non-compact mode: render Switch normally
         return (
           <Switch
             key={`sw${index}`}
@@ -133,6 +172,7 @@ export function renderItem({
             className={indent ? 'indent' : ''}
           />
         )
+      }
       case 'input':
         return (
           <InputBox
@@ -644,8 +684,29 @@ export function renderItem({
           )
           if (item.key) {
             // For multi-select mode, noteTitle contains the formatted string and noteFilename is empty
-            // For single-select mode, noteFilename contains the filename
-            const valueToStore = (item: any).allowMultiSelect ? noteTitle : noteFilename
+            // For single-select mode, use noteOutputFormat (with backwards compatibility for singleSelectOutputFormat)
+            const itemAny = (item: any)
+            let valueToStore: string
+            if (itemAny.allowMultiSelect) {
+              // Multi-select: noteTitle contains the formatted string
+              valueToStore = noteTitle
+            } else {
+              // Single-select: check deprecated singleSelectOutputFormat first for backwards compatibility
+              // Then check noteOutputFormat (only 'title' or 'filename' are valid for single-select)
+              let outputFormat = itemAny.singleSelectOutputFormat // Backwards compatibility
+              if (!outputFormat && itemAny.noteOutputFormat) {
+                // Use noteOutputFormat if singleSelectOutputFormat not set
+                // For single-select, only 'title' and 'filename' make sense
+                // If format is wikilink/pretty-link/raw-url, treat as 'title'
+                if (itemAny.noteOutputFormat === 'title' || itemAny.noteOutputFormat === 'filename') {
+                  outputFormat = itemAny.noteOutputFormat
+                } else {
+                  outputFormat = 'title' // Default for wikilink/pretty-link/raw-url in single-select
+                }
+              }
+              outputFormat = outputFormat || 'title' // Final default
+              valueToStore = outputFormat === 'filename' ? noteFilename : noteTitle
+            }
             logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${item.key}", value="${valueToStore}"`)
             handleFieldChange(item.key, valueToStore)
           } else {
@@ -702,8 +763,12 @@ export function renderItem({
               })()}
               isLoading={isLoading}
               allowMultiSelect={Boolean((item: any).allowMultiSelect)}
-              noteOutputFormat={(item: any).noteOutputFormat || 'wikilink'}
+              noteOutputFormat={(item: any).noteOutputFormat}
               noteSeparator={(item: any).noteSeparator || 'space'}
+              singleSelectOutputFormat={(item: any).singleSelectOutputFormat}
+              startFolder={(item: any).startFolder}
+              includeRegex={(item: any).includeRegex}
+              excludeRegex={(item: any).excludeRegex}
             />
           </div>
         )
@@ -1110,6 +1175,11 @@ export function renderItem({
           }
         }
 
+        // Get preloaded values for this frontmatter key if available
+        const initialValues = frontmatterKey && preloadedFrontmatterValues && typeof preloadedFrontmatterValues === 'object'
+          ? preloadedFrontmatterValues[frontmatterKey]
+          : undefined
+
         const handleValueChange = (values: string | Array<string>) => {
           if (item.key) {
             handleFieldChange(item.key, values)
@@ -1144,6 +1214,7 @@ export function renderItem({
               fullPathMatch={fullPathMatch}
               requestFromPlugin={requestFromPlugin}
               fieldKey={item.key}
+              initialValues={initialValues}
             />
           </div>
         )

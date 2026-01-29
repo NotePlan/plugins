@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2025-11-22 for v2.3.0.b15
+// Last updated 2026-01-23 for v2.4.0.b18 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -193,8 +193,9 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
             },
           ]
           break
-        case 'PROJ':
-          logDebug('Section', `PROJ doesn't have any sectionItems, so display congrats message`)
+        case 'PROJACT':
+        case 'PROJREVIEW':
+          logDebug('Section', `${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
               ID: `${section.sectionCode}-Empty`,
@@ -328,7 +329,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Calculate values to use for rendering
   //----------------------------------------------------------------------
 
-  // FIXME: this is getting called 3 times per section, once for each of the 3 sections in the Dashboard (TB, TAG, PROJ)
+  // FIXME: this is getting called 3 times per section, once for each of the 3 sections in the Dashboard (TB, TAG, PROJREVIEW/PROJACT)
   // FIXME: this is also getting called another set of times after lastUpdated: "UPDATE_DATA Setting firstRun to false after force initial load"
 
   // $FlowIgnore[invalid-computed-prop]
@@ -404,8 +405,10 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
    *              limited: {L} of {T} open
    * - TAG: no limit: {T} open
    *         limited: {L} of {T} open
-   * - PROJ: no limit: {T} projects ready to review
-   *          limited: {L} of {T} projects ready to review
+   * - PROJREVIEW: no limit: {T} projects ready to review
+   *                limited: {L} of {T} projects ready to review
+   * - PROJACT: no limit: {T} active projects
+   *             limited: {L} of {T} active projects
    */
   // Replace {countWithLimit} (e.g. from PROJECT) with the number of items, and pluralise it if neccesary
   descriptionToUse = descriptionToUse.replace('{countWithLimit}', limitApplied ? `first ${numItemsToShow} of ${totalCount ?? '?'}` : `${totalCount ?? '?'}`)
@@ -487,7 +490,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   // Decide whether to show interactiveProcessing button
   // Note: don't show IP button if there are no items to show, or if the first item is a single item type that we don't want to count (e.g. 'Nothing left on this list')
-  // TODO(later): enable again for PROJ
+  // TODO(later): enable for PROJREVIEW/PROJACT
   const showIPButton =
     dashboardSettings.enableInteractiveProcessing &&
     interactiveProcessingPossibleSectionTypes.includes(section.sectionCode) &&

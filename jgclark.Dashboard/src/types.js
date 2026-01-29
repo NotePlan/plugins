@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-01-16 for v2.4.0.b15 by @jgclark
+// Last updated 2026-01-23 for v2.4.0.b18 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -79,8 +79,9 @@ export type TDashboardSettings = {
   hidePriorityMarkers: boolean,
   ignoreChecklistItems: boolean,
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use
-  includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
+  includedCalendarSections: string, // Note: Run through stringListOrArrayToArray() before use
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
+  includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
   showFolderName: boolean, // Note: was includeFolderName before 2.2.0.
   showScheduledDates: boolean, // Note: was includeScheduledDates before 2.2.0.rename to show...
   showTaskContext: boolean, // Note: was includeTaskContext before 2.2.0.
@@ -106,7 +107,8 @@ export type TDashboardSettings = {
   showMonthSection: boolean,
   showOverdueSection: boolean,
   showPrioritySection: boolean,
-  showProjectSection: boolean,
+  showProjectReviewSection: boolean,
+  showProjectActiveSection: boolean,
   showQuarterSection: boolean,
   showYearSection: boolean,
   showSavedSearchSection: boolean, // Note: the SEARCH Section doesn't need a setting. This is for future use for SAVEDSEARCH section(s).
@@ -119,8 +121,7 @@ export type TDashboardSettings = {
   customSectionDisplayOrder: ?Array<TSectionCode>
 }
 
-export type TPerspectiveSettings = Array<TPerspectiveDef>
-
+// Type for a perspective definition; this includes (most) TDashboardSettings
 export type TPerspectiveDef = {
   name: string,
   dashboardSettings: Partial<TDashboardSettings>,
@@ -129,6 +130,9 @@ export type TPerspectiveDef = {
   lastModified?: number,
 }
 
+export type TPerspectiveSettings = Array<TPerspectiveDef>
+
+// Type for all the plugin settings in the settings.json file
 export type TDashboardPluginSettings = {
   ...TDashboardLoggingConfig,
   pluginID: string,
@@ -139,7 +143,7 @@ export type TDashboardPluginSettings = {
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'Y' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' | 'INFO' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'Y' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJACT' | 'PROJREVIEW' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' | 'INFO' // where DT = today, DY = yesterday, TAG = Tag, PROJACT = Active Projects section, PROJREVIEW = Projects to Review section, TB = Top Bar / TimeBlock
 // Note: INFO is a new section code for v2.3.0 for testing.
 // Note: When adding a new section code, make sure to update the constants in constants.js and dashboardSettings.js files, and getSomeSectionsData in dataGeneration.js
 
@@ -182,41 +186,44 @@ export type TSectionItem = {
   teamspaceTitle?: string, // if this is from a Teamspace note. TODO: should this move to the TParagraphForDashboard type?
 }
 
+// shared properties from note needed for paragraphs and projects
+export type TNoteForDashboard = {
+  filename: string, // Note: can have a Teamspace prefix, even for Calendar note
+  title?: string, // not present for Calendar notes in paragraphs, but required for projects
+  icon?: string, // icon from note's frontmatter 'icon' attribute, if present. Note: this is not a full FA icon class like 'fa-regular fa-calendar-star', but just the icon name like 'calendar-star'
+  iconColor?: string, // icon color from note's frontmatter 'icon-color' attribute, if present. Note: this is a tailwind color name, e.g. 'blue-500', not a CSS color name like 'blue' or '#0000FF'
+}
+
 // reduced paragraph definition
 export type TParagraphForDashboard = {
-  filename: string, // Note: can have a Teamspace prefix, even for Calendar note
+  ...TNoteForDashboard,
+  isTeamspace?: boolean, // whether this is from a Teamspace note
   noteType: NoteType /* Notes | Calendar */,
-  title?: string, // not present for Calendar notes
   type: ParagraphType, // paragraph type
   prefix?: string,
   content: string,
   rawContent: string,
   indents: number, // indent level (i.e. children will be 1+)
   lineIndex: number, // needed for child ordering processing
-  priority: number, // -1, 1 to 4
+  priority: number, // -1 (not set), 0 (no additional priority) to 4
   blockId?: string,
-  startTime?: string, // this is still definitely used to style time blocks
+  startTime?: string, // used to style time blocks
   endTime?: string,
-  changedDate?: Date, // required for sorting items in display
   hasChild?: boolean, // whether it has child item(s)
   isAChild?: boolean, // whether it is a child item
+  changedDate?: Date, // required for sorting items in display
   dueDate?: string, // ISO string of due date, or 'none', required for sorting items in display
-  isTeamspace?: boolean, // whether this is from a Teamspace note
-  icon?: string, // icon from note's frontmatter 'icon' attribute, if present. Note: this is not a full FA icon class like 'fa-regular fa-calendar-star', but just the icon name like 'calendar-star'
-  iconColor?: string, // icon color from note's frontmatter 'icon-color' attribute, if present. Note: this is a tailwind color name, e.g. 'blue-500', not a CSS color name like 'blue' or '#0000FF'
 }
 
 // a project item within a section
 export type TProjectForDashboard = {
-  filename: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
+  ...TNoteForDashboard,
   title: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
   reviewInterval: string /* from the Project instance */,
+  nextReviewDays: number /* from the Project instance */,
   percentComplete: number /* from the Project instance */,
   lastProgressComment: string /* from the Project instance */,
-  nextReviewDays: number /* from the Project instance */,
-  icon?: string, // icon from note's frontmatter 'icon' attribute, if present. Note: this is not a full FA icon class like 'fa-regular fa-calendar-star', but just the icon name like 'calendar-star'
-  iconColor?: string, // icon color from note's frontmatter 'icon-color' attribute, if present. Note: this is a tailwind color name, e.g. 'blue-500', not a CSS color name like 'blue' or '#0000FF'
-  nextActions?: Array<string>, // next actions from the Project instance (nextActionsRawContent)
+  nextActions?: Array<string>, // content of next action(s) from the Project instance (nextActionsRawContent)
 }
 
 // details for a UI button
@@ -294,7 +301,7 @@ export type TActionType =
   | 'windowReload' // Used by 'Hard Refresh' button for devs
   | 'windowResized'
   | '(not yet set)'
-  // TODO(later): remove these once we have a proper banner system
+  // TODO(later): remove these in v2.5 once new banner system has settled
   | 'testBannerInfo'
   | 'testBannerError'
   | 'testBannerWarning'

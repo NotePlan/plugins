@@ -594,6 +594,7 @@ export function getRandomUUID(howManyChars: number = 37): string {
 }
 
 /**
+ * DEPRECATED: Use escapeRegExp() from regex.js instead.
  * Escape a string for use in a regex (call this before sending a string you don't know to RegExp)
  * You can send it any type of variable. Will escape a string and otherwise send back what you sent
  * @author @dwertheimer

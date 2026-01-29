@@ -324,6 +324,8 @@ export function ProcessingMethodSection({
               minRows={5}
               maxRows={15}
               fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+              defaultRawMode={true}
+              hideRawToggle={true}
               actionButtons={
                 <>
                   <button
@@ -442,7 +444,7 @@ export function ProcessingMethodSection({
               width="100%"
             />
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
-              Where to put the new note. Leave empty for root folder, or use &quot;&lt;Select&gt;&quot; to be prompted each time for the folder
+              Where to put the new note. Leave empty for root folder, or use &quot;&lt;Select&gt;&quot; to be prompted each time for the folder. If you have a field named &quot;folder&quot;, it will be used to set the folder for the new note.
             </div>
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
@@ -468,6 +470,8 @@ export function ProcessingMethodSection({
               minRows={2}
               maxRows={5}
               fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+              defaultRawMode={true}
+              hideRawToggle={true}
               actionButtons={
                 <>
                   <button
@@ -529,8 +533,8 @@ export function ProcessingMethodSection({
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              Content to Insert:
-              <InfoIcon text="The template content that will be used to create the new note. Click +Field or +Date buttons to insert tags. Or use template tags like <%- fieldKey %> to insert form field values, or <%- date.format('YYYY-MM-DD') %> for dates." />
+              New Note Body Content:
+              <InfoIcon text="The body content that will be used to create the new note. Click +Field or +Date buttons to insert tags. Or use template tags like <%- fieldKey %> to insert form field values, or <%- date.format('YYYY-MM-DD') %> for dates." />
             </label>
             <TemplateTagEditor
               value={frontmatter.templateBody || ''}
@@ -546,6 +550,8 @@ export function ProcessingMethodSection({
               minRows={5}
               maxRows={15}
               fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+              defaultRawMode={true}
+              hideRawToggle={true}
               actionButtons={
                 <>
                   <button
@@ -604,6 +610,86 @@ export function ProcessingMethodSection({
             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
               Enter the template content that will be used to create the new note. Use tags like &lt;%- fieldKey %&gt; for form fields, or &lt;%-
               date.format(&quot;YYYY-MM-DD&quot;) %&gt; for dates.
+            </div>
+          </div>
+          <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              New Note Frontmatter:
+              <InfoIcon text="Frontmatter to add to the new note. Use template tags like <%- fieldKey %> for form field values. This will be saved to the ```template:ignore newNoteFrontmatter``` codeblock." />
+            </label>
+            <TemplateTagEditor
+              value={frontmatter.newNoteFrontmatter || ''}
+              onChange={(value) => onFrontmatterChange('newNoteFrontmatter', value)}
+              onFocus={(e) => {
+                const target = e.target
+                if (target instanceof HTMLTextAreaElement) {
+                  setTagInserterInputRef(target)
+                  setTagInserterFieldKey('newNoteFrontmatter')
+                }
+              }}
+              placeholder="e.g., travel_mode: <%- travel_mode %>\ntravel_start: <%- travel_start ? date.format('YYYY-MM-DD', travel_start) : '' %>"
+              minRows={3}
+              maxRows={10}
+              fields={fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')}
+              defaultRawMode={true}
+              hideRawToggle={true}
+              actionButtons={
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleTagInserterButtonClick(e, 'field', 'newNoteFrontmatter')
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: '#f0f0f0',
+                      border: '1px solid #ccc',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      zIndex: 100,
+                    }}
+                    title="Insert field variable"
+                  >
+                    + Field
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleTagInserterButtonClick(e, 'date', 'newNoteFrontmatter')
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: '#f0f0f0',
+                      border: '1px solid #ccc',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      zIndex: 100,
+                    }}
+                    title="Insert date format"
+                  >
+                    + Date
+                  </button>
+                </>
+              }
+            />
+            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', fontStyle: 'italic' }}>
+              Frontmatter content for the new note. Use template tags like &lt;%- fieldKey %&gt; for form fields. This will be saved to the ```template:ignore newNoteFrontmatter``` codeblock.
             </div>
           </div>
         </>

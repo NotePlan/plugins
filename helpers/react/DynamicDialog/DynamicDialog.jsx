@@ -28,6 +28,31 @@ import { logWarn, timer, logDebug, logError } from '@helpers/react/reactDev.js'
 import { type NoteOption } from './NoteChooser.jsx'
 
 //--------------------------------------------------------------------------
+// Configuration Constants
+//--------------------------------------------------------------------------
+
+/**
+ * Auto-focus first field feature flag
+ * 
+ * DISABLED: This feature was causing infinite focus loops between fields,
+ * especially when fields are loading data asynchronously. The focus management
+ * was interfering with SearchableChooser components that handle their own focus
+ * and blur events, causing rapid focus switching between fields.
+ * 
+ * The issue manifests as:
+ * - Fields rapidly gaining/losing focus
+ * - Dropdowns opening/closing repeatedly
+ * - User unable to interact with the form
+ * 
+ * TODO: Re-enable with a more robust implementation that:
+ * - Better detects when fields are truly ready (not just not-loading)
+ * - Respects SearchableChooser's own focus management
+ * - Has better guards against focus loops
+ * - Only focuses once on dialog open, not repeatedly
+ */
+const FOCUS_FIRST_FIELD = false
+
+//--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
 
@@ -128,8 +153,12 @@ export type TSettingItem = {
   showCalendarChooserIcon?: boolean, // for note-chooser, show a calendar button next to the chooser (default: true)
   onOpen?: () => void | Promise<void>, // for note-chooser and other choosers, callback when dropdown opens (for lazy loading)
   allowMultiSelect?: boolean, // for note-chooser, enable multi-select mode (default: false)
-  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link', // for note-chooser multi-select, output format (default: 'wikilink')
+  noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename', // for note-chooser, output format for both single and multi-select (default: 'wikilink' for multi-select, 'title' for single-select). For single-select, only 'title' and 'filename' are valid (wikilink/pretty-link/raw-url are treated as 'title').
   noteSeparator?: 'space' | 'comma' | 'newline', // for note-chooser multi-select, separator between notes (default: 'space')
+  singleSelectOutputFormat?: 'title' | 'filename', // DEPRECATED: Use noteOutputFormat instead. Kept for backwards compatibility only.
+  startFolder?: ?string, // for note-chooser, start folder to filter notes (e.g., '@Templates/Forms')
+  includeRegex?: ?string, // for note-chooser, regex pattern to include notes (applied to filename or title)
+  excludeRegex?: ?string, // for note-chooser, regex pattern to exclude notes (applied to filename or title)
   // showValue option for SearchableChooser-based fields
   showValue?: boolean, // for folder-chooser, note-chooser, heading-chooser, dropdown-select-chooser: show the selected value below the input (default: false)
   // space-chooser options
@@ -235,6 +264,7 @@ export type TDynamicDialogProps = {
   preloadedMentions?: Array<string>, // Preloaded mentions for static HTML testing (avoids dynamic loading)
   preloadedHashtags?: Array<string>, // Preloaded hashtags for static HTML testing (avoids dynamic loading)
   preloadedEvents?: Array<any>, // Preloaded events for static HTML testing (avoids dynamic loading)
+  preloadedFrontmatterValues?: { [string]: Array<string> }, // Preloaded frontmatter key values for static HTML testing (keyed by frontmatter key)
 }
 
 //--------------------------------------------------------------------------
@@ -278,6 +308,7 @@ const DynamicDialog = ({
   preloadedMentions = [],
   preloadedHashtags = [],
   preloadedEvents = [],
+  preloadedFrontmatterValues = {},
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || []
@@ -345,6 +376,7 @@ const DynamicDialog = ({
   const previousIsOpenRef = useRef<boolean>(false) // Track previous isOpen state to detect dialog open/close transitions
   const previousItemsRef = useRef<Array<TSettingItem>>([]) // Track previous items to prevent unnecessary dependency map rebuilds
   const [fieldLoadingStates, setFieldLoadingStates] = useState<{ [fieldKey: string]: boolean }>({}) // Track loading state for dependent fields (can be set by parent component)
+  const userHasInteractedRef = useRef<boolean>(false) // Track if user has manually interacted with the form (clicked on a field)
 
   useEffect(() => {
     updatedSettingsRef.current = updatedSettings
@@ -483,9 +515,40 @@ const DynamicDialog = ({
     previousIsOpenRef.current = isNowOpen
   }, [isOpen, updatedSettings]) // Keep updatedSettings for reading current values
 
-  // Auto-focus the first focusable field when dialog opens
+  // Reset user interaction flag when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      userHasInteractedRef.current = false
+    }
+  }, [isOpen])
+
+  // Track user clicks on input fields to prevent auto-focus from stealing focus
   useEffect(() => {
     if (!isOpen) return
+
+    const handleInputClick = (e: MouseEvent) => {
+      const target = e.target
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+        // User has manually clicked on an input field
+        userHasInteractedRef.current = true
+      }
+    }
+
+    const dialogElement = dialogRef.current
+    if (dialogElement) {
+      dialogElement.addEventListener('mousedown', handleInputClick, true) // Use capture phase to catch all clicks
+    }
+
+    return () => {
+      if (dialogElement) {
+        dialogElement.removeEventListener('mousedown', handleInputClick, true)
+      }
+    }
+  }, [isOpen])
+
+  // Auto-focus the first focusable field when dialog opens
+  useEffect(() => {
+    if (!FOCUS_FIRST_FIELD || !isOpen) return
 
     // Wait for DOM to be ready, then find and focus the first focusable field
     const focusFirstField = () => {
@@ -495,11 +558,19 @@ const DynamicDialog = ({
       // Find all focusable inputs in DOM order (excluding hidden and disabled)
       const allInputs = Array.from(dialogElement.querySelectorAll('input:not([type="hidden"]):not([disabled])'))
 
-      // Filter to only inputs that are visible (not in hidden containers)
+      // Filter to only inputs that are visible (not in hidden containers) and not loading
       const visibleInputs = allInputs.filter((input) => {
         if (!(input instanceof HTMLElement)) return false
         const style = window.getComputedStyle(input)
-        return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0'
+        // Skip if hidden
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+          return false
+        }
+        // Skip if input has loading class (indicates it's loading data)
+        if (input.classList.contains('loading') || input.closest('[data-field-type]')?.querySelector('.fa-spinner.fa-spin')) {
+          return false
+        }
+        return true
       })
 
       // Take the first input in DOM order (which matches the visual order of fields)
@@ -518,6 +589,89 @@ const DynamicDialog = ({
     // Use a small delay to ensure DOM is ready
     const timeoutId = setTimeout(focusFirstField, 150)
     return () => clearTimeout(timeoutId)
+  }, [isOpen, items]) // Re-run when dialog opens or items change
+
+  // Re-focus the first field when it finishes loading
+  // This handles the case where the first field was skipped because it was loading,
+  // and focus went to a later field instead
+  // BUT: Only do this if the user hasn't manually interacted with the form yet
+  useEffect(() => {
+    if (!FOCUS_FIRST_FIELD || !isOpen) return
+
+    const checkAndRefocus = () => {
+      // Don't auto-focus if user has already interacted with the form
+      if (userHasInteractedRef.current) {
+        logDebug('DynamicDialog', 'Skipping auto-refocus: user has interacted with form')
+        return
+      }
+      logDebug('DynamicDialog', 'checkAndRefocus: checking if first field should be refocused')
+
+      const dialogElement = dialogRef.current
+      if (!dialogElement) return
+
+      // Find all focusable inputs in DOM order
+      const allInputs = Array.from(dialogElement.querySelectorAll('input:not([type="hidden"]):not([disabled])'))
+
+      // Filter to visible inputs that are NOT loading
+      const visibleNonLoadingInputs = allInputs.filter((input) => {
+        if (!(input instanceof HTMLElement)) return false
+        const style = window.getComputedStyle(input)
+        // Skip if hidden
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+          return false
+        }
+        // Skip if input has loading class or spinner
+        if (input.classList.contains('loading') || input.closest('[data-field-type]')?.querySelector('.fa-spinner.fa-spin')) {
+          return false
+        }
+        return true
+      })
+
+      // Get the first non-loading input (should be the first field if it's done loading)
+      const firstReadyInput = visibleNonLoadingInputs.length > 0 ? visibleNonLoadingInputs[0] : null
+
+      // Check if focus is currently on a later field (not the first one)
+      const currentlyFocused = document.activeElement
+      if (!(currentlyFocused instanceof HTMLInputElement)) return
+
+      const currentlyFocusedIndex = allInputs.indexOf(currentlyFocused)
+      const firstReadyIndex = firstReadyInput ? allInputs.indexOf(firstReadyInput) : -1
+
+      // If the first field is ready and focus is on a later field, move focus to the first field
+      // BUT only if user hasn't interacted yet
+      if (
+        firstReadyInput &&
+        firstReadyInput instanceof HTMLInputElement &&
+        firstReadyIndex >= 0 &&
+        currentlyFocusedIndex > firstReadyIndex &&
+        currentlyFocused !== firstReadyInput
+      ) {
+        // Only refocus if the currently focused field is not the first ready field
+        // and the first ready field was previously loading (indicated by it being earlier in DOM order)
+        logDebug('DynamicDialog', `Re-focusing first field after loading completed: ${firstReadyInput.id || 'unnamed'}, currently focused: ${currentlyFocused.id || 'unnamed'}`)
+        firstReadyInput.focus()
+      }
+    }
+
+    // Check periodically for loading completion (every 300ms for up to 6 seconds)
+    // This handles the case where the first field finishes loading after focus was set to a later field
+    let checkCount = 0
+    const maxChecks = 20 // 20 * 300ms = 6 seconds (should be enough for most loading scenarios)
+    const intervalId = setInterval(() => {
+      checkCount++
+      checkAndRefocus()
+      if (checkCount >= maxChecks) {
+        clearInterval(intervalId)
+      }
+    }, 300)
+
+    // Also check immediately after a short delay
+    const timeoutId = setTimeout(checkAndRefocus, 300)
+
+    return () => {
+      clearInterval(intervalId)
+      clearTimeout(timeoutId)
+    }
   }, [isOpen, items]) // Re-run when dialog opens or items change
 
   // Watch for dependency changes and clear values (generic - no hardcoded reload logic)
@@ -722,13 +876,30 @@ const DynamicDialog = ({
         }
       }
 
+      // CRITICAL: Ensure ALL fields from items are included in formValues, even if never touched
+      // This prevents template errors from missing variables
+      const finalFormValues = { ...updatedSettingsRef.current }
+      const currentKeys = Object.keys(finalFormValues)
+      const itemKeys = items.filter((item) => item.key).map((item) => item.key)
+      const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
+      
+      if (missingKeys.length > 0) {
+        logDebug('DynamicDialog', `handleSave: Adding ${missingKeys.length} missing field(s) to formValues before submission: ${missingKeys.join(', ')}`)
+        items.forEach((item) => {
+          if (item.key && !finalFormValues.hasOwnProperty(item.key)) {
+            // Initialize missing field with default value, item value, checked state, or empty string
+            finalFormValues[item.key] = defaultValues?.[item.key] ?? item.value ?? item.checked ?? item.default ?? ''
+          }
+        })
+      }
+
       if (onSave) {
         // Pass keepOpenOnSubmit flag in windowId as a special marker, or pass it separately
         // For now, we'll pass it as part of a special windowId format, or the caller can check the prop
         // Actually, the caller (onSave) can access keepOpenOnSubmit via closure, so we don't need to pass it
-        onSave(updatedSettingsRef.current, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
+        onSave(finalFormValues, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
       }
-      logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current, windowId, keepOpenOnSubmit })
+      logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: finalFormValues, windowId, keepOpenOnSubmit })
     } finally {
       isSavingRef.current = false
     }
@@ -885,6 +1056,7 @@ const DynamicDialog = ({
             preloadedMentions, // Pass preloaded mentions for static HTML testing
             preloadedHashtags, // Pass preloaded hashtags for static HTML testing
             preloadedEvents, // Pass preloaded events for static HTML testing
+            preloadedFrontmatterValues, // Pass preloaded frontmatter key values for static HTML testing
           }
           if (item.type === 'combo' || item.type === 'dropdown-select') {
             renderItemProps.inputRef = dropdownRef

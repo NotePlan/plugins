@@ -1,8 +1,7 @@
-
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-12-01 for v2.3.1
+// Last updated 2026-01-22 for v2.4.0.b17, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,7 +12,7 @@ import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings.j
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import { updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentionCache'
-import type { TDashboardSettings, TDashboardPluginSettings, TPerspectiveDef } from './types'
+import type { TDashboardSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getPeriodOfNPDateStr } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
@@ -24,6 +23,7 @@ import { chooseNoteV2 } from '@helpers/NPnote'
 import { backupSettings, getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
+
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
 
 /* -----------------------------------------------------------------------------
@@ -197,7 +197,7 @@ export async function getPerspectiveSettings(_logAllKeys: boolean = false): Prom
     } else {
       // No perspective settings found, so will need to set from the defaults instead
       logWarn('getPerspectiveSettings', `No perspective settings found, so will load in the defaults. But first, I will save a copy of the settings.json file for investigation.`)
-      await backupSettings('jgclark.Dashboard', 'when_no_perspective_settings_found')
+      await backupSettings('jgclark.Dashboard', 'when_no_perspective_settings_found', true)
       perspectiveSettings = await getPerspectiveSettingDefaults()
       const defaultPersp = getPerspectiveNamed('-', perspectiveSettings)
       if (!defaultPersp) {
@@ -287,28 +287,38 @@ export function replacePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef
  * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all
  * @param {string} name
  * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns {Array<TPerspectiveDef>}
+ * @returns {Array<TPerspectiveDef>} the revised perspectiveSettings array
  */
 export function setActivePerspective(name: string, perspectiveSettings: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
   // map over perspectiveSettings, setting isActive to true for the one with name === name, and false for all others
-  return perspectiveSettings ? perspectiveSettings.map((s) => ({ ...s, isActive: s.name === name, isModified: false })) : []
+  return perspectiveSettings ? perspectiveSettings.map((s) => ({
+    ...s,
+    isActive: s.name === name,
+    isModified: false,
+  })) : []
 }
 
 /**
- * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all
- * @param {string} name
+ * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all. The isModified flag is only reset for the renamed perspective.
+ * @param {string} oldName
+ * @param {string} newName - the new name for the perspective
  * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns {Array<TPerspectiveDef>}
+ * @returns {Array<TPerspectiveDef>} the revised perspectiveSettings array
  */
 export function renamePerspective(oldName: string, newName: string, perspectiveSettings: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
-  return perspectiveSettings.map((s) => ({ ...s, name: s.name === oldName ? newName : s.name }))
+  return perspectiveSettings.map((s) => (
+    {
+      ...s,
+      name: s.name === oldName ? newName : s.name,
+      isModified: s.name === oldName ? false : s.isModified  // Reset isModified for renamed perspective
+    }))
 }
 
 /**
  * Private function to add a new Perspective definition to the array
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @param {TPerspectiveDef} newDef
- * @returns {Array<TPerspectiveDef>}
+ * @returns {Array<TPerspectiveDef>} the revised perspectiveSettings array
  */
 function addPerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, newDef: TPerspectiveDef): Array<TPerspectiveDef> {
   return [...perspectiveSettings, newDef]
@@ -318,7 +328,7 @@ function addPerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, newDef: 
  * Private function to delete a Perspective definition from the array
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @param {string} name
- * @returns {Array<TPerspectiveDef>}
+ * @returns {Array<TPerspectiveDef>} the revised perspectiveSettings array
  */
 function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, name: string): Array<TPerspectiveDef> {
   return perspectiveSettings.filter((s) => s.name !== name)
@@ -380,10 +390,10 @@ export function getDisplayListOfPerspectiveNames(allDefs: Array<TPerspectiveDef>
   }
 }
 /**
- * WARNING: This is not used any more. Test before use.
  * Get all folders that are allowed in the current Perspective.
+ * Note: used only by getReviewSettings() in Projects plugin.
  * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns
+ * @returns {Array<string>}
  */
 export function getAllowedFoldersInCurrentPerspective(perspectiveSettings: Array<TPerspectiveDef>): Array<string> {
   const activeDef = getActivePerspectiveDef(perspectiveSettings)
@@ -566,11 +576,11 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
  * TODO: Is it true that sometimes this will be called with a partial object, and sometimes with a full object?
  * It can be called before doing a comparison with the active perspective settings.
  * Note: index.js::onUpdateOrInstall() does the renaming of keys in the settings object.
- * @param {TDashboardPluginSettings} settingsIn
+ * @param {Partial<TDashboardSettings>} settingsIn
  * @param {boolean} deleteAllShowTagSections - also clean out showTag_* settings
- * @returns {TDashboardPluginSettings}
+ * @returns {Partial<TDashboardSettings>}
  */
-export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPluginSettings, deleteAllShowTagSections?: boolean): Partial<TDashboardPluginSettings> {
+export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashboardSettings>, deleteAllShowTagSections?: boolean): Partial<TDashboardSettings> {
   // Define keys to remove
   const patternsToRemove = [
     // the following shouldn't be persisted in the perspectiveSettings object, but only in the top-level dashboardSettings object
@@ -608,6 +618,7 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPlugi
     // clvt(settingsIn.maxItemsToShowInSection, 'cleanDashboard...  starting maxItemsToShowInSection')
 
     // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
+    // $FlowIgnore[incompatible-call] - settingsIn is Partial<TDashboardSettings> but removeInvalidTagSections accepts TDashboardSettings; this is safe as it creates a copy
     const perspSettingsWithoutIrrelevantTags = removeInvalidTagSections(settingsIn) // OK
 
     const settingsOut = Object.keys(perspSettingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
@@ -726,17 +737,6 @@ export async function addNewPerspective(nameArg?: string): Promise<void> {
  */
 export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   logDebug('deleteAllNamedPerspectiveSettings', `Attempting to delete all Perspective settings (other than default) ...`)
-  // v1
-  // const pluginSettings = DataStore.settings
-  // pluginSettings.perspectiveSettings = "[]"
-  // const dSettings = await getDashboardSettings()
-  // $FlowIgnore
-  // delete dSettings.perspectiveSettings
-  // pluginSettings.dashboardSettings = JSON.stringify(dSettings)
-  // clo(pluginSettings.perspectiveSettings, `... leaves: pluginSettings.perspectiveSettings =`)
-  // DataStore.settings = pluginSettings
-
-  // V2
   let allDefs = await getPerspectiveSettings()
   for (const p of allDefs) {
     if (p.name !== '-') {
@@ -745,15 +745,16 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   }
   logDebug('deleteAllNamedPerspectiveSettings', `Deleted all named perspectives, other than default.`)
 
-  allDefs = await getPerspectiveSettings()
-  const updatedListOfPerspectives = getDisplayListOfPerspectiveNames(allDefs)
+  const onlyDefaultPerspectiveDef: Array<TPerspectiveDef> = await getPerspectiveSettings()
+  const updatedListOfPerspectives = getDisplayListOfPerspectiveNames(onlyDefaultPerspectiveDef)
   logDebug('deleteAllNamedPerspectiveSettings', `New default list of available perspectives: [${String(updatedListOfPerspectives ?? [])}]`)
 
   // Set current perspective to default ("-")
-  const newPerspectiveSettings = await switchToPerspective('-', allDefs)
+  const newPerspectiveSettings = await switchToPerspective('-', onlyDefaultPerspectiveDef)
   await setPluginData({ perspectiveSettings: newPerspectiveSettings }, `_Deleted all named perspectives`)
 
-  // TODO: Update tagCache definition list json
+  // Update tagCache definition list json
+  updateTagMentionCacheDefinitionsFromAllPerspectives(onlyDefaultPerspectiveDef)
   logDebug('deleteAllNamedPerspectiveSettings', `Result of switchToPerspective("-"): ${String(newPerspectiveSettings)}`)
 }
 
@@ -849,7 +850,7 @@ export const endsWithStar = (input: string): boolean => /\*$/.test(input)
  * @returns {TDashboardSettings}
  */
 export function setPerspectivesIfJSONChanged(
-  updatedSettings: any /*TDashboardSettings*/, // TODO: improve type - can be partial settings object
+  updatedSettings: Partial<TDashboardSettings>,
   dashboardSettings: TDashboardSettings,
   sendActionToPlugin: Function,
   logMessage: string,

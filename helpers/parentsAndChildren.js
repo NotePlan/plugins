@@ -19,6 +19,7 @@ export type ParentParagraphs = {
  * This function returns only the children of the paragraph, not any descendants, eliminating duplicates.
  * Every paragraph sent into this function will be listed as a parent in the resulting array of ParentParagraphs.
  * Use removeParentsWhoAreChildren() afterwards to remove any children from the array of ParentParagraphs if you only want a paragraph to be listed in one place in the resulting array of ParentParagraphs.
+ * @tests in jest file
  * @param {Array<TParagraph>} paragraphs - array of paragraphs
  * @returns {Array<ParentParagraphs>} - array of parent paragraphs with their children
  */
@@ -39,6 +40,7 @@ export function getParagraphParentsOnly(paragraphs: Array<TParagraph>): Array<Pa
  * This function should be called after getParagraphParentsOnly()
  * If a paragraph is listed as a child, it will not be listed as a parent
  * The paragraphs need to be in lineIndex order for this to work
+ * @tests in jest file
  * @param {Array<ParentParagraphs>} everyParaIsAParent - array of parent paragraphs with their children
  * @returns {Array<ParentParagraphs>} - array of parent paragraphs with their children
  */
@@ -65,6 +67,7 @@ export function removeParentsWhoAreChildren(everyParaIsAParent: Array<ParentPara
 /**
  * Get the direct children paragraphs of a given paragraph (ignore [great]grandchildren)
  * NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true
+ * @tests in jest file
  * @param {TParagraph} para - the parent paragraph
  * @param {Array<TParagraph>} paragraphs - array of all paragraphs
  * @returns {Array<TParagraph>} - array of children paragraphs (NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true)
@@ -122,6 +125,7 @@ export function getParentPara(thisParaLineIndex: number, paragraphs: Array<TPara
 /**
  * Get any indented text paragraphs underneath a given paragraph, excluding tasks
  * Doing this to pick up any text para types that may have been missed by the .children() method, which only gets task paras
+ * @tests in jest file
  * @param {TParagraph} para - The parent paragraph
  * @param {Array<TParagraph>} paragraphs - Array of all paragraphs
  * @returns {Array<TParagraph>} - Array of indented paragraphs underneath the given paragraph
@@ -153,9 +157,9 @@ export function getIndentedNonTaskLinesUnderPara(para: TParagraph, paragraphs: A
  *   Children are counted until a blank line, HR, title, or another item
  *   at the same level as the parent task. So for items to be counted as
  *   children, they need to be contiguous vertically."
- * (JGC doesn't know enough to make jest tests for this. But is confident this works from lots of logging.)
  * WARNING: This is quite a slow operation. (V1 up to 200ms for notes with quite a lot of nesting; V2 up to 150ms; V3 up to 45ms.)
  * Note: Forked from blocks.js
+ * @tests in jest file
  * @author @jgclark
  * @param {TParagraph} thisPara - the 'parent' paragraph
  * @param {TNote} thisNote - the note

@@ -4,10 +4,10 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-01-04 for v2.4.0.b by @jgclark
+// Last updated 2026-01-18 for v2.4.0.b16, @jgclark
 //-----------------------------------------------------------------------------
 
-import moment from 'moment/min/moment-with-locales'
+import { WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getDashboardSettingsDefaults, handlerResult, makeDashboardParas, setPluginData } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
@@ -16,12 +16,13 @@ import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings } from './types'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
+import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { smartOpenNoteInEditorFromFilename, smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
-// import { openNoteByFilename } from '@helpers/NPnote'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
+import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getWindowFromCustomId, getLiveWindowRectFromWin, rectToString, storeWindowRect } from '@helpers/NPWindows'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { processChosenHeading } from '@helpers/userInput'
@@ -78,11 +79,10 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
   try {
     const config = await getDashboardSettings()
     // clo(data, 'data for doAddItem', 2)
-    const { actionType, toFilename, userInputObj } = data
-    const { sectionCode } = validateAndFlattenMessageObject(data)
+    const { actionType, toFilename, userInputObj, sectionCodes } = data
     const { text, heading } = userInputObj || {}
 
-    logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''} in section ${String(sectionCode)}`)
+    logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''} in section [${String(sectionCodes)}]]`)
     if (!toFilename) {
       throw new Error('doAddItem: No toFilename provided')
     }
@@ -110,8 +110,8 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     }
     // Note: updateCache is now done in previous function call
 
-    // update just the section we've added to
-    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode] })
+    // update just the section we've added to (expect a single-item array)
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: sectionCodes })
   } catch (err) {
     logError('doAddItem', err.message)
     return handlerResult(false, [], { errorMsg: err.message })
@@ -585,7 +585,8 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
       }
     }
 
-    const combinedUpdatedSettings = { ...(await getSettings('jgclark.Dashboard')), [settingName]: newSettings }
+    const currentSettings = await getSettings('jgclark.Dashboard')
+    const combinedUpdatedSettings = { ...currentSettings, [settingName]: newSettings }
 
     if (perspectivesToSave && Array.isArray(perspectivesToSave)) {
       const debugInfo = perspectivesToSave.map(
@@ -594,6 +595,23 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
       logDebug(`doDashboardSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
 
       combinedUpdatedSettings.perspectiveSettings = perspectivesToSave
+    }
+
+    // Check if dashboardTheme changed and update CSS dynamically
+    if (settingName === 'dashboardSettings' && newSettings.dashboardTheme !== undefined) {
+      const oldTheme = currentSettings?.dashboardSettings?.dashboardTheme
+      const newTheme = newSettings.dashboardTheme
+
+      if (oldTheme !== newTheme) {
+        logDebug('doDashboardSettingsChanged', `Dashboard theme changed from '${String(oldTheme)}' to '${String(newTheme)}'. Updating CSS dynamically.`)
+        try {
+          const newThemeCSS = generateCSSFromTheme(newTheme || '')
+          await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'CHANGE_THEME', { themeCSS: newThemeCSS }, `Dashboard theme changed to '${String(newTheme)}'`)
+          logDebug('doDashboardSettingsChanged', `Successfully sent CHANGE_THEME message to HTML window`)
+        } catch (error) {
+          logError('doDashboardSettingsChanged', `Failed to update theme CSS: ${error.message}`)
+        }
+      }
     }
 
     const res = await saveSettings(pluginID, combinedUpdatedSettings)

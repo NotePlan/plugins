@@ -1489,7 +1489,7 @@ function getNotesToCheck(notesIn?: Array<TNote>): Array<TNote> {
 }
 
 /**
- * Get or create the relevant regular note in the given folder (not calendar notes)
+ * Get the relevant regular (not calendar) note (from any folder), or create the relevant regular note in the given folder.
  * Note: titles with # characters are stripped out first, as they are stripped out by NP when reporting a note.title
  * If it makes a new note, it will add the title first.
  * TODO: is this teamspace-aware?

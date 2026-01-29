@@ -1,5 +1,9 @@
 # Favorites Plugin Changelog
 
+## [1.3.5] - 2026-01-20 @dwertheimer
+
+- Fixed sidebar icon colour issue by using proper css variables for colors.
+
 ## [1.3.4] - 2026-01-18 @dwertheimer    
 
 - Fixed dark mode issues with favorites browser window by using proper css variables for colors.

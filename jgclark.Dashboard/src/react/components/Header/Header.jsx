@@ -95,6 +95,12 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     }
   }, [isSearchOpen])
 
+  // Log platform/modal info only when it changes (not on every render)
+  useEffect(() => {
+    const isModal = (pluginData.platform === 'iOS' || pluginData.platform === 'iPadOS') && !pluginData.mainWindowModeSupported
+    logDebug('Header', `isModal:${String(isModal)}, mainWindowModeSupported:${String(pluginData.mainWindowModeSupported)} on platform ${pluginData.platform}`)
+  }, [pluginData.platform, pluginData.mainWindowModeSupported])
+
   // ----------------------------------------------------------------------
   // Handlers
   // ----------------------------------------------------------------------
@@ -289,7 +295,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // Note: this is a hack on iOS and iPadOS in modal mode, to allow the modal close button to be visible
   // FIXME: not working yet on iOS and iPadOS, and not logging either!
   const isModal = (pluginData.platform === 'iOS' || pluginData.platform === 'iPadOS') && !pluginData.mainWindowModeSupported
-  logDebug('Header', `isModal:${String(isModal)}, mainWindowModeSupported:${String(pluginData.mainWindowModeSupported)} on platform ${pluginData.platform}`)
+  // Logging moved to useEffect to prevent repeated logs on every render
 
   // ----------------------------------------------------------------------
   // Render

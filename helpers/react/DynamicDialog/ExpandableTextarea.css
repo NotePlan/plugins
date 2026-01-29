@@ -64,8 +64,9 @@
 
 .expandable-textarea:focus {
   outline: none;
-  border-color: var(--tint-color, #007aff);
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+  border-color: var(--tint-color, #dc8a78);
+  border-width: 2px;
+  box-shadow: 0 0 0 2px rgba(220, 138, 120, 0.2);
 }
 
 .expandable-textarea:disabled {

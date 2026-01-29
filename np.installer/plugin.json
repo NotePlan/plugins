@@ -1,0 +1,27 @@
+{
+	"noteplan.minAppVersion": "3.3",
+	"plugin.id": "np.installer",
+	"plugin.name": "⬇️ Plugin Installer",
+	"plugin.description": "Install plugins right from the command bar. This is a core plugin and can't be deleted.",
+	"plugin.icon": "",
+	"plugin.author": "",
+	"plugin.repoUrl": "CorePlugins",
+	"plugin.version": "0.1",
+	"plugin.dependencies": [],
+	"plugin.script": "script.js",
+	"plugin.isRemote": "false",
+	"plugin.hidden": true,
+	"plugin.commands": [
+		{
+			"name": "install plugin",
+			"description": "Load a list of plugins and lets you install one",
+			"jsFunction": "installPlugins"
+		},
+		{
+			"name": "development install",
+			"description": "Load a list of plugins and lets you install one, including hidden ones",
+			"jsFunction": "installPluginsIncludingHidden"
+		}
+	],
+	"plugin.preferences": []
+}

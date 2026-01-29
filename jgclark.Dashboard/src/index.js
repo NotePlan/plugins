@@ -2,19 +2,18 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2026-01-09 for v2.4.0.b13
+// last updated 2026-01-24 for v2.4.0.b18
 // ----------------------------------------------------------------------------
 
 /**
  * Imports
  */
 import pluginJson from '../plugin.json'
-import { getDashboardSettingsDefaultsWithSectionsSetToFalse } from './dashboardHelpers'
-import { showDashboardReact } from './reactMain'
 import { parseSettings } from './shared'
 import { generateTagMentionCache } from './tagMentionCache'
-import { renameKeys } from '@helpers/dataManipulation'
-import { clo, compareObjects, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import {
+  clo, JSP, logDebug, logError, logInfo, logWarn,
+} from '@helpers/dev'
 import * as npc from '@helpers/NPConfiguration'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 
@@ -33,7 +32,8 @@ export { editSettings } from '@helpers/NPSettings'
 export {
   decideWhetherToUpdateDashboard, /// TODO(later): remove, now that onEditorWillSave is here
   onEditorWillSave,
-  refreshSectionByCode
+  refreshSectionByCode,
+  refreshSectionsByCode
 } from './dashboardHooks.js'
 
 export { generateDiagnosticsFile } from './diagnosticGenerator'
@@ -86,8 +86,7 @@ export async function backupSettings(): Promise<void> {
   }
 }
 
-// Migrate some setting names to new names
-// TODO(later): remove this code in v2.3.0+
+// Carry out any operations necessary when the plugin is updated.
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logInfo(pluginJson, `onUpdateOrInstall() starting ...`)
@@ -95,8 +94,8 @@ export async function onUpdateOrInstall(): Promise<void> {
     // clo(initialSettings, `onUpdateOrInstall - initialSettings:`)
     // Note: this is deceptive because dashboardSettings is one single JSON stringified key inside initialSettings
 
-    // Backup the settings on all new installs
-    await npc.backupSettings('jgclark.Dashboard', `before_onUpdateOrInstall_v${pluginJson["plugin.version"]}`)
+    // Backup the settings on all new installs (quietly)
+    await npc.backupSettings('jgclark.Dashboard', `before_onUpdateOrInstall_v${pluginJson["plugin.version"]}`, true)
 
     // Log warnings if we don't have required files
     await checkForRequiredSharedFiles(pluginJson)
@@ -105,45 +104,39 @@ export async function onUpdateOrInstall(): Promise<void> {
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
     // logDebug(pluginJson, `onUpdateOrInstall: installOrUpdatePluginsByID ['np.Shared'] completed`)
 
-    // Migrate some setting names to new names.
-    // Note: can't easily be done with updateSettingData() in index.js as there can be multiple copies of these settings at different object levels.
-    // logInfo(pluginJson, `- renaming any necessary keys from 2.1.x to 2.2.x ...`)
-    const keysToChange = {
-    }
-
     const initialDashboardSettings = parseSettings(initialSettings.dashboardSettings)
-    const defaults = getDashboardSettingsDefaultsWithSectionsSetToFalse()
-    const migratedDashboardSettings = { ...defaults, ...renameKeys(initialDashboardSettings, keysToChange) }
+    // const defaults = getDashboardSettingsDefaultsWithSectionsSetToFalse()
+    // const migratedDashboardSettings = { ...defaults, ...renameKeys(initialDashboardSettings, keysToChange) }
 
     // Note: don't need to add *new* settings here, because if they are in the defaults of dashboardSettings, they will be added to the perspectives.
 
     // Note: Workaround for number types getting changed to strings at some point in our Settings system.  FIXME: but lower priority for now.
-    migratedDashboardSettings.newTaskSectionHeadingLevel = parseInt(migratedDashboardSettings.newTaskSectionHeadingLevel || 2)
-    migratedDashboardSettings.maxItemsToShowInSection = parseInt(migratedDashboardSettings.maxItemsToShowInSection || 24)
-    migratedDashboardSettings.lookBackDaysForOverdue = parseInt(migratedDashboardSettings.lookBackDaysForOverdue || 7)
-    migratedDashboardSettings.autoUpdateAfterIdleTime = parseInt(migratedDashboardSettings.autoUpdateAfterIdleTime || 10)
+    initialDashboardSettings.newTaskSectionHeadingLevel = parseInt(initialDashboardSettings.newTaskSectionHeadingLevel || 2)
+    initialDashboardSettings.maxItemsToShowInSection = parseInt(initialDashboardSettings.maxItemsToShowInSection || 24)
+    initialDashboardSettings.lookBackDaysForOverdue = parseInt(initialDashboardSettings.lookBackDaysForOverdue || 7)
+    initialDashboardSettings.autoUpdateAfterIdleTime = parseInt(initialDashboardSettings.autoUpdateAfterIdleTime || 10)
 
-    clo(migratedDashboardSettings, `onUpdateOrInstall - migratedDashboardSettings:`)
+    clo(initialDashboardSettings, `onUpdateOrInstall - initialDashboardSettings:`)
 
-    const perspectiveSettings = parseSettings(initialSettings.perspectiveSettings) ?? []
-    const newPerspectives = perspectiveSettings.map((p) => ({ ...p, dashboardSettings: { ...defaults, ...p.dashboardSettings } }))
-    const migratedSettings = { ...initialSettings, dashboardSettings: migratedDashboardSettings, perspectiveSettings: newPerspectives }
+    // const perspectiveSettings = parseSettings(initialSettings.perspectiveSettings) ?? []
+    // const newPerspectives = perspectiveSettings.map((p) => ({ ...p, dashboardSettings: { ...defaults, ...p.dashboardSettings } }))
+    // const migratedSettings = { ...initialSettings, dashboardSettings: migratedDashboardSettings, perspectiveSettings: newPerspectives }
 
-    const diff = compareObjects(migratedDashboardSettings, initialDashboardSettings, [], true)
-    if (diff != null) {
-      // Save the settings back to the DataStore
-      clo(diff, `Dashboard: onUpdateOrInstall - changes to settings detected. Diff:`)
-      await npc.saveSettings(pluginID, migratedSettings)
-    } else {
-      logInfo(`onUpdateOrInstall`, `- no changes detected to settings.`)
-    }
-    // force a refresh of the dashboard with the new settings.
-    await showDashboardReact()
-    logInfo(`onUpdateOrInstall`, `- finished.`)
-    npc.pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
+    // const diff = compareObjects(initialDashboardSettings, initialDashboardSettings, [], true)
+    // if (diff != null) {
+    //   // Save the settings back to the DataStore
+    //   clo(diff, `Dashboard: onUpdateOrInstall - changes to settings detected. Diff:`)
+    //   await npc.saveSettings(pluginID, migratedSettings)
+    // } else {
+    //   logInfo(`onUpdateOrInstall`, `- no changes detected to settings.`)
+    // }
+    // // force a refresh of the dashboard with the new settings.
+    // npc.pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
+    // await showDashboardReact()
+    // logInfo(`onUpdateOrInstall`, `- finished.`)
 
     // Now get the tagMentionCache up to date, by forcing a rebuild.
-    // Note: DBW thinks that we don't await this, NotePlan will kill the thread, and stop this from finishing.
+    // Note: DBW thinks that if we don't await this, NotePlan will kill the thread, and stop this from finishing.
     await generateTagMentionCache(true)
   } catch (err) {
     logError(pluginJson, `onUpdateOrInstall() error: ${err.message}`)

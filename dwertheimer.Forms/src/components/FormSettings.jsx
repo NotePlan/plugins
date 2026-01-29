@@ -236,7 +236,7 @@ export function FormSettings({
                 <div className="frontmatter-field frontmatter-field-compact-mode-sizing" style={{ marginTop: '1rem' }}>
                   <label className="frontmatter-field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
                     Compact Mode Sizing:
-                    <InfoIcon text="Control the width of labels and input fields in compact mode. Labels are right-aligned and inputs are left-aligned. Use CSS units like '10rem' for labels and '180px' for inputs. Leave empty to use defaults (10rem for labels, 180px for inputs)." />
+                    <InfoIcon text="Control the width of labels and input fields in compact mode. Labels are right-aligned and inputs are left-aligned. Use CSS units like '20rem' for labels and '360px' for inputs. Leave empty to use defaults (20rem for labels, 360px for inputs)." />
                   </label>
                   <div className="frontmatter-field-compact-mode-sizing-controls" style={{ marginTop: '0.5rem' }}>
                     <div className="frontmatter-field-compact-mode-sizing-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -260,7 +260,7 @@ export function FormSettings({
                               }
                             }
                           }}
-                          placeholder="10rem (default)"
+                          placeholder="20rem (default)"
                           style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
                         />
                       </div>
@@ -290,7 +290,7 @@ export function FormSettings({
                       </div>
                     </div>
                     <div className="frontmatter-field-compact-mode-sizing-help-text" style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem', fontStyle: 'italic' }}>
-                      Use CSS units like '10rem' or '12em' for labels, and '180px' or '200px' for inputs. Labels are right-aligned and inputs are left-aligned in compact mode. Leave empty to use defaults.
+                      Use CSS units like '20rem' or '24em' for labels, and '360px' or '400px' for inputs. Labels are right-aligned and inputs are left-aligned in compact mode. Leave empty to use defaults.
                     </div>
                   </div>
                 </div>

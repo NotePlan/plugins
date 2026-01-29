@@ -4,6 +4,98 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.20] 2026-01-26 @dwertheimer
+
+### Fixed
+- **DynamicDialog Switch compact mode**: Switch type now renders correctly in compact mode. Label is on the left and the switch on the right, matching other compactDisplay elements (InputBox, button-group, calendarpicker). Uses `input-box-container-compact` wrapper; Switch’s internal label is hidden via CSS when compact.
+
+## [1.0.19] 2026-01-26 @dwertheimer
+
+### Fixed
+- **Create-new folder override**: When creating a new note, a form field named `folder` now overrides any folder value from the form definition (newNoteFolder, template frontmatter, etc.) when passing data to templateRunner. Empty form `folder` is ignored; form definition is used as fallback.
+
+### Changed
+- **ProcessingMethodSection**: Folder field help text now states that a form field named `folder` is used to set the folder for the new note.
+
+## [1.0.18] 2026-01-25 @dwertheimer
+
+### Fixed
+- **Form Field Focus Styles**: Updated all form field focus styles to use `--tint-color` with a heavier 2px border stroke for better visibility:
+  - Input boxes, dropdowns, textareas, date pickers, and all chooser components now show a prominent `--tint-color` border when focused
+  - Added consistent box-shadow glow effect for all focused fields
+  - Fixed SearchableChooser focus styles to properly override base border styles using `!important` flags
+- **SearchableChooser Loading State**: Fixed multiple issues with SearchableChooser when fields are loading data:
+  - **Loading Spinner**: Added FontAwesome spinner icon (`fa-spinner fa-spin`) that appears in the input field when loading. Spinner is properly centered vertically and positioned on the right side of the input.
+  - **Auto-Open Prevention**: Fixed issue where dropdown would auto-open when field received focus but items were still loading, showing "No Options Available" instead of loading state. Dropdown now only opens automatically when items have finished loading.
+  - **Placeholder Management**: Fixed placeholder to show "Loading Values..." from initial render when loading is needed, preventing visual flip from "Type to search values..." to "Loading Values...".
+  - **Focus Management**: Fixed focus behavior so that when the first field finishes loading, focus automatically moves back to it if focus was previously set on a later field (e.g., 3rd field) while the first field was loading.
+  - **Empty State Blank Line**: Fixed issue where a blank, clickable line appeared in the dropdown when showing "No Options Available". Removed validation-message-placeholder div from dropdown options and made empty state non-clickable.
+  - **Loading State Propagation**: Added `isLoading` prop support to `DropdownSelectChooser` and `ContainedMultiSelectChooser` to properly show loading state in all chooser variants.
+- **FrontmatterKeyChooser Loading Initialization**: Fixed loading state initialization to start as `true` when a frontmatterKey is provided, ensuring "Loading Values..." placeholder appears immediately instead of showing normal placeholder first.
+- **SearchableChooser Color Override**: Fixed issue where inline color styles were overriding the default CSS color (`var(--fg-main-color, #4c4f69)`) even when `optionColor` was `null`, `undefined`, or the default `'gray-500'` value. Now only applies inline color styles when an explicit non-default color is provided, allowing the CSS default to be used otherwise.
+
+### Changed
+- **SearchableChooser Loading UX**: Improved loading experience by showing spinner icon and wait cursor, preventing dropdown from opening prematurely, and ensuring proper focus management when loading completes.
+- **EventChooser Icon**: Updated EventChooser dropdown icon from `fa-calendar` to `fa-solid fa-calendar-alt` for a more specific calendar-related icon that better represents event selection.
+- **SearchableChooser CSS Improvements**: 
+  - Fixed loading spinner vertical centering (changed from `top: 56%` to `top: 50%` with proper transform)
+  - Improved spinner sizing to match arrow icon size (0.75rem) with proper line-height and height constraints
+  - Fixed dropdown portal spacing issues by removing fixed min-height and ensuring no extra padding/margins
+  - Fixed last option spacing to maintain consistent padding
+- **SearchableChooser Filtering**: Enhanced default filter to also exclude blank/whitespace-only options in addition to templating syntax, preventing empty options from appearing in dropdown lists.
+
+## [1.0.17] 2026-01-25 @dwertheimer
+
+### Fixed
+- **SearchableChooser Templating Field Filter**: Fixed SearchableChooser to automatically filter out options containing templating fields (e.g., containing "<%") by default. This prevents templating syntax from appearing in frontmatter key chooser and other dropdown option lists.
+- **SearchableChooser Manual Entry Indicator**: Fixed issue where the pencil icon (manual entry indicator) was incorrectly appearing in empty/blank fields. The indicator now only appears when a non-empty value has been entered that is not in the items list, and only after the items list has finished loading.
+- **Frontmatter Key Values Filtering**: Fixed `getFrontmatterKeyValues` to filter out templating syntax values (containing "<%") at the source, preventing templating errors when forms load. Templating syntax values are now excluded from frontmatter key chooser dropdowns.
+- **ContainedMultiSelectChooser Create Mode**: Fixed issue where ContainedMultiSelectChooser was not allowing creation of new items when the list was empty. Now allows creating new items even when `items.length === 0`, as long as `allowCreate` is true and there's a search term with no matches.
+
+### Changed
+- **GenericDatePicker Calendar Auto-Close**: Improved date picker UX by automatically closing the calendar picker immediately after selecting a date. Previously, users had to click the date and then click outside the picker to close it. Now a single click on a date both selects it and closes the calendar.
+- **SearchableChooser Debug Logging**: Added comprehensive debug logging to SearchableChooser to help diagnose manual entry indicator issues. Logs include value checks, placeholder matching, and manual entry determination logic.
+- **FormBuilder Create-New Mode Fields**: Split "Content to Insert" into two separate fields when processing method is "Create New Note":
+  - **New Note Frontmatter**: Separate field for frontmatter content (saved to `template:ignore newNoteFrontmatter` codeblock)
+  - **New Note Body Content**: Renamed from "Content to Insert" to clarify it's the body content (saved to `template:ignore templateBody` codeblock)
+  - Frontmatter and body content are automatically combined with `--` delimiters when sending to TemplateRunner
+  - Fields are ordered with Frontmatter above Body Content for better workflow
+- **TemplateTagEditor Raw Mode**: All template tag editor fields (NewNoteTitle, Content to Insert, New Note Frontmatter, New Note Body Content) now default to raw mode with the toggle hidden, showing monospace text directly instead of pill/chip display for better readability
+
+## [1.0.16] 2026-01-19 @dwertheimer
+
+### Added
+- **NoteChooser Output Formats**: Added new output format options for note chooser fields:
+  - **Multi-select mode**: Added `'title'` and `'filename'` output formats (in addition to existing `'wikilink'`, `'pretty-link'`, `'raw-url'`). These return plain note titles or filenames without any formatting.
+  - **Single-select mode**: Added `singleSelectOutputFormat` option to choose between outputting the note title (default) or filename when a single note is selected.
+- **NoteChooser Filtering Options**: Added advanced filtering capabilities to note chooser fields:
+  - **Start Folder**: Filter notes to only show those in a specific folder and its subfolders (e.g., `'@Templates'`).
+  - **Include Regex**: Optional regex pattern to include only notes whose title or filename matches (case-insensitive).
+  - **Exclude Regex**: Optional regex pattern to exclude notes whose title or filename matches (case-insensitive).
+- **SearchableChooser ShortDescription Optimization**: Added automatic shortening of short descriptions to just the final folder name when the option row is too narrow, ensuring the label text takes precedence and remains fully visible.
+
+### Changed
+- **FormView CSS**: Reverted compact label width to 10rem (from 20rem) while keeping input width at 360px (2x the original 180px). This provides better balance between label and input field sizing.
+
+## [1.0.15] 2026-01-18 @dwertheimer
+
+### Fixed
+- **CRITICAL: Null Value Handling**: Fixed `TypeError: null is not an object (evaluating 'Object.getOwnPropertyNames')` error that occurred when templating plugin tried to process form data containing null values. Added explicit null checks in `JSP`, `getFilteredProps`, and `getAllPropertyNames` helper functions to handle null values correctly (since `typeof null === 'object'` in JavaScript).
+- **Form Submission Success Detection**: Fixed issue where successful form submissions were incorrectly flagged as errors. When `templateRunner` successfully creates a note via `templateNew`, it returns `undefined` (which is valid), but the code was treating this as an error. Now only `null` or empty strings are treated as errors.
+- **Deep Null Sanitization**: Added comprehensive deep sanitization of null/undefined values throughout form data processing. All null/undefined values are now converted to empty strings recursively before being passed to the templating engine, preventing errors in nested data structures.
+- **setTimeout Removal**: Removed `setTimeout` usage in form submission handlers (not available in NotePlan's JSContext). Replaced with proactive cleanup mechanism using a Map to manage debouncing without timeouts.
+
+### Changed
+- **templateNew Return Value**: Updated `templateNew` to return the filename (string) on success or `null` on failure, making the API more consistent and explicit. Previously returned `undefined`, which made it difficult to distinguish success from failure.
+- **templateRunner Return Value**: Updated `templateRunner` to return the filename when a note is successfully created, instead of returning `undefined`. This provides explicit feedback about successful operations.
+- **Error Messages**: Improved error messages to be more specific about null value issues and provide better guidance for debugging template execution problems.
+
+## [1.0.14] 2026-01-19 @dwertheimer
+
+### Changed
+- **Default Window Width**: Changed default window width for new forms from 25% to 50% when creating a new form in the form builder
+- **Default Compact Field Sizes**: Doubled the default compact field sizes - labels now default to 20rem (was 10rem) and inputs default to 360px (was 180px)
+
 ## [1.0.13] 2026-01-18 @dwertheimer
 
 ### Changed

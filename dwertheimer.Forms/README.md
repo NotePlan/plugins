@@ -346,6 +346,37 @@ Use form fields like: <%- fieldName %>
 
 All form field `key` values become variables in your template.
 
+**Dynamic Template Selection:**
+
+You can allow users to choose which processing template to use by adding a `note-chooser` field with the key `receivingTemplateTitle` to your form. This enables dynamic template selection at form submission time.
+
+**How it works:**
+- Add a `note-chooser` field to your form
+- Set the field's `key` to exactly `receivingTemplateTitle`
+- When the form is submitted, the selected note's title will be used as the processing template
+- If no template is selected in the form field, the system falls back to the `receivingTemplateTitle` set in the form's frontmatter (if present)
+
+**Example form field definition:**
+```json
+{
+  "type": "note-chooser",
+  "key": "receivingTemplateTitle",
+  "label": "Choose Processing Template",
+  "includePersonalNotes": true,
+  "includeTemplatesAndForms": true,
+  "startFolder": "@Templates",
+  "includeRegex": "^Template",
+  "description": "Select which template should process this form submission"
+}
+```
+
+**Use cases:**
+- Allow users to choose between different processing templates (e.g., "Meeting Template" vs "Project Template")
+- Create a single form that can route to different processing templates based on user selection
+- Enable dynamic workflow routing based on form data
+
+**Note:** The form must have `processingMethod: "form-processor"` set in its frontmatter. The `receivingTemplateTitle` field value takes precedence over the frontmatter value when a template is selected in the form.
+
 **Date Formatting Example:**
 
 ```ejs
@@ -401,8 +432,10 @@ Don't use these as field keys (the plugin uses them internally):
 - `__isJSON__`, `submit`, `location`, `writeUnderHeading`
 - `openNoteTitle`, `writeNoteTitle`, `getNoteTitled`
 - `replaceNoteContents`, `createMissingHeading`
-- `receivingTemplateTitle`, `windowTitle`, `formTitle`
+- `windowTitle`, `formTitle`
 - `width`, `height`, `hideDependentItems`, `allowEmptySubmit`, `title`
+
+**Exception:** `receivingTemplateTitle` can be used as a field key if you want to allow users to dynamically select the processing template. See "Dynamic Template Selection" in the Custom Processing Templates section above.
 
 ---
 

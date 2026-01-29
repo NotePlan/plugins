@@ -128,6 +128,15 @@ export async function handleRequestResponse({
 
     const dataToSend = result.data
 
+    // Log response format details for debugging
+    const dataType = dataToSend != null ? typeof dataToSend : 'null'
+    const isDataArray = Array.isArray(dataToSend)
+    const dataLength = isDataArray ? dataToSend.length : (dataToSend != null && typeof dataToSend === 'object' ? Object.keys(dataToSend).length : 'N/A')
+    logDebug(
+      pluginJson,
+      `${routerName}: Sending RESPONSE for "${actionType}": dataType=${dataType}, isArray=${String(isDataArray)}, length=${String(dataLength)}, correlationId="${data.__correlationId}"`,
+    )
+
     // Send response back to React
     sendToHTMLWindow(windowId, 'RESPONSE', {
       correlationId: data.__correlationId,

@@ -128,43 +128,58 @@ export async function copySpecificSettings(oldPluginID: string, newPluginID: str
   await saveSettings(newPluginID, newPluginSettings, false)
 }
 
+/**
+ * Get a specific setting from the given plugin's settings.json file.
+ * @author @codedungeon
+ * @param {string} pluginId
+ * @param {string} key
+ * @param {any} defaultValue
+ * @returns {any} the value of the setting, or the defaultValue if the setting is not found
+ */
 export async function getSetting(pluginId: string, key: string, defaultValue?: any = ''): Promise<any | null> {
-  const settings = await DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
+  const settings = await DataStore.loadJSON(`../${pluginId}/settings.json`)
   return typeof settings === 'object' && settings.hasOwnProperty(key) ? settings[key] : defaultValue
 }
 
+/**
+ * Get all settings from the given plugin's settings.json file.
+ * @author @codedungeon
+ * @param {string} pluginId
+ * @param {any} defaultValue
+ * @returns {any} the settings object, or the defaultValue if the settings file is not found
+ */
 export async function getSettings(pluginId: string, defaultValue?: any = {}): any | null {
-  const settings = await DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
+  const settings = await DataStore.loadJSON(`../${pluginId}/settings.json`)
   return typeof settings === 'object' ? settings : defaultValue
 }
 
 /**
- * Save given settings to the given plugin's settings.json file.
+ * Save given settings to the given plugin's settings.json file, which is stored in the Plugins/data/<plugin> folder.
  * @author @dwertheimer, updated by @jgclark
  * @param {string} pluginId
  * @param {any} value
  * @param {boolean?} triggerUpdateMechanism? (defaults to true)
- * @returns {any} ?
+ * @returns {boolean} success/failure
  */
 export async function saveSettings(pluginId: string, value: any, triggerUpdateMechanism: boolean = true): Promise<boolean> {
   // logDebug('NPConfiguration/saveSettings', `starting to ${pluginId}/plugin.json with triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
   if (triggerUpdateMechanism) {
     // save, and can't or don't want to turn off triggering onUpdateSettings
-    return await DataStore.saveJSON(value, `../../data/${pluginId}/settings.json`)
+    return await DataStore.saveJSON(value, `../${pluginId}/settings.json`)
   } else {
     // save, but don't trigger onUpdateSettings
     // logDebug('NPConfiguration/saveSettings', `writing ${pluginId}/settings.json and asking to block trigger`)
-    return await DataStore.saveJSON(value, `../../data/${pluginId}/settings.json`, true)
+    return await DataStore.saveJSON(value, `../${pluginId}/settings.json`, true)
   }
 }
 
 /**
- * Save given settings to the given plugin's plugin.json file.
+ * Save given settings to the given plugin's plugin.json file, which is stored in the Plugins/<plugin> folder -- NOT in the data folder.
  * @author @dwertheimer, updated by @jgclark
  * @param {string?} pluginId
  * @param {any?} value
  * @param {boolean?} triggerUpdateMechanism
- * @returns {any} ?
+ * @returns {boolean} success/failure
  */
 export async function savePluginJson(pluginId: string = '', value: any = {}, triggerUpdateMechanism: boolean = true): Promise<boolean> {
   // logDebug('NPConfiguration/savePluginJson', `starting for ${pluginId}/plugin.json triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
@@ -178,6 +193,12 @@ export async function savePluginJson(pluginId: string = '', value: any = {}, tri
   }
 }
 
+/**
+ * Get the plugin.json file from the given plugin's folder, which is stored in the Plugins/<plugin> folder -- NOT in the data folder.
+ * @author @dwertheimer
+ * @param {string} pluginId
+ * @returns {any} the plugin.json object
+ */
 export async function getPluginJson(pluginId: string = ''): any {
   return await DataStore.loadJSON(`../../${pluginId}/plugin.json`)
 }
@@ -550,19 +571,24 @@ export async function getSettingFromAnotherPlugin(pluginID: string, settingName:
  * @author @jgclark
  * @param {string} pluginID
  * @param {string} reason
+ * @param {boolean?} suppressMessage - (optional; default is false) If true, suppress the showMessage call (default: false)
  * @returns {boolean} true if successful, false if not
  */
-export async function backupSettings(pluginID: string, reason: string = 'backup'): Promise<boolean> {
+export async function backupSettings(pluginID: string, reason: string = 'backup', suppressMessage: boolean = false): Promise<boolean> {
   try {
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     const backupFilename = `settings_${reason}_${moment().format('YYYYMMDDHHmmss')}.json`
     const backupPath = `../${pluginID}/${backupFilename}`
     await DataStore.saveJSON(pluginSettings, backupPath)
-    await showMessage(`Backup of ${pluginID} settings saved to ${backupPath}`, 'OK', `${pluginID} Settings Backup`)
+    if (!suppressMessage) {
+      await showMessage(`Backup of ${pluginID} settings saved to ${backupPath}`, 'OK', `${pluginID} Settings Backup`)
+    }
     logInfo('backupSettings', `Backup of ${pluginID} settings saved to ${backupPath}`)
     return true
   } catch (error) {
-    await showMessage(`Error trying to Backup ${pluginID} settings. Please see Plugin Console log for details.`, 'OK', `${pluginID} Settings Backup`)
+    if (!suppressMessage) {
+      await showMessage(`Error trying to Backup ${pluginID} settings. Please see Plugin Console log for details.`, 'OK', `${pluginID} Settings Backup`)
+    }
     logError('backupSettings', `Error: ${error.message}`)
     return false
   }

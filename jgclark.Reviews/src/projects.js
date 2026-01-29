@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 2025-12-10 for v1.4.0, @jgclark
+// Last updated 2026-01-24 for v1.3.0.b7, @jgclark
 //-----------------------------------------------------------------------------
 
 
@@ -54,7 +54,8 @@ function validateAndGetNote(noteArg?: TNote, functionName: string = 'function'):
 }
 
 /**
- * Reload note, update project lists, and render outputs
+ * Reload note, update project lists, and render outputs.
+ * This is called by completeProject, cancelProject, togglePauseProject.
  * @param {TNote} note - Note to reload
  * @param {ReviewConfig} config - Review configuration
  * @param {boolean} shouldArchive - Whether note should be archived

@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { calculatePortalPosition } from '@helpers/react/reactUtils.js'
 import { getColorStyle } from '@helpers/colors.js'
+import { logDebug } from '@helpers/react/reactDev.js'
 import './SearchableChooser.css'
 
 /**
@@ -142,6 +143,11 @@ export function SearchableChooser({
   } = config
 
   const [isOpen, setIsOpen] = useState<boolean>(false)
+  
+  // Log isOpen state changes for debugging
+  useEffect(() => {
+    logDebug('SearchableChooser', `[${classNamePrefix}] isOpen state changed to: ${isOpen}`)
+  }, [isOpen, classNamePrefix])
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [filteredItems, setFilteredItems] = useState<Array<any>>(items)
   const [optionKeyPressed, setOptionKeyPressed] = useState<boolean>(false)
@@ -179,13 +185,28 @@ export function SearchableChooser({
   //   }
   // }, [items, isOpen, filteredItems.length, debugLogging, fieldType, getDisplayValue])
 
-  // Filter items: first apply itemFilter (if provided), then apply search filter
+  // Filter items: first apply itemFilter (if provided), then apply default templating filter, then apply search filter
   useEffect(() => {
     // Apply itemFilter first (if provided) - this filters items regardless of search term
     let preFilteredItems = items
     if (itemFilter) {
       preFilteredItems = items.filter((item: any) => itemFilter(item))
     }
+
+    // Apply default filter to screen out templating fields (containing "<%") and blank options
+    // This prevents templating syntax and empty options from appearing in option lists
+    preFilteredItems = preFilteredItems.filter((item: any) => {
+      const optionText = getOptionText(item)
+      // Filter out templating syntax and blank/whitespace-only options
+      if (optionText.includes('<%')) {
+        return false
+      }
+      // Filter out blank or whitespace-only options
+      if (!optionText || optionText.trim() === '') {
+        return false
+      }
+      return true
+    })
 
     // Then apply search filter if there's a search term
     if (!searchTerm.trim()) {
@@ -194,7 +215,7 @@ export function SearchableChooser({
       const filtered = preFilteredItems.filter((item: any) => filterFn(item, searchTerm))
       setFilteredItems(filtered)
     }
-  }, [searchTerm, items, filterFn, itemFilter])
+  }, [searchTerm, items, filterFn, itemFilter, getOptionText])
 
   // Scroll highlighted item into view when hoveredIndex changes
   useEffect(() => {
@@ -325,11 +346,31 @@ export function SearchableChooser({
       if (containerRef.current && target instanceof HTMLElement && !containerRef.current.contains(target) && dropdownRef.current && !dropdownRef.current.contains(target)) {
         setIsOpen(false)
         setSearchTerm('')
+        setHoveredIndex(null)
+      }
+    }
+
+    // Listen for focus events from other SearchableChooser instances
+    const handleOtherFocus = (event: Event) => {
+      // If another chooser got focus and it's not this one, close this dropdown
+      // Flow doesn't know about CustomEvent, so we need to access detail via any
+      const customEvent: any = event
+      logDebug('SearchableChooser', `[${classNamePrefix}] Received searchableChooserFocus event, detail=${JSON.stringify(customEvent.detail)}, isOpen=${isOpen}`)
+      if (customEvent.detail && customEvent.detail.classNamePrefix !== classNamePrefix) {
+        logDebug('SearchableChooser', `[${classNamePrefix}] Closing dropdown: another chooser (${customEvent.detail.classNamePrefix}) got focus`)
+        setIsOpen(false)
+        setSearchTerm('')
+        setHoveredIndex(null)
+      } else {
+        logDebug('SearchableChooser', `[${classNamePrefix}] Ignoring focus event: same chooser or no detail`)
       }
     }
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
+      if (typeof window !== 'undefined') {
+        window.addEventListener('searchableChooserFocus', handleOtherFocus)
+      }
       // Focus input when dropdown opens
       if (inputRef.current) {
         setTimeout(() => inputRef.current?.focus(), 0)
@@ -338,8 +379,11 @@ export function SearchableChooser({
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('searchableChooserFocus', handleOtherFocus)
+      }
     }
-  }, [isOpen])
+  }, [isOpen, classNamePrefix])
 
   const handleInputChange = (e: SyntheticInputEvent<HTMLInputElement>) => {
     const newSearchTerm = e.target.value
@@ -355,22 +399,74 @@ export function SearchableChooser({
   }
 
   const handleInputFocus = () => {
+    logDebug('SearchableChooser', `[${classNamePrefix}] handleInputFocus called, suppressOpenOnFocusRef=${suppressOpenOnFocusRef.current}, isOpen=${isOpen}, isLoading=${isLoading}, items.length=${items.length}`)
     if (suppressOpenOnFocusRef.current) {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Suppressing open on focus`)
       suppressOpenOnFocusRef.current = false
       return
     }
-    if (debugLogging) {
-      console.log(`${fieldType}: Input focused, opening dropdown. items=${items.length}, filteredItems=${filteredItems.length}`)
+    // Close all other dropdowns when this one gets focus
+    // Dispatch a custom event that other SearchableChooser instances can listen to
+    if (typeof window !== 'undefined') {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Dispatching searchableChooserFocus event`)
+      window.dispatchEvent(new CustomEvent('searchableChooserFocus', { detail: { fieldType, classNamePrefix } }))
     }
     if (!isOpen && onOpen) {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Calling onOpen callback`)
       onOpen() // Trigger lazy loading callback
     }
-    setIsOpen(true)
-    // Calculate position immediately when opening (synchronously)
-    const position = calculateDropdownPosition()
-    if (position) {
-      setDropdownPosition(position)
+    // Only open dropdown if items are loaded (not loading and items exist)
+    // If loading or no items, wait for items to load before opening
+    if (!isLoading && items.length > 0) {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Opening dropdown on focus`)
+      setIsOpen(true)
+      // Calculate position immediately when opening (synchronously)
+      const position = calculateDropdownPosition()
+      if (position) {
+        setDropdownPosition(position)
+      }
+    } else {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Not opening dropdown: isLoading=${isLoading}, items.length=${items.length}`)
     }
+    // If loading or no items, the dropdown will auto-open when items finish loading
+    // (handled by useEffect below)
+  }
+
+  const handleInputBlur = (e: SyntheticFocusEvent<HTMLInputElement>) => {
+    logDebug('SearchableChooser', `[${classNamePrefix}] handleInputBlur called, isOpen=${isOpen}`)
+    // Don't close if clicking on the dropdown itself
+    // Use setTimeout to check if the new focus target is within our container
+    setTimeout(() => {
+      const relatedTarget = e.relatedTarget || document.activeElement
+      logDebug('SearchableChooser', `[${classNamePrefix}] Blur timeout: relatedTarget=${relatedTarget?.tagName || 'null'}, activeElement=${document.activeElement?.tagName || 'null'}`)
+      if (containerRef.current && relatedTarget instanceof HTMLElement) {
+        // If the new focus is within our container or dropdown, don't close
+        if (containerRef.current.contains(relatedTarget) || (dropdownRef.current && dropdownRef.current.contains(relatedTarget))) {
+          logDebug('SearchableChooser', `[${classNamePrefix}] Not closing: focus is within container or dropdown`)
+          return
+        }
+        // If the new focus is another input field, close this dropdown
+        // This ensures only one dropdown is open at a time
+        if (relatedTarget instanceof HTMLInputElement && relatedTarget !== inputRef.current) {
+          logDebug('SearchableChooser', `[${classNamePrefix}] Closing dropdown: focus moved to another input`)
+          setIsOpen(false)
+          setSearchTerm('')
+          setHoveredIndex(null)
+          return
+        }
+      }
+      // Only close if we're not suppressing (e.g., after item selection, we want to keep it closed)
+      // If suppressOpenOnFocusRef is set, the dropdown should already be closed, so this is just cleanup
+      if (!suppressOpenOnFocusRef.current) {
+        // Close dropdown when input loses focus (and focus isn't going to another input in our container)
+        logDebug('SearchableChooser', `[${classNamePrefix}] Closing dropdown: input lost focus`)
+        setIsOpen(false)
+        setSearchTerm('')
+        setHoveredIndex(null)
+      } else {
+        logDebug('SearchableChooser', `[${classNamePrefix}] Not closing on blur: suppressOpenOnFocusRef is set`)
+      }
+    }, 200) // Increased delay to allow click events on dropdown items and other inputs to process
   }
 
   const handleInputKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
@@ -404,8 +500,17 @@ export function SearchableChooser({
     }
 
     // Handle Tab key: close dropdown and allow normal tab navigation
+    // Also handle manual entry selection if enabled (similar to Enter key)
     if (e.key === 'Tab') {
       if (isOpen) {
+        // Check if we should create a manual entry (same logic as Enter key)
+        // Only create manual entry if there are no filtered items to select
+        if (allowManualEntry && searchTerm.trim() && filteredItems.length === 0) {
+          // Create manual entry item (same as Enter key behavior)
+          suppressOpenOnFocusRef.current = true
+          const manualEntryItem = { __manualEntry__: true, value: searchTerm.trim(), display: searchTerm.trim() }
+          onSelect(manualEntryItem)
+        }
         // Close dropdown when Tab is pressed, but don't prevent default
         // This allows normal tab navigation to proceed
         setIsOpen(false)
@@ -417,11 +522,13 @@ export function SearchableChooser({
     }
 
     if (e.key === 'Enter') {
+      logDebug('SearchableChooser', `[${classNamePrefix}] Enter key pressed, isOpen=${isOpen}, hoveredIndex=${hoveredIndex}, filteredItems.length=${filteredItems.length}`)
       e.preventDefault() // Prevent form submission
       e.stopPropagation() // Stop event from bubbling to DynamicDialog
 
       // If dropdown is closed, reopen it
       if (!isOpen) {
+        logDebug('SearchableChooser', `[${classNamePrefix}] Opening dropdown on Enter`)
         setIsOpen(true)
         setSearchTerm('')
         setHoveredIndex(null)
@@ -434,6 +541,8 @@ export function SearchableChooser({
         if (onOpen) {
           onOpen()
         }
+        // If items are already loaded, ensure dropdown is ready for navigation
+        // The useEffect will handle opening when items finish loading if they're not ready yet
         return
       }
 
@@ -442,21 +551,21 @@ export function SearchableChooser({
       const itemToSelect =
         hoveredIndex != null && hoveredIndex >= 0 && hoveredIndex < filteredItems.length ? filteredItems[hoveredIndex] : filteredItems.length > 0 ? filteredItems[0] : null
 
+      logDebug('SearchableChooser', `[${classNamePrefix}] Enter with dropdown open, itemToSelect=${itemToSelect ? (getOptionText ? getOptionText(itemToSelect) : 'found') : 'null'}`)
       if (itemToSelect) {
         handleItemSelect(itemToSelect)
       } else if (allowManualEntry && searchTerm.trim()) {
         // Allow manual entry if enabled and there's text typed
         // Create a special manual entry item
+        // Set suppress flag BEFORE closing dropdown to prevent auto-reopen on refocus
+        suppressOpenOnFocusRef.current = true
         const manualEntryItem = { __manualEntry__: true, value: searchTerm.trim(), display: searchTerm.trim() }
         onSelect(manualEntryItem)
         setIsOpen(false)
         setSearchTerm('')
-        // Keep focus on the input to allow tab navigation to continue working
-        if (inputRef.current) {
-          setTimeout(() => {
-            inputRef.current?.focus()
-          }, 0)
-        }
+        setHoveredIndex(null)
+        // Don't refocus the input after selection - let it blur naturally
+        // This prevents the dropdown from reopening
       }
     } else if (e.key === 'Escape' || e.key === 'Esc') {
       // Close dropdown on ESC, but only if it's open
@@ -475,6 +584,7 @@ export function SearchableChooser({
   }
 
   const handleItemSelect = (item: any, event?: SyntheticMouseEvent<HTMLDivElement>) => {
+    logDebug('SearchableChooser', `[${classNamePrefix}] handleItemSelect called, isOpen=${isOpen}, item=${getOptionText ? getOptionText(item) : JSON.stringify(item)}`)
     // Check if Option/Alt key is pressed
     if (event && (event.altKey || event.metaKey) && onOptionClick) {
       event.preventDefault()
@@ -482,17 +592,18 @@ export function SearchableChooser({
       onOptionClick(item)
       return
     }
+    // Set suppress flag BEFORE closing dropdown to prevent auto-reopen
+    // This flag will prevent both the focus handler and the auto-open useEffect from reopening
+    suppressOpenOnFocusRef.current = true
+    logDebug('SearchableChooser', `[${classNamePrefix}] Setting suppressOpenOnFocusRef=true, calling onSelect, closing dropdown`)
     onSelect(item)
     setIsOpen(false)
     setSearchTerm('')
-    // Keep focus on the input to allow tab navigation to continue working
-    // Use setTimeout to ensure the dropdown closes first, then refocus
-    if (inputRef.current) {
-      setTimeout(() => {
-        suppressOpenOnFocusRef.current = true
-        inputRef.current?.focus()
-      }, 0)
-    }
+    setHoveredIndex(null)
+    // Don't refocus the input after selection - let it blur naturally
+    // This prevents the dropdown from reopening
+    // The suppress flag will be cleared by the auto-open useEffect after a delay
+    logDebug('SearchableChooser', `[${classNamePrefix}] Dropdown should now be closed, suppressOpenOnFocusRef=${suppressOpenOnFocusRef.current}`)
   }
 
   // When displaying the selected value, try to find the item by value and use its display label
@@ -501,84 +612,49 @@ export function SearchableChooser({
   let isManualEntryValue = false
 
   // Check if current value is a manual entry
-  if (allowManualEntry && displayValue && isManualEntry) {
-    isManualEntryValue = isManualEntry(displayValue, items)
+  // Don't show manual entry indicator for empty/blank values or placeholder text
+  const trimmedDisplayValue = displayValue ? displayValue.trim() : ''
+  const isPlaceholderValue = placeholder && trimmedDisplayValue === placeholder.trim()
+  
+  if (allowManualEntry && trimmedDisplayValue !== '' && !isPlaceholderValue && isManualEntry) {
+    // Don't show manual entry indicator if items list is empty (still loading)
+    if (items && items.length > 0) {
+      const manualEntryResult = isManualEntry(trimmedDisplayValue, items)
+      isManualEntryValue = manualEntryResult
+    }
   }
 
   if (displayValue && items && items.length > 0 && !isManualEntryValue) {
-    if (debugLogging) {
-      console.log(`${fieldType}: Looking up display value for stored value: "${value}"`)
-      console.log(`${fieldType}: Items available: ${items.length}, first item type:`, typeof items[0])
-      if (items.length > 0 && typeof items[0] === 'object') {
-        console.log(`${fieldType}: First item keys:`, Object.keys(items[0]))
-      }
-    }
-
     // Try to find the item that matches this value
     // For notes, we need to match by filename; for folders, by path
     const foundItem = items.find((item: any) => {
       // Check if this item's value matches our stored value
       // For note objects, compare filename; for folder strings, compare the string itself
       if (typeof item === 'string') {
-        const matches = item === displayValue
-        if (debugLogging && matches) {
-          console.log(`${fieldType}: Matched string item: "${item}" === "${displayValue}"`)
-        }
-        return matches
+        return item === displayValue
       } else if (item && typeof item === 'object' && 'filename' in item) {
         // It's a note object, match by filename
-        const matches = item.filename === displayValue
-        if (debugLogging && matches) {
-          console.log(`${fieldType}: Matched note item by filename: "${item.filename}" === "${displayValue}", title: "${item.title}"`)
-        }
-        return matches
+        return item.filename === displayValue
       } else if (item && typeof item === 'object' && 'id' in item) {
         // It's an object with an id property (event, space, etc.), match by id first
         const matchesById = item.id === displayValue
         if (matchesById) {
-          if (debugLogging) {
-            console.log(`${fieldType}: Matched item by id: "${item.id}" === "${displayValue}", title: "${item.title || ''}"`)
-          }
           return true
         }
         // If id doesn't match, also check display value as fallback
         // This handles cases where value is a display string (e.g., "Private") instead of id (e.g., "")
         const displayVal = getDisplayValue(item)
-        const matchesByDisplay = displayVal === displayValue
-        if (debugLogging && matchesByDisplay) {
-          console.log(`${fieldType}: Matched item by display value: "${displayVal}" === "${displayValue}", id: "${item.id || ''}"`)
-        }
-        return matchesByDisplay
+        return displayVal === displayValue
       }
       // For other object types, try to match by comparing getDisplayValue result
       // or by checking if the item itself is the value
       const displayVal = getDisplayValue(item)
-      const matches = item === displayValue || displayVal === displayValue
-      if (debugLogging && matches) {
-        console.log(`${fieldType}: Matched object item:`, item)
-      }
-      return matches
+      return item === displayValue || displayVal === displayValue
     })
 
     if (foundItem) {
       // Use the display label from the found item
-      const originalDisplayValue = displayValue
       displayValue = getDisplayValue(foundItem)
-      if (debugLogging) {
-        console.log(`${fieldType}: Found item! Original value: "${originalDisplayValue}" -> Display value: "${displayValue}"`)
-      }
-    } else {
-      if (debugLogging) {
-        console.log(`${fieldType}: No item found for value "${value}", will display value directly`)
-        // Show a few examples of what we're searching through
-        if (items.length > 0) {
-          const examples = items.slice(0, 3).map((item: any) => {
-            if (typeof item === 'string') return item
-            if (item && typeof item === 'object' && 'filename' in item) return `{title: "${item.title}", filename: "${item.filename}"}`
-            return String(item)
-          })
-        }
-      }
     }
   }
 
@@ -642,6 +718,37 @@ export function SearchableChooser({
     }
   }, [isLoading, isOpen]) // Recalculate when loading completes
 
+  // Auto-open dropdown when items finish loading if input is focused
+  // This handles the case where focus was set before items were loaded
+  // BUT: Don't auto-open if suppressOpenOnFocusRef is set (e.g., after item selection)
+  useEffect(() => {
+    if (!isLoading && items.length > 0 && !isOpen && inputRef.current) {
+      // Check if we should suppress auto-open (e.g., after item selection)
+      if (suppressOpenOnFocusRef.current) {
+        logDebug('SearchableChooser', `[${classNamePrefix}] Items finished loading but suppressing auto-open (suppressOpenOnFocusRef=true)`)
+        // Clear the suppress flag after a delay to allow normal behavior on next focus
+        setTimeout(() => {
+          suppressOpenOnFocusRef.current = false
+          logDebug('SearchableChooser', `[${classNamePrefix}] Cleared suppressOpenOnFocusRef flag`)
+        }, 300)
+        return
+      }
+      // Check if input is currently focused
+      const isFocused = document.activeElement === inputRef.current
+      logDebug('SearchableChooser', `[${classNamePrefix}] Items finished loading: isLoading=${isLoading}, items.length=${items.length}, isOpen=${isOpen}, isFocused=${isFocused}`)
+      if (isFocused) {
+        // Input is focused and items are now loaded - open the dropdown
+        logDebug('SearchableChooser', `[${classNamePrefix}] Auto-opening dropdown: input is focused and items are loaded`)
+        setIsOpen(true)
+        // Calculate position immediately when opening
+        const position = calculateDropdownPosition()
+        if (position) {
+          setDropdownPosition(position)
+        }
+      }
+    }
+  }, [isLoading, items.length, isOpen, classNamePrefix]) // Watch for loading completion and items availability
+
   // Debug logging (disabled for cleaner console output)
   // if (debugLogging && displayValue) {
   //   console.log(`${fieldType}: displayValue="${displayValue}", length=${displayValue.length}`)
@@ -682,21 +789,25 @@ export function SearchableChooser({
           id={`${classNamePrefix}-${label || 'default'}`}
           ref={inputRef}
           type="text"
-          className={`${classNamePrefix}-input ${isManualEntryValue ? 'manual-entry' : ''}`}
+          className={`${classNamePrefix}-input ${isManualEntryValue ? 'manual-entry' : ''} ${isLoading ? 'loading' : ''}`}
           value={isOpen ? searchTerm : truncatedDisplayValue}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
           onKeyDown={handleInputKeyDown}
-          placeholder={placeholder}
+          placeholder={isLoading ? 'Loading Values...' : placeholder}
           disabled={disabled}
-          title={isManualEntryValue ? `${displayValue} (${manualEntryIndicator})` : displayValue || placeholder}
+          title={isManualEntryValue ? `${displayValue} (${manualEntryIndicator})` : displayValue || (isLoading ? 'Loading Values...' : placeholder)}
+          style={isLoading ? { cursor: 'wait' } : undefined}
         />
         {isManualEntryValue && !isOpen && (
           <span className={`${classNamePrefix}-manual-entry-indicator`} title={manualEntryIndicator}>
             {manualEntryIndicator}
           </span>
         )}
-        {showArrow ? (
+        {isLoading ? (
+          <i className={`fa-solid fa-spinner fa-spin ${classNamePrefix}-loading-spinner`} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))', pointerEvents: 'none', zIndex: 10, fontSize: '0.75rem', lineHeight: '1', height: '0.75rem', display: 'inline-flex', alignItems: 'center' }}></i>
+        ) : showArrow ? (
           <i className={`fa-solid fa-chevron-down ${classNamePrefix}-arrow ${isOpen ? 'open' : ''}`}></i>
         ) : iconClass ? (
           <i
@@ -738,18 +849,15 @@ export function SearchableChooser({
                 zIndex: 99999,
                 opacity: dropdownPosition ? 1 : 0,
                 pointerEvents: dropdownPosition ? 'auto' : 'none',
+                padding: 0,
+                paddingBottom: 0,
+                marginBottom: 0,
               }}
               data-debug-isopen={String(isOpen)}
               data-debug-filtered-count={filteredItems.length}
               data-debug-items-count={items.length}
               data-debug-isloading={String(isLoading)}
             >
-              {debugLogging &&
-                console.log(
-                  `${fieldType}: Rendering dropdown, isOpen=${String(isOpen)}, isLoading=${String(isLoading)}, items.length=${items.length}, filteredItems.length=${
-                    filteredItems.length
-                  }`,
-                )}
               {isLoading ? (
                 <div
                   className={`searchable-chooser-empty ${classNamePrefix}-empty`}
@@ -781,9 +889,6 @@ export function SearchableChooser({
                 (() => {
                   // Show all items if maxResults is undefined, otherwise limit to maxResults
                   const itemsToShow = maxResults != null && maxResults > 0 ? filteredItems.slice(0, maxResults) : filteredItems
-                  if (debugLogging) {
-                    console.log(`${fieldType}: Rendering ${itemsToShow.length} options (filtered from ${filteredItems.length} total, maxResults=${maxResults || 'unlimited'})`)
-                  }
 
                   // Check if any items have icons or shortDescriptions (calculate once for all items)
                   const hasIconsOrDescriptions = itemsToShow.some((item: any) => {
@@ -792,26 +897,49 @@ export function SearchableChooser({
                     return hasIcon || hasShortDesc
                   })
 
-                  return itemsToShow.map((item: any, index: number) => {
+                  // Filter out blank options before mapping
+                  const validItemsToShow = itemsToShow.filter((item: any) => {
+                    const optionText = getOptionText(item)
+                    return optionText && optionText.trim() !== ''
+                  })
+
+                  return validItemsToShow.map((item: any, index: number) => {
                     const optionText = getOptionText(item)
                     // Only apply JavaScript truncation for very long items (>dropdownMaxLength)
                     // For shorter items, let CSS handle truncation based on actual width
                     const truncatedText = optionText.length > dropdownMaxLength ? truncateDisplay(optionText, dropdownMaxLength) : optionText
                     const optionTitle = getOptionTitle(item)
-                    if (debugLogging && index < 3) {
-                      const jsTruncated = optionText.length > dropdownMaxLength
-                      console.log(
-                        `${fieldType}: Dropdown option[${index}]: original="${optionText}", length=${optionText.length}, truncated="${truncatedText}", length=${
-                          truncatedText.length
-                        }, maxLength=${dropdownMaxLength}, jsTruncated=${String(jsTruncated)}`,
-                      )
-                    }
                     const optionIcon = getOptionIcon ? getOptionIcon(item) : null
                     const optionColor = getOptionColor ? getOptionColor(item) : null
                     let optionShortDesc = getOptionShortDescription ? getOptionShortDescription(item) : null
                     // Hide short description if it's identical to the label text
                     if (optionShortDesc && optionText && optionShortDesc.trim() === optionText.trim()) {
                       optionShortDesc = null
+                    }
+                    // If shortDescription looks like a path and might be too long for the row,
+                    // shorten it to just the final folder to ensure label takes precedence
+                    if (optionShortDesc && (optionShortDesc.includes('/') || optionShortDesc.includes(' / '))) {
+                      // Extract final folder from path (handles both '/' and ' / ' separators)
+                      const pathParts = optionShortDesc.split(/\/|\s+\/\s+/).filter(Boolean)
+                      if (pathParts.length > 1) {
+                        // If it's a teamspace path (starts with teamspace name), keep teamspace + final folder
+                        // Otherwise, just use final folder
+                        const finalPart = pathParts[pathParts.length - 1]
+                        const secondToLast = pathParts.length > 1 ? pathParts[pathParts.length - 2] : null
+                        // Check if second-to-last part looks like a teamspace name (common patterns)
+                        const isTeamspacePattern = secondToLast && (
+                          secondToLast.includes('Teamspace') || 
+                          secondToLast.includes('👥') ||
+                          /^\[.*\]$/.test(secondToLast)
+                        )
+                        if (isTeamspacePattern && pathParts.length > 2) {
+                          // Keep teamspace name + final folder
+                          optionShortDesc = `${secondToLast} / ${finalPart}`
+                        } else {
+                          // Just use final folder
+                          optionShortDesc = finalPart
+                        }
+                      }
                     }
                     const isHovered = hoveredIndex === index
                     const isSelected = hoveredIndex === index // For keyboard navigation highlighting
@@ -883,9 +1011,16 @@ export function SearchableChooser({
                             )}
                             <span
                               className={`searchable-chooser-option-text ${classNamePrefix}-option-text`}
-                              style={{
-                                color: getColorStyle(optionColor),
-                              }}
+                              // TEST: @jgc turning off inline color for text for now, but leaving it on for the icons
+                              // style={(() => {
+                              //   // Only apply inline color if optionColor is explicitly set and not a default gray-500
+                              //   // This allows CSS default color to be used when optionColor is null/undefined or default
+                              //   if (!optionColor || optionColor === 'gray-500') {
+                              //     return undefined
+                              //   }
+                              //   const colorStyle = getColorStyle(optionColor)
+                              //   return colorStyle ? { color: colorStyle } : undefined
+                              // })()}
                             >
                               {truncatedText}
                             </span>
@@ -898,8 +1033,6 @@ export function SearchableChooser({
                           >
                             {optionShortDesc}
                           </div>
-                          {/* Placeholder div to reserve space for validation message - outside input wrapper so it doesn't constrain dropdown */}
-                          <div className="validation-message validation-message-placeholder" aria-hidden="true"></div>
                         </div>
                       )
                     }
@@ -928,7 +1061,7 @@ export function SearchableChooser({
                               style={{
                                 marginRight: '0.5rem',
                                 opacity: 0.7,
-                                color: getColorStyle(optionColor),
+                                ...(optionColor ? { color: getColorStyle(optionColor) } : {}),
                               }}
                             />
                           )}
@@ -944,9 +1077,15 @@ export function SearchableChooser({
                           )}
                           <span
                             className={`searchable-chooser-option-text ${classNamePrefix}-option-text`}
-                            style={{
-                              color: getColorStyle(optionColor),
-                            }}
+                            style={(() => {
+                              // Only apply inline color if optionColor is explicitly set and not a default gray-500
+                              // This allows CSS default color to be used when optionColor is null/undefined or default
+                              if (!optionColor || optionColor === 'gray-500') {
+                                return undefined
+                              }
+                              const colorStyle = getColorStyle(optionColor)
+                              return colorStyle ? { color: colorStyle } : undefined
+                            })()}
                           >
                             {truncatedText}
                           </span>

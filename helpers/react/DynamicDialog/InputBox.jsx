@@ -161,7 +161,7 @@ const InputBox = ({
           ref={inputRef} // Attach the ref to the input element
           type={inputType}
           readOnly={readOnly}
-          className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''} ${isNumberType && (step === undefined || step === 0) ? 'hide-step-buttons' : ''}`}
+          className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''} ${isNumberType && (step === undefined || step === 0) ? 'hide-step-buttons' : ''} ${validationError ? 'validation-error-highlight' : ''}`}
           value={inputValue}
           onChange={handleInputChange}
           disabled={disabled}
@@ -173,14 +173,15 @@ const InputBox = ({
             Save
           </button>
         )}
-        {validationError ? (
+        {/* TEST: Turning off validation message for now, but leaving the code in place for future reference. Using the validation-error-highlight class instead. */}
+        {/* {validationError ? (
           <div className="validation-message">
             <i className="fa-solid fa-triangle-exclamation"></i>
             <span>{validationError}</span>
           </div>
         ) : (
           <div className="validation-message validation-message-placeholder" aria-hidden="true"></div>
-        )}
+        )} */}
       </div>
     </div>
   )

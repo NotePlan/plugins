@@ -948,9 +948,11 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                       <option value="wikilink">Wikilink: [[Note Title]]</option>
                       <option value="pretty-link">Pretty Link: [Note Title](noteplan://...)</option>
                       <option value="raw-url">Raw URL: noteplan://x-callback-url/openNote?noteTitle=...</option>
+                      <option value="title">Plain Title: Note Title</option>
+                      <option value="filename">Filename: path/to/note.md</option>
                     </select>
                     <div className="field-editor-help">
-                      Choose how to format the selected notes in the output. Wikilink format is compatible with NotePlan&apos;s native linking.
+                      Choose how to format the selected notes in the output. Wikilink format is compatible with NotePlan&apos;s native linking. &quot;Plain Title&quot; and &quot;Filename&quot; return just the title or filename without any formatting.
                     </div>
                   </div>
                   <div className="field-editor-row">
@@ -971,6 +973,84 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   </div>
                 </>
               )}
+              {!((editedField: any): { allowMultiSelect?: boolean }).allowMultiSelect && (
+                <div className="field-editor-row">
+                  <label>Output Format:</label>
+                  <select
+                    value={
+                      // Backwards compatibility: check singleSelectOutputFormat first, then noteOutputFormat
+                      ((editedField: any): { singleSelectOutputFormat?: string }).singleSelectOutputFormat ||
+                      ((editedField: any): { noteOutputFormat?: string }).noteOutputFormat ||
+                      'title'
+                    }
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      const value = e.target.value
+                      // Set noteOutputFormat (new unified setting)
+                      ;(updated: any).noteOutputFormat = value
+                      // Clear deprecated singleSelectOutputFormat if it exists
+                      if ((updated: any).singleSelectOutputFormat) {
+                        delete (updated: any).singleSelectOutputFormat
+                      }
+                      setEditedField(updated)
+                    }}
+                  >
+                    <option value="title">Title (default)</option>
+                    <option value="filename">Filename</option>
+                  </select>
+                  <div className="field-editor-help">
+                    Choose what to output when a single note is selected. &quot;Title&quot; returns the note title, &quot;Filename&quot; returns the full filename path. Note: Wikilink, Pretty Link, and Raw URL formats are not available for single-select mode.
+                  </div>
+                </div>
+              )}
+              <div className="field-editor-row">
+                <label>Start Folder (optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { startFolder?: string }).startFolder || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).startFolder = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., @Templates/Forms"
+                />
+                <div className="field-editor-help">
+                  Filter notes to only show those in this folder and its subfolders. Leave empty to show all notes. Example: &quot;@Templates/Forms&quot;
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>Include Regex (optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { includeRegex?: string }).includeRegex || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).includeRegex = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., ^Project"
+                />
+                <div className="field-editor-help">
+                  Optional regex pattern to include only notes whose title or filename matches. Case-insensitive. Leave empty to include all notes. Example: &quot;^Project&quot; to include only notes starting with &quot;Project&quot;
+                </div>
+              </div>
+              <div className="field-editor-row">
+                <label>Exclude Regex (optional):</label>
+                <input
+                  type="text"
+                  value={((editedField: any): { excludeRegex?: string }).excludeRegex || ''}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).excludeRegex = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                  placeholder="e.g., Archive|Draft"
+                />
+                <div className="field-editor-help">
+                  Optional regex pattern to exclude notes whose title or filename matches. Case-insensitive. Leave empty to exclude nothing. Example: &quot;Archive|Draft&quot; to exclude notes containing &quot;Archive&quot; or &quot;Draft&quot;
+                </div>
+              </div>
             </>
           )}
 

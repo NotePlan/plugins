@@ -297,9 +297,11 @@ export async function saveSearch(
     }
     const commandNameToDisplay = searchOptions.commandNameToDisplay ?? 'Searching'
 
-    // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
-    const calledNonInteractively = (originatorCommand === '')
-    logDebug('saveSearch', `- called ${calledNonInteractively ? 'NON-' : ''}interactively`)
+    // work out if we're being called non-interactively (i.e. via x-callback) by checking if searchTermsArg is provided
+    // If searchTermsArg is provided, it means we were called with arguments (non-interactive)
+    // If searchTermsArg is not provided, user will be prompted (interactive)
+    const calledNonInteractively = (searchTermsArg !== undefined && searchTermsArg !== null)
+    logDebug('saveSearch', `- called ${calledNonInteractively ? 'NON-' : ''}interactively (searchTermsArg provided: ${String(calledNonInteractively)}, originatorCommand: '${originatorCommand}')`)
 
     // Get the noteTypes to include
     // const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both' || noteTypesToIncludeArg === '') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]

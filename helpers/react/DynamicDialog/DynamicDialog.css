@@ -207,6 +207,11 @@
         margin: 0;
     }
 
+    /* Hide Switch's internal label when in compact mode (we render label separately) */
+    .input-box-container-compact .switch-line .switch-label {
+        display: none;
+    }
+    
     /* Style for switch-label */
     .switch-label {
         font-weight: 600;
@@ -284,19 +289,25 @@
         text-align: right;
         padding-right: 1rem;
     }
-    
+
+    /* TEST: In place of validation-message, we can use a highlight color to indicate an error on the input field itself */
+    .validation-error-highlight {
+        box-shadow: 0px 0px 2px 2px var(--bg-error-color);
+    }
+
     /* Validation messages - show to the right of the field with triangle icon */
     .validation-message {
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        color: var(--tint-color, #dc8a78);
+        color: var(---color, #dc8a78);
         font-size: 0.85rem;
         margin-left: 0.5rem;
         white-space: nowrap;
         vertical-align: middle;
         flex-shrink: 0;
-        width: 6rem; /* Fixed width to prevent input shrinking */
+        width: auto; /* Test: different approach */
+        /* width: 6rem; Fixed width to prevent input shrinking */
     }
     
     /* Transparent placeholder to reserve space when no validation error */
@@ -363,7 +374,8 @@
     
     /* Ensure input doesn't shrink when validation message appears - set fixed width on input */
     .input-box-wrapper .input-box-input {
-        flex-shrink: 0 !important; /* Don't allow input to shrink */
+        /* flex-shrink: 0 !important; Don't allow input to shrink */
+        flex-shrink: 1 !important; /* TEST: Now Do allow input to shrink when validation message appears */
         width: 100%;
     }
     
@@ -534,9 +546,10 @@
 
     /* Focus style for non-readonly input-box-input */
     .input-box-input:not(:read-only):focus {
-        border-color: var(--hashtag-color);
+        border-color: var(--tint-color, #dc8a78);
+        border-width: 2px;
         outline: none;
-        box-shadow: 0 0 3px var(--hashtag-color);
+        box-shadow: 0 0 0 2px rgba(220, 138, 120, 0.2);
     }
 
     /* For optional 'save' button on Input Box */
@@ -617,9 +630,10 @@
 
     /* Focus style for dropdown-input */
     .dropdown-input:focus {
-        border-color: var(--hashtag-color);
+        border-color: var(--tint-color, #dc8a78);
+        border-width: 2px;
         outline: none;
-        box-shadow: 0 0 3px var(--hashtag-color);
+        box-shadow: 0 0 0 2px rgba(220, 138, 120, 0.2);
     }
 
     /* Style for dropdown-arrow */

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-01-10 for v1.3.0.b3, @jgclark
+// Last updated 2026-01-24 for v1.3.0.b7, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -67,6 +67,8 @@ export type ReviewConfig = {
   nextActionTags: Array<string>,
   preferredWindowType: string,
   sequentialTag: string,
+  progressHeading?: string,
+  progressHeadingLevel: number,
   _logLevel: string,
   _logTimer: boolean,
 }
@@ -575,18 +577,21 @@ export function deleteMetadataMentionInNote(noteToUse: CoreNoteFields, mentionsT
 /**
  * Update Dashboard if it is open.
  * Note: Designed to fail silently if it isn't installed, or open.
+ * It is called automatically whenever the allProjectsList is updated, regardless of which function triggers it:
+ * - generateAllProjectsList → writeAllProjectsList → updateDashboardIfOpen
+ * - updateProjectInAllProjectsList → writeAllProjectsList → updateDashboardIfOpen
+ * - updateAllProjectsListAfterChange → writeAllProjectsList → updateDashboardIfOpen
  * @author @jgclark
  */
-// eslint-disable-next-line
 export async function updateDashboardIfOpen(): Promise<void> {
   // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
-
-  // WARNING: Note: Turning this off for Dashboard 2.1.10 / P+R as it was causing race conditions in D Perspective changes.
-  logDebug('updateDashboardIfOpen', `NOT ACTUALLY GOING TO DO ANYTHING AT THE MOMENT!`)
+  // WARNING: Be careful of causing race conditions with Perspective changes in Dashboard.
 
   // v2 (internal invoke plugin command)
-  // logInfo('updateDashboardIfOpen', `about to invokePluginCommandByName("refreshSectionByCode", "jgclark.Dashboard", ['PROJ'])`)
-  // const res = await DataStore.invokePluginCommandByName("refreshSectionByCode", "jgclark.Dashboard", ['PROJ'])
+  logInfo('updateDashboardIfOpen', `About to run Dashboard:refreshSectionByCode(...)`)
+  // Note: This covers codes from before and after Dashboard v2.4.0.b18. TODO(Later): remove the 'PROJ' code when v2.5.0 is released
+  // Note: Wrap array in another array because invokePluginCommandByName spreads the array as individual arguments. This avoids only the first array item being used.
+  const res = await DataStore.invokePluginCommandByName("refreshSectionsByCode", "jgclark.Dashboard", [['PROJACT', 'PROJREVIEW', 'PROJ']])
 }
 
 /**

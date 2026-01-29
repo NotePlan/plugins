@@ -6,7 +6,7 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2025-12-04 for v2.3.3, @jgclark
+// Last updated 2026-01-18 for v2.4.0.b16, @jgclark
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -118,8 +118,8 @@ const useSectionSortAndFilter = (
       setItemsToShow(memoizedItems)
       setLimitApplied(false)
     }
-    // Handle PROJECT section differently: no priorities
-    else if (section.sectionCode === 'PROJ') {
+    // Handle PROJECT sections differently: no priorities
+    else if (section.sectionCode === 'PROJREVIEW' || section.sectionCode === 'PROJACT') {
       // Only apply the limit to the number of items to show
       const needToApplyLimit = limitToApply > 0 && memoizedItems.length > limitToApply
       const itemsToShow = needToApplyLimit ? memoizedItems.slice(0, limitToApply) : memoizedItems
@@ -199,15 +199,19 @@ const useSectionSortAndFilter = (
       // Use regularTaskItems.length since orderedFilteredLimitedItems only contains items from regularTaskItems (not special message items)
       const numFilteredOutThisSection = regularTaskItems.length - orderedFilteredLimitedItems.length
       if (showAllTasks) {
-        const messageItem = {
-          itemType: 'offerToFilter',
-          ID: `${section.ID}-FilterOffer`,
-          // Note: ideally indicate here that the display of this shouldn't start with the + icon
-          sectionCode: section.sectionCode,
-          message: `Showing all ${typeWantedItems.length} items (click to filter by priority)`
+        // Only add the "Showing all N items" message if there are actually items to show
+        // If there are 0 items, the itemCongrats message (e.g., "Nothing on this list") will handle the empty state
+        if (typeWantedItems.length > 0) {
+          const messageItem = {
+            itemType: 'offerToFilter',
+            ID: `${section.ID}-FilterOffer`,
+            // Note: ideally indicate here that the display of this shouldn't start with the + icon
+            sectionCode: section.sectionCode,
+            message: `Showing all ${typeWantedItems.length} items (click to filter by priority)`
+          }
+          logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
+          specialMessageItems.unshift(messageItem)
         }
-        logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
-        specialMessageItems.unshift(messageItem)
       } else {
         if (numFilteredOutThisSection > 0) {
           const messageItem = {

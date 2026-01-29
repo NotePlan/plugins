@@ -4,6 +4,9 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dbludeau.TodoistNoteplanSync/README.md) for details on available commands and use cases.
 
+## [0.4.1] - 2026-01-22 (dbludeau)
+- Fix for issue pulling todays tasks from Todoist.
+
 ## [0.4.0] - 2025-09-15 (dbludeau)
 - Updated plugin to use new Todoist V1 API.
 

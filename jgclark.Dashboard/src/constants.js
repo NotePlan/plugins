@@ -1,14 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 2026-01-01 for v2.4.0, @jgclark
+// Last updated 2026-01-23 for v2.4.0.b18, @jgclark
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
 
 // NOTE: Dashboard Settings are in the src/dashboardSettingsItems.js file
 
-// Note: Not yet used everwhere
+// Note: Needs to be set in plugin.json file for each sidebarView windowID
 export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 
 export const allSectionDetails: Array<TSectionDetails> = [
@@ -25,7 +25,8 @@ export const allSectionDetails: Array<TSectionDetails> = [
   // Use getTagSectionDetails() to get them
   // sectionName set later to reflect the tagsToShow setting
   { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` },
-  { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
+  { sectionCode: 'PROJACT', sectionName: 'Active Projects', showSettingName: 'showProjectActiveSection' },
+  { sectionCode: 'PROJREVIEW', sectionName: 'Projects to Review', showSettingName: 'showProjectReviewSection' },
   { sectionCode: 'PRIORITY', sectionName: 'Priority', showSettingName: 'showPrioritySection' },
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
   { sectionCode: 'SEARCH', sectionName: 'Search', showSettingName: '' },
@@ -38,15 +39,15 @@ export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map((s) =>
 
 export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y']
 
-export const defaultSectionDisplayOrder = ['SEARCH', 'INFO', 'SAVEDSEARCH', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
+export const defaultSectionDisplayOrder = ['SEARCH', 'INFO', 'SAVEDSEARCH', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJACT', 'PROJREVIEW']
 
 // change this order to change which duplicate items get kept - the first on the list. Should not include 'dontDedupeSectionCodes' below.
 export const sectionPriority = ['TB', 'TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
 
 // Those sections we can't or shouldn't attempt to dedupe:
 // - TB as its for info only
-// - PROJ as it isn't about paragraphs, but notes
-export const dontDedupeSectionCodes = ['INFO', 'PROJ', 'SEARCH', 'SAVEDSEARCH']
+// - PROJREVIEW and PROJACT as they aren't about paragraphs, but notes
+export const dontDedupeSectionCodes = ['INFO', 'PROJACT', 'PROJREVIEW', 'SEARCH', 'SAVEDSEARCH']
 
 // Enable interactive processing for these itemTypes:
 export const interactiveProcessingPossibleSectionTypes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY']
