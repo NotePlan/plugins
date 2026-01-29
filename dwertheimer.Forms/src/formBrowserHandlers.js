@@ -298,7 +298,7 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
     // TemplateJS blocks come from form fields, not from templateBody
 
     // Call the form submission handler
-    // handleSubmitButtonClick expects (data, reactWindowData) but we'll create a minimal reactWindowData
+    // handleSubmitButtonClick expects (data, formFields) - no window data needed
     // Strip quotes from string values that may have been stored with quotes in frontmatter
     // receivingTemplateTitle can come from formValues (dynamic) or frontmatter (static)
     const receivingTemplateTitleFromForm = formValues?.receivingTemplateTitle || ''
@@ -349,19 +349,7 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       }
     }
 
-    // Create minimal reactWindowData for handleSubmitButtonClick
-    // $FlowFixMe[prop-missing] - PassedData type requires more properties, but handleSubmitButtonClick only needs pluginData
-    const reactWindowData = {
-      pluginData: {
-        formFields, // Include formFields so TemplateJS blocks can be found for run-js-only
-      },
-      componentPath: '',
-      debug: false,
-      logProfilingMessage: false,
-      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormSubmitFromHTMLView' },
-    }
-
-    const result = await handleSubmitButtonClick(submitData, reactWindowData)
+    const result = await handleSubmitButtonClick(submitData, formFields)
 
     // Check for errors in result
     if (!result.success) {

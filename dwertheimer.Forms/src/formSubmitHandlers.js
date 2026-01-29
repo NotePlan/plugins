@@ -185,16 +185,8 @@ export async function submitFormRequest(data: any): Promise<RequestResponse> {
       newNoteTitle: data.newNoteTitle || formContext.newNoteTitle || '',
       newNoteFolder: data.newNoteFolder || formContext.newNoteFolder || '',
     }
-    // Minimal PassedData-shaped object so handleSubmitButtonClick can read pluginData; we never read/write reactWindowData in this path
-    const fakeWindowData = {
-      pluginData: formContext,
-      componentPath: '',
-      debug: false,
-      logProfilingMessage: false,
-      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormSubmitFromHTMLView' },
-    }
     logDebug(pluginJson, `submitFormRequest: [DIAG] calling handleSubmitButtonClick with loaded form (no reactWindowData)`)
-    const result = await handleSubmitButtonClick(dataWithFormContext, fakeWindowData)
+    const result = await handleSubmitButtonClick(dataWithFormContext, formContext.formFields || [])
     logDebug(
       pluginJson,
       `submitFormRequest: handleSubmitButtonClick done, success=${String(result.success)}, hasFormSubmissionError=${String(!!result.formSubmissionError)}`,
@@ -276,7 +268,8 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
     }
 
     logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: Calling handleSubmitButtonClick...`)
-    const result = await handleSubmitButtonClick(data, reactWindowData)
+    const formFields = reactWindowData?.pluginData?.formFields || []
+    const result = await handleSubmitButtonClick(data, formFields)
     logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: handleSubmitButtonClick returned, success=${String(result.success)}`)
 
     // Check if there's an AI analysis result (error message from template rendering)

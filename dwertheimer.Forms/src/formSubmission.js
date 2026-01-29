@@ -1167,10 +1167,10 @@ export function insertTemplateJSBlocks(templateBody: string, formFields: Array<O
  * When someone clicks a "Submit" button in the React Window, it calls the router (onMessageFromHTMLView)
  * which sees the actionType === "onSubmitClick" so it routes to this function for processing
  * @param {any} data - the data sent from the React Window for the action 'onSubmitClick'
- * @param {PassedData} reactWindowData - the current data in the React Window (used to read formFields)
+ * @param {Array<Object>} formFields - Form fields array (required for validation and templatejs block execution)
  * @returns {Promise<FormSubmissionResult>} - Simplified result with success/error info
  */
-export async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): Promise<FormSubmissionResult> {
+export async function handleSubmitButtonClick(data: any, formFields: Array<Object>): Promise<FormSubmissionResult> {
   const { type, formValues, processingMethod, receivingTemplateTitle } = data
   const method = processingMethod || (receivingTemplateTitle ? 'form-processor' : 'write-existing')
   clo(data, `handleSubmitButtonClick: data BEFORE acting on it`)
@@ -1192,10 +1192,10 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
   // Validate that all form fields are present in formValues (even if empty)
   // Conditional-values are resolved in prepareFormValuesForRendering; do not add them here
   // Templatejs-block keys are output-only (computed by the block at submit); do not add to formValues or jsContext
-  const formFields = reactWindowData?.pluginData?.formFields || []
-  if (formFields && formFields.length > 0) {
+  const formFieldsArray = Array.isArray(formFields) ? formFields : []
+  if (formFieldsArray.length > 0) {
     const missingFields: Array<string> = []
-    formFields.forEach((field) => {
+    formFieldsArray.forEach((field) => {
       if (field.type === 'conditional-values' || field.type === 'templatejs-block') return
       if (field.key && !(field.key in formValues)) {
         missingFields.push(field.key)
@@ -1218,13 +1218,13 @@ export async function handleSubmitButtonClick(data: any, reactWindowData: Passed
   // Route to appropriate processing method
   let result: FormSubmissionResult
   if (method === 'form-processor') {
-    result = await processFormProcessor(data, formFields)
+    result = await processFormProcessor(data, formFieldsArray)
   } else if (method === 'create-new') {
-    result = await processCreateNew(data, formFields)
+    result = await processCreateNew(data, formFieldsArray)
   } else if (method === 'write-existing') {
-    result = await processWriteExisting(data, formFields)
+    result = await processWriteExisting(data, formFieldsArray)
   } else if (method === 'run-js-only') {
-    result = await processRunJSOnly(data, formFields)
+    result = await processRunJSOnly(data, formFieldsArray)
   } else {
     const errorMessage = `Unknown processing method: ${method}`
     logError(pluginJson, `handleSubmitButtonClick: ${errorMessage}`)
