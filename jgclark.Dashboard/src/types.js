@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-01-22 for v2.4.0.b17 by @jgclark
+// Last updated 2026-01-23 for v2.4.0.b18 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -107,7 +107,8 @@ export type TDashboardSettings = {
   showMonthSection: boolean,
   showOverdueSection: boolean,
   showPrioritySection: boolean,
-  showProjectSection: boolean,
+  showProjectReviewSection: boolean,
+  showProjectActiveSection: boolean,
   showQuarterSection: boolean,
   showYearSection: boolean,
   showSavedSearchSection: boolean, // Note: the SEARCH Section doesn't need a setting. This is for future use for SAVEDSEARCH section(s).
@@ -120,8 +121,7 @@ export type TDashboardSettings = {
   customSectionDisplayOrder: ?Array<TSectionCode>
 }
 
-export type TPerspectiveSettings = Array<TPerspectiveDef>
-
+// Type for a perspective definition; this includes (most) TDashboardSettings
 export type TPerspectiveDef = {
   name: string,
   dashboardSettings: Partial<TDashboardSettings>,
@@ -130,6 +130,9 @@ export type TPerspectiveDef = {
   lastModified?: number,
 }
 
+export type TPerspectiveSettings = Array<TPerspectiveDef>
+
+// Type for all the plugin settings in the settings.json file
 export type TDashboardPluginSettings = {
   ...TDashboardLoggingConfig,
   pluginID: string,
@@ -140,7 +143,7 @@ export type TDashboardPluginSettings = {
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'Y' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' | 'INFO' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'Y' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJACT' | 'PROJREVIEW' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' | 'INFO' // where DT = today, DY = yesterday, TAG = Tag, PROJACT = Active Projects section, PROJREVIEW = Projects to Review section, TB = Top Bar / TimeBlock
 // Note: INFO is a new section code for v2.3.0 for testing.
 // Note: When adding a new section code, make sure to update the constants in constants.js and dashboardSettings.js files, and getSomeSectionsData in dataGeneration.js
 
@@ -298,7 +301,7 @@ export type TActionType =
   | 'windowReload' // Used by 'Hard Refresh' button for devs
   | 'windowResized'
   | '(not yet set)'
-  // TODO(later): remove these once we have a proper banner system
+  // TODO(later): remove these in v2.5 once new banner system has settled
   | 'testBannerInfo'
   | 'testBannerError'
   | 'testBannerWarning'

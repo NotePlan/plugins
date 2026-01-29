@@ -1,4 +1,9 @@
 // @flow
+//-----------------------------------------------------------------------------
+// Shared perspective-related utilities
+// This file is reserved for shared perspective functions that don't belong
+// in perspectiveHelpers.js (to avoid circular dependency).
+//-----------------------------------------------------------------------------
 
 import type { TDashboardSettings } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -8,6 +13,7 @@ import { logDebug } from '@helpers/dev'
 /**
  * Get all folders that are allowed in the current settings/Perspective.
  * Note: this almost a dupe of perspectiveHelpers::getAllowedFoldersInCurrentPerspective()
+ * TODO: Probably could be refactored into a single function that accepts an array of perspective definitions or a TDashboardSettings object. Tried 23.1.2026 and it set up a circular dependency again.
  * @param {TDashboardSettings} dashboardSettings
  * @returns
  */

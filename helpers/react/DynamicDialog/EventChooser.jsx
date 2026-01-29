@@ -513,7 +513,7 @@ export function EventChooser({
     emptyMessageNoItems: error ? `Error loading events: ${error}` : 'No events found for this day',
     emptyMessageNoMatch: 'No events match your search',
     classNamePrefix: 'event-chooser',
-    iconClass: 'fa-calendar',
+    iconClass: 'fa-solid fa-calendar-alt',
     fieldType: 'event-chooser',
     debugLogging: false,
     maxResults: 25,

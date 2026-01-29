@@ -156,6 +156,38 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
       if (valueChanged) {
         lastSentValueRef.current = formatted
         onSelectDate(formatted) // Propagate the formatted value to parent
+        // Close the native calendar picker after date selection
+        // The native calendar needs time to process the selection, so we use a delay
+        if (inputRef.current) {
+          // Use requestAnimationFrame to wait for the next frame, then setTimeout for additional delay
+          // This ensures the browser has finished processing the date selection
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setTimeout(() => {
+                if (inputRef.current) {
+                  // Check if input is still focused (calendar might still be open)
+                  const isFocused = document.activeElement === inputRef.current
+                  if (isFocused) {
+                    // Blur to close the calendar
+                    inputRef.current.blur()
+                    // Also try clicking outside by programmatically clicking the wrapper's parent
+                    // This simulates the user clicking outside the calendar
+                    const wrapper = inputRef.current.closest('.generic-date-picker-wrapper')
+                    if (wrapper && wrapper.parentElement) {
+                      // Create a synthetic click event on the parent
+                      const clickEvent = new MouseEvent('mousedown', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                      })
+                      wrapper.parentElement.dispatchEvent(clickEvent)
+                    }
+                  }
+                }
+              }, 50)
+            })
+          })
+        }
       }
     } else if (!value || value.trim() === '') {
       // Value was cleared
@@ -170,7 +202,6 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
         onSelectDate(clearedValue)
       }
     }
-    // Note: Native HTML date picker automatically closes after selection, no need to blur
   }
 
   // Handle input blur - for HTML date inputs, this is mainly for validation

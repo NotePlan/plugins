@@ -5,6 +5,7 @@ import { JSP, logDebug, logError } from '@helpers/dev'
 
 // Note: Eduard's regex looks for a trailing space or end of line. I can't use that part because it will remove space we need if
 // the sync copy tag is in the middle of the line.
+// @tests in jest file
 export const textWithoutSyncedCopyTag = (text: string): string => text.replace(new RegExp('(?:^|\\s)(\\^[a-z0-9]{6})', 'mg'), '').trim() // removeSyncedCopyTag removeBlockID
 
 /**
@@ -16,6 +17,7 @@ export const textWithoutSyncedCopyTag = (text: string): string => text.replace(n
  * - 'most-recent' keeps the most recently-changed note's version instead.
  * - 'regular-notes' keeps Regular (earlier called 'Project') notes in preference to Calendar notes. If there are multiple Regular notes, it keeps the first of those.
  * @author @dwertheimer updated by @jgclark
+ * @tests in jest file
  * @param {Array<TParagraph>} paras: Array<TParagraph>
  * @param {string} keepWhich = 'first' (default), 'most-recent' or 'regular-notes'
  * @param {boolean} syncedLinesOnly = false (default) or true - only eliminate duplicates if they are synced lines (plain lines are allowed even when dupes)

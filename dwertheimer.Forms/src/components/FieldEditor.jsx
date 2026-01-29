@@ -975,12 +975,23 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
               )}
               {!((editedField: any): { allowMultiSelect?: boolean }).allowMultiSelect && (
                 <div className="field-editor-row">
-                  <label>Single Select Output Format:</label>
+                  <label>Output Format:</label>
                   <select
-                    value={((editedField: any): { singleSelectOutputFormat?: string }).singleSelectOutputFormat || 'title'}
+                    value={
+                      // Backwards compatibility: check singleSelectOutputFormat first, then noteOutputFormat
+                      ((editedField: any): { singleSelectOutputFormat?: string }).singleSelectOutputFormat ||
+                      ((editedField: any): { noteOutputFormat?: string }).noteOutputFormat ||
+                      'title'
+                    }
                     onChange={(e) => {
                       const updated = { ...editedField }
-                      ;(updated: any).singleSelectOutputFormat = e.target.value
+                      const value = e.target.value
+                      // Set noteOutputFormat (new unified setting)
+                      ;(updated: any).noteOutputFormat = value
+                      // Clear deprecated singleSelectOutputFormat if it exists
+                      if ((updated: any).singleSelectOutputFormat) {
+                        delete (updated: any).singleSelectOutputFormat
+                      }
                       setEditedField(updated)
                     }}
                   >
@@ -988,7 +999,7 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                     <option value="filename">Filename</option>
                   </select>
                   <div className="field-editor-help">
-                    Choose what to output when a single note is selected. &quot;Title&quot; returns the note title, &quot;Filename&quot; returns the full filename path.
+                    Choose what to output when a single note is selected. &quot;Title&quot; returns the note title, &quot;Filename&quot; returns the full filename path. Note: Wikilink, Pretty Link, and Raw URL formats are not available for single-select mode.
                   </div>
                 </div>
               )}

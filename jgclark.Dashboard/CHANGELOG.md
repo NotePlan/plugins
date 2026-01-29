@@ -9,16 +9,42 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b19] 2026-01-27
+- finish hooking up addTaskToNote + UI improvements
+- dev: refactor getOpenItemParasForTimePeriod() and add tests to the new smaller functions.
+- dev: updates to SearchableChooser etc. from DBW
+- fix to refresh after adding task using buttons in today and week section headings
+- UX fixes to SearchableChooser, including allowing <Tab> out on new items, not just <Enter>, and using consistent font
+- UI fix to validation-message for InputBox ...
+- ... but also turn that off, and use a simpler validation-error-highlight instead on <Input>s
+
+## [2.4.0.b18] 2026-01-24
+### New
+- New Section "Active Projects", which shows a list of all the currently-active projects from the separate Project & Reviews plugin. This includes any currently open projects (i.e. not completed, cancelled or paused) that match its settings, or are included in the current Perspective, if that option is set.  It's designed to complement the existing Projects Section. It also shows the first of any 'Next Actions' as defined by the settings in the Projects plugin.
+### Changed
+- To make it clearer, renamed the existing "Projects" section to "Projects to Review".
+- Generation of sections now happens in the same (possibly-custom) order that they are displayed.
+- Turned back on automatic updates from Project plugin's Project List window (if both plugins are running). [Requires Project + Reviews plugin v1.3.0 beta 7 or later]
+### Fix
+- Display of name of Project notes if they were from a (Team)Space. 
+
 ## [2.4.0.b17] 2026-01-21
 ### New
 - added new way to select items to show from Calendar sections: "Calendar note Sections to Include". There is already a way to exclude specific sections in a calendar note; this adds a way to only include specific sections. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all sections are still included.
 - WIP: tried and failed to get 'Rename Perspective' to actually save it fully to settings.json
+### Dev
+- remove redundant code in index.js::onUpdateOrInstall() now that key renaming doesn't happen there
+- removing unused old copy of onUpdateOrInstall() in NPHooks.js
 
 ## [2.4.0.b16] 2026-01-20
+### New
+- the Projects section now shows the latest Project Progress summary for each project, if present.
+- the Projects section now shows the first of any 'Next Actions' as defined by the settings in the Projects plugin.
 ### Fixes
 - suppress "showing all 0 items" message when "nothing on this list" message also appears
 - stop tag cache source message appearing in Section header when feature flag not turned on
 - changing 'Dashboard Theme' setting will now change straight away rather than next time the Dashboard starts.
+### Dev
 - dev: using new `TProjectForDashboard` type, spread into `TParagraphForDashboard` and `TProjectForDashboard` to show commonality
 - dev: new NoteTitleLink component, used by ProjectItem and ItemNoteLink components
 - dev: suppress "backup settings" messages to users on upgrades

@@ -5,10 +5,10 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useAppContext } from '../AppContext.jsx'
+import { logTimer } from '@helpers/dev'
 import DynamicDialog, { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 import type { NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
-import { logTimer } from '@helpers/dev'
 import { getElementCoordinates } from '@helpers/react/reactUtils.js'
 import './AddToAnyNote.css' // Import CSS for dialog positioning
 
@@ -23,8 +23,7 @@ type Props = {
  * @param {Props} props
  * @returns {React$Node}
  */
-const AddToAnyNote = React.memo(
-  ({ sendActionToPlugin }: Props): React$Node => {
+const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
     const { dispatch } = useAppContext()
     // ----------------------------------------------------------------------
     // State
@@ -105,6 +104,9 @@ const AddToAnyNote = React.memo(
               pendingRequestsRef.current.delete(correlationId)
               clearTimeout(pending.timeoutId)
               if (success) {
+                // Resolve with just the data (matching pattern used in np.Shared and other components)
+                // The router sends: { correlationId, success, data, error }
+                // We extract just the data to match the expected pattern where requestFromPlugin resolves with result.data
                 pending.resolve(data)
               } else {
                 pending.reject(new Error(error || 'Request failed'))
@@ -283,6 +285,183 @@ const AddToAnyNote = React.memo(
     )
 
     // ----------------------------------------------------------------------
+    // Dialog positioning
+    // ----------------------------------------------------------------------
+    /**
+     * Calculate dialog position based on button coordinates
+     * Extracted into a separate function so it can be reused for resize handling
+     * @param {HTMLElement} button - The button element to position relative to
+     * @returns {Object} CSS variables object with --add-dialog-top and --add-dialog-right
+     */
+    const calculateDialogPosition = useCallback((button: HTMLElement): { [string]: string } => {
+      const coords = getElementCoordinates(button)
+
+      if (!coords) {
+        logError('AddToAnyNote', 'Failed to get button coordinates')
+        return {}
+      }
+
+      // Check if button is visible (not off-screen)
+      if (coords.right < 0 || coords.left > window.innerWidth || coords.bottom < 0 || coords.top > window.innerHeight) {
+        logDebug('AddToAnyNote', `[POSITION] Button is off-screen, using fallback centered position`)
+        // Fallback: center the dialog horizontally with some right padding
+        const dialogMaxWidth = 700
+        const dialogMinWidth = 380
+        const dialogPercentWidth = window.innerWidth * 0.86
+        const estimatedDialogWidth = Math.min(dialogMaxWidth, Math.max(dialogMinWidth, dialogPercentWidth))
+        return {
+          '--add-dialog-top': '50px',
+          '--add-dialog-right': `${Math.max(20, (window.innerWidth - estimatedDialogWidth) / 2)}px`,
+        }
+      }
+
+      // Estimate dialog width (matches DynamicDialog.css: clamp(380px, 86%, 700px))
+      // Recalculate on each call to account for viewport changes
+      const dialogMaxWidth = 700
+      const dialogMinWidth = 380
+      const dialogPercentWidth = window.innerWidth * 0.86
+      const estimatedDialogWidth = Math.min(dialogMaxWidth, Math.max(dialogMinWidth, dialogPercentWidth))
+      logDebug(
+        'AddToAnyNote',
+        `[POSITION] Dialog width calculation: viewportWidth=${window.innerWidth}px, 86%=${dialogPercentWidth.toFixed(2)}px, clamped=${estimatedDialogWidth.toFixed(2)}px (min=${dialogMinWidth}px, max=${dialogMaxWidth}px)`,
+      )
+
+      // Position dialog so its CENTER aligns with the button's centerX
+      // This provides better balance and prevents left-alignment issues
+      const buttonRightEdge = coords.right
+      const buttonCenterX = coords.centerX
+      const buttonLeftEdge = coords.left
+
+      // Calculate where dialog center should be (button's centerX)
+      const dialogCenterX = buttonCenterX
+      
+      // Calculate dialog's left edge if centered on button
+      const dialogLeftEdgeIfCentered = dialogCenterX - estimatedDialogWidth / 2
+      const dialogRightEdgeIfCentered = dialogCenterX + estimatedDialogWidth / 2
+      
+      // Calculate distanceFromRight for centered position
+      let distanceFromRight = window.innerWidth - dialogRightEdgeIfCentered
+      logDebug(
+        'AddToAnyNote',
+        `[POSITION] Button coordinates: left=${buttonLeftEdge.toFixed(2)}px, centerX=${buttonCenterX.toFixed(2)}px, right=${buttonRightEdge.toFixed(2)}px, distanceFromRight=${coords.distanceFromRight.toFixed(2)}px`,
+      )
+      logDebug(
+        'AddToAnyNote',
+        `[POSITION] Centered calculation: dialogCenterX=${dialogCenterX.toFixed(2)}px, dialogLeftIfCentered=${dialogLeftEdgeIfCentered.toFixed(2)}px, dialogRightIfCentered=${dialogRightEdgeIfCentered.toFixed(2)}px, distanceFromRight=${distanceFromRight.toFixed(2)}px`,
+      )
+
+      // Calculate where dialog's left edge would be with centered positioning
+      let dialogLeftEdge = dialogLeftEdgeIfCentered
+      let dialogRightEdge = dialogRightEdgeIfCentered
+      
+      logDebug(
+        'AddToAnyNote',
+        `[POSITION] Dialog position BEFORE adjustments (centered on button): leftEdge=${dialogLeftEdge.toFixed(2)}px, rightEdge=${dialogRightEdge.toFixed(2)}px, width=${estimatedDialogWidth.toFixed(2)}px, centerX=${dialogCenterX.toFixed(2)}px (should match button centerX=${buttonCenterX.toFixed(2)}px)`,
+      )
+      logDebug(
+        'AddToAnyNote',
+        `[POSITION] Space distribution: leftSpace=${dialogLeftEdge.toFixed(2)}px, dialogWidth=${estimatedDialogWidth.toFixed(2)}px, rightSpace=${distanceFromRight.toFixed(2)}px, total=${(dialogLeftEdge + estimatedDialogWidth + distanceFromRight).toFixed(2)}px (should equal viewport=${window.innerWidth}px)`,
+      )
+
+      // Ensure dialog doesn't go off the left or right edge of screen
+      // If dialog would extend past either edge, shift it to fit while trying to maintain centering
+      const minLeftPadding = 10 // Minimum padding from left edge
+      const minRightPadding = 10 // Minimum padding from right edge
+      
+      if (dialogLeftEdge < minLeftPadding) {
+        // Dialog would go off left edge - shift it right just enough to fit
+        const shiftAmount = minLeftPadding - dialogLeftEdge
+        const oldDialogLeftEdge = dialogLeftEdge
+        const oldDialogRightEdge = dialogRightEdge
+        dialogLeftEdge = minLeftPadding
+        dialogRightEdge = dialogLeftEdge + estimatedDialogWidth
+        distanceFromRight = window.innerWidth - dialogRightEdge
+        logDebug(
+          'AddToAnyNote',
+          `[POSITION] LEFT EDGE ADJUSTMENT: Dialog would go off left edge (leftEdge=${oldDialogLeftEdge.toFixed(2)}px < minPadding=${minLeftPadding}px), shifting right by ${shiftAmount.toFixed(2)}px`,
+        )
+        logDebug(
+          'AddToAnyNote',
+          `[POSITION] LEFT EDGE ADJUSTMENT: leftEdge ${oldDialogLeftEdge.toFixed(2)}px -> ${dialogLeftEdge.toFixed(2)}px, rightEdge ${oldDialogRightEdge.toFixed(2)}px -> ${dialogRightEdge.toFixed(2)}px, distanceFromRight -> ${distanceFromRight.toFixed(2)}px`,
+        )
+      } else if (dialogRightEdge > window.innerWidth - minRightPadding) {
+        // Dialog would go off right edge - shift it left just enough to fit
+        const shiftAmount = dialogRightEdge - (window.innerWidth - minRightPadding)
+        const oldDialogLeftEdge = dialogLeftEdge
+        const oldDialogRightEdge = dialogRightEdge
+        dialogRightEdge = window.innerWidth - minRightPadding
+        dialogLeftEdge = dialogRightEdge - estimatedDialogWidth
+        distanceFromRight = minRightPadding
+        logDebug(
+          'AddToAnyNote',
+          `[POSITION] RIGHT EDGE ADJUSTMENT: Dialog would go off right edge (rightEdge=${oldDialogRightEdge.toFixed(2)}px > viewport-${minRightPadding}px=${(window.innerWidth - minRightPadding).toFixed(2)}px), shifting left by ${shiftAmount.toFixed(2)}px`,
+        )
+        logDebug(
+          'AddToAnyNote',
+          `[POSITION] RIGHT EDGE ADJUSTMENT: leftEdge ${oldDialogLeftEdge.toFixed(2)}px -> ${dialogLeftEdge.toFixed(2)}px, rightEdge ${oldDialogRightEdge.toFixed(2)}px -> ${dialogRightEdge.toFixed(2)}px, distanceFromRight -> ${distanceFromRight.toFixed(2)}px`,
+        )
+      } else {
+        logDebug('AddToAnyNote', `[POSITION] No edge adjustment needed (leftEdge=${dialogLeftEdge.toFixed(2)}px >= minLeftPadding=${minLeftPadding}px, rightEdge=${dialogRightEdge.toFixed(2)}px <= viewport-minRightPadding=${(window.innerWidth - minRightPadding).toFixed(2)}px)`)
+      }
+
+      // Final position after edge adjustments
+      const finalDialogLeftEdge = dialogLeftEdge
+      const finalDialogRightEdge = dialogRightEdge
+      const finalSpaceOnRight = distanceFromRight
+      const finalSpaceOnLeft = dialogLeftEdge
+      
+      logDebug(
+        'AddToAnyNote',
+        `[POSITION] After edge adjustments: finalLeftEdge=${finalDialogLeftEdge.toFixed(2)}px, finalRightEdge=${finalDialogRightEdge.toFixed(2)}px, spaceOnLeft=${finalSpaceOnLeft.toFixed(2)}px, spaceOnRight=${finalSpaceOnRight.toFixed(2)}px`,
+      )
+
+      // Ensure dialog doesn't go off the bottom of screen
+      // Estimate dialog height (header ~80px + content ~300px + padding ~40px = ~420px max)
+      // If dialog would extend past bottom, adjust top position
+      const estimatedDialogHeight = 420 // Conservative estimate
+      const dialogTop = coords.bottom
+      const dialogBottom = dialogTop + estimatedDialogHeight
+      const minBottomPadding = 20 // Minimum padding from bottom edge
+      let finalTop = dialogTop
+
+      if (dialogBottom > window.innerHeight - minBottomPadding) {
+        // Dialog would go off bottom - adjust to fit
+        finalTop = window.innerHeight - estimatedDialogHeight - minBottomPadding
+        // Don't let it go above the button though (would look weird)
+        if (finalTop < coords.top) {
+          finalTop = coords.top
+        }
+        logDebug(
+          'AddToAnyNote',
+          `[POSITION] Dialog would go off bottom (bottom=${dialogBottom}px > viewport=${window.innerHeight}px - padding=${minBottomPadding}px), adjusting top: ${dialogTop}px -> ${finalTop}px`,
+        )
+      }
+
+      // Return CSS variables for positioning (CSS will use these to position the dialog)
+      const positionStyle = {
+        '--add-dialog-top': `${finalTop}px`,
+        '--add-dialog-right': `${distanceFromRight}px`,
+      }
+      logDebug(
+        'AddToAnyNote',
+        `[POSITION] FINAL RESULT: Button coords: top=${coords.top.toFixed(2)}px, bottom=${coords.bottom.toFixed(2)}px, left=${coords.left.toFixed(2)}px, right=${coords.right.toFixed(2)}px, width=${coords.width.toFixed(2)}px, height=${coords.height.toFixed(2)}px, centerX=${coords.centerX.toFixed(2)}px, centerY=${coords.centerY.toFixed(2)}px, distanceFromRight=${coords.distanceFromRight.toFixed(2)}px`,
+      )
+      logDebug(
+        'AddToAnyNote',
+        `[POSITION] FINAL RESULT: Dialog: width=${estimatedDialogWidth.toFixed(2)}px, height=${estimatedDialogHeight}px, top=${finalTop.toFixed(2)}px, leftEdge=${finalDialogLeftEdge.toFixed(2)}px, rightEdge=${finalDialogRightEdge.toFixed(2)}px, distanceFromRight=${distanceFromRight.toFixed(2)}px`,
+      )
+      logDebug(
+        'AddToAnyNote',
+        `[POSITION] FINAL RESULT: Viewport: width=${window.innerWidth}px, height=${window.innerHeight}px, Space distribution: left=${finalSpaceOnLeft.toFixed(2)}px, dialog=${estimatedDialogWidth.toFixed(2)}px, right=${finalSpaceOnRight.toFixed(2)}px, total=${(finalSpaceOnLeft + estimatedDialogWidth + finalSpaceOnRight).toFixed(2)}px (should equal ${window.innerWidth}px)`,
+      )
+      logDebug(
+        'AddToAnyNote',
+        `[POSITION] FINAL RESULT: CSS variables: --add-dialog-top=${finalTop.toFixed(2)}px, --add-dialog-right=${distanceFromRight.toFixed(2)}px`,
+      )
+      return positionStyle
+    }, [])
+
+    // ----------------------------------------------------------------------
     // Dialog handlers
     // ----------------------------------------------------------------------
     /**
@@ -296,75 +475,8 @@ const AddToAnyNote = React.memo(
         // Calculate CSS variables for dialog positioning
         // Align top-right of dialog with bottom-middle of button
         if (event && event.currentTarget) {
-          const button = event.currentTarget
-          const coords = getElementCoordinates(button)
-
-          if (!coords) {
-            logError('AddToAnyNote', 'Failed to get button coordinates')
-            setDialogStyle({})
-            return
-          }
-
-          // Estimate dialog width (matches DynamicDialog.css: clamp(380px, 86%, 700px))
-          const dialogMaxWidth = 700
-          const dialogMinWidth = 380
-          const dialogPercentWidth = window.innerWidth * 0.86
-          const estimatedDialogWidth = Math.min(dialogMaxWidth, Math.max(dialogMinWidth, dialogPercentWidth))
-          logDebug(
-            'AddToAnyNote',
-            `[POSITION] Dialog width calculation: viewportWidth=${window.innerWidth}px, 86%=${dialogPercentWidth}px, clamped=${estimatedDialogWidth}px (min=${dialogMinWidth}px, max=${dialogMaxWidth}px)`,
-          )
-
-          // We want the dialog's RIGHT edge to align with the button's MIDDLE X
-          // So: right = window.innerWidth - buttonMiddleX
-          // But wait - if button is very close to right edge, we might want to align with button's RIGHT edge instead
-          // For now, let's try aligning with button's RIGHT edge since user said button is only ~30px from right
-          const buttonRightEdge = coords.right
-          const buttonCenterX = coords.centerX
-
-          // Use button's right edge if it's very close to the viewport edge (< 50px), otherwise use center
-          const useRightEdge = coords.distanceFromRight < 50
-          const targetX = useRightEdge ? buttonRightEdge : buttonCenterX
-
-          let distanceFromRight = window.innerWidth - targetX
-          logDebug(
-            'AddToAnyNote',
-            `[POSITION] Button: rightEdge=${buttonRightEdge}px, centerX=${buttonCenterX}px, distanceFromRight=${coords.distanceFromRight}px, useRightEdge=${String(useRightEdge)}`,
-          )
-          logDebug('AddToAnyNote', `[POSITION] Initial calculation: viewportWidth=${window.innerWidth}px - targetX=${targetX}px = distanceFromRight=${distanceFromRight}px`)
-
-          // Calculate where dialog's left edge would be
-          const dialogLeftEdge = window.innerWidth - distanceFromRight - estimatedDialogWidth
-          const dialogRightEdge = window.innerWidth - distanceFromRight
-          logDebug(
-            'AddToAnyNote',
-            `[POSITION] Dialog position: leftEdge=${dialogLeftEdge}px, rightEdge=${dialogRightEdge}px (targetX=${targetX}px, should match), width=${estimatedDialogWidth}px`,
-          )
-
-          // Ensure dialog doesn't go off the left edge of screen
-          // If dialog would extend past left edge, adjust to keep it on screen
-          const minLeftPadding = 10 // Minimum padding from left edge
-          if (dialogLeftEdge < minLeftPadding) {
-            // Adjust: position dialog so its left edge is at minLeftPadding
-            const oldDistanceFromRight = distanceFromRight
-            distanceFromRight = window.innerWidth - minLeftPadding - estimatedDialogWidth
-            logDebug(
-              'AddToAnyNote',
-              `[POSITION] Dialog would go off left edge (leftEdge=${dialogLeftEdge}px < minPadding=${minLeftPadding}px), adjusting: distanceFromRight ${oldDistanceFromRight}px -> ${distanceFromRight}px`,
-            )
-          } else {
-            logDebug('AddToAnyNote', `[POSITION] Dialog fits on screen (leftEdge=${dialogLeftEdge}px >= minPadding=${minLeftPadding}px), no adjustment needed`)
-          }
-
-          // Set CSS variables for positioning (CSS will use these to position the dialog)
-          setDialogStyle({
-            '--add-dialog-top': `${coords.bottom}px`,
-            '--add-dialog-right': `${distanceFromRight}px`,
-          })
-          logDebug(
-            'AddToAnyNote',
-            `Button coords: top=${coords.top}px, bottom=${coords.bottom}px, left=${coords.left}px, right=${coords.right}px, width=${coords.width}px, height=${coords.height}px, centerX=${coords.centerX}px, centerY=${coords.centerY}px, distanceFromRight=${coords.distanceFromRight}px | Dialog: estimatedWidth=${estimatedDialogWidth}px, finalRight=${distanceFromRight}px, viewportWidth=${window.innerWidth}px`,
-          )
+          const positionStyle = calculateDialogPosition(event.currentTarget)
+          setDialogStyle(positionStyle)
         } else {
           setDialogStyle({})
         }
@@ -399,7 +511,7 @@ const AddToAnyNote = React.memo(
 
         logDebug('AddToAnyNote', `[PERF] Opening add task dialog - state set, yielding to React`)
       },
-      [reloadNotes],
+      [reloadNotes, calculateDialogPosition],
     )
 
     /**
@@ -537,6 +649,15 @@ const AddToAnyNote = React.memo(
     const addTaskFormFields: Array<TSettingItem> = useMemo(
       () => [
         {
+          type: 'input',
+          key: 'task',
+          label: 'Task',
+          placeholder: 'Enter task text...',
+          focus: true,
+          required: true,
+          value: '',
+        },
+        {
           type: 'space-chooser',
           key: 'space',
           label: 'Space',
@@ -553,10 +674,12 @@ const AddToAnyNote = React.memo(
           includePersonalNotes: true,
           includeRelativeNotes: true,
           includeTeamspaceNotes: true,
+          includeTemplatesAndForms: false,
           sourceSpaceKey: 'space', // Filter notes by selected space
           onOpen: handleNoteChooserOpen, // Lazy load notes when dropdown opens
           value: getTodaysDateISO(), // Default to today's date in ISO 8601 format (YYYY-MM-DD)
           compactDisplay: false,
+          noteOutputFormat: 'filename', // Return filename so addTaskToNote receives note path
         },
         {
           type: 'heading-chooser',
@@ -564,15 +687,6 @@ const AddToAnyNote = React.memo(
           label: 'Under Heading',
           placeholder: 'Select heading...',
           sourceNoteKey: 'note', // Get headings from selected note
-          value: '',
-        },
-        {
-          type: 'input',
-          key: 'task',
-          label: 'Task',
-          placeholder: 'Enter task text...',
-          focus: true,
-          required: true,
           value: '',
         },
       ],
@@ -618,6 +732,54 @@ const AddToAnyNote = React.memo(
       }
     }, [isDialogOpen, notes.length, notesLoaded])
 
+    // Sync CSS variables directly to DOM element whenever dialogStyle changes
+    // This ensures CSS variables update immediately, even if React hasn't re-rendered
+    useEffect(() => {
+      if (!isDialogOpen || Object.keys(dialogStyle).length === 0) return
+
+      // Use requestAnimationFrame to ensure DOM is ready
+      const updateCSSVars = () => {
+        const dialogElement = document.querySelector('.add-to-any-note-dialog.dynamic-dialog')
+        if (dialogElement instanceof HTMLElement) {
+          Object.keys(dialogStyle).forEach((key) => {
+            dialogElement.style.setProperty(key, dialogStyle[key])
+          })
+          logDebug('AddToAnyNote', `[SYNC] Updated CSS variables on dialog element: ${JSON.stringify(dialogStyle)}`)
+        }
+      }
+
+      // Update immediately and also after a short delay to catch any timing issues
+      updateCSSVars()
+      const timeoutId = setTimeout(updateCSSVars, 50)
+
+      return () => clearTimeout(timeoutId)
+    }, [isDialogOpen, dialogStyle])
+
+    // Handle window resize to reposition dialog
+    useEffect(() => {
+      if (!isDialogOpen || !buttonRef.current) return
+
+      let resizeTimeout: TimeoutID
+      const handleResize = () => {
+        // Debounce resize events to avoid excessive recalculations
+        clearTimeout(resizeTimeout)
+        resizeTimeout = setTimeout(() => {
+          if (buttonRef.current) {
+            logDebug('AddToAnyNote', '[RESIZE] Window resized, recalculating dialog position')
+            const positionStyle = calculateDialogPosition(buttonRef.current)
+            setDialogStyle(positionStyle)
+            // CSS variables will be synced by the useEffect above
+          }
+        }, 100) // 100ms debounce
+      }
+
+      window.addEventListener('resize', handleResize)
+      return () => {
+        window.removeEventListener('resize', handleResize)
+        clearTimeout(resizeTimeout)
+      }
+    }, [isDialogOpen, calculateDialogPosition])
+
     return (
       <>
         {/* Button to open the dialog */}
@@ -647,13 +809,17 @@ const AddToAnyNote = React.memo(
         )}
       </>
     )
-  },
-  (prevProps, nextProps) => {
-    // Custom comparison: only re-render if sendActionToPlugin reference changes
-    // This prevents re-renders when parent re-renders but props haven't changed
-    return prevProps.sendActionToPlugin === nextProps.sendActionToPlugin
-  },
-)
+}
+
+// Custom comparison function for memoization
+const arePropsEqual = (prevProps: Props, nextProps: Props): boolean => {
+  // Only re-render if sendActionToPlugin reference changes
+  // This prevents re-renders when parent re-renders but props haven't changed
+  return prevProps.sendActionToPlugin === nextProps.sendActionToPlugin
+}
+
+// Memoize the component with custom comparison function
+const AddToAnyNote: React$ComponentType<Props> = React.memo(AddToAnyNoteComponent, arePropsEqual)
 
 AddToAnyNote.displayName = 'AddToAnyNote'
 

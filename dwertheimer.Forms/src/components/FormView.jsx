@@ -816,6 +816,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
             preloadedMentions={pluginData?.preloadedMentions || []} // Preloaded mentions for static HTML testing
             preloadedHashtags={pluginData?.preloadedHashtags || []} // Preloaded hashtags for static HTML testing
             preloadedEvents={pluginData?.preloadedEvents || []} // Preloaded events for static HTML testing
+            preloadedFrontmatterValues={pluginData?.preloadedFrontmatterValues || {}} // Preloaded frontmatter key values for static HTML testing
             onFoldersChanged={() => {
               reloadFolders()
             }}

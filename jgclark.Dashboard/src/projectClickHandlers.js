@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-01-04 for v2.4.0.b by @jgclark
+// Last updated 2026-01-23 for v2.4.0.b18 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -59,10 +59,10 @@ export async function doCompleteProject(data: MessageDataObject): Promise<TBridg
   if (note) {
     await completeProject(note)
     logDebug('doCompleteProject', `-> likely success (no error)`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: ['PROJ'] })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'] })
   } else {
     logWarn('doCompleteProject', `-> couldn't get note from filename ${filename} to get project to ask to complete`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'], errorMsg: `Couldn't get note from filename ${filename} to get project to complete. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'], errorMsg: `Couldn't get note from filename ${filename} to get project to complete. I will refresh Project section(s), then please try again.`, errorMessageLevel: 'WARN' })
   }
 }
 
@@ -78,10 +78,10 @@ export async function doCancelProject(data: MessageDataObject): Promise<TBridgeC
   if (note) {
     await cancelProject(note)
     logDebug('doCompleteProject', `-> likely success (no error)`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: ['PROJ'] })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'] })
   } else {
     logWarn('doCompleteProject', `-> couldn't get note from filename ${filename} to get project to ask to complete`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'], errorMsg: `Couldn't get note from filename ${filename} to get project to cancel. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'], errorMsg: `Couldn't get note from filename ${filename} to get project to cancel. I will refresh the Project section(s), then please try again.`, errorMessageLevel: 'WARN' })
   }
 }
 
@@ -97,10 +97,10 @@ export async function doTogglePauseProject(data: MessageDataObject): Promise<TBr
   if (note) {
     await togglePauseProject(note)
     logDebug('doCompleteProject', `-> likely success (no error)`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: ['PROJ'] })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'] })
   } else {
     logWarn('doCompleteProject', `-> couldn't get note from filename ${filename} to get project to ask to complete`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'], errorMsg: `Couldn't get note from filename ${filename} to get project to toggle pause. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'], errorMsg: `Couldn't get note from filename ${filename} to get project to toggle pause. I will refresh the Project section(s), then please try again.`, errorMessageLevel: 'WARN' })
   }
 }
 
@@ -126,10 +126,10 @@ export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBri
     }
 
     // Now remove the line from the display
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJREVIEW'] })
   } else {
     logWarn('doSetNextReviewDate', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'], errorMsg: `Couldn't get filename ${filename} to set a @nextReview() date. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJREVIEW'], errorMsg: `Couldn't get filename ${filename} to set a @nextReview() date. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
   }
 }
 
@@ -141,10 +141,10 @@ export async function doSetNewReviewInterval(data: MessageDataObject): Promise<T
     await setNewReviewInterval(note)
 
     // Now update this section in the display, hoping we don't hit race condition when update full review list
-    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJREVIEW'] })
   } else {
     logWarn('doSetNewReviewInterval', `-> couldn't get filename ${filename} to add a @review() interval.`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'], errorMsg: `Couldn't get filename ${filename} to set a @review() interval. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJREVIEW'], errorMsg: `Couldn't get filename ${filename} to set a @review() interval. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
   }
 }
 
@@ -160,10 +160,10 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
 
     // Now ask to update this line in the display
     // TODO: ideally do 'REFRESH_SECTION_IN_JSON' as well, but this looks to have a race condition.
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: ['PROJ'] })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'] })
   } else {
     logWarn('doReviewFinished', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'], errorMsg: `Couldn't get filename ${filename} to update the @reviewed() date. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'], errorMsg: `Couldn't get filename ${filename} to update the @reviewed() date. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
   }
 }
 
@@ -173,7 +173,7 @@ export async function doStartReviews(): Promise<TBridgeClickHandlerResult> {
   await startReviews()
   logDebug('doStartReviews', `-> after startReviews`)
   // Now update this section in the display, hoping we don't hit race condition with the updated full review list
-  return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
+  return handlerResult(true, [], {})
 }
 
 // Mimic the /add progress update command.
@@ -187,9 +187,9 @@ export async function doAddProgressUpdate(data: MessageDataObject): Promise<TBri
     logDebug('doAddProgressUpdate', `-> added`)
 
     // Now ask to update this line in the display
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { sectionCodes: ['PROJ'] })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'] })
   } else {
     logWarn('doAddProgressUpdate', `-> couldn't get filename ${filename} to add a progress update.`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'], errorMsg: `Couldn't get filename ${filename} to add a progress update. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'], errorMsg: `Couldn't get filename ${filename} to add a progress update. I will refresh the Project section(s), then please try again.`, errorMessageLevel: 'WARN' })
   }
 }

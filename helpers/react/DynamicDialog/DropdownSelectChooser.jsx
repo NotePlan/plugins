@@ -32,6 +32,7 @@ export type DropdownSelectChooserProps = {
   showValue?: boolean, // If true, display the selected value below the input
   allowCreate?: boolean, // If true, allow creating new items by typing and pressing Enter (default: false)
   onCreate?: (newValue: string) => Promise<void> | void, // Callback when creating a new item
+  isLoading?: boolean, // If true, show loading spinner and wait cursor (default: false)
 }
 
 /**
@@ -60,6 +61,7 @@ export function DropdownSelectChooser({
   showValue = false,
   allowCreate = false,
   onCreate,
+  isLoading = false,
 }: DropdownSelectChooserProps): React$Node {
   // Normalize options to DropdownOption format
   const normalizedOptions: Array<DropdownOption> = useMemo(() => {
@@ -145,7 +147,17 @@ export function DropdownSelectChooser({
 
   return (
     <div className={`dropdown-select-chooser-container ${compactDisplay ? 'compact' : ''}`} data-field-type="dropdown-select-chooser">
-      <SearchableChooser label={label} value={displayValue} disabled={disabled} compactDisplay={compactDisplay} placeholder={placeholder} showValue={showValue} width={width} config={config} />
+      <SearchableChooser 
+        label={label} 
+        value={isLoading ? '' : displayValue} 
+        disabled={disabled} 
+        compactDisplay={compactDisplay} 
+        placeholder={placeholder} 
+        showValue={showValue} 
+        width={width} 
+        config={config}
+        isLoading={isLoading}
+      />
     </div>
   )
 }

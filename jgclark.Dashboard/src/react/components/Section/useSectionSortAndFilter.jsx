@@ -118,8 +118,8 @@ const useSectionSortAndFilter = (
       setItemsToShow(memoizedItems)
       setLimitApplied(false)
     }
-    // Handle PROJECT section differently: no priorities
-    else if (section.sectionCode === 'PROJ') {
+    // Handle PROJECT sections differently: no priorities
+    else if (section.sectionCode === 'PROJREVIEW' || section.sectionCode === 'PROJACT') {
       // Only apply the limit to the number of items to show
       const needToApplyLimit = limitToApply > 0 && memoizedItems.length > limitToApply
       const itemsToShow = needToApplyLimit ? memoizedItems.slice(0, limitToApply) : memoizedItems

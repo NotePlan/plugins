@@ -35,6 +35,7 @@ export type FrontmatterKeyChooserProps = {
   fullPathMatch?: boolean, // Whether to match full path (default: false)
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>, // Function to request data from plugin
   fieldKey?: string, // Unique key for this field instance (used to generate unique input id)
+  initialValues?: Array<string>, // Preloaded values for static HTML testing
 }
 
 /**
@@ -68,10 +69,21 @@ export function FrontmatterKeyChooser({
   fullPathMatch = false,
   requestFromPlugin,
   fieldKey,
+  initialValues,
 }: FrontmatterKeyChooserProps): React$Node {
-  const [values, setValues] = useState<Array<string>>([])
-  const [loaded, setLoaded] = useState<boolean>(false)
-  const [loading, setLoading] = useState<boolean>(false)
+  // Initialize from preloaded data if available (for static HTML testing)
+  const hasInitialValues = Array.isArray(initialValues) && initialValues.length > 0
+  const [values, setValues] = useState<Array<string>>(() => {
+    if (hasInitialValues && initialValues) {
+      logDebug('FrontmatterKeyChooser', `Using initial values: ${initialValues.length} values`)
+      return initialValues
+    }
+    return []
+  })
+  const [loaded, setLoaded] = useState<boolean>(hasInitialValues) // If preloaded, mark as loaded
+  // Initialize loading as true if we have a frontmatterKey and no preloaded data
+  // This prevents the placeholder from flipping from "Type to search values..." to "Loading Values..."
+  const [loading, setLoading] = useState<boolean>(() => Boolean(frontmatterKey) && !hasInitialValues)
   const lastLoadedKeyRef = useRef<string>('') // Track the last key we loaded data for
   const debounceTimeoutRef = useRef<?TimeoutID>(null) // Track debounce timeout
   const loadingKeyRef = useRef<string>('') // Track the key we're currently loading (to detect changes during async)
@@ -91,14 +103,28 @@ export function FrontmatterKeyChooser({
       // No key provided, reset values immediately
       setValues([])
       setLoaded(false)
+      setLoading(false)
       lastLoadedKeyRef.current = ''
       loadingKeyRef.current = ''
       return
     }
 
+    // Skip loading if initial values were provided (for static HTML testing)
+    if (hasInitialValues) {
+      logDebug('FrontmatterKeyChooser', `Skipping load - using initial values (${initialValues?.length || 0} values)`)
+      return
+    }
+    
     // If we've already loaded data for this exact key, don't reload
     if (lastLoadedKeyRef.current === frontmatterKey && loaded && !loading) {
       return
+    }
+
+    // If we have a key but haven't loaded yet (or key changed), set loading to true immediately
+    // This prevents the placeholder from flipping from "Type to search values..." to "Loading Values..."
+    if (frontmatterKey && lastLoadedKeyRef.current !== frontmatterKey) {
+      setLoading(true)
+      setLoaded(false) // Reset loaded state when key changes
     }
 
     // Debounce: wait 500ms after the last key change before loading
@@ -106,11 +132,15 @@ export function FrontmatterKeyChooser({
     debounceTimeoutRef.current = setTimeout(() => {
       // Double-check the key hasn't changed during the debounce delay
       if (lastLoadedKeyRef.current === frontmatterKey && loaded) {
+        setLoading(false) // Reset loading if already loaded
         return // Already loaded for this key
       }
 
-      if (requestFromPlugin && frontmatterKey && !loading) {
-        setLoading(true)
+      if (requestFromPlugin && frontmatterKey) {
+        // Only set loading if not already loading (to avoid redundant state updates)
+        if (!loading) {
+          setLoading(true)
+        }
         // Capture the key at the start of the async call to detect if it changes during load
         loadingKeyRef.current = frontmatterKey
         logDebug('FrontmatterKeyChooser', `Loading values for key "${frontmatterKey}" from plugin`)
@@ -162,7 +192,7 @@ export function FrontmatterKeyChooser({
         debounceTimeoutRef.current = null
       }
     }
-  }, [requestFromPlugin, frontmatterKey, noteType, caseSensitive, folderString, fullPathMatch]) // Removed loaded and loading from dependencies to prevent loops
+  }, [requestFromPlugin, frontmatterKey, noteType, caseSensitive, folderString, fullPathMatch, hasInitialValues, initialValues]) // Removed loaded and loading from dependencies to prevent loops
 
   // Function to format value for display (no prefix needed, just return as-is)
   // Memoized with useCallback to prevent recreation on every render
@@ -216,6 +246,7 @@ export function FrontmatterKeyChooser({
           width={width}
           allowCreate={allowCreate}
           onCreate={handleCreateValue}
+          isLoading={loading}
         />
       </div>
     )
@@ -247,6 +278,7 @@ export function FrontmatterKeyChooser({
         singleValue={singleValue}
         onCreate={handleCreateValue}
         fieldKey={fieldKey}
+        isLoading={loading}
       />
     </div>
   )

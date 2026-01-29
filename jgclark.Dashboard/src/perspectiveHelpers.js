@@ -1,4 +1,3 @@
-
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
@@ -13,7 +12,7 @@ import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings.j
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import { updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentionCache'
-import type { TDashboardSettings, TDashboardPluginSettings, TPerspectiveDef } from './types'
+import type { TDashboardSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getPeriodOfNPDateStr } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
@@ -24,6 +23,7 @@ import { chooseNoteV2 } from '@helpers/NPnote'
 import { backupSettings, getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
+
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
 
 /* -----------------------------------------------------------------------------
@@ -390,10 +390,10 @@ export function getDisplayListOfPerspectiveNames(allDefs: Array<TPerspectiveDef>
   }
 }
 /**
- * WARNING: This is not used any more. Test before use.
  * Get all folders that are allowed in the current Perspective.
+ * Note: used only by getReviewSettings() in Projects plugin.
  * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns
+ * @returns {Array<string>}
  */
 export function getAllowedFoldersInCurrentPerspective(perspectiveSettings: Array<TPerspectiveDef>): Array<string> {
   const activeDef = getActivePerspectiveDef(perspectiveSettings)
@@ -576,11 +576,11 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
  * TODO: Is it true that sometimes this will be called with a partial object, and sometimes with a full object?
  * It can be called before doing a comparison with the active perspective settings.
  * Note: index.js::onUpdateOrInstall() does the renaming of keys in the settings object.
- * @param {TDashboardPluginSettings} settingsIn
+ * @param {Partial<TDashboardSettings>} settingsIn
  * @param {boolean} deleteAllShowTagSections - also clean out showTag_* settings
- * @returns {TDashboardPluginSettings}
+ * @returns {Partial<TDashboardSettings>}
  */
-export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPluginSettings, deleteAllShowTagSections?: boolean): Partial<TDashboardPluginSettings> {
+export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashboardSettings>, deleteAllShowTagSections?: boolean): Partial<TDashboardSettings> {
   // Define keys to remove
   const patternsToRemove = [
     // the following shouldn't be persisted in the perspectiveSettings object, but only in the top-level dashboardSettings object
@@ -618,6 +618,7 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPlugi
     // clvt(settingsIn.maxItemsToShowInSection, 'cleanDashboard...  starting maxItemsToShowInSection')
 
     // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
+    // $FlowIgnore[incompatible-call] - settingsIn is Partial<TDashboardSettings> but removeInvalidTagSections accepts TDashboardSettings; this is safe as it creates a copy
     const perspSettingsWithoutIrrelevantTags = removeInvalidTagSections(settingsIn) // OK
 
     const settingsOut = Object.keys(perspSettingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
@@ -849,7 +850,7 @@ export const endsWithStar = (input: string): boolean => /\*$/.test(input)
  * @returns {TDashboardSettings}
  */
 export function setPerspectivesIfJSONChanged(
-  updatedSettings: any /*TDashboardSettings*/, // TODO: improve type - can be partial settings object
+  updatedSettings: Partial<TDashboardSettings>,
   dashboardSettings: TDashboardSettings,
   sendActionToPlugin: Function,
   logMessage: string,

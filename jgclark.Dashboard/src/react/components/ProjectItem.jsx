@@ -2,12 +2,10 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by ItemRow component
-// Last updated 2026-01-19 for v2.4.0.b16 by @jgclark
+// Last updated 2026-01-24 for v2.4.0.b18 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
-// import { CircularProgressbar, CircularProgressbarWithChildren, buildStyles } from 'react-circular-progressbar'
-// import 'react-circular-progressbar/dist/styles.css'
 import type { TSectionItem, MessageDataObject } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import SmallCircularProgressIndicator from './SmallCircularProgressIndicator.jsx'
@@ -16,6 +14,7 @@ import { getFolderFromFilename } from '@helpers/folders'
 import { prepAndTruncateMarkdownForDisplay } from '@helpers/stringTransforms'
 import { logDebug } from '@helpers/react/reactDev.js'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+import { parseTeamspaceFilename, TEAMSPACE_FA_ICON } from '@helpers/teamspace'
 
 type Props = {
   item: TSectionItem,
@@ -24,9 +23,31 @@ type Props = {
 function ProjectItem({ item }: Props): Node {
   const { setReactSettings, dashboardSettings } = useAppContext()
 
-  const itemFilename = item.project?.filename ?? '<no filename>'
-  const folderNamePart = dashboardSettings?.showFolderName && getFolderFromFilename(itemFilename) !== '/' ? `${getFolderFromFilename(itemFilename)} / ` : ''
   const progressText = item.project?.lastProgressComment ?? ''
+
+  // Sort out folder name, title and Teamspace indicator, as required
+  const itemFilename = item.project?.filename ?? '<no filename>'
+  const parsedTeamspace = parseTeamspaceFilename(itemFilename)
+  const isFromTeamspace = parsedTeamspace.isTeamspace
+  // const filenameWithoutTeamspacePrefix = parsedTeamspace.filename
+  const trimmedFilePath = parsedTeamspace.filepath.trim()
+
+  let folderNamePart = dashboardSettings?.showFolderName && trimmedFilePath !== '/' && trimmedFilePath !== '' ? `${trimmedFilePath} /` : ''
+
+  // Show Teamspace indicator and name, if this is a Teamspace note
+  let teamspaceName = null
+  if (isFromTeamspace) {
+    const teamspaceTitle = item.teamspaceTitle && item.teamspaceTitle !== 'Unknown Teamspace' ? item.teamspaceTitle : ''
+    teamspaceName = (
+      <span className="pad-left teamspaceName pad-right">
+        <i className={`${TEAMSPACE_FA_ICON} pad-right`}></i>
+        {teamspaceTitle}
+      </span>
+    )
+    if (folderNamePart !== '' && !folderNamePart.endsWith('/')) {
+      folderNamePart = `/ ${folderNamePart} `
+    }
+  }
 
   // Format and display project progress if present
   const progressContent = progressText && (
@@ -82,8 +103,9 @@ function ProjectItem({ item }: Props): Node {
       </div>
 
       <div className="sectionItemContent sectionItem">
-        {folderNamePart &&
-          <span className="folderName">{folderNamePart}</span>}
+        {/* If it's a teamspace note prepend that icon + title */}
+        {isFromTeamspace && teamspaceName}
+        {folderNamePart && <span className="folderName">{folderNamePart}</span>}
         {item.project && (
           // $FlowFixMe[incompatible-type] - TProjectForDashboard extends TNoteForDashboard, so this is safe
           <NoteTitleLink

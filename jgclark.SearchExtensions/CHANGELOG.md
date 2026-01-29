@@ -2,6 +2,9 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [2.0.1] - 2026-01-24
+- bug fixes for 'replace' commands
+
 ## [2.0.0] - 2025-03-21
 ### New
 - Adds a number of **replace** commands, that first search and then offer to replace with some new text. It always shows the number of occurrences found, and checks that you wish to proceed. **Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation**. You would have to use the Versions menu item in each note to roll it back.

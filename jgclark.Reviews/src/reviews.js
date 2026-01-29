@@ -963,6 +963,7 @@ export async function finishReview(): Promise<void> {
       await finishReviewCoreLogic(currentNote)
     } else {
       logWarn('finishReview', `- There's no project note in the Editor to finish reviewing.`)
+      await showMessage(`The current Editor note doesn't contain a project note to finish reviewing.`, 'OK, thanks', 'Reviews')
     }
   } catch (error) {
     logError('finishReview', error.message)
@@ -978,11 +979,12 @@ export async function finishReview(): Promise<void> {
 export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
   try {
     if (!noteToUse || noteToUse.type !== 'Notes') {
-      logWarn('finishReviewForNote', `- There's no valid project note to finish reviewing.`)
-    } else {
-      logInfo('finishReviewForNote', `Starting for passed note '${displayTitle(noteToUse)}'`)
-      await finishReviewCoreLogic(noteToUse)
+      logWarn('finishReviewForNote', `- Not passed a valid project note to finish reviewing. Stopping.`)
+      return
     }
+
+    logInfo('finishReviewForNote', `Starting for passed note '${displayTitle(noteToUse)}'`)
+    await finishReviewCoreLogic(noteToUse)
   }
   catch (error) {
     logError('finishReviewForNote', error.message)
@@ -1131,7 +1133,9 @@ export async function skipReview(): Promise<void> {
     if (!config) throw new Error('No config found. Stopping.')
     const currentNote = Editor
     if (!currentNote || currentNote.type !== 'Notes') {
-      logWarn('skipReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
+      logWarn('skipReview', `- There's no project note in the Editor, so will stop.`)
+      await showMessage(`The current Editor note doesn't contain a project note.`, 'OK, thanks', 'Skip Review')
+      return
     }
     logDebug('skipReview', `Starting for Editor '${displayTitle(currentNote)}'`)
     await skipReviewCoreLogic(currentNote)
@@ -1182,7 +1186,7 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
 //-------------------------------------------------------------------------------
 /**
  * Set a new review interval the note open in the Editor, by asking user.
- * * TEST: following change to allProjects
+ * TEST: following change to allProjects list
  * Note: see below for a non-interactive version that takes parameters
  * @author @jgclark
  * @param {TNote?} noteArg 
@@ -1194,7 +1198,8 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
     const note: CoreNoteFields = noteArg ? noteArg : Editor
     if (!note || note.type !== 'Notes') {
-      throw new Error(`Not in a Project note (at least 2 lines long)`)
+      await showMessage(`The current Editor note doesn't contain a project note.`, 'OK, thanks', 'Set new review interval')
+      throw new Error(`Not in a valid project note. Stopping.`)
     }
 
     // Ask user for new date interval

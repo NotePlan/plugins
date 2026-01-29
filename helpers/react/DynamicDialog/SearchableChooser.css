@@ -110,6 +110,22 @@
   min-height: calc(0.85rem * 1.2 + 8px); /* font-size * line-height + vertical padding (4px top + 4px bottom) */
 }
 
+/* Focus state - must come immediately after base styles to override */
+/* Use exact same selector as base style but with :focus for maximum specificity */
+.searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus,
+[class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus {
+  outline: none !important;
+  border: 2px solid var(--tint-color, #dc8a78) !important;
+  box-shadow: 0 0 0 2px rgba(220, 138, 120, 0.2) !important;
+}
+
+/* Additional fallback selector for inputs that might not have the wrapper class */
+input[type="text"][class*="-chooser-input"]:focus {
+  outline: none !important;
+  border: 2px solid var(--tint-color, #dc8a78) !important;
+  box-shadow: 0 0 0 2px rgba(220, 138, 120, 0.2) !important;
+}
+
 /* Also support the simpler selector for backward compatibility, but exclude dropdown options */
 .searchable-chooser-base [class*="-chooser-input"]:not([class*="-chooser-option"]):not([class*="-chooser-dropdown"]),
 [class*="-chooser-input"]:not([class*="-chooser-option"]):not([class*="-chooser-dropdown"]) {
@@ -123,13 +139,6 @@
   text-indent: 0.75rem;
 }
 
-.searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus,
-[class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:focus {
-  outline: none;
-  border-color: var(--tint-color, #dc8a78);
-  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
-}
-
 .searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:disabled,
 [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"]:disabled {
   background-color: var(--bg-disabled-color, #f5f5f5);
@@ -141,6 +150,30 @@
 [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"].manual-entry {
   border-color: var(--tint-color, #007AFF);
   background-color: var(--bg-alt-color, #f5f5f5);
+}
+
+/* Loading state - show wait cursor and adjust padding for spinner */
+.searchable-chooser-base [class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"].loading,
+[class*="-chooser-input-wrapper"] > input[type="text"][class*="-chooser-input"].loading {
+  cursor: wait !important;
+  padding-right: 2.5rem; /* Extra padding for spinner icon */
+}
+
+/* Loading spinner icon - center vertically in input */
+.searchable-chooser-base [class*="-chooser-loading-spinner"],
+[class*="-chooser-loading-spinner"] {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
+  pointer-events: none;
+  z-index: 10;
+  font-size: 0.75rem; /* Match arrow font-size */
+  line-height: 1; /* Prevent extra vertical space */
+  height: 0.75rem; /* Constrain height to font-size */
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Manual entry indicator */
@@ -256,8 +289,32 @@
   visibility: visible !important;
   opacity: 1 !important;
   height: auto !important;
-  min-height: 50px !important;
+  min-height: auto !important; /* Remove fixed min-height to prevent extra space */
   margin-top: 0;
+  margin-bottom: 0;
+  padding: 0; /* Ensure no padding that could create blank space */
+  padding-bottom: 0 !important; /* Explicitly remove bottom padding */
+  font-family: system-ui;
+}
+
+/* When showing empty state (not loading), reduce min-height to prevent extra blank line */
+/* Target empty state that doesn't contain spinner (i.e., "No Options Available" message) */
+.searchable-chooser-dropdown-portal .searchable-chooser-empty:not(:has(.fa-spinner)) {
+  padding-bottom: 0.5rem;
+  margin-bottom: 0;
+}
+
+/* Reduce min-height when only showing empty state (not loading) */
+.searchable-chooser-dropdown-portal:has(.searchable-chooser-empty:not(:has(.fa-spinner))) {
+  min-height: auto !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Ensure dropdown has no bottom spacing when showing options */
+.searchable-chooser-dropdown-portal:has(.searchable-chooser-option) {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 /* When dropdown opens above, adjust border radius */
@@ -288,7 +345,7 @@
 
 /* Option - use direct class name for maximum compatibility */
 .searchable-chooser-option {
-  padding: 0.15rem 0.75rem;
+  padding: 0.15rem 0.4rem;
   cursor: pointer;
   border-bottom: 1px solid var(--divider-color, #CDCFD0);
   color: var(--fg-main-color, #4c4f69);
@@ -432,6 +489,14 @@
   display: flex;
 }
 
+/* Ensure last two-line option has no bottom margin/padding */
+.searchable-chooser-option-two-line:last-child,
+.searchable-chooser-base [class*="-chooser-option-two-line"]:last-child,
+[class*="-chooser-option-two-line"]:last-child {
+  margin-bottom: 0 !important;
+  padding-bottom: 0.5rem !important; /* Match padding-top to maintain spacing */
+}
+
 .searchable-chooser-base [class*="-chooser-option-first-line"],
 [class*="-chooser-option-first-line"] {
   display: flex;
@@ -489,7 +554,9 @@
 .searchable-chooser-option:last-child,
 .searchable-chooser-base [class*="-chooser-option"]:last-child,
 [class*="-chooser-option"]:last-child {
-  border-bottom: none;
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0.15rem; /* Match the padding-top to maintain consistent spacing */
 }
 
 /* Column-based layout support for custom rendering */
@@ -555,6 +622,12 @@
   color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
   font-size: 0.9rem;
+  line-height: 1.2;
+  margin: 0;
+  border-bottom: none;
+  cursor: default;
+  pointer-events: none; /* Prevent clicking on empty state */
+  user-select: none; /* Prevent text selection */
 }
 
 .searchable-chooser-base [class*="-chooser-empty"],
@@ -563,6 +636,12 @@
   color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
   font-style: italic;
   font-size: 0.9rem;
+  line-height: 1.2;
+  margin: 0;
+  border-bottom: none;
+  cursor: default;
+  pointer-events: none; /* Prevent clicking on empty state */
+  user-select: none; /* Prevent text selection */
 }
 
 /* Value display - show selected value for debugging */

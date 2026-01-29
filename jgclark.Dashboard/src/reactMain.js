@@ -8,7 +8,7 @@
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getDashboardSettings, getLogSettings, getNotePlanSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
+import { getDashboardSettings, getDashboardSettingsDefaults, getLogSettings, getNotePlanSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { getAllSectionsData } from './dataGeneration'
 import { getPerspectiveSettings, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
@@ -397,8 +397,17 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
     if (!activeDef) throw new Error(`getDashboardSettingsFromPerspective: getActivePerspectiveDef failed`)
     const prevDashboardSettings = await getDashboardSettings()
     if (!prevDashboardSettings) throw new Error(`getDashboardSettingsFromPerspective: getDashboardSettings failed`)
+    
+    // Get defaults to ensure all section show settings are included
+    // $FlowIgnore[incompatible-call] - getDashboardSettingsDefaults is exported from dashboardHelpers
+    const defaults = getDashboardSettingsDefaults()
+    
     // apply the new perspective's settings to the main dashboard settings
+    // Merge order: defaults -> prevDashboardSettings -> perspective settings
+    // This ensures that if a perspective doesn't have a section show setting (like showProjectActiveSection),
+    // it will use the default value (true for most sections) from defaults or prevDashboardSettings
     const newDashboardSettings = {
+      ...defaults,
       ...prevDashboardSettings,
       ...(activeDef.dashboardSettings || {}),
     }

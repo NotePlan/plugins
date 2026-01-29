@@ -349,36 +349,6 @@ export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boole
   return theme
 }
 
-/**
- * WARNING: Deprecated. Please use more advanced features in showHTMLV2() instead.
- * Convenience function for opening HTML Window with as few arguments as possible
- * Automatically adds the error bridge to bring console log errors back to NP
- * You should add your own callback bridge to get data back from the HTML window to your plugin (see getCallbackCodeString() above)
- * @param {string} windowTitle - (required) window title
- * @param {string} body - (required) body HTML code
- * @param {HtmlWindowOptions} opts - (optional) options: {headerTags, generalCSSIn, specificCSS, makeModal, preBodyScript, postBodyScript, savedFilename, width, height}
- * Note: opts. includeCSSAsJS - (optional) if true, then the theme will be included as a JS object in the HTML window, and you can use it for CSS-in-JS styling
- * Notes: if opts.generalCSSIn is not supplied, then CSS will be generated based on the user's current theme.
- * If you want to save the HTML to a file for debugging, then you should supply opts.savedFilename (it will be saved in the plugin's data/<plugin.id> folder).
- * Your script code in pre-body or post-body do not need to be wrapped in <script> tags, and can be either a string or an array of strings or an array of objects with code and type properties (see ScriptObj above)
- * @example showHTMLWindow("Test", "<p>Test</p>", {savedFilename: "test.html"})
- * @author @dwertheimer
- */
-export async function showHTMLWindow(body: string, opts: HtmlWindowOptions) {
-  const preBody: Array<Object> = opts.preBodyScript ? (Array.isArray(opts.preBodyScript) ? opts.preBodyScript : [opts.preBodyScript]) : []
-  if (opts.includeCSSAsJS) {
-    const theme = getThemeJS(true, true)
-    if (theme.values) {
-      const themeName = theme.name ?? '<unknown>'
-      const themeJSONStr = JSON.stringify(theme.values, null, 4) ?? '<empty>'
-      preBody.push(`/* Basic Theme as JS for CSS-in-JS use in scripts \n  Created from theme: "${themeName}" */\n  const NP_THEME=${themeJSONStr}\n`)
-      logDebug(pluginJson, `showHTMLWindow Saving NP_THEME in JavaScript`)
-    }
-  }
-  opts.preBodyScript = preBody
-  await showHTMLV2(body, opts)
-}
-
 type ScriptObj = {
   // script code with or without <script> tags
   code: string,
@@ -468,9 +438,11 @@ function assembleHTMLParts(body: string, title: string, winOpts: HtmlWindowOptio
 }
 
 /**
- * Helper function to construct HTML and decide how and where to show it in a window. (Replaces showHTML() which was deprecated in v3.9.6.)
+ * Helper function to construct HTML and decide how and where to show it in a window.
+ * Automatically provides the user's current NP theme through a complex them-to-CSS translation process.
  * Most data comes via an opts object, to ease future expansion.
- * Adds ability to automatically display (floating) windows at the last position and size that the user had left them at. To enable this:
+ * Supports running as "main window" (i.e. in Editor) on all platforms, as modal windows on all platforms, and as floating windows on macOS.
+ * Adds ability to automatically display floating windows at the last position and size that the user had left them at. To enable this:
  * - set opts.reuseUsersWindowRect to true
  * - supply a opts.customId to distinguish which window this is to the plugin (e.g. 'review-list'). I suggest this is lower-case-with-dashes. (If customId not passed, it will fall back to using opts.windowTitle instead.)
  * - (optional) still supply default opts.width and opts.height to use the first time

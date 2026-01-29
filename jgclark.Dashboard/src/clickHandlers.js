@@ -79,11 +79,10 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
   try {
     const config = await getDashboardSettings()
     // clo(data, 'data for doAddItem', 2)
-    const { actionType, toFilename, userInputObj } = data
-    const { sectionCode } = validateAndFlattenMessageObject(data)
+    const { actionType, toFilename, userInputObj, sectionCodes } = data
     const { text, heading } = userInputObj || {}
 
-    logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''} in section ${String(sectionCode)}`)
+    logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''} in section [${String(sectionCodes)}]]`)
     if (!toFilename) {
       throw new Error('doAddItem: No toFilename provided')
     }
@@ -111,8 +110,8 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     }
     // Note: updateCache is now done in previous function call
 
-    // update just the section we've added to
-    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode] })
+    // update just the section we've added to (expect a single-item array)
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: sectionCodes })
   } catch (err) {
     logError('doAddItem', err.message)
     return handlerResult(false, [], { errorMsg: err.message })

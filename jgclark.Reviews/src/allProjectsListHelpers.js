@@ -4,17 +4,14 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-01-16 for v1.3.0.b4, @jgclark
+// Last updated 2026-01-24 for v1.3.0.b7, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { Project, calcReviewFieldsForProject } from './projectClass.js'
-import {
-  getReviewSettings,
-  type ReviewConfig,
-  updateDashboardIfOpen,
-} from './reviewHelpers.js'
+import { getReviewSettings, updateDashboardIfOpen } from './reviewHelpers.js'
+import type { ReviewConfig } from './reviewHelpers.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toISODateString } from '@helpers/dateTime'
 import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
@@ -422,11 +419,13 @@ export async function generateAllProjectsList(configIn: any, runInForeground: bo
     const projectInstances = await getAllMatchingProjects(configIn, runInForeground)
 
     // Log the start this full generation to a special log note
-    // Note: This logging may be removed in a future version
-    const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
-    if (logNote) {
-      const newLogLine = `${new Date().toLocaleString()}: Reviews (generateAllProjectsList) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
-      smartPrependPara(logNote, newLogLine, 'list')
+    // TODO: Remove when v1.3.0 or v1.4.0 is released
+    if (configIn?._logLevel === 'DEBUG' || configIn?._logLevel === 'DEV') {
+      const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
+      if (logNote) {
+        const newLogLine = `${new Date().toLocaleString()}: Reviews (generateAllProjectsList) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
+        smartPrependPara(logNote, newLogLine, 'list')
+      }
     }
 
     await writeAllProjectsList(projectInstances)
@@ -450,7 +449,7 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
       const reviewListDate = Date.now()
       DataStore.setPreference(generatedDatePrefName, reviewListDate)
       logInfo('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
-      // await updateDashboardIfOpen() // TEST: leaving to calling functions
+      await updateDashboardIfOpen()
     } else {
       throw new Error(`Error writing JSON to '${allProjectsListFilename}'`)
     }
@@ -564,6 +563,8 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
 
 /**
  * Filter and sort the list of Projects. Used by renderProjectLists().
+ * TODO: Should this filter out paused projects?
+ * TODO: Should this filter out cancelled projects?
  * (Last I checked it was running in 2ms.)
  * @param {ReviewConfig} config 
  * @param {string?} projectTag to filter by (optional)
@@ -671,9 +672,6 @@ export async function updateAllProjectsListAfterChange(
     // re-form the file
     await writeAllProjectsList(allProjects)
     logInfo('updateAllProjectsListAfterChange', `- done writing ${allProjects.length} items to updated list 🔸`)
-
-    // Finally, refresh Dashboard
-    await updateDashboardIfOpen()
   }
   catch (error) {
     logError('updateAllProjectsListAfterChange', JSP(error))
@@ -729,7 +727,7 @@ export async function getNextNoteToReview(): Promise<?TNote> {
 }
 
 /**
- * Get list of the next Project(s) to review (if any).
+ * Get list of the next Project(s) ready to review (if any).
  * Note: v2, using the allProjects JSON file (not ordered but detailed).
  * Note: This is a variant of the original singular version above, and is only used by jgclark.Dashboard/src/dataGenerationProjects.js
  * @author @jgclark
@@ -766,6 +764,40 @@ export async function getNextProjectsToReview(numToReturn: number = 0): Promise<
   }
   catch (error) {
     logError('reviews/getNextProjectsToReview', JSP(error))
+    return []
+  }
+}
+
+/**
+ * Get list of all active Project(s). This is filtered according to the plugin settings, which may come from the Perspective set by the Dashboard.
+ * @author @jgclark
+ * @return { Array<Project> } all Projects for current perspective. Can be an empty array. Note: not a TNote but Project object.
+ */
+export async function getAllActiveProjects(): Promise<Array<Project>> {
+  try {
+    const config: ?ReviewConfig = await getReviewSettings(true)
+    if (!config) {
+      // Shouldn't get here, but this is a safety check.
+      logDebug('reviews/getAllActiveProjects', 'No config found, so assume jgclark.Reviews plugin is not installed. Stopping.')
+      return []
+    }
+    logDebug('reviews/getAllActiveProjects', `Starting for perspective ${config.perspectiveName}`)
+
+    // Get all active Projects, according to the current perspective settings (which are overriden in config)
+    const allActiveProjectsSorted = await filterAndSortProjectsList(config)
+    if (!allActiveProjectsSorted || allActiveProjectsSorted.length === 0) {
+      logWarn('getNextNoteToReview', `No active projects found, so stopping`)
+      return []
+    }
+    if (allActiveProjectsSorted.length > 0) {
+      logDebug('reviews/getAllActiveProjects', `- Returning ${allActiveProjectsSorted.length} projects for current perspective`)
+    } else {
+      logDebug('reviews/getAllActiveProjects', `- No projects found for current perspective 🎉`)
+    }
+    return allActiveProjectsSorted
+  }
+  catch (error) {
+    logError('reviews/getAllActiveProjects', JSP(error))
     return []
   }
 }

@@ -134,7 +134,7 @@ export function getSectionsWithoutDuplicateLines(
     const itemMap: any = new Map()
 
     // Now we are working with actual TSection objects, not sectionCodes anymore
-    // Process each section (but not if it's a "TB" or "PROJ" section, because they have different sorts of items)
+    // Process each section (but not if it's a "TB", or Project-type Section, because they have different sorts of items)
     orderedSections.forEach((section) => {
       // logDebug('getSectionsWithoutDuplicateLines', `- Checking section ${section.sectionCode}. Starts with ${section.sectionItems.length} items`)
       if (dontDedupeList.includes(section.sectionCode)) return

@@ -8,7 +8,7 @@
   "plugin.description": "A Dashboard for NotePlan, that in one place shows:\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next notes ready to review (if you use the 'Projects and Reviews' plugin).\nIt includes many other ways of speeding up managing your tasks: see the website for more details.",
   "plugin.author": "@jgclark",
   "plugin.comment": "TODO: On full release, change minAppVersion down to 3.7?",
-  "plugin.version": "2.4.0.b17",
+  "plugin.version": "2.4.0.b19",
   "plugin.releaseStatus": "beta",
   "plugin.hidden": false,
   "plugin.lastUpdateInfo": "2.4.0: new 'Spaces to Include' setting which controls which (Team)Spaces you wish to include, plus whether or not to include the Private 'Space' (all notes not in a Space)\n2.3.3: new 'Year' section available.\n2.3.2: fix display when there are no priority items shown.\n2.3.1: fix for possible loss of settings error when upgrading.\n2.3.0: Support for NotePlan (Team)Spaces. Can re-order display of Sections.New '/backupSettings' command. Added 'noteTags' feature. Speeded up Tag/Mention sections. Layout improvements. Lots of other small fixes and improvements.\n2.2.1: Add new sorting option for Tag and Overdue sections.\n2.2.0: Add 'Search' section. New keyboard shortcuts. Plus many small improvements, bug fixes and performance improvements. See documentation for details.\n2.1.10: More move-under-heading options. Bug fixes and performance improvements.\n2.1.9: performance improvements and better UI for iPhone users.\n2.1.8: various fixes and small improvements.\n2.1.7: various fixes and small improvements.\n2.1.6: allow all current timeblocks to be shown, not just the first. Add new @repeat()s if using the extended syntax from the Repeat Extensions plugin. Bug fixes.\n2.1.5: fixes to time blocks and scheduling items.\n2.1.4: fix to Interactive Processing, and Edit All Perspectives dialog now shows unsaved changes.",
@@ -157,6 +157,15 @@
       "jsFunction": "refreshSectionByCode",
       "arguments": [
         "section code to refresh"
+      ]
+    },
+    {
+      "hidden": true,
+      "name": "refreshSectionsByCode",
+      "description": "Refresh sections with section codes",
+      "jsFunction": "refreshSectionsByCode",
+      "arguments": [
+        "array of section codes to refresh"
       ]
     },
     {
