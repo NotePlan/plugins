@@ -7,7 +7,8 @@
 import pluginJson from '../plugin.json'
 import { openFormBuilder } from './NPTemplateForm'
 import { handleSubmitButtonClick } from './formSubmission'
-import { findDuplicateFormTemplates, loadTemplateBodyFromTemplate, loadNewNoteFrontmatterFromTemplate } from './templateIO'
+import { findDuplicateFormTemplates } from './templateIO'
+import { loadFormContextFromFilename } from './formSubmitHandlers'
 import { openFormBuilderWindow } from './windowManagement'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
@@ -272,6 +273,16 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
 
     logDebug(pluginJson, `handleSubmitForm: templateFilename="${templateFilename}", keepOpenOnSubmit=${String(keepOpenOnSubmit || false)}`)
 
+    // Load form context from file (same as submitFormRequest does)
+    const formContext = await loadFormContextFromFilename(templateFilename)
+    if (!formContext) {
+      return {
+        success: false,
+        message: `Could not load form from "${templateFilename}". Template not found or invalid.`,
+        data: { formSubmissionError: `Could not load form from "${templateFilename}".` },
+      }
+    }
+
     // Get the template note to extract processing information
     const templateNote = await getNoteByFilename(templateFilename)
     if (!templateNote) {
@@ -294,17 +305,12 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       }
     }
 
-    // For run-js-only, we don't need receivingTemplateTitle or templateBody validation
-    // TemplateJS blocks come from form fields, not from templateBody
-
-    // Call the form submission handler
-    // handleSubmitButtonClick expects (data, formFields) - no window data needed
-    // Strip quotes from string values that may have been stored with quotes in frontmatter
     // receivingTemplateTitle can come from formValues (dynamic) or frontmatter (static)
     const receivingTemplateTitleFromForm = formValues?.receivingTemplateTitle || ''
     const receivingTemplateTitleFromFrontmatter = stripDoubleQuotes(fm?.receivingTemplateTitle || '') || ''
     const receivingTemplateTitle = receivingTemplateTitleFromForm || receivingTemplateTitleFromFrontmatter
     
+    // Build submitData with all necessary fields
     const submitData = {
       type: 'submit',
       formValues,
@@ -316,41 +322,20 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       writeUnderHeading: stripDoubleQuotes(fm?.writeUnderHeading || '') || '',
       replaceNoteContents: fm?.replaceNoteContents || false,
       createMissingHeading: fm?.createMissingHeading !== false,
-      newNoteTitle: stripDoubleQuotes(fm?.newNoteTitle || '') || '',
-      newNoteFolder: stripDoubleQuotes(fm?.newNoteFolder || '') || '',
     }
 
-    // Load formFields from template note (needed for run-js-only to find TemplateJS blocks and validation)
-    let formFields: Array<any> = []
-    try {
-      const loadedFields = await loadCodeBlockFromNote<Array<any>>(templateFilename, 'formfields', pluginJson.id, parseObjectString)
-      if (loadedFields && Array.isArray(loadedFields)) {
-        formFields = loadedFields
-      }
-    } catch (error) {
-      logError(pluginJson, `handleSubmitForm: Error loading formFields: ${error.message}`)
-      // Continue without formFields - will fail validation if run-js-only needs them
-    }
-
-    // Load templateBody and newNoteFrontmatter from codeblocks (needed for processCreateNew)
-    // These are stored in codeblocks, not frontmatter, so we need to load them separately
-    let templateBody = ''
-    let newNoteFrontmatter = ''
-    try {
-      templateBody = (await loadTemplateBodyFromTemplate(templateFilename)) || ''
-      newNoteFrontmatter = (await loadNewNoteFrontmatterFromTemplate(templateFilename)) || ''
-    } catch (error) {
-      logError(pluginJson, `handleSubmitForm: Error loading templateBody/newNoteFrontmatter: ${error.message}`)
-      // Continue - these may not exist for all forms
-    }
-
-    // Merge loaded form context into submitData so processCreateNew can access it
-    // processCreateNew reads from data.templateBody and data.newNoteFrontmatter
+    // Merge loaded form context (templateBody, newNoteFrontmatter, newNoteTitle, newNoteFolder) into submitData
+    // This matches what submitFormRequest does - processCreateNew reads from data.templateBody, data.newNoteTitle, etc.
     const submitDataWithFormContext = {
       ...submitData,
-      templateBody: templateBody || '',
-      newNoteFrontmatter: newNoteFrontmatter || '',
+      templateBody: formContext.templateBody || '',
+      newNoteFrontmatter: formContext.newNoteFrontmatter || '',
+      newNoteTitle: formContext.newNoteTitle || '',
+      newNoteFolder: formContext.newNoteFolder || '',
     }
+
+    // Use formFields from loaded form context
+    const formFields = formContext.formFields || []
 
     // Validate that all form fields are present in formValues (even if empty)
     // Conditional-values are resolved in prepareFormValuesForRendering; do not add them here
