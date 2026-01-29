@@ -363,18 +363,13 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
 
     const result = await handleSubmitButtonClick(submitData, reactWindowData)
 
-    // Check for errors in result before returning success
-    // handleSubmitButtonClick returns PassedData | null
-    // Even if result is not null, it may contain errors in pluginData
-    const hasError = result && result.pluginData && (result.pluginData.formSubmissionError || result.pluginData.aiAnalysisResult)
-    if (hasError && result) {
+    // Check for errors in result
+    if (!result.success) {
       // Extract error message
-      let errorMessage = 'Template execution failed.'
-      if (result.pluginData.formSubmissionError) {
-        errorMessage = result.pluginData.formSubmissionError
-      } else if (result.pluginData.aiAnalysisResult) {
+      let errorMessage = result.formSubmissionError || 'Template execution failed.'
+      if (!result.formSubmissionError && result.aiAnalysisResult) {
         // Extract a brief summary from AI analysis (first line or first sentence)
-        const aiMsg = result.pluginData.aiAnalysisResult
+        const aiMsg = result.aiAnalysisResult
         const firstLine = aiMsg.split('\n')[0] || aiMsg.substring(0, 200)
         errorMessage = `Template error: ${firstLine}`
       }
@@ -385,40 +380,30 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
         success: false,
         message: errorMessage,
         data: {
-          pluginData: result?.pluginData || {},
-          formSubmissionError: result?.pluginData?.formSubmissionError,
-          aiAnalysisResult: result?.pluginData?.aiAnalysisResult,
+          formSubmissionError: result.formSubmissionError,
+          aiAnalysisResult: result.aiAnalysisResult,
           processingMethod,
         },
       }
     }
 
-    // handleSubmitButtonClick returns PassedData | null, so check if it's not null
-    if (result) {
-      // Determine note title based on processing method for success dialog
-      let noteTitle = ''
-      if (processingMethod === 'create-new') {
-        noteTitle = submitData.newNoteTitle || ''
-      } else if (processingMethod === 'write-existing') {
-        noteTitle = submitData.getNoteTitled || ''
-      }
-      // For form-processor and run-js-only, we don't know the note title, so leave it empty
+    // Success case
+    // Determine note title based on processing method for success dialog
+    let noteTitle = ''
+    if (processingMethod === 'create-new') {
+      noteTitle = submitData.newNoteTitle || ''
+    } else if (processingMethod === 'write-existing') {
+      noteTitle = submitData.getNoteTitled || ''
+    }
+    // For form-processor and run-js-only, we don't know the note title, so leave it empty
 
-      return {
-        success: true,
-        message: 'Form submitted successfully',
-        data: {
-          ...result,
-          noteTitle,
-          processingMethod,
-        },
-      }
-    } else {
-      return {
-        success: false,
-        message: 'Failed to submit form',
-        data: null,
-      }
+    return {
+      success: true,
+      message: 'Form submitted successfully',
+      data: {
+        noteTitle,
+        processingMethod,
+      },
     }
   } catch (error) {
     logError(pluginJson, `handleSubmitForm: Error: ${error.message}`)

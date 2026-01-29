@@ -146,6 +146,11 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
 
       return new Promise((resolve, reject) => {
         const timeoutId = setTimeout(() => {
+          // CRITICAL: Check if component is still mounted before accessing refs and rejecting
+          if (!isMountedRef.current) {
+            logDebug('FormView', `[DIAG] requestFromPlugin TIMEOUT skipped - component unmounted: command="${command}", correlationId="${correlationId}"`)
+            return
+          }
           const pending = pendingRequestsRef.current.get(correlationId)
           if (pending) {
             pendingRequestsRef.current.delete(correlationId)
@@ -465,11 +470,25 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   const setDataReceivedCountRef = useRef<number>(0)
   /** Blocks double-submit; set sync in handleSave, cleared in deferred state update (avoids re-render blocking getGlobalSharedData) */
   const submissionInProgressRef = useRef<boolean>(false)
+  // Ref to track if component is mounted (prevents callbacks after unmount) - declared early so it's available to all setTimeout callbacks
+  const isMountedRef = useRef<boolean>(true)
 
   // Close dialog after submission if there's no AI analysis result
   // GUARD: Use ref to prevent this effect from running multiple times with same data
   const formSubmittedEffectRunRef = useRef<string>('')
+  // Ref to track timeout ID for proper cleanup (prevents race condition crash)
+  const closeDialogTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Ref to track effect instance ID (increments each time effect runs, prevents stale callback execution)
+  const effectInstanceIdRef = useRef<number>(0)
   useEffect(() => {
+    // Clear any existing timeout when effect runs (cleanup from previous effect run)
+    if (closeDialogTimeoutRef.current != null) {
+      clearTimeout(closeDialogTimeoutRef.current)
+      closeDialogTimeoutRef.current = null
+    }
+    // Increment instance ID to invalidate any pending callbacks from previous effect runs
+    const currentInstanceId = ++effectInstanceIdRef.current
+
     if (formSubmitted) {
       // Create a signature for this effect run to prevent duplicate processing
       const signature = `${String(!!pluginData?.aiAnalysisResult)}-${String(!!pluginData?.formSubmissionError)}`
@@ -501,26 +520,100 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       if (!hasAiAnalysis && !hasFormSubmissionError) {
         // No AI analysis result and no form submission error - close the dialog after a short delay to allow data to update
         logDebug('FormView', `[AI ANALYSIS] No AI analysis result, no form submission error, will close dialog after 500ms delay`)
-        const timeoutId = setTimeout(() => {
-          // Double-check there's still no AI analysis result or form submission error
-          const stillNoAiAnalysis = !pluginData?.aiAnalysisResult || !pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
-          const stillNoFormError = !pluginData?.formSubmissionError
-          logDebug('FormView', `[AI ANALYSIS] After 500ms delay, stillNoAiAnalysis=${String(stillNoAiAnalysis)}, stillNoFormError=${String(stillNoFormError)}, closing dialog`)
-          if (stillNoAiAnalysis && stillNoFormError) {
-            setIsSubmitting(false) // Hide overlay before closing
-            suppressDataRequestsRef.current = false // Allow data-load requests again after submit completes
-            closeDialog()
-            setFormSubmitted(false)
+        // Capture instance ID in closure for the timeout callback
+        const callbackInstanceId = currentInstanceId
+        // Capture current timeout ref to verify it hasn't been cleared
+        const timeoutRef = closeDialogTimeoutRef
+        closeDialogTimeoutRef.current = setTimeout(() => {
+          try {
+            // CRITICAL: Check if component is still mounted, effect instance is still current, and timeout hasn't been cleared
+            // This prevents crashes when the component unmounts or effect re-runs while callback is executing
+            const isUnmounted = !isMountedRef.current
+            const instanceChanged = effectInstanceIdRef.current !== callbackInstanceId
+            const timeoutCleared = timeoutRef.current === null
+            if (isUnmounted || instanceChanged || timeoutCleared) {
+              logDebug('FormView', `[AI ANALYSIS] Timeout callback skipped - unmounted=${String(isUnmounted)}, instance changed (${callbackInstanceId} -> ${effectInstanceIdRef.current}), timeout cleared=${String(timeoutCleared)}`)
+              return
+            }
+            // Double-check there's still no AI analysis result or form submission error
+            // Access pluginData safely - it might be stale but that's okay for this check
+            const stillNoAiAnalysis = !pluginData?.aiAnalysisResult || !pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
+            const stillNoFormError = !pluginData?.formSubmissionError
+            logDebug('FormView', `[AI ANALYSIS] After 500ms delay, stillNoAiAnalysis=${String(stillNoAiAnalysis)}, stillNoFormError=${String(stillNoFormError)}, closing dialog`)
+            if (stillNoAiAnalysis && stillNoFormError) {
+              setIsSubmitting(false) // Hide overlay before closing
+              suppressDataRequestsRef.current = false // Allow data-load requests again after submit completes
+              closeDialog()
+              setFormSubmitted(false)
+            }
+          } catch (err) {
+            // Defensive: catch any errors to prevent crashes during cleanup
+            logDebug('FormView', `[AI ANALYSIS] Error in timeout callback (likely component unmounted): ${String(err)}`)
           }
         }, 500) // Wait 500ms for SET_DATA message to arrive
-
-        return () => clearTimeout(timeoutId)
       } else {
         logDebug('FormView', `[AI ANALYSIS] AI analysis result or form submission error detected, keeping dialog open`)
         // If there's an AI analysis result or form submission error, keep the dialog open (don't close)
       }
     }
+
+    // Cleanup function: clear timeout
+    return () => {
+      if (closeDialogTimeoutRef.current != null) {
+        clearTimeout(closeDialogTimeoutRef.current)
+        closeDialogTimeoutRef.current = null
+      }
+    }
   }, [formSubmitted, pluginData?.aiAnalysisResult, pluginData?.formSubmissionError])
+
+  // Track mount state to prevent callbacks after unmount
+  useEffect(() => {
+    isMountedRef.current = true
+    
+    // CRITICAL: Handle window/page replacement (when NotePlan reuses window with new content)
+    // When the window content is replaced, React may not get a chance to unmount properly
+    // This ensures cleanup happens even if React's unmount lifecycle doesn't complete
+    const handlePageUnload = () => {
+      logDebug('FormView', '[CLEANUP] Page unloading - clearing all pending timeouts and marking as unmounted')
+      isMountedRef.current = false
+      // Clear all pending timeouts
+      if (closeDialogTimeoutRef.current != null) {
+        clearTimeout(closeDialogTimeoutRef.current)
+        closeDialogTimeoutRef.current = null
+      }
+      // Clear any pending requests
+      pendingRequestsRef.current.forEach((pending) => {
+        clearTimeout(pending.timeoutId)
+      })
+      pendingRequestsRef.current.clear()
+    }
+    
+    // Listen for page unload events (fires when window content is replaced)
+    window.addEventListener('beforeunload', handlePageUnload)
+    window.addEventListener('pagehide', handlePageUnload)
+    // Also listen for visibility change as a fallback
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        // Page is being hidden - might be replaced soon, but don't clear yet
+        // Just log for debugging
+        logDebug('FormView', '[CLEANUP] Page visibility changed to hidden')
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      isMountedRef.current = false
+      // Clear any pending timeout on unmount
+      if (closeDialogTimeoutRef.current != null) {
+        clearTimeout(closeDialogTimeoutRef.current)
+        closeDialogTimeoutRef.current = null
+      }
+      // Remove event listeners
+      window.removeEventListener('beforeunload', handlePageUnload)
+      window.removeEventListener('pagehide', handlePageUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
   /**
    * Submit form via REQUEST/RESPONSE so errors (formSubmissionError, aiAnalysisResult) are returned
@@ -641,6 +734,10 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
 
     // Function to find and scroll the dialog content element
     const scrollDialogContentToTop = () => {
+      // CRITICAL: Check if component is still mounted before accessing DOM
+      if (!isMountedRef.current) {
+        return null
+      }
       // Try multiple selectors to find the scrolling element
       const selectors = ['.template-form .dynamic-dialog-content', '.dynamic-dialog.template-form .dynamic-dialog-content', '.dynamic-dialog-content']
 
@@ -662,17 +759,23 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
 
     // Try again after a short delay to catch it after React renders
     const timeout1 = setTimeout(() => {
-      scrollDialogContentToTop()
+      if (isMountedRef.current) {
+        scrollDialogContentToTop()
+      }
     }, 50)
 
     // Try again after a longer delay
     const timeout2 = setTimeout(() => {
-      scrollDialogContentToTop()
+      if (isMountedRef.current) {
+        scrollDialogContentToTop()
+      }
     }, 200)
 
     // Final attempt after everything should be rendered
     const timeout3 = setTimeout(() => {
-      scrollDialogContentToTop()
+      if (isMountedRef.current) {
+        scrollDialogContentToTop()
+      }
     }, 500)
 
     return () => {
@@ -701,7 +804,10 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     if (needsFolders && !foldersLoaded && !loadingFolders) {
       // Use setTimeout to delay the request, allowing TOC and other UI to render first
       const timeoutId = setTimeout(() => {
-        loadFolders()
+        // CRITICAL: Check if component is still mounted before calling state setters
+        if (isMountedRef.current) {
+          loadFolders()
+        }
       }, 200) // 200ms delay to yield to TOC rendering
 
       return () => {
@@ -714,7 +820,10 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     if (needsNotes && !notesLoaded && !loadingNotes) {
       // Use setTimeout to delay the request, allowing TOC and other UI to render first
       const timeoutId = setTimeout(() => {
-        loadNotes()
+        // CRITICAL: Check if component is still mounted before calling state setters
+        if (isMountedRef.current) {
+          loadNotes()
+        }
       }, 200) // 200ms delay to yield to TOC rendering
 
       return () => {

@@ -41,6 +41,173 @@ This document tracks the investigation into the `dwertheimer.Forms` freeze/hang 
 
 Prefer **throw checkpoints** when narrowing a hang, because logs can disappear.
 
+## Run log (results)
+
+Paste the key lines from the console log for each run here (especially any `DIAG-RUNFN:` throws).
+
+### Run 1 — Bracket the real `fn(params)` call (before-fn throw)
+
+- **Objective**: Prove we reach the *single* real `fn(params)` call site (and therefore determine whether the hang is inside `fn` or earlier).
+- **Code settings** (in `dwertheimer.Forms/src/formSubmission.js`):
+  - `DIAG_SKIP_FN_CALL_USE_DUMMY_RESULT = false`
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_STAGE = 1`
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_LABEL = 'workingContext.'`
+- **Expected outcome**: an error thrown with:
+  - `DIAG-RUNFN: stage=1 before-fn label="workingContext.<N>"`
+- **Result**:
+  - **Observed**:
+    - Freeze/hang (no `DIAG-RUNFN: stage=1 before-fn ...` observed)
+  - **Interpretation**:
+    - The hang is occurring **before we reach the single `fn(params)` call site** (or log buffering is dying extremely early).
+    - Next: bracket earlier inside the `workingContext` build loop.
+
+### Run 2 — Bracket earlier: does the `workingContext` loop start?
+
+- **Objective**: Determine whether we even enter the `workingContext` loop (before any `fn(...)` is called).
+- **Code settings** (in `dwertheimer.Forms/src/formSubmission.js`):
+  - `DIAG_SKIP_FN_CALL_USE_DUMMY_RESULT = false`
+  - `TEMPLATEJS_DIAG_THROW_WORKING_KEY = 1`
+  - `TEMPLATEJS_DIAG_THROW_WORKING_STAGE = 1` (start of loop iteration)
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_STAGE = 0` (disabled for this run)
+- **Expected outcome**: an error thrown with:
+  - `DIAG-WORKINGCTX: stage=1 start-loop key=1`
+- **Result**:
+  - **Observed**:
+    - `DIAG-WORKINGCTX: stage=1 start-loop key=1` (seen)
+    - Note: you reported an additional freeze *after* the error is logged/handled.
+  - **Interpretation**:
+    - [ ] If this throw appears: the loop begins; next we move the throw forward (stage 2/3) or advance the key index.
+    - [ ] If it freezes before this throw: the hang is **before** the loop (e.g. setup/logging right before the loop).
+
+### Run 3 — Avoid Promise resolution on error path (likely hang source)
+
+- **Objective**: If the system freezes *after* the diagnostic throw is logged, suspect the error return path (e.g. `promiseResolve(...)`) is hanging in NotePlan’s JSContext. This run removes Promise-based returns for TemplateJS error objects.
+- **Code change** (in `dwertheimer.Forms/src/formSubmission.js`):
+  - In `executeTemplateJSBlock`, return `{ __blockError: ... }` **directly** (no `promiseResolve`) for:
+    - non-object returns
+    - missing return
+    - catch(error) path
+- **Expected outcome**:
+  - The `DIAG-WORKINGCTX` throw still appears, but the plugin should **not** freeze after the error is handled; it should return an error payload back to the UI cleanly.
+- **Result**:
+  - **Observed**:
+    - UI shows `Form Submission Error` with:
+      - `Error executing TemplateJS block "field12": TemplateJS block "field12" threw when called with context: DIAG-WORKINGCTX: stage=1 start-loop key=1`
+    - No post-error freeze observed (error returns appear stable)
+  - **Interpretation**:
+    - Freeze stopped → hang was very likely in the Promise resolution/return path, not in `fn`.
+    - [ ] If freeze remains: bracket even later (executeTemplateJSBlocks merge / response sending).
+
+### Run 4 — Re-test “before-fn” throw (now that error returns are stable)
+
+- **Objective**: Retry the original “before-fn” bracketing now that the Promise-based error return path is removed.
+- **Code settings** (in `dwertheimer.Forms/src/formSubmission.js`):
+  - `DIAG_SKIP_FN_CALL_USE_DUMMY_RESULT = false`
+  - `TEMPLATEJS_DIAG_THROW_WORKING_STAGE = 0` (disabled)
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_STAGE = 1`
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_LABEL = 'workingContext.'`
+- **Expected outcome**: an error thrown with:
+  - `DIAG-RUNFN: stage=1 before-fn label="workingContext.<N>"`
+- **Result**:
+  - **Observed**:
+    - `DIAG-RUNFN: stage=1 before-fn label="workingContext.10"` (seen)
+  - **Interpretation**:
+    - We reached the call site; next run is stage=2 after-fn for the same label.
+    - [ ] If it freezes before stage=1: hang is still earlier than the call site (investigate Function construction / contextVars binding).
+
+### Run 5 — “after-fn” throw for the same call (does `fn` return?)
+
+- **Objective**: Determine whether the very first real `fn(params)` call (at `workingContext.10`) returns.
+- **Code settings** (in `dwertheimer.Forms/src/formSubmission.js`):
+  - `DIAG_SKIP_FN_CALL_USE_DUMMY_RESULT = false`
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_STAGE = 2`
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_LABEL = 'workingContext.10'`
+- **Expected outcome**:
+  - If `fn` returns: `DIAG-RUNFN: stage=2 after-fn label="workingContext.10"`
+  - If it freezes/hangs before that throw: the hang is **inside** `fn` during that call.
+- **Result**:
+  - **Observed**:
+    - Template error (no hang): `Can't find variable: dateField1`
+  - **Interpretation**:
+    - `fn` is executing and throwing normally; we are past the “can’t reach fn” problem.
+    - Next: ensure the test template does not reference missing variables (use minimal form/template), then re-enable bracketing to find the hang.
+
+### Run 6 — Minimal reproducible form/template (reduce variables)
+
+- **Objective**: Remove noise from missing variables and isolate a true “hang” reproducer.
+- **Suggested test setup**:
+  - Form with **1–2 fields** total (simple keys like `title` / `date1`)
+  - One `templatejs-block` that starts with:
+    - `return { ok: true }`
+  - Then add **one reference at a time**:
+    - `return { title }`
+    - `return { date1 }`
+    - `return { today: date.today() }` (etc.)
+- **Code settings**:
+  - `DIAG_SKIP_FN_CALL_USE_DUMMY_RESULT = false`
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_STAGE = 0` (no bracketing yet)
+- **Expected outcome**:
+  - No ReferenceErrors; TemplateJS block returns cleanly.
+  - Once stable, we re-enable `DIAG-RUNFN` stage=1/2 around the call to locate any hang precisely.
+- **Result**:
+  - **Observed**:
+    - Minimal `return { ok: true }` **succeeds** (no hang).
+    - Note: `templatejs-block` results (`ok`, `field1`, etc.) appear in the rendered note output.
+      - This is **expected behavior** (results are merged into context and available to the template).
+      - If the template doesn't explicitly reference these, check if the template body has code that iterates/dumps all context variables.
+      - **TODO for cleanup**: Ensure template body doesn't auto-output all context keys unless intended.
+
+### Run 7a — Re-enable bracketing (confirm call site)
+
+- **Objective**: Confirm we can still reach the call site with real template code.
+- **Code settings**:
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_STAGE = 1`
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_LABEL = 'workingContext.'`
+- **Test template**: `return { title: field1 }`
+- **Result**:
+  - **Observed**:
+    - `DIAG-RUNFN: stage=1 before-fn label="workingContext.10"` (seen, error returned cleanly)
+  - **Interpretation**:
+    - Call site confirmed; error handling path works (no hang on error return).
+
+### Run 7b — Test real template code execution (no throws)
+
+- **Objective**: Test if the actual template code (`return { title: field1 }`) executes without hanging when throws are disabled.
+- **Code settings** (in `dwertheimer.Forms/src/formSubmission.js`):
+  - `DIAG_SKIP_FN_CALL_USE_DUMMY_RESULT = false`
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_STAGE = 0` (no throws)
+- **Test template**: `return { title: field1 }`
+- **Result**:
+  - **Observed**:
+    - **Succeeded** (no hang) — form submission completed, note created successfully.
+  - **Interpretation**:
+    - Simple template code works. Next: test progressively more complex templates to find if/when hang occurs.
+
+### Run 8 — Progressive complexity testing (find hang boundary)
+
+- **Objective**: Test incrementally more complex templates to find the boundary where the hang occurs (if it still exists).
+- **Code settings**:
+  - `DIAG_SKIP_FN_CALL_USE_DUMMY_RESULT = false`
+  - `TEMPLATEJS_DIAG_THROW_RUN_FN_STAGE = 0` (no throws)
+- **Test template progression** (test each one):
+  1. ✅ `return { title: field1 }` (simple form field) — **SUCCEEDED**
+  2. ⚠️ `return { today: date.today() }` — **ERROR** (not hang): `date.today is not a function`
+     - Note: Error returned cleanly (no hang). `date.today()` exists in DateModule but may not be exposed in context.
+     - Try alternatives: `date.now()`, `currentDate()`, or `date.date8601()`
+  3. [ ] `return { today: date.now() }` (try `date.now()` instead)
+  4. [ ] `return { today: currentDate() }` (try global `currentDate()` helper)
+  5. [ ] `return { computed: date.daysBetween(startDateEntry, dueDateEntry) }` (multiple helpers)
+  6. [ ] `return { result: date.daysBetween(startDateEntry, dueDateEntry) || 0 }` (with fallback)
+  7. [ ] Original problematic template (if available)
+- **Result**:
+  - **Observed**:
+    - Variant 1: ✅ Succeeded
+    - Variant 2: ⚠️ Error (not hang) — `date.today is not a function` (method may not be exposed)
+    - [ ] Paste results for remaining variants (succeeds, errors, or hangs).
+  - **Interpretation**:
+    - [ ] If all succeed: the original hang was likely fixed by removing `promiseResolve` from error paths.
+    - [ ] If a specific variant hangs: we've isolated the problematic code pattern.
+
 ## Step 1 — Baseline & experiment hygiene
 
 - [ ] Keep the known-good control:
@@ -147,4 +314,27 @@ Observation: WebView logs show “closing dialog after 500ms delay”, but behav
   - [ ] close is invoked after success
   - [ ] no form error / AI analysis state prevents close
 - [ ] If needed, add a single debug marker right before the close invocation and right after.
+
+## Side issue — NotePlan crash after successful form submission (network stack)
+
+**Date**: 2026-01-28 15:02:15
+
+**Crash details**:
+- **Type**: `EXC_BAD_ACCESS (SIGSEGV)` — segmentation fault
+- **Thread**: `com.apple.network.connections` (background network thread)
+- **Location**: `__NSCFLocalDownloadTask dealloc` → `NWConcrete_nw_path_evaluator dealloc`
+- **Cause**: Null pointer dereference (`0x0000000000000020`)
+
+**Interpretation**:
+- This is **NOT related to TemplateJS execution** (form submission succeeded, note was created).
+- Crash occurs during network stack cleanup/deallocation, likely from:
+  - Cloud sync activity
+  - Plugin HTTP requests (`np.Templating` or other plugins)
+  - Background network operations completing/cancelling
+- This is a **NotePlan/macOS network framework bug** (memory management issue during deallocation).
+
+**Action items**:
+- [ ] Check if crash reproduces without our plugin code (baseline NotePlan behavior).
+- [ ] Check if any plugins are making HTTP requests during/after form submission.
+- [ ] If reproducible, report to NotePlan team as a network stack crash (separate from TemplateJS hang).
 

@@ -4,6 +4,16 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.23] 2026-01-27 @dwertheimer
+
+### Changed
+- **Simplified form submission response handling**: `handleSubmitButtonClick` and related functions now return only the necessary information (`success`, `formSubmissionError`, `aiAnalysisResult`) instead of the full `reactWindowData` object. This simplifies the code and avoids unnecessary data passing. The window only needs to know what happened, not all the window data.
+
+### Edited in this release
+- `dwertheimer.Forms/src/formSubmission.js` — Simplified `handleSubmitButtonClick` and processing functions to return `{ success: boolean, formSubmissionError?: string, aiAnalysisResult?: string }` instead of full `PassedData`. Removed unnecessary `withPluginDataUpdates` usage.
+- `dwertheimer.Forms/src/formSubmitHandlers.js` — Updated to handle simplified return type from `handleSubmitButtonClick`.
+- `dwertheimer.Forms/src/formBrowserHandlers.js` — Updated to handle simplified return type from `handleSubmitButtonClick`.
+
 ## [1.0.22] 2026-01-27 @dwertheimer
 
 ### Changed

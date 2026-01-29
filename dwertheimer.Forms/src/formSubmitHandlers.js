@@ -185,21 +185,18 @@ export async function submitFormRequest(data: any): Promise<RequestResponse> {
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormSubmitFromHTMLView' },
     }
     logDebug(pluginJson, `submitFormRequest: [DIAG] calling handleSubmitButtonClick with loaded form (no reactWindowData)`)
-    const returnValue = await handleSubmitButtonClick(data, fakeWindowData)
-    const hasError = returnValue?.pluginData?.formSubmissionError
-    const success = returnValue !== null && !hasError
-    const responseData = {
-      formSubmissionError: returnValue?.pluginData?.formSubmissionError,
-      aiAnalysisResult: returnValue?.pluginData?.aiAnalysisResult,
-    }
+    const result = await handleSubmitButtonClick(data, fakeWindowData)
     logDebug(
       pluginJson,
-      `submitFormRequest: handleSubmitButtonClick done, success=${String(success)}, hasFormSubmissionError=${String(!!hasError)}`,
+      `submitFormRequest: handleSubmitButtonClick done, success=${String(result.success)}, hasFormSubmissionError=${String(!!result.formSubmissionError)}`,
     )
     return {
-      success,
-      data: responseData,
-      message: success ? 'Form submitted' : (hasError || 'Form submission failed'),
+      success: result.success,
+      data: {
+        formSubmissionError: result.formSubmissionError,
+        aiAnalysisResult: result.aiAnalysisResult,
+      },
+      message: result.success ? 'Form submitted' : (result.formSubmissionError || 'Form submission failed'),
     }
   } catch (error) {
     logError(pluginJson, `submitFormRequest: Error: ${error.message}`)
@@ -270,88 +267,82 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
     }
 
     logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: Calling handleSubmitButtonClick...`)
-    const returnValue = await handleSubmitButtonClick(data, reactWindowData)
-    logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: handleSubmitButtonClick returned, returnValue !== null=${String(returnValue !== null)}`)
+    const result = await handleSubmitButtonClick(data, reactWindowData)
+    logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: handleSubmitButtonClick returned, success=${String(result.success)}`)
 
     // Check if there's an AI analysis result (error message from template rendering)
     const hasAiAnalysis =
-      returnValue?.pluginData?.aiAnalysisResult &&
-      typeof returnValue.pluginData.aiAnalysisResult === 'string' &&
-      returnValue.pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
+      result.aiAnalysisResult &&
+      typeof result.aiAnalysisResult === 'string' &&
+      result.aiAnalysisResult.includes('==**Templating Error Found**')
     
     // Check if there's a form submission error
     const hasFormSubmissionError =
-      returnValue?.pluginData?.formSubmissionError &&
-      typeof returnValue.pluginData.formSubmissionError === 'string'
+      result.formSubmissionError &&
+      typeof result.formSubmissionError === 'string' &&
+      result.formSubmissionError.trim() !== ''
     logDebug(
       pluginJson,
-      `handleFormSubmitAction: returnValue !== null=${String(returnValue !== null)}, hasAiAnalysis=${String(hasAiAnalysis)}, keepOpenOnSubmit=${String(data.keepOpenOnSubmit)}`,
-    )
-    logDebug(
-      pluginJson,
-      `handleFormSubmitAction: returnValue.pluginData.aiAnalysisResult exists=${String(!!returnValue?.pluginData?.aiAnalysisResult)}, length=${
-        returnValue?.pluginData?.aiAnalysisResult?.length || 0
-      }`,
+      `handleFormSubmitAction: success=${String(result.success)}, hasAiAnalysis=${String(hasAiAnalysis)}, hasFormSubmissionError=${String(hasFormSubmissionError)}, keepOpenOnSubmit=${String(data.keepOpenOnSubmit)}`,
     )
 
-    // Update window data if it changed (send returnValue, not reactWindowData)
-    // Check if pluginData changed (especially aiAnalysisResult) even if object reference is the same
-    const hasPluginDataChanges =
-      returnValue?.pluginData?.aiAnalysisResult &&
-      (!reactWindowData?.pluginData?.aiAnalysisResult || returnValue.pluginData.aiAnalysisResult !== reactWindowData.pluginData.aiAnalysisResult)
-
-    // Always send SET_DATA if there's an AI analysis result or form submission error, even if object reference is the same
-    // Check if we need to send SET_DATA (either object changed OR has AI analysis OR has form submission error)
-    const hasErrorChanges =
-      returnValue?.pluginData?.formSubmissionError &&
-      (!reactWindowData?.pluginData?.formSubmissionError || returnValue.pluginData.formSubmissionError !== reactWindowData.pluginData.formSubmissionError)
-    const shouldSendSetData = returnValue && (returnValue !== reactWindowData || hasPluginDataChanges || hasAiAnalysis || hasFormSubmissionError || hasErrorChanges)
-
-    if (shouldSendSetData && returnValue) {
+    // Update window data with error/aiAnalysisResult if present
+    // Only send SET_DATA if there's an error or AI analysis result to display
+    if (hasAiAnalysis || hasFormSubmissionError) {
+      // $FlowFixMe[exponential-spread] - Building object step by step to avoid Flow exponential spread issue
+      const updatedPluginData: any = {}
+      const basePluginData = reactWindowData.pluginData || {}
+      Object.keys(basePluginData).forEach((key) => {
+        updatedPluginData[key] = basePluginData[key]
+      })
+      if (hasAiAnalysis && result.aiAnalysisResult) {
+        updatedPluginData.aiAnalysisResult = result.aiAnalysisResult
+      }
+      if (hasFormSubmissionError && result.formSubmissionError) {
+        updatedPluginData.formSubmissionError = result.formSubmissionError
+      }
+      const updatedWindowData = {
+        ...reactWindowData,
+        pluginData: updatedPluginData,
+      }
       const updateText = hasAiAnalysis
         ? 'AI Analysis Error Detected'
-        : hasFormSubmissionError
-        ? 'Form Submission Error Detected'
-        : `After onSubmitClick, data was updated`
+        : 'Form Submission Error Detected'
       logDebug(
         pluginJson,
-        `[BACK-END] handleFormSubmitAction: Sending SET_DATA to windowId="${windowId}", has aiAnalysisResult=${String(!!returnValue.pluginData?.aiAnalysisResult)}, has formSubmissionError=${String(hasFormSubmissionError)}`,
+        `[BACK-END] handleFormSubmitAction: Sending SET_DATA to windowId="${windowId}", has aiAnalysisResult=${String(hasAiAnalysis)}, has formSubmissionError=${String(hasFormSubmissionError)}`,
       )
-      logDebug(
-        pluginJson,
-        `[BACK-END] SET_DATA trigger: returnValue !== reactWindowData=${String(returnValue !== reactWindowData)}, hasPluginDataChanges=${String(hasPluginDataChanges)}, hasAiAnalysis=${String(hasAiAnalysis)}, hasFormSubmissionError=${String(hasFormSubmissionError)}, hasErrorChanges=${String(hasErrorChanges)}`,
-      )
-      clo(returnValue, `[BACK-END] handleFormSubmitAction: after updating window data,returnValue=`)
-      sendToHTMLWindow(windowId, 'SET_DATA', returnValue, updateText)
+      sendToHTMLWindow(windowId, 'SET_DATA', updatedWindowData, updateText)
       // Track that we sent SET_DATA to prevent rapid resends
       recentSetDataSends.set(windowId, Date.now())
       // Clean up old entries proactively (no setTimeout needed - cleanup happens on next check/add)
       cleanupOldSetDataSends()
       logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: SET_DATA sent to windowId="${windowId}"`)
-    } else {
-      logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: Not sending SET_DATA - returnValue === reactWindowData and no changes`)
     }
 
     // Close the window after successful submission, unless:
     // 1. keepOpenOnSubmit is true (e.g., for Form Browser context)
     // 2. There's an AI analysis result (keep window open to show the error)
     // 3. There's a form submission error (keep window open to show the error)
-    if (returnValue !== null && !data.keepOpenOnSubmit && !hasAiAnalysis && !hasFormSubmissionError) {
-      logDebug(pluginJson, `handleFormSubmitAction: Closing window windowId="${windowId}" (no keepOpenOnSubmit, no AI analysis)`)
+    if (result.success && !data.keepOpenOnSubmit && !hasAiAnalysis && !hasFormSubmissionError) {
+      logDebug(pluginJson, `handleFormSubmitAction: Closing window windowId="${windowId}" (success, no keepOpenOnSubmit, no errors)`)
       closeWindowFromCustomId(windowId)
-    } else if (returnValue !== null && (data.keepOpenOnSubmit || hasAiAnalysis || hasFormSubmissionError)) {
+    } else if (result.success && (data.keepOpenOnSubmit || hasAiAnalysis || hasFormSubmissionError)) {
       logDebug(
         pluginJson,
         `handleFormSubmitAction: NOT closing window - keepOpenOnSubmit=${String(data.keepOpenOnSubmit)} or hasAiAnalysis=${String(hasAiAnalysis)} or hasFormSubmissionError=${String(hasFormSubmissionError)}`,
       )
-    } else if (returnValue === null) {
-      logDebug(pluginJson, `handleFormSubmitAction: returnValue is null, not closing window`)
+    } else if (!result.success) {
+      logDebug(pluginJson, `handleFormSubmitAction: Not closing window - submission failed`)
     }
 
     return {
-      success: returnValue !== null,
-      message: returnValue !== null ? 'Form submitted successfully' : 'Form submission failed',
-      data: returnValue,
+      success: result.success,
+      message: result.success ? 'Form submitted successfully' : (result.formSubmissionError || 'Form submission failed'),
+      data: {
+        formSubmissionError: result.formSubmissionError,
+        aiAnalysisResult: result.aiAnalysisResult,
+      },
     }
   } catch (error) {
     logError(pluginJson, `handleFormSubmitAction: Error: ${error.message}`)
