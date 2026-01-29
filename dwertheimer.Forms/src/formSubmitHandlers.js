@@ -176,6 +176,15 @@ export async function submitFormRequest(data: any): Promise<RequestResponse> {
         data: { formSubmissionError: `Could not load form from "${formTemplateFilename}".` },
       }
     }
+    // Merge loaded form context (templateBody, newNoteFrontmatter, etc.) into data so processCreateNew can access it
+    // processCreateNew reads from data.templateBody, not reactWindowData.pluginData.templateBody
+    const dataWithFormContext = {
+      ...data,
+      templateBody: data.templateBody || formContext.templateBody || '',
+      newNoteFrontmatter: data.newNoteFrontmatter || formContext.newNoteFrontmatter || '',
+      newNoteTitle: data.newNoteTitle || formContext.newNoteTitle || '',
+      newNoteFolder: data.newNoteFolder || formContext.newNoteFolder || '',
+    }
     // Minimal PassedData-shaped object so handleSubmitButtonClick can read pluginData; we never read/write reactWindowData in this path
     const fakeWindowData = {
       pluginData: formContext,
@@ -185,7 +194,7 @@ export async function submitFormRequest(data: any): Promise<RequestResponse> {
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormSubmitFromHTMLView' },
     }
     logDebug(pluginJson, `submitFormRequest: [DIAG] calling handleSubmitButtonClick with loaded form (no reactWindowData)`)
-    const result = await handleSubmitButtonClick(data, fakeWindowData)
+    const result = await handleSubmitButtonClick(dataWithFormContext, fakeWindowData)
     logDebug(
       pluginJson,
       `submitFormRequest: handleSubmitButtonClick done, success=${String(result.success)}, hasFormSubmissionError=${String(!!result.formSubmissionError)}`,
