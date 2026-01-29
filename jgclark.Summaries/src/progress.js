@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 2025-10-07 for v1.0.0 by @jgclark
+// Last updated 2026-01-29 for v1.0.2 by @Cursor
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'

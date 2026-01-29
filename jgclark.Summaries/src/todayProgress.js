@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Progress update for Today only
 // Jonathan Clark, @jgclark
-// Last updated 2025-10-07 for v1.0.0, @jgclark
+// Last updated 2026-01-29 for v1.0.2 by @Cursor
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -37,7 +37,7 @@ export async function todayProgressFromTemplate(params: string = ''): Promise<st
     return summaryStr
   } catch (err) {
     logError(pluginJson, `${err.message} in todayProgressFromTemplate()`)
-    return '❗️Error: please open Plugin Console and re-run.>' // for completeness
+    return '❗️Error: please open Plugin Console and re-run.' // for completeness
   }
 }
 
@@ -53,9 +53,9 @@ export async function todayProgress(itemsToShowArg?: string, headingArg?: string
     logDebug('todayProgress()', `itemsToShowArr '${String(itemsToShowArr)}'`)
 
     if (typeof headingArg === 'string') {
-      const _summaryStr: string = await makeTodayProgress(itemsToShowArr, 'command', headingArg)
+      await makeTodayProgress(itemsToShowArr, 'command', headingArg)
     } else {
-      const _summaryStr: string = await makeTodayProgress(itemsToShowArr, 'command')
+      await makeTodayProgress(itemsToShowArr, 'command')
     }
     // NB: don't need to do anything with output
   } catch (err) {

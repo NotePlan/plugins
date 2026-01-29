@@ -2,40 +2,25 @@
 //-----------------------------------------------------------------------------
 // Create heatmap charts to use through NP HTML window.
 // Jonathan Clark, @jgclark
-// Last updated 16.2.2024 for v0.20.0+, @jgclark
+// Last updated 2026-01-29 for v1.0.2 by @Cursor
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import {
-  // calcHashtagStatsPeriod,
-  // calcMentionStatsPeriod,
   gatherOccurrences,
-  // generateProgressUpdate,
   getSummariesSettings,
   type OccurrencesToLookFor,
   TMOccurrences,
-  // type SummariesConfig
 } from './summaryHelpers'
 import {
   generateTaskCompletionStats,
   getFirstDateForWeeklyStats
 } from './forCharts'
 import {
-  // calcWeekOffset,
-  // getDateObjFromDateString,
-  // getDateStringFromCalendarFilename,
   getISODateStringFromYYYYMMDD,
-  // getJSDateStartOfToday,
-  // getTodaysDateHyphenated,
-  // getWeek,
-  // hyphenatedDate,
-  // hyphenatedDateString,
   RE_ISO_DATE,
   todaysDateISOString, // const
-  // toISODateString,
-  // YYYYMMDDDateStringFromDate,
-  // isoWeekStartEndDates,
   withinDateRange,
 } from '@helpers/dateTime'
 import { getNPWeekData, localeDateStr, pad, setMomentLocaleFromEnvironment } from '@helpers/NPdateTime'
@@ -57,42 +42,47 @@ type HeatmapDefinition =
     numberIntervals: number,
   }
 
-export async function testJGCHeatmaps(): Promise<void> {
-  try {
-    logDebug(pluginJson, `testJGCHeatmaps: starting`)
-    const config = await getSummariesSettings()
+/**
+ * Test function to show heatmaps for @sleep and @work tags.
+ * Note: No longer exposed in index.js, so commented out.
+ * @author @jgclark
+ */
+// export async function testJGCHeatmaps(): Promise<void> {
+//   try {
+//     logDebug(pluginJson, `testJGCHeatmaps: starting`)
+//     const config = await getSummariesSettings()
 
-    // Get date range to use
-    const toDateStr = todaysDateISOString
-    const [fromDateStr, _numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
+//     // Get date range to use
+//     const toDateStr = todaysDateISOString
+//     const [fromDateStr, _numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
 
-    const heatmapDefinitions: Array<HeatmapDefinition> = [
-      {
-        tagName: '@sleep',
-        intervalType: 'day',
-        colorScaleRange: '["#FFFFFF", "#23A023"]',
-        numberIntervals: 20,
-        fromDateStr: fromDateStr,
-        toDateStr: toDateStr
-      },
-      {
-        tagName: '@work',
-        intervalType: 'day',
-        colorScaleRange: '["#FFFFFF", "#932093" ]',
-        numberIntervals: 20,
-        fromDateStr: fromDateStr,
-        toDateStr: toDateStr
-      }
-    ]
+//     const heatmapDefinitions: Array<HeatmapDefinition> = [
+//       {
+//         tagName: '@sleep',
+//         intervalType: 'day',
+//         colorScaleRange: '["#FFFFFF", "#23A023"]',
+//         numberIntervals: 20,
+//         fromDateStr: fromDateStr,
+//         toDateStr: toDateStr
+//       },
+//       {
+//         tagName: '@work',
+//         intervalType: 'day',
+//         colorScaleRange: '["#FFFFFF", "#932093" ]',
+//         numberIntervals: 20,
+//         fromDateStr: fromDateStr,
+//         toDateStr: toDateStr
+//       }
+//     ]
 
-    for (const thisHM of heatmapDefinitions) {
-      logDebug(pluginJson, `Calling showTagHeatmap(${thisHM.tagName}):`)
-      await showTagHeatmap(thisHM)
-    }
-  } catch (e) {
-    logError(pluginJson, `testJGCHeatmaps: ${e.message}`)
-  }
-}
+//     for (const thisHM of heatmapDefinitions) {
+//       logDebug(pluginJson, `Calling showTagHeatmap(${thisHM.tagName}):`)
+//       await showTagHeatmap(thisHM)
+//     }
+//   } catch (e) {
+//     logError(pluginJson, `testJGCHeatmaps: ${e.message}`)
+//   }
+// }
 
 /**
  * Create and display a heatmap for a given tag/mention.
@@ -155,14 +145,14 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
       GOHashtagsCount: [],
       GOHashtagsAverage: [],
       GOHashtagsTotal: tagName.startsWith('#') ? [tagName] : [],
-      GOHashtagsExclude: [],
+      // GOHashtagsExclude: [],
       GOMentionsCount: [],
       GOMentionsAverage: [],
       GOMentionsTotal: tagName.startsWith('@') ? [tagName] : [],
-      GOMentionsExclude: [],
+      // GOMentionsExclude: [],
       GOChecklistRefNote: "",
     }
-    const tagOccurrences: Array<TMOccurrences> = gatherOccurrences(`${heatmapDef.numberIntervals} days`, heatmapDef.fromDateStr, heatmapDef.toDateStr, occConfig)
+    const tagOccurrences: Array<TMOccurrences> = await gatherOccurrences(`${heatmapDef.numberIntervals} days`, heatmapDef.fromDateStr, heatmapDef.toDateStr, occConfig)
 
     if (tagOccurrences.length === 0) {
       logError('showTagHeatmap', 'No tagOccurrence object returned from gatherOccurrences() with ...')
@@ -193,8 +183,9 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
       }
     }
 
-    const dailyAverage = total / count
-    const weeklyAverage = total / (thisTagOcc.getNumberItems() / 7) // not as simple as count/7
+    const dailyAverage = count > 0 ? total / count : 0
+    const numItems = thisTagOcc.getNumberItems()
+    const weeklyAverage = numItems > 0 ? total / (numItems / 7) : 0 // not as simple as count/7
 
     const locale = getLocale({})
     const IntlOpts = { maximumFractionDigits: 1, minimumSignificantDigits: 2, maximumSignificantDigits: 3 }
@@ -255,14 +246,14 @@ export async function calcTagStatsMap(
         GOHashtagsCount: [],
         GOHashtagsAverage: [],
         GOHashtagsTotal: tagName.startsWith('#') ? [tagName] : [],
-        GOHashtagsExclude: [],
+        // GOHashtagsExclude: [],
         GOMentionsCount: [],
         GOMentionsAverage: [],
         GOMentionsTotal: tagName.startsWith('@') ? [tagName] : [],
-        GOMentionsExclude: [],
+        // GOMentionsExclude: [],
         GOChecklistRefNote: "",
       }
-      const tagOccurrences: Array<TMOccurrences> = gatherOccurrences('day ?', fromDateStr, toDateStr, occConfig)
+      const tagOccurrences: Array<TMOccurrences> = await gatherOccurrences('day ?', fromDateStr, toDateStr, occConfig)
       const thisTagOcc = tagOccurrences[0]
 
       // end timer & spinner

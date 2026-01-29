@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 2025-10-07 for v1.0.0 by @jgclark
+// Last updated 2026-01-29 for v1.0.2 by @Cursor
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -74,7 +74,6 @@ export type SummariesConfig = {
   progressHeading: string,
   showSparklines: boolean,
   progressYesNo: Array<string>,
-  progressHashtags: Array<string>,
   progressHashtags: Array<string>,
   progressHashtagsAverage: Array<string>,
   progressHashtagsTotal: Array<string>,
@@ -209,7 +208,7 @@ export class TMOccurrences {
         throw new Error(`Passed null date string`)
       }
       if (!(dateStrArg.match(RE_YYYYMMDD_DATE) || dateStrArg.match(RE_ISO_DATE))) {
-        throw new Error(`Passed invalid date string '${isoDateStr}'`)
+        throw new Error(`Passed invalid date string '${dateStrArg}'`)
       }
       if (dateStrArg.match(RE_YYYYMMDD_DATE)) {
         isoDateStr = getISODateStringFromYYYYMMDD(dateStrArg)
@@ -238,8 +237,8 @@ export class TMOccurrences {
       }
 
       // if this has a numeric value add to total, taking into account that the day may have several values.
-      // $FlowFixMe[incompatible-type]
-      const prevValue: number = isNaN(this.valuesMap.get(isoDateStr)) ? 0 : this.valuesMap.get(isoDateStr)
+      const prevValueRaw = this.valuesMap.get(isoDateStr)
+      const prevValue: number = (prevValueRaw != null && !isNaN(prevValueRaw)) ? prevValueRaw : 0
       if (!isNaN(value)) {
         this.valuesMap.set(isoDateStr, prevValue + value)
         this.count++
@@ -581,13 +580,13 @@ export function gatherOccurrences(
     combinedHashtags.sort()
     logDebug('gatherOccurrences', `${String(combinedHashtags.length)} sorted combinedHashtags: <${String(combinedHashtags)}>`)
 
-    // If the sorted combinedHashtags array contains a repeated term as both 'average' and 'total', then remove the second occurence, and change the type of the first to  'all'
+    // If the sorted combinedHashtags array contains a repeated term as both 'average' and 'total', then remove the second occurence, and change the type of the first to 'all'
     for (let i = 1; i < combinedHashtags.length; i++) {
       if (combinedHashtags[i - 1][0] === combinedHashtags[i][0] && combinedHashtags[i - 1][1] === 'average' && combinedHashtags[i][1] === 'total') {
         // logDebug('gatherOccurrences', ` - found ones to combine: <${String(combinedHashtags[i])}> and <${String(combinedHashtags[i - 1])}>`)
         combinedHashtags[i - 1][1] = 'all'
         combinedHashtags.splice(i, 1)
-        i++
+        i-- // Decrement to check current position again after splice. TEST: this was an increment.
       }
     }
 
@@ -652,7 +651,7 @@ export function gatherOccurrences(
         // logDebug('gatherOccurrences', ` - found ones to combine: <${String(combinedMentions[i])}> and <${String(combinedMentions[i - 1])}>`)
         combinedMentions[i - 1][1] = 'all'
         combinedMentions.splice(i, 1)
-        i++
+        i-- // Decrement to check current position again after splice. TEST: this was an increment.
       }
     }
 
@@ -689,7 +688,7 @@ export function gatherOccurrences(
               // logDebug('gatherOccurrences', `- x ${mention} not wanted`)
             }
           }
-          lastMention = thisName
+          lastMention = mentionWithoutNumberPart
         }
       }
       tmOccurrencesArr.push(thisOcc)

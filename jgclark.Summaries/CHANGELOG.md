@@ -2,6 +2,9 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
 
+## [1.0.2] - 2026-01-29 (unreleased)
+- under-the-hood code quality improvements, hopefully fixing some subtle bugs <!-- thanks to Cursor -->
+
 ## [1.0.1] - 2025-10-11
 ### Dev
 - Fixed formation of 'Refresh' x-callbacks for /appendProgressUpdate (only noticeable to devs)

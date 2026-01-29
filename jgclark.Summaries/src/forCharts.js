@@ -3,7 +3,7 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 2025-10-07 for v1.0.0 by @jgclark
+// Last updated 2026-01-29 for v1.0.2 by @Cursor
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -102,11 +102,11 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     // }
 
     // v2. Initialise a Map for all dates of interest, with NaN values (to distinguish from zero).
-    // const fromDateMoment = moment(fromDateStr, 'YYYY-MM-DD')
+    const fromDateMoment = moment(fromDateStr, 'YYYY-MM-DD')
     const toDateMoment = moment(toDateStr, 'YYYY-MM-DD')
-    const daysInInterval = toDateMoment.diff(fromDateStr, 'day')
+    const daysInInterval = toDateMoment.diff(fromDateMoment, 'days')
     // logDebug('generateTaskCompletionStats', `- daysInInterval = ${daysInInterval}`)
-    for (let i = 0; i < daysInInterval; i++) {
+    for (let i = 0; i <= daysInInterval; i++) {
       const thisDate = moment(fromDateStr, 'YYYY-MM-DD').add(i, 'days').format('YYYY-MM-DD')
       dateCounterMap.set(thisDate, NaN)
       // logDebug('', `- init dateCounterMap(${thisDate}) = ${String(dateCounterMap.get(thisDate))}`)

@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 2025-10-30 for v1.0.0+ by @jgclark
+// Last updated 2026-01-29 for v1.0.2 by @Cursor
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -105,7 +105,7 @@ async function validateAndCalculatePeriod(
   let calendarTimeframe = ''
 
   let isRunningFromXCallback = false
-  if (periodCodeArg && periodCodeArg !== '' && ((!isNaN(year) && !isNaN(periodNumberArg)) || periodCodeArg === 'today' || periodCodeArg === 'all' || new RegExp(`^${RE_DATE}$`).test(periodCodeArg))) {
+  if (periodCodeArg && periodCodeArg !== '' && ((!isNaN(yearArg) && !isNaN(periodNumberArg)) || periodCodeArg === 'today' || periodCodeArg === 'all' || new RegExp(`^${RE_DATE}$`).test(periodCodeArg))) {
     isRunningFromXCallback = true
     logInfo('statsPeriod/validateAndCalculatePeriod', `running from xCallback with params '${periodCodeArg}', '${periodNumberArg}', '${yearArg}'`)
     periodShortCode = periodCodeArg

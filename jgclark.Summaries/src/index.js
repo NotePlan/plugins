@@ -3,14 +3,9 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 16.2.2024 for v0.21.0
+// Last updated 2026-01-29 for v1.0.2 by @Cursor
 //-----------------------------------------------------------------------------
 
-// export {
-//   testHeatMapGeneration1,
-//   testHeatMapGeneration2,
-//   testHeatMapGeneration3,
-// } from './testCharting'
 export {
   showTagHeatmap,
   showTaskCompletionHeatmap,
@@ -62,12 +57,11 @@ export async function onUpdateOrInstall(): Promise<void> {
     await backupSettings(pluginID, `before_onUpdateOrInstall-v${pluginJson['plugin.version']}`)
 
     // Migrate any necessary settings from v0.22.x to v1.0.0
-    // TODO: also remove old settings: excludeHashtags, excludeMentions
     const keysToChange = {
       // oldKey: newKey
       statsHeading: "PSStatsHeading",
       periodStatsShowSparklines: 'PSShowSparklines',
-      showAsHashtagOrMention: "PSHowAsHashtagOrMention",
+      showAsHashtagOrMention: "PSShowAsHashtagOrMention",
       periodStatsYesNo: 'PSYesNo',
       periodStatsHashtagsAverage: 'PSHashtagsAverage',
       includeHashtags: 'PSHashtagsCount',
