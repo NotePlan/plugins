@@ -7,7 +7,7 @@
 import pluginJson from '../plugin.json'
 import { openFormBuilder } from './NPTemplateForm'
 import { handleSubmitButtonClick } from './formSubmission'
-import { findDuplicateFormTemplates } from './templateIO'
+import { findDuplicateFormTemplates, loadTemplateBodyFromTemplate, loadNewNoteFrontmatterFromTemplate } from './templateIO'
 import { openFormBuilderWindow } from './windowManagement'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
@@ -332,6 +332,26 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       // Continue without formFields - will fail validation if run-js-only needs them
     }
 
+    // Load templateBody and newNoteFrontmatter from codeblocks (needed for processCreateNew)
+    // These are stored in codeblocks, not frontmatter, so we need to load them separately
+    let templateBody = ''
+    let newNoteFrontmatter = ''
+    try {
+      templateBody = (await loadTemplateBodyFromTemplate(templateFilename)) || ''
+      newNoteFrontmatter = (await loadNewNoteFrontmatterFromTemplate(templateFilename)) || ''
+    } catch (error) {
+      logError(pluginJson, `handleSubmitForm: Error loading templateBody/newNoteFrontmatter: ${error.message}`)
+      // Continue - these may not exist for all forms
+    }
+
+    // Merge loaded form context into submitData so processCreateNew can access it
+    // processCreateNew reads from data.templateBody and data.newNoteFrontmatter
+    const submitDataWithFormContext = {
+      ...submitData,
+      templateBody: templateBody || '',
+      newNoteFrontmatter: newNoteFrontmatter || '',
+    }
+
     // Validate that all form fields are present in formValues (even if empty)
     // Conditional-values are resolved in prepareFormValuesForRendering; do not add them here
     if (formFields && formFields.length > 0) {
@@ -349,7 +369,7 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       }
     }
 
-    const result = await handleSubmitButtonClick(submitData, formFields)
+    const result = await handleSubmitButtonClick(submitDataWithFormContext, formFields)
 
     // Check for errors in result
     if (!result.success) {
