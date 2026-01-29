@@ -715,12 +715,7 @@ async function processWriteExisting(data: any, formFields: Array<Object>): Promi
 
   // Step 4: Build template body (DO NOT insert templatejs blocks - they're already executed)
   const templateBody = data?.templateBody || ''
-  const finalTemplateBody =
-    templateBody ||
-    Object.keys(formSpecificVars)
-      .filter((key) => key !== '__isJSON__')
-      .map((key) => `${key}: <%- ${key} %>`)
-      .join('\n')
+  const finalTemplateBody = templateBody || ''
 
   // Step 5: Build templateRunner args with form-specific variables
   const templateRunnerArgs: { [string]: any } = {
@@ -1063,13 +1058,8 @@ async function processCreateNew(data: any, formFields: Array<Object>): Promise<F
     finalTemplateBody = parts.join('\n')
     logDebug(`processCreateNew: Combined newNoteFrontmatter and templateBody with -- delimiters`)
   } else {
-    // No frontmatter, just use templateBody (backward compatibility - old forms may have -- in templateBody)
-    finalTemplateBody =
-      templateBody ||
-      Object.keys(formSpecificVars)
-        .filter((key) => key !== '__isJSON__')
-        .map((key) => `${key}: <%- ${key} %>`)
-        .join('\n')
+    // No frontmatter, just use templateBody as-is (empty string if not provided)
+    finalTemplateBody = templateBody || ''
   }
 
   // Step 8: Build templateRunner args with form-specific variables
