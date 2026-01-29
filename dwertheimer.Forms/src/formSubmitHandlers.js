@@ -8,7 +8,7 @@
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { handleSubmitButtonClick } from './formSubmission'
-import { loadTemplateBodyFromTemplate, loadNewNoteFrontmatterFromTemplate } from './templateIO'
+import { loadTemplateBodyFromTemplate, loadNewNoteFrontmatterFromTemplate, loadTemplateRunnerArgsFromTemplate } from './templateIO'
 import { WEBVIEW_WINDOW_ID, getFormWindowId, findFormWindowId } from './windowManagement'
 import { closeWindowFromCustomId } from '@helpers/NPWindows'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
@@ -133,9 +133,27 @@ export async function loadFormContextFromFilename(
     }
     const templateBody = (await loadTemplateBodyFromTemplate(formTemplateFilename)) || ''
     const newNoteFrontmatter = (await loadNewNoteFrontmatterFromTemplate(formTemplateFilename)) || ''
-    const newNoteTitle = stripDoubleQuotes(fm?.newNoteTitle || '') || ''
-    const newNoteFolder = stripDoubleQuotes(fm?.newNoteFolder || '') || ''
-    logDebug(pluginJson, `loadFormContextFromFilename: Loaded from "${formTemplateFilename}": newNoteTitle="${newNoteTitle}", newNoteFolder="${newNoteFolder}", templateBody length=${templateBody.length}`)
+    
+    // Load templateRunnerArgs from codeblock (these override frontmatter values)
+    const templateRunnerArgs = await loadTemplateRunnerArgsFromTemplate(formTemplateFilename)
+    
+    // Get newNoteTitle: prefer templateRunnerArgs, then frontmatter
+    let newNoteTitle = ''
+    if (templateRunnerArgs?.newNoteTitle) {
+      newNoteTitle = stripDoubleQuotes(String(templateRunnerArgs.newNoteTitle)) || ''
+    } else {
+      newNoteTitle = stripDoubleQuotes(fm?.newNoteTitle || '') || ''
+    }
+    
+    // Get newNoteFolder: prefer templateRunnerArgs, then frontmatter
+    let newNoteFolder = ''
+    if (templateRunnerArgs?.newNoteFolder) {
+      newNoteFolder = stripDoubleQuotes(String(templateRunnerArgs.newNoteFolder)) || ''
+    } else {
+      newNoteFolder = stripDoubleQuotes(fm?.newNoteFolder || '') || ''
+    }
+    
+    logDebug(pluginJson, `loadFormContextFromFilename: Loaded from "${formTemplateFilename}": newNoteTitle="${newNoteTitle}", newNoteFolder="${newNoteFolder}", templateBody length=${templateBody.length}, templateRunnerArgs=${templateRunnerArgs ? 'loaded' : 'none'}`)
     return {
       formFields,
       templateBody,
