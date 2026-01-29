@@ -462,10 +462,8 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   // Track if form is currently submitting (for showing loading overlay)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
-  // Debug counters (visible on-screen during freeze)
-  // Use refs for counters to avoid re-renders, only update state when needed (e.g., during submission)
+  // Debug counters (tracked via refs to avoid re-renders)
   const debugCountersRef = useRef<{ renders: number, setDataReceived: number, handleSaveCalls: number }>({ renders: 0, setDataReceived: 0, handleSaveCalls: 0 })
-  const [debugCounters, setDebugCounters] = useState({ renders: 0, setDataReceived: 0, handleSaveCalls: 0 })
   const handleSaveCallCountRef = useRef<number>(0)
   const setDataReceivedCountRef = useRef<number>(0)
   /** Blocks double-submit; set sync in handleSave, cleared in deferred state update (avoids re-render blocking getGlobalSharedData) */
@@ -673,7 +671,6 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       // formSubmitted effect runs with stale pluginData and incorrectly schedules "close after 500ms" while backend is still processing).
       requestAnimationFrame(() => {
         setIsSubmitting(true)
-        setDebugCounters({ ...debugCountersRef.current })
         submissionInProgressRef.current = false
       })
 
@@ -730,8 +727,6 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
    * The scrolling element is .dynamic-dialog-content inside .template-form, not the window
    */
   useEffect(() => {
-    const mountTime = Date.now()
-
     // Function to find and scroll the dialog content element
     const scrollDialogContentToTop = () => {
       // CRITICAL: Check if component is still mounted before accessing DOM
@@ -1041,10 +1036,6 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
               <div className="form-submitting-overlay">
                 <div className="form-submitting-message">
                   <div>Submitting Form...</div>
-                  {/* Debug counters visible during freeze - read from ref to avoid triggering re-renders */}
-                  <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
-                    Renders: {debugCountersRef.current.renders} | SET_DATA: {debugCountersRef.current.setDataReceived} | handleSave: {debugCountersRef.current.handleSaveCalls}
-                  </div>
                 </div>
               </div>,
               document.body,
@@ -1057,10 +1048,6 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
             <div className="form-submitting-overlay">
               <div className="form-submitting-message">
                 <div>Submitting Form...</div>
-                {/* Debug counters visible during freeze - read from ref to avoid triggering re-renders */}
-                <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
-                  Renders: {debugCountersRef.current.renders} | SET_DATA: {debugCountersRef.current.setDataReceived} | handleSave: {debugCountersRef.current.handleSaveCalls}
-                </div>
               </div>
             </div>,
             document.body,
