@@ -133,11 +133,14 @@ export async function loadFormContextFromFilename(
     }
     const templateBody = (await loadTemplateBodyFromTemplate(formTemplateFilename)) || ''
     const newNoteFrontmatter = (await loadNewNoteFrontmatterFromTemplate(formTemplateFilename)) || ''
+    const newNoteTitle = stripDoubleQuotes(fm?.newNoteTitle || '') || ''
+    const newNoteFolder = stripDoubleQuotes(fm?.newNoteFolder || '') || ''
+    logDebug(pluginJson, `loadFormContextFromFilename: Loaded from "${formTemplateFilename}": newNoteTitle="${newNoteTitle}", newNoteFolder="${newNoteFolder}", templateBody length=${templateBody.length}`)
     return {
       formFields,
       templateBody,
-      newNoteTitle: stripDoubleQuotes(fm?.newNoteTitle || '') || '',
-      newNoteFolder: stripDoubleQuotes(fm?.newNoteFolder || '') || '',
+      newNoteTitle,
+      newNoteFolder,
       newNoteFrontmatter,
     }
   } catch (error) {

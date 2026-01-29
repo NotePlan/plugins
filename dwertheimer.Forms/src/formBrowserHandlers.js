@@ -282,6 +282,7 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
         data: { formSubmissionError: `Could not load form from "${templateFilename}".` },
       }
     }
+    logDebug(pluginJson, `handleSubmitForm: Loaded formContext: newNoteTitle="${formContext.newNoteTitle}", newNoteFolder="${formContext.newNoteFolder}", templateBody length=${formContext.templateBody.length}`)
 
     // Get the template note to extract processing information
     const templateNote = await getNoteByFilename(templateFilename)
