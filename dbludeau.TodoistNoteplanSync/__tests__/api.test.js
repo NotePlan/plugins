@@ -484,3 +484,128 @@ describe('postRequestObject', () => {
     expect(result.headers.Authorization).toContain('Bearer')
   })
 })
+
+// ============================================================================
+// filterTasksByDate
+// ============================================================================
+describe('filterTasksByDate', () => {
+  // Helper to create dates relative to today
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const formatDate = (date: Date): string => {
+    return date.toISOString().split('T')[0]
+  }
+
+  const daysFromNow = (days: number): string => {
+    const date = new Date(today)
+    date.setDate(date.getDate() + days)
+    return formatDate(date)
+  }
+
+  const daysAgo = (days: number): string => {
+    const date = new Date(today)
+    date.setDate(date.getDate() - days)
+    return formatDate(date)
+  }
+
+  // Create test tasks
+  const taskNoDue = createMockTask({ id: '1', content: 'No due date' })
+  const taskDueToday = createMockTask({ id: '2', content: 'Due today', due: { date: formatDate(today), is_recurring: false } })
+  const taskOverdue = createMockTask({ id: '3', content: 'Overdue', due: { date: daysAgo(3), is_recurring: false } })
+  const taskDue2Days = createMockTask({ id: '4', content: 'Due in 2 days', due: { date: daysFromNow(2), is_recurring: false } })
+  const taskDue5Days = createMockTask({ id: '5', content: 'Due in 5 days', due: { date: daysFromNow(5), is_recurring: false } })
+  const taskDue10Days = createMockTask({ id: '6', content: 'Due in 10 days', due: { date: daysFromNow(10), is_recurring: false } })
+
+  const allTasks = [taskNoDue, taskDueToday, taskOverdue, taskDue2Days, taskDue5Days, taskDue10Days]
+
+  test('should return all tasks when filter is "all"', () => {
+    const result = mainFile.filterTasksByDate(allTasks, 'all')
+    expect(result.length).toBe(allTasks.length)
+  })
+
+  test('should return all tasks when filter is null/undefined', () => {
+    const result = mainFile.filterTasksByDate(allTasks, null)
+    expect(result.length).toBe(allTasks.length)
+  })
+
+  test('should exclude tasks without due date for "today" filter', () => {
+    const result = mainFile.filterTasksByDate(allTasks, 'today')
+    expect(result.find((t) => t.id === '1')).toBeUndefined() // no due date excluded
+    expect(result.find((t) => t.id === '2')).toBeDefined() // due today included
+  })
+
+  test('should exclude tasks without due date for "overdue" filter', () => {
+    const result = mainFile.filterTasksByDate(allTasks, 'overdue')
+    expect(result.find((t) => t.id === '1')).toBeUndefined() // no due date excluded
+    expect(result.find((t) => t.id === '3')).toBeDefined() // overdue included
+  })
+
+  test('should exclude tasks without due date for "3 days" filter', () => {
+    const result = mainFile.filterTasksByDate(allTasks, '3 days')
+    // Tasks without due date should be EXCLUDED
+    expect(result.find((t) => t.id === '1')).toBeUndefined()
+    // Tasks due within 3 days should be included
+    expect(result.find((t) => t.id === '2')).toBeDefined() // today
+    expect(result.find((t) => t.id === '4')).toBeDefined() // 2 days from now
+    // Tasks due beyond 3 days should be excluded
+    expect(result.find((t) => t.id === '5')).toBeUndefined() // 5 days from now
+    expect(result.find((t) => t.id === '6')).toBeUndefined() // 10 days from now
+  })
+
+  test('should exclude tasks without due date for "7 days" filter', () => {
+    const result = mainFile.filterTasksByDate(allTasks, '7 days')
+    // Tasks without due date should be EXCLUDED
+    expect(result.find((t) => t.id === '1')).toBeUndefined()
+    // Tasks due within 7 days should be included
+    expect(result.find((t) => t.id === '2')).toBeDefined() // today
+    expect(result.find((t) => t.id === '4')).toBeDefined() // 2 days
+    expect(result.find((t) => t.id === '5')).toBeDefined() // 5 days
+    // Tasks due beyond 7 days should be excluded
+    expect(result.find((t) => t.id === '6')).toBeUndefined() // 10 days
+  })
+
+  test('"3 days" filter should NOT include tasks without due dates (regression test)', () => {
+    // This test specifically reproduces the bug where tasks without due dates
+    // were being included when using the "3 days" filter via todoist_filter frontmatter
+    const tasksWithNoDue = [
+      createMockTask({ id: 'nodueA', content: 'No due A' }),
+      createMockTask({ id: 'nodueB', content: 'No due B' }),
+      createMockTask({ id: 'withdue', content: 'With due', due: { date: daysFromNow(1), is_recurring: false } }),
+    ]
+
+    const result = mainFile.filterTasksByDate(tasksWithNoDue, '3 days')
+
+    // Should only include the task with a due date
+    expect(result.length).toBe(1)
+    expect(result[0].id).toBe('withdue')
+  })
+
+  test('"7 days" filter should NOT include tasks without due dates (regression test)', () => {
+    // This test specifically reproduces the bug where tasks without due dates
+    // were being included when using the "7 days" filter via todoist_filter frontmatter
+    const tasksWithNoDue = [
+      createMockTask({ id: 'nodueA', content: 'No due A' }),
+      createMockTask({ id: 'nodueB', content: 'No due B' }),
+      createMockTask({ id: 'withdue', content: 'With due', due: { date: daysFromNow(5), is_recurring: false } }),
+    ]
+
+    const result = mainFile.filterTasksByDate(tasksWithNoDue, '7 days')
+
+    // Should only include the task with a due date
+    expect(result.length).toBe(1)
+    expect(result[0].id).toBe('withdue')
+  })
+
+  test('should include overdue tasks in "3 days" filter', () => {
+    // Overdue tasks have a due date in the past, so they should be included
+    // since dueDate <= threeDaysFromNow is true for past dates
+    const result = mainFile.filterTasksByDate(allTasks, '3 days')
+    expect(result.find((t) => t.id === '3')).toBeDefined() // overdue task
+  })
+
+  test('should include overdue tasks in "7 days" filter', () => {
+    const result = mainFile.filterTasksByDate(allTasks, '7 days')
+    expect(result.find((t) => t.id === '3')).toBeDefined() // overdue task
+  })
+})

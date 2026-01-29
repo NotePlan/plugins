@@ -1160,7 +1160,7 @@ async function syncTodayTasks() {
  * @param {string} dateFilter - the date filter to apply (today, overdue, overdue | today, 3 days, 7 days, all)
  * @returns {Array<Object>} - filtered tasks
  */
-function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Object> {
+export function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Object> {
   if (!dateFilter || dateFilter === 'all') {
     return tasks
   }
@@ -1291,19 +1291,23 @@ function addSectionHeading(note: TNote, sectionName: string, projectHeadingLevel
  */
 async function projectSync(note: TNote, id: string, filterOverride: ?string, multiProjectContext: ?MultiProjectContext = null, isEditorNote: boolean = false): Promise<void> {
   const task_result = await pullTodoistTasksByProject(id, filterOverride)
-  const tasks: Array<Object> = JSON.parse(task_result)
+  const parsed = JSON.parse(task_result)
 
-  if (!tasks.results || tasks.results.length === 0) {
+  // Handle both response formats: {results: [...]} or plain array [...]
+  const taskList = parsed.results || parsed || []
+
+  if (!taskList || taskList.length === 0) {
     logInfo(pluginJson, `No tasks found for project ${id}`)
     return
   }
 
   // Determine which filter to use
   const dateFilter = filterOverride ?? setup.projectDateFilter
+  logDebug(pluginJson, `projectSync: filterOverride=${String(filterOverride)}, setup.projectDateFilter=${setup.projectDateFilter}, using dateFilter=${String(dateFilter)}`)
 
   // Filter tasks client-side (Todoist API ignores filter when project_id is specified)
-  const filteredTasks = filterTasksByDate(tasks.results || [], dateFilter)
-  logInfo(pluginJson, `Filtered ${tasks.results?.length || 0} tasks to ${filteredTasks.length} based on filter: ${dateFilter}`)
+  const filteredTasks = filterTasksByDate(taskList, dateFilter)
+  logInfo(pluginJson, `Filtered ${taskList.length} tasks to ${filteredTasks.length} based on filter: ${String(dateFilter)}`)
 
   if (filteredTasks.length === 0) {
     logInfo(pluginJson, `No tasks match the filter for project ${id}`)
@@ -2627,7 +2631,6 @@ export {
   isNonTodoistOpenTask,
   isDateFilterKeyword,
   parseDateFilterArg,
-  filterTasksByDate,
   getTaskWithSubtasks,
   parseCSVProjectNames,
   parseProjectIds,
