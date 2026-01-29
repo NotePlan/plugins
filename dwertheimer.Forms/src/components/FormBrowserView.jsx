@@ -5,7 +5,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useState, useEffect, useRef, useMemo, useCallback, type Node } from 'react'
-import { createPortal } from 'react-dom'
+import { createPortal, flushSync } from 'react-dom'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { AppProvider } from './AppContext.jsx'
 import { FormPreview } from './FormPreview.jsx'
@@ -526,6 +526,7 @@ export function FormBrowserView({
 
   // Track submission state for overlay
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const overlayShownAtRef = useRef<number>(0)
 
   // Handle form submit
   const handleSave = useCallback(
@@ -541,14 +542,29 @@ export function FormBrowserView({
           aiAnalysisResult: '',
         },
       })
-      
-      // Show submitting overlay
-      setIsSubmitting(true)
-      
-      // Send to plugin for processing
-      // Include keepOpenOnSubmit flag so the plugin knows not to close the window
-      if (requestFromPlugin) {
-        requestFromPlugin('submitForm', {
+
+      // Force overlay into the DOM before starting the request (flushSync ensures React commits
+      // synchronously; in WebView rAF timing can prevent the overlay from ever painting).
+      flushSync(() => {
+        setIsSubmitting(true)
+        overlayShownAtRef.current = Date.now()
+      })
+
+      const hideOverlay = () => {
+        const MIN_OVERLAY_MS = 400
+        const elapsed = Date.now() - overlayShownAtRef.current
+        if (elapsed < MIN_OVERLAY_MS) {
+          setTimeout(() => setIsSubmitting(false), MIN_OVERLAY_MS - elapsed)
+        } else {
+          setIsSubmitting(false)
+        }
+      }
+
+      if (!requestFromPlugin) {
+        setIsSubmitting(false)
+        return
+      }
+      requestFromPlugin('submitForm', {
           keepOpenOnSubmit: true, // Tell plugin not to close the window
           templateFilename: selectedTemplate?.filename,
           formValues,
@@ -557,8 +573,8 @@ export function FormBrowserView({
           .then((responseData) => {
             logDebug('FormBrowserView', 'Form submission response:', responseData)
             
-            // Hide submitting overlay
-            setIsSubmitting(false)
+            // Hide submitting overlay (with minimum display time so user sees it)
+            hideOverlay()
             
             // Check if the response indicates success or failure
             // The responseData may be the data object from a successful response, or it may contain error info
@@ -647,8 +663,8 @@ export function FormBrowserView({
           .catch((error) => {
             logError('FormBrowserView', `Error submitting form: ${error.message}`)
             
-            // Hide submitting overlay on error
-            setIsSubmitting(false)
+            // Hide submitting overlay on error (with minimum display time)
+            hideOverlay()
             
             // On error, show Toast notification but don't close the window
             // The window should stay open so user can fix and retry
@@ -670,7 +686,6 @@ export function FormBrowserView({
             })
             // Don't reset form on error - let user see what they entered
           })
-      }
     },
     [selectedTemplate, requestFromPlugin, handleCancel, dispatch, data, pluginData],
   )

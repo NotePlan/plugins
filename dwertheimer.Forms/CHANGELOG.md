@@ -9,10 +9,14 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 ### Changed
 - **Simplified form submission response handling**: `handleSubmitButtonClick` and related functions now return only the necessary information (`success`, `formSubmissionError`, `aiAnalysisResult`) instead of the full `reactWindowData` object. This simplifies the code and avoids unnecessary data passing. The window only needs to know what happened, not all the window data.
 
+### Fixed
+- **Form Browser "Submitting..." overlay**: The overlay now appears reliably when submitting a form from the Form Browser. Uses `flushSync` so React commits the overlay to the DOM before the async request runs (avoids WebView/rAF timing issues). Added a minimum display time of 400 ms so the overlay is always visible even when the request completes quickly.
+
 ### Edited in this release
 - `dwertheimer.Forms/src/formSubmission.js` — Simplified `handleSubmitButtonClick` and processing functions to return `{ success: boolean, formSubmissionError?: string, aiAnalysisResult?: string }` instead of full `PassedData`. Removed unnecessary `withPluginDataUpdates` usage.
 - `dwertheimer.Forms/src/formSubmitHandlers.js` — Updated to handle simplified return type from `handleSubmitButtonClick`.
 - `dwertheimer.Forms/src/formBrowserHandlers.js` — Updated to handle simplified return type from `handleSubmitButtonClick`.
+- `dwertheimer.Forms/src/components/FormBrowserView.jsx` — Submitting overlay: use `flushSync` to commit overlay before request; `hideOverlay()` with 400 ms minimum display time; `overlayShownAtRef` for timing.
 
 ## [1.0.22] 2026-01-27 @dwertheimer
 
