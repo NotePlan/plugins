@@ -277,7 +277,7 @@ export function returnNoteLink(noteTitle: string, heading: string | null = ''): 
  * @param {string} titleOrFilename - title of the note or the filename
  * @param {string} paramType - 'title' | 'filename' | 'date' (default is 'title')
  * @param {string | null} heading - heading inside of note (optional)
- * @param {string} openType - 'subWindow' | 'splitView' | 'useExistingSubWindow' (default: null)
+ * @param {string} openType - 'subWindow' | 'splitView' | 'reuseSplitView' | 'useExistingSubWindow' (default: null)
  * @param {boolean} isDeleteNote - whether this is actually a deleteNote
  * @param {string} blockID - the blockID if this is a line link (includes the ^) -- only works with title (not filename)
  * @returns {string} the x-callback-url string
@@ -288,7 +288,7 @@ export function createOpenOrDeleteNoteCallbackUrl(
   titleOrFilename: string,
   paramType: 'title' | 'filename' | 'date' = 'title',
   heading: string | null = '',
-  openType: 'subWindow' | 'splitView' | 'useExistingSubWindow' | null = null,
+  openType: 'subWindow' | 'splitView' | 'reuseSplitView' | 'useExistingSubWindow' | null = null,
   isDeleteNote: boolean = false,
   blockID: string = '',
 ): string {
@@ -300,7 +300,10 @@ export function createOpenOrDeleteNoteCallbackUrl(
   const head = heading && heading.length ? encodePlusParens(heading.replace('#', '')) : ''
   // console.log(`createOpenOrDeleteNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
   const encodedTitleOrFilename = encodePlusParens(titleOrFilename)
-  const openAs = openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
+  let openAs = openType && ['subWindow', 'splitView', 'reuseSplitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
+  if (openType === 'reuseSplitView') {
+    openAs += '&splitView=yes' // special case for reuseSplitView, which needs both
+  }
   let retVal = ''
   if (isLineLink) {
     retVal = `${xcb}${encodedTitleOrFilename}${encodeURIComponent(blockID)}`

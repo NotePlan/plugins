@@ -8,6 +8,7 @@ import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search'
 import { inputIntegerBounded } from '@helpers/userInput'
+import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 
 // ----------------------------------------------------------------------------
 // Types
@@ -645,6 +646,33 @@ export async function openNoteInNewSplitIfNeeded(filename: string): Promise<bool
     logWarn('openWindowSet', `Failed to open split window '${filename}'`)
   }
   return !!res
+}
+
+/**
+ * Open a note in a split view using x-callback-url, but only if it is not already open in any Editor window.
+ * Uses the 'reuseSplitView' openType so that a single split view is reused where possible.
+ * Note: This is in place of `await   Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)` which doesn't have reuseSplitView option. (Yet.)
+ * @author @jgclark
+ * @param {string} filename - filename of the note to open
+ * @returns {boolean} true if a new split view was opened, false if the note was already open
+ */
+export function openNoteInSplitViewIfNotOpenAlready(filename: string, callingFunctionName?: string): boolean {
+  try {
+    if (noteOpenInEditor(filename)) {
+      logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) Note '${filename}' is already open in an Editor window. Skipping.`)
+      return false
+    }
+
+    const splitOpenType = usersVersionHas('reuseSplitView') ? 'reuseSplitView' : 'splitView'
+    const callbackUrl = createOpenOrDeleteNoteCallbackUrl(filename, 'filename', null, splitOpenType, false)
+    logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) splitOpenType: ${splitOpenType} openNote in Editor callbackUrl: ${callbackUrl}`)
+    NotePlan.openURL(callbackUrl)
+    logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) after x-callback call to openNote`)
+    return true
+  } catch (error) {
+    logError('openNoteInSplitViewIfNotOpenAlready', `openNoteInSplitViewIfNotOpenAlready: Error: ${error.message}`)
+    return false
+  }
 }
 
 /**
