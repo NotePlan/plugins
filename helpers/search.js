@@ -461,18 +461,18 @@ export function trimAndHighlightTermInLine(
         const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}(${termsForRE}).{0,${String(maxChars - LRSplit)}})\\b(?:\\w+|$)`, "gi")
         // logDebug('trimAndHighlight', `- RE: ${String(RE_FIND_TEXT_AROUND_THE_TERMS)}`)
         const textAroundTerms = mainPart.match(RE_FIND_TEXT_AROUND_THE_TERMS) ?? [] // multiple matches
-        logDebug('trimAndHighlight', `- textAroundTerms = ${String(textAroundTerms)}`)
+        // logDebug('trimAndHighlight', `- textAroundTerms = ${String(textAroundTerms)}`)
         if (textAroundTerms.length > 0) {
           // If we have more than 1 match in the line, join the results together with '...'
           output = textAroundTerms.join(' ...')
           // If the output doesn't start with the mainPart, then we have chopped the start of a sentence, so prepend '...'
           if (!caseInsensitiveStartsWith(output, mainPart, false)) {
-            logDebug('trimAndHighlight', `- have shortened start of line`)
+            // logDebug('trimAndHighlight', `- have shortened start of line`)
             output = `... ${output}`
           }
           // If we now have a shortened string, then append '...' unless search term is at the end of the line
           if (!caseInsensitiveEndsWith(output, mainPart, false)) {
-            logDebug('trimAndHighlight', `- have shortened end of line`)
+            // logDebug('trimAndHighlight', `- have shortened end of line`)
             output = `${output} ...`
           }
           //

@@ -248,25 +248,10 @@ export async function saveSearch(
   searchOptions: TSearchOptions,
   searchTermsArg?: string,
   destinationArg?: string = 'newnote',
-  // noteTypesToIncludeArg?: string = 'both',
-  // originatorCommand?: string = 'quickSearch',
-  // paraTypesAsStr?: string = '',
-  // commandNameToDisplay?: string = 'Searching',
-  // caseSensitiveSearchingArg?: boolean,
-  // fullWordSearchingArg?: boolean,
 ): Promise<void> {
   try {
     const config = await getSearchSettings()
     const headingMarker = '#'.repeat(config.headingLevel)
-
-    // const {
-    //   noteTypesToIncludeArg,// = 'both',
-    //   originatorCommand,// = 'quickSearch',
-    //   paraTypesAsStr,// = '',
-    //   commandNameToDisplay,// = 'Searching',
-    //   caseSensitiveSearchingArg,// = false,
-    //   fullWordSearchingArg,// = false,
-    // } = searchOptions
 
     logDebug(pluginJson, `Starting saveSearch() with searchTermsArg '${searchTermsArg ?? '(not supplied)'}'`)
 
@@ -302,14 +287,14 @@ export async function saveSearch(
 
     // Get the noteTypes to include
     // const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both' || noteTypesToIncludeArg === '') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
-    logDebug('saveSearch', `- arg1 -> note types '${noteTypesToInclude.toString()}'`)
+    logDebug('saveSearch', `- note types: '${noteTypesToInclude.toString()}'`)
 
     // Get the search terms, either from argument supplied, or by asking user
     let termsToMatchStr = ''
     if (searchTermsArg) {
       // from argument supplied
       termsToMatchStr = searchTermsArg ?? ''
-      logDebug('saveSearch', `- arg0 -> search terms [${termsToMatchStr}]`)
+      logDebug('saveSearch', `- search terms: [${termsToMatchStr}]`)
     }
     else {
       // ask user
@@ -342,10 +327,10 @@ export async function saveSearch(
     }
     const searchTermsRepStr = `'${validatedSearchTerms.map(term => term.termRep).join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
 
-    // Now optimise the order we tackle the search terms. Note: now moved into runExtendedSearches()
+    // Note: optimising the order of search terms happens in runExtendedSearches()
 
     // Get the paraTypes to include. Can take string (which needs turning into an array), or array (which is fine).
-    logDebug('saveSearch', `- arg3 -> para types '${paraTypesToInclude.toString()}'`)
+    logDebug('saveSearch', `- para types: '${paraTypesToInclude.toString()}'`)
 
     // Work out time period to cover (if wanted)
     let periodString = ''
@@ -376,7 +361,7 @@ export async function saveSearch(
           : todayMom.format('YYYYMMDD') // today
         periodString = `${fromDateStr} - ${toDateStr}`
         periodAndPartStr = periodString
-        logDebug('saveSearch', `arg1/2 -> ${periodString}`)
+        logDebug('saveSearch', `- time period (from options): ${fromDateStr} to ${toDateStr} = ${periodString}`)
       }
       else {
         // Otherwise ask user
@@ -392,22 +377,16 @@ export async function saveSearch(
         if (periodAndPartStr === '') {
           periodAndPartStr = periodString
         }
-        logDebug('saveSearch', `Time period for search: ${periodAndPartStr}`)
+        logDebug('saveSearch', `- time period (from user): ${fromDateStr} to ${toDateStr} = ${periodString}`)
       }
       if (fromDateStr > toDateStr) {
         throw new Error(`Stopping: fromDate ${fromDateStr} is after toDate ${toDateStr}`)
       }
+      searchOptions.fromDateStr = fromDateStr
+      searchOptions.toDateStr = toDateStr
     }
 
-    // // Form TSearchOptions object
-    // const searchOptions: TSearchOptions = {
-    //   noteTypesToInclude: noteTypesToInclude,
-    //   foldersToInclude: [],
-    //   foldersToExclude: config.foldersToExclude,
-    //   paraTypesToInclude: paraTypesToInclude,
-    //   caseSensitiveSearching: config.caseSensitiveSearching,
-    //   fullWordSearching: config.fullWordSearching,
-    // }
+    clo(searchOptions, 'searchOptions before runExtendedSearches():')
 
     //---------------------------------------------------------
     // Search using search() API via JGC extended search helpers in this plugin

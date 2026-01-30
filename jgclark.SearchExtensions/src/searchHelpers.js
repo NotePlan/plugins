@@ -616,15 +616,13 @@ export function applySearchOperators(
 
     logDebug('applySearchOperators', `- Will now filter out Calendar note results outside ${nonISOFromDateStr}-${nonISOToDateStr} from ${consolidatedLineCount} results`)
     // Keep results only from within the date range (measured at the first date of the Calendar note's period)
-    for (const nal of consolidatedNALs) {
-      const noteStr = getDateStrForStartofPeriodFromCalendarFilename(nal.noteFilename)
-      logDebug('applySearchOperators', `- noteStr: ${noteStr} / ${String(withinDateRange(noteStr, nonISOFromDateStr, nonISOToDateStr))}`)
-    }
     // TODO: ideally change to cover whole of a calendar note's date range
     consolidatedNALs = consolidatedNALs.filter((f) => withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), nonISOFromDateStr, nonISOToDateStr))
     consolidatedLineCount = consolidatedNALs.length
     consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
     logDebug('applySearchOperators', `- After filtering out by date: ${consolidatedLineCount} results`)
+  } else {
+    logDebug('applySearchOperators', `- No date filtering applied`)
   }
 
   const fullResultCount = consolidatedLineCount

@@ -4,6 +4,7 @@
 
 ## [2.0.2] - 2026-01-30
 - align 'searchInPeriod' command x-callback parameters to what the documentation actually says ;-)
+- fixes to 'searchInPeriod' run interactively
 
 ## [2.0.1] - 2026-01-24
 - bug fixes for 'replace' commands
