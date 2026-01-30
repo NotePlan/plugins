@@ -5,7 +5,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2025-03-21 for v2.0.0, @jgclark
+// Last updated 2026-01-30 for v1.0.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -35,10 +35,7 @@ import {
   getPeriodStartEndDates,
 } from '@helpers/NPdateTime'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
-import {
-  createRunPluginCallbackUrl,
-  // displayTitle
-} from '@helpers/general'
+import { createRunPluginCallbackUrl } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import {
@@ -204,8 +201,8 @@ export async function quickSearch(
  */
 export async function searchPeriod(
   searchTermsArg?: string,
-  paraTypesAsStr?: string = '',
   _noteTypesAsStr?: string = 'calendar', // this value is ignored, as its only Calendar notes that make sense for this command
+  paraTypesAsStr?: string = '',
   destinationArg?: string = 'newnote',
   fromDateArg?: string = '',
   toDateArg?: string = '',

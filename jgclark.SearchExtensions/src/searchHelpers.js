@@ -3,12 +3,12 @@
 // Search Extensions helpers
 // Note: some types + funcs now in @helpers/extendedSearch.js
 // Jonathan Clark
-// Last updated 2025-07-18 for v2.0.0+, @jgclark
+// Last updated 2026-01-30 for v2.0.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { nowLocaleShortDateTime, getDateStrForStartofPeriodFromCalendarFilename } from '@helpers/NPdateTime'
-import { withinDateRange } from '@helpers/dateTime'
+import { convertISODateFilenameToNPDayFilename, withinDateRange } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import {
   displayTitle,
@@ -438,8 +438,8 @@ export function numberOfUniqueFilenames(inArray: Array<noteAndLine>): number {
  * Called by runExtendedSearches
  * @param {Array<resultObjectType>}
  * @param {number} resultLimit (optional; defaults to 500)
- * @param {string?} fromDateStr optional start date limit
- * @param {string?} toDateStr optional end date limit
+ * @param {string?} fromDateStr optional start date limit (YYYYMMDD without hyphens)
+ * @param {string?} toDateStr optional end date limit (YYYYMMDD without hyphens)
  * @returns {resultOutputType}
  * @tests in jest file
  */
@@ -611,10 +611,17 @@ export function applySearchOperators(
   // ------------------------------------------------------------
   // If we have date limits, now apply them
   if (fromDateStr && toDateStr) {
-    logDebug('applySearchOperators', `- Will now filter out Calendar note results outside ${fromDateStr}-${toDateStr} from ${consolidatedLineCount} results`)
+    const nonISOFromDateStr = convertISODateFilenameToNPDayFilename(fromDateStr)
+    const nonISOToDateStr = convertISODateFilenameToNPDayFilename(toDateStr)
+
+    logDebug('applySearchOperators', `- Will now filter out Calendar note results outside ${nonISOFromDateStr}-${nonISOToDateStr} from ${consolidatedLineCount} results`)
     // Keep results only from within the date range (measured at the first date of the Calendar note's period)
+    for (const nal of consolidatedNALs) {
+      const noteStr = getDateStrForStartofPeriodFromCalendarFilename(nal.noteFilename)
+      logDebug('applySearchOperators', `- noteStr: ${noteStr} / ${String(withinDateRange(noteStr, nonISOFromDateStr, nonISOToDateStr))}`)
+    }
     // TODO: ideally change to cover whole of a calendar note's date range
-    consolidatedNALs = consolidatedNALs.filter((f) => withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
+    consolidatedNALs = consolidatedNALs.filter((f) => withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), nonISOFromDateStr, nonISOToDateStr))
     consolidatedLineCount = consolidatedNALs.length
     consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
     logDebug('applySearchOperators', `- After filtering out by date: ${consolidatedLineCount} results`)
@@ -673,32 +680,16 @@ export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteA
  * Has an optional 'paraTypesToInclude' parameter of paragraph type(s) to include (e.g. ['open'] to include only open tasks). If not given, then no paragraph types will be excluded.
  *
  * @param {Array<string>} termsToMatchArr
- * @param {Array<string>} noteTypesToInclude (['notes'] or ['calendar'] or both)
- * @param {Array<string>} foldersToInclude (can be empty list)
- * @param {Array<string>} foldersToExclude (can be empty list)
- * @param {SearchConfig} config object for various settings - Note: there are two overrides later in these parameters
- * @param {Array<ParagraphType>?} paraTypesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
- * @param {boolean?} caseSensitive? searching (default is case insensitive)
- * @param {boolean?} fullWord? searching (default is same as NP which is false)
- * @param {string?} fromDateStr optional start date limit to pass to applySearchOperators
- * @param {string?} toDateStr optional end date limit to pass to applySearchOperators
+ * @param {SearchConfig} config object for various settings
+ * @param {TSearchOptions} searchOptions object for various search options
  * @returns {resultOutputType} results optimised for output
  */
 export async function runExtendedSearches(
   termsToMatchArr: Array<typedSearchTerm>,
   config: SearchConfig,
   searchOptions: TSearchOptions,
-  // noteTypesToInclude: Array<string>,
-  // foldersToInclude: Array<string>,
-  // foldersToExclude: Array<string>,
-  // paraTypesToInclude?: Array<ParagraphType> = [],
-  // fromDateStr?: string,
-  // toDateStr?: string,
 ): Promise<resultOutputType> {
   try {
-    // const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
-    // const foldersToInclude = searchOptions.foldersToInclude || []
-    // const foldersToExclude = searchOptions.foldersToExclude || []
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
     const fromDateStr = searchOptions.fromDateStr || ''
     const toDateStr = searchOptions.toDateStr || ''

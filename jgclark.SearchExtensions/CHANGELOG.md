@@ -2,6 +2,9 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [2.0.2] - 2026-01-30
+- align 'searchInPeriod' command x-callback parameters to what the documentation actually says ;-)
+
 ## [2.0.1] - 2026-01-24
 - bug fixes for 'replace' commands
 
