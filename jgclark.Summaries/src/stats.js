@@ -3,27 +3,24 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 2026-01-29 for v1.0.2 by @Cursor
+// Last updated 2026-01-30 for v1.0.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Helper functions
 
 import pluginJson from '../plugin.json'
+import type { SummariesConfig } from './settings'
 import {
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
   type OccurrencesToLookFor,
-  type SummariesConfig,
   type TMOccurrences,
 } from './summaryHelpers'
-import { hyphenatedDate, RE_DATE } from '@helpers/dateTime'
-import {
-  clo, logDebug, logError, logInfo,
-  // overrideSettingsWithEncodedTypedArgs,
-  timer
-} from '@helpers/dev'
+import { RE_DATE } from '@helpers/dateTime'
+import { validateDateRangeAndConvertToISODateStrings } from '@helpers/dateTime'
+import { clo, logDebug, logError, logInfo, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink } from '@helpers/general'
 import { replaceSection, setIconForNote } from '@helpers/note'
 import { getPeriodStartEndDates, getPeriodStartEndDatesFromPeriodCode } from '@helpers/NPdateTime'
@@ -43,15 +40,18 @@ import { chooseDecoratedOptionWithModifiers, chooseOption, showMessage } from '@
  */
 
 /**
- * Ask user which period to cover, call main stats function accordingly, and present results
+ * Ask user which period to cover, call main stats function accordingly, and present results.
+ * Generates statistics for hashtags and mentions over a specified time period.
  * @author @jgclark
- * @param {TPeriodCode?} periodCodeArg (optional) all | week | lm | mtd | om | YYYY-MM-DD | today etc. If not provided user will be asked.
- * @param {number?} periodNumberArg (optional)
- * @param {number?} yearArg (optional)
- * @param {string?} specificGOSettings (optional) JSON string of specific GOSettings to use
+ * @param {TPeriodCode|''} periodCodeArg - Period code: 'all' | 'week' | 'month' | 'quarter' | 'year' | 'today' | YYYY-MM-DD. If empty, user will be asked.
+ * @param {number} periodNumberArg - Period number within the calendar type (e.g., week 5, month 12). Defaults to NaN.
+ * @param {number} yearArg - Year number (e.g., 2025). Defaults to NaN.
+ * @param {string} specificGOSettingsStr - Optional JSON string containing settings to override default GOSettings
+ * @returns {Promise<void>}
+ * @throws {Error} If period calculation fails, date range is invalid, or output operations fail
  */
 export async function statsPeriod(
-  periodCodeArg: TPeriodCode | '',
+  periodCodeArg: TPeriodCode | '' = '',
   periodNumberArg: number = NaN,
   yearArg: number = NaN,
   specificGOSettingsStr: string = '' // JSON string
@@ -77,8 +77,9 @@ export async function statsPeriod(
     await handleOutputDestination(destination, output, periodData, config, specificGOSettingsStr)
 
   } catch (error) {
-    logError('statsPeriod', error.message)
-    await showMessage(error.message)
+    const errorMsg = `Failed to generate period stats: ${error.message}`
+    logError('statsPeriod', errorMsg)
+    await showMessage(errorMsg)
   }
 }
 
@@ -87,11 +88,12 @@ export async function statsPeriod(
 
 /**
  * Validates parameters and calculates period data
- * @param {string} periodCodeArg - Period code argument: week | month | quarter | year | YYYY-MM-DD | all
- * @param {number} periodNumberArg - Period number argument
- * @param {number} yearArg - Year argument
- * @param {Object} config - Configuration object
- * @returns {Object} Period data object
+ * @param {TPeriodCode|''} periodCodeArg - Period code: 'week' | 'month' | 'quarter' | 'year' | 'YYYY-MM-DD' | 'all' | 'today'
+ * @param {number} periodNumberArg - Period number within calendar type (ignored for 'all', 'today', YYYY-MM-DD)
+ * @param {number} yearArg - Year number (ignored for 'all', 'today', YYYY-MM-DD)
+ * @param {any} config - Configuration object
+ * @returns {Promise<any>} Period data object with dates, strings, and metadata
+ * @throws {Error} If date calculation fails or date range is invalid
  */
 async function validateAndCalculatePeriod(
   periodCodeArg: TPeriodCode | '',
@@ -132,15 +134,8 @@ async function validateAndCalculatePeriod(
     periodShortCode = calendarTimeframe
   }
 
-  if (fromDate == null || toDate == null) {
-    throw new Error(`Error: failed to calculate dates`)
-  }
-  if (fromDate > toDate) {
-    throw new Error(`Error: requested fromDate ${String(fromDate)} is after toDate ${String(toDate)}`)
-  }
-
-  const fromDateStr = hyphenatedDate(fromDate)
-  const toDateStr = hyphenatedDate(toDate)
+  // Validate date range
+  const { fromDateStr, toDateStr } = validateDateRangeAndConvertToISODateStrings(fromDate, toDate, 'period stats')
   logInfo(pluginJson, `statsPeriod: starting with ${periodCodeArg} for ${periodString} (${fromDateStr} - ${toDateStr})`)
 
   return {
@@ -160,11 +155,12 @@ async function validateAndCalculatePeriod(
 
 /**
  * Determines callback parameters for refresh functionality
- * @param {string} periodShortCode - Short period code
- * @param {number} periodNumber - Period number
- * @param {number} year - Year
- * @param {string} overrideGOSettingsStr - stringified JSON string containing some/all settings to ovveride in settingsForGO (but may be empty)
- * @returns {string} Callback markdown string
+ * Creates a refresh button link with appropriate parameters
+ * @param {string} periodShortCode - Short period code (e.g., 'week', 'month')
+ * @param {number} periodNumber - Period number within calendar type
+ * @param {number} year - Year number
+ * @param {string} overrideGOSettingsStr - Optional JSON string containing settings to override in settingsForGO
+ * @returns {string} Callback markdown string for refresh button
  */
 function determineCallbackParameters(periodShortCode: string, periodNumber: number, year: number, overrideGOSettingsStr: string): string {
   let xCallbackMD = ''
@@ -179,12 +175,13 @@ function determineCallbackParameters(periodShortCode: string, periodNumber: numb
 
 /**
  * Gathers statistics data for the specified period
- * @param {string} periodString - Period string
- * @param {string} fromDateStr - From date string
- * @param {string} toDateStr - To date string
- * @param {Object} config - Configuration object
- * @param {string} overrideGOSettingsStr - optional stringified JSON string containing some/all settings to ovveride in settingsForGO
- * @returns {Array<TMOccurrences>} Occurrences array
+ * Collects occurrences of hashtags and mentions from calendar notes
+ * @param {string} periodString - Human-readable period string (e.g., "January 2025")
+ * @param {string} fromDateStr - Start date in YYYY-MM-DD format
+ * @param {string} toDateStr - End date in YYYY-MM-DD format
+ * @param {SummariesConfig} config - Configuration object with settings
+ * @param {string} overrideGOSettingsStr - Optional JSON string containing settings to override default GOSettings
+ * @returns {Promise<Array<TMOccurrences>>} Array of TMOccurrences objects containing statistics
  */
 async function gatherStatsData(
   periodString: string,
@@ -233,13 +230,13 @@ async function gatherStatsData(
 }
 
 /**
- * Generates the final statistics output
- * @param {Array} tmOccurrencesArray - Occurrences array
- * @param {string} periodString - Period string
- * @param {string} fromDateStr - From date string
- * @param {string} toDateStr - To date string
- * @param {Object} config - Configuration object
- * @returns {string} Generated output
+ * Generates the final statistics output in markdown format
+ * @param {Array<TMOccurrences>} tmOccurrencesArray - Array of occurrence objects
+ * @param {string} periodString - Human-readable period string
+ * @param {string} fromDateStr - Start date in YYYY-MM-DD format
+ * @param {string} toDateStr - End date in YYYY-MM-DD format
+ * @param {SummariesConfig} config - Configuration object
+ * @returns {Promise<string>} Generated markdown output string
  */
 async function generateStatsOutput(
   tmOccurrencesArray: Array<TMOccurrences>,
@@ -259,11 +256,12 @@ async function generateStatsOutput(
 
 /**
  * Selects output destination based on context and user choice
- * @param {boolean} isRunningFromXCallback - Whether running from callback
- * @param {Object} config - Configuration object
- * @param {string} calendarTimeframe - Calendar timeframe
- * @param {string} periodString - Period string
- * @returns {string} Selected destination
+ * Prompts user to choose where to save statistics if not running from callback
+ * @param {boolean} isRunningFromXCallback - Whether running from x-callback (auto-selects 'current')
+ * @param {SummariesConfig} config - Configuration object
+ * @param {string} calendarTimeframe - Calendar timeframe ('week', 'month', 'quarter', 'year', 'other')
+ * @param {string} periodString - Human-readable period string for display
+ * @returns {Promise<string>} Selected destination: 'calendar' | 'current' | 'note' | 'log' | 'cancel'
  */
 async function selectOutputDestination(
   isRunningFromXCallback: boolean,
@@ -284,7 +282,7 @@ async function selectOutputDestination(
       { text: 'Cancel', icon: 'cancel', color: 'red-500', shortDescription: ``, alpha: 0.8, darkAlpha: 0.8 },
     ]
     const optionValues = ['calendar', 'current', 'log', 'cancel']
-    if (config.folderToStore && config.folderToStore !== '') {
+    if ((config.folderToStore ?? '') !== '') {
       decoratedOutputOptions.unshift({ text: `Create/update a note in folder '${config.folderToStore}'`, icon: 'file-import', color: 'gray-500', shortDescription: ``, alpha: 0.8, darkAlpha: 0.8 })
       optionValues.unshift('note')
     }
@@ -300,7 +298,7 @@ async function selectOutputDestination(
       { label: '📋 Write to plugin console log', value: 'log' },
       { label: '❌ Cancel', value: 'cancel' },
     ]
-    if (config.folderToStore && config.folderToStore !== '') {
+    if ((config.folderToStore ?? '') !== '') {
       simpleOutputOptions.unshift({ label: `🖊 Create/update a note in folder '${config.folderToStore}'`, value: 'note' })
     }
     const chosenOption = await chooseOption(`Where to save the summary for ${periodString}?`, simpleOutputOptions, 'note')
@@ -325,7 +323,7 @@ function handleCurrentNoteOutput(
 ): void {
   const currentNote = Editor.note
   if (currentNote == null) {
-    logError('statsPeriod', `No note is open in the Editor, so I can't write to it.`)
+    logError('statsPeriod', `Cannot write period stats: no note is currently open in the Editor. Please open a note and try again.`)
   } else {
     // Replace or add output section
     replaceSection(currentNote, config.PSStatsHeading, `${config.PSStatsHeading} ${periodAndPartStr} ${xCallbackMD}`, config.headingLevel, output)
@@ -345,6 +343,7 @@ function handleCurrentNoteOutput(
  * @param {string} periodAndPartStr - Period and part string
  * @param {string} xCallbackMD - Callback markdown
  * @param {SummariesConfig} config - Configuration object
+ * @throws {Error} If note cannot be created or retrieved
  */
 async function handleNoteOutput(
   output: string,
@@ -356,8 +355,10 @@ async function handleNoteOutput(
   // Summaries note
   const note = await getOrMakeRegularNoteInFolder(periodString, config.folderToStore)
   if (note == null) {
-    logError('statsPeriod', `Cannot get new note`)
-    await showMessage('There was an error getting the new note ready to write')
+    const errorMsg = `Cannot create or retrieve note '${periodString}' in folder '${config.folderToStore ?? 'default'}'. Please check folder permissions and try again.`
+    logError('statsPeriod', errorMsg)
+    await showMessage(errorMsg)
+    throw new Error(errorMsg)
   } else {
     // Replace or add output section
     replaceSection(note, config.PSStatsHeading, `${config.PSStatsHeading} ${periodAndPartStr} ${xCallbackMD}`, config.headingLevel, output)
@@ -376,10 +377,11 @@ async function handleNoteOutput(
  * @param {string} periodString - Period string
  * @param {string} periodAndPartStr - Period and part string
  * @param {string} xCallbackMD - Callback markdown
- * @param {Object} config - Configuration object
+ * @param {any} config - Configuration object
  * @param {Date} fromDate - From date
  * @param {string} periodShortCode - Period short code
  * @param {string} calendarTimeframe - Calendar timeframe
+ * @throws {Error} If calendar note cannot be retrieved or opened
  */
 async function handleCalendarOutput(
   output: string,
@@ -393,8 +395,8 @@ async function handleCalendarOutput(
 ): Promise<void> {
 // Weekly note (from v3.6) and Monthly / Quarterly / Yearly (from v3.7.2)
   const calNoteAtFromDate = DataStore.calendarNoteByDate(fromDate, periodShortCode)
-  if (!calNoteAtFromDate) {
-    throw new Error(`Couldn't get calendar note for ${periodString}`)
+  if (calNoteAtFromDate == null) {
+    throw new Error(`Cannot retrieve calendar note for ${periodString} (${calendarTimeframe} starting ${fromDate.toISOString()}). Please check your calendar settings.`)
   }
   let note: TNote = calNoteAtFromDate
   let filenameForCalDate = note.filename
@@ -409,7 +411,7 @@ async function handleCalendarOutput(
     logDebug('statsPeriod', `- ${calendarTimeframe} note ${filenameForCalDate} already open`)
   }
   if (note == null) {
-    throw new Error(`cannot get Calendar note for ${filenameForCalDate} ready to write. Stopping.`)
+    throw new Error(`Cannot open calendar note '${filenameForCalDate ?? 'unknown'}' for writing. Please check your calendar settings and try again.`)
   } else {
     // Replace or add output section
     replaceSection(note, config.PSStatsHeading, `${config.PSStatsHeading} ${periodAndPartStr} ${xCallbackMD}`, config.headingLevel, output)
@@ -420,10 +422,11 @@ async function handleCalendarOutput(
 
 /**
  * Handles output to log
+ * Writes statistics output to plugin console log
  * @param {string} output - Output content
  * @param {string} periodAndPartStr - Period and part string
  * @param {string} periodString - Period string
- * @param {Object} config - Configuration object
+ * @param {any} config - Configuration object
  */
 function handleLogOutput(
   output: string, periodAndPartStr: string, periodString: string, config: any
@@ -434,11 +437,13 @@ function handleLogOutput(
 
 /**
  * Handles output destination routing
- * @param {string} destination - Output destination
- * @param {string} output - Output content
- * @param {Object} periodData - Period data object
- * @param {Object} config - Configuration object
- * @param {?string} overrideGOSettingsStr - optional stringified JSON string containing some/all settings to ovveride in settingsForGO
+ * Routes statistics output to the appropriate destination based on user choice
+ * @param {string} destination - Output destination: 'calendar' | 'current' | 'note' | 'log' | 'cancel'
+ * @param {string} output - Output content (markdown string)
+ * @param {any} periodData - Period data object containing dates, strings, and metadata
+ * @param {any} config - Configuration object
+ * @param {string} overrideGOSettingsStr - Optional JSON string containing settings to override in settingsForGO
+ * @throws {Error} If destination is invalid or output operations fail
  */
 async function handleOutputDestination(
   destination: string, output: string, periodData: any, config: any, overrideGOSettingsStr: string
@@ -472,7 +477,7 @@ async function handleOutputDestination(
     }
 
     default: {
-      throw new Error(`Invalid save destination '${destination}'`)
+      throw new Error(`Invalid save destination '${destination}'. Valid options are: 'calendar', 'current', 'note', 'log', or 'cancel'.`)
     }
   }
 }

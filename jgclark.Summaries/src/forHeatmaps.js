@@ -27,10 +27,19 @@ import { getNPWeekData, localeDateStr, pad, setMomentLocaleFromEnvironment } fro
 import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { showHTMLV2 } from '@helpers/HTMLView'
 import { getLocale } from '@helpers/NPConfiguration'
-import { getInput } from '@helpers/userInput'
+import { getInput, showMessage } from '@helpers/userInput'
+import { createSingleTagTrackingConfig } from './configHelpers'
 
 //-----------------------------------------------------------------------------
+// Constants
+
 const pluginID = 'jgclark.Summaries'
+const DEFAULT_HEATMAP_INTERVALS = 180
+const DAYS_PER_WEEK = 7
+const HEATMAP_ZOOM_POINTS = 36
+
+//-----------------------------------------------------------------------------
+// Types
 
 type HeatmapDefinition =
   {
@@ -41,6 +50,8 @@ type HeatmapDefinition =
     toDateStr: string,
     numberIntervals: number,
   }
+
+//-----------------------------------------------------------------------------
 
 /**
  * Test function to show heatmaps for @sleep and @work tags.
@@ -95,35 +106,52 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
     const config = await getSummariesSettings()
 
     // Set some default values
-    const [fromDateStrDefault, _numWeeksDefault] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
+    const [fromDateStrDefault, _numWeeksDefault] = getFirstDateForWeeklyStats(config.weeklyStatsDuration ?? 26, config.weeklyStatsIncludeCurrentWeek ?? false)
     const toDateStrDefault = todaysDateISOString
-    const numberIntervalsDefault = 180
+    const numberIntervalsDefault = DEFAULT_HEATMAP_INTERVALS
+
+    // Default heatmap configuration
+    const defaultHeatmapConfig = {
+      intervalType: 'day',
+      colorScaleRange: '["#FFFFFF", "#2323A0"]',
+      numberIntervals: numberIntervalsDefault,
+      fromDateStr: fromDateStrDefault,
+      toDateStr: toDateStrDefault,
+    }
 
     // Set up heatmap definition, from passed parameter, or from asking user and setting defaults
     // Note: parameter can come as string (from callback) or object (from other functions)
     let heatmapDef: HeatmapDefinition
-    let tagName: boolean | string = ''
+    let tagName: string = ''
+
     if (typeof heatmapDefArg === "string" && heatmapDefArg !== '') {
       const unencodedHeatmapDefInStr = decodeURIComponent(heatmapDefArg)
-      heatmapDef = JSON.parse(unencodedHeatmapDefInStr) ?? null
-      tagName = heatmapDef.tagName
+      const parsed = JSON.parse(unencodedHeatmapDefInStr)
+      if (parsed == null || typeof parsed !== 'object') {
+        throw new Error(`Invalid heatmap definition string: cannot parse JSON`)
+      }
+      heatmapDef = parsed
+      tagName = parsed.tagName ?? ''
+      if (tagName === '') {
+        throw new Error(`Invalid heatmap definition: tagName is required`)
+      }
     } else if (typeof heatmapDefArg === "object" && heatmapDefArg !== null) {
       heatmapDef = heatmapDefArg
-      tagName = heatmapDefArg.tagName
+      tagName = heatmapDefArg.tagName ?? ''
+      if (tagName === '') {
+        throw new Error(`Invalid heatmap definition: tagName is required`)
+      }
     } else {
       // no heatmapDefArg given, so ask user for tagName
-      tagName = await getInput('tagName')
-      if (tagName === null || typeof tagName !== 'string') {
+      const inputTagName = await getInput('tagName')
+      if (inputTagName == null || typeof inputTagName !== 'string' || inputTagName === '') {
         logInfo('showTagHeatmap', 'User cancelled, or no tag name entered.')
         return
       }
+      tagName = inputTagName
       heatmapDef = {
         tagName: tagName,
-        intervalType: 'day',
-        colorScaleRange: '["#FFFFFF", "#2323A0"]',
-        numberIntervals: numberIntervalsDefault,
-        fromDateStr: fromDateStrDefault,
-        toDateStr: toDateStrDefault,
+        ...defaultHeatmapConfig,
       }
     }
     // const numWeeks = (heatmapDef.intervalType === 'week')
@@ -155,8 +183,10 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
     const tagOccurrences: Array<TMOccurrences> = await gatherOccurrences(`${heatmapDef.numberIntervals} days`, heatmapDef.fromDateStr, heatmapDef.toDateStr, occConfig)
 
     if (tagOccurrences.length === 0) {
-      logError('showTagHeatmap', 'No tagOccurrence object returned from gatherOccurrences() with ...')
+      const errorMsg = `No data found for ${tagName} in the specified period (${heatmapDef.fromDateStr} - ${heatmapDef.toDateStr}). Please check that the tag/mention exists in your notes.`
+      logError('showTagHeatmap', errorMsg)
       clo(occConfig, 'occConfig')
+      await showMessage(errorMsg)
       return
     }
     const thisTagOcc = tagOccurrences[0]
@@ -185,7 +215,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
 
     const dailyAverage = count > 0 ? total / count : 0
     const numItems = thisTagOcc.getNumberItems()
-    const weeklyAverage = numItems > 0 ? total / (numItems / 7) : 0 // not as simple as count/7
+    const weeklyAverage = numItems > 0 ? total / (numItems / DAYS_PER_WEEK) : 0 // not as simple as count/7
 
     const locale = getLocale({})
     const IntlOpts = { maximumFractionDigits: 1, minimumSignificantDigits: 2, maximumSignificantDigits: 3 }
@@ -254,6 +284,9 @@ export async function calcTagStatsMap(
         GOChecklistRefNote: "",
       }
       const tagOccurrences: Array<TMOccurrences> = await gatherOccurrences('day ?', fromDateStr, toDateStr, occConfig)
+      if (tagOccurrences.length === 0) {
+        throw new Error(`No data found for ${tagName} in the specified period (${fromDateStr} - ${toDateStr}). Please check that the tag/mention exists in your notes.`)
+      }
       const thisTagOcc = tagOccurrences[0]
 
       // end timer & spinner
@@ -268,7 +301,7 @@ export async function calcTagStatsMap(
 
       return outputMap
     } else {
-      throw new Error(`Unsupported interval type: ${intervalType}`)
+      throw new Error(`Unsupported interval type '${intervalType}'. Currently only 'day' is supported.`)
     }
 
     // // Calc total completed in period
@@ -283,27 +316,38 @@ export async function calcTagStatsMap(
     // }
 
   } catch (err) {
-    logError(pluginJson, `calcTagStatsMap: ${err.name}: ${err.message}`)
+    logError(pluginJson, `calcTagStatsMap failed for ${tagName} (${fromDateStr} - ${toDateStr}): ${err.message}`)
     return new Map()
   }
 }
 
 /**
- * Create a heatmap for the specified time period, using data returned from the specified function. Covers all notes, other than in @special folders and any in foldersToExclude.
- * Incorporating heatmap charting from AnyChart demo (details at https://www.anychart.com/blog/2020/02/26/heat-map-chart-create-javascript/) with addition of
+ * Create a heatmap for the specified time period, using data returned from the specified function.
+ * 
+ * Covers all notes, other than in @special folders and any in foldersToExclude.
+ * 
+ * Incorporates heatmap charting from AnyChart demo (details at https://www.anychart.com/blog/2020/02/26/heat-map-chart-create-javascript/)
+ * with addition of:
  * - horizontal scroller (https://docs.anychart.com/Common_Settings/Scroller)
- * - and tooltips (https://docs.anychart.com/Basic_Charts/Heat_Map_Chart#formatting_functions).
- * Note: Using trial (and watermarked) version of Anychart. I need to find a different solution for the longer term.
- * Note: This AnyChart code isn't designed for time series, so doesn't really cope with missing data points, particularly if at the start of the (throws off Y axis) or a whole week (throws off X axis).
+ * - tooltips (https://docs.anychart.com/Basic_Charts/Heat_Map_Chart#formatting_functions)
+ * 
+ * LIMITATIONS:
+ * - Using trial (and watermarked) version of Anychart. Need to find a different solution for the longer term.
+ * - This AnyChart code isn't designed for time series, so doesn't really cope with missing data points,
+ *   particularly if at the start (throws off Y axis) or a whole week (throws off X axis).
+ * 
  * @author @jgclark
- * @param {string} windowTitle
- * @param {string} chartTitle
- * @param {Map<string, number>} statsMap input data in a Map<isoDateString, number>
- * @param {string} colorScaleRange - defaults to white -> Pakistan Green
- * @param {string} intervalType - currently only supports 'day'
- * @param {string} fromDateStr - ISO date to start
- * @param {string} toDateStr - ISO date to end
- * @param {string} filenameToSave - if given save HTML output as a file as well
+ * @param {string} windowTitle - Title for the HTML window
+ * @param {string} chartTitle - Title displayed on the chart
+ * @param {Map<string, number>} statsMap - Input data as Map<isoDateString, number>
+ * @param {string} colorScaleRange - JSON string array of two colors for gradient. Defaults to white -> Pakistan Green
+ * @param {string} _intervalType - Currently only supports 'day' (unused parameter)
+ * @param {string} fromDateStr - Start date in ISO format (YYYY-MM-DD)
+ * @param {string} toDateStr - End date in ISO format (YYYY-MM-DD)
+ * @param {string} filenameToSave - Optional filename to save HTML output
+ * @param {string} windowID - Unique identifier for the window
+ * @returns {Promise<void>}
+ * @throws {Error} If week calculation fails or HTML generation fails
  */
 export async function generateHeatMap(
   windowTitle: string,
@@ -334,8 +378,10 @@ export async function generateHeatMap(
       // logDebug('', `- ${isoDate}: ${value}`)
       const mom = moment(isoDate, 'YYYY-MM-DD')
       // const weekNum = Number(mom.format('WW')) // moment week number
-      const weekInfo = getNPWeekData(mom.toDate()) ?? {}
-      if (!weekInfo?.weekNumber) throw new Error(`Invalid startWeek based on ${isoDate}, so can't continue`)
+      const weekInfo = getNPWeekData(mom.toDate())
+      if (weekInfo?.weekNumber == null) {
+        throw new Error(`Invalid week calculation for date ${isoDate}. Cannot determine week number.`)
+      }
       const weekNum = weekInfo.weekNumber // NP week number
       // Get string for heatmap column title: week number, or year number if week 1
       const weekTitle = (weekNum !== 1) ? `W${pad(weekNum)}` : weekInfo.weekYear // with this library the value needs to be identical all week
@@ -400,7 +446,7 @@ export async function generateHeatMap(
       });
 
       chart.xScroller().enabled(true);
-      chart.xZoom().setToPointsCount(36);
+      chart.xZoom().setToPointsCount(${HEATMAP_ZOOM_POINTS});
 
       // Add a legend and then draw
       chart.legend(true);
@@ -433,15 +479,21 @@ export async function generateHeatMap(
 }
 
 /**
- * Create heatmap of task completion for last config.weeklyStatsDuration weeks (or if not specified, a sensible period between 6 and 12 months).
+ * Create heatmap of task completion for last config.weeklyStatsDuration weeks.
+ * 
+ * If weeklyStatsDuration is not specified, uses a sensible period between 6 and 12 months.
+ * Displays a visual heatmap showing task completion patterns over time.
+ * 
  * @author @jgclark
+ * @returns {Promise<void>}
+ * @throws {Error} If settings are invalid, date calculation fails, or heatmap generation fails
  */
 export async function showTaskCompletionHeatmap(): Promise<void> {
   const config = await getSummariesSettings()
 
   // Work out time interval to use
   const toDateStr = todaysDateISOString
-  const [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
+  const [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration ?? 26, config.weeklyStatsIncludeCurrentWeek ?? false)
   logDebug('generateHeatMap', `generateHeatMap: starting for ${String(numWeeks)} weeks (${fromDateStr} to ${toDateStr}) ...`)
 
   const statsMap = await generateTaskCompletionStats(config.foldersToExclude, 'day', fromDateStr) // to today

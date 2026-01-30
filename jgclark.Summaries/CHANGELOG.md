@@ -2,6 +2,9 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
 
+## [1.0.3] - 2026-01-30 (unreleased)
+- worked around a new bug in the API for getting hashtags and mentions that meant some were being ignored, affecting the accuracy of the plugin's output.
+
 ## [1.0.2] - 2026-01-29 (unreleased)
 - under-the-hood code quality improvements, hopefully fixing some subtle bugs <!-- thanks to Cursor -->
 

@@ -9,7 +9,7 @@
 export {
   showTagHeatmap,
   showTaskCompletionHeatmap,
-  testJGCHeatmaps,
+  // testJGCHeatmaps,
 } from './forHeatmaps'
 export {
   testTaskGenStats,
@@ -25,6 +25,7 @@ export {
   todayProgressFromTemplate
 } from './todayProgress'
 export { statsPeriod } from './stats'
+export { getSummariesSettings } from './settings'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'

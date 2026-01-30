@@ -8,8 +8,9 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { gatherOccurrences, generateProgressUpdate, getSummariesSettings, type OccurrencesToLookFor, type SummariesConfig } from './summaryHelpers'
-import { hyphenatedDate } from '@helpers/dateTime'
+import type { SummariesConfig } from './settings'
+import { gatherOccurrences, generateProgressUpdate, getSummariesSettings, type OccurrencesToLookFor } from './summaryHelpers'
+import { validateDateRangeAndConvertToISODateStrings } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, timer, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import { createPrettyRunPluginLink, formatWithFields, getTagParamsFromString } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
@@ -33,6 +34,14 @@ import { showMessage } from '@helpers/userInput'
  * @param {string?} sourceIn 'template' | 'callback' | empty
  * @returns {string} - returns string
  */
+/**
+ * Entry point for template or callback use of makeProgressUpdate().
+ * Determines if called from template (object passed) or callback (string passed).
+ * @param {any} params - Parameters as JS object or JSON string
+ * @param {string} sourceIn - Source: 'template' | 'callback' | empty string
+ * @returns {Promise<string>} Output string for template, empty string otherwise
+ * @throws {Error} If refresh is called without an open note
+ */
 export async function progressUpdate(params: any = '', sourceIn: string = ''): Promise<string> {
   try {
     logDebug(
@@ -44,8 +53,8 @@ export async function progressUpdate(params: any = '', sourceIn: string = ''): P
     if (source === 'refresh') {
       // Work out what note we're called from
       const note = Editor.note
-      if (!note) {
-        throw new Error('No note is open in the Editor, so cannot refresh')
+      if (note == null) {
+        throw new Error('Cannot refresh progress update: no note is currently open in the Editor. Please open a note and try again.')
       }
       const noteFilename = note.filename
       logDebug('progressUpdate', `- refresh called from filename: '${noteFilename}'`)
@@ -57,7 +66,7 @@ export async function progressUpdate(params: any = '', sourceIn: string = ''): P
     return (await makeProgressUpdate(params, source)) ?? ''
   } catch (err) {
     logError(pluginJson, `progressUpdate (for template) Error: ${err.message}`)
-    return '❗️ Error: please open Plugin Console and re-run to see more details.' // for completeness
+    return `❗️ Error generating progress update: ${err.message}. Please check Plugin Console for details.`
   }
 }
 
@@ -67,9 +76,10 @@ export async function progressUpdate(params: any = '', sourceIn: string = ''): P
  * If it's week to date, then use the user's first day of week from NP setting.
  * @author @jgclark
  *
- * @param {any?} paramsIn - can pass parameter string (in JSON format) e.g. '{"period": "mtd", "progressHeading": "Progress"}' or as a JS object
- * @param {string?} source of this call: 'callback', 'template', 'refresh' or 'command' (the default)
- * @returns {string|void} - either return string to Template, or void to plugin
+ * @param {any} paramsIn - Parameter string (in JSON format) e.g. '{"period": "mtd", "progressHeading": "Progress"}' or as a JS object. Defaults to empty string.
+ * @param {string} source - Source of this call: 'callback', 'template', 'refresh' or 'command' (the default). Defaults to 'command'.
+ * @returns {Promise<string|void>} Returns string to Template if source is 'template', otherwise void
+ * @throws {Error} If date range calculation fails or note operations fail
  */
 export async function makeProgressUpdate(paramsIn: any = '', source: string = 'command'): Promise<string | void> {
   try {
@@ -108,13 +118,21 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
     const routed = await routeOutput(source, config, output, thisHeading, headingAndXCBStr, periodString, periodAndPartStr)
     return routed
   } catch (error) {
-    logError('makeProgressUpdate', error.message)
+    logError('makeProgressUpdate', `Failed to generate progress update: ${error.message}`)
+    throw error
   }
 }
 
 //-------------------------------------------------------------------------------
 // Small helpers extracted from makeProgressUpdate for readability and testability
 
+/**
+ * Normalizes input parameters to a JSON string format.
+ * Handles both object and string inputs, converting objects to JSON strings.
+ * 
+ * @param {any} paramsIn - Parameters as object or JSON string
+ * @returns {string} JSON string representation of parameters
+ */
 function normalizeParams(paramsIn: any): string {
   const params = paramsIn ? (typeof paramsIn === 'object' ? JSON.stringify(paramsIn) : paramsIn) : ''
   return params
@@ -132,6 +150,16 @@ function applyParamOverrides(config: SummariesConfig, params: string): Summaries
   }
 }
 
+/**
+ * Resolves the period to use, checking for overrides in params.
+ * 
+ * Checks for 'interval' or 'period' parameters in the params string,
+ * falling back to config.progressPeriod if not found.
+ * 
+ * @param {SummariesConfig} config - Configuration object
+ * @param {string} params - JSON string containing parameter overrides
+ * @returns {Promise<string>} Period code to use
+ */
 async function resolvePeriod(config: SummariesConfig, params: string): Promise<string> {
   let period = config.progressPeriod
   const intervalParam = await getTagParamsFromString(params, 'interval', '')
@@ -141,6 +169,16 @@ async function resolvePeriod(config: SummariesConfig, params: string): Promise<s
   return period
 }
 
+/**
+ * Builds settings object for gatherOccurrences() function.
+ * 
+ * Checks for parameter overrides first, then falls back to config settings.
+ * This allows templates and callbacks to override default settings.
+ * 
+ * @param {SummariesConfig} config - Configuration object
+ * @param {string} params - JSON string containing parameter overrides
+ * @returns {Promise<OccurrencesToLookFor>} Settings object for gatherOccurrences
+ */
 async function buildSettingsForGatherOccurrences(config: SummariesConfig, params: string): Promise<OccurrencesToLookFor> {
   const paramProgressYesNo = await getTagParamsFromString(params, 'progressYesNo', '')
   const paramProgressHashtags = await getTagParamsFromString(params, 'progressHashtags', '')
@@ -184,16 +222,16 @@ async function buildSettingsForGatherOccurrences(config: SummariesConfig, params
   }
 }
 
+/**
+ * Computes and validates the date range for a given period
+ * @param {SummariesConfig} config - Configuration object
+ * @param {any} period - Period code or date string
+ * @returns {Promise<{fromDateStr: string, toDateStr: string, periodString: string, periodAndPartStr: string}>} Date range information
+ * @throws {Error} If date range calculation fails or is invalid
+ */
 async function computeDateRange(config: SummariesConfig, period: any): Promise<{ fromDateStr: string, toDateStr: string, periodString: string, periodAndPartStr: string }> {
   const [fromDate, toDate, _periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('', config.excludeToday, period)
-  if (fromDate == null || toDate == null) {
-    throw new Error(`Error: failed to calculate period start and end dates`)
-  }
-  if (fromDate > toDate) {
-    throw new Error(`Error: requested fromDate ${String(fromDate)} is after toDate ${String(toDate)}`)
-  }
-  const fromDateStr = hyphenatedDate(fromDate)
-  const toDateStr = hyphenatedDate(toDate)
+  const { fromDateStr, toDateStr } = validateDateRangeAndConvertToISODateStrings(fromDate, toDate, 'progress update')
   return { fromDateStr, toDateStr, periodString, periodAndPartStr }
 }
 
@@ -219,11 +257,6 @@ function buildHeadingAndLink(
   paramsObjIn: any,
 ): { thisHeading: string, headingAndXCBStr: string } {
   // Create params string from paramsIn with date range information added
-  // V1
-  // logDebug('buildHeadingAndLink', `- paramsStr: '${paramsStr}'`)
-  // const paramsStr = (paramsIn.length > 1)
-  //   ? paramsIn.slice(0, -1) + `, "period": "${period}", "periodString": "${periodString}", "fromDateStr": "${fromDateStr}", "toDateStr": "${toDateStr}"}`
-  //   : `{"period": "${period}", "periodString": "${periodString}", "fromDateStr": "${fromDateStr}", "toDateStr": "${toDateStr}"}`
   // V2
   // clo(paramsObjIn, 'buildHeadingAndLink: paramsObjIn:')
   const params: any = { ...paramsObjIn, period, periodString, fromDateStr, toDateStr }
@@ -239,6 +272,23 @@ function buildHeadingAndLink(
   return { thisHeading, headingAndXCBStr }
 }
 
+/**
+ * Routes output to the appropriate destination based on source and config.
+ * 
+ * Handles routing for:
+ * - 'template': Returns formatted string
+ * - 'refresh': Updates current note section
+ * - 'command'/'callback': Writes to configured destination (current/daily/weekly)
+ * 
+ * @param {string} source - Source of call: 'template' | 'refresh' | 'command' | 'callback'
+ * @param {SummariesConfig} config - Configuration object
+ * @param {string} output - Formatted output string
+ * @param {string} thisHeading - Heading text (without refresh link)
+ * @param {string} headingAndXCBStr - Heading with refresh link
+ * @param {string} periodString - Human-readable period string
+ * @param {string} periodAndPartStr - Period and part string
+ * @returns {Promise<string|void>} Returns string for template, void otherwise
+ */
 async function routeOutput(
   source: string,
   config: SummariesConfig,
@@ -288,8 +338,9 @@ async function routeOutput(
     default: {
       const currentNote = Editor.note
       if (currentNote == null) {
-        logWarn('routeOutput', `No note is open in the Editor, so I can't write to it.`)
-        await showMessage(`No note is open in the Editor, so I can't write to it.`)
+        const errorMsg = `Cannot write progress update: no note is currently open in the Editor. Please open a note and try again.`
+        logWarn('routeOutput', errorMsg)
+        await showMessage(errorMsg)
       } else {
         replaceSection(currentNote, thisHeading, headingAndXCBStr, config.headingLevel, output)
         logInfo('routeOutput', `Appended progress update for '${periodString}' to current note`)

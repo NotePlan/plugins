@@ -2,33 +2,38 @@
 //-----------------------------------------------------------------------------
 // Progress update for Today only
 // Jonathan Clark, @jgclark
-// Last updated 2026-01-29 for v1.0.2 by @Cursor
+// Last updated 2026-01-30 for v1.0.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { gatherOccurrences, generateProgressUpdate, getSummariesSettings, type OccurrencesToLookFor, type SummariesConfig } from './summaryHelpers'
+import type { SummariesConfig } from './settings'
+import { gatherOccurrences, generateProgressUpdate, getSummariesSettings, type OccurrencesToLookFor } from './summaryHelpers'
 import { todaysDateISOString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, formatWithFields, getTagParamsFromString } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
+import { showMessage } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
 
 /**
- * This is the entry point for template use of makeTodayProgress
- * @param {?string} params as JSON string
- * @returns {string} - string returned to the Template
+ * Entry point for template use of makeTodayProgress.
+ * Called from NotePlan templates to generate today's progress summary.
+ * 
+ * @param {string?} params as JSON string (optional)
+ * @returns {Promise<string>} Formatted progress update string for template
+ * @throws {Error} If items to show are not specified or progress generation fails
  */
 export async function todayProgressFromTemplate(params: string = ''): Promise<string> {
   try {
     logDebug(pluginJson, `todayProgressFromTemplate() starting with params '${typeof params === 'string' ? params : JSON.stringify(params)}' (type: ${typeof params})`)
 
     const config = await getSummariesSettings()
-    const heading = await getTagParamsFromString(params, 'todayProgressHeading', config.todayProgressHeading)
-    const itemsToShowStr = await getTagParamsFromString(params, 'todayProgressItems', config.todayProgressItems)
-    if (itemsToShowStr === '') {
-      throw new Error("Can't find any items to show - check you have specified 'todayProgressItems' key in the parameters.")
+    const heading = await getTagParamsFromString(params, 'todayProgressHeading', config.todayProgressHeading ?? '')
+    const itemsToShowStr = await getTagParamsFromString(params, 'todayProgressItems', (config.todayProgressItems ?? []).join(','))
+    if ((itemsToShowStr ?? '') === '') {
+      throw new Error("Cannot generate today's progress: no items specified. Please set 'todayProgressItems' in plugin settings or pass 'todayProgressItems' in the parameters.")
     }
 
     const itemsToShowArr = itemsToShowStr.split(',') ?? []
@@ -42,9 +47,13 @@ export async function todayProgressFromTemplate(params: string = ''): Promise<st
 }
 
 /**
- * This is the entry point for /command or x-callback use of makeProgressUpdate
- * @param {?string} itemsToShowArg as comma-separated list of @mentions or #tags (optional). If not provided, then the default items in setting 'todayProgressItems' will be used.
- * @param {?string} headingArg
+ * Entry point for /command or x-callback use of makeTodayProgress.
+ * Generates a progress summary for today's note and writes it to the daily note.
+ * 
+ * @param {string} itemsToShowArg - Optional comma-separated list of @mentions or #tags. If not provided, uses default items from 'todayProgressItems' setting.
+ * @param {string} headingArg - Optional heading to use. If not provided, uses default from 'todayProgressHeading' setting.
+ * @returns {Promise<void>}
+ * @throws {Error} If daily note cannot be found or progress generation fails
  */
 export async function todayProgress(itemsToShowArg?: string, headingArg?: string): Promise<void> {
   try {
@@ -59,21 +68,23 @@ export async function todayProgress(itemsToShowArg?: string, headingArg?: string
     }
     // NB: don't need to do anything with output
   } catch (err) {
-    logError('todayProgress', `Error: ${err.message}`)
-    return // for completeness
+    logError('todayProgress', `Failed to generate today's progress: ${err.message}`)
+    throw err
   }
 }
 
 /**
- * Work out the progress stats of interest (on hashtags and/or mentions) so far this week or month, and write out to current note.
- * Defaults to looking at week to date ("wtd") but can specify month to date ("mtd") as well, or 'last7d', 'last2w', 'last4w'.
- * If it's week to date, then use the user's first day of week from NP setting.
+ * Work out the progress stats of interest (on hashtags and/or mentions) for today's note.
+ * Generates statistics for specified hashtags and mentions from today's daily note only.
+ * This is useful for summarizing items like @calories or @exercise that may appear multiple times in a day.
+ * 
  * @author @jgclark
  *
- * @param {?string} itemsToShowArr e.g. ['@calories', '#test']. If not provided, then the default items in setting 'todayProgressItems' will be used instead.
- * @param {?string} source of this call (command/xcb/template). If not provided, then it assumes this is a 'command' call.
- * @param {?string} headingArg (optional)
- * @returns {?string} - either return string to Template, or void to plugin
+ * @param {Array<string>?} itemsToShowArr - Array of items to track (e.g., ['@calories', '#test']). If empty, uses default items from 'todayProgressItems' setting.
+ * @param {string?} source - Source of this call: 'command' | 'xcb' | 'template'. Defaults to 'command'.
+ * @param {string?} headingArg - Optional heading to use. If not provided, uses default from 'todayProgressHeading' setting.
+ * @returns {Promise<string>} Returns formatted string for template if source is 'template', otherwise empty string
+ * @throws {Error} If daily note cannot be found or progress generation fails
  */
 export async function makeTodayProgress(itemsToShowArr: Array<string> = [], source: string = 'command', headingArg?: string): Promise<string> {
   try {
@@ -86,15 +97,22 @@ export async function makeTodayProgress(itemsToShowArr: Array<string> = [], sour
     const toDateStr = todaysDateISOString
     const periodString = toNPLocaleDateString(new Date())
 
-    const heading = typeof headingArg === 'string' ? headingArg : config.todayProgressHeading // this test means we can pass an empty heading, that can be distinguished from no headingArg
+    const heading = typeof headingArg === 'string' ? headingArg : (config.todayProgressHeading ?? '') // this test means we can pass an empty heading, that can be distinguished from no headingArg
     logDebug('makeTodayProgress', `Starting with itemsToShowArr '${String(itemsToShowArr)}' for ${fromDateStr} heading '${heading}' from source ${source}`)
-    const itemsToShow: Array<string> = itemsToShowArr.length > 0 ? itemsToShowArr : config.todayProgressItems
+    const itemsToShow: Array<string> = itemsToShowArr.length > 0 ? itemsToShowArr : (config.todayProgressItems ?? [])
+
+    // Validate that we have items to show
+    if (itemsToShow.length === 0) {
+      await showMessage("Cannot generate today's progress, as no items are specified. Please set 'todayProgressItems' in plugin settings or provide items as a parameter.")
+      throw new Error("Cannot generate today's progress: no items specified. Please set 'todayProgressItems' in plugin settings or provide items as a parameter.")
+    }
     logDebug('makeTodayProgress', `itemsToShow: '${String(itemsToShow)}'`)
     logDebug('makeTodayProgress', `heading: '${heading}'`)
     const mentionsToShow = itemsToShow.filter((f) => f.startsWith('@'))
     logDebug('makeMentionsToShow', mentionsToShow)
     const hashtagsToShow = itemsToShow.filter((f) => f.startsWith('#'))
 
+    // Configuration for today's progress - only track totals (averages don't make sense for a single day)
     const settingsForGO: OccurrencesToLookFor = {
       GOYesNo: [],
       GOHashtagsCount: [], // covered in the total
@@ -155,11 +173,13 @@ export async function makeTodayProgress(itemsToShowArr: Array<string> = [], sour
         destNote.appendParagraph(output, 'text')
       }
     } else {
-      logError('makeTodayProgress', `Cannot find daily note to write to`)
+      const errorMsg = `Cannot find today's daily note to write progress update. Please ensure daily notes are enabled.`
+      logError('makeTodayProgress', errorMsg)
+      throw new Error(errorMsg)
     }
     return ''
   } catch (err) {
-    logError('makeTodayProgress', `Error: ${err.message}`)
-    return '<error>' // for completeness
+    logError('makeTodayProgress', `Failed to generate today's progress: ${err.message}`)
+    throw err
   }
 }
