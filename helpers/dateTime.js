@@ -326,9 +326,13 @@ export function toISODateString(dateObj: Date): string {
   return dateObj.toISOString().slice(0, 10)
 }
 
-// As ISODateString() doesn't work reliably across date boundaries except at GMT,
-// this version creates YYYY-MM-DD format using the slight cheat of the sv-SE locale,
-// which happens to be identical.
+/**
+ * As ISODateString() doesn't work reliably across date boundaries except at GMT this version creates YYYY-MM-DD format using the slight cheat of the sv-SE locale,
+ * which happens to be identical to the YYYY-MM-DD format.
+ * @author @jgclark
+ * @param {Date} date
+ * @returns {string} YYYY-MM-DD
+ */
 export function hyphenatedDate(date: Date): string {
   if (date != null) {
     // logDebug('dateTime / hyphenatedDate', `${toLocaleDateTimeString(date)} -> ${toLocaleDateString(date, 'sv-SE')}`)
@@ -649,6 +653,38 @@ export function daysBetween(startDate: string | Date, endDate: string | Date, re
     return moment(endDate).diff(moment(startDate), 'days', returnFractionalDays)
   } else {
     return moment(endDate).startOf('day').diff(moment(startDate).startOf('day'), 'days', returnFractionalDays)
+  }
+}
+
+/**
+ * Validates that a date range is valid (fromDate <= toDate)
+ * @param {Date} fromDate - Start date
+ * @param {Date} toDate - End date
+ * @param {string} context - Context for error messages (e.g., 'progress update', 'period stats')
+ * @throws {Error} If dates are null or invalid range
+ */
+export function validateDateRange(fromDate: ?Date, toDate: ?Date, context: string = 'operation'): void {
+  if (fromDate == null || toDate == null) {
+    throw new Error(`Failed to calculate date range for ${context}. Please check your date parameters.`)
+  }
+  if (fromDate > toDate) {
+    throw new Error(`Invalid date range for ${context}: start date ${String(fromDate)} is after end date ${String(toDate)}`)
+  }
+}
+
+/**
+ * Converts Date objects to ISO date strings and validates the range
+ * @param {Date} fromDate - Start date
+ * @param {Date} toDate - End date
+ * @param {string} context - Context for error messages
+ * @returns {{fromDateStr: string, toDateStr: string}} Object with ISO date strings
+ * @throws {Error} If dates are invalid
+ */
+export function validateDateRangeAndConvertToISODateStrings(fromDate: Date, toDate: Date, context: string = 'operation'): { fromDateStr: string, toDateStr: string } {
+  validateDateRange(fromDate, toDate, context)
+  return {
+    fromDateStr: hyphenatedDate(fromDate),
+    toDateStr: hyphenatedDate(toDate),
   }
 }
 
