@@ -161,11 +161,16 @@ describe(`${FILE}`, () => {
       })
       test('should create a link in an existing floating window', () => {
         const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', '', 'useExistingSubWindow')
-        expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&useExistingSubWindow=yes')
+        expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&useExistingSubWindow=yes&subWindow=yes')
       })
       test('should create a link in split view', () => {
         const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', null, 'splitView')
         expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&splitView=yes')
+      })
+      test('should create a link in reuse split view (reuseSplitView + splitView=yes)', () => {
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', '', 'reuseSplitView')
+        expect(res).toContain('reuseSplitView=yes')
+        expect(res).toContain('splitView=yes')
       })
       test('should ignore illegal openType', () => {
         const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', '', 'baz')
@@ -181,6 +186,31 @@ describe(`${FILE}`, () => {
       test.skip('should create a link with a blockID and filename', () => {
         const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', null, null, false, '^123456')
         expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&blockID=%5E123456')
+      })
+    })
+    describe('using timeframe (calendar notes)', () => {
+      test('should add timeframe=week for date note', () => {
+        const res = g.createOpenOrDeleteNoteCallbackUrl('today', 'date', '', null, false, '', 'week')
+        expect(res).toContain('noteDate=today')
+        expect(res).toContain('&timeframe=week')
+      })
+      test('should add timeframe=month for date note', () => {
+        const res = g.createOpenOrDeleteNoteCallbackUrl('today', 'date', '', null, false, '', 'month')
+        expect(res).toContain('&timeframe=month')
+      })
+      test('should not add timeframe for non-date paramType', () => {
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', '', null, false, '', 'week')
+        expect(res).not.toContain('timeframe=')
+      })
+    })
+    describe('using highlightStart/highlightLength', () => {
+      test('should add highlightStart and highlightLength', () => {
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', '', null, false, '', null, 0, 9999)
+        expect(res).toContain('&highlightStart=0&highlightLength=9999')
+      })
+      test('should not add highlight for deleteNote', () => {
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', '', null, true, '', null, 0, 10)
+        expect(res).not.toContain('highlightStart')
       })
     })
   })
@@ -213,6 +243,28 @@ describe(`${FILE}`, () => {
       const opts = { text: 'bar', mode: 'prepend', openNote: 'yes' }
       const exp = 'noteplan://x-callback-url/addText?noteDate=today&mode=prepend&openNote=yes&text=bar'
       expect(g.createAddTextCallbackUrl('today', opts)).toEqual(exp)
+    })
+    test('should add subWindow=yes when openType is subWindow', () => {
+      const opts = { text: 'bar', mode: 'append', openNote: 'yes', openType: 'subWindow' }
+      const res = g.createAddTextCallbackUrl('today', opts)
+      expect(res).toContain('&subWindow=yes')
+    })
+    test('should add splitView=yes when openType is splitView', () => {
+      const opts = { text: 'bar', mode: 'append', openNote: 'yes', openType: 'splitView' }
+      const res = g.createAddTextCallbackUrl('today', opts)
+      expect(res).toContain('&splitView=yes')
+    })
+    test('should add reuseSplitView=yes and splitView=yes when openType is reuseSplitView', () => {
+      const opts = { text: 'bar', mode: 'append', openNote: 'yes', openType: 'reuseSplitView' }
+      const res = g.createAddTextCallbackUrl('today', opts)
+      expect(res).toContain('&reuseSplitView=yes')
+      expect(res).toContain('&splitView=yes')
+    })
+    test('should add useExistingSubWindow=yes and subWindow=yes when openType is useExistingSubWindow', () => {
+      const opts = { text: 'bar', mode: 'append', openNote: 'yes', openType: 'useExistingSubWindow' }
+      const res = g.createAddTextCallbackUrl('today', opts)
+      expect(res).toContain('&useExistingSubWindow=yes')
+      expect(res).toContain('&subWindow=yes')
     })
   })
 
@@ -326,6 +378,21 @@ describe(`${FILE}`, () => {
         expect(result).toEqual(
           `${base}text?arg0=%7B%22excludeToday%22%3Afalse%2C%22progressHeading%22%3A%22Test%20Heading%22%2C%22progressYesNo%22%3A%22%23readbook%2C%23theology%22%7D`,
         )
+      })
+      test('should create selectTag callback with name param', () => {
+        const result = g.createCallbackUrl('selectTag', { name: '#noteplan' })
+        expect(result).toEqual(`${base}selectTag?name=%23noteplan`)
+      })
+      test('should create installPlugin callback with pluginID param', () => {
+        const result = g.createCallbackUrl('installPlugin', { pluginID: 'dwertheimer.Favorites' })
+        expect(result).toEqual(`${base}installPlugin?pluginID=dwertheimer.Favorites`)
+      })
+      test('should create toggleSidebar callback with forceCollapse and forceOpen', () => {
+        const result = g.createCallbackUrl('toggleSidebar', { forceCollapse: 'yes', forceOpen: 'no', animated: 'no' })
+        expect(result).toContain('toggleSidebar')
+        expect(result).toContain('forceCollapse=yes')
+        expect(result).toContain('forceOpen=no')
+        expect(result).toContain('animated=no')
       })
     })
     /*

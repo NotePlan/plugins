@@ -280,10 +280,13 @@ export function returnNoteLink(noteTitle: string, heading: string | null = ''): 
  * @param {string} openType - 'subWindow' | 'splitView' | 'reuseSplitView' | 'useExistingSubWindow' (default: null)
  * @param {boolean} isDeleteNote - whether this is actually a deleteNote
  * @param {string} blockID - the blockID if this is a line link (includes the ^) -- only works with title (not filename)
+ * @param {string | null} timeframe - for calendar notes: 'week' | 'month' | 'quarter' | 'year' (default: null)
+ * @param {number | null} highlightStart - character index to jump/select after opening (default: null)
+ * @param {number | null} highlightLength - length of selection; use 0 for cursor only, high value for end (default: null)
  * @returns {string} the x-callback-url string
  * @tests available
  */
-// createOpenOrDeleteNoteCallbackUrl('theTitle', 'title', 'heading', 'openType', 'isDeleteNote')
+// createOpenOrDeleteNoteCallbackUrl('theTitle', 'title', 'heading', 'openType', 'isDeleteNote', blockID, timeframe, highlightStart, highlightLength)
 export function createOpenOrDeleteNoteCallbackUrl(
   titleOrFilename: string,
   paramType: 'title' | 'filename' | 'date' = 'title',
@@ -291,6 +294,9 @@ export function createOpenOrDeleteNoteCallbackUrl(
   openType: 'subWindow' | 'splitView' | 'reuseSplitView' | 'useExistingSubWindow' | null = null,
   isDeleteNote: boolean = false,
   blockID: string = '',
+  timeframe: 'week' | 'month' | 'quarter' | 'year' | null = null,
+  highlightStart: number | null = null,
+  highlightLength: number | null = null,
 ): string {
   const encodePlusParens = (s: string): string => encodeURIComponent(s).replace(/\(/g, '%28').replace(/\)/g, '%29')
   const isFilename = paramType === 'filename'
@@ -304,21 +310,30 @@ export function createOpenOrDeleteNoteCallbackUrl(
   if (openType === 'reuseSplitView') {
     openAs += '&splitView=yes' // special case for reuseSplitView, which needs both
   }
+  if (openType === 'useExistingSubWindow') {
+    openAs += '&subWindow=yes' // special case for useExistingSubWindow, which needs both
+  }
+  const timeframeStr =
+    !isDeleteNote && paramType === 'date' && timeframe && ['week', 'month', 'quarter', 'year'].includes(timeframe) ? `&timeframe=${timeframe}` : ''
+  const highlightStr =
+    !isDeleteNote && highlightStart != null && Number.isInteger(highlightStart)
+      ? `&highlightStart=${highlightStart}&highlightLength=${highlightLength != null && Number.isInteger(highlightLength) ? highlightLength : 0}`
+      : ''
   let retVal = ''
   if (isLineLink) {
     retVal = `${xcb}${encodedTitleOrFilename}${encodeURIComponent(blockID)}`
   } else {
     if (heading?.length) {
       if (isFilename) {
-        retVal = `${xcb}${encodedTitleOrFilename}${head.length ? `&heading=${head}` : ''}${openAs}`
+        retVal = `${xcb}${encodedTitleOrFilename}${head.length ? `&heading=${head}` : ''}${openAs}${timeframeStr}${highlightStr}`
       } else {
-        retVal = `${xcb}${encodedTitleOrFilename}${head.length ? `%23${head}` : ''}${openAs}`
+        retVal = `${xcb}${encodedTitleOrFilename}${head.length ? `%23${head}` : ''}${openAs}${timeframeStr}${highlightStr}`
       }
     } else {
       if (isLineLink) {
-        retVal = `${xcb}${encodedTitleOrFilename}${head.length ? `&line=${head}` : ''}${openAs}`
+        retVal = `${xcb}${encodedTitleOrFilename}${head.length ? `&line=${head}` : ''}${openAs}${timeframeStr}${highlightStr}`
       } else {
-        retVal = `${xcb}${encodedTitleOrFilename}${openAs}`
+        retVal = `${xcb}${encodedTitleOrFilename}${openAs}${timeframeStr}${highlightStr}`
       }
     }
   }
@@ -328,21 +343,31 @@ export function createOpenOrDeleteNoteCallbackUrl(
 /**
  * Create an addText callback url
  * @param {TNote | string} note (either a note object or a date-related string, e.g. today, yesterday, tomorrow)
- * @param {{ text: string, mode: string, openNote: string }} options - text to add, mode ('append', 'prepend'), and whether to open the note
+ * @param {{ text: string, mode: string, openNote: string, openType?: string }} options - text to add, mode ('append', 'prepend'), openNote, and optional openType ('subWindow' | 'splitView' | 'reuseSplitView' | 'useExistingSubWindow')
  * @returns {string}
  * @tests available
  */
-export function createAddTextCallbackUrl(note: TNote | string, options: { text: string, mode: string, openNote: string }): string {
+export function createAddTextCallbackUrl(
+  note: TNote | string,
+  options: { text: string, mode: string, openNote: string, openType?: 'subWindow' | 'splitView' | 'reuseSplitView' | 'useExistingSubWindow' | null },
+): string {
   const { text, mode, openNote } = options
+  const openTypeParam = options.openType
+  let openAs = ''
+  if (openTypeParam && ['subWindow', 'splitView', 'reuseSplitView', 'useExistingSubWindow'].includes(openTypeParam)) {
+    openAs = `&${openTypeParam}=yes`
+    if (openTypeParam === 'reuseSplitView') openAs += '&splitView=yes'
+    if (openTypeParam === 'useExistingSubWindow') openAs += '&subWindow=yes'
+  }
   if (typeof note !== 'string') {
     // this is a note
     const encoded = encodeURIComponent(note.filename).replace(/\(/g, '%28').replace(/\)/g, '%29')
     if (note && note.filename) {
-      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
+      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}${openAs}`
     }
   } else {
     // this is a date type argument
-    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
+    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}${openAs}`
   }
   return ''
 }

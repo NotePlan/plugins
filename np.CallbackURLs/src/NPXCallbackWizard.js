@@ -32,12 +32,27 @@ async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' | 'delete
     fields
   const date = await askWhatKind() // returns date or '' or false
   if (date === false) return false
+  let openType: 'subWindow' | 'splitView' | 'reuseSplitView' | 'useExistingSubWindow' | null = null
+  let timeframe: 'week' | 'month' | 'quarter' | 'year' | null = null
+  let highlightStart: number | null = null
+  let highlightLength: number | null = null
+  if (command === 'openNote') {
+    const openTypeChoice = await askOpenType()
+    if (openTypeChoice === false) return false
+    openType = openTypeChoice ?? null
+    const highlightChoice = await askHighlight()
+    if (highlightChoice === false) return false
+    if (highlightChoice) {
+      highlightStart = highlightChoice.start
+      highlightLength = highlightChoice.length
+    }
+  }
   if (date === 'folder') {
     note = await chooseFolder('Choose a folder', true, false)
     logDebug(pluginJson, `getAddTextOrOpenNoteURL: folder=${String(note)}`)
     if (note) {
       // in this case, note is a string (the folder name)
-      url = createOpenOrDeleteNoteCallbackUrl(String(note), 'filename')
+      url = createOpenOrDeleteNoteCallbackUrl(String(note), 'filename', '', openType, false, '', null, highlightStart, highlightLength)
       return url
     }
   } else if (date === '') {
@@ -48,10 +63,15 @@ async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' | 'delete
       if (fields === false) {
         url = false
       } else {
+        if (fields.openNote === 'yes') {
+          const openTypeChoice = await askOpenType()
+          if (openTypeChoice === false) return false
+          fields.openType = openTypeChoice ?? null
+        }
         url = createAddTextCallbackUrl(note, fields)
       }
     } else if (command === 'openNote' && note?.filename) {
-      url = createOpenOrDeleteNoteCallbackUrl(note?.filename ?? '', 'filename')
+      url = createOpenOrDeleteNoteCallbackUrl(note?.filename ?? '', 'filename', '', openType, false, '', null, highlightStart, highlightLength)
     } else if (command === 'deleteNote' && note?.filename) {
       url = createOpenOrDeleteNoteCallbackUrl(note?.filename ?? '', 'filename', null, null, true)
     }
@@ -61,10 +81,18 @@ async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' | 'delete
       if (fields === false) {
         url = false
       } else {
+        if (fields.openNote === 'yes') {
+          const openTypeChoice = await askOpenType()
+          if (openTypeChoice === false) return false
+          fields.openType = openTypeChoice ?? null
+        }
         url = createAddTextCallbackUrl(date, fields)
       }
     } else if (command === 'openNote') {
-      url = createOpenOrDeleteNoteCallbackUrl(date, 'date')
+      const timeframeChoice = await askTimeframe()
+      if (timeframeChoice === false) return false
+      timeframe = timeframeChoice ?? null
+      url = createOpenOrDeleteNoteCallbackUrl(date, 'date', '', openType, false, '', timeframe, highlightStart, highlightLength)
     } else if (command === 'deleteNote') {
       url = createOpenOrDeleteNoteCallbackUrl(date, 'date', null, null, true)
     }
@@ -109,6 +137,77 @@ export async function search(): Promise<string> {
  * (or optionallyget a folder)
  * @returns {Promise<string>} YYYYMMDD like '20180122' or use 'today', 'yesterday', 'tomorrow' instead of a date; '' if they want to enter a title, or false if date entry failed
  */
+/**
+ * Ask user how they want the note to open (window/split view options).
+ * If they choose Floating or Split, a second step asks whether to reuse the window/split if already open.
+ * @returns {Promise<'subWindow' | 'splitView' | 'reuseSplitView' | 'useExistingSubWindow' | null | false>} openType, null for default, false if cancelled
+ */
+async function askOpenType(): Promise<'subWindow' | 'splitView' | 'reuseSplitView' | 'useExistingSubWindow' | null | false> {
+  const opts = [
+    { label: 'No preference (open in main window)', value: '__none__' },
+    { label: 'Open in Floating Window', value: 'subWindow' },
+    { label: 'Open in Split View', value: 'splitView' },
+  ]
+  const choice = await chooseOption('How should the note open?', opts, opts[0].value)
+  if (choice === false) return false
+  if (choice === '__none__') return null
+  const reuse = await chooseOption(
+    'Reuse the window/split if it is already open?',
+    [
+      { label: 'Yes (open there, reuse if already open)', value: 'yes' },
+      { label: 'No (always open a new window/split)', value: 'no' },
+    ],
+    'no',
+  )
+  if (reuse === false) return false
+  if (choice === 'subWindow') return reuse === 'yes' ? 'useExistingSubWindow' : 'subWindow'
+  if (choice === 'splitView') return reuse === 'yes' ? 'reuseSplitView' : 'splitView'
+  return choice
+}
+
+/**
+ * Ask user for calendar timeframe (week/month/quarter/year) when opening a calendar note
+ * @returns {Promise<'week' | 'month' | 'quarter' | 'year' | null | false>} timeframe or null for default, false if cancelled
+ */
+async function askTimeframe(): Promise<'week' | 'month' | 'quarter' | 'year' | null | false> {
+  const opts = [
+    { label: 'No preference (default day view)', value: '__none__' },
+    { label: 'Week view', value: 'week' },
+    { label: 'Month view', value: 'month' },
+    { label: 'Quarter view', value: 'quarter' },
+    { label: 'Year view', value: 'year' },
+  ]
+  const choice = await chooseOption('Which calendar view?', opts, opts[0].value)
+  if (choice === false) return false
+  return choice === '__none__' ? null : choice
+}
+
+/**
+ * Ask user for highlight position (cursor/selection) after opening note
+ * @returns {Promise<{ start: number, length: number } | null | false>} highlight or null to skip, false if cancelled
+ */
+async function askHighlight(): Promise<{ start: number, length: number } | null | false> {
+  const wantHighlight = await chooseOption(
+    'Jump cursor / select text after opening?',
+    [
+      { label: 'No', value: 'no' },
+      { label: 'Yes (enter position)', value: 'yes' },
+    ],
+    'no',
+  )
+  if (wantHighlight === false) return false
+  if (wantHighlight !== 'yes') return null
+  const startStr = await getInput('Character index to jump to (0 = start, 9999 = end)', 'OK', 'highlightStart', '0')
+  if (startStr === false) return false
+  const start = parseInt(startStr, 10)
+  if (Number.isNaN(start)) return null
+  const lengthStr = await getInput('Selection length (0 = cursor only, no selection)', 'OK', 'highlightLength', '0')
+  if (lengthStr === false) return false
+  const length = parseInt(lengthStr, 10)
+  if (Number.isNaN(length)) return { start, length: 0 }
+  return { start, length }
+}
+
 async function askWhatKind(): Promise<string | false> {
   const opts = [
     { label: 'Open/use a Calendar/Daily Note', value: 'date' },
@@ -167,6 +266,14 @@ export async function addNote(): Promise<string> {
   vars.subWindow = await showMessageYesNo(`Open in Floating Window?`, ['yes', 'no'], `Open in Window`)
   vars.splitView = await showMessageYesNo(`Open in Split View?`, ['yes', 'no'], `Open in Split View`)
   vars.useExistingSubWindow = await showMessageYesNo(`Open in Already-opened Floating Window?`, ['yes', 'no'], `Open in Existing Window`)
+  if (vars.openNote === 'yes') {
+    const highlightChoice = await askHighlight()
+    if (highlightChoice === false) return ''
+    if (highlightChoice) {
+      vars.highlightStart = String(highlightChoice.start)
+      vars.highlightLength = String(highlightChoice.length)
+    }
+  }
   for (const key in vars) {
     if (['openNote', 'subWindow', 'splitView', 'useExistingSubWindow'].indexOf(key) > -1 && vars[key] === 'no') {
       delete vars[key]
@@ -180,7 +287,72 @@ export async function addNote(): Promise<string> {
   for (const key in vars) {
     params += `${params.length ? '&' : '?'}${key}=${encodeURIComponent(vars[key])}`
   }
-  return `noteplan://x-callback-url/addText${params}`
+  return `noteplan://x-callback-url/addNote${params}`
+}
+
+/**
+ * Build selectTag x-callback URL (select a tag in the sidebar)
+ * @returns {Promise<string>} the URL or empty string if cancelled
+ */
+export async function selectTag(): Promise<string> {
+  const name = await getInput(
+    'Enter tag name (prepend # for hashtag or @ for mention; leave empty to show all notes)',
+    'OK',
+    'Tag Name',
+    '#noteplan',
+  )
+  if (name === false) return ''
+  const tagName = name === '' ? '' : (name.startsWith('#') || name.startsWith('@') ? name : `#${name}`)
+  return createCallbackUrl('selectTag', { name: tagName })
+}
+
+/**
+ * Build installPlugin x-callback URL
+ * @returns {Promise<string>} the URL or empty string if cancelled
+ */
+export async function installPlugin(): Promise<string> {
+  const pluginID = await getInput('Enter plugin ID (e.g. dwertheimer.Favorites)', 'OK', 'Plugin ID', '')
+  if (pluginID === false || !pluginID || pluginID.trim() === '') return ''
+  return createCallbackUrl('installPlugin', { pluginID: pluginID.trim() })
+}
+
+/**
+ * Build toggleSidebar x-callback URL
+ * @returns {Promise<string>} the URL
+ */
+export async function toggleSidebar(): Promise<string> {
+  const forceCollapse = await chooseOption(
+    'Force sidebar to collapse/hide?',
+    [
+      { label: 'No (default)', value: 'no' },
+      { label: 'Yes', value: 'yes' },
+    ],
+    'no',
+  )
+  if (forceCollapse === false) return ''
+  const forceOpen = await chooseOption(
+    'Force sidebar to show/open?',
+    [
+      { label: 'No (default)', value: 'no' },
+      { label: 'Yes', value: 'yes' },
+    ],
+    'no',
+  )
+  if (forceOpen === false) return ''
+  const animated = await chooseOption(
+    'Animate the toggle? (Mac only)',
+    [
+      { label: 'Yes (default)', value: 'yes' },
+      { label: 'No (instant)', value: 'no' },
+    ],
+    'yes',
+  )
+  if (animated === false) return ''
+  const params = {}
+  if (forceCollapse === 'yes') params.forceCollapse = 'yes'
+  if (forceOpen === 'yes') params.forceOpen = 'yes'
+  if (animated === 'no') params.animated = 'no'
+  return Object.keys(params).length ? createCallbackUrl('toggleSidebar', params) : 'noteplan://x-callback-url/toggleSidebar'
 }
 
 export async function noteInfo(): Promise<string> {
@@ -321,15 +493,15 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         { label: 'OPEN FOLDER View', value: 'openFolderView' },
         { label: 'FILTER Notes by Preset', value: 'filter' },
         { label: 'SEARCH for text in notes', value: 'search' },
+        { label: 'SELECT a tag in the sidebar', value: 'selectTag' },
+        { label: 'INSTALL a plugin by ID', value: 'installPlugin' },
+        { label: 'TOGGLE sidebar (show/hide)', value: 'toggleSidebar' },
         { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
         { label: 'RUN a Templating Command (e.g. new note, insert text, etc.)', value: 'runTemplating' },
         { label: 'RUN a TemplateRunner type template', value: 'runTemplate' },
         { label: 'RUN a Plugin Command', value: 'runPlugin' },
         { label: 'RUN a Mac/iOS Shortcut', value: 'runShortcut' },
         { label: 'DELETE a note by title', value: 'deleteNote' },
-        /*
-      { label: 'Select a TAG in the sidebar', value: 'selectTag' },
-      */
       ]
       commandType = await chooseOption(`Select a link type to create`, options, '')
     }
@@ -393,6 +565,15 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         if (!url) {
           showMessage(`No view name or folder selected. Please try again.`, 'OK', 'No View Selected')
         }
+        break
+      case 'selectTag':
+        url = await selectTag()
+        break
+      case 'installPlugin':
+        url = await installPlugin()
+        break
+      case 'toggleSidebar':
+        url = await toggleSidebar()
         break
       default:
         showMessage(`${commandType}: This type is not yet available in this plugin`, 'OK', 'Sorry!')
