@@ -1,6 +1,9 @@
 # What's changed in ⚡️ Quick Capture
 See [plugin documentation for more details](https://noteplan.co/plugins/jgclark.QuickCapture), and how to configure.
 
+## [1.0.3] - 2026-01-31
+- Bug fix for '/quick add line under heading' command writing tasks not text (thanks, @lt0807)
+
 ## [1.0.2] - 2025-11-08
 ### Chore
 - Rebuild to pick up improvements in updated note + folder pickers and week handling libraries

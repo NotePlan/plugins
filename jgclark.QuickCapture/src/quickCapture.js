@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 2025-11-07 for v1.0.1 by @jgclark
+// last update 2026-01-31 for v1.0.3 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -17,7 +17,7 @@ import {
   allNotesSortedByChanged,
   projectNotesSortedByChanged, weeklyNotesSortedByChanged
 } from '@helpers/note'
-import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
+import { coreAddChecklistToNoteHeading, coreAddRawContentToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { displayTitleWithRelDate } from '@helpers/NPdateTime'
 import { chooseNoteV2, getNoteFromParamOrUser, getOrMakeCalendarNote } from '@helpers/NPnote'
 import {
@@ -340,7 +340,7 @@ export async function addTextToNoteHeading(
       : await chooseHeadingV2(note, true, true, false, headingLevel)
 
     // Call helper to do the main work
-    coreAddTaskToNoteHeading(note, heading, textToAdd, headingLevel, config.shouldAppend)
+    coreAddRawContentToNoteHeading(note, heading, textToAdd, headingLevel, config.shouldAppend)
   }
   catch (err) {
     logError(pluginJson, `addTextToNoteHeading: ${err.name}: ${err.message}`)
