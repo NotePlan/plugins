@@ -13,18 +13,38 @@
  *   /chartSummaryStats 180 - Shows last 6 months
  *   /chartSummaryStats 365 - Shows last year
  * 
- * Last updated: 2026-01-31 for v1.1.0 by @jgclark
+ * Last updated: 2026-02-01 for v1.1.0 by @jgclark
  */
 
-import pluginJson from '../plugin.json'
+// =====================================================================
+// Ideas
+
+/**
+ * Chart.js doesn’t ship a dedicated “sparkline” type, but you can get sparkline-style charts in two ways:
+
+1. Line (or radar) chart as a sparkline
+Use a normal line (or radar) chart and make it look like a sparkline by:
+Turning off or hiding axes (display: false on scales),
+Hiding the legend,
+Using a small canvas size,
+Optionally using fill: true and tension for a smooth, minimal line.
+
+2. Plugin: chartjs-chart-sparkline
+For a ready-made sparkline type (and sometimes extra options), you can use the chartjs-chart-sparkline plugin, which adds a sparkline chart type and related options on top of Chart.js.
+In short: Chart.js doesn’t have a built-in “sparkline” type, but you can create sparklines with a line chart and the right options, or use the sparkline plugin.
+ */
+
+// =====================================================================
+
+// import pluginJson from '../plugin.json'
+import moment from 'moment/min/moment-with-locales'
 import { logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import { getSummariesSettings } from './summaryHelpers.js'
 import type { SummariesConfig } from './summarySettings.js'
-import { checkString } from '@helpers/checkType'
+import { tailwindToHsl } from '@helpers/colors'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { COMPLETED_TASK_TYPES } from '@helpers/utils'
-import moment from 'moment/min/moment-with-locales'
 
 // =====================================================================
 // CONSTANTS
@@ -104,7 +124,12 @@ const chartJsLocalPath = './chart.umd.min.js'
  * @returns {string} RGBA color string
  */
 function colorToRgba(colorIn: string, opacity: number = 0.3): string {
-  const color = colorIn.trim()
+  let color = colorIn.trim()
+
+  // First convert Tailwind color names to hsl(), as we had that function already
+  if (/^\w+-\d+$/.test(color)) {
+    color = tailwindToHsl(color)
+  }
 
   // If already rgba() or rgb() or hsl(), add opacity if needed
   if (color.startsWith('rgb(') || color.startsWith('hsl(')) {
@@ -120,8 +145,6 @@ function colorToRgba(colorIn: string, opacity: number = 0.3): string {
   if (color.startsWith('rgba(') || color.startsWith('hsla(')) {
     return color
   }
-
-  // TODO: Tailwind
 
   // Handle hex colors (#RGB, #RRGGBB, #RRGGBBAA)
   if (color.startsWith('#')) {
@@ -176,16 +199,16 @@ async function loadCustomColors(): Promise<Array<{ border: string, bg: string, n
   const defaultColors = [
     '#0a84ff',  // blue
     '#bf5af2',  // purple
+    '#ffd60a',  // yellow
     '#32d74b',  // green
     '#ff453a',  // red
-    '#ffd60a',  // yellow
     '#ff9f0a',  // orange
     '#64d2ff',  // cyan
     '#ff375f',  // pink
-    '#30d158',  // mint
     '#ac8e68',  // brown
     '#5856d6',  // indigo
-    '#ff2d55'   // rose
+    '#ff2d55',  // rose
+    '#8e8e93',  // grey
   ]
 
   const chartColorsStr = config.chartColors
@@ -669,7 +692,7 @@ function collectYesNoData(habits: Array<string>, daysBack: number): Object {
 function generateTagFilterCheckboxes(tags: Array<string>): string {
   return tags.map((tag, i) => `
         <div class="tag-filter">
-          <input type="checkbox" id="tag${i}" class="tag-checkbox" checked>
+          <input type="checkbox" id="tag${i}" class="filter-checkbox" checked>
           <label for="tag${i}">${tag}</label>
         </div>
 `).join('\n')
@@ -762,7 +785,7 @@ function generateChartContainers(tags: Array<string>): string {
 function generateYesNoFilterCheckboxes(habits: Array<string>): string {
   return habits.map((habit, i) => `
     <div class="tag-filter">
-      <input type="checkbox" id="yesno${i}" class="yesno-checkbox" checked>
+      <input type="checkbox" id="yesno${i}" class="filter-checkbox" checked>
       <label for="yesno${i}">${habit}</label>
     </div>
 `).join('\n')
@@ -812,633 +835,17 @@ function generateClientScript(tagData: Object, yesNoData: Object, tags: Array<st
   const tags = ${JSON.stringify(tags)};
   const yesNoHabits = ${JSON.stringify(yesNoHabits)};
   const config = ${JSON.stringify(config)};
-
-  // Use colors from config
-  const colors = config.colors;
-
-  // ========================================================================
-  // UTILITY FUNCTIONS
-  // ========================================================================
-
-  /**
-   * Format a number to significant figures with locale formatting
-   * @param {number} num - Number to format
-   * @param {number} sigFigs - Number of significant figures (default 3)
-   * @returns {string} Formatted number
-   */
-  function formatToSigFigs(num, sigFigs = config.significantFigures) {
-    if (num === 0) return '0';
-
-    // Calculate the number of decimal places needed
-    const magnitude = Math.floor(Math.log10(Math.abs(num)));
-    const decimals = Math.max(0, sigFigs - magnitude - 1);
-
-    // Round to significant figures
-    const roundedNum = Number(num.toFixed(decimals));
-
-    // Format with locale (adds commas for thousands, etc.)
-    return roundedNum.toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: decimals
-    });
+  if (typeof window.initChartStats === 'function') {
+    window.initChartStats(tagData, yesNoData, tags, yesNoHabits, config);
+  } else {
+    console.error('Chart Stats: initChartStats not loaded (chartStatsScripts.js)');
   }
-
-  /**
-   * Convert decimal hours to HH:MM format
-   */
-  function formatTime(decimalHours) {
-    // Handle wraparound (values >= 24 are early morning times)
-    let hours = Math.floor(decimalHours) % 24;
-    const minutes = Math.round((decimalHours % 1) * 60);
-
-    return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
-  }
-
-  /**
-   * Check if tag uses time format
-   */
-  function isTimeTag(tag) {
-    return config.timeTags.includes(tag);
-  }
-
-  /**
-   * Check if tag should show total instead of average
-   */
-  function isTotalTag(tag) {
-    return config.totalTags.includes(tag);
-  }
-
-  /**
-   * Toggle between light and dark theme
-   */
-/*  function toggleTheme() {
-    document.body.classList.toggle('light-theme');
-    // Save preference to localStorage
-    const isLight = document.body.classList.contains('light-theme');
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
-
-    // Update chart colors
-    updateChartThemes();
-  }
-*/
-
-  /**
-   * Toggle habit filters visibility
-   */
-  window.toggleFilters = function() {
-    const content = document.getElementById('habit-filters');
-    const icon = document.getElementById('filter-toggle-icon');
-
-    content.classList.toggle('collapsed');
-    icon.classList.toggle('collapsed');
-
-    // Save preference to localStorage
-    const isCollapsed = content.classList.contains('collapsed');
-    localStorage.setItem('filtersCollapsed', isCollapsed ? 'true' : 'false');
-  };
-
-  /**
-   * Update chart themes when switching between light/dark
-   */
-  function updateChartThemes() {
-    const isLight = document.body.classList.contains('light-theme');
-    const gridColor = isLight ? '#d1d1d6' : '#3a3a3c';
-    const textColor = isLight ? '#6e6e73' : '#98989d';
-
-    charts.forEach(chart => {
-      chart.options.scales.x.grid.color = gridColor;
-      chart.options.scales.x.ticks.color = textColor;
-      chart.options.scales.y.grid.color = gridColor;
-      chart.options.scales.y.ticks.color = textColor;
-      chart.update('none'); // Update without animation
-    });
-
-    // Update yes/no charts too
-    if (typeof yesNoCharts !== 'undefined') {
-      yesNoCharts.forEach(chart => {
-        chart.options.scales.x.grid.color = gridColor;
-        chart.options.scales.x.ticks.color = textColor;
-        chart.options.scales.y.grid.color = gridColor;
-        chart.options.scales.y.ticks.color = textColor;
-        chart.update('none');
-      });
-    }
-  }
-
-  /**
-   * Update days and reload plugin using x-callback-url
-   */
-  function updateDays() {
-    const daysInput = document.getElementById('days-input');
-
-    if (!daysInput) {
-      alert('Error: Could not find days input field');
-      return;
-    }
-
-    const days = parseInt(daysInput.value, 10);
-
-    if (!isNaN(days) && days > 0 && days <= 365) {
-      // Use x-callback-url to call the plugin with the new days parameter
-      const pluginID = 'jgclark.Summaries';
-      const command = 'chartSummaryStats';
-      const url = 'noteplan://x-callback-url/runPlugin?pluginID=' + encodeURIComponent(pluginID) + '&command=' + encodeURIComponent(command) + '&arg0=' + days;
-
-      // Create a temporary link element and click it
-      const link = document.createElement('a');
-      link.href = url;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-
-      // Clean up
-      setTimeout(function() {
-        document.body.removeChild(link);
-      }, 100);
-    } else {
-      alert('Please enter a valid number of days between 1 and 365');
-    }
-  }
-  // Export the function to the window object so it can be called from the client
-  window.updateDays = updateDays;
-
-  // Initialize theme from localStorage
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'light') {
-    document.body.classList.add('light-theme');
-  }
-
-  // Initialize filters collapsed state from localStorage
-  const filtersCollapsed = localStorage.getItem('filtersCollapsed');
-  if (filtersCollapsed === 'true') {
-    const content = document.getElementById('habit-filters');
-    const icon = document.getElementById('filter-toggle-icon');
-    content.classList.add('collapsed');
-    icon.classList.add('collapsed');
-  }
-
-  // Calculate 7-day moving average
-  function calculateMovingAverage(data, windowSize = 7) {
-    const result = [];
-    for (let i = 0; i < data.length; i++) {
-      if (i < windowSize - 1) {
-        result.push(null); // Not enough data points yet
-      } else {
-        let sum = 0;
-        for (let j = 0; j < windowSize; j++) {
-          sum += data[i - j];
-        }
-        result.push(sum / windowSize);
-      }
-    }
-    return result;
-  }
-
-  // Calculate overall average for last 7 days
-  function getRecentAverage(data, days = 7) {
-    const recentData = data.slice(-days).filter(val => val > 0);
-    if (recentData.length === 0) return 0;
-    const sum = recentData.reduce((acc, val) => acc + val, 0);
-    return sum / recentData.length;
-  }
+  `
+}
 
   // ========================================================================
   // DISPLAY STATISTICS
   // ========================================================================
-
-  // Calculate totals and averages
-  const totals = tags.map((tag, i) =>
-    tagData.counts[tag].reduce((sum, val) => sum + val, 0)
-  );
-
-  tags.forEach((tag, i) => {
-    const validData = tagData.counts[tag].filter(val => val > 0);
-
-    // === AVERAGES SECTION ===
-    if (isTimeTag(tag)) {
-      // Show average formatted as time
-      if (validData.length > 0) {
-        const avgValue = validData.reduce((sum, val) => sum + val, 0) / validData.length;
-        document.getElementById('avg-value-' + i).textContent = formatTime(avgValue);
-      } else {
-        document.getElementById('avg-value-' + i).textContent = '--:--';
-      }
-    } else {
-      // Show average with sig figs and locale formatting
-      if (validData.length > 0) {
-        const avgValue = validData.reduce((sum, val) => sum + val, 0) / validData.length;
-        document.getElementById('avg-value-' + i).textContent = formatToSigFigs(avgValue);
-      } else {
-        document.getElementById('avg-value-' + i).textContent = '0';
-      }
-    }
-
-    // === TOTALS SECTION ===
-    const total = totals[i];
-    document.getElementById('total-value-' + i).textContent = formatToSigFigs(total);
-
-    // Display 7-day average in charts
-    let avg;
-
-    if (isTotalTag(tag)) {
-      // For total tags (like alcohol, steps), calculate average per day (including zero days)
-      const recentData = tagData.counts[tag].slice(-7);
-      const sum = recentData.reduce((acc, val) => acc + val, 0);
-      avg = sum / 7; // Always divide by 7, not by non-zero days
-    } else {
-      // For other tags, use average of non-zero days
-      avg = getRecentAverage(tagData.counts[tag]);
-    }
-
-    if (isTimeTag(tag)) {
-      document.getElementById('avg' + i).textContent = '7-day avg: ' + formatTime(avg);
-    } else {
-      // Show 1 decimal place for 7-day averages
-      document.getElementById('avg' + i).textContent = '7-day avg: ' + avg.toFixed(1);
-    }
-  });
-
-  // Create individual charts for each tag
-  const charts = [];
-
-  // ========================================================================
-  // CREATE CHARTS
-  // ========================================================================
-
-  tags.forEach((tag, index) => {
-    const ctx = document.getElementById('chart' + index).getContext('2d');
-    const data = tagData.counts[tag];
-    const movingAvg = calculateMovingAverage(data);
-
-    // Get Y-axis settings from config
-    const nonZeroConfig = config.nonZeroTags[tag];
-    const yAxisConfig = {
-      beginAtZero: !nonZeroConfig,
-      suggestedMin: nonZeroConfig ? nonZeroConfig.min : undefined,
-      suggestedMax: nonZeroConfig ? nonZeroConfig.max : undefined
-    };
-
-    // Get color (cycle if more tags than colors)
-    const colorIndex = index % colors.length;
-    const color = colors[colorIndex];
-
-    const chart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: tagData.dates,
-        datasets: [
-          {
-            type: 'bar',
-            label: tag,
-            data: data,
-            backgroundColor: color.bg,
-            borderColor: color.border,
-            borderWidth: 1,
-            barPercentage: 0.9,
-            categoryPercentage: 0.95,
-            order: 2
-          },
-          {
-            type: 'line',
-            label: '7-day avg',
-            data: movingAvg,
-            borderColor: color.border,
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            tension: 0.3,
-            order: 1
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          intersect: false,
-          mode: 'index'
-        },
-        plugins: {
-          legend: {
-            display: false
-          },
-          tooltip: {
-            backgroundColor: 'rgba(28, 28, 30, 0.95)',
-            titleColor: '#f5f5f7',
-            bodyColor: '#f5f5f7',
-            borderColor: '#3a3a3c',
-            borderWidth: 1,
-            padding: 12,
-            titleFont: {
-              size: 13,
-              weight: '600'
-            },
-            bodyFont: {
-              size: 12
-            },
-            callbacks: {
-              label: function(context) {
-                const value = context.parsed.y;
-
-                if (context.datasetIndex === 0) {
-                  // Bar chart value
-                  if (isTimeTag(tag) && value > 0) {
-                    return tag + ': ' + formatTime(value);
-                  } else {
-                    return tag + ': ' + value.toFixed(1);
-                  }
-                } else if (value !== null) {
-                  // Moving average line
-                  if (isTimeTag(tag)) {
-                    return '7-day avg: ' + formatTime(value);
-                  } else {
-                    return '7-day avg: ' + value.toFixed(1);
-                  }
-                }
-                return null;
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            grid: {
-              display: false,
-              color: '#3a3a3c'
-            },
-            ticks: {
-              maxRotation: 45,
-              minRotation: 45,
-              font: {
-                size: 10
-              },
-              color: '#98989d'
-            }
-          },
-          y: {
-            ...yAxisConfig,
-            ticks: {
-              font: {
-                size: 10
-              },
-              color: '#98989d',
-              callback: function(value) {
-                // Format time tags as HH:MM
-                if (isTimeTag(tag) && value > 0) {
-                  return formatTime(value);
-                }
-                return value;
-              }
-            },
-            grid: {
-              color: '#3a3a3c'
-            }
-          }
-        }
-      }
-    });
-
-    charts.push(chart);
-  });
-
-  // Handle chart visibility toggling (also affects averages and totals)
-  document.querySelectorAll('.tag-checkbox').forEach((checkbox, index) => {
-    checkbox.addEventListener('change', (e) => {
-      const wrapper = document.getElementById('wrapper' + index);
-      const avgStat = document.getElementById('avg-stat-' + index);
-      const totalStat = document.getElementById('total-stat-' + index);
-      const avgSelector = document.getElementById('avg-select-' + index);
-      const totalSelector = document.getElementById('total-select-' + index);
-
-      if (e.target.checked) {
-        // Show chart
-        wrapper.style.display = 'block';
-
-        // Show average stat if checkbox is checked
-        if (avgSelector.checked) {
-          avgStat.style.display = 'block';
-        }
-
-        // Show total stat if checkbox is checked
-        if (totalSelector.checked) {
-          totalStat.style.display = 'block';
-        }
-      } else {
-        // Hide everything for this tag
-        wrapper.style.display = 'none';
-        avgStat.style.display = 'none';
-        totalStat.style.display = 'none';
-      }
-    });
-  });
-
-  // Handle averages selector toggling
-  document.querySelectorAll('.avg-selector').forEach((checkbox, index) => {
-    checkbox.addEventListener('change', (e) => {
-      const stat = document.getElementById('avg-stat-' + index);
-      const tagCheckbox = document.getElementById('tag' + index);
-
-      // Only show if both the tag is enabled AND the average selector is checked
-      if (e.target.checked && tagCheckbox.checked) {
-        stat.style.display = 'block';
-      } else {
-        stat.style.display = 'none';
-      }
-    });
-  });
-
-  // Handle totals selector toggling
-  document.querySelectorAll('.total-selector').forEach((checkbox, index) => {
-    checkbox.addEventListener('change', (e) => {
-      const stat = document.getElementById('total-stat-' + index);
-      const tagCheckbox = document.getElementById('tag' + index);
-
-      // Only show if both the tag is enabled AND the total selector is checked
-      if (e.target.checked && tagCheckbox.checked) {
-        stat.style.display = 'block';
-      } else {
-        stat.style.display = 'none';
-      }
-    });
-  });
-
-  // ========================================================================
-  // YES/NO HABIT UTILITIES
-  // ========================================================================
-
-  /**
-   * Calculate completion percentage
-   */
-  function calculateCompletionRate(data) {
-    const total = data.length;
-    const completed = data.filter(val => val === 1).length;
-    return total > 0 ? Math.round((completed / total) * 100) : 0;
-  }
-
-  /**
-   * Calculate current streak (excluding today)
-   */
-  function calculateStreak(data) {
-    let streak = 0;
-    // Count from the second-to-last day (excluding today) backwards
-    for (let i = data.length - 2; i >= 0; i--) {
-      if (data[i] === 1) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-    return streak;
-  }
-
-  // ========================================================================
-  // CREATE YES/NO HABIT VISUALIZATIONS (COMBINED)
-  // ========================================================================
-
-  /**
-   * Create combined timeline visualization
-   */
-  function createCombinedTimeline() {
-    const container = document.getElementById('yesno-combined-timeline');
-    container.innerHTML = '';
-
-    yesNoHabits.forEach((habit, index) => {
-      const data = yesNoData.counts[habit];
-      const dates = yesNoData.dates;
-
-      // Use green color for all yes/no habits
-      const greenColor = '#32d74b';
-
-      // Calculate stats
-      const completionRate = calculateCompletionRate(data);
-      const streak = calculateStreak(data);
-
-      // Create row
-      const row = document.createElement('div');
-      row.className = 'yesno-habit-row';
-      row.id = 'yesno-row-' + index;
-      row.style.display = 'flex';
-
-      // Label
-      const label = document.createElement('div');
-      label.className = 'yesno-habit-label';
-      label.textContent = habit;
-      row.appendChild(label);
-
-      // Visualization
-      const vizContainer = document.createElement('div');
-      vizContainer.className = 'yesno-habit-viz';
-
-      const timelineRow = document.createElement('div');
-      timelineRow.className = 'timeline-row';
-
-      // Exclude today (last item) from visualization
-      const dataToShow = data.slice(0, -1);
-      const datesToShow = dates.slice(0, -1);
-
-      dataToShow.forEach((value, i) => {
-        const day = document.createElement('span');
-        day.className = 'timeline-day ' + (value === 1 ? 'completed' : 'incomplete');
-        day.innerHTML = value === 1 ? '✓' : '○';
-        day.title = datesToShow[i] + ': ' + (value === 1 ? 'Completed' : 'Not completed');
-
-        if (value === 1) {
-          day.style.color = greenColor;
-        }
-
-        timelineRow.appendChild(day);
-      });
-
-      vizContainer.appendChild(timelineRow);
-      row.appendChild(vizContainer);
-
-      // Stats
-      const stats = document.createElement('div');
-      stats.className = 'yesno-habit-stats';
-      stats.innerHTML = '<span>' + completionRate + '%</span><span>Streak: ' + streak + '</span>';
-      row.appendChild(stats);
-
-      container.appendChild(row);
-    });
-  }
-
-  /**
-   * Create combined heatmap visualization
-   */
-  function createCombinedHeatmap() {
-    const container = document.getElementById('yesno-combined-heatmap');
-    container.innerHTML = '';
-
-    yesNoHabits.forEach((habit, index) => {
-      const data = yesNoData.counts[habit];
-      const dates = yesNoData.dates;
-
-      // Use a light green color for all yes
-      // TODO: change for CSS
-      const yesColor = '#32d74b';
-      const noColor = '#992e2e';
-
-      // Calculate stats
-      const completionRate = calculateCompletionRate(data);
-      const streak = calculateStreak(data);
-
-      // Create row
-      const row = document.createElement('div');
-      row.className = 'yesno-habit-row';
-      row.id = 'yesno-row-' + index;
-      row.style.display = 'flex';
-
-      // Label
-      const label = document.createElement('div');
-      label.className = 'yesno-habit-label';
-      label.textContent = habit;
-      row.appendChild(label);
-
-      // Visualization
-      const vizContainer = document.createElement('div');
-      vizContainer.className = 'yesno-habit-viz';
-
-      const grid = document.createElement('div');
-      grid.className = 'heatmap-grid';
-
-      // Exclude today (last item) from visualization
-      const dataToShow = data.slice(0, -1);
-      const datesToShow = dates.slice(0, -1);
-
-      dataToShow.forEach((value, i) => {
-        const cell = document.createElement('div');
-        cell.className = 'heatmap-cell ' + (value === 1 ? 'completed' : 'incomplete');
-        cell.title = datesToShow[i] + ': ' + (value === 1 ? 'Completed' : 'Not completed');
-
-        if (value === 1) {
-          cell.style.background = yesColor;
-          cell.style.borderColor = yesColor;
-        } else {
-          cell.style.background = noColor;
-          cell.style.borderColor = noColor;
-        }
-
-        grid.appendChild(cell);
-      });
-
-      vizContainer.appendChild(grid);
-      row.appendChild(vizContainer);
-
-      // Stats
-      const stats = document.createElement('div');
-      stats.className = 'yesno-habit-stats';
-      stats.innerHTML = '<span>' + completionRate + '%</span><span>Streak: ' + streak + '</span>';
-      row.appendChild(stats);
-
-      container.appendChild(row);
-    });
-  }
-
-  // Initialize heatmap visualization
-  createCombinedHeatmap();
-`
-}
 
 /**
  * Generate HTML for the habit charting view
@@ -1463,6 +870,7 @@ async function makeChartSummaryHTML(
   const yesNoCheckboxesHTML = generateYesNoFilterCheckboxes(yesNoHabits)
   const yesNoCombinedHTML = generateYesNoCombinedContainer()
   const chartStyleVars = generateChartStyleVars(config)
+
   // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures
   const configForWindowScripts = {
     colors,
@@ -1475,6 +883,7 @@ async function makeChartSummaryHTML(
 
   // Chart.js: try CDN first, fall back to local bundled copy (requiredFiles/chart.umd.min.js)
   const chartJsLoaderScript = `
+<script type="text/javascript">
 (function() {
   function loadChart(src, onError) {
     var s = document.createElement('script');
@@ -1487,19 +896,23 @@ async function makeChartSummaryHTML(
     loadChart('${chartJsLocalPath}', function() { console.error('Chart.js: CDN and local load failed'); });
   });
 })();
+</script>
 `
-  return `<!DOCTYPE html>
+
+  const body = `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>${chartJsLoaderScript}</script>
+    ${chartJsLoaderScript}
     <!-- for NotePlan to use -->
-    <link rel="stylesheet" href="./chartStats.css">
+    <link rel="stylesheet" href="chartStats.css">
     <!-- for local development to use -->
     <link rel="stylesheet" href="../../jgclark.Summaries/chartStats.css">
+    <script type="text/javascript" src="chartStatsScripts.js"></script>
     <style>${chartStyleVars}</style>
   </head>
+
   <body>
     <!-- <div class="header">
        <h1>Habit Charting</h1>
@@ -1509,9 +922,6 @@ async function makeChartSummaryHTML(
       <div class="config-section">
         <div class="section-title">Configuration</div>
         <div class="config-controls">
-          <!--
-          <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
-          -->
 
           <div class="days-input-group">
             <label for="days-input">Days to show:</label>
@@ -1595,4 +1005,6 @@ ${chartsHTML}
     <script>(function runWhenChartReady(){if(typeof window.Chart!=="undefined"){${script}}else{setTimeout(runWhenChartReady,20);}})();</script>
   </body>
 </html>`
+  
+  return body
 }
