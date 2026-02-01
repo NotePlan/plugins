@@ -8,7 +8,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import type { SummariesConfig } from './settings'
+import type { SummariesConfig } from './summarySettings'
 import { gatherOccurrences, generateProgressUpdate, getSummariesSettings, type OccurrencesToLookFor } from './summaryHelpers'
 import { validateDateRangeAndConvertToISODateStrings } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, timer, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'

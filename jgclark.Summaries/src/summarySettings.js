@@ -1,6 +1,6 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Settings helper module for jgclark.Summaries plugin
+// Summary settings helper module for jgclark.Summaries plugin
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -50,6 +50,17 @@ export type SummariesConfig = {
   weeklyStatsItems: Array<string>,
   weeklyStatsDuration: ?number,
   weeklyStatsIncludeCurrentWeek: boolean,
+  // chart summary stats (new in v1.1.0) ...
+  chartDefaultDaysBack?: number,
+  chartHeight?: number,
+  chartTimeTags?: Array<string>,
+  chartTotalTags?: Array<string>,
+  chartNonZeroTags?: string, // JSON object string, parse in chartStats
+  chartSignificantFigures?: number,
+  chartYesNoHabits?: Array<string>,
+  chartYesNoChartHeight?: number,
+  // chart colors: single comma-separated string
+  chartColors?: string,
 }
 
 /**

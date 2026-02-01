@@ -8,7 +8,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { combineTermArrays, mergeAverageAndTotalDuplicates, processTerms } from './gatherOccurrencesHelpers'
-import { getSummariesSettings as getSettingsFromModule, type SummariesConfig } from './settings'
+import { getSummariesSettings as getSettingsFromModule, type SummariesConfig } from './summarySettings'
 import { TMOccurrences, makeSparkline, makeYesNoLine } from './TMOccurrences'
 import type { OccurrencesToLookFor } from './TMOccurrences'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
