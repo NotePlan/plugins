@@ -31,7 +31,7 @@
     function formatTime(decimalHours) {
       const hours = Math.floor(decimalHours) % 24
       const minutes = Math.round((decimalHours % 1) * 60)
-      return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0')
+      return String(hours) + ':' + String(minutes).padStart(2, '0')
     }
 
     function isTimeTag(tag) {
@@ -136,7 +136,11 @@
         }
       }
       const total = totals[i]
-      document.getElementById('total-value-' + i).textContent = formatToSigFigs(total)
+      if (isTimeTag(tag)) {
+        document.getElementById('total-value-' + i).textContent = total > 0 ? formatTime(total) : '0'
+      } else {
+        document.getElementById('total-value-' + i).textContent = formatToSigFigs(total)
+      }
       let avg
       if (isTotalTag(tag)) {
         const recentData = tagData.counts[tag].slice(-7)
@@ -230,20 +234,24 @@
           },
           scales: {
             x: {
-              grid: { display: false, color: '#3a3a3c' },
-              ticks: { maxRotation: 45, minRotation: 45, font: { size: 10 }, color: '#98989d' }
+              // grid: { display: false, color: '#3a3a3c' },
+              grid: { display: false, color: 'var(--border-color)' },
+              // ticks: { maxRotation: 45, minRotation: 45, font: { size: 10 }, color: '#98989d' }
+              ticks: { maxRotation: 45, minRotation: 45, font: { size: 10 }, color: 'var(--border-color)' }
             },
             y: {
               ...yAxisConfig,
               ticks: {
                 font: { size: 10 },
-                color: '#98989d',
+                // color: '#98989d',
+                color: 'var(--border-color)',
                 callback: function(value) {
                   if (isTimeTag(tag) && value > 0) return formatTime(value)
                   return value
                 }
               },
-              grid: { color: '#3a3a3c' }
+              // grid: { color: '#3a3a3c' }
+              grid: { color: 'var(--border-color)' }
             }
           }
         }
@@ -338,13 +346,6 @@
           const cell = document.createElement('div')
           cell.className = 'heatmap-cell ' + (value === 1 ? 'completed' : 'incomplete')
           cell.title = datesToShow[i] + ': ' + (value === 1 ? 'Completed' : 'Not completed')
-          // if (value === 1) {
-          //   cell.style.background = yesColor
-          //   cell.style.borderColor = yesColor
-          // } else {
-          //   cell.style.background = noColor
-          //   cell.style.borderColor = noColor
-          // }
           grid.appendChild(cell)
         })
         vizContainer.appendChild(grid)

@@ -1,20 +1,19 @@
 // @flow
 /** 
- * Habit & Summary Charting
+ * Habit & Summary Charts
  * Displays charts showing numeric values from tags and yes/no habit completion
  *
  * Tracks:
- *   - Numeric habits: @sleep(7.23), @sleep_deep(5.2), @rps(10), @alcohol(2), @bedtime(23:30)
- *   - Yes/No habits: [x] Exercise, [x] In bed 11pm, [x] 10 min reading
+ *   - Numeric habits: e.g. @sleep(7.23), @sleep_deep(5.2), @rps(10), @alcohol(2), @bedtime(23:30)
+ *   - Yes/No habits: e.g. [x] Exercise, [x] In bed 11pm, [x] 10 min reading, #pray, #stretches
  *
- * Usage:
- *   /chartSummaryStats - Shows last 30 days (default)
- *   /chartSummaryStats 30 - Shows last 30 days
- *   /chartSummaryStats 180 - Shows last 6 months
- *   /chartSummaryStats 365 - Shows last year
- * 
+ * Note: 
+ * - First now taken from .chartTimeTags and .chartTotalTags, but could be taken from .progressMentions, .progressHashtags, .progressHashtagsAverage, .progressHashtagsTotal, .progressMentionsAverage, .progressMentionsTotal
+ * - Second now from .chartYesNoHabits, but could be from existing .progressYesNo
+ *
  * Last updated: 2026-02-01 for v1.1.0 by @jgclark
  */
+
 
 // =====================================================================
 // Ideas
@@ -54,60 +53,8 @@ import { COMPLETED_TASK_TYPES } from '@helpers/utils'
 const chartJsCdnUrl = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 const chartJsLocalPath = './chart.umd.min.js'
 
-// =====================================================================
-// CONFIGURATION CONSTANTS
-// =====================================================================
-
-/**
- * Default configuration for the Habit Charter
- * Customize these values to match your tracking needs */
-// const CONFIG = {
-//   // Tags to track (add or remove as needed)
-//   // Note: Now taken from .progressMentions, .progressHashtags, .progressHashtagsAverage, .progressHashtagsTotal, .progressMentionsAverage, .progressMentionsTotal
-//   // tags: ['@sleep', '@work', '@run', '@tv','#meeting'],
-
-//   // Yes/No habits tracked with [x] completed checkboxes (add or remove as needed)
-//   // Format in daily notes: [x] Exercise or - [x] Exercise
-//   // If not tag/mention then treat this way; otherwise take from .progressYesNo
-//   yesNoHabits: [
-//     '#pray',
-//     '#stretches',
-//     '#waterlitre',
-//     '#bedOnTime',
-//     '#readbook'
-//   ],
-
-//   // Default number of days to display
-//   defaultDaysBack: 30,
-
-//   // Chart height in pixels
-//   chartHeight: 180,
-
-//   // Chart height for yes/no habits (smaller since they're binary)
-//   yesNoChartHeight: 120,
-
-//   // Default visualization type for yes/no habits: 'timeline' or 'heatmap'
-//   // yesNoVisualization: 'heatmap',
-
-//   // Color palette for charts - loaded from settings
-//   colors: loadCustomColors(),
-
-//   // Tags that use HH:MM time format instead of decimals
-//   timeTags: ['@bedtime'],
-
-//   // Tags that should show totals instead of averages in summary
-//   totalTags: ['@work', '@run'],
-
-//   // Tags that should not begin at zero on Y-axis
-//   nonZeroTags: {
-//     '@bedtime': { min: 20, max: 24 },
-//     '@sleep': { min: 5, max: 10 },
-//     '@sleep_deep': { min: 0, max: 10 }
-//   },
-
-//   // Number of significant figures for summary statistics
-//   significantFigures: 3
-// }
+// Regex to detect time/duration form value: [H]H:MM only (e.g. 23:30, 9:05)
+const TIME_DURATION_PATTERN = /^[0-9]{1,2}:[0-9]{2}$/
 
 // =====================================================================
 // HELPER FUNCTIONS
@@ -149,16 +96,16 @@ async function loadCustomColors(): Promise<Array<{ border: string, bg: string, n
   const colors = colorStrings.map(userColor => {
     return {
       border: colorToModernSpecWithOpacity(userColor),
-      bg: colorToModernSpecWithOpacity(userColor, 0.5),
+      bg: colorToModernSpecWithOpacity(userColor, 0.4),
       name: userColor
     }
   })
   // clo(colors, 'loadCustomColors :: colors', 2)
   return colors
 }
-// ============================================================================
+// =============================================================
 // MAIN FUNCTION
-// ============================================================================
+// =============================================================
 
 /**
  * Main function to show the habit charter
@@ -170,41 +117,21 @@ export async function chartSummaryStats(daysBack?: number): Promise<void> {
     const daysToShow = daysBack ?? config.chartDefaultDaysBack ?? 30
     // eslint-disable-next-line max-len
     const tags = [...config.progressMentions, ...config.progressHashtags, ...config.progressHashtagsAverage, ...config.progressHashtagsTotal, ...config.progressMentionsAverage, ...config.progressMentionsTotal]
-    clo(tags, 'tags')
+    // clo(tags, 'tags')
 
     const yesNoHabits = config.chartYesNoHabits ?? []
-    // const colors = await loadCustomColors()
-    // const config = {
-    //   defaultDaysBack: config.chartDefaultDaysBack ?? 30,
-    //   yesNoHabits,
-    //   chartHeight: config.chartHeight ?? 180,
-    //   yesNoChartHeight: config.chartYesNoChartHeight ?? 120,
-    //   timeTags: config.chartTimeTags ?? [],
-    //   totalTags: config.chartTotalTags ?? [],
-    //   nonZeroTags: parseChartNonZeroTags(config.chartNonZeroTags ?? '{}'),
-    //   significantFigures: config.chartSignificantFigures ?? 3,
-    //   colors
-    // }
-    const tagData = await collectTagData(tags, daysToShow, config.chartTimeTags ?? [])
+    const tagData = await collectTagData(tags, daysToShow)
     const yesNoData = await collectYesNoData(yesNoHabits, daysToShow)
     const html = await makeChartSummaryHTML(tagData, yesNoData, tags, yesNoHabits, daysToShow, config)
 
-    // V1
-    // HTMLView.showInMainWindow(html, "Habit Charts", {
-    //   splitView: false,
-    //   icon: "chart-line",
-    //   iconColor: "blue-500",
-    //   customId: "tag-tracker-view",
-    // })
-    // V2
     const windowOptions: HtmlWindowOptions = {
-      customId: "habit-summary-charts",
+      customId: "jgclark.Summaries.chartSummaryStats",
       windowTitle: "Habit & Summary Charts",
       autoTopPadding: true,
       showReloadButton: false,
       splitView: false,
       icon: "chart-line",
-      iconColor: "blue-500",
+      iconColor: "amber-500",
       savedFilename: "habit-summary-charts.html",
       reuseUsersWindowRect: true,
       shouldFocus: false,
@@ -252,9 +179,9 @@ function formatDateForDisplay(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-// ============================================================================
+// ==================================================================
 // TAG VALUE EXTRACTION
-// ============================================================================
+// ==================================================================
 
 /**
  * Parse chartNonZeroTags JSON string from settings into an object.
@@ -274,80 +201,62 @@ function parseChartNonZeroTags(jsonStr: string): { [string]: { min: number, max:
 }
 
 /**
- * Extract time value from tag (HH:MM format)
- * @param {string} tag - Tag name (e.g., "@bedtime")
- * @param {string} content - Note content to search
- * @returns {number} Average time value in decimal hours, or 0 if not found
+ * Parse a single time value string ([H]H:MM) to decimal hours with midnight wraparound.
+ * @param {string} valueStr - Trimmed value (e.g. "23:30", "9:05")
+ * @returns {number} Decimal hours (00:00-05:59 add 24)
  */
-function extractTimeValue(tag: string, content: string): number {
-  const escapedTag = tag.replace('@', '\\@')
-  // Match HH:MM format like @bedtime(23:30) - more flexible regex
-  const timeRegex = new RegExp(escapedTag + '\\s*\\(\\s*([0-9]{1,2})[:.]([0-9]{2})\\s*\\)', 'gi')
-  let total = 0
-  let count = 0
-  let match
-
-  while ((match = timeRegex.exec(content)) !== null) {
-    const hours = parseInt(match[1])
-    const minutes = parseInt(match[2])
-
-    // Convert to decimal hours
-    let decimalHours = hours + (minutes / 60)
-
-    // Handle midnight wraparound: times 00:00-05:59 treated as next day (add 24)
-    if (hours >= 0 && hours < 6) {
-      decimalHours += 24
-    }
-
-    total += decimalHours
-    count++
-  }
-
-  // Return average if we found any
-  return count > 0 ? total / count : 0
+function parseTimeValueToDecimalHours(valueStr: string): number {
+  const parts = valueStr.split(':')
+  const hours = parseInt(parts[0], 10)
+  const minutes = parseInt(parts[1], 10) || 0
+  let decimalHours = hours + (minutes / 60)
+  // Previously dealt with midnight wraparound, but now we're just using the raw value, as it can be a duration, not just a time.
+  // if (hours >= 0 && hours < 6) {
+  //   decimalHours += 24
+  // }
+  // Round to 3 significant figures
+  decimalHours = Math.round(decimalHours * 10000) / 10000
+  return decimalHours
 }
 
 /**
- * Extract numeric value from tag (decimal format)
- * @param {string} tag - Tag name (e.g., "@sleep")
- * @param {string} content - Note content to search
- * @returns {number} Sum of all values found, or 0 if not found
- */
-function extractNumericValue(tag: string, content: string): number {
-  const escapedTag = tag.replace('@', '\\@')
-  const regex = new RegExp(escapedTag + '\\(([0-9.]+)\\)', 'gi')
-  let total = 0
-  let match
-
-  while ((match = regex.exec(content)) !== null) {
-    const value = parseFloat(match[1])
-    if (!isNaN(value)) {
-      total += value
-    }
-  }
-
-  return total
-}
-
-/**
- * Extract tag value from note content
+ * Extract tag value from note content.
+ * Time/Duration vs decimal is detected from the value: [H]H:MM → time (average); other numeric values → decimal (sum).
+ * If a tag has both time- and decimal-form values in the same note, time wins (only time values are aggregated).
  * @param {string} tag - Tag name
  * @param {string} content - Note content
- * @param {Array<string>} timeTags - Tags that use HH:MM format (from settings)
- * @returns {number} Extracted value (time or numeric)
+ * @returns {{ value: number, hadTimeValues: boolean }} Extracted value and whether any [H]H:MM values were found
  */
-function extractTagValue(tag: string, content: string, timeTags: Array<string>): number {
-  if (timeTags.includes(tag)) {
-    return extractTimeValue(tag, content)
-  } else {
-    return extractNumericValue(tag, content)
+function extractTagValue(tag: string, content: string): { value: number, hadTimeValues: boolean } {
+  const escapedTag = tag.replace('@', '\\@').replace('#', '\\#')
+  const valueRegex = new RegExp(`${escapedTag}\\s*\\(\\s*([^)]+)\\s*\\)`, 'gi')
+  const timeValues: Array<number> = []
+  let decimalSum = 0
+  let match
+
+  while ((match = valueRegex.exec(content)) !== null) {
+    if (!match[1]) continue
+    const valueStr = match[1].trim()
+    if (TIME_DURATION_PATTERN.test(valueStr)) {
+      timeValues.push(parseTimeValueToDecimalHours(valueStr))
+    } else {
+      const num = parseFloat(valueStr)
+      if (!isNaN(num)) {
+        decimalSum += num
+      }
+    }
   }
+
+  if (timeValues.length > 0) {
+    const avg = timeValues.reduce((a, b) => a + b, 0) / timeValues.length
+    return { value: avg, hadTimeValues: true }
+  }
+  return { value: decimalSum, hadTimeValues: false }
 }
 
 /**
  * Extract yes/no habit value from a note.
- * - For plain habit names: uses note paragraphs and COMPLETED_TASK_TYPES to detect
- *   the habit as a completed task or checklist item (no regex).
+ * - the habit as a completed task or checklist item (no regex).
  * - For hashtag or @mention: counts how many times the tag appears in any line;
  *   returns that count (0, 1, 2, ...).
  * @param {string} habit - Habit name (e.g. "Exercise") or tag (e.g. "#pray", "@done")
@@ -389,6 +298,7 @@ function extractYesNoValue(habit: string, note: TNote | null): number {
   const habitLower = habit.trim().toLowerCase()
   for (let i = 0; i < note.paragraphs.length; i++) {
     const para = note.paragraphs[i]
+    // TODO: Change to use ~ isCompletedItem() helper function
     if (COMPLETED_TASK_TYPES.indexOf(para.type) >= 0 && para.content) {
       const contentLower = para.content.trim().toLowerCase()
       if (contentLower.indexOf(habitLower) >= 0) {
@@ -401,9 +311,9 @@ function extractYesNoValue(habit: string, note: TNote | null): number {
   return 0
 }
 
-// ============================================================================
+// ===================================================================
 // DATA COLLECTION
-// ============================================================================
+// ===================================================================
 
 /**
  * Initialize empty data map for all dates and tags
@@ -429,7 +339,7 @@ function initializeDataMap(dates: Array<string>, tags: Array<string>): Object {
  * @param {string} dateStr - Date in YYYY-MM-DD format
  * @returns {Object|null} Note object or null if not found
  */
-function getCalendarNote(dateStr: string): TNote | null {
+function getCalendarNote(dateStr: string): ?TNote {
   try {
     if (typeof DataStore.calendarNoteByDateString === 'function') {
       const noteDateStr = toNotePlanDateFormat(dateStr)
@@ -442,18 +352,24 @@ function getCalendarNote(dateStr: string): TNote | null {
 }
 
 /**
- * Extract all tag values from a single note
+ * Extract all tag values from a single note.
+ * Supports both time and decimal values. Also returns which tags had time-based values in this note.
  * @param {TNote} note - NotePlan note object
  * @param {Array<string>} tags - Array of tags to extract
- * @param {Array<string>} timeTags - Tags that use HH:MM format (from settings)
- * @returns {Object} Map of tag names to values
+ * @returns {{ values: Object, timeTagsInNote: Array<string> }} Map of tag names to values, and tags that had [H]H:MM values
  */
-function extractTagValuesFromNote(note: TNote, tags: Array<string>, timeTags: Array<string>): { [string]: number } {
+function extractTagValuesFromNote(note: TNote, tags: Array<string>): { values: { [string]: number }, timeTagsInNote: Array<string> } {
   const values: { [string]: number } = {}
+  const timeTagsInNote: Array<string> = []
 
   if (note && note.content) {
+    const content = note.content ?? ''
     tags.forEach(tag => {
-      values[tag] = extractTagValue(tag, note.content, timeTags)
+      const { value, hadTimeValues } = extractTagValue(tag, content)
+      values[tag] = value
+      if (hadTimeValues) {
+        timeTagsInNote.push(tag)
+      }
     })
   } else {
     // No note found, return zeros
@@ -462,7 +378,7 @@ function extractTagValuesFromNote(note: TNote, tags: Array<string>, timeTags: Ar
     })
   }
 
-  return values
+  return { values, timeTagsInNote }
 }
 
 /**
@@ -489,17 +405,18 @@ function transformToChartFormat(dateMap: Object, tags: Array<string>): Object {
 }
 
 /**
- * Collect tag numeric values from calendar notes
- * Extracts and sums values from tags like @sleep(7.23) or @rps(10)
+ * Collect tag numeric values from calendar notes.
+ * Extracts values from tags like @sleep(7.23), @rps(10), @bedtime(23:30); time vs decimal is detected from the value.
+ * Tracks which tags include any time-based ([H]H:MM) values so the UI can display sums/averages in time format.
  * @param {Array<string>} tags - Array of tags to track (e.g., ['@sleep', '@rps'])
  * @param {number} daysBack - Number of days to look back
- * @param {Array<string>} timeTags - Tags that use HH:MM format (from settings)
- * @returns {Object} Data formatted for Chart.js
+ * @returns {Object} Data formatted for Chart.js plus timeTags array (tags that had at least one time value)
  */
-function collectTagData(tags: Array<string>, daysBack: number, timeTags: Array<string>): Object {
+function collectTagData(tags: Array<string>, daysBack: number): Object {
   try {
     const dates = generateDateRange(daysBack)
     const dateMap = initializeDataMap(dates, tags)
+    const timeTagSet = new Set<string>()
 
     // Get calendar notes for each date in the range
     for (const dateStr of dates) {
@@ -508,21 +425,27 @@ function collectTagData(tags: Array<string>, daysBack: number, timeTags: Array<s
         throw new Error(`No note found for date ${dateStr}`)
       }
 
-      const values = extractTagValuesFromNote(note, tags, timeTags)
+      const { values, timeTagsInNote } = extractTagValuesFromNote(note, tags)
+      timeTagsInNote.forEach(t => timeTagSet.add(t))
 
       // Store values in dateMap
       logDebug('collectTagData', `adding values=${JSON.stringify(values)} to dateMap for date ${dateStr}`)
-      Object.assign(dateMap[dateStr], values)  
+      Object.assign(dateMap[dateStr], values)
     }
 
-    return transformToChartFormat(dateMap, tags)
+    const chartData = transformToChartFormat(dateMap, tags)
+    return {
+      ...chartData,
+      timeTags: Array.from(timeTagSet)
+    }
   } catch (error) {
     logError('collectTagData', error.message)
     // Return empty data structure so plugin still loads
     return {
       dates: [],
       counts: tags.reduce((acc, tag) => ({ ...acc, [tag]: [] }), {}),
-      rawDates: []
+      rawDates: [],
+      timeTags: []
     }
   }
 }
@@ -779,11 +702,16 @@ function generateClientScript(tagData: Object, yesNoData: Object, tags: Array<st
  * @param {Array<string>} tags - Array of tags being tracked
  * @param {Array<string>} yesNoHabits - Array of yes/no habits being tracked
  * @param {number} daysBack - Number of days being displayed
- * @param {SummariesConfig} config - Config for client (must include resolved colors array, not Promise)
+ * @param {SummariesConfig} config - other config options
  * @returns {string} HTML string
  */
 async function makeChartSummaryHTML(
-  tagData: Object, yesNoData: Object, tags: Array<string>, yesNoHabits: Array<string>, daysBack: number, config: SummariesConfig
+  tagData: Object,
+  yesNoData: Object,
+  tags: Array<string>,
+  yesNoHabits: Array<string>,
+  daysBack: number,
+  config: SummariesConfig
 ): Promise<string> {
   const colors = await loadCustomColors()
   const checkboxesHTML = generateTagFilterCheckboxes(tags)
@@ -797,9 +725,14 @@ async function makeChartSummaryHTML(
   const chartStyleVars = generateChartStyleVars(config)
 
   // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures
+  // timeTags: tags that had at least one [H]H:MM value (sums/averages display in time format); fall back to user setting
   const configForWindowScripts = {
     colors,
-    timeTags: config.chartTimeTags ?? [],
+    // Combine tagData.timeTags and config.chartTimeTags, de-dupe, and use as the timeTags list
+    timeTags: Array.from(new Set([
+      ...(Array.isArray(tagData.timeTags) ? tagData.timeTags : []),
+      ...(Array.isArray(config.chartTimeTags) ? config.chartTimeTags : [])
+    ])),
     totalTags: config.chartTotalTags ?? [],
     nonZeroTags: parseChartNonZeroTags(config.chartNonZeroTags ?? '{}'),
     significantFigures: config.chartSignificantFigures ?? 3

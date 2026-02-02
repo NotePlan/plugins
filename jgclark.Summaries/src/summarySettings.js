@@ -1,6 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Summary settings helper module for jgclark.Summaries plugin
+// Last updated: 2026-02-02 for v1.1.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -55,7 +56,7 @@ export type SummariesConfig = {
   chartHeight?: number,
   chartTimeTags?: Array<string>,
   chartTotalTags?: Array<string>,
-  chartNonZeroTags?: string, // JSON object string, parse in chartStats
+  chartNonZeroTags?: string, // JSON object string, parse in chartStats  e.g. "{ \"@bedtime\":{\"min\":20,\"max\":24}, \"@sleep\":{\"min\":5,\"max\":10} }"
   chartSignificantFigures?: number,
   chartYesNoHabits?: Array<string>,
   chartYesNoChartHeight?: number,
