@@ -338,11 +338,43 @@ export const getColorStyle = (color) => {
 }
 
 /**
+ * Convert Tailwind color definitions to RGBA format suitable for CSS style statements
+ * @param {string} color - Tailwind color name (e.g., "amber-200", "slate-800") or hex/rgb/rgba string
+ * @param {number} opacity - Opacity value between 0 and 1 (default: 1)
+ * @returns {string} - RGBA color string in modernised format "rgba(r g b / a)"
+ * @example
+ * tailwindToRgba('amber-200') // returns "rgba(255, 245, 235, 1)"
+ * tailwindToRgba('slate-800') // returns "rgba(30, 32, 34, 1)"
+ * tailwindToRgba('blue-500') // returns "rgba(59, 130, 246, 1)"
+ * tailwindToRgba('#3b82f6', 0.5) // returns "rgba(59, 130, 246, 0.5)"
+ */
+export function tailwindToRgbWithOpacity(color, opacity = 1) {
+  let hex = ''
+  // Check if it's a Tailwind color name (e.g., "amber-200")
+  if (/^[a-z]+-\d+$/i.test(color)) {
+    hex = TAILWIND_COLORS[color]
+  } else {
+    logWarn(`tailwindToRgba`, `Invalid Tailwind color name: ${color}`)
+    return null
+  }
+
+  // Parse RGB values
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+    // If alpha channel is present (#RRGGBBAA), then return as is
+  if (opacity !== 1) {
+    return `rgb(${r} ${g} ${b} / ${opacity})`
+  }
+  return hex
+}
+
+/**
  * Convert Tailwind color definitions to HSL format suitable for CSS style statements
  * Accepts Tailwind color names (e.g., "amber-200", "slate-800") or any chroma-parseable color format
  * @param {string} color - Tailwind color name (e.g., "amber-200", "slate-800") or hex/rgb/rgba string
  * @param {boolean} includeAlpha - Whether to include alpha channel in output (default: false)
- * @returns {string} - HSL color string in format "hsl(h, s%, l%)" or "hsla(h, s%, l%, a)"
+ * @returns {string} - HSL color string in modernised format "hsl(h s l)" or "hsla(h s l / a)"
  * @example
  * tailwindToHsl('amber-200') // returns "hsl(45, 93%, 77%)"
  * tailwindToHsl('slate-800') // returns "hsl(222, 47%, 11%)"
@@ -384,13 +416,80 @@ export const tailwindToHsl = (color, includeAlpha = false) => {
     
     if (includeAlpha) {
       const alpha = chromaColor.alpha()
-      return `hsla(${h}, ${s}%, ${l}%, ${alpha})`
+      return `hsla(${h} ${s}% ${l}% / ${alpha})`
     }
     
-    return `hsl(${h}, ${s}%, ${l}%)`
+    return `hsl(${h} ${s}% ${l}%)`
   } catch (error) {
     // If chroma can't parse the color, return null
     logError(`tailwindToHsl`, `Error: ${error.message}`)
     return null
   }
+}
+
+/**
+ * Convert any CSS color to rgba with specified opacity
+ * Supports: #RGB, #RRGGBB, #RRGGBBAA, named CSS colors (e.g. red, blue), tailwind colors (amber-200, blue-500, etc.), hsl(), rgb(), rgba()
+ * @param {string} color - CSS color value
+ * @param {number} opacity - Opacity value between 0 and 1 (default: 1)
+ * @returns {string} RGBA color string
+ */
+export function colorToModernSpecWithOpacity(colorIn: string, opacity: number = 1): string {
+  let color = colorIn.trim().toLowerCase()
+
+  // First convert Tailwind color names to hsl(), as we had that function already
+  if (/^\w+-\d+$/.test(color)) {
+    color = tailwindToRgbWithOpacity(color)
+    return color
+  }
+
+  // If already rgb(), add opacity if needed
+  if (color.startsWith('rgb(') && opacity !== 1) {
+    // Convert rgb(r,g,b) or rgb(r g b) to rgb(r g b / opacity)
+    return color
+      .replace(',', ' ', 'g')
+      .replace(')', `, ${opacity})`)
+  }
+
+  // If already hsl(), overwrite opacity if needed
+  if (color.startsWith('hsl(') && opacity !== 1) {
+    // Convert hsl(h,s,l) or hsl(h s l) to hsl(h s l / opacity)
+    return color
+      .replace(',', ' ', 'g')
+      .replace(')', ` / ${opacity})`)
+  }
+
+  // If already rgba() return as-is
+  if (color.startsWith('rgba(')) {
+    return color
+  }
+
+  // Handle hex colors (#RGB, #RRGGBB, #RRGGBBAA)
+  if (color.startsWith('#')) {
+    let hex = color.substring(1)
+
+    // Expand shorthand #RGB to #RRGGBB
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2]
+    }
+
+    // Parse RGB values
+    const r = parseInt(hex.substring(0, 2), 16)
+    const g = parseInt(hex.substring(2, 4), 16)
+    const b = parseInt(hex.substring(4, 6), 16)
+
+    // Check if alpha channel is present (#RRGGBBAA)
+    if (hex.length === 8) {
+      const a = parseInt(hex.substring(6, 8), 16) / 255
+      return `rgba(${r} ${g} ${b} / ${a})`
+    }
+
+    return `rgba(${r} ${g} ${b} / ${opacity})`
+  }
+
+  // For named colors (red, blue, etc.), add opacity (if wanted) using color-mix()
+  if (opacity !== 1) {
+    return `color-mix(in srgb, ${color} ${opacity * 100}%, transparent)`
+  }
+  return color
 }
