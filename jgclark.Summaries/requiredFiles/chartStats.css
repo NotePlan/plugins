@@ -190,7 +190,8 @@ h1 {
 
 .stats {
   display: flex;
-  gap: 1rem;
+  column-gap: 0.5rem;
+  row-gap: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -415,7 +416,7 @@ canvas {
 
 .heatmap-cell.incomplete {
   /* background: #992e2e; */
-  background: color-mix(in oklch, var(--bg-main-color), red 80%);
+  background: color-mix(in oklch, var(--bg-main-color), red 90%);
   border-color: var(--border-color);
 }
 
@@ -475,7 +476,8 @@ canvas {
 /* Combined yes/no layout */
 .yesno-heatmap-section {
   padding: 0.25rem 0.5rem;
-
+  column-gap: 1rem;
+  row-gap: 0.5rem;
 
 /* .yesno-habit-row { */
   display: grid;
