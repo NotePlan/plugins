@@ -10,7 +10,7 @@
 // Helper functions
 
 import pluginJson from '../plugin.json'
-import type { SummariesConfig } from './settings'
+import type { SummariesConfig } from './summarySettings'
 import {
   gatherOccurrences,
   generateProgressUpdate,
@@ -18,8 +18,7 @@ import {
   type OccurrencesToLookFor,
   type TMOccurrences,
 } from './summaryHelpers'
-import { RE_DATE } from '@helpers/dateTime'
-import { validateDateRangeAndConvertToISODateStrings } from '@helpers/dateTime'
+import { RE_DATE, validateDateRangeAndConvertToISODateStrings } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink } from '@helpers/general'
 import { replaceSection, setIconForNote } from '@helpers/note'

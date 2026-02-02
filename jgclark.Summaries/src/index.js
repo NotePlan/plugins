@@ -3,9 +3,12 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 2026-01-29 for v1.0.2 by @Cursor
+// Last updated 2026-01-30 for v1.1.0.b1 by @jgclark
 //-----------------------------------------------------------------------------
 
+export {
+  chartSummaryStats,
+} from './chartStats'
 export {
   showTagHeatmap,
   showTaskCompletionHeatmap,
@@ -25,7 +28,7 @@ export {
   todayProgressFromTemplate
 } from './todayProgress'
 export { statsPeriod } from './stats'
-export { getSummariesSettings } from './settings'
+export { getSummariesSettings } from './summarySettings'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'

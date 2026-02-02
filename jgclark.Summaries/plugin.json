@@ -3,17 +3,54 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Summaries",
   "plugin.name": "⏱ Habits and Summaries",
+  "plugin.icon": "fa-chart-line",
+  "plugin.iconColor": "amber-500",
   "plugin.description": "Generate summaries from notes for a given time period and saves to notes; show heatmap of when tasks were completed. Click link for more details and settings.",
-  "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "1.0.3",
-  "plugin.lastUpdateInfo": "1.0.3: worked around a new bug in the API affecting stats for hashtags and mentions.\n1.0.1: under-the-hood changes to progressUpdate.\n1.0.0: add support for 'all' time period in stats command. Allow override of settings for periodStats when called from x-callbacks. Other improvements and fixes.\n0.22.1: fix empty lines appearing in template output from `progressUpdate(...)` calls.\n0.22.0: Add support for checklist progress.\n0.21.0: Add Mermaid charting command. Fix to simple weekly CSV generation.\n0.20.3: Bug fix for progressUpdate() in templates.\n0.20.2: Added x-callback options for /periodStats.\n0.20.1: fix refresh after '/append progress update' command. Logging change.\n0.20.0: add new '/today progress' and '/heatmap for tag' commands, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.",
+  "plugin.version": "1.1.0.b1",
+  "plugin.releaseStatus": "beta",
+  "plugin.lastUpdateInfo": "1.1.0: new command '/graph summary stats'.\n1.0.3: worked around a new bug in the API affecting stats for hashtags and mentions.\n1.0.1: under-the-hood changes to progressUpdate.\n1.0.0: add support for 'all' time period in stats command. Allow override of settings for periodStats when called from x-callbacks. Other improvements and fixes.\n0.22.1: fix empty lines appearing in template output from `progressUpdate(...)` calls.\n0.22.0: Add support for checklist progress.\n0.21.0: Add Mermaid charting command. Fix to simple weekly CSV generation.\n0.20.3: Bug fix for progressUpdate() in templates.\n0.20.2: Added x-callback options for /periodStats.\n0.20.1: fix refresh after '/append progress update' command. Logging change.\n0.20.0: add new '/today progress' and '/heatmap for tag' commands, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
+  "plugin.requiredFiles": [
+    "chart.umd.min.js",
+    "chartStats.css",
+    "chartStatsScripts.js"
+  ],
   "plugin.isRemote": "false",
   "plugin.commands": [
+    {
+      "name": "periodStats",
+      "alias": [
+        "pst",
+        "statsPeriod",
+        "stp"
+      ],
+      "description": "Generate counts (and other stats) of tags and mentions for a time period",
+      "jsFunction": "statsPeriod",
+      "arguments": [
+        "calendar period (year, quarter, month, week, today, or an YYYY-MM-DD date)",
+        "number within the calendar type (ignored for today and YYYY-MM-DD)",
+        "year (ignored for YYYY-MM-DD)",
+        "settings override (optional): see README"
+      ]
+    },
+    {
+      "name": "chart summary stats",
+      "description": "Generate and Chart summary stats for hashtags and mentions",
+      "jsFunction": "chartSummaryStats",
+      "arguments": [
+        "number of days to show (optional)"
+      ],
+      "sidebarView": {
+        "windowID": "jgclark.Summaries.chartSummaryStats",
+        "title": "Chart Summary Stats",
+        "icon": "fa-chart-line",
+        "iconColor": "amber-500"
+      }
+    },
     {
       "name": "appendProgressUpdate",
       "alias": [
@@ -62,22 +99,6 @@
       ]
     },
     {
-      "name": "periodStats",
-      "alias": [
-        "pst",
-        "statsPeriod",
-        "stp"
-      ],
-      "description": "Generate counts (and other stats) of tags and mentions for a time period",
-      "jsFunction": "statsPeriod",
-      "arguments": [
-        "calendar period (year, quarter, month, week, today, or an YYYY-MM-DD date)",
-        "number within the calendar type (ignored for today and YYYY-MM-DD)",
-        "year (ignored for YYYY-MM-DD)",
-        "settings override (optional): see README"
-      ]
-    },
-    {
       "name": "heatmap for tag",
       "alias": [],
       "description": "Show a heatmap for a given tag or mention",
@@ -91,24 +112,6 @@
       "alias": [],
       "description": "Show a heatmap for completion of tasks",
       "jsFunction": "showTaskCompletionHeatmap"
-    },
-    {
-      "name": "Weekly Stats as CSV",
-      "alias": [
-        "week",
-        "stats"
-      ],
-      "description": "Generate weekly stats for tags and mentions, and write CSV to a file",
-      "jsFunction": "weeklyStatsCSV"
-    },
-    {
-      "name": "Weekly Stats for Mermaid",
-      "alias": [
-        "week",
-        "stats"
-      ],
-      "description": "Generate weekly stats for tags and mentions, and write to a file ready to chart in Mermaid",
-      "jsFunction": "weeklyStatsMermaid"
     },
     {
       "name": "Habits+Summaries: update plugin settings",
@@ -140,6 +143,15 @@
     }
   ],
   "plugin.commands-disabled": [
+    {
+      "name": "Weekly Stats for Mermaid",
+      "alias": [
+        "week",
+        "stats"
+      ],
+      "description": "Generate weekly stats for tags and mentions, and write to a file ready to chart in Mermaid",
+      "jsFunction": "weeklyStatsMermaid"
+    },
     {
       "name": "test:update Summaries plugin settings",
       "description": "Summaries: test update settings",
@@ -458,6 +470,119 @@
     },
     {
       "type": "heading",
+      "title": "Chart Summary Stats settings"
+    },
+    {
+      "key": "chartDefaultDaysBack",
+      "title": "Default days to display",
+      "description": "Default number of days to show in the Charts",
+      "type": "number",
+      "default": 30,
+      "required": true
+    },
+    {
+      "key": "chartYesNoHabits",
+      "title": "Yes/No habits for charts",
+      "description": "List of #hashtags and/or @mentions to track as yes/no in the chart (e.g. '#pray', '#stretches'). Include the # or @.",
+      "type": "[string]",
+      "default": [
+        "#pray",
+        "#stretches",
+        "#waterlitre",
+        "#bedOnTime",
+        "#readbook"
+      ],
+      "required": false
+    },
+    {
+      "key": "chartTotalTags",
+      "title": "Tags to show as totals",
+      "description": "Tags that should show totals instead of averages in the summary.",
+      "type": "[string]",
+      "default": [
+        "@work",
+        "@run"
+      ],
+      "required": false
+    },
+    {
+      "key": "chartHeight",
+      "title": "Chart height (px)",
+      "description": "Height in pixels for numeric-tag charts.",
+      "type": "number",
+      "default": 180,
+      "required": true
+    },
+    {
+      "key": "chartYesNoChartHeight",
+      "title": "Yes/No chart height (px)",
+      "description": "Height in pixels for yes/no habit charts.",
+      "type": "number",
+      "default": 120,
+      "required": true
+    },
+    {
+      "key": "chartTagsToDisplayAsTimes",
+      "title": "Tags to display using time format",
+      "description": "Tags to display as HH:MM in charts (e.g. '@bedtime' or '@sleep'. Note: this does not itself ask for a tag to be included in the summary list.",
+      "type": "[string]",
+      "default": [
+        "@bedtime",
+        "@sleep",
+        "@tv"
+      ],
+      "required": false
+    },
+    {
+      "key": "chartColors",
+      "title": "Colors for Charts",
+      "description": "Comma-separated list of colors to use in the charts. Supported color formats are:\n- CSS names (e.g. 'red', 'blue')\n- Tailwind color names (e.g. 'gray-500', 'blue-500')\n- RGB Hex (e.g. '#F00', '#FF0000')\n- RGB decimal (e.g. 'rgba(255 0 0 / 0.7)')\n- HSL (e.g. 'hsl(0 100% 50%)')\n(If this is left blank, the default colors will be used.)",
+      "type": "string",
+      "default": "blue, purple, yellow, green, red, orange, cyan, pink, brown, indigo, #ff2d55, grey",
+      "required": true
+    },
+    {
+      "key": "chartNonZeroTags",
+      "title": "Non-zero Y-axis tags (JSON)",
+      "description": "JSON object mapping tag names to { min, max } for chart Y-axis (e.g. {\"@bedtime\":{\"min\":20,\"max\":24},\"@sleep\":{\"min\":5,\"max\":10}}). Leave empty {} to use defaults.",
+      "type": "string",
+      "default": "{\"@bedtime\":{\"min\":20,\"max\":24},\"@sleep\":{\"min\":5,\"max\":10},\"@sleep_deep\":{\"min\":0,\"max\":10}}",
+      "required": false
+    },
+    {
+      "key": "chartSignificantFigures",
+      "title": "Significant figures for stats",
+      "description": "Number of significant figures for summary statistics in charts.",
+      "type": "number",
+      "default": 3,
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "INFO",
+      "required": true
+    }
+  ],
+  "plugin.settings-disabled": [
+    {
+      "type": "heading",
       "title": "Chart command settings"
     },
     {
@@ -483,28 +608,6 @@
       "type": "bool",
       "required": true,
       "default": false
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "Debugging"
-    },
-    {
-      "key": "_logLevel",
-      "title": "Log Level",
-      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
-      "type": "string",
-      "choices": [
-        "DEBUG",
-        "INFO",
-        "WARN",
-        "ERROR",
-        "none"
-      ],
-      "default": "INFO",
-      "required": true
     }
   ]
 }
