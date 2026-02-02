@@ -3,8 +3,9 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Summaries",
   "plugin.name": "⏱ Habits and Summaries",
+  "plugin.icon": "fa-chart-line",
+  "plugin.iconColor": "amber-500",
   "plugin.description": "Generate summaries from notes for a given time period and saves to notes; show heatmap of when tasks were completed. Click link for more details and settings.",
-  "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
@@ -39,7 +40,16 @@
     {
       "name": "chart summary stats",
       "description": "Generate and Chart summary stats for hashtags and mentions",
-      "jsFunction": "chartSummaryStats"
+      "jsFunction": "chartSummaryStats",
+      "arguments": [
+        "number of days to show (optional)"
+      ],
+      "sidebarView": {
+        "windowID": "jgclark.Summaries.chartSummaryStats",
+        "title": "Chart Summary Stats",
+        "icon": "fa-chart-line",
+        "iconColor": "amber-500"
+      }
     },
     {
       "name": "appendProgressUpdate",
@@ -496,16 +506,6 @@
       "required": false
     },
     {
-      "key": "chartTimeTags",
-      "title": "Tags using time format",
-      "description": "Tags that use HH:MM time format instead of decimals (e.g. '@bedtime').",
-      "type": "[string]",
-      "default": [
-        "@bedtime"
-      ],
-      "required": false
-    },
-    {
       "key": "chartHeight",
       "title": "Chart height (px)",
       "description": "Height in pixels for numeric-tag charts.",
@@ -520,6 +520,18 @@
       "type": "number",
       "default": 120,
       "required": true
+    },
+    {
+      "key": "chartTagsToDisplayAsTimes",
+      "title": "Tags to display using time format",
+      "description": "Tags to display as HH:MM in charts (e.g. '@bedtime' or '@sleep'. Note: this does not itself ask for a tag to be included in the summary list.",
+      "type": "[string]",
+      "default": [
+        "@bedtime",
+        "@sleep",
+        "@tv"
+      ],
+      "required": false
     },
     {
       "key": "chartColors",

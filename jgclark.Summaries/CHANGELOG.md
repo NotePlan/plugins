@@ -4,6 +4,7 @@
 ## [1.1.0.b1] - 2026-02-02 (private beta)
 - Added **/Chart Summary Stats** command. This ???. (It was prototyped by @grdn and then integrated, updated and made maintainable by @jgclark.)
 ### Significant changes since prototype
+- Added to NP sidebar
 - Moved all configuration from code to settings system
 - Simplified specifying colors for charts, and added Tailwind color support.
 - Chart stats now track which tags include any time-based values and display their sums and averages in HH:MM format (not decimal) in the summary and tooltips.  This can be overriden by the "Tags to display using time format" setting.
