@@ -1,5 +1,6 @@
 // Helper functions for working with colors
 // Uses chroma.js, a fantastic utility for deriving colors https://gka.github.io/chroma.js/
+// NOTE: DO NOT FLOW TYPE THIS FILE. IT IS IMPORTED BY SOME JSX FILES AND FOR SOME REASON, ROLLUP CHOKES ON FLOW.
 
 import chroma from 'chroma-js'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
@@ -15,7 +16,6 @@ export const isLight = (bgColor) => !isDark(bgColor)
  * @returns {string} - the calculated altColor in #hex format
  */
 // export const getAltColor = (bgColor: string, strength: number = 0.2): string => {
-// NOTE: DO NOT FLOW TYPE THIS FUNCTION. IT IS IMPORTED BY JSX FILE AND FOR SOME REASON, ROLLUP CHOKES ON FLOW
 export const getAltColor = (bgColor, strength = 0.2) => {
   const calcAltFromBGColor = isLight(bgColor) ? chroma(bgColor).darken(strength).css() : chroma(bgColor).brighten(strength).css()
   // if (!altColor || chroma.deltaE(bgColor,altColor) < ) return calcAltFromBGColor
@@ -434,13 +434,12 @@ export const tailwindToHsl = (color, includeAlpha = false) => {
  * @param {number} opacity - Opacity value between 0 and 1 (default: 1)
  * @returns {string} RGBA color string
  */
-export function colorToModernSpecWithOpacity(colorIn: string, opacity: number = 1): string {
+export function colorToModernSpecWithOpacity(colorIn, opacity = 1) {
   let color = colorIn.trim().toLowerCase()
 
-  // First convert Tailwind color names to hsl(), as we had that function already
+  // First convert Tailwind color names to rgb()
   if (/^\w+-\d+$/.test(color)) {
     color = tailwindToRgbWithOpacity(color)
-    return color
   }
 
   // If already rgb(), add opacity if needed
