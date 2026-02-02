@@ -408,17 +408,14 @@ canvas {
 }
 
 .heatmap-cell.completed {
-  /* background: var(--accent-color); */
-  /* background: var(--tint-color); */
-  background: var(--fg-ok-color);
-  /* border-color: var(--accent-color); */
+  /* background: #32d74b; */
+  background: color-mix(in oklch, var(--fg-main-color), green 80%);
   border-color: var(--border-color);
 }
 
 .heatmap-cell.incomplete {
   /* background: #992e2e; */
-  background: var(--fg-error-color);
-  /* border-color: #992e2e; */
+  background: color-mix(in oklch, var(--bg-main-color), red 80%);
   border-color: var(--border-color);
 }
 
@@ -476,43 +473,46 @@ canvas {
 } */
 
 /* Combined yes/no layout */
-.yesno-combined-wrapper {
-  padding: 0.5rem 0.75rem;
-}
+.yesno-heatmap-section {
+  padding: 0.25rem 0.5rem;
 
-.yesno-habit-row {
-  display: flex;
+
+/* .yesno-habit-row { */
+  display: grid;
+  grid-template-columns: max-content max-content max-content auto;
   align-items: center;
   gap: 1rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border-color);
+  /* padding: 0; */
+  /* border-bottom: 1px solid var(--border-color); */
 }
 
-.yesno-habit-row:last-child {
+/* .yesno-habit-row:last-child {
   border-bottom: none;
-}
+} */
 
 .yesno-habit-label {
-  min-width: 10rem;
   font-size: 1rem;
   font-weight: 500;
   color: var(--text-primary);
   text-align: end;
+  justify-self: end;
 }
 
 .yesno-habit-viz {
-  flex: 1;
   display: flex;
   align-items: center;
+  justify-self: start;
 }
 
-.yesno-habit-stats {
-  min-width: 10rem;
+.yesno-habit-stat-completion {
+    font-size: 0.85rem;
+  color: var(--text-primary);
+  text-align: end;
+  justify-self: end;
+}
+.yesno-habit-stat-streak {
   font-size: 0.85rem;
   color: var(--text-primary);
-  display: flex;
-  gap: 0.75rem;
-  text-align: left;
-  justify-content: flex-start;
-  align-items: center;
+  text-align: end;
+  justify-self: start;
 }

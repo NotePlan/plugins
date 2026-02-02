@@ -303,28 +303,34 @@
       return streak
     }
 
-    function createCombinedHeatmap() {
-      const container = document.getElementById('yesno-combined-heatmap')
-      if (!container) return
-      container.innerHTML = ''
+    function createYesNoHeatmapSection() {
+      const row = document.getElementById('yesno-heatmap-section')
+      if (!row) return
+
+      // const row = document.createElement('div')
+      // row.className = 'yesno-habit-row'
+
+      row.innerHTML = ''
       yesNoHabits.forEach((habit, index) => {
         const data = yesNoData.counts[habit]
         const dates = yesNoData.dates
-        const yesColor = '#32d74b'
-        const noColor = '#992e2e'
+        // const yesColor = '#32d74b'
+        // const noColor = '#992e2e'
         const completionRate = calculateCompletionRate(data)
         const streak = calculateStreak(data)
-        const row = document.createElement('div')
-        row.className = 'yesno-habit-row'
-        row.id = 'yesno-row-' + index
-        row.style.display = 'flex'
-        const label = document.createElement('div')
+
+        // const row = document.createElement('div')
+        // row.className = 'yesno-habit-row'
+        // row.id = 'yesno-row-' + index
+
+        const label = document.createElement('span')
         label.className = 'yesno-habit-label'
         label.textContent = habit
         row.appendChild(label)
-        const vizContainer = document.createElement('div')
+
+        const vizContainer = document.createElement('span')
         vizContainer.className = 'yesno-habit-viz'
-        const grid = document.createElement('div')
+        const grid = document.createElement('span')
         grid.className = 'heatmap-grid'
         const dataToShow = data.slice(0, -1)
         const datesToShow = dates.slice(0, -1)
@@ -332,25 +338,31 @@
           const cell = document.createElement('div')
           cell.className = 'heatmap-cell ' + (value === 1 ? 'completed' : 'incomplete')
           cell.title = datesToShow[i] + ': ' + (value === 1 ? 'Completed' : 'Not completed')
-          if (value === 1) {
-            cell.style.background = yesColor
-            cell.style.borderColor = yesColor
-          } else {
-            cell.style.background = noColor
-            cell.style.borderColor = noColor
-          }
+          // if (value === 1) {
+          //   cell.style.background = yesColor
+          //   cell.style.borderColor = yesColor
+          // } else {
+          //   cell.style.background = noColor
+          //   cell.style.borderColor = noColor
+          // }
           grid.appendChild(cell)
         })
         vizContainer.appendChild(grid)
         row.appendChild(vizContainer)
-        const stats = document.createElement('div')
-        stats.className = 'yesno-habit-stats'
-        stats.innerHTML = '<span>' + completionRate + '%</span><span>Streak: ' + streak + '</span>'
-        row.appendChild(stats)
-        container.appendChild(row)
+
+        const statCompletion = document.createElement('span')
+        statCompletion.className = 'yesno-habit-stat-completion'
+        statCompletion.textContent = completionRate + '%'
+        row.appendChild(statCompletion)
+
+        const statStreak = document.createElement('span')
+        statStreak.className = 'yesno-habit-stat-streak'
+        statStreak.textContent = 'Streak: ' + streak
+        row.appendChild(statStreak)
+        // container.appendChild(row)
       })
     }
 
-    createCombinedHeatmap()
+    createYesNoHeatmapSection()
   }
 })()

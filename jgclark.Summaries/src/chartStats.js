@@ -41,7 +41,7 @@ import moment from 'moment/min/moment-with-locales'
 import { logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import { getSummariesSettings } from './summaryHelpers.js'
 import type { SummariesConfig } from './summarySettings.js'
-import { tailwindToHsl } from '@helpers/colors'
+import { colorToModernSpecWithOpacity } from '@helpers/colors'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { COMPLETED_TASK_TYPES } from '@helpers/utils'
@@ -56,8 +56,6 @@ const chartJsLocalPath = './chart.umd.min.js'
 
 // =====================================================================
 // CONFIGURATION CONSTANTS
-// TODO: Shift to plugin.json
-// TODO: Remove timeline toggle
 // =====================================================================
 
 /**
@@ -70,7 +68,7 @@ const chartJsLocalPath = './chart.umd.min.js'
 
 //   // Yes/No habits tracked with [x] completed checkboxes (add or remove as needed)
 //   // Format in daily notes: [x] Exercise or - [x] Exercise
-//   // TODO: If not tag/mention then treat this way; otherwise take from .progressYesNo
+//   // If not tag/mention then treat this way; otherwise take from .progressYesNo
 //   yesNoHabits: [
 //     '#pray',
 //     '#stretches',
@@ -117,80 +115,8 @@ const chartJsLocalPath = './chart.umd.min.js'
 // =====================================================================
 
 /**
- * Convert any CSS color to rgba with specified opacity
- * Supports: #RGB, #RRGGBB, #RRGGBBAA, named colors (red, blue), hsl(), rgb(), rgba()
- * @param {string} color - CSS color value
- * @param {number} opacity - Opacity value between 0 and 1 (default: 0.3)
- * @returns {string} RGBA color string
- */
-function colorToRgba(colorIn: string, opacity: number = 0.3): string {
-  let color = colorIn.trim()
-
-  // First convert Tailwind color names to hsl(), as we had that function already
-  if (/^\w+-\d+$/.test(color)) {
-    color = tailwindToHsl(color)
-  }
-
-  // If already rgba() or rgb() or hsl(), add opacity if needed
-  if (color.startsWith('rgb(') || color.startsWith('hsl(')) {
-    // Convert rgb() or hsl() to rgba() or hsla() with opacity
-    return color
-      .replace('rgb(', `rgba(`)
-      .replace(')', `, ${opacity})`)
-      .replace('hsl(', `hsla(`)
-      .replace(')', `, ${opacity})`)
-  }
-
-  // If already rgba() or hsla(), return as-is
-  if (color.startsWith('rgba(') || color.startsWith('hsla(')) {
-    return color
-  }
-
-  // Handle hex colors (#RGB, #RRGGBB, #RRGGBBAA)
-  if (color.startsWith('#')) {
-    let hex = color.substring(1)
-
-    // Expand shorthand #RGB to #RRGGBB
-    if (hex.length === 3) {
-      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2]
-    }
-
-    // Parse RGB values
-    const r = parseInt(hex.substring(0, 2), 16)
-    const g = parseInt(hex.substring(2, 4), 16)
-    const b = parseInt(hex.substring(4, 6), 16)
-
-    // Check if alpha channel is present (#RRGGBBAA)
-    if (hex.length === 8) {
-      const a = parseInt(hex.substring(6, 8), 16) / 255
-      return `rgba(${r}, ${g}, ${b}, ${a})`
-    }
-
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`
-  }
-
-  // For named colors (red, blue, etc.), wrap in rgba with opacity
-  // This works because CSS will interpret it correctly
-  return `rgba(${color}, ${opacity})`
-}
-
-/**
- * Normalize color input - add # to hex if missing, or return as-is for other formats
- * @param {string} color - Color input from user
- * @returns {string} Normalized color
- */
-// function normalizeColor(color: string): string {
-//   color = color.trim()
-//   // If it looks like hex without #, add it
-//   if (/^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$|^[0-9A-Fa-f]{8}$/.test(color)) {
-//     return '#' + color
-//   }
-//   // Return as-is for named colors, rgb(), hsl(), etc.
-//   return color
-// }
-
-/**
- * Load custom colors from plugin settings (single chartColors key, comma-separated).
+ * Load custom colors from plugin settings (single chartColors key, comma-separated). 
+ * Supports: #RGB, #RRGGBB, #RRGGBBAA, named CSS colors (e.g. red, blue), tailwind colors (amber-200, blue-500, etc.), hsl(), rgb(), rgba()
  * @returns {Array} Array of color objects with border, bg, and name properties
  */
 async function loadCustomColors(): Promise<Array<{ border: string, bg: string, name: string }>> {
@@ -221,14 +147,13 @@ async function loadCustomColors(): Promise<Array<{ border: string, bg: string, n
   }
 
   const colors = colorStrings.map(userColor => {
-    const normalizedColor = userColor.toLowerCase()
     return {
-      border: normalizedColor,
-      bg: colorToRgba(userColor, 0.4),
-      name: normalizedColor
+      border: colorToModernSpecWithOpacity(userColor),
+      bg: colorToModernSpecWithOpacity(userColor, 0.5),
+      name: userColor
     }
   })
-  // clo(colors, 'loadCustomColors :: colors')
+  // clo(colors, 'loadCustomColors :: colors', 2)
   return colors
 }
 // ============================================================================
@@ -798,8 +723,8 @@ function generateYesNoFilterCheckboxes(habits: Array<string>): string {
  */
 function generateYesNoCombinedContainer(): string {
   return `
-    <div class="chart-wrapper yesno-combined-wrapper">
-      <div class="viz-display" id="yesno-combined-heatmap"></div>
+    <div class="chart-wrapper">
+      <div class="viz-display yesno-heatmap-section" id="yesno-heatmap-section"></div>
     </div>
 `
 }
@@ -840,7 +765,7 @@ function generateClientScript(tagData: Object, yesNoData: Object, tags: Array<st
   } else {
     console.error('Chart Stats: initChartStats not loaded (chartStatsScripts.js)');
   }
-  `
+`
 }
 
   // ========================================================================
@@ -907,9 +832,11 @@ async function makeChartSummaryHTML(
     ${chartJsLoaderScript}
     <!-- for NotePlan to use -->
     <link rel="stylesheet" href="chartStats.css">
+    <script type="text/javascript" src="chartStatsScripts.js"></script>
+    
     <!-- for local development to use -->
     <link rel="stylesheet" href="../../jgclark.Summaries/chartStats.css">
-    <script type="text/javascript" src="chartStatsScripts.js"></script>
+    <script type="text/javascript" src="../../jgclark.Summaries/chartStatsScripts.js"></script>
     <style>${chartStyleVars}</style>
   </head>
 
