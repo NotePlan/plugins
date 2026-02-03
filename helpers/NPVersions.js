@@ -36,6 +36,7 @@ export function usersVersionHas(feature: string): boolean {
     availableReminderLists: '3.20.0', // Dec 2025, macOS build 1469
     showInMainWindow: '3.20.0', // Dec 2025, macOS build 1469
     showInMainWindowOniOS: '3.20.1', // Jan 2026, iOS build 1380
+    reuseSplitView: '3.20.1', // Jan 2026, macOS build 1479ish
   }
 
   // Check if the user's version meets the requirement for the requested feature

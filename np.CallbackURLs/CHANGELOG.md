@@ -4,6 +4,22 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.11.0] - 2025-01-30 @dwertheimer
+
+- Fix addNote wizard: was returning addText URL; now correctly returns addNote URL
+- Open note wizard: add timeframe (week/month/quarter/year) for calendar notes; add optional highlightStart/highlightLength (cursor/selection after open)
+- Add text wizard: add openType (subWindow, splitView, reuseSplitView, useExistingSubWindow) when openNote=yes
+- Add note wizard: add optional highlightStart/highlightLength when openNote=yes
+- Add selectTag wizard: create x-callback URL to select a tag in the sidebar
+- Add installPlugin wizard: create x-callback URL to install a plugin by ID
+- Add toggleSidebar wizard: create x-callback URL to toggle/show/hide sidebar (forceCollapse, forceOpen, animated)
+- Helpers/general: createOpenOrDeleteNoteCallbackUrl now accepts timeframe, highlightStart, highlightLength; createAddTextCallbackUrl now accepts openType in options; useExistingSubWindow URLs now include subWindow=yes
+- Tests: add tests for timeframe, highlight, openType (addText), reuseSplitView, selectTag, installPlugin, toggleSidebar; add NPXCallbackWizard.test.js for selectTag, installPlugin, toggleSidebar wizard functions
+
+## [1.10.1] - 2025-01-30 @dwertheimer
+
+- Open note wizard: add openType options (subWindow, splitView, reuseSplitView, useExistingSubWindow) so generated openNote x-callback-urls can open in floating window, split view, reuse split view, or existing sub-window
+
 ## [1.10.0] - 2025-09-23 @dwertheimer
 
 - Add lineLink command

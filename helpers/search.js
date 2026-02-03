@@ -121,6 +121,38 @@ export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: stri
 }
 
 /**
+ * Returns true if hashtag/mention A is an exact match of item B.
+ * If 'orMultiPartMatch' is true, then:
+ * - it also checks if it is a strict subset of B, starting from the beginning, where a "/" break point is found. 
+ *   e.g. #project matches #project/management/theory but not #project/man.
+ *   e.g. @jgclark matches @jgclark/project/management/theory but not @project/jgclark.
+ * - Additionally, A matches B if B has a '(...)' suffix.
+ *   e.g. #project matches #project(123).
+ *   e.g. @jgclark matches @jgclark(123).
+ * @author @jgclark
+ * @param {string} itemA
+ * @param {string} itemB
+ * @param {boolean} allowMultiPartMatch? (default: true)
+ * @returns {boolean} matches?
+ * @tests available in jest file
+*/
+export function caseInsensitiveTagMatch(itemA: string, itemB: string, allowMultiPartMatch: boolean = true): boolean {
+  try {
+    if (caseInsensitiveMatch(itemA, itemB)) {
+      return true
+    }
+    if (allowMultiPartMatch) {
+      return caseInsensitiveStartsWith(itemA, itemB, true) && (itemB[itemA.length] === '/' || (itemB[itemA.length] === '(' && itemB.endsWith(')')))
+    }
+  }
+  catch (error) {
+    logError('search/caseInsensitiveTagMatch', `Error matching '${itemA}' to '${itemB}': ${error.message}`)
+    return false
+  }
+  return false
+}
+
+/**
  * Returns true if A is a strict subset of B, starting from the end.
  * If strictSubset is true it won't match if A===B
  * @author @jgclark
@@ -181,23 +213,42 @@ export function fullWordMatch(searchTerm: string, textToSearch: string, caseSens
 }
 
 /**
- * Version of note.hashtags to use. Deals with the API bug 
+ * Version of note.hashtags to use. Deals with the older API bug 
  * where #one/two/three gets reported as '#one', '#one/two', and '#one/two/three'. Instead this reports just as '#one/two/three'.
+ * Note: now turns out that the API bug is worse than I thought, and it's missing some hashtags altogether. So, we need to go through the note :-( and look for them all. :-(
+ * Bug report at https://discord.com/channels/763107030223290449/763112403943555202/1466814307248377897
  * TODO: Should this (and the following) move to note.js or somewhere?
  * @param {TNote} note
  * @returns {Array<string>}
  */
 export function getCorrectedHashtagsFromNote(note: TNote): Array<string> {
   // First get the hashtags from the note (using the API)
+  // V1
   // $FlowFixMe[incompatible-type] note.hashtags is read-only
-  const reportedHashtags: Array<string> = note.hashtags ?? []
+  // const reportedHashtags: Array<string> = note.hashtags ?? []
   // Then dedupe the shorter versions of longer ones
-  const dedupedHashtags = getFullLengthHashtagsFromList(reportedHashtags)
-  return dedupedHashtags
+  // const correctedHashtagsV1 = getFullLengthHashtagsFromList(reportedHashtags)
+
+  // V2
+  const correctedHashtags: Array<string> = []
+  // Read whole note text, and then look for all hashtags in it.
+  // $FlowFixMe[incompatible-type] note.rawContent is read-only
+  const noteText: string = note.content ?? ''
+  // Correct regex to match every valid hashtag, including multi-part hashtags like #one/two/three or #one-two/three-four
+  // - Valid hashtags start with #, then at least one word character, and can include word chars, digits, / or - (but not spaces)
+  // - Not preceded by word chars, but don't depend on \b (as # isn't a word char).
+  // - Stop at first non-valid hashtag char.
+  const hashtagsInNote = noteText.match(/(?:^|[^A-Za-z0-9_])(#(?:[\w\d]+(?:[\/\-][\w\d]+)*))/g) ?? []
+  for (const hashtag of hashtagsInNote) {
+    correctedHashtags.push(hashtag.trim())
+  }
+  // logDebug('getCorrectedHashtagsFromNote', `- in ${String(note.filename)} correctedHashtagsV1 = ${String(correctedHashtagsV1)}, correctedHashtags = ${String(correctedHashtags)}`)
+  return correctedHashtags
 }
 
 /**
- * Dedupe the shorter versions of longer hashtags, to cope with API bug.
+ * Dedupe the shorter versions of longer hashtags that follow it, to cope with API bug.
+ * Also constrains to shorter must match where the longer one has a '/' break, so that '#project/management' doesn't match '#project/man'.
  * @example ["#project", "#project/management", "#project/management/theory"] => ["#project/management/theory"]
  * @tests available in jest file
  * @param {Array<string>} hashtagsFromAPI 
@@ -253,32 +304,6 @@ export function getFullLengthMentionsFromList(mentionsIn: Array<string>): Array<
     }
   }
   return dedupedMentions
-}
-
-/**
- * Returns true if the hashtag is found in the note.
- * Note: case insensitive.
- * @tests available in jest file
- * @param {string} hashtag including leading #
- * @param {TNote} note
- * @returns {boolean} true if the hashtag is found in the note
- */
-export function hashtagAwareIncludes(hashtagToFind: string, note: TNote): boolean {
-  const hashtags = getCorrectedHashtagsFromNote(note)
-  return hashtags.some(item => caseInsensitiveMatch(hashtagToFind, item))
-}
-
-/**
- * Returns true if the mention is found in the note.
- * Note: case insensitive.
- * Note: no tests in jest file, but identical logic to hashtags above
- * @param {string} mention including leading @
- * @param {TNote} note
- * @returns {boolean} true if the mention is found in the note
- */
-export function mentionAwareIncludes(mentionToFind: string, note: TNote): boolean {
-  const mentions = getCorrectedMentionsFromNote(note)
-  return mentions.some(item => caseInsensitiveMatch(mentionToFind, item))
 }
 
 /**
@@ -461,18 +486,18 @@ export function trimAndHighlightTermInLine(
         const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}(${termsForRE}).{0,${String(maxChars - LRSplit)}})\\b(?:\\w+|$)`, "gi")
         // logDebug('trimAndHighlight', `- RE: ${String(RE_FIND_TEXT_AROUND_THE_TERMS)}`)
         const textAroundTerms = mainPart.match(RE_FIND_TEXT_AROUND_THE_TERMS) ?? [] // multiple matches
-        logDebug('trimAndHighlight', `- textAroundTerms = ${String(textAroundTerms)}`)
+        // logDebug('trimAndHighlight', `- textAroundTerms = ${String(textAroundTerms)}`)
         if (textAroundTerms.length > 0) {
           // If we have more than 1 match in the line, join the results together with '...'
           output = textAroundTerms.join(' ...')
           // If the output doesn't start with the mainPart, then we have chopped the start of a sentence, so prepend '...'
           if (!caseInsensitiveStartsWith(output, mainPart, false)) {
-            logDebug('trimAndHighlight', `- have shortened start of line`)
+            // logDebug('trimAndHighlight', `- have shortened start of line`)
             output = `... ${output}`
           }
           // If we now have a shortened string, then append '...' unless search term is at the end of the line
           if (!caseInsensitiveEndsWith(output, mainPart, false)) {
-            logDebug('trimAndHighlight', `- have shortened end of line`)
+            // logDebug('trimAndHighlight', `- have shortened end of line`)
             output = `${output} ...`
           }
           //

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Functions to identify and fix where note names and their filenames are inconsistent.
 // by Leo Melo, readied for the plugin and maintained by @jgclark
-// Last updated 2025-09-14 for v1.2.1 by @jgclark
+// Last updated 2026-01-25 for v1.3.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../../../plugin.json'
@@ -16,18 +16,25 @@ import { chooseFolder, showMessage, showMessageWithList, showMessageYesNoCancel 
  * Optionally prompts the user before renaming each note.
  * Note: currently only works for private regular notes.
  */
-export async function renameInconsistentNames(): Promise<void> {
+export async function renameInconsistentNames(folderIn: string = ''): Promise<void> {
   try {
-    const directory = await chooseFolder('Choose a folder to rename inconsistent notes in', true, false, '', true, true) // exclude Teamspace notes
+    let folder = ''
+    if (folderIn) {
+      logDebug(pluginJson, `renameInconsistentNames() for folder '${folderIn}'`)
+      folder = decodeURIComponent(folderIn)
+    } else {
+      logDebug(pluginJson, 'renameInconsistentNames(): Checking for inconsistent names in project notes...')
+      folder = await chooseFolder('Choose a folder to rename inconsistent notes in', true, false, '', true, true) // exclude Teamspace notes
+    }
 
-    if (!directory) {
+    if (!folder) {
       logWarn(pluginJson, 'renameInconsistentNames(): No folder chosen. Stopping.')
       return
     }
 
-    logDebug(pluginJson, `renameInconsistentNames(): Chosen folder: ${directory}`)
+    logDebug(pluginJson, `renameInconsistentNames(): Chosen folder: ${folder}`)
 
-    const inconsistentNames = await findInconsistentNames(directory, true)
+    const inconsistentNames = await findInconsistentNames(folder, true)
     if (!Array.isArray(inconsistentNames) || inconsistentNames.length < 1) {
       logDebug(pluginJson, 'renameInconsistentNames(): No inconsistent names found. Stopping.')
       showMessage('No inconsistent names found. Well done!', 'OK', 'Rename inconsistent names')

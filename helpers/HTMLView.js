@@ -709,6 +709,12 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
 
 export async function sendToHTMLWindow(windowId: string, actionType: string, data: any = {}, updateInfo: string = ''): Promise<any> {
   try {
+    // If HTMLView API isn't available (older platforms / builds), quietly skip sending
+    if (typeof HTMLView === 'undefined' || typeof HTMLView.runJavaScript !== 'function') {
+      logWarn('sendToHTMLWindow', `HTMLView API is not available on this platform/build; skipping message "${actionType}" to HTML window`)
+      return
+    }
+
     const windowExists = isHTMLWindowOpen(windowId)
     if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = undefined`)
     const windowIdToSend = windowExists ? windowId : undefined // for iphone/ipad you have to send undefined
