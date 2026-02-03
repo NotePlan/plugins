@@ -1,12 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Create heatmap charts to use through NP HTML window.
+// Uses AnyChart to generate the heatmap.
 // Jonathan Clark, @jgclark
-// Last updated 2026-01-29 for v1.0.2 by @Cursor
+// Last updated 2026-02-03 for v1.1.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
+// import { createSingleTagTrackingConfig } from './configHelpers'
 import {
   gatherOccurrences,
   getSummariesSettings,
@@ -18,17 +20,17 @@ import {
   getFirstDateForWeeklyStats
 } from './forCharts'
 import {
+  getAPIDateStrFromDisplayDateStr,
   getISODateStringFromYYYYMMDD,
   RE_ISO_DATE,
   todaysDateISOString, // const
   withinDateRange,
 } from '@helpers/dateTime'
 import { getNPWeekData, localeDateStr, pad, setMomentLocaleFromEnvironment } from '@helpers/NPdateTime'
-import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logTimer,logWarn, timer } from '@helpers/dev'
 import { showHTMLV2 } from '@helpers/HTMLView'
 import { getLocale } from '@helpers/NPConfiguration'
-import { getInput, showMessage } from '@helpers/userInput'
-import { createSingleTagTrackingConfig } from './configHelpers'
+import { getInputTrimmed, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 // Constants
@@ -97,7 +99,7 @@ type HeatmapDefinition =
 
 /**
  * Create and display a heatmap for a given tag/mention.
- * Can pass a {HeatmapDefinition} object, or a stringified version of one. If none given, it will prompt for a tag/mention name to use, and other defaults will be used.
+ * Can pass a `HeatmapDefinition` object, or a stringified version of one. If none given, it will prompt for a tag/mention name to use, and other defaults will be used.
  * @param {HeatmapDefinition | string} heatmapDefArg (optional) either a definition object, or a stringified version of one
  * @returns
  */
@@ -110,6 +112,10 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
     const toDateStrDefault = todaysDateISOString
     const numberIntervalsDefault = DEFAULT_HEATMAP_INTERVALS
 
+    // Set up heatmap definition, from passed parameter, or from asking user and setting defaults
+    // Note: parameter can come as string (from callback) or object (from other functions)
+    let heatmapDef: HeatmapDefinition
+    let tagName: string = ''
     // Default heatmap configuration
     const defaultHeatmapConfig = {
       intervalType: 'day',
@@ -118,11 +124,6 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
       fromDateStr: fromDateStrDefault,
       toDateStr: toDateStrDefault,
     }
-
-    // Set up heatmap definition, from passed parameter, or from asking user and setting defaults
-    // Note: parameter can come as string (from callback) or object (from other functions)
-    let heatmapDef: HeatmapDefinition
-    let tagName: string = ''
 
     if (typeof heatmapDefArg === "string" && heatmapDefArg !== '') {
       const unencodedHeatmapDefInStr = decodeURIComponent(heatmapDefArg)
@@ -143,7 +144,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
       }
     } else {
       // no heatmapDefArg given, so ask user for tagName
-      const inputTagName = await getInput('tagName')
+      const inputTagName = await getInputTrimmed('#hashtag or @mention', 'OK', 'Generate Heatmap')
       if (inputTagName == null || typeof inputTagName !== 'string' || inputTagName === '') {
         logInfo('showTagHeatmap', 'User cancelled, or no tag name entered.')
         return
@@ -154,10 +155,6 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
         ...defaultHeatmapConfig,
       }
     }
-    // const numWeeks = (heatmapDef.intervalType === 'week')
-    //   ? heatmapDef.numberIntervals
-    //   : heatmapDef.numberIntervals / 7.0
-
     logDebug('showTagHeatmap', `- starting for ${tagName} for (${heatmapDef.fromDateStr} to ${heatmapDef.toDateStr}) ...`)
     clo(heatmapDef, 'heatmapDef')
 
@@ -183,20 +180,16 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
     const tagOccurrences: Array<TMOccurrences> = await gatherOccurrences(`${heatmapDef.numberIntervals} days`, heatmapDef.fromDateStr, heatmapDef.toDateStr, occConfig)
 
     if (tagOccurrences.length === 0) {
-      const errorMsg = `No data found for ${tagName} in the specified period (${heatmapDef.fromDateStr} - ${heatmapDef.toDateStr}). Please check that the tag/mention exists in your notes.`
-      logError('showTagHeatmap', errorMsg)
-      clo(occConfig, 'occConfig')
-      await showMessage(errorMsg)
-      return
+      clo(occConfig, 'occConfig when no data found')
+      const errorMsg = `No data found for ${tagName} in the specified period (${heatmapDef.fromDateStr} - ${heatmapDef.toDateStr}). Please check that it exists in your notes.`
+      throw new Error(errorMsg)
     }
     const thisTagOcc = tagOccurrences[0]
-    // clo(thisTagOcc, `thisTagOcc`)
-    // thisTagOcc.logValuesMap()
 
     // end timer & spinner
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-    logDebug('showTagHeatmap', `Duration: ${timer(startTime)}`)
+    logTimer('showTagHeatmap', startTime, `Generation of ${tagName} stats`)
 
     const thisStatsMap = new Map([...thisTagOcc.valuesMap].sort())
     logInfo('showTagHeatmap', `-> ${thisTagOcc.getNumberItems()} statsMap items.`)
@@ -237,7 +230,8 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
       `${pluginID}.${heatmapDef.tagName}-heatmap`
     )
   } catch (e) {
-    logError(pluginJson, `showTagHeatmap: ${e.name}: ${e.message}`)
+    await showMessage(e.message, 'OK', 'Heatmap Error')
+    logError(pluginJson, `showTagHeatmap: ${e.message}`)
   }
 }
 
@@ -260,10 +254,6 @@ export async function calcTagStatsMap(
     logDebug(pluginJson, `calcTagStatsMap: starting for '${tagName}' for interval ${intervalType} ...`)
 
     if (intervalType === 'day') {
-      // const fromDateMoment = moment(fromDateStr, 'YYYY-MM-DD')
-      // const toDateMoment = moment(toDateStr, 'YYYY-MM-DD')
-      // const daysInInterval = toDateMoment.diff(fromDateStr, 'day')
-
       // start a timer and spinner
       CommandBar.showLoading(true, `Generating ${tagName} stats ...`)
       const startTime = new Date()
@@ -375,9 +365,8 @@ export async function generateHeatMap(
       const tempDate = item[0]
       const isoDate = (tempDate.match(RE_ISO_DATE)) ? tempDate : getISODateStringFromYYYYMMDD(tempDate)
       const value = item[1]
-      // logDebug('', `- ${isoDate}: ${value}`)
+      // logDebug('', `- ${isoDate} -> ${value}`)
       const mom = moment(isoDate, 'YYYY-MM-DD')
-      // const weekNum = Number(mom.format('WW')) // moment week number
       const weekInfo = getNPWeekData(mom.toDate())
       if (weekInfo?.weekNumber == null) {
         throw new Error(`Invalid week calculation for date ${isoDate}. Cannot determine week number.`)
@@ -387,10 +376,11 @@ export async function generateHeatMap(
       const weekTitle = (weekNum !== 1) ? `W${pad(weekNum)}` : weekInfo.weekYear // with this library the value needs to be identical all week
       const dayAbbrev = mom.format('ddd') // day of week (0-6) is 'd'
       const dataPointObj = { x: weekTitle, y: dayAbbrev, heat: value, isoDate: isoDate }
-      if (!withinDateRange(isoDate, fromDateStr, toDateStr)) {
-        // one of the data points added on the start to get the layour right ... don't pass the date
+      if (!withinDateRange(getAPIDateStrFromDisplayDateStr(isoDate), getAPIDateStrFromDisplayDateStr(fromDateStr), getAPIDateStrFromDisplayDateStr(toDateStr))) {
+        // one of the data points added on the start to get the layout right ... don't pass the date
         dataPointObj.isoDate = ''
       }
+      // clo(dataPointObj, 'dataPointObj')
       dataToPass.push(dataPointObj)
     }
 
@@ -406,7 +396,8 @@ export async function generateHeatMap(
     background-color: var(--bg-main-color); /* doesn't do anything */
   }
   `
-    const preScript = `<script src="https://cdn.anychart.com/releases/8.7.1/js/anychart-core.min.js"></script>
+    const preScript = `<!-- Load AnyChart scripts -->
+  <script src="https://cdn.anychart.com/releases/8.7.1/js/anychart-core.min.js"></script>
   <script src="https://cdn.anychart.com/releases/8.7.1/js/anychart-heatmap.min.js"></script>
 `
     const body = `
@@ -469,9 +460,7 @@ export async function generateHeatMap(
       shouldFocus: true
     }
     const res = await showHTMLV2(body, winOpts)
-
     logInfo('generateHeatmap', `Shown window titled '${chartTitle}'`)
-
   }
   catch (error) {
     logError(pluginJson, error.message)
@@ -503,7 +492,7 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
   for (const item of statsMap) {
     const isoDate = item[0]
     const value = item[1]
-    if (withinDateRange(isoDate, fromDateStr, toDateStr)) {
+    if (withinDateRange(getAPIDateStrFromDisplayDateStr(isoDate), getAPIDateStrFromDisplayDateStr(fromDateStr), getAPIDateStrFromDisplayDateStr(toDateStr))) {
       // this test ignores any blanks on the front (though they will be 0 anyway)
       total += (!isNaN(value)) ? value : 0
     }

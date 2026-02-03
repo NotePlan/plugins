@@ -1,6 +1,11 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [1.1.0.b2] - 2026-02-03 (unreleased)
+- Added back missing settings for **/Heatmap...** commands
+- Fixed Heatmaps not showing dates in tooltips
+- The existing functions now support durations in `H:MM` format not just decimal (e.g. `@sleep(7:42)` as well as `@sleep(7.7)`).
+
 ## [1.1.0.b1] - 2026-02-02 (private beta)
 - Added **/Chart Summary Stats** command. This shows your **progress update** as beautifully-presented charts and statistics in a window. (It was prototyped by @grdn and then integrated, updated and made maintainable by @jgclark.)
 - Renamed two commands:
@@ -16,7 +21,7 @@
 - Chart stats now track which tags include any time-based values and display their sums and averages in HH:MM format (not decimal) in the summary and tooltips.  This can be overriden by the "Tags to display using time format" setting.
 -  yes/no habits can be specified in a calendar note as either:
   - the habit as a completed task or checklist item;
-  - For hashtag or @mention: counts how many times the tag appears in any line.
+  - For #hashtag or @mention: does it appear anywhere in the note?
 
 ## [1.0.3] - 2026-01-30 (unreleased)
 - worked around a new bug in the API for getting hashtags and mentions that meant some were being ignored, affecting the accuracy of the plugin's output.

@@ -219,7 +219,7 @@ export function gatherOccurrences(
     logDebug('gatherOccurrences', `Now ${tmOccurrencesArr.length} occObjects`)
 
     //------------------------------
-    // Now repeat for @mentions
+    // Review each wanted @mention
     startTime = new Date()
 
     // Process mentions: combine count/average/total arrays, merge duplicates, then process

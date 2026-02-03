@@ -3,7 +3,7 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 2026-01-29 for v1.0.2 by @Cursor
+// Last updated 2026-02-03 for v1.0.2+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -11,11 +11,11 @@ import pluginJson from '../plugin.json'
 import {
   gatherOccurrences,
   getSummariesSettings,
-  type OccurrencesToLookFor,
   TMOccurrences,
 } from './summaryHelpers'
 import { createTotalTrackingConfig } from './configHelpers'
 import {
+  getAPIDateStrFromDisplayDateStr,
   getTodaysDateHyphenated,
   hyphenatedDateString,
   RE_DONE_DATE_OPT_TIME,
@@ -154,7 +154,7 @@ export async function generateTaskCompletionStats(
           doneDate = reReturnArray[1]
         }
         // If we've found a task done in the right period, save
-        if (doneDate && withinDateRange(doneDate, fromDateStr, toDateStr)) {
+        if (doneDate && withinDateRange(getAPIDateStrFromDisplayDateStr(doneDate), getAPIDateStrFromDisplayDateStr(fromDateStr), getAPIDateStrFromDisplayDateStr(toDateStr))) {
           addToObj(doneDate)
         }
       }

@@ -2,19 +2,18 @@
 //-----------------------------------------------------------------------------
 // Tests for Heatmap Generation stats + HTML
 // Jonathan Clark, @jgclark
-// Last updated 30.9.2022+
+// Last updated 2026-02-03 for v1.1.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import { generateTaskCompletionStats } from './forCharts'
 import { getSummariesSettings } from './summaryHelpers'
 import {
-  // getDateObjFromDateString,
-  // getWeek,
+  getAPIDateStrFromDisplayDateStr,
   withinDateRange
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
-import { showHTML } from '@helpers/HTMLView'
+import { showHTMLV2 } from '@helpers/HTMLView'
 
 //-----------------------------------------------------------------------------
 
@@ -241,7 +240,7 @@ export async function testHeatMapGeneration3(): Promise<void> {
     const weekTitle = (weekNum !== 1) ? mom.format('[W]WW') : mom.format('YYYY') // with this library the value needs to be identical all week
     const dayAbbrev = mom.format('ddd') // day of week (0-6) is 'd'
     const dataPointObj = { x: weekTitle, y: dayAbbrev, heat: count, isoDate: isoDate }
-    if (withinDateRange(isoDate, fromDateStr, toDateStr)) {
+    if (withinDateRange(getAPIDateStrFromDisplayDateStr(isoDate), getAPIDateStrFromDisplayDateStr(fromDateStr), getAPIDateStrFromDisplayDateStr(toDateStr))) {
       // this test ignores any blanks on the front (though they will be 0 anyway)
       total += item[1] // the count
     } else {
@@ -305,16 +304,17 @@ export async function testHeatMapGeneration3(): Promise<void> {
     });
 </script>
 `
-  showHTML(title,
-    '',
+  showHTMLV2(title,
     body,
-    ' ', // generate CSS from theme
-    heatmapCSS,
-    false, // not modal
-    preScript,
-    '',
-    "test-heatmap-gen-3.html",
-    600, 260
+    {
+      windowTitle: title,
+      width: 600,
+      height: 260,
+      generalCSSIn: '', // i.e. generate from theme
+      specificCSS: heatmapCSS,
+      preBodyScript: preScript,
+      postBodyScript: '',
+    }
   )
 
   logDebug('generateTaskCompletionStats', `Shown window ${title}`)

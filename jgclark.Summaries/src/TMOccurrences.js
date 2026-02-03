@@ -3,11 +3,12 @@
 // TMOccurrences class and related types/functions for tracking hashtag/mention occurrences
 // Extracted to avoid circular dependency with gatherOccurrencesHelpers.js
 // Jonathan Clark
-// Last updated 2026-01-30 for v1.0.2
+// Last updated 2026-02-03 for v1.1.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import {
+  getAPIDateStrFromDisplayDateStr,
   getISODateStringFromYYYYMMDD,
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
@@ -108,7 +109,8 @@ export class TMOccurrences {
   }
 
   /**
-   * Add a found hashtag/mention occurrence to its instance, updating stats accordingly
+   * Add a found hashtag/mention occurrence to its instance, updating stats accordingly.
+   * Note: Handles durations in `H:MM` format (e.g. `@sleep(7:42)`) as well as decimal (e.g. `@sleep(7.7)`).
    * @param {string} occurrenceStr of a found hashtag/mention
    * @param {string} dateStr format YYYYMMDD or YYYY-MM-DD
    */
@@ -138,6 +140,18 @@ export class TMOccurrences {
         // key = tagParts[0]
         value = Number(tagParts[1])
         // logDebug('TMOcc:addOccurrence', `- found tagParts ${_key} / ${value.toString()}`)
+      }
+      // if this is a mention that finishes '(h:mm)' then treat as hours:minutes
+      else if (occurrenceStr.match(/\(-?\d+:[0-5]?\d\)$/)) {
+        const matches = occurrenceStr.match(/\((-?\d+):([0-5]?\d)\)$/)
+        if (matches != null) {
+          const hours = Number.parseInt(matches[1], 10)
+          const minutes = Number.parseInt(matches[2], 10)
+          value = hours + (minutes / 60)
+          // Now round to 3 significant figures
+          value = Math.round(value * 1000) / 1000
+        }
+        logDebug('TMOcc:addOccurrence', `- found mention duration ${_key} / ${value.toString()}`)
       }
       // if this is a mention that finishes '(float)', then break into separate parts first
       else if (occurrenceStr.match(/\(-?\d+(\.\d+)?\)$/)) {
@@ -191,7 +205,7 @@ export class TMOccurrences {
     let total = 0
     this.valuesMap.forEach((v, k, _m) => {
       // logDebug('summaryTextForInterval', `- k=${k}, v=${v}`)
-      if (withinDateRange(k, fromDateISOStr, toDateISOStr)) {
+      if (withinDateRange(getAPIDateStrFromDisplayDateStr(k), getAPIDateStrFromDisplayDateStr(fromDateISOStr), getAPIDateStrFromDisplayDateStr(toDateISOStr))) {
         // logDebug('summaryTextForInterval', `- ${k} in date range`)
         if (!isNaN(v)) {
           count++
