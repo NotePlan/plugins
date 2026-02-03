@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "1.1.0.b2",
+  "plugin.version": "1.1.0.b3",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "1.1.0: new command '/chart progress summary'.\n1.0.3: worked around a new bug in the API affecting stats for hashtags and mentions.\n1.0.1: under-the-hood changes to progressUpdate.\n1.0.0: add support for 'all' time period in stats command. Allow override of settings for periodStats when called from x-callbacks. Other improvements and fixes.\n0.22.1: fix empty lines appearing in template output from `progressUpdate(...)` calls.\n0.22.0: Add support for checklist progress.\n0.21.0: Add Mermaid charting command. Fix to simple weekly CSV generation.\n0.20.3: Bug fix for progressUpdate() in templates.\n0.20.2: Added x-callback options for /periodStats.\n0.20.1: fix refresh after '/append progress update' command. Logging change.\n0.20.0: add new '/today progress' and '/heatmap for tag' commands, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.",
   "plugin.dependencies": [],
@@ -390,7 +390,7 @@
       "title": "Colors for Charts",
       "description": "Comma-separated list of colors to use in the charts. Supported color formats are:\n- CSS names (e.g. 'red', 'blue')\n- Tailwind color names (e.g. 'gray-500', 'blue-500')\n- RGB Hex (e.g. '#F00', '#FF0000')\n- RGB decimal (e.g. 'rgba(255 0 0 / 0.7)')\n- HSL (e.g. 'hsl(0 100% 50%)')\n(If this is left blank, the default colors will be used.)",
       "type": "string",
-      "default": "blue, purple, yellow, green, red, orange, cyan, pink, brown, indigo, #ff2d55, grey",
+      "default": "blue-500, purple, yellow-500, green-500, red, orange, cyan-500, pink-500, brown, mint-500, #ff2d55, grey",
       "required": true
     },
     {
@@ -407,6 +407,19 @@
       "description": "Number of significant figures for summary statistics in charts.",
       "type": "number",
       "default": 3,
+      "required": true
+    },
+    {
+      "key": "chartAverageType",
+      "title": "Chart average line",
+      "description": "Type of average line to show on numeric charts: 'none' (no average), 'moving' (7-day moving average), 'weekly' (average of each successive 7-day period).",
+      "type": "string",
+      "choices": [
+        "none",
+        "moving",
+        "weekly"
+      ],
+      "default": "weekly",
       "required": true
     },
     {

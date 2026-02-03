@@ -1,6 +1,11 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [1.1.0.b3] - 2026-02-03 (private beta)
+- **Chart Summary Stats**: new setting **Chart average line** with options: no average, 7-day moving average, or average of each successive weekly period.
+- fix to grid and text colors in charts
+- fix (I hope) to window floating off on refresh. Can now add back the Reload button.
+
 ## [1.1.0.b2] - 2026-02-03 (unreleased)
 - Added back missing settings for **/Heatmap...** commands
 - Fixed Heatmaps not showing dates in tooltips

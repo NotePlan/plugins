@@ -479,7 +479,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
       return true
     } else {
-      // Make a normal non-modal window
+      // Make a non-modal window (either floating or in main window; this gets decided below)
       let winOptions: HtmlWindowOptions = {}
 
       // First set to the values set in the opts object, using x/y/w/h if available, or if not, then use paddingWidth/paddingHeight to fill the screen other than this padding.
@@ -510,7 +510,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
           logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
         }
       }
-      clo(winOptions, 'showHTMLV2 using winOptions:')
+      // clo(winOptions, 'showHTMLV2 using winOptions:')
 
       // Test to see if requested window dimensions would exceed screen dimensions; if so reduce them accordingly
       logDebug('showHTMLV2', `- screen dimensions are ${String(screenWidth)} x ${String(screenHeight)} for device ${NotePlan.environment.machineName}`)

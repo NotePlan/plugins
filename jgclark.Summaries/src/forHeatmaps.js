@@ -5,6 +5,11 @@
 // Jonathan Clark, @jgclark
 // Last updated 2026-02-03 for v1.1.0 by @jgclark
 //-----------------------------------------------------------------------------
+// Note: there is a ChartJS official-style plugin: kurkle/chartjs-chart-matrix
+// that also does Heatmaps.
+// This was either not available when I started this, or I couldn't see how to integrate it.
+// But now we do have ChartJS as part of this plugin, it's a future option.
+// It doesn't look to have lots of features, but looks solid enough, and actively maintained.
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'

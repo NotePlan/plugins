@@ -53,6 +53,27 @@ import { COMPLETED_TASK_TYPES } from '@helpers/utils'
 const chartJsCdnUrl = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 const chartJsLocalPath = './chart.umd.min.js'
 
+/** Divider/grid colors matching NPThemeToCSS (light #CDCFD0, dark #52535B). Used for chart axes and grid so canvas gets a real hex, as it can't use CSS variables. */
+const CHART_GRID_COLOR_LIGHT_MODE = '#33333355'
+const CHART_GRID_COLOR_DARK_MODE = '#CCCCCC55'
+/** Ditto for axis text color */
+const CHART_AXIS_TEXT_COLOR_LIGHT_MODE = '#333333'
+const CHART_AXIS_TEXT_COLOR_DARK_MODE = '#CCCCCC'
+
+/**
+ * Get the chart grid/axis color from the current theme mode so Chart.js (canvas) receives a real hex.
+ * @returns {string} Hex color for grid and axis text
+ */
+function getChartGridColor(): string {
+  const mode = Editor.currentTheme?.mode
+  return mode === 'light' ? CHART_GRID_COLOR_LIGHT_MODE : CHART_GRID_COLOR_DARK_MODE
+}
+
+function getChartAxisTextColor(): string {
+  const mode = Editor.currentTheme?.mode
+  return mode === 'light' ? CHART_AXIS_TEXT_COLOR_LIGHT_MODE : CHART_AXIS_TEXT_COLOR_DARK_MODE
+}
+
 // Regex to detect time/duration form value: [H]H:MM only (e.g. 23:30, 9:05)
 const TIME_DURATION_PATTERN = /^[0-9]{1,2}:[0-9]{2}$/
 
@@ -127,11 +148,14 @@ export async function chartSummaryStats(daysBack?: number): Promise<void> {
     const windowOptions: HtmlWindowOptions = {
       customId: "jgclark.Summaries.chartSummaryStats",
       windowTitle: "Habit & Summary Charts",
-      autoTopPadding: true,
-      showReloadButton: false,
+      showInMainWindow: true,
       splitView: false,
       icon: "chart-line",
       iconColor: "amber-500",
+      autoTopPadding: true,
+      showReloadButton: true,
+      reloadCommandName: 'chartSummaryStats',
+      reloadPluginID: 'jgclark.Summaries',
       savedFilename: "habit-summary-charts.html",
       reuseUsersWindowRect: true,
       shouldFocus: false,
@@ -724,7 +748,7 @@ async function makeChartSummaryHTML(
   const yesNoCombinedHTML = generateYesNoCombinedContainer()
   const chartStyleVars = generateChartStyleVars(config)
 
-  // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures
+  // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures, .averageType, .chartGridColor
   // timeTags: tags that had at least one [H]H:MM value (sums/averages display in time format); fall back to user setting
   const configForWindowScripts = {
     colors,
@@ -735,7 +759,10 @@ async function makeChartSummaryHTML(
     ])),
     totalTags: config.chartTotalTags ?? [],
     nonZeroTags: parseChartNonZeroTags(config.chartNonZeroTags ?? '{}'),
-    significantFigures: config.chartSignificantFigures ?? 3
+    significantFigures: config.chartSignificantFigures ?? 3,
+    averageType: config.chartAverageType ?? 'moving',
+    chartGridColor: getChartGridColor(),
+    chartAxisTextColor: getChartAxisTextColor()
   }
   const script = generateClientScript(tagData, yesNoData, tags, yesNoHabits, configForWindowScripts)
 

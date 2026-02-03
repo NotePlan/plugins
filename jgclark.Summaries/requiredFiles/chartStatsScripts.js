@@ -15,6 +15,9 @@
 
   window.initChartStats = function(tagData, yesNoData, tags, yesNoHabits, config) {
     const colors = config.colors
+    // Canvas needs a real hex; plugin passes theme-based grid/axis color (fallback dark #52535B)
+    const gridColor = config.chartGridColor || '#52535B'
+    const axisTextColor = config.chartAxisTextColor || '#52535B'
 
     function formatToSigFigs(num, sigFigs) {
       if (num === 0) return '0'
@@ -106,6 +109,25 @@
       return result
     }
 
+    /**
+     * One dataset array per 7-day period, each with values only in that period (null elsewhere).
+     * Chart.js draws each dataset separately, so we get full horizontal segments per week with gaps between.
+     */
+    function calculatePeriodAverageSegments(data, windowSize) {
+      windowSize = windowSize ?? 7
+      const segments = []
+      for (let periodStart = 0; periodStart < data.length; periodStart += windowSize) {
+        const periodEnd = Math.min(periodStart + windowSize, data.length)
+        const slice = data.slice(periodStart, periodEnd)
+        const sum = slice.reduce((acc, val) => acc + val, 0)
+        const avg = slice.length > 0 ? sum / slice.length : null
+        const segment = new Array(data.length).fill(null)
+        for (let i = periodStart; i < periodEnd; i++) segment[i] = avg
+        segments.push(segment)
+      }
+      return segments
+    }
+
     function getRecentAverage(data, days) {
       days = days ?? 7
       const recentData = data.slice(-days).filter(val => val > 0)
@@ -113,6 +135,21 @@
       const sum = recentData.reduce((acc, val) => acc + val, 0)
       return sum / recentData.length
     }
+
+    /** Average of the last 7-day period (the period containing the most recent day). */
+    function getLastPeriodAverage(data, windowSize) {
+      windowSize = windowSize ?? 7
+      if (data.length === 0) return 0
+      const lastPeriodStart = Math.floor((data.length - 1) / windowSize) * windowSize
+      const slice = data.slice(lastPeriodStart)
+      const sum = slice.reduce((acc, val) => acc + val, 0)
+      return slice.length > 0 ? sum / slice.length : 0
+    }
+
+    const averageType = (config.averageType === 'none' || config.averageType === 'moving' || config.averageType === 'weekly')
+      ? config.averageType
+      : 'moving'
+    const avgLineLabel = averageType === 'weekly' ? 'weekly avg' : '7-day moving avg'
 
     const totals = tags.map((tag, i) =>
       tagData.counts[tag].reduce((sum, val) => sum + val, 0)
@@ -142,17 +179,24 @@
         document.getElementById('total-value-' + i).textContent = formatToSigFigs(total)
       }
       let avg
-      if (isTotalTag(tag)) {
-        const recentData = tagData.counts[tag].slice(-7)
-        const sum = recentData.reduce((acc, val) => acc + val, 0)
-        avg = sum / 7
+      const avgLabel = avgLineLabel + ': '
+      if (averageType === 'none') {
+        document.getElementById('avg' + i).textContent = '—'
       } else {
-        avg = getRecentAverage(tagData.counts[tag])
-      }
-      if (isTimeTag(tag)) {
-        document.getElementById('avg' + i).textContent = '7-day avg: ' + formatTime(avg)
-      } else {
-        document.getElementById('avg' + i).textContent = '7-day avg: ' + avg.toFixed(1)
+        if (averageType === 'weekly') {
+          avg = getLastPeriodAverage(tagData.counts[tag])
+        } else if (isTotalTag(tag)) {
+          const recentData = tagData.counts[tag].slice(-7)
+          const sum = recentData.reduce((acc, val) => acc + val, 0)
+          avg = sum / 7
+        } else {
+          avg = getRecentAverage(tagData.counts[tag])
+        }
+        if (isTimeTag(tag)) {
+          document.getElementById('avg' + i).textContent = avgLabel + formatTime(avg)
+        } else {
+          document.getElementById('avg' + i).textContent = avgLabel + avg.toFixed(1)
+        }
       }
     })
 
@@ -161,7 +205,10 @@
     tags.forEach((tag, index) => {
       const ctx = document.getElementById('chart' + index).getContext('2d')
       const data = tagData.counts[tag]
-      const movingAvg = calculateMovingAverage(data)
+      const avgData = averageType === 'moving'
+        ? calculateMovingAverage(data)
+        : null
+      const avgSegments = averageType === 'weekly' ? calculatePeriodAverageSegments(data) : null
       const nonZeroConfig = config.nonZeroTags[tag]
       const yAxisConfig = {
         beginAtZero: !nonZeroConfig,
@@ -171,35 +218,55 @@
       const colorIndex = index % colors.length
       const color = colors[colorIndex]
 
+      const datasets = [
+        {
+          type: 'bar',
+          label: tag,
+          data: data,
+          backgroundColor: color.bg,
+          borderColor: color.border,
+          borderWidth: 1,
+          barPercentage: 0.9,
+          categoryPercentage: 0.95,
+          order: 2
+        }
+      ]
+      if (averageType === 'moving' && avgData) {
+        datasets.push({
+          type: 'line',
+          label: avgLineLabel,
+          data: avgData,
+          borderColor: color.border,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          tension: 0.3,
+          order: 1
+        })
+      }
+      if (averageType === 'weekly' && avgSegments && avgSegments.length > 0) {
+        avgSegments.forEach(function(segmentData) {
+          datasets.push({
+            type: 'line',
+            label: avgLineLabel,
+            data: segmentData,
+            borderColor: color.border,
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0,
+            order: 1
+          })
+        })
+      }
+
       const chart = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: tagData.dates,
-          datasets: [
-            {
-              type: 'bar',
-              label: tag,
-              data: data,
-              backgroundColor: color.bg,
-              borderColor: color.border,
-              borderWidth: 1,
-              barPercentage: 0.9,
-              categoryPercentage: 0.95,
-              order: 2
-            },
-            {
-              type: 'line',
-              label: '7-day avg',
-              data: movingAvg,
-              borderColor: color.border,
-              backgroundColor: 'transparent',
-              borderWidth: 2,
-              pointRadius: 0,
-              pointHoverRadius: 4,
-              tension: 0.3,
-              order: 1
-            }
-          ]
+          datasets: datasets
         },
         options: {
           responsive: true,
@@ -224,8 +291,8 @@
                     return tag + ': ' + value.toFixed(1)
                   }
                   if (value !== null) {
-                    if (isTimeTag(tag)) return '7-day avg: ' + formatTime(value)
-                    return '7-day avg: ' + value.toFixed(1)
+                    if (isTimeTag(tag)) return avgLineLabel + ': ' + formatTime(value)
+                    return avgLineLabel + ': ' + value.toFixed(1)
                   }
                   return null
                 }
@@ -234,24 +301,20 @@
           },
           scales: {
             x: {
-              // grid: { display: false, color: '#3a3a3c' },
-              grid: { display: false, color: 'var(--border-color)' },
-              // ticks: { maxRotation: 45, minRotation: 45, font: { size: 10 }, color: '#98989d' }
-              ticks: { maxRotation: 45, minRotation: 45, font: { size: 10 }, color: 'var(--border-color)' }
+              grid: { display: false, color: gridColor },
+              ticks: { maxRotation: 45, minRotation: 45, font: { size: 10 }, color: axisTextColor }
             },
             y: {
               ...yAxisConfig,
               ticks: {
                 font: { size: 10 },
-                // color: '#98989d',
-                color: 'var(--border-color)',
+                color: axisTextColor,
                 callback: function(value) {
                   if (isTimeTag(tag) && value > 0) return formatTime(value)
                   return value
                 }
               },
-              // grid: { color: '#3a3a3c' }
-              grid: { color: 'var(--border-color)' }
+              grid: { color: gridColor }
             }
           }
         }
