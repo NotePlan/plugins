@@ -93,15 +93,16 @@ export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
 export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
 
 /**
+ * WARNING: Deprecated in favour of clearer named function 'todaysDateISOString' below.
  * Get today's date.
  * This uses local time, so shouldn't get TZ problems.
- * WARNING: Deprecated in favour of clearer named function 'todaysDateISOString' below.
  * @author @jgclark
  * @returns {string} YYYY-MM-DD
  */
 export function getTodaysDateHyphenated(): string {
   return moment().format('YYYY-MM-DD')
 }
+
 /**
  * Constant version of getTodaysDateHyphenated()
  * This uses local time, so shouldn't get TZ problems.
@@ -138,7 +139,11 @@ export function getJSDateStartOfToday(): Date {
 
 // Note: there are others in NPdateTime.js that use locale settings
 
-// Get current time in various ways
+/**
+ * Get current time in various ways
+ * @param {string} format - the format to use
+ * @returns {string} the formatted time
+ */
 export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => {
   if (format.includes('%')) {
     return strftime(format)
@@ -148,7 +153,11 @@ export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): strin
 
 // Note: there are others in NPdateTime.js that use locale settings
 
-// return datetime in UTC ISO format
+/**
+ * Return datetime in UTC ISO format
+ * This uses local time, so shouldn't get TZ problems.
+ * @returns {string} the datetime in UTC ISO format (YYYY-MM-DD HH:MM:SS)
+*/
 export const nowUTCShortDateTimeISOString: string = moment().toISOString().replace('T', ' ').slice(0, 16)
 
 // Note: See getNoteType in note.js to get the type of a note
