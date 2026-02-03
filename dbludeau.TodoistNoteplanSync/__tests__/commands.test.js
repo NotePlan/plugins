@@ -48,9 +48,9 @@ afterEach(() => {
 })
 
 // ============================================================================
-// syncStatusOnly
+// syncStatus
 // ============================================================================
-describe('syncStatusOnly', () => {
+describe('syncStatus', () => {
   describe('NP done + Todoist open → closes Todoist', () => {
     test('should close Todoist task when NP task is marked done', async () => {
       // Set up a note with a done task that has a Todoist link
@@ -81,7 +81,7 @@ describe('syncStatusOnly', () => {
           response: JSON.stringify({
             id: '12345',
             content: 'Task 1',
-            is_completed: false, // Todoist task is open
+            checked: false, // Todoist task is open
           }),
         },
         // closeTodoistTask endpoint
@@ -101,7 +101,7 @@ describe('syncStatusOnly', () => {
         return fm.fetch(url, opts)
       }
 
-      await mainFile.syncStatusOnly()
+      await mainFile.syncStatus()
 
       expect(fetchedTaskId).toBe('12345')
       expect(closeTaskCalled).toBe(true)
@@ -136,14 +136,14 @@ describe('syncStatusOnly', () => {
           response: JSON.stringify({
             id: '12345',
             content: 'Task 1',
-            is_completed: true, // Todoist task is completed
+            checked: true, // Todoist task is completed
           }),
         },
       ])
 
       global.fetch = (url, opts) => fm.fetch(url, opts)
 
-      await mainFile.syncStatusOnly()
+      await mainFile.syncStatus()
 
       // The paragraph type should be updated to 'done'
       expect(Editor.updateParagraph).toHaveBeenCalled()
@@ -173,7 +173,7 @@ describe('syncStatusOnly', () => {
           response: JSON.stringify({
             id: '12345',
             content: 'Task 1',
-            is_completed: true, // Both are done
+            checked: true, // Both are done
           }),
         },
       ])
@@ -185,7 +185,7 @@ describe('syncStatusOnly', () => {
         return fm.fetch(url, opts)
       }
 
-      await mainFile.syncStatusOnly()
+      await mainFile.syncStatus()
 
       // Should not call close (already done) or update (already matches)
       expect(closeTaskCalled).toBe(false)
@@ -213,7 +213,7 @@ describe('syncStatusOnly', () => {
           response: JSON.stringify({
             id: '12345',
             content: 'Task 1',
-            is_completed: false, // Both are open
+            checked: false, // Both are open
           }),
         },
       ])
@@ -225,7 +225,7 @@ describe('syncStatusOnly', () => {
         return fm.fetch(url, opts)
       }
 
-      await mainFile.syncStatusOnly()
+      await mainFile.syncStatus()
 
       expect(closeTaskCalled).toBe(false)
       expect(Editor.updateParagraph).not.toHaveBeenCalled()
@@ -245,7 +245,7 @@ describe('syncStatusOnly', () => {
       const note = new Note({ paragraphs })
       Editor.note = note
 
-      await mainFile.syncStatusOnly()
+      await mainFile.syncStatus()
 
       expect(CommandBar.prompt).toHaveBeenCalledWith(
         'Status Sync Complete',
@@ -283,7 +283,7 @@ describe('syncStatusOnly', () => {
       const fm = new FetchMock([
         {
           match: { url: 'tasks/11111' },
-          response: JSON.stringify({ id: '11111', is_completed: false }), // Open in Todoist
+          response: JSON.stringify({ id: '11111', checked: false }), // Open in Todoist
         },
         {
           match: { url: 'tasks/11111/close' },
@@ -291,11 +291,11 @@ describe('syncStatusOnly', () => {
         },
         {
           match: { url: 'tasks/22222' },
-          response: JSON.stringify({ id: '22222', is_completed: true }), // Done in Todoist
+          response: JSON.stringify({ id: '22222', checked: true }), // Done in Todoist
         },
         {
           match: { url: 'tasks/33333' },
-          response: JSON.stringify({ id: '33333', is_completed: false }), // Open in Todoist
+          response: JSON.stringify({ id: '33333', checked: false }), // Open in Todoist
         },
       ])
 
@@ -306,7 +306,7 @@ describe('syncStatusOnly', () => {
         return fm.fetch(url, opts)
       }
 
-      await mainFile.syncStatusOnly()
+      await mainFile.syncStatus()
 
       // Task 1: NP done, Todoist open → should close in Todoist
       expect(closeCalls).toBe(1)
@@ -533,7 +533,7 @@ describe('convertToTodoistTask', () => {
 // Edge Cases and Error Handling
 // ============================================================================
 describe('Error handling', () => {
-  test('syncStatusOnly should handle API errors gracefully', async () => {
+  test('syncStatus should handle API errors gracefully', async () => {
     const para = createMockParagraph({
       type: 'done',
       content: 'Task [^](https://app.todoist.com/app/task/12345)',
@@ -549,7 +549,7 @@ describe('Error handling', () => {
     }
 
     // Should not throw
-    await expect(mainFile.syncStatusOnly()).resolves.not.toThrow()
+    await expect(mainFile.syncStatus()).resolves.not.toThrow()
     expect(CommandBar.prompt).toHaveBeenCalled()
   })
 
@@ -562,10 +562,10 @@ describe('Error handling', () => {
     // The function should return early
   })
 
-  test('syncStatusOnly should handle no note open', async () => {
+  test('syncStatus should handle no note open', async () => {
     Editor.note = null
 
-    await mainFile.syncStatusOnly()
+    await mainFile.syncStatus()
 
     // Should not throw
   })
@@ -575,7 +575,7 @@ describe('Error handling', () => {
 // Cancelled task handling
 // ============================================================================
 describe('Cancelled tasks', () => {
-  test('syncStatusOnly should close Todoist task when NP task is cancelled', async () => {
+  test('syncStatus should close Todoist task when NP task is cancelled', async () => {
     const para = createMockParagraph({
       type: 'cancelled', // NotePlan task is cancelled
       content: 'Cancelled task [^](https://app.todoist.com/app/task/12345)',
@@ -592,7 +592,7 @@ describe('Cancelled tasks', () => {
         match: { url: 'tasks/12345' },
         response: JSON.stringify({
           id: '12345',
-          is_completed: false, // Todoist is still open
+          checked: false, // Todoist is still open
         }),
       },
       {
@@ -608,7 +608,7 @@ describe('Cancelled tasks', () => {
       return fm.fetch(url, opts)
     }
 
-    await mainFile.syncStatusOnly()
+    await mainFile.syncStatus()
 
     // Cancelled in NP should also close in Todoist
     expect(closeCalled).toBe(true)
