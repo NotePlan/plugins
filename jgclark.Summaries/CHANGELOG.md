@@ -2,11 +2,17 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
 ## [1.1.0.b1] - 2026-02-02 (private beta)
-- Added **/Chart Summary Stats** command. This ???. (It was prototyped by @grdn and then integrated, updated and made maintainable by @jgclark.)
-### Significant changes since prototype
+- Added **/Chart Summary Stats** command. This shows your **progress update** as beautifully-presented charts and statistics in a window. (It was prototyped by @grdn and then integrated, updated and made maintainable by @jgclark.)
+- Renamed two commands:
+  - **/period stats** (was /periodStats)
+  - **/progress update** (was /appendProgressUpdate)
+
+### Significant changes since @grdn's prototype
 - Added to NP sidebar
 - Moved all configuration from code to settings system
-- Simplified specifying colors for charts, and added Tailwind color support.
+- Simplified specifying colors for charts, and added Tailwind color support
+- Removed 'timeline' option
+- Now styled by the helper-provided Theme translation, and therefore removed unncessary dark/light toggle
 - Chart stats now track which tags include any time-based values and display their sums and averages in HH:MM format (not decimal) in the summary and tooltips.  This can be overriden by the "Tags to display using time format" setting.
 -  yes/no habits can be specified in a calendar note as either:
   - the habit as a completed task or checklist item;

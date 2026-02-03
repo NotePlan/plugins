@@ -58,7 +58,7 @@ export type SummariesConfig = {
   chartTotalTags?: Array<string>,
   chartNonZeroTags?: string, // JSON object string, parse in chartStats  e.g. "{ \"@bedtime\":{\"min\":20,\"max\":24}, \"@sleep\":{\"min\":5,\"max\":10} }"
   chartSignificantFigures?: number,
-  chartYesNoHabits?: Array<string>,
+  // chartYesNoHabits?: Array<string>,
   chartYesNoChartHeight?: number,
   // chart colors: single comma-separated string
   chartColors?: string,

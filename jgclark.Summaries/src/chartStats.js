@@ -9,7 +9,7 @@
  *
  * Note: 
  * - First now taken from .chartTimeTags and .chartTotalTags, but could be taken from .progressMentions, .progressHashtags, .progressHashtagsAverage, .progressHashtagsTotal, .progressMentionsAverage, .progressMentionsTotal
- * - Second now from .chartYesNoHabits, but could be from existing .progressYesNo
+ * - Second now not from .chartYesNoHabits, but could from earlier .progressYesNo
  *
  * Last updated: 2026-02-01 for v1.1.0 by @jgclark
  */
@@ -119,7 +119,7 @@ export async function chartSummaryStats(daysBack?: number): Promise<void> {
     const tags = [...config.progressMentions, ...config.progressHashtags, ...config.progressHashtagsAverage, ...config.progressHashtagsTotal, ...config.progressMentionsAverage, ...config.progressMentionsTotal]
     // clo(tags, 'tags')
 
-    const yesNoHabits = config.chartYesNoHabits ?? []
+    const yesNoHabits = config.progressYesNo ?? []
     const tagData = await collectTagData(tags, daysToShow)
     const yesNoData = await collectYesNoData(yesNoHabits, daysToShow)
     const html = await makeChartSummaryHTML(tagData, yesNoData, tags, yesNoHabits, daysToShow, config)
