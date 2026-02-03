@@ -97,9 +97,15 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     const maxInSection = config.maxItemsToShowInSection
 
     // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
-    const searchResultSet: resultOutputType = await extendedSearch(searchTermsStr, searchOptions)
-    const searchTermsRep = searchResultSet.searchTermsRepArr.join(' ')
-    const resultNALs: Array<noteAndLine> = searchResultSet.resultNoteAndLineArr
+    // Note: Handle both V2 (searchTermsRepArr) and V3 (searchTermsStr) return types. TEST: Works for v2.
+    const searchResultSet: any = await extendedSearch(searchTermsStr, searchOptions)
+    if (!searchResultSet) {
+      logError('getSearchResults', 'extendedSearch returned null/undefined')
+      return []
+    }
+    // V3 uses searchTermsStr (string), V2 uses searchTermsRepArr (Array<string>)
+    const searchTermsRep = searchResultSet.searchTermsStr ?? (searchResultSet.searchTermsRepArr ? searchResultSet.searchTermsRepArr.join(' ') : searchTermsStr)
+    const resultNALs: Array<noteAndLine> = searchResultSet.resultNoteAndLineArr ?? []
     logDebug('getSearchResults', `- found ${resultNALs.length} items from [${searchTermsRep}]`)
     logTimer('getSearchResults', startTime, `- finished search for [${searchTermsRep}]`)
 
