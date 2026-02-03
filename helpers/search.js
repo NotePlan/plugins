@@ -6,7 +6,7 @@
 
 // import { trimString } from '@helpers/dataManipulation'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { RE_SYNC_MARKER } from '@helpers/regex'
+import { RE_NP_HASHTAG_G, RE_NP_MENTION_G, RE_SYNC_MARKER } from '@helpers/regex'
 
 /**
  * Case insensitive array.includes() match
@@ -238,7 +238,7 @@ export function getCorrectedHashtagsFromNote(note: TNote): Array<string> {
   // - Valid hashtags start with #, then at least one word character, and can include word chars, digits, / or - (but not spaces)
   // - Not preceded by word chars, but don't depend on \b (as # isn't a word char).
   // - Stop at first non-valid hashtag char.
-  const hashtagsInNote = noteText.match(/(?:^|[^A-Za-z0-9_])(#(?:[\w\d]+(?:[\/\-][\w\d]+)*))/g) ?? []
+  const hashtagsInNote = noteText.match(RE_NP_HASHTAG_G) ?? []
   for (const hashtag of hashtagsInNote) {
     correctedHashtags.push(hashtag.trim())
   }
@@ -272,16 +272,33 @@ export function getFullLengthHashtagsFromList(hashtagsIn: Array<string>): Array<
 /**
  * Version of note.mentions to use. Deals with the API bug 
  * where @one/two/three gets reported as '@one', '@one/two', and '@one/two/three'. Instead this reports just as '@one/two/three'.
+ * Note: Includes '(...)' suffixes for numeric/time/intervals, e.g. '@steps(8123)', '@sleep(7:30)', '@review(1w)'.
  * @param {TNote} note
  * @returns {Array<string>}
  */
 export function getCorrectedMentionsFromNote(note: TNote): Array<string> {
   // First get the mentions from the note (using the API)
+  // V1
   // $FlowFixMe[incompatible-type] note.mentions is read-only
-  const reportedMentions: Array<string> = note.mentions ?? []
+  // const reportedMentions: Array<string> = note.mentions ?? []
   // Then dedupe the shorter versions of longer ones
-  const dedupedMentions = getFullLengthMentionsFromList(reportedMentions)
-  return dedupedMentions
+  // const dedupedMentions = getFullLengthMentionsFromList(reportedMentions)
+
+  // V2
+  const correctedMentions: Array<string> = []
+  // Read whole note text, and then look for all mentions in it.
+  // $FlowFixMe[incompatible-type] note.rawContent is read-only
+  const noteText: string = note.content ?? ''
+  // Correct regex to match every valid mention, including multi-part mentions like @one/two/three or @one-two/three-four
+  // - Valid mentions start with @, then at least one word character, and can include word chars, digits, / or - (but not spaces)
+  // - May optionally end with a '(...)' suffix containing word, numeric or punctuation characters (colon, dash, point), but not spaces.
+  // - Not preceded by word chars, but don't depend on \b (as @ isn't a word char).
+  // - Stop at first non-valid mention char.
+  const mentionsInNoteMatches = noteText.matchAll(RE_NP_MENTION_G)
+  for (const m of mentionsInNoteMatches) {
+    correctedMentions.push(m[1].trim())
+  }
+  return correctedMentions
 }
 
 /**
