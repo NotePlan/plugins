@@ -1210,21 +1210,42 @@ export function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Ar
  */
 async function fetchProjectSections(projectId: string): Promise<Map<string, string>> {
   const sectionMap: Map<string, string> = new Map()
+  let cursor = null
+  let pageCount = 0
+
   try {
-    const result = await fetch(`${todo_api}/sections?project_id=${projectId}`, getRequestObject())
-    const parsed = JSON.parse(result)
+    do {
+      pageCount++
+      const url = cursor
+        ? `${todo_api}/sections?project_id=${projectId}&cursor=${cursor}`
+        : `${todo_api}/sections?project_id=${projectId}`
+      logDebug(pluginJson, `fetchProjectSections: Fetching page ${pageCount} from ${url}`)
+      const result = await fetch(url, getRequestObject())
+      const parsed = JSON.parse(result)
 
-    // Handle both array and {results: [...]} formats
-    const sections = Array.isArray(parsed) ? parsed : (parsed.results || [])
+      // Handle both array and {results: [...]} formats
+      const sections = Array.isArray(parsed) ? parsed : (parsed.results || [])
 
-    if (sections && Array.isArray(sections)) {
-      sections.forEach((section) => {
-        if (section.id && section.name) {
-          sectionMap.set(section.id, section.name)
-        }
-      })
-    }
-    logDebug(pluginJson, `Found ${sectionMap.size} sections for project ${projectId}`)
+      if (sections && Array.isArray(sections)) {
+        sections.forEach((section) => {
+          if (section.id && section.name) {
+            sectionMap.set(section.id, section.name)
+          }
+        })
+      }
+
+      // Check for next page
+      cursor = parsed?.next_cursor || null
+      logDebug(pluginJson, `fetchProjectSections: Page ${pageCount} returned ${sections?.length || 0} sections. Total: ${sectionMap.size}. Has more: ${!!cursor}`)
+
+      // Safety limit
+      if (pageCount >= 10) {
+        logWarn(pluginJson, `fetchProjectSections: Reached safety limit of 10 pages.`)
+        break
+      }
+    } while (cursor)
+
+    logDebug(pluginJson, `Found ${sectionMap.size} sections for project ${projectId} across ${pageCount} page(s)`)
   } catch (error) {
     logWarn(pluginJson, `Failed to fetch sections for project ${projectId}: ${String(error)}`)
   }
@@ -1290,11 +1311,7 @@ function addSectionHeading(note: TNote, sectionName: string, projectHeadingLevel
  * @returns {Promise<void>}
  */
 async function projectSync(note: TNote, id: string, filterOverride: ?string, multiProjectContext: ?MultiProjectContext = null, isEditorNote: boolean = false): Promise<void> {
-  const task_result = await pullTodoistTasksByProject(id, filterOverride)
-  const parsed = JSON.parse(task_result)
-
-  // Handle both response formats: {results: [...]} or plain array [...]
-  const taskList = parsed.results || parsed || []
+  const taskList = await pullTodoistTasksByProject(id, filterOverride)
 
   if (!taskList || taskList.length === 0) {
     logInfo(pluginJson, `No tasks found for project ${id}`)
@@ -1363,37 +1380,69 @@ async function projectSync(note: TNote, id: string, filterOverride: ?string, mul
 }
 
 /**
- * Pull todoist tasks from list matching the ID provided
+ * Pull todoist tasks from list matching the ID provided.
+ * Handles pagination to fetch all tasks.
  *
  * @param {string} project_id - the id of the Todoist project
  * @param {string} filterOverride - optional date filter override (bypasses setting)
- * @returns {Promise<any>} - promise that resolves into array of task objects or null
+ * @returns {Promise<Array<Object>>} - promise that resolves into array of task objects
  */
-async function pullTodoistTasksByProject(project_id: string, filterOverride: ?string): Promise<any> {
-  if (project_id !== '') {
-    const filterParts: Array<string> = []
-
-    // Add date filter: use override if provided, otherwise use setting
-    const dateFilter = filterOverride ?? setup.projectDateFilter
-    if (dateFilter && dateFilter !== 'all') {
-      filterParts.push(dateFilter)
-    }
-
-    // Always filter to exclude tasks assigned to others
-    filterParts.push('!assigned to: others')
-
-    // Build the URL with proper encoding
-    let url = `${todo_api}/tasks?project_id=${project_id}`
-    if (filterParts.length > 0) {
-      const filterString = filterParts.join(' & ')
-      url = `${url}&filter=${encodeURIComponent(filterString)}`
-    }
-
-    logDebug(pluginJson, `Fetching tasks from URL: ${url}`)
-    const result = await fetch(url, getRequestObject())
-    return result
+async function pullTodoistTasksByProject(project_id: string, filterOverride: ?string): Promise<Array<Object>> {
+  if (project_id === '') {
+    return []
   }
-  return null
+
+  const allTasks: Array<Object> = []
+  let cursor = null
+  let pageCount = 0
+
+  const filterParts: Array<string> = []
+
+  // Add date filter: use override if provided, otherwise use setting
+  const dateFilter = filterOverride ?? setup.projectDateFilter
+  if (dateFilter && dateFilter !== 'all') {
+    filterParts.push(dateFilter)
+  }
+
+  // Always filter to exclude tasks assigned to others
+  filterParts.push('!assigned to: others')
+
+  // Build the base URL
+  let baseUrl = `${todo_api}/tasks?project_id=${project_id}`
+  if (filterParts.length > 0) {
+    const filterString = filterParts.join(' & ')
+    baseUrl = `${baseUrl}&filter=${encodeURIComponent(filterString)}`
+  }
+
+  try {
+    do {
+      pageCount++
+      const url = cursor ? `${baseUrl}&cursor=${encodeURIComponent(cursor)}` : baseUrl
+      logDebug(pluginJson, `pullTodoistTasksByProject: Fetching page ${pageCount} from URL: ${url}`)
+      const result = await fetch(url, getRequestObject())
+      const parsed = JSON.parse(result)
+
+      // Handle both response formats: {results: [...]} or plain array [...]
+      const tasks = Array.isArray(parsed) ? parsed : (parsed.results || [])
+      allTasks.push(...tasks)
+
+      // Check for next page
+      cursor = parsed?.next_cursor || null
+      logDebug(pluginJson, `pullTodoistTasksByProject: Page ${pageCount} returned ${tasks.length} tasks. Total: ${allTasks.length}. Has more: ${!!cursor}`)
+
+      // Safety limit
+      if (pageCount >= 50) {
+        logWarn(pluginJson, `pullTodoistTasksByProject: Reached safety limit of 50 pages.`)
+        break
+      }
+    } while (cursor)
+
+    logInfo(pluginJson, `pullTodoistTasksByProject: Fetched ${allTasks.length} tasks across ${pageCount} page(s) for project ${project_id}`)
+  } catch (error) {
+    logError(pluginJson, `pullTodoistTasksByProject: Failed to fetch tasks: ${String(error)}`)
+  }
+
+  return allTasks
 }
 
 /**
@@ -1956,33 +2005,51 @@ function reviewExistingNoteplanTasks(note: TNote) {
 
 /**
  * Get Todoist projects and synchronize tasks.
+ * Handles pagination to fetch all projects.
  *
  * @returns {Array<Object>}
  */
 async function getTodoistProjects() {
   const project_list = []
+  let cursor = null
+  let pageCount = 0
+
   try {
-    logDebug(pluginJson, `getTodoistProjects: Fetching from ${todo_api}/projects`)
-    const results = await fetch(`${todo_api}/projects`, getRequestObject())
-    logDebug(pluginJson, `getTodoistProjects: Raw response type: ${typeof results}`)
-    const parsed = JSON.parse(results)
-    logDebug(pluginJson, `getTodoistProjects: Parsed response keys: ${Object.keys(parsed || {}).join(', ')}`)
+    do {
+      pageCount++
+      const url = cursor ? `${todo_api}/projects?cursor=${cursor}` : `${todo_api}/projects`
+      logDebug(pluginJson, `getTodoistProjects: Fetching page ${pageCount} from ${url}`)
+      const results = await fetch(url, getRequestObject())
+      logDebug(pluginJson, `getTodoistProjects: Raw response type: ${typeof results}`)
+      const parsed = JSON.parse(results)
+      logDebug(pluginJson, `getTodoistProjects: Parsed response keys: ${Object.keys(parsed || {}).join(', ')}`)
 
-    // Handle both array and {results: [...]} formats
-    const projects = Array.isArray(parsed) ? parsed : (parsed?.results || parsed)
+      // Handle both array and {results: [...]} formats
+      const projects = Array.isArray(parsed) ? parsed : (parsed?.results || parsed)
 
-    if (projects && Array.isArray(projects)) {
-      projects.forEach((project) => {
-        logDebug(pluginJson, `Project name: ${project.name} Project ID: ${project.id}`)
-        project_list.push({ project_name: project.name, project_id: project.id })
-      })
-    } else {
-      logWarn(pluginJson, `getTodoistProjects: Unexpected response format: ${JSON.stringify(parsed).substring(0, 200)}`)
-    }
+      if (projects && Array.isArray(projects)) {
+        projects.forEach((project) => {
+          logDebug(pluginJson, `Project name: ${project.name} Project ID: ${project.id}`)
+          project_list.push({ project_name: project.name, project_id: project.id })
+        })
+      } else {
+        logWarn(pluginJson, `getTodoistProjects: Unexpected response format: ${JSON.stringify(parsed).substring(0, 200)}`)
+      }
+
+      // Check for next page
+      cursor = parsed?.next_cursor || null
+      logDebug(pluginJson, `getTodoistProjects: Page ${pageCount} returned ${projects?.length || 0} projects. Total so far: ${project_list.length}. Has more: ${!!cursor}`)
+
+      // Safety limit to prevent infinite loops
+      if (pageCount >= 20) {
+        logWarn(pluginJson, `getTodoistProjects: Reached safety limit of 20 pages. Stopping pagination.`)
+        break
+      }
+    } while (cursor)
   } catch (error) {
     logError(pluginJson, `getTodoistProjects: Failed to fetch projects: ${String(error)}`)
   }
-  logDebug(pluginJson, `getTodoistProjects: Returning ${project_list.length} projects`)
+  logInfo(pluginJson, `getTodoistProjects: Returning ${project_list.length} projects across ${pageCount} page(s)`)
   return project_list
 }
 
