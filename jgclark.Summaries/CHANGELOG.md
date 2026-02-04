@@ -5,7 +5,8 @@
 - removed setting "Yes/No chart height (px)" as it wasn't being used
 - used user's locale rather than 'en-US' in formatting chart labels
 - disabled the many checkboxes at the top of the window
-- 
+- also show the averages and totals (where relevant) in the header of the bar charts
+- revert grid and background colours in charts to what prototype had
 
 ## [1.1.0.b3] - 2026-02-03 (private beta)
 - **Chart Summary Stats**: new setting **Chart average line** with options: no average, 7-day moving average, or average of each successive weekly period.

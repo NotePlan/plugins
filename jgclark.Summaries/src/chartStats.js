@@ -519,7 +519,7 @@ function collectYesNoData(habits: Array<string>, daysBack: number): Object {
         // Debug: Log found values for recent dates
         const isRecent = dates.indexOf(dateStr) > dates.length - 4
         if (isRecent) {
-          clo(values, `collectYesNoData :: extracted values for ${dateStr}`)
+          // clo(values, `collectYesNoData :: extracted values for ${dateStr}`)
         }
       }
     }
@@ -634,7 +634,12 @@ function generateChartContainers(tags: Array<string>): string {
         <div class="chart-wrapper" id="wrapper${i}">
           <div class="chart-header">
             <div class="chart-title">${tag}</div>
-            <div class="chart-avg" id="avg${i}">7-day avg: 0</div>
+            <div class="chart-header-metrics">
+              <span class="stat-label">avg:</span>
+              <span class="stat-value chart-header-avg-value" id="chart-header-avg-value-${i}"></span>
+              <span class="stat-label">total:</span>
+              <span class="stat-value chart-header-total-value" id="chart-header-total-value-${i}"></span>
+            </div>
           </div>
           <div class="chart-container">
             <canvas id="chart${i}"></canvas>
@@ -813,6 +818,7 @@ async function makeChartSummaryHTML(
             <input type="number" id="days-input" class="days-input" value="${daysBack}" min="1" max="365" onkeypress="if(event.key==='Enter')updateDays()">
             <button class="update-btn" onclick="updateDays()">Update</button>
           </div>
+        </div>
 
           <!--
           <button class="collapsible-toggle" onclick="toggleFilters()">
@@ -852,7 +858,7 @@ ${totalSelectorsHTML}
           -->
       </div>
     </div>
-    
+
     <div class="charts-container">
 ${yesNoCombinedHTML}
     </div>
@@ -874,8 +880,6 @@ ${totalStatsHTML}
         </div>
       </div>
     </div>
-  </div>
-
 
 <!--
      <div class="section-header h2">

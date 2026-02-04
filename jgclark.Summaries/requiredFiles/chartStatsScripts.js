@@ -157,54 +157,95 @@
     )
 
     tags.forEach((tag, i) => {
+      let avgDisplay = ''
+      let totalDisplay = ''
       const validData = tagData.counts[tag].filter(val => val > 0)
       if (isTimeTag(tag)) {
+        avgDisplay = '--:--'
         if (validData.length > 0) {
           const avgValue = validData.reduce((sum, val) => sum + val, 0) / validData.length
-          document.getElementById('avg-value-' + i).textContent = formatTime(avgValue)
+          avgDisplay = formatTime(avgValue)
+        }
+        const avgValueEl = document.getElementById('avg-value-' + i)
+        if (avgValueEl) {
+          avgValueEl.textContent = avgDisplay
         } else {
-          document.getElementById('avg-value-' + i).textContent = '--:--'
+          console.log('avg-value-[' + i + '] not found')
         }
       } else {
+        avgDisplay = '0'
         if (validData.length > 0) {
           const avgValue = validData.reduce((sum, val) => sum + val, 0) / validData.length
-          document.getElementById('avg-value-' + i).textContent = formatToSigFigs(avgValue)
+          avgDisplay = formatToSigFigs(avgValue)
+        }
+        const avgValueEl = document.getElementById('avg-value-' + i)
+        if (avgValueEl) {
+          avgValueEl.textContent = avgDisplay
         } else {
-          document.getElementById('avg-value-' + i).textContent = '0'
+          console.log('avg-value-' + i + ' not found')
         }
       }
       const total = totals[i]
       if (isTimeTag(tag)) {
-        document.getElementById('total-value-' + i).textContent = total > 0 ? formatTime(total) : '0'
+        totalDisplay = total > 0 ? formatTime(total) : '0'
       } else {
-        document.getElementById('total-value-' + i).textContent = formatToSigFigs(total)
+        totalDisplay = formatToSigFigs(total)
+      }
+      const totalValueEl = document.getElementById('total-value-' + i)
+      if (totalValueEl) {
+        totalValueEl.textContent = totalDisplay
+      } else {
+        console.log('total-value-' + i + ' not found')
+      }
+      const totalLabelEl = document.getElementById('total-label-' + i)
+      if (totalLabelEl) {
+        totalLabelEl.textContent = 'total:'
+      } else {
+        console.log('total-label-' + i + ' not found')
       }
       let avg
       const avgLabel = avgLineLabel + ': '
-      if (averageType === 'none') {
-        document.getElementById('avg' + i).textContent = '—'
+      const avgEl = document.getElementById('avg' + i)
+      if (avgEl) {
+        if (averageType === 'none') {
+          avgEl.textContent = '—'
+        } else {
+          if (averageType === 'weekly') {
+            avg = getLastPeriodAverage(tagData.counts[tag])
+          } else if (isTotalTag(tag)) {
+            const recentData = tagData.counts[tag].slice(-7)
+            const sum = recentData.reduce((acc, val) => acc + val, 0)
+            avg = sum / 7
+          } else {
+            avg = getRecentAverage(tagData.counts[tag])
+          }
+          if (isTimeTag(tag)) {
+            avgEl.textContent = avgLabel + formatTime(avg)
+          } else {
+            avgEl.textContent = avgLabel + avg.toFixed(1)
+          }
+        }
       } else {
-        if (averageType === 'weekly') {
-          avg = getLastPeriodAverage(tagData.counts[tag])
-        } else if (isTotalTag(tag)) {
-          const recentData = tagData.counts[tag].slice(-7)
-          const sum = recentData.reduce((acc, val) => acc + val, 0)
-          avg = sum / 7
-        } else {
-          avg = getRecentAverage(tagData.counts[tag])
-        }
-        if (isTimeTag(tag)) {
-          document.getElementById('avg' + i).textContent = avgLabel + formatTime(avg)
-        } else {
-          document.getElementById('avg' + i).textContent = avgLabel + avg.toFixed(1)
-        }
+        console.log('avg' + i + ' not found')
+      }
+
+      // Also show per-tag totals/averages in the chart header (unique IDs to avoid clashing with stats section)
+      const headerStatAvgEl = document.getElementById('chart-header-avg-value-' + i)
+      if (headerStatAvgEl) {
+        headerStatAvgEl.textContent = avgDisplay
+      }
+      const headerStatTotalEl = document.getElementById('chart-header-total-value-' + i)
+      if (headerStatTotalEl) {
+        headerStatTotalEl.textContent = totalDisplay
       }
     })
 
     const charts = []
 
     tags.forEach((tag, index) => {
-      const ctx = document.getElementById('chart' + index).getContext('2d')
+      const canvas = document.getElementById('chart' + index)
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
       const data = tagData.counts[tag]
       const avgData = averageType === 'moving'
         ? calculateMovingAverage(data)
