@@ -7,7 +7,7 @@
  * 
  * Note: this file is run as a script in the Habits and Summaries window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
  * 
- * Last updated: 2026-02-01 for v1.1.0 by @jgclark
+ * Last updated: 2026-02-04 for v1.1.0 by @jgclark
  */
 
 (function() {
@@ -79,8 +79,9 @@
     }
     window.updateDays = updateDays
 
-    const savedTheme = localStorage.getItem('theme')
-    if (savedTheme === 'light') {
+    // Set initial theme for this window based on NotePlan's current theme mode
+    // (mode is detected on the plugin side using the same approach as helpers/NPThemeToCSS)
+    if (config && config.currentThemeMode === 'light') {
       document.body.classList.add('light-theme')
     }
 

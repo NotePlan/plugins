@@ -41,8 +41,10 @@ import { logAvailableSharedResources, logProvidedSharedResources } from '../../n
 import { getSummariesSettings } from './summaryHelpers.js'
 import type { SummariesConfig } from './summarySettings.js'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
+import { convertISOToYYYYMMDD } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
+import { getLocale } from '@helpers/NPConfiguration'
 import { COMPLETED_TASK_TYPES } from '@helpers/utils'
 
 // =====================================================================
@@ -54,7 +56,7 @@ const chartJsCdnUrl = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.um
 const chartJsLocalPath = './chart.umd.min.js'
 
 /** Divider/grid colors matching NPThemeToCSS (light #CDCFD0, dark #52535B). Used for chart axes and grid so canvas gets a real hex, as it can't use CSS variables. */
-const CHART_GRID_COLOR_LIGHT_MODE = '#33333355'
+const CHART_GRID_COLOR_LIGHT_MODE = '#33333344'
 const CHART_GRID_COLOR_DARK_MODE = '#CCCCCC55'
 /** Ditto for axis text color */
 const CHART_AXIS_TEXT_COLOR_LIGHT_MODE = '#333333'
@@ -185,22 +187,14 @@ function generateDateRange(daysBack: number): Array<string> {
 }
 
 /**
- * Convert YYYY-MM-DD to YYYYMMDD format for NotePlan API
- * @param {string} dateStr - Date in YYYY-MM-DD format
- * @returns {string} Date in YYYYMMDD format
- */
-function toNotePlanDateFormat(dateStr: string): string {
-  return dateStr.replace(/-/g, '')
-}
-
-/**
  * Format date for display
  * @param {string} dateStr - Date in YYYY-MM-DD format
  * @returns {string} Formatted date (e.g., "Jan 15")
  */
 function formatDateForDisplay(dateStr: string): string {
   const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const locale = getLocale({})
+  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
 }
 
 // ==================================================================
@@ -366,7 +360,7 @@ function initializeDataMap(dates: Array<string>, tags: Array<string>): Object {
 function getCalendarNote(dateStr: string): ?TNote {
   try {
     if (typeof DataStore.calendarNoteByDateString === 'function') {
-      const noteDateStr = toNotePlanDateFormat(dateStr)
+      const noteDateStr = convertISOToYYYYMMDD(dateStr)
       return DataStore.calendarNoteByDateString(noteDateStr)
     }
   } catch (error) {
@@ -671,6 +665,7 @@ function generateYesNoFilterCheckboxes(habits: Array<string>): string {
 function generateYesNoCombinedContainer(): string {
   return `
     <div class="chart-wrapper">
+      <div class="chart-title">Yes/No Habits</div>
       <div class="viz-display yesno-heatmap-section" id="yesno-heatmap-section"></div>
     </div>
 `
@@ -679,13 +674,14 @@ function generateYesNoCombinedContainer(): string {
 /**
  * Generate inline CSS variables for chart heights (from settings).
  * Main styles live in requiredFiles/chartStats.css and are loaded via link tag.
- * @param {SummariesConfig} config - Config with chartHeight, yesNoChartHeight (from settings)
+ * @param {SummariesConfig} config - Config with chartHeight (from settings)
  * @returns {string} Inline style string for :root
  */
 function generateChartStyleVars(config: SummariesConfig): string {
   const chartHeight = config.chartHeight ?? 180
-  const yesNoChartHeight = config.chartYesNoChartHeight ?? 120
-  return `:root { --chart-height: ${chartHeight}px; --yesno-chart-height: ${yesNoChartHeight}px; }`
+  // const yesNoChartHeight = config.chartYesNoChartHeight ?? 120
+  // return `:root { --chart-height: ${chartHeight}px; --yesno-chart-height: ${yesNoChartHeight}px; }`
+  return `:root { --chart-height: ${chartHeight}px; }`
 }
 
 /**
@@ -762,7 +758,9 @@ async function makeChartSummaryHTML(
     significantFigures: config.chartSignificantFigures ?? 3,
     averageType: config.chartAverageType ?? 'moving',
     chartGridColor: getChartGridColor(),
-    chartAxisTextColor: getChartAxisTextColor()
+    chartAxisTextColor: getChartAxisTextColor(),
+    // Use same theme-mode detection as NPThemeToCSS (via Editor.currentTheme.mode)
+    currentThemeMode: Editor.currentTheme?.mode ?? 'light'
   }
   const script = generateClientScript(tagData, yesNoData, tags, yesNoHabits, configForWindowScripts)
 
@@ -816,6 +814,7 @@ async function makeChartSummaryHTML(
             <button class="update-btn" onclick="updateDays()">Update</button>
           </div>
 
+          <!--
           <button class="collapsible-toggle" onclick="toggleFilters()">
             <span id="filter-toggle-icon">▼</span> Habit Filters
           </button>
@@ -850,40 +849,40 @@ ${totalSelectorsHTML}
             </div>
           </div>
         </div>
-      </div>
-
-      <div class="stats-wrapper">
-        <div class="stats-section">
-          <div class="section-title">Averages</div>
-          <div class="stats">
-${avgStatsHTML}
-          </div>
-        </div>
-
-        <div class="stats-section">
-          <div class="section-title">Totals</div>
-          <div class="stats">
-${totalStatsHTML}
-          </div>
-        </div>
+          -->
       </div>
     </div>
-
-    <div class="section-header h2">
-      <span>Yes/No Habits</span>
-      <span class="habit-type-badge">Completion Tracking</span>
-    </div>
-
+    
     <div class="charts-container">
 ${yesNoCombinedHTML}
     </div>
 
-    <div class="section-divider"></div>
+    <!-- <div class="section-divider"></div> -->
 
-    <div class="section-header h2">
-      <span>Numeric Habits</span>
-      <span class="habit-type-badge">Value Tracking</span>
+    <div class="stats-wrapper">
+      <div class="stats-section">
+        <div class="section-title">Averages</div>
+        <div class="stats">
+${avgStatsHTML}
+        </div>
+      </div>
+
+      <div class="stats-section">
+        <div class="section-title">Totals</div>
+        <div class="stats">
+${totalStatsHTML}
+        </div>
+      </div>
     </div>
+  </div>
+
+
+<!--
+     <div class="section-header h2">
+      <span>Numeric Habits</span>
+      <span class="habit-type-badge">Value Tracking</span> 
+    </div>
+-->
 
     <div class="charts-container">
 ${chartsHTML}

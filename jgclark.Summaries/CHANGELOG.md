@@ -1,6 +1,12 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [1.1.0.b4] - 2026-02-04 (private beta)
+- removed setting "Yes/No chart height (px)" as it wasn't being used
+- used user's locale rather than 'en-US' in formatting chart labels
+- disabled the many checkboxes at the top of the window
+- 
+
 ## [1.1.0.b3] - 2026-02-03 (private beta)
 - **Chart Summary Stats**: new setting **Chart average line** with options: no average, 7-day moving average, or average of each successive weekly period.
 - fix to grid and text colors in charts

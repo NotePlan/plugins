@@ -11,9 +11,9 @@
 }
 
 :root {
-  --bg-primary: /* #1c1c1e; */ var(--bg-main-color);
-  --bg-secondary: /* #2c2c2e; */ var(--bg-alt-color);
-  --bg-tertiary: /* #3a3a3c */ var(--bg-mid-color);
+  --bg-primary: #1c1c1e; /* var(--bg-main-color); */
+  --bg-secondary: #2c2c2e; /* var(--bg-alt-color); */
+  --bg-tertiary: #3a3a3c; /* var(--bg-mid-color); */
   --text-primary: /* #f5f5f7 */ var(--fg-main-color);
   --text-secondary: /* #98989d */ var(--fg-placeholder-color);
   --border-color: /* #3a3a3c */ var(--divider-color);
@@ -21,9 +21,9 @@
 }
 
 body.light-theme {
-  --bg-primary: /* #ffffff; */ var(--bg-main-color);
-  --bg-secondary: /* #f5f5f7 */ var(--bg-alt-color);
-  --bg-tertiary: /* #e5e5e7 */ var(--bg-mid-color);
+  --bg-primary:  #ffffff; /* var(--bg-main-color); */
+  --bg-secondary: #f5f5f7; /* var(--bg-alt-color); */
+  --bg-tertiary: #e5e5e7; /* var(--bg-mid-color); */
   --text-primary: /* #1c1c1e */ var(--fg-main-color);
   --text-secondary: /* #6e6e73 */ var(--fg-placeholder-color);
   --border-color: /* #d1d1d6 */ var(--divider-color);
@@ -137,8 +137,8 @@ h1 {
 
 .days-input {
   width: 70px;
-  padding: 6px 8px;
-  background: var(--bg-tertiary);
+  padding: 4px;
+  /* background: var(--bg-tertiary); */
   border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-primary);
@@ -327,6 +327,7 @@ h1 {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
+  padding-bottom: 0px;
 }
 
 .chart-avg {
@@ -475,7 +476,7 @@ canvas {
 
 /* Combined yes/no layout */
 .yesno-heatmap-section {
-  padding: 0.25rem 0.5rem;
+  padding: 1rem 0.5rem 0.25rem;
   column-gap: 1rem;
   row-gap: 0.5rem;
 

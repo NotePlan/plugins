@@ -349,24 +349,29 @@ export const getColorStyle = (color) => {
  * tailwindToRgba('#3b82f6', 0.5) // returns "rgba(59, 130, 246, 0.5)"
  */
 export function tailwindToRgbWithOpacity(color, opacity = 1) {
-  let hex = ''
-  // Check if it's a Tailwind color name (e.g., "amber-200")
-  if (/^[a-z]+-\d+$/i.test(color)) {
-    hex = TAILWIND_COLORS[color]
-  } else {
-    logWarn(`tailwindToRgba`, `Invalid Tailwind color name: ${color}`)
+  try {
+    let hex = ''
+    // Check if it's a Tailwind color name (e.g., "amber-200")
+    if (/^[a-z]+-\d+$/i.test(color)) {
+      hex = TAILWIND_COLORS[color]
+    } else {
+      logWarn(`tailwindToRgba`, `Invalid Tailwind color name: ${color}`)
+      return null
+    }
+
+    // Parse RGB values
+    const r = parseInt(hex.substring(0, 2), 16)
+    const g = parseInt(hex.substring(2, 4), 16)
+    const b = parseInt(hex.substring(4, 6), 16)
+    // If alpha channel is present (#RRGGBBAA), then return as is
+    if (opacity !== 1) {
+      return `rgb(${r} ${g} ${b} / ${opacity})`
+    }
+    return hex
+  } catch (error) {
+    logError(`tailwindToRgba`, `Error: ${error.message} for input color '${color}'`)
     return null
   }
-
-  // Parse RGB values
-  const r = parseInt(hex.substring(0, 2), 16)
-  const g = parseInt(hex.substring(2, 4), 16)
-  const b = parseInt(hex.substring(4, 6), 16)
-    // If alpha channel is present (#RRGGBBAA), then return as is
-  if (opacity !== 1) {
-    return `rgb(${r} ${g} ${b} / ${opacity})`
-  }
-  return hex
 }
 
 /**
@@ -382,13 +387,12 @@ export function tailwindToRgbWithOpacity(color, opacity = 1) {
  * tailwindToHsl('#3b82f6', true) // returns "hsla(217, 91%, 60%, 1)"
  */
 // NOTE: DO NOT FLOW TYPE THIS FUNCTION. IT IS IMPORTED BY JSX FILE AND FOR SOME REASON, ROLLUP CHOKES ON FLOW
-export const tailwindToHsl = (color, includeAlpha = false) => {
-  if (!color) {
-    logWarn(`tailwindToHsl`, `color is null or undefined`)
-    return null
-  }
-  
+export function tailwindToHsl(color, includeAlpha = false) {
   try {
+    if (!color) {
+      logWarn(`tailwindToHsl`, `color is null or undefined`)
+      return null
+    }  
     let colorValue = color
     
     // Check if it's a Tailwind color name (e.g., "amber-200")
@@ -435,60 +439,65 @@ export const tailwindToHsl = (color, includeAlpha = false) => {
  * @returns {string} RGBA color string
  */
 export function colorToModernSpecWithOpacity(colorIn, opacity = 1) {
-  let color = colorIn.trim().toLowerCase()
+  try {
+    let color = colorIn.trim().toLowerCase()
 
-  // First convert Tailwind color names to rgb()
-  if (/^\w+-\d+$/.test(color)) {
-    color = tailwindToRgbWithOpacity(color)
-  }
-
-  // If already rgb(), add opacity if needed
-  if (color.startsWith('rgb(') && opacity !== 1) {
-    // Convert rgb(r,g,b) or rgb(r g b) to rgb(r g b / opacity)
-    return color
-      .replace(',', ' ', 'g')
-      .replace(')', `, ${opacity})`)
-  }
-
-  // If already hsl(), overwrite opacity if needed
-  if (color.startsWith('hsl(') && opacity !== 1) {
-    // Convert hsl(h,s,l) or hsl(h s l) to hsl(h s l / opacity)
-    return color
-      .replace(',', ' ', 'g')
-      .replace(')', ` / ${opacity})`)
-  }
-
-  // If already rgba() return as-is
-  if (color.startsWith('rgba(')) {
-    return color
-  }
-
-  // Handle hex colors (#RGB, #RRGGBB, #RRGGBBAA)
-  if (color.startsWith('#')) {
-    let hex = color.substring(1)
-
-    // Expand shorthand #RGB to #RRGGBB
-    if (hex.length === 3) {
-      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2]
+    // First convert Tailwind color names to rgb()
+    if (/^\w+-\d+$/.test(color)) {
+      color = tailwindToRgbWithOpacity(color)
     }
 
-    // Parse RGB values
-    const r = parseInt(hex.substring(0, 2), 16)
-    const g = parseInt(hex.substring(2, 4), 16)
-    const b = parseInt(hex.substring(4, 6), 16)
-
-    // Check if alpha channel is present (#RRGGBBAA)
-    if (hex.length === 8) {
-      const a = parseInt(hex.substring(6, 8), 16) / 255
-      return `rgba(${r} ${g} ${b} / ${a})`
+    // If already rgb(), add opacity if needed
+    if (color.startsWith('rgb(') && opacity !== 1) {
+      // Convert rgb(r,g,b) or rgb(r g b) to rgb(r g b / opacity)
+      return color
+        .replace(',', ' ', 'g')
+        .replace(')', `, ${opacity})`)
     }
 
-    return `rgba(${r} ${g} ${b} / ${opacity})`
-  }
+    // If already hsl(), overwrite opacity if needed
+    if (color.startsWith('hsl(') && opacity !== 1) {
+      // Convert hsl(h,s,l) or hsl(h s l) to hsl(h s l / opacity)
+      return color
+        .replace(',', ' ', 'g')
+        .replace(')', ` / ${opacity})`)
+    }
 
-  // For named colors (red, blue, etc.), add opacity (if wanted) using color-mix()
-  if (opacity !== 1) {
-    return `color-mix(in srgb, ${color} ${opacity * 100}%, transparent)`
+    // If already rgba() return as-is
+    if (color.startsWith('rgba(')) {
+      return color
+    }
+
+    // Handle hex colors (#RGB, #RRGGBB, #RRGGBBAA)
+    if (color.startsWith('#')) {
+      let hex = color.substring(1)
+
+      // Expand shorthand #RGB to #RRGGBB
+      if (hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2]
+      }
+
+      // Parse RGB values
+      const r = parseInt(hex.substring(0, 2), 16)
+      const g = parseInt(hex.substring(2, 4), 16)
+      const b = parseInt(hex.substring(4, 6), 16)
+
+      // Check if alpha channel is present (#RRGGBBAA)
+      if (hex.length === 8) {
+        const a = parseInt(hex.substring(6, 8), 16) / 255
+        return `rgba(${r} ${g} ${b} / ${a})`
+      }
+
+      return `rgba(${r} ${g} ${b} / ${opacity})`
+    }
+
+    // For named colors (red, blue, etc.), add opacity (if wanted) using color-mix()
+    if (opacity !== 1) {
+      return `color-mix(in srgb, ${color} ${opacity * 100}%, transparent)`
+    }
+    return color
+  } catch (error) {
+    logError(`colorToModernSpecWithOpacity`, `Error: ${error.message} for input color '${colorIn}'`)
+    return null
   }
-  return color
 }

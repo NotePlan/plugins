@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Summary settings helper module for jgclark.Summaries plugin
-// Last updated: 2026-02-02 for v1.1.0 by @jgclark
+// Last updated: 2026-02-04 for v1.1.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -60,7 +60,7 @@ export type SummariesConfig = {
   chartSignificantFigures?: number,
   chartAverageType?: 'none' | 'moving' | 'period', // none | 7-day moving avg | 7-day period avg
   // chartYesNoHabits?: Array<string>,
-  chartYesNoChartHeight?: number,
+  // chartYesNoChartHeight?: number,
   // chart colors: single comma-separated string
   chartColors?: string,
 }
