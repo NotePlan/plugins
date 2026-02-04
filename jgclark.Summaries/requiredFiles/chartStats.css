@@ -32,7 +32,7 @@ body.light-theme {
 
 body {
   font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', sans-serif;
-  padding: 1.5rem;
+  padding: 1.0rem;
   background: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s, color 0.3s;
@@ -135,14 +135,17 @@ h1 {
 }
 
 .days-input-group label {
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
 }
 
+.days-input-group input {
+  font-weight: 400;
+}
+
 .days-input {
-  width: 70px;
   padding: 4px;
-  /* background: var(--bg-tertiary); */
+  background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-primary);
@@ -160,10 +163,9 @@ h1 {
   background: var(--accent-color);
   border: none;
   border-radius: 6px;
-  color: white;
+  color: var(--bg-primary);
   font-size: 0.9rem;
   cursor: pointer;
-  /* font-weight: 500; */
   transition: opacity 0.2s;
 }
 
@@ -194,9 +196,10 @@ h1 {
 
 .stats {
   display: flex;
+  flex-wrap: wrap;
   column-gap: 0.5rem;
   row-gap: 0.75rem;
-  flex-wrap: wrap;
+  margin-top: 0.5rem;
 }
 
 .stat {
@@ -304,13 +307,20 @@ h1 {
   /* text-transform: uppercase; */
   /* letter-spacing: 0.5px; */
   /* margin-top: 4px; */
+}
+
+.padleft {
   margin-left: 1rem;
+}
+
+.padright {
+  margin-right: 1rem;
 }
 
 .charts-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0rem;
 }
 
 .chart-wrapper {
@@ -318,12 +328,12 @@ h1 {
   border-radius: 8px;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
-  margin-bottom: 0rem;
+  margin-bottom: 1rem;
 }
 
 .chart-header {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   margin-bottom: 0.25rem;
 }
@@ -332,14 +342,20 @@ h1 {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
-  padding-bottom: 0px;
+  padding-bottom: 0;
+  line-height: 1;
 }
 
 .chart-header-metrics {
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: baseline;
   gap: 0.25rem;
+}
+
+.chart-header-metrics .stat-label,
+.chart-header-metrics .stat-value {
+  line-height: 1;
 }
 
 .chart-avg {

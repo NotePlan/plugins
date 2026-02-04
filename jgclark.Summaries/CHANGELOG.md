@@ -6,7 +6,11 @@
 - used user's locale rather than 'en-US' in formatting chart labels
 - disabled the many checkboxes at the top of the window
 - also show the averages and totals (where relevant) in the header of the bar charts
+- weekly average bars now always go Monday-Sunday
+- where a week has no data, prevent the weekly average bar from showing
 - revert grid and background colours in charts to what prototype had
+- update tooltips to show localised short date, including day name (e.g. "Sun, 8 Feb 2026")
+- further style tweaks
 
 ## [1.1.0.b3] - 2026-02-03 (private beta)
 - **Chart Summary Stats**: new setting **Chart average line** with options: no average, 7-day moving average, or average of each successive weekly period.

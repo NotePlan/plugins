@@ -56,8 +56,8 @@ const chartJsCdnUrl = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.um
 const chartJsLocalPath = './chart.umd.min.js'
 
 /** Divider/grid colors matching NPThemeToCSS (light #CDCFD0, dark #52535B). Used for chart axes and grid so canvas gets a real hex, as it can't use CSS variables. */
-const CHART_GRID_COLOR_LIGHT_MODE = '#33333344'
-const CHART_GRID_COLOR_DARK_MODE = '#CCCCCC55'
+const CHART_GRID_COLOR_LIGHT_MODE = '#33333322'
+const CHART_GRID_COLOR_DARK_MODE = '#CCCCCC22'
 /** Ditto for axis text color */
 const CHART_AXIS_TEXT_COLOR_LIGHT_MODE = '#333333'
 const CHART_AXIS_TEXT_COLOR_DARK_MODE = '#CCCCCC'
@@ -138,8 +138,16 @@ export async function chartSummaryStats(daysBack?: number): Promise<void> {
   try {
     const config = await getSummariesSettings()
     const daysToShow = daysBack ?? config.chartDefaultDaysBack ?? 30
-    // eslint-disable-next-line max-len
-    const tags = [...config.progressMentions, ...config.progressHashtags, ...config.progressHashtagsAverage, ...config.progressHashtagsTotal, ...config.progressMentionsAverage, ...config.progressMentionsTotal]
+    // Combine all tag settings and deduplicate (same tag in multiple settings would otherwise appear twice in Totals/charts)
+    const tagsRaw = [
+      ...config.progressMentions,
+      ...config.progressHashtags,
+      ...config.progressHashtagsAverage,
+      ...config.progressHashtagsTotal,
+      ...config.progressMentionsAverage,
+      ...config.progressMentionsTotal
+    ]
+    const tags = Array.from(new Set(tagsRaw))
     // clo(tags, 'tags')
 
     const yesNoHabits = config.progressYesNo ?? []
@@ -637,7 +645,7 @@ function generateChartContainers(tags: Array<string>): string {
             <div class="chart-header-metrics">
               <span class="stat-label">avg:</span>
               <span class="stat-value chart-header-avg-value" id="chart-header-avg-value-${i}"></span>
-              <span class="stat-label">total:</span>
+              <span class="stat-label padleft">total:</span>
               <span class="stat-value chart-header-total-value" id="chart-header-total-value-${i}"></span>
             </div>
           </div>
@@ -749,6 +757,12 @@ async function makeChartSummaryHTML(
   const yesNoCombinedHTML = generateYesNoCombinedContainer()
   const chartStyleVars = generateChartStyleVars(config)
 
+  // Tooltip titles: full localised date (e.g. "Sun, 8 Feb 2026") for each point, using moment + user locale
+  const rawDates = tagData.rawDates ?? []
+  const locale = getLocale({})
+  const tooltipTitles = rawDates.map((dateStr) => moment(dateStr).locale(locale).format('ddd, D MMM YYYY'))
+  const tagDataWithTooltips = { ...tagData, tooltipTitles }
+
   // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures, .averageType, .chartGridColor
   // timeTags: tags that had at least one [H]H:MM value (sums/averages display in time format); fall back to user setting
   const configForWindowScripts = {
@@ -767,7 +781,7 @@ async function makeChartSummaryHTML(
     // Use same theme-mode detection as NPThemeToCSS (via Editor.currentTheme.mode)
     currentThemeMode: Editor.currentTheme?.mode ?? 'light'
   }
-  const script = generateClientScript(tagData, yesNoData, tags, yesNoHabits, configForWindowScripts)
+  const script = generateClientScript(tagDataWithTooltips, yesNoData, tags, yesNoHabits, configForWindowScripts)
 
   // Chart.js: try CDN first, fall back to local bundled copy (requiredFiles/chart.umd.min.js)
   const chartJsLoaderScript = `

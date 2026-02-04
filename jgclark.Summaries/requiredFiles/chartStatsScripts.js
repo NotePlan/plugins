@@ -111,19 +111,59 @@
     }
 
     /**
-     * One dataset array per 7-day period, each with values only in that period (null elsewhere).
-     * Chart.js draws each dataset separately, so we get full horizontal segments per week with gaps between.
+     * Return YYYY-MM-DD of the Monday of the week containing the given date string.
+     * Week is Monday–Sunday. dateStr must be 'YYYY-MM-DD'.
      */
-    function calculatePeriodAverageSegments(data, windowSize) {
+    function getMondayOfWeek(dateStr) {
+      const d = new Date(dateStr + 'T12:00:00')
+      const day = d.getDay()
+      const daysSinceMonday = (day + 6) % 7
+      d.setDate(d.getDate() - daysSinceMonday)
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const dayOfMonth = String(d.getDate()).padStart(2, '0')
+      return y + '-' + m + '-' + dayOfMonth
+    }
+
+    /**
+     * One dataset array per calendar week (Monday–Sunday), each with values only in that week (null elsewhere).
+     * Segments are only included when the week has at least one non-zero, non-empty value.
+     * If dates is missing or length differs from data, falls back to fixed 7-day chunks (still skipping all-zero weeks).
+     */
+    function calculatePeriodAverageSegments(data, dates, windowSize) {
       windowSize = windowSize ?? 7
       const segments = []
-      for (let periodStart = 0; periodStart < data.length; periodStart += windowSize) {
-        const periodEnd = Math.min(periodStart + windowSize, data.length)
-        const slice = data.slice(periodStart, periodEnd)
-        const sum = slice.reduce((acc, val) => acc + val, 0)
+      const hasNonZero = (v) => v != null && !Number.isNaN(v) && Number(v) > 0
+
+      if (!dates || dates.length !== data.length) {
+        for (let periodStart = 0; periodStart < data.length; periodStart += windowSize) {
+          const periodEnd = Math.min(periodStart + windowSize, data.length)
+          const slice = data.slice(periodStart, periodEnd)
+          if (!slice.some(hasNonZero)) continue
+          const sum = slice.reduce((acc, val) => acc + (Number(val) || 0), 0)
+          const avg = slice.length > 0 ? sum / slice.length : null
+          const segment = new Array(data.length).fill(null)
+          for (let i = periodStart; i < periodEnd; i++) segment[i] = avg
+          segments.push(segment)
+        }
+        return segments
+      }
+
+      const weekToIndices = {}
+      for (let i = 0; i < dates.length; i++) {
+        const mon = getMondayOfWeek(dates[i])
+        if (!weekToIndices[mon]) weekToIndices[mon] = []
+        weekToIndices[mon].push(i)
+      }
+      const sortedMondays = Object.keys(weekToIndices).sort()
+      for (const mon of sortedMondays) {
+        const indices = weekToIndices[mon]
+        const slice = indices.map(function(i) { return data[i] })
+        if (!slice.some(hasNonZero)) continue
+        const sum = slice.reduce((acc, val) => acc + (Number(val) || 0), 0)
         const avg = slice.length > 0 ? sum / slice.length : null
         const segment = new Array(data.length).fill(null)
-        for (let i = periodStart; i < periodEnd; i++) segment[i] = avg
+        for (let k = 0; k < indices.length; k++) segment[indices[k]] = avg
         segments.push(segment)
       }
       return segments
@@ -250,7 +290,7 @@
       const avgData = averageType === 'moving'
         ? calculateMovingAverage(data)
         : null
-      const avgSegments = averageType === 'weekly' ? calculatePeriodAverageSegments(data) : null
+      const avgSegments = averageType === 'weekly' ? calculatePeriodAverageSegments(data, tagData.rawDates) : null
       const nonZeroConfig = config.nonZeroTags[tag]
       const yAxisConfig = {
         beginAtZero: !nonZeroConfig,
@@ -326,6 +366,12 @@
               titleFont: { size: 13, weight: '600' },
               bodyFont: { size: 12 },
               callbacks: {
+                title: function(context) {
+                  const dataIndex = context[0] && context[0].dataIndex
+                  const titles = tagData.tooltipTitles
+                  if (titles && dataIndex >= 0 && dataIndex < titles.length) return titles[dataIndex]
+                  return (tagData.dates && tagData.dates[dataIndex]) || ''
+                },
                 label: function(context) {
                   const value = context.parsed.y
                   if (context.datasetIndex === 0) {
