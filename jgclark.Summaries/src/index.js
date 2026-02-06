@@ -3,18 +3,16 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 16.2.2024 for v0.21.0
+// Last updated 2026-01-30 for v1.1.0.b1 by @jgclark
 //-----------------------------------------------------------------------------
 
-// export {
-//   testHeatMapGeneration1,
-//   testHeatMapGeneration2,
-//   testHeatMapGeneration3,
-// } from './testCharting'
+export {
+  chartSummaryStats,
+} from './chartStats'
 export {
   showTagHeatmap,
   showTaskCompletionHeatmap,
-  testJGCHeatmaps,
+  // testJGCHeatmaps,
 } from './forHeatmaps'
 export {
   testTaskGenStats,
@@ -30,6 +28,7 @@ export {
   todayProgressFromTemplate
 } from './todayProgress'
 export { statsPeriod } from './stats'
+export { getSummariesSettings } from './summarySettings'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
@@ -62,12 +61,11 @@ export async function onUpdateOrInstall(): Promise<void> {
     await backupSettings(pluginID, `before_onUpdateOrInstall-v${pluginJson['plugin.version']}`)
 
     // Migrate any necessary settings from v0.22.x to v1.0.0
-    // TODO: also remove old settings: excludeHashtags, excludeMentions
     const keysToChange = {
       // oldKey: newKey
       statsHeading: "PSStatsHeading",
       periodStatsShowSparklines: 'PSShowSparklines',
-      showAsHashtagOrMention: "PSHowAsHashtagOrMention",
+      showAsHashtagOrMention: "PSShowAsHashtagOrMention",
       periodStatsYesNo: 'PSYesNo',
       periodStatsHashtagsAverage: 'PSHashtagsAverage',
       includeHashtags: 'PSHashtagsCount',

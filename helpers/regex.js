@@ -2,7 +2,7 @@
 // @flow
 //---------------------------------------------------------------------
 // Regex definitions for NotePlan and its plugins
-// Last updated 2024-11-09 by @jgclark
+// Last updated 2026-02-03 by @jgclark
 //---------------------------------------------------------------------
 //
 // This file holds definitions that don't live in more specific helper files, and also lists other files with useful regexes.
@@ -181,15 +181,21 @@ export const NP_RE_code_left_backtick: RegExp = /(`)([^`]{1,})(`)/
 export const NP_RE_code_right_backtick: RegExp = /(`)([^`]{1,})(`)/
 
 // FIXME: Something's not right in final step of making regex.
-// const ORIG_HASHTAG_STR = `(\s|^|[\"\'\(\[\{\*\_])(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)`
-// const ORIG_HASHTAG_STR_QUOTED = `(\\s|^|[\\"\\'\\(\\[\\{\\*\\_])(?!#[\\d[:punct:]]+(\\s|$))(#([^[:punct:]\\s]|[\\-_\\/])+?\\(.*?\\)|#([^[:punct:]\\s]|[\\-_\\/])+)`
-// const HASHTAG_STR_FOR_JS = ORIG_HASHTAG_STR_QUOTED.replace(/\[:punct:\]/g, PUNCT_CLASS_STR_QUOTED)
+// const EM_ORIG_HASHTAG_STR = `(\s|^|[\"\'\(\[\{\*\_])(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)`
+// const EM_ORIG_HASHTAG_STR_QUOTED = `(\\s|^|[\\"\\'\\(\\[\\{\\*\\_])(?!#[\\d[:punct:]]+(\\s|$))(#([^[:punct:]\\s]|[\\-_\\/])+?\\(.*?\\)|#([^[:punct:]\\s]|[\\-_\\/])+)`
+// const HASHTAG_STR_FOR_JS = EM_ORIG_HASHTAG_STR_QUOTED.replace(/\[:punct:\]/g, PUNCT_CLASS_STR_QUOTED)
 // export const NP_RE_hashtag_G: RegExp = new RegExp(HASHTAG_STR_FOR_JS, 'g')
 
+export const RE_NP_HASHTAG: RegExp = /(?:^|[^A-Za-z0-9_])(#(?:[\w\d]+(?:[\/\-][\w\d]+)*))/
+export const RE_NP_HASHTAG_G: RegExp = /(?:^|[^A-Za-z0-9_])(#(?:[\w\d]+(?:[\/\-][\w\d]+)*))/g
+
 // FIXME: When above is fixed, fix this too
-// const ORIG_ATTAG_STR = `(\s|^|[\\"\'\(\[\{\*\_])(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)`
-// const ATTAG_STR_FOR_JS = ORIG_ATTAG_STR.replace(/\[:punct:\]/g, PUNCT_CLASS_STR_QUOTED)
+// const EM_ORIG_ATTAG_STR = `(\s|^|[\\"\'\(\[\{\*\_])(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)`
+// const ATTAG_STR_FOR_JS = EM_ORIG_ATTAG_STR.replace(/\[:punct:\]/g, PUNCT_CLASS_STR_QUOTED)
 // export const NP_RE_attag_G: RegExp = new RegExp(ATTAG_STR_FOR_JS, 'g')
+
+export const RE_NP_MENTION: RegExp = /(?:^|[^A-Za-z0-9_])(@(?:[\w\d]+(?:[\/\-][\w\d]+)*)(?:\([A-Za-z0-9:.\-]+\))?)/
+export const RE_NP_MENTION_G: RegExp = /(?:^|[^A-Za-z0-9_])(@(?:[\w\d]+(?:[\/\-][\w\d]+)*)(?:\([A-Za-z0-9:.\-]+\))?)/g
 
 // To which @jgclark has added:
 export const RE_NOTE_TITLE_CAPTURE: RegExp = /\[\[(.*?)(?:#(.*?))?\]*\]\]/ // to separately get [[title#...]] and [[...#heading]]

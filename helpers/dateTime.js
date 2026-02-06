@@ -93,15 +93,16 @@ export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
 export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
 
 /**
+ * WARNING: Deprecated in favour of clearer named function 'todaysDateISOString' below.
  * Get today's date.
  * This uses local time, so shouldn't get TZ problems.
- * WARNING: Deprecated in favour of clearer named function 'todaysDateISOString' below.
  * @author @jgclark
  * @returns {string} YYYY-MM-DD
  */
 export function getTodaysDateHyphenated(): string {
   return moment().format('YYYY-MM-DD')
 }
+
 /**
  * Constant version of getTodaysDateHyphenated()
  * This uses local time, so shouldn't get TZ problems.
@@ -138,7 +139,11 @@ export function getJSDateStartOfToday(): Date {
 
 // Note: there are others in NPdateTime.js that use locale settings
 
-// Get current time in various ways
+/**
+ * Get current time in various ways
+ * @param {string} format - the format to use
+ * @returns {string} the formatted time
+ */
 export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => {
   if (format.includes('%')) {
     return strftime(format)
@@ -148,7 +153,11 @@ export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): strin
 
 // Note: there are others in NPdateTime.js that use locale settings
 
-// return datetime in UTC ISO format
+/**
+ * Return datetime in UTC ISO format
+ * This uses local time, so shouldn't get TZ problems.
+ * @returns {string} the datetime in UTC ISO format (YYYY-MM-DD HH:MM:SS)
+*/
 export const nowUTCShortDateTimeISOString: string = moment().toISOString().replace('T', ' ').slice(0, 16)
 
 // Note: See getNoteType in note.js to get the type of a note
@@ -326,9 +335,13 @@ export function toISODateString(dateObj: Date): string {
   return dateObj.toISOString().slice(0, 10)
 }
 
-// As ISODateString() doesn't work reliably across date boundaries except at GMT,
-// this version creates YYYY-MM-DD format using the slight cheat of the sv-SE locale,
-// which happens to be identical.
+/**
+ * As ISODateString() doesn't work reliably across date boundaries except at GMT this version creates YYYY-MM-DD format using the slight cheat of the sv-SE locale,
+ * which happens to be identical to the YYYY-MM-DD format.
+ * @author @jgclark
+ * @param {Date} date
+ * @returns {string} YYYY-MM-DD
+ */
 export function hyphenatedDate(date: Date): string {
   if (date != null) {
     // logDebug('dateTime / hyphenatedDate', `${toLocaleDateTimeString(date)} -> ${toLocaleDateString(date, 'sv-SE')}`)
@@ -649,6 +662,38 @@ export function daysBetween(startDate: string | Date, endDate: string | Date, re
     return moment(endDate).diff(moment(startDate), 'days', returnFractionalDays)
   } else {
     return moment(endDate).startOf('day').diff(moment(startDate).startOf('day'), 'days', returnFractionalDays)
+  }
+}
+
+/**
+ * Validates that a date range is valid (fromDate <= toDate)
+ * @param {Date} fromDate - Start date
+ * @param {Date} toDate - End date
+ * @param {string} context - Context for error messages (e.g., 'progress update', 'period stats')
+ * @throws {Error} If dates are null or invalid range
+ */
+export function validateDateRange(fromDate: ?Date, toDate: ?Date, context: string = 'operation'): void {
+  if (fromDate == null || toDate == null) {
+    throw new Error(`Failed to calculate date range for ${context}. Please check your date parameters.`)
+  }
+  if (fromDate > toDate) {
+    throw new Error(`Invalid date range for ${context}: start date ${String(fromDate)} is after end date ${String(toDate)}`)
+  }
+}
+
+/**
+ * Converts Date objects to ISO date strings and validates the range
+ * @param {Date} fromDate - Start date
+ * @param {Date} toDate - End date
+ * @param {string} context - Context for error messages
+ * @returns {{fromDateStr: string, toDateStr: string}} Object with ISO date strings
+ * @throws {Error} If dates are invalid
+ */
+export function validateDateRangeAndConvertToISODateStrings(fromDate: Date, toDate: Date, context: string = 'operation'): { fromDateStr: string, toDateStr: string } {
+  validateDateRange(fromDate, toDate, context)
+  return {
+    fromDateStr: hyphenatedDate(fromDate),
+    toDateStr: hyphenatedDate(toDate),
   }
 }
 

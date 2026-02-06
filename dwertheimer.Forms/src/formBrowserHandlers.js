@@ -296,7 +296,9 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
 
     // Get frontmatter attributes
     const fm = templateNote.frontmatterAttributes || {}
-    const processingMethod = fm?.processingMethod || (fm?.receivingTemplateTitle ? 'form-processor' : null)
+    // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
+    const receivingTemplateFromFm = fm?.receivingTemplateTitle || fm?.formProcessorTitle
+    const processingMethod = fm?.processingMethod || (receivingTemplateFromFm ? 'form-processor' : null)
 
     if (!processingMethod) {
       return {
@@ -307,8 +309,10 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
     }
 
     // receivingTemplateTitle can come from formValues (dynamic) or frontmatter (static)
+    // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
     const receivingTemplateTitleFromForm = formValues?.receivingTemplateTitle || ''
-    const receivingTemplateTitleFromFrontmatter = stripDoubleQuotes(fm?.receivingTemplateTitle || '') || ''
+    const receivingTemplateTitleFromFrontmatter =
+      stripDoubleQuotes(fm?.receivingTemplateTitle || fm?.formProcessorTitle || '') || ''
     const receivingTemplateTitle = receivingTemplateTitleFromForm || receivingTemplateTitleFromFrontmatter
     
     // Build submitData with all necessary fields

@@ -69,7 +69,6 @@ const FORM_FRONTMATTER_ALLOWLIST = [
   'y',
   'processingMethod',
   'receivingTemplateTitle',
-  'formProcessorTitle',
   'space',
   'shouldOpenInEditor',
 ]
@@ -756,7 +755,10 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       const isProcessingTemplateSave = templateNote.frontmatterAttributes?.type === 'forms-processor'
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: isProcessingTemplateSave=${String(isProcessingTemplateSave)}`)
       if (!isProcessingTemplateSave) {
-        const receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle
+        // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
+        const receivingTemplateTitle =
+          templateNote.frontmatterAttributes?.receivingTemplateTitle ||
+          templateNote.frontmatterAttributes?.formProcessorTitle
         logDebug(pluginJson, `[${saveId}] handleSaveRequest: receivingTemplateTitle="${receivingTemplateTitle || 'none'}"`)
         if (receivingTemplateTitle) {
           // Strip double quotes before passing to updateReceivingTemplateWithFields

@@ -407,7 +407,7 @@ async function pullTodoistTasksByProject(project_id: string): Promise<any> {
  * @returns {Promise<any>} - promise that resolves into array of task objects or null
  */
 async function pullTodoistTasksForToday(): Promise<any> {
-  let filter = '?filter=today'
+  let filter = '?query=today'
   if (setup.useTeamAccount) {
     if (setup.addUnassigned) {
       filter = `${filter} & !assigned to: others`
@@ -415,7 +415,8 @@ async function pullTodoistTasksForToday(): Promise<any> {
       filter = `${filter} & assigned to: me`
     }
   }
-  const result = await fetch(`${todo_api}/tasks${filter}`, getRequestObject())
+  logInfo(pluginJson, `Fetching Todoist tasks with filter: ${todo_api}/tasks/filter${filter}`)
+  const result = await fetch(`${todo_api}/tasks/filter${filter}`, getRequestObject())
   if (result) {
     return result
   }

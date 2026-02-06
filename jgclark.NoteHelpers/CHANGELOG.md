@@ -1,6 +1,10 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+## [1.3.1] - 2026-01-25
+- fix to **list inconsistent note filenames** command. (Thanks, @Heathy65.) Closes #732
+- improved display of inconsistent note names, and added button to kick off the renaming.
+
 ## [1.3.0] - 2025-12-20
 - new **duplicate note** command: duplicates the currently-open note, and unlike the built-in command, it allows the user to specify a new title and folder for it.
 

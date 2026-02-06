@@ -1,0 +1,129 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.20",
+  "plugin.releaseStatus": "beta",
+  "plugin.id": "grdn.TagTracker",
+  "plugin.name": "📊 Tag Tracker",
+  "plugin.description": "Track and visualize tag values over time with interactive charts. Monitor @sleep, @sleep_deep, @rps, @alcohol, and @bedtime across your daily notes. Toggle between line and bar chart views.",
+  "plugin.author": "grdn",
+  "plugin.version": "1.1.0",
+  "plugin.dependencies": [],
+  "plugin.requiredFiles": [],
+  "plugin.script": "script.js",
+  "plugin.commands": [
+    {
+      "name": "showTagTracker",
+      "description": "Show tag frequency tracker with line graph visualization",
+      "jsFunction": "showTagTracker"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Chart Color Settings"
+    },
+    {
+      "key": "customColor1",
+      "title": "Color 1 (Hex Code)",
+      "description": "First chart color (default: #0a84ff - blue)",
+      "type": "string",
+      "default": "#0a84ff",
+      "required": false
+    },
+    {
+      "key": "customColor2",
+      "title": "Color 2 (Hex Code)",
+      "description": "Second chart color (default: #bf5af2 - purple)",
+      "type": "string",
+      "default": "#bf5af2",
+      "required": false
+    },
+    {
+      "key": "customColor3",
+      "title": "Color 3 (Hex Code)",
+      "description": "Third chart color (default: #32d74b - green)",
+      "type": "string",
+      "default": "#32d74b",
+      "required": false
+    },
+    {
+      "key": "customColor4",
+      "title": "Color 4 (Hex Code)",
+      "description": "Fourth chart color (default: #ff453a - red)",
+      "type": "string",
+      "default": "#ff453a",
+      "required": false
+    },
+    {
+      "key": "customColor5",
+      "title": "Color 5 (Hex Code)",
+      "description": "Fifth chart color (default: #ffd60a - yellow)",
+      "type": "string",
+      "default": "#ffd60a",
+      "required": false
+    },
+    {
+      "key": "customColor6",
+      "title": "Color 6 (Hex Code)",
+      "description": "Sixth chart color (default: #ff9f0a - orange)",
+      "type": "string",
+      "default": "#ff9f0a",
+      "required": false
+    },
+    {
+      "key": "customColor7",
+      "title": "Color 7 (Hex Code)",
+      "description": "Seventh chart color (default: #64d2ff - cyan)",
+      "type": "string",
+      "default": "#64d2ff",
+      "required": false
+    },
+    {
+      "key": "customColor8",
+      "title": "Color 8 (Hex Code)",
+      "description": "Eighth chart color (default: #ff375f - pink)",
+      "type": "string",
+      "default": "#ff375f",
+      "required": false
+    },
+    {
+      "key": "customColor9",
+      "title": "Color 9 (Hex Code)",
+      "description": "Ninth chart color (default: #30d158 - mint)",
+      "type": "string",
+      "default": "#30d158",
+      "required": false
+    },
+    {
+      "key": "customColor10",
+      "title": "Color 10",
+      "description": "Tenth chart color (default: #ac8e68 - brown)",
+      "type": "string",
+      "default": "#ac8e68",
+      "required": false
+    },
+    {
+      "key": "customColor11",
+      "title": "Color 11",
+      "description": "Eleventh chart color (default: #5856d6 - indigo)",
+      "type": "string",
+      "default": "#5856d6",
+      "required": false
+    },
+    {
+      "key": "customColor12",
+      "title": "Color 12",
+      "description": "Twelfth chart color (default: #ff2d55 - rose)",
+      "type": "string",
+      "default": "#ff2d55",
+      "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Color Format Instructions\nSupported: Hex (#F00, #FF0000), Named (red, blue), RGB (rgb(255,0,0)), HSL (hsl(0,100%,50%)).\nColors cycle if you have 12+ habits."
+    }
+  ]
+}

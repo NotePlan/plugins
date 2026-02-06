@@ -633,8 +633,8 @@ export function SearchableChooser({
       if (typeof item === 'string') {
         return item === displayValue
       } else if (item && typeof item === 'object' && 'filename' in item) {
-        // It's a note object, match by filename
-        return item.filename === displayValue
+        // It's a note object, match by filename OR title (NoteChooser can pass either depending on output format)
+        return item.filename === displayValue || (item.title != null && item.title === displayValue)
       } else if (item && typeof item === 'object' && 'id' in item) {
         // It's an object with an id property (event, space, etc.), match by id first
         const matchesById = item.id === displayValue

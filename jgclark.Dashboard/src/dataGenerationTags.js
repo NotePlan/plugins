@@ -150,7 +150,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
             }
           }
           // Add the paras that contain the tag/mention, unless this is a noteTag, in which case add all paras if FM field 'note-tag' matches. (Later we filter down to open non-scheduled items).
-          // Note: a simple substring match can't be used, as it gets false positives (e.g. #test for #testing). So now using the new hashtagAwareIncludes and mentionAwareIncludes functions.
+          // Note: a simple substring match can't be used, as it gets false positives (e.g. #test for #testing). So now using the new fullHashtagOrMentionMatch functions.
           const tagParasFromNote = hasMatchingNoteTag ? paras : paras.filter((p) => fullHashtagOrMentionMatch(thisTag, p.content))
           logDebug('getTaggedSectionData', `- for ${thisTag} => fullHashtagOrMentionMatch = ${String(paras.map((p) => fullHashtagOrMentionMatch(thisTag, p.content)))}`)
           logTimer('getTaggedSectionData', thisStartTime, `- found ${tagParasFromNote.length} ${thisTag} items in "${n.filename}"`)
