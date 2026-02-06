@@ -8,7 +8,7 @@ This plugin (now a Core Plugin bundled with NotePlan 3.16.1 onwards) provides co
 - **duplicate note** (alias **dupe**): duplicates the currently-open note, and unlike the built-in command, it allows the user to specify a new title and folder for it. It also doesn't duplicate anything after any `## Done` section in the original note. It's particularly useful if you want to move notes to a (Team)Space, as drag-and-drop in the sidebar doesn't work.
 - **enable heading links**: converts Local links to headings (they start with the `#` character) to `x-callback-url` links that makes them work the way you expect them to. Note: They currently only support links to headings within the same note.  (by @nmn)
 - **find and link unlinked notes in current note**: finds and creates links to existing notes in the current note (by @aaronpoweruser). See below for more details.
-- **index folders** (alias **index**): make/update indexes for all notes in a folder (and sub-folders if wanted). There are settings available to customise this:
+- **index folders** (alias **index**): make/update indexes for all notes in a folder (and sub-folders if wanted). _Since the introduction of 'Folder Views' in the app, this command is no longer necessary. So it may be removed in a future release._ There are settings available to customise this:
   - Sort order for index items: 'alphabetical', 'createdDate' or 'updatedDate'
   - What type of date suffix to add?: 'none', 'timeSince' last update, 'updatedDate'
   - Include Subfolders when making an index? If set, then all subfolders will be indexed in the same name as the folder.

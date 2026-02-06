@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 30.3.2024 for v0.19.0+ by @jgclark
+// Last updated 2026-02-06 for v0.19.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -36,6 +36,13 @@ import {
 } from '@helpers/userInput'
 
 const pluginID = 'jgclark.NoteHelpers'
+
+/** Frontmatter added to index notes (icon for sidebar, etc.) */
+const INDEX_NOTE_FRONTMATTER = `---
+icon: list-ul
+icon-color: yellow-500
+---
+`
 
 //-----------------------------------------------------------------------------
 /**
@@ -243,6 +250,7 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
       outputArray = makeFolderIndex(folderToUse, config, true)
     }
     const outString = outputArray.join('\n')
+    const indexNoteContent = `${INDEX_NOTE_FRONTMATTER}# ${outString}`
 
     if (option.endsWith('index')) {
       // write out to Index file(s)
@@ -260,15 +268,15 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
           throw new Error(`couldn't make a new note in folder ${folderToUse}' for some reason. Stopping.`)
         }
         logInfo('indexFolders', `Writing index to new note '${outputFilename}'`)
-        const options = { newWindow: false, splitView: true, content: `# ${outString}`, highlightStart: 0, highlightEnd: 0 }
+        const options = { newWindow: false, splitView: true, content: indexNoteContent, highlightStart: 0, highlightEnd: 0 }
         outputNote = await openNoteByFilename(outputFilename, options)
       } else {
         logInfo('indexFolders', `Writing index to note '${outputFilename}'`)
       }
       // fresh test to see if we now have the note
       if (outputNote != null) {
-        outputNote.content = `# ${outString}` // overwrite what was there before
-        // Note: this setter doesn't seem to be enough in some cases?
+        outputNote.content = indexNoteContent // overwrite what was there before
+        // FIXME: this setter doesn't seem to be enough in some cases? Not adding the frontmatter when given as part of the content?
       } else {
         throw new Error(`error after newNote(): no valid note ${outputFilename} to write to`)
       }

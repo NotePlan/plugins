@@ -1,6 +1,8 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+<!-- - **index folders** command: index notes created or updated now include frontmatter `icon: list-ul` and `icon-color: yellow-500` for sidebar display. -->
+
 ## [1.3.1] - 2026-01-25
 - fix to **list inconsistent note filenames** command. (Thanks, @Heathy65.) Closes #732
 - improved display of inconsistent note names, and added button to kick off the renaming.
