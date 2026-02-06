@@ -11,7 +11,7 @@ import pluginJson from '../plugin.json'
 import {
   calcNextReviewDate,
   getFieldParagraphsFromNote,
-  getOrMakeMetadataLine,
+  getOrMakeMetadataLineIndex,
   getParamMentionFromList,
   getReviewSettings,
   processMostRecentProgressParagraph,
@@ -145,7 +145,7 @@ export class Project {
         // logDebug('Project', `- read note from datastore `)
       }
 
-      const metadataLineIndex = getOrMakeMetadataLine(note)
+      const metadataLineIndex = getOrMakeMetadataLineIndex(note)
       // this.metadataPara = paras[metadataLineIndex]
       this.metadataParaLineIndex = metadataLineIndex
       let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()

@@ -2,7 +2,8 @@
 /* eslint-disable no-unused-vars */
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
-// Last updated: 2026-01-16 for v1.3.0.b4 by @jgclark
+// Note: this file is run as a script in the Project List window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
+// Last updated: 2026-02-01 for v1.3.0.b7 by @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handlers

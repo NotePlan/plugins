@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-12-16 for v1.3.0.b4, @jgclark
+// Last updated 2026-02-06 for v1.3.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -22,6 +22,7 @@ import {
   deleteMetadataMentionInNote,
   getNextActionLineIndex,
   getReviewSettings,
+  isProjectNoteIsMarkedSequential,
   type ReviewConfig,
   updateMetadataInEditor,
   updateMetadataInNote,
@@ -827,10 +828,14 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
     const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
 
-    // If we're interested in Next Actions, and there are open items in the note, check to see if one is now set
+    // If we're interested in Next Actions, and there are open items in the note, check to see if one is now set.
+    // But if the note is marked as sequential, then no need to check.
     const numOpenItems = numberOfOpenItemsInNote(note)
+    // $FlowIgnore[prop-missing]
+    const isSequential = config.sequentialTag && isProjectNoteIsMarkedSequential(note, config.sequentialTag)
+    const runNextActionCheck = !isSequential && config.nextActionTags.length > 0 && numOpenItems > 0
     const nextActionTagLineIndexes: Array<number> = []
-    if (numOpenItems > 0 && config.nextActionTags.length > 0) {
+    if (runNextActionCheck) {
       for (const naTag of config.nextActionTags) {
         logDebug('finishReviewCoreLogic', `Checking for Next Action tag '${naTag}' in '${displayTitle(note)}' ... with ${numOpenItems} open items`)
         const nextActionLineIndex = getNextActionLineIndex(note, naTag)
@@ -840,15 +845,10 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
           nextActionTagLineIndexes.push(nextActionLineIndex)
         }
       }
-      if (nextActionTagLineIndexes.length === 0) {
-        const res = await showMessageYesNo(
-          `There's no Next Action tag in '${displayTitle(note)}'. Do you wish to continue finishing this review?`,
-        )
-        if (res === 'No') {
-          logDebug('finishReviewCoreLogic', `User cancelled command by clicking '${res}' button.`)
-          return
-        }
-      }
+    }
+    // For sequential projects, just make a log note if there are no open tasks
+    if (isSequential && numOpenItems === 0) {
+      logDebug('finishReviewCoreLogic', `Note: no open tasks found for sequential project '${displayTitle(note)}'.`)
     }
 
     if (Editor.filename === note.filename) {
@@ -857,11 +857,8 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
       deleteMetadataMentionInEditor([config.nextReviewMentionStr])
-
-      // Save Editor to note, and then update the cache so the latest changes can be picked up elsewhere.
-      // Note: Putting the Editor.save() call here, rather than in the above functions, seems to work
       await Editor.save()
-      // DataStore.updateCache(Editor.note, true)
+      // Note: no longer seem to need to update cache
     } else {
       logDebug('finishReviewCoreLogic', `Updating note ...`)
       // First update @review(date) on the note
@@ -896,7 +893,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       await renderProjectLists(config, false)
     } else {
       // Regenerate whole list (and display if window is already open)
-      logInfo('finishReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and will display if list is open.`)
+      logInfo('finishReviewCoreLogic', `- In allProjects list couldn't find project '${note.filename}'. So regenerating whole list and will display if list is open.`)
       await generateProjectListsAndRenderIfOpen()
     }
 

@@ -1,6 +1,11 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.3.0.b8] - 2026-02-05
+- dev: refactor to move most HTML code into separate htmlGenerators.js file
+- stop the 'next action' check from running if the project note is marked as `#ssequential`
+- added new hidden **weekly projects progress** command for JGC
+
 ## [1.3.0.b7] - 2026-01-24
 - improved next action processing: now only the first tagged item is shown; if there are no tagged items and a sequential tag is present in the frontmatter, the first open item is displayed instead.
 - turned back on the automatic updates of Dashboard plugin (if open). [Requires Dashboard v2.4.0 beta 18 or later.]
