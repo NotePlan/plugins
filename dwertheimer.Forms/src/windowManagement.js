@@ -710,7 +710,9 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
           logDebug(pluginJson, `openFormBuilderWindow: Using initialReceivingTemplateTitle="${receivingTemplateTitle}"`)
         } else {
           // For existing forms, read from note's frontmatter
-          receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle || ''
+          // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
+          const fm = templateNote.frontmatterAttributes || {}
+          receivingTemplateTitle = fm?.receivingTemplateTitle || fm?.formProcessorTitle || ''
           logDebug(pluginJson, `openFormBuilderWindow: Read receivingTemplateTitle="${receivingTemplateTitle}" from note frontmatter`)
         }
       }

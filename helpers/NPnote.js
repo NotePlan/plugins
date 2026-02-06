@@ -497,18 +497,27 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
 
 /**
  * Get a note from (in order):
+ * - a filename (if the string ends with DataStore.defaultFileExtension, e.g. 'Note.md' or 'folder/Note.md')
  * - its title (for a project note)
  * - its relative date description ('today', 'yesterday', 'tomorrow', 'this week', 'last week', 'next week')
  * - an ISO date (i.e. YYYY-MM-DD)
  * - for date intervals '{[+-]N[dwmqy]}' calculate the date string relative to today
  * - for calendar notes, from it's NP date string (e.g. YYYYMMDD, YYYY-Wnn etc.)
- * @param {string} noteIdentifier: project note title, or date interval (e.g.'-1d'), or NotePlan's (internal) calendar date string
+ * @param {string} noteIdentifier: filename (with extension), project note title, or date interval (e.g.'-1d'), or NotePlan's (internal) calendar date string
  * @returns {TNote?} note if found, or null
  */
 export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
   try {
     logDebug('NPnote/getNoteFromIdentifier', `-> getting note from identifier: ${noteIdentifierIn}`)
     let thisFilename = ''
+    // If identifier looks like a filename (ends with default extension), try to resolve by filename first
+    if (noteIdentifierIn.endsWith(DataStore.defaultFileExtension)) {
+      const noteByFilename = DataStore.noteByFilename(noteIdentifierIn, 'Notes')
+      if (noteByFilename) {
+        logDebug('NPnote/getNoteFromIdentifier', `-> found note by filename '${noteIdentifierIn}'`)
+        return noteByFilename
+      }
+    }
     // TODO: Ideally move this to a function, for i18n. Moment library doesn't quite cover all of this. Could Chrono library help?
     const noteIdentifier =
       noteIdentifierIn === 'today'
@@ -524,7 +533,14 @@ export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
         : noteIdentifierIn === 'next week'
         ? '{+1w}'
         : noteIdentifierIn
-    const possibleProjectNotes = DataStore.projectNoteByTitle(noteIdentifier) ?? []
+    // Fallback chain: exact title, then with quotes (e.g. "Title"), then case-insensitive + all folders
+    let possibleProjectNotes = DataStore.projectNoteByTitle(noteIdentifier) ?? []
+    if (possibleProjectNotes.length === 0) {
+      possibleProjectNotes = DataStore.projectNoteByTitle(`"${noteIdentifier}"`) ?? []
+    }
+    if (possibleProjectNotes.length === 0) {
+      possibleProjectNotes = DataStore.projectNoteByTitle(noteIdentifier, true, true) ?? []
+    }
     if (possibleProjectNotes.length > 0) {
       thisFilename = possibleProjectNotes[0].filename
       logDebug('NPnote/getNoteFromIdentifier', `-> found project note with filename '${thisFilename}'`)
@@ -554,7 +570,12 @@ export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
         logError('NPnote/getNoteFromIdentifier', `${possDateString} doesn't seem to have a calendar note?`)
       }
     } else {
-      logError('NPnote/getNoteFromIdentifier', `${possDateString} is not a valid date string`)
+      // Identifier was not a project note and not a valid date/interval; avoid implying it was meant to be a date
+      logError(
+        'NPnote/getNoteFromIdentifier',
+        `No note found for '${noteIdentifierIn}' (no project note with this title and not a valid date or date interval)`
+      )
+      return null
     }
     logError('NPnote/getNoteFromIdentifier', `-> no note found for '${noteIdentifierIn}'`)
     return null

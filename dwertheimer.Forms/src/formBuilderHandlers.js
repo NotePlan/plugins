@@ -24,7 +24,12 @@ import {
 import { removeEmptyLinesFromNote, updateFormLinksInNote } from './requestHandlers'
 import { getNoteByFilename, getNote } from '@helpers/note'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
-import { updateFrontMatterVars, ensureFrontmatter, endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
+import {
+  removeFrontMatterField,
+  updateFrontMatterVars,
+  ensureFrontmatter,
+  endOfFrontmatterLineIndex,
+} from '@helpers/NPFrontMatter'
 import { saveCodeBlockToNote, loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
@@ -685,6 +690,14 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       const frontmatterForSave = { ...data.frontmatter }
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: Frontmatter to save: ${JSON.stringify(frontmatterForSave)}`)
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: receivingTemplateTitle="${frontmatterForSave.receivingTemplateTitle || 'MISSING'}"`)
+      // Migration: formProcessorTitle was deprecated - copy to receivingTemplateTitle if missing, then never write it
+      const legacyFormProcessor = stripDoubleQuotes(frontmatterForSave.formProcessorTitle || '') || ''
+      const currentReceiving = (stripDoubleQuotes(frontmatterForSave.receivingTemplateTitle || '') || '').trim()
+      if (legacyFormProcessor && !currentReceiving) {
+        frontmatterForSave.receivingTemplateTitle = legacyFormProcessor
+        logDebug(pluginJson, `[${saveId}] handleSaveRequest: Migrated formProcessorTitle -> receivingTemplateTitle: "${legacyFormProcessor}"`)
+      }
+      delete frontmatterForSave.formProcessorTitle // Never write deprecated field; forms get cleaned up on save
       // Remove TemplateRunner args, templateBody, and customCSS from frontmatter (they're in codeblocks)
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: Removing TemplateRunner args, templateBody, and customCSS from frontmatter`)
       delete frontmatterForSave.templateBody
@@ -706,6 +719,15 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
     const templateTitle = templateNote?.title || finalTemplateFilename
     logDebug(pluginJson, `[${saveId}] handleSaveRequest: Template note found: title="${templateTitle}", type="${templateNote?.frontmatterAttributes?.type || 'none'}"`)
 
+    // Remove deprecated formProcessorTitle from note if present (migration cleanup)
+    if (templateNote?.frontmatterAttributes?.formProcessorTitle) {
+      const removed = removeFrontMatterField(templateNote, 'formProcessorTitle')
+      if (removed) {
+        logDebug(pluginJson, `[${saveId}] handleSaveRequest: Removed deprecated formProcessorTitle from note`)
+        DataStore.updateCache(templateNote, true)
+      }
+    }
+
     // Remove empty lines from the note
     if (templateNote) {
       removeEmptyLinesFromNote(templateNote)
@@ -724,7 +746,9 @@ export async function handleSaveRequest(data: any): Promise<{ success: boolean, 
       const isProcessingTemplateSave = templateNote.frontmatterAttributes?.type === 'forms-processor'
       logDebug(pluginJson, `[${saveId}] handleSaveRequest: isProcessingTemplateSave=${String(isProcessingTemplateSave)}`)
       if (!isProcessingTemplateSave) {
-        const receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle
+        // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
+        const fm = templateNote.frontmatterAttributes || {}
+        const receivingTemplateTitle = fm?.receivingTemplateTitle || fm?.formProcessorTitle
         logDebug(pluginJson, `[${saveId}] handleSaveRequest: receivingTemplateTitle="${receivingTemplateTitle || 'none'}"`)
         if (receivingTemplateTitle) {
           // Strip double quotes before passing to updateReceivingTemplateWithFields

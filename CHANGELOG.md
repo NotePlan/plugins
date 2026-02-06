@@ -2,6 +2,15 @@
 
 ## About Plugins/package.json / package-lock.json
 
+## [Unreleased]
+
+### Helpers
+
+- **helpers/NPnote.js** — `getNoteFromIdentifier` improvements:
+  - Resolve by filename first when the identifier ends with `DataStore.defaultFileExtension` (e.g. `Note.md` or `folder/Note.md`) via `DataStore.noteByFilename(identifier, 'Notes')`.
+  - Fallback chain for project note by title: exact title, then quoted title (e.g. `"Title"`), then case-insensitive + search all folders.
+  - Clearer error message when the identifier is neither a project note nor a valid date/interval (no longer reports title strings as "not a valid date string").
+
 ## [3.20.0] - 2024-02-15 (@dwertheimer)
 
 - added clof to eslint and flow rc
