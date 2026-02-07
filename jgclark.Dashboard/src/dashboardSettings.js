@@ -24,7 +24,7 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
     key: 'ignoreChecklistItems',
     type: 'switch',
     default: false,
-    refreshAllOnChange: true,
+    // refreshAllOnChange: true, // TODO: TEST:
   },
   {
     label: 'Hide duplicates?',
@@ -408,6 +408,21 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     options: ['priority', 'earliest', 'due date', 'most recent'],
     default: 'priority',
     compactDisplay: true,
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: 'Active Projects settings',
+  },
+  {
+    key: 'showProjectActiveOnlyWithNextActions',
+    label: 'Show only projects with next actions?',
+    description: 'If enabled, only projects that have at least one next action will be shown in the Active Projects section. This includes any "Sequential" Projects with open tasks.',
+    type: 'switch',
+    default: false,
+    refreshAllOnChange: true, // TODO: Ideally just refresh the PROJACT section, not the whole dashboard
   },
   {
     type: 'separator',

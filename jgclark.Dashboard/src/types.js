@@ -25,11 +25,13 @@ export type TNotePlanSettings = {
  * Note: DO NOT USE THE WORD "SHOW" AT THE FRONT OF ANY SETTING NAME UNLESS IT IS A SECTION
  */
 export type TDashboardSettings = {
-  /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES */
+  /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES ------------------- */
   // Note: add all of these to the list of items in cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
   usePerspectives: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
   preferredWindowType: string, // 'Window' | 'Main' | 'Split'
+
+  /* FEATURE FLAGS ------------------------------------------------------ */
   FFlag_ShowSearchPanel?: boolean,
   // searchSettings?: TSearchOptions, // an object holding a number of settings TODO: add from 2.4.0?
   // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings
@@ -43,7 +45,7 @@ export type TDashboardSettings = {
   FFlag_ShowBannerTestButtons?: boolean, // for v2.4.0 beta testing; TODO: remove this before v2.4.0 release
   FFlag_DynamicAddToAnywhere?: boolean, // Use new DynamicDialog-based add task dialog instead of QuickCapture plugin
 
-  /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
+  /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN ------------- */
   defaultFileExtension?: string,
   doneDatesAvailable?: boolean,
   lastChange: string, // not really a setting, but a way to track the last change made
@@ -52,11 +54,11 @@ export type TDashboardSettings = {
   timeblockMustContainString?: string,
   triggerLogging?: boolean,
 
-  /* PERSPECTIVE-SPECIFIC SETTINGS */
+  /* PERSPECTIVE-SPECIFIC SETTINGS ------------------------------------- */
   // autoAddTrigger: boolean, // Note: removed in v2.1
   // sharedSettings: any, // Note: no longer needed after settings refactor
   // Note: if you add a new setting, make sure to
-  // - update the dashboardSettingsDefaults object in dashboardSettings.js
+  // - update the dashboardSettingsDefaults object in dashboardSettings.js [TODO: this doesn't seem to be true anymore?]
   // - update the getDashboardSettings() function in dashboardHelpers.js if it is type number
   // - possibly update the cleanDashboardSettingsInAPerspective() function in perspectiveHelpers.js
   // Note: if you change a setting name, make sure to update the following:
@@ -98,6 +100,7 @@ export type TDashboardSettings = {
   rescheduleNotMove: boolean,
   separateSectionForReferencedNotes: boolean,
   settingsMigrated: boolean,
+  showProjectActiveOnlyWithNextActions: boolean, // from v2.4.0
   showProgressInSections: string, // 'none' | 'number completed' | 'number not completed'
   tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
   useLiteScheduleMethod: boolean,
@@ -189,6 +192,7 @@ export type TSectionItem = {
 // shared properties from note needed for paragraphs and projects
 export type TNoteForDashboard = {
   filename: string, // Note: can have a Teamspace prefix, even for Calendar note
+  isTeamspace?: boolean, // whether this is from a Teamspace note
   title?: string, // not present for Calendar notes in paragraphs, but required for projects
   icon?: string, // icon from note's frontmatter 'icon' attribute, if present. Note: this is not a full FA icon class like 'fa-regular fa-calendar-star', but just the icon name like 'calendar-star'
   iconColor?: string, // icon color from note's frontmatter 'icon-color' attribute, if present. Note: this is a tailwind color name, e.g. 'blue-500', not a CSS color name like 'blue' or '#0000FF'
@@ -197,7 +201,6 @@ export type TNoteForDashboard = {
 // reduced paragraph definition
 export type TParagraphForDashboard = {
   ...TNoteForDashboard,
-  isTeamspace?: boolean, // whether this is from a Teamspace note
   noteType: NoteType /* Notes | Calendar */,
   type: ParagraphType, // paragraph type
   prefix?: string,

@@ -13,6 +13,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fix clicking on note title in Task Dialog box 
 - allow Searches to work against either V2 or V3 of Search Extensions plugin
 - move "Default Dashboard Window Type" setting to main Dashboard settings dialog, from the NP plugin settings pane.
+- new setting "Show only projects with next actions" for the Active Projects section. (This includes any where the Project is defined as being 'Sequential'.)
 
 ## [2.4.0.b19] 2026-01-27
 - finish hooking up addTaskToNote + UI improvements

@@ -14,7 +14,9 @@ import { logDebug, logInfo, logTimer, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
+import { getTeamspaceTitleFromID } from '@helpers/NPTeamspace'
 import { smartPrependPara } from '@helpers/paragraph'
+import { parseTeamspaceFilename } from '@helpers/teamspace'
 
 /**
  * Make a Section for all projects ready for review, using data written by the Projects + Reviews plugin: getNextProjectsToReview().
@@ -42,24 +44,27 @@ export async function getProjectReviewSectionData(config: TDashboardSettings, us
       return allowedFolders.includes(folder)
     })
 
-    filteredProjects.map((p) => {
+    filteredProjects.map((proj) => {
       const thisID = `${thisSectionCode}-${itemCount}`
-      const thisFilename = p.filename ?? '<filename not found>'
+      const thisFilename = proj.filename ?? '<filename not found>'
+      const parsedPossibleTeamspace = parseTeamspaceFilename(thisFilename)
       items.push({
         ID: thisID,
         sectionCode: thisSectionCode,
         itemType: 'project',
-        // $FlowIgnore[prop-missing]
         project: {
-          title: p.title ?? '(error)',
           filename: thisFilename,
-          reviewInterval: p.reviewInterval ?? '',
-          percentComplete: p.percentComplete ?? NaN,
-          lastProgressComment: p.lastProgressComment ?? '',
-          icon: p.icon ?? undefined,
-          iconColor: p.iconColor ?? undefined,
-          nextActions: p.nextActionsRawContent ?? [],
+          isTeamspace: parsedPossibleTeamspace?.isTeamspace ?? false, // TODO: is this really needed if we have teamspaceTitle in the item?
+          title: proj.title ?? '(error)',
+          reviewInterval: proj.reviewInterval ?? '',
+          percentComplete: proj.percentComplete ?? NaN,
+          lastProgressComment: proj.lastProgressComment ?? '',
+          icon: proj.icon ?? undefined,
+          iconColor: proj.iconColor ?? undefined,
+          nextActions: proj.nextActionsRawContent ?? [],
+          nextReviewDays: proj.nextReviewDays ?? 0,
         },
+        teamspaceTitle: parsedPossibleTeamspace?.isTeamspace ? getTeamspaceTitleFromID(parsedPossibleTeamspace.teamspaceID ?? '') : undefined,
       })
       itemCount++
     })
@@ -223,7 +228,25 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
       }
     }
   }
+
   let sectionDescription = `{countWithLimit} active projects`
+
+  // Filter out projects without next actions if setting is enabled
+  if (dashboardSettings.showProjectActiveOnlyWithNextActions) {
+    const originalCount = items.length
+    const filteredItems = items.filter((item) => {
+      if (item.project && item.project.nextActions) {
+        return item.project.nextActions.length > 0
+      }
+      return false
+    })
+    items.length = 0 // Clear the array
+    items.push(...filteredItems) // Replace with filtered items
+    itemCount = items.length
+    logDebug('getProjectActiveSectionData', `Filtered ${originalCount} projects to ${itemCount} projects with next actions`)
+    if (originalCount > itemCount) sectionDescription += ` with next actions (from ${originalCount})`
+  }
+
   if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
 
   const section: TSection = {
