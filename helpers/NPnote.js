@@ -318,7 +318,7 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
   try {
     const note = noteIn == null ? Editor.note : noteIn
     if (!note) {
-      logWarn('note/printNote()', `No valid note found. Stopping.`)
+      logWarn('NPnote/printNote', `No valid note found. Stopping.`)
       return
     }
     const usingEditor = noteIn == null || note.filename === Editor.filename
@@ -360,7 +360,7 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
         console.log(`Paragraphs:`)
         note.paragraphs.map((p) => {
           const referencedParas = DataStore.referencedBlocks(p)
-          console.log(`  ${p.lineIndex}: ${p.type} ${p.rawContent}${referencedParas.length >= 1 ? ` 🆔 has ${referencedParas.length} sync copies` : ''}`)
+          console.log(`- ${p.lineIndex}: [${p.type} indents:${p.indents}]: ${p.rawContent}${referencedParas.length >= 1 ? ` 🆔 has ${referencedParas.length} sync copies` : ''}`)
         })
       }
     }
@@ -403,11 +403,11 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
         console.log(`- p0.note.filename: ${String(p0.note?.filename)}`)
         console.log(`- p0.note.resolvedFilename: ${String(p0.note?.resolvedFilename)}`)
       } catch (e) {
-        logError('note/printNote', `Teamspace Error: ${e.message}`)
+        logError('NPnote/printNote', `Teamspace Error: ${e.message}`)
       }
     }
   } catch (e) {
-    logError('note/printNote', `Error printing note: ${e.message}`)
+    logError('NPnote/printNote', `Error printing note: ${e.message}`)
   }
 }
 
@@ -751,6 +751,12 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
         if (!para.note) {
           logWarn(`getReferencedParagraphs`, `  - this backlink para.note is null. Para:\n${JSON.stringify(para, null, 2)}`)
         }
+
+        // Log if content contains TEST. TODO(later): remove after testing backlinks workaround
+        if (para.content.includes('TEST')) {
+          console.log(`getReferencedParagraphs: FYI 👉 found TEST in paragraph's content for filename '${calNote.filename}':\n${JSP(para, 2)}`)
+        }
+
         wantedParas.push(para)
       } else {
         // logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)

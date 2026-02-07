@@ -22,21 +22,26 @@ export async function saveEditorIfNecessary() {
   }
   if (Editor.note?.content !== Editor.content) {
     logDebug('saveEditorIfNecessary', 'Editor.note?.content !== Editor.content; Saving Editor')
-    await Editor.save() // ensure recent/unsaved changes get saved first
+    try {
+      await Editor.save() // ensure recent/unsaved changes get saved first
+    } catch (error) {
+      logError('saveEditorIfNecessary', `Error saving Editor: ${error.message}`)
+      throw error
+    }
   }
 }
 
 /**
- * Check if Editor has no content or just contains "#", "# ", or "# \n"
+ * Check if Editor has no content or just contains "#" or "# "
  * @usage const isEmpty = editorIsEmpty()
  * @returns {boolean} true if Editor is empty or contains only "#" variations
  */
 export function editorIsEmpty(_note: TNote | TEditor = Editor): boolean {
-  const note = _note.note || _note
-  if (!note?.content) return true
+  const note: TNote = (_note: any).note || _note
+  if (!note?.content || typeof note.content !== 'string') return true
 
   const content = note.content.trim()
-  return content === '' || content === '#' || content === '# ' || content === '# \n'
+  return content === '' || content === '#' || content === '# '
 }
 
 /**
@@ -196,7 +201,8 @@ export function getSelectedParagraphsToUse(): Array<TParagraph> {
       return getSelectedParagraphsWithCorrectLineIndex()
     } else {
     // v2: use Editor.selectedParagraphs instead
-      return Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex]) ?? []
+      if (!Editor.selectedParagraphs) return []
+      return Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex]).filter(Boolean)
     }
   } catch (error) {
     logError('getSelectedParagraphsToUse', error.message)
@@ -241,7 +247,6 @@ export async function smartOpenNoteInEditorFromFilename(filename: string, opts: 
     clo(opts, 'smartOpenNoteInEditorFromFilename: opts')
     const highlightStart = opts.highlightStart ?? 0
     const highlightEnd = opts.highlightEnd ?? 0
-    // const newWindowType = opts.newWindowType ?? 'window'
 
     // If note is already open, then simply focus it
     const isAlreadyOpen = isNoteOpenInEditor(filename)
@@ -265,7 +270,8 @@ export async function smartOpenNoteInEditorFromFilename(filename: string, opts: 
     }
   
     // Fallback
-    throw new Error(`Could not open note '${filename}' in a new window or split view with newWindowType: ${newWindowType}. Stopping.`)
+    const newWindowType = opts.newWindowType ?? 'window'
+    throw new Error(`Could not open note '${filename}' in a new window/view with newWindowType: ${newWindowType}. Stopping.`)
   } catch (error) {
     logError('smartOpenNoteInEditorFromFilename', error.message)
     return false
@@ -284,18 +290,20 @@ export async function smartShowLineInEditorFromFilename(filename: string, conten
   try {
     if (!filename) throw 'No filename: stopping'
     if (!content) throw 'No content: stopping'
-    // const newWindowType = opts.newWindowType ?? 'window'
 
     // If note is already open, then simply highlight the line
     const isAlreadyOpen = isNoteOpenInEditor(filename)
     if (isAlreadyOpen) {
-      logDebug('smartOpenNoteInEditorFromFilename', `Note '${filename}' is already open in an Editor window. Will highlight the line.`)
+      logDebug('smartShowLineInEditorFromFilename', `Note '${filename}' is already open in an Editor window. Will highlight the line.`)
       const thisEditor = getOpenEditorFromFilename(filename)
       if (thisEditor) {
-        logDebug('smartOpenNoteInEditorFromFilename', `Focused Editor window '${thisEditor.id}' for filename '${filename}'`)
+        logDebug('smartShowLineInEditorFromFilename', `Focused Editor window '${thisEditor.id}' for filename '${filename}'`)
         // $FlowIgnore[prop-missing]
         // $FlowIgnore[incompatible-call]
         const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
+        if (!res) {
+          logWarn('smartShowLineInEditorFromFilename', `Failed to highlight paragraph in already-open note '${filename}'`)
+        }
       }
       return true
     }
@@ -303,7 +311,7 @@ export async function smartShowLineInEditorFromFilename(filename: string, conten
     // Note is not already open, so open it in a new window or split view.
     const possibleNote = await Editor.openNoteByFilename(filename, false, 0, 0, true, false)
     if (possibleNote) {
-      logDebug('smartOpenNoteInEditorFromFilename', `Opened new split view for filename '${filename}'`)
+      logDebug('smartShowLineInEditorFromFilename', `Opened new split view for filename '${filename}'`)
       // $FlowIgnore[prop-missing]
       // $FlowIgnore[incompatible-call]
       const res = highlightParagraphInEditor({ filename: filename, content: content }, true)

@@ -771,13 +771,23 @@ export function insertParagraph(note: TNote, content: string, index: number | nu
 /**
  * Check a note to confirm a line of text exists (exact .content match)
  * @param {CoreNoteFields} note
- * @param {string} content string to search for
- * @returns {boolean} whether it exists or not
+ * @param {string} contentToLookFor
+ * @returns {boolean} whether it exists as .content or not
  * alias containsContent containsParagraph paragraphExists paragraphContains
  * @author @dwertheimer
  */
-export function noteHasContent(note: CoreNoteFields, content: string): boolean {
-  return note.paragraphs.some((p) => p.content === content)
+export function noteHasContent(note: CoreNoteFields, contentToLookFor: string): boolean {
+  return note.paragraphs.some((p) => p.content === contentToLookFor)
+}
+
+/**
+ * Check a note to confirm a line of text exists (exact .content match)
+ * @param {CoreNoteFields} note
+ * @param {string} rawContentToLookFor
+ * @returns {boolean} whether it exists as .rawContent or not
+ */
+export function noteHasRawContent(note: CoreNoteFields, rawContentToLookFor: string): boolean {
+  return note.paragraphs.some((p) => p.rawContent === rawContentToLookFor)
 }
 
 /**
@@ -1300,6 +1310,7 @@ export function findParagraph(
  * @returns {TParagraph|null} - the paragraph or null if not found
  * @author @dwertheimer
  * TODO(@dwertheimer): is the fieldsToMatch default and passing down to findParagraph correct?
+ * FIXME: fails because indents is 0 not 1
  */
 export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: Array<string> = ['filename', 'rawContent']): TParagraph | null {
   const { filename } = staticObject
@@ -1311,16 +1322,16 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
   let note = DataStore.noteByFilename(filename, noteType)
   if (!note && noteType === 'Notes') note = DataStore.noteByFilename(filename, 'Calendar') // added this because getNotetype works great in Jest but sometimes doesn't short circuit properly when run in NP
   if (note) {
-    logDebug(pluginJson, `getParagraphFromStaticObject found note ${note.title || ''}`)
+    logDebug(pluginJson, `getParagraphFromStaticObject found note '${note.title || ''}'`)
     const paras = note.paragraphs
-    // logDebug(pluginJson, `getParagraphFromStaticObject cleaned paragraphs. count= ${paras.length}`)
+    // logDebug(pluginJson, `getParagraphFromStaticObject cleaned paragraphs. count=${paras.length}`)
     const para = findParagraph(paras, staticObject, fieldsToMatch)
     if (para) {
       const cleanParas = note.paragraphs
       return cleanParas[para.lineIndex] // make sure we are returning the original, non-cleansed version
     }
   } else {
-    clo(staticObject, `getParagraphFromStaticObject could not open note "${filename}" of type "${noteType}"`)
+    clo(staticObject, `getParagraphFromStaticObject could not open note '${filename}' type "${noteType}"`)
   }
   return null
 }

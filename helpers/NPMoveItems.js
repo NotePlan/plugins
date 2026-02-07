@@ -13,7 +13,7 @@ import { displayTitleWithRelDate } from '@helpers/NPdateTime'
 import { chooseNoteV2, getNoteFromFilename } from '@helpers/NPnote'
 import { getParaAndAllChildren } from '@helpers/parentsAndChildren'
 import { addParagraphsToNote, findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, smartAppendPara, smartCreateSectionsAndPara, smartPrependPara } from '@helpers/paragraph'
-import { findParaFromRawContentAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
+import { findParaFromRawContentAndFilename, insertParagraph, noteHasRawContent } from '@helpers/NPParagraph'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { chooseHeadingV2, showMessage, showMessageYesNo } from '@helpers/userInput'
@@ -52,12 +52,14 @@ export async function moveItemToRegularNote(
       showMessage(`Cannot find paragraph {${paraRawContentIn}} in note '${origFilename}'. Have you updated this line in the note since the last Dashboard refresh?`, 'OK', 'Dashboard: Move Item', false)
       return null
     }
+    // Store reference to original paragraph to avoid race condition
+    const origPara: TParagraph = possiblePara
 
     // Ask user for destination regular note
     const typeToDisplayToUser = itemType === 'checklist' ? 'Checklist' : 'Task'
     const destNote = await chooseNoteV2(`Choose Note to Move ${typeToDisplayToUser} to`, allRegularNotesSortedByChanged(), false, false, false, true)
     if (!destNote) {
-      throw new Error(`- Can't get destination note form user. Stopping.`)
+      throw new Error(`- Can't get destination note from user. Stopping.`)
     }
     logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}'`)
 
@@ -96,30 +98,29 @@ export async function moveItemToRegularNote(
     // Add text to the new location in destination note
     const newPara = coreAddRawContentToNoteHeading(destNote, headingToFind, paraRawContentToUse, newHeadingLevel, false)
     if (!newPara) {
-      throw new Error(`- couldn't get newPara from coreAddRawContentToNoteHeading()`)
-    } else {
-      logDebug('moveItemToRegularNote', `- coreAddRawContentToNoteHeading() → {${newPara.rawContent}} in filename ${newPara.note?.filename ?? '?'}`)
+      logError('moveItemToRegularNote', `- couldn't get newPara from coreAddRawContentToNoteHeading()`)
+      return null
+    }
+    logDebug('moveItemToRegularNote', `- coreAddRawContentToNoteHeading() -> {${newPara.rawContent}} in filename ${newPara.note?.filename ?? '?'}`)
+
+    // Get the destination note again from DataStore and refresh cache
+    // $FlowIgnore[incompatible-type] checked above
+    const noteAfterChanges: ?TNote = DataStore.noteByFilename(destNote.filename, destNote.type)
+    if (noteAfterChanges) {
+      DataStore.updateCache(noteAfterChanges, false)
     }
 
-    // Trying to get the destination note again from DataStore in case that helps find the task (it doesn't)
-    // $FlowIgnore[incompatible-type] checked above
-    const noteAfterChanges: TNote = DataStore.noteByFilename(destNote.filename, destNote.type)
-    // Ask for cache refresh for this note
-    const updatedDestNote = DataStore.updateCache(noteAfterChanges, false)
-
-    // delete from existing location
-    const origPara = findParaFromRawContentAndFilename(origFilename, paraRawContentIn)
+    // delete from existing location using stored paragraph reference
     if (origNote && origPara) {
       logDebug('moveItemToRegularNote', `- Removing 1 para from original note ${origFilename}`)
       origNote.removeParagraph(origPara)
       DataStore.updateCache(origNote, false)
     } else {
-      throw new Error(`- couldn't remove para {${paraRawContentIn}} from original note ${origFilename} because note or paragraph couldn't be found`)
+      logError('moveItemToRegularNote', `- couldn't remove para {${paraRawContentIn}} from original note ${origFilename} because note or paragraph couldn't be found`)
+      return null
     }
-    // Return the destNote
+    // Return the new paragraph
     return newPara
-
-    // Ask for cache refresh for this note
   } catch (error) {
     logError('moveItemToRegularNote', error.message)
     return null
@@ -135,7 +136,7 @@ export async function moveItemToRegularNote(
  * - '' (blank) or '<<bottom of note>>' the para will be *prepended* to the effective top of the destination note.
  * - otherwise will add after the matching heading, adding new heading if needed.
  * Note: is called by moveClickHandlers::doMoveFromCalToCal().
- * Note: Update in Nov 2025 to work for Teamspace notes as well -- though only between the same 'space' or 'private' realm.
+ * Note: Updated in Nov 2025 to work for Teamspace notes as well -- though only between the same 'space' or 'private' realm.
  * @author @jgclark
  * 
  * @param {string} fromFilename filename of the source calendar note (can be teamspace or regular)
@@ -156,7 +157,7 @@ export function moveItemBetweenCalendarNotes(
     // Parse the filename to extract the date string, handling teamspace notes
     const { filename: parsedFilename, teamspaceID, isTeamspace } = parseTeamspaceFilename(fromFilename)
     const NPFromDateStr = getDateStringFromCalendarFilename(parsedFilename)
-    logDebug('moveItemBetweenCalendarNotes', `starting for ${NPFromDateStr} (from ${fromFilename}) to ${NPToDateStr} under heading '${heading}' with newTaskSectionHeadingLevel ${String(newTaskSectionHeadingLevel)} ${typeof newTaskSectionHeadingLevel}`)
+    logDebug('moveItemBetweenCalendarNotes', `starting for ${NPFromDateStr} (from ${fromFilename}) to ${NPToDateStr} under heading '${heading}' for rawContent {${paraRawContentIn}}`)
 
     // Get origin calendar note to use
     const originNote: ?TNote = getNoteFromFilename(fromFilename)
@@ -170,6 +171,23 @@ export function moveItemBetweenCalendarNotes(
     }
     if (!destNote) {
       throw new Error(`- Can't get destination note for ${NPToDateStr} ${isTeamspace ? `in teamspace ${String(teamspaceID)}` : ''}. Stopping.`)
+    }
+    // Validate that both notes are calendar notes
+    if (originNote.type !== 'Calendar') {
+      logError('moveItemBetweenCalendarNotes', `- Origin note '${displayTitle(originNote)}' is not a calendar note. Stopping.`)
+      return false
+    }
+    if (destNote.type !== 'Calendar') {
+      logError('moveItemBetweenCalendarNotes', `- Destination note '${displayTitle(destNote)}' is not a calendar note. Stopping.`)
+      return false
+    }
+    // Validate teamspace consistency if moving between teamspace notes
+    if (isTeamspace) {
+      const destTeamspaceID = parseTeamspaceFilename(destNote.filename ?? '').teamspaceID
+      if (destTeamspaceID !== teamspaceID) {
+        logError('moveItemBetweenCalendarNotes', `- Cannot move between different teamspaces (${String(teamspaceID)} vs ${String(destTeamspaceID)}). Stopping.`)
+        return false
+      }
     }
 
     // find para in the originNote
@@ -189,16 +207,16 @@ export function moveItemBetweenCalendarNotes(
     // Now make new content with the parent para's content without the date tags plus remaining child para text
     let newContent = parasToText(matchedParaAndChildren)
     clo(newContent, 'moveItems... newContent before replace=')
-    newContent = newContent.replace(matchedPara.rawContent, matchedParaRawContentWithoutDateTags)
+    // Escape special regex characters in the search string to ensure literal replacement
+    const escapedRawContent = matchedPara.rawContent.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    newContent = newContent.replace(new RegExp(escapedRawContent), matchedParaRawContentWithoutDateTags)
     clo(newContent, 'moveItems... newContent after replace=')
-
-    // FIXME: the removeDateTags (or similar) is not working as expected
 
     // Add to destNote
     // Handle options for where to insert the new lines (see also NPScheduleItems::scheduleItem())
     if (heading === '<<top of note>>') {
       // Handle this special case
-      logDebug('coreAddTaskdestNoteHeading', `- Adding line '${newContent}' to start of active part of note '${displayTitle(destNote)}' using smartPrependPara()`)
+      logDebug('moveItemBetweenCalendarNotes', `- Adding line '${newContent}' to start of active part of note '${displayTitle(destNote)}' using smartPrependPara()`)
       smartPrependPara(destNote, newContent, 'text')
     }
     else if (heading === '' || heading === '<<bottom of note>>') {
@@ -207,14 +225,13 @@ export function moveItemBetweenCalendarNotes(
     }
     else if (heading !== '' && newTaskSectionHeadingLevel === 0) {
       // If the heading exists, then use it, but don't create a new one if it doesn't exist
-      // FIXME: doesn't get here
-      logDebug('scheduleItem', `- Heading ${heading} is wanted, but only if it already exists.`)
+      logDebug('moveItemBetweenCalendarNotes', `- Heading ${heading} is wanted, but only if it already exists.`)
       const wantedHeadingPara = findHeading(destNote, heading)
       if (wantedHeadingPara) {
-        logDebug('scheduleItem', `- Adding line '${newContent}' under heading ${heading} using addParagraphBelowHeadingTitle()`)
+        logDebug('moveItemBetweenCalendarNotes', `- Adding line '${newContent}' under heading ${heading} using addParagraphBelowHeadingTitle()`)
         destNote.addParagraphBelowHeadingTitle(newContent, 'text', heading, true, true)
       } else {
-        logDebug('scheduleItem', `- Heading '${heading}' doesn't exist in note '${displayTitle(destNote)}'. Will add line to start of note using smartPrependPara() instead.`)
+        logDebug('moveItemBetweenCalendarNotes', `- Heading '${heading}' doesn't exist in note '${displayTitle(destNote)}'. Will add line to start of note using smartPrependPara() instead.`)
         smartPrependPara(destNote, newContent, 'text')
       }
     }
@@ -236,7 +253,6 @@ export function moveItemBetweenCalendarNotes(
       // Note: this doesn't allow setting heading level ...
       // destNote.addParagraphBelowHeadingTitle(paraRawContent, itemType, heading, false, true)
       // so need to do it manually
-      const shouldAppend = false
       const matchedHeading = findHeadingStartsWith(destNote, heading)
       logDebug(
         'moveItemBetweenCalendarNotes',
@@ -248,17 +264,17 @@ export function moveItemBetweenCalendarNotes(
         destNote.addParagraphBelowHeadingTitle(
           newContent,
           'text',
-          matchedHeading !== '' ? matchedHeading : heading,
-          shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
+          matchedHeading,
+          false, // NB: since 0.12 treated as position for all notes, not just inbox
           true, // create heading if needed (possible if supplied via headingArg)
         )
       } else {
         const headingLevel = newTaskSectionHeadingLevel
         const headingMarkers = '#'.repeat(headingLevel)
         const headingToUse = `${headingMarkers} ${heading}`
-        const insertionIndex = shouldAppend ? findEndOfActivePartOfNote(destNote) + 1 : findStartOfActivePartOfNote(destNote)
+        const insertionIndex = findStartOfActivePartOfNote(destNote)
 
-        logDebug('moveItemBetweenCalendarNotes', `- adding new heading '${headingToUse}' at line index ${insertionIndex} ${shouldAppend ? 'at end' : 'at start'}`)
+        logDebug('moveItemBetweenCalendarNotes', `- adding new heading '${headingToUse}' at line index ${insertionIndex} at start`)
         destNote.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
         logDebug('moveItemBetweenCalendarNotes', `- then adding text after it`)
         destNote.insertParagraph(newContent, insertionIndex + 1, 'text')
@@ -295,16 +311,17 @@ export function moveParagraphToNote(para: TParagraph, destinationNote: TNote): b
   if (!para || !para.note || !destinationNote) return false
   const oldNote = para.note
   insertParagraph(destinationNote, para.rawContent)
-  // dbw note: because I am nervous about people losing data, I am going to check that the paragraph has been inserted before deleting the original
-  if (noteHasContent(destinationNote, para.content)) {
+  // Double-check that the paragraph has been inserted before deleting the original
+  // Use rawContent instead of content for more reliable matching
+  if (noteHasRawContent(destinationNote, para.rawContent)) {
     para?.note?.removeParagraph(para) // this may not work if you are using Editor.* commands rather than Editor.note.* commands
     // $FlowFixMe - not in the type defs yet
-    DataStore.updateCache(oldNote) // try to force Editor and Editor.note to be in synce after the move
+    DataStore.updateCache(oldNote) // try to force Editor and Editor.note to be in sync after the move
     return true
   } else {
     logDebug(
       'moveParagraphToNote',
-      `Could not find ${para.content} in ${destinationNote.title || 'no title'} so could not move it to ${destinationNote.title || 'no title'}`,
+      `Could not find {${para.rawContent}} in ${destinationNote.title || 'no title'} so could not move it to ${destinationNote.title || 'no title'}`,
     )
   }
   return false
@@ -336,21 +353,21 @@ export function moveGivenParaAndBlock(para: TParagraph, destFilename: string, de
 
     // get children paras (as well as the original)
     const parasInBlock = getParaAndAllChildren(para)
-    logDebug('blocks/moveGivenParaAndBlock', `moveParas: move block of ${parasInBlock.length} paras`)
+    logDebug('moveGivenParaAndBlock', `moveParas: move block of ${parasInBlock.length} paras`)
 
     // Add text to the new location in destination note
     const destNote = DataStore.noteByFilename(destFilename, destNoteType)
     if (!destNote) {
       throw new Error(`Destination note can't be found from filename '${destFilename}'`)
     }
-    logDebug('blocks/moveGivenParaAndBlock', `- Moving to note '${displayTitle(destNote)}' under heading: '${destHeading}'`)
+    logDebug('moveGivenParaAndBlock', `- Moving to note '${displayTitle(destNote)}' under heading: '${destHeading}'`)
     addParagraphsToNote(destNote, parasInBlock, destHeading, 'start', true)
 
     // delete from existing location
-    logDebug('blocks/moveGivenParaAndBlock', `- Removing ${parasInBlock.length} paras from original note`)
+    logDebug('moveGivenParaAndBlock', `- Removing ${parasInBlock.length} paras from original note`)
     originNote.removeParagraphs(parasInBlock)
   }
   catch (error) {
-    logError('blocks/moveGivenParaAndBlock', `moveParas(): ${error.message}`)
+    logError('moveGivenParaAndBlock', `moveParas(): ${error.message}`)
   }
 }
