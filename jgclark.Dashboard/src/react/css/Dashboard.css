@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2026-01-17 for v2.4.0.b15 by @jgclark */
+/* Last updated 2026-02-07 for v2.4.0.b20 by @jgclark */
 
 /* ------------------------------------------------------------------ */
 /* Some colours specified from measuring the colour of NP sidebar elements */
@@ -310,22 +310,26 @@ button,
 	padding-bottom: 0.3em;
 }
 
+/* ------------------------------------------------------------------ */
 /* Default colouring/cursors/decorations for note titles, note links, folders, teamspaces, info */
 @layer Default {
 	/* Colour the note titles */
 	.noteTitle {
 		color: var(--tint-color);
+		white-space: nowrap;
 		cursor: pointer;
 	}
 
 	/* Private note link - default layer */
 	.folderName {
-		color: var(--tint-color);
+		/* color: var(--tint-color); */
+		color: var(--fg-placeholder-color);
+		white-space: nowrap;
 	}
 
 	/* Teamspace note link - default layer */
 	.teamspaceName {
-		color: var(--teamspace-color);
+		color: rgb(from var(--teamspace-color) r g b / 0.8);
 		white-space: nowrap;
 	}
 
@@ -381,6 +385,19 @@ button,
 	}
 	.projectNextAction i {
 		color: var(--item-icon-color);
+	}
+
+	/* The marker for parent items, designed to mimic what EM introduced in 3.15.1 */
+	/* As of v2.3.0.b16, this is not used, but is retained for future reference. */
+	.parentMarkerIcon {
+		font-size: 70%;
+		color: rgb(from var(--fg-main-color) r g b / 0.7);
+		background-color: var(--divider-color);
+		margin-left: 0.35rem;
+		border-radius: 30%;
+		padding: 0px 4px;
+		vertical-align: middle;
+		transform: scale(1.25,0.9);
 	}
 }
 

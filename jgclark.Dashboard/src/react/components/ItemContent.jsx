@@ -32,7 +32,6 @@ import {
 } from '@helpers/HTMLView'
 import { RE_SCHEDULED_DATES_G } from '@helpers/regex'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
-import '../css/ItemContent.css'
 
 //--------------------------------------------------------------------------
 
@@ -129,7 +128,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
       {possParentIcon}
       {/* <span className="pad-left">[ID:{item.ID}]</span> */}
       <a className="dialogTriggerIcon">
-        <i className="fa-light fa-edit" onClick={handleClickToOpenEditDialog}></i>
+        <i className="fa-light fa-edit pad-right" onClick={handleClickToOpenEditDialog}></i>
       </a>
       {showItemNoteLink && <ItemNoteLink
         item={item}

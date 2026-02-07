@@ -1,6 +1,6 @@
 /**
   CSS for the items Actions Dialog 
-  Last updated v2.1.8
+  Last updated 2026-02-05 for v2.4.0.b20 by @jgclark
   */
 
 dialog {
@@ -188,12 +188,11 @@ dialog:modal {
   }
 }
 
-/* @media screen and (width <= 420px) {
-  dialog:modal {
-    max-width: 90%;
-    left: 5%;
-  }
-} */
+/* In heading of DialogForProjectItems */
+.reviewDetailsText {
+  margin-left: 0.75rem;
+  font-weight: 400;
+}
 
 /* Override items from main Dashboard.css for slightly different context this is used */
 .projectIcon {
