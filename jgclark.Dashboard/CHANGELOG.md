@@ -9,6 +9,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b20] 2026-02-??? 
+- fix clicking on note title in Task Dialog box 
+- allow Searches to work against either V2 or V3 of Search Extensions plugin
+- move "Default Dashboard Window Type" setting to main Dashboard settings dialog, from the NP plugin settings pane.
+
 ## [2.4.0.b19] 2026-01-27
 - finish hooking up addTaskToNote + UI improvements
 - dev: refactor getOpenItemParasForTimePeriod() and add tests to the new smaller functions.

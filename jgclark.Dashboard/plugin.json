@@ -218,6 +218,7 @@
       ]
     },
     {
+      "comment": "TODO: remove me in time",
       "hidden": false,
       "name": "updateTagMentionCache",
       "description": "update tag cache for Dashboard",
@@ -280,19 +281,6 @@
     }
   ],
   "plugin.settings": [
-    {
-      "key": "preferredWindowType",
-      "title": "Open Dashboard in what sort of window?",
-      "description": "On NotePlan v3.20+ on macOS only, you can open the Dashboard in different window types: 'New Window' for a separate window; 'Main Window' to take over the main window; 'Split View' for a split view in the main window.",
-      "type": "string",
-      "default": "New Window",
-      "choices": [
-        "New Window",
-        "Main Window",
-        "Split View"
-      ],
-      "required": true
-    },
     {
       "type": "hidden",
       "key": "pluginID",

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2026-01-22 for v2.4.0.b17, @jgclark
+// Last updated 2026-02-07 for v2.4.0.b20, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -599,6 +599,8 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashbo
     /heading\d/,
     // the following were added in v2.2.0
     'searchOptions',
+    // the following were added in v2.4.0
+    'preferredWindowType',
   ].map((pattern) => (typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern))
   if (deleteAllShowTagSections) {
     patternsToRemove.push(/showTagSection_/)

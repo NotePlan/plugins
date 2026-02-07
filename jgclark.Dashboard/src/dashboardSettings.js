@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-01-22 for v2.4.0.b17, @jgclark
+// Last updated 2026-02-07 for v2.4.0.b20, @jgclark
 //-----------------------------------------------------------------------------
 
 import { defaultSectionDisplayOrder } from './constants.js'
@@ -60,6 +60,16 @@ export const searchPanelSettings: Array<TSettingItem> = [
 // But to add a new TYPE of setting, add it here, and update the switch statement in createDashboardSettingsItems()
 // so it knows how to render it and set the default value.
 export const dashboardSettingDefs: Array<TSettingItem> = [
+  {
+    key: 'preferredWindowType',
+    label: 'Default Dashboard Window Type',
+    description:
+      "(On NotePlan 3.20.1 and later) the Dashboard can be displayed in the main window, or in a new (floating) window, or in a split window. This setting controls the default way the Dashboard is displayed when it is opened with the '/Show Dashboard' command.",
+    type: 'dropdown-select',
+    options: ['Window', 'Main', 'Split'],
+    default: 'Main',
+    compactDisplay: true,
+  },
   {
     type: 'heading',
     label: 'Perspectives',
