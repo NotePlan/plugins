@@ -153,7 +153,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       }
 
       // TEST: Add some other colors based from main fg/bg colors
-      rootSel.push(`--fg-placeholder-color: rgba(from var(--fg-main-color) r g b / 0.7)`)
+      rootSel.push(`--fg-placeholder-color: rgba(from var(--fg-main-color) r g b / 0.6)`)
       rootSel.push(`--fg-info-color: color-mix(in oklch, var(--fg-main-color), blue 20%)`)
       rootSel.push(`--fg-warn-color: color-mix(in oklch, var(--fg-main-color), orange 20%)`)
       rootSel.push(`--fg-error-color: color-mix(in oklch, var(--fg-main-color), red 20%)`)
