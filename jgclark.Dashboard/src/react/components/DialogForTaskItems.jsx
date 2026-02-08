@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2026-01-05 for v2.4.0.b8 by @jgclark
+// Last updated 2026-02-05 for v2.4.0.b20 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -374,13 +374,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     return result
   }
 
-  function handleTitleClick(e: MouseEvent) {
-    // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties
-    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
-    detailsMessageObject.actionType = 'showLineInEditorFromFilename'
-    detailsMessageObject.modifierKey = modifierName
-    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
-  }
 
   // Handle the close -- start an animation and then schedule the actual close at the end of the animation
   // will eventually call onClose() from Dialog.jsx (does nothing special)
@@ -475,8 +468,12 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       >
         <div className="dialogTitle">
           <div className="preText">From:</div>
-          <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`}>
-            <div className="dialogItemNote" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
+          <TooltipOnKeyPress
+            altKey={{ text: 'Open in Split View' }}
+            metaKey={{ text: 'Open in Floating Window' }}
+            label={`Task Item Dialog for ${title}`}
+          >
+            <div className="dialogItemNote">
               <ItemNoteLink
                 item={item}
                 thisSection={sectionCodes}
