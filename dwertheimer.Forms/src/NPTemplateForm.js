@@ -146,7 +146,9 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
         clo(fm, `openTemplateForm fm=`)
 
         // Check processing method - determine from frontmatter or infer from receivingTemplateTitle (backward compatibility)
-        const processingMethod = fm?.processingMethod || (fm?.receivingTemplateTitle || fm?.receivingtemplatetitle ? 'form-processor' : null)
+        // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
+        const processingMethod =
+          fm?.processingMethod || (fm?.receivingTemplateTitle || fm?.receivingtemplatetitle || fm?.formProcessorTitle ? 'form-processor' : null)
 
         // If no processing method is set, require the user to set one
         if (!processingMethod) {
@@ -200,7 +202,8 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
         // Only require receivingTemplateTitle if processing method is 'form-processor'
         // Check both frontmatter and form fields (form field allows dynamic selection)
         if (processingMethod === 'form-processor') {
-          const receiverInFrontmatter = fm && (fm.receivingTemplateTitle || fm.receivingtemplatetitle) // NP has a bug where it sometimes lowercases the frontmatter keys
+          // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
+          const receiverInFrontmatter = fm && (fm.receivingTemplateTitle || fm.receivingtemplatetitle || fm.formProcessorTitle) // NP has a bug where it sometimes lowercases the frontmatter keys
           const receiverInFormField = formFields && Array.isArray(formFields) && formFields.some((field) => field.key === 'receivingTemplateTitle')
           
           if (!receiverInFrontmatter && !receiverInFormField) {
@@ -247,7 +250,10 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
     clo(templateFrontmatterAttributes, `openTemplateForm templateFrontmatterAttributes=`)
 
     // Check processing method - determine from frontmatter or infer from receivingTemplateTitle (backward compatibility)
-    const processingMethod = templateFrontmatterAttributes?.processingMethod || (templateFrontmatterAttributes?.receivingTemplateTitle ? 'form-processor' : null)
+    // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
+    const processingMethod =
+      templateFrontmatterAttributes?.processingMethod ||
+      (templateFrontmatterAttributes?.receivingTemplateTitle || templateFrontmatterAttributes?.formProcessorTitle ? 'form-processor' : null)
 
     // If no processing method is set, require the user to set one
     if (!processingMethod) {
@@ -261,7 +267,11 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
     // Only require receivingTemplateTitle if processing method is 'form-processor'
     // Check both frontmatter and form fields (form field allows dynamic selection)
     if (processingMethod === 'form-processor') {
-      const receiverInFrontmatter = templateFrontmatterAttributes?.receivingTemplateTitle || templateFrontmatterAttributes?.receivingtemplatetitle
+      // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
+      const receiverInFrontmatter =
+        templateFrontmatterAttributes?.receivingTemplateTitle ||
+        templateFrontmatterAttributes?.receivingtemplatetitle ||
+        templateFrontmatterAttributes?.formProcessorTitle
       const receiverInFormField = formFields && Array.isArray(formFields) && formFields.some((field) => field.key === 'receivingTemplateTitle')
       
       if (!receiverInFrontmatter && !receiverInFormField) {

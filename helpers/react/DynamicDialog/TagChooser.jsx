@@ -72,6 +72,16 @@ export function TagChooser({
   })
   const [loaded, setLoaded] = useState<boolean>(hasInitialHashtags) // If preloaded, mark as loaded
   const [loading, setLoading] = useState<boolean>(false)
+  // Ref to track if component is mounted (prevents callbacks after unmount)
+  const isMountedRef = useRef<boolean>(true)
+
+  // Track mount state to prevent callbacks after unmount
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   // Load hashtags from plugin via REQUEST (skip if initial data was provided)
   // Delay the request to yield to TOC rendering and other critical UI elements
@@ -80,10 +90,18 @@ export function TagChooser({
     if (requestFromPlugin && !loaded && !loading && !hasInitialHashtags) {
       // Use setTimeout to delay the request, allowing TOC and other UI to render first
       const timeoutId = setTimeout(() => {
+        // CRITICAL: Check if component is still mounted before setting state
+        if (!isMountedRef.current) {
+          return
+        }
         setLoading(true)
         logDebug('TagChooser', 'Loading hashtags from plugin (delayed)')
         requestFromPlugin('getHashtags', {})
           .then((hashtagsData: Array<string>) => {
+            // CRITICAL: Check if component is still mounted before setting state
+            if (!isMountedRef.current) {
+              return
+            }
             if (Array.isArray(hashtagsData)) {
               // DataStore.hashtags returns items without # prefix, so we can use them directly
               setHashtags(hashtagsData)
@@ -97,11 +115,17 @@ export function TagChooser({
           })
           .catch((error) => {
             logError('TagChooser', `Failed to load hashtags: ${error.message}`)
-            setHashtags([])
-            setLoaded(true)
+            // CRITICAL: Check if component is still mounted before setting state
+            if (isMountedRef.current) {
+              setHashtags([])
+              setLoaded(true)
+            }
           })
           .finally(() => {
-            setLoading(false)
+            // CRITICAL: Check if component is still mounted before setting state
+            if (isMountedRef.current) {
+              setLoading(false)
+            }
           })
       }, 200) // 200ms delay to yield to TOC rendering
 
@@ -109,7 +133,7 @@ export function TagChooser({
         clearTimeout(timeoutId)
       }
     }
-  }, [requestFromPlugin, loaded, loading])
+  }, [requestFromPlugin, loaded, loading, hasInitialHashtags])
 
   // Function to format hashtag for display (add # prefix only if not already present)
   // Memoized with useCallback to prevent recreation on every render

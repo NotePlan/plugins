@@ -1,0 +1,36 @@
+/* ConditionalValues – derived field display */
+
+.conditional-values-wrapper {
+  margin-bottom: 0.5rem;
+}
+
+.conditional-values-compact.conditional-values-wrapper {
+  margin-bottom: 0.25rem;
+}
+
+.conditional-values-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.conditional-values-compact .conditional-values-display {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.conditional-values-label {
+  font-size: 0.9rem;
+  color: var(--fg-main-color, #4c4f69);
+  font-weight: 500;
+}
+
+.conditional-values-resolved {
+  font-size: 0.9rem;
+  color: var(--fg-main-color, #4c4f69);
+  background: var(--bg-alt-color, #e6e9ef);
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  min-height: 1.5rem;
+}

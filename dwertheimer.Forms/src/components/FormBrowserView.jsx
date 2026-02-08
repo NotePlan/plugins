@@ -5,6 +5,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useState, useEffect, useRef, useMemo, useCallback, type Node } from 'react'
+import { createPortal, flushSync } from 'react-dom'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { AppProvider } from './AppContext.jsx'
 import { FormPreview } from './FormPreview.jsx'
@@ -13,6 +14,7 @@ import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import './FormBrowserView.css'
+import './FormView.css' // Import FormView.css for form-submitting-overlay styles
 
 type FormTemplate = {
   label: string,
@@ -522,6 +524,10 @@ export function FormBrowserView({
     setFormFields([])
   }, [])
 
+  // Track submission state for overlay
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const overlayShownAtRef = useRef<number>(0)
+
   // Handle form submit
   const handleSave = useCallback(
     (formValues: Object, windowId?: string) => {
@@ -536,25 +542,50 @@ export function FormBrowserView({
           aiAnalysisResult: '',
         },
       })
-      
-      // Send to plugin for processing
-      // Include keepOpenOnSubmit flag so the plugin knows not to close the window
-      if (requestFromPlugin) {
-        requestFromPlugin('submitForm', {
+
+      // Force overlay into the DOM before starting the request (flushSync ensures React commits
+      // synchronously; in WebView rAF timing can prevent the overlay from ever painting).
+      flushSync(() => {
+        setIsSubmitting(true)
+        overlayShownAtRef.current = Date.now()
+      })
+
+      const hideOverlay = () => {
+        const MIN_OVERLAY_MS = 400
+        const elapsed = Date.now() - overlayShownAtRef.current
+        if (elapsed < MIN_OVERLAY_MS) {
+          setTimeout(() => setIsSubmitting(false), MIN_OVERLAY_MS - elapsed)
+        } else {
+          setIsSubmitting(false)
+        }
+      }
+
+      if (!requestFromPlugin) {
+        setIsSubmitting(false)
+        return
+      }
+      requestFromPlugin('submitForm', {
           keepOpenOnSubmit: true, // Tell plugin not to close the window
           templateFilename: selectedTemplate?.filename,
           formValues,
           windowId,
-        })
+        }, 30000) // Use 30s timeout like FormView
           .then((responseData) => {
             logDebug('FormBrowserView', 'Form submission response:', responseData)
+            
+            // Hide submitting overlay (with minimum display time so user sees it)
+            hideOverlay()
             
             // Check if the response indicates success or failure
             // The responseData may be the data object from a successful response, or it may contain error info
             if (responseData && typeof responseData === 'object') {
               // Check for error indicators in the response (from pluginData)
               const pluginDataFromResponse = responseData.pluginData || {}
-              const hasError = pluginDataFromResponse.formSubmissionError || pluginDataFromResponse.aiAnalysisResult || responseData.formSubmissionError || responseData.aiAnalysisResult
+              const hasError =
+                pluginDataFromResponse.formSubmissionError ||
+                pluginDataFromResponse.aiAnalysisResult ||
+                responseData.formSubmissionError ||
+                responseData.aiAnalysisResult
               if (hasError) {
                 // Extract error message
                 let errorMessage = 'Form submission failed.'
@@ -631,6 +662,10 @@ export function FormBrowserView({
           })
           .catch((error) => {
             logError('FormBrowserView', `Error submitting form: ${error.message}`)
+            
+            // Hide submitting overlay on error (with minimum display time)
+            hideOverlay()
+            
             // On error, show Toast notification but don't close the window
             // The window should stay open so user can fix and retry
             const errorMessage = error.message || 'An error occurred while submitting the form'
@@ -651,7 +686,6 @@ export function FormBrowserView({
             })
             // Don't reset form on error - let user see what they entered
           })
-      }
     },
     [selectedTemplate, requestFromPlugin, handleCancel, dispatch, data, pluginData],
   )
@@ -930,6 +964,17 @@ export function FormBrowserView({
         isModal={true}
         requestFromPlugin={requestFromPlugin}
       />
+      {/* Submitting overlay - rendered via portal to document.body to appear above everything */}
+      {isSubmitting && typeof document !== 'undefined' && document.body
+        ? createPortal(
+            <div className="form-submitting-overlay">
+              <div className="form-submitting-message">
+                <div>Submitting Form...</div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </AppProvider>
   )
 }

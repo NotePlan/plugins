@@ -3,6 +3,14 @@
 // Generic Date Picker component using standard HTML date input.
 // Used in DynamicDialog as a lightweight alternative to react-day-picker.
 // Last updated 2024 for GenericDatePicker by @dbw
+//
+// Safari/WebKit limitation: In native <input type="date">, if you pause while
+// typing a segment (e.g. year), the next keystroke may replace the segment
+// instead of appending (e.g. "0" then pause then "2" shows "2" not "02").
+// This is WebKit behavior, not something we can fix here. Workaround: type
+// the segment without pausing, or use the calendar picker.
+// A future improvement could be a text-field mode (parse on blur) for users
+// who prefer to type at their own pace.
 //----------------------------------------------------------
 import React, { useState, useEffect, useRef } from 'react'
 import moment from 'moment/min/moment-with-locales'
@@ -112,6 +120,12 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
 
   const [inputValue, setInputValue] = useState<string>(dateToInputValue(normalizeDate(startingSelectedDate)))
 
+  // Uncontrolled: initial defaultValue only (Safari needs native control of segments; we don't pass value=)
+  const initialDefaultValueRef = useRef<?string>(null)
+  if (initialDefaultValueRef.current === null) {
+    initialDefaultValueRef.current = dateToInputValue(normalizeDate(startingSelectedDate)) || ''
+  }
+
   // Format date using moment-with-locales based on dateFormat
   const formatDate = (date: Date): string | Date => {
     if (dateFormat === '__object__' || !dateFormat) {
@@ -135,53 +149,34 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
   // So we only get valid dates here, not partial input
   const handleInputChange = (e: SyntheticInputEvent<HTMLInputElement>) => {
     const value = e.target.value
-    // HTML date input only provides complete dates in YYYY-MM-DD format
     const date = inputValueToDate(value)
 
     if (date) {
-      // Date was successfully parsed - format it according to dateFormat
+      // Safari/WebKit sends placeholder dates while typing the year (e.g. "2" -> 0002, "20" -> 0020).
+      // Only accept full 4-digit years so we don't overwrite or notify parent mid-typing.
+      const year = date.getFullYear()
+      if (year < 1000 || year > 9999) return
+
       const formatted = formatDate(date)
-      // For HTML date input (type="date"), we need to keep it as YYYY-MM-DD format
       const newInputValue = dateToInputValue(date)
+      setInputValue(newInputValue)
 
-      // Only update inputValue if it's different (prevents unnecessary re-renders)
-      if (newInputValue !== inputValue) {
-        setInputValue(newInputValue)
-      }
-
-      // Only call onSelectDate if the value actually changed (prevents infinite loops)
       const lastSent = lastSentValueRef.current
       const valueChanged = formatted instanceof Date && lastSent instanceof Date ? formatted.getTime() !== lastSent.getTime() : formatted !== lastSent
-
       if (valueChanged) {
         lastSentValueRef.current = formatted
-        onSelectDate(formatted) // Propagate the formatted value to parent
-        // Close the native calendar picker after date selection
-        // The native calendar needs time to process the selection, so we use a delay
+        onSelectDate(formatted)
+        // Optionally close native calendar after picker selection (not while typing)
         if (inputRef.current) {
-          // Use requestAnimationFrame to wait for the next frame, then setTimeout for additional delay
-          // This ensures the browser has finished processing the date selection
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
               setTimeout(() => {
-                if (inputRef.current) {
-                  // Check if input is still focused (calendar might still be open)
-                  const isFocused = document.activeElement === inputRef.current
-                  if (isFocused) {
-                    // Blur to close the calendar
-                    inputRef.current.blur()
-                    // Also try clicking outside by programmatically clicking the wrapper's parent
-                    // This simulates the user clicking outside the calendar
-                    const wrapper = inputRef.current.closest('.generic-date-picker-wrapper')
-                    if (wrapper && wrapper.parentElement) {
-                      // Create a synthetic click event on the parent
-                      const clickEvent = new MouseEvent('mousedown', {
-                        bubbles: true,
-                        cancelable: true,
-                        view: window,
-                      })
-                      wrapper.parentElement.dispatchEvent(clickEvent)
-                    }
+                const el = inputRef.current
+                if (el && document.activeElement === el) {
+                  el.blur()
+                  const wrapper = el.closest && el.closest('.generic-date-picker-wrapper')
+                  if (wrapper && wrapper.parentElement) {
+                    wrapper.parentElement.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }))
                   }
                 }
               }, 50)
@@ -189,19 +184,8 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
           })
         }
       }
-    } else if (!value || value.trim() === '') {
-      // Value was cleared
-      if (inputValue !== '') {
-        setInputValue('')
-      }
-      const clearedValue = dateFormat === '__object__' || !dateFormat ? new Date(NaN) : ''
-
-      // Only call onSelectDate if the value actually changed
-      if (lastSentValueRef.current !== clearedValue) {
-        lastSentValueRef.current = clearedValue
-        onSelectDate(clearedValue)
-      }
     }
+    // Empty or unparseable: do nothing. Input is uncontrolled so DOM keeps user's typing. Clear only on blur or Clear button.
   }
 
   // Handle input blur - for HTML date inputs, this is mainly for validation
@@ -209,32 +193,32 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
   const handleInputBlur = (e: SyntheticInputEvent<HTMLInputElement>) => {
     const value = e.target.value.trim()
     if (!value) {
-      // Already handled in onChange
+      if (inputValue !== '') {
+        setInputValue('')
+        const clearedValue = dateFormat === '__object__' || !dateFormat ? new Date(NaN) : ''
+        if (lastSentValueRef.current !== clearedValue) {
+          lastSentValueRef.current = clearedValue
+          onSelectDate(clearedValue)
+        }
+      }
       return
     }
 
-    // For HTML date inputs, the value should already be valid from onChange
-    // But we'll validate one more time just in case
     const date = inputValueToDate(value)
     if (date) {
-      const newInputValue = dateToInputValue(date)
-      const formatted = formatDate(date)
-
-      // Only update if value changed (prevents unnecessary updates)
-      if (newInputValue !== inputValue) {
+      const year = date.getFullYear()
+      if (year >= 1000 && year <= 9999) {
+        const newInputValue = dateToInputValue(date)
+        const formatted = formatDate(date)
         setInputValue(newInputValue)
-      }
-
-      // Only call onSelectDate if the value actually changed
-      const lastSent = lastSentValueRef.current
-      const valueChanged = formatted instanceof Date && lastSent instanceof Date ? formatted.getTime() !== lastSent.getTime() : formatted !== lastSent
-
-      if (valueChanged) {
-        lastSentValueRef.current = formatted
-        onSelectDate(formatted)
+        const lastSent = lastSentValueRef.current
+        const valueChanged = formatted instanceof Date && lastSent instanceof Date ? formatted.getTime() !== lastSent.getTime() : formatted !== lastSent
+        if (valueChanged) {
+          lastSentValueRef.current = formatted
+          onSelectDate(formatted)
+        }
       }
     }
-    // If invalid, onChange already handled it
   }
 
   // Handle Enter key to prevent form submission
@@ -253,10 +237,9 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
   const handleClear = (e: SyntheticEvent<HTMLButtonElement>) => {
     e.preventDefault()
     e.stopPropagation()
+    if (inputRef.current) inputRef.current.value = ''
     setInputValue('')
     const clearedValue = dateFormat === '__object__' || !dateFormat ? new Date(NaN) : ''
-
-    // Only call onSelectDate if the value actually changed
     if (lastSentValueRef.current !== clearedValue) {
       lastSentValueRef.current = clearedValue
       onSelectDate(clearedValue)
@@ -279,44 +262,23 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
     }
   }
 
-  // Update inputValue when startingSelectedDate changes (but only if it's different from what we last received)
-  // This prevents infinite loops when the parent updates the prop in response to our onChange
+  // Sync from parent into the uncontrolled input (write to DOM). Only push when prop has a valid date.
+  // When prop is falsy we do NOT clear here (user may be mid-typing); clear only on blur or Clear button.
   useEffect(() => {
-    if (startingSelectedDate) {
-      const normalized = normalizeDate(startingSelectedDate)
-      if (normalized && !isNaN(normalized.getTime())) {
-        // Only update if this is a different date than what we last received
-        const lastReceived = lastReceivedDateRef.current
-        const dateChanged = !lastReceived || normalized.getTime() !== lastReceived.getTime()
-
-        if (dateChanged) {
-          lastReceivedDateRef.current = normalized
-          const newInputValue = dateToInputValue(normalized)
-          // Only update if the value actually changed (prevents unnecessary re-renders)
-          if (newInputValue !== inputValue) {
-            setInputValue(newInputValue)
-            // Also update lastSentValueRef to match, so we don't trigger onChange unnecessarily
-            const formatted = formatDate(normalized)
-            lastSentValueRef.current = formatted
-          }
-        }
-      } else {
-        // Date is null/undefined/invalid, clear the input (only if not already empty)
-        if (inputValue !== '' && lastReceivedDateRef.current !== null) {
-          lastReceivedDateRef.current = null
-          setInputValue('')
-        }
-      }
-    } else {
-      // No starting date provided, clear the input (only if not already empty)
-      if (inputValue !== '' && lastReceivedDateRef.current !== null) {
-        lastReceivedDateRef.current = null
-        setInputValue('')
-      }
+    if (!inputRef.current || !startingSelectedDate) return
+    const normalized = normalizeDate(startingSelectedDate)
+    if (!normalized || isNaN(normalized.getTime())) return
+    const lastReceived = lastReceivedDateRef.current
+    const dateChanged = !lastReceived || normalized.getTime() !== lastReceived.getTime()
+    if (dateChanged) {
+      lastReceivedDateRef.current = normalized
+      const newInputValue = dateToInputValue(normalized)
+      const el = inputRef.current
+      if (el) el.value = newInputValue
+      setInputValue(newInputValue)
+      lastSentValueRef.current = formatDate(normalized)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    // Note: We intentionally don't include inputValue in deps to prevent loops
-    // We only want to sync when startingSelectedDate or dateFormat changes externally
   }, [startingSelectedDate, dateFormat])
 
   return (
@@ -324,7 +286,7 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
       <input
         ref={inputRef}
         type="date"
-        value={inputValue}
+        defaultValue={initialDefaultValueRef.current ?? ''}
         onChange={handleInputChange}
         onBlur={handleInputBlur}
         onFocus={handleInputFocus}

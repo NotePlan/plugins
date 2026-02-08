@@ -44,7 +44,8 @@ export type { RequestResponse }
 // Form-specific handlers are now in their respective handler files:
 // - formBrowserHandlers.js: getFormTemplates, getFormFields, handleSubmitForm, handleOpenFormBuilder
 // - formBuilderHandlers.js: handleCreateProcessingTemplate, handleOpenNote, handleCopyFormUrl, handleDuplicateForm
-// - formSubmitHandlers.js: handleFormSubmitAction, handleUnknownAction
+// - formSubmitHandlers.js: handleFormSubmitAction, handleUnknownAction, submitFormRequest (REQUEST path for form submit)
+import { submitFormRequest } from './formSubmitHandlers'
 
 // Initialize Promise polyfills early
 initPromisePolyfills()
@@ -921,6 +922,8 @@ export async function handleRequest(requestType: string, params: Object = {}): P
         return createNote(params)
       case 'saveAutosave':
         return await saveAutosave(params)
+      case 'submitForm':
+        return await submitFormRequest(params)
       case 'testFormFieldRender':
         // Open the form field render test window
         await testFormFieldRender()

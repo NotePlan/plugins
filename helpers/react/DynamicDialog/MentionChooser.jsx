@@ -72,6 +72,16 @@ export function MentionChooser({
   })
   const [loaded, setLoaded] = useState<boolean>(hasInitialMentions) // If preloaded, mark as loaded
   const [loading, setLoading] = useState<boolean>(false)
+  // Ref to track if component is mounted (prevents callbacks after unmount)
+  const isMountedRef = useRef<boolean>(true)
+
+  // Track mount state to prevent callbacks after unmount
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   // Load mentions from plugin via REQUEST (skip if initial data was provided)
   // Delay the request to yield to TOC rendering and other critical UI elements
@@ -80,10 +90,18 @@ export function MentionChooser({
     if (requestFromPlugin && !loaded && !loading && !hasInitialMentions) {
       // Use setTimeout to delay the request, allowing TOC and other UI to render first
       const timeoutId = setTimeout(() => {
+        // CRITICAL: Check if component is still mounted before setting state
+        if (!isMountedRef.current) {
+          return
+        }
         setLoading(true)
         logDebug('MentionChooser', 'Loading mentions from plugin (delayed)')
         requestFromPlugin('getMentions', {})
           .then((mentionsData: Array<string>) => {
+            // CRITICAL: Check if component is still mounted before setting state
+            if (!isMountedRef.current) {
+              return
+            }
             if (Array.isArray(mentionsData)) {
               // DataStore.mentions returns items without @ prefix, so we can use them directly
               setMentions(mentionsData)
@@ -97,11 +115,17 @@ export function MentionChooser({
           })
           .catch((error) => {
             logError('MentionChooser', `Failed to load mentions: ${error.message}`)
-            setMentions([])
-            setLoaded(true)
+            // CRITICAL: Check if component is still mounted before setting state
+            if (isMountedRef.current) {
+              setMentions([])
+              setLoaded(true)
+            }
           })
           .finally(() => {
-            setLoading(false)
+            // CRITICAL: Check if component is still mounted before setting state
+            if (isMountedRef.current) {
+              setLoading(false)
+            }
           })
       }, 200) // 200ms delay to yield to TOC rendering
 
@@ -109,7 +133,7 @@ export function MentionChooser({
         clearTimeout(timeoutId)
       }
     }
-  }, [requestFromPlugin, loaded, loading])
+  }, [requestFromPlugin, loaded, loading, hasInitialMentions])
 
   // Function to format mention for display (add @ prefix only if not already present)
   // Memoized with useCallback to prevent recreation on every render

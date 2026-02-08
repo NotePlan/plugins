@@ -41,6 +41,9 @@ import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
 import './FormView.css'
 
+/** Commands that load data for choosers; suppressed during submit to avoid storm of REQUESTS that can cause freeze */
+const DATA_LOAD_COMMANDS = ['getFolders', 'getTeamspaces', 'getNotes', 'getHashtags', 'getMentions', 'getEvents', 'getFrontmatterKeyValues']
+
 /****************************************************************************************************************************
  *                             CONSOLE LOGGING
  ****************************************************************************************************************************/
@@ -74,6 +77,9 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   // Map to store pending requests for request/response pattern
   // Key: correlationId, Value: { resolve, reject, timeoutId }
   const pendingRequestsRef = useRef<Map<string, { resolve: (data: any) => void, reject: (error: Error) => void, timeoutId: any }>>(new Map())
+
+  /** When true, requestFromPlugin skips data-load commands (getFolders, getNotes, etc.) to avoid storm of REQUESTS during submit that can cause freeze */
+  const suppressDataRequestsRef = useRef<boolean>(false)
 
   // State for dynamically loaded folders and notes (loaded on demand, or pre-loaded from pluginData if available)
   // Check if preloaded data exists in pluginData (for static HTML testing with preloadChooserData: true)
@@ -122,6 +128,16 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     (command: string, dataToSend: any = {}, timeout: number = 10000): Promise<any> => {
       if (!command) throw new Error('requestFromPlugin: command must be called with a string')
 
+      // During submit, skip data-load requests so fields don't storm the bridge and cause freeze
+      if (suppressDataRequestsRef.current && DATA_LOAD_COMMANDS.includes(command)) {
+        logDebug('FormView', `[DIAG] requestFromPlugin SKIP (submitting): command="${command}"`)
+        if (!Promise.resolve) {
+          logError('FormView', `[DIAG] Promise.resolve is not defined, this is a critical error`)
+          throw new Error('Promise.resolve is not defined, this is a critical error')
+        }
+        return Promise.resolve([])
+      }
+
       const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       const requestStartTime = performance.now()
       const pendingCount = pendingRequestsRef.current.size
@@ -130,6 +146,11 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
 
       return new Promise((resolve, reject) => {
         const timeoutId = setTimeout(() => {
+          // CRITICAL: Check if component is still mounted before accessing refs and rejecting
+          if (!isMountedRef.current) {
+            logDebug('FormView', `[DIAG] requestFromPlugin TIMEOUT skipped - component unmounted: command="${command}", correlationId="${correlationId}"`)
+            return
+          }
           const pending = pendingRequestsRef.current.get(correlationId)
           if (pending) {
             pendingRequestsRef.current.delete(correlationId)
@@ -370,7 +391,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
         // $FlowFixMe[prop-missing] - payload structure is validated above
         const payload = eventData.payload
         if (payload && typeof payload === 'object' && payload.correlationId && typeof payload.correlationId === 'string') {
-          const { correlationId, success, data: responseData, error } = payload
+          const { correlationId, success, data: responseData, error: responseError } = payload
           const pending = pendingRequestsRef.current.get(correlationId)
           if (pending) {
             const resolveStartTime = performance.now()
@@ -385,14 +406,20 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
             )
 
             // Use requestAnimationFrame to yield before resolving
+            // Resolve with responseData for success; for failure, pass __error + message so handleSave can show it without wiping state
+            // (when backend returns success=false, data is often null—resolving with null and skipping dispatch hid the error)
+            const valueToResolve = success
+              ? responseData
+              : responseData && typeof responseData === 'object'
+              ? responseData
+              : { __error: true, message: responseError || 'Request failed' }
             requestAnimationFrame(() => {
               const resolveElapsed = performance.now() - resolveStartTime
-              logDebug('FormView', `[DIAG] handleResponse RESOLVING AFTER RAF: correlationId="${correlationId}", resolveElapsed=${resolveElapsed.toFixed(2)}ms`)
-              if (success) {
-                pending.resolve(responseData)
-              } else {
-                pending.reject(new Error(error || 'Request failed'))
-              }
+              logDebug(
+                'FormView',
+                `[DIAG] handleResponse RESOLVING AFTER RAF: correlationId="${correlationId}", success=${String(success)}, resolveElapsed=${resolveElapsed.toFixed(2)}ms`,
+              )
+              pending.resolve(valueToResolve)
             })
           } else {
             logDebug('FormView', `[DIAG] handleResponse UNKNOWN: correlationId="${correlationId}" not found in pending requests`)
@@ -434,18 +461,32 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   const [formSubmitted, setFormSubmitted] = useState<boolean>(false)
   // Track if form is currently submitting (for showing loading overlay)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
-  
-  // Debug counters (visible on-screen during freeze)
-  // Use refs for counters to avoid re-renders, only update state when needed (e.g., during submission)
+
+  // Debug counters (tracked via refs to avoid re-renders)
   const debugCountersRef = useRef<{ renders: number, setDataReceived: number, handleSaveCalls: number }>({ renders: 0, setDataReceived: 0, handleSaveCalls: 0 })
-  const [debugCounters, setDebugCounters] = useState({ renders: 0, setDataReceived: 0, handleSaveCalls: 0 })
   const handleSaveCallCountRef = useRef<number>(0)
   const setDataReceivedCountRef = useRef<number>(0)
+  /** Blocks double-submit; set sync in handleSave, cleared in deferred state update (avoids re-render blocking getGlobalSharedData) */
+  const submissionInProgressRef = useRef<boolean>(false)
+  // Ref to track if component is mounted (prevents callbacks after unmount) - declared early so it's available to all setTimeout callbacks
+  const isMountedRef = useRef<boolean>(true)
 
   // Close dialog after submission if there's no AI analysis result
   // GUARD: Use ref to prevent this effect from running multiple times with same data
   const formSubmittedEffectRunRef = useRef<string>('')
+  // Ref to track timeout ID for proper cleanup (prevents race condition crash)
+  const closeDialogTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Ref to track effect instance ID (increments each time effect runs, prevents stale callback execution)
+  const effectInstanceIdRef = useRef<number>(0)
   useEffect(() => {
+    // Clear any existing timeout when effect runs (cleanup from previous effect run)
+    if (closeDialogTimeoutRef.current != null) {
+      clearTimeout(closeDialogTimeoutRef.current)
+      closeDialogTimeoutRef.current = null
+    }
+    // Increment instance ID to invalidate any pending callbacks from previous effect runs
+    const currentInstanceId = ++effectInstanceIdRef.current
+
     if (formSubmitted) {
       // Create a signature for this effect run to prevent duplicate processing
       const signature = `${String(!!pluginData?.aiAnalysisResult)}-${String(!!pluginData?.formSubmissionError)}`
@@ -456,81 +497,223 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       formSubmittedEffectRunRef.current = signature
       // Check if there's an AI analysis result
       const hasAiAnalysis = pluginData?.aiAnalysisResult && typeof pluginData.aiAnalysisResult === 'string' && pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
-      logDebug('FormView', `[AI ANALYSIS] formSubmitted=${String(formSubmitted)}, hasAiAnalysis=${String(hasAiAnalysis)}, aiAnalysisResult exists=${String(!!pluginData?.aiAnalysisResult)}, length=${pluginData?.aiAnalysisResult?.length || 0}`)
-      
+      logDebug(
+        'FormView',
+        `[AI ANALYSIS] formSubmitted=${String(formSubmitted)}, hasAiAnalysis=${String(hasAiAnalysis)}, aiAnalysisResult exists=${String(!!pluginData?.aiAnalysisResult)}, length=${
+          pluginData?.aiAnalysisResult?.length || 0
+        }`,
+      )
+
       const hasFormSubmissionError = pluginData?.formSubmissionError && typeof pluginData.formSubmissionError === 'string'
-      
-      // Hide submitting overlay if we received an error or AI analysis result
+
+      // Hide submitting overlay and allow resubmit if we received an error or AI analysis result
       if (hasAiAnalysis || hasFormSubmissionError) {
         setIsSubmitting(false)
+        setFormSubmitted(false) // Allow user to click Submit again when error/AI analysis banner is shown
+        suppressDataRequestsRef.current = false // Allow data-load requests again when keeping dialog open for error
+        submissionInProgressRef.current = false // Ensure guard allows next submit (belt-and-suspenders)
+        formSubmittedEffectRunRef.current = '' // So next effect run (after second submit) doesn't skip due to signature match
       }
-      
+
       if (!hasAiAnalysis && !hasFormSubmissionError) {
         // No AI analysis result and no form submission error - close the dialog after a short delay to allow data to update
         logDebug('FormView', `[AI ANALYSIS] No AI analysis result, no form submission error, will close dialog after 500ms delay`)
-        const timeoutId = setTimeout(() => {
-          // Double-check there's still no AI analysis result or form submission error
-          const stillNoAiAnalysis = !pluginData?.aiAnalysisResult || !pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
-          const stillNoFormError = !pluginData?.formSubmissionError
-          logDebug('FormView', `[AI ANALYSIS] After 500ms delay, stillNoAiAnalysis=${String(stillNoAiAnalysis)}, stillNoFormError=${String(stillNoFormError)}, closing dialog`)
-          if (stillNoAiAnalysis && stillNoFormError) {
-            setIsSubmitting(false) // Hide overlay before closing
-            closeDialog()
-            setFormSubmitted(false)
+        // Capture instance ID in closure for the timeout callback
+        const callbackInstanceId = currentInstanceId
+        // Capture current timeout ref to verify it hasn't been cleared
+        const timeoutRef = closeDialogTimeoutRef
+        closeDialogTimeoutRef.current = setTimeout(() => {
+          try {
+            // CRITICAL: Check if component is still mounted, effect instance is still current, and timeout hasn't been cleared
+            // This prevents crashes when the component unmounts or effect re-runs while callback is executing
+            const isUnmounted = !isMountedRef.current
+            const instanceChanged = effectInstanceIdRef.current !== callbackInstanceId
+            const timeoutCleared = timeoutRef.current === null
+            if (isUnmounted || instanceChanged || timeoutCleared) {
+              logDebug('FormView', `[AI ANALYSIS] Timeout callback skipped - unmounted=${String(isUnmounted)}, instance changed (${callbackInstanceId} -> ${effectInstanceIdRef.current}), timeout cleared=${String(timeoutCleared)}`)
+              return
+            }
+            // Double-check there's still no AI analysis result or form submission error
+            // Access pluginData safely - it might be stale but that's okay for this check
+            const stillNoAiAnalysis = !pluginData?.aiAnalysisResult || !pluginData.aiAnalysisResult.includes('==**Templating Error Found**')
+            const stillNoFormError = !pluginData?.formSubmissionError
+            logDebug('FormView', `[AI ANALYSIS] After 500ms delay, stillNoAiAnalysis=${String(stillNoAiAnalysis)}, stillNoFormError=${String(stillNoFormError)}, closing dialog`)
+            if (stillNoAiAnalysis && stillNoFormError) {
+              setIsSubmitting(false) // Hide overlay before closing
+              suppressDataRequestsRef.current = false // Allow data-load requests again after submit completes
+              closeDialog()
+              setFormSubmitted(false)
+            }
+          } catch (err) {
+            // Defensive: catch any errors to prevent crashes during cleanup
+            logDebug('FormView', `[AI ANALYSIS] Error in timeout callback (likely component unmounted): ${String(err)}`)
           }
         }, 500) // Wait 500ms for SET_DATA message to arrive
-        
-        return () => clearTimeout(timeoutId)
       } else {
         logDebug('FormView', `[AI ANALYSIS] AI analysis result or form submission error detected, keeping dialog open`)
         // If there's an AI analysis result or form submission error, keep the dialog open (don't close)
       }
     }
+
+    // Cleanup function: clear timeout
+    return () => {
+      if (closeDialogTimeoutRef.current != null) {
+        clearTimeout(closeDialogTimeoutRef.current)
+        closeDialogTimeoutRef.current = null
+      }
+    }
   }, [formSubmitted, pluginData?.aiAnalysisResult, pluginData?.formSubmissionError])
 
-  const handleSave = (formValues: Object, windowId?: string) => {
-    // GUARD: Prevent multiple submissions (critical for preventing loops)
-    if (isSubmitting || formSubmitted) {
-      logDebug('FormView', `[GUARD] handleSave: Already submitting (isSubmitting=${String(isSubmitting)}, formSubmitted=${String(formSubmitted)}), ignoring duplicate call`)
-      return
+  // Track mount state to prevent callbacks after unmount
+  useEffect(() => {
+    isMountedRef.current = true
+    
+    // CRITICAL: Handle window/page replacement (when NotePlan reuses window with new content)
+    // When the window content is replaced, React may not get a chance to unmount properly
+    // This ensures cleanup happens even if React's unmount lifecycle doesn't complete
+    const handlePageUnload = () => {
+      logDebug('FormView', '[CLEANUP] Page unloading - clearing all pending timeouts and marking as unmounted')
+      isMountedRef.current = false
+      // Clear all pending timeouts
+      if (closeDialogTimeoutRef.current != null) {
+        clearTimeout(closeDialogTimeoutRef.current)
+        closeDialogTimeoutRef.current = null
+      }
+      // Clear any pending requests
+      pendingRequestsRef.current.forEach((pending) => {
+        clearTimeout(pending.timeoutId)
+      })
+      pendingRequestsRef.current.clear()
     }
     
-    handleSaveCallCountRef.current += 1
-    debugCountersRef.current.handleSaveCalls = handleSaveCallCountRef.current
-    // Update state to show in overlay
-    setDebugCounters({ ...debugCountersRef.current })
+    // Listen for page unload events (fires when window content is replaced)
+    window.addEventListener('beforeunload', handlePageUnload)
+    window.addEventListener('pagehide', handlePageUnload)
+    // Also listen for visibility change as a fallback
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        // Page is being hidden - might be replaced soon, but don't clear yet
+        // Just log for debugging
+        logDebug('FormView', '[CLEANUP] Page visibility changed to hidden')
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
     
-    clo(formValues, 'DynamicDialog: handleSave: formValues')
-    logDebug('FormView', `[FRONT-END] handleSave called (#${handleSaveCallCountRef.current}) - form submission starting, isSubmitting=${String(isSubmitting)}, formSubmitted=${String(formSubmitted)}`)
-    setFormSubmitted(true) // Mark form as submitted
-    setIsSubmitting(true) // Show submitting overlay
-    logDebug('FormView', `[FRONT-END] Sending onSubmitClick to back-end (plugin)`)
-    // receivingTemplateTitle can come from formValues (dynamic) or pluginData (static from frontmatter)
-    // Form field value takes precedence for dynamic selection
-    const receivingTemplateTitleFromForm = formValues?.receivingTemplateTitle || ''
-    const receivingTemplateTitleFromPluginData = pluginData['receivingTemplateTitle'] || ''
-    const receivingTemplateTitle = receivingTemplateTitleFromForm || receivingTemplateTitleFromPluginData
-    
-    sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, {
-      type: 'submit',
-      formValues,
-      windowId: windowId || pluginData.windowId || '', // Pass windowId if available from DynamicDialog or pluginData
-      processingMethod: pluginData['processingMethod'] || (receivingTemplateTitle ? 'form-processor' : 'write-existing'),
-      receivingTemplateTitle: receivingTemplateTitle,
-      // Option A: Write to existing file
-      getNoteTitled: pluginData['getNoteTitled'] || '',
-      location: pluginData['location'] || 'append',
-      writeUnderHeading: pluginData['writeUnderHeading'] || '',
-      replaceNoteContents: pluginData['replaceNoteContents'] || false,
-      createMissingHeading: pluginData['createMissingHeading'] !== false,
-      // Option B: Create new note
-      newNoteTitle: pluginData['newNoteTitle'] || '',
-      newNoteFolder: pluginData['newNoteFolder'] || '',
-      // Space (teamspace ID) - used to filter notes/folders and construct teamspace paths
-      space: pluginData['space'] || '',
-    })
-    // Don't close dialog immediately - wait for response to check for AI analysis
-  }
+    return () => {
+      isMountedRef.current = false
+      // Clear any pending timeout on unmount
+      if (closeDialogTimeoutRef.current != null) {
+        clearTimeout(closeDialogTimeoutRef.current)
+        closeDialogTimeoutRef.current = null
+      }
+      // Remove event listeners
+      window.removeEventListener('beforeunload', handlePageUnload)
+      window.removeEventListener('pagehide', handlePageUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
+  /**
+   * Submit form via REQUEST/RESPONSE so errors (formSubmissionError, aiAnalysisResult) are returned
+   * and shown before the dialog closes. Uses requestFromPlugin('submitForm', payload) per REQUEST_COMMUNICATIONS_AND_ROUTING.
+   */
+  const handleSave = useCallback(
+    (formValues: Object, windowId?: string) => {
+      // GUARD: Prevent multiple submissions (critical for preventing loops)
+      if (submissionInProgressRef.current || isSubmitting || formSubmitted) {
+        logDebug(
+          'FormView',
+          `[GUARD] handleSave: Already submitting (inProgress=${String(submissionInProgressRef.current)}, isSubmitting=${String(isSubmitting)}, formSubmitted=${String(
+            formSubmitted,
+          )}), ignoring duplicate call`,
+        )
+        return
+      }
+      submissionInProgressRef.current = true
+      suppressDataRequestsRef.current = true // Skip data-load requestFromPlugin during submit to avoid storm of REQUESTS
+
+      handleSaveCallCountRef.current += 1
+      debugCountersRef.current.handleSaveCalls = handleSaveCallCountRef.current
+
+      clo(formValues, 'DynamicDialog: handleSave: formValues')
+      logDebug(
+        'FormView',
+        `[FRONT-END] handleSave called (#${handleSaveCallCountRef.current}) - form submission starting, isSubmitting=${String(isSubmitting)}, formSubmitted=${String(
+          formSubmitted,
+        )}`,
+      )
+      logDebug('FormView', `[FRONT-END] Sending submitForm REQUEST to back-end (plugin)`)
+      const receivingTemplateTitleFromForm = formValues?.receivingTemplateTitle || ''
+      const receivingTemplateTitleFromPluginData = pluginData['receivingTemplateTitle'] || ''
+      const receivingTemplateTitle = receivingTemplateTitleFromForm || receivingTemplateTitleFromPluginData
+
+      const payload = {
+        type: 'submit',
+        formValues,
+        windowId: windowId || pluginData.windowId || '',
+        formTemplateFilename: pluginData?.templateFilename || '',
+        processingMethod: pluginData['processingMethod'] || (receivingTemplateTitle ? 'form-processor' : 'write-existing'),
+        receivingTemplateTitle: receivingTemplateTitle,
+        getNoteTitled: pluginData['getNoteTitled'] || '',
+        location: pluginData['location'] || 'append',
+        writeUnderHeading: pluginData['writeUnderHeading'] || '',
+        replaceNoteContents: pluginData['replaceNoteContents'] || false,
+        createMissingHeading: pluginData['createMissingHeading'] !== false,
+        newNoteTitle: pluginData['newNoteTitle'] || '',
+        newNoteFolder: pluginData['newNoteFolder'] || '',
+        space: pluginData['space'] || '',
+      }
+
+      // Persist current data so plugin sees latest when it calls getGlobalSharedData (passthrough vars updated by sendActionToPlugin elsewhere)
+      dispatch('UPDATE_DATA', data)
+
+      // Show overlay only; do NOT set formSubmitted until we have the submitForm RESPONSE (otherwise the
+      // formSubmitted effect runs with stale pluginData and incorrectly schedules "close after 500ms" while backend is still processing).
+      requestAnimationFrame(() => {
+        setIsSubmitting(true)
+        submissionInProgressRef.current = false
+      })
+
+      // Use 30s timeout so backend's getRenderContext (20s) can complete; if backend hangs, user sees "Request timeout" and overlay clears.
+      const SUBMIT_TIMEOUT_MS = 30000
+      requestFromPlugin('submitForm', payload, SUBMIT_TIMEOUT_MS)
+        .then((result: any) => {
+          // result is response.data from backend: { formSubmissionError?, aiAnalysisResult? }, or { __error, message } on failure
+          if (result && result.__error === true && typeof result.message === 'string') {
+            const errorData = {
+              ...data,
+              pluginData: { ...(data.pluginData || {}), formSubmissionError: result.message },
+            }
+            dispatch('UPDATE_DATA', errorData)
+          } else if (result && typeof result === 'object' && !result.__error) {
+            // Merge submission result (formSubmissionError, aiAnalysisResult) into pluginData; do not replace full data
+            const basePluginData = data.pluginData || {}
+            const mergedPluginData = { ...basePluginData }
+            if ('formSubmissionError' in result) {
+              mergedPluginData.formSubmissionError = result.formSubmissionError
+            }
+            if ('aiAnalysisResult' in result) {
+              mergedPluginData.aiAnalysisResult = result.aiAnalysisResult
+            }
+            dispatch('UPDATE_DATA', { ...data, pluginData: mergedPluginData })
+          }
+          setIsSubmitting(false)
+          setFormSubmitted(true) // Only now: effect runs with real pluginData and decides close vs keep-open
+        })
+        .catch((error: Error) => {
+          logDebug('FormView', `[FRONT-END] submitForm REQUEST failed: ${error.message}`)
+          suppressDataRequestsRef.current = false
+          setIsSubmitting(false)
+          const errorData = {
+            ...data,
+            pluginData: { ...(data.pluginData || {}), formSubmissionError: error.message || 'Form submission failed' },
+          }
+          dispatch('UPDATE_DATA', errorData)
+          setFormSubmitted(true) // Effect runs, sees formSubmissionError, keeps dialog open
+        })
+    },
+    [data, pluginData, isSubmitting, formSubmitted, dispatch, requestFromPlugin, onSubmitOrCancelCallFunctionNamed],
+  )
 
   // Return true if the string is 'true' (case insensitive), otherwise return false (blank or otherwise)
   const isTrueString = (value: string): boolean => (value ? /true/i.test(value) : false)
@@ -544,17 +727,15 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
    * The scrolling element is .dynamic-dialog-content inside .template-form, not the window
    */
   useEffect(() => {
-    const mountTime = Date.now()
-    
     // Function to find and scroll the dialog content element
     const scrollDialogContentToTop = () => {
+      // CRITICAL: Check if component is still mounted before accessing DOM
+      if (!isMountedRef.current) {
+        return null
+      }
       // Try multiple selectors to find the scrolling element
-      const selectors = [
-        '.template-form .dynamic-dialog-content',
-        '.dynamic-dialog.template-form .dynamic-dialog-content',
-        '.dynamic-dialog-content',
-      ]
-      
+      const selectors = ['.template-form .dynamic-dialog-content', '.dynamic-dialog.template-form .dynamic-dialog-content', '.dynamic-dialog-content']
+
       for (const selector of selectors) {
         const element = document.querySelector(selector)
         if (element) {
@@ -573,17 +754,23 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
 
     // Try again after a short delay to catch it after React renders
     const timeout1 = setTimeout(() => {
-      scrollDialogContentToTop()
+      if (isMountedRef.current) {
+        scrollDialogContentToTop()
+      }
     }, 50)
 
     // Try again after a longer delay
     const timeout2 = setTimeout(() => {
-      scrollDialogContentToTop()
+      if (isMountedRef.current) {
+        scrollDialogContentToTop()
+      }
     }, 200)
 
     // Final attempt after everything should be rendered
     const timeout3 = setTimeout(() => {
-      scrollDialogContentToTop()
+      if (isMountedRef.current) {
+        scrollDialogContentToTop()
+      }
     }, 500)
 
     return () => {
@@ -612,7 +799,10 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     if (needsFolders && !foldersLoaded && !loadingFolders) {
       // Use setTimeout to delay the request, allowing TOC and other UI to render first
       const timeoutId = setTimeout(() => {
-        loadFolders()
+        // CRITICAL: Check if component is still mounted before calling state setters
+        if (isMountedRef.current) {
+          loadFolders()
+        }
       }, 200) // 200ms delay to yield to TOC rendering
 
       return () => {
@@ -625,7 +815,10 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     if (needsNotes && !notesLoaded && !loadingNotes) {
       // Use setTimeout to delay the request, allowing TOC and other UI to render first
       const timeoutId = setTimeout(() => {
-        loadNotes()
+        // CRITICAL: Check if component is still mounted before calling state setters
+        if (isMountedRef.current) {
+          loadNotes()
+        }
       }, 200) // 200ms delay to yield to TOC rendering
 
       return () => {
@@ -729,7 +922,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   useEffect(() => {
     renderCountRef.current += 1
     const renderStartTime = performance.now()
-    
+
     // Track pluginData changes to detect SET_DATA messages from back-end
     const currentPluginDataStr = JSON.stringify(pluginData)
     const pluginDataChanged = currentPluginDataStr !== lastPluginDataRef.current
@@ -738,22 +931,30 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       setDataReceivedCountRef.current += 1
       debugCountersRef.current.setDataReceived = setDataReceivedCountRef.current
       // Don't update state here - would cause infinite loop. Only update when handleSave is called.
-      logDebug('FormView', `[FRONT-END] SET_DATA received from back-end (#${setDataReceivedCountRef.current}) - pluginData changed, triggering re-render #${renderCountRef.current}`)
+      logDebug(
+        'FormView',
+        `[FRONT-END] SET_DATA received from back-end (#${setDataReceivedCountRef.current}) - pluginData changed, triggering re-render #${renderCountRef.current}`,
+      )
       // Log what changed
       const hasError = pluginData?.formSubmissionError || pluginData?.aiAnalysisResult
       if (hasError) {
         logDebug('FormView', `[FRONT-END] SET_DATA contains error: formSubmissionError=${!!pluginData?.formSubmissionError}, aiAnalysisResult=${!!pluginData?.aiAnalysisResult}`)
       }
     }
-    
+
     // Update render counter in ref only (don't trigger state update - that would cause infinite loop!)
     debugCountersRef.current.renders = renderCountRef.current
-    
+
     // Only log first few renders and then periodically to reduce noise
     // But always log when pluginData changes (back-end activity)
     const shouldLog = pluginDataChanged || renderCountRef.current <= 3 || renderCountRef.current % 10 === 0
     if (shouldLog) {
-      logDebug('FormView', `[FRONT-END] FormView RENDER #${renderCountRef.current}: formFields=${formFields.length}, folders=${folders.length}, notes=${notes.length}, pluginDataChanged=${String(pluginDataChanged)}`)
+      logDebug(
+        'FormView',
+        `[FRONT-END] FormView RENDER #${renderCountRef.current}: formFields=${formFields.length}, folders=${folders.length}, notes=${notes.length}, pluginDataChanged=${String(
+          pluginDataChanged,
+        )}`,
+      )
     }
 
     requestAnimationFrame(() => {
@@ -766,104 +967,92 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
 
   // Check for AI analysis result in pluginData
   const aiAnalysisResult = pluginData?.aiAnalysisResult || ''
-  
+
   // Check for form submission error in pluginData
   const formSubmissionError = pluginData?.formSubmissionError || ''
 
   return (
     <>
-    <AppProvider
-      sendActionToPlugin={sendActionToPlugin}
-      sendToPlugin={sendToPlugin}
-      requestFromPlugin={requestFromPlugin}
-      dispatch={dispatch}
-      pluginData={pluginData}
-      updatePluginData={updatePluginData}
-      reactSettings={reactSettings}
-      setReactSettings={setReactSettings}
-    >
-      <div className={`webview ${pluginData.platform || ''}`}>
-        {/* replace all this code with your own component(s) */}
-        <div
-          style={{
-            maxWidth: '100vw',
-            width: '100vw',
-            paddingTop: (aiAnalysisResult || formSubmissionError) ? '4rem' : '0',
-          }}
-        >
-          <FormErrorBanner
-            aiAnalysisResult={aiAnalysisResult}
-            formSubmissionError={formSubmissionError}
-            requestFromPlugin={requestFromPlugin}
-          />
-          <DynamicDialog
-            isOpen={true}
-            title={pluginData?.formTitle || ''}
-            windowTitle={pluginData?.windowTitle || ''}
-            items={formFields}
-            onSave={handleSave}
-            onCancel={handleCancel}
-            allowEmptySubmit={isTrueString(pluginData.allowEmptySubmit)}
-            hideDependentItems={isTrueString(pluginData.hideDependentItems)}
-            folders={folders}
-            notes={notes}
-            requestFromPlugin={requestFromPlugin}
-            windowId={pluginData.windowId} // Pass windowId to DynamicDialog
-            defaultValues={pluginData?.defaultValues || {}} // Pass default values for form pre-population
-            templateFilename={pluginData?.templateFilename || ''} // Pass template filename for autosave
-            templateTitle={pluginData?.templateTitle || ''} // Pass template title for autosave
-            preloadedTeamspaces={pluginData?.preloadedTeamspaces || []} // Preloaded teamspaces for static HTML testing
-            preloadedMentions={pluginData?.preloadedMentions || []} // Preloaded mentions for static HTML testing
-            preloadedHashtags={pluginData?.preloadedHashtags || []} // Preloaded hashtags for static HTML testing
-            preloadedEvents={pluginData?.preloadedEvents || []} // Preloaded events for static HTML testing
-            preloadedFrontmatterValues={pluginData?.preloadedFrontmatterValues || {}} // Preloaded frontmatter key values for static HTML testing
-            onFoldersChanged={() => {
-              reloadFolders()
-            }}
-            onNotesChanged={() => {
-              reloadNotes()
-            }}
-            className="template-form"
+      <AppProvider
+        sendActionToPlugin={sendActionToPlugin}
+        sendToPlugin={sendToPlugin}
+        requestFromPlugin={requestFromPlugin}
+        dispatch={dispatch}
+        pluginData={pluginData}
+        updatePluginData={updatePluginData}
+        reactSettings={reactSettings}
+        setReactSettings={setReactSettings}
+      >
+        <div className={`webview ${pluginData.platform || ''}`}>
+          {/* replace all this code with your own component(s) */}
+          <div
             style={{
-              content: { paddingLeft: '1.5rem', paddingRight: '1.5rem' },
-              '--template-form-compact-label-width': pluginData?.compactLabelWidth || undefined,
-              '--template-form-compact-input-width': pluginData?.compactInputWidth || undefined,
+              maxWidth: '100vw',
+              width: '100vw',
+              paddingTop: aiAnalysisResult || formSubmissionError ? '4rem' : '0',
             }}
-          />
+          >
+            <FormErrorBanner aiAnalysisResult={aiAnalysisResult} formSubmissionError={formSubmissionError} requestFromPlugin={requestFromPlugin} />
+            <DynamicDialog
+              isOpen={true}
+              title={pluginData?.formTitle || ''}
+              windowTitle={pluginData?.windowTitle || ''}
+              items={formFields}
+              onSave={handleSave}
+              onCancel={handleCancel}
+              allowEmptySubmit={isTrueString(pluginData.allowEmptySubmit)}
+              hideDependentItems={isTrueString(pluginData.hideDependentItems)}
+              folders={folders}
+              notes={notes}
+              requestFromPlugin={requestFromPlugin}
+              windowId={pluginData.windowId} // Pass windowId to DynamicDialog
+              defaultValues={pluginData?.defaultValues || {}} // Pass default values for form pre-population
+              templateFilename={pluginData?.templateFilename || ''} // Pass template filename for autosave
+              templateTitle={pluginData?.templateTitle || ''} // Pass template title for autosave
+              preloadedTeamspaces={pluginData?.preloadedTeamspaces || []} // Preloaded teamspaces for static HTML testing
+              preloadedMentions={pluginData?.preloadedMentions || []} // Preloaded mentions for static HTML testing
+              preloadedHashtags={pluginData?.preloadedHashtags || []} // Preloaded hashtags for static HTML testing
+              preloadedEvents={pluginData?.preloadedEvents || []} // Preloaded events for static HTML testing
+              preloadedFrontmatterValues={pluginData?.preloadedFrontmatterValues || {}} // Preloaded frontmatter key values for static HTML testing
+              onFoldersChanged={() => {
+                reloadFolders()
+              }}
+              onNotesChanged={() => {
+                reloadNotes()
+              }}
+              className="template-form"
+              style={{
+                content: { paddingLeft: '1.5rem', paddingRight: '1.5rem' },
+                '--template-form-compact-label-width': pluginData?.compactLabelWidth || undefined,
+                '--template-form-compact-input-width': pluginData?.compactInputWidth || undefined,
+              }}
+            />
+          </div>
+          {/* end of replace */}
         </div>
-        {/* end of replace */}
-      </div>
+        {/* Submitting overlay - rendered via portal to document.body to appear above everything */}
+        {isSubmitting && typeof document !== 'undefined' && document.body
+          ? createPortal(
+              <div className="form-submitting-overlay">
+                <div className="form-submitting-message">
+                  <div>Submitting Form...</div>
+                </div>
+              </div>,
+              document.body,
+            )
+          : null}
+      </AppProvider>
       {/* Submitting overlay - rendered via portal to document.body to appear above everything */}
       {isSubmitting && typeof document !== 'undefined' && document.body
         ? createPortal(
             <div className="form-submitting-overlay">
               <div className="form-submitting-message">
                 <div>Submitting Form...</div>
-                {/* Debug counters visible during freeze - read from ref to avoid triggering re-renders */}
-                <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
-                  Renders: {debugCountersRef.current.renders} | SET_DATA: {debugCountersRef.current.setDataReceived} | handleSave: {debugCountersRef.current.handleSaveCalls}
-                </div>
               </div>
             </div>,
             document.body,
           )
         : null}
-    </AppProvider>
-    {/* Submitting overlay - rendered via portal to document.body to appear above everything */}
-    {isSubmitting && typeof document !== 'undefined' && document.body
-      ? createPortal(
-          <div className="form-submitting-overlay">
-            <div className="form-submitting-message">
-              <div>Submitting Form...</div>
-              {/* Debug counters visible during freeze - read from ref to avoid triggering re-renders */}
-              <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
-                Renders: {debugCountersRef.current.renders} | SET_DATA: {debugCountersRef.current.setDataReceived} | handleSave: {debugCountersRef.current.handleSaveCalls}
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )
-      : null}
     </>
   )
 }

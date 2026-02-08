@@ -8,7 +8,7 @@
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import React from 'react'
+import React, { useCallback } from 'react'
 import { JsonEditor } from 'json-edit-react'
 import Switch from './Switch.jsx'
 import InputBox from './InputBox.jsx'
@@ -25,6 +25,10 @@ import MultiSelectChooser from './MultiSelectChooser.jsx'
 import TagChooser from './TagChooser.jsx'
 import MentionChooser from './MentionChooser.jsx'
 import FrontmatterKeyChooser from './FrontmatterKeyChooser.jsx'
+import ColorChooser from './ColorChooser.jsx'
+import IconChooser from './IconChooser.jsx'
+import PatternChooser from './PatternChooser.jsx'
+import IconStyleChooser from './IconStyleChooser.jsx'
 import { ExpandableTextarea } from './ExpandableTextarea.jsx'
 import { TemplateJSBlock } from './TemplateJSBlock.jsx'
 import { MarkdownPreview } from './MarkdownPreview.jsx'
@@ -35,6 +39,26 @@ import type { Option } from './DropdownSelect.jsx'
 import { Button, ButtonGroup } from './ButtonComponents.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms.js'
+
+//--------------------------------------------------------------------------
+// Memoized chooser wrappers (per html-react-rules: handlers passed to children must be useCallback)
+//--------------------------------------------------------------------------
+function ColorChooserField({ item, value, handleFieldChange, ...rest }: any) {
+  const onChange = useCallback((v: string) => { if (item.key) handleFieldChange(item.key, v) }, [item.key, handleFieldChange])
+  return <ColorChooser value={value} onChange={onChange} {...rest} />
+}
+function IconChooserField({ item, value, handleFieldChange, ...rest }: any) {
+  const onChange = useCallback((v: string) => { if (item.key) handleFieldChange(item.key, v) }, [item.key, handleFieldChange])
+  return <IconChooser value={value} onChange={onChange} {...rest} />
+}
+function PatternChooserField({ item, value, handleFieldChange, ...rest }: any) {
+  const onChange = useCallback((v: string) => { if (item.key) handleFieldChange(item.key, v) }, [item.key, handleFieldChange])
+  return <PatternChooser value={value} onChange={onChange} {...rest} />
+}
+function IconStyleChooserField({ item, value, handleFieldChange, ...rest }: any) {
+  const onChange = useCallback((v: string) => { if (item.key) handleFieldChange(item.key, v) }, [item.key, handleFieldChange])
+  return <IconStyleChooser value={value} onChange={onChange} {...rest} />
+}
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -114,6 +138,11 @@ export function renderItem({
   preloadedEvents = [], // Preloaded events for static HTML testing
   preloadedFrontmatterValues = {}, // Preloaded frontmatter key values for static HTML testing (keyed by frontmatter key)
 }: RenderItemProps): React$Node {
+  // Conditional-values are resolved only at form submission; never output in the dialog
+  if (item.type === 'conditional-values') {
+    return null
+  }
+
   const element = () => {
     const thisLabel = item.label || '?'
     switch (item.type) {
@@ -325,6 +354,86 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder}
+              width={(item: any).width}
+              showValue={item.showValue ?? false}
+            />
+          </div>
+        )
+      }
+      case 'color-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        return (
+          <div key={`color-chooser${index}`} className="dialog-element-renderer-color-chooser" data-field-type="color-chooser">
+            <ColorChooserField
+              item={item}
+              label={label}
+              value={currentValue}
+              handleFieldChange={handleFieldChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={(item: any).placeholder || 'Type to search colors...'}
+              width={(item: any).width}
+              showValue={item.showValue ?? false}
+            />
+          </div>
+        )
+      }
+      case 'icon-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        return (
+          <div key={`icon-chooser${index}`} className="dialog-element-renderer-icon-chooser" data-field-type="icon-chooser">
+            <IconChooserField
+              item={item}
+              label={label}
+              value={currentValue}
+              handleFieldChange={handleFieldChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={(item: any).placeholder || 'Type to search icons...'}
+              width={(item: any).width}
+              showValue={item.showValue ?? false}
+            />
+          </div>
+        )
+      }
+      case 'pattern-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        return (
+          <div key={`pattern-chooser${index}`} className="dialog-element-renderer-pattern-chooser" data-field-type="pattern-chooser">
+            <PatternChooserField
+              item={item}
+              label={label}
+              value={currentValue}
+              handleFieldChange={handleFieldChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={(item: any).placeholder || 'Type to search patterns...'}
+              width={(item: any).width}
+              showValue={item.showValue ?? false}
+            />
+          </div>
+        )
+      }
+      case 'icon-style-chooser': {
+        const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
+        const currentValue = item.value || item.default || ''
+        return (
+          <div key={`icon-style-chooser${index}`} className="dialog-element-renderer-icon-style-chooser" data-field-type="icon-style-chooser">
+            <IconStyleChooserField
+              item={item}
+              label={label}
+              value={currentValue}
+              handleFieldChange={handleFieldChange}
+              disabled={disabled}
+              compactDisplay={compactDisplay}
+              placeholder={(item: any).placeholder || 'Type to search icon styles...'}
               width={(item: any).width}
               showValue={item.showValue ?? false}
             />

@@ -4,6 +4,64 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.25] 2026-02-06 @dwertheimer
+
+### Merged
+- **Merge of fix/conditional-values-bgcolor-and-button-group-default into main.** This release combines all changes from the fix branch (conditional-values, button-group default, Form Browser overlay, simplified submit response, frontmatter allowlist) with main's 1.0.24 fixes (Processing Template dropdown, GenericDatePicker Safari, formProcessorTitle eliminated). See 1.0.21–1.0.24 below for details.
+
+## [1.0.24] 2026-02-05 @dwertheimer
+
+### Fixed
+- **Processing Template dropdown selection**: Selecting a new Processing Template from the dropdown now correctly shows the newly selected item instead of the previous value. Root cause: SearchableChooser only matched note objects by filename; NoteChooser passes the note title as value, so the match failed and the display reverted to the old value.
+- **GenericDatePicker (Safari/WebKit)**:
+  - **Uncontrolled input**: Switched to uncontrolled `<input type="date">` (defaultValue only, no value=) so the native control owns segment state; prevents React from overwriting with empty and fixes month/day resetting and year showing 0001/0002 while typing.
+  - **No clear on empty onChange**: Safari often fires change with an empty value when focusing the year segment or mid-typing; we no longer clear or call onSelectDate(cleared) in onChange. Clearing only happens on blur (field left empty) or Clear button.
+  - **Partial-year guard**: Only accept dates with year 1000–9999 in change/blur; ignore placeholder years (0002, 0020, 0202) so we don’t overwrite the field or steal focus when typing the year digit-by-digit.
+  - **Sync effect**: When `startingSelectedDate` is falsy or invalid, the effect no longer clears the input (user may be mid-typing). We only push from parent when the prop has a valid date; sync is done by writing to `inputRef.current.value`.
+  - **Clear button**: When clearing, we set `inputRef.current.value = ''` so the DOM stays in sync.
+  - **Blur**: On blur with empty value we clear and notify parent; on blur with valid full date (year 1000–9999) we commit and call onSelectDate.
+
+### Documentation
+- **GenericDatePicker Safari limitation**: Documented that in Safari/WebKit, typing in the native date input with a pause in a segment (e.g. year) can cause the next keystroke to replace rather than append (e.g. "0" then "2" may show "2" instead of "02"). This is browser behavior. Workaround: type the segment without pausing, or use the calendar picker. A text-field alternative (parse on blur) is noted as a possible future improvement in the component header.
+
+## [1.0.23] 2026-01-27 @dwertheimer
+
+### Changed
+- **Simplified form submission response handling**: `handleSubmitButtonClick` and related functions now return only the necessary information (`success`, `formSubmissionError`, `aiAnalysisResult`) instead of the full `reactWindowData` object. This simplifies the code and avoids unnecessary data passing. The window only needs to know what happened, not all the window data.
+
+### Fixed
+- **Form Browser "Submitting..." overlay**: The overlay now appears reliably when submitting a form from the Form Browser. Uses `flushSync` so React commits the overlay to the DOM before the async request runs (avoids WebView/rAF timing issues). Added a minimum display time of 400 ms so the overlay is always visible even when the request completes quickly.
+
+### Edited in this release
+- `dwertheimer.Forms/src/formSubmission.js` — Simplified `handleSubmitButtonClick` and processing functions to return `{ success: boolean, formSubmissionError?: string, aiAnalysisResult?: string }` instead of full `PassedData`. Removed unnecessary `withPluginDataUpdates` usage.
+- `dwertheimer.Forms/src/formSubmitHandlers.js` — Updated to handle simplified return type from `handleSubmitButtonClick`.
+- `dwertheimer.Forms/src/formBrowserHandlers.js` — Updated to handle simplified return type from `handleSubmitButtonClick`.
+- `dwertheimer.Forms/src/components/FormBrowserView.jsx` — Submitting overlay: use `flushSync` to commit overlay before request; `hideOverlay()` with 400 ms minimum display time; `overlayShownAtRef` for timing.
+
+## [1.0.22] 2026-01-27 @dwertheimer
+
+### Changed
+- **ValueInsertButtons use shared constants**: The +Color, +Icon, +Pattern, and +IconStyle insert buttons (ValueInsertButtons) now import `PATTERNS`, `ICON_STYLES`, and `FA_ICON_NAMES` from `@helpers/react/DynamicDialog/valueInsertData`, so they use the same options as the color/icon/pattern/icon-style choosers in the Form Builder.
+
+### Edited in this release
+- `dwertheimer.Forms/src/components/ValueInsertButtons.jsx` — Replaced inline PATTERNS, ICON_STYLES, FA_ICON_NAMES with imports from valueInsertData.
+
+## [1.0.21] 2026-01-27 / 2026-02-03 @dwertheimer
+
+### Fixed (from fix branch)
+- **Conditional-values excluded from form until submit**: Fields with type `conditional-values` (e.g. `bgColor` derived from a button-group) are no longer added to form state, autosave, or the submit payload until the backend runs `resolveConditionalValuesFields` in `prepareFormValuesForRendering`. Previously they appeared with empty values in the form and autosave.
+- **Button-group default applied on open and submit**: When a form field has type `button-group` and an option with `isDefault: true`, that option's value is now used as the initial value when the form opens and when building the submit payload, so the source field (e.g. `theType`) is set correctly and conditional-values (e.g. `bgColor`) resolve as intended.
+
+### Changed (from main)
+- **formProcessorTitle eliminated**: Deprecated `formProcessorTitle` in favor of `receivingTemplateTitle` as the single canonical field. The two were redundant and could get out of sync. Going forward only `receivingTemplateTitle` is used/written.
+  - **Backward compatible**: Forms with only `formProcessorTitle` (legacy) are still read correctly everywhere. On save, the value is migrated to `receivingTemplateTitle` and `formProcessorTitle` is removed from the note.
+  - TemplateRunner and form submission have always used `receivingTemplateTitle`; `formProcessorTitle` was only used in the Form Builder UI and could cause duplication.
+
+### Edited in this release
+- `dwertheimer.Forms/src/formSubmission.js` — `ensureAllFormFieldsExist` and `handleSubmitButtonClick` skip conditional-values when adding missing fields.
+- `dwertheimer.Forms/src/formBrowserHandlers.js` — `handleSubmitForm` skips conditional-values when adding missing fields.
+- `helpers/react/DynamicDialog/DynamicDialog.jsx` — `getInitialItemStateObject`, "ensure all fields" effect, and `handleSave` skip conditional-values and apply button-group `isDefault` when initializing or filling missing keys.
+
 ## [1.0.20] 2026-01-26 @dwertheimer
 
 ### Fixed

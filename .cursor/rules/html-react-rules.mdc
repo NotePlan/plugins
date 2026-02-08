@@ -13,7 +13,7 @@ alwaysApply: true
 
 ## Promise Polyfills
 
-NotePlan's JSContext may not have `Promise.resolve()` or `Promise.all()`. Use polyfills from `@helpers/promisePolyfill.js`: `initPromisePolyfills()`, `promiseResolve()`, `promiseAll()`, `waitForCondition()`, `setTimeoutPolyfill()`. After creating/modifying notes, call `DataStore.updateCache(note, true)`.
+**Do not use raw `Promise.resolve`, `Promise.all`, or `Promise.race` in plugin code—NotePlan's JSContext may not have them.** Use polyfills from `@helpers/promisePolyfill.js`: `initPromisePolyfills()`, `promiseResolve()`, `promiseAll()`, `promiseRace()`, `waitForCondition()`, `setTimeoutPolyfill()`. After creating/modifying notes, call `DataStore.updateCache(note, true)`.
 
 ## React Function Memoization (CRITICAL)
 

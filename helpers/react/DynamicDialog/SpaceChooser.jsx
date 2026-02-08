@@ -212,7 +212,10 @@ export function SpaceChooser({
     if (!spacesLoaded && !isLoadingRef.current && requestFromPluginRef.current) {
       // Use setTimeout to delay the request, allowing TOC and other UI to render first
       const timeoutId = setTimeout(() => {
-        loadSpaces()
+        // CRITICAL: loadSpaces already checks isMounted internally, but double-check here for safety
+        if (isMounted) {
+          loadSpaces()
+        }
       }, 200) // 200ms delay to yield to TOC rendering
 
       return () => {

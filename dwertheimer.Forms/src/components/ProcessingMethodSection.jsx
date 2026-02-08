@@ -780,12 +780,11 @@ export function ProcessingMethodSection({
                     if (trimmedTitle) {
                       logDebug(pluginData, `ProcessingMethodSection: Setting receivingTemplateTitle to: "${trimmedTitle}"`)
                       onFrontmatterChange('receivingTemplateTitle', trimmedTitle)
-                      // Also clear formProcessorTitle if it exists and is different (for backward compatibility cleanup)
-                      if (frontmatter.formProcessorTitle && frontmatter.formProcessorTitle !== trimmedTitle) {
+                      // Clear deprecated formProcessorTitle if present (migration cleanup)
+                      if (frontmatter.formProcessorTitle) {
                         onFrontmatterChange('formProcessorTitle', '')
                       }
                     } else {
-                      // If empty, clear both
                       logDebug(pluginData, 'ProcessingMethodSection: Clearing receivingTemplateTitle')
                       onFrontmatterChange('receivingTemplateTitle', '')
                       if (frontmatter.formProcessorTitle) {

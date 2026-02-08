@@ -8,6 +8,7 @@ import pluginJson from '../plugin.json'
 import { openFormBuilder } from './NPTemplateForm'
 import { handleSubmitButtonClick } from './formSubmission'
 import { findDuplicateFormTemplates } from './templateIO'
+import { loadFormContextFromFilename } from './formSubmitHandlers'
 import { openFormBuilderWindow } from './windowManagement'
 import { loadCodeBlockFromNote } from '@helpers/codeBlocks'
 import { parseObjectString, stripDoubleQuotes } from '@helpers/stringTransforms'
@@ -272,6 +273,17 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
 
     logDebug(pluginJson, `handleSubmitForm: templateFilename="${templateFilename}", keepOpenOnSubmit=${String(keepOpenOnSubmit || false)}`)
 
+    // Load form context from file (same as submitFormRequest does)
+    const formContext = await loadFormContextFromFilename(templateFilename)
+    if (!formContext) {
+      return {
+        success: false,
+        message: `Could not load form from "${templateFilename}". Template not found or invalid.`,
+        data: { formSubmissionError: `Could not load form from "${templateFilename}".` },
+      }
+    }
+    logDebug(pluginJson, `handleSubmitForm: Loaded formContext: newNoteTitle="${formContext.newNoteTitle}", newNoteFolder="${formContext.newNoteFolder}", templateBody length=${formContext.templateBody.length}`)
+
     // Get the template note to extract processing information
     const templateNote = await getNoteByFilename(templateFilename)
     if (!templateNote) {
@@ -284,7 +296,9 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
 
     // Get frontmatter attributes
     const fm = templateNote.frontmatterAttributes || {}
-    const processingMethod = fm?.processingMethod || (fm?.receivingTemplateTitle ? 'form-processor' : null)
+    // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
+    const receivingTemplateFromFm = fm?.receivingTemplateTitle || fm?.formProcessorTitle
+    const processingMethod = fm?.processingMethod || (receivingTemplateFromFm ? 'form-processor' : null)
 
     if (!processingMethod) {
       return {
@@ -294,17 +308,14 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       }
     }
 
-    // For run-js-only, we don't need receivingTemplateTitle or templateBody validation
-    // TemplateJS blocks come from form fields, not from templateBody
-
-    // Call the form submission handler
-    // handleSubmitButtonClick expects (data, reactWindowData) but we'll create a minimal reactWindowData
-    // Strip quotes from string values that may have been stored with quotes in frontmatter
     // receivingTemplateTitle can come from formValues (dynamic) or frontmatter (static)
+    // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
     const receivingTemplateTitleFromForm = formValues?.receivingTemplateTitle || ''
-    const receivingTemplateTitleFromFrontmatter = stripDoubleQuotes(fm?.receivingTemplateTitle || '') || ''
+    const receivingTemplateTitleFromFrontmatter =
+      stripDoubleQuotes(fm?.receivingTemplateTitle || fm?.formProcessorTitle || '') || ''
     const receivingTemplateTitle = receivingTemplateTitleFromForm || receivingTemplateTitleFromFrontmatter
     
+    // Build submitData with all necessary fields
     const submitData = {
       type: 'submit',
       formValues,
@@ -316,27 +327,27 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       writeUnderHeading: stripDoubleQuotes(fm?.writeUnderHeading || '') || '',
       replaceNoteContents: fm?.replaceNoteContents || false,
       createMissingHeading: fm?.createMissingHeading !== false,
-      newNoteTitle: stripDoubleQuotes(fm?.newNoteTitle || '') || '',
-      newNoteFolder: stripDoubleQuotes(fm?.newNoteFolder || '') || '',
     }
 
-    // Load formFields from template note (needed for run-js-only to find TemplateJS blocks and validation)
-    let formFields: Array<any> = []
-    try {
-      const loadedFields = await loadCodeBlockFromNote<Array<any>>(templateFilename, 'formfields', pluginJson.id, parseObjectString)
-      if (loadedFields && Array.isArray(loadedFields)) {
-        formFields = loadedFields
-      }
-    } catch (error) {
-      logError(pluginJson, `handleSubmitForm: Error loading formFields: ${error.message}`)
-      // Continue without formFields - will fail validation if run-js-only needs them
+    // Merge loaded form context (templateBody, newNoteFrontmatter, newNoteTitle, newNoteFolder) into submitData
+    // This matches what submitFormRequest does - processCreateNew reads from data.templateBody, data.newNoteTitle, etc.
+    const submitDataWithFormContext = {
+      ...submitData,
+      templateBody: formContext.templateBody || '',
+      newNoteFrontmatter: formContext.newNoteFrontmatter || '',
+      newNoteTitle: formContext.newNoteTitle || '',
+      newNoteFolder: formContext.newNoteFolder || '',
     }
+
+    // Use formFields from loaded form context
+    const formFields = formContext.formFields || []
 
     // Validate that all form fields are present in formValues (even if empty)
-    // This ensures templates receive all expected variables
+    // Conditional-values are resolved in prepareFormValuesForRendering; do not add them here
     if (formFields && formFields.length > 0) {
       const missingFields: Array<string> = []
       formFields.forEach((field) => {
+        if (field.type === 'conditional-values') return
         if (field.key && !(field.key in formValues)) {
           missingFields.push(field.key)
           // Add missing field with empty value
@@ -348,32 +359,15 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
       }
     }
 
-    // Create minimal reactWindowData for handleSubmitButtonClick
-    // $FlowFixMe[prop-missing] - PassedData type requires more properties, but handleSubmitButtonClick only needs pluginData
-    const reactWindowData = {
-      pluginData: {
-        formFields, // Include formFields so TemplateJS blocks can be found for run-js-only
-      },
-      componentPath: '',
-      debug: false,
-      logProfilingMessage: false,
-      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormSubmitFromHTMLView' },
-    }
+    const result = await handleSubmitButtonClick(submitDataWithFormContext, formFields)
 
-    const result = await handleSubmitButtonClick(submitData, reactWindowData)
-
-    // Check for errors in result before returning success
-    // handleSubmitButtonClick returns PassedData | null
-    // Even if result is not null, it may contain errors in pluginData
-    const hasError = result && result.pluginData && (result.pluginData.formSubmissionError || result.pluginData.aiAnalysisResult)
-    if (hasError && result) {
+    // Check for errors in result
+    if (!result.success) {
       // Extract error message
-      let errorMessage = 'Template execution failed.'
-      if (result.pluginData.formSubmissionError) {
-        errorMessage = result.pluginData.formSubmissionError
-      } else if (result.pluginData.aiAnalysisResult) {
+      let errorMessage = result.formSubmissionError || 'Template execution failed.'
+      if (!result.formSubmissionError && result.aiAnalysisResult) {
         // Extract a brief summary from AI analysis (first line or first sentence)
-        const aiMsg = result.pluginData.aiAnalysisResult
+        const aiMsg = result.aiAnalysisResult
         const firstLine = aiMsg.split('\n')[0] || aiMsg.substring(0, 200)
         errorMessage = `Template error: ${firstLine}`
       }
@@ -384,40 +378,30 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
         success: false,
         message: errorMessage,
         data: {
-          pluginData: result?.pluginData || {},
-          formSubmissionError: result?.pluginData?.formSubmissionError,
-          aiAnalysisResult: result?.pluginData?.aiAnalysisResult,
+          formSubmissionError: result.formSubmissionError,
+          aiAnalysisResult: result.aiAnalysisResult,
           processingMethod,
         },
       }
     }
 
-    // handleSubmitButtonClick returns PassedData | null, so check if it's not null
-    if (result) {
-      // Determine note title based on processing method for success dialog
-      let noteTitle = ''
-      if (processingMethod === 'create-new') {
-        noteTitle = submitData.newNoteTitle || ''
-      } else if (processingMethod === 'write-existing') {
-        noteTitle = submitData.getNoteTitled || ''
-      }
-      // For form-processor and run-js-only, we don't know the note title, so leave it empty
+    // Success case
+    // Determine note title based on processing method for success dialog
+    let noteTitle = ''
+    if (processingMethod === 'create-new') {
+      noteTitle = submitData.newNoteTitle || ''
+    } else if (processingMethod === 'write-existing') {
+      noteTitle = submitData.getNoteTitled || ''
+    }
+    // For form-processor and run-js-only, we don't know the note title, so leave it empty
 
-      return {
-        success: true,
-        message: 'Form submitted successfully',
-        data: {
-          ...result,
-          noteTitle,
-          processingMethod,
-        },
-      }
-    } else {
-      return {
-        success: false,
-        message: 'Failed to submit form',
-        data: null,
-      }
+    return {
+      success: true,
+      message: 'Form submitted successfully',
+      data: {
+        noteTitle,
+        processingMethod,
+      },
     }
   } catch (error) {
     logError(pluginJson, `handleSubmitForm: Error: ${error.message}`)

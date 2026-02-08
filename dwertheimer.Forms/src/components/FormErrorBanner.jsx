@@ -31,6 +31,7 @@ const FormErrorBanner = ({
   // State for form submission error visibility
   const [showFormSubmissionError, setShowFormSubmissionError] = useState<boolean>(false)
   const formErrorShownRef = useRef<boolean>(false)
+  const formErrorLastValueRef = useRef<string>('')
 
   // Render markdown when AI analysis result is received (only once)
   useEffect(() => {
@@ -65,14 +66,17 @@ const FormErrorBanner = ({
     }
   }, [aiAnalysisResult, requestFromPlugin])
 
-  // Display form submission error when received (similar to AI analysis)
+  // Display form submission error when received; show again when error message changes (e.g. after resubmit)
   useEffect(() => {
-    if (formSubmissionError && typeof formSubmissionError === 'string' && !formErrorShownRef.current) {
-      formErrorShownRef.current = true
+    if (formSubmissionError && typeof formSubmissionError === 'string') {
+      if (formSubmissionError !== formErrorLastValueRef.current) {
+        formErrorLastValueRef.current = formSubmissionError
+        formErrorShownRef.current = true
+      }
       setShowFormSubmissionError(true)
     } else if (!formSubmissionError) {
-      // Reset error shown flag when error is cleared
       formErrorShownRef.current = false
+      formErrorLastValueRef.current = ''
       setShowFormSubmissionError(false)
     }
   }, [formSubmissionError])
