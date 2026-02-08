@@ -8,9 +8,10 @@ import { type PassedData } from './shared/types.js'
 import { FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID } from './shared/constants.js'
 import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, loadNewNoteFrontmatterFromTemplate } from './templateIO.js'
 import { getFolders, getNotes, getTeamspaces, getMentions, getHashtags, getEvents } from './dataHandlers'
-import { getNoteByFilename } from '@helpers/note'
+import { closeWindowFromCustomId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { logDebug, logError, timer, JSP, clo } from '@helpers/dev'
+import { getNoteByFilename } from '@helpers/note'
 import { showMessage } from '@helpers/userInput'
 import { stripDoubleQuotes } from '@helpers/stringTransforms'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
@@ -159,9 +160,9 @@ export async function createWindowInitData(argObj: Object): Promise<PassedData> 
   const templateTitle = argObj?.templateTitle || formTitle || ''
   const templateFilename = argObj?.templateFilename || ''
   logDebug(pluginJson, `createWindowInitData: templateFilename="${templateFilename}", templateTitle="${templateTitle}", formTitle="${formTitle}"`)
-  // Use the same logic as customId in windowOptions to ensure consistency
-  // This ensures windowId in pluginData matches the actual window customId
-  const windowId = getFormWindowId(argObj?.formTitle || argObj?.windowTitle || '')
+  // Use unique windowId if provided (from openFormWindow with random suffix), otherwise generate base windowId
+  // This ensures windowId in pluginData matches the actual window customId (which may have random suffix for uniqueness)
+  const windowId = argObj?.uniqueWindowId || getFormWindowId(argObj?.formTitle || argObj?.windowTitle || '')
 
   // Generate launchLink URL if we have a template title
   let launchLink = ''
@@ -215,7 +216,7 @@ function detectFieldRequirements(formFields: Array<Object>): {
       frontmatterKeys.add(field.frontmatterKey)
     }
   })
-  
+
   return {
     needsFolders: formFields.some((field) => field.type === 'folder-chooser'),
     needsNotes: formFields.some((field) => field.type === 'note-chooser'),
@@ -229,6 +230,7 @@ function detectFieldRequirements(formFields: Array<Object>): {
 
 /**
  * Ensure autosave field is added if autosave is enabled in settings
+ * TODO: Re-enable autosave by default once templatejs-block freeze issue is resolved
  * @param {Array<Object>} formFields - The form fields array
  * @param {Object} argObj - The argObj to update if autosave field is added
  * @returns {Array<Object>} Updated form fields array
@@ -461,7 +463,7 @@ async function preloadFrontmatterKeyValues(pluginData: Object, frontmatterKeys: 
   try {
     const { getFrontmatterKeyValues } = await import('./requestHandlers.js')
     const preloadedValues: { [string]: Array<string> } = {}
-    
+
     // Preload values for each unique frontmatter key
     for (const key of frontmatterKeys) {
       try {
@@ -471,8 +473,9 @@ async function preloadFrontmatterKeyValues(pluginData: Object, frontmatterKeys: 
           caseSensitive: false,
         })
         if (result.success && Array.isArray(result.data)) {
-          preloadedValues[key] = result.data
-          logDebug(pluginJson, `preloadFrontmatterKeyValues: Preloaded ${result.data.length} values for key "${key}"`)
+          const values: Array<string> = result.data || []
+          preloadedValues[key] = values
+          logDebug(pluginJson, `preloadFrontmatterKeyValues: Preloaded ${values.length} values for key "${key}"`)
         } else {
           preloadedValues[key] = []
           logError(pluginJson, `preloadFrontmatterKeyValues: Failed to preload values for key "${key}"`)
@@ -482,7 +485,7 @@ async function preloadFrontmatterKeyValues(pluginData: Object, frontmatterKeys: 
         logError(pluginJson, `preloadFrontmatterKeyValues: Error preloading values for key "${key}": ${error.message}`)
       }
     }
-    
+
     pluginData.preloadedFrontmatterValues = preloadedValues
     logDebug(pluginJson, `preloadFrontmatterKeyValues: Preloaded values for ${Object.keys(preloadedValues).length} frontmatter keys`)
   } catch (error) {
@@ -535,7 +538,9 @@ export async function getPluginData(argObj: Object): Promise<{ [string]: mixed }
     pluginJson,
     `getPluginData: needsFolders=${String(requirements.needsFolders)}, needsNotes=${String(requirements.needsNotes)}, needsSpaces=${String(
       requirements.needsSpaces,
-    )}, needsMentions=${String(requirements.needsMentions)}, needsHashtags=${String(requirements.needsHashtags)}, needsEvents=${String(requirements.needsEvents)}, frontmatterKeys=[${(requirements.frontmatterKeys || []).join(', ')}]`,
+    )}, needsMentions=${String(requirements.needsMentions)}, needsHashtags=${String(requirements.needsHashtags)}, needsEvents=${String(
+      requirements.needsEvents,
+    )}, frontmatterKeys=[${(requirements.frontmatterKeys || []).join(', ')}]`,
   )
 
   const pluginData = { platform: NotePlan.environment.platform, ...argObj }
@@ -590,8 +595,46 @@ export async function openFormWindow(argObj: Object): Promise<void> {
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true)
     logDebug(pluginJson, `openFormWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
 
+    // Generate base customId (without random suffix) for searching existing windows
+    const baseCustomId = getFormWindowId(argObj?.formTitle || argObj?.windowTitle || '')
+    
+    // IMPORTANT: If we re-open a form into an existing HTML window with the same base `customId`,
+    // NotePlan may keep the window around after close and reuse it, replacing its HTML/JS. We've seen recurring 
+    // native crashes in JavaScriptCore (`EXC_BAD_ACCESS` in `JSC::JSRunLoopTimer::Manager::timerDidFireCallback`) 
+    // when a window is "reloaded" this way, likely due to pending timers/cleanup in the old WebView/React instance 
+    // racing with the new load.
+    // Mitigation: 
+    // 1. Search for any existing windows that START WITH the base customId and close them
+    // 2. Append a random suffix to make the customId unique, preventing window reuse
+    // 3. Store the unique windowId in pluginData so backend receives correct ID (window sends __windowId in requests)
+    const windowsToClose: Array<string> = []
+    for (const win of NotePlan.htmlWindows) {
+      if (win.customId && win.customId.startsWith(baseCustomId)) {
+        windowsToClose.push(win.customId)
+      }
+    }
+    if (windowsToClose.length > 0) {
+      logDebug(pluginJson, `openFormWindow: Found ${windowsToClose.length} existing form window(s) with base customId="${baseCustomId}", closing them before opening new window to avoid JSC crash`)
+      for (const customIdToClose of windowsToClose) {
+        closeWindowFromCustomId(customIdToClose)
+      }
+    }
+
+    // Generate unique customId with random suffix to prevent window reuse
+    // Format: "baseCustomId-{timestamp}-{random}"
+    const randomSuffix = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const uniqueCustomId = `${baseCustomId}-${randomSuffix}`
+    logDebug(pluginJson, `openFormWindow: Generated unique customId="${uniqueCustomId}" from base="${baseCustomId}"`)
+    
+    // Pass the unique windowId to createWindowInitData so it's stored in pluginData.windowId
+    // This ensures the window sends the correct __windowId to backend (backend uses __windowId from request, not customId)
+    const argObjWithUniqueWindowId = {
+      ...argObj,
+      uniqueWindowId: uniqueCustomId, // Pass unique windowId to be stored in pluginData
+    }
+
     // get initial data to pass to the React Window
-    const data = await createWindowInitData(argObj)
+    const data = await createWindowInitData(argObjWithUniqueWindowId)
 
     // Note the first tag below uses the w3.css scaffolding for basic UI elements. You can delete that line if you don't want to use it
     const cssTagsString = `
@@ -621,11 +664,11 @@ export async function openFormWindow(argObj: Object): Promise<void> {
 
     // Build windowOptions, only including width/height/x/y if they are defined
     // This allows mixing numbers and percentages, or setting only one dimension
-    const windowOptions = {
+    const windowOptions: { [string]: any } = {
       savedFilename: `../../${pluginJson['plugin.id']}/form_output.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
       windowTitle: argObj?.windowTitle || 'Form',
-      customId: getFormWindowId(argObj?.formTitle || argObj?.windowTitle),
+      customId: uniqueCustomId, // Use unique customId with random suffix to prevent window reuse
       shouldFocus: true /* focus window everyd time (set to false if you want a bg refresh) */,
       generalCSSIn: generateCSSFromTheme(), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       postBodyScript: `
@@ -650,6 +693,7 @@ export async function openFormWindow(argObj: Object): Promise<void> {
     }
     logDebug(`===== openReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
     logDebug(pluginJson, `openReactWindow invoking window. openReactWindow stopping here. It's all React from this point forward`)
+
     // clo(windowOptions, `openReactWindow windowOptions object passed`)
     // clo(data, `openReactWindow data object passed`) // this is a lot of data
     // now ask np.Shared to open the React Window with the data we just gathered
@@ -710,7 +754,9 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
           logDebug(pluginJson, `openFormBuilderWindow: Using initialReceivingTemplateTitle="${receivingTemplateTitle}"`)
         } else {
           // For existing forms, read from note's frontmatter
-          receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle || ''
+          // Backward compat: formProcessorTitle was legacy name for receivingTemplateTitle
+          const fm = templateNote.frontmatterAttributes || {}
+          receivingTemplateTitle = fm?.receivingTemplateTitle || fm?.formProcessorTitle || ''
           logDebug(pluginJson, `openFormBuilderWindow: Read receivingTemplateTitle="${receivingTemplateTitle}" from note frontmatter`)
         }
       }
@@ -823,7 +869,6 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
         windowId: windowId, // Store window ID in pluginData so React can send it in requests
         templateTeamspaceID: templateTeamspaceID, // Pass template's teamspace ID as default space for form operations
         templateTeamspaceTitle: templateTeamspaceTitle, // Pass template's teamspace title for display
-        // logBufferBuster: true, // Enable buffer buster for logging infinite renders to prevent log when buffering is keeping it from showing all messages
       },
       title: templateTitleForWindow
         ? templateTeamspaceTitle

@@ -3,16 +3,16 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-01-14 for v1.3.0.b4, @jgclark
+// Last updated 2026-02-08 for v1.3.0.b8 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
 import { addFAIcon } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
-import { tailwindToHsl } from '@helpers/colors'
+// import { tailwindToHsl } from '@helpers/colors'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFolderDisplayNameForHTML } from '@helpers/folders'
-import { createOpenOrDeleteNoteCallbackUrl, displayTitle } from '@helpers/general'
+import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
+import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 import { makePluginCommandButton, makeSVGPercentRing, redToGreenInterpolation } from '@helpers/HTMLView'
 import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getLineMainContentPos } from '@helpers/search'
@@ -28,8 +28,8 @@ import { encodeRFC3986URIComponent, prepAndTruncateMarkdownForDisplay } from '@h
  * Note: this is V2, now *not* part of the Project class, so can take config etc.
  * @param {Project} thisProject
  * @param {any} config
- * @param {string} style
- * @returns {string}
+ * @param {string} style: 'Rich' (-> HTML), or 'Markdown'
+ * @returns {string} HTML or Markdown string for the project output line (or empty string if error)
  */
 export function generateProjectOutputLine(
   thisProject: Project,
@@ -231,7 +231,6 @@ function generateDateSection(thisProject: Project, config: any): string {
  * @return {string} - title as wikilink
  */
 function decoratedProjectTitle(thisProject: Project, style: string, config: any): string {
-  const folderNamePart = config.showFolderName ? `${thisProject.folder} / ` : ''
   const titlePart = thisProject.title ?? '(error, not available)'
   switch (style) {
     case 'Rich': {
@@ -242,6 +241,8 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
       // Note: now using splitView if running in the main window on macOS
       const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
       const extraClasses = (thisProject.isCompleted) ? 'checked' : (thisProject.isCancelled) ? 'cancelled' : (thisProject.isPaused) ? 'paused' : ''
+
+      const folderNamePart = config.showFolderName ? getFolderDisplayNameForHTML(thisProject.folder, true) : ''
       
       // Use icon from frontmatter if available, otherwise default to fa-file-lines
       const iconClass = thisProject.icon != null && thisProject.icon !== '' ? thisProject.icon : 'file-lines'
@@ -256,6 +257,8 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
     }
 
     case 'Markdown': {
+      const folderNamePart = config.showFolderName ? getFolderDisplayName(thisProject.folder, true) : ''
+      
       if (thisProject.isCompleted) {
         return `[x] ${folderNamePart}[[${titlePart}]]`
       } else if (thisProject.isCancelled) {
@@ -268,6 +271,7 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
     }
 
     case 'list': {
+      const folderNamePart = config.showFolderName ? getFolderDisplayName(thisProject.folder, true) : ''
       if (thisProject.isCompleted) {
         return `${folderNamePart}[[${titlePart}]]`
       } else if (thisProject.isCancelled) {
@@ -311,6 +315,7 @@ function addSVGPercentRing(thisProject: Project, percent: number, colorIn: strin
  * @param {string} style
  * @param {string} statsProgress
  * @param {string} thisPercent
+ * @param {boolean} includeFolderDetails include folder details (including any Teamspace name) in output? (default: false)
  * @returns {string}
  * @private
  */
@@ -415,15 +420,20 @@ export function generateTopBarHTML(config: any): string {
     const perspectiveSection = `<div id="persp" class="topbar-item">Persp: <span class="perspective-name">${config.perspectiveName}</span></div>`
     parts.push(perspectiveSection)
   }
-  
-  // add checkbox toggles
+
+  // Display filters: button (same style as Refresh) after Refresh + time, opens dropdown; click outside saves, Escape cancels
   const displayFinished = config.displayFinished ?? false
   const displayOnlyDue = config.displayOnlyDue ?? false
   const displayNextActions = config.displayNextActions ?? false
-  parts.push(`<div id="toggles" class="topbar-item">Display:`)
-  parts.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">only due?</input>`)
-  parts.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">finished?</input>`)
-  parts.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayNextActions ? 'checked' : ''} id="tog3" name="displayNextActions">next actions?</input>`)
+  parts.push(`<div id="toggles" class="topbar-item display-filters-wrapper">`)
+  parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-filter pad-right"></i>Filters…</button>`)
+  parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Display filters">`)
+  parts.push(`    <div class="display-filters-dropdown-content">`)
+  parts.push(`      <label class="display-filters-option">only due?<input class="apple-switch pad-left" type="checkbox" ${displayOnlyDue ? 'checked' : ''} name="displayOnlyDue" data-display-filter="true"></label>`)
+  parts.push(`      <label class="display-filters-option">show finished?<input class="apple-switch pad-left" type="checkbox" ${displayFinished ? 'checked' : ''} name="displayFinished" data-display-filter="true"></label>`)
+  parts.push(`      <label class="display-filters-option">show next actions?<input class="apple-switch pad-left" type="checkbox" ${displayNextActions ? 'checked' : ''} name="displayNextActions" data-display-filter="true"></label>`)
+  parts.push(`    </div>`)
+  parts.push(`  </div>`)
   parts.push(`</div>`)
 
   const refreshSection = `<div id="refresh" class="topbar-item">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
@@ -519,7 +529,7 @@ export function generateProjectTagSectionHTML(
   isMultipleTags: boolean
 ): string {
   const parts: Array<string> = []
-  const headingContent = `<span class="h3 folder-name">${thisTag}</span> (${noteCount} notes, ${due} ready for review${config.numberDaysForFutureToIgnore > 0 ? ', with future items ignored' : ''})`
+  const headingContent = `<span class="h3 folder-name">${thisTag}</span> <span class="folder-header-text">(${noteCount} items, ${due} ready for review${config.numberDaysForFutureToIgnore > 0 ? ', with future items ignored' : ''})</span>`
   
   if (isMultipleTags) {
     parts.push(`  <details open>`) // start it open
@@ -550,31 +560,39 @@ export function generateProjectControlDialogHTML(): string {
   <dialog id="projectControlDialog" class="projectControlDialog" aria-labelledby="Actions Dialog"
     aria-describedby="Actions that can be taken on projects">
     <div class="dialogTitle">
-      <div>For <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogProjectNote">?</span></b> <span id="dialogProjectInterval">?</span></div>
-      <div class="dialog-top-right"><form><button id="closeButton" class="closeButton">
-        <i class="fa-solid fa-square-xmark"></i>
+      <div><i class="pad-left pad-right fa-regular fa-file-lines"></i>
+        <span id="dialogProjectFolder" class="dialogProjectFolder"></span>
+        <b><span id="dialogProjectNote" class="dialogProjectNoteLink">?</span></b>
+        <span id="dialogProjectInterval" class="pad-left">?</span>
+      </div>
+      <div class="dialog-top-right">
+        <form><button id="closeButton" class="closeButton">
+        <i class="fa-solid fa-circle-xmark"></i>
       </button></form></div>
     </div>
     <div class="dialogBody">
       <div class="buttonGrid" id="projectDialogButtons">
         <div>Review:</div>
         <div id="projectControlDialogProjectControls">
-          <button data-control-str="finish"><i class="fa-regular fa-calendar-check"></i> Finish</button>
+          <button data-control-str="start"><i class="fa-solid fa-play"></i> Start</button>
+          <button data-control-str="finish"><i class="fa-regular fa-calendar-check"></i> Finish Review</button>
           <button data-control-str="nr+1w"><i class="fa-solid fa-forward"></i> Skip 1w</button>
           <button data-control-str="nr+2w"><i class="fa-solid fa-forward"></i> Skip 2w</button>
           <button data-control-str="nr+1m"><i class="fa-solid fa-forward"></i> Skip 1m</button>
           <button data-control-str="nr+1q"><i class="fa-solid fa-forward"></i> Skip 1q</button>
-          <button data-control-str="newrevint"><i class="fa-solid fa-arrows-left-right"></i> New Interval</button>
         </div>
         <div>Project:</div>
         <div>
-          <button data-control-str="progress"><i class="fa-solid fa-comment-lines"></i> Add Progress</button>
           <button data-control-str="pause">Toggle <i class="fa-solid fa-circle-pause"></i> Pause</button>
           <button data-control-str="complete"><i class="fa-solid fa-circle-check"></i> Complete</button>
           <button data-control-str="cancel"><i class="fa-solid fa-circle-xmark"></i> Cancel</button>
+          <button data-control-str="newrevint"><i class="fa-solid fa-arrows-left-right"></i> New Interval</button>
         </div>
-        <div></div>
-        <!-- <div><form><button id="closeButton" class="mainButton">Close</button></form></div> -->
+        <div>Progress:</div>
+        <div>
+          <button data-control-str="progress"><i class="fa-solid fa-comment-lines"></i> Add Progress</button>
+        </div>
+        <div>
         </div>
       </div>
     </div>

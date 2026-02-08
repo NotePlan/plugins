@@ -409,7 +409,11 @@ export function EventChooser({
 
     // Use setTimeout to delay the request, allowing TOC and other UI to render first
     const timeoutId = setTimeout(() => {
-      loadEvents()
+      // CRITICAL: Check if component is still mounted before calling loadEvents
+      // (loadEvents also checks isMounted internally, but check here for safety)
+      if (isMounted) {
+        loadEvents()
+      }
     }, 200) // 200ms delay to yield to TOC rendering
 
     return () => {

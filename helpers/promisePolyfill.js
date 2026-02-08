@@ -1,7 +1,7 @@
 // @flow
 /**
  * Promise polyfill for NotePlan's JSContext
- * NotePlan's JavaScript environment may not have Promise.resolve() or Promise.all()
+ * NotePlan's JavaScript environment may not have Promise.resolve(), Promise.all(), or Promise.race()
  * This module provides polyfills for these methods if they don't exist
  */
 
@@ -17,6 +17,45 @@ export function promiseResolve(value: any): Promise<any> {
   // Fallback: create a new promise that resolves immediately
   return new Promise((resolve) => {
     resolve(value)
+  })
+}
+
+/**
+ * Polyfill for Promise.race() if it doesn't exist
+ * Returns a promise that settles with the value/reason of the first promise to settle.
+ * @param {Array<Promise<any>>} promises - Array of promises to race
+ * @returns {Promise<any>}
+ */
+export function promiseRace(promises: Array<Promise<any>>): Promise<any> {
+  if (typeof Promise !== 'undefined' && typeof Promise.race === 'function') {
+    return Promise.race(promises)
+  }
+  return new Promise((resolve, reject) => {
+    if (!Array.isArray(promises) || promises.length === 0) {
+      return // Per spec, Promise.race([]) stays pending forever
+    }
+    let settled = false
+    const onFulfill = (v: any) => {
+      if (!settled) {
+        settled = true
+        resolve(v)
+      }
+    }
+    const onReject = (e: any) => {
+      if (!settled) {
+        settled = true
+        reject(e)
+      }
+    }
+    for (let i = 0; i < promises.length; i++) {
+      const p = promises[i]
+      // $FlowFixMe[method-unbinding] - typeof/.then used for thenable check and subscribe; thenable contract does not use this
+      if (p != null && typeof p.then === 'function') {
+        p.then(onFulfill, onReject)
+      } else {
+        onFulfill(p)
+      }
+    }
   })
 }
 
@@ -94,6 +133,19 @@ export async function setTimeoutPolyfill(callback: () => void | Promise<void>, d
 }
 
 /**
+ * Simple delay that resolves after ms. Uses setTimeout when available, otherwise setTimeoutPolyfill.
+ * Use before/after LBB logs to yield so the log buffer has time to flush before a crash.
+ * @param {number} ms - Delay in milliseconds
+ * @returns {Promise<void>}
+ */
+export function delayMs(ms: number): Promise<void> {
+  if (typeof setTimeout !== 'undefined') {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+  return setTimeoutPolyfill(() => {}, ms)
+}
+
+/**
  * Wait for a condition to be true, checking periodically
  * @param {Function} condition - Function that returns true when condition is met
  * @param {Object} options - Options for waiting
@@ -131,6 +183,11 @@ export function initPromisePolyfills(): void {
     if (typeof Promise.all !== 'function') {
       // $FlowIgnore - we're adding a polyfill
       Promise.all = promiseAll
+    }
+    // Add Promise.race if it doesn't exist
+    if (typeof Promise.race !== 'function') {
+      // $FlowIgnore - we're adding a polyfill
+      Promise.race = promiseRace
     }
   }
 }

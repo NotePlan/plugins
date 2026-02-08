@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-01-11 for v1.3.0.b3, @jgclark
+// Last updated 2026-02-06 for v1.3.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -49,6 +49,7 @@ export {
 export {
   generateCSSFromTheme
 } from '@helpers/NPThemeToCSS'
+export { writeProjectsWeeklyProgressToCSV } from './projectsWeeklyProgress'
 
 // Note: There are other possible exports, including:
 export { testFonts } from '../experiments/fontTests.js'

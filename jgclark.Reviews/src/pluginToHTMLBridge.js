@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin (to/from HTML window)
-// Last updated 2025-03-25 for v1.2.1, @jgclark
+// Last updated 2026-02-07 for v1.3.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,9 +10,11 @@ import {
   displayProjectLists,
   setNewReviewInterval,
   skipReviewForNote,
+  startReviewForNote,
   toggleDisplayOnlyDue,
   toggleDisplayFinished,
   toggleDisplayNextActions,
+  saveDisplayFilters,
 } from './reviews'
 import {
   addProgressUpdate,
@@ -71,6 +73,9 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
       case 'runPluginCommand':
         await runPluginCommand(data)
         break
+      case 'saveDisplayFilters':
+        await bridgeSaveDisplayFilters(data)
+        break
       default:
         logError(pluginJson, `onMessageFromHTMLView(): unknown actionType '${actionType}' cannot be dispatched`)
         break
@@ -122,6 +127,22 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
     }
   } catch (error) {
     logError('bridgeChangeCheckbox', error.message)
+  }
+}
+
+/**
+ * Save display filters from the Display filters dropdown (all three at once).
+ * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayNextActions: boolean }} data
+ */
+export async function bridgeSaveDisplayFilters(data: {
+  displayOnlyDue: boolean,
+  displayFinished: boolean,
+  displayNextActions: boolean,
+}): Promise<void> {
+  try {
+    await saveDisplayFilters(data)
+  } catch (error) {
+    logError('bridgeSaveDisplayFilters', error.message)
   }
 }
 
@@ -180,6 +201,19 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         // The above handles refreshing the allProjects list and display
         // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         // sendToHTMLWindow(windowId, 'updateItem', data)
+        break
+      }
+      case 'startReview': {
+        // Mimic the /start review command for the note in question
+        const note = await DataStore.projectNoteByFilename(filename)
+        if (note) {
+          logDebug('bCPLI / startReview', `-> startReview on filename ${filename} (ID ${ID})`)
+          // update this to actually take a note to work on
+          await startReviewForNote(note)
+          logDebug('bCPLI / startReview', `-> after startReview`)
+        } else {
+          logWarn('bCPLI / startReview', `-> couldn't get filename ${filename} to start the review.`)
+        }
         break
       }
       case 'reviewFinished': {

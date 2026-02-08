@@ -2,6 +2,8 @@
 
 This guide explains how to add a new field type to the DynamicDialog system, including all the necessary integration points.
 
+**Do not use raw `Promise.resolve`, `Promise.all`, or `Promise.race` in plugin code—NotePlan's JSContext may not have them. Use polyfills from `@helpers/promisePolyfill.js` (`promiseResolve`, `promiseAll`, `promiseRace`).**
+
 ## Overview
 
 Adding a new field type requires changes in multiple places:
@@ -407,6 +409,14 @@ After creating your new field type, verify:
 - [ ] Forms README is updated with new field type or feature documentation
 
 ## Troubleshooting
+
+### Form Submit Freezes After "getTemplatingContext: Getting..."
+
+If the form freezes when submitting and logs show `getTemplatingContext: Getting templating render context...` but nothing after:
+
+1. **Where it hangs:** The hang is at `DataStore.invokePluginCommandByName('getRenderContext', 'np.Templating', [formValues])` (Forms plugin calling np.Templating). Either the NotePlan plugin bridge never invokes np.Templating, or np.Templating's `getRenderContext` runs but blocks inside (e.g. in `NPTemplating.setup` or `getRenderDataWithMethods`).
+2. **Check np.Templating logs:** If you see `np.Templating getRenderContext: ENTRY` in logs, the bridge reached np.Templating and the hang is inside `getRenderContext` (setup, engine, or globals). If you never see that line, the hang is in the bridge before np.Templating runs.
+3. **Timeout:** Forms applies a 20s timeout in `getTemplatingContext` (see `formSubmission.js`). If you get a timeout error, the invoke did not return in time—check np.Templating's `getRenderContext` and the plugin bridge. This does not fix the root cause but prevents indefinite freeze and surfaces a clear error.
 
 ### Component Not Showing
 

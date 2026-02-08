@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-01-24 for v1.3.0.b7, @jgclark
+// Last updated 2026-02-06 for v1.3.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -22,7 +22,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { noteHasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { getFrontmatterAttribute, noteHasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
 
@@ -186,6 +186,35 @@ export function getNextActionLineIndex(note: CoreNoteFields, naTag: string): num
 }
 
 /**
+ * Return true if the project note is marked sequential (sequential tag in frontmatter 'project' or in the metadata line).
+ * Mirrors logic in Project.generateNextActionComments.
+ * @param {TNote} note - Note to check
+ * @param {string} sequentialTag - Tag to look for (e.g. '#sequential')
+ * @returns {boolean}
+ */
+export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: string): boolean {
+  if (!sequentialTag) return false
+  const projectAttribute = getFrontmatterAttribute(note, 'project') ?? ''
+  if (projectAttribute.includes(sequentialTag)) {
+    logDebug('isProjectNoteIsMarkedSequential', `found sequential tag '${sequentialTag}' in frontmatter 'project' attribute`)
+    return true
+  }
+  const metadataLineIndex = getOrMakeMetadataLineIndex(note)
+  const paras = note.paragraphs ?? []
+  const metadataLine = paras.length > metadataLineIndex ? paras[metadataLineIndex].content : ''
+  const hashtags = (`${metadataLine} `).split(' ').filter((f) => f[0] === '#')
+  if (hashtags.some((tag) => tag === sequentialTag)) {
+    logDebug('isProjectNoteIsMarkedSequential', `found sequential tag '${sequentialTag}' in metadata line hashtags`)
+    return true
+  }
+  if (metadataLine.includes(sequentialTag)) {
+    logDebug('isProjectNoteIsMarkedSequential', `found sequential tag '${sequentialTag}' in metadata line content`)
+    return true
+  }
+  return false
+}
+
+/**
  * Read lines in 'note' and return any lines (as strings) that contain fields that start with 'fieldName' parameter before a colon with text after.
  * The matching is done case insensitively, and only in the active region of the note.
  * Note: see also getFieldParagraphsFromNote() variation on this.
@@ -305,26 +334,27 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
  * - first line containing a @review() or @reviewed() mention
  * - first line starting with a hashtag.
  * If these can't be found, then create a new line after the title, or in the 'metadata:' field if present in the frontmatter.
+ * TODO: Ideally make a version of this that only checks metadata and doesn't create a new line if it doesn't exist.
  * @author @jgclark
  *
  * @param {TNote} note to use
  * @param {string} metadataLinePlaceholder optional to use if we need to make a new metadata line
  * @returns {number} the line number for the existing or new metadata line
  */
-export function getOrMakeMetadataLine(note: CoreNoteFields, metadataLinePlaceholder: string = '#project @review(1w) <-- _update your tag and your review interval here_'): number {
+export function getOrMakeMetadataLineIndex(note: CoreNoteFields, metadataLinePlaceholder: string = '#project @review(1w) <-- _update your tag and your review interval here_'): number {
   try {
     const lines = note.paragraphs?.map((s) => s.content) ?? []
-    logDebug('getOrMakeMetadataLine', `Starting with ${lines.length} lines for ${displayTitle(note)}`)
+    logDebug('getOrMakeMetadataLineIndex', `Starting with ${lines.length} lines for ${displayTitle(note)}`)
 
     // Belt-and-Braces: deal with empty or almost-empty notes
     if (lines.length === 0) {
       note.appendParagraph('<placeholder title>', 'title')
       note.appendParagraph(metadataLinePlaceholder, 'text')
-      logInfo('getOrMakeMetadataLine', `- Finishing after appending placeholder title and metadata placeholder line`)
+      logInfo('getOrMakeMetadataLineIndex', `- Finishing after appending placeholder title and metadata placeholder line`)
       return 1
     } else if (lines.length === 1) {
       note.appendParagraph(metadataLinePlaceholder, 'text')
-      logInfo('getOrMakeMetadataLine', `- Finishing after appending metadata placeholder line`)
+      logInfo('getOrMakeMetadataLineIndex', `- Finishing after appending metadata placeholder line`)
       return 1
     }
 
@@ -335,10 +365,11 @@ export function getOrMakeMetadataLine(note: CoreNoteFields, metadataLinePlacehol
         break
       }
     }
+
     // If no metadataPara found, then insert one either after title, or in the frontmatter if present.
     if (Number.isNaN(lineNumber)) {
       if (noteHasFrontMatter(note)) {
-        logWarn('getOrMakeMetadataLine', `I couldn't find an existing metadata line, so have added a placeholder at the top of the note. Please review it.`)
+        logWarn('getOrMakeMetadataLineIndex', `I couldn't find an existing metadata line, so have added a placeholder at the top of the note. Please review it.`)
         // $FlowIgnore[incompatible-call]
         const res = updateFrontMatterVars(note, {
           metadata: metadataLinePlaceholder,
@@ -352,30 +383,18 @@ export function getOrMakeMetadataLine(note: CoreNoteFields, metadataLinePlacehol
           }
         }
       } else {
-        logWarn('getOrMakeMetadataLine', `Warning: Can't find an existing metadata line, so will insert one after title`)
+        logWarn('getOrMakeMetadataLineIndex', `Warning: Can't find an existing metadata line, so will insert one after title`)
         note.insertParagraph(metadataLinePlaceholder, 1, 'text')
         lineNumber = 1
       }
     }
-    // logDebug('getOrMakeMetadataLine', `Metadata line = ${String(lineNumber)}`)
+    // logDebug('getOrMakeMetadataLineIndex', `Metadata line = ${String(lineNumber)}`)
     return lineNumber
   } catch (error) {
-    logError('getOrMakeMetadataLine', error.message)
+    logError('getOrMakeMetadataLineIndex', error.message)
     return 0
   }
 }
-
-/**
- * DEPRECATED -- and now no longer used, so commented out.
- * Function to save changes to the Editor to the cache to be available elsewhere straight away.
- * Note: Now declared v3.9.3 as minimum version, so we can use API function for this.
- */
-// eslint-disable-next-line no-unused-vars
-// export async function saveEditorToCache(completed: any): Promise<void> {
-//   logDebug('saveEditorToCache', 'waiting for Editor.save ...')
-//   await saveEditorIfNecessary()
-//   logDebug('saveEditorToCache', '... done')
-// }
 
 //-------------------------------------------------------------------------------
 /**
@@ -387,14 +406,16 @@ export function getOrMakeMetadataLine(note: CoreNoteFields, metadataLinePlacehol
  */
 export function updateMetadataInEditor(updatedMetadataArr: Array<string>): void {
   try {
-    // only proceed if we're in a valid Project note (with at least 2 lines)
+    logDebug('updateMetadataInEditor', `Starting for '${displayTitle(Editor)}' with metadata ${String(updatedMetadataArr)}`)
+    
+    // Only proceed if we're in a valid Project note (with at least 2 lines)
     if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
       logWarn('updateMetadataInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
     const thisNote = Editor // note: not Editor.note
 
-    const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
+    const metadataLineIndex: number = getOrMakeMetadataLineIndex(Editor)
     // Re-read paragraphs, as they might have changed
     const metadataPara = Editor.paragraphs[metadataLineIndex]
     if (!metadataPara) {
@@ -426,7 +447,7 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): void 
     // await saveEditorToCache() // might be stopping code execution here for unknown reasons
     logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
   } catch (error) {
-    logError('updateMetadataInEditor', `${error.message}`)
+    logError('updateMetadataInEditor', error.message)
   }
 }
 
@@ -446,7 +467,7 @@ export function updateMetadataInNote(note: CoreNoteFields, updatedMetadataArr: A
       return
     }
 
-    const metadataLineIndex: number = getOrMakeMetadataLine(note)
+    const metadataLineIndex: number = getOrMakeMetadataLineIndex(note)
     // Re-read paragraphs, as they might have changed
     const metadataPara = note.paragraphs[metadataLineIndex]
     if (!metadataPara) {
@@ -502,7 +523,7 @@ export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>
     }
     const thisNote = Editor // note: not Editor.note
 
-    const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
+    const metadataLineIndex: number = getOrMakeMetadataLineIndex(Editor)
     // Re-read paragraphs, as they might have changed
     const metadataPara = Editor.paragraphs[metadataLineIndex]
     if (!metadataPara) {
@@ -546,7 +567,7 @@ export function deleteMetadataMentionInNote(noteToUse: CoreNoteFields, mentionsT
       return
     }
 
-    const metadataLineIndex: number = getOrMakeMetadataLine(noteToUse)
+    const metadataLineIndex: number = getOrMakeMetadataLineIndex(noteToUse)
     const metadataPara = noteToUse.paragraphs[metadataLineIndex]
     if (!metadataPara) {
       throw new Error(`Couldn't get or make metadataPara for ${displayTitle(noteToUse)}`)

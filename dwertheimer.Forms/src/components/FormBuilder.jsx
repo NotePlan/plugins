@@ -149,8 +149,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
       newNoteTitle: '',
       newNoteFolder: '',
       newNoteFrontmatter: '', // Frontmatter for new note (saved to codeblock)
-      // Option C: Form processor
-      formProcessorTitle: cleanedReceivingTemplateTitle, // Set to receivingTemplateTitle for backward compatibility
+      // Option C: Form processor (receivingTemplateTitle only - formProcessorTitle deprecated/eliminated)
       // Space selection (empty string = Private, teamspace ID = Teamspace)
       // Default to template's teamspace if form is in a teamspace, otherwise Private
       space: templateTeamspaceID || '', // Use template's teamspace as default if available
@@ -378,7 +377,6 @@ You can edit or delete this comment field - it's just a note to help you get sta
         receivingTemplateTitle: cleanedReceivingTemplateTitle,
         // For backward compatibility: if receivingTemplateTitle is set, automatically switch to form-processor
         processingMethod: cleanedReceivingTemplateTitle ? 'form-processor' : prev.processingMethod || 'write-existing',
-        formProcessorTitle: cleanedReceivingTemplateTitle || prev.formProcessorTitle || '',
       }))
     }
   }, [receivingTemplateTitle, frontmatter.receivingTemplateTitle])

@@ -5,9 +5,9 @@
  * Loaded by makeChartSummaryHTML() and called with data via initChartStats(tagData, yesNoData, tags, yesNoHabits, config).
  * Originally in chartStats.js generateClientScript(); extracted by @Cursor for @jgclark.
  * 
- * Note: this file is run as a script in the Habits and Summaries window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
+ * Note: this file is run as a script in an HTMLView window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
  * 
- * Last updated: 2026-02-04 for v1.1.0 by @jgclark
+ * Last updated: 2026-02-06 for v1.1.0 by @jgclark
  */
 
 (function() {
@@ -43,6 +43,10 @@
 
     function isTotalTag(tag) {
       return config.totalTags.includes(tag)
+    }
+
+    function isAverageTag(tag) {
+      return Array.isArray(config.averageTags) && config.averageTags.includes(tag)
     }
 
     window.toggleFilters = function() {
@@ -313,7 +317,7 @@
           order: 2
         }
       ]
-      if (averageType === 'moving' && avgData) {
+      if (isAverageTag(tag) && averageType === 'moving' && avgData) {
         datasets.push({
           type: 'line',
           label: avgLineLabel,
@@ -327,7 +331,7 @@
           order: 1
         })
       }
-      if (averageType === 'weekly' && avgSegments && avgSegments.length > 0) {
+      if (isAverageTag(tag) && averageType === 'weekly' && avgSegments && avgSegments.length > 0) {
         avgSegments.forEach(function(segmentData) {
           datasets.push({
             type: 'line',

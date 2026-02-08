@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-12-16 for v1.3.0.b4, @jgclark 
+ * Last updated 2026-02-08 for v1.3.0.b8, @jgclark 
  */
 
 body {
@@ -11,13 +11,6 @@ body {
   --project-zero-progress-color: #9F2626;
 }
 
-table {
-  /* font-size: 0.9rem; to make text a little smaller - but set elsewhere now */
-  border-collapse: collapse; /* always! */
-  width: 100%; /* keep wide to avoid different table widths */
-  empty-cells: show;
-  margin-bottom: 2rem;
-}
 /* turn off special colouring and underlining for links -- turn on later when desired */
 p {
   margin-block-start: 0.5rem; margin-block-end: 0.5rem;
@@ -65,7 +58,44 @@ h3, .h3 {
   min-width: max-content;
 }
 
-/* If rather narrow, slide [items] under [info] */
+/* Display filters: button uses .PCButton (same as Refresh), dropdown below */
+.display-filters-wrapper {
+  position: relative;
+}
+.display-filters-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.2rem;
+  min-width: 12rem;
+  background: var(--bg-main-color, #eff1f5);
+  border: 1px solid var(--divider-color, #CDCFD0);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 20;
+}
+.display-filters-dropdown.is-open {
+  display: block;
+}
+.display-filters-dropdown-content {
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  justify-items: end;
+  justify-content: end;
+}
+
+.display-filters-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+/* FIXME: If rather narrow, slide [items] under [info] */
 /* This needs to come after the earlier definitions to take priority */
 /* @media screen and (max-width: 600px) {
 	.topbar {
@@ -74,6 +104,13 @@ h3, .h3 {
     gap: 0.1rem;
 	}
 } */
+
+table {
+  border-collapse: collapse; /* always! */
+  width: 100%; /* keep wide to avoid different table widths */
+  empty-cells: show;
+  margin-bottom: 2rem;
+}
 
 /* Styling for each cell in each row */
 td, th {
@@ -88,6 +125,13 @@ th {
 /* Add 0.5rem padding to the left of the first cell in each row */
 td:first-child, th:first-child {
   padding-left: 0.5rem;
+}
+
+/* Display of Number of projects */
+.folder-header-text {
+  font-size: 1.0rem;
+  font-weight: normal;
+  color: var(--fg-main-color);
 }
 
 details {
@@ -261,6 +305,21 @@ dialog::backdrop {
   background: rgba(0,0,0,0.5);
 }
 
+/* Project control dialog: fit content width, cap at 80% of window */
+.projectControlDialog {
+  width: max-content;
+  max-width: 80vw;
+}
+
+.dialogProjectFolder {
+  color: var(--fg-placeholder-color);
+}
+
+.dialogProjectNoteLink {
+  cursor: pointer;
+  color: var(--tint-color);
+}
+
 /* -------------------------------------------------------- */
 @layer A { /* all buttons, but at lower priority */
 	button, input {
@@ -312,44 +371,6 @@ button, .fake-button, .clickTarget {
 .dialogTrigger {
 	color: rgb(from var(--fg-main-color) r g b / 0.5);
 	cursor: pointer;
-}
-
-/* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
-.tooltip {
-	position: relative;
-	/* cursor: help; */
-}
-.tooltip::before, .tooltip::after {
-	position: absolute;
-	left: 50%;
-	display: none;
-	transition: all ease 0.3s;
-	transition-delay: 0.8;
-}
-/* Set tooltip little bit*/
-.tooltip::before {
-	content: "";
-	border-width: 10px 8px 0 8px;
-	border-style: solid;
-	border-color: var(--bg-main-color) transparent transparent transparent;
-	margin-left: -8px;
-	top: -12px;
-}
-.tooltip::after {
-	content: attr(data-tooltip);
-	margin-left: -10px;
-	padding: 0.3rem;
-	top: -12px;
-	font-size: 0.85rem;
-	color: var(--fg-main-color);
-	background: var(--bg-main-color);
-	border: 1px solid var(--tint-color);
-	border-radius: 6px;
-	transform: translateY(-100%);
-}
-
-.tooltip:hover::before, .tooltip:hover::after {
-	display: block;
 }
 
 /* a top-right fixed position */
@@ -454,6 +475,44 @@ i.fa-solid, i.fa-regular {
 }
 
 /* ---- TOOLTIPs ------------------------------------------- */
+
+/* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
+.tooltip {
+	position: relative;
+	/* cursor: help; */
+}
+.tooltip::before, .tooltip::after {
+	position: absolute;
+	left: 50%;
+	display: none;
+	transition: all ease 0.3s;
+	transition-delay: 0.8;
+}
+/* Set tooltip little bit*/
+.tooltip::before {
+	content: "";
+	border-width: 10px 8px 0 8px;
+	border-style: solid;
+	border-color: var(--bg-main-color) transparent transparent transparent;
+	margin-left: -8px;
+	top: -12px;
+}
+.tooltip::after {
+	content: attr(data-tooltip);
+	margin-left: -10px;
+	padding: 0.3rem;
+	top: -12px;
+	font-size: 0.85rem;
+	color: var(--fg-main-color);
+	background: var(--bg-main-color);
+	border: 1px solid var(--tint-color);
+	border-radius: 6px;
+	transform: translateY(-100%);
+}
+
+.tooltip:hover::before, .tooltip:hover::after {
+	display: block;
+}
 
 /* Tooltip block */
 .tooltip { position: relative; display: inline-block; }

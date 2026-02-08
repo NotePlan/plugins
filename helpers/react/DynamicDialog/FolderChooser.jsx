@@ -72,6 +72,8 @@ export function FolderChooser({
   const [teamspaces, setTeamspaces] = useState<Array<{ id: string, title: string }>>([])
   const [teamspacesLoaded, setTeamspacesLoaded] = useState<boolean>(false)
   const [closeDropdown, setCloseDropdown] = useState<boolean>(false)
+  // Ref to track if component is mounted (prevents callbacks after unmount)
+  const isMountedRef = React.useRef<boolean>(true)
 
   // Load teamspaces if needed for decoration
   const loadTeamspaces = async () => {
@@ -84,6 +86,12 @@ export function FolderChooser({
       const teamspacesData = await requestFromPlugin('getTeamspaces', {})
       const loadElapsed = performance.now() - loadStartTime
       logDebug('FolderChooser', `[DIAG] loadTeamspaces COMPLETE: elapsed=${loadElapsed.toFixed(2)}ms`)
+
+      // CRITICAL: Check if component is still mounted before setting state
+      if (!isMountedRef.current) {
+        logDebug('FolderChooser', `[DIAG] loadTeamspaces SKIP - component unmounted`)
+        return
+      }
 
       if (Array.isArray(teamspacesData)) {
         setTeamspaces(teamspacesData)
@@ -103,9 +111,20 @@ export function FolderChooser({
     } catch (error) {
       const loadElapsed = performance.now() - loadStartTime
       logError('FolderChooser', `[DIAG] loadTeamspaces ERROR: elapsed=${loadElapsed.toFixed(2)}ms, error="${error.message}"`)
-      setTeamspacesLoaded(true) // Set to true to prevent infinite retries on error
+      // CRITICAL: Check if component is still mounted before setting state
+      if (isMountedRef.current) {
+        setTeamspacesLoaded(true) // Set to true to prevent infinite retries on error
+      }
     }
   }
+
+  // Track mount state to prevent callbacks after unmount
+  React.useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   // Load teamspaces on mount if we have folders that might be teamspaces
   React.useEffect(() => {
@@ -118,14 +137,25 @@ export function FolderChooser({
     if (folders.length > 0 && !teamspacesLoaded && requestFromPlugin) {
       // Use requestAnimationFrame + setTimeout to yield before making the request
       // This allows TOC and other critical UI elements to render first
+      let timeoutId: ReturnType<typeof setTimeout> | null = null
       requestAnimationFrame(() => {
         const effectElapsed = performance.now() - effectStartTime
         logDebug('FolderChooser', `[DIAG] useEffect AFTER RAF: elapsed=${effectElapsed.toFixed(2)}ms, scheduling loadTeamspaces`)
         // Add additional delay after RAF to ensure TOC has time to render
-        setTimeout(() => {
-          loadTeamspaces()
+        timeoutId = setTimeout(() => {
+          // CRITICAL: Check if component is still mounted before calling loadTeamspaces
+          if (isMountedRef.current) {
+            loadTeamspaces()
+          }
         }, 200) // 200ms delay to yield to TOC rendering
       })
+
+      return () => {
+        // Cleanup: clear timeout if component unmounts
+        if (timeoutId != null) {
+          clearTimeout(timeoutId)
+        }
+      }
     } else {
       const effectElapsed = performance.now() - effectStartTime
       logDebug('FolderChooser', `[DIAG] useEffect SKIP: elapsed=${effectElapsed.toFixed(2)}ms, condition not met`)
@@ -233,13 +263,22 @@ export function FolderChooser({
         // Close the dropdown and select the newly created folder
         setCloseDropdown(true) // Trigger dropdown close
         // Use setTimeout to ensure folders are reloaded first, then select the folder
-        setTimeout(() => {
+        const timeoutId1 = setTimeout(() => {
+          // CRITICAL: Check if component is still mounted before calling onChange
+          if (!isMountedRef.current) {
+            return
+          }
           onChange(createdFolder)
           // Reset closeDropdown after a brief delay to allow the dropdown to close
-          setTimeout(() => {
-            setCloseDropdown(false)
+          const timeoutId2 = setTimeout(() => {
+            // CRITICAL: Check if component is still mounted before setting state
+            if (isMountedRef.current) {
+              setCloseDropdown(false)
+            }
           }, 200)
+          // Note: We can't clean up timeoutId2 here, but it's short-lived and checks mount state
         }, 100)
+        // Note: We can't clean up timeoutId1 here, but it's short-lived and checks mount state
       } else {
         logError('FolderChooser', `Failed to create folder: Invalid response format`)
         alert(`Failed to create folder: Invalid response format`)

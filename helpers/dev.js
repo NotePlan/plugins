@@ -599,6 +599,10 @@ const _message = (message: any): string => {
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
 export const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN 🥺', '❗️ ERROR ❗️', 'none']
 
+/** Padding used when log contains "LBB" to force NotePlan's log buffer to flush before/after the line (log buffer buster).
+ *  Emitted as separate log lines (before + msg + after) so the dots appear. */
+const LOG_BUFFER_BUSTER_PADDING = `${'.'.repeat(10000)}/`
+
 /**
  * Test _logLevel against logType to decide whether to output
  * @param {string} logType
@@ -660,6 +664,8 @@ export function getLogDateAndTypeString(type: string): string {
 
 /**
  * Formats log output to include timestamp pluginId, pluginVersion, and pluginReleaseStatus (if populated)
+ * If the formatted message contains "LBB" (log buffer buster), flushes NotePlan's log buffer before and after
+ * so this line is captured when the buffer is otherwise truncated.
  * @author @codedungeon extended by @jgclark
  * @param {any} pluginInfo
  * @param {any} message
@@ -689,7 +695,14 @@ export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): 
         msg = `${ldts} ${_message(pluginInfo)}`
       }
     }
-    console.log(msg)
+    // If message contains "LBB" (log buffer buster), emit padding as separate lines so dots show and buffer flushes
+    if (typeof msg === 'string' && msg.indexOf('LBB') !== -1) {
+      console.log(`before ${msg.substring(0, 25)}...: ${LOG_BUFFER_BUSTER_PADDING}`)
+      console.log(msg)
+      console.log(`after ${msg.substring(0, 25)}...: ${LOG_BUFFER_BUSTER_PADDING}`)
+    } else {
+      console.log(msg)
+    }
   }
 
   return msg
@@ -734,6 +747,7 @@ export function logInfo(pluginInfo: any, message: any = ''): string {
 
 /**
  * Formats log output as DEBUG to include timestamp pluginId, pluginVersion
+ * Include "LBB" in the message to force log-buffer flush before and after (helps when buffer truncates).
  * @author @dwertheimer
  * @param {any} pluginInfo
  * @param {any} message

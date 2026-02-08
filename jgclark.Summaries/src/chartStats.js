@@ -14,7 +14,6 @@
  * Last updated: 2026-02-01 for v1.1.0 by @jgclark
  */
 
-
 // =====================================================================
 // Ideas
 
@@ -81,8 +80,6 @@ const TIME_DURATION_PATTERN = /^[0-9]{1,2}:[0-9]{2}$/
 
 // =====================================================================
 // HELPER FUNCTIONS
-// TODO: Go through Cursor's summary of helper comparison
-// =====================================================================
 
 /**
  * Load custom colors from plugin settings (single chartColors key, comma-separated). 
@@ -126,9 +123,9 @@ async function loadCustomColors(): Promise<Array<{ border: string, bg: string, n
   // clo(colors, 'loadCustomColors :: colors', 2)
   return colors
 }
+
 // =============================================================
 // MAIN FUNCTION
-// =============================================================
 
 /**
  * Main function to show the habit charter
@@ -176,9 +173,8 @@ export async function chartSummaryStats(daysBack?: number): Promise<void> {
   }
 }
 
-// ============================================================================
+// ===================================================================
 // DATE UTILITIES
-// ============================================================================
 
 /**
  * Generate an array of date strings for the specified range using moment.
@@ -207,7 +203,6 @@ function formatDateForDisplay(dateStr: string): string {
 
 // ==================================================================
 // TAG VALUE EXTRACTION
-// ==================================================================
 
 /**
  * Parse chartNonZeroTags JSON string from settings into an object.
@@ -339,7 +334,6 @@ function extractYesNoValue(habit: string, note: TNote | null): number {
 
 // ===================================================================
 // DATA COLLECTION
-// ===================================================================
 
 /**
  * Initialize empty data map for all dates and tags
@@ -554,9 +548,8 @@ function collectYesNoData(habits: Array<string>, daysBack: number): Object {
   }
 }
 
-// ============================================================================
+// ===================================================================
 // HTML TEMPLATE GENERATION
-// ============================================================================
 
 /**
  * Generate checkbox HTML for tag filters
@@ -587,13 +580,33 @@ function generateAverageSelectors(tags: Array<string>): string {
 }
 
 /**
+ * Tags that should show Total (union of progressHashtagsTotal and progressMentionsTotal).
+ */
+function getTotalDisplayTags(config: SummariesConfig): Array<string> {
+  return Array.from(new Set([
+    ...(config.progressHashtagsTotal ?? []),
+    ...(config.progressMentionsTotal ?? [])
+  ]))
+}
+
+/**
+ * Tags that should show Average (union of progressHashtagsAverage and progressMentionsAverage).
+ */
+function getAverageDisplayTags(config: SummariesConfig): Array<string> {
+  return Array.from(new Set([
+    ...(config.progressHashtagsAverage ?? []),
+    ...(config.progressMentionsAverage ?? [])
+  ]))
+}
+
+/**
  * Generate tag selectors for totals section
  * @param {Array<string>} tags - Array of tag names
  * @param {SummariesConfig} config - Config with totalTags (from settings)
  * @returns {string} HTML string for selectors
  */
 function generateTotalSelectors(tags: Array<string>, config: SummariesConfig): string {
-  const totalTags = config.chartTotalTags ?? []
+  const totalTags = getTotalDisplayTags(config)
   return tags.map((tag, i) => `
         <div class="tag-selector">
           <input type="checkbox" id="total-select-${i}" class="total-selector" ${totalTags.includes(tag) ? 'checked' : ''}>
@@ -603,13 +616,15 @@ function generateTotalSelectors(tags: Array<string>, config: SummariesConfig): s
 }
 
 /**
- * Generate summary statistics HTML for averages
+ * Generate summary statistics HTML for averages (only shown for tags in progressHashtagsAverage or progressMentionsAverage).
  * @param {Array<string>} tags - Array of tag names
+ * @param {SummariesConfig} config - Config with progressHashtagsAverage, progressMentionsAverage
  * @returns {string} HTML string for stats
  */
-function generateAverageStats(tags: Array<string>): string {
+function generateAverageStats(tags: Array<string>, config: SummariesConfig): string {
+  const averageTags = getAverageDisplayTags(config)
   return tags.map((tag, i) => `
-        <div class="stat" id="avg-stat-${i}">
+        <div class="stat" id="avg-stat-${i}" style="display: ${averageTags.includes(tag) ? 'block' : 'none'}">
           <div class="stat-value" id="avg-value-${i}">0</div>
           <div class="stat-label">${tag}</div>
         </div>
@@ -617,13 +632,13 @@ function generateAverageStats(tags: Array<string>): string {
 }
 
 /**
- * Generate summary statistics HTML for totals
+ * Generate summary statistics HTML for totals (only shown for tags in progressHashtagsTotal or progressMentionsTotal).
  * @param {Array<string>} tags - Array of tag names
- * @param {SummariesConfig} config - Config with totalTags (from settings)
+ * @param {SummariesConfig} config - Config with progressHashtagsTotal, progressMentionsTotal
  * @returns {string} HTML string for stats
  */
 function generateTotalStats(tags: Array<string>, config: SummariesConfig): string {
-  const totalTags = config.chartTotalTags ?? []
+  const totalTags = getTotalDisplayTags(config)
   return tags.map((tag, i) => `
         <div class="stat" id="total-stat-${i}" style="display: ${totalTags.includes(tag) ? 'block' : 'none'}">
           <div class="stat-value" id="total-value-${i}">0</div>
@@ -633,27 +648,39 @@ function generateTotalStats(tags: Array<string>, config: SummariesConfig): strin
 }
 
 /**
- * Generate chart container HTML
+ * Generate chart container HTML.
+ * Average stat only shown for tags in progressHashtagsAverage or progressMentionsAverage.
+ * Total stat only shown for tags in progressHashtagsTotal or progressMentionsTotal.
  * @param {Array<string>} tags - Array of tag names
+ * @param {SummariesConfig} config - Config with progress*Average and progress*Total arrays
  * @returns {string} HTML string for chart containers
  */
-function generateChartContainers(tags: Array<string>): string {
-  return tags.map((tag, i) => `
+function generateChartContainers(tags: Array<string>, config: SummariesConfig): string {
+  const averageTags = getAverageDisplayTags(config)
+  const totalTags = getTotalDisplayTags(config)
+  return tags.map((tag, i) => {
+    const showAvg = averageTags.includes(tag)
+    const showTotal = totalTags.includes(tag)
+    const metricsParts = []
+    if (showAvg) {
+      metricsParts.push(`<span class="stat-label">avg:</span><span class="stat-value chart-header-avg-value" id="chart-header-avg-value-${i}"></span>`)
+    }
+    if (showTotal) {
+      metricsParts.push(`<span class="stat-label ${showAvg ? 'padleft' : ''}">total:</span><span class="stat-value chart-header-total-value" id="chart-header-total-value-${i}"></span>`)
+    }
+    const metricsHTML = metricsParts.length > 0 ? metricsParts.join('') : ''
+    return `
         <div class="chart-wrapper" id="wrapper${i}">
           <div class="chart-header">
             <div class="chart-title">${tag}</div>
-            <div class="chart-header-metrics">
-              <span class="stat-label">avg:</span>
-              <span class="stat-value chart-header-avg-value" id="chart-header-avg-value-${i}"></span>
-              <span class="stat-label padleft">total:</span>
-              <span class="stat-value chart-header-total-value" id="chart-header-total-value-${i}"></span>
-            </div>
+            <div class="chart-header-metrics">${metricsHTML}</div>
           </div>
           <div class="chart-container">
             <canvas id="chart${i}"></canvas>
           </div>
         </div>
-`).join('\n')
+`
+  }).join('\n')
 }
 
 /**
@@ -724,9 +751,8 @@ function generateClientScript(tagData: Object, yesNoData: Object, tags: Array<st
 `
 }
 
-  // ========================================================================
+  // ================================================================
   // DISPLAY STATISTICS
-  // ========================================================================
 
 /**
  * Generate HTML for the habit charting view
@@ -750,9 +776,9 @@ async function makeChartSummaryHTML(
   const checkboxesHTML = generateTagFilterCheckboxes(tags)
   const avgSelectorsHTML = generateAverageSelectors(tags)
   const totalSelectorsHTML = generateTotalSelectors(tags, config)
-  const avgStatsHTML = generateAverageStats(tags)
+  const avgStatsHTML = generateAverageStats(tags, config)
   const totalStatsHTML = generateTotalStats(tags, config)
-  const chartsHTML = generateChartContainers(tags)
+  const chartsHTML = generateChartContainers(tags, config)
   const yesNoCheckboxesHTML = generateYesNoFilterCheckboxes(yesNoHabits)
   const yesNoCombinedHTML = generateYesNoCombinedContainer()
   const chartStyleVars = generateChartStyleVars(config)
@@ -763,8 +789,9 @@ async function makeChartSummaryHTML(
   const tooltipTitles = rawDates.map((dateStr) => moment(dateStr).locale(locale).format('ddd, D MMM YYYY'))
   const tagDataWithTooltips = { ...tagData, tooltipTitles }
 
-  // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures, .averageType, .chartGridColor
+  // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures, .averageType, .chartGridColor, .averageTags
   // timeTags: tags that had at least one [H]H:MM value (sums/averages display in time format); fall back to user setting
+  // averageTags: tags that get the average line (moving/weekly) and avg stat; from progressHashtagsAverage + progressMentionsAverage
   const configForWindowScripts = {
     colors,
     // Combine tagData.timeTags and config.chartTimeTags, de-dupe, and use as the timeTags list
@@ -773,6 +800,7 @@ async function makeChartSummaryHTML(
       ...(Array.isArray(config.chartTimeTags) ? config.chartTimeTags : [])
     ])),
     totalTags: config.chartTotalTags ?? [],
+    averageTags: getAverageDisplayTags(config),
     nonZeroTags: parseChartNonZeroTags(config.chartNonZeroTags ?? '{}'),
     significantFigures: config.chartSignificantFigures ?? 3,
     averageType: config.chartAverageType ?? 'moving',

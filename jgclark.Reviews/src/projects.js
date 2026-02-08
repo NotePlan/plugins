@@ -6,18 +6,12 @@
 // Last updated 2026-01-24 for v1.3.0.b7, @jgclark
 //-----------------------------------------------------------------------------
 
-
 import moment from 'moment'
 import { generateProjectOutputLine } from './htmlGenerators'
 import { Project } from './projectClass'
-import {
-  finishReview,
-  renderProjectLists,
-  // updateAllProjectsListAfterChange,
-} from './reviews'
+import { finishReview, renderProjectLists } from './reviews'
 import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
 import { updateAllProjectsListAfterChange } from './allProjectsListHelpers'
-// import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { archiveNoteUsingFolder } from '@helpers/NPnote'
 import { showMessageYesNo } from '@helpers/userInput'
@@ -81,7 +75,8 @@ async function reloadAndUpdateLists(note: TNote, config: ReviewConfig, shouldArc
  * @private
  */
 function addToYearlyNote(thisProject: Project, config: ReviewConfig): void {
-  const lineToAdd = generateProjectOutputLine(thisProject, config, 'list')
+  const lineToAdd = generateProjectOutputLine(thisProject, 
+  config, 'list') // FIXME: not adding foldername. list = for summary note, without [x] etc.
   const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
   if (yearlyNote != null) {
     logInfo('addToYearlyNote', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)

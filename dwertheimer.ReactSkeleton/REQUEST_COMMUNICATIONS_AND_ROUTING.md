@@ -20,6 +20,8 @@ This document explains the complete request/response communication pattern and r
 
 The ReactSkeleton uses a **Promise-based request/response pattern with correlation IDs** to enable async/await syntax in React components. This allows React components to make async requests to the plugin and receive responses, similar to a REST API.
 
+**Do not use raw `Promise.resolve`, `Promise.all`, or `Promise.race` in plugin code—NotePlan's JSContext may not have them. Use polyfills from `@helpers/promisePolyfill.js` (`promiseResolve`, `promiseAll`, `promiseRace`).**
+
 ### Communication Patterns
 
 The system supports two patterns:

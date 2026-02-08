@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------
 //  HTMLWinCommsSwitchboard.js - in the HTMLWindow process data and logic to/from the plugin
-// Last updated: 2026-01-16 for v1.3.0.b4 by @jgclark
+// Last updated: 2026-02-07 for v1.3.0.b8 by @jgclark
 //--------------------------------------------------------------------------------------
 /** 
  * This file is loaded by the browser via <script> tag in the HTML file
@@ -410,8 +410,8 @@ function setPriorityInDisplay(data) {
  * Note: data is an object
  * @param {Object} data
  */
-function onClickDashboardItem(data) {
-  sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
+function onClickProjectListItem(data) {
+  sendMessageToPlugin('onClickProjectListItem', data) // actionName, data
 }
 
 /**

@@ -1,0 +1,20 @@
+/* ColorChooser - swatch in first column, name in standard fg color */
+
+.color-chooser-option-with-swatch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.color-chooser-swatch {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 3px;
+}
+
+/* Name uses standard foreground color for readability (no highlight) */
+.color-chooser-option-name {
+  color: var(--fg-main-color, #4c4f69) !important;
+}
