@@ -1,6 +1,9 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [1.1.0.b5] - 2026-02-06 (unreleased)
+- suppress display of 'total' or 'average' stats and 'average line' on items that aren't listed in the total or average settings.
+
 ## [1.1.0.b4] - 2026-02-04 (private beta)
 - removed setting "Yes/No chart height (px)" as it wasn't being used
 - used user's locale rather than 'en-US' in formatting chart labels
