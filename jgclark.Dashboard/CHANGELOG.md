@@ -14,6 +14,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - allow Searches to work against either V2 or V3 of Search Extensions plugin
 - move "Default Dashboard Window Type" setting to main Dashboard settings dialog, from the NP plugin settings pane.
 - new setting "Show only projects with next actions" for the Active Projects section. (This includes any where the Project is defined as being 'Sequential'.)
+- change colour of the folder part of shown note links to grey, to de-emphasise them
+- allow Headings to be shown in the "Current time block" section, where present
+- dev: CSS code tidy up
 
 ## [2.4.0.b19] 2026-01-27
 - finish hooking up addTaskToNote + UI improvements

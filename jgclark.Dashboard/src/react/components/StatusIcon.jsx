@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Icon before an item
 // Called by TaskItem component.
-// Last updated 2025-11-29 for v2.3.0.b16, @jgclark
+// Last updated 2026-02-08 for v2.4.0.b20, @jgclark
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
@@ -17,10 +17,9 @@ type Props = {
   respondToClicks: boolean,
   onIconClick?: (item: TSectionItem, actionType: string) => void,
   location?: string, /* where being called from so we can make decisions (currently only #"dialog" to show/not show things) */
-  timeblockStr?: string
 }
 
-const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr = '' }: Props): Node => {
+const StatusIcon = ({ item, respondToClicks, onIconClick, location }: Props): Node => {
   const { sendActionToPlugin, reactSettings } = useAppContext()
 
   const dialogIsOpen = reactSettings?.dialogData?.isOpen
@@ -52,7 +51,7 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr
       case 'deleted':
         return 'fa-regular fa-trash-xmark'
       case 'timeblock': // for non-task/checklist timeblock lines
-        return 'fa-regular fa-calendar-clock'
+        return 'timeBlockColor fa-regular fa-calendar-clock'
       case 'info': // for Info section lines
         return 'fa-regular fa-bullet'
       case 'noSearchResults':
@@ -116,12 +115,7 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr
     }
   }
 
-  const renderedIcon = timeblockStr ? (
-    <div className="sectionItemTodo itemIcon">
-      <span className="timeBlock pad-right-larger">{timeblockStr}</span>
-      <i className={iconClassName} onClick={handleIconClick}></i>
-    </div>
-  ) : (
+  const renderedIcon = (
       <div className="sectionItemTodo itemIcon">
       <i className={iconClassName} onClick={handleIconClick}></i>
     </div>

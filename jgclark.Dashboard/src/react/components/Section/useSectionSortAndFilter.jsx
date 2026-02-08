@@ -6,15 +6,13 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-01-18 for v2.4.0.b16, @jgclark
+// Last updated 2026-02-08 for v2.4.0.b20, @jgclark
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
-import moment from 'moment/min/moment-with-locales'
 import type { TSection, TSectionItem } from '../../../types.js'
 import { treatSingleItemTypesAsZeroItems } from '../../../constants.js'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev'
-import { getStartTimeStrFromParaContent, getEndTimeStrFromParaContent } from '@helpers/timeblocks'
 
 //----------------------------------------------------------------------
 // Constants & Types
@@ -93,25 +91,10 @@ const useSectionSortAndFilter = (
     // Handle TB section differently
     if (section.sectionCode === 'TB') {
       // logDebug('useSectionSortAndFilter/timeblock', `Starting for TB section with ${memoizedItems.length} items`)
-      // Filter out all non-current timeblocks
+      // Show all active or future timeblocks (items are already filtered by isActiveOrFutureTimeBlockPara in data generation)
       // Note: assumes they come in (start) time order.
-      const currentTBItems = memoizedItems.filter((i) => {
-        const currentTimeMom = moment()
-        const para = i.para
-        if (!para) return false
-        // Borrowing code from getCurrentTimeBlockPara
-        const startTimeStr = getStartTimeStrFromParaContent(para.content)
-        const startTimeMom = moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
-        const endTimeStr = getEndTimeStrFromParaContent(para.content) ?? ''
-        const endTimeMom =
-          endTimeStr !== '' && endTimeStr !== 'error'
-            ? moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
-            : moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH']).add(15, 'minutes')
-        // Special syntax for moment.isBetween which allows the end time minute to be excluded.
-        return currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')
-      })
-      const TBItemOrEmptyList = currentTBItems.length ? currentTBItems : []
-      setItemsToShow(TBItemOrEmptyList)
+      // All items passed here should already be valid timeblocks, so we can show them all
+      setItemsToShow(memoizedItems)
     }
     // Handle INFO section differently: no filtering
     else if (section.sectionCode === 'INFO') {

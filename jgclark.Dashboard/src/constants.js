@@ -12,7 +12,7 @@ import type { TSectionDetails, TSectionCode } from './types'
 export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 
 export const allSectionDetails: Array<TSectionDetails> = [
-  { sectionCode: 'TB', sectionName: 'Current time block', showSettingName: 'showTimeBlockSection' },
+  { sectionCode: 'TB', sectionName: 'Current time blocks', showSettingName: 'showTimeBlockSection' },
   { sectionCode: 'DT', sectionName: 'Today', showSettingName: 'showTodaySection' },
   { sectionCode: 'DY', sectionName: 'Yesterday', showSettingName: 'showYesterdaySection' },
   { sectionCode: 'DO', sectionName: 'Tomorrow', showSettingName: 'showTomorrowSection' },

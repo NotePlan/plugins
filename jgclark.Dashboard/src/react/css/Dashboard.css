@@ -2,7 +2,7 @@
 /* Last updated 2026-02-07 for v2.4.0.b20 by @jgclark */
 
 /* ------------------------------------------------------------------ */
-/* Some colours specified from measuring the colour of NP sidebar elements */
+/* Some colours specified from measuring the colour of NP elements from the sidebar */
 html {
 	--fg-sidebarDaily: #d0703c;
 	--fg-sidebarWeekly: #be23b6;
@@ -13,7 +13,7 @@ html {
 	--fg-sidebarMention: var(--attag-color);
 	--fg-sidebarSearch: #9da5a8;
 }
-/* But still need these as named styles for the section headings */
+/* But still need these as named styles */
 .sidebarDaily {color: var(--fg-sidebarDaily);}
 .sidebarWeekly {color: var(--fg-sidebarWeekly);}
 .sidebarMonthly {color: var(--fg-sidebarMonthly);}

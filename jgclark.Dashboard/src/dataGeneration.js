@@ -10,7 +10,7 @@ import type { TDashboardSettings, TParagraphForDashboard, TSectionCode, TSection
 import { allSectionCodes, defaultSectionDisplayOrder } from './constants.js'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
-  createSectionOpenItemsFromParas,
+  createSectionItemsFromParas,
   getDashboardSettings,
   getListOfEnabledSections,
   getNotePlanSettings,
@@ -247,7 +247,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'month', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
+        items = createSectionItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
 
         logTimer('getDataForDashboard', startTime, `- finished finding monthly items from ${dateStr}`)
@@ -378,7 +378,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         // Get list of open tasks/checklists from current monthly note (if it exists)
         if (sortedRefParas.length > 0) {
           // Iterate and write items for first (or combined) section
-          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
+          items = createSectionItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }
@@ -441,7 +441,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'quarter', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
+        items = createSectionItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
 
         // logDebug('getDataForDashboard', `- finished finding Quarterly items from ${dateStr} after ${timer(startTime)}`)
@@ -566,7 +566,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         // Get list of open tasks/checklists from current quarterly note (if it exists)
         if (sortedRefParas.length > 0) {
           // Iterate and write items for this section
-          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
+          items = createSectionItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }
@@ -629,7 +629,7 @@ export function getThisYearSectionData(config: TDashboardSettings, useDemoData: 
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'year', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
+        items = createSectionItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
 
         // logDebug('getDataForDashboard', `- finished finding Yearly items from ${dateStr} after ${timer(startTime)}`)
@@ -754,7 +754,7 @@ export function getThisYearSectionData(config: TDashboardSettings, useDemoData: 
         // Get list of open tasks/checklists from current yearly note (if it exists)
         if (sortedRefParas.length > 0) {
           // Iterate and write items for this section
-          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
+          items = createSectionItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }

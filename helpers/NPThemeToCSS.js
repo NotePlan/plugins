@@ -429,11 +429,15 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       output.push(makeCSSSelector('.priority4', tempSel))
     }
 
-    // Set class for Time Blocks if present
-    // Note: fudges size down in the samw way that NP seems to under the hood
+    // Set classes for Time Blocks if present
+    rootSel.push(`--fg-timeBlock: ${RGBColourConvert(themeJSON.editor.timeBlockColor) ?? '#73B3C0'}`)
     tempSel = []
-    tempSel.push(`color: ${RGBColourConvert(themeJSON.editor.timeBlockColor) ?? 'inherit'}`)
+    tempSel.push(`color: var(--fg-timeBlock)`)
+    output.push(makeCSSSelector('.timeBlockColor', tempSel))
+    tempSel = []
+    tempSel.push(`color: var(--fg-timeBlock)`)
     tempSel.push(`font-family: "Menlo-Regular"`)
+    // Note: fudges size down in the samw way that NP seems to under the hood
     const smallerFontSize = Math.round(baseFontSize * 0.84)
     tempSel.push(`font-size: ${smallerFontSize}px;`)
     tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
