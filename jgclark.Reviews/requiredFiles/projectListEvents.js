@@ -3,15 +3,10 @@
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
 // Note: this file is run as a script in the Project List window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
-// Last updated: 2026-02-01 for v1.3.0.b7 by @jgclark
+// Last updated: 2026-02-08 for v1.3.0.b8 by @jgclark
 //--------------------------------------------------------------------------------------
 
-// Add event handlers
-// Note: // Not yet used
-// addIconClickEventListeners()
-// addContentEventListeners()
-// addReviewProjectEventListeners()
-
+// Add event handler
 addCommandButtonEventListeners()
 
 //--------------------------------------------------------------------------------------
@@ -36,21 +31,38 @@ function showProjectControlDialog(dataObject) {
   const thisID = dataObject.itemID
   const thisIDElement = document.getElementById(thisID)
 
-  // Set the dialog title from the filename or title
+  // Set the dialog header from the folder name and note title
   const thisEncodedFilename = dataObject.encodedFilename // i.e. the "data-encoded-filename" element, with auto camelCase transposition
   const thisFilename = decodeRFC3986URIComponent(dataObject.encodedFilename)
+  const thisFolderName = getFolderFromFilename(thisFilename)
   const thisTitle = decodeRFC3986URIComponent(dataObject.encodedTitle)
+  const dialogNoteFolderElem = document.getElementById('dialogProjectFolder')
+  dialogNoteFolderElem.innerHTML = thisFolderName !== '' ? `${thisFolderName} / ` : ''
   const dialogItemNoteElem = document.getElementById('dialogProjectNote')
   dialogItemNoteElem.innerHTML = thisTitle ?? thisFilename
+
+  // One-time: add click handler to note name to open in  the Editor
+  dialogItemNoteElem.dataset.encodedFilename = thisEncodedFilename
+  if (!dialogItemNoteElem._dialogNoteClickHandlerAdded) {
+    dialogItemNoteElem._dialogNoteClickHandlerAdded = true
+    dialogItemNoteElem.addEventListener('click', function (event) {
+      event.preventDefault()
+      const encodedFilename = event.currentTarget.dataset.encodedFilename
+      if (encodedFilename) {
+        onClickProjectListItem({ itemID: '-', type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: '' })
+      }
+    }, false)
+  }
 
   // Set the dialog interval from the note
   const thisReviewInterval = dataObject.reviewInterval ?? ''
   const dialogItemIntervalElem = document.getElementById('dialogProjectInterval')
-  dialogItemIntervalElem.innerHTML = ` (reviews: ${thisReviewInterval})`
+  dialogItemIntervalElem.innerHTML = ` (review every ${thisReviewInterval})`
 
   console.log(`showProjectControlDialog() starting for filename '${thisFilename}', interval '${thisReviewInterval}', title '${thisTitle}'`)
 
   const possibleControlTypes = [
+    { controlStr: 'start', handlingFunction: 'startReview' },
     { controlStr: 'finish', handlingFunction: 'reviewFinished' },
     { controlStr: 'nr+1w', handlingFunction: 'setNextReviewDate' },
     { controlStr: 'nr+2w', handlingFunction: 'setNextReviewDate' },
@@ -75,7 +87,7 @@ function showProjectControlDialog(dataObject) {
     button.parentNode.replaceChild(clonedButton, button)
     removed++
   }
-  console.log(`- removed ${String(removed)} buttons' ELs`)
+  // console.log(`- removed ${String(removed)} buttons' ELs`)
 
   // Register click handlers for each button in the dialog with details of this item
   // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
@@ -101,11 +113,10 @@ function showProjectControlDialog(dataObject) {
     button.style.display = "inline-block"
     added++
   }
+  // console.log(`- ${String(added)} button ELs added`)
 
-  console.log(`- ${String(added)} button ELs added`)
-
-  // Add click handler to close dialog when clicking outside
-  dialog.addEventListener('click', (event) => {
+  // Add click handler to close dialog when clicking outside (keep ref so we can remove on close)
+  const clickOutsideHandler = (event) => {
     const dialogDimensions = dialog.getBoundingClientRect()
     if (
       event.clientX < dialogDimensions.left ||
@@ -115,7 +126,13 @@ function showProjectControlDialog(dataObject) {
     ) {
       closeDialog()
     }
-  })
+  }
+  dialog.addEventListener('click', clickOutsideHandler)
+
+  // Remove click-outside listener when dialog closes (avoids accumulating listeners)
+  dialog.addEventListener('close', function removeClickOutsideListener() {
+    dialog.removeEventListener('click', clickOutsideHandler)
+  }, { once: true })
 
   // Actually show the dialog
   dialog.showModal()
@@ -135,6 +152,36 @@ function showProjectControlDialog(dataObject) {
 }
 
 //--------------------------------------------------------------------------------------
+// Utility Functions
+
+/**
+ * Get the folder name from the regular note filename, without leading or trailing slash.
+ * Except for items in root folder -> ''.
+ * Note: Copied, and tweaked slightly, from @helpers/folders.js to avoid imports.
+ * TODO: Cope with Teamspace notes.
+ * @param {string} fullFilename - full filename to get folder name part from
+ * @returns {string} folder/subfolder name
+ */
+function getFolderFromFilename(fullFilename) {
+  try {
+    // If filename is empty, warn and return '(error)'
+    if (!fullFilename) {
+      logWarn('folders/getFolderFromFilename', `Empty filename given. Returning '(error)'`)
+      return '(error)'
+    }
+    // Deal with special case of file in root -> ''
+    if (!fullFilename.includes('/')) {
+      return ''
+    }
+    // drop first character if it's a slash
+    const filename = fullFilename.startsWith('/') ? fullFilename.substr(1) : fullFilename
+    const filenameParts = filename.split('/')
+    return filenameParts.slice(0, filenameParts.length - 1).join('/')
+  } catch (error) {
+    console.error(`getFolderFromFilename: Error getting folder from filename '${fullFilename}: ${error.message}`)
+    return '(error)'
+  }
+}
 
 // Set place in the HTML window for dialog to appear
 function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event) {
@@ -150,7 +197,7 @@ function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, eve
   // Note: not sure why window.clientWidth doesn't work either, so using inner... which then requires a fudge factor for scrollbars
   console.log(`Window dimensions (approx): w${window.innerWidth} x h${window.innerHeight}`)
   console.log(`Mouse at x${mousex}, y${mousey}`)
-  console.log(`Dialog dimesnions: w${approxDialogWidth} x h${approxDialogHeight} / fudgeFactor ${String(fudgeFactor)}`)
+  console.log(`Dialog dimensions: w${approxDialogWidth} x h${approxDialogHeight} / fudgeFactor ${String(fudgeFactor)}`)
   let x = mousex - Math.round((approxDialogWidth + fudgeFactor) / 3)
   if (x < fudgeFactor) { x = fudgeFactor }
   if ((x + (approxDialogWidth + fudgeFactor)) > window.innerWidth) {
@@ -159,7 +206,8 @@ function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, eve
   }
   if (x < fudgeFactor) {
     x = fudgeFactor
-    dialog.style.width = `${String(window.innerWidth - fudgeFactor)}px`
+    const maxW = Math.round(window.innerWidth * 0.8)
+    dialog.style.width = `${String(Math.min(window.innerWidth - fudgeFactor, maxW))}px`
     console.log(`Off left: now x=0; width=${dialog.style.width}`)
   }
 
@@ -235,7 +283,7 @@ function addContentEventListeners() {
     // const thisRowElem = contentItem.parentElement
     const thisRowElem = contentItem.parentElement.parentElement
     const thisID = thisRowElem.id
-    const thisEncodedContent = thisRowElem.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCaseransposition
+    const thisEncodedContent = thisRowElem.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
     const thisEncodedFilename = thisRowElem.dataset.encodedFilename // contentItem.id
     // console.log('- sIC on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent)
 
@@ -251,14 +299,7 @@ function addContentEventListeners() {
     }
   }
   console.log(`${String(allContentItems.length)} sectionItem ELs added (to content links)`)
-
-  // For clicking on main 'paragraph content'
-  function handleContentClick(event, id, encodedFilename, encodedContent) {
-    console.log(`handleContentClick( ${id} / ${encodedFilename} / ${encodedContent} ) for event currentTarget: ${event.currentTarget}`)
-    // already encoded at this point. Was: const encodedFilename = encodeRFC3986URIComponent(filename);
-    // already encoded at this point. Was: const encodedContent = encodeRFC3986URIComponent(content);
-    onClickDashboardItem({ itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent }) // TEST: change from showNote.. to showLine...
-  }
+  // handleContentClick is defined at script level below
 }
 
 /**
@@ -287,9 +328,11 @@ function addReviewProjectEventListeners() {
  */
 function addCommandButtonEventListeners() {
   // Register click handlers for each 'PCButton' on the window with URL to call
-  allPCButtons = document.getElementsByClassName("PCButton")
+  const allPCButtons = document.getElementsByClassName("PCButton")
   let added = 0
   for (const button of allPCButtons) {
+    // Skip Display filters button (opens dropdown, no plugin command)
+    if (button.id === 'displayFiltersButton') continue
     // add event handler and make visible
     // console.log(`- displaying button for PCB function ${button.dataset.command}`)
     button.addEventListener('click', function (event) {
@@ -316,15 +359,15 @@ function handleIconClick(id, itemType, encodedfilename, encodedcontent, metaModi
 
   switch (itemType) {
     case 'open': {
-      onClickDashboardItem({ itemID: id, type: (metaModifier) ? 'cancelTask' : 'completeTask', encodedFilename: encodedFilename, encodedContent: encodedContent })
+      onClickProjectListItem({ itemID: id, type: (metaModifier) ? 'cancelTask' : 'completeTask', encodedFilename: encodedFilename, encodedContent: encodedContent })
       break
     }
     case 'checklist': {
-      onClickDashboardItem({ itemID: id, type: (metaModifier) ? 'cancelChecklist' : 'completeChecklist', encodedFilename: encodedFilename, encodedContent: encodedContent })
+      onClickProjectListItem({ itemID: id, type: (metaModifier) ? 'cancelChecklist' : 'completeChecklist', encodedFilename: encodedFilename, encodedContent: encodedContent })
       break
     }
     case 'review': {
-      onClickDashboardItem({ itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: '' })
+      onClickProjectListItem({ itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: '' })
       break
     }
     default: {
@@ -334,12 +377,16 @@ function handleIconClick(id, itemType, encodedfilename, encodedcontent, metaModi
   }
 }
 
-/** 
- *  Clicking on main 'paragraph encodedcontent'
+/**
+ * Handle clicking on main 'paragraph content'. Used by addContentEventListeners() when content links are clicked.
+ * @param {Event} event - DOM click event
+ * @param {string} id - item ID
+ * @param {string} encodedfilename - RFC3986-encoded filename
+ * @param {string} encodedcontent - RFC3986-encoded content
  */
 function handleContentClick(event, id, encodedfilename, encodedcontent) {
   console.log(`handleContentClick( ${id} / ${encodedfilename} / ${encodedcontent} ) for event currentTarget: ${event.currentTarget}`)
   const encodedFilename = encodedfilename
   const encodedContent = encodedcontent
-  onClickDashboardItem({ itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent })
+  onClickProjectListItem({ itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: '' })
 }

@@ -52,18 +52,20 @@ export type Progress = {
 
 /**
  * Calculate duration string for a date, optionally relative to a start date.
- * If startDate is provided, returns "after X" format. Otherwise returns relative time (e.g., "2 days ago", "today").
+ * If startDate is provided, returns "after X" format. Otherwise returns relative time (e.g., "2 days ago"). 
+ * If duration is less than 1 day then return "today".
  * @param {Date} date - The date to calculate duration for
  * @param {?Date} startDate - Optional start date for calculating duration between dates
+ * @param {boolean} roundShortDurationToToday - Whether to use round to 'today' if duration is measured in hours or less
  * @returns {string} Duration string
  * @private
  */
-function formatDurationString(date: Date, startDate?: Date): string {
+function formatDurationString(date: Date, startDate?: Date, roundShortDurationToToday: boolean = false): string {
   if (startDate != null && startDate instanceof Date) {
     return `after ${moment(startDate).to(moment(date), true)}`
   } else {
     let duration = moment(date).fromNow()
-    if (duration.includes('hours')) {
+    if (roundShortDurationToToday && ['seconds', 'minutes', 'hours'].includes(duration)) {
       duration = 'today'
     }
     return duration
@@ -321,8 +323,8 @@ export class Project {
    * @returns {string} Duration string
    * @private
    */
-  calculateDurationString(date: Date, startDate?: Date): string {
-    return formatDurationString(date, startDate)
+  calculateDurationString(date: Date, startDate?: Date, roundShortDurationToToday: boolean = true): string {
+    return formatDurationString(date, startDate, roundShortDurationToToday)
   }
 
   /**
@@ -972,10 +974,10 @@ export function calcDurationsForProject(thisProjectIn: Project): Project {
     let cancelledDuration = thisProjectIn.cancelledDuration
 
     if (thisProjectIn.completedDate != null) {
-      completedDuration = formatDurationString(thisProjectIn.completedDate, thisProjectIn.startDate ?? undefined)
+      completedDuration = formatDurationString(thisProjectIn.completedDate, thisProjectIn.startDate ?? undefined, true)
       // logDebug('calcDurationsForProject', `-> completedDuration = ${completedDuration}`)
     } else if (thisProjectIn.cancelledDate != null) {
-      cancelledDuration = formatDurationString(thisProjectIn.cancelledDate, thisProjectIn.startDate ?? undefined)
+      cancelledDuration = formatDurationString(thisProjectIn.cancelledDate, thisProjectIn.startDate ?? undefined, true)
       // logDebug('calcDurationsForProject', `-> cancelledDuration = ${cancelledDuration}`)
     } else {
       // logDebug('calcDurationsForProject', `No completed or cancelled dates.`)

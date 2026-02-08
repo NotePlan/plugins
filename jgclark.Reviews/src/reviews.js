@@ -177,41 +177,12 @@ function getCurrentScrollHeight() {
   console.log("getCurrentScrollHeight = " + String(scrollPos));
 }
 
+// Note: saving scroll position to cookie does not work in Safari, but not in NP.
 function setScrollPos(h) {
   document.documentElement.scrollTop = h;
   document.body.scrollTop = h;
   console.log('setScrollPos = ' + String(h));
 }
-
-// This works in Safari, but not in NP:
-// window.onbeforeunload = function () {
-//   let scrollPos;
-//   if (typeof window.pageYOffset != 'undefined') {
-//     scrollPos = window.pageYOffset;
-//   }
-//   else if (typeof document.compatMode != 'undefined' && document.compatMode != 'BackCompat') {
-//     scrollPos = document.documentElement.scrollTop;
-//   }
-//   else if (typeof document.body != 'undefined') {
-//     scrollPos = document.body.scrollTop;
-//   }
-//   const info = "scrollTop=" + scrollPos + "URL=" + window.location.href;
-//   console.log(info);
-//   document.cookie = info;
-// }
-//
-// This works in Safari, but not in NP:
-// window.onload = function () {
-//   console.log('Looking for cookies for '+window.location.href)
-//   if (document.cookie.includes(window.location.href)) {
-//     if (document.cookie.match(/scrollTop=([^;]+)(;|$)/) != null) {
-//       let arr = document.cookie.match(/scrollTop=([^;]+)(;|$)/);
-//       console.log('Found matching cookie(s): '+String(arr))
-//       document.documentElement.scrollTop = parseInt(arr[1]);
-//       document.body.scrollTop = parseInt(arr[1]);
-//     }
-//   }
-// }
 </script>
 `
 
@@ -224,11 +195,11 @@ const receivingPluginID = "jgclark.Reviews"; // the plugin ID of the plugin whic
 // That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
 // this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
 
-/* the onMessageFromPlugin function is called when data is received from your plugin and needs to be processed. this function
-   should not do the work itself, it should just send the data payload to a function for processing. The onMessageFromPlugin function
-   below and your processing functions can be in your html document or could be imported in an external file. The only
-   requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
-   be in your html document or could be imported in an external file */
+/* The onMessageFromPlugin function is called when data is received from your plugin and needs to be processed.
+ * This function should not do the work itself, it should just send the data payload to a function for processing.
+ * The onMessageFromPlugin function below and your processing functions can be in your html document or could be imported in an external file.
+ * The only requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the 
+   pluginToHTMLCommsBridge in your html document or could be imported in an external file. */
 </script>
 <script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
 <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
@@ -284,27 +255,84 @@ function setPercentRing(percent, ID) {
 const addToggleEvents: string = `
 <script>
   /**
-   * Register click handlers for each checkbox/toggle in the window with details of the items
-   * ? Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
-  */
+   * Register click handlers for each checkbox/toggle in the window with details of the items.
+   * Skip checkboxes inside the Display filters dropdown (those use Save instead).
+   */
   allInputs = document.getElementsByTagName("INPUT");
   let added = 0;
   for (const input of allInputs) {
-    // Ignore non-checkboxes)
-    if (input.type !== 'checkbox') {
-      continue;
-    }
+    if (input.type !== 'checkbox') continue;
+    if (input.getAttribute('data-display-filter') === 'true') continue;
     const thisSettingName = input.name;
     console.log("- adding event for checkbox '"+thisSettingName+"' currently set to state "+input.checked);
-
     input.addEventListener('change', function (event) {
       event.preventDefault();
       sendMessageToPlugin('onChangeCheckbox', { settingName: thisSettingName, state: event.target.checked });
-    }, false)
-    // Set button visible
+    }, false);
     added++;
   }
   console.log('- '+ String(added) + ' input ELs added');
+</script>
+`
+
+const displayFiltersDropdownScript: string = `
+<script>
+  (function() {
+    var btn = document.getElementById('displayFiltersButton');
+    var dropdown = document.getElementById('displayFiltersDropdown');
+    if (!btn || !dropdown) return;
+
+    var savedState = null;
+
+    function getCheckboxState() {
+      var onlyDue = dropdown.querySelector('input[name="displayOnlyDue"]');
+      var finished = dropdown.querySelector('input[name="displayFinished"]');
+      var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
+      return onlyDue && finished && nextActions
+        ? { displayOnlyDue: onlyDue.checked, displayFinished: finished.checked, displayNextActions: nextActions.checked }
+        : null;
+    }
+
+    function closeDropdown(apply) {
+      dropdown.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+      if (apply) {
+        var state = getCheckboxState();
+        if (state) sendMessageToPlugin('saveDisplayFilters', state);
+      } else if (savedState) {
+        var onlyDue = dropdown.querySelector('input[name="displayOnlyDue"]');
+        var finished = dropdown.querySelector('input[name="displayFinished"]');
+        var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
+        if (onlyDue && finished && nextActions) {
+          onlyDue.checked = savedState.displayOnlyDue;
+          finished.checked = savedState.displayFinished;
+          nextActions.checked = savedState.displayNextActions;
+        }
+      }
+    }
+
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = dropdown.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen) savedState = getCheckboxState();
+    });
+
+    document.addEventListener('click', function(e) {
+      if (dropdown.classList.contains('is-open') && !dropdown.contains(e.target) && e.target !== btn) {
+        closeDropdown(true);
+      }
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (!dropdown.classList.contains('is-open')) return;
+      if (e.key === 'Escape') {
+        closeDropdown(false);
+      } else if (e.key === 'Enter') {
+        closeDropdown(true);
+      }
+    });
+  })();
 </script>
 `
 
@@ -515,7 +543,7 @@ export async function renderProjectListsHTML(
       makeModal: false, // = not modal window
       bodyOptions: 'onload="showTimeAgo()"',
       preBodyScript: setPercentRingJSFunc + scrollPreLoadJSFuncs,
-      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
+      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>
       <script type="text/javascript" src="./projectListEvents.js"></script>
       ` + commsBridgeScripts + shortcutsScript + addToggleEvents, // + collapseSection +  resizeListenerScript + unloadListenerScript,
@@ -949,6 +977,27 @@ export async function startReviews(): Promise<void> {
 }
 
 /**
+ * Start a single project review.
+ * Note: Used by Project List dialog (and Dashboard in future?)
+ * @param {TNote} noteToReview - the note to start reviewing
+ * @author @jgclark
+ */
+export async function startReviewForNote(noteToReview: TNote): Promise<void> {
+  try {
+    const config: ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
+    logInfo('startReviews', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
+    await Editor.openNoteByFilename(noteToReview.filename)
+    // Highlight this project in the Project List window (if open)
+    await setReviewingProjectInHTML(noteToReview, true)
+  
+  } catch (error) {
+    logError('startReviews', error.message)
+  }
+}
+
+/**
  * Complete the current review on the current Editor note
  * @author @jgclark
  */
@@ -1324,5 +1373,26 @@ export async function toggleDisplayNextActions(): Promise<void> {
   }
   catch (error) {
     logError('toggleDisplayNextActions', error.message)
+  }
+}
+
+/**
+ * Save all display filter settings at once (used by Display filters dropdown).
+ * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayNextActions: boolean }} data
+ */
+export async function saveDisplayFilters(data: {
+  displayOnlyDue: boolean,
+  displayFinished: boolean,
+  displayNextActions: boolean,
+}): Promise<void> {
+  try {
+    const config: ReviewConfig = await getReviewSettings()
+    config.displayOnlyDue = data.displayOnlyDue
+    config.displayFinished = data.displayFinished
+    config.displayNextActions = data.displayNextActions
+    await DataStore.saveJSON(config, '../jgclark.Reviews/settings.json', true)
+    await renderProjectLists(config, false)
+  } catch (error) {
+    logError('saveDisplayFilters', error.message)
   }
 }
