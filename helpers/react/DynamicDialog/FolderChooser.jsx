@@ -491,7 +491,7 @@ export function FolderChooser({
     iconClass: 'fa-solid fa-folder',
     fieldType: 'folder-chooser',
     debugLogging: true,
-    maxResults: 25,
+    maxResults: 0, // 0 = show all folders (unlimited, scroll)
     inputMaxLength: 100,
     dropdownMaxLength: 80,
     // Add Option-click support for creating subfolders

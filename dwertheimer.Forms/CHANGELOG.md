@@ -4,6 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.26] 2026-02-08 @dwertheimer
+
+### Fixed
+- **FolderChooser displays all folders**: Folder chooser (e.g. in form fields) now shows all folders instead of the default 25. Uses `maxResults: 0` so the dropdown shows the full list with scrolling.
+
+### Edited in this release
+- `helpers/react/DynamicDialog/FolderChooser.jsx` — Set `maxResults: 0` in SearchableChooser config so all folders are shown (unlimited, scroll).
+
 ## [1.0.25] 2026-02-06 @dwertheimer
 
 ### Merged
