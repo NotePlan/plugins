@@ -288,8 +288,8 @@ export async function smartOpenNoteInEditorFromFilename(filename: string, opts: 
  */
 export async function smartShowLineInEditorFromFilename(filename: string, content: string): Promise<boolean> {
   try {
-    if (!filename) throw 'No filename: stopping'
-    if (!content) throw 'No content: stopping'
+    if (!filename) throw new Error('No filename: stopping')
+    if (!content) throw new Error('No content: stopping')
 
     // If note is already open, then simply highlight the line
     const isAlreadyOpen = isNoteOpenInEditor(filename)
@@ -322,7 +322,7 @@ export async function smartShowLineInEditorFromFilename(filename: string, conten
     // Fallback
     throw new Error(`Could not open note '${filename}' in a new Split View. Stopping.`)
   } catch (error) {
-    logError('smartShowLineInEditorFromFilename', error.message)
+    logError('smartShowLineInEditorFromFilename', `Error "${error.message}" for note '${filename}' and content {${content || '?'}}.`)
     return false
   }
 }

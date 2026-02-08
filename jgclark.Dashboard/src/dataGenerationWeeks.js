@@ -9,7 +9,7 @@ import pluginJson from '../plugin.json'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
-  createSectionOpenItemsFromParas,
+  createSectionItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
 } from './dashboardHelpers'
@@ -64,7 +64,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'week', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
+        items = createSectionItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
         // logDebug('getDataForDashboard', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
       } else {
@@ -202,7 +202,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
       } else {
         // Get list of open tasks/checklists from current weekly note (if it exists)
         if (sortedRefParas.length > 0) {
-          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
+          items = createSectionItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }
@@ -265,7 +265,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'week', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
+        items = createSectionItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
 
         // logTimer('getLastWeekSectionData', startTime, `- finished finding weekly items from ${dateStr}`)
@@ -322,7 +322,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
       } else {
         // Get list of open tasks/checklists from current weekly note (if it exists)
         if (sortedRefParas.length > 0) {
-          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
+          items = createSectionItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }

@@ -1,9 +1,9 @@
 // @flow
 //--------------------------------------------------------------------------
 // Represents a row item within a section.
-// Could be: Task, Review Item, Filtered Indicator, No Tasks left, No Projects, No Search Results.
+// Could be: Task, Project (Review) Item, Filtered Indicator, No Tasks left, No Projects, No Search Results.
 // Called by ItemGrid component.
-// Last updated 2025-12-04 for v2.3.3, @jgclark
+// Last updated 2026-02-08 for v2.4.0.b20 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
@@ -38,7 +38,7 @@ function ItemRow({ item, thisSection, onToggleShowAll }: Props): Node {
   return (
     <>
       {itemType === 'project' ? (
-        <ProjectItem item={item} />
+        <ProjectItem item={item} thisSection={thisSection} />
       ) : itemType === 'projectCongrats' ? (
         <MessageOnlyItem message={'No Projects need reviewing: take a break'} contentClassName="projectCongrats" closingFAIconClassName="fa-solid fa-mug" />
       ) : itemType === 'noSearchResults' ? (

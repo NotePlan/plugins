@@ -280,7 +280,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     logDebug('generateTagMentionCache', `- something requested a forced cache rebuild`)
 
     // add a banner to say what we're doing
-    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)}${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' in all open items' : ''}`, 'INFO')
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)}${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' from all open items' : ''} ...`, 'INFO')
 
     // Start background thread
     await CommandBar.onAsyncThread()
@@ -291,7 +291,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     logTimer('generateTagMentionCache', startTime, `- processing ${allCalNotes.length} calendar + ${allRegularNotes.length} regular notes ...`)
 
     // add a banner to say what we're doing
-    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)} from ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes`, 'INFO')
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)} from ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes ...`, 'INFO')
 
     // Iterate over all notes and get all open paras with tags and mentions
     // First, get all calendar notes ...

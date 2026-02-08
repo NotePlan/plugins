@@ -1,8 +1,9 @@
 // @flow
 //--------------------------------------------------------------------------
-// Shared component for rendering a clickable note title link with icon
+// Shared component for rendering a clickable note title link with icon.
+// Note: it does not handle Teamspace indicators or folder names.
 // Used by both ItemNoteLink and ProjectItem components.
-// Last updated 2026-01-19 for v2.4.0.b16 by @jgclark
+// Last updated 2026-02-05 for v2.4.0.b16+ by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useCallback } from 'react'
@@ -10,6 +11,7 @@ import type { TSectionItem, TParagraphForDashboard, TProjectForDashboard } from 
 import { useAppContext } from './AppContext.jsx'
 import { tailwindToHsl } from '@helpers/colors'
 import { isDailyDateStr, isWeeklyDateStr, isMonthlyDateStr, isQuarterlyDateStr } from '@helpers/dateTime'
+import { logDebug, logInfo } from '@helpers/react/reactDev.js'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 //-----------------------------------------------------------
@@ -35,11 +37,14 @@ function NoteTitleLink({
   noteData,
   actionType,
   defaultIcon,
-  iconClassName = 'pad-right',
+  iconClassName = '',
   showTitle = true,
   onClickLabel,
 }: Props): React$Node {
   const { sendActionToPlugin } = useAppContext()
+
+  // ------ COMPUTED VALUES --------------------------------
+
   const filename = noteData.filename ?? ''
   const noteTitle = noteData.title ?? ''
 
@@ -59,6 +64,10 @@ function NoteTitleLink({
   // Get icon-color from frontmatter if present
   const possIconTailwindColor = noteData.iconColor
   const possNoteIconColor = possIconTailwindColor != null && possIconTailwindColor !== '' ? tailwindToHsl(possIconTailwindColor) : ''
+
+  // logInfo('NoteTitleLink', `filename=${filename} noteTitle=${noteTitle} noteIconToUse=${noteIconToUse} possNoteIconColor=${possNoteIconColor} actionType=${actionType} filename=${filename} noteTitle=${noteTitle} `)
+
+  // ------ HANDLERS ----------------------------------------
 
   // Handle click - memoized to prevent re-renders
   const handleLinkClick = useCallback((e: MouseEvent) => {
@@ -83,7 +92,8 @@ function NoteTitleLink({
     )
   }, [actionType, item, filename, noteTitle, onClickLabel, sendActionToPlugin])
 
-  // Render the link
+  // ------ RENDER ----------------------------------------
+
   if (!showTitle) {
     return null
   }
