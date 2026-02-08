@@ -443,6 +443,9 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
       perspectiveSettings = (await switchToPerspective(perspectiveName, perspectiveSettings)) || perspectiveSettings
       dashboardSettings = await getDashboardSettingsFromPerspective(perspectiveSettings)
     }
+    // Ensure all keys (including show*Section from allSectionDetails) have a value so the UI switches get correct state
+    const defaults = getDashboardSettingsDefaults()
+    dashboardSettings = { ...defaults, ...dashboardSettings }
     // clo(dashboardSettings, `getInitialDataForReactWindow: dashboardSettings=`)
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData) // Note: the only time this is called.

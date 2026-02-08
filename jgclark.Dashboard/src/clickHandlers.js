@@ -544,8 +544,22 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
           // $FlowIgnore[cannot-spread-indexer] - Dynamic property spread for tag section keys
           const activePerspDefDashboardSettingsWithDefaultsAndTAGs = { ...activePerspDefDashboardSettingsWithDefaults, ...activePerspDefShowTagSectionObject }
 
-          // Compare the cleaned settings with the active perspective settings
-          const diff = compareObjects(activePerspDefDashboardSettingsWithDefaultsAndTAGs, cleanedSettings, ['lastModified', 'lastChange', 'usePerspectives'])
+          // show*Section keys are derived from allSectionDetails (constants.js). When a perspective was saved before a
+          // section existed, it has no key. The plugin now merges defaults when sending dashboardSettings to the app
+          // (getInitialDataForReactWindow, doDashboardSettingsChanged), so the UI should send the correct value (true).
+          // As a safeguard, for comparison we treat "current" as default for any show*Section key missing from the
+          // stored perspective, so new sections never falsely trigger isModified even if an older code path sent incomplete data.
+          const showSectionKeyRe = /^show.*Section$/
+          const storedPerspKeys = Object.keys(activePerspDef.dashboardSettings || {})
+          const defaultForShowSection = (key: string) => key !== 'showInfoSection'
+          const cleanedSettingsForCompare = Object.keys(cleanedSettings).reduce((acc: { [key: string]: any }, key) => {
+            const isNewShowSection = showSectionKeyRe.test(key) && !storedPerspKeys.includes(key)
+            acc[key] = isNewShowSection ? defaultForShowSection(key) : cleanedSettings[key]
+            return acc
+          }, {})
+
+          // Compare the cleaned settings with the active perspective settings (ignore Plugin-global keys)
+          const diff = compareObjects(activePerspDefDashboardSettingsWithDefaultsAndTAGs, cleanedSettingsForCompare, ['lastModified', 'lastChange', 'usePerspectives', 'preferredWindowType'])
           clo(diff, `doDashboardSettingsChanged: diff`)
 
           // if !diff or  all the diff keys start with FFlag, then return
@@ -560,7 +574,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
           Object.keys(diff).forEach((d) => {
             logDebug(`doDashboardSettingsChanged`,
               // $FlowIgnore[invalid-computed-prop]
-              `activePerspDefDashboardSettingsWithDefaults['${String(d)}']=${d ? activePerspDefDashboardSettingsWithDefaults[d] : ''} vs. sent to save: cleanedSettings['${String(d)}']=${d ? cleanedSettings[d] : ''
+              `activePerspDefDashboardSettingsWithDefaults['${String(d)}']=${d ? activePerspDefDashboardSettingsWithDefaults[d] : ''} vs. compared current: cleanedSettingsForCompare['${String(d)}']=${d ? cleanedSettingsForCompare[d] : ''
               }`,
             )
           })
@@ -615,7 +629,11 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     }
 
     const res = await saveSettings(pluginID, combinedUpdatedSettings)
-    const updatedPluginData = { [settingName]: newSettings } // was also: pushFromServer: { [settingName]: true }
+    // Send merged settings to the app so UI gets full object (defaults + saved). Switches then show correct state for show*Section keys that were missing.
+    const dashboardSettingsForApp = settingName === 'dashboardSettings'
+      ? { ...getDashboardSettingsDefaults(), ...newSettings }
+      : newSettings
+    const updatedPluginData = { [settingName]: dashboardSettingsForApp } // was also: pushFromServer: { [settingName]: true }
     if (perspectivesToSave) {
       // $FlowFixMe(incompatible-type)
       updatedPluginData.perspectiveSettings = perspectivesToSave
