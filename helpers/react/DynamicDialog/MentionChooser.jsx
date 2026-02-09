@@ -17,7 +17,8 @@ export type MentionChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
-  returnAsArray?: boolean, // If true, return as array, otherwise return as comma-separated string (default: false)
+  returnAsArray?: boolean, // If true, return as array, otherwise return as string (default: false)
+  valueSeparator?: 'comma' | 'commaSpace' | 'space', // When returnAsArray false: 'comma'=no space, 'commaSpace'=comma+space, 'space'=space-separated (default: 'commaSpace')
   defaultChecked?: boolean, // If true, all items checked by default (default: false)
   includePattern?: string, // Regex pattern to include mentions
   excludePattern?: string, // Regex pattern to exclude mentions
@@ -47,6 +48,7 @@ export function MentionChooser({
   compactDisplay = false,
   placeholder = 'Type to search mentions...',
   returnAsArray = false,
+  valueSeparator = 'commaSpace',
   defaultChecked = false,
   includePattern = '',
   excludePattern = '',
@@ -73,7 +75,7 @@ export function MentionChooser({
   const [loaded, setLoaded] = useState<boolean>(hasInitialMentions) // If preloaded, mark as loaded
   const [loading, setLoading] = useState<boolean>(false)
   // Ref to track if component is mounted (prevents callbacks after unmount)
-  const isMountedRef = useRef<boolean>(true)
+  const isMountedRef = React.useRef<boolean>(true)
 
   // Track mount state to prevent callbacks after unmount
   useEffect(() => {
@@ -207,6 +209,7 @@ export function MentionChooser({
         items={mentions}
         getItemDisplayLabel={getItemDisplayLabel}
         returnAsArray={returnAsArray}
+        valueSeparator={valueSeparator}
         defaultChecked={defaultChecked}
         includePattern={includePattern}
         excludePattern={excludePattern}

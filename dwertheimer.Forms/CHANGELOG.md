@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.27] 2026-02-08 @dwertheimer
+
+### Added
+- tagChooser and mentionChooser now support a `valueSeparator` option: `comma` (value1,value2), `commaSpace` (value1, value2 — default for readability), or `space` (value1 value2). Form Builder includes a Value Separator dropdown; type definitions, renderer, test examples, and docs updated.
+
 ## [1.0.26] 2026-02-08 @dwertheimer
 
 ### Added

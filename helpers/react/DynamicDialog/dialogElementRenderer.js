@@ -1157,6 +1157,7 @@ export function renderItem({
         const compactDisplay = item.compactDisplay || false
         const currentValue = item.value || item.default || ''
         const returnAsArray = (item: any).returnAsArray ?? false
+        const valueSeparator = (item: any).valueSeparator ?? 'commaSpace'
         const defaultChecked = (item: any).defaultChecked ?? false
         const includePattern = (item: any).includePattern || ''
         const excludePattern = (item: any).excludePattern || ''
@@ -1185,6 +1186,7 @@ export function renderItem({
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search hashtags...'}
               returnAsArray={returnAsArray}
+              valueSeparator={valueSeparator}
               defaultChecked={defaultChecked}
               includePattern={includePattern}
               excludePattern={excludePattern}
@@ -1207,6 +1209,7 @@ export function renderItem({
         const compactDisplay = item.compactDisplay || false
         const currentValue = item.value || item.default || ''
         const returnAsArray = (item: any).returnAsArray ?? false
+        const valueSeparator = (item: any).valueSeparator ?? 'commaSpace'
         const defaultChecked = (item: any).defaultChecked ?? false
         const includePattern = (item: any).includePattern || ''
         const excludePattern = (item: any).excludePattern || ''
@@ -1235,6 +1238,7 @@ export function renderItem({
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search mentions...'}
               returnAsArray={returnAsArray}
+              valueSeparator={valueSeparator}
               defaultChecked={defaultChecked}
               includePattern={includePattern}
               excludePattern={excludePattern}

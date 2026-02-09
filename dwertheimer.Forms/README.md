@@ -660,7 +660,8 @@ All fields support these properties:
   key: 'tags',
   label: 'Tags',
   type: 'tag-chooser',
-  returnAsArray: false // false=comma-separated, true=array
+  returnAsArray: false,
+  valueSeparator: 'commaSpace' // when string: 'comma' | 'commaSpace' | 'space' (default: commaSpace)
 }
 ```
 
@@ -670,7 +671,8 @@ All fields support these properties:
   key: 'people',
   label: 'People',
   type: 'mention-chooser',
-  returnAsArray: false
+  returnAsArray: false,
+  valueSeparator: 'commaSpace' // when string: 'comma' | 'commaSpace' | 'space' (default: commaSpace)
 }
 ```
 

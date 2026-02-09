@@ -279,7 +279,7 @@ If your field has custom properties that need to be edited in the Form Builder, 
 ) : null}
 ```
 
-For `frontmatter-key-chooser`, the Form Item Editor includes a **Value Separator** dropdown (when not returning as array): Comma (no space), Comma with space, or Space. Look for similar patterns in the file for other field types to see how to add editor UI.
+For multi-select choosers that return a string (`tag-chooser`, `mention-chooser`, `frontmatter-key-chooser`), the Form Item Editor includes a **Value Separator** dropdown (when not returning as array): Comma (no space), Comma with space, or Space. Look for similar patterns in the file for other field types to see how to add editor UI.
 
 ### 7. Test/Examples
 

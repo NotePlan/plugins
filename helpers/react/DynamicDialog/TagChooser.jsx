@@ -4,7 +4,7 @@
 // A multi-select chooser for hashtags using ContainedMultiSelectChooser
 //--------------------------------------------------------------------------
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import ContainedMultiSelectChooser from './ContainedMultiSelectChooser.jsx'
 import { DropdownSelectChooser, type DropdownOption } from './DropdownSelectChooser.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
@@ -17,7 +17,8 @@ export type TagChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
-  returnAsArray?: boolean, // If true, return as array, otherwise return as comma-separated string (default: false)
+  returnAsArray?: boolean, // If true, return as array, otherwise return as string (default: false)
+  valueSeparator?: 'comma' | 'commaSpace' | 'space', // When returnAsArray false: 'comma'=no space, 'commaSpace'=comma+space, 'space'=space-separated (default: 'commaSpace')
   defaultChecked?: boolean, // If true, all items checked by default (default: false)
   includePattern?: string, // Regex pattern to include tags
   excludePattern?: string, // Regex pattern to exclude tags
@@ -47,6 +48,7 @@ export function TagChooser({
   compactDisplay = false,
   placeholder = 'Type to search hashtags...',
   returnAsArray = false,
+  valueSeparator = 'commaSpace',
   defaultChecked = false,
   includePattern = '',
   excludePattern = '',
@@ -144,27 +146,24 @@ export function TagChooser({
   // Handle creating a new tag
   // Note: Tags in NotePlan are derived from notes, so we can't "create" them in DataStore
   // Instead, we add the new tag to our local list so it can be selected and used in the form
-  const handleCreateTag = useCallback(
-    async (newTag: string): Promise<void> => {
-      // Remove # prefix if present (we store tags without prefix internally)
-      const cleanedTag = newTag.startsWith('#') ? newTag.substring(1) : newTag
-      const trimmedTag = cleanedTag.trim()
+  const handleCreateTag = useCallback(async (newTag: string): Promise<void> => {
+    // Remove # prefix if present (we store tags without prefix internally)
+    const cleanedTag = newTag.startsWith('#') ? newTag.substring(1) : newTag
+    const trimmedTag = cleanedTag.trim()
 
-      if (!trimmedTag) {
-        return
+    if (!trimmedTag) {
+      return
+    }
+
+    // Add the new tag to our local list if it doesn't already exist
+    setHashtags((prev) => {
+      if (!prev.includes(trimmedTag)) {
+        logDebug('TagChooser', `Added new tag to local list: ${trimmedTag}`)
+        return [...prev, trimmedTag]
       }
-
-      // Add the new tag to our local list if it doesn't already exist
-      setHashtags((prev) => {
-        if (!prev.includes(trimmedTag)) {
-          logDebug('TagChooser', `Added new tag to local list: ${trimmedTag}`)
-          return [...prev, trimmedTag]
-        }
-        return prev
-      })
-    },
-    [],
-  )
+      return prev
+    })
+  }, [])
 
   // If renderAsDropdown is true and singleValue is true, render as dropdown
   if (renderAsDropdown && singleValue) {
@@ -207,6 +206,7 @@ export function TagChooser({
         items={hashtags}
         getItemDisplayLabel={getItemDisplayLabel}
         returnAsArray={returnAsArray}
+        valueSeparator={valueSeparator}
         defaultChecked={defaultChecked}
         includePattern={includePattern}
         excludePattern={excludePattern}
