@@ -17,7 +17,8 @@ export type FrontmatterKeyChooserProps = {
   disabled?: boolean,
   compactDisplay?: boolean,
   placeholder?: string,
-  returnAsArray?: boolean, // If true, return as array, otherwise return as comma-separated string (default: false)
+  returnAsArray?: boolean, // If true, return as array, otherwise return as string (default: false)
+  valueSeparator?: 'comma' | 'commaSpace' | 'space', // When returnAsArray false: 'comma'=no space, 'commaSpace'=comma+space, 'space'=space-separated (default: 'commaSpace')
   defaultChecked?: boolean, // If true, all items checked by default (default: false)
   includePattern?: string, // Regex pattern to include values
   excludePattern?: string, // Regex pattern to exclude values
@@ -52,6 +53,7 @@ export function FrontmatterKeyChooser({
   compactDisplay = false,
   placeholder = 'Type to search values...',
   returnAsArray = false,
+  valueSeparator = 'commaSpace',
   defaultChecked = false,
   includePattern = '',
   excludePattern = '',
@@ -264,6 +266,7 @@ export function FrontmatterKeyChooser({
         items={values}
         getItemDisplayLabel={getItemDisplayLabel}
         returnAsArray={returnAsArray}
+        valueSeparator={valueSeparator}
         defaultChecked={defaultChecked}
         includePattern={includePattern}
         excludePattern={excludePattern}

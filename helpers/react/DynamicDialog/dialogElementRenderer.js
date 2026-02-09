@@ -1273,6 +1273,7 @@ export function renderItem({
         const caseSensitive = (item: any).caseSensitive ?? false
         const folderString = (item: any).folderString || ''
         const fullPathMatch = (item: any).fullPathMatch ?? false
+        const valueSeparator = (item: any).valueSeparator ?? 'commaSpace'
 
         // Get frontmatter key from fixed value or from sourceKeyKey field if specified
         let frontmatterKey = (item: any).frontmatterKey || ''
@@ -1306,6 +1307,7 @@ export function renderItem({
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search values...'}
               returnAsArray={returnAsArray}
+              valueSeparator={valueSeparator}
               defaultChecked={defaultChecked}
               includePattern={includePattern}
               excludePattern={excludePattern}

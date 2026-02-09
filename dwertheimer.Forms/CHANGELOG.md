@@ -6,6 +6,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 
 ## [1.0.26] 2026-02-08 @dwertheimer
 
+### Added
+- **Frontmatter Key Chooser value separator**: When not returning as array, the Frontmatter Key Chooser supports a `valueSeparator` option: `comma` (value1,value2), `commaSpace` (value1, value2 — default for readability), or `space` (value1 value2). Form Builder includes a Value Separator dropdown; type definitions, renderer, test examples, and docs updated.
+
 ### Fixed
 - **FolderChooser displays all folders**: Folder chooser (e.g. in form fields) now shows all folders instead of the default 25. Uses `maxResults: 0` so the dropdown shows the full list with scrolling.
 - **SpaceChooser WebView error (isMounted)**: Fixed `ReferenceError: Can't find variable: isMounted` in SpaceChooser. The `useEffect` referenced `isMounted` which was only defined inside `loadSpaces`; added `isMountedRef` and proper mount tracking (matches FolderChooser, TagChooser, MentionChooser pattern).
@@ -15,6 +18,14 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 - `helpers/react/DynamicDialog/FolderChooser.jsx` — Set `maxResults: 0` in SearchableChooser config so all folders are shown (unlimited, scroll).
 - `helpers/react/DynamicDialog/SpaceChooser.jsx` — Added `isMountedRef` and mount-tracking effect; replaced `isMounted` references with `isMountedRef.current` in `loadSpaces` and load effect.
 - `helpers/react/DynamicDialog/SearchableChooser.jsx` — Allow display-value lookup when `value` is `''` (not just truthy); condition changed from `displayValue && ...` to `value !== undefined && value !== null && ...`.
+- `helpers/react/DynamicDialog/ContainedMultiSelectChooser.jsx` — Added `valueSeparator` prop (`'comma'` | `'commaSpace'` | `'space'`) and join/parse logic for string output.
+- `helpers/react/DynamicDialog/FrontmatterKeyChooser.jsx` — Added `valueSeparator` prop, default `'commaSpace'`; pass-through to ContainedMultiSelectChooser.
+- `helpers/react/DynamicDialog/DynamicDialog.jsx` — Added `valueSeparator` to TSettingItem.
+- `helpers/react/DynamicDialog/dialogElementRenderer.js` — Extract and pass `valueSeparator` for frontmatter-key-chooser.
+- `dwertheimer.Forms/src/components/FieldEditor.jsx` — Value Separator dropdown for frontmatter-key-chooser (comma / comma+space / space).
+- `dwertheimer.Forms/src/FormFieldRenderTest.js` — valueSeparator examples (commaSpace, space, comma).
+- `helpers/react/DynamicDialog/CREATING_NEW_DYNAMICDIALOG_FIELD_TYPES.md` — Documented valueSeparator; Form Item Editor and test examples.
+- `dwertheimer.Forms/README.md` — frontmatter-key-chooser JSON example with valueSeparator.
 
 ## [1.0.25] 2026-02-06 @dwertheimer
 

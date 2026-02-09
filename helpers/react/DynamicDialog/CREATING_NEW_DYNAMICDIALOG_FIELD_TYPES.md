@@ -52,6 +52,7 @@ export type TSettingItem = {
 - `includePattern?: string`
 - `excludePattern?: string`
 - `returnAsArray?: boolean`
+- `valueSeparator?: 'comma' | 'commaSpace' | 'space'` (for string output: comma, comma+space, or space-separated)
 - `defaultChecked?: boolean`
 - `maxHeight?: string`
 
@@ -278,7 +279,7 @@ If your field has custom properties that need to be edited in the Form Builder, 
 ) : null}
 ```
 
-Look for similar patterns in the file for other field types to see how to add editor UI.
+For `frontmatter-key-chooser`, the Form Item Editor includes a **Value Separator** dropdown (when not returning as array): Comma (no space), Comma with space, or Space. Look for similar patterns in the file for other field types to see how to add editor UI.
 
 ### 7. Test/Examples
 
@@ -315,6 +316,15 @@ Add examples to the `testFormFields` array. Create a new heading/section for you
   description: 'Example returning array format',
   returnAsArray: true,
 },
+{
+  type: 'your-new-type',
+  label: 'Your New Chooser (Comma+space string)',
+  key: 'testYourNewChooserCommaSpace',
+  placeholder: 'Type to search...',
+  description: 'Example with valueSeparator: commaSpace (e.g. "a, b, c")',
+  returnAsArray: false,
+  valueSeparator: 'commaSpace',
+},
 // ... add more examples for each important parameter
 ```
 
@@ -324,8 +334,8 @@ Add examples to the `testFormFields` array. Create a new heading/section for you
 - Include examples for:
   - Basic usage
   - Each custom property/parameter
-  - Different return formats (string vs array, if applicable)
-  - Different states (default checked, with filters, etc.)
+- Different return formats (string vs array, if applicable) and string separator options (`valueSeparator`: comma, commaSpace, space) for choosers that support it (e.g. `frontmatter-key-chooser`)
+- Different states (default checked, with filters, etc.)
 - Use descriptive keys like `testYourNewChooser`, `testYourNewChooserCustom`, etc.
 - Include helpful descriptions explaining what each example demonstrates
 
@@ -351,7 +361,7 @@ The `tag-chooser` and `mention-chooser` field types serve as complete reference 
 2. **Dynamic Data Loading**: Both load data via `requestFromPlugin('getHashtags')` / `requestFromPlugin('getMentions')`
 3. **Memoization**: `getItemDisplayLabel` functions are wrapped in `useCallback`
 4. **Prefix Handling**: Components handle adding/removing prefixes (`#` for tags, `@` for mentions)
-5. **Return Formats**: Support both string (comma-separated) and array return formats via `returnAsArray` prop
+5. **Return Formats**: Support both string and array return formats via `returnAsArray` prop. When returning a string, `valueSeparator` controls how multiple values are joined: `'comma'` (no space), `'commaSpace'` (comma + space for readability), or `'space'` (space-separated).
 6. **Default State**: Support `defaultChecked` to pre-select all items
 7. **Filtering**: Support `includePattern` and `excludePattern` for regex-based filtering
 
@@ -399,7 +409,7 @@ After creating your new field type, verify:
 - [ ] Request handler is added to `handleRequest` switch (if needed)
 - [ ] Field type is added to `FIELD_TYPES` array
 - [ ] Editor UI is added to `FieldEditor` (if custom properties)
-- [ ] Examples are added to `FormFieldRenderTest.js`
+- [ ] Examples are added to `FormFieldRenderTest.js` (including valueSeparator variants if the field returns a string of multiple values)
 - [ ] Component handles loading/error/empty states
 - [ ] Component properly memoizes functions (if needed) - note: `requestFromPlugin` is already memoized in parent
 - [ ] Component passes `requestFromPlugin` if needed
