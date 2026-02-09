@@ -6,7 +6,7 @@
   "plugin.name": "📝 Template Forms",
   "plugin.version": "1.0.26",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "FolderChooser shows all folders (maxResults: 0). Uses shared helpers/react/DynamicDialog/FolderChooser.jsx.",
+  "plugin.lastUpdateInfo": "FolderChooser now shows all folders. Frontmatter Key Chooser supports valueSeparator option -- space, comma, or commaSpace. Thx @jgclark!",
   "plugin.description": "Dynamic Forms for NotePlan using Templating -- fill out a multi-field form and have the data sent to a template for processing",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles": ["react.c.FormView.bundle.dev.js", "react.c.FormBuilderView.bundle.dev.js", "react.c.FormBrowserView.bundle.dev.js"],
