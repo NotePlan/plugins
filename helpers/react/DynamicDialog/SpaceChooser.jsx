@@ -95,6 +95,15 @@ export function SpaceChooser({
   const requestFromPluginRef = useRef<?(command: string, dataToSend?: any, timeout?: number) => Promise<any>>(requestFromPlugin)
   const isLoadingRef = useRef<boolean>(false) // Track loading state to prevent concurrent loads
   const includeAllOptionRef = useRef<boolean>(includeAllOption)
+  const isMountedRef = useRef<boolean>(true)
+
+  // Track mount state to prevent callbacks after unmount
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   // Update refs when props change
   useEffect(() => {
@@ -125,7 +134,6 @@ export function SpaceChooser({
     }
 
     const loadStartTime = performance.now()
-    const isMounted = true // Track if component is still mounted (currently always true, but kept for future cleanup pattern)
     try {
       isLoadingRef.current = true
       setIsLoading(true)
@@ -149,7 +157,7 @@ export function SpaceChooser({
         isPrivate: false, // Not technically private, but we'll handle it specially in display functions
       }
 
-      if (isMounted) {
+      if (isMountedRef.current) {
         if (Array.isArray(teamspacesData)) {
           // Convert teamspaces to SpaceOption format
           const teamspaceOptions: Array<SpaceOption> = teamspacesData.map((ts: { id: string, title: string }) => ({
@@ -182,7 +190,7 @@ export function SpaceChooser({
       const loadElapsed = performance.now() - loadStartTime
       logError('SpaceChooser', `[DIAG] loadSpaces ERROR: elapsed=${loadElapsed.toFixed(2)}ms, error="${error.message}"`)
       // Still set Private option even on error (and All if enabled)
-      if (isMounted) {
+      if (isMountedRef.current) {
         const privateOption: SpaceOption = {
           id: '',
           title: 'Private',
@@ -198,7 +206,7 @@ export function SpaceChooser({
         setSpacesLoaded(true) // Set to true to prevent infinite retries on error
       }
     } finally {
-      if (isMounted) {
+      if (isMountedRef.current) {
         setIsLoading(false)
         isLoadingRef.current = false
       }
@@ -212,8 +220,8 @@ export function SpaceChooser({
     if (!spacesLoaded && !isLoadingRef.current && requestFromPluginRef.current) {
       // Use setTimeout to delay the request, allowing TOC and other UI to render first
       const timeoutId = setTimeout(() => {
-        // CRITICAL: loadSpaces already checks isMounted internally, but double-check here for safety
-        if (isMounted) {
+        // CRITICAL: Check if component is still mounted before calling loadSpaces
+        if (isMountedRef.current) {
           loadSpaces()
         }
       }, 200) // 200ms delay to yield to TOC rendering

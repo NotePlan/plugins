@@ -681,7 +681,8 @@ All fields support these properties:
   label: 'Status',
   type: 'frontmatter-key-chooser',
   frontmatterKey: 'status', // which frontmatter key to search
-  returnAsArray: false
+  returnAsArray: false,
+  valueSeparator: 'commaSpace' // when string: 'comma' | 'commaSpace' | 'space' (default: commaSpace)
 }
 ```
 

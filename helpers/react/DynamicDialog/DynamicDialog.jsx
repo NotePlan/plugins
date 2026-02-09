@@ -206,6 +206,7 @@ export type TSettingItem = {
   allowCreate?: boolean, // for tag-chooser and mention-chooser, if true, show "+New" button to create new items (default: true)
   singleValue?: boolean, // for tag-chooser, mention-chooser, and frontmatter-key-chooser, if true, allow selecting only one value (no checkboxes, returns single value) (default: false)
   renderAsDropdown?: boolean, // for tag-chooser, mention-chooser, and frontmatter-key-chooser, if true and singleValue is true, render as dropdown-select instead of filterable chooser (default: false)
+  valueSeparator?: 'comma' | 'commaSpace' | 'space', // for frontmatter-key-chooser (and choosers using ContainedMultiSelectChooser): when returnAsArray false, how to join values: 'comma'=no space, 'commaSpace'=comma+space, 'space'=space-separated
   // frontmatter-key-chooser options
   frontmatterKey?: string, // for frontmatter-key-chooser, the frontmatter key to get values for (can be fixed or from sourceKeyKey)
   sourceKeyKey?: string, // Value dependency: for frontmatter-key-chooser, key of another field to get the frontmatter key from dynamically

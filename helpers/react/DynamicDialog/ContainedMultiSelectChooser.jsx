@@ -17,7 +17,8 @@ export type ContainedMultiSelectChooserProps = {
   placeholder?: string,
   items: Array<string>, // Array of item strings (without prefix)
   getItemDisplayLabel: (item: string) => string, // Function to format item for display (e.g., add # or @ prefix)
-  returnAsArray?: boolean, // If true, return as array, otherwise return as comma-separated string (default: false)
+  returnAsArray?: boolean, // If true, return as array, otherwise return as string (default: false)
+  valueSeparator?: 'comma' | 'commaSpace' | 'space', // When returnAsArray false: 'comma'=no space, 'commaSpace'=comma+space, 'space'=space-separated (default: 'comma')
   defaultChecked?: boolean, // If true, all items checked by default (default: false)
   includePattern?: string, // Regex pattern to include items
   excludePattern?: string, // Regex pattern to exclude items
@@ -52,6 +53,7 @@ export function ContainedMultiSelectChooser({
   items,
   getItemDisplayLabel,
   returnAsArray = false,
+  valueSeparator = 'comma',
   defaultChecked = false,
   includePattern = '',
   excludePattern = '',
@@ -78,6 +80,13 @@ export function ContainedMultiSelectChooser({
   
   // Generate unique input id - use fieldKey if provided, otherwise fallback to fieldType with random suffix
   const inputId = fieldKey ? `${fieldType}-${fieldKey}-search` : `${fieldType}-search-${Math.random().toString(36).substr(2, 9)}`
+
+  // String separator for joining selected values when returnAsArray is false
+  const joinSeparator = useMemo((): string => {
+    if (valueSeparator === 'commaSpace') return ', '
+    if (valueSeparator === 'space') return ' '
+    return ','
+  }, [valueSeparator])
 
   // Filter items based on include/exclude patterns
   const filteredItems = useMemo(() => {
@@ -120,13 +129,13 @@ export function ContainedMultiSelectChooser({
       defaultInitializedRef.current = true
       // Format and store the value we just set
       const formattedItems = filtered.map((item: string) => getItemDisplayLabel(item))
-      const newValue: string | Array<string> = returnAsArray ? formattedItems : formattedItems.join(',')
+      const newValue: string | Array<string> = returnAsArray ? formattedItems : formattedItems.join(joinSeparator)
       lastSyncedValueRef.current = newValue
       // Call onChange to notify parent component of the initial value
       onChange(newValue)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredItems.length, defaultChecked, value, returnAsArray]) // Only check filteredItems.length, not filteredItems itself. onChange/getItemDisplayLabel are stable or handled elsewhere
+  }, [filteredItems.length, defaultChecked, value, returnAsArray, joinSeparator]) // Only check filteredItems.length, not filteredItems itself. onChange/getItemDisplayLabel are stable or handled elsewhere
 
   // Parse value prop to get selected values and sync selectedValues
   // Only sync from value prop if it's different from what we last synced (to avoid loops)
@@ -181,8 +190,11 @@ export function ContainedMultiSelectChooser({
         // Remove duplicates
         parsed = Array.from(new Set(cleaned))
       } else {
-        // If string, split by comma and extract item names
-        const itemList = value.split(',').map((item: string) => item.trim()).filter(Boolean)
+        // If string, split by comma or whitespace depending on valueSeparator
+        const itemList =
+          valueSeparator === 'space'
+            ? value.split(/\s+/).map((item: string) => item.trim()).filter(Boolean)
+            : value.split(',').map((item: string) => item.trim()).filter(Boolean)
         const cleaned = itemList.map((item: string) => {
           let cleanedItem = item
           while (cleanedItem.startsWith('#') || cleanedItem.startsWith('@')) {
@@ -199,7 +211,7 @@ export function ContainedMultiSelectChooser({
     setSelectedValues(parsed)
     // Update ref to track what we synced
     lastSyncedValueRef.current = value
-  }, [value, defaultChecked, returnAsArray, singleValue]) // Only sync from value prop to prevent resetting selections
+  }, [value, defaultChecked, returnAsArray, singleValue, valueSeparator]) // Only sync from value prop to prevent resetting selections
 
   // Calculate effective maxHeight: height prop > maxRows > maxHeight
   const effectiveMaxHeight = useMemo(() => {
@@ -319,8 +331,8 @@ export function ContainedMultiSelectChooser({
       setSelectedValues(newSelected)
       // Return format based on returnAsArray prop
       // If returnAsArray is true, return original item values (not formatted labels)
-      // If returnAsArray is false, return formatted display labels joined by comma
-      const newValue = returnAsArray ? newSelected : newSelected.map((item: string) => getItemDisplayLabel(item)).join(',')
+      // If returnAsArray is false, return formatted display labels joined by valueSeparator
+      const newValue = returnAsArray ? newSelected : newSelected.map((item: string) => getItemDisplayLabel(item)).join(joinSeparator)
       // Update ref before calling onChange to prevent re-sync
       lastSyncedValueRef.current = newValue
       onChange(newValue)
@@ -365,7 +377,7 @@ export function ContainedMultiSelectChooser({
     const allValues = Array.from(new Set(displayItems)).filter((item: string) => item.toLowerCase() !== 'is:checked')
     setSelectedValues(allValues)
     const formattedItems = allValues.map((item: string) => getItemDisplayLabel(item))
-    const newValue = returnAsArray ? formattedItems : formattedItems.join(',')
+    const newValue = returnAsArray ? formattedItems : formattedItems.join(joinSeparator)
     // Update ref before calling onChange to prevent re-sync
     lastSyncedValueRef.current = newValue
     onChange(newValue)
@@ -459,8 +471,8 @@ export function ContainedMultiSelectChooser({
 
       // Format and update value via onChange
       const formattedItems = newSelected.map((item: string) => getItemDisplayLabel(item))
-      const newValue: string | Array<string> = returnAsArray ? formattedItems : formattedItems.join(',')
-      logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Calling onChange with: ${typeof newValue === 'string' ? newValue : newValue.join(',')}`)
+      const newValue: string | Array<string> = returnAsArray ? formattedItems : formattedItems.join(joinSeparator)
+      logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Calling onChange with: ${typeof newValue === 'string' ? newValue : newValue.join(joinSeparator)}`)
 
       lastSyncedValueRef.current = newValue
       onChange(newValue)

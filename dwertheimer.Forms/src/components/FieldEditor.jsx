@@ -1549,7 +1549,23 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
                   />
                   Return as Array
                 </label>
-                <div className="field-editor-help">If checked, returns selected values as an array. Otherwise, returns as comma-separated string.</div>
+                <div className="field-editor-help">If checked, returns selected values as an array. Otherwise, returns as string (format set by Value Separator below).</div>
+              </div>
+              <div className="field-editor-row">
+                <label>Value Separator (when not returning array):</label>
+                <select
+                  value={((editedField: any): { valueSeparator?: string }).valueSeparator || 'commaSpace'}
+                  onChange={(e) => {
+                    const updated = { ...editedField }
+                    ;(updated: any).valueSeparator = e.target.value || undefined
+                    setEditedField(updated)
+                  }}
+                >
+                  <option value="comma">Comma (no space) — value1,value2</option>
+                  <option value="commaSpace">Comma with space — value1, value2</option>
+                  <option value="space">Space — value1 value2</option>
+                </select>
+                <div className="field-editor-help">How to join multiple selected values when not returning as array. Comma with space is default for readability.</div>
               </div>
               <div className="field-editor-row">
                 <label>

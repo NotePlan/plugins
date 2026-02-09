@@ -624,7 +624,8 @@ export function SearchableChooser({
     }
   }
 
-  if (displayValue && items && items.length > 0 && !isManualEntryValue) {
+  // Run lookup when value is set (including '' for Private/empty-id items) - displayValue alone is falsy for ''
+  if (value !== undefined && value !== null && items && items.length > 0 && !isManualEntryValue) {
     // Try to find the item that matches this value
     // For notes, we need to match by filename; for folders, by path
     const foundItem = items.find((item: any) => {
@@ -1047,12 +1048,14 @@ export function SearchableChooser({
                     // Single-line layout (default): icon + label + description on one line
                     // Check if this is a simple list (no icons or descriptions)
                     const isSimpleItem = !optionIcon && !optionShortDesc && !hasIconsOrDescriptions
+                    // When shortDescription exists, add class for CSS (main text extends to end, right absolutely positioned)
+                    const hasShortDescThisRow = !!optionShortDesc
                     return (
                       <div
                         key={`${fieldType}-${index}`}
                         className={`searchable-chooser-option ${classNamePrefix}-option ${showOptionClickHint ? 'option-click-hint' : ''} ${isSelected ? 'option-selected' : ''} ${
                           isSimpleItem ? 'simple-item' : ''
-                        }`}
+                        } ${hasShortDescThisRow ? 'has-short-description' : ''}`}
                         onClick={(e) => handleItemSelect(item, e)}
                         onMouseEnter={() => setHoveredIndex(index)}
                         onMouseLeave={() => setHoveredIndex(null)}
@@ -1097,19 +1100,15 @@ export function SearchableChooser({
                             {truncatedText}
                           </span>
                         </span>
-                        {/* Always render right side to reserve space, even if empty */}
-                        {/* In single-line mode (not shortDescriptionOnLine2), reserve space even when empty */}
-                        {/* But hide it completely for simple lists */}
-                        {!isSimpleItem && (
+                        {/* Only render right side when this row has a shortDescription - no reserved blank space when empty */}
+                        {hasShortDescThisRow && (
                           <span
                             className={`searchable-chooser-option-right ${classNamePrefix}-option-right`}
                             style={{
                               color: optionColor ? getColorStyle(optionColor) || 'var(--gray-500, #666)' : undefined,
-                              // Reserve minimum space when in single-line mode and no shortDescription
-                              minWidth: !shortDescriptionOnLine2 && !optionShortDesc ? '8rem' : undefined,
                             }}
                           >
-                            {optionShortDesc || ''}
+                            {optionShortDesc}
                           </span>
                         )}
                       </div>
