@@ -8,9 +8,13 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 
 ### Fixed
 - **FolderChooser displays all folders**: Folder chooser (e.g. in form fields) now shows all folders instead of the default 25. Uses `maxResults: 0` so the dropdown shows the full list with scrolling.
+- **SpaceChooser WebView error (isMounted)**: Fixed `ReferenceError: Can't find variable: isMounted` in SpaceChooser. The `useEffect` referenced `isMounted` which was only defined inside `loadSpaces`; added `isMountedRef` and proper mount tracking (matches FolderChooser, TagChooser, MentionChooser pattern).
+- **SpaceChooser Private option displays blank**: Selecting "Private" (id: empty string) in the space chooser now correctly shows "Private" in the text field instead of blank. SearchableChooser previously skipped the display lookup when `displayValue` was falsy (empty string); now allows lookup when `value` is set (including `''` for empty-id items).
 
 ### Edited in this release
 - `helpers/react/DynamicDialog/FolderChooser.jsx` — Set `maxResults: 0` in SearchableChooser config so all folders are shown (unlimited, scroll).
+- `helpers/react/DynamicDialog/SpaceChooser.jsx` — Added `isMountedRef` and mount-tracking effect; replaced `isMounted` references with `isMountedRef.current` in `loadSpaces` and load effect.
+- `helpers/react/DynamicDialog/SearchableChooser.jsx` — Allow display-value lookup when `value` is `''` (not just truthy); condition changed from `displayValue && ...` to `value !== undefined && value !== null && ...`.
 
 ## [1.0.25] 2026-02-06 @dwertheimer
 

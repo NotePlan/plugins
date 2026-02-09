@@ -415,8 +415,7 @@ input[type="text"][class*="-chooser-input"]:focus {
   white-space: nowrap;
 }
 
-/* Right side of option (short description) */
-/* Always rendered to reserve space even when empty */
+/* Right side of option (short description) - only rendered when row has shortDescription (no blank reserved space) */
 .searchable-chooser-option-right {
   flex-shrink: 0;
   flex-grow: 0; /* Don't grow */
@@ -426,8 +425,34 @@ input[type="text"][class*="-chooser-input"]:focus {
   font-size: 0.9em;
   opacity: 0.7;
   text-align: right;
-  min-width: 0; /* Allow to be 0 width when empty, but flex-shrink: 0 prevents being compressed below natural width when it has content */
+  min-width: 0;
   padding-left: 1rem; /* Add spacing between left and right content */
+}
+
+/* When row has shortDescription: position right absolutely so main text gets full width and can extend to end of line */
+.searchable-chooser-option.has-short-description {
+  position: relative;
+}
+
+.searchable-chooser-option.has-short-description .searchable-chooser-option-left,
+.searchable-chooser-base [class*="-chooser-option"].has-short-description [class*="-chooser-option-left"],
+[class*="-chooser-option"].has-short-description [class*="-chooser-option-left"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 4rem; /* Leave room for shortDescription so it stays visible; main text still gets most of the line */
+  max-width: 100%;
+}
+
+.searchable-chooser-option.has-short-description .searchable-chooser-option-right,
+.searchable-chooser-base [class*="-chooser-option"].has-short-description [class*="-chooser-option-right"],
+[class*="-chooser-option"].has-short-description [class*="-chooser-option-right"] {
+  position: absolute;
+  right: 0.75rem; /* Match row padding */
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 0;
+  padding-left: 0.5rem;
+  max-width: 45%; /* Prevent shortDesc from taking more than half; main text has priority */
 }
 
 /* Heading chooser: use standard 3-column layout (icon, text, shortDescription) */
