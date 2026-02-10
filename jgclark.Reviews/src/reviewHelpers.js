@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-06 for v1.3.0.b8, @jgclark
+// Last updated 2026-02-09 for v1.3.0.b9, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -44,6 +44,7 @@ export type ReviewConfig = {
   completedMentionStr: string,
   confirmNextReview: boolean,
   displayDates: boolean,
+  displayPaused: boolean,
   dueMentionStr: string,
   displayArchivedProjects: boolean,
   displayFinished: boolean,
@@ -69,6 +70,7 @@ export type ReviewConfig = {
   sequentialTag: string,
   progressHeading?: string,
   progressHeadingLevel: number,
+  writeMostRecentProgressToFrontmatter?: boolean,
   _logLevel: string,
   _logTimer: boolean,
 }
@@ -130,6 +132,11 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
 
       const validFolders = getAllowedFoldersInCurrentPerspective(perspectiveSettings)
       logDebug('getReviewSettings', `-> validFolders for '${config.perspectiveName}': [${String(validFolders)}]`)
+    }
+
+    // Ensure displayPaused has a sensible default if missing from settings
+    if (config.displayPaused == null) {
+      config.displayPaused = true
     }
 
     return config

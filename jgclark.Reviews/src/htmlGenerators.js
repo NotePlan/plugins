@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-02-08 for v1.3.0.b8 by @jgclark
+// Last updated 2026-02-10 for v1.3.0.b9 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
@@ -422,8 +422,9 @@ export function generateTopBarHTML(config: any): string {
   }
 
   // Display filters: button (same style as Refresh) after Refresh + time, opens dropdown; click outside saves, Escape cancels
-  const displayFinished = config.displayFinished ?? false
   const displayOnlyDue = config.displayOnlyDue ?? false
+  const displayFinished = config.displayFinished ?? false
+  const displayPaused = config.displayPaused ?? true
   const displayNextActions = config.displayNextActions ?? false
   parts.push(`<div id="toggles" class="topbar-item display-filters-wrapper">`)
   parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-filter pad-right"></i>Filters…</button>`)
@@ -431,6 +432,7 @@ export function generateTopBarHTML(config: any): string {
   parts.push(`    <div class="display-filters-dropdown-content">`)
   parts.push(`      <label class="display-filters-option">only due?<input class="apple-switch pad-left" type="checkbox" ${displayOnlyDue ? 'checked' : ''} name="displayOnlyDue" data-display-filter="true"></label>`)
   parts.push(`      <label class="display-filters-option">show finished?<input class="apple-switch pad-left" type="checkbox" ${displayFinished ? 'checked' : ''} name="displayFinished" data-display-filter="true"></label>`)
+  parts.push(`      <label class="display-filters-option">show Paused?<input class="apple-switch pad-left" type="checkbox" ${displayPaused ? 'checked' : ''} name="displayPaused" data-display-filter="true"></label>`)
   parts.push(`      <label class="display-filters-option">show next actions?<input class="apple-switch pad-left" type="checkbox" ${displayNextActions ? 'checked' : ''} name="displayNextActions" data-display-filter="true"></label>`)
   parts.push(`    </div>`)
   parts.push(`  </div>`)

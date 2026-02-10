@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin (to/from HTML window)
-// Last updated 2026-02-07 for v1.3.0.b8, @jgclark
+// Last updated 2026-02-10 for v1.3.0.b9, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -132,11 +132,12 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
 
 /**
  * Save display filters from the Display filters dropdown (all three at once).
- * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayNextActions: boolean }} data
+ * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean }} data
  */
 export async function bridgeSaveDisplayFilters(data: {
   displayOnlyDue: boolean,
   displayFinished: boolean,
+  displayPaused: boolean,
   displayNextActions: boolean,
 }): Promise<void> {
   try {

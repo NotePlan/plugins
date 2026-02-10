@@ -287,9 +287,10 @@ const displayFiltersDropdownScript: string = `
     function getCheckboxState() {
       var onlyDue = dropdown.querySelector('input[name="displayOnlyDue"]');
       var finished = dropdown.querySelector('input[name="displayFinished"]');
+      var paused = dropdown.querySelector('input[name="displayPaused"]');
       var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
-      return onlyDue && finished && nextActions
-        ? { displayOnlyDue: onlyDue.checked, displayFinished: finished.checked, displayNextActions: nextActions.checked }
+      return onlyDue && finished && paused && nextActions
+        ? { displayOnlyDue: onlyDue.checked, displayFinished: finished.checked, displayPaused: paused.checked, displayNextActions: nextActions.checked }
         : null;
     }
 
@@ -302,10 +303,12 @@ const displayFiltersDropdownScript: string = `
       } else if (savedState) {
         var onlyDue = dropdown.querySelector('input[name="displayOnlyDue"]');
         var finished = dropdown.querySelector('input[name="displayFinished"]');
+        var paused = dropdown.querySelector('input[name="displayPaused"]');
         var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
-        if (onlyDue && finished && nextActions) {
+        if (onlyDue && finished && paused && nextActions) {
           onlyDue.checked = savedState.displayOnlyDue;
           finished.checked = savedState.displayFinished;
+          paused.checked = savedState.displayPaused;
           nextActions.checked = savedState.displayNextActions;
         }
       }
@@ -635,10 +638,12 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           if (due > 0) {
             outputArray.unshift(`**${startReviewButton}**. For open Project note: Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${newIntervalXCallbackButton} Project: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
           }
-          const displayFinished = config.displayFinished ?? false
-          const displayOnlyDue = config.displayOnlyDue ?? false
-          let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
-          togglesValues += (displayFinished) ? ' plus finished ones' : ''
+        const displayFinished = config.displayFinished ?? false
+        const displayOnlyDue = config.displayOnlyDue ?? false
+        const displayPaused = config.displayPaused ?? true
+        let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
+        togglesValues += (displayFinished) ? ' plus finished ones' : ''
+        togglesValues += (!displayPaused) ? ' (paused projects hidden)' : ''
           // Write out the count + metadata
           outputArray.unshift(`Total ${noteCount} active projects${perspectivePart} (${togglesValues}). Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
           outputArray.unshift(`# ${noteTitle}`)
@@ -1378,17 +1383,19 @@ export async function toggleDisplayNextActions(): Promise<void> {
 
 /**
  * Save all display filter settings at once (used by Display filters dropdown).
- * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayNextActions: boolean }} data
+ * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean }} data
  */
 export async function saveDisplayFilters(data: {
   displayOnlyDue: boolean,
   displayFinished: boolean,
+  displayPaused: boolean,
   displayNextActions: boolean,
 }): Promise<void> {
   try {
     const config: ReviewConfig = await getReviewSettings()
     config.displayOnlyDue = data.displayOnlyDue
     config.displayFinished = data.displayFinished
+    config.displayPaused = data.displayPaused
     config.displayNextActions = data.displayNextActions
     await DataStore.saveJSON(config, '../jgclark.Reviews/settings.json', true)
     await renderProjectLists(config, false)

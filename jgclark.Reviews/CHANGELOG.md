@@ -4,6 +4,11 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 <!-- - TODO: menu positioning -->
 <!-- - TODO: right align menu checkboxes -->
 
+## [1.3.0.b9] - 2026-02-???
+- ??? New setting "Also write most recent Progress line to frontmatter?" (default: off)
+- Pausing or un-pausing on a Project now also updates the `@reviewed()` date
+- New "Show paused?" toggle in the Filter… menu
+
 ## [1.3.0.b8] - 2026-02-08
 - dev: refactor to move most HTML code into separate htmlGenerators.js file
 - stop the 'next action' check from running if the project note is marked as `#ssequential`

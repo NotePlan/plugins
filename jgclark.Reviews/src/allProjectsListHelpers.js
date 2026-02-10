@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-01-24 for v1.3.0.b7, @jgclark
+// Last updated 2026-02-10 for v1.3.0.b9, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -586,6 +586,13 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
     if (!displayFinished) {
       projectInstances = projectInstances.filter((pi) => !pi.isCompleted).filter((pi) => !pi.isCancelled)
       logDebug('filterAndSortProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
+    }
+
+    // Filter out paused projects if required
+    const displayPaused = config.displayPaused ?? true
+    if (!displayPaused) {
+      projectInstances = projectInstances.filter((pi) => !pi.isPaused)
+      logDebug('filterAndSortProjectsList', `- after filtering out paused, ${projectInstances.length} projects`)
     }
 
     // Filter out non-due projects if required

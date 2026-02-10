@@ -9,9 +9,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.com/plugins/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "1.3.0.b8",
+  "plugin.version": "1.3.0.b9",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "1.3.0.b8: Added new hidden **/weekly projects progress** command for JGC.\n1.3.0.b7: Improved next action processing. Turned back on automatic updates of Dashboard plugin (if open).\n1.3.0.b6: Small improvements.\n1.3.0.b5: New 'Progress Heading' settings. Fix when using `metadata:` key in frontmatter, and \n1.3.0.b4: 'Start Reviews' bug fix and various layout  improvements.\n1.3.0.b3: can now display the first open task/checklist in a project as the 'next action' by adding a new 'Sequential project marker' to the frontmatter (e.g. `project: #sequential`).\n1.3.0.b2: now supports 'show in main window' setting. Other small improvements and fixes.\n1.3.0.b1: now supports projects in (Team)Space notes, using the Perspective setting from Dashboard v2.4 which allows you to specify which (Team)Spaces you wish to include.",
+  "plugin.lastUpdateInfo": "1.3.0.b9: New 'Also write most recent Progress line to frontmatter?' option.\n1.3.0.b8: Improved the project dialog box, including new 'Start' button for reviews.\n1.3.0.b7: Improved next action processing. Turned back on automatic updates of Dashboard plugin (if open).\n1.3.0.b6: Small improvements.\n1.3.0.b5: New 'Progress Heading' settings. Fix when using `metadata:` key in frontmatter, and \n1.3.0.b4: 'Start Reviews' bug fix and various layout  improvements.\n1.3.0.b3: can now display the first open task/checklist in a project as the 'next action' by adding a new 'Sequential project marker' to the frontmatter (e.g. `project: #sequential`).\n1.3.0.b2: now supports 'show in main window' setting. Other small improvements and fixes.\n1.3.0.b1: now supports projects in (Team)Space notes, using the Perspective setting from Dashboard v2.4 which allows you to specify which (Team)Spaces you wish to include.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {
@@ -449,6 +449,26 @@
       "required": true
     },
     {
+      "key": "width",
+      "title": "Window width",
+      "description": "Width of the Review List window (pixels)",
+      "type": "hidden",
+      "default": 800,
+      "required": true
+    },
+    {
+      "key": "height",
+      "title": "Window height",
+      "description": "Height of the Review List window (pixels)",
+      "type": "hidden",
+      "default": 1200,
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "'Next Action' and 'Progress' settings"
+    },
+    {
       "key": "nextActionTags",
       "title": "Next action tag(s)",
       "description": "Optional comma-separated list of possible #hashtags to include in a task or checklist to indicate its the next action in this project. (Default: '#na'). Note: if the 'Sequential project marker' (below) is set on a project note, then this setting is ignored.",
@@ -490,19 +510,11 @@
       "required": true
     },
     {
-      "key": "width",
-      "title": "Window width",
-      "description": "Width of the Review List window (pixels)",
-      "type": "hidden",
-      "default": 800,
-      "required": true
-    },
-    {
-      "key": "height",
-      "title": "Window height",
-      "description": "Height of the Review List window (pixels)",
-      "type": "hidden",
-      "default": 1200,
+      "key": "writeMostRecentProgressToFrontmatter",
+      "title": "Also write most recent Progress line to frontmatter?",
+      "description": "If set, each time a Progress line is added the latest line will also be written into the note's frontmatter as a 'progress' field.",
+      "type": "bool",
+      "default": false,
       "required": true
     },
     {
