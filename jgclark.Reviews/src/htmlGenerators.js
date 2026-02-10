@@ -421,6 +421,9 @@ export function generateTopBarHTML(config: any): string {
     parts.push(perspectiveSection)
   }
 
+  const refreshSection = `<div id="refresh" class="topbar-item">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+  parts.push(refreshSection)
+
   // Display filters: button (same style as Refresh) after Refresh + time, opens dropdown; click outside saves, Escape cancels
   const displayOnlyDue = config.displayOnlyDue ?? false
   const displayFinished = config.displayFinished ?? false
@@ -430,16 +433,13 @@ export function generateTopBarHTML(config: any): string {
   parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-filter pad-right"></i>Filters…</button>`)
   parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Display filters">`)
   parts.push(`    <div class="display-filters-dropdown-content">`)
-  parts.push(`      <label class="display-filters-option">only due?<input class="apple-switch pad-left" type="checkbox" ${displayOnlyDue ? 'checked' : ''} name="displayOnlyDue" data-display-filter="true"></label>`)
-  parts.push(`      <label class="display-filters-option">show finished?<input class="apple-switch pad-left" type="checkbox" ${displayFinished ? 'checked' : ''} name="displayFinished" data-display-filter="true"></label>`)
-  parts.push(`      <label class="display-filters-option">show Paused?<input class="apple-switch pad-left" type="checkbox" ${displayPaused ? 'checked' : ''} name="displayPaused" data-display-filter="true"></label>`)
-  parts.push(`      <label class="display-filters-option">show next actions?<input class="apple-switch pad-left" type="checkbox" ${displayNextActions ? 'checked' : ''} name="displayNextActions" data-display-filter="true"></label>`)
+  parts.push(`      <label class="display-filters-option">Show only projects ready for review?<input class="apple-switch pad-left" type="checkbox" ${displayOnlyDue ? 'checked' : ''} name="displayOnlyDue" data-display-filter="true"></label>`)
+  parts.push(`      <label class="display-filters-option">Show finished projects?<input class="apple-switch pad-left" type="checkbox" ${displayFinished ? 'checked' : ''} name="displayFinished" data-display-filter="true"></label>`)
+  parts.push(`      <label class="display-filters-option">Show paused projects?<input class="apple-switch pad-left" type="checkbox" ${displayPaused ? 'checked' : ''} name="displayPaused" data-display-filter="true"></label>`)
+  parts.push(`      <label class="display-filters-option">Show next actions?<input class="apple-switch pad-left" type="checkbox" ${displayNextActions ? 'checked' : ''} name="displayNextActions" data-display-filter="true"></label>`)
   parts.push(`    </div>`)
   parts.push(`  </div>`)
   parts.push(`</div>`)
-
-  const refreshSection = `<div id="refresh" class="topbar-item">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
-  parts.push(refreshSection)
 
   const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
   parts.push(controlButtons)

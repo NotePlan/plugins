@@ -8,6 +8,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - ??? New setting "Also write most recent Progress line to frontmatter?" (default: off)
 - Pausing or un-pausing on a Project now also updates the `@reviewed()` date
 - New "Show paused?" toggle in the Filter… menu
+- Right-align the toggles in the Filter... menu, suppress re-load when clicking outside the menu when no settings have been changed.
 
 ## [1.3.0.b8] - 2026-02-08
 - dev: refactor to move most HTML code into separate htmlGenerators.js file
