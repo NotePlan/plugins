@@ -30,22 +30,23 @@ const pluginJson = 'helpers/NPFrontMatter.js'
 //----------------------------------------------------------------------------
 
 /**
- * Frontmatter cannot have colons in the content (specifically ": " or ending in colon or values starting in @ or #), so we need to wrap that in quotes
+ * Frontmatter cannot have colons in the content (specifically ": " or ending in colon) or values starting in @ or #, or containing >, so we need to wrap those in quotes.
  * If a string is wrapped in double quotes and contains additional double quotes, convert the internal quotes to single quotes.
  * This often happens when people include double quotes in template tags in their frontmatter
- * TODO: for now I am casting any boolean or number values to strings, but this may not be the best approach. Let's see what happens.
+ * Note: for now I am casting any boolean or number values to strings, but this may not be the best approach. Let's see what happens.
+ * @author @dwertheimer
  * @param {string} text
  * @param {boolean} quoteSpecialCharacters - whether to quote hashtags (default: false) NOTE: YAML treats everything behind a # as a comment and so technically it should be quoted
- * @returns {string} quotedText (if required)
+ * @returns {string} text, quoted if required
  */
-export function quoteText(_text: string | number | boolean, quoteSpecialCharacters: boolean = false): string {
+export function quoteTextIfNeededForFM(_text: string | number | boolean, quoteSpecialCharacters: boolean = false): string {
   let text = _text
   if (text === null || text === undefined || typeof text === 'object') {
-    logWarn('quoteText', `text (${typeof text}) is empty/not a string. Returning ''`)
+    logWarn('quoteTextIfNeededForFM', `text (${typeof text}) is empty/not a string. Returning ''`)
     return ''
   }
   if (typeof text === 'number' || typeof text === 'boolean') {
-    logDebug('quoteText', `text (${typeof text}) is a number or boolean. Returning stringified version: ${String(text)}`)
+    logDebug('quoteTextIfNeededForFM', `text (${typeof text}) is a number or boolean. Returning stringified version: ${String(text)}`)
     return String(text)
   }
   text = text.trim()
@@ -301,7 +302,7 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
           for (let i = 1; i < fmParas.length; i++) {
             // ignore first and last paras which are separators
             const para = fmParas[i]
-            if ((!value && para.content.startsWith(fieldToRemove)) || (value && para.content === `${fieldToRemove}: ${quoteText(value)}`)) {
+            if ((!value && para.content.startsWith(fieldToRemove)) || (value && para.content === `${fieldToRemove}: ${quoteTextIfNeededForFM(value)}`)) {
               // logDebug('rFMF', `- will delete fmPara ${String(i)}`)
               fmParas.splice(i, 1) // delete this item
               removed = true
@@ -519,7 +520,7 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         }
 
         if (firstLineIsTitle) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
-        fm = `---\ntitle: ${quoteText(newTitle)}\n---`
+        fm = `---\ntitle: ${quoteTextIfNeededForFM(newTitle)}\n---`
       } else {
         logDebug('ensureFrontmatter', `- just adding empty frontmatter to this calendar note`)
         // Insert the frontmatter separators
@@ -749,7 +750,7 @@ export function _fixFrontmatter(fmText: string): string {
     }
     const [varName, ...varValue] = line.split(':')
     const value = varValue.join(':').trim()
-    const fixedValue = quoteText(value)
+    const fixedValue = quoteTextIfNeededForFM(value)
     output += `${varName}: ${fixedValue}\n`
   })
   return `---\n${output}---\n`
@@ -987,13 +988,16 @@ export function normalizeValue(value: string): string {
  */
 export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {
-    clo(newAttributes, `updateFrontMatterVars: newAttributes = ${JSON.stringify(newAttributes)}`)
-    logDebug(pluginJson, `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs before ensureFrontmatter`)
+    clo(newAttributes, `updateFrontMatterVars: newAttributes = `)
+    logDebug('updateFrontMatterVars', `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs before ensureFrontmatter`)
     // $FlowIgnore[prop-missing]
     const isEditor = Boolean(note.note)
-    // Ensure the note has front matter
-
-    logDebug(pluginJson, `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs after ensureFrontmatter`)
+    // Ensure the note has front matter (for both Editor and note cases)
+    if (!ensureFrontmatter(note, !isEditor)) {
+      logError(pluginJson, `updateFrontMatterVars: Failed to ensure front matter for note "${note.filename || ''}".`)
+      return false
+    }
+    logDebug('updateFrontMatterVars', `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs after ensureFrontmatter`)
 
     const existingAttributes = { ...getFrontmatterAttributes(note) } || {}
     // Normalize newAttributes before comparison
@@ -1002,7 +1006,7 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
     clo(Object.keys(newAttributes), `updateFrontMatterVars: Object.keys(newAttributes) = ${JSON.stringify(Object.keys(newAttributes))}`)
     Object.keys(newAttributes).forEach((key: string) => {
       const value = newAttributes[key]
-      logDebug('updateFrontMatterVars newAttributes', `key: ${key}, value: ${value}`)
+      logDebug('updateFrontMatterVars', `newAttributes key: ${key}, value: ${value}`) // ✅
 
       // Handle null/undefined - skip them (they won't be in normalizedNewAttributes,
       // so if deleteMissingAttributes is true, they will be deleted)
@@ -1018,9 +1022,10 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       } else {
         const trimmedValue = value.trim()
         // Empty strings are allowed - they will be written as empty (not quoted)
-        // quoteText will handle empty strings correctly (returns '' without quotes)
-        normalizedValue = quoteText(trimmedValue)
+        // quoteTextIfNeededForFM will handle empty strings correctly (returns '' without quotes)
+        normalizedValue = quoteTextIfNeededForFM(trimmedValue)
       }
+      logDebug('updateFrontMatterVars', `normalizedValue for key: ${key} = ${normalizedValue}`)
 
       // $FlowIgnore
       normalizedNewAttributes[key] = normalizedValue
@@ -1032,20 +1037,15 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
     keysToUpdate.length > 0 && clo(keysToUpdate, `updateFrontMatterVars: keysToUpdate`)
     keysToDelete.length > 0 && clo(keysToDelete, `updateFrontMatterVars: keysToDelete`)
 
-    logDebug(pluginJson, `updateFrontMatterVars: typeof note.frontmatterAttributes = ${typeof note.frontmatterAttributes}`)
+    logDebug('updateFrontMatterVars', `updateFrontMatterVars: typeof note.frontmatterAttributes = ${typeof note.frontmatterAttributes}`)
     if (isEditor) {
       // The frontmatterAttributes setter only works with macOS >= 14 and iOS >= 16
       // and only works with the Editor
       const includingMissingAttributes = deleteMissingAttributes ? normalizedNewAttributes : { ...existingAttributes, ...normalizedNewAttributes }
       // $FlowIgnore
       note.frontmatterAttributes = includingMissingAttributes
-      logDebug(pluginJson, `updateFrontMatterVars: writing frontmatterAttributes to note using setter`)
+      logDebug('updateFrontMatterVars', `updateFrontMatterVars: writing frontmatterAttributes to EDITOR note using setter`)
       return true
-    }
-
-    if (!ensureFrontmatter(note)) {
-      logError(pluginJson, `updateFrontMatterVars: Failed to ensure front matter for note "${note.filename || ''}".`)
-      return false
     }
 
     // Update existing attributes -- just replace the text in the paragraph
@@ -1054,12 +1054,12 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       const attributeLine = `${key}: ${normalizedNewAttributes[key]}`
       const paragraph = note.paragraphs.find((para) => para.content.startsWith(`${key}:`))
       if (paragraph) {
-        logDebug(pluginJson, `updateFrontMatterVars: updating paragraph "${paragraph.content}" with "${attributeLine}"`)
+        logDebug('updateFrontMatterVars', `updateFrontMatterVars: updating paragraph "${paragraph.content}" with "${attributeLine}"`)
         paragraph.content = attributeLine
         note.updateParagraph(paragraph)
-        logDebug(pluginJson, `updateFrontMatterVars: updated paragraph ${paragraph.lineIndex} to: "${paragraph.content}"`)
+        logDebug('updateFrontMatterVars', `updateFrontMatterVars: updated paragraph ${paragraph.lineIndex} to: "${paragraph.content}"`)
       } else {
-        logError(pluginJson, `updateFrontMatterVars: Failed to find frontmatter paragraph for key "${key}".`)
+        logError('updateFrontMatterVars', `updateFrontMatterVars: Failed to find frontmatter paragraph for key "${key}".`)
       }
     })
 
@@ -1068,7 +1068,7 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       // $FlowIgnore
       const newAttributeLine = `${key}: ${normalizedNewAttributes[key]}`
       // Insert before the closing '---'
-      clo(note.paragraphs, `updateFrontMatterVars: note.paragraphs`)
+      // clo(note.paragraphs, `updateFrontMatterVars: note.paragraphs`)
       const closingIndex = note.paragraphs.findIndex((para) => para.content.trim() === '---' && para.lineIndex > 0)
       logDebug('updateFrontMatterVars', `closingIndex: ${closingIndex}`)
       if (closingIndex !== -1) {
@@ -1079,7 +1079,7 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
         const numParagraphsAfter = note.paragraphs.length
         if (numParagraphsAfter > numParagraphsBefore + 1) {
           logDebug('updateFrontMatterVars', `numParagraphsBefore: ${numParagraphsBefore} numParagraphsAfter: ${numParagraphsAfter}`)
-          logDebug(pluginJson, `updateFrontMatterVars: NP Race condition added too many lines to note "${note.filename || ''}"`)
+          logDebug('updateFrontMatterVars', `updateFrontMatterVars: NP Race condition added too many lines to note "${note.filename || ''}"`)
           // find the 3rd and the 4th type === separator paragraphs and remove them
           const separatorParas = note.paragraphs.filter((para) => para.type === 'separator')
           if (separatorParas.length >= 2) {
@@ -1094,7 +1094,7 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
           return false
         }
       } else {
-        logError(pluginJson, `updateFrontMatterVars: Failed to find closing '---' in note "${note.filename || ''}" could not add new attribute "${key}".`)
+        throw new Error(`Failed to find closing '---' in note "${note.filename || ''}" could not add new attribute "${key}".`)
       }
     })
 
@@ -1105,7 +1105,7 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       if (paragraph) {
         paragraphsToDelete.push(paragraph)
       } else {
-        logError(pluginJson, `updateFrontMatterVars: Failed to find paragraph for key "${key}".`)
+        throw new Error(`Failed to find paragraph for key "${key}".`)
       }
     })
     if (paragraphsToDelete.length > 0) {
@@ -1115,7 +1115,7 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       // If so, remove the entire frontmatter block
       const remainingFMParas = getFrontmatterParagraphs(note, false) // Get paragraphs without separators
       if (!remainingFMParas || remainingFMParas.length === 0) {
-        logDebug(pluginJson, `updateFrontMatterVars: No frontmatter fields remain after deletion, removing entire frontmatter block`)
+        logDebug('updateFrontMatterVars', `updateFrontMatterVars: No frontmatter fields remain after deletion, removing entire frontmatter block`)
         removeFrontMatter(note, true) // Remove frontmatter including separators
       }
     }
@@ -1140,7 +1140,7 @@ export function createFrontmatterTextArray(attributes: { [string]: string }, quo
     const value = attributes[key]
     if (value !== null) {
       if (typeof value === 'string') {
-        outputArr.push(quoteNonStandardYaml ? `${key}: ${quoteText(value)}` : `${key}: ${value}`)
+        outputArr.push(quoteNonStandardYaml ? `${key}: ${quoteTextIfNeededForFM(value)}` : `${key}: ${value}`)
       } else if (Array.isArray(value)) {
         const arrayString = value.map((item: string) => `  - ${item}`).join('\n')
         outputArr.push(`${key}:\n${arrayString}`)

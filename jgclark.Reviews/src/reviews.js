@@ -299,7 +299,18 @@ const displayFiltersDropdownScript: string = `
       btn.setAttribute('aria-expanded', 'false');
       if (apply) {
         var state = getCheckboxState();
-        if (state) sendMessageToPlugin('saveDisplayFilters', state);
+        if (state) {
+          // Only save + refresh if something actually changed while the dropdown was open
+          var hasChanges =
+            !savedState ||
+            state.displayOnlyDue !== savedState.displayOnlyDue ||
+            state.displayFinished !== savedState.displayFinished ||
+            state.displayPaused !== savedState.displayPaused ||
+            state.displayNextActions !== savedState.displayNextActions;
+          if (hasChanges) {
+            sendMessageToPlugin('saveDisplayFilters', state);
+          }
+        }
       } else if (savedState) {
         var onlyDue = dropdown.querySelector('input[name="displayOnlyDue"]');
         var finished = dropdown.querySelector('input[name="displayFinished"]');

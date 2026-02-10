@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-01-24 for v1.3.0.b7, @jgclark
+// Last updated 2026-02-10 for v1.3.0.b9, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -10,7 +10,6 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import {
   calcNextReviewDate,
-  getFieldParagraphsFromNote,
   getOrMakeMetadataLineIndex,
   getParamMentionFromList,
   getReviewSettings,
@@ -30,7 +29,7 @@ import { getFolderFromFilename } from '@helpers/folders'
 import { getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { endOfFrontmatterLineIndex, getFrontmatterAttribute, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
-import { findHeading, findStartOfActivePartOfNote, simplifyRawContent, smartCreateSectionsAndPara } from '@helpers/paragraph'
+import { findHeading, findStartOfActivePartOfNote, getFieldParagraphsFromNote, simplifyRawContent, smartCreateSectionsAndPara } from '@helpers/paragraph'
 import {
   getInputTrimmed,
   inputIntegerBounded,
@@ -561,12 +560,25 @@ export class Project {
 
       // Update the project's metadata
       this.lastProgressComment = `${comment} (today)`
-      const newProgressLine = `Progress: ${percentStr}@${todaysDateISOString}: ${comment}`
+      const newProgressLine = `Progress: ${percentStr}@${todaysDateISOString} ${comment}`
+      const newProgressLineForFrontmatter = `${percentStr}@${todaysDateISOString} ${comment}`
 
       // Get progress heading and level from config
       const config = await getReviewSettings()
       const progressHeading = config?.progressHeading?.trim() ?? ''
       const progressHeadingLevel = config?.progressHeadingLevel ?? 2
+      const writeMostRecentProgressToFrontmatter = config?.writeMostRecentProgressToFrontmatter ?? false
+
+      // Optionally mirror the most recent progress line into frontmatter
+      if (writeMostRecentProgressToFrontmatter) {
+        const success = updateFrontMatterVars(this.note, { progress: newProgressLineForFrontmatter })
+        if (success) {
+          logDebug('Project::addProgressLine', `Updated frontmatter progress OK for '${this.title}'`)
+          DataStore.updateCache(this.note, true)
+        } else {
+          logError('Project::addProgressLine', `Failed to update frontmatter progress for '${this.title}'`)
+        }
+      }
 
       // If progress heading is configured, use heading-based insertion
       if (progressHeading !== '') {
@@ -700,6 +712,7 @@ export class Project {
    *   Progress: n:YYYY-MM-DD: progress messsage
    *   Progress: YYYYMMDD: progress messsage  [in which case % is calculated]
    *   Progress: YYYY-MM-DD: progress messsage  [in which case % is calculated]
+   * + all variations without the ':' after the date
    */
   processProgressLines(): void {
     // Get specific 'Progress' field lines
@@ -795,6 +808,9 @@ export class Project {
       this.isCompleted = false
       this.isCancelled = false
       this.isPaused = !this.isPaused // toggle
+
+      // Also set the reviewed date to today
+      this.reviewedDate = moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
 
       // re-write the note's metadata line
       logDebug('togglePauseProject', `Paused state now toggled to ${String(this.isPaused)} for '${this.title}' ...`)

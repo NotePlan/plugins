@@ -965,3 +965,51 @@ export function setParagraphToIncomplete(p: TParagraph): void {
     p.type = 'checklist'
   }
 }
+
+/**
+ * Read lines in 'note' and return any lines (as strings) that contain fields that start with 'fieldName' parameter before a colon with text after.
+ * The matching is done case insensitively, and only in the active region of the note (i.e. _not_ in the frontmatter or 'Done' sections).
+ * Note: see also getFieldParagraphsFromNote() variation on this.
+ * @param {TNote} note
+ * @param {string} fieldName
+ * @returns {Array<string>} lines containing fields
+ */
+export function getFieldsFromNote(note: TNote, fieldName: string): Array<string> {
+  const paras = note.paragraphs
+  const startOfActive = findStartOfActivePartOfNote(note)
+  const endOfActive = findEndOfActivePartOfNote(note)
+  const matchArr = []
+  const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
+  for (const p of paras) {
+    const matchRE = p.content.match(RE)
+    if (matchRE && p.lineIndex >= startOfActive && p.lineIndex <= endOfActive) {
+      matchArr.push(matchRE[1])
+    }
+  }
+  // logDebug('getFieldsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
+  return matchArr
+}
+
+/**
+ * Read lines in 'note' and return any paragraphs that contain fields that start with 'fieldName' parameter before a colon with text after.
+ * The matching is done case insensitively, and only in the active region of the note (i.e. _not_ in the frontmatter or 'Done' sections).
+ * Note: see also getFieldsFromNote() variation on this.
+ * @param {TNote} note
+ * @param {string} fieldName
+ * @returns {Array<string>} lines containing fields
+ */
+export function getFieldParagraphsFromNote(note: TNote, fieldName: string): Array<TParagraph> {
+  const paras = note.paragraphs
+  const startOfActive = findStartOfActivePartOfNote(note)
+  const endOfActive = findEndOfActivePartOfNote(note)
+  const matchArr = []
+  const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
+  for (const p of paras) {
+    const matchRE = p.content.match(RE)
+    if (matchRE && p.lineIndex >= startOfActive && p.lineIndex <= endOfActive) {
+      matchArr.push(p)
+    }
+  }
+  // logDebug('getFieldParagraphsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
+  return matchArr
+}

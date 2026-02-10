@@ -240,7 +240,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const quoteNonStandardYaml = true
         const result = f.createFrontmatterTextArray(attributes, quoteNonStandardYaml)
         expect(result).toEqual([
-          `title: ${f.quoteText('Complex Title')}`,
+          `title: ${f.quoteTextIfNeededForFM('Complex Title')}`,
           'count: 42',
           'active: true',
           'tags:\n  - tag1\n  - tag2',

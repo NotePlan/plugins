@@ -20,129 +20,129 @@ beforeAll(() => {
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(`${FILENAME}`, () => {
-    describe('quoteText()', () => {
+    describe('quoteTextIfNeededForFM()', () => {
       test('should pass through text that should not be quoted', () => {
-        const result = f.quoteText('foo')
+        const result = f.quoteTextIfNeededForFM('foo')
         expect(result).toEqual('foo')
       })
 
       test('should pass through colons without spaces (e.g. url)', () => {
-        const result = f.quoteText('http://www.google.com')
+        const result = f.quoteTextIfNeededForFM('http://www.google.com')
         expect(result).toEqual('http://www.google.com')
       })
 
       test('should pass through text already quoted', () => {
-        const result = f.quoteText('"foo bar"')
+        const result = f.quoteTextIfNeededForFM('"foo bar"')
         expect(result).toEqual('"foo bar"')
       })
 
       test('should quote text with colon+space', () => {
-        const result = f.quoteText('foo: bar')
+        const result = f.quoteTextIfNeededForFM('foo: bar')
         expect(result).toEqual('"foo: bar"')
       })
 
       test('should quote text with leading hashtag', () => {
-        const result = f.quoteText('#foo')
+        const result = f.quoteTextIfNeededForFM('#foo')
         expect(result).toEqual('#foo')
       })
 
       test('should not quote text with hashtag in the middle', () => {
-        const result = f.quoteText('bar #foo')
+        const result = f.quoteTextIfNeededForFM('bar #foo')
         expect(result).toEqual('bar #foo')
       })
 
       test('should not quote hash with whitespace following (e.g. a comment that will get wiped out)', () => {
-        const result = f.quoteText('# comment')
+        const result = f.quoteTextIfNeededForFM('# comment')
         expect(result).toEqual('# comment')
       })
 
       test('should escape internal double quotes when wrapping with quotes', () => {
-        const result = f.quoteText('foo "bar" baz')
+        const result = f.quoteTextIfNeededForFM('foo "bar" baz')
         expect(result).toEqual('"foo \\"bar\\" baz"')
       })
 
       test('should escape internal double quotes when already wrapped in quotes', () => {
-        const result = f.quoteText('"foo "bar" baz"')
+        const result = f.quoteTextIfNeededForFM('"foo "bar" baz"')
         expect(result).toEqual('"foo \\"bar\\" baz"')
       })
 
       test('should escape internal double quotes and quote the text when required', () => {
-        const result = f.quoteText('foo: "bar"')
+        const result = f.quoteTextIfNeededForFM('foo: "bar"')
         expect(result).toEqual('"foo: \\"bar\\""')
       })
 
       test('should preserve single quotes within the text', () => {
-        const result = f.quoteText("Don't worry")
+        const result = f.quoteTextIfNeededForFM("Don't worry")
         expect(result).toEqual("Don't worry")
       })
 
       test('should preserve single quotes even if quoted with double quotes', () => {
-        const result = f.quoteText('"Don\'t worry"')
+        const result = f.quoteTextIfNeededForFM('"Don\'t worry"')
         expect(result).toEqual('"Don\'t worry"')
       })
 
       test('should quote text with a trailing colon', () => {
-        const result = f.quoteText('foo:')
+        const result = f.quoteTextIfNeededForFM('foo:')
         expect(result).toEqual('"foo:"')
       })
 
       test('should quote text starting with @', () => {
-        const result = f.quoteText('@foo')
+        const result = f.quoteTextIfNeededForFM('@foo')
         expect(result).toEqual('@foo')
       })
 
       test('should quote text containing >', () => {
-        const result = f.quoteText('foo > bar')
+        const result = f.quoteTextIfNeededForFM('foo > bar')
         expect(result).toEqual('"foo > bar"')
       })
 
       test('should escape internal double quotes and quote special character-containing text', () => {
-        const result = f.quoteText('foo "bar: baz"')
+        const result = f.quoteTextIfNeededForFM('foo "bar: baz"')
         expect(result).toEqual('"foo \\"bar: baz\\""')
       })
 
       test('should return empty string for null input', () => {
-        const result = f.quoteText(null)
+        const result = f.quoteTextIfNeededForFM(null)
         expect(result).toEqual('')
       })
 
       test('should return empty string for undefined input', () => {
-        const result = f.quoteText(undefined)
+        const result = f.quoteTextIfNeededForFM(undefined)
         expect(result).toEqual('')
       })
 
       test('should return string representation for number input', () => {
-        const result = f.quoteText(123)
+        const result = f.quoteTextIfNeededForFM(123)
         expect(result).toEqual('123')
       })
 
       test('should return string representation for boolean input (true)', () => {
-        const result = f.quoteText(true)
+        const result = f.quoteTextIfNeededForFM(true)
         expect(result).toEqual('true')
       })
 
       test('should return string representation for boolean input (false)', () => {
-        const result = f.quoteText(false)
+        const result = f.quoteTextIfNeededForFM(false)
         expect(result).toEqual('false')
       })
 
       test('should return empty string for non-string input (object)', () => {
-        const result = f.quoteText({ key: 'value' })
+        const result = f.quoteTextIfNeededForFM({ key: 'value' })
         expect(result).toEqual('')
       })
 
       test('should return empty string for non-string input (array)', () => {
-        const result = f.quoteText(['foo', 'bar'])
+        const result = f.quoteTextIfNeededForFM(['foo', 'bar'])
         expect(result).toEqual('')
       })
 
       test('should quote text with leading hashtag when forcing special characters', () => {
-        const result = f.quoteText('#foo', true)
+        const result = f.quoteTextIfNeededForFM('#foo', true)
         expect(result).toEqual('"#foo"')
       })
 
       test('should quote text starting with @ when forcing special characters', () => {
-        const result = f.quoteText('@foo', true)
+        const result = f.quoteTextIfNeededForFM('@foo', true)
         expect(result).toEqual('"@foo"')
       })
     })

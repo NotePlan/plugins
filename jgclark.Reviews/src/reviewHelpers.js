@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-09 for v1.3.0.b9, @jgclark
+// Last updated 2026-02-10 for v1.3.0.b9, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -23,7 +23,7 @@ import {
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getFrontmatterAttribute, noteHasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
-import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { getFieldParagraphsFromNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
 
 //------------------------------
@@ -222,63 +222,14 @@ export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: stri
 }
 
 /**
- * Read lines in 'note' and return any lines (as strings) that contain fields that start with 'fieldName' parameter before a colon with text after.
- * The matching is done case insensitively, and only in the active region of the note.
- * Note: see also getFieldParagraphsFromNote() variation on this.
- * TODO: switch to using frontmatter helpers instead.
- * @param {TNote} note
- * @param {string} fieldName
- * @returns {Array<string>} lines containing fields
- */
-export function getFieldsFromNote(note: TNote, fieldName: string): Array<string> {
-  const paras = note.paragraphs
-  const endOfActive = findEndOfActivePartOfNote(note)
-  const matchArr = []
-  const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
-  for (const p of paras) {
-    const matchRE = p.content.match(RE)
-    if (matchRE && p.lineIndex < endOfActive) {
-      matchArr.push(matchRE[1])
-    }
-  }
-  // logDebug('getFieldsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
-  return matchArr
-}
-
-/**
- * Read lines in 'note' and return any paragraphs that contain fields that start with 'fieldName' parameter before a colon with text after.
- * The matching is done case insensitively, and only in the active region of the note.
- * Note: see also getFieldsFromNote() variation on this.
- * TODO: switch to using frontmatter helpers instead.
- * @param {TNote} note
- * @param {string} fieldName
- * @returns {Array<string>} lines containing fields
- */
-export function getFieldParagraphsFromNote(note: TNote, fieldName: string): Array<TParagraph> {
-  const paras = note.paragraphs
-  const endOfActive = findEndOfActivePartOfNote(note)
-  const matchArr = []
-  const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
-  for (const p of paras) {
-    const matchRE = p.content.match(RE)
-    if (matchRE && p.lineIndex < endOfActive) {
-      matchArr.push(p)
-    }
-  }
-  // logDebug('getFieldParagraphsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
-  return matchArr
-}
-
-/**
  * Return the (paragraph index of) the most recent progress line from the array, based upon the most recent YYYYMMDD or YYYY-MM-DD date found. If it can't find any it default to the first paragraph.
+ * See Project::processProgressLines() for allowed formats.
  * @param {Array<TParagraph>} progressParas
  * @returns {number} lineIndex of the most recent line
  */
 export function processMostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress {
   try {
     let lastDate = new Date('0000-01-01') // earliest possible YYYY-MM-DD date
-    // let lastIndex = 0 // Default to returning first line
-    // let i = 0
     let outputProgress: Progress = {
       lineIndex: 1,
       percentComplete: NaN,
@@ -286,21 +237,28 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
       comment: '(no comment found)',
     }
     for (const progressPara of progressParas) {
-      // const progressParaParts = progressPara.content.split(/[:@]/)
-      // if (progressParaParts.length >= 1) {
-      // const thisDatePart = progressParaParts[1]
       const progressLine = progressPara.content
       // logDebug('processMostRecentProgressParagraph', progressLine)
-      const thisDate: Date = new RegExp(RE_ISO_DATE).test(progressLine)
-        ? // $FlowIgnore
-          getDateObjFromDateString(progressLine.match(RE_ISO_DATE)[0])
-        : new RegExp(RE_YYYYMMDD_DATE).test(progressLine)
-        ? // $FlowIgnore
-          getDateFromYYYYMMDDString(progressLine.match(RE_YYYYMMDD_DATE)[0])
-        : new Date('0001-01-01')
-      const tempSplitParts = progressLine.split(/[:@]/)
-      // logDebug('processMostRecentProgressParagraph', `tempSplitParts: ${String(tempSplitParts)}`)
-      const comment = tempSplitParts[3] ?? ''
+      const isoMatch = progressLine.match(RE_ISO_DATE)
+      const yyyymmddMatch = progressLine.match(RE_YYYYMMDD_DATE)
+      const dateStr = isoMatch ? isoMatch[0] : yyyymmddMatch ? yyyymmddMatch[0] : null
+      const thisDate: Date =
+        isoMatch
+          ? // $FlowIgnore
+            getDateObjFromDateString(isoMatch[0])
+          : yyyymmddMatch
+          ? // $FlowIgnore
+            getDateFromYYYYMMDDString(yyyymmddMatch[0])
+          : new Date('0001-01-01')
+      // Comment: support both "date: comment" and "date comment" by taking everything after the date and stripping optional colon
+      let comment = ''
+      if (dateStr != null) {
+        const afterDate = progressLine.slice(progressLine.indexOf(dateStr) + dateStr.length).replace(/^[\s:]+/, '').trim()
+        comment = afterDate
+      } else {
+        const tempSplitParts = progressLine.split(/[:@]/)
+        comment = tempSplitParts[3] ?? ''
+      }
 
       const tempNumberMatches = progressLine.match(/(\d{1,2})@/)
       // logDebug('processMostRecentProgressParagraph', `tempNumberMatches: ${String(tempNumberMatches)}`)
@@ -308,7 +266,6 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
       // logDebug('processMostRecentProgressParagraph', `-> ${String(percent)}`)
 
       if (thisDate > lastDate) {
-        // lastIndex = i // progressPara.lineIndex
         // logDebug('Project::processMostRecentProgressParagraph', `Found latest datePart ${thisDatePart}`)
         outputProgress = {
           lineIndex: progressPara.lineIndex,
@@ -318,9 +275,6 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
         }
       }
       lastDate = thisDate
-
-      // }
-      // i++
     }
     // clo(outputProgress, 'processMostRecentProgressParagraph ->')
     return outputProgress
