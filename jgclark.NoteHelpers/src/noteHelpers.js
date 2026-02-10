@@ -330,6 +330,64 @@ export async function renameNoteFile(): Promise<void> {
 }
 
 /**
+ * Add a key:value pair to the frontmatter for 'note', or if none open, the current Editor.
+ * @param {TNote?} note optional note to add the item to, or if none open, the current Editor.
+ * @param {string?} key the key to add to the frontmatter
+ * @param {string?} value the value to add to the frontmatter
+ * @returns {boolean} true if the item was added to the frontmatter successfully, false if failed for some reason
+ */
+export async function addItemToFrontmatter(note: ?TNote, key: ?string, value: ?string): Promise<boolean> {
+  try {
+    let thisNote: TNote
+    let thisKey: string = ''
+    let thisValue: string = ''
+    if (note == null) {
+      if (Editor == null) {
+        throw new Error(`No note open to convert. Stopping.`)
+      }
+      if (!Editor.note) {
+        throw new Error(`No note open in the Editor. Stopping.`)
+      }
+      thisNote = Editor.note
+    } else {
+      thisNote = note
+    }
+    if (!thisNote) {
+      throw new Error(`No note supplied, and can't find Editor either.`)
+    }
+    if (!key || key === '') {
+      const inputKey = await getInput(`Please enter the key to add to the frontmatter`, 'OK', 'Add Item to Frontmatter', '')
+      if (typeof inputKey !== 'string' || inputKey === '') {
+        throw new Error(`Empty key supplied. Stopping.`)
+      }
+      thisKey = inputKey
+    } else {
+      thisKey = key
+    }
+    if (!thisValue || thisValue === '') {
+      const inputValue = await getInput(`Please enter the value for key '${thisKey}'`, 'OK', 'Add Item to Frontmatter', '')
+      if (typeof inputValue !== 'string' || inputValue === '') {
+        throw new Error(`Empty value supplied. Stopping.`)
+      }
+      thisValue = inputValue
+    } else {
+      thisValue = value
+    }
+    const res = updateFrontMatterVars(thisNote, { [thisKey]: thisValue })
+    if (res) {
+      logDebug('note/addItemToFrontmatter', `addItemToFrontmatter(${thisKey}: ${thisValue}) returned ${String(res)}.`)
+    } else {
+      throw new Error(`Failed to add item to frontmatter. Stopping.`)
+    }
+    return res
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+    await showMessage(error.message)
+    return false
+  }
+}
+
+/**
  * Convert the note to using frontmatter Syntax
  * If the plugin settings contains default frontmatter, this is added to the frontmatter.
  * @author @jgclark
@@ -354,7 +412,7 @@ export async function addFrontmatterToNote(note: TNote): Promise<void> {
     }
     const config = await getSettings()
     const res = await convertNoteToFrontmatter(thisNote, config.defaultFMText ?? '')
-    logDebug('note/convertNoteToFrontmatter', `ensureFrontmatter() returned ${String(res)}.`)
+    logDebug('note/convertNoteToFrontmatter', `addFrontmatterToNote() returned ${String(res)}.`)
   } catch (error) {
     logError(pluginJson, JSP(error))
     await showMessage(error.message)
