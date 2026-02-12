@@ -125,25 +125,26 @@ function addHashtagsToOccurenceFromNotes(
 /**
  * Processes mentions from calendar notes and adds occurrences to TMOccurrences object.
  * Note: Uses a helper function to get the corrected mentions from the note, to cope with a API bug.
+ * Note: Normalizes wantedTerm so that config entries with or without leading @ both match note mentions (which always have @).
  * @param {TMOccurrences} thisOcc - The TMOccurrences object to add to
  * @param {Array<TNote>} calendarNotesInPeriod - Calendar notes to process
- * @param {string} wantedTerm - The mention to match (without @)
+ * @param {string} wantedTerm - The mention to match (with or without @)
  */
 function addMentionsToOccurenceFromNotes(
   thisOcc: TMOccurrences,
   calendarNotesInPeriod: Array<TNote>,
   wantedTerm: string
 ): void {
+  const normalizedWanted = wantedTerm.trim().startsWith('@') ? wantedTerm.trim() : `@${wantedTerm.trim()}`
   for (const n of calendarNotesInPeriod) {
     const thisDateStr = getISODateStringFromYYYYMMDD(getDateStringFromCalendarFilename(n.filename))
     const seenMentions = getCorrectedMentionsFromNote(n)
     if (seenMentions.length ===0) {
       logDebug('addMentionsToOccurenceFromNotes', `- found no '${wantedTerm}' mentions in ${thisDateStr}`)
     }
-    
+
     for (const mention of seenMentions) {
-      // Check if this mention matches what we're looking for
-      if (caseInsensitiveTagMatch(wantedTerm, mention)) {
+      if (caseInsensitiveTagMatch(normalizedWanted, mention)) {
         thisOcc.addOccurrence(mention, thisDateStr)
       }
     }

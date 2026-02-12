@@ -275,6 +275,25 @@ function valueForDate(occ: TMOccurrences, dateStr: string): number {
  * @param {SummariesConfig} config - For chartTimeTags
  * @returns {Object} tagData for makeChartSummaryHTML
  */
+/**
+ * Look up TMOccurrences by display tag, trying canonical forms so config entries with or without @/# still find data.
+ * @param {Map<string, TMOccurrences>} occByTerm - Map from term to occurrence
+ * @param {string} tag - Display tag (e.g. @sleep, sleep, #run)
+ * @returns {TMOccurrences | undefined} Matching occurrence or undefined
+ */
+function lookupOccByTag(occByTerm: Map<string, TMOccurrences>, tag: string): TMOccurrences | undefined {
+  let occ = occByTerm.get(tag)
+  if (occ) return occ
+  if (tag.startsWith('@')) {
+    occ = occByTerm.get(tag.slice(1))
+  } else if (tag.startsWith('#')) {
+    occ = occByTerm.get(tag.slice(1))
+  } else {
+    occ = occByTerm.get(`@${tag}`) || occByTerm.get(`#${tag}`)
+  }
+  return occ
+}
+
 function buildTagDataFromOccurrences(
   occs: Array<TMOccurrences>,
   tags: Array<string>,
@@ -289,7 +308,7 @@ function buildTagDataFromOccurrences(
     }
   })
   tags.forEach((tag) => {
-    const occ = occByTerm.get(tag)
+    const occ = lookupOccByTag(occByTerm, tag)
     counts[tag] = rawDates.map((d) => (occ ? valueForDate(occ, d) : 0))
   })
   const dates = rawDates.map(formatDateForDisplay)
