@@ -33,15 +33,14 @@ In short: Chart.js doesn’t have a built-in “sparkline” type, but you can c
 // import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import { logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
-import { getSummariesSettings } from './summaryHelpers.js'
+import { gatherOccurrences, getSummariesSettings } from './summaryHelpers.js'
 import type { SummariesConfig } from './summarySettings.js'
+import type { OccurrencesToLookFor, TMOccurrences } from './TMOccurrences.js'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
-import { convertISOToYYYYMMDD } from '@helpers/dateTime'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { getLocale } from '@helpers/NPConfiguration'
-import { caseInsensitiveTagMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
-import { COMPLETED_TASK_TYPES } from '@helpers/utils'
 
 // =====================================================================
 // CONSTANTS
@@ -71,9 +70,6 @@ function getChartAxisTextColor(): string {
   const mode = Editor.currentTheme?.mode
   return mode === 'light' ? CHART_AXIS_TEXT_COLOR_LIGHT_MODE : CHART_AXIS_TEXT_COLOR_DARK_MODE
 }
-
-// Regex to detect time/duration form value: [H]H:MM only (e.g. 23:30, 9:05)
-const TIME_DURATION_PATTERN = /^[0-9]{1,2}:[0-9]{2}$/
 
 // =====================================================================
 // HELPER FUNCTIONS
@@ -134,19 +130,49 @@ export async function chartSummaryStats(daysBack?: number): Promise<void> {
     const daysToShow = daysBack ?? config.chartDefaultDaysBack ?? 30
     // Combine all tag settings and deduplicate (same tag in multiple settings would otherwise appear twice in Totals/charts)
     const tagsRaw = [
-      ...config.progressMentions,
-      ...config.progressHashtags,
-      ...config.progressHashtagsAverage,
-      ...config.progressHashtagsTotal,
-      ...config.progressMentionsAverage,
-      ...config.progressMentionsTotal
+      ...(config.progressMentions ?? []),
+      ...(config.progressHashtags ?? []),
+      ...(config.progressHashtagsAverage ?? []),
+      ...(config.progressHashtagsTotal ?? []),
+      ...(config.progressMentionsAverage ?? []),
+      ...(config.progressMentionsTotal ?? [])
     ]
     const tags = Array.from(new Set(tagsRaw))
     // clo(tags, 'tags')
 
-    const yesNoHabits = config.progressYesNo ?? []
-    const tagData = await collectTagData(tags, daysToShow)
-    const yesNoData = await collectYesNoData(yesNoHabits, daysToShow)
+    const rawDates = generateDateRange(daysToShow)
+    const fromDateStr = rawDates.length > 0 ? rawDates[0] : ''
+    const toDateStr = rawDates.length > 0 ? rawDates[rawDates.length - 1] : ''
+    const occToLookFor = buildOccurrencesToLookForFromChartConfig(config)
+    const periodString = `${daysToShow} days`
+    const occs = gatherOccurrences(periodString, fromDateStr, toDateStr, occToLookFor)
+
+    let tagData: Object
+    let yesNoData: Object
+    let yesNoHabits: Array<string>
+
+    if (occs.length === 0 || rawDates.length === 0) {
+      tagData = {
+        dates: [],
+        counts: tags.reduce((acc, tag) => ({ ...acc, [tag]: [] }), {}),
+        rawDates: [],
+        timeTags: Array.isArray(config.chartTimeTags) ? config.chartTimeTags : []
+      }
+      yesNoHabits = stringListOrArrayToArray(config.progressYesNo ?? [], ',')
+      yesNoData = {
+        dates: [],
+        counts: yesNoHabits.reduce((acc, habit) => ({ ...acc, [habit]: [] }), {}),
+        rawDates: []
+      }
+    } else {
+      const yesNoOccs = occs.filter((occ) => occ.type === 'yesno')
+      const numericOccs = occs.filter((occ) => occ.type !== 'yesno')
+      tagData = buildTagDataFromOccurrences(numericOccs, tags, rawDates, config)
+      const built = buildYesNoDataFromOccurrences(yesNoOccs, rawDates)
+      yesNoData = built.yesNoData
+      yesNoHabits = built.yesNoHabits
+    }
+
     const html = await makeChartSummaryHTML(tagData, yesNoData, tags, yesNoHabits, daysToShow, config)
 
     const windowOptions: HtmlWindowOptions = {
@@ -199,7 +225,103 @@ function formatDateForDisplay(dateStr: string): string {
 }
 
 // ==================================================================
-// TAG VALUE EXTRACTION
+// OCCURRENCES TO LOOK FOR (for gatherOccurrences)
+
+/**
+ * Build OccurrencesToLookFor from chart/progress config so gatherOccurrences uses the same progress settings.
+ * @param {SummariesConfig} config - Plugin config
+ * @returns {OccurrencesToLookFor} Config shape expected by gatherOccurrences
+ */
+function buildOccurrencesToLookForFromChartConfig(config: SummariesConfig): OccurrencesToLookFor {
+  return {
+    GOYesNo: stringListOrArrayToArray(config.progressYesNo ?? [], ','),
+    GOHashtagsCount: stringListOrArrayToArray(config.progressHashtags ?? [], ','),
+    GOHashtagsAverage: stringListOrArrayToArray(config.progressHashtagsAverage ?? [], ','),
+    GOHashtagsTotal: stringListOrArrayToArray(config.progressHashtagsTotal ?? [], ','),
+    GOMentionsCount: stringListOrArrayToArray(config.progressMentions ?? [], ','),
+    GOMentionsAverage: stringListOrArrayToArray(config.progressMentionsAverage ?? [], ','),
+    GOMentionsTotal: stringListOrArrayToArray(config.progressMentionsTotal ?? [], ','),
+    GOChecklistRefNote: config.progressChecklistReferenceNote ?? ''
+  }
+}
+
+/**
+ * Get numeric value for a date from a TMOccurrences; treat missing/NaN as 0 for chart client.
+ * @param {TMOccurrences} occ - TMOccurrences instance
+ * @param {string} dateStr - Date in YYYY-MM-DD format
+ * @returns {number} Value to use in chart series
+ */
+function valueForDate(occ: TMOccurrences, dateStr: string): number {
+  const v = occ.valuesMap.get(dateStr)
+  if (v == null || Number.isNaN(v)) return 0
+  return Number(v)
+}
+
+/**
+ * Build tagData (numeric habits) from gatherOccurrences result for chart payload.
+ * Preserves contract: { dates, counts, rawDates, timeTags }. timeTags from config (TMOccurrences does not store hadTimeValues).
+ * @param {Array<TMOccurrences>} occs - All occurrences (numeric and yes/no)
+ * @param {Array<string>} tags - Tag list in display order (with @ or #)
+ * @param {Array<string>} rawDates - Sorted date strings in range
+ * @param {SummariesConfig} config - For chartTimeTags
+ * @returns {Object} tagData for makeChartSummaryHTML
+ */
+function buildTagDataFromOccurrences(
+  occs: Array<TMOccurrences>,
+  tags: Array<string>,
+  rawDates: Array<string>,
+  config: SummariesConfig
+): Object {
+  const counts = {}
+  const occByTerm = new Map()
+  occs.forEach((occ) => {
+    if (occ.type !== 'yesno') {
+      occByTerm.set(occ.term, occ)
+    }
+  })
+  tags.forEach((tag) => {
+    const occ = occByTerm.get(tag)
+    counts[tag] = rawDates.map((d) => (occ ? valueForDate(occ, d) : 0))
+  })
+  const dates = rawDates.map(formatDateForDisplay)
+  // timeTags: from config only (TMOccurrences does not store hadTimeValues; future detection could be added)
+  const timeTags = Array.isArray(config.chartTimeTags) ? config.chartTimeTags : []
+  return {
+    dates,
+    counts,
+    rawDates,
+    timeTags
+  }
+}
+
+/**
+ * Build yesNoData and yesNoHabits from gatherOccurrences yes/no results.
+ * yesNoHabits order matches gatherOccurrences: GOYesNo first, then checklist items (occ.term may have leading space).
+ * @param {Array<TMOccurrences>} yesNoOccs - Occurrences with type === 'yesno'
+ * @param {Array<string>} rawDates - Sorted date strings in range
+ * @returns {{ yesNoData: Object, yesNoHabits: Array<string> }}
+ */
+function buildYesNoDataFromOccurrences(
+  yesNoOccs: Array<TMOccurrences>,
+  rawDates: Array<string>
+): { yesNoData: Object, yesNoHabits: Array<string> } {
+  const yesNoHabits = yesNoOccs.map((occ) => occ.term.trim())
+  const counts = {}
+  yesNoOccs.forEach((occ, i) => {
+    const habit = yesNoHabits[i]
+    counts[habit] = rawDates.map((d) => valueForDate(occ, d))
+  })
+  const dates = rawDates.map(formatDateForDisplay)
+  const yesNoData = {
+    dates,
+    counts,
+    rawDates
+  }
+  return { yesNoData, yesNoHabits }
+}
+
+// ==================================================================
+// CHART CONFIG HELPERS
 
 /**
  * Parse chartNonZeroTags JSON string from settings into an object.
@@ -215,414 +337,6 @@ function parseChartNonZeroTags(jsonStr: string): { [string]: { min: number, max:
     return typeof parsed === 'object' && parsed !== null ? parsed : {}
   } catch (_e) {
     return {}
-  }
-}
-
-/**
- * Parse a single time value string ([H]H:MM) to decimal hours with midnight wraparound.
- * @param {string} valueStr - Trimmed value (e.g. "23:30", "9:05")
- * @returns {number} Decimal hours (00:00-05:59 add 24)
- */
-function parseTimeValueToDecimalHours(valueStr: string): number {
-  const parts = valueStr.split(':')
-  const hours = parseInt(parts[0], 10)
-  const minutes = parseInt(parts[1], 10) || 0
-  let decimalHours = hours + (minutes / 60)
-  // Previously dealt with midnight wraparound, but now we're just using the raw value, as it can be a duration, not just a time.
-  // if (hours >= 0 && hours < 6) {
-  //   decimalHours += 24
-  // }
-  // Round to 3 significant figures
-  decimalHours = Math.round(decimalHours * 10000) / 10000
-  return decimalHours
-}
-
-/**
- * Parse numeric value from a single occurrence string (hashtag or mention).
- * Mirrors TMOccurrences.addOccurrence so chart totals match period-stats behaviour.
- * - #tag/number or @tag/number -> number after slash
- * - @tag(H:MM) -> decimal hours
- * - @tag(float) -> float
- * - bare tag -> 1
- * @param {string} occurrenceStr - e.g. '@sleep(7.5)', '#visit/5', '@sleep'
- * @returns {{ value: number, hadTimeValues: boolean }}
- */
-function parseValueFromOccurrenceStr(occurrenceStr: string): { value: number, hadTimeValues: boolean } {
-  let value = 1
-  let hadTimeValues = false
-  if (occurrenceStr.match(/\/-?\d+(\.\d+)?$/)) {
-    const tagParts = occurrenceStr.split('/')
-    const n = Number(tagParts[1])
-    value = Number.isNaN(n) ? 1 : n
-  } else if (occurrenceStr.match(/\(-?\d+:[0-5]?\d\)$/)) {
-    const matches = occurrenceStr.match(/\((-?\d+):([0-5]?\d)\)$/)
-    if (matches != null) {
-      const hours = parseInt(matches[1], 10)
-      const minutes = parseInt(matches[2], 10) || 0
-      value = hours + (minutes / 60)
-      value = Math.round(value * 1000) / 1000
-      hadTimeValues = true
-    }
-  } else if (occurrenceStr.match(/\(-?\d+(\.\d+)?\)$/)) {
-    const parts = occurrenceStr.split('(')
-    const n = parseFloat(parts[1].slice(0, -1))
-    value = Number.isNaN(n) ? 1 : n
-  }
-  return { value, hadTimeValues }
-}
-
-/**
- * Sum numeric value from note's hashtags or mentions for a given tag.
- * Uses getCorrectedHashtagsFromNote / getCorrectedMentionsFromNote so we don't miss data (API bug workaround).
- * For @mentions: parses value from each matching mention string (same as TMOccurrences) so totals match period stats.
- * For #hashtags: bare #tag counts as 1; #tag/number adds that number; #tag(value) in content is handled by content regex.
- * @param {string} tag - Tag with # or @
- * @param {TNote|null} note - Note (uses getCorrectedHashtagsFromNote / getCorrectedMentionsFromNote)
- * @returns {{ sum: number, hadTimeValues: boolean }} Sum to add and whether any (H:MM) time values were seen
- */
-function sumTagValueFromNoteHashtagsOrMentions(tag: string, note: TNote | null): { sum: number, hadTimeValues: boolean } {
-  if (!note) return { sum: 0, hadTimeValues: false }
-  let sum = 0
-  let hadTimeValues = false
-  const tagLower = tag.toLowerCase()
-  if (tag.startsWith('#')) {
-    const hashtags = getCorrectedHashtagsFromNote(note)
-    for (const h of hashtags) {
-      const hLower = h.toLowerCase()
-      if (hLower === tagLower) {
-        sum += 1
-      } else if (hLower.startsWith(`${tagLower}/`)) {
-        const suffix = h.slice(tag.length + 1)
-        const num = parseFloat(suffix)
-        if (!Number.isNaN(num)) sum += num
-      }
-    }
-  } else if (tag.startsWith('@')) {
-    const mentions = getCorrectedMentionsFromNote(note)
-    for (const m of mentions) {
-      if (!caseInsensitiveTagMatch(tag, m)) continue
-      const { value, hadTimeValues: isTime } = parseValueFromOccurrenceStr(m)
-      sum += value
-      if (isTime) hadTimeValues = true
-    }
-  }
-  logDebug('sumTagValue...', `tag='${tag}', sum=${sum}, hadTimeValues=${String(hadTimeValues)} from '${note?.filename}'`)
-  return { sum, hadTimeValues }
-}
-
-/**
- * Extract tag value from note content (and from note hashtags/mentions for bare tags).
- * For @mentions: values come only from getCorrectedMentionsFromNote (parsed per occurrence), so we match period-stats and don't miss data.
- * For #hashtags: content regex finds #tag(value); plus getCorrectedHashtagsFromNote for bare #tag and #tag/number.
- * Time/Duration vs decimal: [H]H:MM → time (average); other numeric values → decimal (sum).
- * @param {string} tag - Tag name
- * @param {string} content - Note content
- * @param {TNote|null} [note] - Optional note; when provided, hashtags/mentions are used (corrected lists)
- * @returns {{ value: number, hadTimeValues: boolean }} Extracted value and whether any [H]H:MM values were found
- */
-function extractTagValue(tag: string, content: string, note: TNote | null = null): { value: number, hadTimeValues: boolean } {
-  const fromHashtagsOrMentions = sumTagValueFromNoteHashtagsOrMentions(tag, note)
-
-  if (tag.startsWith('@')) {
-    return { value: fromHashtagsOrMentions.sum, hadTimeValues: fromHashtagsOrMentions.hadTimeValues }
-  }
-
-  const escapedTag = tag.replace('#', '\\#')
-  const valueRegex = new RegExp(`${escapedTag}\\s*\\(\\s*([^)]+)\\s*\\)`, 'gi')
-  const timeValues: Array<number> = []
-  let decimalSum = 0
-  let match
-
-  while ((match = valueRegex.exec(content)) !== null) {
-    if (!match[1]) continue
-    const valueStr = match[1].trim()
-    if (TIME_DURATION_PATTERN.test(valueStr)) {
-      timeValues.push(parseTimeValueToDecimalHours(valueStr))
-    } else {
-      const num = parseFloat(valueStr)
-      if (!isNaN(num)) {
-        decimalSum += num
-      }
-    }
-  }
-
-  if (timeValues.length > 0) {
-    const avg = timeValues.reduce((a, b) => a + b, 0) / timeValues.length
-    return { value: avg + fromHashtagsOrMentions.sum, hadTimeValues: true }
-  }
-  return { value: decimalSum + fromHashtagsOrMentions.sum, hadTimeValues: false }
-}
-
-/**
- * Extract yes/no habit value from a note.
- * - the habit as a completed task or checklist item (no regex).
- * - For hashtag or @mention: counts how many times the tag appears in any line;
- *   returns that count (0, 1, 2, ...).
- * @param {string} habit - Habit name (e.g. "Exercise") or tag (e.g. "#pray", "@done")
- * @param {TNote|null} note - NotePlan note object
- * @returns {number} 1 if completed task/checklist matches (plain habit), 0 if not;
- *   or count of tag occurrences (hashtag/mention)
- */
-function extractYesNoValue(habit: string, note: TNote | null): number {
-  if (!note || !note.content) {
-    return 0
-  }
-
-  const isHashtag = habit.startsWith('#')
-  const isMention = habit.startsWith('@')
-
-  if (isHashtag) {
-    const hashtags = note.hashtags ?? []
-    const count = hashtags.filter((t) => t === habit).length
-    if (count > 0) {
-      // logDebug('extractYesNoValue', `  ✓ Found "${habit}" ${count} time(s) in note.hashtags`)
-    }
-    return count
-  }
-
-  if (isMention) {
-    const mentions = note.mentions ?? []
-    const count = mentions.filter((m) => m === habit).length
-    if (count > 0) {
-      // logDebug('extractYesNoValue', `  ✓ Found "${habit}" ${count} time(s) in note.mentions`)
-    }
-    return count
-  }
-
-  // Plain habit: look for it in completed task/checklist paragraphs via helpers
-  if (!note.paragraphs || note.paragraphs.length === 0) {
-    return 0
-  }
-
-  const habitLower = habit.trim().toLowerCase()
-  for (let i = 0; i < note.paragraphs.length; i++) {
-    const para = note.paragraphs[i]
-    // TODO: Change to use ~ isCompletedItem() helper function
-    if (COMPLETED_TASK_TYPES.indexOf(para.type) >= 0 && para.content) {
-      const contentLower = para.content.trim().toLowerCase()
-      if (contentLower.indexOf(habitLower) >= 0) {
-        // logDebug('extractYesNoValue', `  ✓ Found "${habit}" as completed task/checklist (type: ${para.type})`)
-        return 1
-      }
-    }
-  }
-
-  return 0
-}
-
-// ===================================================================
-// DATA COLLECTION
-
-/**
- * Initialize empty data map for all dates and tags
- * @param {Array<string>} dates - Array of date strings
- * @param {Array<string>} tags - Array of tag names
- * @returns {Object} Map of dates to tag values (all initialized to 0)
- */
-function initializeDataMap(dates: Array<string>, tags: Array<string>): Object {
-  const dateMap = {}
-
-  dates.forEach(dateStr => {
-    dateMap[dateStr] = {}
-    tags.forEach(tag => {
-      dateMap[dateStr][tag] = 0
-    })
-  })
-
-  return dateMap
-}
-
-/**
- * Get calendar note for a specific date
- * @param {string} dateStr - Date in YYYY-MM-DD format
- * @returns {Object|null} Note object or null if not found
- */
-function getCalendarNote(dateStr: string): ?TNote {
-  try {
-    if (typeof DataStore.calendarNoteByDateString === 'function') {
-      const noteDateStr = convertISOToYYYYMMDD(dateStr)
-      return DataStore.calendarNoteByDateString(noteDateStr)
-    }
-  } catch (error) {
-    logError('getCalendarNote', error.message)
-  }
-  return null
-}
-
-/**
- * Extract all tag values from a single note.
- * Supports both time and decimal values. Also returns which tags had time-based values in this note.
- * @param {TNote} note - NotePlan note object
- * @param {Array<string>} tags - Array of tags to extract
- * @returns {{ values: Object, timeTagsInNote: Array<string> }} Map of tag names to values, and tags that had [H]H:MM values
- */
-function extractTagValuesFromNote(note: TNote, tags: Array<string>): { values: { [string]: number }, timeTagsInNote: Array<string> } {
-  const values: { [string]: number } = {}
-  const timeTagsInNote: Array<string> = []
-
-  if (note && note.content) {
-    const content = note.content ?? ''
-    tags.forEach(tag => {
-      const { value, hadTimeValues } = extractTagValue(tag, content, note)
-      values[tag] = value
-      if (hadTimeValues) {
-        timeTagsInNote.push(tag)
-      }
-    })
-  } else {
-    // No note found, return zeros
-    tags.forEach(tag => {
-      values[tag] = 0
-    })
-  }
-
-  return { values, timeTagsInNote }
-}
-
-/**
- * Transform date map into Chart.js format
- * @param {Object} dateMap - Map of dates to tag values
- * @param {Array<string>} tags - Array of tag names
- * @returns {Object} Data formatted for Chart.js
- */
-function transformToChartFormat(dateMap: Object, tags: Array<string>): Object {
-  const sortedDates = Object.keys(dateMap).sort()
-  const counts = {}
-
-  tags.forEach(tag => {
-    counts[tag] = sortedDates.map(date => dateMap[date][tag])
-  })
-
-  const displayDates = sortedDates.map(formatDateForDisplay)
-
-  return {
-    dates: displayDates,
-    counts,
-    rawDates: sortedDates
-  }
-}
-
-/**
- * Collect tag numeric values from calendar notes.
- * Extracts values from tags like @sleep(7.23), @rps(10), @bedtime(23:30); time vs decimal is detected from the value.
- * Tracks which tags include any time-based ([H]H:MM) values so the UI can display sums/averages in time format.
- * @param {Array<string>} tags - Array of tags to track (e.g., ['@sleep', '@rps'])
- * @param {number} daysBack - Number of days to look back
- * @returns {Object} Data formatted for Chart.js plus timeTags array (tags that had at least one time value)
- */
-function collectTagData(tags: Array<string>, daysBack: number): Object {
-  try {
-    const dates = generateDateRange(daysBack)
-    const dateMap = initializeDataMap(dates, tags)
-    const timeTagSet = new Set<string>()
-
-    // Get calendar notes for each date in the range
-    for (const dateStr of dates) {
-      const note = getCalendarNote(dateStr)
-      if (!note) {
-        throw new Error(`No note found for date ${dateStr}`)
-      }
-
-      const { values, timeTagsInNote } = extractTagValuesFromNote(note, tags)
-      timeTagsInNote.forEach(t => timeTagSet.add(t))
-
-      // Store values in dateMap
-      logDebug('collectTagData', `adding values=${JSON.stringify(values)} to dateMap for date ${dateStr}`)
-      Object.assign(dateMap[dateStr], values)
-    }
-
-    const chartData = transformToChartFormat(dateMap, tags)
-    return {
-      ...chartData,
-      timeTags: Array.from(timeTagSet)
-    }
-  } catch (error) {
-    logError('collectTagData', error.message)
-    // Return empty data structure so plugin still loads
-    return {
-      dates: [],
-      counts: tags.reduce((acc, tag) => ({ ...acc, [tag]: [] }), {}),
-      rawDates: [],
-      timeTags: []
-    }
-  }
-}
-
-/**
- * Extract all yes/no habit values from a single note
- * @param {TNote} note - NotePlan note object
- * @param {Array<string>} habits - Array of habit names to extract
- * @returns {Object} Map of habit names to values (1 or 0)
- */
-function extractYesNoValuesFromNote(note: TNote, habits: Array<string>): Object {
-  const values = {}
-
-  if (note && note.content) {
-    habits.forEach(habit => {
-      values[habit] = extractYesNoValue(habit, note)
-    })
-  } else {
-    logDebug('extractYesNoValuesFromNote', 'Invalid or empty note passed, so returning zeros')
-    // No note found, return zeros
-    habits.forEach(habit => {
-      values[habit] = 0
-    })
-  }
-
-  return values
-}
-
-/**
- * Collect yes/no habit data from calendar notes.
- * Looks for [x] completed checkboxes followed by habit names.
- * @param {Array<string>} habits - Array of habit names to track
- * @param {number} daysBack - Number of days to look back
- * @returns {Object} Data formatted for Chart.js
- */
-function collectYesNoData(habits: Array<string>, daysBack: number): Object {
-  try {
-    const dates = generateDateRange(daysBack)
-    const dateMap = initializeDataMap(dates, habits)
-
-    // Debug: Log what we're searching for
-    logDebug('collectYesNoData', `Searching for yes/no habits [${String(habits)}] over ${dates.length} days`)
-
-    // Get calendar notes for each date in the range
-    for (const dateStr of dates) {
-      const note = getCalendarNote(dateStr)
-
-      if (note && note.content) {
-        const values = extractYesNoValuesFromNote(note, habits)
-        // Store values in dateMap
-        Object.assign(dateMap[dateStr], values)
-
-        // Debug: Log found values for recent dates
-        const isRecent = dates.indexOf(dateStr) > dates.length - 4
-        if (isRecent) {
-          // clo(values, `collectYesNoData :: extracted values for ${dateStr}`)
-        }
-      }
-    }
-
-    const result = transformToChartFormat(dateMap, habits)
-
-    // Debug: Log summary
-    // logDebug('collectYesNoData', '\nYes/No Data Summary:')
-    habits.forEach(habit => {
-      const total = result.counts[habit].reduce((sum, val) => sum + val, 0)
-      // logDebug('collectYesNoData', `  ${habit}: ${total} completions out of ${daysBack} days`)
-    })
-
-    // clo(result, 'collectYesNoData::result')
-    return result
-  } catch (error) {
-    logError('collectYesNoData', error.message)
-    // Return empty data structure so plugin still loads
-    return {
-      dates: [],
-      counts: habits.reduce((acc, habit) => ({ ...acc, [habit]: [] }), {}),
-      rawDates: []
-    }
   }
 }
 
