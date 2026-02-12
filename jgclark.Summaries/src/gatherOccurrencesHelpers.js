@@ -114,9 +114,9 @@ function addHashtagsToOccurenceFromNotes(
       // Remove numeric suffix for matching (e.g., #run/5.3 -> #run)
       const tagWithoutClosingNumber = tag.replace(RE_HASHTAG_CAPTURE_TERMINAL_SLASH_AND_FLOAT, '')
       
-      // Check if this tag matches what we're looking for
+      // Check if this tag matches what we're looking for; pass actual tag so addOccurrence can parse value (e.g. #visit/5.3)
       if (caseInsensitiveTagMatch(wantedTerm, tagWithoutClosingNumber)) {
-        thisOcc.addOccurrence(wantedTerm, thisDateStr)
+        thisOcc.addOccurrence(tag, thisDateStr)
       }
     }
   }

@@ -1,17 +1,13 @@
 // @flow
 /** 
  * Habit & Summary Charts
- * Displays charts showing numeric values from tags and yes/no habit completion
- *
- * Tracks:
+ * Displays charts showing numeric values from tags and yes/no habit completion. e.g. 
  *   - Numeric habits: e.g. @sleep(7.23), @sleep_deep(5.2), @rps(10), @alcohol(2), @bedtime(23:30)
  *   - Yes/No habits: e.g. [x] Exercise, [x] In bed 11pm, [x] 10 min reading, #pray, #stretches
  *
- * Note: 
- * - First now taken from .chartTimeTags and .chartTotalTags, but could be taken from .progressMentions, .progressHashtags, .progressHashtagsAverage, .progressHashtagsTotal, .progressMentionsAverage, .progressMentionsTotal
- * - Second now not from .chartYesNoHabits, but could from earlier .progressYesNo
+ * Note: definitions of tags, habits, etc. are now taken from the settings for Progress Updates command.
  *
- * Last updated: 2026-02-01 for v1.1.0 by @jgclark
+ * Last updated: 2026-02-12 for v1.1.0 by @jgclark
  */
 
 // =====================================================================
@@ -44,6 +40,7 @@ import { convertISOToYYYYMMDD } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { getLocale } from '@helpers/NPConfiguration'
+import { caseInsensitiveTagMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
 import { COMPLETED_TASK_TYPES } from '@helpers/utils'
 
 // =====================================================================
@@ -241,15 +238,96 @@ function parseTimeValueToDecimalHours(valueStr: string): number {
 }
 
 /**
- * Extract tag value from note content.
- * Time/Duration vs decimal is detected from the value: [H]H:MM → time (average); other numeric values → decimal (sum).
- * If a tag has both time- and decimal-form values in the same note, time wins (only time values are aggregated).
+ * Parse numeric value from a single occurrence string (hashtag or mention).
+ * Mirrors TMOccurrences.addOccurrence so chart totals match period-stats behaviour.
+ * - #tag/number or @tag/number -> number after slash
+ * - @tag(H:MM) -> decimal hours
+ * - @tag(float) -> float
+ * - bare tag -> 1
+ * @param {string} occurrenceStr - e.g. '@sleep(7.5)', '#visit/5', '@sleep'
+ * @returns {{ value: number, hadTimeValues: boolean }}
+ */
+function parseValueFromOccurrenceStr(occurrenceStr: string): { value: number, hadTimeValues: boolean } {
+  let value = 1
+  let hadTimeValues = false
+  if (occurrenceStr.match(/\/-?\d+(\.\d+)?$/)) {
+    const tagParts = occurrenceStr.split('/')
+    const n = Number(tagParts[1])
+    value = Number.isNaN(n) ? 1 : n
+  } else if (occurrenceStr.match(/\(-?\d+:[0-5]?\d\)$/)) {
+    const matches = occurrenceStr.match(/\((-?\d+):([0-5]?\d)\)$/)
+    if (matches != null) {
+      const hours = parseInt(matches[1], 10)
+      const minutes = parseInt(matches[2], 10) || 0
+      value = hours + (minutes / 60)
+      value = Math.round(value * 1000) / 1000
+      hadTimeValues = true
+    }
+  } else if (occurrenceStr.match(/\(-?\d+(\.\d+)?\)$/)) {
+    const parts = occurrenceStr.split('(')
+    const n = parseFloat(parts[1].slice(0, -1))
+    value = Number.isNaN(n) ? 1 : n
+  }
+  return { value, hadTimeValues }
+}
+
+/**
+ * Sum numeric value from note's hashtags or mentions for a given tag.
+ * Uses getCorrectedHashtagsFromNote / getCorrectedMentionsFromNote so we don't miss data (API bug workaround).
+ * For @mentions: parses value from each matching mention string (same as TMOccurrences) so totals match period stats.
+ * For #hashtags: bare #tag counts as 1; #tag/number adds that number; #tag(value) in content is handled by content regex.
+ * @param {string} tag - Tag with # or @
+ * @param {TNote|null} note - Note (uses getCorrectedHashtagsFromNote / getCorrectedMentionsFromNote)
+ * @returns {{ sum: number, hadTimeValues: boolean }} Sum to add and whether any (H:MM) time values were seen
+ */
+function sumTagValueFromNoteHashtagsOrMentions(tag: string, note: TNote | null): { sum: number, hadTimeValues: boolean } {
+  if (!note) return { sum: 0, hadTimeValues: false }
+  let sum = 0
+  let hadTimeValues = false
+  const tagLower = tag.toLowerCase()
+  if (tag.startsWith('#')) {
+    const hashtags = getCorrectedHashtagsFromNote(note)
+    for (const h of hashtags) {
+      const hLower = h.toLowerCase()
+      if (hLower === tagLower) {
+        sum += 1
+      } else if (hLower.startsWith(`${tagLower}/`)) {
+        const suffix = h.slice(tag.length + 1)
+        const num = parseFloat(suffix)
+        if (!Number.isNaN(num)) sum += num
+      }
+    }
+  } else if (tag.startsWith('@')) {
+    const mentions = getCorrectedMentionsFromNote(note)
+    for (const m of mentions) {
+      if (!caseInsensitiveTagMatch(tag, m)) continue
+      const { value, hadTimeValues: isTime } = parseValueFromOccurrenceStr(m)
+      sum += value
+      if (isTime) hadTimeValues = true
+    }
+  }
+  logDebug('sumTagValue...', `tag='${tag}', sum=${sum}, hadTimeValues=${String(hadTimeValues)} from '${note?.filename}'`)
+  return { sum, hadTimeValues }
+}
+
+/**
+ * Extract tag value from note content (and from note hashtags/mentions for bare tags).
+ * For @mentions: values come only from getCorrectedMentionsFromNote (parsed per occurrence), so we match period-stats and don't miss data.
+ * For #hashtags: content regex finds #tag(value); plus getCorrectedHashtagsFromNote for bare #tag and #tag/number.
+ * Time/Duration vs decimal: [H]H:MM → time (average); other numeric values → decimal (sum).
  * @param {string} tag - Tag name
  * @param {string} content - Note content
+ * @param {TNote|null} [note] - Optional note; when provided, hashtags/mentions are used (corrected lists)
  * @returns {{ value: number, hadTimeValues: boolean }} Extracted value and whether any [H]H:MM values were found
  */
-function extractTagValue(tag: string, content: string): { value: number, hadTimeValues: boolean } {
-  const escapedTag = tag.replace('@', '\\@').replace('#', '\\#')
+function extractTagValue(tag: string, content: string, note: TNote | null = null): { value: number, hadTimeValues: boolean } {
+  const fromHashtagsOrMentions = sumTagValueFromNoteHashtagsOrMentions(tag, note)
+
+  if (tag.startsWith('@')) {
+    return { value: fromHashtagsOrMentions.sum, hadTimeValues: fromHashtagsOrMentions.hadTimeValues }
+  }
+
+  const escapedTag = tag.replace('#', '\\#')
   const valueRegex = new RegExp(`${escapedTag}\\s*\\(\\s*([^)]+)\\s*\\)`, 'gi')
   const timeValues: Array<number> = []
   let decimalSum = 0
@@ -270,9 +348,9 @@ function extractTagValue(tag: string, content: string): { value: number, hadTime
 
   if (timeValues.length > 0) {
     const avg = timeValues.reduce((a, b) => a + b, 0) / timeValues.length
-    return { value: avg, hadTimeValues: true }
+    return { value: avg + fromHashtagsOrMentions.sum, hadTimeValues: true }
   }
-  return { value: decimalSum, hadTimeValues: false }
+  return { value: decimalSum + fromHashtagsOrMentions.sum, hadTimeValues: false }
 }
 
 /**
@@ -385,7 +463,7 @@ function extractTagValuesFromNote(note: TNote, tags: Array<string>): { values: {
   if (note && note.content) {
     const content = note.content ?? ''
     tags.forEach(tag => {
-      const { value, hadTimeValues } = extractTagValue(tag, content)
+      const { value, hadTimeValues } = extractTagValue(tag, content, note)
       values[tag] = value
       if (hadTimeValues) {
         timeTagsInNote.push(tag)
@@ -529,10 +607,10 @@ function collectYesNoData(habits: Array<string>, daysBack: number): Object {
     const result = transformToChartFormat(dateMap, habits)
 
     // Debug: Log summary
-    logDebug('collectYesNoData', '\nYes/No Data Summary:')
+    // logDebug('collectYesNoData', '\nYes/No Data Summary:')
     habits.forEach(habit => {
       const total = result.counts[habit].reduce((sum, val) => sum + val, 0)
-      logDebug('collectYesNoData', `  ${habit}: ${total} completions out of ${daysBack} days`)
+      // logDebug('collectYesNoData', `  ${habit}: ${total} completions out of ${daysBack} days`)
     })
 
     // clo(result, 'collectYesNoData::result')
@@ -586,6 +664,17 @@ function getTotalDisplayTags(config: SummariesConfig): Array<string> {
   return Array.from(new Set([
     ...(config.progressHashtagsTotal ?? []),
     ...(config.progressMentionsTotal ?? [])
+  ]))
+}
+
+/**
+ * Tags that are "count" type (hashtags-as-counts, mentions-as-counts): union of progressHashtags and progressMentions.
+ * These get a "days: N" stat above the chart (N = number of days with at least one occurrence).
+ */
+function getCountDisplayTags(config: SummariesConfig): Array<string> {
+  return Array.from(new Set([
+    ...(config.progressHashtags ?? []),
+    ...(config.progressMentions ?? [])
   ]))
 }
 
@@ -658,15 +747,20 @@ function generateTotalStats(tags: Array<string>, config: SummariesConfig): strin
 function generateChartContainers(tags: Array<string>, config: SummariesConfig): string {
   const averageTags = getAverageDisplayTags(config)
   const totalTags = getTotalDisplayTags(config)
+  const countTags = getCountDisplayTags(config)
   return tags.map((tag, i) => {
+    const showDays = countTags.includes(tag)
     const showAvg = averageTags.includes(tag)
     const showTotal = totalTags.includes(tag)
     const metricsParts = []
+    if (showDays) {
+      metricsParts.push(`<span class="stat-label">days:</span><span class="stat-value chart-header-days-value" id="chart-header-days-value-${i}"></span>`)
+    }
     if (showAvg) {
-      metricsParts.push(`<span class="stat-label">avg:</span><span class="stat-value chart-header-avg-value" id="chart-header-avg-value-${i}"></span>`)
+      metricsParts.push(`<span class="stat-label ${showDays ? 'padleft' : ''}">avg:</span><span class="stat-value chart-header-avg-value" id="chart-header-avg-value-${i}"></span>`)
     }
     if (showTotal) {
-      metricsParts.push(`<span class="stat-label ${showAvg ? 'padleft' : ''}">total:</span><span class="stat-value chart-header-total-value" id="chart-header-total-value-${i}"></span>`)
+      metricsParts.push(`<span class="stat-label ${showDays || showAvg ? 'padleft' : ''}">total:</span><span class="stat-value chart-header-total-value" id="chart-header-total-value-${i}"></span>`)
     }
     const metricsHTML = metricsParts.length > 0 ? metricsParts.join('') : ''
     return `
@@ -789,9 +883,11 @@ async function makeChartSummaryHTML(
   const tooltipTitles = rawDates.map((dateStr) => moment(dateStr).locale(locale).format('ddd, D MMM YYYY'))
   const tagDataWithTooltips = { ...tagData, tooltipTitles }
 
-  // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures, .averageType, .chartGridColor, .averageTags
+  // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures, .averageType, .chartGridColor, .averageTags, .countTags
   // timeTags: tags that had at least one [H]H:MM value (sums/averages display in time format); fall back to user setting
   // averageTags: tags that get the average line (moving/weekly) and avg stat; from progressHashtagsAverage + progressMentionsAverage
+  // countTags: hashtags-as-counts and mentions-as-counts; get "days: N" stat above chart
+  // totalTags: same as getTotalDisplayTags so client total display and average-line behaviour match the visible Totals stats
   const configForWindowScripts = {
     colors,
     // Combine tagData.timeTags and config.chartTimeTags, de-dupe, and use as the timeTags list
@@ -799,8 +895,9 @@ async function makeChartSummaryHTML(
       ...(Array.isArray(tagData.timeTags) ? tagData.timeTags : []),
       ...(Array.isArray(config.chartTimeTags) ? config.chartTimeTags : [])
     ])),
-    totalTags: config.chartTotalTags ?? [],
+    totalTags: getTotalDisplayTags(config),
     averageTags: getAverageDisplayTags(config),
+    countTags: getCountDisplayTags(config),
     nonZeroTags: parseChartNonZeroTags(config.chartNonZeroTags ?? '{}'),
     significantFigures: config.chartSignificantFigures ?? 3,
     averageType: config.chartAverageType ?? 'moving',

@@ -1,7 +1,7 @@
 /** ----------------------------------------------------------------------------
  * Chart Stats styles - loaded at runtime from requiredFiles/chartStats.css.
  * Originally written by AI prompted by @grdn, then significantly modified by @jgclark.
- * Last updated 2026-02-01 for v1.1.0, @jgclark
+ * Last updated 2026-02-11 for v1.1.0, @jgclark
  * ---------------------------------------------------------------------------- */
 
 * {
@@ -296,13 +296,13 @@ h1 {
 }
 
 .stat-value {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
   /* text-transform: uppercase; */
   /* letter-spacing: 0.5px; */
@@ -326,7 +326,7 @@ h1 {
 .chart-wrapper {
   background: var(--bg-secondary);
   border-radius: 8px;
-  padding: 0.75rem;
+  padding: 0.75rem 0.75rem 0.35rem 0.75rem;
   border: 1px solid var(--border-color);
   margin-bottom: 1rem;
 }
@@ -339,7 +339,7 @@ h1 {
 }
 
 .chart-title {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
   padding-bottom: 0;
@@ -356,6 +356,11 @@ h1 {
 .chart-header-metrics .stat-label,
 .chart-header-metrics .stat-value {
   line-height: 1;
+}
+
+.chart-no-data-message {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #6e6e73);
 }
 
 .chart-avg {
@@ -440,13 +445,13 @@ canvas {
 .heatmap-cell.completed {
   /* background: #32d74b; */
   background: color-mix(in oklch, var(--fg-main-color), green 80%);
-  border-color: var(--border-color);
+  /* border-color: var(--border-color); */
 }
 
 .heatmap-cell.incomplete {
   /* background: #992e2e; */
   background: color-mix(in oklch, var(--bg-main-color), red 90%);
-  border-color: var(--border-color);
+  /* border-color: var(--border-color); */
 }
 
 /*
@@ -506,7 +511,7 @@ canvas {
 .yesno-heatmap-section {
   padding: 1rem 0.5rem 0.25rem;
   column-gap: 1rem;
-  row-gap: 0.5rem;
+  row-gap: 0.15rem;
 
 /* .yesno-habit-row { */
   display: grid;
@@ -536,7 +541,7 @@ canvas {
 }
 
 .yesno-habit-stat-completion {
-    font-size: 0.85rem;
+  font-size: 0.85rem;
   color: var(--text-primary);
   text-align: end;
   justify-self: end;
