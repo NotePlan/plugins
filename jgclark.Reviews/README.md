@@ -125,8 +125,8 @@ In a project/area note you can, if you wish, include a **one-line summary** of y
 # Secret Undertaking
 #project @review(1w) @reviewed(2021-05-20) @start(2021-04-05) @due(2021-11-30)
 Aim: Do this amazing secret thing
-Progress: 10@2021-05-20: Tracked down 007 and got him on the case
-Progress: 0@2021-04-05: Project started with a briefing from M about SPECTRE's dastardly plan
+Progress: 10@2021-05-20 Tracked down 007 and got him on the case
+Progress: 0@2021-04-05 Project started with a briefing from M about SPECTRE's dastardly plan
 
 ## Details
 * [x] track 007 down
@@ -196,7 +196,7 @@ If the 'Remove due dates when pausing a project?' setting is set, then all open 
 This prompts for a short description of latest progress (as short text string) and current % complete (number). This is inserted into the metadata area of the current project note as:
 
 ```markdown
-Progress: <num>@YYYY-MM-DD: <short description>
+Progress: <num>@YYYY-MM-DD <short description>
 ```
 It will also update the project's `@reviewed(date)`.
 

@@ -706,13 +706,10 @@ export class Project {
 
   /**
    * Process the 'Progress:...' lines to retrieve metadata. Allowed forms are:
-   *   Progress: n@YYYYMMDD: progress messsage
-   *   Progress: n:YYYYMMDD: progress messsage
-   *   Progress: n:YYYY-MM-DD: progress messsage
-   *   Progress: n:YYYY-MM-DD: progress messsage
-   *   Progress: YYYYMMDD: progress messsage  [in which case % is calculated]
-   *   Progress: YYYY-MM-DD: progress messsage  [in which case % is calculated]
-   * + all variations without the ':' after the date
+   *   Progress: n@YYYY-MM-DD message   (n = 0-100, preferred; also YYYYMMDD)
+   *   Progress: n:YYYY-MM-DD message
+   *   Progress: YYYY-MM-DD message     [in which case % is calculated from tasks]
+   * + variations with optional ':' after the date (parsed either way)
    */
   processProgressLines(): void {
     // Get specific 'Progress' field lines

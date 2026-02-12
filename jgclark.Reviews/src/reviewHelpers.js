@@ -260,9 +260,10 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
         comment = tempSplitParts[3] ?? ''
       }
 
-      const tempNumberMatches = progressLine.match(/(\d{1,2})@/)
+      const tempNumberMatches = progressLine.match(/(\d{1,3})@/)
       // logDebug('processMostRecentProgressParagraph', `tempNumberMatches: ${String(tempNumberMatches)}`)
-      const percent: number = tempNumberMatches && tempNumberMatches.length > 0 ? Number(tempNumberMatches[1]) : NaN
+      const rawPercent = tempNumberMatches && tempNumberMatches.length > 0 ? Number(tempNumberMatches[1]) : NaN
+      const percent: number = !isNaN(rawPercent) ? Math.min(100, Math.max(0, rawPercent)) : NaN
       // logDebug('processMostRecentProgressParagraph', `-> ${String(percent)}`)
 
       if (thisDate > lastDate) {
