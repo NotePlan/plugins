@@ -20,18 +20,6 @@
     const gridColor = config.chartGridColor || '#52535B'
     const axisTextColor = config.chartAxisTextColor || '#52535B'
 
-    function formatToSigFigs(num, sigFigs) {
-      if (num === 0) return '0'
-      sigFigs = sigFigs ?? config.significantFigures
-      const magnitude = Math.floor(Math.log10(Math.abs(num)))
-      const decimals = Math.max(0, sigFigs - magnitude - 1)
-      const roundedNum = Number(num.toFixed(decimals))
-      return roundedNum.toLocaleString(undefined, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: decimals
-      })
-    }
-
     function formatTime(decimalHours) {
       const hours = Math.floor(decimalHours) % 24
       const minutes = Math.round((decimalHours % 1) * 60)
@@ -179,126 +167,29 @@
       return segments
     }
 
-    function getRecentAverage(data, days) {
-      days = days ?? 7
-      if (!data || !Array.isArray(data)) return 0
-      const recentData = data.slice(-days).filter(function(v) { return (Number(v) || 0) > 0 })
-      if (recentData.length === 0) return 0
-      const sum = recentData.reduce(function(acc, val) { return acc + (Number(val) || 0) }, 0)
-      return sum / recentData.length
-    }
-
-    /** Average of the last 7-day period (the period containing the most recent day). */
-    function getLastPeriodAverage(data, windowSize) {
-      windowSize = windowSize ?? 7
-      if (!data || !Array.isArray(data) || data.length === 0) return 0
-      const lastPeriodStart = Math.floor((data.length - 1) / windowSize) * windowSize
-      const slice = data.slice(lastPeriodStart)
-      const sum = slice.reduce(function(acc, val) { return acc + (Number(val) || 0) }, 0)
-      return slice.length > 0 ? sum / slice.length : 0
-    }
-
     const averageType = (config.averageType === 'none' || config.averageType === 'moving' || config.averageType === 'weekly')
       ? config.averageType
       : 'moving'
     const avgLineLabel = averageType === 'weekly' ? 'weekly avg' : '7-day moving avg'
 
-    // Coerce to number so we never get NaN or string concatenation from JSON/API
-    const toNum = function(v) { return Number(v) || 0 }
-    const totals = tags.map((tag) =>
-      (tagData.counts[tag] || []).reduce((sum, val) => sum + toNum(val), 0)
-    )
-
-    // Populate Averages and Totals stats (avg-value-${i}, total-value-${i}), chart headers (chart-header-avg-value-${i}, chart-header-total-value-${i}),
-    // and optional avg-line label (avg${i}) for each tag. Stats section uses stat-label for the tag name; no separate total-label element.
-    tags.forEach((tag, i) => {
-      let avgDisplay = ''
-      let totalDisplay = ''
-      const validData = (tagData.counts[tag] || []).filter(function(v) { return toNum(v) > 0 })
-      if (isTimeTag(tag)) {
-        avgDisplay = '--:--'
-        if (validData.length > 0) {
-          const avgValue = validData.reduce((sum, val) => sum + toNum(val), 0) / validData.length
-          avgDisplay = formatTime(avgValue)
-        }
-        const avgValueEl = document.getElementById('avg-value-' + i)
-        if (avgValueEl) {
-          avgValueEl.textContent = avgDisplay
-        } else {
-          console.log('avg-value-[' + i + '] not found')
-        }
-      } else {
-        avgDisplay = '0'
-        if (validData.length > 0) {
-          const avgValue = validData.reduce((sum, val) => sum + toNum(val), 0) / validData.length
-          avgDisplay = formatToSigFigs(avgValue)
-        }
-        const avgValueEl = document.getElementById('avg-value-' + i)
-        if (avgValueEl) {
-          avgValueEl.textContent = avgDisplay
-        } else {
-          console.log('avg-value-' + i + ' not found')
-        }
-      }
-      const total = totals[i]
-
-      if (isTimeTag(tag)) {
-        totalDisplay = total > 0 ? formatTime(total) : '0'
-      } else {
-        totalDisplay = formatToSigFigs(total)
-      }
+    // Display stats (count/total/average) are computed on the plugin side (chartStats.js); we only update the DOM here.
+    const tagDisplayStats = config.tagDisplayStats || []
+    tagDisplayStats.forEach(function(stat, i) {
+      const avgValueEl = document.getElementById('avg-value-' + i)
+      if (avgValueEl) avgValueEl.textContent = stat.avgDisplay
+      else console.log('avg-value-[' + i + '] not found')
       const totalValueEl = document.getElementById('total-value-' + i)
-      if (totalValueEl) {
-        totalValueEl.textContent = totalDisplay
-      } else {
-        console.log('total-value-' + i + ' not found')
-      }
-
-      // Optional: avg${i} is for a per-chart avg line label (e.g. "7-day moving avg: 5.2"). Not present in current HTML template.
-      let avg
-      const avgLabel = avgLineLabel + ': '
+      if (totalValueEl) totalValueEl.textContent = stat.totalDisplay
+      else console.log('total-value-' + i + ' not found')
       const avgEl = document.getElementById('avg' + i)
-      if (avgEl) {
-        if (averageType === 'none') {
-          avgEl.textContent = '—'
-        } else {
-          if (averageType === 'weekly') {
-            avg = getLastPeriodAverage(tagData.counts[tag])
-          } else if (isTotalTag(tag)) {
-            const recentData = (tagData.counts[tag] || []).slice(-7)
-            const sum = recentData.reduce(function(acc, val) { return acc + toNum(val) }, 0)
-            avg = recentData.length > 0 ? sum / recentData.length : 0
-          } else {
-            avg = getRecentAverage(tagData.counts[tag])
-          }
-          if (isTimeTag(tag)) {
-            avgEl.textContent = avgLabel + formatTime(avg)
-          } else {
-            avgEl.textContent = avgLabel + avg.toFixed(1)
-          }
-        }
-      }
-
-      // Also show per-tag totals/averages in the chart header (unique IDs to avoid clashing with stats section)
+      if (avgEl) avgEl.textContent = stat.avgLineText
       const headerStatAvgEl = document.getElementById('chart-header-avg-value-' + i)
-      if (headerStatAvgEl) {
-        headerStatAvgEl.textContent = avgDisplay
-      }
+      if (headerStatAvgEl) headerStatAvgEl.textContent = stat.avgDisplay
       const headerStatTotalEl = document.getElementById('chart-header-total-value-' + i)
-      if (headerStatTotalEl) {
-        headerStatTotalEl.textContent = totalDisplay
-      }
-
-      // For hashtags-as-counts and mentions-as-counts: show "days: N" (number of days with at least one occurrence)
-      if (isCountTag(tag)) {
-        const dataArr = tagData.counts[tag] || []
-        const daysCount = dataArr.filter(function(v) {
-          return toNum(v) > 0
-        }).length
+      if (headerStatTotalEl) headerStatTotalEl.textContent = stat.totalDisplay
+      if (stat.daysCount !== undefined) {
         const headerStatDaysEl = document.getElementById('chart-header-days-value-' + i)
-        if (headerStatDaysEl) {
-          headerStatDaysEl.textContent = String(daysCount)
-        }
+        if (headerStatDaysEl) headerStatDaysEl.textContent = String(stat.daysCount)
       }
     })
 
@@ -553,7 +444,7 @@
 
         const statStreak = document.createElement('span')
         statStreak.className = 'yesno-habit-stat-streak'
-        statStreak.textContent = 'Streak: ' + streak
+        statStreak.textContent = 'streak: ' + streak
         row.appendChild(statStreak)
         // container.appendChild(row)
       })

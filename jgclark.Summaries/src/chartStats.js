@@ -42,9 +42,18 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpe
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { getLocale } from '@helpers/NPConfiguration'
 
+
 // =====================================================================
-// CONSTANTS
+// TYPES and CONSTANTS
 // =====================================================================
+
+// Per-tag display strings/values for stats section and chart headers (computed by plugin and sent to Window)
+export type TagDisplayStat = {
+  avgDisplay: string,
+  totalDisplay: string,
+  avgLineText: string,
+  daysCount?: number
+}
 
 // Chart.js: CDN and local path
 const chartJsCdnUrl = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
@@ -318,6 +327,153 @@ function buildYesNoDataFromOccurrences(
     rawDates
   }
   return { yesNoData, yesNoHabits }
+}
+
+// ==================================================================
+// DISPLAY STATISTICS (count/total/average) – computed on plugin side for Flow typing
+
+/**
+ * Format a number to a given number of significant figures (for display).
+ * @param {number} num - Value to format
+ * @param {number} [sigFigs] - Significant figures (default 3)
+ * @returns {string} Formatted string
+ */
+function formatToSigFigs(num: number, sigFigs?: number): string {
+  if (num === 0) return '0'
+  const figs = sigFigs ?? 3
+  const magnitude = Math.floor(Math.log10(Math.abs(num)))
+  const decimals = Math.max(0, figs - magnitude - 1)
+  const roundedNum = Number(num.toFixed(decimals))
+  return roundedNum.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals
+  })
+}
+
+/**
+ * Format decimal hours as H:MM.
+ * @param {number} decimalHours - Hours as decimal (e.g. 7.5 = 7:30)
+ * @returns {string} Time string
+ */
+function formatTime(decimalHours: number): string {
+  const hours = Math.floor(decimalHours) % 24
+  const minutes = Math.round((decimalHours % 1) * 60)
+  return String(hours) + ':' + String(minutes).padStart(2, '0')
+}
+
+/**
+ * Average of values in the last N days that are > 0 (only non-zero days count).
+ * @param {Array<number>} data - Per-day values
+ * @param {number} days - Number of days to look at (default 7)
+ * @returns {number} Average
+ */
+function getRecentAverage(data: Array<number>, days?: number): number {
+  const n = days ?? 7
+  if (!data || !Array.isArray(data)) return 0
+  const recentData = data.slice(-n).filter((v) => (Number(v) || 0) > 0)
+  if (recentData.length === 0) return 0
+  const sum = recentData.reduce((acc, val) => acc + (Number(val) || 0), 0)
+  return sum / recentData.length
+}
+
+/**
+ * Average of the last period (window) containing the most recent day (e.g. last 7-day chunk).
+ * @param {Array<number>} data - Per-day values
+ * @param {number} periodSize (default 7)
+ * @returns {number} Average
+ */
+function getLastPeriodAverage(data: Array<number>, periodSize?: number): number {
+  const w = periodSize ?? 7
+  if (!data || !Array.isArray(data) || data.length === 0) return 0
+  const lastPeriodStart = Math.floor((data.length - 1) / w) * w
+  const slice = data.slice(lastPeriodStart)
+  const sum = slice.reduce((acc, val) => acc + (Number(val) || 0), 0)
+  return slice.length > 0 ? sum / slice.length : 0
+}
+
+/**
+ * Compute displayed count/total/average statistics for each tag (plugin side, Flow-typed).
+ * Mirrors logic previously in chartStatsScripts.js so the HTML window only does DOM updates.
+ * @param {Object} tagData - Has counts[tag], rawDates, timeTags
+ * @param {Array<string>} tags - Tag list in display order
+ * @param {SummariesConfig} config - For significantFigures, averageType, time/total/average/count tag lists
+ * @returns {Array<TagDisplayStat>} One entry per tag
+ */
+function computeTagDisplayStats(tagData: Object, tags: Array<string>, config: SummariesConfig): Array<TagDisplayStat> {
+  const toNum = (v: mixed) => Number(v) || 0
+  const sigFigs = config.chartSignificantFigures ?? 3
+  // Config uses 'period'; client uses 'weekly' for the same behaviour — normalize here
+  const rawAverageType = config.chartAverageType
+  const averageType = (rawAverageType === 'none' || rawAverageType === 'moving' || rawAverageType === 'period')
+    ? (rawAverageType === 'period' ? 'weekly' : rawAverageType)
+    : 'moving'
+  const avgLineLabel = averageType === 'weekly' ? 'weekly avg' : '7-day moving avg'
+  const timeTagsSet = new Set([
+    ...(Array.isArray(tagData.timeTags) ? tagData.timeTags : []),
+    ...(Array.isArray(config.chartTimeTags) ? config.chartTimeTags : [])
+  ])
+  const totalTags = getTotalDisplayTags(config)
+  const countTags = getCountDisplayTags(config)
+  const isTimeTag = (tag: string) => timeTagsSet.has(tag)
+  const isTotalTag = (tag: string) => totalTags.includes(tag)
+  const isCountTag = (tag: string) => countTags.includes(tag)
+
+  const totals = tags.map((tag) =>
+    (tagData.counts[tag] || []).reduce((sum, val) => sum + toNum(val), 0)
+  )
+
+  const result: Array<TagDisplayStat> = []
+  tags.forEach((tag, i) => {
+    let avgDisplay = ''
+    let totalDisplay = ''
+    const dataArr = tagData.counts[tag] || []
+    const validData = dataArr.filter((v) => toNum(v) > 0)
+    if (isTimeTag(tag)) {
+      avgDisplay = '--:--'
+      if (validData.length > 0) {
+        const avgValue = validData.reduce((sum, val) => sum + toNum(val), 0) / validData.length
+        avgDisplay = formatTime(avgValue)
+      }
+    } else {
+      avgDisplay = '0'
+      if (validData.length > 0) {
+        const avgValue = validData.reduce((sum, val) => sum + toNum(val), 0) / validData.length
+        avgDisplay = formatToSigFigs(avgValue, sigFigs)
+      }
+    }
+    const total = totals[i]
+    if (isTimeTag(tag)) {
+      totalDisplay = total > 0 ? formatTime(total) : '0'
+    } else {
+      totalDisplay = formatToSigFigs(total, sigFigs)
+    }
+
+    let avgLineText = '—'
+    if (averageType !== 'none') {
+      let avg: number
+      if (averageType === 'weekly') {
+        avg = getLastPeriodAverage(dataArr)
+      } else if (isTotalTag(tag)) {
+        const recentData = dataArr.slice(-7)
+        const sum = recentData.reduce((acc, val) => acc + toNum(val), 0)
+        avg = recentData.length > 0 ? sum / recentData.length : 0
+      } else {
+        avg = getRecentAverage(dataArr)
+      }
+      if (isTimeTag(tag)) {
+        avgLineText = avgLineLabel + ': ' + formatTime(avg)
+      } else {
+        avgLineText = avgLineLabel + ': ' + formatToSigFigs(avg, sigFigs)
+      }
+    }
+
+    const stat: TagDisplayStat = { avgDisplay, totalDisplay, avgLineText }
+    if (isCountTag(tag)) {
+      stat.daysCount = dataArr.filter((v) => toNum(v) > 0).length
+    }
+    result.push(stat)
+  })
+  return result
 }
 
 // ==================================================================
@@ -597,7 +753,10 @@ async function makeChartSummaryHTML(
   const tooltipTitles = rawDates.map((dateStr) => moment(dateStr).locale(locale).format('ddd, D MMM YYYY'))
   const tagDataWithTooltips = { ...tagData, tooltipTitles }
 
-  // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures, .averageType, .chartGridColor, .averageTags, .countTags
+  // Display statistics (count/total/average) computed on plugin side; client only does DOM updates
+  const tagDisplayStats = computeTagDisplayStats(tagData, tags, config)
+
+  // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures, .averageType, .chartGridColor, .averageTags, .countTags, .tagDisplayStats
   // timeTags: tags that had at least one [H]H:MM value (sums/averages display in time format); fall back to user setting
   // averageTags: tags that get the average line (moving/weekly) and avg stat; from progressHashtagsAverage + progressMentionsAverage
   // countTags: hashtags-as-counts and mentions-as-counts; get "days: N" stat above chart
@@ -618,7 +777,8 @@ async function makeChartSummaryHTML(
     chartGridColor: getChartGridColor(),
     chartAxisTextColor: getChartAxisTextColor(),
     // Use same theme-mode detection as NPThemeToCSS (via Editor.currentTheme.mode)
-    currentThemeMode: Editor.currentTheme?.mode ?? 'light'
+    currentThemeMode: Editor.currentTheme?.mode ?? 'light',
+    tagDisplayStats
   }
   const script = generateClientScript(tagDataWithTooltips, yesNoData, tags, yesNoHabits, configForWindowScripts)
 

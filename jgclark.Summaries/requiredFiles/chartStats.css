@@ -97,10 +97,9 @@ h1 {
 }
 
 .stats-section {
-  /* flex: 1; */
   min-width: 200px;
   width: fit-content;
-  padding: 1rem;
+  padding: 0.8rem 1rem;
   background: var(--bg-secondary);
   border-radius: 8px;
   border: 1px solid var(--border-color);
@@ -326,7 +325,7 @@ h1 {
 .chart-wrapper {
   background: var(--bg-secondary);
   border-radius: 8px;
-  padding: 0.75rem 0.75rem 0.35rem 0.75rem;
+  padding: 0.75rem 0.75rem 0.5rem 0.75rem;
   border: 1px solid var(--border-color);
   margin-bottom: 1rem;
 }
@@ -335,7 +334,7 @@ h1 {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 0.25rem;
+  /* margin-bottom: 0.25rem; */
 }
 
 .chart-title {
@@ -511,15 +510,10 @@ canvas {
 .yesno-heatmap-section {
   padding: 1rem 0.5rem 0.25rem;
   column-gap: 1rem;
-  row-gap: 0.15rem;
-
-/* .yesno-habit-row { */
+  row-gap: 0.2rem;
   display: grid;
   grid-template-columns: max-content max-content max-content auto;
   align-items: center;
-  gap: 1rem;
-  /* padding: 0; */
-  /* border-bottom: 1px solid var(--border-color); */
 }
 
 /* .yesno-habit-row:last-child {

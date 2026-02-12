@@ -2,7 +2,9 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
 ## [1.1.0.b6] - 2026-02-??? (unreleased)
-- **Chart Summary Stats**: refactored to use the same data-gathering path as Period Stats and Progress Update (`gatherOccurrences` + `gatherOccurrencesHelpers` + `TMOccurrences`). Chart data now uses corrected hashtag/mention extraction and a single pass over calendar notes, so chart totals and per-day values align with Period Stats for the same period.
+- dev: refactored `chartStats.js` to use the same data-gathering path as Period Stats and Progress Update (`gatherOccurrences` + `gatherOccurrencesHelpers` + `TMOccurrences`).
+- dev: refactored `chartStatsScript.js` to move stats generation code into `chartStats.js`, to improve testability and maintainability
+- dev: fix showHTMLV2() to always write out to savedFilename if set, even if window fails to open
 - TODO: still some totals are not accurate
 
 ## [1.1.0.b5] - 2026-02-12 (unreleased)
