@@ -24,7 +24,6 @@ import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { showMessage } from '@helpers/userInput'
 import { getHeadingsFromNote, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
-import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 import { getNoteByFilename, getNote } from '@helpers/note'
 import { getNoteContentAsHTML } from '@helpers/HTMLView'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
@@ -36,7 +35,7 @@ import { initPromisePolyfills, waitForCondition } from '@helpers/promisePolyfill
 import { testFormFieldRender } from './FormFieldRenderTest'
 // Import data-fetching functions from dataHandlers.js to break circular dependency
 // These are used by handleRequest() but not re-exported - import directly from dataHandlers.js if needed
-import { getFolders, getNotes, getEvents, getHashtags, getMentions, getTeamspaces } from './dataHandlers'
+import { getFolders, getNotes, getEvents, getHashtags, getMentions, getTeamspaces, getFrontmatterKeyValues } from './dataHandlers'
 // Import RequestResponse type from shared types
 import { type RequestResponse } from './shared/types'
 // Re-export RequestResponse type for backward compatibility (used by other handler files)
@@ -184,71 +183,9 @@ export function getAvailableReminderLists(_params: Object = {}): RequestResponse
 // getHashtags and getMentions have been moved to dataHandlers.js to break circular dependencies.
 // They are imported and re-exported above for backward compatibility.
 
-/**
- * Get all values for a frontmatter key from DataStore
- * @param {Object} params - Request parameters
- * @param {string} params.frontmatterKey - The frontmatter key to get values for
- * @param {'Notes' | 'Calendar' | 'All'} params.noteType - Type of notes to search (default: 'All')
- * @param {boolean} params.caseSensitive - Whether to perform case-sensitive search (default: false)
- * @param {string} params.folderString - Folder to limit search to (optional)
- * @param {boolean} params.fullPathMatch - Whether to match full path (default: false)
- * @returns {Promise<RequestResponse>} Array of values (as strings)
- */
-export async function getFrontmatterKeyValues(params: {
-  frontmatterKey: string,
-  noteType?: 'Notes' | 'Calendar' | 'All',
-  caseSensitive?: boolean,
-  folderString?: string,
-  fullPathMatch?: boolean,
-}): Promise<RequestResponse> {
-  const startTime: number = Date.now()
-  try {
-    logDebug(pluginJson, `[DIAG] getFrontmatterKeyValues START: frontmatterKey="${params.frontmatterKey}"`)
-
-    if (!params.frontmatterKey) {
-      return {
-        success: false,
-        message: 'Frontmatter key is required',
-        data: [],
-      }
-    }
-
-    const noteType = params.noteType || 'All'
-    const caseSensitive = params.caseSensitive || false
-    const folderString = params.folderString || ''
-    const fullPathMatch = params.fullPathMatch || false
-
-    // Get values using the helper function
-    const values = await getValuesForFrontmatterTag(params.frontmatterKey, noteType, caseSensitive, folderString, fullPathMatch)
-
-    // Convert all values to strings (frontmatter values can be various types)
-    let stringValues = values.map((v: any) => String(v))
-
-    // Filter out templating syntax values (containing "<%") - these are template code, not actual values
-    // This prevents templating errors when forms load and process frontmatter
-    const beforeFilterCount = stringValues.length
-    stringValues = stringValues.filter((v: string) => !v.includes('<%'))
-    if (beforeFilterCount !== stringValues.length) {
-      logDebug(pluginJson, `[DIAG] getFrontmatterKeyValues: Filtered out ${beforeFilterCount - stringValues.length} templating syntax values`)
-    }
-
-    const totalElapsed: number = Date.now() - startTime
-    logDebug(pluginJson, `[DIAG] getFrontmatterKeyValues COMPLETE: totalElapsed=${totalElapsed}ms, found=${stringValues.length} values for key "${params.frontmatterKey}"`)
-
-    return {
-      success: true,
-      data: stringValues,
-    }
-  } catch (error) {
-    const totalElapsed: number = Date.now() - startTime
-    logError(pluginJson, `[DIAG] getFrontmatterKeyValues ERROR: totalElapsed=${totalElapsed}ms, error="${error.message}"`)
-    return {
-      success: false,
-      message: `Failed to get frontmatter key values: ${error.message}`,
-      data: [],
-    }
-  }
-}
+// getFrontmatterKeyValues has been moved to dataHandlers.js to break circular dependency:
+// requestHandlers -> FormFieldRenderTest -> windowManagement -> requestHandlers
+export { getFrontmatterKeyValues } from './dataHandlers'
 
 // getTeamspaces has been moved to dataHandlers.js to break circular dependencies.
 // It is imported and re-exported above for backward compatibility.
