@@ -24,7 +24,7 @@ import {
   toISODateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { saveEditorIfNecessary } from '@helpers/NPEditor'
+import { getOpenEditorFromFilename, saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getFolderFromFilename } from '@helpers/folders'
 import { getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { endOfFrontmatterLineIndex, getFrontmatterAttribute, updateFrontMatterVars } from '@helpers/NPFrontMatter'
@@ -350,13 +350,13 @@ export class Project {
     } else {
       // Update regular paragraph content (existing behavior)
       metadataPara.content = newMetadataLine
-      if (Editor && Editor.note && Editor.note === this.note) {
-        Editor.updateParagraph(metadataPara)
-        DataStore.updateCache(this.note, true)
+      const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
+      if (possibleThisEditor) {
+        possibleThisEditor.updateParagraph(metadataPara)
       } else {
         this.note.updateParagraph(metadataPara)
-        DataStore.updateCache(this.note, true)
       }
+      DataStore.updateCache(this.note, true)
     }
   }
 
@@ -532,13 +532,16 @@ export class Project {
    */
   async addProgressLine(prompt: string = 'Enter comment about current progress for'): Promise<void> {
     try {
+      const thisFilename = this.note.filename
       // Figure out if we're working in the Editor or a note
-      const isInEditor = Editor && Editor.note && Editor.note.filename === this.note.filename
-      if (isInEditor) {
-        logDebug('Project::addProgressLine', `Working in EDITOR for note '${this.note.filename}'`)
+      // Now have to check all open Editors, not just the current one.
+      const possibleThisEditor = getOpenEditorFromFilename(thisFilename)
+      if (possibleThisEditor) {
+        logDebug('Project::addProgressLine', `Working in EDITOR '${possibleThisEditor.id}' for note '${thisFilename}'`)
       } else {
-        logDebug('Project::addProgressLine', `Working on DATASTORE note '${this.note.filename}'`)
+        logDebug('Project::addProgressLine', `Can't find open Editor for note '${thisFilename}', so will use DATASTORE note`)
       }
+        
       // Get progress heading from config
       const message1 = `${prompt} '${this.title}'`
       const resText = await getInputTrimmed(message1, 'OK', `Add Progress comment`)
@@ -625,10 +628,10 @@ export class Project {
             logDebug('Project::addProgressLine', `Inserting heading '${progressHeading}' above first Progress line at line ${String(firstProgressLineIndex)}`)
             
             // Insert heading above first Progress line
-            if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
+            if (possibleThisEditor) {
               // $FlowFixMe[incompatible-call]
-              Editor.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
-              await Editor.save()
+              possibleThisEditor.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
+              await possibleThisEditor.save()
             } else {
               // $FlowFixMe[incompatible-call]
               this.note.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
@@ -640,8 +643,8 @@ export class Project {
           logDebug('Project::addProgressLine', `Adding progress line under heading '${progressHeading}'`)
           this.note.addParagraphBelowHeadingTitle(newProgressLine, 'text', progressHeading, false, false)
           
-          if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
-            await Editor.save()
+          if (possibleThisEditor) {
+            await possibleThisEditor.save()
           } else {
             await DataStore.updateCache(this.note, true)
           }
@@ -650,8 +653,8 @@ export class Project {
           logDebug('Project::addProgressLine', `No existing Progress lines, so creating new Section heading '${progressHeading}' if needed`)
           smartCreateSectionsAndPara(this.note, newProgressLine, 'text', [progressHeading], progressHeadingLevel, false)
           
-          if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
-            await Editor.save()
+          if (possibleThisEditor) {
+            await possibleThisEditor.save()
           } else {
             await DataStore.updateCache(this.note, true)
           }
@@ -675,11 +678,11 @@ export class Project {
         }
 
         // And write it to the Editor (if the note is open in it) ...
-        if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
+        if (possibleThisEditor) {
           logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to Editor at line ${String(insertionIndex)}`)
-          Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
-          logDebug('Project::addProgressLine', `- finished Editor.insertParagraph`)
-          await Editor.save()
+          possibleThisEditor.insertParagraph(newProgressLine, insertionIndex, 'text')
+          logDebug('Project::addProgressLine', `- finished thisEditor.insertParagraph`)
+          await possibleThisEditor.save()
           logDebug('Project::addProgressLine', `- after Editor.save`)
         }
         // ... or the project's note
@@ -693,10 +696,10 @@ export class Project {
       }
 
       // If we're in Editor, then need to update display
-      if (isInEditor) {
+      if (possibleThisEditor) {
         await saveEditorIfNecessary()
         logDebug('Project::addProgressLine', `- Editor saved; will now re-open note in that Editor window`)
-        await Editor.openNoteByFilename(this.note.filename)
+        await possibleThisEditor.openNoteByFilename(thisFilename)
         logDebug('Project::addProgressLine', `- note re-opened in Editor window`)
       }
     } catch (error) {
@@ -813,10 +816,12 @@ export class Project {
       logDebug('togglePauseProject', `Paused state now toggled to ${String(this.isPaused)} for '${this.title}' ...`)
       const newMetadataLine = this.generateMetadataOutputLine()
       logDebug('togglePauseProject', `- metadata now '${newMetadataLine}'`)
+
       // Update metadata using helper that handles both frontmatter and regular paragraphs
       this.updateMetadataLine(newMetadataLine)
-      if (Editor && Editor.note && Editor.note === this.note) {
-        await Editor.save()
+      const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
+      if (possibleThisEditor) {
+        await possibleThisEditor.save()
       }
 
       // if we want to remove all due dates on pause, then do that

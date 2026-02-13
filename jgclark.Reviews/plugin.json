@@ -92,24 +92,24 @@
         "gtd",
         "fsnr"
       ],
-      "description": "updates the currently open project's @reviewed() date",
+      "description": "updates the currently open project's @reviewed() date, and jump to next project to review",
       "jsFunction": "finishReviewAndStartNextReview"
     },
     {
       "name": "next project review",
       "alias": [
         "gtd",
-        "review",
         "nr"
       ],
-      "description": "updates this project's @reviewed() date, and jump to next project to review",
-      "jsFunction": "finishReviewAndStartNextReview"
+      "description": "start reviewing next project in list",
+      "jsFunction": "nextReview"
     },
     {
       "name": "skip project review",
       "alias": [
         "gtd",
-        "review"
+        "skip",
+        "spr"
       ],
       "description": "skip this review, add a @nextReview() date, and jump to next project to review",
       "jsFunction": "skipReview"
@@ -118,7 +118,6 @@
       "name": "set new review interval",
       "alias": [
         "snri",
-        "review",
         "interval"
       ],
       "description": "set a new @review() interval",

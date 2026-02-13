@@ -3,13 +3,13 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 2026-01-24 for v1.3.0.b7, @jgclark
+// Last updated 2026-02-13 for v1.3.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment'
-import { generateProjectOutputLine } from './htmlGenerators'
+import { generateProjectOutputLine } from './projectsHTMLGenerator'
 import { Project } from './projectClass'
-import { finishReview, renderProjectLists } from './reviews'
+import { finishReview, finishReviewForNote, renderProjectLists } from './reviews'
 import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
 import { updateAllProjectsListAfterChange } from './allProjectsListHelpers'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
@@ -168,10 +168,9 @@ export async function addProgressUpdate(noteArg?: TNote): Promise<void> {
 
     // Construct a Project class object from this note
     const thisProject = new Project(note)
-
+    // Add progress line to note, and then update reviewed date
     await thisProject.addProgressLine()
-
-    await finishReview()
+    await finishReviewForNote(note)
   } catch (error) {
     logError('addProgressUpdate', JSP(error))
   }

@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-02-10 for v1.3.0.b9 by @jgclark
+// Last updated 2026-02-13 for v1.3.0.b9 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
@@ -242,7 +242,7 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
       const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
       const extraClasses = (thisProject.isCompleted) ? 'checked' : (thisProject.isCancelled) ? 'cancelled' : (thisProject.isPaused) ? 'paused' : ''
 
-      const folderNamePart = config.showFolderName ? getFolderDisplayNameForHTML(thisProject.folder, true) : ''
+      const folderNamePart = config.showFolderName ? getFolderDisplayNameForHTML(thisProject.folder) : ''
       
       // Use icon from frontmatter if available, otherwise default to fa-file-lines
       const iconClass = thisProject.icon != null && thisProject.icon !== '' ? thisProject.icon : 'file-lines'
@@ -404,12 +404,20 @@ export function generateTopBarHTML(config: any): string {
     `Update the ${checkString(DataStore.preference('reviewedMentionStr'))}() date for the Project you're currently editing`,
     true
   )
-  const nextReviewPCButton = makePluginCommandButton(
+  const finishAndNextReviewPCButton = makePluginCommandButton(
     `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
+    'jgclark.Reviews',
+    'finish project review and start next',
+    '',
+    `Finish review of currently open Project and start the next review`,
+    true
+  )
+  const nextReviewPCButton = makePluginCommandButton(
+    `<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
     'jgclark.Reviews',
     'next project review',
     '',
-    `Finish review of currently open Project and start the next review`,
+    `Move on to the next project to review`,
     true
   )
 
@@ -441,7 +449,7 @@ export function generateTopBarHTML(config: any): string {
   parts.push(`  </div>`)
   parts.push(`</div>`)
 
-  const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
+  const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${finishAndNextReviewPCButton}\n${nextReviewPCButton}\n</div>`
   parts.push(controlButtons)
 
   // Finish the sticky top bar

@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-02-06 for v1.3.0.b8, @jgclark
+// Last updated 2026-02-13 for v1.3.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -42,20 +42,19 @@ import {
   generateTableStructureHTML,
   generateProjectControlDialogHTML,
   generateFolderHeaderHTML,
-} from './htmlGenerators'
+} from './projectsHTMLGenerator.js'
 import { checkString } from '@helpers/checkType'
 import { getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
-import { saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
 import { numberOfOpenItemsInNote } from '@helpers/note'
 import { calcOffsetDateStr, nowLocaleShortDateTime } from '@helpers/NPdateTime'
+import { getOrOpenEditorFromFilename, getOpenEditorFromFilename, isNoteOpenInEditor, saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
-import { noteOpenInEditor } from '@helpers/NPEditor'
-import { isHTMLWindowOpen, logWindowsList, setEditorWindowId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
+import { isHTMLWindowOpen, logWindowsList, setEditorWindowId } from '@helpers/NPWindows'
 import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -664,7 +663,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           note.content = outputArray.join('\n')
           logDebug('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
           // Open the note in a window
-          if (shouldOpen && !noteOpenInEditor(note.filename)) {
+          if (shouldOpen && !isNoteOpenInEditor(note.filename)) {
             logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)
             await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
             setEditorWindowId(note.filename, customMarkdownWinId)
@@ -702,12 +701,9 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         logInfo('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
         // Open the note in a new window
         // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
-        if (!noteOpenInEditor(note.filename)) {
-          logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)
-          await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
-          setEditorWindowId(note.filename, noteTitle)
-        } else {
-          logDebug('renderProjectListsMarkdown', `- note '${noteTitle}' already open in the editor.`)
+        const possibleThisEditor = getOrOpenEditorFromFilename(note.filename, 'split')
+        if (!possibleThisEditor) {
+          logWarn('renderProjectListsMarkdown', `- failed to open note '${noteTitle}' in an Editor`)
         }
       } else {
         await showMessage('Oops: failed to find or make project summary note', 'OK')
@@ -896,16 +892,17 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       logDebug('finishReviewCoreLogic', `Note: no open tasks found for sequential project '${displayTitle(note)}'.`)
     }
 
-    if (Editor.filename === note.filename) {
-      logDebug('finishReviewCoreLogic', `Updating Editor ...`)
+    const possibleThisEditor = getOpenEditorFromFilename(note.filename)
+    if (possibleThisEditor) {
+      logDebug('finishReviewCoreLogic', `Updating Editor '${displayTitle(possibleThisEditor)}' ...`)
       // First update @review(date) on current open note
-      updateMetadataInEditor([reviewedTodayString])
+      updateMetadataInEditor(possibleThisEditor, [reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      deleteMetadataMentionInEditor([config.nextReviewMentionStr])
-      await Editor.save()
+      deleteMetadataMentionInEditor(possibleThisEditor, [config.nextReviewMentionStr])
+      await possibleThisEditor.save()
       // Note: no longer seem to need to update cache
     } else {
-      logDebug('finishReviewCoreLogic', `Updating note ...`)
+      logDebug('finishReviewCoreLogic', `Updating note '${displayTitle(note)}' ...`)
       // First update @review(date) on the note
       updateMetadataInNote(note, [reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
@@ -955,10 +952,9 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
 // --------------------------------------------------------------------
 
 /**
- * Start a series of project reviews.
- * This starts by generating a new machine-readable list of project-type notes ready
- * for review, ordered by oldest next review date.
- * Then offers to load the first note to review.
+ * Start a series of project reviews..
+ * Then offers to load the first note to review, based on allProjectsList, ordered by most overdue for review.
+ * Note: Used by Project List dialog, and Dashboard.
  * @author @jgclark
  */
 export async function startReviews(): Promise<void> {
@@ -966,28 +962,26 @@ export async function startReviews(): Promise<void> {
     const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
-    // Make/update list of projects ready for review
-    // Note: Now turned off, as its unlikely that the list will be out of date.
-    // await generateAllProjectsList(config, true)
-
-    // Now offer first review
+    // Get the next note to review, based on allProjectsList, ordered by most overdue for review.
     const noteToReview = await getNextNoteToReview()
-    // Open that note in editor
-    if (noteToReview != null) {
-      if (config.confirmNextReview) {
-        const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
-        if (res !== 'OK') {
-          return
-        }
-      }
-      logInfo('startReviews', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
-      await Editor.openNoteByFilename(noteToReview.filename)
-      // Highlight this project in the Project List window (if open)
-      await setReviewingProjectInHTML(noteToReview, true)
-    } else {
+    // Open that note in an Editor, confirming with the user if necessary.
+    if (!noteToReview) {
       logInfo('startReviews', '🎉 No notes to review!')
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
+      return
     }
+
+    if (config.confirmNextReview) {
+      const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
+      if (res !== 'OK') {
+        logDebug('startReviews', `- User didn't want to continue.`)
+        return
+      }
+    }
+    logInfo('startReviews', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
+    await Editor.openNoteByFilename(noteToReview.filename)
+    // Highlight this project in the Project List window (if open)
+    await setReviewingProjectInHTML(noteToReview, true)
   } catch (error) {
     logError('startReviews', error.message)
   }
@@ -1011,6 +1005,21 @@ export async function startReviewForNote(noteToReview: TNote): Promise<void> {
   
   } catch (error) {
     logError('startReviews', error.message)
+  }
+}
+
+/**
+ * Start new review. 
+ * Note: Just calls startReviews(), as there's nothing different between the two operations any more. But leaving the distinction in case this changes in future.
+ * Note: Used by Project List dialog, ?and Dashboard?.
+ * @author @jgclark
+ */
+export async function nextReview(): Promise<void> {
+  try {
+    logDebug('nextReview', `Simply calling startReviews() ...`)
+    await startReviews()
+  } catch (error) {
+    logError('nextReview', error.message)
   }
 }
 
@@ -1056,6 +1065,7 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
 
 /**
  * Complete current review, then open the next one to review in the Editor.
+ * TODO: Update to get a note passed in, rather than using the current Editor note.
  * @author @jgclark
  */
 export async function finishReviewAndStartNextReview(): Promise<void> {
@@ -1142,10 +1152,11 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
     const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
     logDebug('skipReviewCoreLogic', `- nextReviewDateStr: ${newDateStr} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
 
-    if (Editor.filename === note.filename) {
+    const possibleThisEditor = getOpenEditorFromFilename(note.filename)
+    if (possibleThisEditor) {
       // Update metadata in the current open note
       logDebug('skipReviewCoreLogic', `Updating Editor ...`)
-      updateMetadataInEditor([nextReviewMetadataStr])
+      updateMetadataInEditor(possibleThisEditor, [nextReviewMetadataStr])
 
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
@@ -1283,7 +1294,13 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     if (!noteArg) {
       // Update metadata in the current open note
       logDebug('setNewReviewInterval', `Updating metadata in Editor`)
-      updateMetadataInEditor([`@review(${newIntervalStr})`])
+      const possibleThisEditor = getOpenEditorFromFilename(note.filename)
+      if (possibleThisEditor) {
+        updateMetadataInEditor(possibleThisEditor, [`@review(${newIntervalStr})`])
+      } else {
+        logDebug('setNewReviewInterval', `- Couldn't find open Editor for note '${note.filename}', so will update note directly.`)
+        updateMetadataInNote(note, [`@review(${newIntervalStr})`])
+      }
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
       await saveEditorIfNecessary()

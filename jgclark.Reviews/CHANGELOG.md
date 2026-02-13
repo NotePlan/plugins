@@ -8,6 +8,8 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - Pausing or un-pausing on a Project now also updates the `@reviewed()` date
 - New "Show paused?" toggle in the Filter… menu
 - Right-align the toggles in the Filter... menu, suppress re-load when clicking outside the menu when no settings have been changed.
+- Re-wrote finding open project note now there can be multiple Editors open.
+- Added 'Next' review button to top bar.
 
 ## [1.3.0.b8] - 2026-02-08
 - dev: refactor to move most HTML code into separate htmlGenerators.js file
