@@ -33,7 +33,8 @@ import {
 } from '@helpers/general'
 import { allNotesSortedByTitle, setIconForNote } from '@helpers/note'
 import { usersVersionHas } from '@helpers/NPVersions'
-import { noteOpenInEditor, openNoteInNewSplitIfNeeded } from '@helpers/NPWindows'
+import { noteOpenInEditor } from '@helpers/NPEditor'
+import { openNoteInNewSplitIfNeeded } from '@helpers/NPWindows'
 import { contentRangeToString } from '@helpers/paragraph'
 import { showMessage } from "@helpers/userInput"
 

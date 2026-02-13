@@ -10,7 +10,7 @@ import {  getFolderFromFilename } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
-import { noteOpenInEditor } from '@helpers/NPWindows'
+import { noteOpenInEditor } from '@helpers/NPEditor'
 import {
   chooseFolder,
   getInput,

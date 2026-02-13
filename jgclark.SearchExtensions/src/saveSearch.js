@@ -37,7 +37,7 @@ import {
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
-import { noteOpenInEditor } from '@helpers/NPWindows'
+import { noteOpenInEditor } from '@helpers/NPEditor'
 import {
   chooseOption,
   getInput,

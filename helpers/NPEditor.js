@@ -5,7 +5,6 @@ import { getFolderFromFilename } from './folders'
 import { getNoteTitleFromTemplate } from './NPFrontMatter'
 import { getSelectedParagraphsWithCorrectLineIndex, highlightParagraphInEditor } from './NPParagraph'
 import { usersVersionHas } from './NPVersions'
-import { getOpenEditorFromFilename, isNoteOpenInEditor } from './NPWindows'
 import { showMessageYesNo, showMessage, chooseFolder } from './userInput'
 
 /**
@@ -227,51 +226,83 @@ export function clearHighlighting(): void {
 }
 
 /**
+ * Deprecated: use isNoteOpenInEditor() instead.
+ * Tests whether the provided filename is open in an Editor window/split.
+ * @author @jgclark
+ * @param {string} filename
+ * @returns {boolean}
+ */
+export function noteOpenInEditor(filename: string): boolean {
+  const allEditorWindows = NotePlan.editors
+  for (const thisEditorWindow of allEditorWindows) {
+    if (thisEditorWindow.filename === filename) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Tests whether the provided filename is open in an Editor window/split.
+ * Note: this is a newer name for the function noteOpenInEditor(), which is now deprecated.
+ * @author @jgclark
+ * @param {string} filename
+ * @returns {boolean}
+ */
+export function isNoteOpenInEditor(filename: string): boolean {
+  const allEditorWindows = NotePlan.editors
+  for (const thisEditorWindow of allEditorWindows) {
+    if (thisEditorWindow.filename === filename) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Returns the first open Editor window that matches a given filename (if any).
+ * If 'getLastOpenEditor' is true, then return the last matching open Editor window (which is the most recently opened one) instead.
+ * @author @jgclark
+ * @param {string} openNoteFilename to find in list of open Editor windows
+ * @param {boolean} getLastOpenEditor - whether to return the last open Editor window (which is the most recently opened one) instead of the first one that matches the filename (the default)
+ * @returns {TEditor | false} the matching open Editor window or false if not found
+ */
+export function getOpenEditorFromFilename(openNoteFilename: string, getLastOpenEditor: boolean = false): TEditor | false {
+  const allEditorWindows = NotePlan.editors
+  const matchingEditorWindows = allEditorWindows.filter(ew => ew.filename === openNoteFilename)
+  if (matchingEditorWindows.length === 0) {
+    logDebug('getOpenEditorFromFilename', `No open Editor window found for filename '${openNoteFilename}'`)
+    return false
+  }
+  if (getLastOpenEditor) {
+    return matchingEditorWindows[matchingEditorWindows.length - 1]
+  }
+  return matchingEditorWindows[0]
+}
+
+/**
  * Show an existing note in an Editor window, identified by its filename.
  * Uses smart features to determine which window or split view to open the note in:
  * - If already open in another window or split, simply focuses it.
  * - If not open, opens it in a new split view.
  * Returns true if successful, false otherwise.
  * Note: only designed for macOS, but may work in a limited way on other platforms.
- *
  * Note: Prefer the showLine... variant of this (below) where possible.
  * @param {string} filename - the filename of the note to open
- * @param {any} opts - the options for opening the note
- *   - highlightStart: number, the start position of the highlight (if set)
- *   - highlightEnd: number, the end position of the highlight (if set)
+ * @param {string} newWindowType - the type of window to open the note in ('window' or 'split') if not already open
  * @returns {boolean} success?
  */
-export async function smartOpenNoteInEditorFromFilename(filename: string, opts: any): Promise<boolean> {
+export async function smartOpenNoteInEditorFromFilename(filename: string, newWindowType: 'window' | 'split' = 'window'): Promise<boolean> {
   try {
-    if (!filename) throw 'No filename: stopping'
-    clo(opts, 'smartOpenNoteInEditorFromFilename: opts')
-    const highlightStart = opts.highlightStart ?? 0
-    const highlightEnd = opts.highlightEnd ?? 0
+    if (!filename) throw 'No filename: stopping.'
 
-    // If note is already open, then simply focus it
-    const isAlreadyOpen = isNoteOpenInEditor(filename)
-    if (isAlreadyOpen) {
-      logDebug('smartOpenNoteInEditorFromFilename', `Note '${filename}' is already open in an Editor window. Will focus it.`)
-      const thisEditor = getOpenEditorFromFilename(filename)
-      if (thisEditor) {
-        thisEditor.focus()
-        logDebug('smartOpenNoteInEditorFromFilename', `Focused Editor window '${thisEditor.id}' for filename '${filename}'`)
-      }
+    const thisEditor = await getOrOpenEditorFromFilename(filename, newWindowType)
+    if (thisEditor) {
+      thisEditor.focus()
+      logDebug('smartOpenNoteInEditorFromFilename', `Focused Editor window '${thisEditor.id}' for filename '${filename}'`)
       return true
     }
-
-    // Note is not already open, so open it in a new window or split view.
-    logDebug('smartOpenNoteInEditorFromFilename', `Opening note '${filename}' in a new split view.`)
-    const possibleNote = await Editor.openNoteByFilename(filename, false, highlightStart, highlightEnd, true, false)
-    if (possibleNote) {
-      logDebug('smartOpenNoteInEditorFromFilename', `Opened new split view for filename '${filename}'`)
-      Editor.focus()
-      return true
-    }
-  
-    // Fallback
-    const newWindowType = opts.newWindowType ?? 'window'
-    throw new Error(`Could not open note '${filename}' in a new window/view with newWindowType: ${newWindowType}. Stopping.`)
+    return false
   } catch (error) {
     logError('smartOpenNoteInEditorFromFilename', error.message)
     return false
@@ -284,45 +315,57 @@ export async function smartOpenNoteInEditorFromFilename(filename: string, opts: 
  * Note: Handles Teamspace notes from b1375 (v3.17.0).
  * @param {string} filename - the filename of the note to open
  * @param {string} content - the content of the note to open
+ * @param {string} newWindowType - the type of window to open the note in ('window' or 'split') if not already open
  * @returns {boolean} success?
  */
-export async function smartShowLineInEditorFromFilename(filename: string, content: string): Promise<boolean> {
+export async function smartShowLineInEditorFromFilename(filename: string, content: string, newWindowType: 'window' | 'split' = 'window'): Promise<boolean> {
   try {
-    if (!filename) throw new Error('No filename: stopping')
-    if (!content) throw new Error('No content: stopping')
+    if (!filename) throw new Error('No filename: stopping.')
+    if (!content) throw new Error('No content: stopping.')
 
-    // If note is already open, then simply highlight the line
-    const isAlreadyOpen = isNoteOpenInEditor(filename)
-    if (isAlreadyOpen) {
-      logDebug('smartShowLineInEditorFromFilename', `Note '${filename}' is already open in an Editor window. Will highlight the line.`)
-      const thisEditor = getOpenEditorFromFilename(filename)
-      if (thisEditor) {
-        logDebug('smartShowLineInEditorFromFilename', `Focused Editor window '${thisEditor.id}' for filename '${filename}'`)
-        // $FlowIgnore[prop-missing]
-        // $FlowIgnore[incompatible-call]
-        const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
-        if (!res) {
-          logWarn('smartShowLineInEditorFromFilename', `Failed to highlight paragraph in already-open note '${filename}'`)
-        }
-      }
-      return true
-    }
-
-    // Note is not already open, so open it in a new window or split view.
-    const possibleNote = await Editor.openNoteByFilename(filename, false, 0, 0, true, false)
-    if (possibleNote) {
-      logDebug('smartShowLineInEditorFromFilename', `Opened new split view for filename '${filename}'`)
+    const thisEditor = await getOrOpenEditorFromFilename(filename, newWindowType)
+    if (thisEditor) {
+      logDebug('smartShowLineInEditorFromFilename', `Focused Editor window '${thisEditor.id}' for filename '${filename}'`)
       // $FlowIgnore[prop-missing]
       // $FlowIgnore[incompatible-call]
       const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
-      logDebug('smartShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph`,)
-      return true
+      if (!res) {
+        logWarn('smartShowLineInEditorFromFilename', `Failed to highlight paragraph in already-open note '${filename}'`)
+      }
     }
-  
-    // Fallback
-    throw new Error(`Could not open note '${filename}' in a new Split View. Stopping.`)
+    return true
   } catch (error) {
     logError('smartShowLineInEditorFromFilename', `Error "${error.message}" for note '${filename}' and content {${content || '?'}}.`)
+    return false
+  }
+}
+
+/**
+ * Get the open Editor that matches a given filename.  [Related: getOpenEditorFromFilename()]
+ * If the original Editor is still open, then return it, otherwise open the note in a new window/split view and return the new Editor.
+ * (This can be needed when you have an Editor reference, but then open other window(s), and you want to use the original Editor still.)
+ * On failure, return false.
+ * @param {string} filename - the filename of the note to find
+ * @param {string} newWindowType - the type of window to open the note in ('window' or 'split')
+ * @returns {TEditor | false} the open Editor window that matches the filename, or false if not found
+ */
+export async function getOrOpenEditorFromFilename(filename: string, newWindowType: 'window' | 'split' = 'window'): Promise<TEditor | false> {
+  try {
+    if (!filename) throw new Error('No filename passed: stopping.')
+    // Find the open Editor window that matches the filename (if any)
+    let thisEditor = getOpenEditorFromFilename(filename)
+    if (thisEditor) {
+      return thisEditor
+    }
+
+    // If not found, then try to open the note in a new window/split view and return the new Editor
+    const res = await Editor.openNoteByFilename(filename, false, 0, 0, newWindowType === 'split', false)
+    if (!res) throw new Error('Failed to open note in a new window/split view: stopping.')
+    thisEditor = getOpenEditorFromFilename(filename)
+    if (!thisEditor) throw new Error('Failed to get Editor window after trying to open Editor for filename: stopping.')
+    return thisEditor
+  } catch (error) {
+    logError('getOrOpenEditorFromFilename', error.message)
     return false
   }
 }

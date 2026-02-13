@@ -26,7 +26,7 @@ import {
 } from '@helpers/general'
 import { setIconForNote } from '@helpers/note'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { noteOpenInEditor } from '@helpers/NPWindows'
+import { noteOpenInEditor } from '@helpers/NPEditor'
 import { showMessage } from "@helpers/userInput"
 
 //----------------------------------------------------------------------------
