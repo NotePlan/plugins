@@ -5,7 +5,7 @@
 - dev: refactored `chartStats.js` to use the same data-gathering path as Period Stats and Progress Update (`gatherOccurrences` + `gatherOccurrencesHelpers` + `TMOccurrences`).
 - dev: refactored `chartStatsScript.js` to move stats generation code into `chartStats.js`, to improve testability and maintainability
 - dev: fix showHTMLV2() to always write out to savedFilename if set, even if window fails to open
-- fix: @mention totals and averages – normalise mention matching so config entries with or without leading `@` both match note text (e.g. `sleep` and `@sleep`), and look up chart data by tag with or without `@`/`#` so the same occurrence is used and totals are correct (fixes under-reported totals and average appearing greater than total)
+- fix: @mention totals and averages – normalise mention matching so config entries with or without leading `@` or `#` both match note text (e.g. `sleep` and `@sleep`).
 
 ## [1.1.0.b5] - 2026-02-12 (unreleased)
 - suppress display of 'total' or 'average' stats and 'average line' on items that aren't listed in the total or average settings.

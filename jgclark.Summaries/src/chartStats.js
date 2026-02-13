@@ -386,7 +386,7 @@ function formatTime(decimalHours: number): string {
  * @param {number} days - Number of days to look at (default 7)
  * @returns {number} Average
  */
-function getRecentAverage(data: Array<number>, days?: number): number {
+export function getRecentAverage(data: Array<number>, days?: number): number {
   const n = days ?? 7
   if (!data || !Array.isArray(data)) return 0
   const recentData = data.slice(-n).filter((v) => (Number(v) || 0) > 0)
@@ -401,7 +401,7 @@ function getRecentAverage(data: Array<number>, days?: number): number {
  * @param {number} periodSize (default 7)
  * @returns {number} Average
  */
-function getLastPeriodAverage(data: Array<number>, periodSize?: number): number {
+export function getLastPeriodAverage(data: Array<number>, periodSize?: number): number {
   const w = periodSize ?? 7
   if (!data || !Array.isArray(data) || data.length === 0) return 0
   const lastPeriodStart = Math.floor((data.length - 1) / w) * w
@@ -418,7 +418,7 @@ function getLastPeriodAverage(data: Array<number>, periodSize?: number): number 
  * @param {SummariesConfig} config - For significantFigures, averageType, time/total/average/count tag lists
  * @returns {Array<TagDisplayStat>} One entry per tag
  */
-function computeTagDisplayStats(tagData: Object, tags: Array<string>, config: SummariesConfig): Array<TagDisplayStat> {
+export function computeTagDisplayStats(tagData: Object, tags: Array<string>, config: SummariesConfig): Array<TagDisplayStat> {
   const toNum = (v: mixed) => Number(v) || 0
   const sigFigs = config.chartSignificantFigures ?? 3
   // Config uses 'period'; client uses 'weekly' for the same behaviour — normalize here

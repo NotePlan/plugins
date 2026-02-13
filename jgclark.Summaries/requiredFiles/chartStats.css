@@ -443,14 +443,15 @@ canvas {
 
 .heatmap-cell.completed {
   /* background: #32d74b; */
-  background: color-mix(in oklch, var(--fg-main-color), green 80%);
-  /* border-color: var(--border-color); */
+  /* background: color-mix(in oklch, var(--fg-main-color), green 80%); */
+  background: var(--tint-color, green 80%);
+  border-color: var(--border-color);
 }
 
 .heatmap-cell.incomplete {
   /* background: #992e2e; */
-  background: color-mix(in oklch, var(--bg-main-color), red 90%);
-  /* border-color: var(--border-color); */
+  /* background: color-mix(in oklch, var(--bg-main-color), red 90%); */
+  border-color: var(--border-color);
 }
 
 /*
