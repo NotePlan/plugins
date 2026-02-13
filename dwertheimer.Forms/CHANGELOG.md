@@ -4,6 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.0.28] 2026-02-08 @dwertheimer
+
+### Fixed
+- **Infinite loop on load with preloaded content**: Forms with `preloadChooserData: true` could cause an infinite render loop. FormView was passing new object/array references every render for `defaultValues` and preloaded* props (`preloadedTeamspaces`, `preloadedMentions`, `preloadedHashtags`, `preloadedEvents`, `preloadedFrontmatterValues`), which retriggered DynamicDialog's "add missing keys" useEffect repeatedly. These props are now memoized with content-based dependencies so references only change when the actual data changes.
+
+### Edited in this release
+- `dwertheimer.Forms/src/components/FormView.jsx` — Added useMemo for defaultValuesStable and preloaded*Stable props passed to DynamicDialog.
+
 ## [1.0.27] 2026-02-08 @dwertheimer
 
 ### Added

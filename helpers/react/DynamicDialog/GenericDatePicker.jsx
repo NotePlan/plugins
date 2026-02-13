@@ -166,23 +166,7 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
       if (valueChanged) {
         lastSentValueRef.current = formatted
         onSelectDate(formatted)
-        // Optionally close native calendar after picker selection (not while typing)
-        if (inputRef.current) {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              setTimeout(() => {
-                const el = inputRef.current
-                if (el && document.activeElement === el) {
-                  el.blur()
-                  const wrapper = el.closest && el.closest('.generic-date-picker-wrapper')
-                  if (wrapper && wrapper.parentElement) {
-                    wrapper.parentElement.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }))
-                  }
-                }
-              }, 50)
-            })
-          })
-        }
+        // Do not blur here: blurring after typing a date stole focus and broke tab order through the form. User can Tab to next field or close calendar by clicking outside.
       }
     }
     // Empty or unparseable: do nothing. Input is uncontrolled so DOM keeps user's typing. Clear only on blur or Clear button.
@@ -221,15 +205,11 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
     }
   }
 
-  // Handle Enter key to prevent form submission
+  // Handle Enter key: prevent form submission but do not blur (keeping focus so user can Tab to next field)
   const handleKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault()
       e.stopPropagation()
-      // Blur the input to trigger validation
-      if (inputRef.current) {
-        inputRef.current.blur()
-      }
     }
   }
 
