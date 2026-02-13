@@ -445,7 +445,7 @@ export function doWindowResized(): TBridgeClickHandlerResult {
 */
 export async function doShowNoteInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, modifierKey } = validateAndFlattenMessageObject(data)
-  const result = await smartOpenNoteInEditorFromFilename(filename, { newWindowType: modifierKey === 'alt' ? 'split' : 'window', highlightStart: 0, highlightEnd: 0 })
+  const result = await smartOpenNoteInEditorFromFilename(filename, modifierKey === 'alt' ? 'split' : 'window')
   return handlerResult(result)
 }
 
@@ -457,7 +457,7 @@ export async function doShowNoteInEditorFromFilename(data: MessageDataObject): P
 */
 export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename } = validateAndFlattenMessageObject(data)
-  const result = await smartOpenNoteInEditorFromFilename(filename, { newWindowType: 'window', highlightStart: 0, highlightEnd: 0 })
+  const result = await smartOpenNoteInEditorFromFilename(filename, 'window')
   return handlerResult(result)
 }
 
@@ -485,8 +485,9 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   // }
 
   // V2
-  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
-  const result = await smartShowLineInEditorFromFilename(filename, content)
+  const { filename, content, sectionCode, modifierKey } = validateAndFlattenMessageObject(data)
+  logDebug('doShowLineInEditorFromFilename', `starting for filename ${filename} with content {${content}} and modifierKey ${modifierKey}`)
+  const result = await smartShowLineInEditorFromFilename(filename, content, modifierKey === 'alt' ? 'split' : 'window')
   if (result) {
     logDebug('doShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor, followed by ${result ? 'succesful' : 'unsuccessful'} call to highlight the paragraph`,)
     return handlerResult(true)

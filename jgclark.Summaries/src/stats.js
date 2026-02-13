@@ -26,7 +26,8 @@ import { getPeriodStartEndDates, getPeriodStartEndDatesFromPeriodCode } from '@h
 import type { TPeriodCode } from '@helpers/NPdateTime'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { usersVersionHas } from '@helpers/NPVersions'
-import { noteOpenInEditor, openNoteInNewSplitIfNeeded } from '@helpers/NPWindows'
+import { noteOpenInEditor } from '@helpers/NPEditor'
+import { openNoteInNewSplitIfNeeded } from '@helpers/NPWindows'
 import { chooseDecoratedOptionWithModifiers, chooseOption, showMessage } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-01-05 for v2.4.0.b8 by @jgclark
+// Last updated 2026-02-08 for v2.4.0.b20 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -47,6 +47,7 @@ import {
   doReviewFinished,
   doSetNewReviewInterval,
   doSetNextReviewDate,
+  doStartReview,
   doStartReviews,
 } from './projectClickHandlers'
 import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickHandlers'
@@ -195,8 +196,12 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doReviewFinished(data)
         break
       }
+      case 'startReview': {
+        result = await doStartReview(data) // Note: for a particular project
+        break
+      }
       case 'startReviews': {
-        result = await doStartReviews()
+        result = await doStartReviews() // Note: not for a particular project
         break
       }
       case 'cancelProject': {
@@ -528,7 +533,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
           const itemsToUpdateStr = indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', ')
           logInfo('processActionOnReturn', `-> found ${indexes.length} items to update: ${itemsToUpdateStr}`)
           indexes.reverse().forEach((index) => {
-            const { sectionIndex, itemIndex } = index
+            // const { sectionIndex, itemIndex } = index
             // logDebug('processActionOnReturn', `-> updating item sections[${sectionIndex}].sectionItems[${itemIndex}]`)
             // logDebug('processActionOnReturn', `before: ${JSP(sections[sectionIndex].sectionItems[itemIndex])}`)
             // logDebug('processActionOnReturn', `updatedParagraph: ${JSP(updatedParagraph)}`)
@@ -635,13 +640,27 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
             handlerResult.sectionCodes = [...(handlerResult.sectionCodes ?? []), 'TB']
           }
         }
-        logDebug('processActionOnReturn', `... -> ${String(handlerResult.sectionCodes)}`) // TEST: is this working?
+        logDebug('processActionOnReturn', `... -> ${String(handlerResult.sectionCodes)}`)
       }
     }
 
     if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
-      const wantedsectionCodes = handlerResult.sectionCodes ?? []
-      if (!wantedsectionCodes?.length) logError('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided`)
+      // Prefer explicit handlerResult.sectionCodes, then fall back to data.sectionCodes, then enabled sections, then all sections.
+      // This avoids cases (e.g. some addTask flows) where actions request a section refresh but no sectionCodes are provided.
+      if (!handlerResult.sectionCodes) {
+        logWarn('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided from ${data.actionType} and ${filename}; falling back to allSectionCodes. Will fallback to refreshing all sections.`)
+      }
+      let wantedsectionCodes = handlerResult.sectionCodes ?? []
+      if (!wantedsectionCodes.length && data.sectionCodes && data.sectionCodes.length) {
+        wantedsectionCodes = data.sectionCodes
+      }
+      if (!wantedsectionCodes.length && enabledSections && enabledSections.length) {
+        wantedsectionCodes = enabledSections
+      }
+      if (!wantedsectionCodes.length) {
+        wantedsectionCodes = allSectionCodes
+        logWarn('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided; falling back to allSectionCodes`)
+      }
       logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData (for ['${String(wantedsectionCodes)}']) ...`)
       await incrementallyRefreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
     }

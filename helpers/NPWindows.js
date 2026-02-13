@@ -4,11 +4,12 @@
 // See also HTMLView for specifics of working in HTML
 // ----------------------------------------------------------------------------
 
+import { getOpenEditorFromFilename, noteOpenInEditor } from './NPEditor'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search'
 import { inputIntegerBounded } from '@helpers/userInput'
-import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 
 // ----------------------------------------------------------------------------
 // Types
@@ -303,60 +304,6 @@ export function findEditorWindowByFilename(filenameToFind: string): TEditor | fa
 }
 
 /**
- * Deprecated: use isNoteOpenInEditor() instead.
- * Tests whether the provided filename is open in an Editor window/split.
- * @author @jgclark
- * @param {string} filename
- * @returns {boolean}
- */
-export function noteOpenInEditor(filename: string): boolean {
-  const allEditorWindows = NotePlan.editors
-  for (const thisEditorWindow of allEditorWindows) {
-    if (thisEditorWindow.filename === filename) {
-      return true
-    }
-  }
-  return false
-}
-
-/**
- * Tests whether the provided filename is open in an Editor window/split.
- * Note: this is a newer name for the function noteOpenInEditor(), which is now deprecated.
- * @author @jgclark
- * @param {string} filename
- * @returns {boolean}
- */
-export function isNoteOpenInEditor(filename: string): boolean {
-  const allEditorWindows = NotePlan.editors
-  for (const thisEditorWindow of allEditorWindows) {
-    if (thisEditorWindow.filename === filename) {
-      return true
-    }
-  }
-  return false
-}
-
-/**
- * Returns the TEditor that matches a given filename (if available). 
- * If getLastOpenEditor is true, then return the last open Editor window (which is the most recently opened one), otherwise the first one that matches the filename.
- * @author @jgclark
- * @param {string} openNoteFilename to find in list of open Editor windows
- * @param {boolean} getLastOpenEditor - whether to return the last open Editor window
- * @returns {TEditor} the matching open Editor window
- */
-export function getOpenEditorFromFilename(openNoteFilename: string, getLastOpenEditor: boolean = false): TEditor | false {
-  const allEditorWindows = NotePlan.editors
-  const matchingEditorWindows = allEditorWindows.filter(ew => ew.filename === openNoteFilename)
-  if (matchingEditorWindows.length === 0) {
-    logWarn('getOpenEditorFromFilename', `No open Editor window found for filename '${openNoteFilename}'`)
-    return false
-  }
-  return getLastOpenEditor
-    ? matchingEditorWindows[matchingEditorWindows.length - 1]
-    : matchingEditorWindows[0]
-}
-
-/**
  * If the customId matches an open HTML window, then simply focus it, and return true.
  * @param {string} customID
  * @returns {boolean} true if we have given focus to an existing window
@@ -413,23 +360,28 @@ export async function openNoteInNewWindow(
   onlyIfNotAlreadyOpen: boolean = false,
   smartLocation: boolean = true): Promise<boolean> {
   try {
-    // Check if note is already open
+    // If note is already open, then simply focus it
     if (onlyIfNotAlreadyOpen && isEditorWindowOpen(filename)) {
-      logDebug('openNoteInNewWindow', `Note '${filename}' is already open in an Editor window. Skipping.`)
-      return false
+      const thisEditor = getOpenEditorFromFilename(filename, true)
+      if (!thisEditor) {
+        throw new Error(`Couldn't find open Editor window for filename '${filename}'`)
+      }
+      logDebug('openNoteInNewWindow', `Note '${filename}' is already open in an Editor window. Will focus it.`)
+      thisEditor.focus()
+      return true
     }
 
-    // Open the note in a new floating window
-    const res: ?TNote = await Editor.openNoteByFilename(filename, true, 0, 0, false, false) // create new floating window
+    // Not open, so now open the note in a new floating window
+    const res: ?TNote = await Editor.openNoteByFilename(filename, true, 0, 0, false, false)
     if (!res) {
       logWarn('openNoteInNewWindow', `Failed to open floating window '${filename}'`)
       return false
     }
-    logDebug('openNoteInNewWindow', `Opened floating window '${filename}'`)
+    logDebug('openNoteInNewWindow', `Opened new floating window for '${filename}'`)
 
     // Position window at smart location if requested
     if (smartLocation) {
-      const thisEditor = getOpenEditorFromFilename(filename, true)
+      const thisEditor = getOpenEditorFromFilename(filename)
       if (!thisEditor) {
         throw new Error(`Couldn't find open Editor window for filename '${filename}'`)
       }

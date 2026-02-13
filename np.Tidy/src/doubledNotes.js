@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { noteOpenInEditor } from '@helpers/NPEditor'
 import { constrainMainWindow } from '@helpers/NPWindows'
 import { getSettings, percentWithTerm } from './tidyHelpers'
 import { relativeDateFromDate } from '@helpers/NPdateTime'
@@ -13,7 +14,6 @@ import { createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, ge
 import { setIconForNote } from '@helpers/note'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { usersVersionHas } from '@helpers/NPVersions'
-import { noteOpenInEditor } from '@helpers/NPWindows'
 import { showMessage, showMessageYesNo } from "@helpers/userInput"
 
 //----------------------------------------------------------------------------

@@ -10,7 +10,7 @@ import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, getTagParamsFromString } from '@helpers/general'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { noteOpenInEditor } from '@helpers/NPWindows'
+import { noteOpenInEditor } from '@helpers/NPEditor'
 import { chooseOption, chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 const pluginID = 'np.Tidy'

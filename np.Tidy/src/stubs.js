@@ -25,7 +25,7 @@ import {
 } from '@helpers/general'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { appendStringToSettingArray } from '@helpers/NPSettings'
-import { noteOpenInEditor } from '@helpers/NPWindows'
+import { noteOpenInEditor } from '@helpers/NPEditor'
 import { chooseOption, chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 const pluginID = 'np.Tidy'

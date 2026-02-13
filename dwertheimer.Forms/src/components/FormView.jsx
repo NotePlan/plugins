@@ -115,6 +115,33 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   const needsFolders = useMemo(() => formFields.some((field) => field.type === 'folder-chooser'), [formFields])
   const needsNotes = useMemo(() => formFields.some((field) => field.type === 'note-chooser'), [formFields])
 
+  // Stabilize defaultValues and preloaded* props so DynamicDialog's useEffect (add missing keys)
+  // does not re-run on every render. Passing new {} or [] every time causes infinite loops with preloaded content.
+  const defaultValuesStable = useMemo(
+    () => pluginData?.defaultValues ?? {},
+    [pluginData?.defaultValues == null ? '' : JSON.stringify(pluginData.defaultValues)],
+  )
+  const preloadedTeamspacesStable = useMemo(
+    () => pluginData?.preloadedTeamspaces ?? [],
+    [pluginData?.preloadedTeamspaces == null ? '' : JSON.stringify(pluginData.preloadedTeamspaces)],
+  )
+  const preloadedMentionsStable = useMemo(
+    () => pluginData?.preloadedMentions ?? [],
+    [pluginData?.preloadedMentions == null ? '' : JSON.stringify(pluginData.preloadedMentions)],
+  )
+  const preloadedHashtagsStable = useMemo(
+    () => pluginData?.preloadedHashtags ?? [],
+    [pluginData?.preloadedHashtags == null ? '' : JSON.stringify(pluginData.preloadedHashtags)],
+  )
+  const preloadedEventsStable = useMemo(
+    () => pluginData?.preloadedEvents ?? [],
+    [pluginData?.preloadedEvents == null ? '' : JSON.stringify(pluginData.preloadedEvents)],
+  )
+  const preloadedFrontmatterValuesStable = useMemo(
+    () => pluginData?.preloadedFrontmatterValues ?? {},
+    [pluginData?.preloadedFrontmatterValues == null ? '' : JSON.stringify(pluginData.preloadedFrontmatterValues)],
+  )
+
   /**
    * Request data from the plugin using request/response pattern
    * Returns a Promise that resolves with the response data or rejects with an error
@@ -1006,14 +1033,14 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
               notes={notes}
               requestFromPlugin={requestFromPlugin}
               windowId={pluginData.windowId} // Pass windowId to DynamicDialog
-              defaultValues={pluginData?.defaultValues || {}} // Pass default values for form pre-population
+              defaultValues={defaultValuesStable} // Pass default values for form pre-population (stable ref to avoid infinite loop)
               templateFilename={pluginData?.templateFilename || ''} // Pass template filename for autosave
               templateTitle={pluginData?.templateTitle || ''} // Pass template title for autosave
-              preloadedTeamspaces={pluginData?.preloadedTeamspaces || []} // Preloaded teamspaces for static HTML testing
-              preloadedMentions={pluginData?.preloadedMentions || []} // Preloaded mentions for static HTML testing
-              preloadedHashtags={pluginData?.preloadedHashtags || []} // Preloaded hashtags for static HTML testing
-              preloadedEvents={pluginData?.preloadedEvents || []} // Preloaded events for static HTML testing
-              preloadedFrontmatterValues={pluginData?.preloadedFrontmatterValues || {}} // Preloaded frontmatter key values for static HTML testing
+              preloadedTeamspaces={preloadedTeamspacesStable} // Preloaded teamspaces (stable ref to avoid infinite loop)
+              preloadedMentions={preloadedMentionsStable} // Preloaded mentions (stable ref to avoid infinite loop)
+              preloadedHashtags={preloadedHashtagsStable} // Preloaded hashtags (stable ref to avoid infinite loop)
+              preloadedEvents={preloadedEventsStable} // Preloaded events (stable ref to avoid infinite loop)
+              preloadedFrontmatterValues={preloadedFrontmatterValuesStable} // Preloaded frontmatter key values (stable ref to avoid infinite loop)
               onFoldersChanged={() => {
                 reloadFolders()
               }}

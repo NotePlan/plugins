@@ -7,7 +7,7 @@ import pluginJson from '../plugin.json'
 import { type PassedData } from './shared/types.js'
 import { FORMBUILDER_WINDOW_ID, WEBVIEW_WINDOW_ID } from './shared/constants.js'
 import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, loadCustomCSSFromTemplate, loadNewNoteFrontmatterFromTemplate } from './templateIO.js'
-import { getFolders, getNotes, getTeamspaces, getMentions, getHashtags, getEvents } from './dataHandlers'
+import { getFolders, getNotes, getTeamspaces, getMentions, getHashtags, getEvents, getFrontmatterKeyValues } from './dataHandlers'
 import { closeWindowFromCustomId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { logDebug, logError, timer, JSP, clo } from '@helpers/dev'
@@ -461,7 +461,6 @@ async function preloadFrontmatterKeyValues(pluginData: Object, frontmatterKeys: 
   }
 
   try {
-    const { getFrontmatterKeyValues } = await import('./requestHandlers.js')
     const preloadedValues: { [string]: Array<string> } = {}
 
     // Preload values for each unique frontmatter key
@@ -501,7 +500,6 @@ async function preloadFrontmatterKeyValues(pluginData: Object, frontmatterKeys: 
  */
 async function preloadAllChooserData(pluginData: Object, requirements: Object): Promise<void> {
   logDebug(pluginJson, `preloadAllChooserData: Loading chooser data upfront for static HTML testing`)
-
   preloadFolders(pluginData, requirements.needsFolders)
   preloadNotes(pluginData, requirements.needsNotes)
   preloadTeamspaces(pluginData, requirements.needsSpaces)
@@ -597,13 +595,13 @@ export async function openFormWindow(argObj: Object): Promise<void> {
 
     // Generate base customId (without random suffix) for searching existing windows
     const baseCustomId = getFormWindowId(argObj?.formTitle || argObj?.windowTitle || '')
-    
+
     // IMPORTANT: If we re-open a form into an existing HTML window with the same base `customId`,
-    // NotePlan may keep the window around after close and reuse it, replacing its HTML/JS. We've seen recurring 
-    // native crashes in JavaScriptCore (`EXC_BAD_ACCESS` in `JSC::JSRunLoopTimer::Manager::timerDidFireCallback`) 
-    // when a window is "reloaded" this way, likely due to pending timers/cleanup in the old WebView/React instance 
+    // NotePlan may keep the window around after close and reuse it, replacing its HTML/JS. We've seen recurring
+    // native crashes in JavaScriptCore (`EXC_BAD_ACCESS` in `JSC::JSRunLoopTimer::Manager::timerDidFireCallback`)
+    // when a window is "reloaded" this way, likely due to pending timers/cleanup in the old WebView/React instance
     // racing with the new load.
-    // Mitigation: 
+    // Mitigation:
     // 1. Search for any existing windows that START WITH the base customId and close them
     // 2. Append a random suffix to make the customId unique, preventing window reuse
     // 3. Store the unique windowId in pluginData so backend receives correct ID (window sends __windowId in requests)
@@ -614,7 +612,10 @@ export async function openFormWindow(argObj: Object): Promise<void> {
       }
     }
     if (windowsToClose.length > 0) {
-      logDebug(pluginJson, `openFormWindow: Found ${windowsToClose.length} existing form window(s) with base customId="${baseCustomId}", closing them before opening new window to avoid JSC crash`)
+      logDebug(
+        pluginJson,
+        `openFormWindow: Found ${windowsToClose.length} existing form window(s) with base customId="${baseCustomId}", closing them before opening new window to avoid JSC crash`,
+      )
       for (const customIdToClose of windowsToClose) {
         closeWindowFromCustomId(customIdToClose)
       }
@@ -625,7 +626,7 @@ export async function openFormWindow(argObj: Object): Promise<void> {
     const randomSuffix = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const uniqueCustomId = `${baseCustomId}-${randomSuffix}`
     logDebug(pluginJson, `openFormWindow: Generated unique customId="${uniqueCustomId}" from base="${baseCustomId}"`)
-    
+
     // Pass the unique windowId to createWindowInitData so it's stored in pluginData.windowId
     // This ensures the window sends the correct __windowId to backend (backend uses __windowId from request, not customId)
     const argObjWithUniqueWindowId = {
