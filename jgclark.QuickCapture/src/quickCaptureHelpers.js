@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helpers for QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 2025-08-19 for v0.17.0 by @jgclark
+// last update 2026-02-14 for v1.0.4 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -26,7 +26,7 @@ export type QCConfigType = {
 }
 
 const defaultConfig = {
-  inboxLocation: 'Inbox',
+  inboxLocation: 'Daily',
   inboxHeading: '📥 Inbox',
   inboxTitle: 'Inbox',
   textToAppendToTasks: '',
@@ -60,8 +60,7 @@ export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = 
       } else {
         logWarn('QuickCapture', 'No QuickCapture settings found')
         await showMessage(`Cannot find settings for the 'QuickCapture' plugin. Please make sure you have installed it in the Plugin Preferences.`)
-        // $FlowIgnore[incompatible-return]
-        return
+        return { ...defaultConfig, shouldAppend: defaultConfig.addInboxPosition === 'append' }
       }
     } else {
       // Additionally set 'shouldAppend' from earlier setting 'addInboxPosition'
@@ -72,7 +71,6 @@ export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = 
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}. Will return default config to allow processing to continue.`)
     await showMessage(`Error finding settings for the 'QuickCapture' plugin. Please check your installation and settings in the Plugin Preferences.`)
-    // $FlowIgnore[incompatible-return]
-    return null
+    return { ...defaultConfig, shouldAppend: defaultConfig.addInboxPosition === 'append' }
   }
 }
