@@ -1,15 +1,18 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
-## [1.3.0.b9] - 2026-02-11
+<!-- - TODO:fix for folder name not being included in project completion list in yearly note -->
+## [1.3.0.b10] - 2026-02-14
+- Added 'Next' review button to top bar.
+- Re-wrote finding open project note now there can be multiple Editors open.
 - Fix: Progress lines with 100% were parsed as 10%
+
+## [1.3.0.b9] - 2026-02-11
 - New setting "Also write most recent Progress line to frontmatter?". When turned on this allows the current progress information to be used in Folder Views. (default: off) (for @oak86)
 - Progress line format now changed to remove colon after date by default (i.e. `Progress: <num>@YYYY-MM-DD <description>`), but existing lines will still be parsed correctly.
 - Pausing or un-pausing on a Project now also updates the `@reviewed()` date
 - New "Show paused?" toggle in the Filter… menu
 - Right-align the toggles in the Filter... menu, suppress re-load when clicking outside the menu when no settings have been changed.
-- Re-wrote finding open project note now there can be multiple Editors open.
-- Added 'Next' review button to top bar.
 
 ## [1.3.0.b8] - 2026-02-08
 - dev: refactor to move most HTML code into separate htmlGenerators.js file

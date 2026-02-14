@@ -56,6 +56,7 @@ export function generateProjectOutputLine(
   if (style === 'Rich') {
     output = generateRichHTMLRow(thisProject, config, statsProgress)
   } else if (style === 'Markdown' || style === 'list') {
+    config.showFolderName = true
     output = generateMarkdownLine(thisProject, config, style, statsProgress, thisPercent)
   } else {
     logWarn('htmlGenerators::generateProjectOutputLine', `Unknown style '${style}'; nothing returned.`)
@@ -315,7 +316,6 @@ function addSVGPercentRing(thisProject: Project, percent: number, colorIn: strin
  * @param {string} style
  * @param {string} statsProgress
  * @param {string} thisPercent
- * @param {boolean} includeFolderDetails include folder details (including any Teamspace name) in output? (default: false)
  * @returns {string}
  * @private
  */

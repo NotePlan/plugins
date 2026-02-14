@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-10 for v1.3.0.b9, @jgclark
+// Last updated 2026-02-14 for v1.3.0.b9, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -24,8 +24,8 @@ import {
   toISODateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { getFolderDisplayName, getFolderFromFilename } from '@helpers/folders'
 import { getOpenEditorFromFilename, saveEditorIfNecessary } from '@helpers/NPEditor'
-import { getFolderFromFilename } from '@helpers/folders'
 import { getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { endOfFrontmatterLineIndex, getFrontmatterAttribute, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
@@ -121,7 +121,7 @@ export class Project {
       }
       this.title = note.title
       this.filename = note.filename
-      // logDebug('Project', `Starting for type ${projectTypeTag}, ${this.filename}`)
+      // logDebug('ProjectConstructor', `Starting for type ${projectTypeTag}, ${this.filename}`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
@@ -138,12 +138,12 @@ export class Project {
         this.note = Editor.note // Note: not plain Editor, as otherwise it isn't the right type and will throw app run-time errors later.
         const versionDateMS = editorNote.versions && editorNote.versions.length > 0 ? new Date(editorNote.versions[0].date).getTime() : NaN
         const timeSinceLastEdit: number = isNaN(versionDateMS) ? NaN : Date.now() - versionDateMS
-        logDebug('Project', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
+        logDebug('ProjectConstructor', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
       } else {
         // read note from DataStore in the usual way
         paras = note.paragraphs
         this.note = note
-        // logDebug('Project', `- read note from datastore `)
+        // logDebug('ProjectConstructor', `- read note from datastore `)
       }
 
       const metadataLineIndex = getOrMakeMetadataLineIndex(note)
@@ -153,7 +153,7 @@ export class Project {
       let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
       const metadataLine = paras[metadataLineIndex].content
       if (mentions.length === 0) {
-        logDebug('Project', `- Grr: .mentions empty: will use metadata line instead`)
+        logDebug('ProjectConstructor', `- Grr: .mentions empty: will use metadata line instead`)
         // Note: If necessary, fall back to getting mentions just from the metadataLine
         mentions = (`${metadataLine} `).split(' ').filter((f) => f[0] === '@')
       }
@@ -174,7 +174,7 @@ export class Project {
               : ''
       } catch (e) {
         this.projectTag = ''
-        logWarn('Project', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
+        logWarn('ProjectConstructor', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
       }
 
       // read in various metadata fields (if present)
@@ -250,27 +250,28 @@ export class Project {
       }
 
       if (this.title.includes('TEST')) {
-        logDebug('Project', `Constructed ${this.projectTag} ${this.filename}:`)
-        logDebug('Project', `  - folder = ${this.folder}`)
-        logDebug('Project', `  - metadataLine = ${metadataLine}`)
-        if (this.isCompleted) logDebug('Project', `  - isCompleted ✔️`)
-        if (this.isCancelled) logDebug('Project', `  - isCancelled ✔️`)
-        if (this.isPaused) logDebug('Project', `  - isPaused ✔️`)
-        logDebug('Project', `  - mentions: ${String(mentions)}`)
-        // logDebug('Project', `  - altMentions: ${String(altMentions)}`)
-        logDebug('Project', `  - hashtags: ${String(hashtags)}`)
-        // logDebug('Project', `  - altHashtags: ${String(altHashtags)}`)
-        logDebug('Project', `  - ${String(this.numTotalItems)} items: open:${String(this.numOpenItems)} completed:${String(this.numCompletedItems)} waiting:${String(this.numWaitingItems)} future:${String(this.numFutureItems)}`)
-        logDebug('Project', `  - completed: ${String(this.numCompletedItems)}`)
-        if (this.mostRecentProgressLineIndex >= 0) logDebug('Project', `  - progress: #${String(this.mostRecentProgressLineIndex)} = ${this.lastProgressComment}`)
-        logDebug('Project', `  - % complete = ${String(this.percentComplete)}`)
-        logDebug('Project', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
+        logDebug('ProjectConstructor', `Constructed ${this.projectTag} ${this.filename}:`)
+        logDebug('ProjectConstructor', `  - folder = ${this.folder}`)
+        logDebug('ProjectConstructor', `  - folder (for display) = ${getFolderDisplayName(this.folder)}`)
+        logDebug('ProjectConstructor', `  - metadataLine = ${metadataLine}`)
+        if (this.isCompleted) logDebug('ProjectConstructor', `  - isCompleted ✔️`)
+        if (this.isCancelled) logDebug('ProjectConstructor', `  - isCancelled ✔️`)
+        if (this.isPaused) logDebug('ProjectConstructor', `  - isPaused ✔️`)
+        logDebug('ProjectConstructor', `  - mentions: ${String(mentions)}`)
+        // logDebug('ProjectConstructor', `  - altMentions: ${String(altMentions)}`)
+        logDebug('ProjectConstructor', `  - hashtags: ${String(hashtags)}`)
+        // logDebug('ProjectConstructor', `  - altHashtags: ${String(altHashtags)}`)
+        logDebug('ProjectConstructor', `  - ${String(this.numTotalItems)} items: open:${String(this.numOpenItems)} completed:${String(this.numCompletedItems)} waiting:${String(this.numWaitingItems)} future:${String(this.numFutureItems)}`)
+        logDebug('ProjectConstructor', `  - completed: ${String(this.numCompletedItems)}`)
+        if (this.mostRecentProgressLineIndex >= 0) logDebug('ProjectConstructor', `  - progress: #${String(this.mostRecentProgressLineIndex)} = ${this.lastProgressComment}`)
+        logDebug('ProjectConstructor', `  - % complete = ${String(this.percentComplete)}`)
+        logDebug('ProjectConstructor', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
       } else {
-        logTimer('Project', startTime, `Constructed ${this.projectTag} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
+        logTimer('ProjectConstructor', startTime, `Constructed ${this.projectTag} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
       }
     }
     catch (error) {
-      logError('Project', error.message)
+      logError('ProjectConstructor', error.message)
       throw error // Re-throw to prevent invalid object creation
     }
   }

@@ -9,7 +9,7 @@
 import moment from 'moment'
 import { generateProjectOutputLine } from './projectsHTMLGenerator'
 import { Project } from './projectClass'
-import { finishReview, finishReviewForNote, renderProjectLists } from './reviews'
+import { finishReviewForNote, renderProjectLists } from './reviews'
 import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
 import { updateAllProjectsListAfterChange } from './allProjectsListHelpers'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
@@ -76,7 +76,7 @@ async function reloadAndUpdateLists(note: TNote, config: ReviewConfig, shouldArc
  */
 function addToYearlyNote(thisProject: Project, config: ReviewConfig): void {
   const lineToAdd = generateProjectOutputLine(thisProject, 
-  config, 'list') // FIXME: not adding foldername. list = for summary note, without [x] etc.
+  config, 'list') // list = for summary note, without [x] etc.
   const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
   if (yearlyNote != null) {
     logInfo('addToYearlyNote', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
