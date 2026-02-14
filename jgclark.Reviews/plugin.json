@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.com/plugins/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "1.3.0.b10",
+  "plugin.version": "1.3.0.b11",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "1.3.0.b9: New 'Also write most recent Progress line to frontmatter?' option.\n1.3.0.b8: Improved the project dialog box, including new 'Start' button for reviews.\n1.3.0.b7: Improved next action processing. Turned back on automatic updates of Dashboard plugin (if open).\n1.3.0.b6: Small improvements.\n1.3.0.b5: New 'Progress Heading' settings. Fix when using `metadata:` key in frontmatter, and \n1.3.0.b4: 'Start Reviews' bug fix and various layout  improvements.\n1.3.0.b3: can now display the first open task/checklist in a project as the 'next action' by adding a new 'Sequential project marker' to the frontmatter (e.g. `project: #sequential`).\n1.3.0.b2: now supports 'show in main window' setting. Other small improvements and fixes.\n1.3.0.b1: now supports projects in (Team)Space notes, using the Perspective setting from Dashboard v2.4 which allows you to specify which (Team)Spaces you wish to include.",
   "plugin.script": "script.js",

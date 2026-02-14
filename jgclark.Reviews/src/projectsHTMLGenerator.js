@@ -273,14 +273,15 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
 
     case 'list': {
       const folderNamePart = config.showFolderName ? getFolderDisplayName(thisProject.folder, true) : ''
+      const folderPrefix = folderNamePart!=='' ? `${folderNamePart} / ` : ''
       if (thisProject.isCompleted) {
-        return `${folderNamePart}[[${titlePart}]]`
+        return `${folderPrefix}[[${titlePart}]]`
       } else if (thisProject.isCancelled) {
-        return `~~${folderNamePart}[[${titlePart}]]~~`
+        return `~~${folderPrefix}[[${titlePart}]]~~`
       } else if (thisProject.isPaused) {
-        return `⏸ **Paused**: ${folderNamePart}[[${titlePart}]]`
+        return `⏸ **Paused**: ${folderPrefix}[[${titlePart}]]`
       } else {
-        return `${folderNamePart}[[${titlePart}]]` // if this has a [ ] prefix then it of course turns it into a task, which is probably not what we want.
+        return `${folderPrefix}[[${titlePart}]]` // if this has a [ ] prefix then it of course turns it into a task, which is probably not what we want.
       }
     }
 

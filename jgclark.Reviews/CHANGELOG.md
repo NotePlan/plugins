@@ -1,7 +1,9 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
-<!-- - TODO:fix for folder name not being included in project completion list in yearly note -->
+## [1.3.0.b11] - 2026-02-14
+- fix for folder name (including Space name) not being included in project completion list in yearly note
+
 ## [1.3.0.b10] - 2026-02-14
 - Added 'Next' review button to top bar.
 - Re-wrote finding open project note now there can be multiple Editors open.

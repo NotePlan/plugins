@@ -75,8 +75,10 @@ async function reloadAndUpdateLists(note: TNote, config: ReviewConfig, shouldArc
  * @private
  */
 function addToYearlyNote(thisProject: Project, config: ReviewConfig): void {
-  const lineToAdd = generateProjectOutputLine(thisProject, 
-  config, 'list') // list = for summary note, without [x] etc.
+  // Pass config with showFolderName so folder appears before title (config may be frozen from loadJSON)
+  const lineToAdd = generateProjectOutputLine(thisProject,
+    { ...config, showFolderName: true },
+    'list') // list = for summary note, without [x] etc.
   const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
   if (yearlyNote != null) {
     logInfo('addToYearlyNote', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-14 for v1.3.0.b9, @jgclark
+// Last updated 2026-02-14 for v1.3.0.b10, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
