@@ -113,9 +113,19 @@ h3, .h3 {
 
 table {
   border-collapse: collapse; /* always! */
+  table-layout: fixed; /* so column widths are respected and col 2 doesn't push 3+4 off */
   width: 100%; /* keep wide to avoid different table widths */
   empty-cells: show;
-  margin-bottom: 2rem;
+  margin-bottom: 0rem;
+}
+
+/* Constrain column 2 so long progress text doesn't push Next Review and Due Date off viewport */
+table colgroup:has(col:nth-child(4)) col:nth-child(2) {
+  width: calc(100% - 14.2rem); /* 3.2rem (col1) + 5.5rem + 5.5rem (col3+4) */
+}
+tr.projectRow td:nth-child(2) {
+  overflow: hidden;
+  min-width: 0; /* allow cell to shrink so ellipsis can apply */
 }
 
 /* Styling for each cell in each row */
@@ -138,6 +148,7 @@ td:first-child, th:first-child {
   font-size: 1.0rem;
   font-weight: normal;
   color: var(--fg-main-color);
+  margin-left: 1rem;
 }
 
 details {
@@ -415,10 +426,11 @@ button, .fake-button, .clickTarget {
 
 /* ---- PROGRESS ----------------------------------------- */
 /* Progress line row: last progress comment, styled like Dashboard ProjectItem */
-/* FIXME: The text truncation is currently not working */
 .projectProgress {
   color: var(--fg-placeholder-color);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  display: block;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

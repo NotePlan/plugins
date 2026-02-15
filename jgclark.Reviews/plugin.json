@@ -327,7 +327,7 @@
     {
       "key": "numberDaysForFutureToIgnore",
       "title": "Ignore tasks set more than these days in the future",
-      "description": "If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 0 days -- i.e. no future items are ignored).",
+      "description": "If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 1 day: all items with future scheduled dates are ignored.)",
       "type": "number",
       "default": 1,
       "required": true

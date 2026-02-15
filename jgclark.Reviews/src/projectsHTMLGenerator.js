@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-02-14 for v1.3.0.b11 by @jgclark
+// Last updated 2026-02-15 for v1.3.0.b11 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
@@ -85,20 +85,10 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, statsPr
       ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
       : []
 
-    if (config.displayDates) {
-      // Write column 2b/2c under title: progress line row (if any) then stats then next actions
-      // parts.push(generateProgressLineRow(thisProject, config, '\n\t\t\t'))
-      parts.push(generateProgressSection(thisProject, config, statsProgress, false))
-      parts.push(generateNextActionsSection(config, nextActionsContent))
-      parts.push(`</td>`)
-    } else {
-      // write progress in next cell instead
-      parts.push(`</td>\n`)
-      parts.push(`\t\t\t<td>`)
-      // parts.push(generateProgressLineRow(thisProject, config, '\n\t\t\t\t'))
-      parts.push(generateProgressSection(thisProject, config, statsProgress, true))
-      parts.push(generateNextActionsSection(config, nextActionsContent))
-    }
+    // Write column 2b/2c under title: progress line row (if any) then stats then next actions
+    parts.push(generateProgressSection(thisProject, config, false))
+    parts.push(generateNextActionsSection(config, nextActionsContent))
+    parts.push(`</td>`)
   }
 
   // Columns 3/4: date information
@@ -181,9 +171,9 @@ function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Ar
  * @private
  */
 function generateDateSection(thisProject: Project, config: ReviewConfig): string {
-  if (!config.displayDates || thisProject.isPaused) {
-    return '<td></td><td></td>'
-  }
+  if (!config.displayDates) return ''
+
+  if (thisProject.isPaused) return '<td></td><td></td>'
 
   if (thisProject.isCompleted) {
     const completionRef = thisProject.completedDuration || "completed"
@@ -458,7 +448,7 @@ export function generateTopBarHTML(config: any): string {
 }
 
 /**
- * Generate folder header HTML for Rich format
+ * Generate folder header HTML for Rich format.
  * @param {string} folderPart - Display name for folder
  * @param {any} config
  * @returns {string}
@@ -469,12 +459,6 @@ export function generateFolderHeaderHTML(folderPart: string, config: any): strin
   parts.push(`  <th colspan=2 class="h4 folder-header">${folderPart}</th>`)
   if (config.displayDates) {
     parts.push(`  <th>Next Review</th><th>Due Date</th>`)
-  } else if (config.displayProgress && config.displayNextActions) {
-    parts.push(`  <th>Progress and/or Next Action</th>`)
-  } else if (config.displayProgress) {
-    parts.push(`  <th>Progress</th>`)
-  } else if (config.displayNextActions) {
-    parts.push(`  <th>Next Action</th>`)
   }
   parts.push(` </tr>\n</thead>\n`)
   parts.push(` <tbody>`)
@@ -501,13 +485,6 @@ export function generateTableStructureHTML(config: any, noteCount: number): stri
 \t<col style="width: 5.5rem">
 </colgroup>
 `)
-    } else if (config.displayProgress) {
-      parts.push(`<thead>
-<colgroup>
-\t<col style="width: 3rem">
-\t<col>
-</colgroup>
-`)
     } else {
       parts.push(`<thead>
 <colgroup>
@@ -522,7 +499,7 @@ export function generateTableStructureHTML(config: any, noteCount: number): stri
 }
 
 /**
- * Generate project tag section HTML
+ * Generate HTML for project tag section header
  * @param {string} thisTag
  * @param {number} noteCount
  * @param {number} due
@@ -530,7 +507,7 @@ export function generateTableStructureHTML(config: any, noteCount: number): stri
  * @param {boolean} isMultipleTags
  * @returns {string}
  */
-export function generateProjectTagSectionHTML(
+export function generateHTMLForProjectTagSectionHeader(
   thisTag: string,
   noteCount: number,
   due: number,

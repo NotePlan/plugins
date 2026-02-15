@@ -138,7 +138,7 @@ Progress: 0@2021-04-05 Project started with a briefing from M about SPECTRE's da
 ```
 
 The starting percentage number doesn't have to be given; if it's not it is **calculated from the % of open and completed tasks** found in the note. From v1.2. there are new settings that affect which open tasks/checklists are included:
-- Ignore tasks set more than these days in the future: If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 0 days -- i.e. no future items are ignored).
+- Ignore tasks set more than these days in the future: If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 1 day: all items with future scheduled dates are ignored.)
 - Ignore checklists in progress? If set, then checklists in progress will not be counted as part of the project's completion percentage.
 
 ### Other settings

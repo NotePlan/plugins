@@ -1,6 +1,7 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+<!--
 ## [1.3.0] - 2026-02-???
 ### Display Improvements
 - Supports opening the Project Lists window in NotePlan's main window on macOS. See Display setting "Open Project Lists in what sort of macOS window?".
@@ -15,6 +16,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - Turned back on the automatic updates of Dashboard plugin (if open). [Requires Dashboard v2.4.0 beta 18 or later.]
 - Improved the dialog box title (now includes folder and clickable project note name)
 - Progress line format now changed to remove colon after date by default (i.e. `Progress: <num>@YYYY-MM-DD <description>`), but existing lines will still be parsed correctly.
+- If "display dates?" setting is off, then any progress or next actions lines are shown under the project title, rather than to the side.
 
 ### Processing Improvements
 - Supports projects in (Team)Space notes, using the settings in the Perspective from Dashboard v2.4 which allows you to specify which (Team)Spaces you wish to include, plus whether or not to include the Private "Space" (all notes not in a Space).
@@ -25,15 +27,18 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - Pausing or un-pausing on a Project now also updates the `@reviewed()` date
 - Stops the 'next action' check from running if the project note is marked as `#sequential`
 <!-- - added new **weekly projects progress** command for JGC -->
-
+<!--
 ### Fixed
 - Re-wrote finding open project note now there can be multiple Editors open.
 - Folder name (including Space name) not being included in project completion list in yearly note
 - Progress lines with 100% were parsed as 10%
 - Other smaller improvements and fixes (including those reported by @Garba, @Mourique and @Doug)
+-->
 
-## [1.3.0.b11] - 2026-02-14
+## [1.3.0.b11] - 2026-02-15
+- get display of progress lines working again in the main display, and truncate when too long
 - fix for folder name (including Space name) not being included in project completion list in yearly note
+- if "display dates?" setting is off, then any progress or next actions lines are shown under the project title, rather than to the side.
 
 ## [1.3.0.b10] - 2026-02-14
 - Added 'Next' review button to top bar.
