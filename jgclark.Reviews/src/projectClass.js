@@ -237,6 +237,7 @@ export class Project {
       }
 
       // Find progress field lines (if any) and process
+      // logDebug('ProjectConstructor', `- about to call processProgressLines() for ${this.title}`)//  ✅
       this.processProgressLines()
 
       // If percentComplete not set via progress line, then calculate
@@ -263,7 +264,8 @@ export class Project {
         // logDebug('ProjectConstructor', `  - altHashtags: ${String(altHashtags)}`)
         logDebug('ProjectConstructor', `  - ${String(this.numTotalItems)} items: open:${String(this.numOpenItems)} completed:${String(this.numCompletedItems)} waiting:${String(this.numWaitingItems)} future:${String(this.numFutureItems)}`)
         logDebug('ProjectConstructor', `  - completed: ${String(this.numCompletedItems)}`)
-        if (this.mostRecentProgressLineIndex >= 0) logDebug('ProjectConstructor', `  - progress: #${String(this.mostRecentProgressLineIndex)} = ${this.lastProgressComment}`)
+        logDebug('ProjectConstructor', `  - progressLineIndex: #${String(this.mostRecentProgressLineIndex ?? '-')}`)
+        logDebug('ProjectConstructor', `  - progress: <${String(this.lastProgressComment)}>`)
         logDebug('ProjectConstructor', `  - % complete = ${String(this.percentComplete)}`)
         logDebug('ProjectConstructor', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
       } else {
@@ -717,7 +719,8 @@ export class Project {
    */
   processProgressLines(): void {
     // Get specific 'Progress' field lines
-    const progressParas = getFieldParagraphsFromNote(this.note, 'progress')
+    const progressParas = getFieldParagraphsFromNote(this.note, 'Progress')
+    // logDebug('Project::processProgressLines', `  - found ${String(progressParas.length)} progress lines for ${this.title}`)
 
     if (progressParas.length > 0) {
       // Get the most recent progressItem from these lines
@@ -726,6 +729,7 @@ export class Project {
       this.lastProgressComment = progressItem.comment
       this.mostRecentProgressLineIndex = progressItem.lineIndex
       // logDebug('Project::processProgressLines', `  -> ${String(this.percentComplete)}% from progress line`)
+      // logDebug('Project::processProgressLines', `  -> lastProgressComment: ${this.lastProgressComment}`)
     } else {
       // logDebug('Project::processProgressLines', `- no progress fields found`)
     }

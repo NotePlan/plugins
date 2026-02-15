@@ -37,7 +37,7 @@ function showProjectControlDialog(dataObject) {
   const thisFolderName = getFolderFromFilename(thisFilename)
   const thisTitle = decodeRFC3986URIComponent(dataObject.encodedTitle)
   const dialogNoteFolderElem = document.getElementById('dialogProjectFolder')
-  dialogNoteFolderElem.innerHTML = thisFolderName !== '' ? `${thisFolderName} / ` : ''
+  dialogNoteFolderElem.innerHTML = thisFolderName !== '' ? `${thisFolderName}/` : ''
   const dialogItemNoteElem = document.getElementById('dialogProjectNote')
   dialogItemNoteElem.innerHTML = thisTitle ?? thisFilename
 
@@ -58,6 +58,14 @@ function showProjectControlDialog(dataObject) {
   const thisReviewInterval = dataObject.reviewInterval ?? ''
   const dialogItemIntervalElem = document.getElementById('dialogProjectInterval')
   dialogItemIntervalElem.innerHTML = ` (review every ${thisReviewInterval})`
+
+  // Set latest progress summary (encoded for safe passing in onclick)
+  const encodedLastProgress = dataObject.encodedLastProgressComment ?? ''
+  const lastProgressComment = encodedLastProgress ? decodeRFC3986URIComponent(encodedLastProgress) : ''
+  const dialogLatestProgressLabelElem = document.getElementById('dialogLatestProgressLabel')
+  dialogLatestProgressLabelElem.textContent = lastProgressComment ? 'Latest: ' : ''
+  const dialogLatestProgressTextElem = document.getElementById('dialogLatestProgressText')
+  dialogLatestProgressTextElem.textContent = lastProgressComment ? `${lastProgressComment}` : ''
 
   console.log(`showProjectControlDialog() starting for filename '${thisFilename}', interval '${thisReviewInterval}', title '${thisTitle}'`)
 

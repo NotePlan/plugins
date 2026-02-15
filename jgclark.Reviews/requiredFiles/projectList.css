@@ -414,6 +414,16 @@ button, .fake-button, .clickTarget {
 }
 
 /* ---- PROGRESS ----------------------------------------- */
+/* Progress line row: last progress comment, styled like Dashboard ProjectItem */
+/* FIXME: The text truncation is currently not working */
+.projectProgress {
+  color: var(--fg-placeholder-color);
+  font-size: 0.9rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .progress {
   display: flex;
   align-items: baseline;

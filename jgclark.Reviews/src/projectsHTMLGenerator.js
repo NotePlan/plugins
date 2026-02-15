@@ -3,13 +3,12 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-02-13 for v1.3.0.b9 by @jgclark
+// Last updated 2026-02-14 for v1.3.0.b11 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
-import { addFAIcon } from './reviewHelpers'
+import { addFAIcon, type ReviewConfig } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
-// import { tailwindToHsl } from '@helpers/colors'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
 import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
@@ -27,16 +26,16 @@ import { encodeRFC3986URIComponent, prepAndTruncateMarkdownForDisplay } from '@h
  * Now uses fontawesome icons for some indicators.
  * Note: this is V2, now *not* part of the Project class, so can take config etc.
  * @param {Project} thisProject
- * @param {any} config
+ * @param {ReviewConfig} config
  * @param {string} style: 'Rich' (-> HTML), or 'Markdown'
  * @returns {string} HTML or Markdown string for the project output line (or empty string if error)
  */
 export function generateProjectOutputLine(
   thisProject: Project,
-  config: any,
+  config: ReviewConfig,
   style: string,
 ): string {
-  // logDebug('generateProjectOutputLine', `- ${thisProject.title}: nRD ${thisProject.nextReviewDays} / due ${thisProject.dueDays}`)
+  // logInfo('generateProjectOutputLine', `- ${thisProject.title}: nRD ${thisProject.nextReviewDays} / due ${thisProject.dueDays}`)
   const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
   let output = ''
   let statsProgress = ''
@@ -56,7 +55,6 @@ export function generateProjectOutputLine(
   if (style === 'Rich') {
     output = generateRichHTMLRow(thisProject, config, statsProgress)
   } else if (style === 'Markdown' || style === 'list') {
-    config.showFolderName = true
     output = generateMarkdownLine(thisProject, config, style, statsProgress, thisPercent)
   } else {
     logWarn('htmlGenerators::generateProjectOutputLine', `Unknown style '${style}'; nothing returned.`)
@@ -68,18 +66,18 @@ export function generateProjectOutputLine(
 /**
  * Generate Rich HTML row for project
  * @param {Project} thisProject
- * @param {any} config
+ * @param {ReviewConfig} config
  * @param {string} statsProgress
  * @returns {string}
  * @private
  */
-function generateRichHTMLRow(thisProject: Project, config: any, statsProgress: string): string {
+function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, statsProgress: string): string {
   const parts: Array<string> = []
   parts.push(`\t<tr class="projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}">\n\t\t`)
   parts.push(generateCircleIndicator(thisProject))
 
   // Column 2a: Project name / link / edit dialog trigger button
-  const editButton = `          <span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}'})"><i class="fa-light fa-edit"></i></span>\n`
+  const editButton = `          <span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}', encodedLastProgressComment:'${encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')}'})"><i class="fa-light fa-edit"></i></span>\n`
   parts.push(`\n\t\t\t<td><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}</span>`)
 
   if (!thisProject.isCompleted && !thisProject.isCancelled) {
@@ -88,7 +86,8 @@ function generateRichHTMLRow(thisProject: Project, config: any, statsProgress: s
       : []
 
     if (config.displayDates) {
-      // Write column 2b/2c under title
+      // Write column 2b/2c under title: progress line row (if any) then stats then next actions
+      // parts.push(generateProgressLineRow(thisProject, config, '\n\t\t\t'))
       parts.push(generateProgressSection(thisProject, config, statsProgress, false))
       parts.push(generateNextActionsSection(config, nextActionsContent))
       parts.push(`</td>`)
@@ -96,6 +95,7 @@ function generateRichHTMLRow(thisProject: Project, config: any, statsProgress: s
       // write progress in next cell instead
       parts.push(`</td>\n`)
       parts.push(`\t\t\t<td>`)
+      // parts.push(generateProgressLineRow(thisProject, config, '\n\t\t\t\t'))
       parts.push(generateProgressSection(thisProject, config, statsProgress, true))
       parts.push(generateNextActionsSection(config, nextActionsContent))
     }
@@ -131,39 +131,37 @@ function generateCircleIndicator(thisProject: Project): string {
 }
 
 /**
- * Generate progress section HTML
+ * Generate progress section HTML (stats: percent done / item count; comment shown in progress line row when present)
  * @param {Project} thisProject
- * @param {any} config
- * @param {string} statsProgress
+ * @param {ReviewConfig} config
  * @param {boolean} useDiv - Whether to use div instead of span
  * @returns {string}
  * @private
  */
-function generateProgressSection(thisProject: Project, config: any, statsProgress: string, useDiv: boolean = false): string {
+function generateProgressSection(thisProject: Project, config: ReviewConfig, useDiv: boolean = false): string {
   if (!config.displayProgress) return ''
-
   const tag = useDiv ? 'div' : 'span'
   const indent = useDiv ? '\t\t\t\t' : '\n\t\t\t\t'
-  let output = `${indent}<${tag} class="progress">`
 
+  // logDebug('generateProgressSection', `for ${thisProject.title}: lastProgressComment: ${thisProject.lastProgressComment}`)
+  // If there is a progress comment, show it in the progress line row, otherwise show only stats
   if (thisProject.lastProgressComment !== '') {
-    output += `<span class="progressIcon"><i class="fa-solid fa-info-circle"></i></span><span class="progressText">${thisProject.lastProgressComment}</span>`
+    return `${indent}<${tag} class="projectProgress"><i class="fa-regular fa-circle-info pad-right"></i>${thisProject.lastProgressComment}</${tag}>`
   } else {
-    output += `<span class="progressText">${statsProgress}</span>`
+  //   return `${indent}<${tag} class="progress"><span class="progressText">${statsProgress}</span></${tag}>`
+    return ''
   }
-  output += `</${tag}>`
-  return output
 }
 
 /**
  * Generate next actions text lines as HTML <divs>.
  * Prepares and truncates long next actions to 80 characters, with ellipsis if truncated. Also simplifies Markdown links to just the [title].
- * @param {any} config
+ * @param {ReviewConfig} config
  * @param {Array<string>} nextActionsContent
  * @returns {string}
  * @private
  */
-function generateNextActionsSection(config: any, nextActionsContent: Array<string>): string {
+function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Array<string>): string {
   if (!config.displayNextActions || nextActionsContent.length === 0) return ''
 
   const parts: Array<string> = []
@@ -178,11 +176,11 @@ function generateNextActionsSection(config: any, nextActionsContent: Array<strin
 /**
  * Generate date section HTML for Rich format
  * @param {Project} thisProject
- * @param {any} config
+ * @param {ReviewConfig} config
  * @returns {string}
  * @private
  */
-function generateDateSection(thisProject: Project, config: any): string {
+function generateDateSection(thisProject: Project, config: ReviewConfig): string {
   if (!config.displayDates || thisProject.isPaused) {
     return '<td></td><td></td>'
   }
@@ -600,8 +598,12 @@ export function generateProjectControlDialogHTML(): string {
           <button data-control-str="newrevint"><i class="fa-solid fa-arrows-left-right"></i> New Interval</button>
         </div>
         <div>Progress:</div>
-        <div>
+        <div class="dialogProgressRow">
           <button data-control-str="progress"><i class="fa-solid fa-comment-lines"></i> Add Progress</button>
+          <div><!-- to stop gap from appearing between next 2 spans -->
+            <span id="dialogLatestProgressLabel" class="dialogLatestProgressLabel"></span>
+            <span id="dialogLatestProgressText" class="dialogLatestProgressText"></span>
+          </div>
         </div>
         <div>
         </div>
