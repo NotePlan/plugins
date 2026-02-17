@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-02-10 for v1.3.0.b9, @jgclark 
+ * Last updated 2026-02-16 for v1.3.0.b12, @jgclark 
  */
 
 body {
@@ -399,7 +399,7 @@ button, .fake-button, .clickTarget {
 /* first line of column 2 */
 .projectTitle {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem;
 }
 /* make noteTitle icon + text bold and coloured, and indicate its clickable */
@@ -422,6 +422,24 @@ button, .fake-button, .clickTarget {
 /* make noteTitle links underlined on mouse hover */
 .noteTitleText:hover {
   text-decoration: underline;
+}
+
+/* ---- ITEM COUNTS ----------------------------------------- */
+
+/* Task count badge (rounded square) */
+.openItemCount {
+  display: inline-flex;
+  justify-content: center;
+  /* min-width: 0.9rem; */
+  height: 0.85rem;
+  padding: 0.1rem 0.2rem 0rem 0.2rem;
+  border-radius: 6px;
+  color: rgb(from var(--fg-main-color) r g b / 0.7);
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.4);
+  font-size: 0.7rem;
+  /* font-weight: 400; */
+  line-height: 0.8rem;
+  margin-left: 0.1rem;
 }
 
 /* ---- PROGRESS ----------------------------------------- */

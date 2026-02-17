@@ -35,6 +35,10 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - Other smaller improvements and fixes (including those reported by @Garba, @Mourique and @Doug)
 -->
 
+## [1.3.0.b12] - 2026-02-16
+- Added a count badge to project list rows: shows count of open (non-future) items in a small grey square. Badges only appear for active projects and when counts are greater than zero.
+- Added an "Add Task" button to the edit dialog, which asks user for task details, and which heading to add it under.
+
 ## [1.3.0.b11] - 2026-02-15
 - get display of progress lines working again in the main display, and truncate when too long
 - fix for folder name (including Space name) not being included in project completion list in yearly note

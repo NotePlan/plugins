@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-02-15 for v1.3.0.b11 by @jgclark
+// Last updated 2026-02-16 for v1.3.0.b12 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
@@ -53,7 +53,7 @@ export function generateProjectOutputLine(
   }
 
   if (style === 'Rich') {
-    output = generateRichHTMLRow(thisProject, config, statsProgress)
+    output = generateRichHTMLRow(thisProject, config)
   } else if (style === 'Markdown' || style === 'list') {
     output = generateMarkdownLine(thisProject, config, style, statsProgress, thisPercent)
   } else {
@@ -67,18 +67,18 @@ export function generateProjectOutputLine(
  * Generate Rich HTML row for project
  * @param {Project} thisProject
  * @param {ReviewConfig} config
- * @param {string} statsProgress
  * @returns {string}
  * @private
  */
-function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, statsProgress: string): string {
+function generateRichHTMLRow(thisProject: Project, config: ReviewConfig): string {
   const parts: Array<string> = []
   parts.push(`\t<tr class="projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}">\n\t\t`)
   parts.push(generateCircleIndicator(thisProject))
 
-  // Column 2a: Project name / link / edit dialog trigger button
+  // Column 2a: Project name + link / item count badge / edit dialog trigger button
   const editButton = `          <span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}', encodedLastProgressComment:'${encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')}'})"><i class="fa-light fa-edit"></i></span>\n`
-  parts.push(`\n\t\t\t<td><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}</span>`)
+  const openItemCount = generateItemCountsBadge(thisProject)
+  parts.push(`\n\t\t\t<td><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}${openItemCount}</span>`)
 
   if (!thisProject.isCompleted && !thisProject.isCancelled) {
     const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
@@ -118,6 +118,29 @@ function generateCircleIndicator(thisProject: Project): string {
   } else {
     return `<td class="first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</td>`
   }
+}
+
+/**
+ * Generate item count badge HTML
+ * @param {Project} thisProject
+ * @returns {string}
+ * @private
+ */
+function generateItemCountsBadge(thisProject: Project): string {
+  const parts: Array<string> = []
+  
+  // Only show counts for active projects
+  if (thisProject.isCompleted || thisProject.isCancelled) {
+    return ''
+  }
+  
+  // Task count badge (circle)
+  const badgeNumber = (thisProject.numOpenItems - thisProject.numFutureItems > 0) ? thisProject.numOpenItems - thisProject.numFutureItems : 0
+  if (badgeNumber > 0) {
+    parts.push(`<span class="openItemCount">${badgeNumber}</span>`)
+  }
+  
+  return parts.join('')
 }
 
 /**
@@ -515,7 +538,14 @@ export function generateHTMLForProjectTagSectionHeader(
   isMultipleTags: boolean
 ): string {
   const parts: Array<string> = []
-  const headingContent = `<span class="h3 folder-name">${thisTag}</span> <span class="folder-header-text">(${noteCount} items, ${due} ready for review${config.numberDaysForFutureToIgnore > 0 ? ', with future items ignored' : ''})</span>`
+  // TODO: figure out what to do about paused/caompleted being filtered out, when displaying the count here.
+  let numberItemsStr = (config.displayOnlyDue)
+    ? `${due} of ${noteCount} notes ready for review`
+    : `${noteCount} notes`
+  if (config.numberDaysForFutureToIgnore > 0) {
+    numberItemsStr += ` (with future tasks ignored)`
+  }
+  const headingContent = `<span class="h2">${thisTag}</span><span class="folder-header-text">${numberItemsStr}</span>`
   
   if (isMultipleTags) {
     parts.push(`  <details open>`) // start it open
@@ -573,6 +603,7 @@ export function generateProjectControlDialogHTML(): string {
           <button data-control-str="complete"><i class="fa-solid fa-circle-check"></i> Complete</button>
           <button data-control-str="cancel"><i class="fa-solid fa-circle-xmark"></i> Cancel</button>
           <button data-control-str="newrevint"><i class="fa-solid fa-arrows-left-right"></i> New Interval</button>
+          <button data-control-str="addtask"><i class="fa-solid fa-circle-plus"></i> Add Task</button>
         </div>
         <div>Progress:</div>
         <div class="dialogProgressRow">

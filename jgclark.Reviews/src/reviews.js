@@ -38,7 +38,7 @@ import { calcReviewFieldsForProject, Project } from './projectClass'
 import {
   generateProjectOutputLine,
   generateTopBarHTML,
-  generateProjectTagSectionHTML,
+  generateHTMLForProjectTagSectionHeader,
   generateTableStructureHTML,
   generateProjectControlDialogHTML,
   generateFolderHeaderHTML,
@@ -517,13 +517,11 @@ export async function renderProjectListsHTML(
       // Get the summary line for each revelant project
       const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
 
-      // Generate project tag section HTML
-      outputArray.push(generateProjectTagSectionHTML(thisTag, noteCount, due, config, config.projectTypeTags.length > 1))
+      // Generate project tag section header
+      outputArray.push(generateHTMLForProjectTagSectionHeader(thisTag, noteCount, due, config, config.projectTypeTags.length > 1))
       
       if (noteCount > 0) {
-        // Generate table structure HTML
         outputArray.push(generateTableStructureHTML(config, noteCount))
-        // outputArray.push('<tbody>')
         outputArray.push(thisSummaryLines.join('\n'))
         outputArray.push('   </tbody>')
         outputArray.push('  </table>')
@@ -532,7 +530,6 @@ export async function renderProjectListsHTML(
           outputArray.push(`</details>`)
         }
       }
-      // tagCount++
       logTimer('renderProjectListsHTML', funcTimer, `end of loop for ${thisTag}`)
     }
 
@@ -763,7 +760,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
 //-------------------------------------------------------------------------------
 
 /**
- * Return summary of notes that contain a specified 'projectTag', for all relevant folders, in 'Markdown' or 'Rich' style.
+ * Return summary of notes that contain a specified 'projectTag', for all wanted folders, and suitably filtered, in 'Markdown' or 'Rich' style.
  * Reads from the already generated allProjects JSON file.
  * @author @jgclark
  *
@@ -780,11 +777,13 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
     logDebug('generateReviewOutputLines', `Starting for tag(s) '${projectTag}' in ${style} style`)
 
     // Get all wanted projects (in useful order and filtered)
-    const projectsToReview: Array<Project> = await filterAndSortProjectsList(config, projectTag)
+    const [projectsToReview, numberProjectsUnfiltered] = await filterAndSortProjectsList(config, projectTag)
     let lastFolder = ''
     let noteCount = 0
     let due = 0
     const outputArray: Array<string> = []
+
+    // TEST: Now use numberProjectsUnfiltered by passing it up to the display.
 
     // Process each project
     for (const thisProject of projectsToReview) {
@@ -847,8 +846,8 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
 
       lastFolder = folder
     }
-    logTimer('generateReviewOutputLines', startTime, `Generated for ${String(noteCount)} notes for tag(s) '${projectTag}' in ${style} style`)
-    return [outputArray, noteCount, due]
+    logTimer('generateReviewOutputLines', startTime, `Generated for ${String(noteCount)} notes (and ${numberProjectsUnfiltered} unfiltered) for tag(s) '${projectTag}' in ${style} style`)
+    return [outputArray, numberProjectsUnfiltered, due]
   } catch (error) {
     logError('generateReviewOutputLines', `${error.message}`)
     return [[], NaN, NaN] // for completeness

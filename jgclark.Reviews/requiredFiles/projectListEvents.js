@@ -77,6 +77,7 @@ function showProjectControlDialog(dataObject) {
     { controlStr: 'nr+1m', handlingFunction: 'setNextReviewDate' },
     { controlStr: 'nr+1q', handlingFunction: 'setNextReviewDate' },
     { controlStr: 'newrevint', handlingFunction: 'setNewReviewInterval' },
+    { controlStr: 'addtask', handlingFunction: 'quickAddTaskUnderHeading' },
     { controlStr: 'progress', handlingFunction: 'addProgress' },
     { controlStr: 'pause', handlingFunction: 'togglePause' },
     { controlStr: 'complete', handlingFunction: 'completeProject' },
