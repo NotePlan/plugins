@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "1.1.0.b5",
+  "plugin.version": "1.1.0.b6",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "1.1.0: new command '/chart progress summary'.\n1.0.3: worked around a new bug in the API affecting stats for hashtags and mentions.\n1.0.1: under-the-hood changes to progressUpdate.\n1.0.0: add support for 'all' time period in stats command. Allow override of settings for periodStats when called from x-callbacks. Other improvements and fixes.\n0.22.1: fix empty lines appearing in template output from `progressUpdate(...)` calls.\n0.22.0: Add support for checklist progress.\n0.21.0: Add Mermaid charting command. Fix to simple weekly CSV generation.\n0.20.3: Bug fix for progressUpdate() in templates.\n0.20.2: Added x-callback options for /periodStats.\n0.20.1: fix refresh after '/append progress update' command. Logging change.\n0.20.0: add new '/today progress' and '/heatmap for tag' commands, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.",
   "plugin.dependencies": [],
@@ -347,29 +347,6 @@
       "required": true
     },
     {
-      "key": "chartTotalTags",
-      "title": "Tags to show as totals",
-      "description": "Tags that should show totals instead of averages in the summary.",
-      "type": "[string]",
-      "default": [
-        "@work",
-        "@run"
-      ],
-      "required": false
-    },
-    {
-      "key": "chartTagsToDisplayAsTimes",
-      "title": "Tags to display using time format",
-      "description": "Tags to display as HH:MM in charts (e.g. '@bedtime' or '@sleep'. Note: this does not itself ask for a tag to be included in the summary list.",
-      "type": "[string]",
-      "default": [
-        "@bedtime",
-        "@sleep",
-        "@tv"
-      ],
-      "required": false
-    },
-    {
       "key": "chartHeight",
       "title": "Chart height (px)",
       "description": "Height in pixels for numeric-tag charts.",
@@ -404,7 +381,7 @@
     {
       "key": "chartAverageType",
       "title": "Chart average line",
-      "description": "Type of average line to show on numeric charts: 'none' (no average), 'moving' (7-day moving average), 'weekly' (average of each successive 7-day period).",
+      "description": "Type of average line to show on charts where an average is requested: 'none' (no average), 'moving' (7-day moving average), 'weekly' (average of each successive 7-day period).",
       "type": "string",
       "choices": [
         "none",
@@ -626,6 +603,29 @@
       "type": "[string]",
       "required": false,
       "default": []
+    },
+    {
+      "key": "chartTotalTags",
+      "title": "Tags to show as totals",
+      "description": "Tags that should show totals instead of averages in the summary.",
+      "type": "[string]",
+      "default": [
+        "@work",
+        "@run"
+      ],
+      "required": false
+    },
+    {
+      "key": "chartTagsToDisplayAsTimes",
+      "title": "Tags to display using time format",
+      "description": "Tags to display as HH:MM in charts (e.g. '@bedtime' or '@sleep'. Note: this does not itself ask for a tag to be included in the summary list.",
+      "type": "[string]",
+      "default": [
+        "@bedtime",
+        "@sleep",
+        "@tv"
+      ],
+      "required": false
     }
   ]
 }

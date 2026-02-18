@@ -1,8 +1,18 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-## [1.1.0.b5] - 2026-02-06 (unreleased)
+## [1.1.0.b6] - 2026-02-??? (unreleased)
+- dev: refactored `chartStats.js` to use the same data-gathering path as Period Stats and Progress Update (`gatherOccurrences` + `gatherOccurrencesHelpers` + `TMOccurrences`).
+- dev: refactored `chartStatsScript.js` to move stats generation code into `chartStats.js`, to improve testability and maintainability
+- dev: fix showHTMLV2() to always write out to savedFilename if set, even if window fails to open
+- fix: @mention totals and averages – normalise mention matching so config entries with or without leading `@` or `#` both match note text (e.g. `sleep` and `@sleep`).
+
+## [1.1.0.b5] - 2026-02-12 (unreleased)
 - suppress display of 'total' or 'average' stats and 'average line' on items that aren't listed in the total or average settings.
+- add display of a 'days:' stat for the items which are defined as 'count'
+- fix calculations to count items without a numeric value as `1`
+- fix calculations to total items of type `#hashtag/4`
+- tweak display spacing
 
 ## [1.1.0.b4] - 2026-02-04 (private beta)
 - removed setting "Yes/No chart height (px)" as it wasn't being used

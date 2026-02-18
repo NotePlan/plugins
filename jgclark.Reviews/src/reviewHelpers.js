@@ -260,9 +260,10 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
         comment = tempSplitParts[3] ?? ''
       }
 
-      const tempNumberMatches = progressLine.match(/(\d{1,2})@/)
+      const tempNumberMatches = progressLine.match(/(\d{1,3})@/)
       // logDebug('processMostRecentProgressParagraph', `tempNumberMatches: ${String(tempNumberMatches)}`)
-      const percent: number = tempNumberMatches && tempNumberMatches.length > 0 ? Number(tempNumberMatches[1]) : NaN
+      const rawPercent = tempNumberMatches && tempNumberMatches.length > 0 ? Number(tempNumberMatches[1]) : NaN
+      const percent: number = !isNaN(rawPercent) ? Math.min(100, Math.max(0, rawPercent)) : NaN
       // logDebug('processMostRecentProgressParagraph', `-> ${String(percent)}`)
 
       if (thisDate > lastDate) {
@@ -362,23 +363,24 @@ export function getOrMakeMetadataLineIndex(note: CoreNoteFields, metadataLinePla
  * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the note in the Editor.
  * It takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of it will be removed first, before that string is appended.
  * @author @jgclark
+ * @param {TEditor} thisEditor - the Editor window to update
  * @param {Array<string>} mentions to update:
  * @returns { ?TNote } current note
  */
-export function updateMetadataInEditor(updatedMetadataArr: Array<string>): void {
+export function updateMetadataInEditor(thisEditor: TEditor, updatedMetadataArr: Array<string>): void {
   try {
     logDebug('updateMetadataInEditor', `Starting for '${displayTitle(Editor)}' with metadata ${String(updatedMetadataArr)}`)
     
     // Only proceed if we're in a valid Project note (with at least 2 lines)
-    if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
+    if (thisEditor.note == null || thisEditor.note.type === 'Calendar' || thisEditor.note.paragraphs.length < 2) {
       logWarn('updateMetadataInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
-    const thisNote = Editor // note: not Editor.note
+    const thisNote = thisEditor // note: not thisEditor.note
 
-    const metadataLineIndex: number = getOrMakeMetadataLineIndex(Editor)
+    const metadataLineIndex: number = getOrMakeMetadataLineIndex(thisEditor)
     // Re-read paragraphs, as they might have changed
-    const metadataPara = Editor.paragraphs[metadataLineIndex]
+    const metadataPara = thisEditor.paragraphs[metadataLineIndex]
     if (!metadataPara) {
       throw new Error(`Couldn't get or make metadataPara for ${displayTitle(Editor)}`)
     }
@@ -404,7 +406,7 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): void 
 
     // send update to Editor (removing multiple and trailing spaces)
     metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
-    Editor.updateParagraph(metadataPara)
+    thisEditor.updateParagraph(metadataPara)
     // await saveEditorToCache() // might be stopping code execution here for unknown reasons
     logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
   } catch (error) {
@@ -472,29 +474,30 @@ export function updateMetadataInNote(note: CoreNoteFields, updatedMetadataArr: A
 /**
  * Update project metadata @mentions (e.g. @reviewed(date)) in the note in the Editor
  * @author @jgclark
+ * @param {TEditor} thisEditor - the Editor window to update
  * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
  * @returns { ?TNote } current note
  */
-export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>): void {
+export function deleteMetadataMentionInEditor(thisEditor: TEditor, mentionsToDeleteArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
-    if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
+    if (thisEditor.note == null || thisEditor.note.type === 'Calendar' || thisEditor.note.paragraphs.length < 2) {
       logWarn('deleteMetadataMentionInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
-    const thisNote = Editor // note: not Editor.note
+    const thisNote = thisEditor // note: not thisEditor.note
 
-    const metadataLineIndex: number = getOrMakeMetadataLineIndex(Editor)
+    const metadataLineIndex: number = getOrMakeMetadataLineIndex(thisEditor)
     // Re-read paragraphs, as they might have changed
-    const metadataPara = Editor.paragraphs[metadataLineIndex]
+    const metadataPara = thisEditor.paragraphs[metadataLineIndex]
     if (!metadataPara) {
-      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(Editor)}`)
+      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(thisEditor)}`)
     }
 
     const origLine: string = metadataPara.content
     let newLine = origLine
 
-    logDebug('deleteMetadataMentionInEditor', `starting for '${displayTitle(Editor)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
+    logDebug('deleteMetadataMentionInEditor', `starting for '${displayTitle(thisEditor)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
 
     for (const mentionName of mentionsToDeleteArr) {
       // logDebug('deleteMetadataMentionInEditor', `Processing ${item} for ${mentionName}`)
@@ -506,7 +509,7 @@ export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>
 
     // send update to Editor (removing multiple and trailing spaces)
     metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
-    Editor.updateParagraph(metadataPara)
+    thisEditor.updateParagraph(metadataPara)
     // await saveEditorToCache() // seems to stop here but without error
     logDebug('deleteMetadataMentionInEditor', `- Finished`)
   } catch (error) {

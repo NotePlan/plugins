@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-02-06 for v1.3.0.b8, @jgclark
+// Last updated 2026-02-13 for v1.3.0.b9, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -22,6 +22,7 @@ export {
   finishReviewAndStartNextReview,
   generateProjectListsAndRenderIfOpen,
   displayProjectLists,
+  nextReview,
   redisplayProjectListHTML,
   renderProjectLists,
   renderProjectListsIfOpen,
@@ -34,8 +35,8 @@ export {
 } from './reviews'
 export {
   generateAllProjectsList,
-  getNextNoteToReview, //  TODO: remove in time
-  getNextProjectsToReview, //  TODO: remove in time
+  getNextNoteToReview, //  TODO: remove in time. But why?
+  getNextProjectsToReview, //  TODO: remove in time. But why?
   logAllProjectsList
 } from './allProjectsListHelpers'
 // export { NOP } from './reviewHelpers'

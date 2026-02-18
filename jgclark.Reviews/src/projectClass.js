@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-10 for v1.3.0.b9, @jgclark
+// Last updated 2026-02-14 for v1.3.0.b10, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -24,8 +24,8 @@ import {
   toISODateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { saveEditorIfNecessary } from '@helpers/NPEditor'
-import { getFolderFromFilename } from '@helpers/folders'
+import { getFolderDisplayName, getFolderFromFilename } from '@helpers/folders'
+import { getOpenEditorFromFilename, saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { endOfFrontmatterLineIndex, getFrontmatterAttribute, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
@@ -121,7 +121,7 @@ export class Project {
       }
       this.title = note.title
       this.filename = note.filename
-      // logDebug('Project', `Starting for type ${projectTypeTag}, ${this.filename}`)
+      // logDebug('ProjectConstructor', `Starting for type ${projectTypeTag}, ${this.filename}`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
@@ -138,12 +138,12 @@ export class Project {
         this.note = Editor.note // Note: not plain Editor, as otherwise it isn't the right type and will throw app run-time errors later.
         const versionDateMS = editorNote.versions && editorNote.versions.length > 0 ? new Date(editorNote.versions[0].date).getTime() : NaN
         const timeSinceLastEdit: number = isNaN(versionDateMS) ? NaN : Date.now() - versionDateMS
-        logDebug('Project', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
+        logDebug('ProjectConstructor', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
       } else {
         // read note from DataStore in the usual way
         paras = note.paragraphs
         this.note = note
-        // logDebug('Project', `- read note from datastore `)
+        // logDebug('ProjectConstructor', `- read note from datastore `)
       }
 
       const metadataLineIndex = getOrMakeMetadataLineIndex(note)
@@ -153,7 +153,7 @@ export class Project {
       let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
       const metadataLine = paras[metadataLineIndex].content
       if (mentions.length === 0) {
-        logDebug('Project', `- Grr: .mentions empty: will use metadata line instead`)
+        logDebug('ProjectConstructor', `- Grr: .mentions empty: will use metadata line instead`)
         // Note: If necessary, fall back to getting mentions just from the metadataLine
         mentions = (`${metadataLine} `).split(' ').filter((f) => f[0] === '@')
       }
@@ -174,7 +174,7 @@ export class Project {
               : ''
       } catch (e) {
         this.projectTag = ''
-        logWarn('Project', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
+        logWarn('ProjectConstructor', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
       }
 
       // read in various metadata fields (if present)
@@ -250,27 +250,28 @@ export class Project {
       }
 
       if (this.title.includes('TEST')) {
-        logDebug('Project', `Constructed ${this.projectTag} ${this.filename}:`)
-        logDebug('Project', `  - folder = ${this.folder}`)
-        logDebug('Project', `  - metadataLine = ${metadataLine}`)
-        if (this.isCompleted) logDebug('Project', `  - isCompleted ✔️`)
-        if (this.isCancelled) logDebug('Project', `  - isCancelled ✔️`)
-        if (this.isPaused) logDebug('Project', `  - isPaused ✔️`)
-        logDebug('Project', `  - mentions: ${String(mentions)}`)
-        // logDebug('Project', `  - altMentions: ${String(altMentions)}`)
-        logDebug('Project', `  - hashtags: ${String(hashtags)}`)
-        // logDebug('Project', `  - altHashtags: ${String(altHashtags)}`)
-        logDebug('Project', `  - ${String(this.numTotalItems)} items: open:${String(this.numOpenItems)} completed:${String(this.numCompletedItems)} waiting:${String(this.numWaitingItems)} future:${String(this.numFutureItems)}`)
-        logDebug('Project', `  - completed: ${String(this.numCompletedItems)}`)
-        if (this.mostRecentProgressLineIndex >= 0) logDebug('Project', `  - progress: #${String(this.mostRecentProgressLineIndex)} = ${this.lastProgressComment}`)
-        logDebug('Project', `  - % complete = ${String(this.percentComplete)}`)
-        logDebug('Project', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
+        logDebug('ProjectConstructor', `Constructed ${this.projectTag} ${this.filename}:`)
+        logDebug('ProjectConstructor', `  - folder = ${this.folder}`)
+        logDebug('ProjectConstructor', `  - folder (for display) = ${getFolderDisplayName(this.folder)}`)
+        logDebug('ProjectConstructor', `  - metadataLine = ${metadataLine}`)
+        if (this.isCompleted) logDebug('ProjectConstructor', `  - isCompleted ✔️`)
+        if (this.isCancelled) logDebug('ProjectConstructor', `  - isCancelled ✔️`)
+        if (this.isPaused) logDebug('ProjectConstructor', `  - isPaused ✔️`)
+        logDebug('ProjectConstructor', `  - mentions: ${String(mentions)}`)
+        // logDebug('ProjectConstructor', `  - altMentions: ${String(altMentions)}`)
+        logDebug('ProjectConstructor', `  - hashtags: ${String(hashtags)}`)
+        // logDebug('ProjectConstructor', `  - altHashtags: ${String(altHashtags)}`)
+        logDebug('ProjectConstructor', `  - ${String(this.numTotalItems)} items: open:${String(this.numOpenItems)} completed:${String(this.numCompletedItems)} waiting:${String(this.numWaitingItems)} future:${String(this.numFutureItems)}`)
+        logDebug('ProjectConstructor', `  - completed: ${String(this.numCompletedItems)}`)
+        if (this.mostRecentProgressLineIndex >= 0) logDebug('ProjectConstructor', `  - progress: #${String(this.mostRecentProgressLineIndex)} = ${this.lastProgressComment}`)
+        logDebug('ProjectConstructor', `  - % complete = ${String(this.percentComplete)}`)
+        logDebug('ProjectConstructor', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
       } else {
-        logTimer('Project', startTime, `Constructed ${this.projectTag} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
+        logTimer('ProjectConstructor', startTime, `Constructed ${this.projectTag} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
       }
     }
     catch (error) {
-      logError('Project', error.message)
+      logError('ProjectConstructor', error.message)
       throw error // Re-throw to prevent invalid object creation
     }
   }
@@ -350,13 +351,13 @@ export class Project {
     } else {
       // Update regular paragraph content (existing behavior)
       metadataPara.content = newMetadataLine
-      if (Editor && Editor.note && Editor.note === this.note) {
-        Editor.updateParagraph(metadataPara)
-        DataStore.updateCache(this.note, true)
+      const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
+      if (possibleThisEditor) {
+        possibleThisEditor.updateParagraph(metadataPara)
       } else {
         this.note.updateParagraph(metadataPara)
-        DataStore.updateCache(this.note, true)
       }
+      DataStore.updateCache(this.note, true)
     }
   }
 
@@ -532,13 +533,16 @@ export class Project {
    */
   async addProgressLine(prompt: string = 'Enter comment about current progress for'): Promise<void> {
     try {
+      const thisFilename = this.note.filename
       // Figure out if we're working in the Editor or a note
-      const isInEditor = Editor && Editor.note && Editor.note.filename === this.note.filename
-      if (isInEditor) {
-        logDebug('Project::addProgressLine', `Working in EDITOR for note '${this.note.filename}'`)
+      // Now have to check all open Editors, not just the current one.
+      const possibleThisEditor = getOpenEditorFromFilename(thisFilename)
+      if (possibleThisEditor) {
+        logDebug('Project::addProgressLine', `Working in EDITOR '${possibleThisEditor.id}' for note '${thisFilename}'`)
       } else {
-        logDebug('Project::addProgressLine', `Working on DATASTORE note '${this.note.filename}'`)
+        logDebug('Project::addProgressLine', `Can't find open Editor for note '${thisFilename}', so will use DATASTORE note`)
       }
+        
       // Get progress heading from config
       const message1 = `${prompt} '${this.title}'`
       const resText = await getInputTrimmed(message1, 'OK', `Add Progress comment`)
@@ -625,10 +629,10 @@ export class Project {
             logDebug('Project::addProgressLine', `Inserting heading '${progressHeading}' above first Progress line at line ${String(firstProgressLineIndex)}`)
             
             // Insert heading above first Progress line
-            if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
+            if (possibleThisEditor) {
               // $FlowFixMe[incompatible-call]
-              Editor.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
-              await Editor.save()
+              possibleThisEditor.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
+              await possibleThisEditor.save()
             } else {
               // $FlowFixMe[incompatible-call]
               this.note.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
@@ -640,8 +644,8 @@ export class Project {
           logDebug('Project::addProgressLine', `Adding progress line under heading '${progressHeading}'`)
           this.note.addParagraphBelowHeadingTitle(newProgressLine, 'text', progressHeading, false, false)
           
-          if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
-            await Editor.save()
+          if (possibleThisEditor) {
+            await possibleThisEditor.save()
           } else {
             await DataStore.updateCache(this.note, true)
           }
@@ -650,8 +654,8 @@ export class Project {
           logDebug('Project::addProgressLine', `No existing Progress lines, so creating new Section heading '${progressHeading}' if needed`)
           smartCreateSectionsAndPara(this.note, newProgressLine, 'text', [progressHeading], progressHeadingLevel, false)
           
-          if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
-            await Editor.save()
+          if (possibleThisEditor) {
+            await possibleThisEditor.save()
           } else {
             await DataStore.updateCache(this.note, true)
           }
@@ -675,11 +679,11 @@ export class Project {
         }
 
         // And write it to the Editor (if the note is open in it) ...
-        if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
+        if (possibleThisEditor) {
           logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to Editor at line ${String(insertionIndex)}`)
-          Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
-          logDebug('Project::addProgressLine', `- finished Editor.insertParagraph`)
-          await Editor.save()
+          possibleThisEditor.insertParagraph(newProgressLine, insertionIndex, 'text')
+          logDebug('Project::addProgressLine', `- finished thisEditor.insertParagraph`)
+          await possibleThisEditor.save()
           logDebug('Project::addProgressLine', `- after Editor.save`)
         }
         // ... or the project's note
@@ -693,10 +697,10 @@ export class Project {
       }
 
       // If we're in Editor, then need to update display
-      if (isInEditor) {
+      if (possibleThisEditor) {
         await saveEditorIfNecessary()
         logDebug('Project::addProgressLine', `- Editor saved; will now re-open note in that Editor window`)
-        await Editor.openNoteByFilename(this.note.filename)
+        await possibleThisEditor.openNoteByFilename(thisFilename)
         logDebug('Project::addProgressLine', `- note re-opened in Editor window`)
       }
     } catch (error) {
@@ -706,13 +710,10 @@ export class Project {
 
   /**
    * Process the 'Progress:...' lines to retrieve metadata. Allowed forms are:
-   *   Progress: n@YYYYMMDD: progress messsage
-   *   Progress: n:YYYYMMDD: progress messsage
-   *   Progress: n:YYYY-MM-DD: progress messsage
-   *   Progress: n:YYYY-MM-DD: progress messsage
-   *   Progress: YYYYMMDD: progress messsage  [in which case % is calculated]
-   *   Progress: YYYY-MM-DD: progress messsage  [in which case % is calculated]
-   * + all variations without the ':' after the date
+   *   Progress: n@YYYY-MM-DD message   (n = 0-100, preferred; also YYYYMMDD)
+   *   Progress: n:YYYY-MM-DD message
+   *   Progress: YYYY-MM-DD message     [in which case % is calculated from tasks]
+   * + variations with optional ':' after the date (parsed either way)
    */
   processProgressLines(): void {
     // Get specific 'Progress' field lines
@@ -816,10 +817,12 @@ export class Project {
       logDebug('togglePauseProject', `Paused state now toggled to ${String(this.isPaused)} for '${this.title}' ...`)
       const newMetadataLine = this.generateMetadataOutputLine()
       logDebug('togglePauseProject', `- metadata now '${newMetadataLine}'`)
+
       // Update metadata using helper that handles both frontmatter and regular paragraphs
       this.updateMetadataLine(newMetadataLine)
-      if (Editor && Editor.note && Editor.note === this.note) {
-        await Editor.save()
+      const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
+      if (possibleThisEditor) {
+        await possibleThisEditor.save()
       }
 
       // if we want to remove all due dates on pause, then do that

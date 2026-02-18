@@ -1,5 +1,5 @@
 /* eslint-disable prefer-template */
-
+//-----------------------------------------------------------
 /**
  * Chart Stats – client-side script (constant logic).
  * Loaded by makeChartSummaryHTML() and called with data via initChartStats(tagData, yesNoData, tags, yesNoHabits, config).
@@ -7,8 +7,9 @@
  * 
  * Note: this file is run as a script in an HTMLView window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
  * 
- * Last updated: 2026-02-06 for v1.1.0 by @jgclark
+ * Last updated: 2026-02-12 for v1.1.0 by @jgclark
  */
+//-----------------------------------------------------------
 
 (function() {
   'use strict'
@@ -18,18 +19,6 @@
     // Canvas needs a real hex; plugin passes theme-based grid/axis color (fallback dark #52535B)
     const gridColor = config.chartGridColor || '#52535B'
     const axisTextColor = config.chartAxisTextColor || '#52535B'
-
-    function formatToSigFigs(num, sigFigs) {
-      if (num === 0) return '0'
-      sigFigs = sigFigs ?? config.significantFigures
-      const magnitude = Math.floor(Math.log10(Math.abs(num)))
-      const decimals = Math.max(0, sigFigs - magnitude - 1)
-      const roundedNum = Number(num.toFixed(decimals))
-      return roundedNum.toLocaleString(undefined, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: decimals
-      })
-    }
 
     function formatTime(decimalHours) {
       const hours = Math.floor(decimalHours) % 24
@@ -47,6 +36,10 @@
 
     function isAverageTag(tag) {
       return Array.isArray(config.averageTags) && config.averageTags.includes(tag)
+    }
+
+    function isCountTag(tag) {
+      return Array.isArray(config.countTags) && config.countTags.includes(tag)
     }
 
     window.toggleFilters = function() {
@@ -99,6 +92,7 @@
 
     function calculateMovingAverage(data, windowSize) {
       windowSize = windowSize ?? 7
+      if (!data || !Array.isArray(data)) return []
       const result = []
       for (let i = 0; i < data.length; i++) {
         if (i < windowSize - 1) {
@@ -106,7 +100,7 @@
         } else {
           let sum = 0
           for (let j = 0; j < windowSize; j++) {
-            sum += data[i - j]
+            sum += Number(data[i - j]) || 0
           }
           result.push(sum / windowSize)
         }
@@ -173,124 +167,63 @@
       return segments
     }
 
-    function getRecentAverage(data, days) {
-      days = days ?? 7
-      const recentData = data.slice(-days).filter(val => val > 0)
-      if (recentData.length === 0) return 0
-      const sum = recentData.reduce((acc, val) => acc + val, 0)
-      return sum / recentData.length
-    }
-
-    /** Average of the last 7-day period (the period containing the most recent day). */
-    function getLastPeriodAverage(data, windowSize) {
-      windowSize = windowSize ?? 7
-      if (data.length === 0) return 0
-      const lastPeriodStart = Math.floor((data.length - 1) / windowSize) * windowSize
-      const slice = data.slice(lastPeriodStart)
-      const sum = slice.reduce((acc, val) => acc + val, 0)
-      return slice.length > 0 ? sum / slice.length : 0
-    }
-
     const averageType = (config.averageType === 'none' || config.averageType === 'moving' || config.averageType === 'weekly')
       ? config.averageType
       : 'moving'
     const avgLineLabel = averageType === 'weekly' ? 'weekly avg' : '7-day moving avg'
 
-    const totals = tags.map((tag, i) =>
-      tagData.counts[tag].reduce((sum, val) => sum + val, 0)
-    )
-
-    tags.forEach((tag, i) => {
-      let avgDisplay = ''
-      let totalDisplay = ''
-      const validData = tagData.counts[tag].filter(val => val > 0)
-      if (isTimeTag(tag)) {
-        avgDisplay = '--:--'
-        if (validData.length > 0) {
-          const avgValue = validData.reduce((sum, val) => sum + val, 0) / validData.length
-          avgDisplay = formatTime(avgValue)
-        }
-        const avgValueEl = document.getElementById('avg-value-' + i)
-        if (avgValueEl) {
-          avgValueEl.textContent = avgDisplay
-        } else {
-          console.log('avg-value-[' + i + '] not found')
-        }
-      } else {
-        avgDisplay = '0'
-        if (validData.length > 0) {
-          const avgValue = validData.reduce((sum, val) => sum + val, 0) / validData.length
-          avgDisplay = formatToSigFigs(avgValue)
-        }
-        const avgValueEl = document.getElementById('avg-value-' + i)
-        if (avgValueEl) {
-          avgValueEl.textContent = avgDisplay
-        } else {
-          console.log('avg-value-' + i + ' not found')
-        }
-      }
-      const total = totals[i]
-      if (isTimeTag(tag)) {
-        totalDisplay = total > 0 ? formatTime(total) : '0'
-      } else {
-        totalDisplay = formatToSigFigs(total)
-      }
+    // Display stats (count/total/average) are computed on the plugin side (chartStats.js); we only update the DOM here.
+    const tagDisplayStats = config.tagDisplayStats || []
+    tagDisplayStats.forEach(function(stat, i) {
+      const avgValueEl = document.getElementById('avg-value-' + i)
+      if (avgValueEl) avgValueEl.textContent = stat.avgDisplay
+      else console.log('avg-value-[' + i + '] not found')
       const totalValueEl = document.getElementById('total-value-' + i)
-      if (totalValueEl) {
-        totalValueEl.textContent = totalDisplay
-      } else {
-        console.log('total-value-' + i + ' not found')
-      }
-      const totalLabelEl = document.getElementById('total-label-' + i)
-      if (totalLabelEl) {
-        totalLabelEl.textContent = 'total:'
-      } else {
-        console.log('total-label-' + i + ' not found')
-      }
-      let avg
-      const avgLabel = avgLineLabel + ': '
+      if (totalValueEl) totalValueEl.textContent = stat.totalDisplay
+      else console.log('total-value-' + i + ' not found')
       const avgEl = document.getElementById('avg' + i)
-      if (avgEl) {
-        if (averageType === 'none') {
-          avgEl.textContent = '—'
-        } else {
-          if (averageType === 'weekly') {
-            avg = getLastPeriodAverage(tagData.counts[tag])
-          } else if (isTotalTag(tag)) {
-            const recentData = tagData.counts[tag].slice(-7)
-            const sum = recentData.reduce((acc, val) => acc + val, 0)
-            avg = sum / 7
-          } else {
-            avg = getRecentAverage(tagData.counts[tag])
-          }
-          if (isTimeTag(tag)) {
-            avgEl.textContent = avgLabel + formatTime(avg)
-          } else {
-            avgEl.textContent = avgLabel + avg.toFixed(1)
-          }
-        }
-      } else {
-        console.log('avg' + i + ' not found')
-      }
-
-      // Also show per-tag totals/averages in the chart header (unique IDs to avoid clashing with stats section)
+      if (avgEl) avgEl.textContent = stat.avgLineText
       const headerStatAvgEl = document.getElementById('chart-header-avg-value-' + i)
-      if (headerStatAvgEl) {
-        headerStatAvgEl.textContent = avgDisplay
-      }
+      if (headerStatAvgEl) headerStatAvgEl.textContent = stat.avgDisplay
       const headerStatTotalEl = document.getElementById('chart-header-total-value-' + i)
-      if (headerStatTotalEl) {
-        headerStatTotalEl.textContent = totalDisplay
+      if (headerStatTotalEl) headerStatTotalEl.textContent = stat.totalDisplay
+      if (stat.daysCount !== undefined) {
+        const headerStatDaysEl = document.getElementById('chart-header-days-value-' + i)
+        if (headerStatDaysEl) headerStatDaysEl.textContent = String(stat.daysCount)
       }
     })
+
+    /**
+     * True if the series has at least one positive data point.
+     * Missing data are returned as 0 by the backend, so we treat any value > 0 as "has data".
+     */
+    function hasAnyDataPoints(data) {
+      if (!data || !Array.isArray(data)) return false
+      return data.some(function(v) {
+        const n = Number(v)
+        return !Number.isNaN(n) && n > 0
+      })
+    }
 
     const charts = []
 
     tags.forEach((tag, index) => {
       const canvas = document.getElementById('chart' + index)
       if (!canvas) return
-      const ctx = canvas.getContext('2d')
       const data = tagData.counts[tag]
+      const wrapper = document.getElementById('wrapper' + index)
+      const headerMetrics = wrapper ? wrapper.querySelector('.chart-header-metrics') : null
+      const chartContainer = wrapper ? wrapper.querySelector('.chart-container') : null
+
+      if (!hasAnyDataPoints(data)) {
+        if (chartContainer) chartContainer.style.display = 'none'
+        if (headerMetrics) {
+          headerMetrics.innerHTML = '<span class="chart-no-data-message">No data in this period</span>'
+        }
+        return
+      }
+
+      const ctx = canvas.getContext('2d')
       const avgData = averageType === 'moving'
         ? calculateMovingAverage(data)
         : null
@@ -495,12 +428,10 @@
         vizContainer.className = 'yesno-habit-viz'
         const grid = document.createElement('span')
         grid.className = 'heatmap-grid'
-        const dataToShow = data.slice(0, -1)
-        const datesToShow = dates.slice(0, -1)
-        dataToShow.forEach((value, i) => {
+        data.forEach((value, i) => {
           const cell = document.createElement('div')
           cell.className = 'heatmap-cell ' + (value === 1 ? 'completed' : 'incomplete')
-          cell.title = datesToShow[i] + ': ' + (value === 1 ? 'Completed' : 'Not completed')
+          cell.title = dates[i] + ': ' + (value === 1 ? 'Completed' : 'Not completed')
           grid.appendChild(cell)
         })
         vizContainer.appendChild(grid)
@@ -513,7 +444,7 @@
 
         const statStreak = document.createElement('span')
         statStreak.className = 'yesno-habit-stat-streak'
-        statStreak.textContent = 'Streak: ' + streak
+        statStreak.textContent = 'streak: ' + streak
         row.appendChild(statStreak)
         // container.appendChild(row)
       })

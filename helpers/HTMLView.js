@@ -467,6 +467,19 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
     // Ensure we have a window ID to use
     const cId = opts.customId ?? opts.windowTitle ?? 'fallback'
 
+    // If wanted, write the HTML to a file early so we have a copy even if opening the window throws.
+    // Saved to Plugins/Data/<Plugin> folder, not a user-accessible Note.
+    if (opts.savedFilename != null && opts.savedFilename !== '') {
+      const thisFilename = opts.savedFilename ?? ''
+      const filenameWithoutSpaces = thisFilename.split(' ').join('') ?? ''
+      const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
+      if (res) {
+        logDebug('showHTMLV2', `- Saved copy of HTML for '${opts.windowTitle ?? '?'}' to ${thisFilename}`)
+      } else {
+        logError('showHTMLV2', `- Couldn't save resulting HTML for '${opts.windowTitle ?? '?'}' to ${thisFilename}.`)
+      }
+    }
+
     // Before showing anything, see if the window is already open, and if so save its x/y/w/h (if requested)
     if (isHTMLWindowOpen(cId)) {
       logDebug('showHTMLV2', `Window is already open, and will save its x/y/w/h`)
@@ -585,20 +598,6 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         if (win) {
           logDebug('showHTMLV2', `- Window opened successfully with ID '${win.id}'`)
           success = true
-        }
-      }
-
-      // If wanted, also write this HTML to a file so we can work on it offline.
-      // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
-      if (opts.savedFilename !== '') {
-        const thisFilename = opts.savedFilename ?? ''
-        const filenameWithoutSpaces = thisFilename.split(' ').join('') ?? ''
-        // Write to specified file in NP sandbox
-        const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
-        if (res) {
-          logDebug('showHTMLV2', `- Saved copy of HTML for '${opts.windowTitle ?? '?'}' to ${thisFilename}`)
-        } else {
-          logError('showHTMLV2', `- Couldn't save resulting HTML for '${opts.windowTitle ?? '?'}' to ${thisFilename}.`)
         }
       }
 

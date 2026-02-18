@@ -1,17 +1,13 @@
 // @flow
 /** 
  * Habit & Summary Charts
- * Displays charts showing numeric values from tags and yes/no habit completion
- *
- * Tracks:
+ * Displays charts showing numeric values from tags and yes/no habit completion. e.g. 
  *   - Numeric habits: e.g. @sleep(7.23), @sleep_deep(5.2), @rps(10), @alcohol(2), @bedtime(23:30)
  *   - Yes/No habits: e.g. [x] Exercise, [x] In bed 11pm, [x] 10 min reading, #pray, #stretches
  *
- * Note: 
- * - First now taken from .chartTimeTags and .chartTotalTags, but could be taken from .progressMentions, .progressHashtags, .progressHashtagsAverage, .progressHashtagsTotal, .progressMentionsAverage, .progressMentionsTotal
- * - Second now not from .chartYesNoHabits, but could from earlier .progressYesNo
+ * Note: definitions of tags, habits, etc. are now taken from the settings for Progress Updates command.
  *
- * Last updated: 2026-02-01 for v1.1.0 by @jgclark
+ * Last updated: 2026-02-12 for v1.1.0 by @jgclark
  */
 
 // =====================================================================
@@ -37,18 +33,27 @@ In short: Chart.js doesn’t have a built-in “sparkline” type, but you can c
 // import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import { logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
-import { getSummariesSettings } from './summaryHelpers.js'
+import { gatherOccurrences, getSummariesSettings } from './summaryHelpers.js'
 import type { SummariesConfig } from './summarySettings.js'
+import type { OccurrencesToLookFor, TMOccurrences } from './TMOccurrences.js'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
-import { convertISOToYYYYMMDD } from '@helpers/dateTime'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { getLocale } from '@helpers/NPConfiguration'
-import { COMPLETED_TASK_TYPES } from '@helpers/utils'
+
 
 // =====================================================================
-// CONSTANTS
+// TYPES and CONSTANTS
 // =====================================================================
+
+// Per-tag display strings/values for stats section and chart headers (computed by plugin and sent to Window)
+export type TagDisplayStat = {
+  avgDisplay: string,
+  totalDisplay: string,
+  avgLineText: string,
+  daysCount?: number
+}
 
 // Chart.js: CDN and local path
 const chartJsCdnUrl = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
@@ -74,9 +79,6 @@ function getChartAxisTextColor(): string {
   const mode = Editor.currentTheme?.mode
   return mode === 'light' ? CHART_AXIS_TEXT_COLOR_LIGHT_MODE : CHART_AXIS_TEXT_COLOR_DARK_MODE
 }
-
-// Regex to detect time/duration form value: [H]H:MM only (e.g. 23:30, 9:05)
-const TIME_DURATION_PATTERN = /^[0-9]{1,2}:[0-9]{2}$/
 
 // =====================================================================
 // HELPER FUNCTIONS
@@ -137,19 +139,49 @@ export async function chartSummaryStats(daysBack?: number): Promise<void> {
     const daysToShow = daysBack ?? config.chartDefaultDaysBack ?? 30
     // Combine all tag settings and deduplicate (same tag in multiple settings would otherwise appear twice in Totals/charts)
     const tagsRaw = [
-      ...config.progressMentions,
-      ...config.progressHashtags,
-      ...config.progressHashtagsAverage,
-      ...config.progressHashtagsTotal,
-      ...config.progressMentionsAverage,
-      ...config.progressMentionsTotal
+      ...(config.progressMentions ?? []),
+      ...(config.progressHashtags ?? []),
+      ...(config.progressHashtagsAverage ?? []),
+      ...(config.progressHashtagsTotal ?? []),
+      ...(config.progressMentionsAverage ?? []),
+      ...(config.progressMentionsTotal ?? [])
     ]
     const tags = Array.from(new Set(tagsRaw))
     // clo(tags, 'tags')
 
-    const yesNoHabits = config.progressYesNo ?? []
-    const tagData = await collectTagData(tags, daysToShow)
-    const yesNoData = await collectYesNoData(yesNoHabits, daysToShow)
+    const rawDates = generateDateRange(daysToShow)
+    const fromDateStr = rawDates.length > 0 ? rawDates[0] : ''
+    const toDateStr = rawDates.length > 0 ? rawDates[rawDates.length - 1] : ''
+    const occToLookFor = buildOccurrencesToLookForFromChartConfig(config)
+    const periodString = `${daysToShow} days`
+    const occs = gatherOccurrences(periodString, fromDateStr, toDateStr, occToLookFor)
+
+    let tagData: Object
+    let yesNoData: Object
+    let yesNoHabits: Array<string>
+
+    if (occs.length === 0 || rawDates.length === 0) {
+      tagData = {
+        dates: [],
+        counts: tags.reduce((acc, tag) => ({ ...acc, [tag]: [] }), {}),
+        rawDates: [],
+        timeTags: Array.isArray(config.chartTimeTags) ? config.chartTimeTags : []
+      }
+      yesNoHabits = stringListOrArrayToArray(config.progressYesNo ?? [], ',')
+      yesNoData = {
+        dates: [],
+        counts: yesNoHabits.reduce((acc, habit) => ({ ...acc, [habit]: [] }), {}),
+        rawDates: []
+      }
+    } else {
+      const yesNoOccs = occs.filter((occ) => occ.type === 'yesno')
+      const numericOccs = occs.filter((occ) => occ.type !== 'yesno')
+      tagData = buildTagDataFromOccurrences(numericOccs, tags, rawDates, config)
+      const built = buildYesNoDataFromOccurrences(yesNoOccs, rawDates)
+      yesNoData = built.yesNoData
+      yesNoHabits = built.yesNoHabits
+    }
+
     const html = await makeChartSummaryHTML(tagData, yesNoData, tags, yesNoHabits, daysToShow, config)
 
     const windowOptions: HtmlWindowOptions = {
@@ -202,7 +234,269 @@ function formatDateForDisplay(dateStr: string): string {
 }
 
 // ==================================================================
-// TAG VALUE EXTRACTION
+// OCCURRENCES TO LOOK FOR (for gatherOccurrences)
+
+/**
+ * Build OccurrencesToLookFor from chart/progress config so gatherOccurrences uses the same progress settings.
+ * @param {SummariesConfig} config - Plugin config
+ * @returns {OccurrencesToLookFor} Config shape expected by gatherOccurrences
+ */
+function buildOccurrencesToLookForFromChartConfig(config: SummariesConfig): OccurrencesToLookFor {
+  return {
+    GOYesNo: stringListOrArrayToArray(config.progressYesNo ?? [], ','),
+    GOHashtagsCount: stringListOrArrayToArray(config.progressHashtags ?? [], ','),
+    GOHashtagsAverage: stringListOrArrayToArray(config.progressHashtagsAverage ?? [], ','),
+    GOHashtagsTotal: stringListOrArrayToArray(config.progressHashtagsTotal ?? [], ','),
+    GOMentionsCount: stringListOrArrayToArray(config.progressMentions ?? [], ','),
+    GOMentionsAverage: stringListOrArrayToArray(config.progressMentionsAverage ?? [], ','),
+    GOMentionsTotal: stringListOrArrayToArray(config.progressMentionsTotal ?? [], ','),
+    GOChecklistRefNote: config.progressChecklistReferenceNote ?? ''
+  }
+}
+
+/**
+ * Get numeric value for a date from a TMOccurrences; treat missing/NaN as 0 for chart client.
+ * @param {TMOccurrences} occ - TMOccurrences instance
+ * @param {string} dateStr - Date in YYYY-MM-DD format
+ * @returns {number} Value to use in chart series
+ */
+function valueForDate(occ: TMOccurrences, dateStr: string): number {
+  const v = occ.valuesMap.get(dateStr)
+  if (v == null || Number.isNaN(v)) return 0
+  return Number(v)
+}
+
+/**
+ * Build tagData (numeric habits) from gatherOccurrences result for chart payload.
+ * Preserves contract: { dates, counts, rawDates, timeTags }. timeTags from config (TMOccurrences does not store hadTimeValues).
+ * @param {Array<TMOccurrences>} occs - All occurrences (numeric and yes/no)
+ * @param {Array<string>} tags - Tag list in display order (with @ or #)
+ * @param {Array<string>} rawDates - Sorted date strings in range
+ * @param {SummariesConfig} config - For chartTimeTags
+ * @returns {Object} tagData for makeChartSummaryHTML
+ */
+/**
+ * Look up TMOccurrences by display tag, trying canonical forms so config entries with or without @/# still find data.
+ * @param {Map<string, TMOccurrences>} occByTerm - Map from term to occurrence
+ * @param {string} tag - Display tag (e.g. @sleep, sleep, #run)
+ * @returns {TMOccurrences | undefined} Matching occurrence or undefined
+ */
+function lookupOccByTag(occByTerm: Map<string, TMOccurrences>, tag: string): TMOccurrences | undefined {
+  let occ = occByTerm.get(tag)
+  if (occ) return occ
+  if (tag.startsWith('@')) {
+    occ = occByTerm.get(tag.slice(1))
+  } else if (tag.startsWith('#')) {
+    occ = occByTerm.get(tag.slice(1))
+  } else {
+    occ = occByTerm.get(`@${tag}`) || occByTerm.get(`#${tag}`)
+  }
+  return occ
+}
+
+function buildTagDataFromOccurrences(
+  occs: Array<TMOccurrences>,
+  tags: Array<string>,
+  rawDates: Array<string>,
+  config: SummariesConfig
+): Object {
+  const counts = {}
+  const occByTerm = new Map()
+  occs.forEach((occ) => {
+    if (occ.type !== 'yesno') {
+      occByTerm.set(occ.term, occ)
+    }
+  })
+  tags.forEach((tag) => {
+    const occ = lookupOccByTag(occByTerm, tag)
+    counts[tag] = rawDates.map((d) => (occ ? valueForDate(occ, d) : 0))
+  })
+  const dates = rawDates.map(formatDateForDisplay)
+  // timeTags: from config only (TMOccurrences does not store hadTimeValues; future detection could be added)
+  const timeTags = Array.isArray(config.chartTimeTags) ? config.chartTimeTags : []
+  return {
+    dates,
+    counts,
+    rawDates,
+    timeTags
+  }
+}
+
+/**
+ * Build yesNoData and yesNoHabits from gatherOccurrences yes/no results.
+ * yesNoHabits order matches gatherOccurrences: GOYesNo first, then checklist items (occ.term may have leading space).
+ * @param {Array<TMOccurrences>} yesNoOccs - Occurrences with type === 'yesno'
+ * @param {Array<string>} rawDates - Sorted date strings in range
+ * @returns {{ yesNoData: Object, yesNoHabits: Array<string> }}
+ */
+function buildYesNoDataFromOccurrences(
+  yesNoOccs: Array<TMOccurrences>,
+  rawDates: Array<string>
+): { yesNoData: Object, yesNoHabits: Array<string> } {
+  const yesNoHabits = yesNoOccs.map((occ) => occ.term.trim())
+  const counts = {}
+  yesNoOccs.forEach((occ, i) => {
+    const habit = yesNoHabits[i]
+    counts[habit] = rawDates.map((d) => valueForDate(occ, d))
+  })
+  const dates = rawDates.map(formatDateForDisplay)
+  const yesNoData = {
+    dates,
+    counts,
+    rawDates
+  }
+  return { yesNoData, yesNoHabits }
+}
+
+// ==================================================================
+// DISPLAY STATISTICS (count/total/average) – computed on plugin side for Flow typing
+
+/**
+ * Format a number to a given number of significant figures (for display).
+ * @param {number} num - Value to format
+ * @param {number} [sigFigs] - Significant figures (default 3)
+ * @returns {string} Formatted string
+ */
+function formatToSigFigs(num: number, sigFigs?: number): string {
+  if (num === 0) return '0'
+  const figs = sigFigs ?? 3
+  const magnitude = Math.floor(Math.log10(Math.abs(num)))
+  const decimals = Math.max(0, figs - magnitude - 1)
+  const roundedNum = Number(num.toFixed(decimals))
+  return roundedNum.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals
+  })
+}
+
+/**
+ * Format decimal hours as H:MM.
+ * @param {number} decimalHours - Hours as decimal (e.g. 7.5 = 7:30)
+ * @returns {string} Time string
+ */
+function formatTime(decimalHours: number): string {
+  const hours = Math.floor(decimalHours) % 24
+  const minutes = Math.round((decimalHours % 1) * 60)
+  return String(hours) + ':' + String(minutes).padStart(2, '0')
+}
+
+/**
+ * Average of values in the last N days that are > 0 (only non-zero days count).
+ * @param {Array<number>} data - Per-day values
+ * @param {number} days - Number of days to look at (default 7)
+ * @returns {number} Average
+ */
+export function getRecentAverage(data: Array<number>, days?: number): number {
+  const n = days ?? 7
+  if (!data || !Array.isArray(data)) return 0
+  const recentData = data.slice(-n).filter((v) => (Number(v) || 0) > 0)
+  if (recentData.length === 0) return 0
+  const sum = recentData.reduce((acc, val) => acc + (Number(val) || 0), 0)
+  return sum / recentData.length
+}
+
+/**
+ * Average of the last period (window) containing the most recent day (e.g. last 7-day chunk).
+ * @param {Array<number>} data - Per-day values
+ * @param {number} periodSize (default 7)
+ * @returns {number} Average
+ */
+export function getLastPeriodAverage(data: Array<number>, periodSize?: number): number {
+  const w = periodSize ?? 7
+  if (!data || !Array.isArray(data) || data.length === 0) return 0
+  const lastPeriodStart = Math.floor((data.length - 1) / w) * w
+  const slice = data.slice(lastPeriodStart)
+  const sum = slice.reduce((acc, val) => acc + (Number(val) || 0), 0)
+  return slice.length > 0 ? sum / slice.length : 0
+}
+
+/**
+ * Compute displayed count/total/average statistics for each tag (plugin side, Flow-typed).
+ * Mirrors logic previously in chartStatsScripts.js so the HTML window only does DOM updates.
+ * @param {Object} tagData - Has counts[tag], rawDates, timeTags
+ * @param {Array<string>} tags - Tag list in display order
+ * @param {SummariesConfig} config - For significantFigures, averageType, time/total/average/count tag lists
+ * @returns {Array<TagDisplayStat>} One entry per tag
+ */
+export function computeTagDisplayStats(tagData: Object, tags: Array<string>, config: SummariesConfig): Array<TagDisplayStat> {
+  const toNum = (v: mixed) => Number(v) || 0
+  const sigFigs = config.chartSignificantFigures ?? 3
+  // Config uses 'period'; client uses 'weekly' for the same behaviour — normalize here
+  const rawAverageType = config.chartAverageType
+  const averageType = (rawAverageType === 'none' || rawAverageType === 'moving' || rawAverageType === 'period')
+    ? (rawAverageType === 'period' ? 'weekly' : rawAverageType)
+    : 'moving'
+  const avgLineLabel = averageType === 'weekly' ? 'weekly avg' : '7-day moving avg'
+  const timeTagsSet = new Set([
+    ...(Array.isArray(tagData.timeTags) ? tagData.timeTags : []),
+    ...(Array.isArray(config.chartTimeTags) ? config.chartTimeTags : [])
+  ])
+  const totalTags = getTotalDisplayTags(config)
+  const countTags = getCountDisplayTags(config)
+  const isTimeTag = (tag: string) => timeTagsSet.has(tag)
+  const isTotalTag = (tag: string) => totalTags.includes(tag)
+  const isCountTag = (tag: string) => countTags.includes(tag)
+
+  const totals = tags.map((tag) =>
+    (tagData.counts[tag] || []).reduce((sum, val) => sum + toNum(val), 0)
+  )
+
+  const result: Array<TagDisplayStat> = []
+  tags.forEach((tag, i) => {
+    let avgDisplay = ''
+    let totalDisplay = ''
+    const dataArr = tagData.counts[tag] || []
+    const validData = dataArr.filter((v) => toNum(v) > 0)
+    if (isTimeTag(tag)) {
+      avgDisplay = '--:--'
+      if (validData.length > 0) {
+        const avgValue = validData.reduce((sum, val) => sum + toNum(val), 0) / validData.length
+        avgDisplay = formatTime(avgValue)
+      }
+    } else {
+      avgDisplay = '0'
+      if (validData.length > 0) {
+        const avgValue = validData.reduce((sum, val) => sum + toNum(val), 0) / validData.length
+        avgDisplay = formatToSigFigs(avgValue, sigFigs)
+      }
+    }
+    const total = totals[i]
+    if (isTimeTag(tag)) {
+      totalDisplay = total > 0 ? formatTime(total) : '0'
+    } else {
+      totalDisplay = formatToSigFigs(total, sigFigs)
+    }
+
+    let avgLineText = '—'
+    if (averageType !== 'none') {
+      let avg: number
+      if (averageType === 'weekly') {
+        avg = getLastPeriodAverage(dataArr)
+      } else if (isTotalTag(tag)) {
+        const recentData = dataArr.slice(-7)
+        const sum = recentData.reduce((acc, val) => acc + toNum(val), 0)
+        avg = recentData.length > 0 ? sum / recentData.length : 0
+      } else {
+        avg = getRecentAverage(dataArr)
+      }
+      if (isTimeTag(tag)) {
+        avgLineText = avgLineLabel + ': ' + formatTime(avg)
+      } else {
+        avgLineText = avgLineLabel + ': ' + formatToSigFigs(avg, sigFigs)
+      }
+    }
+
+    const stat: TagDisplayStat = { avgDisplay, totalDisplay, avgLineText }
+    if (isCountTag(tag)) {
+      stat.daysCount = dataArr.filter((v) => toNum(v) > 0).length
+    }
+    result.push(stat)
+  })
+  return result
+}
+
+// ==================================================================
+// CHART CONFIG HELPERS
 
 /**
  * Parse chartNonZeroTags JSON string from settings into an object.
@@ -218,333 +512,6 @@ function parseChartNonZeroTags(jsonStr: string): { [string]: { min: number, max:
     return typeof parsed === 'object' && parsed !== null ? parsed : {}
   } catch (_e) {
     return {}
-  }
-}
-
-/**
- * Parse a single time value string ([H]H:MM) to decimal hours with midnight wraparound.
- * @param {string} valueStr - Trimmed value (e.g. "23:30", "9:05")
- * @returns {number} Decimal hours (00:00-05:59 add 24)
- */
-function parseTimeValueToDecimalHours(valueStr: string): number {
-  const parts = valueStr.split(':')
-  const hours = parseInt(parts[0], 10)
-  const minutes = parseInt(parts[1], 10) || 0
-  let decimalHours = hours + (minutes / 60)
-  // Previously dealt with midnight wraparound, but now we're just using the raw value, as it can be a duration, not just a time.
-  // if (hours >= 0 && hours < 6) {
-  //   decimalHours += 24
-  // }
-  // Round to 3 significant figures
-  decimalHours = Math.round(decimalHours * 10000) / 10000
-  return decimalHours
-}
-
-/**
- * Extract tag value from note content.
- * Time/Duration vs decimal is detected from the value: [H]H:MM → time (average); other numeric values → decimal (sum).
- * If a tag has both time- and decimal-form values in the same note, time wins (only time values are aggregated).
- * @param {string} tag - Tag name
- * @param {string} content - Note content
- * @returns {{ value: number, hadTimeValues: boolean }} Extracted value and whether any [H]H:MM values were found
- */
-function extractTagValue(tag: string, content: string): { value: number, hadTimeValues: boolean } {
-  const escapedTag = tag.replace('@', '\\@').replace('#', '\\#')
-  const valueRegex = new RegExp(`${escapedTag}\\s*\\(\\s*([^)]+)\\s*\\)`, 'gi')
-  const timeValues: Array<number> = []
-  let decimalSum = 0
-  let match
-
-  while ((match = valueRegex.exec(content)) !== null) {
-    if (!match[1]) continue
-    const valueStr = match[1].trim()
-    if (TIME_DURATION_PATTERN.test(valueStr)) {
-      timeValues.push(parseTimeValueToDecimalHours(valueStr))
-    } else {
-      const num = parseFloat(valueStr)
-      if (!isNaN(num)) {
-        decimalSum += num
-      }
-    }
-  }
-
-  if (timeValues.length > 0) {
-    const avg = timeValues.reduce((a, b) => a + b, 0) / timeValues.length
-    return { value: avg, hadTimeValues: true }
-  }
-  return { value: decimalSum, hadTimeValues: false }
-}
-
-/**
- * Extract yes/no habit value from a note.
- * - the habit as a completed task or checklist item (no regex).
- * - For hashtag or @mention: counts how many times the tag appears in any line;
- *   returns that count (0, 1, 2, ...).
- * @param {string} habit - Habit name (e.g. "Exercise") or tag (e.g. "#pray", "@done")
- * @param {TNote|null} note - NotePlan note object
- * @returns {number} 1 if completed task/checklist matches (plain habit), 0 if not;
- *   or count of tag occurrences (hashtag/mention)
- */
-function extractYesNoValue(habit: string, note: TNote | null): number {
-  if (!note || !note.content) {
-    return 0
-  }
-
-  const isHashtag = habit.startsWith('#')
-  const isMention = habit.startsWith('@')
-
-  if (isHashtag) {
-    const hashtags = note.hashtags ?? []
-    const count = hashtags.filter((t) => t === habit).length
-    if (count > 0) {
-      // logDebug('extractYesNoValue', `  ✓ Found "${habit}" ${count} time(s) in note.hashtags`)
-    }
-    return count
-  }
-
-  if (isMention) {
-    const mentions = note.mentions ?? []
-    const count = mentions.filter((m) => m === habit).length
-    if (count > 0) {
-      // logDebug('extractYesNoValue', `  ✓ Found "${habit}" ${count} time(s) in note.mentions`)
-    }
-    return count
-  }
-
-  // Plain habit: look for it in completed task/checklist paragraphs via helpers
-  if (!note.paragraphs || note.paragraphs.length === 0) {
-    return 0
-  }
-
-  const habitLower = habit.trim().toLowerCase()
-  for (let i = 0; i < note.paragraphs.length; i++) {
-    const para = note.paragraphs[i]
-    // TODO: Change to use ~ isCompletedItem() helper function
-    if (COMPLETED_TASK_TYPES.indexOf(para.type) >= 0 && para.content) {
-      const contentLower = para.content.trim().toLowerCase()
-      if (contentLower.indexOf(habitLower) >= 0) {
-        // logDebug('extractYesNoValue', `  ✓ Found "${habit}" as completed task/checklist (type: ${para.type})`)
-        return 1
-      }
-    }
-  }
-
-  return 0
-}
-
-// ===================================================================
-// DATA COLLECTION
-
-/**
- * Initialize empty data map for all dates and tags
- * @param {Array<string>} dates - Array of date strings
- * @param {Array<string>} tags - Array of tag names
- * @returns {Object} Map of dates to tag values (all initialized to 0)
- */
-function initializeDataMap(dates: Array<string>, tags: Array<string>): Object {
-  const dateMap = {}
-
-  dates.forEach(dateStr => {
-    dateMap[dateStr] = {}
-    tags.forEach(tag => {
-      dateMap[dateStr][tag] = 0
-    })
-  })
-
-  return dateMap
-}
-
-/**
- * Get calendar note for a specific date
- * @param {string} dateStr - Date in YYYY-MM-DD format
- * @returns {Object|null} Note object or null if not found
- */
-function getCalendarNote(dateStr: string): ?TNote {
-  try {
-    if (typeof DataStore.calendarNoteByDateString === 'function') {
-      const noteDateStr = convertISOToYYYYMMDD(dateStr)
-      return DataStore.calendarNoteByDateString(noteDateStr)
-    }
-  } catch (error) {
-    logError('getCalendarNote', error.message)
-  }
-  return null
-}
-
-/**
- * Extract all tag values from a single note.
- * Supports both time and decimal values. Also returns which tags had time-based values in this note.
- * @param {TNote} note - NotePlan note object
- * @param {Array<string>} tags - Array of tags to extract
- * @returns {{ values: Object, timeTagsInNote: Array<string> }} Map of tag names to values, and tags that had [H]H:MM values
- */
-function extractTagValuesFromNote(note: TNote, tags: Array<string>): { values: { [string]: number }, timeTagsInNote: Array<string> } {
-  const values: { [string]: number } = {}
-  const timeTagsInNote: Array<string> = []
-
-  if (note && note.content) {
-    const content = note.content ?? ''
-    tags.forEach(tag => {
-      const { value, hadTimeValues } = extractTagValue(tag, content)
-      values[tag] = value
-      if (hadTimeValues) {
-        timeTagsInNote.push(tag)
-      }
-    })
-  } else {
-    // No note found, return zeros
-    tags.forEach(tag => {
-      values[tag] = 0
-    })
-  }
-
-  return { values, timeTagsInNote }
-}
-
-/**
- * Transform date map into Chart.js format
- * @param {Object} dateMap - Map of dates to tag values
- * @param {Array<string>} tags - Array of tag names
- * @returns {Object} Data formatted for Chart.js
- */
-function transformToChartFormat(dateMap: Object, tags: Array<string>): Object {
-  const sortedDates = Object.keys(dateMap).sort()
-  const counts = {}
-
-  tags.forEach(tag => {
-    counts[tag] = sortedDates.map(date => dateMap[date][tag])
-  })
-
-  const displayDates = sortedDates.map(formatDateForDisplay)
-
-  return {
-    dates: displayDates,
-    counts,
-    rawDates: sortedDates
-  }
-}
-
-/**
- * Collect tag numeric values from calendar notes.
- * Extracts values from tags like @sleep(7.23), @rps(10), @bedtime(23:30); time vs decimal is detected from the value.
- * Tracks which tags include any time-based ([H]H:MM) values so the UI can display sums/averages in time format.
- * @param {Array<string>} tags - Array of tags to track (e.g., ['@sleep', '@rps'])
- * @param {number} daysBack - Number of days to look back
- * @returns {Object} Data formatted for Chart.js plus timeTags array (tags that had at least one time value)
- */
-function collectTagData(tags: Array<string>, daysBack: number): Object {
-  try {
-    const dates = generateDateRange(daysBack)
-    const dateMap = initializeDataMap(dates, tags)
-    const timeTagSet = new Set<string>()
-
-    // Get calendar notes for each date in the range
-    for (const dateStr of dates) {
-      const note = getCalendarNote(dateStr)
-      if (!note) {
-        throw new Error(`No note found for date ${dateStr}`)
-      }
-
-      const { values, timeTagsInNote } = extractTagValuesFromNote(note, tags)
-      timeTagsInNote.forEach(t => timeTagSet.add(t))
-
-      // Store values in dateMap
-      logDebug('collectTagData', `adding values=${JSON.stringify(values)} to dateMap for date ${dateStr}`)
-      Object.assign(dateMap[dateStr], values)
-    }
-
-    const chartData = transformToChartFormat(dateMap, tags)
-    return {
-      ...chartData,
-      timeTags: Array.from(timeTagSet)
-    }
-  } catch (error) {
-    logError('collectTagData', error.message)
-    // Return empty data structure so plugin still loads
-    return {
-      dates: [],
-      counts: tags.reduce((acc, tag) => ({ ...acc, [tag]: [] }), {}),
-      rawDates: [],
-      timeTags: []
-    }
-  }
-}
-
-/**
- * Extract all yes/no habit values from a single note
- * @param {TNote} note - NotePlan note object
- * @param {Array<string>} habits - Array of habit names to extract
- * @returns {Object} Map of habit names to values (1 or 0)
- */
-function extractYesNoValuesFromNote(note: TNote, habits: Array<string>): Object {
-  const values = {}
-
-  if (note && note.content) {
-    habits.forEach(habit => {
-      values[habit] = extractYesNoValue(habit, note)
-    })
-  } else {
-    logDebug('extractYesNoValuesFromNote', 'Invalid or empty note passed, so returning zeros')
-    // No note found, return zeros
-    habits.forEach(habit => {
-      values[habit] = 0
-    })
-  }
-
-  return values
-}
-
-/**
- * Collect yes/no habit data from calendar notes.
- * Looks for [x] completed checkboxes followed by habit names.
- * @param {Array<string>} habits - Array of habit names to track
- * @param {number} daysBack - Number of days to look back
- * @returns {Object} Data formatted for Chart.js
- */
-function collectYesNoData(habits: Array<string>, daysBack: number): Object {
-  try {
-    const dates = generateDateRange(daysBack)
-    const dateMap = initializeDataMap(dates, habits)
-
-    // Debug: Log what we're searching for
-    logDebug('collectYesNoData', `Searching for yes/no habits [${String(habits)}] over ${dates.length} days`)
-
-    // Get calendar notes for each date in the range
-    for (const dateStr of dates) {
-      const note = getCalendarNote(dateStr)
-
-      if (note && note.content) {
-        const values = extractYesNoValuesFromNote(note, habits)
-        // Store values in dateMap
-        Object.assign(dateMap[dateStr], values)
-
-        // Debug: Log found values for recent dates
-        const isRecent = dates.indexOf(dateStr) > dates.length - 4
-        if (isRecent) {
-          // clo(values, `collectYesNoData :: extracted values for ${dateStr}`)
-        }
-      }
-    }
-
-    const result = transformToChartFormat(dateMap, habits)
-
-    // Debug: Log summary
-    logDebug('collectYesNoData', '\nYes/No Data Summary:')
-    habits.forEach(habit => {
-      const total = result.counts[habit].reduce((sum, val) => sum + val, 0)
-      logDebug('collectYesNoData', `  ${habit}: ${total} completions out of ${daysBack} days`)
-    })
-
-    // clo(result, 'collectYesNoData::result')
-    return result
-  } catch (error) {
-    logError('collectYesNoData', error.message)
-    // Return empty data structure so plugin still loads
-    return {
-      dates: [],
-      counts: habits.reduce((acc, habit) => ({ ...acc, [habit]: [] }), {}),
-      rawDates: []
-    }
   }
 }
 
@@ -586,6 +553,17 @@ function getTotalDisplayTags(config: SummariesConfig): Array<string> {
   return Array.from(new Set([
     ...(config.progressHashtagsTotal ?? []),
     ...(config.progressMentionsTotal ?? [])
+  ]))
+}
+
+/**
+ * Tags that are "count" type (hashtags-as-counts, mentions-as-counts): union of progressHashtags and progressMentions.
+ * These get a "days: N" stat above the chart (N = number of days with at least one occurrence).
+ */
+function getCountDisplayTags(config: SummariesConfig): Array<string> {
+  return Array.from(new Set([
+    ...(config.progressHashtags ?? []),
+    ...(config.progressMentions ?? [])
   ]))
 }
 
@@ -658,15 +636,20 @@ function generateTotalStats(tags: Array<string>, config: SummariesConfig): strin
 function generateChartContainers(tags: Array<string>, config: SummariesConfig): string {
   const averageTags = getAverageDisplayTags(config)
   const totalTags = getTotalDisplayTags(config)
+  const countTags = getCountDisplayTags(config)
   return tags.map((tag, i) => {
+    const showDays = countTags.includes(tag)
     const showAvg = averageTags.includes(tag)
     const showTotal = totalTags.includes(tag)
     const metricsParts = []
+    if (showDays) {
+      metricsParts.push(`<span class="stat-label">days:</span><span class="stat-value chart-header-days-value" id="chart-header-days-value-${i}"></span>`)
+    }
     if (showAvg) {
-      metricsParts.push(`<span class="stat-label">avg:</span><span class="stat-value chart-header-avg-value" id="chart-header-avg-value-${i}"></span>`)
+      metricsParts.push(`<span class="stat-label ${showDays ? 'padleft' : ''}">avg:</span><span class="stat-value chart-header-avg-value" id="chart-header-avg-value-${i}"></span>`)
     }
     if (showTotal) {
-      metricsParts.push(`<span class="stat-label ${showAvg ? 'padleft' : ''}">total:</span><span class="stat-value chart-header-total-value" id="chart-header-total-value-${i}"></span>`)
+      metricsParts.push(`<span class="stat-label ${showDays || showAvg ? 'padleft' : ''}">total:</span><span class="stat-value chart-header-total-value" id="chart-header-total-value-${i}"></span>`)
     }
     const metricsHTML = metricsParts.length > 0 ? metricsParts.join('') : ''
     return `
@@ -789,9 +772,14 @@ async function makeChartSummaryHTML(
   const tooltipTitles = rawDates.map((dateStr) => moment(dateStr).locale(locale).format('ddd, D MMM YYYY'))
   const tagDataWithTooltips = { ...tagData, tooltipTitles }
 
-  // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures, .averageType, .chartGridColor, .averageTags
+  // Display statistics (count/total/average) computed on plugin side; client only does DOM updates
+  const tagDisplayStats = computeTagDisplayStats(tagData, tags, config)
+
+  // The JS-in-HTML scripts expects to have a config object with .colors, .timeTags, .totalTags, .nonZeroTags, .significantFigures, .averageType, .chartGridColor, .averageTags, .countTags, .tagDisplayStats
   // timeTags: tags that had at least one [H]H:MM value (sums/averages display in time format); fall back to user setting
   // averageTags: tags that get the average line (moving/weekly) and avg stat; from progressHashtagsAverage + progressMentionsAverage
+  // countTags: hashtags-as-counts and mentions-as-counts; get "days: N" stat above chart
+  // totalTags: same as getTotalDisplayTags so client total display and average-line behaviour match the visible Totals stats
   const configForWindowScripts = {
     colors,
     // Combine tagData.timeTags and config.chartTimeTags, de-dupe, and use as the timeTags list
@@ -799,15 +787,17 @@ async function makeChartSummaryHTML(
       ...(Array.isArray(tagData.timeTags) ? tagData.timeTags : []),
       ...(Array.isArray(config.chartTimeTags) ? config.chartTimeTags : [])
     ])),
-    totalTags: config.chartTotalTags ?? [],
+    totalTags: getTotalDisplayTags(config),
     averageTags: getAverageDisplayTags(config),
+    countTags: getCountDisplayTags(config),
     nonZeroTags: parseChartNonZeroTags(config.chartNonZeroTags ?? '{}'),
     significantFigures: config.chartSignificantFigures ?? 3,
     averageType: config.chartAverageType ?? 'moving',
     chartGridColor: getChartGridColor(),
     chartAxisTextColor: getChartAxisTextColor(),
     // Use same theme-mode detection as NPThemeToCSS (via Editor.currentTheme.mode)
-    currentThemeMode: Editor.currentTheme?.mode ?? 'light'
+    currentThemeMode: Editor.currentTheme?.mode ?? 'light',
+    tagDisplayStats
   }
   const script = generateClientScript(tagDataWithTooltips, yesNoData, tags, yesNoHabits, configForWindowScripts)
 
