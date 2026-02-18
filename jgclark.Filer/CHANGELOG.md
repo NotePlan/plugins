@@ -1,6 +1,11 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+
+## [1.5.1] - 2025-02-18
+- fix "Add date reference?" option so that when moving from a non-today daily (calendar) note the added date now correctly points to the source note's date, not always to today. (Thanks for the report, @vlow)
+- added `link` as an option for the "Date reference style" setting.
+
 ## [1.5.0] - 2025-12-26
 - new **/move completed items to done section** command that extends NP's built-in 'Move Completed to Bottom' menu action. This is a more powerful version of NotePlan's built-in 'Move Completed to Bottom' menu action.  It has two settings, which reveal its additional powers:
 - Recreate existing section structure in Done section? (default: true)

@@ -1,7 +1,9 @@
-# 🗃 Filer plugin
-This plugin provides extra commands to help move or copy things around in NotePlan. It handles individual lines, or the currently selected text, or a 'block' of text (any indented text, including sub-tasks). Most allow you to do the filing/moving _without having to lose your flow by switching to the other note_.
+# 📦 Filer plugin
+This plugin provides extra commands to help move, copy or sync things in NotePlan. It handles individual lines, or the currently selected text, or a 'block' of text (any indented text, including sub-tasks). Most allow you to do the filing/moving _without having to lose your flow by switching to the other note_.
 
-It has some settings, which you review and change by clicking on the ⚙️ gear button on the 'Filer' line in the Plugin Preferences panel (on macOS) or by running the '/Filer: update plugin settings' command (on iOS).
+It has some settings, which you review and change by clicking on the '⚙️ Settings' button on the card for the plugin in the Plugin Preferences panel.
+
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 ## /move paragraph or selection
 The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files** (moves) lines to different notes in NotePlan, without having to lose your flow by switching to the other note. It works on any sort of lines, not just tasks.
@@ -12,13 +14,15 @@ It will move either the currently selected region (you don't need to select the 
 
 NB: due to limitations in the API it's not yet possible to move items to a Calendar note that doesn't already exist. I intend to improve this when the API supports it.
 
+If the "Add date reference?" setting is turned on, then when you move from a calendar (daily/weekly/etc.) note the plugin will add a date reference for the _source_ calendar note (the note you are moving from), so the backlink accurately reflects where the item came from. The "Date reference style" setting lets you choose the style of the added date: 'link' (`[[date]]`), 'scheduled' (`>date`) or 'at' (`@date`) or 'date' (a formatted date string).
+
 ## /move paragraph block
 This extends the first command, by also moving commands in the current paragraph 'block'. If the 'Include lines from start of Section in the Block?' setting is true, it takes the most recent heading and its following section, up to the next heading of the same level or higher, or the next horizontal line, or the start of the `## Done` or `## Cancelled` section. This means you don't have to move the cursor to the start of the section before you run it.
 
-From v0.7.0, you can turn on 'Use a tighter definition of when a Block finishes?' in the settings, which will stop the section at the next blank line, as well as next heading of the same level or higher, or the next horizontal line, or the start of the `## Done` or `## Cancelled` section.
+You can turn on 'Use a tighter definition of when a Block finishes?' in the settings, which will stop the section at the next blank line, as well as next heading of the same level or higher, or the next horizontal line, or the start of the note's `## Done` or `## Cancelled` section (if present).
 
 ##  /move completed items to done section
-This is a more powerful version of NotePlan's built-in 'Move Completed to Bottom' menu action.  It has two settings, which reveal its additional powers:
+This is a more powerful version of NotePlan's built-in 'Move Completed to Bottom' menu action.  It has the following settings, which reveal its additional powers:
 - Recreate existing section structure in Done section? (default: true)
 - Only move completed items when whole section is complete? (default: false)
 
@@ -54,6 +58,7 @@ _(Thanks to @jord8on for the graphic which inspired this set of commands.)_
 In practice running /copy note links command on a daily note can implement:
 ![note link demo using /copy note links command](note-link-example.gif)
 
+### Settings for Note Link commands
 There are a number of settings to make it useful for a variety of ways of organising your notes:
 
 - Types of lines to file: for the these commands to choose what sorts of lines to move/copy:

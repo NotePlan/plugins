@@ -6,11 +6,11 @@
   "plugin.description": "Help file (move) the current paragraph, selected paragraphs, or heading and its section, to different notes. Please see details for more, err, details.",
   "plugin.icon": "",
   "plugin.author": "jgclark",
-  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
+  "plugin.url": "https://noteplan.co/plugins/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "1.5.0",
+  "plugin.version": "1.5.1",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "1.5.0: new '/move completed items to done section' command that is more powerful than NP's built-in 'Move Completed to Bottom' menu action. It has two settings, which reveal its additional powers: Recreate existing section structure in Done section? (default: true). Only move completed items when whole section is complete? (default: false).\n1.4.1: fix for /move paras command when moving to a note with a heading with trailing whitespace.\n1.4.0: /add sync'd copy to note now can work on a block of lines. Further bug fixes for some commands on notes with frontmatter.\n1.3.3: Improve the heading picker used in some of these commands.\n1.3.2: Fix for /archive command. Fix for /add sync'd copy to note command.\n1.3.1: Futher bug fixes for /move paragraph block on notes with frontmatter.\n1.3.0: Can now access notes from Teamspaces. Uses improved note chooser (available from NP 3.18). Bug fixes.",
+  "plugin.lastUpdateInfo": "1.5.2: allow customising the name of the 'Done' section heading used by the 'move completed items to done section' command. Improvements to the 'move completed items to done section' command.\n1.5.1: fix 'Add date reference?' option so that when moving from calendar note the added date now correctly points to the source note's date, not always to today.\n1.5.0: new '/move completed items to done section' command that is more powerful than NP's built-in 'Move Completed to Bottom' menu action. It has two settings, which reveal its additional powers: Recreate existing section structure in Done section? (default: true). Only move completed items when whole section is complete? (default: false).\n1.4.1: fix for /move paras command when moving to a note with a heading with trailing whitespace.\n1.4.0: /add sync'd copy to note now can work on a block of lines. Further bug fixes for some commands on notes with frontmatter.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -198,6 +198,14 @@
       "required": true
     },
     {
+      "key": "doneSectionHeadingName",
+      "title": "Heading name for Done section",
+      "description": "Name of the heading used for the Done section (default: 'Done'). Used by the 'move completed items to done section' command.",
+      "type": "string",
+      "default": "Done",
+      "required": true
+    },
+    {
       "key": "onlyMoveCompletedWhenWholeSectionComplete",
       "title": "Only move completed items when whole section is complete?",
       "description": "If set, completed items will only be moved to the '## Done' section when their whole section has no active (open or scheduled) tasks. This also changes how the block under a heading is evaluated using getParagraphBlock().",
@@ -224,14 +232,15 @@
     {
       "key": "dateRefStyle",
       "title": "Date reference style",
-      "description": "The style of added date reference on a moved note: add either 'link' ('>date') or 'at' ('@date') or 'date' (a formatted date string).",
+      "description": "The style of added date reference on a moved note: add either 'link' (`[[date]]`), 'scheduled' (`>date`), 'at' (`@date`) or 'date' (a formatted date string).",
       "type": "string",
       "choices": [
         "at",
         "date",
+        "scheduled",
         "link"
       ],
-      "default": "link",
+      "default": "scheduled",
       "required": true
     },
     {
