@@ -3,7 +3,7 @@
 // Search Extensions helpers
 // Note: some types + funcs now in @helpers/extendedSearch.js
 // Jonathan Clark
-// Last updated 2026-01-30 for v2.0.2, @jgclark
+// Last updated 2026-02-18 for v2.0.3, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -250,10 +250,11 @@ export function normaliseSearchTerms(searchArg: string): Array<string> {
     // This Regex attempts to split words:
     // - but keeping text in double quotes as one term
     // - and #hashtag/child and @mention(5) possibilities
-    // - a word now may include any of .!+#-*?'
+    // - a word now may include any of .!+#-*?'_
+    // NB: Underscore _ must be included so that e.g. "sw_name" stays one term (otherwise it becomes "sw" + "name" and matches too much).
     // NB: Allows full unicode letter characters (\p{L}) and numbers (\p{N}) rather than ASCII (\w): (info from Dash.)
     // NB: To make the regex easier, add a space to start and end, and switch the order of any [-+!]['"]
-    const RE_WOW = new RegExp(/(([\p{L}\p{N}\s\-\/@\(\)#*?.+!']*)(?="\s)|([\p{L}\p{N}\-@\/\(\)#.+!'\*\?]*))/gu)
+    const RE_WOW = new RegExp(/(([\p{L}\p{N}\s\-\/@\(\)#*?.+!'_]*)(?="\s)|([\p{L}\p{N}\-@\/\(\)#.+!'\*\?_]*))/gu)
     let searchArgPadded = ` ${searchArg} `
     searchArgPadded = searchArgPadded
       .replace(/\s-"/, ' "-').replace(/\s\+"/, ' "+').replace(/\s!"/, ' "!')

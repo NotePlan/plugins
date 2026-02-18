@@ -437,6 +437,14 @@ describe('searchHelpers.js tests', () => {
       const result = normaliseSearchTerms('twitter.com')
       expect(result).toEqual(['twitter.com'])
     })
+    test('identifier with underscore stays one term (e.g. sw_name)', () => {
+      const result = normaliseSearchTerms('sw_name')
+      expect(result).toEqual(['sw_name'])
+    })
+    test('identifier with two underscores stays one term (e.g. sw_name_2)', () => {
+      const result = normaliseSearchTerms('sw_name_2')
+      expect(result).toEqual(['sw_name_2'])
+    })
     test('xxx yyy', () => {
       const result = normaliseSearchTerms('xxx yyy')
       expect(result).toEqual(['xxx', 'yyy'])
