@@ -1348,7 +1348,7 @@ export function getHeadingsFromNote(
         )
       }
     }
-    logDebug('NPnote/getHeadingsFromNote', `After adding 'insert new heading...' options, headingStrings: ${String(headingStrings)}`)
+    // logDebug('NPnote/getHeadingsFromNote', `After adding 'insert new heading...' options, headingStrings: ${String(headingStrings)}`)
     if (optionAddATopAndBottom) {
       headingStrings.unshift('⏫ (top of note)')
       headingStrings.push('⏬ (bottom of note)')
