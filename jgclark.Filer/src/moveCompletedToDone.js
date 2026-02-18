@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Move completed / cancelled tasks and checklists in a note to a '## Done' section
 // Jonathan Clark, aided by Cursor AI
-// Last updated 2025-12-17 for v1.5.0 by @jgclark
+// Last updated 2026-02-18 for v1.5.2 by @jgclark
 // ----------------------------------------------------------------------------
 /**
  * Original prompt for AI:
@@ -18,9 +18,10 @@ Generate jest tests for this function.
 import pluginJson from '../plugin.json'
 import type { FilerConfig } from './filerHelpers'
 import { getFilerSettings } from './filerHelpers'
-import { blockHasActiveTasks, getDoneSectionBlock, getOrCreateDoneSection, getParagraphBlock } from '@helpers/blocks'
+import { blockHasActiveTasks, getParagraphBlock } from '@helpers/blocks'
 import { clo, JSP, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 import { getCurrentHeading } from '@helpers/headings'
+import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { isClosed } from '@helpers/utils'
 
 //----------------------------------------------------------------------------
@@ -30,6 +31,52 @@ const PLUGIN_ID = pluginJson['plugin.id']
 
 //----------------------------------------------------------------------------
 // Helper Functions
+
+/**
+ * Check whether the given paragraph has an open task/checklist parent above it
+ * at a lower indentation level.
+ * Used to optionally skip moving completed subtasks that are still visually
+ * part of an open parent task.
+ * @author Cursor
+ * @param {TNote} note
+ * @param {TParagraph} para
+ * @returns {boolean}
+ */
+function hasOpenParentTask(note: TNote, para: TParagraph): boolean {
+  if (para.lineIndex == null) {
+    return false
+  }
+
+  const paras = note.paragraphs
+  const currentIndex = para.lineIndex
+  const currentIndent = para.indents ?? 0
+
+  // Walk upwards to find the nearest less-indented line
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    const candidate = paras[i]
+    const candidateIndent = candidate.indents ?? 0
+
+    // Only consider true parents: first line above with lower indentation
+    if (candidateIndent < currentIndent) {
+      const taskTypes = [
+        'open',
+        'scheduled',
+        'todo',
+        'checklist',
+        'checklistScheduled',
+      ]
+      const isPotentialTaskParent = taskTypes.includes(candidate.type)
+
+      if (isPotentialTaskParent && !isClosed(candidate)) {
+        return true
+      }
+      // Once we've hit a less-indented line, nothing further up can be a direct parent
+      return false
+    }
+  }
+
+  return false
+}
 
 /**
  * Under the '## Done' section, find (or create) a copy of the given heading
@@ -203,6 +250,69 @@ function appendParasUnderHeading(
 }
 
 /**
+ * Find the Done-style section in a note based on a heading name, or create it at the end if not present. Returns the lineIndex of the Done heading.
+ * Note: I had wondered whether to move the setting for the Done section heading name to the Shared plugin. But Cursor tells me that this is the _only command that writes to the Done section_, as opposed to stopping scanning at the Done section.
+ * @author Cursor, guided by @jgclark
+ * @param {TNote} note
+ * @param {string} doneSectionHeadingName
+ * @returns {number} lineIndex of the Done-style heading
+ */
+function getOrCreateNamedDoneSection(note: TNote, doneSectionHeadingName: string): number {
+  const paras = note.paragraphs
+  const trimmedName = doneSectionHeadingName.trim()
+  const endOfActive = findEndOfActivePartOfNote(note, [trimmedName])
+  const existingDone = paras.find(
+    (p, i) =>
+      i > endOfActive &&
+      p.type === 'title' &&
+      p.content.trim() === trimmedName,
+  )
+  if (existingDone && typeof existingDone.lineIndex === 'number') {
+    logDebug('moveCompletedToDone', `Found existing '## ${doneSectionHeadingName}' at line ${existingDone.lineIndex}`)
+    return existingDone.lineIndex
+  }
+
+  // Create a new level-2 heading at the end of the note using the configured name
+  const insertionIndex = paras.length
+  const headingText = `## ${doneSectionHeadingName}`
+  logDebug('moveCompletedToDone', `Creating new '${headingText}' heading at line ${insertionIndex}`)
+  note.insertParagraph(headingText, insertionIndex, 'text')
+
+  // After insertion, ensure we return the actual line index of the new heading
+  const updated = note.paragraphs
+  const newDone = updated.find(
+    (p) =>
+      p.type === 'title' &&
+      p.content.trim() === trimmedName,
+  )
+  if (newDone && typeof newDone.lineIndex === 'number') {
+    return newDone.lineIndex
+  }
+  // Fallback: return original insertion index
+  return insertionIndex
+}
+
+/**
+ * Get the block that makes up the Done-style section (heading + following lines until next level-2 heading) using the configured heading name.
+ * If the section doesn't yet exist, returns an empty array.
+ * @author Cursor, guided by @jgclark
+ * @param {TNote} note
+ * @param {string} doneSectionHeadingName
+ * @returns {Array<TParagraph>}
+ */
+function getNamedDoneSectionBlock(note: TNote, doneSectionHeadingName: string): Array<TParagraph> {
+  const trimmedName = doneSectionHeadingName.trim()
+  const doneHeading = note.paragraphs.find(
+    (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim() === trimmedName,
+  )
+  if (!doneHeading || typeof doneHeading.lineIndex !== 'number') {
+    return []
+  }
+  const block = getParagraphBlock(note, doneHeading.lineIndex, false, false)
+  return block
+}
+
+/**
  * Core worker: Move completed / cancelled tasks and checklists in the given note to a '## Done' section.
  * - Only moves items where the task line is completed/cancelled.
  * - Only moves an item if all task/checklist lines in its child block are also completed/cancelled.
@@ -214,11 +324,15 @@ function appendParasUnderHeading(
  * @param {TNote} note
  * @param {boolean} recreateDoneSectionStructure
  * @param {boolean} onlyMoveCompletedWhenWholeSectionComplete
+ * @param {boolean} skipDoneSubtasksUnderOpenTasks
+ * @param {string} doneSectionHeadingName
  */
 export function moveCompletedItemsToDoneSection(
   note: TNote,
   recreateDoneSectionStructure: boolean,
   onlyMoveCompletedWhenWholeSectionComplete: boolean,
+  skipDoneSubtasksUnderOpenTasks: boolean = false,
+  doneSectionHeadingName: string = 'Done',
 ): void {
   try {
     const paras = note.paragraphs
@@ -227,8 +341,8 @@ export function moveCompletedItemsToDoneSection(
       return
     }
 
-    // Identify existing 'Done' section (so we don't reprocess it)
-    const doneBlock = getDoneSectionBlock(note)
+    // Identify existing "Done" section (so we don't reprocess it)
+    const doneBlock = getNamedDoneSectionBlock(note, doneSectionHeadingName)
     const doneLineIndexes = new Set<number>()
     doneBlock.forEach((p) => {
       if (typeof p.lineIndex === 'number') {
@@ -252,6 +366,15 @@ export function moveCompletedItemsToDoneSection(
         continue
       }
       if (!isClosed(p)) {
+        continue
+      }
+
+      // Optionally skip completed subtasks that are indented under an open parent task
+      if (skipDoneSubtasksUnderOpenTasks && hasOpenParentTask(note, p)) {
+        logDebug(
+          'moveCompletedToDone',
+          `Skipping completed subtask at line ${idx} because it has an open parent task above it.`,
+        )
         continue
       }
 
@@ -306,8 +429,8 @@ export function moveCompletedItemsToDoneSection(
       return
     }
 
-    // Ensure we have a Done heading to move to
-    const doneHeadingLineIndex = getOrCreateDoneSection(note)
+    // Ensure we have a "Done" heading to move to
+    const doneHeadingLineIndex = getOrCreateNamedDoneSection(note, doneSectionHeadingName)
 
     // Cache to track headings we've already created in the Done section
     // Key: `${headingLevel}:${content}`, Value: TParagraph
@@ -374,11 +497,19 @@ export async function moveCompletedItemsToDoneSectionCommand(): Promise<void> {
     const config: FilerConfig = await getFilerSettings()
     const recreateDoneSectionStructure = Boolean(config.recreateDoneSectionStructure)
     const onlyMoveCompletedWhenWholeSectionComplete = Boolean(config.onlyMoveCompletedWhenWholeSectionComplete)
+    const skipDoneSubtasksUnderOpenTasks = Boolean(config.skipDoneSubtasksUnderOpenTasks)
+    const rawDoneHeadingName = config.doneSectionHeadingName
+    const doneSectionHeadingName =
+      typeof rawDoneHeadingName === 'string' && rawDoneHeadingName.trim().length > 0
+        ? rawDoneHeadingName.trim()
+        : 'Done'
 
     moveCompletedItemsToDoneSection(
       note,
       recreateDoneSectionStructure,
       onlyMoveCompletedWhenWholeSectionComplete,
+      skipDoneSubtasksUnderOpenTasks,
+      doneSectionHeadingName,
     )
   } catch (error) {
     logError(PLUGIN_ID, error.message)

@@ -8,7 +8,7 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://noteplan.co/plugins/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "1.5.1",
+  "plugin.version": "1.5.2",
   "plugin.releaseStatus": "full",
   "plugin.lastUpdateInfo": "1.5.2: allow customising the name of the 'Done' section heading used by the 'move completed items to done section' command. Improvements to the 'move completed items to done section' command.\n1.5.1: fix 'Add date reference?' option so that when moving from calendar note the added date now correctly points to the source note's date, not always to today.\n1.5.0: new '/move completed items to done section' command that is more powerful than NP's built-in 'Move Completed to Bottom' menu action. It has two settings, which reveal its additional powers: Recreate existing section structure in Done section? (default: true). Only move completed items when whole section is complete? (default: false).\n1.4.1: fix for /move paras command when moving to a note with a heading with trailing whitespace.\n1.4.0: /add sync'd copy to note now can work on a block of lines. Further bug fixes for some commands on notes with frontmatter.",
   "plugin.dependencies": [],
@@ -159,7 +159,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Filer plugin settings"
+      "title": "Filer plugin: General settings"
     },
     {
       "key": "whereToAddInSection",
@@ -171,54 +171,6 @@
         "end"
       ],
       "default": "start",
-      "required": true
-    },
-    {
-      "key": "includeFromStartOfSection",
-      "title": "Include lines from start of Section in the Block?",
-      "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default).",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "useTightBlockDefinition",
-      "title": "Use a tighter definition of when a Block finishes?",
-      "description": "By default a Block includes blank lines and separators. If you wish those to instead mark the end of a Block, then set this to true.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "recreateDoneSectionStructure",
-      "title": "Recreate existing section structure in Done section?",
-      "description": "If set, copies of any necessary headings will be created under the '## Done' section, mirroring the sections that completed items came from, and in the same order as they appear in the main part of the note.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "doneSectionHeadingName",
-      "title": "Heading name for Done section",
-      "description": "Name of the heading used for the Done section (default: 'Done'). Used by the 'move completed items to done section' command.",
-      "type": "string",
-      "default": "Done",
-      "required": true
-    },
-    {
-      "key": "onlyMoveCompletedWhenWholeSectionComplete",
-      "title": "Only move completed items when whole section is complete?",
-      "description": "If set, completed items will only be moved to the '## Done' section when their whole section has no active (open or scheduled) tasks. This also changes how the block under a heading is evaluated using getParagraphBlock().",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "allowNotePreambleBeforeHeading",
-      "title": "Allow preamble before first heading?",
-      "description": "If set, some 'preamble' lines are allowed directly after the title. When filing/moving/inserting items with these commands, this preamble will be left in place, up to and including the first blank line, heading or separator. Otherwise the first heading will be directly after the note's title line (or frontmatter if used).",
-      "type": "bool",
-      "default": true,
       "required": true
     },
     {
@@ -241,6 +193,76 @@
         "link"
       ],
       "default": "scheduled",
+      "required": true
+    },
+    {
+      "key": "allowNotePreambleBeforeHeading",
+      "title": "Allow preamble before first heading?",
+      "description": "If set, some 'preamble' lines are allowed directly after the title. When filing/moving/inserting items with these commands, this preamble will be left in place, up to and including the first blank line, heading or separator. Otherwise the first heading will be directly after the note's title line (or frontmatter if used).",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "How Blocks are defined"
+    },
+    {
+      "key": "includeFromStartOfSection",
+      "title": "Include lines from start of Section in the Block?",
+      "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default).",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "useTightBlockDefinition",
+      "title": "Use a tighter definition of when a Block finishes?",
+      "description": "By default a Block includes blank lines and separators. If you wish those to instead mark the end of a Block, then set this to true.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "\"/move completed items to done section\" command settings"
+    },
+    {
+      "key": "doneSectionHeadingName",
+      "title": "Heading name for Done section",
+      "description": "Name of the heading used for the Done section (default: 'Done') in the 'move completed items to done section' command. Can be set to something else (for example `Completed`, `Hecho`, `Abgemacht` etc.).",
+      "type": "string",
+      "default": "Done",
+      "required": true
+    },
+    {
+      "key": "recreateDoneSectionStructure",
+      "title": "Recreate existing section structure in Done section?",
+      "description": "If set, copies of any necessary headings will be created under the '## Done' section, mirroring the sections that completed items came from, and in the same order as they appear in the main part of the note.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "onlyMoveCompletedWhenWholeSectionComplete",
+      "title": "Only move completed items when whole section is complete?",
+      "description": "If set, completed items will only be moved to the '## Done' section when their whole section has no active (open or scheduled) tasks. This also changes how the block under a heading is evaluated using getParagraphBlock().",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "skipDoneSubtasksUnderOpenTasks",
+      "title": "Skip done subtasks indented under open tasks?",
+      "description": "If set, completed subtasks that are indented under an open parent task will NOT be moved to the Done section until their parent task is also completed. This keeps the visual progress of the parent task together.",
+      "type": "bool",
+      "default": false,
       "required": true
     },
     {
