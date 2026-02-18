@@ -20,9 +20,10 @@ import type { FilerConfig } from './filerHelpers'
 import { getFilerSettings } from './filerHelpers'
 import { blockHasActiveTasks, getParagraphBlock } from '@helpers/blocks'
 import { clo, JSP, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
-import { getCurrentHeading } from '@helpers/headings'
+import { getCurrentHeading, isParaAMatchForHeading } from '@helpers/headings'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { isClosed } from '@helpers/utils'
+import { showMessage } from '@helpers/userInput'
 
 //----------------------------------------------------------------------------
 // Constants
@@ -188,14 +189,14 @@ function getOrCreateSubheadingInDoneSection(
     },
   )
   
-  // If heading was found but has wrong rawContent (extra #), fix it
+  // If heading was found but has wrong rawContent (extra #), fix by setting content and updating
   if (insertedHeading && insertedHeading.rawContent) {
     const expectedRawContent = `${headingMarker} ${headingTextContent.trim()}`
     const extraHashPrefix = `# ${expectedRawContent}`
     if (insertedHeading.rawContent !== expectedRawContent && insertedHeading.rawContent.startsWith(extraHashPrefix)) {
       logWarn('moveCompletedToDone', `Fixing heading with extra #: "${insertedHeading.rawContent}" -> "${expectedRawContent}"`)
-      // Update the rawContent directly
-      insertedHeading.rawContent = expectedRawContent
+      // Note: Cursor asserts that "NotePlan then persists the line from content and the existing headingLevel, so the extra # in the stored line is corrected without touching read-only properties."
+      insertedHeading.content = headingTextContent.trim()
       note.updateParagraph(insertedHeading)
     }
   }
@@ -263,9 +264,7 @@ function getOrCreateNamedDoneSection(note: TNote, doneSectionHeadingName: string
   const endOfActive = findEndOfActivePartOfNote(note, [trimmedName])
   const existingDone = paras.find(
     (p, i) =>
-      i > endOfActive &&
-      p.type === 'title' &&
-      p.content.trim() === trimmedName,
+      i > endOfActive && isParaAMatchForHeading(p, trimmedName, 2),
   )
   if (existingDone && typeof existingDone.lineIndex === 'number') {
     logDebug('moveCompletedToDone', `Found existing '## ${doneSectionHeadingName}' at line ${existingDone.lineIndex}`)
@@ -281,9 +280,7 @@ function getOrCreateNamedDoneSection(note: TNote, doneSectionHeadingName: string
   // After insertion, ensure we return the actual line index of the new heading
   const updated = note.paragraphs
   const newDone = updated.find(
-    (p) =>
-      p.type === 'title' &&
-      p.content.trim() === trimmedName,
+    (p) => isParaAMatchForHeading(p, trimmedName, 2),
   )
   if (newDone && typeof newDone.lineIndex === 'number') {
     return newDone.lineIndex
@@ -303,7 +300,7 @@ function getOrCreateNamedDoneSection(note: TNote, doneSectionHeadingName: string
 function getNamedDoneSectionBlock(note: TNote, doneSectionHeadingName: string): Array<TParagraph> {
   const trimmedName = doneSectionHeadingName.trim()
   const doneHeading = note.paragraphs.find(
-    (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim() === trimmedName,
+    (p) => isParaAMatchForHeading(p, trimmedName, 2),
   )
   if (!doneHeading || typeof doneHeading.lineIndex !== 'number') {
     return []
@@ -326,6 +323,7 @@ function getNamedDoneSectionBlock(note: TNote, doneSectionHeadingName: string): 
  * @param {boolean} onlyMoveCompletedWhenWholeSectionComplete
  * @param {boolean} skipDoneSubtasksUnderOpenTasks
  * @param {string} doneSectionHeadingName
+ * @returns {boolean} true if any items were moved, false otherwise
  */
 export function moveCompletedItemsToDoneSection(
   note: TNote,
@@ -333,12 +331,12 @@ export function moveCompletedItemsToDoneSection(
   onlyMoveCompletedWhenWholeSectionComplete: boolean,
   skipDoneSubtasksUnderOpenTasks: boolean = false,
   doneSectionHeadingName: string = 'Done',
-): void {
+): boolean {
   try {
     const paras = note.paragraphs
     if (!paras || paras.length === 0) {
       logWarn('moveCompletedToDone', 'Note has no paragraphs; nothing to do.')
-      return
+      return false
     }
 
     // Identify existing "Done" section (so we don't reprocess it)
@@ -426,7 +424,7 @@ export function moveCompletedItemsToDoneSection(
 
     if (blocksToMove.length === 0) {
       logInfo('moveCompletedToDone', 'No eligible completed items found to move.')
-      return
+      return false
     }
 
     // Ensure we have a "Done" heading to move to
@@ -441,7 +439,7 @@ export function moveCompletedItemsToDoneSection(
       if (block.length === 0) continue
 
       // Work out where to add in the Done section
-      let targetHeading = note.paragraphs[doneHeadingLineIndex]
+      let targetHeading: TParagraph = note.paragraphs[doneHeadingLineIndex]
       if (recreateDoneSectionStructure) {
         const parentHeading = getCurrentHeading(note, block[0])
         if (parentHeading) {
@@ -457,7 +455,8 @@ export function moveCompletedItemsToDoneSection(
           
           // Check cache first
           if (createdHeadingsCache.has(cacheKey)) {
-            targetHeading = createdHeadingsCache.get(cacheKey)
+            const cached = createdHeadingsCache.get(cacheKey)
+            if (cached) targetHeading = cached
           } else {
             // Create or find existing heading
             targetHeading = getOrCreateSubheadingInDoneSection(
@@ -477,8 +476,10 @@ export function moveCompletedItemsToDoneSection(
       // Remove the original paragraphs from the note
       note.removeParagraphs(block)
     }
+    return true
   } catch (error) {
     logError('moveCompletedToDone', error.message)
+    return false
   }
 }
 
@@ -504,13 +505,25 @@ export async function moveCompletedItemsToDoneSectionCommand(): Promise<void> {
         ? rawDoneHeadingName.trim()
         : 'Done'
 
-    moveCompletedItemsToDoneSection(
+    const didMove = moveCompletedItemsToDoneSection(
       note,
       recreateDoneSectionStructure,
       onlyMoveCompletedWhenWholeSectionComplete,
       skipDoneSubtasksUnderOpenTasks,
       doneSectionHeadingName,
     )
+    if (!didMove) {
+      const currentSettingsStr = 
+        `${onlyMoveCompletedWhenWholeSectionComplete ? 'only moving lines/blocks when whole section complete' : 'moving when any completed item is found'
+         }, and ${
+         skipDoneSubtasksUnderOpenTasks ? 'skipping done subtasks under open tasks' : 'including done subtasks under open tasks'
+         }.`
+      await showMessage(
+        `No completed or cancelled items to move to the '${doneSectionHeadingName}' section.\n\nCurrent settings: ${currentSettingsStr}`,
+        'OK',
+        'Filer: Move completed to Done',
+      )
+    }
   } catch (error) {
     logError(PLUGIN_ID, error.message)
   }

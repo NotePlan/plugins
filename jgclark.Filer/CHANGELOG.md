@@ -1,6 +1,12 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.5.2] - 2025-02-18
+- Improvements to the **/move completed items to done section** command:
+  - allow customising the "Done" section heading name. This defaults to `Done` but can be set to something else (for example `Completed`). (for @Jose)
+  - add option to skip done subtasks that are indented under open parent tasks, so that these subtasks remain visually grouped with their parent until the parent is complete. (for @Jose)
+  - if there are no lines/blocks to move, then a message is shown to the user, confirming what settings it has used.
+- Reorganised the plugin's settings screen.
 
 ## [1.5.1] - 2025-02-18
 - fix "Add date reference?" option so that when moving from a non-today daily (calendar) note the added date now correctly points to the source note's date, not always to today. (Thanks for the report, @vlow)

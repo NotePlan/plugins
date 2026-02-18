@@ -23,8 +23,10 @@ You can turn on 'Use a tighter definition of when a Block finishes?' in the sett
 
 ##  /move completed items to done section
 This is a more powerful version of NotePlan's built-in 'Move Completed to Bottom' menu action.  It has the following settings, which reveal its additional powers:
+- Heading name for Done section: Defaults to NotePlan's standard 'Done', but can be set to something else (for example `Completed`, `Hecho`, `Abgemacht` etc.)
 - Recreate existing section structure in Done section? (default: true)
 - Only move completed items when whole section is complete? (default: false)
+- Skip done subtasks indented under open tasks?: If set, completed subtasks that are indented under an open parent task will NOT be moved to the Done section until their parent task is also completed. This keeps the visual progress of the parent task together.
 
 ## /quick move to <...> note
 These 4 commands each moves lines to the current weekly note, using the same selection strategy as /mp (see above). The move happens in the background, leaving you in the flow in your current note. (Available with weekly notes from NotePlan v3.6.)
