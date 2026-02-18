@@ -205,4 +205,41 @@ describe('helpers/headings', () => {
     })
   })
 
+  describe('isParaAMatchForHeading', () => {
+    test('matches exact heading text at correct level', () => {
+      const para = { type: 'title', content: 'Done', headingLevel: 2 }
+      expect(h.isParaAMatchForHeading(para, 'Done', 2)).toBe(true)
+    })
+
+    test('does not match different heading text', () => {
+      const para = { type: 'title', content: 'Completed', headingLevel: 2 }
+      expect(h.isParaAMatchForHeading(para, 'Done', 2)).toBe(false)
+    })
+
+    test('does not match at different heading level', () => {
+      const para = { type: 'title', content: 'Done', headingLevel: 3 }
+      expect(h.isParaAMatchForHeading(para, 'Done', 2)).toBe(false)
+    })
+
+    test('should not match heading with trailing three dots (not correct form of folding)', () => {
+      const para = { type: 'title', content: 'Done ...', headingLevel: 2 }
+      expect(h.isParaAMatchForHeading(para, 'Done', 2)).toBe(false)
+    })
+
+    test('matches heading with trailing single-character ellipsis', () => {
+      const para = { type: 'title', content: 'Done …', headingLevel: 2 }
+      expect(h.isParaAMatchForHeading(para, 'Done', 2)).toBe(true)
+    })
+
+    test('trims whitespace around heading name and content', () => {
+      const para = { type: 'title', content: '  Done  …  ', headingLevel: 2 }
+      expect(h.isParaAMatchForHeading(para, '  Done  ', 2)).toBe(true)
+    })
+
+    test('returns false for non-title paragraph', () => {
+      const para = { type: 'text', content: 'Done', headingLevel: 2 }
+      expect(h.isParaAMatchForHeading(para, 'Done', 2)).toBe(false)
+    })
+  })
+
 })
