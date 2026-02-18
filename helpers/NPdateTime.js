@@ -1127,7 +1127,14 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<{ rel
     const relativeDates = []
     const todayMom = moment()
 
-    if (typeof DataStore !== 'object' || !DataStore) {
+    logInfo('NPdateTime::getRelativeDates', `Starting, with DataStore: ${typeof DataStore}`)
+    if (!DataStore || typeof DataStore !== 'object') {
+      // A further test for DataStore.calendarNoteByDateString, as that can sometimes fail even when DataStore is available
+      if (!DataStore.calendarNoteByDateString) {
+        logWarn('NPdateTime::getRelativeDates', `NP DataStore.calendarNoteByDateString function is not available, so returning an empty set.`)
+        // $FlowIgnore[prop-missing]
+        return [{}]
+      }
       // logDebug('NPdateTime::getRelativeDates', `NP DataStore functions are not available, so returning an empty set.`)
       // $FlowIgnore[prop-missing]
       return [{}]
