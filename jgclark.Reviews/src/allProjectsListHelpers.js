@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-02-10 for v1.3.0.b9, @jgclark
+// Last updated 2026-02-19 for v1.3.0.b9+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -141,14 +141,15 @@ function findReadyProjects(projects: Array<Project>, maxCount: number = 0): Arra
  * @returns {Array<string>} Array of field names to sort by
  * @private
  */
-function buildSortingSpecification(config: ReviewConfig): Array<string> {
+function buildSortingSpecification(
+  config: ReviewConfig,
+): Array<string> {
   const sortingSpec: Array<string> = []
-  sortingSpec.push('projectTagOrder')
 
+  sortingSpec.push('projectTagOrder')
   if (config.displayGroupedByFolder) {
     sortingSpec.push('folder')
   }
-
   sortingSpec.push('isCancelled', 'isCompleted', 'isPaused') // i.e. 'active' before 'finished'
 
   switch (config.displayOrder) {
@@ -563,14 +564,20 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
 
 /**
  * Filter and sort the list of Projects. Used by renderProjectLists().
- * TODO: Should this filter out paused projects?
- * TODO: Should this filter out cancelled projects?
- * (Last I checked it was running in 2ms.)
+ * Filters out (if required) ones not matching 'projectTag', and those that are finished (completed & cancelled), paused, and non-due.
+ * Sorts by projectTagOrder > folder > [nextReviewDays | dueDays | title].
  * @param {ReviewConfig} config 
  * @param {string?} projectTag to filter by (optional)
+ * @param {Array<string>?} sortingOrder array of field names to sort by; if given overrides the default sorting order from the Reviews plugin. (Optional)
+ * @param {boolean?} dedupeList if true, deduplicate the list by removing projects with multiple 'projectTags'. (Optional, default is false)
  * @returns 
  */
-export async function filterAndSortProjectsList(config: ReviewConfig, projectTag: string = ''): Promise<Array<Project>> {
+export async function filterAndSortProjectsList(
+  config: ReviewConfig,
+  projectTag: string = '',
+  sortingOrder: Array<string> = [],
+  dedupeList: boolean = false,
+): Promise<Array<Project>> {
   try {
     let projectInstances = await getAllProjectsFromList()
     logInfo('filterAndSortProjectsList', `Starting with tag '${projectTag}' for ${projectInstances.length} projects`)
@@ -608,8 +615,24 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
       pi.projectTagOrder = config.projectTypeTags.indexOf(pi.projectTag)
     })
 
-    // Sort projects by projectTagOrder > folder > [nextReviewDays | dueDays | title]
-    const sortingSpecification = buildSortingSpecification(config)
+    // Dedupe the list if required
+    if (dedupeList) {
+      // Remove repeated projects with the same filename (keeping the first occurrence)
+      const seenFilenames = new Set < string > ()
+      projectInstances = projectInstances.filter((pi) => {
+        if (seenFilenames.has(pi.filename ?? '')) {
+          return false
+        } else {
+          seenFilenames.add(pi.filename ?? '')
+          return true
+        }
+      })
+      logDebug('filterAndSortProjectsList', `- after deduplication, ${projectInstances.length} projects`)
+    }
+
+    // Sort projects by projectTagOrder > folder > [nextReviewDays | dueDays | title],
+    // unless reviewDateSortOrder is true, in which case sort by [nextReviewDays | dueDays | title].
+    const sortingSpecification = (sortingOrder.length > 0) ? sortingOrder : buildSortingSpecification(config)
     logDebug('filterAndSortProjectsList', `- sorting by ${String(sortingSpecification)}`)
     const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)
     // sortedProjectInstances.forEach(pi => logDebug('', `${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
@@ -777,10 +800,16 @@ export async function getNextProjectsToReview(numToReturn: number = 0): Promise<
 
 /**
  * Get list of all active Project(s). This is filtered according to the plugin settings, which may come from the Perspective set by the Dashboard.
+ * It is sorted by projectTagOrder > folder > [nextReviewDays | dueDays | title], unless sortingOrder is given instead.
+ * If a project has multiple 'projectTags' it can appear multiple times in the list. If you don't want this (e.g. for Dashboard), then send flag 'dedupeList' to true.
  * @author @jgclark
+ * @param { Array<string> } sortingOrder - array of field names to sort by; if given overrides the default sorting order from the Reviews plugin. (Optional)
  * @return { Array<Project> } all Projects for current perspective. Can be an empty array. Note: not a TNote but Project object.
  */
-export async function getAllActiveProjects(): Promise<Array<Project>> {
+export async function getAllActiveProjects(
+  sortingOrder: Array<string> = [],
+  dedupeList: boolean = false,
+): Promise<Array<Project>> {
   try {
     const config: ?ReviewConfig = await getReviewSettings(true)
     if (!config) {
@@ -790,8 +819,8 @@ export async function getAllActiveProjects(): Promise<Array<Project>> {
     }
     logDebug('reviews/getAllActiveProjects', `Starting for perspective ${config.perspectiveName}`)
 
-    // Get all active Projects, according to the current perspective settings (which are overriden in config)
-    const allActiveProjectsSorted = await filterAndSortProjectsList(config)
+    // Get all active Projects, filtered/sorted/deduped as specified according to the current perspective settings (which are overriden in config) and these parameters.
+    const allActiveProjectsSorted = await filterAndSortProjectsList(config, '', sortingOrder, dedupeList)
     if (!allActiveProjectsSorted || allActiveProjectsSorted.length === 0) {
       logWarn('getNextNoteToReview', `No active projects found, so stopping`)
       return []
