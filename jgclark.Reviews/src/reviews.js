@@ -696,8 +696,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         // Save the list(s) to this note
         note.content = outputArray.join('\n')
         logInfo('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
-        // Open the note in a new window
-        // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
+        // Focus the note in an existing split view, or open the note in a new split window (if not already open)
         const possibleThisEditor = getOrOpenEditorFromFilename(note.filename, 'split')
         if (!possibleThisEditor) {
           logWarn('renderProjectListsMarkdown', `- failed to open note '${noteTitle}' in an Editor`)

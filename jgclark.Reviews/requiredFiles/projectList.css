@@ -453,7 +453,6 @@ button, .fake-button, .clickTarget {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-
 .progress {
   display: flex;
   align-items: baseline;
@@ -468,9 +467,12 @@ button, .fake-button, .clickTarget {
 
 /* ---- NEXT ACTIONS ----------------------------------------- */
 .nextAction {
-  display: flex;
+  display: block;
   align-items: baseline;
   gap: 0.5rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .nextActionIcon {
   /* placeholder */
