@@ -68,7 +68,7 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
             // Estimate height based on typical dialog content
             // Task dialog has: title (~40px) + content line (~30px) + move controls (~30px) + other actions (~30px) + padding (~20px) = ~150px minimum
             const estimatedHeight = 250 // Conservative estimate for task dialog
-            const estimatedWidth = dialogWidth || 400 // Fallback width
+            const estimatedWidth = dialogWidth || 512 // Fallback width
 
             logDebug('positionDialog', `Using estimated dimensions: ${estimatedWidth}x${estimatedHeight}`)
             setPositionForDialog(thisOS, estimatedWidth, estimatedHeight, dialog, clickPosition)
