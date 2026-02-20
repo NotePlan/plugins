@@ -3,15 +3,15 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2025-12-15, for v1.4.1
+// last updated 2026-02-18, for v1.5.1
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { getFilerSettings } from './filerHelpers'
 import { getParagraphBlock } from '@helpers/blocks'
-import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
+import { formatNoteDateFromNPDateStr, getDateStringFromCalendarFilename, todaysDateISOString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
-import { clo, logDebug, logError, logWarn } from '@helpers/dev'
+import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 import { clearHighlighting, getSelectedParagraphsToUse } from '@helpers/NPEditor'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
@@ -66,17 +66,17 @@ function getParagraphsToMove(
 
 /**
  * Add date backlink to the first paragraph if moving from a calendar note.
+ * Uses the source note's calendar date (if available) so that the backlink refers to the origin calendar note, not "today".
  * @param {Array<TParagraph>} parasInBlock - Paragraphs to potentially modify
  * @param {TNote} note - Source note
  * @param {Object} config - Configuration settings
  */
 function addDateBacklinkIfNeeded(parasInBlock: Array<TParagraph>, note: TNote, config: any): void {
   if (config.addDateBacklink && note.type === 'Calendar' && parasInBlock.length > 0) {
-    const datePart: string =
-      (config.dateRefStyle === 'link') ? ` >${hyphenatedDate(new Date())}`
-        : (config.dateRefStyle === 'at') ? ` @${hyphenatedDate(new Date())}`
-          : (config.dateRefStyle === 'date') ? ` (${toLocaleDateTimeString(new Date())})`
-            : ''
+    // Prefer the calendar note's own date, but fall back to today if it's missing
+    const sourceCalDateStr: string = note.filename != null ? getDateStringFromCalendarFilename(note.filename, true) : todaysDateISOString
+    const datePart: string = formatNoteDateFromNPDateStr(sourceCalDateStr, config.dateRefStyle)
+    logInfo('addDateBacklinkIfNeeded', `Will add date backlink: ${datePart} in style: ${config.dateRefStyle}`)
     parasInBlock[0].content = `${parasInBlock[0].content} ${datePart}`
   }
 }

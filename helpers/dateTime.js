@@ -408,11 +408,11 @@ export function hyphenatedDateString(dateObj: Date): string {
 }
 
 /**
- * Return calendar date in a variety of NP markup styles:
+ * Return calendar date from JS Date in a variety of NP markup styles:
  * - 'at': '@date'
  * - 'date': locale version of date
  * - 'scheduled': '>date'
- * - default: '[[date]]'
+ * - default (including 'link'): '[[date]]'
  * @author @jgclark
  * @param {Date} inputDate
  * @param {string} style to return
@@ -437,6 +437,47 @@ export function formatNoteDate(inputDate: Date, style: string): string {
     default: {
       // link or links
       output = `[[${hyphenatedDateString(inputDate)}]]`
+      break
+    }
+  }
+  return output
+}
+
+/**
+ * Return calendar date from NP date string in a variety of NP markup styles:
+ * - 'at': '@date'
+ * - 'date': locale version of date
+ * - 'scheduled': '>date'
+ * - default (including 'link'): '[[date]]'
+ * @author @jgclark
+ * @tests in jest file
+ * @param {Date} inputDateStr (YYYY-MM-DD, YYYY-Wnn, YYYY-mm, YYYY-Qn, YYYY formats)
+ * @param {string} style to return
+ * @return {string}
+ */
+export function formatNoteDateFromNPDateStr(inputDateStr: string, style: string): string {
+  let output = ''
+  switch (style) {
+    case 'at': {
+      output = `@${inputDateStr}`
+      break
+    }
+    case 'date': {
+      if (inputDateStr.match(RE_YYYYMMDD_DATE) || inputDateStr.match(RE_ISO_DATE)) {
+        // note this will vary depending on tester's locale
+        output = toLocaleDateString(new Date(inputDateStr))
+      } else {
+        output = `${getDisplayDateStrFromFilenameDateStr(inputDateStr)}`
+      }
+      break
+    }
+    case 'scheduled': {
+      output = `>${inputDateStr}`
+      break
+    }
+    default: {
+      // link or links
+      output = `[[${inputDateStr}]]`
       break
     }
   }

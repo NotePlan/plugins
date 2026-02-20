@@ -763,12 +763,10 @@ export async function redisplayProjectListHTML(): Promise<void> {
  * Reads from the already generated allProjects JSON file.
  * @author @jgclark
  *
- * @param {string} projectTag - the current hashtag (only now used in logging)
+ * @param {string} projectTag - the current hashtag of interest
  * @param {string} style - 'Markdown' or 'Rich'
- * @param {any} config - from settings (and any passed args)
- * @returns {Array<string>} output summary lines
- * @returns {number} number of notes
- * @returns {number} number of due notes (ready to review)
+ * @param {ReviewConfig} config - from settings (and any passed args)
+ * @returns {[Array<string>, number, number]} [output summary lines, number of notes, number of due notes (ready to review)]
  */
 export async function generateReviewOutputLines(projectTag: string, style: string, config: ReviewConfig): Promise<[Array<string>, number, number]> {
   try {

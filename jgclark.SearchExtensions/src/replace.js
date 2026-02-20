@@ -3,21 +3,16 @@
 //-----------------------------------------------------------------------------
 // Commands to search and replace over NP notes.
 // Jonathan Clark
-// Last updated 2026-01-24 for v2.0.1, @jgclark
+// Last updated 2026-02-18 for v2.0.3, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import type { resultOutputType, TSearchOptions, typedSearchTerm } from './searchHelpers'
 import { getSearchSettings, logBasicResultLines, runExtendedSearches, validateAndTypeSearchTerms, } from './searchHelpers'
 import { clo, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
-import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { getNoteFromFilename } from '@helpers/NPnote'
 import { escapeRegExp } from '@helpers/regex'
-import {
-  getInput,
-  showMessage,
-  showMessageYesNo
-} from '@helpers/userInput'
+import { getInput, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
 // Helper functions
@@ -127,7 +122,8 @@ async function confirmReplaceWithUser(
     'Confirm Replace',
     false
   )
-  if (res === 'No') {
+  // Treat any response other than 'Yes' as cancel (e.g. 'Cancel' or 'No' — dialog shows ['Yes', 'Cancel'] so Cancel returns 'Cancel')
+  if (res !== 'Yes') {
     logDebug('replace', `User has cancelled operation.`)
     return false
   }

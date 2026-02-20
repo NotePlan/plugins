@@ -12,12 +12,12 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
 import { getVisibleSectionCodes } from '../Section/sectionHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
-// import { usersVersionHas } from '../../../../../helpers/NPVersions.js'
 import { useAppContext } from '../AppContext.jsx'
 import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
 import RefreshControl from '../RefreshControl.jsx'
 import { DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
+import AddToAnyNote from './AddToAnyNote.jsx'
 import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
@@ -27,8 +27,6 @@ import SearchBar from './SearchBar.jsx'
 import SearchPanel from './SearchPanel.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import { clo, logDebug, logInfo, logError } from '@helpers/react/reactDev.js'
-import AddToAnyNote from './AddToAnyNote.jsx'
-// import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
 
 // --------------------------------------------------------------------------
 // Type Definitions
@@ -36,6 +34,8 @@ import AddToAnyNote from './AddToAnyNote.jsx'
 
 type Props = {
   lastFullRefresh: Date,
+  /** Called when any header dropdown menu opens or closes. Used to pause IdleTimer while a dropdown is open. */
+  onDropdownMenuOpenChange?: (open: boolean) => void,
 }
 
 /**
@@ -45,7 +45,7 @@ type Props = {
  * @param {Date} props.lastFullRefresh - The timestamp of the last full refresh.
  * @returns {React.Node} The rendered Header component.
  */
-const Header = ({ lastFullRefresh }: Props): React$Node => {
+const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Node => {
   // ----------------------------------------------------------------------
   // Context
   // ----------------------------------------------------------------------
@@ -70,6 +70,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // ----------------------------------------------------------------------
   // Effects
   // ----------------------------------------------------------------------
+  // Notify parent when any dropdown menu opens or closes (so IdleTimer can pause)
+  useEffect(() => {
+    onDropdownMenuOpenChange?.(openDropdownMenu !== null)
+  }, [openDropdownMenu, onDropdownMenuOpenChange])
+
   /**
    * Synchronize tempDashboardSettings with dashboardSettings when the dropdown menu is not open.
    */
@@ -289,7 +294,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const showHardRefreshButton = dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
   const isNarrowWidth = window.innerWidth <= 700
 
-  const isSearchPanelAvailable = dashboardSettings?.FFlag_ShowSearchPanel // Note: not yet used
+  // const isSearchPanelAvailable = dashboardSettings?.FFlag_ShowSearchPanel // Note: not yet used
   const useDynamicAddToAnywhere = dashboardSettings?.FFlag_DynamicAddToAnywhere ?? false
 
   // Note: this is a hack on iOS and iPadOS in modal mode, to allow the modal close button to be visible

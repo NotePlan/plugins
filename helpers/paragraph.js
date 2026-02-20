@@ -6,6 +6,7 @@
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
+import { isParaAMatchForHeading } from '@helpers/headings'
 import {
   RE_DONE_MENTION,
   RE_EVENT_LINK,
@@ -608,7 +609,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
 }
 
 /**
- * Works out where the first ## Done or ## Cancelled section starts, if present, and returns the paragraph before that.
+ * Works out where the first ## Done (or other supplied archive heading names) or ## Cancelled section starts, if present, and returns the paragraph before that.
  * Works with folded Done or Cancelled sections.
  * If the result is a separator, use the line before that instead
  * If neither Done or Cancelled present, return the last non-empty lineIndex.
@@ -616,9 +617,10 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
  * @tests in jest file
  *
  * @param {TNote} note - the note to assess
+ * @param {Array<string>} doneHeadingNames? - optional list of level-2 heading names that mark the start of an archive section (default: ['Done'])
  * @returns {number} - the index number (counting from zero)
  */
-export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
+export function findEndOfActivePartOfNote(note: CoreNoteFields, doneHeadingNames?: Array<string> = ['Done']): number {
   try {
     const paras = note.paragraphs
     let lineCount = paras.length
@@ -633,8 +635,12 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
         lineCount--
       }
 
-      // Find first example of ## Done
-      const doneHeaderLines = paras.filter((p) => p.headingLevel === 2 && p.content.startsWith('Done')) ?? []
+      // Find first example of any configured "Done" archive heading
+      // (defaults to exact match on 'Done', but also allows a trailing ' ...' / ' …')
+      const doneHeaderLines = paras.filter(
+        (p) =>
+          doneHeadingNames.some((name) => isParaAMatchForHeading(p, name, 2)),
+      ) ?? []
       let doneHeaderLine = doneHeaderLines.length > 0 ? doneHeaderLines[0].lineIndex : 0
       // Now check to see if previous line was a separator; if so use that line instead
       if (doneHeaderLine > 2 && paras[doneHeaderLine - 1].type === 'separator') {

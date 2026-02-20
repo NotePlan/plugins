@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 2025-08-08 for v0.17.0, @jgclark
+// Last updated 2026-02-14 for v1.0.4, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -78,14 +78,14 @@ export async function updateSettings() {
 
 /**
  * To test function paragraph::smartCreateSectionsAndPara()
- * Assumes a note titled 'Quick Capture qalh TEST'
+ * Assumes a note titled 'Quick Capture callback TESTs'
  */
 export async function smartCreateTest(): Promise<void> {
   // $FlowIgnore[incompatible-use]
   const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
   smartCreateSectionsAndPara(
     note,
-    'test_text_addeed_below_heading by tempSmartCreateTest()',
+    'test_text_added_below_heading by tempSmartCreateTest()',
     'list',
     ['Head E', 'Subhead EE'],
     2,
@@ -95,7 +95,7 @@ export async function smartCreateTest(): Promise<void> {
 
 /**
  * To test function paragraph::smartAppendParas()
- * Assumes a note titled 'Quick Capture qalh TEST'
+ * Assumes a note titled 'Quick Capture callback TESTs'
  */
 export async function smartAppendParasTest(): Promise<void> {
   // $FlowIgnore[incompatible-use]
@@ -109,7 +109,7 @@ export async function smartAppendParasTest(): Promise<void> {
 
 /**
  * To test function paragraph::smartPrependParas()
- * Assumes a note titled 'Quick Capture qalh TEST'
+ * Assumes a note titled 'Quick Capture callback TESTs'
  */
 export async function smartPrependParasTest(): Promise<void> {
   // $FlowIgnore[incompatible-use]
@@ -123,7 +123,7 @@ export async function smartPrependParasTest(): Promise<void> {
 
 /**
  * To test function paragraph::insertParas()
- * Assumes a note titled 'Quick Capture qalh TEST'
+ * Assumes a note titled 'Quick Capture callback TESTs'
  */
 export async function insertParasTest(): Promise<void> {
   // $FlowIgnore[incompatible-use]

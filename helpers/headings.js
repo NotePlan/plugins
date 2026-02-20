@@ -6,6 +6,45 @@
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 
 /**
+ * Check whether a heading paragraph matches the given text at the specified level,
+ * allowing an optional trailing ellipsis ("…"), which indicates that a heading has been folded.
+ * It tolerates extra whitespace between the base text and the ellipsis.
+ * @author Cursor, guided by @jgclark
+ * @param {TParagraph} para
+ * @param {string} headingName - base heading text to match (e.g. 'Done')
+ * @param {number} headingLevel - required heading level (e.g. 2 for H2)
+ * @returns {boolean} true if the heading matches the given text at the specified level, false otherwise
+ */
+export function isParaAMatchForHeading(para: TParagraph, headingName: string, headingLevel: number): boolean {
+  if (para.type !== 'title') {
+    return false
+  }
+  const level = para.headingLevel ?? 0
+  if (level !== headingLevel) {
+    return false
+  }
+
+  const base = headingName.trim()
+  const content = para.content.trim()
+
+  if (content === base) {
+    return true
+  }
+
+  // Allow an extra ellipsis at the end of the heading, tolerating extra whitespace
+  // between the base text and the ellipsis.
+  const ellipsisCharMatch = content.match(/^(.*?)(…)$/)
+  if (ellipsisCharMatch) {
+    const beforeEllipsis = ellipsisCharMatch[1].trimEnd()
+    if (beforeEllipsis === base) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
  * Find all H4/H3/H2/H1 headings in the hierarchy before this para.
  * Note: could be extended to not include H1 if this is from a regular note.
  * @param {TParagraph} para

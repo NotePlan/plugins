@@ -2,6 +2,11 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [2.0.3] - 2026-02-18
+### Fixed
+- search terms with underscore(s) were being tokenized into two words, rather than being treated as a single word.
+- **/replace** command wasn't honouring the "Are you sure you want to continue?" dialog check.
+
 ## [2.0.2] - 2026-01-30
 - align 'searchInPeriod' command x-callback parameters to what the documentation actually says ;-)
 - fixes to 'searchInPeriod' run interactively

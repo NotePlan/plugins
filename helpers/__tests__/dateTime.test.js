@@ -866,6 +866,78 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
+  describe('formatNoteDateFromNPDateStr()', () => {
+    describe('non-locale-dependent styles', () => {
+      test('daily ISO date with style "at"', () => {
+        expect(dt.formatNoteDateFromNPDateStr('2022-12-31', 'at')).toEqual('@2022-12-31')
+      })
+      test('daily ISO date with style "scheduled"', () => {
+        expect(dt.formatNoteDateFromNPDateStr('2022-12-31', 'scheduled')).toEqual('>2022-12-31')
+      })
+      test('daily ISO date with style "link"', () => {
+        expect(dt.formatNoteDateFromNPDateStr('2022-12-31', 'link')).toEqual('[[2022-12-31]]')
+      })
+      test('weekly NP date with style "at"', () => {
+        expect(dt.formatNoteDateFromNPDateStr('2022-W52', 'at')).toEqual('@2022-W52')
+      })
+      test('monthly NP date with style "scheduled"', () => {
+        expect(dt.formatNoteDateFromNPDateStr('2022-12', 'scheduled')).toEqual('>2022-12')
+      })
+      test('quarterly NP date with style "link"', () => {
+        expect(dt.formatNoteDateFromNPDateStr('2022-Q4', 'link')).toEqual('[[2022-Q4]]')
+      })
+      test('yearly NP date with default style', () => {
+        expect(dt.formatNoteDateFromNPDateStr('2022', 'anything-else')).toEqual('[[2022]]')
+      })
+    })
+
+    describe('style "date"', () => {
+      let toLocaleSpy
+
+      beforeEach(() => {
+        toLocaleSpy = jest.spyOn(dt, 'toLocaleDateString').mockReturnValue('MOCK_LOCALE_DATE')
+      })
+
+      afterEach(() => {
+        jest.restoreAllMocks()
+      })
+
+      test.skip('daily ISO date uses locale date string', () => {
+        const result = dt.formatNoteDateFromNPDateStr('2022-12-31', 'date')
+        // FIXME: failing as the spy is not being called. I don't understand mocking well enough, so skipping for now.
+        expect(toLocaleSpy).toHaveBeenCalled()
+        expect(result).toEqual('MOCK_LOCALE_DATE')
+      })
+
+      test.skip('daily YYYYMMDD date uses locale date string', () => {
+        const result = dt.formatNoteDateFromNPDateStr('20221231', 'date')
+        // FIXME: failing as the spy is not being called. I don't understand mocking well enough, so skipping for now.
+        expect(toLocaleSpy).toHaveBeenCalled()
+        expect(result).toEqual('MOCK_LOCALE_DATE')
+      })
+
+      test('weekly NP date returns unchanged string', () => {
+        const result = dt.formatNoteDateFromNPDateStr('2022-W52', 'date')
+        expect(result).toEqual('2022-W52')
+      })
+
+      test('monthly NP date returns unchanged string', () => {
+        const result = dt.formatNoteDateFromNPDateStr('2022-12', 'date')
+        expect(result).toEqual('2022-12')
+      })
+
+      test('quarterly NP date returns unchanged string', () => {
+        const result = dt.formatNoteDateFromNPDateStr('2022-Q4', 'date')
+        expect(result).toEqual('2022-Q4')
+      })
+
+      test('yearly NP date returns unchanged string', () => {
+        const result = dt.formatNoteDateFromNPDateStr('2022', 'date')
+        expect(result).toEqual('2022')
+      })
+    })
+  })
+
   /*
    * getWeekNumber()
    */

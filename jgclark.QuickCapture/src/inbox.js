@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Inbox command for QuickCapture plugin
 // by Jonathan Clark
-// last update 2025-08-25 for v1.0.0 by @jgclark
+// last update 2026-02-14 for v1.0.4 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,10 +29,10 @@ import {  showMessage} from '@helpers/userInput'
 export async function addTaskToInbox(
   taskContentArg?: string = '',
   inboxTitleArg?: string = '',
-  inboxHeading?: string = '',
+  inboxHeadingArg?: string = '',
 ): Promise<void> {
   try {
-    await addItemToInbox('task', taskContentArg, inboxTitleArg, inboxHeading)
+    await addItemToInbox('task', taskContentArg, inboxTitleArg, inboxHeadingArg)
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
@@ -45,17 +45,17 @@ export async function addTaskToInbox(
  * - append or prepend to the inbox note (default: append)
  * Can be used from x-callback with two passed arguments.
  * @author @jgclark
- * @param {string?) textContentArg
- * @param {string?) inboxTitleArg
+ * @param {string?} textContentArg
+ * @param {string?} inboxTitleArg
  * @param {string?} inboxHeadingArg (if not given, will use setting 'inboxHeading')
  */
 export async function addJotToInbox(
   textContentArg?: string = '',
   inboxTitleArg?: string = '',
-  inboxHeading?: string = '',
+  inboxHeadingArg?: string = '',
 ): Promise<void> {
   try {
-    await addItemToInbox('jot', textContentArg, inboxTitleArg, inboxHeading)
+    await addItemToInbox('jot', textContentArg, inboxTitleArg, inboxHeadingArg)
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
@@ -136,7 +136,7 @@ async function addItemToInbox(
     let itemText = (itemContentArg != null && itemContentArg !== '')
       ? itemContentArg
       : await CommandBar.showInput(`Type the ${itemType} to add to ${displayTitle(inboxNote)}`, `Add ${itemType} '%@'${textToAppend}`)
-    if (itemType === 'jot') {
+    if (textToAppend) {
       itemText += textToAppend
     }
 

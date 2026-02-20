@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Filer plugin.
 // Jonathan Clark
-// last updated 2025-12-16, for v1.5.0
+// last updated 2026-02-18, for v1.5.2
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -20,10 +20,11 @@ export type FilerConfig = {
   includeFromStartOfSection: boolean,
   allowNotePreambleBeforeHeading: boolean,
   useTightBlockDefinition: boolean,
+  doneSectionHeadingName: string,
   recreateDoneSectionStructure: boolean,
+  skipDoneSubtasksUnderOpenTasks: boolean,
   onlyMoveCompletedWhenWholeSectionComplete: boolean,
   whereToAddInSection: string, // 'start' (default) or 'end'
-  // justCompletedItems: boolean, // migrating to the next item
   typesToFile: string, // now a choice: all but incomplete tasks
   useBlocks: boolean,
   whereToAddInNote: string, // 'start' (default) or 'end'
@@ -36,6 +37,7 @@ export type FilerConfig = {
 export async function getFilerSettings(): Promise<any> {
   try {
     // // TODO: add to np.Shared
+    // // - doneSectionHeadingName
     // // First get global setting 'useTightBlockDefinition'
     // let useTightBlockDefinition = await getSetting('np.Shared', 'useTightBlockDefinition')
     // logDebug('getFilerSettings', `- useTightBlockDefinition: np.Globals: ${String(useTightBlockDefinition)}`)

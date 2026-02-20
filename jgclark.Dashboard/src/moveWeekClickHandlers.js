@@ -264,7 +264,6 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject, moveO
       logDebug('scheduleAllLastWeekThisWeek', `- Excluding children reduced total to move from ${initialTotalToMove} to ${totalToMove}`)
     }
 
-
     // If there are lots, then double check whether to proceed.
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
     if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
@@ -338,7 +337,7 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject, moveO
           logWarn('scheduleAllLastWeekThisWeek', `Oddly I can't find the note for "${dashboardPara.content}", so can't process this item`)
         } else {
           // Convert each reduced para back to the full one to update.
-          // FIXME: fails because indents is 0 not 1
+          // FIXME(Eduard): fails because indented para's .rawContent and .indents don't work when found from backlinks. Reported at https://discord.com/channels/763107030223290449/1469004969075015723
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p && p.note) {
             p.content = replaceArrowDatesInString(p.content, `>${thisWeekDateStr}`)
