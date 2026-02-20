@@ -580,6 +580,15 @@ export async function getPeriodStartEndDates(
       periodString = `<Error: couldn't parse interval type '${periodShortCode}'>`
     }
   }
+
+  // Cap toDate at today so period stats (and similar callers) don't include future dates
+  toDateMom = moment(toDate)
+  const todayEnd = moment().endOf('day')
+  if (toDateMom.isAfter(todayEnd)) {
+    logDebug('getPeriodStartEndDates', `- capping toDate to today (period end was in the future)`)
+    toDateMom = moment().endOf('day')
+    toDate = toDateMom.toDate()
+  }
   if (excludeToday) {
     logDebug('getPeriodStartEndDates', `- as requested, today's date will be excluded`)
     toDateMom = moment(toDate).subtract(1, 'day')
@@ -603,14 +612,16 @@ export async function getPeriodStartEndDates(
  * @param {TPeriodCodes} periodCode: week | month | quarter | year | YYYY-MM-DD | all
  * @param {number} periodNumber e.g. 3 for '3rd Quarter' or '3rd month' etc. (ignored for periodCode 'year' or YYYY-MM-DD)
  * @param {number} year
- * @param {boolean?} excludeToday? (default true)
+ * @param {boolean?} excludeToday? (default: true)
+ * @param {boolean?} excludeFutureDates? (default: true)
  * @returns {[Date, Date, TPeriodCode, string, string]}
  */
 export function getPeriodStartEndDatesFromPeriodCode(
   periodCode: TPeriodCode,
   periodNumber: number,
   year: number,
-  excludeToday: boolean = true
+  excludeToday: boolean = true,
+  excludeFutureDates: boolean = true
 ): [Date, Date, TPeriodCode, string, string] {
   let fromDateMom = new moment()
   let toDateMom = new moment()
@@ -704,6 +715,16 @@ export function getPeriodStartEndDatesFromPeriodCode(
 
   fromDate = fromDateMom.toDate()
   toDate = toDateMom.toDate()
+
+  // if 'excludeFutureDates' is true, cap toDate at today so period stats (and similar callers) don't include future dates
+  if (excludeFutureDates) {
+    const todayEnd = moment().endOf('day')
+    if (moment(toDate).isAfter(todayEnd)) {
+      logDebug('getPeriodStartEndDatesFromPeriodCode', `- capping toDate to today (period end was in the future)`)
+      toDateMom = todayEnd
+      toDate = toDateMom.toDate()
+    }
+  }
   if (excludeToday) {
     logDebug('getPeriodStartEndDatesFromPeriodCode', `- as requested, today's date will be excluded`)
     toDateMom = moment(toDate).subtract(1, 'day')
