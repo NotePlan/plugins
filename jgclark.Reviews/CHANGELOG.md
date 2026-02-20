@@ -1,8 +1,7 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
-<!--
-## [1.3.0] - 2026-02-???
+## [1.3.0] - 2026-02-20
 ### Display Improvements
 - Supports opening the Project Lists window in NotePlan's main window on macOS. See Display setting "Open Project Lists in what sort of macOS window?".
 - Adds the plugin to the NP Sidebar list of plugins
@@ -11,6 +10,8 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - When running in the main window, clicking on a project note now opens it in a split view to the side.
 - Added 'Next' review button to top bar.
 - Added 'Start' review button to the edit dialogs
+- Added an 'Add Task' button to the edit dialog, which asks user for task details, and which heading to add it under.
+- Added a count badge to project list rows: shows count of open (non-future) items in a small grey square. Badges only appear for active projects and when counts are greater than zero.
 - Smartly truncates long 'next action' lines
 - Uses a note's icon in the project list, if set in the note's frontmatter
 - Turned back on the automatic updates of Dashboard plugin (if open). [Requires Dashboard v2.4.0 beta 18 or later.]
@@ -26,15 +27,15 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - New setting "Also write most recent Progress line to frontmatter?". When turned on this allows the current progress information to be used in Folder Views. (default: off) (for @oak86)
 - Pausing or un-pausing on a Project now also updates the `@reviewed()` date
 - Stops the 'next action' check from running if the project note is marked as `#sequential`
-<!-- - added new **weekly projects progress** command for JGC -->
-<!--
+
 ### Fixed
 - Re-wrote finding open project note now there can be multiple Editors open.
 - Folder name (including Space name) not being included in project completion list in yearly note
 - Progress lines with 100% were parsed as 10%
 - Other smaller improvements and fixes (including those reported by @Garba, @Mourique and @Doug)
--->
+<!-- - added new **weekly projects progress** command for JGC -->
 
+<!--
 ## [1.3.0.b12] - 2026-02-16
 - Added a count badge to project list rows: shows count of open (non-future) items in a small grey square. Badges only appear for active projects and when counts are greater than zero.
 - Added an "Add Task" button to the edit dialog, which asks user for task details, and which heading to add it under.
@@ -97,6 +98,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 ## [1.3.0.b1] - 2025-12-09
 - now supports projects in (Team)Space notes, using the settings in the Perspective from Dashboard v2.4 which allows you to specify which (Team)Spaces you wish to include, plus whether or not to include the Private "Space" (all notes not in a Space).
+-->
 
 ## [1.2.4] - not released
 - improve inter-plugin communication with the Dashboard.
