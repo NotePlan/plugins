@@ -9,14 +9,15 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b21] 2026-02-??? 
+## [2.4.0.b21] 2026-02-19 
 - new 'Start' review button in project dialog box.
 - dev: more robust handling of edge cases in REFRESH_SECTION_IN_JSON
 - auto refresh: change exceptions around when it *won't* fire, to now ignore most interactions with Dashboard, other than having a dialog box open.
 - add ordering method to description in Active Projects section
 - there are reasons that Projects plugin can produce a list with duplicates; Active Projects section now de-dupes them.
+- update Project Dialog to add Start Reviews button, and latest progress comment
 
-## [2.4.0.b20] 2026-02-20 
+## [2.4.0.b20] 2026-02-10 
 - fix clicking on note title in Task Dialog box opening two notes
 - allow Searches to work against either V2 or V3 of Search Extensions plugin
 - move "Default Dashboard Window Type" setting to main Dashboard settings dialog, from the NP plugin settings pane.
