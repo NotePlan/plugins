@@ -153,15 +153,14 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
  * Calculate the next date to review, based on last review date and date interval.
  * If no last review date, then the answer is today's date.
  * @author @jgclark
- * @param {Date} lastReviewDate - JS Date
+ * @param {string|Date} lastReviewDate - ISO date string (YYYY-MM-DD) or JS Date
  * @param {string} interval - interval specified as nn[bdwmqy]
- * @return {Date} - JS Date
+ * @return {?string} - ISO date string (YYYY-MM-DD) or null if calculation fails
  */
-export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date {
-  const lastReviewDateStr: string = toISODateString(lastReviewDate)
-  // $FlowIgnore[incompatible-type] as calcOffsetDate() will throw error rather than return null
-  const reviewDate: Date = lastReviewDate != null ? calcOffsetDate(lastReviewDateStr, interval) : getJSDateStartOfToday() // today's date
-  return reviewDate
+export function calcNextReviewDate(lastReviewDate: string | Date, interval: string): ?string {
+  const lastReviewDateStr: string = typeof lastReviewDate === 'string' ? lastReviewDate : toISODateString(lastReviewDate)
+  const reviewDate: Date | null = lastReviewDate != null ? calcOffsetDate(lastReviewDateStr, interval) : getJSDateStartOfToday()
+  return reviewDate != null ? toISODateString(reviewDate) : null
 }
 
 /**

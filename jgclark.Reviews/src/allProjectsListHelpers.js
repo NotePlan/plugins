@@ -36,41 +36,6 @@ const SEQUENTIAL_TAG_DEFAULT = '#sequential'
 // Helper functions
 
 /**
- * Convert date strings to Date objects for a project loaded from JSON
- * JSON.parse() converts Date objects to strings, so we need to restore them
- * @param {any} project - Project object loaded from JSON
- * @returns {any} Project object with Date fields converted to Date objects
- * @private
- */
-function convertProjectDatesFromJSON(project: any): any {
-  // Convert date string fields back to Date objects
-  // Handles both old format (full ISO datetime: "2022-03-31T23:00:00.000Z") and new format (simple ISO date: "2022-03-31")
-  // The new format stores dates as simple ISO date strings (YYYY-MM-DD) with no time component
-  // Note: nextReviewDateStr is kept as a string (YYYY-MM-DD format), not converted to Date
-  const dateFields = ['startDate', 'dueDate', 'reviewedDate', 'completedDate', 'cancelledDate']
-  const converted = { ...project }
-  
-  for (const field of dateFields) {
-    if (converted[field] != null && typeof converted[field] === 'string') {
-      // Parse ISO date string to Date object
-      // new Date() can parse both "YYYY-MM-DD" and "YYYY-MM-DDTHH:mm:ss.sssZ" formats
-      // For "YYYY-MM-DD", it creates a Date at midnight UTC (which may be a different day in local time)
-      // but this is fine since we only use the date part for calculations via daysBetween() which handles timezones
-      const dateObj = new Date(converted[field])
-      // Only convert if the date is valid
-      if (!isNaN(dateObj.getTime())) {
-        converted[field] = dateObj
-      } else {
-        logWarn('convertProjectDatesFromJSON', `Invalid date string for ${field}: ${converted[field]}`)
-        converted[field] = null
-      }
-    }
-  }
-  
-  return converted
-}
-
-/**
  * Check if a project is ready for review (works with both Project instances and plain objects from JSON)
  * @param {Project | any} project - Project instance or plain object
  * @returns {boolean} True if project is ready for review
@@ -514,12 +479,8 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
       logDebug('getAllProjectsFromList', `- Reading from current allProjectsList (as only ${fileAgeHours} hours old)`)
       const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
       // Make objects from this (except .note)
+      // Date fields (startDate, dueDate, etc.) are stored as ISO strings (YYYY-MM-DD) and left as strings
       projectInstances = JSON.parse(content)
-      
-      // Convert date strings to Date objects (JSON.parse converts Date objects to strings)
-      // TODO(later): is this still needed?
-      logDebug('getAllProjectsFromList', `- Converting date strings to Date objects for ${projectInstances.length} projects`)
-      projectInstances = projectInstances.map((project) => convertProjectDatesFromJSON(project))
       
       // Recalculate review fields for all projects since nextReviewDays may be stale
       // This is necessary because the JSON was written at a previous time, and nextReviewDays

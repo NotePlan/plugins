@@ -1,6 +1,11 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.4.0.b1] - 2026-02-???
+### Changed
+- Rich project list: dates column now shows review and due status as coloured lozenges, in a newly merged column 3.
+- dev: Project class now uses ISO date strings (YYYY-MM-DD) for startDate, dueDate, reviewedDate, completedDate, and cancelledDate instead of JavaScript Date objects; removes Date/string conversion in constructor, allProjectsListHelpers, and reviewHelpers.
+
 ## [1.3.0] - 2026-02-20
 ### Display Improvements
 - Supports opening the Project Lists window in NotePlan's main window on macOS. See Display setting "Open Project Lists in what sort of macOS window?".
