@@ -113,13 +113,13 @@ h3, .h3 {
 
 table {
   border-collapse: collapse; /* always! */
-  table-layout: fixed; /* so column widths are respected and col 2 doesn't push 3+4 off */
+  table-layout: fixed; /* so column widths are respected and col 2 doesn't push col 3 (metadata) off */
   width: 100%; /* keep wide to avoid different table widths */
   empty-cells: show;
   margin-bottom: 0rem;
 }
 
-/* Constrain column 2 so long progress text doesn't push Next Review and Due Date off viewport */
+/* Constrain column 2 so long progress text doesn't push column 3 (metadata) off viewport */
 table colgroup:has(col:nth-child(4)) col:nth-child(2) {
   width: calc(100% - 14.2rem); /* 3.2rem (col1) + 5.5rem + 5.5rem (col3+4) */
 }
@@ -442,34 +442,46 @@ button, .fake-button, .clickTarget {
   margin-left: 0.1rem;
 }
 
-/* Status lozenges (review/due) – colour from getIntervalReviewStatus / getIntervalDueStatus */
-.project-dates-cell {
+/* Column 3: metadata (status lozenges + project tags). Status lozenges – colour from getIntervalReviewStatus / getIntervalDueStatus */
+.project-metadata-cell {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   white-space: nowrap;
+  gap: 0.3rem;
 }
-.status-lozenge {
+.metadata-lozenge {
   display: inline-block;
   padding: 0.15rem 0.4rem;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   line-height: 1.1;
   margin-right: 0.25rem;
-  color: #fff;
 }
-.status-lozenge--red {
+.metadata-lozenge--tag {
+  color: var(--fg-placeholder-color);
+  background-color: var(--bg-alt-color);
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.2);
+}
+.metadata-lozenge--red {
   color: #b85450;
-  background-color:  #b8545019
+  /* border: 1px solid #b85450; */
+  background-color:  #b8545010
 }
-.status-lozenge--orange {
-  color: #c76a00;
-  background-color:  #c76a0019
+.metadata-lozenge--orange {
+  color: #c76a40;
+  /* border: 1px solid #c76a00; */
+  background-color:  #c76a4010
 }
-.status-lozenge--blue {
+.metadata-lozenge--blue {
   color: #1e66f5;
-  background-color:  #1e66f519
+  /* border: 1px solid #1e66f5; */
+  background-color:  #1e66f510
 }
-.status-lozenge--green {
+.metadata-lozenge--green {
   color: #269F54;
-  background-color:  #269F5419
+  /* border: 1px solid #269F54; */
+  background-color:  #269F5410
 }
 
 /* ---- PROGRESS ----------------------------------------- */

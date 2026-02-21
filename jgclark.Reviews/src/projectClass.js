@@ -124,6 +124,7 @@ export class Project {
   ID: string // required when making HTML views
   icon: ?string // icon from frontmatter (optional)
   iconColor: ?string // iconColor from frontmatter (optional)
+  allProjectTags: Array<string> = [] // projectTag(s), #sequential if applicable, and all hashtags from metadata line and frontmatter 'project' (for column 3)
 
   constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = [], sequentialTag: string = '') {
     try {
@@ -262,6 +263,40 @@ export class Project {
         this.generateNextActionComments(nextActionTags, paras, sequentialTag, Array.from(hashtags ?? []), metadataLine)
       }
 
+      // Build allProjectTags: and all hashtags from metadata line and frontmatter 'project' (including #sequential if applicable)
+      const metadataLineHashtags = (`${metadataLine} `).split(/\s+/).filter((w) => w.length > 0 && w[0] === '#')
+      const projectAttr = getFrontmatterAttribute(this.note, 'project')
+      const projectAttrStr = projectAttr != null && typeof projectAttr === 'string' ? projectAttr : ''
+      const frontmatterProjectHashtags = projectAttrStr ? projectAttrStr.match(/#\S+/g) ?? [] : []
+      const hasSequentialTag =
+        sequentialTag !== '' &&
+        (projectAttrStr.includes(sequentialTag) ||
+          metadataLineHashtags.some((t) => t === sequentialTag) ||
+          metadataLine.includes(sequentialTag))
+      const seen = new Set<string>()
+      const ordered: Array<string> = []
+      if (this.projectTag && !seen.has(this.projectTag)) {
+        seen.add(this.projectTag)
+        ordered.push(this.projectTag)
+      }
+      if (hasSequentialTag && sequentialTag && !seen.has(sequentialTag)) {
+        seen.add(sequentialTag)
+        ordered.push(sequentialTag)
+      }
+      for (const t of metadataLineHashtags) {
+        if (!seen.has(t)) {
+          seen.add(t)
+          ordered.push(t)
+        }
+      }
+      for (const t of frontmatterProjectHashtags) {
+        if (!seen.has(t)) {
+          seen.add(t)
+          ordered.push(t)
+        }
+      }
+      this.allProjectTags = ordered
+
       if (this.title.includes('TEST')) {
         logDebug('ProjectConstructor', `Constructed ${this.projectTag} ${this.filename}:`)
         logDebug('ProjectConstructor', `  - folder = ${this.folder}`)
@@ -280,6 +315,7 @@ export class Project {
         logDebug('ProjectConstructor', `  - progress: <${String(this.lastProgressComment)}>`)
         logDebug('ProjectConstructor', `  - % complete = ${String(this.percentComplete)}`)
         logDebug('ProjectConstructor', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
+        logDebug('ProjectConstructor', `  - allProjectTags = <${String(this.allProjectTags)}>`)
       } else {
         logTimer('ProjectConstructor', startTime, `Constructed ${this.projectTag} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
       }
@@ -982,6 +1018,7 @@ function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = 
     ID: project.ID,
     icon: project.icon,
     iconColor: project.iconColor,
+    allProjectTags: project.allProjectTags ?? [],
   }
 }
 

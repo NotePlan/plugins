@@ -91,7 +91,7 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig): string
     parts.push(`</td>`)
   }
 
-  // Columns 3/4: date information
+  // Column 3: metadata (dates + project tags/hashtags)
   parts.push(generateDateSection(thisProject, config))
   parts.push('\n\t</tr>')
 
@@ -181,14 +181,15 @@ function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Ar
   for (const NAContent of nextActionsContent) {
     // const truncatedNAContent = trimString(NAContent, 80)
     const truncatedNAContent = prepAndTruncateMarkdownForDisplay(NAContent, 80)
-    parts.push(`\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${truncatedNAContent}</span></div>`)
+    parts.push(`\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText pad-left">${truncatedNAContent}</span></div>`)
   }
   return parts.join('')
 }
 
 /**
- * Generate date section HTML for Rich format.
- * Single column with two coloured lozenges: review status then due status (from getIntervalReviewStatus / getIntervalDueStatus).
+ * Generate column 3 (metadata column) HTML for Rich format.
+ * Shows up to two coloured lozenges (review status then due status from getIntervalReviewStatus / getIntervalDueStatus),
+ * and when present a line of project hashtags from from metadata line and/or frontmatter `project` value.
  * @param {Project} thisProject
  * @param {ReviewConfig} config
  * @returns {string}
@@ -211,16 +212,21 @@ function generateDateSection(thisProject: Project, config: ReviewConfig): string
   // Review status lozenge (from getIntervalReviewStatus)
   if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
     const reviewStatus = getIntervalReviewStatus(thisProject.nextReviewDays)
-    lozenges.push(`<span class="status-lozenge status-lozenge--${reviewStatus.color}">${reviewStatus.text}</span>`)
+    lozenges.push(`<span class="metadata-lozenge metadata-lozenge--${reviewStatus.color}">${reviewStatus.text}</span>`)
   }
   // Due status lozenge (from getIntervalDueStatus), follows review in same column
   if (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) {
     const dueStatus = getIntervalDueStatus(thisProject.dueDays)
-    lozenges.push(`<span class="status-lozenge status-lozenge--${dueStatus.color}">${dueStatus.text}</span>`)
+    lozenges.push(`<span class="metadata-lozenge metadata-lozenge--${dueStatus.color}">${dueStatus.text}</span>`)
   }
 
-  const content = lozenges.length > 0 ? lozenges.join(' ') : ''
-  return `<td class="project-dates-cell">${content}</td>`
+// Now add all lozenges, each in their own span within one div, and then all divs within one div
+  if (thisProject.allProjectTags != null && thisProject.allProjectTags.length > 0) {
+    for (const hashtag of thisProject.allProjectTags) {
+      lozenges.push(`<span class="metadata-lozenge metadata-lozenge--tag">${hashtag}</span>`)
+    }
+  }
+  return `<td class="project-metadata-cell">${lozenges.join('\n')}</td>`
 }
 
 /**

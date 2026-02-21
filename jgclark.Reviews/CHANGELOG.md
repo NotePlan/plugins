@@ -3,7 +3,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 ## [1.4.0.b1] - 2026-02-???
 ### Changed
-- Rich project list: dates column now shows review and due status as coloured lozenges, in a newly merged column 3.
+- Rich project list: column 3 (metadata column) now shows review and due status as coloured lozenges, plus project tag(s), #sequential when applicable, and all hashtags from the note's metadata line and frontmatter `project` value. New Project field `allProjectTags` holds this combined list.
 - dev: Project class now uses ISO date strings (YYYY-MM-DD) for startDate, dueDate, reviewedDate, completedDate, and cancelledDate instead of JavaScript Date objects; removes Date/string conversion in constructor, allProjectsListHelpers, and reviewHelpers.
 
 ## [1.3.0] - 2026-02-20
