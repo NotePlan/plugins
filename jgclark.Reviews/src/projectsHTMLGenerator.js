@@ -72,13 +72,13 @@ export function generateProjectOutputLine(
  */
 function generateRichHTMLRow(thisProject: Project, config: ReviewConfig): string {
   const parts: Array<string> = []
-  parts.push(`\t<tr class="projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}">\n\t\t`)
+  parts.push(`\t<div class="project-grid-row projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}">\n\t\t`)
   parts.push(generateCircleIndicator(thisProject))
 
   // Column 2a: Project name + link / item count badge / edit dialog trigger button
   const editButton = `          <span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}', encodedLastProgressComment:'${encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')}'})"><i class="fa-light fa-edit"></i></span>\n`
   const openItemCount = generateItemCountsBadge(thisProject)
-  parts.push(`\n\t\t\t<td><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}${openItemCount}</span>`)
+  parts.push(`\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}${openItemCount}</span>`)
 
   if (!thisProject.isCompleted && !thisProject.isCancelled) {
     const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
@@ -88,12 +88,12 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig): string
     // Write column 2b/2c under title: progress line row (if any) then stats then next actions
     parts.push(generateProgressSection(thisProject, config, false))
     parts.push(generateNextActionsSection(config, nextActionsContent))
-    parts.push(`</td>`)
   }
+  parts.push(`</div>`)
 
   // Column 3: metadata (dates + project tags/hashtags)
   parts.push(generateDateSection(thisProject, config))
-  parts.push('\n\t</tr>')
+  parts.push('\n\t</div>')
 
   return parts.join('')
 }
@@ -106,17 +106,17 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig): string
  */
 function generateCircleIndicator(thisProject: Project): string {
   if (thisProject.isCompleted) {
-    return `<td class="first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check circle-icon')}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check circle-icon')}</div>`
   } else if (thisProject.isCancelled) {
-    return `<td class="first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</div>`
   } else if (thisProject.isPaused) {
-    return `<td class="first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "var(--project-pause-color)")}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "var(--project-pause-color)")}</div>`
   } else if (thisProject.percentComplete == null || isNaN(thisProject.percentComplete)) {
-    return `<td class="first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', 'var(--project-no-percent-color)')}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', 'var(--project-no-percent-color)')}</div>`
   } else if (thisProject.percentComplete === 0) {
-    return `<td class="first-col-indicator">${addSVGPercentRing(thisProject, 100, '#FF000088', '0')}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addSVGPercentRing(thisProject, 100, '#FF000088', '0')}</div>`
   } else {
-    return `<td class="first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</div>`
   }
 }
 
@@ -198,17 +198,26 @@ function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Ar
 function generateDateSection(thisProject: Project, config: ReviewConfig): string {
   if (!config.displayDates) return ''
 
-  if (thisProject.isPaused) return '<td></td>'
+  if (thisProject.isPaused) return '<div class="project-grid-cell project-grid-cell--metadata"></div>'
 
   if (thisProject.isCompleted) {
     const completionRef = thisProject.completedDuration || "completed"
-    return `<td class="checked">Completed ${completionRef}</td>`
+    return `<div class="project-grid-cell project-grid-cell--metadata checked">Completed ${completionRef}</div>`
   } else if (thisProject.isCancelled) {
     const cancellationRef = thisProject.cancelledDuration || "cancelled"
-    return `<td class="cancelled">Cancelled ${cancellationRef}</td>`
+    return `<div class="project-grid-cell project-grid-cell--metadata cancelled">Cancelled ${cancellationRef}</div>`
   }
 
   const lozenges: Array<string> = []
+
+  // Add all lozenges, each in their own span within one div
+  // Start with project tags
+  if (thisProject.allProjectTags != null && thisProject.allProjectTags.length > 0) {
+    for (const hashtag of thisProject.allProjectTags) {
+      lozenges.push(`<span class="metadata-lozenge metadata-lozenge--tag">${hashtag}</span>`)
+    }
+  }
+
   // Review status lozenge (from getIntervalReviewStatus)
   if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
     const reviewStatus = getIntervalReviewStatus(thisProject.nextReviewDays)
@@ -220,13 +229,7 @@ function generateDateSection(thisProject: Project, config: ReviewConfig): string
     lozenges.push(`<span class="metadata-lozenge metadata-lozenge--${dueStatus.color}">${dueStatus.text}</span>`)
   }
 
-// Now add all lozenges, each in their own span within one div, and then all divs within one div
-  if (thisProject.allProjectTags != null && thisProject.allProjectTags.length > 0) {
-    for (const hashtag of thisProject.allProjectTags) {
-      lozenges.push(`<span class="metadata-lozenge metadata-lozenge--tag">${hashtag}</span>`)
-    }
-  }
-  return `<td class="project-metadata-cell">${lozenges.join('\n')}</td>`
+  return `<div class="project-grid-cell project-grid-cell--metadata project-metadata-cell">${lozenges.join('\n')}</div>`
 }
 
 /**
@@ -473,13 +476,12 @@ export function generateTopBarHTML(config: any): string {
  */
 export function generateFolderHeaderHTML(folderPart: string, config: any): string {
   const parts: Array<string> = []
-  parts.push(`<thead>\n <tr class="folder-header-row">`)
-  parts.push(`  <th colspan=2 class="h4 folder-header">${folderPart}</th>`)
+  parts.push(` <div class="project-grid-row folder-header-row">`)
+  parts.push(`  <div class="project-grid-cell project-grid-cell--span-2 folder-header h3">${folderPart}</div>`)
   if (config.displayDates) {
-    parts.push(`  <th>Metadata</th>`)
+    parts.push(`  <div class="project-grid-cell folder-header"></div>`) // deliberately no header text
   }
-  parts.push(` </tr>\n</thead>\n`)
-  parts.push(` <tbody>`)
+  parts.push(` </div>`)
   return parts.join('')
 }
 
@@ -489,31 +491,9 @@ export function generateFolderHeaderHTML(folderPart: string, config: any): strin
  * @param {number} noteCount
  * @returns {string}
  */
-export function generateTableStructureHTML(config: any, noteCount: number): string {
-  const parts: Array<string> = []
-  
-  if (noteCount > 0) {
-    // In some cases, include colgroup to help massage widths a bit
-    if (config.displayDates) {
-      parts.push(`<thead>
-<colgroup>
-\t<col style="width: 3.2rem">
-\t<col>
-<!-- \t<col style="width: 8rem"> -->
-\t<col>
-</colgroup>
-`)
-    } else {
-      parts.push(`<thead>
-<colgroup>
-\t<col style="width: 3rem">
-\t<col>
-</colgroup>
-`)
-    }
-  }
-  
-  return parts.join('')
+export function generateTableStructureHTML(_config: any, _noteCount: number): string {
+  // Grid column layout is defined in CSS via .project-list-grid--with-dates / .project-list-grid--no-dates
+  return ''
 }
 
 /**
@@ -556,8 +536,9 @@ export function generateHTMLForProjectTagSectionHeader(
     parts.push(`<h4>${folderDisplayName} folder</h4>`)
   }
   
-  parts.push('\n<table>')
-  
+  const gridClass = config.displayDates ? 'project-list-grid project-list-grid--with-dates' : 'project-list-grid project-list-grid--no-dates'
+  parts.push(`\n<div class="${gridClass}">`)
+
   return parts.join('\n')
 }
 

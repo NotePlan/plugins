@@ -523,8 +523,7 @@ export async function renderProjectListsHTML(
       if (noteCount > 0) {
         outputArray.push(generateTableStructureHTML(config, noteCount))
         outputArray.push(thisSummaryLines.join('\n'))
-        outputArray.push('   </tbody>')
-        outputArray.push('  </table>')
+        outputArray.push('  </div>')
         outputArray.push(' </div>') // details-content div
         if (config.projectTypeTags.length > 1) {
           outputArray.push(`</details>`)

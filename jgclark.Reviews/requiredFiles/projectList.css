@@ -99,36 +99,55 @@ h3, .h3 {
   padding-bottom: 0.1rem;
 }
 
-/* MAIN TABLES -------------------------------------------- */
+/* MAIN GRID (replaces table) ----------------------------- */
 
-/* FIXME: If rather narrow, slide [items] under [info] */
-/* This needs to come after the earlier definitions to take priority */
-/* @media screen and (max-width: 600px) {
-	.topbar {
-		grid-template-columns: auto auto;
-    grid-template-rows: auto;
-    gap: 0.1rem;
-	}
-} */
-
-table {
-  border-collapse: collapse; /* always! */
-  table-layout: fixed; /* so column widths are respected and col 2 doesn't push col 3 (metadata) off */
-  width: 100%; /* keep wide to avoid different table widths */
-  empty-cells: show;
+.project-list-grid {
+  display: grid;
+  width: 100%;
   margin-bottom: 0rem;
 }
 
-/* Constrain column 2 so long progress text doesn't push column 3 (metadata) off viewport */
-table colgroup:has(col:nth-child(4)) col:nth-child(2) {
-  width: calc(100% - 14.2rem); /* 3.2rem (col1) + 5.5rem + 5.5rem (col3+4) */
-}
-tr.projectRow td:nth-child(2) {
-  overflow: hidden;
-  min-width: 0; /* allow cell to shrink so ellipsis can apply */
+/* First column fixed width (same as original col 1); middle column flexes; last column fits content like a table */
+.project-list-grid--with-dates {
+  grid-template-columns: 3.2rem 2fr 1fr;
 }
 
-/* Styling for each cell in each row */
+.project-list-grid--no-dates {
+  grid-template-columns: 3.2rem 1fr;
+}
+
+/* Rows: children participate in parent grid */
+.project-grid-row {
+  display: contents;
+}
+
+.project-grid-cell {
+  font-weight: normal;
+  align-content: center;
+  justify-content: start;
+  padding-right: 0.4rem;
+  font-size: 0.92rem;
+  line-height: 1.35rem;
+  padding: 3px 0.2rem 2px 0.2rem;
+  border-left: none;
+  border-right: none;
+}
+
+.project-grid-cell:first-child {
+  padding-left: 0.5rem;
+}
+
+/* Middle column: allow shrink so ellipsis can apply */
+.project-grid-cell--content {
+  overflow: hidden;
+  min-width: 0;
+}
+
+.project-grid-cell--span-2 {
+  grid-column: span 2;
+}
+
+/* Legacy td/th kept for any remaining references; grid uses .project-grid-cell */
 td, th {
   font-weight: normal;
   text-align: left;
@@ -138,7 +157,6 @@ td, th {
 th {
   padding-bottom: 0.2rem;
 }
-/* Add 0.5rem padding to the left of the first cell in each row */
 td:first-child, th:first-child {
   padding-left: 0.5rem;
 }
@@ -213,21 +231,20 @@ summary::after {
   transition: all 0.2s ease;
 }
 
-tr.projectRow {
-  height: calc(var(--body-line-height)*2.5); /* seems to function as min-height, which itself doesn't work */
+.project-grid-row.projectRow .project-grid-cell--content {
+  min-height: calc(var(--body-line-height, 1.35rem) * 2.5);
 }
-tr.folder-header-row {
-  column-span: all;
+.project-grid-row.folder-header-row .project-grid-cell {
   vertical-align: bottom;
   background-color: var(--bg-main-color);
   border-top: none;
   border-bottom: 0.6px solid var(--tint-color);
+  padding-bottom: 0.2rem;
 }
 
 .folder-header {
   color: var(--tint-color);
   padding-top: 0.7rem;
-  /* don't set padding-bottom to make it easier to line up rest of th in the row */
   padding-left: 0.5rem;
   padding-right: 0.3rem;
 }
@@ -242,49 +259,28 @@ tr.folder-header-row {
 /* column 1 space for icon and progress ring */
 .first-col-indicator {
   padding: 0.5em 0.6rem 0.2rem 0.4rem; /* works but I don't understand why */
-  text-align: center;
-  align-content: baseline; /* was center; */
+  /* text-align: center; */
+  justify-self: center;
+  align-content: center; /* was baseline; */
 }
 
-/* remove L-R borders for now */
-td {
-  line-height: 1.35rem;
-  /* background-color: var(--bg-alt-color); */
-  padding: 3px 0.2rem 2px 0.2rem;
-  border-left: none;
-  border-right: none;
+/* Row borders: first row (folder header) top border; last row bottom border */
+.project-list-grid > .project-grid-row:first-child .project-grid-cell {
+  border-top: 1px solid rgb(from var(--tint-color) r g b / 0.3);
 }
-/* turn on top border for tbody */
-tbody tr:first-child {
-  border-top: 1px solid rgb(from var(--tint-color) r g b / 0.3); /*0.3px solid var(--tint-color);*/
+.project-list-grid > .project-grid-row:last-child .project-grid-cell {
+  border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.3);
 }
-/* turn on bottom border for tbody */
-tbody tr:last-child {
-  border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.3); /*1.0px solid var(--tint-color);*/
-}
-/* turn off outer table left border */
-tr td:first-child {
-  border-left: 0px;
-}
-/* turn off outer table left border */
-tr th:first-child {
-  border-left: 0px; 
-}
-/* turn off outer table right borders */
-tr td:last-child, tr th:last-child {
-  border-right: 0px;
-}
-tr.projectRow {
-  /* border-bottom: 0.25px solid rgba(120,120,120,0.3); */
+/* Project row backgrounds (folder header is first child, so project rows are 2nd, 3rd, ...) */
+.project-list-grid > .project-grid-row.projectRow .project-grid-cell {
   background-color: var(--bg-mid-color);
 }
-/* tweak color of every other row slightly */
-tr.projectRow:nth-child(even) {
+.project-list-grid > .project-grid-row.projectRow:nth-child(even) .project-grid-cell {
   background-color: var(--bg-alt-color);
 }
 
 /* row class to indicate that a project is being reviewed */
-tr.projectRow.reviewing {
+.project-grid-row.projectRow.reviewing .project-grid-cell {
   background-color: rgba(from var(--tint-color) r g b / 0.15);
   border: 1px solid rgba(from var(--tint-color) r g b / 1);
 }
@@ -447,8 +443,9 @@ button, .fake-button, .clickTarget {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  overflow: auto;
   white-space: nowrap;
-  gap: 0.3rem;
+  gap: 0.15rem 0.3rem;
 }
 .metadata-lozenge {
   display: inline-block;
@@ -457,6 +454,7 @@ button, .fake-button, .clickTarget {
   font-size: 0.85rem;
   line-height: 1.1;
   margin-right: 0.25rem;
+  text-wrap: nowrap;
 }
 .metadata-lozenge--tag {
   color: var(--fg-placeholder-color);
