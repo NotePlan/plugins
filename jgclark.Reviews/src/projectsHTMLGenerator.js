@@ -7,7 +7,7 @@
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
-import { addFAIcon, type ReviewConfig } from './reviewHelpers'
+import { addFAIcon, getIntervalDueStatus, getIntervalReviewStatus, type ReviewConfig } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
@@ -187,7 +187,8 @@ function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Ar
 }
 
 /**
- * Generate date section HTML for Rich format
+ * Generate date section HTML for Rich format.
+ * Single column with two coloured lozenges: review status then due status (from getIntervalReviewStatus / getIntervalDueStatus).
  * @param {Project} thisProject
  * @param {ReviewConfig} config
  * @returns {string}
@@ -196,42 +197,30 @@ function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Ar
 function generateDateSection(thisProject: Project, config: ReviewConfig): string {
   if (!config.displayDates) return ''
 
-  if (thisProject.isPaused) return '<td></td><td></td>'
+  if (thisProject.isPaused) return '<td></td>'
 
   if (thisProject.isCompleted) {
     const completionRef = thisProject.completedDuration || "completed"
-    return `<td colspan=2 class="checked">Completed ${completionRef}</td>`
+    return `<td class="checked">Completed ${completionRef}</td>`
   } else if (thisProject.isCancelled) {
     const cancellationRef = thisProject.cancelledDuration || "cancelled"
-    return `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td>`
+    return `<td class="cancelled">Cancelled ${cancellationRef}</td>`
   }
 
-  const parts: Array<string> = []
-  // Next review date
+  const lozenges: Array<string> = []
+  // Review status lozenge (from getIntervalReviewStatus)
   if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
-    const reviewDate = localeRelativeDateFromNumber(thisProject.nextReviewDays)
-    if (thisProject.nextReviewDays > 0) {
-      parts.push(`<td>${reviewDate}</td>`)
-    } else {
-      parts.push(`<td><p><b>${reviewDate}</b></p></td>`)
-    }
-  } else {
-    parts.push('<td></td>')
+    const reviewStatus = getIntervalReviewStatus(thisProject.nextReviewDays)
+    lozenges.push(`<span class="status-lozenge status-lozenge--${reviewStatus.color}">${reviewStatus.text}</span>`)
   }
-
-  // Due date
+  // Due status lozenge (from getIntervalDueStatus), follows review in same column
   if (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) {
-    const dueDate = localeRelativeDateFromNumber(thisProject.dueDays)
-    if (thisProject.dueDays > 0) {
-      parts.push(`<td>${dueDate}</td>`)
-    } else {
-      parts.push(`<td><p><b>${dueDate}</b></p></td>`)
-    }
-  } else {
-    parts.push('<td></td>')
+    const dueStatus = getIntervalDueStatus(thisProject.dueDays)
+    lozenges.push(`<span class="status-lozenge status-lozenge--${dueStatus.color}">${dueStatus.text}</span>`)
   }
 
-  return parts.join('')
+  const content = lozenges.length > 0 ? lozenges.join(' ') : ''
+  return `<td class="project-dates-cell">${content}</td>`
 }
 
 /**
@@ -481,7 +470,7 @@ export function generateFolderHeaderHTML(folderPart: string, config: any): strin
   parts.push(`<thead>\n <tr class="folder-header-row">`)
   parts.push(`  <th colspan=2 class="h4 folder-header">${folderPart}</th>`)
   if (config.displayDates) {
-    parts.push(`  <th>Next Review</th><th>Due Date</th>`)
+    parts.push(`  <th>Metadata</th>`)
   }
   parts.push(` </tr>\n</thead>\n`)
   parts.push(` <tbody>`)
@@ -504,8 +493,8 @@ export function generateTableStructureHTML(config: any, noteCount: number): stri
 <colgroup>
 \t<col style="width: 3.2rem">
 \t<col>
-\t<col style="width: 5.5rem">
-\t<col style="width: 5.5rem">
+<!-- \t<col style="width: 8rem"> -->
+\t<col>
 </colgroup>
 `)
     } else {

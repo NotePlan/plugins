@@ -442,6 +442,36 @@ button, .fake-button, .clickTarget {
   margin-left: 0.1rem;
 }
 
+/* Status lozenges (review/due) – colour from getIntervalReviewStatus / getIntervalDueStatus */
+.project-dates-cell {
+  white-space: nowrap;
+}
+.status-lozenge {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.1;
+  margin-right: 0.25rem;
+  color: #fff;
+}
+.status-lozenge--red {
+  color: #b85450;
+  background-color:  #b8545019
+}
+.status-lozenge--orange {
+  color: #c76a00;
+  background-color:  #c76a0019
+}
+.status-lozenge--blue {
+  color: #1e66f5;
+  background-color:  #1e66f519
+}
+.status-lozenge--green {
+  color: #269F54;
+  background-color:  #269F5419
+}
+
 /* ---- PROGRESS ----------------------------------------- */
 /* Progress line row: last progress comment, styled like Dashboard ProjectItem */
 .projectProgress {

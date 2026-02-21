@@ -483,10 +483,23 @@ export type IntervalDueStatus = {
  * @returns {{ color: string, text: string }}
  */
 export function getIntervalDueStatus(interval: number): IntervalDueStatus {
-  if (interval < -14) return { color: 'red', text: 'overdue' }
-  if (interval < 0) return { color: 'orange', text: 'slightly overdue' }
-  if (interval > 30) return { color: 'blue', text: 'due in >month' }
+  if (interval < -90) return { color: 'red', text: 'project very overdue' }
+  if (interval < -14) return { color: 'red', text: 'project overdue' }
+  if (interval < 0) return { color: 'orange', text: 'project slightly overdue' }
+  if (interval > 30) return { color: 'blue', text: 'project due >month' }
   return { color: 'green', text: 'due soon' }
+}
+
+/**
+ * Map a review interval (days until/since next review) to a display color and label.
+ * @param {number} interval - days until next review (negative = overdue, positive = due in future)
+ * @returns {{ color: string, text: string }}
+ */
+export function getIntervalReviewStatus(interval: number): IntervalDueStatus {
+  if (interval < -14) return { color: 'red', text: 'review overdue' }
+  if (interval < 0) return { color: 'orange', text: 'review slightly overdue' }
+  if (interval > 30) return { color: 'blue', text: 'review in >month' }
+  return { color: 'green', text: 'review soon' }
 }
 
 /**
