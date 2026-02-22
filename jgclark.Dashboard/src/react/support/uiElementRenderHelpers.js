@@ -159,7 +159,7 @@ export function renderItem({
         )
       // $FlowIgnore[incompatible-type] see TODO in types.js which explains this
       case 'teamspace-multiselect':
-        logInfo('renderItem', `teamspace-multiselect: ${String(index)} / '${thisLabel}' / ${item.description} / ${String(item.handleDescriptionItself || false)}`)
+        // logDebug('renderItem', `teamspace-multiselect: ${String(index)} / '${thisLabel}' / ${item.description} / ${String(item.handleDescriptionItself || false)}`)
         return <MultiSelectSpaces
           key={`tsms${index}`}
           label={thisLabel}
