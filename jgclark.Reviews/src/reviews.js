@@ -38,7 +38,7 @@ import { calcReviewFieldsForProject, Project } from './projectClass'
 import {
   generateProjectOutputLine,
   generateTopBarHTML,
-  generateHTMLForProjectTagSectionHeader,
+  generateSingleSectionHeaderHTML,
   generateTableStructureHTML,
   generateProjectControlDialogHTML,
   generateFolderHeaderHTML,
@@ -263,6 +263,7 @@ const addToggleEvents: string = `
   for (const input of allInputs) {
     if (input.type !== 'checkbox') continue;
     if (input.getAttribute('data-display-filter') === 'true') continue;
+    if (input.getAttribute('data-tag-toggle')) continue; // tag toggles are client-side only
     const thisSettingName = input.name;
     console.log("- adding event for checkbox '"+thisSettingName+"' currently set to state "+input.checked);
     input.addEventListener('change', function (event) {
@@ -346,6 +347,42 @@ const displayFiltersDropdownScript: string = `
         closeDropdown(true);
       }
     });
+  })();
+</script>
+`
+
+const tagTogglesVisibilityScript: string = `
+<script>
+  (function() {
+    function applyTagToggleVisibility() {
+      var toggles = document.querySelectorAll('input[data-tag-toggle]');
+      var offTags = [];
+      for (var i = 0; i < toggles.length; i++) {
+        if (!toggles[i].checked) offTags.push(toggles[i].getAttribute('data-tag-toggle'));
+      }
+      var rows = document.querySelectorAll('.projectRow[data-wanted-tags]');
+      for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var raw = row.getAttribute('data-wanted-tags') || '';
+        var rowTags = raw ? raw.trim().split(/\\s+/) : [];
+        var hide = false;
+        for (var t = 0; t < offTags.length; t++) {
+          if (rowTags.length === 1 && rowTags[0] === offTags[t]) {
+            hide = true;
+            break;
+          }
+        }
+        row.style.display = hide ? 'none' : '';
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      applyTagToggleVisibility();
+      var container = document.getElementById('tagToggles');
+      if (container) {
+        container.addEventListener('change', applyTagToggleVisibility);
+      }
+    });
+    if (document.readyState !== 'loading') applyTagToggleVisibility();
   })();
 </script>
 `
@@ -501,36 +538,77 @@ export async function renderProjectListsHTML(
     // Ensure projectTypeTags is an array before proceeding
     if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
 
+    // Fetch project list first so we can compute per-tag active counts for the Filters dropdown
+    const [projectsToReview, _numberProjectsUnfiltered] = await filterAndSortProjectsList(config, '', [], true)
+    const wantedTags = config.projectTypeTags ?? []
+    const tagActiveCounts = wantedTags.map((tag) =>
+      projectsToReview.filter(
+        (p) =>
+          !p.isPaused &&
+          !p.isCancelled &&
+          !p.isCompleted &&
+          p.allProjectTags != null &&
+          p.allProjectTags.includes(tag)
+      ).length
+    )
+    config.tagActiveCounts = tagActiveCounts
+
     // String array to save all output
     const outputArray = []
 
-    // Generate top bar HTML
+    // Generate top bar HTML (uses config.tagActiveCounts for dropdown tag counts)
     outputArray.push(generateTopBarHTML(config))
 
     // Start multi-col working (if space)
     outputArray.push(`<div class="multi-cols">`)
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
-
-    // Make the Summary list, for each projectTag in turn
-    for (const thisTag of config.projectTypeTags) {
-      // Get the summary line for each revelant project
-      const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
-
-      // Generate project tag section header
-      outputArray.push(generateHTMLForProjectTagSectionHeader(thisTag, noteCount, due, config, config.projectTypeTags.length > 1))
-      
-      if (noteCount > 0) {
-        outputArray.push(generateTableStructureHTML(config, noteCount))
-        outputArray.push(thisSummaryLines.join('\n'))
-        outputArray.push('  </div>')
-        outputArray.push(' </div>') // details-content div
-        if (config.projectTypeTags.length > 1) {
-          outputArray.push(`</details>`)
-        }
-      }
-      logTimer('renderProjectListsHTML', funcTimer, `end of loop for ${thisTag}`)
+    let due = 0
+    for (const p of projectsToReview) {
+      if (!p.isPaused && p.nextReviewDays != null && !isNaN(p.nextReviewDays) && p.nextReviewDays <= 0) due += 1
     }
+    const noteCount = projectsToReview.length
+    outputArray.push(generateSingleSectionHeaderHTML(noteCount, due, config))
+    if (noteCount > 0) {
+      outputArray.push(generateTableStructureHTML(config, noteCount))
+      let lastFolder = ''
+      for (const thisProject of projectsToReview) {
+        const thisNote = DataStore.projectNoteByFilename(thisProject.filename)
+        if (!thisNote) {
+          logWarn('renderProjectListsHTML', `Can't find note for filename ${thisProject.filename}`)
+          continue
+        }
+        if (config.displayGroupedByFolder && lastFolder !== thisProject.folder) {
+          const folderDisplayName = getFolderDisplayNameForHTML(thisProject.folder)
+          let folderPart = folderDisplayName
+          if (config.hideTopLevelFolder) {
+            if (folderDisplayName.includes(']')) {
+              const match = folderDisplayName.match(/^(\[.*?\])\s*(.+)$/)
+              if (match) {
+                const pathPart = match[2]
+                const pathParts = pathPart.split('/').filter(p => p !== '')
+                folderPart = `${match[1]} ${pathParts.length > 0 ? pathParts[pathParts.length - 1] : pathPart}`
+              } else {
+                folderPart = folderDisplayName.split('/').slice(-1)[0] || folderDisplayName
+              }
+            } else {
+              const pathParts = folderDisplayName.split('/').filter(p => p !== '')
+              folderPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : folderDisplayName
+            }
+          }
+          if (thisProject.folder === '/') folderPart = '(root folder)'
+          outputArray.push(generateFolderHeaderHTML(folderPart, config))
+        }
+        const wantedTagsForRow = (thisProject.allProjectTags != null && wantedTags.length > 0)
+          ? thisProject.allProjectTags.filter(t => wantedTags.includes(t))
+          : []
+        outputArray.push(generateProjectOutputLine(thisProject, config, 'Rich', wantedTagsForRow))
+        lastFolder = thisProject.folder
+      }
+      outputArray.push('  </div>')
+      outputArray.push(' </div>') // details-content div
+    }
+    logTimer('renderProjectListsHTML', funcTimer, `end single section (${noteCount} projects)`)
 
     // Generate project control dialog HTML
     outputArray.push(generateProjectControlDialogHTML())
@@ -553,7 +631,7 @@ export async function renderProjectListsHTML(
       makeModal: false, // = not modal window
       bodyOptions: 'onload="showTimeAgo()"',
       preBodyScript: setPercentRingJSFunc + scrollPreLoadJSFuncs,
-      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
+      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + tagTogglesVisibilityScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>
       <script type="text/javascript" src="./projectListEvents.js"></script>
       ` + commsBridgeScripts + shortcutsScript + addToggleEvents, // + collapseSection +  resizeListenerScript + unloadListenerScript,

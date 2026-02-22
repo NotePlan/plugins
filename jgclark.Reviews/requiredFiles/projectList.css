@@ -9,6 +9,8 @@ body {
   --project-pause-color: #AAA;
   --project-no-percent-color: #BBB;
   --project-zero-progress-color: #9F2626;
+  --fg-placeholder-color: rgb(from var(--fg-main-color) r g b / 0.8);
+  --bg-lozenge-color: rgb(from var(--bg-main-color) r g b / 0.8);
 }
 
 /* turn off special colouring and underlining for links -- turn on later when desired */
@@ -58,6 +60,31 @@ h3, .h3 {
   white-space: nowrap;     /* no wrapping inside items */
   flex: 0 0 auto;          /* don't stretch or shrink */
   min-width: max-content;
+}
+
+/* Tag toggles inside Filters dropdown; label left, count in parentheses, toggle right */
+.display-filters-tag-toggles {
+  margin-bottom: 0.2rem;
+}
+.display-filters-option--tag-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+.display-filters-option--tag-row .display-filters-option-text {
+  flex: 1 1 auto;
+}
+.display-filters-option-count {
+  color: var(--fg-placeholder-color);
+}
+.display-filters-option--tag-row .apple-switch {
+  flex: 0 0 auto;
+}
+.display-filters-divider {
+  border: 0;
+  border-top: 1px solid var(--fg-divider, var(--divider-color, #CDCFD0));
+  margin: 0.4rem 0;
 }
 
 /* Display filters: button uses .PCButton (same as Refresh), dropdown below */
@@ -148,7 +175,7 @@ h3, .h3 {
 }
 
 /* Legacy td/th kept for any remaining references; grid uses .project-grid-cell */
-td, th {
+/* td, th {
   font-weight: normal;
   text-align: left;
   padding-right: 0.4rem;
@@ -159,7 +186,7 @@ th {
 }
 td:first-child, th:first-child {
   padding-left: 0.5rem;
-}
+} */
 
 /* Display of Number of projects */
 .folder-header-text {
@@ -193,7 +220,6 @@ details[open] > summary::after {
   transform: rotate(90deg);
 }
 
-/* FIXME: Create inner wrapper for smooth animation */
 details > .details-content > * {
   overflow: hidden;
 }
@@ -244,6 +270,7 @@ summary::after {
 
 .folder-header {
   color: var(--tint-color);
+  font-size: 1.1rem !important; /* TODO: find better method for this than !important */
   padding-top: 0.7rem;
   padding-left: 0.5rem;
   padding-right: 0.3rem;
@@ -409,9 +436,6 @@ button, .fake-button, .clickTarget {
   font-weight: 500;
   text-decoration: none;
 }
-.noteTitle:hover {
-  /* placeholder */
-}
 .noteTitleIcon {
   /* placeholder */
 }
@@ -438,6 +462,8 @@ button, .fake-button, .clickTarget {
   margin-left: 0.1rem;
 }
 
+/* ---- METADATA LOZENGES ---------------------------------- */
+
 /* Column 3: metadata (status lozenges + project tags). Status lozenges – colour from getIntervalReviewStatus / getIntervalDueStatus */
 .project-metadata-cell {
   display: flex;
@@ -458,27 +484,27 @@ button, .fake-button, .clickTarget {
 }
 .metadata-lozenge--tag {
   color: var(--fg-placeholder-color);
-  background-color: var(--bg-alt-color);
+  background-color: var(--bg-lozenge-color, #FFFFFFBB);
   border: 1px solid rgb(from var(--fg-main-color) r g b / 0.2);
 }
 .metadata-lozenge--red {
   color: #b85450;
-  /* border: 1px solid #b85450; */
+  border: 1px solid #b8545070;
   background-color:  #b8545010
 }
 .metadata-lozenge--orange {
   color: #c76a40;
-  /* border: 1px solid #c76a00; */
+  border: 1px solid #c76a0070;
   background-color:  #c76a4010
 }
 .metadata-lozenge--blue {
   color: #1e66f5;
-  /* border: 1px solid #1e66f5; */
+  border: 1px solid #1e66f570;
   background-color:  #1e66f510
 }
 .metadata-lozenge--green {
   color: #269F54;
-  /* border: 1px solid #269F54; */
+  border: 1px solid #269F5470;
   background-color:  #269F5410
 }
 
@@ -522,10 +548,6 @@ button, .fake-button, .clickTarget {
 }
 
 /* ---- ICONS etc. ----------------------------------------- */
-/* set all FA icons to default to tint color */
-i.fa-solid, i.fa-regular {
-  /* color: var(--tint-color); */
-}
 /* make checkbox display larger, and like in the app. */
 .checkbox {
   font-family: "noteplanstate"; font-size: 1.4rem;
@@ -664,22 +686,3 @@ input.apple-switch:checked:after {
 input, label {
   vertical-align: top;
 }
-
-ul {
-  display: flex;
-  padding: 0.4rem;
-  margin: 0rem;
-}
-li {
-  break-inside: avoid;
-  display: block;
-  padding-inline: 0.4rem;
-}
-
-.fake-checkbox {
-  font-size: 1.0rem;
-  }
-.fake-checkbox::before {
-  content: '●';
-}
-
