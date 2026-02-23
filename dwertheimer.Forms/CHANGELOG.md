@@ -4,6 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.1.2] 2026-02-23 @dwertheimer
+
+### Fixed
+- **Processing Template dropdown value not sticking**: Under some conditions, changing the Processing Template dropdown in the Form Builder left column caused the value to revert to the previous selection. The sync effect that pushes the `receivingTemplateTitle` prop into frontmatter was running whenever `frontmatter.receivingTemplateTitle` changed (including when the user changed the dropdown), then overwrote the user's choice with the stale prop. Sync now runs only when the prop itself changes (tracked via a ref), so user selections persist.
+
+### Edited in this release
+- `dwertheimer.Forms/src/components/FormBuilder.jsx` — Added `useRef` for previous `receivingTemplateTitle` prop; sync effect now depends only on `receivingTemplateTitle` and updates frontmatter only when the prop has changed, preventing the dropdown from reverting after user selection.
+
 ## [1.1.1] 2026-02-22 @dwertheimer
 
 ### Changed
