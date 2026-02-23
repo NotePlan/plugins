@@ -5,7 +5,7 @@
 //-------------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import { format, add, eachWeekOfInterval } from 'date-fns'
+import { format } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
 import * as dt from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
@@ -1037,44 +1037,39 @@ export function getLastDateInPeriod(NPDateStringIn: string): string {
 /**
  * Get upcoming date string options for use in chooseOption
  * Note: the day-specific version of this function is in ./dateTime (getDateOptions)
- * uses date-fns:
- * - formats: https://date-fns.org/v2.29.2/docs/format
- * - add:https://date-fns.org/v2.29.2/docs/add
+ * Builds weeks via getNPWeekData(now, i) so that "this week" and "next week" respect
+ * NotePlan's "Start Week On" setting (eachWeekOfInterval uses Sunday by default and caused bugs).
  * @author: @dwertheimer
  */
 export function getWeekOptions(): $ReadOnlyArray<{ label: string, value: string }> {
-  const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+  const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
   const formats = {
     withDay: ' (EEE, yyyy-MM-dd)',
     noDay: 'yyyy-MM-dd',
     arrowDay: '>yyyy-MM-dd',
     arrowISOWeek: '>yyyy[W]II',
   }
-  // const thisWeek = { date: now, start: startOfISOWeek(now), end: endOfISOWeek(now) }
-  const weeks = eachWeekOfInterval({ start: now, end: add(now, { months: 6 }) })
-  const weekOpts = weeks?.length
-    ? weeks.map((w) => {
-        const weekData = getNPWeekData(w)
-        if (weekData) {
-          const start = weekData.startDate
-          const end = weekData.endDate
-          const arrowWeek = `>${weekData.weekString}`
-          const arrowWeekLabel = `>${weekData.weekString} Weekly Note`
-          return {
-            label: `${arrowWeekLabel} (${format(start, formats.noDay)} - ${format(end, formats.noDay)})`,
-            // $FlowIgnore
-            value: arrowWeek,
-          }
-        }
+  // Build weeks using getNPWeekData(now, i) so boundaries match NotePlan's week start (Sunday/Monday/etc.)
+  const weeksCount = 26 // ~6 months of weekly options
+  const weekOpts = []
+  for (let i = 0; i < weeksCount; i++) {
+    const weekData = getNPWeekData(now, i, 'week')
+    if (weekData) {
+      const start = weekData.startDate
+      const end = weekData.endDate
+      const arrowWeek = `>${weekData.weekString}`
+      const arrowWeekLabel = `>${weekData.weekString} Weekly Note`
+      weekOpts.push({
+        label: `${arrowWeekLabel} (${format(start, formats.noDay)} - ${format(end, formats.noDay)})`,
+        value: arrowWeek,
       })
-    : []
-  if (weekOpts && weekOpts?.length && weekOpts[0]?.label && weekOpts[1]?.label) {
+    }
+  }
+  if (weekOpts?.length >= 2 && weekOpts[0]?.label && weekOpts[1]?.label) {
     const extras = [
-      { ...weekOpts[0], ...{ label: `>thisweek (${weekOpts[0].label})` } },
-      { ...weekOpts[1], ...{ label: `>nextweek (${weekOpts[1].label})` } },
+      { ...weekOpts[0], label: `>thisweek (${weekOpts[0].label})` },
+      { ...weekOpts[1], label: `>nextweek (${weekOpts[1].label})` },
     ]
-    // clo(options, `getDateOptions: options=`)
-    // $FlowIgnore
     return [...extras, ...weekOpts]
   }
   return []
