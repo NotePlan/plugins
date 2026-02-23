@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-10 for v1.3.0.b9, @jgclark
+// Last updated 2026-02-22 for v1.4.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -53,6 +53,7 @@ export type ReviewConfig = {
   displayOrder: string,
   displayOnlyDue: boolean,
   displayProgress: boolean,
+  projectTagsInColumn?: string, // 'column2' | 'column3'; default column2
   finishedListHeading: string,
   hideTopLevelFolder: boolean,
   ignoreChecklistsInProgress: boolean,

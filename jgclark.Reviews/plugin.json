@@ -448,6 +448,19 @@
       "required": true
     },
     {
+      "hidden": true,
+      "key": "projectTagsInColumn",
+      "title": "Where to show project tags?",
+      "description": "Project tags (e.g. #project, #area) can be shown in column 2 (after the open-count badge) or in column 3 (with review/due status).",
+      "type": "string",
+      "choices": [
+        "column2",
+        "column3"
+      ],
+      "default": "column3",
+      "required": true
+    },
+    {
       "key": "width",
       "title": "Window width",
       "description": "Width of the Review List window (pixels)",

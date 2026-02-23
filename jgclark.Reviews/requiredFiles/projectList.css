@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-02-16 for v1.3.0.b12, @jgclark 
+ * Last updated 2026-02-22 for v1.4.0.b1, @jgclark 
  */
 
 body {
@@ -462,9 +462,14 @@ button, .fake-button, .clickTarget {
   margin-left: 0.1rem;
 }
 
+/* Project tags moved from column 3 to column 2 (after open-count badge) */
+.project-tags-inline {
+  margin-left: 0.35rem;
+}
+
 /* ---- METADATA LOZENGES ---------------------------------- */
 
-/* Column 3: metadata (status lozenges + project tags). Status lozenges – colour from getIntervalReviewStatus / getIntervalDueStatus */
+/* Column 3: metadata (review/due status lozenges only; project tags are in column 2). Status lozenges – colour from getIntervalReviewStatus / getIntervalDueStatus */
 .project-metadata-cell {
   display: flex;
   align-items: center;

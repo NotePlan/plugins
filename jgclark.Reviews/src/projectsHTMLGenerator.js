@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-02-16 for v1.3.0.b12 by @jgclark
+// Last updated 2026-02-22 for v1.4.0.b1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
@@ -81,10 +81,12 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedT
   parts.push(`\t<div class="project-grid-row projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}"${wantedTagsAttr}>\n\t\t`)
   parts.push(generateCircleIndicator(thisProject))
 
-  // Column 2a: Project name + link / item count badge / edit dialog trigger button
+  // Column 2a: Project name + link / edit button / open-count badge / project tags (if setting is column2)
   const editButton = `          <span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}', encodedLastProgressComment:'${encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')}'})"><i class="fa-light fa-edit"></i></span>\n`
   const openItemCount = generateItemCountsBadge(thisProject)
-  parts.push(`\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}${openItemCount}</span>`)
+  const showTagsInColumn2 = config.projectTagsInColumn !== 'column3'
+  const projectTagsInline = showTagsInColumn2 ? generateProjectTagsLozenges(thisProject) : ''
+  parts.push(`\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}${openItemCount}${projectTagsInline}</span>`)
 
   if (!thisProject.isCompleted && !thisProject.isCancelled) {
     const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
@@ -147,6 +149,18 @@ function generateItemCountsBadge(thisProject: Project): string {
   }
   
   return parts.join('')
+}
+
+/**
+ * Generate project tags as lozenge spans (for use in column 2 after open-count badge).
+ * @param {Project} thisProject
+ * @returns {string}
+ * @private
+ */
+function generateProjectTagsLozenges(thisProject: Project): string {
+  if (thisProject.allProjectTags == null || thisProject.allProjectTags.length === 0) return ''
+  const parts = thisProject.allProjectTags.map((hashtag) => `<span class="metadata-lozenge metadata-lozenge--tag">${hashtag}</span>`)
+  return `<span class="project-tags-inline">${parts.join(' ')}</span>`
 }
 
 /**
@@ -216,9 +230,8 @@ function generateDateSection(thisProject: Project, config: ReviewConfig): string
 
   const lozenges: Array<string> = []
 
-  // Add all lozenges, each in their own span within one div
-  // Start with project tags
-  if (thisProject.allProjectTags != null && thisProject.allProjectTags.length > 0) {
+  // Project tags: in column 3 only when setting is 'column3'; otherwise they are in column 2
+  if (config.projectTagsInColumn === 'column3' && thisProject.allProjectTags != null && thisProject.allProjectTags.length > 0) {
     for (const hashtag of thisProject.allProjectTags) {
       lozenges.push(`<span class="metadata-lozenge metadata-lozenge--tag">${hashtag}</span>`)
     }
