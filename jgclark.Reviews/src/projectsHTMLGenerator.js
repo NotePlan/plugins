@@ -548,9 +548,10 @@ export function generateSingleSectionHeaderHTML(noteCount: number, due: number, 
   if (config.numberDaysForFutureToIgnore > 0) {
     numberItemsStr += ` (with future tasks ignored)`
   }
-  parts.push(`  <div class="folder-header">`)
-  parts.push(`    <span class="h2">Projects</span><span class="folder-header-text">${numberItemsStr}</span>`)
-  parts.push(`  </div>`)
+  // parts.push(`  <div class="folder-header">`)
+  // parts.push(`    <span class="h2">Projects</span><span class="folder-header-text">${numberItemsStr}</span>`)
+  // parts.push(`  </div>`)
+  
   parts.push(`\n<div class="details-content projects-single-section-content">`)
   if (!config.displayGroupedByFolder && config.foldersToInclude.length === 1) {
     const folderDisplayName = getFolderDisplayNameForHTML(config.foldersToInclude[0])
