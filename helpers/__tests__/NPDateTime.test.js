@@ -560,6 +560,65 @@ describe(`${FILENAME}`, () => {
       })
     })
 
+    /**
+     * getWeekOptions() must respect NotePlan's "Start Week On" setting.
+     * Bug: when week starts on Monday, "this week" was showing previous week and "next week" was showing this week,
+     * because eachWeekOfInterval() uses Sunday by default.
+     */
+    describe('getWeekOptions() respects week start (this week / next week)', () => {
+      const momentLib = require('moment/min/moment-with-locales')
+      const mockCalendarMondayStart = {
+        weekNumber: (date) => momentLib(date).isoWeek(),
+        startOfWeek: (date) => momentLib(date).startOf('isoWeek').toDate(),
+        endOfWeek: (date) => momentLib(date).endOf('isoWeek').toDate(),
+      }
+      let originalCalendar
+      beforeEach(() => {
+        originalCalendar = global.Calendar
+        global.Calendar = mockCalendarMondayStart
+      })
+      afterEach(() => {
+        global.Calendar = originalCalendar
+        jest.useRealTimers()
+      })
+
+      test('with Monday week start: on 20 Feb 2025, "this week" is 17-23 Feb and "next week" is 24 Feb-2 Mar', () => {
+        // 20 Feb 2025 is Thursday. With Monday start: this week = Mon 17 - Sun 23, next week = Mon 24 - Sun 2 Mar
+        jest.useFakeTimers().setSystemTime(new Date('2025-02-20T12:00:00'))
+        const options = f.getWeekOptions()
+        expect(options.length).toBeGreaterThanOrEqual(2)
+        const thisWeekOpt = options.find((o) => o.label.startsWith('>thisweek'))
+        const nextWeekOpt = options.find((o) => o.label.startsWith('>nextweek'))
+        expect(thisWeekOpt).toBeDefined()
+        expect(nextWeekOpt).toBeDefined()
+        expect(thisWeekOpt.value).toMatch(/^>\d{4}-W\d{2}$/)
+        expect(nextWeekOpt.value).toMatch(/^>\d{4}-W\d{2}$/)
+        // This week must be 2025-02-17 to 2025-02-23 (Monday–Sunday with Monday start)
+        expect(thisWeekOpt.label).toContain('2025-02-17')
+        expect(thisWeekOpt.label).toContain('2025-02-23')
+        // Next week must be 2025-02-24 to 2025-03-02
+        expect(nextWeekOpt.label).toContain('2025-02-24')
+        expect(nextWeekOpt.label).toContain('2025-03-02')
+      })
+
+      test('with Sunday week start: on 20 Feb 2025, "this week" is 16-22 Feb and "next week" is 23 Feb-1 Mar', () => {
+        const mockCalendarSundayStart = {
+          weekNumber: (date) => momentLib(date).locale('en').week(),
+          startOfWeek: (date) => momentLib(date).locale('en').startOf('week').toDate(),
+          endOfWeek: (date) => momentLib(date).locale('en').endOf('week').toDate(),
+        }
+        global.Calendar = mockCalendarSundayStart
+        jest.useFakeTimers().setSystemTime(new Date('2025-02-20T12:00:00'))
+        const options = f.getWeekOptions()
+        const thisWeekOpt = options.find((o) => o.label.startsWith('>thisweek'))
+        const nextWeekOpt = options.find((o) => o.label.startsWith('>nextweek'))
+        expect(thisWeekOpt.label).toContain('2025-02-16')
+        expect(thisWeekOpt.label).toContain('2025-02-22')
+        expect(nextWeekOpt.label).toContain('2025-02-23')
+        expect(nextWeekOpt.label).toContain('2025-03-01')
+      })
+    })
+
     describe('should pass', () => {
       test('20220101 +1d', () => {
         expect(f.calcOffsetDateStr('20220101', '1d')).toEqual('20220102')

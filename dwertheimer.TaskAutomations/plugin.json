@@ -5,8 +5,8 @@
   "plugin.name": "✅ Overdue Task Processing",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "3.1.0",
-  "plugin.lastUpdateInfo": "Added optional noteTitle parameter to followUpInFuture to skip date picker\n- Added fallback to note picker if note title lookup fails\n- Added followUpHeadingTitle setting to save todos under a specific heading instead of prepending to note",
+  "plugin.version": "3.1.1",
+  "plugin.lastUpdateInfo": "Fix: 'This week' and 'Next week' in the follow-up date picker now respect NotePlan's 'Start Week On' setting. Previously, when the week started on Monday (or any day other than Sunday), 'this week' pointed to the previous week and 'next week' to the current week.",
   "DELETE_ME": "DON'T DELETE commandMigrationMessage or offerToDownloadPlugin until they are documented somewhere",
   "commandMigrationMessage": "NOTE: Task Sorting commands have been moved from the Task Automations plugin to the Task Sorting plugin. This plugin has been renamed to 'Overdue Task Processing'.",
   "offerToDownloadPlugin": {
