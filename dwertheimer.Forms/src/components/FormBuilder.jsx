@@ -611,7 +611,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
     <div className="form-builder-container">
       <div className="form-builder-header">
         <div className="form-builder-title-section">
-          <h2 className="form-builder-title">Form Builder (beta)</h2>
+          <h2 className="form-builder-title">Template Form Builder</h2>
           {templateTitle && (
             <div style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <div

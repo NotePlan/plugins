@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.1.1] 2026-02-22 @dwertheimer
+
+### Changed
+- Update window title to 'Template Form Builder'
+
 ## [1.0.28] 2026-02-08 @dwertheimer
 
 ### Fixed
