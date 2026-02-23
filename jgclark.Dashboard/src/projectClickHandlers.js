@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-01-23 for v2.4.0.b18 by @jgclark
+// Last updated 2026-02-08 for v2.4.0.b20 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -17,6 +17,7 @@ import {
   finishReviewForNote,
   setNewReviewInterval,
   skipReviewForNote,
+  startReviewForNote,
   startReviews,
 } from '../../jgclark.Reviews/src/reviews'
 import {
@@ -148,7 +149,7 @@ export async function doSetNewReviewInterval(data: MessageDataObject): Promise<T
   }
 }
 
-// Mimic the /finish review command.
+// Mimic the /finish review command
 export async function doReviewFinished(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename } = validateAndFlattenMessageObject(data)
   const note = await DataStore.projectNoteByFilename(filename)
@@ -167,7 +168,24 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
   }
 }
 
-// Mimic the /start reviews command.
+// Start review for a particular project
+export async function doStartReview(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const { filename } = validateAndFlattenMessageObject(data)
+  const note = await DataStore.projectNoteByFilename(filename)
+  if (note) {
+    logDebug('doStartReview', `-> starting on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)
+    // update this to actually take a note to work on
+    await startReviewForNote(note)
+    logDebug('doStartReview', `-> after startReview`)
+    // Now update this section in the display, hoping we don't hit race condition with the updated full review list
+    return handlerResult(true, [], { sectionCodes: [] })
+  } else {
+    logWarn('doStartReview', `-> couldn't get filename ${filename} to start review.`)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'], errorMsg: `Couldn't get filename ${filename} to start review. I will refresh the Project section(s), then please try again.`, errorMessageLevel: 'WARN' })
+  }
+}
+
+// Mimic the /start reviews command
 export async function doStartReviews(): Promise<TBridgeClickHandlerResult> {
   // update this to actually take a note to work on
   await startReviews()

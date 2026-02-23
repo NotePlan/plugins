@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-01-23 for v2.4.0.b18 by @jgclark
+// Last updated 2026-02-08 for v2.4.0.b20 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -284,7 +284,8 @@ export type TActionType =
   | 'showNoteInEditorFromTitle'
   | 'showLineInEditorFromFilename'
   | 'showLineInEditorFromTitle'
-  | 'startReviews'
+  | 'startReview' // from v2.4.0.b20, for projects
+  | 'startReviews' // for projects
   | 'startSearch'
   | 'toggleType'
   | 'togglePauseProject'
@@ -327,6 +328,7 @@ export type TControlString =
   | 'tog'
   | 'commpletethen'
   | 'unsched'
+  | 'start'
   | 'finish'
   | 'nr+1w'
   | 'nr+2w'

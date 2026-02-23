@@ -3,10 +3,8 @@
 // Paragraph and block-level helpers functions
 //-----------------------------------------------------------------------------
 
-import { getDateStringFromCalendarFilename } from './dateTime'
-import { clo, logDebug, logError, logInfo, logWarn } from './dev'
-import { parseTeamspaceFilename } from './teamspace'
-import { getElementsFromTask } from './sorting'
+import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { isParaAMatchForHeading } from '@helpers/headings'
 import {
@@ -19,7 +17,9 @@ import {
   RE_SIMPLE_URI_MATCH_G,
 } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
+import { getElementsFromTask } from '@helpers/sorting'
 import { stripLinksFromString } from '@helpers/stringTransforms'
+import { parseTeamspaceFilename } from '@helpers/teamspace'
 
 //-----------------------------------------------------------------------------
 
@@ -974,48 +974,58 @@ export function setParagraphToIncomplete(p: TParagraph): void {
 
 /**
  * Read lines in 'note' and return any lines (as strings) that contain fields that start with 'fieldName' parameter before a colon with text after.
- * The matching is done case insensitively, and only in the active region of the note (i.e. _not_ in the frontmatter or 'Done' sections).
+ * The matching is done case insensitively, and only in the main region of the note (i.e. _not_ in the frontmatter or 'Done' sections).
  * Note: see also getFieldParagraphsFromNote() variation on this.
  * @param {TNote} note
  * @param {string} fieldName
  * @returns {Array<string>} lines containing fields
  */
 export function getFieldsFromNote(note: TNote, fieldName: string): Array<string> {
-  const paras = note.paragraphs
-  const startOfActive = findStartOfActivePartOfNote(note)
-  const endOfActive = findEndOfActivePartOfNote(note)
-  const matchArr = []
-  const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
-  for (const p of paras) {
-    const matchRE = p.content.match(RE)
-    if (matchRE && p.lineIndex >= startOfActive && p.lineIndex <= endOfActive) {
-      matchArr.push(matchRE[1])
+  try {
+    const paras = note.paragraphs
+    const endOfActive = findEndOfActivePartOfNote(note)
+    const matchArr = []
+    const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
+    for (const p of paras) {
+      const matchRE = p.content.match(RE)
+      if (matchRE && p.lineIndex <= endOfActive) {
+        matchArr.push(matchRE[1])
+        // logDebug('getFieldsFromNote', `-> match: '${matchRE[1]}'`)
+      }
     }
+    // logDebug('getFieldsFromNote()', `-> Found ${matchArr.length} fields matching '${fieldName}' in note '${displayTitle(note)}'`)
+    return matchArr
+  } catch (error) {
+    logError('getFieldsFromNote', error.message)
+    return []
   }
-  // logDebug('getFieldsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
-  return matchArr
 }
 
 /**
  * Read lines in 'note' and return any paragraphs that contain fields that start with 'fieldName' parameter before a colon with text after.
- * The matching is done case insensitively, and only in the active region of the note (i.e. _not_ in the frontmatter or 'Done' sections).
+ * The matching is done case insensitively, and only in the main region of the note (i.e. _not_ in the frontmatter or 'Done' sections).
  * Note: see also getFieldsFromNote() variation on this.
  * @param {TNote} note
  * @param {string} fieldName
  * @returns {Array<string>} lines containing fields
  */
 export function getFieldParagraphsFromNote(note: TNote, fieldName: string): Array<TParagraph> {
-  const paras = note.paragraphs
-  const startOfActive = findStartOfActivePartOfNote(note)
-  const endOfActive = findEndOfActivePartOfNote(note)
-  const matchArr = []
-  const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
-  for (const p of paras) {
-    const matchRE = p.content.match(RE)
-    if (matchRE && p.lineIndex >= startOfActive && p.lineIndex <= endOfActive) {
-      matchArr.push(p)
+  try {
+    const paras = note.paragraphs
+    const endOfActive = findEndOfActivePartOfNote(note)
+    const matchArr = []
+    const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
+    for (const p of paras) {
+      const matchRE = p.content.match(RE)
+      if (matchRE && p.lineIndex <= endOfActive) {
+        matchArr.push(p)
+        // logDebug('getFieldParagraphsFromNote', `-> match: '${p.content}'`)
+      }
     }
+    // logDebug('getFieldParagraphsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
+    return matchArr
+  } catch (error) {
+    logError('getFieldParagraphsFromNote', error.message)
+    return []
   }
-  // logDebug('getFieldParagraphsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
-  return matchArr
 }

@@ -9,7 +9,7 @@ The **/project lists** command shows the Project Review List screen, showing the
 
 If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 60 of these.
 
-After each project name (the title of the note) is an edit icon, which when clicked opens a dialog with helpful controls for that particular project:
+After each project name (the title of the note) is an edit icon, which when clicked opens a dialog with helpful controls for that particular project. The dialog title includes the folder and a clickable project note name.
 
 ![Edit dialog](edit-dialog-1.1.png)
 
@@ -57,7 +57,7 @@ The fields I use are:
 - `@completed(YYY-MM-DD)`: date project was completed (if relevant)
 - `@cancelled(YYY-MM-DD)`: date project was cancelled (if relevant)
 - `Aim: free text`: optional line, and not used by this plugin
-- `Progress: N:YYYY-MM-DD: one-line description`: your latest summary of progress for this N% (optional). If present this is shown in the projects list; if not, the % completion is calculated as the number of open and closed tasks.
+- `Progress: N@YYYY-MM-DD one-line description`: your latest summary of progress for this N% (optional). If present this is shown in the projects list; if not, the % completion is calculated as the number of open and closed tasks. (From v1.3 the default format omits the colon after the date; older lines with a colon are still parsed.)
 
 Similarly, if you follow the **PARA method**, then you will also have "**Areas** of responsibility" to maintain, and I use a `#area` tag to mark these. These don't normally have start/end/completed dates, but they also need reviewing.  For example:
 
@@ -88,7 +88,8 @@ If these can't be found, then the plugin creates a new line after the title, or 
 The first hashtag in the note defines its type, so as well as `#project`, `#area` you could have a `#goal` or whatever makes most sense for you. 
 
 Other notes:
-- If you also add the `#paused` tag to the metadata line, then that stops that note from being included in active reviews, but can show up in the lists.
+- If you also add the `#paused` tag to the metadata line, then that stops that note from being included in active reviews, but can show up in the lists. Pausing or un-pausing also updates the `@reviewed()` date.
+- From v1.3 you can add `project: #sequential` in the frontmatter: the plugin then treats the first open task/checklist in the note as the 'next action', without needing to use next-action tags on individual tasks.
 - If there are multiple copies of a metadata field, only the first one is used.
 - I'm sometimes asked why I use `@reviewed(2021-06-25)` rather than `@reviewed/2021-06-25`. The answer is that while the latter form is displayed in a neater way in the sidebar, the date part isn't available in the NotePlan API as the part after the slash is not a valid @tag as it doesn't contain an alphabetic character.
 
@@ -98,23 +99,28 @@ _The next major release of the plugin will make it possible to migrate all this 
 There are 2 parts of this:
 1. Use the '**Hashtags to review**' setting to control which notes are included in the review lists. If it is set (e.g. `#project, #area, #goal`), then it will include just those notes which also have one or more of those tags. If this setting is empty, then it will include all notes for review that include a `@review(...)` string.
 2. Then specify which folders you want to include and/or exclude notes from. There are 2 ways to do this:
-   1. The original way is to use the 'Folders to Include' and 'Folders to Exclude' settings to put a comma-separated list of folders to include and exclude. I have this set to `Summaries, Reviews, Saved Searches`. Any sub-folders of these will also be ignored. (Note that the special Templates, Archive and Trash are always excluded.)
-   2. From v1.1 you can now instead turn on the '**Use Perspectives**' setting to control which folders are included. _This method (from v1.3) also allows you to allow or disallow any (Team)Spaces you're part of. This requires the [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) to be installed. Note that if you change the active Perspective in the Dashboard, this window will also automatically update.
+   1. Use the 'Folders to Include' and 'Folders to Exclude' settings to put a comma-separated list of folders to include and exclude. I have this set to `Summaries, Reviews, Saved Searches`. Any sub-folders of these will also be ignored. (Note that the special Templates, Archive and Trash are always excluded.)
+   2. Or turn on the '**Use Perspectives**' setting to control which folders are included. From v1.3 this also supports projects in (Team)Space notes: the Perspective (from Dashboard v2.4) lets you choose which (Team)Spaces to include and whether to include the Private "Space" (notes not in a Space). This requires the [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) to be installed. If you change the active Perspective in the Dashboard, the Project Lists window will also automatically update (from Dashboard v2.4).
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
 ## The main /project lists command
-This shows a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. **Tip**: As you can see in the linked videos above, place this list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.
+This shows a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. 
 
-You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, shown above) or original '**Markdown**' (normal NotePlan) output style:
+It defaults to a colourful 'Rich' style , shown above. From v1.3 the list opens by default in the main NotePlan window. (On macOS only you can use the new setting "Open Project Lists in what sort of window?" to set it to a separate window.) The plugin also appears in the NotePlan Sidebar. 
+
+You can set the '**Output style to use**'. This is either the 'Rich' style or original '**Markdown**' (normal NotePlan) output style, shown here:
 
 ![Example of 'Markdown' style of Project Lists](review-list-markdown-0.11@2x.png)
 
 ### Project Lists: 2 styles of display
-- the **Rich style** is a temporary HTML window that picks up the NotePlan Theme you use (though see below on how to override this).  In this style there's a heading row deliberately 'sticks' to the top of the window as you scroll the list.
-- in the Rich style, all your different #tags to review get shown one after the other in a single window. These can be collapsed and expanded as a group using the triangle icons ▼ or ▶.
-- if you can make the window wide enough it will display in 2 (or even 3!) columns
-- the **Markdown style** list _is_ stored as a summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be). _Note: this style is now deprecated, and I expect to remove support in v2._
+- the **Rich style** is an HTML window that picks up the NotePlan Theme you use (though see below on how to override this).  In this style there's a heading row that 'sticks' to the top of the window as you scroll the list.
+- in the Rich style, all your different `#tag`s to review get shown one after the other in a single window. These can be collapsed and expanded as a group using the triangle icons ▼ or ▶.
+- if you can make the window wide enough it will display in 2 (or even 3!) columns; layout adapts at narrower widths.
+- Display toggles (e.g. show next actions, show paused, show dates) are in a **Filter…** menu in the top bar. The top bar also has a **Next** review button; the edit dialog has **Start** (review) and **Add Task** (prompts for task details and which heading to add it under).
+- Each project row can show a **count badge** (grey square) with the number of open, non-future items; badges only appear for active projects when the count is greater than zero.
+- Long 'next action' lines are truncated when needed. If a project note has an icon set in its frontmatter, that icon is shown in the list.
+- the **Markdown style** list is stored as summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be). _Note: this style is now deprecated, and I expect to remove support in v2._
 - the button 'Start reviews' / 'Start reviewing notes ready for review' is a shortcut to the '/start reviews' command (described below).
 - each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
@@ -137,13 +143,18 @@ Progress: 0@2021-04-05 Project started with a briefing from M about SPECTRE's da
 ...
 ```
 
-The starting percentage number doesn't have to be given; if it's not it is **calculated from the % of open and completed tasks** found in the note. From v1.2. there are new settings that affect which open tasks/checklists are included:
-- Ignore tasks set more than these days in the future: If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 0 days -- i.e. no future items are ignored).
+The starting percentage number doesn't have to be given; if it's not it is _calculated from the % of open and completed tasks_ found in the note.
+
+There are settings that affect which open tasks/checklists are included:
+- Ignore tasks set more than these days in the future: If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 1 day: all items with future scheduled dates are ignored.)
 - Ignore checklists in progress? If set, then checklists in progress will not be counted as part of the project's completion percentage.
 
 ### Other settings
-- Next action tag(s): optional list of #hashtags to include in a task or checklist to indicate its the next action in this project (comma-separated; default '#next').
-- Display next actions in output? Whether to display the next action in the output? This requires the previous setting to be set. Note: If there are multiple items with the next action tag, only the first is shown.
+- Progress Heading: (from v1.3) Optional heading name under which `Progress: ...` lines are stored in the project note. If you set this when the note already has progress lines, the plugin finds them and inserts the heading above.
+- Also write most recent Progress line to frontmatter?: (from v1.3) When on, the current progress line is written to frontmatter so it can be used in Folder Views (default: off).
+- Open Project Lists in what sort of macOS window?: (from v1.3) Choose whether the Rich project list opens in NotePlan's main window or in a separate window.
+- Next action tag(s): optional list of #hashtags to include in a task or checklist to indicate its the next action in this project (comma-separated; default '#next'). If there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist is shown as the next action. Only the first matching item is shown.
+- Display next actions in output? This requires the previous setting to be set (or use #sequential). Toggle is in the Filter… menu as "Show next actions?".
 - Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`. Note also: 
   - if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders. 
   - If empty, all folders will be used apart from those in the next setting.
@@ -193,15 +204,15 @@ This is a toggle that adds or removes a `#paused` tag to the metadata line of th
 If the 'Remove due dates when pausing a project?' setting is set, then all open tasks and checklists with a `>date` will have that date removed.
 
 ### "/add progress update" command
-This prompts for a short description of latest progress (as short text string) and current % complete (number). This is inserted into the metadata area of the current project note as:
+This prompts for a short description of latest progress (as short text string) and current % complete (number). This is inserted into the metadata area of the current project note (under the Progress Heading if that setting is set) as:
 
 ```markdown
 Progress: <num>@YYYY-MM-DD <short description>
 ```
 It will also update the project's `@reviewed(date)`.
 
-## 'Next Actions': capturing and displaying
-Part of the "Getting Things Done" methodology is to be clear what your 'next action' is. If you want to put a standard tag on such actionable tasks/checklists -- e.g. `#next` or `#na`, and put that in the settings, then in the project lists this next action will be shown after the progress summary. In fact you can set several different 'next action' tags, and the first of each will be shown in the progress summary. I use this to distinguish the things I can do (`#na`) from things I'm waiting on others to do (`#waiting`).
+## Capturing and Displaying 'Next Actions'
+Part of the "Getting Things Done" methodology is to be clear what your 'next action' is. If you put a standard tag on such actionable tasks/checklists (e.g. `#next` or `#na`) and set that in the plugin settings, the project list shows that next action after the progress summary. Only the first matching item is shown; if there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist is shown instead. You can set several next-action tags (e.g. `#na` for things you can do, `#waiting` for things you're waiting on others).
 
 The **Dashboard Plugin** has the ability to set up Sections for tags/mentions, that show all open tasks/checklists with those tags/mentions. This is a different way to see all such 'next actions'.
 
@@ -229,7 +240,7 @@ Context: <%- prompt('context') %>
 ```
 
 ## Using with Dashboard plugin
-My separate [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) shows a simpler version of the data from the Projects Review List in its 'Projects' section. It has the same type of edit dialog to complete/cancel/finish review/skip review, and also shows progress indicators.
+My separate [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) shows a simpler version of the data from the Projects Review List in its 'Projects' section. It has the same type of edit dialog to complete/cancel/finish review/skip review, and also shows progress indicators. From v1.3, when the Project Lists window is open it automatically refreshes when you change data (requires Dashboard v2.4.0 or later).
 
 ## Configuration
 These commands require configuration before they will know how you intend to use projects and reviews. On macOS this is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel. On iOS/iPadOS run the '/Projects: update plugin settings' command instead.
@@ -252,7 +263,7 @@ The name of the settings are taken from the `key`s from the plugin's `plugin.jso
 Particular thanks to George C, 'John1' and David W for their suggestions and beta testing.
 
 ## Known issues
-There is what I consider to be a bug in the NotePlan API that means most of these commands **can only update a project note if it is open in the main Editor**, not in a separate window, or the non-leftmost split window.
+Due to limitations in the NotePlan API for plugins, it's generally not possible to control which split window a note is opened in, when you click on a project note in the Project List window.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise an ['Issue' of a Bug or Feature Request](https://github.com/NotePlan/plugins/issues).

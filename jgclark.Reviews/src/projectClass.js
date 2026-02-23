@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-14 for v1.3.0.b10, @jgclark
+// Last updated 2026-02-16 for v1.3.0.b12, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -34,7 +34,7 @@ import {
   getInputTrimmed,
   inputIntegerBounded,
 } from '@helpers/userInput'
-import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
+import { isClosedTask, isClosed, isOpen, isOpenTask, isOpenChecklist } from '@helpers/utils'
 
 //-----------------------------------------------------------------------------
 // Types
@@ -97,11 +97,11 @@ export class Project {
   completedDuration: ?string // string description of time to completion, or how long ago completed
   cancelledDate: ?Date
   cancelledDuration: ?string // string description of time to cancellation, or how long ago cancelled
-  numOpenItems: number
-  numCompletedItems: number
-  numTotalItems: number
-  numWaitingItems: number
-  numFutureItems: number
+  numOpenItems: number = 0
+  numCompletedItems: number = 0
+  numTotalItems: number = 0
+  numWaitingItems: number = 0
+  numFutureItems: number = 0
   isCompleted: boolean = false
   isCancelled: boolean = false
   isPaused: boolean = false
@@ -237,6 +237,7 @@ export class Project {
       }
 
       // Find progress field lines (if any) and process
+      // logDebug('ProjectConstructor', `- about to call processProgressLines() for ${this.title}`)//  ✅
       this.processProgressLines()
 
       // If percentComplete not set via progress line, then calculate
@@ -263,7 +264,8 @@ export class Project {
         // logDebug('ProjectConstructor', `  - altHashtags: ${String(altHashtags)}`)
         logDebug('ProjectConstructor', `  - ${String(this.numTotalItems)} items: open:${String(this.numOpenItems)} completed:${String(this.numCompletedItems)} waiting:${String(this.numWaitingItems)} future:${String(this.numFutureItems)}`)
         logDebug('ProjectConstructor', `  - completed: ${String(this.numCompletedItems)}`)
-        if (this.mostRecentProgressLineIndex >= 0) logDebug('ProjectConstructor', `  - progress: #${String(this.mostRecentProgressLineIndex)} = ${this.lastProgressComment}`)
+        logDebug('ProjectConstructor', `  - progressLineIndex: #${String(this.mostRecentProgressLineIndex ?? '-')}`)
+        logDebug('ProjectConstructor', `  - progress: <${String(this.lastProgressComment)}>`)
         logDebug('ProjectConstructor', `  - % complete = ${String(this.percentComplete)}`)
         logDebug('ProjectConstructor', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
       } else {
@@ -717,7 +719,8 @@ export class Project {
    */
   processProgressLines(): void {
     // Get specific 'Progress' field lines
-    const progressParas = getFieldParagraphsFromNote(this.note, 'progress')
+    const progressParas = getFieldParagraphsFromNote(this.note, 'Progress')
+    // logDebug('Project::processProgressLines', `  - found ${String(progressParas.length)} progress lines for ${this.title}`)
 
     if (progressParas.length > 0) {
       // Get the most recent progressItem from these lines
@@ -726,6 +729,7 @@ export class Project {
       this.lastProgressComment = progressItem.comment
       this.mostRecentProgressLineIndex = progressItem.lineIndex
       // logDebug('Project::processProgressLines', `  -> ${String(this.percentComplete)}% from progress line`)
+      // logDebug('Project::processProgressLines', `  -> lastProgressComment: ${this.lastProgressComment}`)
     } else {
       // logDebug('Project::processProgressLines', `- no progress fields found`)
     }

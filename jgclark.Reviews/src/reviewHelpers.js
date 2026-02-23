@@ -236,6 +236,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
       date: new Date('0001-01-01'),
       comment: '(no comment found)',
     }
+
     for (const progressPara of progressParas) {
       const progressLine = progressPara.content
       // logDebug('processMostRecentProgressParagraph', progressLine)
@@ -470,6 +471,23 @@ export function updateMetadataInNote(note: CoreNoteFields, updatedMetadataArr: A
 
 //-------------------------------------------------------------------------------
 // Other helpers
+
+export type IntervalDueStatus = {
+  color: string,
+  text: string
+}
+
+/**
+ * Map a review interval (days until/since due) to a display color and label.
+ * @param {number} interval - days until due (negative = overdue, positive = due in future)
+ * @returns {{ color: string, text: string }}
+ */
+export function getIntervalDueStatus(interval: number): IntervalDueStatus {
+  if (interval < -14) return { color: 'red', text: 'overdue' }
+  if (interval < 0) return { color: 'orange', text: 'slightly overdue' }
+  if (interval > 30) return { color: 'blue', text: 'due in >month' }
+  return { color: 'green', text: 'due soon' }
+}
 
 /**
  * Update project metadata @mentions (e.g. @reviewed(date)) in the note in the Editor

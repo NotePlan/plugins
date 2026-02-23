@@ -19,12 +19,13 @@ import { dt } from '@helpers/dev'
  * Props type for IdleTimer component.
  * @typedef {Object} IdleTimerProps
  * @property {number} idleTime - The time in milliseconds to consider the user as idle.
- * @property {() => void} onIdle - The function to execute when the user is idle.
+ * @property {() => void} onIdleTimeout - The function to execute when the user is idle.
+ * @property {boolean} [userIsInteracting] - When true, pause the timer: do not fire onIdleTimeout (idle or midnight) and do not reset lastActivity.
  */
-
 type IdleTimerProps = {|
   idleTime: number,
   onIdleTimeout: () => void,
+  userIsInteracting: boolean,
 |};
 
 const msToMinutes = (ms: number): number => Math.round(ms / 1000 / 60)
@@ -38,44 +39,53 @@ const LEGAL_DRIFT_THRESHHOLD = 10000 // 10 seconds
  * @param {IdleTimerProps} props - Component props.
  * @returns {React.Node} The IdleTimer component.
  */
-function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
+function IdleTimer({ idleTime, onIdleTimeout, userIsInteracting = false }: IdleTimerProps): React$Node {
   const [lastActivity, setLastActivity] = useState(Date.now())
   const lastMidnightRefreshDateRef = useRef <? string > (null)
   
+  // Only reset idle on meaningful interaction. 
+  // Do NOT use 'mousemove' - it fires constantly while the cursor is over the window
+  // and prevents the idle timer from ever firing when the user is viewing the Dashboard.
+  // Similarly 'scroll' is not meaningful interaction.
+  // useEffect(() => {
+  //   const handleUserActivity = () => {
+  //     setLastActivity(Date.now())
+  //   }
+
+  //   const handleVisibilityChange = () => {
+  //     if (document.visibilityState === 'visible') {
+  //       setLastActivity(Date.now())
+  //     }
+  //   }
+
+  //   // window.addEventListener('mousemove', handleUserActivity)
+  //   // window.addEventListener('scroll', handleUserActivity)
+  //   window.addEventListener('keydown', handleUserActivity)
+  //   window.addEventListener('touchstart', handleUserActivity)
+  //   document.addEventListener('visibilitychange', handleVisibilityChange)
+
+  //   return () => {
+  //     // window.removeEventListener('mousemove', handleUserActivity)
+  //     // window.removeEventListener('scroll', handleUserActivity)
+  //     window.removeEventListener('keydown', handleUserActivity)
+  //     window.removeEventListener('touchstart', handleUserActivity)
+  //     document.removeEventListener('visibilitychange', handleVisibilityChange)
+  //   }
+  // }, [])
+
   useEffect(() => {
-    const handleUserActivity = () => {
-      setLastActivity(Date.now())
-    }
-
-    const handleVisibilityChange = () => {
-      // $FlowIgnore
-      if (document.visibilityState === 'visible') {
-        setLastActivity(Date.now())
-      }
-    }
-
-    window.addEventListener('mousemove', handleUserActivity)
-    window.addEventListener('keydown', handleUserActivity)
-    window.addEventListener('scroll', handleUserActivity)
-    // $FlowIgnore
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    return () => {
-      window.removeEventListener('mousemove', handleUserActivity)
-      window.removeEventListener('keydown', handleUserActivity)
-      window.removeEventListener('scroll', handleUserActivity)
-      // $FlowIgnore
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [])
-
-  useEffect(() => {
+    // Run a 'tick' every 15 seconds to check for midnight refresh and idle timeout
     const interval = setInterval(() => {
+      // When dialogs are open, pause: do not fire onIdleTimeout and do not reset lastActivity
+      if (userIsInteracting) {
+        logDebug('IdleTimer', `${dt().padEnd(19)} User is interacting, ignoring IdleTimer at the moment`)
+        return
+      }
+
       // Check for midnight refresh (works as it runs every 15 seconds)
       const now = moment()
       const currentDate = now.format('YYYY-MM-DD')
       const isMidnight = now.hours() === 0 && now.minutes() === 0
-
       if (isMidnight && lastMidnightRefreshDateRef.current !== currentDate) {
         lastMidnightRefreshDateRef.current = currentDate
         onIdleTimeout()
@@ -93,14 +103,14 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
         }
         setLastActivity(Date.now()) // Reset the timer after calling onIdleTimeout
       } else {
-        // logDebug('IdleTimer', `${dt().padEnd(19)} Still under the ${msToMinutes(idleTime)}m limit; It has been ${(Date.now() - lastActivity) / 1000}s since last activity`)
+        logDebug('IdleTimer', `${dt().padEnd(19)} Still under the ${msToMinutes(idleTime)}m limit; It has been ${(Date.now() - lastActivity) / 1000}s since last activity`)
       }
-    }, /* idleTime */ 15000)
+    }, /* tickInterval */ 15000)
 
     return () => {
       clearInterval(interval)
     }
-  }, [lastActivity, idleTime, onIdleTimeout])
+  }, [lastActivity, idleTime, onIdleTimeout, userIsInteracting])
 
   return null
 }

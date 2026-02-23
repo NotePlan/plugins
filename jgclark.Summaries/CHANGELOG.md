@@ -2,6 +2,7 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
 ## [1.1.0.b6] - 2026-02-??? (unreleased)
+- change: **/period stats** now excludes future dates when the chosen period (week/month/quarter/year) extends beyond today.
 - dev: refactored `chartStats.js` to use the same data-gathering path as Period Stats and Progress Update (`gatherOccurrences` + `gatherOccurrencesHelpers` + `TMOccurrences`).
 - dev: refactored `chartStatsScript.js` to move stats generation code into `chartStats.js`, to improve testability and maintainability
 - dev: fix showHTMLV2() to always write out to savedFilename if set, even if window fails to open

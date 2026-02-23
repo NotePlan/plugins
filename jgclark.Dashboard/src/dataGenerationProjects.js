@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate Project section data
-// Last updated 2026-01-23 for v2.4.0.b18, @jgclark
+// Last updated 2026-02-19 for v2.4.0.b21, @jgclark
 //-----------------------------------------------------------------------------
 
 import { getNextProjectsToReview, getAllActiveProjects } from '../../jgclark.Reviews/src/allProjectsListHelpers'
@@ -198,9 +198,9 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
       logDebug('getProjectActiveSectionData', `jgclark.Reviews plugin is not installed, so returning empty section.`)
       // Continue to return empty section instead of null so it still displays (with appropriate message)
     } else {
-      // Get all active projects (and apply maxProjectsToShow limit later)
+      // Get all active projects (and apply maxProjectsToShow limit later), ordered in the simpler way for Dashboard, which still uses the main sort order setting from the Reviews plugin.
       // Note: Perspective filtering is done in P+R (since it was added in v1.1)
-      allActiveProjects = await getAllActiveProjects()
+      allActiveProjects = await getAllActiveProjects(['nextReviewDays', 'title'], true) // true = dedupeList
       if (allActiveProjects && allActiveProjects.length > 0) {
         allActiveProjects.map((p) => {
           const thisID = `${thisSectionCode}-${itemCount}`
@@ -246,6 +246,8 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
     logDebug('getProjectActiveSectionData', `Filtered ${originalCount} projects to ${itemCount} projects with next actions`)
     if (originalCount > itemCount) sectionDescription += ` with next actions (from ${originalCount})`
   }
+
+  sectionDescription += ` sorted by next review date`
 
   if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
 

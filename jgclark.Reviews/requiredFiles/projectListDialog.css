@@ -1,6 +1,6 @@
 /**
   CSS for the items Actions Dialog 
-  Last updated: 2025-02-01 for v1.0.2+ by @jgclark
+  Last updated: 2026-02-14 for v1.3.0.b11 by @jgclark
   */
 dialog {
   /* Unset the margin around it, to allow absolute positioning by left/top */
@@ -77,6 +77,25 @@ dialog:modal {
 .buttonGrid div:nth-last-child(1) {
   /* Put very last div (Close button) on RHS */
   justify-self: end;
+}
+
+/* Progress row: button then latest summary to the right */
+.dialogProgressRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dialogLatestProgressLabel {
+  font-weight: normal;
+  text-align: left;
+  color: var(--fg-placeholder-color);
+}
+
+.dialogLatestProgressText {
+  font-weight: normal;
+  text-align: left;
+  color: var(--fg-main-color);
 }
 
 /* for Dialog main buttons: a little more pronounced */

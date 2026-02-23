@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin (to/from HTML window)
-// Last updated 2026-02-10 for v1.3.0.b9, @jgclark
+// Last updated 2026-02-16 for v1.3.0.b12, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -22,10 +22,7 @@ import {
   completeProject,
   togglePauseProject,
 } from './projects'
-// import { getReviewSettings } from './reviewHelpers'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-// import { displayTitle } from '@helpers/general'
-// import { sendToHTMLWindow } from '@helpers/HTMLView'
 import {
   getLiveWindowRectFromWin, getWindowFromCustomId,
   logWindowsList,
@@ -275,6 +272,18 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
           // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         } else {
           logWarn('bCPLI / addProgress', `-> couldn't get filename ${filename} to add progress command.`)
+        }
+        break
+      }
+      case 'quickAddTaskUnderHeading': {
+        // Invoke QuickCapture "quick add task under heading" with this project note pre-selected (by title).
+        const note = await DataStore.projectNoteByFilename(filename)
+        if (note) {
+          logDebug('bCPLI / quickAddTaskUnderHeading', `-> invoking QuickCapture for note '${note.title ?? filename}' (ID ${ID})`)
+          await DataStore.invokePluginCommandByName('quick add task under heading', 'jgclark.QuickCapture', [note.title])
+          logDebug('bCPLI / quickAddTaskUnderHeading', `-> after invokePluginCommandByName`)
+        } else {
+          logWarn('bCPLI / quickAddTaskUnderHeading', `-> couldn't get note for filename ${filename}.`)
         }
         break
       }

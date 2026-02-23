@@ -432,7 +432,7 @@ describe('paragraph.js', () => {
         { type: 'open', lineIndex: 3, content: 'task 1' },
         { type: 'text', lineIndex: 4, content: 'some ordinary text' },
         { type: 'empty', lineIndex: 5 },
-        { type: 'title', lineIndex: 6, content: 'Done ...', headingLevel: 2 },
+        { type: 'title', lineIndex: 6, content: 'Done …', headingLevel: 2 },
         { type: 'done', lineIndex: 7, content: 'task 2 done' },
         { type: 'done', lineIndex: 8, content: 'task 3 done' },
         { type: 'empty', lineIndex: 9 },
@@ -441,7 +441,7 @@ describe('paragraph.js', () => {
         { type: 'title', lineIndex: 12, content: 'Done (more)', headingLevel: 2 },
       ],
     }
-    test('should find at line 5 (note A)', () => {
+    test('(note A) should find at line 5 (after folded Done section)', () => {
       const result = p.findEndOfActivePartOfNote(noteA)
       expect(result).toEqual(5)
     })
@@ -453,7 +453,7 @@ describe('paragraph.js', () => {
         { type: 'open', lineIndex: 3, content: 'task 1' },
         { type: 'text', lineIndex: 4, content: 'some ordinary text' },
         { type: 'separator', lineIndex: 5 },
-        { type: 'title', lineIndex: 6, content: 'Done ...', headingLevel: 2 },
+        { type: 'title', lineIndex: 6, content: 'Done …', headingLevel: 2 },
         { type: 'done', lineIndex: 7, content: 'task 2 done' },
         { type: 'done', lineIndex: 8, content: 'task 3 done' },
         { type: 'empty', lineIndex: 9 },
@@ -462,7 +462,7 @@ describe('paragraph.js', () => {
         { type: 'title', lineIndex: 12, content: 'Done (more)', headingLevel: 2 },
       ],
     }
-    test('should find at line 4 (note B)', () => {
+    test('note B: should find at line 4 (before separator before folded Done section)', () => {
       const result = p.findEndOfActivePartOfNote(noteB)
       expect(result).toEqual(4)
     })
@@ -478,11 +478,11 @@ describe('paragraph.js', () => {
         { type: 'quote', lineIndex: 7, content: 'quotation' },
         { type: 'done', lineIndex: 8, content: 'task 3 done' },
         { type: 'empty', lineIndex: 9 },
-        { type: 'title', lineIndex: 10, content: 'Cancelled...', headingLevel: 2 },
+        { type: 'title', lineIndex: 10, content: 'Cancelled', headingLevel: 2 },
         { type: 'cancelled', lineIndex: 11, content: 'task 4 not done' },
       ],
     }
-    test('should find at line 9 (note C)', () => {
+    test('note C: should find at line 9 (before unfolded Cancelled section)', () => {
       const result = p.findEndOfActivePartOfNote(noteC)
       expect(result).toEqual(9)
     })
@@ -498,12 +498,12 @@ describe('paragraph.js', () => {
         { type: 'quote', lineIndex: 7, content: 'quotation' },
         { type: 'done', lineIndex: 8, content: 'task 3 done' },
         { type: 'empty', lineIndex: 9, content: '' },
-        { type: 'title', lineIndex: 10, content: 'Section 3...', headingLevel: 2 },
+        { type: 'title', lineIndex: 10, content: 'Section 3…', headingLevel: 2 },
         { type: 'cancelled', lineIndex: 11, content: 'task 4 not done' },
         { type: 'empty', lineIndex: 12, content: '' },
       ],
     }
-    test('should not find either (note D), so do last non-empty lineIndex (11)', () => {
+    test('note D: should not find either, so do last non-empty lineIndex (11)', () => {
       const result = p.findEndOfActivePartOfNote(noteD)
       expect(result).toEqual(11)
     })

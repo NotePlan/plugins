@@ -2,13 +2,13 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2025-12-03 for v2.3.3, @jgclark
+// Last updated for 2026-02-19 for v2.4.0.b21, @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import React, { useEffect, useRef, useMemo, useCallback } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import { dontDedupeSectionCodes, sectionPriority, defaultSectionDisplayOrder } from '../../constants.js'
@@ -29,8 +29,7 @@ import PerspectivesTable from './PerspectivesTable.jsx'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import DebugPanel from '@helpers/react/DebugPanel'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
-// import ModalSpinner from '@helpers/react/ModalSpinner'
-import NonModalSpinner from '@helpers/react/NonModalSpinner'
+import NonModalSpinner from '@helpers/react/NonModalSpinner' // Note: also a ModalSpinner is available, but no longer used here.
 
 export const standardSections: Array<TSettingItem> = showSectionSettingItems
 
@@ -93,6 +92,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // State
   //----------------------------------------------------------------------
+  const [dropdownMenuOpen, setDropdownMenuOpen] = useState(false)
 
   // Order the display of sections, and count the total number of items to show
   const { sections, totalSectionItems } = useMemo(() => {
@@ -126,6 +126,18 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     ],
     [],
   )
+
+  // Disable auto-update in Demo mode
+  const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0 && !pluginData.demoMode
+
+  // Pause IdleTimer while any of the edit/settings dialogs or dropdown menus are open (DialogForTaskItems, DialogForProjectItems, Dashboard Settings, Header dropdowns)
+  const dialogsOpen =
+    (reactSettings?.dialogData?.isOpen ?? false) ||
+    (reactSettings?.settingsDialog?.isOpen ?? false) ||
+    dropdownMenuOpen
+
+  const showDebugPanel = (pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel) || false
+  const testGroups = useMemo(() => getTestGroups(getContext), [getContext])
 
   //----------------------------------------------------------------------
   // Constants
@@ -289,36 +301,25 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     setReactSettings((prevReactSettings) => ({ ...prevReactSettings, perspectivesTableVisible: false }))
   }
 
+  // Maintain a stable button handler reference for each section to avoid unnecessary re-renders.
+  const handleSectionButtonClick = useCallback((button: TActionButton): void => { }, [])
+
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
-
-  // Disable auto-update in Demo mode
-  const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0 && !pluginData.demoMode
-
-  const showDebugPanel = (pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel) || false
-  const testGroups = useMemo(() => getTestGroups(getContext), [getContext])
-
-  /**
-   * Maintain a stable button handler reference for each section to avoid unnecessary re-renders.
-   *
-   * @param {TActionButton} _button - Section action button definition.
-   * @returns {void}
-   */
-  const handleSectionButtonClick = useCallback((_button: TActionButton): void => {}, [])
 
   return (
     <>
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
       {autoUpdateEnabled && (
-        <IdleTimer idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000} onIdleTimeout={autoRefresh} />
+          <IdleTimer idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000} onIdleTimeout={autoRefresh} userIsInteracting={dialogsOpen} />
       )}
       {/* Note: this is where I might want to put further periodic data generation functions: completed task counter etc. */}
       {reactSettings?.perspectivesTableVisible && (
         <PerspectivesTable perspectives={perspectiveSettings} settingDefs={settingDefs} onSave={hidePerspectivesTable} onCancel={hidePerspectivesTable} />
       )}
       <div className="dashboard">
-        <Header lastFullRefresh={lastFullRefresh} />
+          <Header lastFullRefresh={lastFullRefresh} onDropdownMenuOpenChange={setDropdownMenuOpen} />
         <main>
           {sections.map((section, index) => (
             <Section key={`${section.sectionCode}-${index}`} section={section} onButtonClick={handleSectionButtonClick} />
@@ -338,8 +339,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         <DebugPanel isVisible={showDebugPanel} getContext={getContext} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />
       )}
       </div>
-      {/* TEST: Trying to move Tooltip Portal outside Dashboard Container */}
-    <div id="tooltip-portal"></div>
+      {/* Note: the Tooltip Portal is deliberately outside the Dashboard Container, not that it seems to have any effect on the tooltip z-index issue. */}
+      <div id="tooltip-portal"></div>
     </>
   )
 }

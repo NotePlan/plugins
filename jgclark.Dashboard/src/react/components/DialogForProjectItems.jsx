@@ -2,21 +2,23 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by Dialog component
-// Last updated 2025-12-20  for v2.4.0 by @jgclark
+// Last updated 2026-02-08 for v2.4.0.b20 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useLayoutEffect, useState } from 'react'
-// import type { ElementRef } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
+import ItemNoteLink from './ItemNoteLink.jsx'
 import SmallCircularProgressIndicator from './SmallCircularProgressIndicator.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString, relativeDateFromNumber } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logInfo, logWarn } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
+
+//----------------------------------------------------------------------
 
 type Props = {
   onClose: (xWasClicked: boolean) => void,
@@ -40,11 +42,12 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   // const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef: React$RefObject<?HTMLDialogElement> = useRef <? HTMLDialogElement > (null)
 
-  // clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`, 2)
+  logInfo('DialogForProjectItems', `Starting, with detailsMessageObject= ${JSP(detailsMessageObject, 2)}`)
+  const { ID, itemType, filename, title, modifierKey, sectionCode } = validateAndFlattenMessageObject(detailsMessageObject)
   const thisItem = detailsMessageObject?.item
   if (!thisItem) { throw `Cannot find item` }
-  const lastProgressText = (thisItem.project?.lastProgressComment) ? `last: ${thisItem.project?.lastProgressComment}` : ''
-  const { ID, itemType, filename, title, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
+  logInfo('DialogForProjectItems', `item=${JSP(thisItem, 2)}`)
+  const lastProgressText = thisItem.project?.lastProgressComment ?? ''
 
   const { sendActionToPlugin, pluginData, dashboardSettings } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
@@ -53,11 +56,10 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   // For project dialogs, always show animations (no interactive processing for projects)
   const showAnimations = enableInteractiveProcessingTransitions !== false
 
-  // We want to open the calendar picker if the meta key was pressed as this was dialog was being triggered.
+  // We want to open the calendar picker if the meta key was pressed as this dialog was being triggered.
   const shouldStartCalendarOpen = modifierKey // = boolean for whether metaKey pressed
-  // logDebug('DialogForTaskItems', `shouldStartCalendarOpen=${String(shouldStartCalendarOpen)}`)
 
-  const reviewIntervalStr = (thisItem.project?.reviewInterval) ? `reviews: ${thisItem.project.reviewInterval}` : ''
+  const reviewIntervalStr = (thisItem.project?.reviewInterval) ? `review every ${thisItem.project.reviewInterval}` : ''
   const reviewDaysStr = (thisItem.project?.nextReviewDays) ? `due ${relativeDateFromNumber(thisItem.project.nextReviewDays, true)}` : ''
   const reviewDetails = (reviewIntervalStr && reviewDaysStr)
     ? `(${reviewIntervalStr}; ${reviewDaysStr})`
@@ -70,6 +72,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
    * Note: Some buttons need to be suppressed on iOS/iPadOS as the CommandBar is not available while the window is open. They get removed below.
    */
   let reviewButtons: Array<DialogButtonProps> = [
+    { label: 'Start', controlStr: 'start', description: 'Open the project note in the Editor', handlingFunction: 'startReview', icons: [{ className: 'fa-solid fa-play', position: 'left' }], notOnMobile: false },
     { label: 'Finish Review', controlStr: 'finish', description: 'Update the @review(...) date on the project to today', handlingFunction: 'reviewFinished', icons: [{ className: 'fa-regular fa-calendar-check', position: 'left' }], notOnMobile: false },
     { label: 'Skip 1w', controlStr: 'nr+1w', description: 'Add a @nextReview(...) date for 1 week to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }], notOnMobile: false },
     { label: 'Skip 2w', controlStr: 'nr+2w', description: 'Add a @nextReview(...) date for 2 weeks to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }], notOnMobile: false },
@@ -105,7 +108,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
   function handleTitleClick(e: MouseEvent) { // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties 
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
-    detailsMessageObject.actionType = 'showLineInEditorFromFilename'
+    detailsMessageObject.actionType = 'showNoteInEditorFromFilename'
     detailsMessageObject.modifierKey = modifierName
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Project Title clicked in Dialog', true)
   }
@@ -150,7 +153,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
       updatedContent: '',
     }
 
-    sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, true)
+    sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending actionType ${type} and controlStr ${controlStr} to plugin`, true)
 
     // Dismiss dialog with animation
     closeDialog(false)
@@ -189,16 +192,26 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
             item={thisItem}
             />
           </div>
+
           <TooltipOnKeyPress
             altKey={{ text: 'Open in Split View' }}
             metaKey={{ text: 'Open in Floating Window' }}
             label={`Project Item Dialog for ${title}`}
           >
-            <span className="dialogFileParts pad-left pad-right" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
+            {/* <span className="dialogFileParts pad-left pad-right" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
               <span className="dialogItemNote" >{title}</span>
+            </span> */}
+            <span className="dialogItemNote">
+              <ItemNoteLink
+                item={thisItem}
+                thisSection={sectionCode}
+                alwaysShowNoteTitle={true}
+                suppressTeamspaceName={false}
+              />
             </span>
-            {reviewDetails}
+            <span className="reviewDetailsText">{reviewDetails}</span>
           </TooltipOnKeyPress>
+
           <div className="dialog-top-right">
             <button className="closeButton" onClick={() => closeDialog(true)}>
               <i className="fa-solid fa-circle-xmark"></i>
@@ -206,6 +219,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
           </div>
         </div>
 
+        {/* Body area ---------------- */}
         <div className="dialogBody">
           <div className="buttonGrid projectButtonGrid" id="projectDialogButtons">
             {/* line1 ---------------- */}
@@ -230,7 +244,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
                 positionFunction={() => positionDialog(dialogRef)}
                 numberOfMonths={monthsToShow}
                 resetDateToDefault={resetCalendar}
-                startingSelectedDate={null}
+                startingSelectedDate={new Date()}
                 shouldStartOpen={shouldStartCalendarOpen} />
             </div>
 
@@ -255,7 +269,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
             {/* line3: Progress ---------------- */}
             <div className="preText">Progress:</div>
-            <div>
+            <div className="dialogProgressRow">
               {progressButtons.map((button, index) => (
                 <button key={index}
                   className="PCButton"
@@ -270,9 +284,13 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
                   ))}
                 </button>
               ))}
-              <span className="pad-left projectProgress">
-                {lastProgressText}
-              </span>
+              {lastProgressText && (
+                // div required for visual cohesion
+                <div>
+                  <span className="dialogLatestProgressLabel">Latest: </span>
+                  <span className="dialogLatestProgressText">{lastProgressText}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

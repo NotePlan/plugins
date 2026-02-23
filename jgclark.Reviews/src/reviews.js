@@ -38,7 +38,7 @@ import { calcReviewFieldsForProject, Project } from './projectClass'
 import {
   generateProjectOutputLine,
   generateTopBarHTML,
-  generateProjectTagSectionHTML,
+  generateHTMLForProjectTagSectionHeader,
   generateTableStructureHTML,
   generateProjectControlDialogHTML,
   generateFolderHeaderHTML,
@@ -517,13 +517,11 @@ export async function renderProjectListsHTML(
       // Get the summary line for each revelant project
       const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
 
-      // Generate project tag section HTML
-      outputArray.push(generateProjectTagSectionHTML(thisTag, noteCount, due, config, config.projectTypeTags.length > 1))
+      // Generate project tag section header
+      outputArray.push(generateHTMLForProjectTagSectionHeader(thisTag, noteCount, due, config, config.projectTypeTags.length > 1))
       
       if (noteCount > 0) {
-        // Generate table structure HTML
         outputArray.push(generateTableStructureHTML(config, noteCount))
-        // outputArray.push('<tbody>')
         outputArray.push(thisSummaryLines.join('\n'))
         outputArray.push('   </tbody>')
         outputArray.push('  </table>')
@@ -532,7 +530,6 @@ export async function renderProjectListsHTML(
           outputArray.push(`</details>`)
         }
       }
-      // tagCount++
       logTimer('renderProjectListsHTML', funcTimer, `end of loop for ${thisTag}`)
     }
 
@@ -699,8 +696,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         // Save the list(s) to this note
         note.content = outputArray.join('\n')
         logInfo('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
-        // Open the note in a new window
-        // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
+        // Focus the note in an existing split view, or open the note in a new split window (if not already open)
         const possibleThisEditor = getOrOpenEditorFromFilename(note.filename, 'split')
         if (!possibleThisEditor) {
           logWarn('renderProjectListsMarkdown', `- failed to open note '${noteTitle}' in an Editor`)
@@ -763,16 +759,14 @@ export async function redisplayProjectListHTML(): Promise<void> {
 //-------------------------------------------------------------------------------
 
 /**
- * Return summary of notes that contain a specified 'projectTag', for all relevant folders, in 'Markdown' or 'Rich' style.
+ * Return summary of notes that contain a specified 'projectTag', for all wanted folders, and suitably filtered, in 'Markdown' or 'Rich' style.
  * Reads from the already generated allProjects JSON file.
  * @author @jgclark
  *
- * @param {string} projectTag - the current hashtag (only now used in logging)
+ * @param {string} projectTag - the current hashtag of interest
  * @param {string} style - 'Markdown' or 'Rich'
- * @param {any} config - from settings (and any passed args)
- * @returns {Array<string>} output summary lines
- * @returns {number} number of notes
- * @returns {number} number of due notes (ready to review)
+ * @param {ReviewConfig} config - from settings (and any passed args)
+ * @returns {[Array<string>, number, number]} [output summary lines, number of notes, number of due notes (ready to review)]
  */
 export async function generateReviewOutputLines(projectTag: string, style: string, config: ReviewConfig): Promise<[Array<string>, number, number]> {
   try {
@@ -780,11 +774,13 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
     logDebug('generateReviewOutputLines', `Starting for tag(s) '${projectTag}' in ${style} style`)
 
     // Get all wanted projects (in useful order and filtered)
-    const projectsToReview: Array<Project> = await filterAndSortProjectsList(config, projectTag)
+    const [projectsToReview, numberProjectsUnfiltered] = await filterAndSortProjectsList(config, projectTag)
     let lastFolder = ''
     let noteCount = 0
     let due = 0
     const outputArray: Array<string> = []
+
+    // TEST: Now use numberProjectsUnfiltered by passing it up to the display.
 
     // Process each project
     for (const thisProject of projectsToReview) {
@@ -847,8 +843,8 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
 
       lastFolder = folder
     }
-    logTimer('generateReviewOutputLines', startTime, `Generated for ${String(noteCount)} notes for tag(s) '${projectTag}' in ${style} style`)
-    return [outputArray, noteCount, due]
+    logTimer('generateReviewOutputLines', startTime, `Generated for ${String(noteCount)} notes (and ${numberProjectsUnfiltered} unfiltered) for tag(s) '${projectTag}' in ${style} style`)
+    return [outputArray, numberProjectsUnfiltered, due]
   } catch (error) {
     logError('generateReviewOutputLines', `${error.message}`)
     return [[], NaN, NaN] // for completeness
