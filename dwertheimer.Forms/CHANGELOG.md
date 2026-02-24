@@ -4,6 +4,16 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.1.3] 2026-02-23 @dwertheimer
+
+### Fixed
+- **Processing Template dropdown still reverting in some cases**: When the Processing Template dropdown was opened, `getNotes` ran and could commit (`setNotes`) before the user's `setFrontmatter` from selecting a template, so one render showed stale frontmatter and the dropdown appeared to revert. A pending-selection ref is now set on change and used for the displayed value until frontmatter catches up, so the selection always sticks. Sync effect also clears the pending ref when syncing from prop and only runs when the prop has changed from its previous value.
+- **Processing Template note chooser icon showing square with question mark**: The note chooser input used `iconClass: 'fa-file-lines'` without a Font Awesome 6 style prefix (`fa-solid`). FA6 requires the style prefix or the glyph renders as missing. SearchableChooser now normalizes the input icon class so a style prefix is always applied when missing.
+
+### Edited in this release
+- `dwertheimer.Forms/src/components/FormBuilder.jsx` — Pending `receivingTemplateTitle` ref set in `handleFrontmatterChange`; `frontmatterForSettings` passes effective value (pending ref ?? frontmatter); effect clears pending when frontmatter catches up; sync effect updates ref to current prop and clears pending when syncing from prop.
+- `helpers/react/DynamicDialog/SearchableChooser.jsx` — Input icon: when `iconClass` starts with `fa-` but has no style prefix (`fa-solid`/`fa-regular`/`fa-brands`), prepend `fa-solid ` so the icon renders correctly in FA6.
+
 ## [1.1.2] 2026-02-23 @dwertheimer
 
 ### Fixed
