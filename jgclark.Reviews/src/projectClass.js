@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-16 for v1.3.0.b12, @jgclark
+// Last updated 2026-02-23 for v1.4.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -1096,17 +1096,17 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
     if (thisProjectIn.nextReviewDateStr != null) {
       nextReviewDays = daysBetween(now, thisProjectIn.nextReviewDateStr)
       logDebug('calcReviewFieldsForProject', `- already had a nextReviewDateStr ${thisProjectIn.nextReviewDateStr ?? '?'} -> ${String(nextReviewDays)} interval`)
-    }
-    else if (thisProjectIn.reviewInterval != null) {
-      if (thisProjectIn.reviewedDate != null) {
-        const calculatedNextReviewDateStr = calcNextReviewDate(thisProjectIn.reviewedDate, thisProjectIn.reviewInterval)
+    } else if (thisProjectIn.reviewInterval != null) {
+      const reviewedDateIn = thisProjectIn.reviewedDate
+      if (typeof reviewedDateIn === 'string' && reviewedDateIn !== '') {
+        const calculatedNextReviewDateStr = calcNextReviewDate(reviewedDateIn, thisProjectIn.reviewInterval)
         if (calculatedNextReviewDateStr != null) {
           nextReviewDateStr = calculatedNextReviewDateStr
           // this now uses moment and truncated (not rounded) date diffs in number of days
           nextReviewDays = daysBetween(now, nextReviewDateStr)
           // logDebug('calcReviewFieldsForProject', `${String(thisProjectIn.reviewedDate)} + ${thisProjectIn.reviewInterval ?? ''} -> nextReviewDateStr: ${nextReviewDateStr ?? ''} = ${String(nextReviewDays) ?? '-'}`)
         } else {
-          throw new Error(`calculated nextReviewDate is null; reviewedDate = ${String(thisProjectIn.reviewedDate)}`)
+          throw new Error(`calculated nextReviewDate is null; reviewedDate = ${String(reviewedDateIn)}`)
         }
       } else {
         // no next review date, so set at today

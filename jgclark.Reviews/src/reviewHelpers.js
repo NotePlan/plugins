@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-22 for v1.4.0.b1, @jgclark
+// Last updated 2026-02-23 for v1.4.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -65,12 +65,13 @@ export type ReviewConfig = {
   height: number,
   archiveUsingFolderStructure: boolean,
   archiveFolder: string,
-  removeDueDatesOnPause: boolean,
   nextActionTags: Array<string>,
   preferredWindowType: string,
-  sequentialTag: string,
   progressHeading?: string,
   progressHeadingLevel: number,
+  removeDueDatesOnPause: boolean,
+  sequentialTag: string,
+  useDemoData: boolean,
   writeMostRecentProgressToFrontmatter?: boolean,
   _logLevel: string,
   _logTimer: boolean,
@@ -123,7 +124,7 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
       const currentPerspective: any = getActivePerspectiveDef(perspectiveSettings)
       // clo(currentPerspective, `currentPerspective`)
       config.perspectiveName = currentPerspective.name
-      logInfo('getReviewSettings', `Will use Perspective '${config.perspectiveName}', and will override any foldersToInclude, foldersToIgnore, and includedTeamspaces settings`)
+      logDebug('getReviewSettings', `Will use Perspective '${config.perspectiveName}', and will override any foldersToInclude, foldersToIgnore, and includedTeamspaces settings`)
       config.foldersToInclude = stringListOrArrayToArray(currentPerspective.dashboardSettings?.includedFolders ?? '', ',')
       config.foldersToIgnore = stringListOrArrayToArray(currentPerspective.dashboardSettings?.excludedFolders ?? '', ',')
       config.includedTeamspaces = currentPerspective.dashboardSettings?.includedTeamspaces ?? ['private']

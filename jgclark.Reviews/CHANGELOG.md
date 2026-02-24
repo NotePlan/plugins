@@ -1,7 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
-## [1.4.0.b1] - 2026-02-???
+## [1.4.0.b2] - 2026-02-24
+- Added a 'Demo' mode, which swaps in a separate `allProjectsDemoListDefault.json` to display details of real (or potentially fictitious) projects for demo.
+
+## [1.4.0.b1] - 2026-02-22
 ### Changed
 - Rich project list: column 3 (metadata column) now shows review and due status as coloured lozenges, plus project tag(s), #sequential when applicable, and all hashtags from the note's metadata line and frontmatter `project` value. New Project field `allProjectTags` holds this combined list.
 - dev: Project class now uses ISO date strings (YYYY-MM-DD) for startDate, dueDate, reviewedDate, completedDate, and cancelledDate instead of JavaScript Date objects; removes Date/string conversion in constructor, allProjectsListHelpers, and reviewHelpers.

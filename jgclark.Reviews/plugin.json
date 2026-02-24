@@ -11,7 +11,7 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
   "plugin.version": "1.4.0.b1",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "1.4.0.b1: Changed display of due/review dates from columns 3 and 4 into a new info area.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
+  "plugin.lastUpdateInfo": "1.4.0.b2: Added new demo command project lists.\n1.4.0.b1: Changed display of due/review dates from columns 3 and 4 into a new info area.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {
@@ -56,6 +56,13 @@
         "icon": "fa-chart-gantt",
         "iconColor": "orange-600"
       }
+    },
+    {
+      "hidden": false,
+      "comment": "TODO: Hide later",
+      "name": "toggle demo mode for project lists",
+      "description": "Toggle demo mode for project lists. When true, '/project lists' shows fixed demo data (allProjectsDemoList.json), without recalculating from notes",
+      "jsFunction": "toggleDemoModeForProjectLists"
     },
     {
       "hidden": true,
@@ -275,6 +282,18 @@
     }
   ],
   "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Demo mode"
+    },
+    {
+      "key": "useDemoData",
+      "title": "Use demo data?",
+      "description": "If set, then the project lists will use demo data instead of live data.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
     {
       "type": "heading",
       "title": "What do you want to Review?"

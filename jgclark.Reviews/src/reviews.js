@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-02-13 for v1.3.0.b8, @jgclark
+// Last updated 2026-02-24 for v1.4.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -28,6 +28,7 @@ import {
   updateMetadataInNote,
 } from './reviewHelpers'
 import {
+  copyDemoDefaultToAllProjectsList,
   filterAndSortProjectsList,
   getNextNoteToReview,
   getSpecificProjectFromList,
@@ -50,6 +51,7 @@ import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/fold
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
 import { numberOfOpenItemsInNote } from '@helpers/note'
+import { saveSettings } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getOrOpenEditorFromFilename, getOpenEditorFromFilename, isNoteOpenInEditor, saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
@@ -62,9 +64,11 @@ import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInp
 // Constants
 
 const pluginID = 'jgclark.Reviews'
-const windowTitle = `Project Review List`
+const windowTitle = `Projects List`
+const windowTitleDemo = 'Projects List (Demo)'
 const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
 const customRichWinId = `${pluginID}.rich-review-list`
+const customRichWinIdDemo = `${pluginID}.rich-review-list-demo`
 const customMarkdownWinId = `markdown-review-list`
 
 //-----------------------------------------------------------------------------
@@ -410,9 +414,10 @@ export async function displayProjectLists(argsIn?: string | null = null, scrollP
       // clo(config, 'Review settings with no args:')
     }
 
-    // Re-calculate the allProjects list (in foreground)
-    await generateAllProjectsList(config, true)
-
+    if (!(config.useDemoData ?? false)) {
+      // Re-calculate the allProjects list (in foreground)
+      await generateAllProjectsList(config, true)
+    }
     // Call the relevant rendering function with the updated config
     await renderProjectLists(config, true, scrollPos)
   } catch (error) {
@@ -421,7 +426,45 @@ export async function displayProjectLists(argsIn?: string | null = null, scrollP
 }
 
 /**
- * Internal version of above that doesn't open window if not already open.
+ * Demo variant of project lists.
+ * Reads from fixed demo JSON (copied into allProjectsList.json) without regenerating from live notes.
+ * @param {string? | null} argsIn as JSON (optional)
+ * @param {number?} scrollPos in pixels (optional, for HTML only)
+ */
+export async function toggleDemoModeForProjectLists(): Promise<void> {
+  try {
+    const config = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+    const isCurrentlyDemoMode = config.useDemoData ?? false
+    logInfo('toggleDemoModeForProjectLists', `Demo mode is currently ${isCurrentlyDemoMode ? 'ON' : 'off'}.`)
+    const willBeDemoMode = !isCurrentlyDemoMode
+    // Save a plain object so the value persists (loaded config may be frozen or a proxy)
+    const toSave = { ...config, useDemoData: willBeDemoMode }
+    const saved = await saveSettings(pluginJson['plugin.id'], toSave, false)
+    if (!saved) throw new Error('Failed to save demo mode setting.')
+
+    if (willBeDemoMode) {
+      // Copy the fixed demo list into allProjectsList.json (first time after switching to demo)
+      const copied = await copyDemoDefaultToAllProjectsList()
+      if (!copied) {
+        throw new Error('Failed to copy demo list. Please check that allProjectsDemoListDefault.json exists in data/jgclark.Reviews, and try again.')
+      }
+      logInfo('toggleDemoModeForProjectLists', 'Demo mode is now ON; project list copied from demo default.')
+    } else {
+      // First time after switching away from demo: re-generate list from live notes
+      logInfo('toggleDemoModeForProjectLists', 'Demo mode now off; regenerating project list from notes.')
+      await generateAllProjectsList(toSave, true)
+    }
+
+    // Now run the project lists display
+    await renderProjectLists(toSave, true)
+  } catch (error) {
+    logError('toggleDemoModeForProjectLists', JSP(error))
+  }
+}
+
+/**
+ * Internal version of earlier function that doesn't open window if not already open.
  * @param {number?} scrollPos 
  */
 export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<any> {
@@ -430,9 +473,16 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
     if (!config) throw new Error('No config found. Stopping.')
     logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting with scrollPos ${String(scrollPos)}`)
 
-    // Re-calculate the allProjects list (in foreground)
-    await generateAllProjectsList(config, true)
-    logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectLists() if open`)
+    if (config.useDemoData ?? false) {
+      const copied = await copyDemoDefaultToAllProjectsList()
+      if (!copied) {
+        logWarn('generateProjectListsAndRenderIfOpen', 'Demo mode on but copy of demo list failed.')
+      }
+    } else {
+      // Re-calculate the allProjects list (in foreground)
+      await generateAllProjectsList(config, true)
+      logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectLists() if open`)
+    }
 
     // Call the relevant rendering function, but only continue if relevant window is open
     await renderProjectLists(config, false, scrollPos)
@@ -509,21 +559,23 @@ export async function renderProjectListsIfOpen(
 export async function renderProjectListsHTML(
   config: any,
   shouldOpen: boolean = true,
-  scrollPos: number = 0
+  scrollPos: number = 0,
 ): Promise<void> {
   try {
+    const useDemoData = config.useDemoData ?? false
     if (config.projectTypeTags.length === 0) {
       throw new Error('No projectTypeTags configured to display')
     }
 
-    if (!shouldOpen && !isHTMLWindowOpen(customRichWinId)) {
+    const richWinId = useDemoData ? customRichWinIdDemo : customRichWinId
+    if (!shouldOpen && !isHTMLWindowOpen(richWinId)) {
       logDebug('renderProjectListsHTML', `not continuing, as HTML window isn't open and 'shouldOpen' is false.`)
       return
     }
 
     const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
     logInfo(pluginJson, `renderProjectLists ----------------------------------------`)
-    logDebug('renderProjectListsHTML', `Starting for ${String(config.projectTypeTags)} tags`)
+    logDebug('renderProjectListsHTML', `Starting for ${String(config.projectTypeTags)} tags${useDemoData ? ' (demo)' : ''}`)
 
     // Test to see if we have the font resources we want
     const res = await checkForWantedResources(pluginID)
@@ -539,7 +591,7 @@ export async function renderProjectListsHTML(
     if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
 
     // Fetch project list first so we can compute per-tag active counts for the Filters dropdown
-    const [projectsToReview, _numberProjectsUnfiltered] = await filterAndSortProjectsList(config, '', [], true)
+    const [projectsToReview, _numberProjectsUnfiltered] = await filterAndSortProjectsList(config, '', [], true, useDemoData)
     const wantedTags = config.projectTypeTags ?? []
     const tagActiveCounts = wantedTags.map((tag) =>
       projectsToReview.filter(
@@ -569,14 +621,19 @@ export async function renderProjectListsHTML(
     }
     const noteCount = projectsToReview.length
     outputArray.push(generateSingleSectionHeaderHTML(noteCount, due, config))
+    if (useDemoData && noteCount === 0) {
+      outputArray.push('<p class="project-grid-row demo-file-message">Demo file (allProjectsDemoList.json) not found or empty.</p>')
+    }
     if (noteCount > 0) {
       outputArray.push(generateTableStructureHTML(config, noteCount))
       let lastFolder = ''
       for (const thisProject of projectsToReview) {
-        const thisNote = DataStore.projectNoteByFilename(thisProject.filename)
-        if (!thisNote) {
-          logWarn('renderProjectListsHTML', `Can't find note for filename ${thisProject.filename}`)
-          continue
+        if (!useDemoData) {
+          const thisNote = DataStore.projectNoteByFilename(thisProject.filename)
+          if (!thisNote) {
+            logWarn('renderProjectListsHTML', `Can't find note for filename ${thisProject.filename}`)
+            continue
+          }
         }
         if (config.displayGroupedByFolder && lastFolder !== thisProject.folder) {
           const folderDisplayName = getFolderDisplayNameForHTML(thisProject.folder)
@@ -623,8 +680,8 @@ export async function renderProjectListsHTML(
 </script>`
 
     const winOptions = {
-      windowTitle: windowTitle,
-      customId: customRichWinId,
+      windowTitle: useDemoData ? windowTitleDemo : windowTitle,
+      customId: richWinId,
       headerTags: `${faLinksInHeader}${stylesheetinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // now in requiredFiles/reviewListCSS instead
@@ -648,7 +705,7 @@ export async function renderProjectListsHTML(
       iconColor: pluginJson['plugin.iconColor'],
       autoTopPadding: true,
       showReloadButton: true,
-      reloadCommandName: 'displayProjectLists',
+      reloadCommandName: useDemoData ? 'displayProjectListsDemo' : 'displayProjectLists',
       reloadPluginID: 'jgclark.Reviews',
     }
     const thisWindow = await showHTMLV2(body, winOptions)
@@ -1259,7 +1316,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
       // Update display for user (but don't open window if not open already)
       await renderProjectLists(config, false)
     } else {
-      // Regenerate whole list (and display if window is already open)      
+      // Regenerate whole list (and display if window is already open)
       logWarn('skipReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
       await generateProjectListsAndRenderIfOpen()
     }
