@@ -3,11 +3,11 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-02-16 for v1.3.0.b12 by @jgclark
+// Last updated 2026-02-22 for v1.4.0.b1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
-import { addFAIcon, type ReviewConfig } from './reviewHelpers'
+import { addFAIcon, getIntervalDueStatus, getIntervalReviewStatus, type ReviewConfig } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
@@ -28,12 +28,14 @@ import { encodeRFC3986URIComponent, prepAndTruncateMarkdownForDisplay } from '@h
  * @param {Project} thisProject
  * @param {ReviewConfig} config
  * @param {string} style: 'Rich' (-> HTML), or 'Markdown'
+ * @param {Array<string>?} wantedTagsForRow - when provided (single-section view), added as data-wanted-tags on the row for tag toggles
  * @returns {string} HTML or Markdown string for the project output line (or empty string if error)
  */
 export function generateProjectOutputLine(
   thisProject: Project,
   config: ReviewConfig,
   style: string,
+  wantedTagsForRow?: Array<string>,
 ): string {
   // logInfo('generateProjectOutputLine', `- ${thisProject.title}: nRD ${thisProject.nextReviewDays} / due ${thisProject.dueDays}`)
   const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
@@ -53,7 +55,7 @@ export function generateProjectOutputLine(
   }
 
   if (style === 'Rich') {
-    output = generateRichHTMLRow(thisProject, config)
+    output = generateRichHTMLRow(thisProject, config, wantedTagsForRow)
   } else if (style === 'Markdown' || style === 'list') {
     output = generateMarkdownLine(thisProject, config, style, statsProgress, thisPercent)
   } else {
@@ -67,18 +69,24 @@ export function generateProjectOutputLine(
  * Generate Rich HTML row for project
  * @param {Project} thisProject
  * @param {ReviewConfig} config
+ * @param {Array<string>?} wantedTagsForRow - when provided, output as data-wanted-tags for tag-toggle filtering
  * @returns {string}
  * @private
  */
-function generateRichHTMLRow(thisProject: Project, config: ReviewConfig): string {
+function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedTagsForRow?: Array<string>): string {
   const parts: Array<string> = []
-  parts.push(`\t<tr class="projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}">\n\t\t`)
+  const wantedTagsAttr = (wantedTagsForRow != null && wantedTagsForRow.length > 0)
+    ? ` data-wanted-tags="${wantedTagsForRow.join(' ').replace(/"/g, '&quot;')}"`
+    : ''
+  parts.push(`\t<div class="project-grid-row projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}"${wantedTagsAttr}>\n\t\t`)
   parts.push(generateCircleIndicator(thisProject))
 
-  // Column 2a: Project name + link / item count badge / edit dialog trigger button
+  // Column 2a: Project name + link / edit button / open-count badge / project tags (if setting is column2)
   const editButton = `          <span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}', encodedLastProgressComment:'${encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')}'})"><i class="fa-light fa-edit"></i></span>\n`
   const openItemCount = generateItemCountsBadge(thisProject)
-  parts.push(`\n\t\t\t<td><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}${openItemCount}</span>`)
+  const showTagsInColumn2 = config.projectTagsInColumn !== 'column3'
+  const projectTagsInline = showTagsInColumn2 ? generateProjectTagsLozenges(thisProject) : ''
+  parts.push(`\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}${openItemCount}${projectTagsInline}</span>`)
 
   if (!thisProject.isCompleted && !thisProject.isCancelled) {
     const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
@@ -88,12 +96,12 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig): string
     // Write column 2b/2c under title: progress line row (if any) then stats then next actions
     parts.push(generateProgressSection(thisProject, config, false))
     parts.push(generateNextActionsSection(config, nextActionsContent))
-    parts.push(`</td>`)
   }
+  parts.push(`</div>`)
 
-  // Columns 3/4: date information
+  // Column 3: metadata (dates + project tags/hashtags)
   parts.push(generateDateSection(thisProject, config))
-  parts.push('\n\t</tr>')
+  parts.push('\n\t</div>')
 
   return parts.join('')
 }
@@ -106,17 +114,17 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig): string
  */
 function generateCircleIndicator(thisProject: Project): string {
   if (thisProject.isCompleted) {
-    return `<td class="first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check circle-icon')}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check circle-icon')}</div>`
   } else if (thisProject.isCancelled) {
-    return `<td class="first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</div>`
   } else if (thisProject.isPaused) {
-    return `<td class="first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "var(--project-pause-color)")}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "var(--project-pause-color)")}</div>`
   } else if (thisProject.percentComplete == null || isNaN(thisProject.percentComplete)) {
-    return `<td class="first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', 'var(--project-no-percent-color)')}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', 'var(--project-no-percent-color)')}</div>`
   } else if (thisProject.percentComplete === 0) {
-    return `<td class="first-col-indicator">${addSVGPercentRing(thisProject, 100, '#FF000088', '0')}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addSVGPercentRing(thisProject, 100, '#FF000088', '0')}</div>`
   } else {
-    return `<td class="first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</td>`
+    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</div>`
   }
 }
 
@@ -141,6 +149,18 @@ function generateItemCountsBadge(thisProject: Project): string {
   }
   
   return parts.join('')
+}
+
+/**
+ * Generate project tags as lozenge spans (for use in column 2 after open-count badge).
+ * @param {Project} thisProject
+ * @returns {string}
+ * @private
+ */
+function generateProjectTagsLozenges(thisProject: Project): string {
+  if (thisProject.allProjectTags == null || thisProject.allProjectTags.length === 0) return ''
+  const parts = thisProject.allProjectTags.map((hashtag) => `<span class="metadata-lozenge metadata-lozenge--tag">${hashtag}</span>`)
+  return `<span class="project-tags-inline">${parts.join(' ')}</span>`
 }
 
 /**
@@ -181,13 +201,15 @@ function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Ar
   for (const NAContent of nextActionsContent) {
     // const truncatedNAContent = trimString(NAContent, 80)
     const truncatedNAContent = prepAndTruncateMarkdownForDisplay(NAContent, 80)
-    parts.push(`\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${truncatedNAContent}</span></div>`)
+    parts.push(`\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText pad-left">${truncatedNAContent}</span></div>`)
   }
   return parts.join('')
 }
 
 /**
- * Generate date section HTML for Rich format
+ * Generate column 3 (metadata column) HTML for Rich format.
+ * Shows up to two coloured lozenges (review status then due status from getIntervalReviewStatus / getIntervalDueStatus),
+ * and when present a line of project hashtags from from metadata line and/or frontmatter `project` value.
  * @param {Project} thisProject
  * @param {ReviewConfig} config
  * @returns {string}
@@ -196,42 +218,37 @@ function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Ar
 function generateDateSection(thisProject: Project, config: ReviewConfig): string {
   if (!config.displayDates) return ''
 
-  if (thisProject.isPaused) return '<td></td><td></td>'
+  if (thisProject.isPaused) return '<div class="project-grid-cell project-grid-cell--metadata"></div>'
 
   if (thisProject.isCompleted) {
     const completionRef = thisProject.completedDuration || "completed"
-    return `<td colspan=2 class="checked">Completed ${completionRef}</td>`
+    return `<div class="project-grid-cell project-grid-cell--metadata checked">Completed ${completionRef}</div>`
   } else if (thisProject.isCancelled) {
     const cancellationRef = thisProject.cancelledDuration || "cancelled"
-    return `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td>`
+    return `<div class="project-grid-cell project-grid-cell--metadata cancelled">Cancelled ${cancellationRef}</div>`
   }
 
-  const parts: Array<string> = []
-  // Next review date
+  const lozenges: Array<string> = []
+
+  // Project tags: in column 3 only when setting is 'column3'; otherwise they are in column 2
+  if (config.projectTagsInColumn === 'column3' && thisProject.allProjectTags != null && thisProject.allProjectTags.length > 0) {
+    for (const hashtag of thisProject.allProjectTags) {
+      lozenges.push(`<span class="metadata-lozenge metadata-lozenge--tag">${hashtag}</span>`)
+    }
+  }
+
+  // Review status lozenge (from getIntervalReviewStatus)
   if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
-    const reviewDate = localeRelativeDateFromNumber(thisProject.nextReviewDays)
-    if (thisProject.nextReviewDays > 0) {
-      parts.push(`<td>${reviewDate}</td>`)
-    } else {
-      parts.push(`<td><p><b>${reviewDate}</b></p></td>`)
-    }
-  } else {
-    parts.push('<td></td>')
+    const reviewStatus = getIntervalReviewStatus(thisProject.nextReviewDays)
+    lozenges.push(`<span class="metadata-lozenge metadata-lozenge--${reviewStatus.color}">${reviewStatus.text}</span>`)
   }
-
-  // Due date
+  // Due status lozenge (from getIntervalDueStatus), follows review in same column
   if (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) {
-    const dueDate = localeRelativeDateFromNumber(thisProject.dueDays)
-    if (thisProject.dueDays > 0) {
-      parts.push(`<td>${dueDate}</td>`)
-    } else {
-      parts.push(`<td><p><b>${dueDate}</b></p></td>`)
-    }
-  } else {
-    parts.push('<td></td>')
+    const dueStatus = getIntervalDueStatus(thisProject.dueDays)
+    lozenges.push(`<span class="metadata-lozenge metadata-lozenge--${dueStatus.color}">${dueStatus.text}</span>`)
   }
 
-  return parts.join('')
+  return `<div class="project-grid-cell project-grid-cell--metadata project-metadata-cell">${lozenges.join('\n')}</div>`
 }
 
 /**
@@ -453,6 +470,23 @@ export function generateTopBarHTML(config: any): string {
   parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-filter pad-right"></i>Filters…</button>`)
   parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Display filters">`)
   parts.push(`    <div class="display-filters-dropdown-content">`)
+  // Tag toggles: one per wanted tag; when off, hide projects that only have that tag (client-side). Count = active (not paused/cancelled/completed).
+  const projectTypeTags = config.projectTypeTags != null && typeof config.projectTypeTags === 'string' ? [config.projectTypeTags] : (config.projectTypeTags ?? [])
+  const tagActiveCounts = config.tagActiveCounts ?? []
+  if (projectTypeTags.length > 0) {
+    parts.push(`      <div id="tagToggles" class="display-filters-tag-toggles">`)
+    for (let i = 0; i < projectTypeTags.length; i++) {
+      const tag = projectTypeTags[i]
+      const count = tagActiveCounts[i] != null ? tagActiveCounts[i] : 0
+      const safeId = `tagToggle-${tag.replace(/[^a-zA-Z0-9-_]/g, '_')}`
+      parts.push(`        <label class="display-filters-option display-filters-option--tag-row">`)
+      parts.push(`          <span class="display-filters-option-text">${tag}</span> <span class="display-filters-option-count">(${count})</span>`)
+      parts.push(`          <input type="checkbox" class="apple-switch" data-tag-toggle="${tag.replace(/"/g, '&quot;')}" id="${safeId}" checked>`)
+      parts.push(`        </label>`)
+    }
+    parts.push(`      </div>`)
+    parts.push(`      <hr class="display-filters-divider">`)
+  }
   parts.push(`      <label class="display-filters-option">Show only projects ready for review?<input class="apple-switch pad-left" type="checkbox" ${displayOnlyDue ? 'checked' : ''} name="displayOnlyDue" data-display-filter="true"></label>`)
   parts.push(`      <label class="display-filters-option">Show finished projects?<input class="apple-switch pad-left" type="checkbox" ${displayFinished ? 'checked' : ''} name="displayFinished" data-display-filter="true"></label>`)
   parts.push(`      <label class="display-filters-option">Show paused projects?<input class="apple-switch pad-left" type="checkbox" ${displayPaused ? 'checked' : ''} name="displayPaused" data-display-filter="true"></label>`)
@@ -478,13 +512,12 @@ export function generateTopBarHTML(config: any): string {
  */
 export function generateFolderHeaderHTML(folderPart: string, config: any): string {
   const parts: Array<string> = []
-  parts.push(`<thead>\n <tr class="folder-header-row">`)
-  parts.push(`  <th colspan=2 class="h4 folder-header">${folderPart}</th>`)
+  parts.push(` <div class="project-grid-row folder-header-row">`)
+  parts.push(`  <div class="project-grid-cell project-grid-cell--span-2 folder-header h3">${folderPart}</div>`)
   if (config.displayDates) {
-    parts.push(`  <th>Next Review</th><th>Due Date</th>`)
+    parts.push(`  <div class="project-grid-cell folder-header"></div>`) // deliberately no header text
   }
-  parts.push(` </tr>\n</thead>\n`)
-  parts.push(` <tbody>`)
+  parts.push(` </div>`)
   return parts.join('')
 }
 
@@ -494,35 +527,43 @@ export function generateFolderHeaderHTML(folderPart: string, config: any): strin
  * @param {number} noteCount
  * @returns {string}
  */
-export function generateTableStructureHTML(config: any, noteCount: number): string {
-  const parts: Array<string> = []
-  
-  if (noteCount > 0) {
-    // In some cases, include colgroup to help massage widths a bit
-    if (config.displayDates) {
-      parts.push(`<thead>
-<colgroup>
-\t<col style="width: 3.2rem">
-\t<col>
-\t<col style="width: 5.5rem">
-\t<col style="width: 5.5rem">
-</colgroup>
-`)
-    } else {
-      parts.push(`<thead>
-<colgroup>
-\t<col style="width: 3rem">
-\t<col>
-</colgroup>
-`)
-    }
-  }
-  
-  return parts.join('')
+export function generateTableStructureHTML(_config: any, _noteCount: number): string {
+  // Grid column layout is defined in CSS via .project-list-grid--with-dates / .project-list-grid--no-dates
+  return ''
 }
 
 /**
- * Generate HTML for project tag section header
+ * Generate HTML for single always-visible projects section (no details/summary).
+ * Used when showing all projects in one section with tag toggles in the topbar.
+ * @param {number} noteCount
+ * @param {number} due
+ * @param {any} config
+ * @returns {string}
+ */
+export function generateSingleSectionHeaderHTML(noteCount: number, due: number, config: any): string {
+  const parts: Array<string> = []
+  let numberItemsStr = (config.displayOnlyDue)
+    ? `${due} of ${noteCount} notes ready for review`
+    : `${noteCount} notes`
+  if (config.numberDaysForFutureToIgnore > 0) {
+    numberItemsStr += ` (with future tasks ignored)`
+  }
+  // parts.push(`  <div class="folder-header">`)
+  // parts.push(`    <span class="h2">Projects</span><span class="folder-header-text">${numberItemsStr}</span>`)
+  // parts.push(`  </div>`)
+  
+  parts.push(`\n<div class="details-content projects-single-section-content">`)
+  if (!config.displayGroupedByFolder && config.foldersToInclude.length === 1) {
+    const folderDisplayName = getFolderDisplayNameForHTML(config.foldersToInclude[0])
+    parts.push(`<h4>${folderDisplayName} folder</h4>`)
+  }
+  const gridClass = config.displayDates ? 'project-list-grid project-list-grid--with-dates' : 'project-list-grid project-list-grid--no-dates'
+  parts.push(`\n<div class="${gridClass}">`)
+  return parts.join('\n')
+}
+
+/**
+ * Generate HTML for project tag section header (legacy: per-tag sections; kept for Markdown path if needed)
  * @param {string} thisTag
  * @param {number} noteCount
  * @param {number} due
@@ -561,8 +602,9 @@ export function generateHTMLForProjectTagSectionHeader(
     parts.push(`<h4>${folderDisplayName} folder</h4>`)
   }
   
-  parts.push('\n<table>')
-  
+  const gridClass = config.displayDates ? 'project-list-grid project-list-grid--with-dates' : 'project-list-grid project-list-grid--no-dates'
+  parts.push(`\n<div class="${gridClass}">`)
+
   return parts.join('\n')
 }
 

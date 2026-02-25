@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-10 for v1.3.0.b9, @jgclark
+// Last updated 2026-02-23 for v1.4.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -53,6 +53,7 @@ export type ReviewConfig = {
   displayOrder: string,
   displayOnlyDue: boolean,
   displayProgress: boolean,
+  projectTagsInColumn?: string, // 'column2' | 'column3'; default column2
   finishedListHeading: string,
   hideTopLevelFolder: boolean,
   ignoreChecklistsInProgress: boolean,
@@ -64,12 +65,13 @@ export type ReviewConfig = {
   height: number,
   archiveUsingFolderStructure: boolean,
   archiveFolder: string,
-  removeDueDatesOnPause: boolean,
   nextActionTags: Array<string>,
   preferredWindowType: string,
-  sequentialTag: string,
   progressHeading?: string,
   progressHeadingLevel: number,
+  removeDueDatesOnPause: boolean,
+  sequentialTag: string,
+  useDemoData: boolean,
   writeMostRecentProgressToFrontmatter?: boolean,
   _logLevel: string,
   _logTimer: boolean,
@@ -122,7 +124,7 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
       const currentPerspective: any = getActivePerspectiveDef(perspectiveSettings)
       // clo(currentPerspective, `currentPerspective`)
       config.perspectiveName = currentPerspective.name
-      logInfo('getReviewSettings', `Will use Perspective '${config.perspectiveName}', and will override any foldersToInclude, foldersToIgnore, and includedTeamspaces settings`)
+      logDebug('getReviewSettings', `Will use Perspective '${config.perspectiveName}', and will override any foldersToInclude, foldersToIgnore, and includedTeamspaces settings`)
       config.foldersToInclude = stringListOrArrayToArray(currentPerspective.dashboardSettings?.includedFolders ?? '', ',')
       config.foldersToIgnore = stringListOrArrayToArray(currentPerspective.dashboardSettings?.excludedFolders ?? '', ',')
       config.includedTeamspaces = currentPerspective.dashboardSettings?.includedTeamspaces ?? ['private']
@@ -153,15 +155,14 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
  * Calculate the next date to review, based on last review date and date interval.
  * If no last review date, then the answer is today's date.
  * @author @jgclark
- * @param {Date} lastReviewDate - JS Date
+ * @param {string|Date} lastReviewDate - ISO date string (YYYY-MM-DD) or JS Date
  * @param {string} interval - interval specified as nn[bdwmqy]
- * @return {Date} - JS Date
+ * @return {?string} - ISO date string (YYYY-MM-DD) or null if calculation fails
  */
-export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date {
-  const lastReviewDateStr: string = toISODateString(lastReviewDate)
-  // $FlowIgnore[incompatible-type] as calcOffsetDate() will throw error rather than return null
-  const reviewDate: Date = lastReviewDate != null ? calcOffsetDate(lastReviewDateStr, interval) : getJSDateStartOfToday() // today's date
-  return reviewDate
+export function calcNextReviewDate(lastReviewDate: string | Date, interval: string): ?string {
+  const lastReviewDateStr: string = typeof lastReviewDate === 'string' ? lastReviewDate : toISODateString(lastReviewDate)
+  const reviewDate: Date | null = lastReviewDate != null ? calcOffsetDate(lastReviewDateStr, interval) : getJSDateStartOfToday()
+  return reviewDate != null ? toISODateString(reviewDate) : null
 }
 
 /**
@@ -483,10 +484,23 @@ export type IntervalDueStatus = {
  * @returns {{ color: string, text: string }}
  */
 export function getIntervalDueStatus(interval: number): IntervalDueStatus {
-  if (interval < -14) return { color: 'red', text: 'overdue' }
-  if (interval < 0) return { color: 'orange', text: 'slightly overdue' }
-  if (interval > 30) return { color: 'blue', text: 'due in >month' }
+  if (interval < -90) return { color: 'red', text: 'project very overdue' }
+  if (interval < -14) return { color: 'red', text: 'project overdue' }
+  if (interval < 0) return { color: 'orange', text: 'project slightly overdue' }
+  if (interval > 30) return { color: 'blue', text: 'project due >month' }
   return { color: 'green', text: 'due soon' }
+}
+
+/**
+ * Map a review interval (days until/since next review) to a display color and label.
+ * @param {number} interval - days until next review (negative = overdue, positive = due in future)
+ * @returns {{ color: string, text: string }}
+ */
+export function getIntervalReviewStatus(interval: number): IntervalDueStatus {
+  if (interval < -14) return { color: 'red', text: 'review overdue' }
+  if (interval < 0) return { color: 'orange', text: 'review slightly overdue' }
+  if (interval > 30) return { color: 'blue', text: 'review in >month' }
+  return { color: 'green', text: 'review soon' }
 }
 
 /**

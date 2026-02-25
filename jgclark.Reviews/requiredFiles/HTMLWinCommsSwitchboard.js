@@ -86,20 +86,20 @@ function setReviewingProject(data) {
   console.log(`setReviewingProject: for encodedFilename: ${encodedFilename}`)
 
   // First clear any existing 'reviewing' state on all project rows
-  const allRows = document.querySelectorAll('tr.projectRow.reviewing')
+  const allRows = document.querySelectorAll('.project-grid-row.projectRow.reviewing')
   for (const row of allRows) {
     row.classList.remove('reviewing')
   }
 
   // Then set 'reviewing' on the matching row
-  const matchingRows = document.querySelectorAll('tr.projectRow')
+  const matchingRows = document.querySelectorAll('.project-grid-row.projectRow')
   for (const row of matchingRows) {
     if (row.dataset.encodedFilename === encodedFilename) {
       row.classList.add('reviewing')
-      // And replace the third child <td> with content 'Under Review'
+      // And replace the third child (metadata cell) with content 'Under Review'
       // Note: This is a hack, and should be dealt with in the generator, but this will do for now.
       const thirdChild = row.children[2]
-      thirdChild.innerHTML = '<p class="underReviewText">Under Review</p>'
+      if (thirdChild) thirdChild.innerHTML = '<p class="underReviewText">Under Review</p>'
     }
   }
 }
@@ -120,7 +120,7 @@ function clearReviewingProject(data) {
   console.log(`clearReviewingProject: clearing all reviewing states`)
 
   // Clear any existing 'reviewing' state on all project rows
-  const allRows = document.querySelectorAll('tr.projectRow.reviewing')
+  const allRows = document.querySelectorAll('.project-grid-row.projectRow.reviewing')
   for (const row of allRows) {
     row.classList.remove('reviewing')
   }

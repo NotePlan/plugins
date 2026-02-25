@@ -8,7 +8,7 @@ import showdown from 'showdown' // for Markdown -> HTML from https://github.com/
 import { hasFrontMatter } from '@helpers/NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
-import { getStoredWindowRect, getWindowFromCustomId, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
+import { getStoredWindowRect, getWindowFromCustomId, getWindowIdFromCustomId, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInEventLinkHiddenPart, isTermInNotelinkOrURI, isTermInMarkdownPath } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER, formRegExForUsersOpenTasks } from '@helpers/regex'
@@ -716,7 +716,10 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
 
     const windowExists = isHTMLWindowOpen(windowId)
     if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = undefined`)
-    const windowIdToSend = windowExists ? windowId : undefined // for iphone/ipad you have to send undefined
+    // runJavaScript expects the window's internal id; resolve customId to actual id when present
+    // TEST: this change identified by Cursor
+    // TEST: Not sure the comment about iphone/ipad is still relevant, but leaving it in for now.
+    const windowIdToSend = windowExists ? (getWindowIdFromCustomId(windowId) || windowId) : undefined // for iphone/ipad you have to send undefined
 
     const dataWithUpdated = {
       ...data,

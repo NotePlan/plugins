@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-02-13 for v1.3.0.b8, @jgclark
+// Last updated 2026-02-24 for v1.4.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -28,6 +28,7 @@ import {
   updateMetadataInNote,
 } from './reviewHelpers'
 import {
+  copyDemoDefaultToAllProjectsList,
   filterAndSortProjectsList,
   getNextNoteToReview,
   getSpecificProjectFromList,
@@ -38,11 +39,23 @@ import { calcReviewFieldsForProject, Project } from './projectClass'
 import {
   generateProjectOutputLine,
   generateTopBarHTML,
-  generateHTMLForProjectTagSectionHeader,
+  generateSingleSectionHeaderHTML,
   generateTableStructureHTML,
   generateProjectControlDialogHTML,
   generateFolderHeaderHTML,
 } from './projectsHTMLGenerator.js'
+import {
+  stylesheetinksInHeader,
+  faLinksInHeader,
+  checkboxHandlerJSFunc,
+  scrollPreLoadJSFuncs,
+  commsBridgeScripts,
+  shortcutsScript,
+  setPercentRingJSFunc,
+  addToggleEvents,
+  displayFiltersDropdownScript,
+  tagTogglesVisibilityScript,
+} from './reviewsHTMLTemplates'
 import { checkString } from '@helpers/checkType'
 import { getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
@@ -50,6 +63,7 @@ import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/fold
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
 import { numberOfOpenItemsInNote } from '@helpers/note'
+import { saveSettings } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getOrOpenEditorFromFilename, getOpenEditorFromFilename, isNoteOpenInEditor, saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
@@ -62,9 +76,11 @@ import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInp
 // Constants
 
 const pluginID = 'jgclark.Reviews'
-const windowTitle = `Project Review List`
+const windowTitle = `Projects List`
+const windowTitleDemo = 'Projects List (Demo)'
 const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
 const customRichWinId = `${pluginID}.rich-review-list`
+const customRichWinIdDemo = `${pluginID}.rich-review-list-demo`
 const customMarkdownWinId = `markdown-review-list`
 
 //-----------------------------------------------------------------------------
@@ -103,252 +119,8 @@ async function clearProjectReviewingInHTML(): Promise<void> {
   }
 }
 
-//-------------------------------------------------------------------------------
-// JS scripts
 
-const stylesheetinksInHeader = `
-<!-- Load in Project List-specific CSS -->
-<link href="projectList.css" rel="stylesheet">
-<link href="projectListDialog.css" rel="stylesheet">
-`
-const faLinksInHeader = `
-<!-- Load in fontawesome assets (licensed for NotePlan) -->
-<link href="../np.Shared/fontawesome.css" rel="stylesheet">
-<link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
-<link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
-<link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
-`
 
-export const checkboxHandlerJSFunc: string = `
-<script type="text/javascript">
-async function handleCheckboxClick(cb) {
-  try {
-  console.log("Checkbox for " + cb.name + " clicked, new value = " + cb.checked);
-  const callbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggle"+cb.name;
-  console.log("Calling URL " + callbackURL + " ...");
-  // v1: use fetch() - doesn't work in plugin
-  // const res = await fetch(callbackURL);
-  // console.log("Result: " + res.status);
-  // v2: use window.open() - doesn't work in plugin
-  // window.open(callbackURL);
-  // v3: use window.location ... - doesn't work in plugin
-  // window.location.href = callbackURL;
-  // v4:
-  const options = {
-    method: 'GET',
-  }
-  fetch(callbackURL, options)
-  .then(response => {
-    console.log("Result: " + response.status);
-  })
-  .catch(error => {
-    console.log("Error Result: " + response.status);
-  });
-
-  // onChangeCheckbox(cb.name, cb.checked); // this uses handler func in commsSwitchboard.js
-  }
-  catch (err) {
-    console.error(err.message);
-  }
-}
-</script>
-`
-
-/**
- * Functions to get/set scroll position of the project list content.
- * Helped by https://stackoverflow.com/questions/9377951/how-to-remember-scroll-position-and-scroll-back
- * But need to find a different approach to store the position, as cookies not available.
- */
-export const scrollPreLoadJSFuncs: string = `
-<script type="text/javascript">
-function getCurrentScrollHeight() {
-  let scrollPos;
-  if (typeof window.pageYOffset !== 'undefined') {
-    scrollPos = window.pageYOffset;
-  }
-  else if (typeof document.compatMode !== 'undefined' && document.compatMode !== 'BackCompat') {
-    scrollPos = document.documentElement.scrollTop;
-  }
-  else if (typeof document.body !== 'undefined') {
-    scrollPos = document.body.scrollTop;
-  }
-  let label = document.getElementById("scrollDisplay");
-  label.innerHTML = String(scrollPos);
-  console.log("getCurrentScrollHeight = " + String(scrollPos));
-}
-
-// Note: saving scroll position to cookie does not work in Safari, but not in NP.
-function setScrollPos(h) {
-  document.documentElement.scrollTop = h;
-  document.body.scrollTop = h;
-  console.log('setScrollPos = ' + String(h));
-}
-</script>
-`
-
-const commsBridgeScripts = `
-<!-- commsBridge scripts -->
-<script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
-<script>
-/* you must set this before you import the CommsBridge file */
-const receivingPluginID = "jgclark.Reviews"; // the plugin ID of the plugin which will receive the comms from HTML
-// That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
-// this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
-
-/* The onMessageFromPlugin function is called when data is received from your plugin and needs to be processed.
- * This function should not do the work itself, it should just send the data payload to a function for processing.
- * The onMessageFromPlugin function below and your processing functions can be in your html document or could be imported in an external file.
- * The only requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the 
-   pluginToHTMLCommsBridge in your html document or could be imported in an external file. */
-</script>
-<script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
-<script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
-`
-/**
- * Script to add some keyboard shortcuts to control the dashboard. (Meta=Cmd here.)
- */
-const shortcutsScript = `
-<!-- shortcuts script -->
-<script type="text/javascript" src="./shortcut.js"></script>
-<script>
-// send 'refresh' command
-shortcut.add("meta+r", function() {
-  console.log("Shortcut '⌘r' triggered: will call refresh");
-  sendMessageToPlugin('refresh', {});
-});
-// send 'toggleDisplayOnlyDue' command
-shortcut.add("meta+d", function() {
-  console.log("Shortcut '⌘d' triggered: will call toggleDisplayOnlyDue");
-  sendMessageToPlugin('runPluginCommand', {pluginID: 'jgclark.Reviews', commandName:'toggleDisplayOnlyDue', commandArgs: []});
-});
-// send 'toggleDisplayFinished' command
-shortcut.add("meta+f", function() {
-  console.log("Shortcut '⌘f' triggered: will call toggleDisplayFinished");
-  sendMessageToPlugin('runPluginCommand', {pluginID: 'jgclark.Reviews', commandName: 'toggleDisplayFinished', commandArgs: []});
-});
-</script>
-`
-
-export const setPercentRingJSFunc: string = `
-<script>
-/**
- * Sets the value of a SVG percent ring.
- * @param {number} percent The percent value to set.
- */
-function setPercentRing(percent, ID) {
-  let svg = document.getElementById(ID);
-  let circle = svg.querySelector('circle');
-  const radius = circle.r.baseVal.value;
-  const circumference = radius * 2 * Math.PI;
-  circle.style.strokeDasharray = String(circumference) + ' ' + String(circumference);
-  circle.style.strokeDashoffset = String(circumference);
-
-  const offset = circumference - percent / 100 * circumference;
-  circle.style.strokeDashoffset = offset;  // Set to negative for anti-clockwise.
-
-  // let text = svg.querySelector('text');
-  // text.textContent = String(percent); // + '%';
-}
-</script>
-`
-
-const addToggleEvents: string = `
-<script>
-  /**
-   * Register click handlers for each checkbox/toggle in the window with details of the items.
-   * Skip checkboxes inside the Display filters dropdown (those use Save instead).
-   */
-  allInputs = document.getElementsByTagName("INPUT");
-  let added = 0;
-  for (const input of allInputs) {
-    if (input.type !== 'checkbox') continue;
-    if (input.getAttribute('data-display-filter') === 'true') continue;
-    const thisSettingName = input.name;
-    console.log("- adding event for checkbox '"+thisSettingName+"' currently set to state "+input.checked);
-    input.addEventListener('change', function (event) {
-      event.preventDefault();
-      sendMessageToPlugin('onChangeCheckbox', { settingName: thisSettingName, state: event.target.checked });
-    }, false);
-    added++;
-  }
-  console.log('- '+ String(added) + ' input ELs added');
-</script>
-`
-
-const displayFiltersDropdownScript: string = `
-<script>
-  (function() {
-    var btn = document.getElementById('displayFiltersButton');
-    var dropdown = document.getElementById('displayFiltersDropdown');
-    if (!btn || !dropdown) return;
-
-    var savedState = null;
-
-    function getCheckboxState() {
-      var onlyDue = dropdown.querySelector('input[name="displayOnlyDue"]');
-      var finished = dropdown.querySelector('input[name="displayFinished"]');
-      var paused = dropdown.querySelector('input[name="displayPaused"]');
-      var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
-      return onlyDue && finished && paused && nextActions
-        ? { displayOnlyDue: onlyDue.checked, displayFinished: finished.checked, displayPaused: paused.checked, displayNextActions: nextActions.checked }
-        : null;
-    }
-
-    function closeDropdown(apply) {
-      dropdown.classList.remove('is-open');
-      btn.setAttribute('aria-expanded', 'false');
-      if (apply) {
-        var state = getCheckboxState();
-        if (state) {
-          // Only save + refresh if something actually changed while the dropdown was open
-          var hasChanges =
-            !savedState ||
-            state.displayOnlyDue !== savedState.displayOnlyDue ||
-            state.displayFinished !== savedState.displayFinished ||
-            state.displayPaused !== savedState.displayPaused ||
-            state.displayNextActions !== savedState.displayNextActions;
-          if (hasChanges) {
-            sendMessageToPlugin('saveDisplayFilters', state);
-          }
-        }
-      } else if (savedState) {
-        var onlyDue = dropdown.querySelector('input[name="displayOnlyDue"]');
-        var finished = dropdown.querySelector('input[name="displayFinished"]');
-        var paused = dropdown.querySelector('input[name="displayPaused"]');
-        var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
-        if (onlyDue && finished && paused && nextActions) {
-          onlyDue.checked = savedState.displayOnlyDue;
-          finished.checked = savedState.displayFinished;
-          paused.checked = savedState.displayPaused;
-          nextActions.checked = savedState.displayNextActions;
-        }
-      }
-    }
-
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var isOpen = dropdown.classList.toggle('is-open');
-      btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      if (isOpen) savedState = getCheckboxState();
-    });
-
-    document.addEventListener('click', function(e) {
-      if (dropdown.classList.contains('is-open') && !dropdown.contains(e.target) && e.target !== btn) {
-        closeDropdown(true);
-      }
-    });
-
-    document.addEventListener('keydown', function(e) {
-      if (!dropdown.classList.contains('is-open')) return;
-      if (e.key === 'Escape') {
-        closeDropdown(false);
-      } else if (e.key === 'Enter') {
-        closeDropdown(true);
-      }
-    });
-  })();
-</script>
-`
 
 //-----------------------------------------------------------------------------
 // Main functions
@@ -373,9 +145,10 @@ export async function displayProjectLists(argsIn?: string | null = null, scrollP
       // clo(config, 'Review settings with no args:')
     }
 
-    // Re-calculate the allProjects list (in foreground)
-    await generateAllProjectsList(config, true)
-
+    if (!(config.useDemoData ?? false)) {
+      // Re-calculate the allProjects list (in foreground)
+      await generateAllProjectsList(config, true)
+    }
     // Call the relevant rendering function with the updated config
     await renderProjectLists(config, true, scrollPos)
   } catch (error) {
@@ -384,7 +157,45 @@ export async function displayProjectLists(argsIn?: string | null = null, scrollP
 }
 
 /**
- * Internal version of above that doesn't open window if not already open.
+ * Demo variant of project lists.
+ * Reads from fixed demo JSON (copied into allProjectsList.json) without regenerating from live notes.
+ * @param {string? | null} argsIn as JSON (optional)
+ * @param {number?} scrollPos in pixels (optional, for HTML only)
+ */
+export async function toggleDemoModeForProjectLists(): Promise<void> {
+  try {
+    const config = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+    const isCurrentlyDemoMode = config.useDemoData ?? false
+    logInfo('toggleDemoModeForProjectLists', `Demo mode is currently ${isCurrentlyDemoMode ? 'ON' : 'off'}.`)
+    const willBeDemoMode = !isCurrentlyDemoMode
+    // Save a plain object so the value persists (loaded config may be frozen or a proxy)
+    const toSave = { ...config, useDemoData: willBeDemoMode }
+    const saved = await saveSettings(pluginJson['plugin.id'], toSave, false)
+    if (!saved) throw new Error('Failed to save demo mode setting.')
+
+    if (willBeDemoMode) {
+      // Copy the fixed demo list into allProjectsList.json (first time after switching to demo)
+      const copied = await copyDemoDefaultToAllProjectsList()
+      if (!copied) {
+        throw new Error('Failed to copy demo list. Please check that allProjectsDemoListDefault.json exists in data/jgclark.Reviews, and try again.')
+      }
+      logInfo('toggleDemoModeForProjectLists', 'Demo mode is now ON; project list copied from demo default.')
+    } else {
+      // First time after switching away from demo: re-generate list from live notes
+      logInfo('toggleDemoModeForProjectLists', 'Demo mode now off; regenerating project list from notes.')
+      await generateAllProjectsList(toSave, true)
+    }
+
+    // Now run the project lists display
+    await renderProjectLists(toSave, true)
+  } catch (error) {
+    logError('toggleDemoModeForProjectLists', JSP(error))
+  }
+}
+
+/**
+ * Internal version of earlier function that doesn't open window if not already open.
  * @param {number?} scrollPos 
  */
 export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<any> {
@@ -393,9 +204,16 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
     if (!config) throw new Error('No config found. Stopping.')
     logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting with scrollPos ${String(scrollPos)}`)
 
-    // Re-calculate the allProjects list (in foreground)
-    await generateAllProjectsList(config, true)
-    logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectLists() if open`)
+    if (config.useDemoData ?? false) {
+      const copied = await copyDemoDefaultToAllProjectsList()
+      if (!copied) {
+        logWarn('generateProjectListsAndRenderIfOpen', 'Demo mode on but copy of demo list failed.')
+      }
+    } else {
+      // Re-calculate the allProjects list (in foreground)
+      await generateAllProjectsList(config, true)
+      logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectLists() if open`)
+    }
 
     // Call the relevant rendering function, but only continue if relevant window is open
     await renderProjectLists(config, false, scrollPos)
@@ -472,21 +290,23 @@ export async function renderProjectListsIfOpen(
 export async function renderProjectListsHTML(
   config: any,
   shouldOpen: boolean = true,
-  scrollPos: number = 0
+  scrollPos: number = 0,
 ): Promise<void> {
   try {
+    const useDemoData = config.useDemoData ?? false
     if (config.projectTypeTags.length === 0) {
       throw new Error('No projectTypeTags configured to display')
     }
 
-    if (!shouldOpen && !isHTMLWindowOpen(customRichWinId)) {
+    const richWinId = useDemoData ? customRichWinIdDemo : customRichWinId
+    if (!shouldOpen && !isHTMLWindowOpen(richWinId)) {
       logDebug('renderProjectListsHTML', `not continuing, as HTML window isn't open and 'shouldOpen' is false.`)
       return
     }
 
     const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
     logInfo(pluginJson, `renderProjectLists ----------------------------------------`)
-    logDebug('renderProjectListsHTML', `Starting for ${String(config.projectTypeTags)} tags`)
+    logDebug('renderProjectListsHTML', `Starting for ${String(config.projectTypeTags)} tags${useDemoData ? ' (demo)' : ''}`)
 
     // Test to see if we have the font resources we want
     const res = await checkForWantedResources(pluginID)
@@ -501,37 +321,82 @@ export async function renderProjectListsHTML(
     // Ensure projectTypeTags is an array before proceeding
     if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
 
+    // Fetch project list first so we can compute per-tag active counts for the Filters dropdown
+    const [projectsToReview, _numberProjectsUnfiltered] = await filterAndSortProjectsList(config, '', [], true, useDemoData)
+    const wantedTags = config.projectTypeTags ?? []
+    const tagActiveCounts = wantedTags.map((tag) =>
+      projectsToReview.filter(
+        (p) =>
+          !p.isPaused &&
+          !p.isCancelled &&
+          !p.isCompleted &&
+          p.allProjectTags != null &&
+          p.allProjectTags.includes(tag)
+      ).length
+    )
+    config.tagActiveCounts = tagActiveCounts
+
     // String array to save all output
     const outputArray = []
 
-    // Generate top bar HTML
+    // Generate top bar HTML (uses config.tagActiveCounts for dropdown tag counts)
     outputArray.push(generateTopBarHTML(config))
 
     // Start multi-col working (if space)
     outputArray.push(`<div class="multi-cols">`)
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
-
-    // Make the Summary list, for each projectTag in turn
-    for (const thisTag of config.projectTypeTags) {
-      // Get the summary line for each revelant project
-      const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
-
-      // Generate project tag section header
-      outputArray.push(generateHTMLForProjectTagSectionHeader(thisTag, noteCount, due, config, config.projectTypeTags.length > 1))
-      
-      if (noteCount > 0) {
-        outputArray.push(generateTableStructureHTML(config, noteCount))
-        outputArray.push(thisSummaryLines.join('\n'))
-        outputArray.push('   </tbody>')
-        outputArray.push('  </table>')
-        outputArray.push(' </div>') // details-content div
-        if (config.projectTypeTags.length > 1) {
-          outputArray.push(`</details>`)
-        }
-      }
-      logTimer('renderProjectListsHTML', funcTimer, `end of loop for ${thisTag}`)
+    let due = 0
+    for (const p of projectsToReview) {
+      if (!p.isPaused && p.nextReviewDays != null && !isNaN(p.nextReviewDays) && p.nextReviewDays <= 0) due += 1
     }
+    const noteCount = projectsToReview.length
+    outputArray.push(generateSingleSectionHeaderHTML(noteCount, due, config))
+    if (useDemoData && noteCount === 0) {
+      outputArray.push('<p class="project-grid-row demo-file-message">Demo file (allProjectsDemoList.json) not found or empty.</p>')
+    }
+    if (noteCount > 0) {
+      outputArray.push(generateTableStructureHTML(config, noteCount))
+      let lastFolder = ''
+      for (const thisProject of projectsToReview) {
+        if (!useDemoData) {
+          const thisNote = DataStore.projectNoteByFilename(thisProject.filename)
+          if (!thisNote) {
+            logWarn('renderProjectListsHTML', `Can't find note for filename ${thisProject.filename}`)
+            continue
+          }
+        }
+        if (config.displayGroupedByFolder && lastFolder !== thisProject.folder) {
+          const folderDisplayName = getFolderDisplayNameForHTML(thisProject.folder)
+          let folderPart = folderDisplayName
+          if (config.hideTopLevelFolder) {
+            if (folderDisplayName.includes(']')) {
+              const match = folderDisplayName.match(/^(\[.*?\])\s*(.+)$/)
+              if (match) {
+                const pathPart = match[2]
+                const pathParts = pathPart.split('/').filter(p => p !== '')
+                folderPart = `${match[1]} ${pathParts.length > 0 ? pathParts[pathParts.length - 1] : pathPart}`
+              } else {
+                folderPart = folderDisplayName.split('/').slice(-1)[0] || folderDisplayName
+              }
+            } else {
+              const pathParts = folderDisplayName.split('/').filter(p => p !== '')
+              folderPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : folderDisplayName
+            }
+          }
+          if (thisProject.folder === '/') folderPart = '(root folder)'
+          outputArray.push(generateFolderHeaderHTML(folderPart, config))
+        }
+        const wantedTagsForRow = (thisProject.allProjectTags != null && wantedTags.length > 0)
+          ? thisProject.allProjectTags.filter(t => wantedTags.includes(t))
+          : []
+        outputArray.push(generateProjectOutputLine(thisProject, config, 'Rich', wantedTagsForRow))
+        lastFolder = thisProject.folder
+      }
+      outputArray.push('  </div>')
+      outputArray.push(' </div>') // details-content div
+    }
+    logTimer('renderProjectListsHTML', funcTimer, `end single section (${noteCount} projects)`)
 
     // Generate project control dialog HTML
     outputArray.push(generateProjectControlDialogHTML())
@@ -546,15 +411,15 @@ export async function renderProjectListsHTML(
 </script>`
 
     const winOptions = {
-      windowTitle: windowTitle,
-      customId: customRichWinId,
+      windowTitle: useDemoData ? windowTitleDemo : windowTitle,
+      customId: richWinId,
       headerTags: `${faLinksInHeader}${stylesheetinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // now in requiredFiles/reviewListCSS instead
       makeModal: false, // = not modal window
       bodyOptions: 'onload="showTimeAgo()"',
       preBodyScript: setPercentRingJSFunc + scrollPreLoadJSFuncs,
-      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
+      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + tagTogglesVisibilityScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>
       <script type="text/javascript" src="./projectListEvents.js"></script>
       ` + commsBridgeScripts + shortcutsScript + addToggleEvents, // + collapseSection +  resizeListenerScript + unloadListenerScript,
@@ -571,7 +436,7 @@ export async function renderProjectListsHTML(
       iconColor: pluginJson['plugin.iconColor'],
       autoTopPadding: true,
       showReloadButton: true,
-      reloadCommandName: 'displayProjectLists',
+      reloadCommandName: useDemoData ? 'displayProjectListsDemo' : 'displayProjectLists',
       reloadPluginID: 'jgclark.Reviews',
     }
     const thisWindow = await showHTMLV2(body, winOptions)
@@ -914,7 +779,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     // v2: Try to find this project in allProjects, and update that as well
     let thisNoteAsProject: ?Project = await getSpecificProjectFromList(note.filename)
     if (thisNoteAsProject) {
-      thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+      thisNoteAsProject.reviewedDate = moment().format('YYYY-MM-DD') // ISO date string (local timezone)
       // Clear nextReviewDateStr so it recalculates from the new reviewedDate and reviewInterval
       thisNoteAsProject.nextReviewDateStr = null
       thisNoteAsProject = calcReviewFieldsForProject(thisNoteAsProject)
@@ -1182,7 +1047,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
       // Update display for user (but don't open window if not open already)
       await renderProjectLists(config, false)
     } else {
-      // Regenerate whole list (and display if window is already open)      
+      // Regenerate whole list (and display if window is already open)
       logWarn('skipReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
       await generateProjectListsAndRenderIfOpen()
     }
