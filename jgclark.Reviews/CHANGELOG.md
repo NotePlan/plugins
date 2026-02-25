@@ -1,6 +1,9 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.4.0.b3] - 2026-02-24
+- Dev: Refactor reviews.js significantly to better separate logic from display concerns. Adds new file `reviewsHTMLTemplates.js`.
+
 ## [1.4.0.b2] - 2026-02-24
 - Added a 'Demo' mode, which swaps in a separate `allProjectsDemoListDefault.json` to display details of real (or potentially fictitious) projects for demo.
 
