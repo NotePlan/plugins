@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-16 for v1.3.0.b12, @jgclark
+// Last updated 2026-02-26 for v1.3.1, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -29,7 +29,7 @@ import { getOpenEditorFromFilename, saveEditorIfNecessary } from '@helpers/NPEdi
 import { getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { endOfFrontmatterLineIndex, getFrontmatterAttribute, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
-import { findHeading, findStartOfActivePartOfNote, getFieldParagraphsFromNote, simplifyRawContent, smartCreateSectionsAndPara } from '@helpers/paragraph'
+import { createSectionsAndParaAfterPreamble, endOfPreambleSection, findHeading, getFieldParagraphsFromNote, simplifyRawContent } from '@helpers/paragraph'
 import {
   getInputTrimmed,
   inputIntegerBounded,
@@ -700,8 +700,8 @@ export class Project {
           }
         } else {
           // No Progress lines exist: add new Progress Section heading (if needed) and the first progress line
-          logDebug('Project::addProgressLine', `No existing Progress lines, so creating new Section heading '${progressHeading}' if needed`)
-          smartCreateSectionsAndPara(this.note, newProgressLine, 'text', [progressHeading], progressHeadingLevel, false)
+          logDebug('Project::addProgressLine', `No existing Progress lines, so creating new Section heading '${progressHeading}' if needed after preamble`)
+          createSectionsAndParaAfterPreamble(this.note, newProgressLine, 'text', [progressHeading], progressHeadingLevel)
           
           if (possibleThisEditor) {
             await possibleThisEditor.save()
@@ -715,7 +715,7 @@ export class Project {
         // or if none exist, to the line after the current metadata line
         let insertionIndex = this.mostRecentProgressLineIndex
         if (isNaN(insertionIndex)) {
-          insertionIndex = findStartOfActivePartOfNote(this.note, true)
+          insertionIndex = endOfPreambleSection(this.note)
           logDebug('Project::addProgressLine', `No progress paragraphs found, so will insert new progress line after metadata at line ${String(insertionIndex)}`)
         } else {
           logDebug('Project::addProgressLine', `Will insert new progress line before most recent progress line at ${String(insertionIndex)}.`)

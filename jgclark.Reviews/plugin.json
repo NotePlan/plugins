@@ -9,9 +9,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.com/plugins/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "1.4.0.b1",
-  "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "1.4.0.b1: Changed display of due/review dates from columns 3 and 4 into a new info area.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
+  "plugin.version": "1.3.1",
+  "plugin.releaseStatus": "full",
+  "plugin.lastUpdateInfo": "1.3.1: Fixed edge case with adding progress updates and frontmatter.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {
