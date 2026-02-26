@@ -425,7 +425,7 @@ export function smartPrependParas(note: TNote, paraTextArr: Array<string>, paraT
  * @param {ParagraphType} paragraphType
  * @param {Array<string>} headingArray - the headings from H1 (or H2) downwards
  * @param {number} firstHeadingLevel - the level of the first heading given (1, 2, 3, etc.)
- * @param {boolean} shouldAppend - whether to append the paragraph after the headings or not.
+ * @param {boolean?} shouldAppend? - whether to append the paragraph after the headings or not. (Default: false)
  */
 export function smartCreateSectionsAndPara(
   destNote: TNote,
@@ -493,6 +493,77 @@ export function smartCreateSectionsAndPara(
 }
 
 /**
+ * Add a new paragraph and preceding heading(s) to a note. If the headings already exist, then don't add them again, but insert the paragraph after the existing headings.
+ * @test in jgclark.QuickCapture/index.js
+ *
+ * @param {TNote} destNote
+ * @param {string} paraText
+ * @param {ParagraphType} paragraphType
+ * @param {Array<string>} headingArray - the headings from H1 (or H2) downwards
+ * @param {number} firstHeadingLevel - the level of the first heading given (1, 2, 3, etc.)
+ * @param {boolean?} shouldAppend? - whether to append the paragraph after the headings or not. (Default: false)
+ */
+export function createSectionsAndParaAfterPreamble(
+  destNote: TNote,
+  paraText: string,
+  paragraphType: ParagraphType,
+  headingArray: Array<string>,
+  firstHeadingLevel: number,
+): void {
+  try {
+    // Work out which of the given headings already exist.
+    // Form a parallel array of existing headings, with empty strings for any that don't exist.
+    const existingHeadingParas = []
+    let notExistingHeadings = 0
+    for (const h of headingArray) {
+      const existingHeading = findHeading(destNote, h)
+      if (existingHeading) {
+        existingHeadingParas.push(existingHeading)
+      } else {
+        // Heading doesn't exist, so add an empty string to the array
+        existingHeadingParas.push('')
+        notExistingHeadings++
+      }
+    }
+
+    logDebug('paragraph/smartCreateSectionsAndPara', `existingHeadingParas: [${String(existingHeadingParas.map((p) => p.content || ''))}]`)
+    let latestInsertionLineIndex = endOfPreambleSection(destNote)
+
+    // Now use insertHeading() to add any headings that don't already exist
+    if (notExistingHeadings > 0) {
+      // Get start of active part of note
+      // Add the headings
+      for (let i = 0; i < existingHeadingParas.length; i++) {
+        if (existingHeadingParas[i] !== '') {
+          const thisHeadingPara = existingHeadingParas[i]
+          latestInsertionLineIndex = thisHeadingPara.lineIndex + 1
+          logDebug(
+            'paragraph/smartCreateSectionsAndPara',
+            `noting existing heading "${thisHeadingPara.content}" at line ${String(latestInsertionLineIndex - 1)} level ${String(thisHeadingPara.headingLevel)}`,
+          )
+        } else {
+          // Heading doesn't exist, so add it
+          let insertionIndex = 0
+          insertionIndex = latestInsertionLineIndex
+          // $FlowFixMe[incompatible-call] headingLevel is a number, but the API expects an enumeration
+          destNote.insertHeading(headingArray[i], insertionIndex, firstHeadingLevel + i) // add the heading
+          logDebug('paragraph/smartCreateSectionsAndPara', `added heading "${headingArray[i]}" at line ${String(insertionIndex)} level ${String(firstHeadingLevel + i)}`)
+          latestInsertionLineIndex = insertionIndex + 1
+        }
+      }
+    } else {
+      logDebug('paragraph/smartCreateSectionsAndPara', `all existingHeadingParas found, so only need to add the paragraph`)
+    }
+
+    // Finally add the paragraph after the last heading in headingArray
+    destNote.addParagraphBelowHeadingTitle(paraText, paragraphType, headingArray[headingArray.length - 1], false, false)
+    logDebug('paragraph/smartCreateSectionsAndPara', `inserting para after heading "${headingArray[headingArray.length - 1]}" (i.e. line ${String(latestInsertionLineIndex + 1)})`)
+  } catch (err) {
+    logError('paragraph/smartCreateSectionsAndPara', err.message)
+  }
+}
+
+/**
  * Insert multiple lines of text to a chosen note, as separate paragraphs
  * Note: does work on a single line too.
  * @author @jgclark
@@ -526,19 +597,16 @@ export function insertParas(note: TNote, insertionIndex: number, paraTextArr: Ar
 
 /**
  * Works out where the first 'active' line of the note is, following the first paragraph of type 'title', or frontmatter (if present).
- * Additionally, it skips past any front-matter-like section in a project note, as used by the Reviews plugin before frontmatter was supported.
- * This is indicated by a #hashtag starting the next line. If there is, run on to next heading or blank line.
- * A task/checklist item marks the end of the frontmatter-like section.
  * Note: given this is a precursor to writing to a note, it first checks if the note is completely empty (0 lines). If so, a first 'empty' line is added, to avoid edge cases in calling code.
  * Note: now also copes with a frontmatter section but with a `# title` line that comes after it.
+ * Note: For the line index after skipping any preamble (e.g. #metadata lines), use endOfPreambleSection().
  * Note: Really should live in helpers/NPParagraph.js, but that introduces a circular dependency, so leaving here.
  * @author @jgclark
  * @tests in jest file
  * @param {TNote} note - the note to assess
- * @param {boolean} allowPreamble?
  * @returns {number} - the line index number
  */
-export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?: boolean = false): number {
+export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
   try {
     let startOfActive = NaN
     let paras = note.paragraphs
@@ -579,32 +647,40 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
       startOfActive = paras.length - 1
     }
 
-    // logDebug('paragraph/findStartOfActivePartOfNote',`- startOfActive so far = ${String(startOfActive)}. allowPreamble: ${allowPreamble ? 'true' : 'false'} paras.length=${paras.length}`)
-    // Additionally, skip past any front-matter-like section in a project note,
-    // if either there's a #hashtag starting the next line,
-    // or 'allowPreamble' is true.
-    // If there is, run on to next heading or blank line (if found) otherwise, just the next line. Finding a separator or any YouTutype of task or checklist also stops the search.
-    if (allowPreamble || (paras[startOfActive] && paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/))) {
-      // logDebug('paragraph/findStartOfActivePartOfNote', `- We want to allow preamble, or there's a hashtag starting the next line.`)
-      // startOfActive += 1
-      for (let i = startOfActive; i < paras.length; i++) {
-        const p = paras[i]
-        if (['open', 'done', 'scheduled', 'cancelled', 'checklist', 'checklistDone', 'checklistScheduled', 'checklistCancelled', 'title', 'code'].includes(p.type)) {
-          // logDebug('paragraph/findStartOfActivePartOfNote', `  - Found task/checklist/title/code line -> this line.`)
-          startOfActive = i
-          break
-        } else if (p.type === 'separator' || p.type === 'empty') {
-          // logDebug('paragraph/findStartOfActivePartOfNote', `  - Found separator/blank -> next line.`)
-          startOfActive = i + 1
-          break
-        }
-      }
-      // logDebug('paragraph/findStartOfActivePartOfNote', `-> ${String(startOfActive)}  (after finding preamble or metadata line)`)
-    }
     return startOfActive
   } catch (err) {
     logError('paragraph/findStartOfActivePartOfNote', err.message)
     return NaN // for completeness
+  }
+}
+
+/**
+ * Returns the line index of the first content line after any preamble (e.g. #metadata or plain text) following title/frontmatter.
+ * Skips past any front-matter-like section in a project note: from the start-of-active line, scans to the next heading, task/checklist, code, or separator/blank.
+ * @author @jgclark
+ * @tests in jest file
+ * @param {CoreNoteFields} note - the note to assess
+ * @returns {number} - the line index number
+ */
+export function endOfPreambleSection(note: CoreNoteFields): number {
+  try {
+    let startOfActive = findStartOfActivePartOfNote(note)
+    const paras = note.paragraphs
+    // Skip past any preamble: run on to next heading, task/checklist, code, or separator/blank
+    for (let i = startOfActive; i < paras.length; i++) {
+      const p = paras[i]
+      if (['open', 'done', 'scheduled', 'cancelled', 'checklist', 'checklistDone', 'checklistScheduled', 'checklistCancelled', 'title', 'code'].includes(p.type)) {
+        startOfActive = i
+        break
+      } else if (p.type === 'separator' || p.type === 'empty') {
+        startOfActive = i + 1
+        break
+      }
+    }
+    return startOfActive
+  } catch (err) {
+    logError('paragraph/endOfPreambleSection', err.message)
+    return NaN
   }
 }
 
@@ -924,7 +1000,7 @@ export function addParagraphsToNote(
     // Now add the text to the destination note
     if (headingToFind === destinationNote.title || headingToFind === '<<top of note>>' || (headingToFind === '' && whereToAddInSection === 'start')) {
     // insert at the first line in calendar note, or first active line in regular note
-      insertionIndex = findStartOfActivePartOfNote(destinationNote, allowNotePreambleBeforeHeading)
+      insertionIndex = allowNotePreambleBeforeHeading ? endOfPreambleSection(destinationNote) : findStartOfActivePartOfNote(destinationNote)
       logDebug('paragraph/addParagraphsToNote', `-> top of note, line ${insertionIndex}`)
       destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
@@ -973,22 +1049,24 @@ export function setParagraphToIncomplete(p: TParagraph): void {
 }
 
 /**
- * Read lines in 'note' and return any lines (as strings) that contain fields that start with 'fieldName' parameter before a colon with text after.
+ * Read lines in 'note' and return the rest of the content of the lines that contain fields that start with 'fieldName' parameter before a colon with text after.
  * The matching is done case insensitively, and only in the main region of the note (i.e. _not_ in the frontmatter or 'Done' sections).
+ * It ignores any lines which have the right field name, but no text after the colon.
  * Note: see also getFieldParagraphsFromNote() variation on this.
  * @param {TNote} note
  * @param {string} fieldName
- * @returns {Array<string>} lines containing fields
+ * @returns {Array<string>} the rest of the content of the lines containing fields
  */
 export function getFieldsFromNote(note: TNote, fieldName: string): Array<string> {
   try {
     const paras = note.paragraphs
+    const startOfActive = findStartOfActivePartOfNote(note)
     const endOfActive = findEndOfActivePartOfNote(note)
     const matchArr = []
     const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
     for (const p of paras) {
       const matchRE = p.content.match(RE)
-      if (matchRE && p.lineIndex <= endOfActive) {
+      if (matchRE && p.lineIndex >= startOfActive && p.lineIndex <= endOfActive) {
         matchArr.push(matchRE[1])
         // logDebug('getFieldsFromNote', `-> match: '${matchRE[1]}'`)
       }
@@ -1012,12 +1090,13 @@ export function getFieldsFromNote(note: TNote, fieldName: string): Array<string>
 export function getFieldParagraphsFromNote(note: TNote, fieldName: string): Array<TParagraph> {
   try {
     const paras = note.paragraphs
+    const startOfActive = findStartOfActivePartOfNote(note)
     const endOfActive = findEndOfActivePartOfNote(note)
     const matchArr = []
     const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
     for (const p of paras) {
       const matchRE = p.content.match(RE)
-      if (matchRE && p.lineIndex <= endOfActive) {
+      if (matchRE && p.lineIndex >= startOfActive && p.lineIndex <= endOfActive) {
         matchArr.push(p)
         // logDebug('getFieldParagraphsFromNote', `-> match: '${p.content}'`)
       }

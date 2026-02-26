@@ -335,9 +335,9 @@ describe('paragraph.js', () => {
         { type: 'text', lineIndex: 6, content: 'A note line', headingLevel: 2 },
       ],
     }
-    test('should find at line 5 after metadata line (note E)', () => {
+    test('should find at line 4 (note E) — first line after frontmatter, no preamble skip', () => {
       const result = p.findStartOfActivePartOfNote(noteE)
-      expect(result).toEqual(6)
+      expect(result).toEqual(4)
     })
 
     const noteF = {
@@ -347,9 +347,9 @@ describe('paragraph.js', () => {
         { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
       ],
     }
-    test('should find at line 2 after metadata line (note F)', () => {
+    test('should find at line 1 (note F) — first line after title, no preamble skip', () => {
       const result = p.findStartOfActivePartOfNote(noteF)
-      expect(result).toEqual(2)
+      expect(result).toEqual(1)
     })
 
     const noteG = {
@@ -367,12 +367,8 @@ describe('paragraph.js', () => {
         { type: 'done', lineIndex: 10, content: 'task 3 done' },
       ],
     }
-    test('note G: with allowPreamble true, find at lineIndex 4', () => {
-      const result = p.findStartOfActivePartOfNote(noteG, true)
-      expect(result).toEqual(4)
-    })
-    test('note G: with allowPreamble false, find at lineIndex 1', () => {
-      const result = p.findStartOfActivePartOfNote(noteG, false)
+    test('note G: find at lineIndex 1 (first line after title)', () => {
+      const result = p.findStartOfActivePartOfNote(noteG)
       expect(result).toEqual(1)
     })
 
@@ -380,7 +376,7 @@ describe('paragraph.js', () => {
       paragraphs: [
         { type: 'title', lineIndex: 0, content: 'NoteH Title', headingLevel: 1 },
         { type: 'text', lineIndex: 1, content: 'first line of preamble' },
-        { type: 'text', lineIndex: 2, content: 'next preamble followed by blank line' },
+        { type: 'text', lineIndex: 2, content: 'next preamble followed by separator' },
         { type: 'separator', lineIndex: 3, content: '---' },
         { type: 'title', lineIndex: 4, content: 'Section 1', headingLevel: 2 },
         { type: 'open', lineIndex: 5, content: 'task 1' },
@@ -391,14 +387,11 @@ describe('paragraph.js', () => {
         { type: 'done', lineIndex: 10, content: 'task 3 done' },
       ],
     }
-    test('note H: with allowPreamble true, find at lineIndex 4', () => {
-      const result = p.findStartOfActivePartOfNote(noteH, true)
-      expect(result).toEqual(4)
-    })
-    test('note H: with allowPreamble false, find at lineIndex 1', () => {
-      const result = p.findStartOfActivePartOfNote(noteH, false)
+    test('note H: find at lineIndex 1 (first line after title)', () => {
+      const result = p.findStartOfActivePartOfNote(noteH)
       expect(result).toEqual(1)
     })
+
     const noteI = {
       paragraphs: [
         { type: 'title', lineIndex: 0, content: 'NoteI Title', headingLevel: 1 },
@@ -413,13 +406,97 @@ describe('paragraph.js', () => {
         { type: 'done', lineIndex: 9, content: 'task 3 done' },
       ],
     }
-    test('note H: with allowPreamble true, find at lineIndex 4', () => {
-      const result = p.findStartOfActivePartOfNote(noteI, true)
-      expect(result).toEqual(3)
-    })
-    test('note H: with allowPreamble false, find at lineIndex 1', () => {
-      const result = p.findStartOfActivePartOfNote(noteI, false)
+    test('note I: find at lineIndex 1 (first line after title)', () => {
+      const result = p.findStartOfActivePartOfNote(noteI)
       expect(result).toEqual(1)
+    })
+  })
+
+  describe('endOfPreambleSection()', () => {
+    test('after metadata and blank, find at lineIndex 6', () => {
+      const noteE = {
+        paragraphs: [
+          { type: 'separator', lineIndex: 0, content: '---', headingLevel: 0 },
+          { type: 'text', lineIndex: 1, content: 'title: NoteE', headingLevel: 0 },
+          { type: 'text', lineIndex: 2, content: 'field: value here', headingLevel: 0 },
+          { type: 'separator', lineIndex: 3, content: '---', headingLevel: 0 },
+          { type: 'text', lineIndex: 4, content: '#metadata line', headingLevel: 2 },
+          { type: 'empty', lineIndex: 5 },
+          { type: 'text', lineIndex: 6, content: 'A note line', headingLevel: 2 },
+        ],
+      }
+      const result = p.endOfPreambleSection(noteE)
+      expect(result).toEqual(6)
+    })
+
+    test('note F: after #metadata line, find at lineIndex 2 (Section 1)', () => {
+      const noteF = {
+        paragraphs: [
+          { type: 'title', lineIndex: 0, content: 'NoteF Title', headingLevel: 1 },
+          { type: 'text', lineIndex: 1, content: '#metadata line', headingLevel: 2 },
+          { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
+        ],
+      }
+      const result = p.endOfPreambleSection(noteF)
+      expect(result).toEqual(2)
+    })
+
+    test('note G: after preamble and blank, find at lineIndex 4 (Section 1)', () => {
+      const noteG = {
+        paragraphs: [
+          { type: 'title', lineIndex: 0, content: 'NoteG Title', headingLevel: 1 },
+          { type: 'text', lineIndex: 1, content: 'first line of preamble' },
+          { type: 'text', lineIndex: 2, content: 'next preamble followed by blank line' },
+          { type: 'empty', lineIndex: 3 },
+          { type: 'title', lineIndex: 4, content: 'Section 1', headingLevel: 2 },
+          { type: 'open', lineIndex: 5, content: 'task 1' },
+          { type: 'text', lineIndex: 6, content: 'some ordinary text' },
+          { type: 'empty', lineIndex: 7 },
+          { type: 'title', lineIndex: 8, content: 'Section 2', headingLevel: 3 },
+          { type: 'quote', lineIndex: 9, content: 'quotation' },
+          { type: 'done', lineIndex: 10, content: 'task 3 done' },
+        ],
+      }
+      const result = p.endOfPreambleSection(noteG)
+      expect(result).toEqual(4)
+    })
+
+    test('note H: after preamble and separator, find at lineIndex 4 (Section 1)', () => {
+      const noteH = {
+        paragraphs: [
+          { type: 'title', lineIndex: 0, content: 'NoteH Title', headingLevel: 1 },
+          { type: 'text', lineIndex: 1, content: 'first line of preamble' },
+          { type: 'text', lineIndex: 2, content: 'next preamble followed by separator' },
+          { type: 'separator', lineIndex: 3, content: '---' },
+          { type: 'title', lineIndex: 4, content: 'Section 1', headingLevel: 2 },
+          { type: 'open', lineIndex: 5, content: 'task 1' },
+          { type: 'text', lineIndex: 6, content: 'some ordinary text' },
+          { type: 'empty', lineIndex: 7 },
+          { type: 'title', lineIndex: 8, content: 'Section 2', headingLevel: 3 },
+          { type: 'quote', lineIndex: 9, content: 'quotation' },
+          { type: 'done', lineIndex: 10, content: 'task 3 done' },
+        ],
+      }
+      const result = p.endOfPreambleSection(noteH)
+      expect(result).toEqual(4)
+    })
+
+    test('note I: after preamble (no separator), find at lineIndex 3 (Section 1)', () => {
+      const noteI = {
+        paragraphs: [
+          { type: 'title', lineIndex: 0, content: 'NoteI Title', headingLevel: 1 },
+          { type: 'text', lineIndex: 1, content: 'first line of preamble' },
+          { type: 'text', lineIndex: 2, content: 'next preamble followed by blank line' },
+          { type: 'open', lineIndex: 3, content: 'task 1' },
+          { type: 'text', lineIndex: 4, content: 'some ordinary text' },
+          { type: 'empty', lineIndex: 5 },
+          { type: 'title', lineIndex: 6, content: 'Section 2', headingLevel: 3 },
+          { type: 'quote', lineIndex: 7, content: 'quotation' },
+          { type: 'done', lineIndex: 8, content: 'task 3 done' },
+        ],
+      }
+      const result = p.endOfPreambleSection(noteI)
+      expect(result).toEqual(3)
     })
   })
 
@@ -527,6 +604,127 @@ describe('paragraph.js', () => {
     test('should return 0 for no paras at all', () => {
       const result = p.findEndOfActivePartOfNote(noteG)
       expect(result).toEqual(0)
+    })
+  })
+
+  describe('getFieldsFromNote()', () => {
+    test('returns field values from main section and ignores Done section', () => {
+      const note = {
+        paragraphs: [
+          { type: 'title', lineIndex: 0, content: 'Note Title', headingLevel: 1 },
+          { type: 'text', lineIndex: 1, content: 'fieldA: value 1' },
+          { type: 'text', lineIndex: 2, content: 'fieldA: value 2' },
+          { type: 'title', lineIndex: 3, content: 'Done', headingLevel: 2 },
+          { type: 'done', lineIndex: 4, content: 'fieldA: done value' },
+        ],
+      }
+
+      const result = p.getFieldsFromNote(note, 'fieldA')
+      expect(result).toEqual(['value 1', 'value 2'])
+    })
+
+    test('matches field name case-insensitively and skips empty values', () => {
+      const note = {
+        paragraphs: [
+          { type: 'title', lineIndex: 0, content: 'Note Title', headingLevel: 1 },
+          { type: 'text', lineIndex: 1, content: 'FieldA: value 1' },
+          { type: 'text', lineIndex: 2, content: 'fielda: value 2' },
+          { type: 'text', lineIndex: 3, content: 'fieldA:' },
+        ],
+      }
+
+      const result = p.getFieldsFromNote(note, 'fielda')
+      expect(result).toEqual(['value 1', 'value 2'])
+    })
+
+    test('returns empty array when no matching fields', () => {
+      const note = {
+        paragraphs: [
+          { type: 'title', lineIndex: 0, content: 'Note Title', headingLevel: 1 },
+          { type: 'text', lineIndex: 1, content: 'otherField: value' },
+        ],
+      }
+
+      const result = p.getFieldsFromNote(note, 'fieldA')
+      expect(result).toEqual([])
+    })
+  })
+
+  describe('getFieldParagraphsFromNote()', () => {
+    test('returns only field paragraphs from active section, excluding frontmatter and Done section', () => {
+      const note = {
+        paragraphs: [
+          { type: 'separator', lineIndex: 0, content: '---', headingLevel: 0 },
+          { type: 'text', lineIndex: 1, content: 'title: Note', headingLevel: 0 },
+          { type: 'text', lineIndex: 2, content: 'fieldX: frontmatter value', headingLevel: 0 },
+          { type: 'separator', lineIndex: 3, content: '---', headingLevel: 0 },
+          { type: 'title', lineIndex: 4, content: 'Section 1', headingLevel: 2 },
+          { type: 'text', lineIndex: 5, content: 'fieldX: active value 1', headingLevel: 2 },
+          { type: 'text', lineIndex: 6, content: 'FIELDx: active value 2', headingLevel: 2 },
+          { type: 'empty', lineIndex: 7, content: '' },
+          { type: 'title', lineIndex: 8, content: 'Done', headingLevel: 2 },
+          { type: 'done', lineIndex: 9, content: 'fieldX: done value', headingLevel: 2 },
+        ],
+      }
+
+      const result = p.getFieldParagraphsFromNote(note, 'fieldx')
+      const contents = result.map((para) => para.content)
+
+      expect(contents).toEqual(['fieldX: active value 1', 'FIELDx: active value 2'])
+    })
+
+    test('returns field paragraph from special preamble section in main body of note + others', () => {
+      const note = {
+        paragraphs: [
+          { type: 'separator', lineIndex: 0, content: '---', headingLevel: 0 },
+          { type: 'text', lineIndex: 1, content: 'title: Note title', headingLevel: 0 },
+          { type: 'text', lineIndex: 2, content: 'fieldX: frontmatter value', headingLevel: 0 },
+          { type: 'separator', lineIndex: 3, content: '---', headingLevel: 0 },
+          { type: 'title', lineIndex: 4, content: 'Note title', headingLevel: 1 },
+          { type: 'text', lineIndex: 5, content: '#metadata line', headingLevel: 0 },
+          { type: 'text', lineIndex: 6, content: 'fieldX: active value 1', headingLevel: 0 },
+          { type: 'title', lineIndex: 7, content: 'Section 1', headingLevel: 2 },
+          { type: 'text', lineIndex: 8, content: 'FIELDx: active value 2', headingLevel: 2 },
+          { type: 'empty', lineIndex: 9, content: '' },
+          { type: 'title', lineIndex: 10, content: 'Done', headingLevel: 2 },
+          { type: 'done', lineIndex: 11, content: 'fieldX: done value', headingLevel: 2 },
+        ],
+      }
+
+      const result = p.getFieldParagraphsFromNote(note, 'fieldx')
+      const contents = result.map((para) => para.content)
+
+      expect(contents).toEqual(['fieldX: active value 1', 'FIELDx: active value 2'])
+    })
+
+    test('returns empty array when no matching field paragraphs in active section (without any frontmatter)', () => {
+      const note = {
+        paragraphs: [
+          { type: 'title', lineIndex: 0, content: 'Note Title', headingLevel: 1 },
+          { type: 'text', lineIndex: 1, content: 'otherField: value 1' },
+          { type: 'text', lineIndex: 2, content: 'otherField: value 2' },
+        ],
+      }
+
+      const result = p.getFieldParagraphsFromNote(note, 'fieldX')
+      expect(result).toEqual([])
+    })
+
+    test('returns empty array when no matching field paragraphs in active section (with frontmatter)', () => {
+      const note = {
+        paragraphs: [
+          { type: 'separator', lineIndex: 0, content: '---', headingLevel: 0 },
+          { type: 'text', lineIndex: 1, content: 'title: Note title', headingLevel: 0 },
+          { type: 'text', lineIndex: 2, content: 'fieldX: frontmatter value', headingLevel: 0 },
+          { type: 'separator', lineIndex: 3, content: '---', headingLevel: 0 },
+          { type: 'title', lineIndex: 4, content: 'Note Title', headingLevel: 1 },
+          { type: 'text', lineIndex: 5, content: 'otherField: value 1' },
+          { type: 'text', lineIndex: 6, content: 'otherField: value 2' },
+        ],
+      }
+
+      const result = p.getFieldParagraphsFromNote(note, 'fieldX')
+      expect(result).toEqual([])
     })
   })
 
