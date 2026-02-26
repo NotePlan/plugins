@@ -11,7 +11,7 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
   "plugin.version": "1.4.0.b3",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "1.4.0: ???.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
+  "plugin.lastUpdateInfo": "1.4.0: ???.\n1.3.1: Fixed edge case with adding progress updates and frontmatter.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {
