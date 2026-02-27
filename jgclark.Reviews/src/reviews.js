@@ -523,8 +523,7 @@ export async function renderProjectListsHTML(
       if (noteCount > 0) {
         outputArray.push(generateTableStructureHTML(config, noteCount))
         outputArray.push(thisSummaryLines.join('\n'))
-        outputArray.push('   </tbody>')
-        outputArray.push('  </table>')
+        outputArray.push('  </div>')
         outputArray.push(' </div>') // details-content div
         if (config.projectTypeTags.length > 1) {
           outputArray.push(`</details>`)
@@ -914,7 +913,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     // v2: Try to find this project in allProjects, and update that as well
     let thisNoteAsProject: ?Project = await getSpecificProjectFromList(note.filename)
     if (thisNoteAsProject) {
-      thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+      thisNoteAsProject.reviewedDate = moment().format('YYYY-MM-DD') // ISO date string (local timezone)
       // Clear nextReviewDateStr so it recalculates from the new reviewedDate and reviewInterval
       thisNoteAsProject.nextReviewDateStr = null
       thisNoteAsProject = calcReviewFieldsForProject(thisNoteAsProject)

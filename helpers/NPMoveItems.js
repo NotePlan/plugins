@@ -361,7 +361,7 @@ export function moveGivenParaAndBlock(para: TParagraph, destFilename: string, de
       throw new Error(`Destination note can't be found from filename '${destFilename}'`)
     }
     logDebug('moveGivenParaAndBlock', `- Moving to note '${displayTitle(destNote)}' under heading: '${destHeading}'`)
-    addParagraphsToNote(destNote, parasInBlock, destHeading, 'start', true)
+    addParagraphsToNote(destNote, parasInBlock, destHeading, 'start', true) // true = allow preamble before heading
 
     // delete from existing location
     logDebug('moveGivenParaAndBlock', `- Removing ${parasInBlock.length} paras from original note`)

@@ -7,6 +7,10 @@
 
 NOTE: A COUPLE OF RELEASES AFTER 3.0.0 DELETE THE SETTINGS THAT PERTAIN TO TASKS
 
+## [3.1.1] (upcoming)
+
+- Fix: "This week" and "Next week" in the follow-up date picker now respect NotePlan's "Start Week On" setting. Previously, when the week started on Monday (or any day other than Sunday), "this week" pointed to the previous week and "next week" to the current week (fix in shared `helpers/NPdateTime.js` getWeekOptions).
+
 ## [3.0.0] @dwertheimer 2024-03-26
 
 - Migrate Task Sorting Commands to Task Sorter Plugin

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-16 for v1.3.0.b12, @jgclark
+// Last updated 2026-02-26 for v1.3.1, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -18,7 +18,7 @@ import {
 import { checkBoolean, checkNumber, checkString } from '@helpers/checkType'
 import {
   daysBetween,
-  getDateObjFromDateString,
+  RE_DATE,
   includesScheduledFurtherFutureDate,
   todaysDateISOString,
   toISODateString,
@@ -29,12 +29,12 @@ import { getOpenEditorFromFilename, saveEditorIfNecessary } from '@helpers/NPEdi
 import { getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { endOfFrontmatterLineIndex, getFrontmatterAttribute, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
-import { findHeading, findStartOfActivePartOfNote, getFieldParagraphsFromNote, simplifyRawContent, smartCreateSectionsAndPara } from '@helpers/paragraph'
+import { createSectionsAndParaAfterPreamble, endOfPreambleSection, findHeading, getFieldParagraphsFromNote, simplifyRawContent } from '@helpers/paragraph'
 import {
   getInputTrimmed,
   inputIntegerBounded,
 } from '@helpers/userInput'
-import { isClosedTask, isClosed, isOpen, isOpenTask, isOpenChecklist } from '@helpers/utils'
+import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
 
 //-----------------------------------------------------------------------------
 // Types
@@ -50,17 +50,29 @@ export type Progress = {
 // Helpers
 
 /**
+ * Extract ISO date string (YYYY-MM-DD) from a mention string (e.g. @start(2022-03-31)).
+ * @param {string} mentionStr - Full mention string
+ * @returns {?string} YYYY-MM-DD or undefined if no valid match
+ * @private
+ */
+function getISODateStringFromMention(mentionStr: string): ?string {
+  const RE_DATE_CAPTURE = new RegExp(`(${RE_DATE})`)
+  const match = mentionStr.match(RE_DATE_CAPTURE)
+  return match && match[1] ? match[1] : undefined
+}
+
+/**
  * Calculate duration string for a date, optionally relative to a start date.
- * If startDate is provided, returns "after X" format. Otherwise returns relative time (e.g., "2 days ago"). 
+ * If startDate is provided, returns "after X" format. Otherwise returns relative time (e.g., "2 days ago").
  * If duration is less than 1 day then return "today".
- * @param {Date} date - The date to calculate duration for
- * @param {?Date} startDate - Optional start date for calculating duration between dates
+ * @param {string|Date} date - The date to calculate duration for (ISO string or Date)
+ * @param {?string|Date} startDate - Optional start date for calculating duration between dates
  * @param {boolean} roundShortDurationToToday - Whether to use round to 'today' if duration is measured in hours or less
  * @returns {string} Duration string
  * @private
  */
-function formatDurationString(date: Date, startDate?: Date, roundShortDurationToToday: boolean = false): string {
-  if (startDate != null && startDate instanceof Date) {
+function formatDurationString(date: string | Date, startDate?: string | Date, roundShortDurationToToday: boolean = false): string {
+  if (startDate != null) {
     return `after ${moment(startDate).to(moment(date), true)}`
   } else {
     let duration = moment(date).fromNow()
@@ -86,16 +98,16 @@ export class Project {
   metadataParaLineIndex: number
   projectTag: string // #project, #area, etc.
   title: string
-  startDate: ?Date
-  dueDate: ?Date
+  startDate: ?string // ISO date YYYY-MM-DD
+  dueDate: ?string // ISO date YYYY-MM-DD
   dueDays: number = NaN
-  reviewedDate: ?Date
+  reviewedDate: ?string // ISO date YYYY-MM-DD
   reviewInterval: string // later will default to '1w' if needed
   nextReviewDateStr: ?string // The next review date in YYYY-MM-DD format (can be set by user or calculated)
   nextReviewDays: number = NaN
-  completedDate: ?Date
+  completedDate: ?string // ISO date YYYY-MM-DD
   completedDuration: ?string // string description of time to completion, or how long ago completed
-  cancelledDate: ?Date
+  cancelledDate: ?string // ISO date YYYY-MM-DD
   cancelledDuration: ?string // string description of time to cancellation, or how long ago cancelled
   numOpenItems: number = 0
   numCompletedItems: number = 0
@@ -112,6 +124,7 @@ export class Project {
   ID: string // required when making HTML views
   icon: ?string // icon from frontmatter (optional)
   iconColor: ?string // iconColor from frontmatter (optional)
+  allProjectTags: Array<string> = [] // projectTag(s), #sequential if applicable, and all hashtags from metadata line and frontmatter 'project' (for column 3)
 
   constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = [], sequentialTag: string = '') {
     try {
@@ -250,6 +263,40 @@ export class Project {
         this.generateNextActionComments(nextActionTags, paras, sequentialTag, Array.from(hashtags ?? []), metadataLine)
       }
 
+      // Build allProjectTags: and all hashtags from metadata line and frontmatter 'project' (including #sequential if applicable)
+      const metadataLineHashtags = (`${metadataLine} `).split(/\s+/).filter((w) => w.length > 0 && w[0] === '#')
+      const projectAttr = getFrontmatterAttribute(this.note, 'project')
+      const projectAttrStr = projectAttr != null && typeof projectAttr === 'string' ? projectAttr : ''
+      const frontmatterProjectHashtags = projectAttrStr ? projectAttrStr.match(/#\S+/g) ?? [] : []
+      const hasSequentialTag =
+        sequentialTag !== '' &&
+        (projectAttrStr.includes(sequentialTag) ||
+          metadataLineHashtags.some((t) => t === sequentialTag) ||
+          metadataLine.includes(sequentialTag))
+      const seen = new Set<string>()
+      const ordered: Array<string> = []
+      if (this.projectTag && !seen.has(this.projectTag)) {
+        seen.add(this.projectTag)
+        ordered.push(this.projectTag)
+      }
+      if (hasSequentialTag && sequentialTag && !seen.has(sequentialTag)) {
+        seen.add(sequentialTag)
+        ordered.push(sequentialTag)
+      }
+      for (const t of metadataLineHashtags) {
+        if (!seen.has(t)) {
+          seen.add(t)
+          ordered.push(t)
+        }
+      }
+      for (const t of frontmatterProjectHashtags) {
+        if (!seen.has(t)) {
+          seen.add(t)
+          ordered.push(t)
+        }
+      }
+      this.allProjectTags = ordered
+
       if (this.title.includes('TEST')) {
         logDebug('ProjectConstructor', `Constructed ${this.projectTag} ${this.filename}:`)
         logDebug('ProjectConstructor', `  - folder = ${this.folder}`)
@@ -268,6 +315,7 @@ export class Project {
         logDebug('ProjectConstructor', `  - progress: <${String(this.lastProgressComment)}>`)
         logDebug('ProjectConstructor', `  - % complete = ${String(this.percentComplete)}`)
         logDebug('ProjectConstructor', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
+        logDebug('ProjectConstructor', `  - allProjectTags = <${String(this.allProjectTags)}>`)
       } else {
         logTimer('ProjectConstructor', startTime, `Constructed ${this.projectTag} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
       }
@@ -289,15 +337,15 @@ export class Project {
   }
 
   /**
-   * Parse a date mention from the mentions list
+   * Parse a date mention from the mentions list; returns ISO date string (YYYY-MM-DD).
    * @param {Array<string>|$ReadOnlyArray<string>} mentions - Array of mention strings
    * @param {string} mentionKey - The preference key for the mention string
-   * @returns {?Date} Parsed date or undefined
+   * @returns {?string} ISO date string or undefined
    * @private
    */
-  parseDateMention(mentions: $ReadOnlyArray<string>, mentionKey: string): ?Date {
+  parseDateMention(mentions: $ReadOnlyArray<string>, mentionKey: string): ?string {
     const tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference(mentionKey)))
-    return tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+    return tempStr !== '' ? getISODateStringFromMention(tempStr) : undefined
   }
 
   /**
@@ -320,12 +368,12 @@ export class Project {
 
   /**
    * Calculate duration string for completed/cancelled date since startDate if available. If not, then do time since completion/cancellation date.
-   * @param {Date} date - The completion or cancellation date
-   * @param {?Date} startDate - Optional start date
+   * @param {string|Date} date - The completion or cancellation date (ISO string or Date)
+   * @param {?string|Date} startDate - Optional start date
    * @returns {string} Duration string
    * @private
    */
-  calculateDurationString(date: Date, startDate?: Date, roundShortDurationToToday: boolean = true): string {
+  calculateDurationString(date: string | Date, startDate?: string | Date, roundShortDurationToToday: boolean = true): string {
     return formatDurationString(date, startDate, roundShortDurationToToday)
   }
 
@@ -421,12 +469,12 @@ export class Project {
       const now = moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
       // First check to see if project start is in future: if so set nextReviewDateStr to project start
-      if (this.startDate != null && this.startDate instanceof Date) {
-        const thisStartDate: Date = this.startDate // to satisfy flow
-        const momTSD = moment(thisStartDate)
+      const startDate = this.startDate
+      if (startDate != null) {
+        const momTSD = moment(startDate)
         if (momTSD.isAfter(now)) {
-          this.nextReviewDateStr = toISODateString(thisStartDate)
-          this.nextReviewDays = daysBetween(now, thisStartDate)
+          this.nextReviewDateStr = startDate
+          this.nextReviewDays = daysBetween(now, startDate)
           logDebug('calcNextReviewDate', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(this.nextReviewDays)} interval`)
           return this.nextReviewDateStr
         }
@@ -440,10 +488,9 @@ export class Project {
       }
       else if (this.reviewInterval != null) {
         if (this.reviewedDate != null) {
-          const calculatedNextReviewDate = calcNextReviewDate(this.reviewedDate, this.reviewInterval)
-          if (calculatedNextReviewDate != null) {
-            // Convert Date to ISO date string (YYYY-MM-DD)
-            this.nextReviewDateStr = toISODateString(calculatedNextReviewDate)
+          const calculatedNextReviewDateStr = calcNextReviewDate(this.reviewedDate, this.reviewInterval)
+          if (calculatedNextReviewDateStr != null) {
+            this.nextReviewDateStr = calculatedNextReviewDateStr
             // this now uses moment and truncated (not rounded) date diffs in number of days
             this.nextReviewDays = daysBetween(now, this.nextReviewDateStr)
             // logDebug('calcNextReviewDate', `${String(this.reviewedDate)} + ${this.reviewInterval ?? ''} -> nextReviewDateStr: ${this.nextReviewDateStr ?? ''} = ${String(this.nextReviewDays) ?? '-'}`)
@@ -653,8 +700,8 @@ export class Project {
           }
         } else {
           // No Progress lines exist: add new Progress Section heading (if needed) and the first progress line
-          logDebug('Project::addProgressLine', `No existing Progress lines, so creating new Section heading '${progressHeading}' if needed`)
-          smartCreateSectionsAndPara(this.note, newProgressLine, 'text', [progressHeading], progressHeadingLevel, false)
+          logDebug('Project::addProgressLine', `No existing Progress lines, so creating new Section heading '${progressHeading}' if needed after preamble`)
+          createSectionsAndParaAfterPreamble(this.note, newProgressLine, 'text', [progressHeading], progressHeadingLevel)
           
           if (possibleThisEditor) {
             await possibleThisEditor.save()
@@ -668,7 +715,7 @@ export class Project {
         // or if none exist, to the line after the current metadata line
         let insertionIndex = this.mostRecentProgressLineIndex
         if (isNaN(insertionIndex)) {
-          insertionIndex = findStartOfActivePartOfNote(this.note, true)
+          insertionIndex = endOfPreambleSection(this.note)
           logDebug('Project::addProgressLine', `No progress paragraphs found, so will insert new progress line after metadata at line ${String(insertionIndex)}`)
         } else {
           logDebug('Project::addProgressLine', `Will insert new progress line before most recent progress line at ${String(insertionIndex)}.`)
@@ -748,7 +795,7 @@ export class Project {
       this.isCompleted = true
       this.isCancelled = false
       this.isPaused = false
-      this.completedDate = moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+      this.completedDate = moment().format('YYYY-MM-DD') // ISO date string (local timezone)
       this.calculateDueDays()
       this.calculateCompletedOrCancelledDurations()
 
@@ -779,7 +826,7 @@ export class Project {
       this.isCompleted = false
       this.isCancelled = true
       this.isPaused = false
-      this.cancelledDate = moment().toDate()  // getJSDateStartOfToday() // use moment instead of `new Date` to ensure we get a date in the local timezone
+      this.cancelledDate = moment().format('YYYY-MM-DD') // ISO date string (local timezone)
       this.calculateDueDays()
       this.calculateCompletedOrCancelledDurations()
 
@@ -815,7 +862,7 @@ export class Project {
       this.isPaused = !this.isPaused // toggle
 
       // Also set the reviewed date to today
-      this.reviewedDate = moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+      this.reviewedDate = moment().format('YYYY-MM-DD') // ISO date string (local timezone)
 
       // re-write the note's metadata line
       logDebug('togglePauseProject', `Paused state now toggled to ${String(this.isPaused)} for '${this.title}' ...`)
@@ -855,28 +902,28 @@ export class Project {
     const parts: Array<string> = []
     parts.push(this.projectTag)
     if (this.isPaused) parts.push('#paused')
-    if (this.startDate != null && this.startDate instanceof Date) {
-      const thisStartDate: Date = this.startDate // to satisfy flow
-      parts.push(`${checkString(DataStore.preference('startMentionStr'))}(${toISODateString(thisStartDate)})`)
+    const startDate = this.startDate
+    if (startDate != null) {
+      parts.push(`${checkString(DataStore.preference('startMentionStr'))}(${startDate})`)
     }
-    if (this.dueDate != null && this.dueDate instanceof Date) {
-      const thisDueDate: Date = this.dueDate // to satisfy flow
-      parts.push(`${checkString(DataStore.preference('dueMentionStr'))}(${toISODateString(thisDueDate)})`)
+    const dueDate = this.dueDate
+    if (dueDate != null) {
+      parts.push(`${checkString(DataStore.preference('dueMentionStr'))}(${dueDate})`)
     }
     if (this.reviewInterval != null) {
       parts.push(`${checkString(DataStore.preference('reviewIntervalMentionStr'))}(${checkString(this.reviewInterval)})`)
     }
-    if (this.reviewedDate != null && this.reviewedDate instanceof Date) {
-      const thisReviewedDate: Date = this.reviewedDate // to satisfy flow
-      parts.push(`${checkString(DataStore.preference('reviewedMentionStr'))}(${toISODateString(thisReviewedDate)})`)
+    const reviewedDate = this.reviewedDate
+    if (reviewedDate != null) {
+      parts.push(`${checkString(DataStore.preference('reviewedMentionStr'))}(${reviewedDate})`)
     }
-    if (this.completedDate != null && this.completedDate instanceof Date) {
-      const thisCompletedDate: Date = this.completedDate // to satisfy flow
-      parts.push(`${checkString(DataStore.preference('completedMentionStr'))}(${toISODateString(thisCompletedDate)})`)
+    const completedDate = this.completedDate
+    if (completedDate != null) {
+      parts.push(`${checkString(DataStore.preference('completedMentionStr'))}(${completedDate})`)
     }
-    if (this.cancelledDate != null && this.cancelledDate instanceof Date) {
-      const thisCancelledDate: Date = this.cancelledDate // to satisfy flow
-      parts.push(`${checkString(DataStore.preference('cancelledMentionStr'))}(${toISODateString(thisCancelledDate)})`)
+    const cancelledDate = this.cancelledDate
+    if (cancelledDate != null) {
+      parts.push(`${checkString(DataStore.preference('cancelledMentionStr'))}(${cancelledDate})`)
     }
     return parts.join(' ')
   }
@@ -971,6 +1018,7 @@ function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = 
     ID: project.ID,
     icon: project.icon,
     iconColor: project.iconColor,
+    allProjectTags: project.allProjectTags ?? [],
   }
 }
 
@@ -1034,12 +1082,12 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
     let nextReviewDays: number = thisProjectIn.nextReviewDays
 
     // First check to see if project start is in future: if so set nextReviewDateStr to project start
-    if (thisProjectIn.startDate != null && thisProjectIn.startDate instanceof Date) {
-      const thisStartDate: Date = thisProjectIn.startDate // to satisfy flow
-      const momTSD = moment(thisProjectIn.startDate)
+    const startDateIn = thisProjectIn.startDate
+    if (startDateIn != null) {
+      const momTSD = moment(startDateIn)
       if (momTSD.isAfter(now)) {
-        nextReviewDateStr = toISODateString(thisStartDate)
-        nextReviewDays = daysBetween(now, thisStartDate)
+        nextReviewDateStr = startDateIn
+        nextReviewDays = daysBetween(now, startDateIn)
         logDebug('calcReviewFieldsForProject', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(nextReviewDays)} interval`)
       }
     }
@@ -1051,10 +1099,9 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
     }
     else if (thisProjectIn.reviewInterval != null) {
       if (thisProjectIn.reviewedDate != null) {
-        const calculatedNextReviewDate = calcNextReviewDate(thisProjectIn.reviewedDate, thisProjectIn.reviewInterval)
-        if (calculatedNextReviewDate != null) {
-          // Convert Date to ISO date string (YYYY-MM-DD)
-          nextReviewDateStr = toISODateString(calculatedNextReviewDate)
+        const calculatedNextReviewDateStr = calcNextReviewDate(thisProjectIn.reviewedDate, thisProjectIn.reviewInterval)
+        if (calculatedNextReviewDateStr != null) {
+          nextReviewDateStr = calculatedNextReviewDateStr
           // this now uses moment and truncated (not rounded) date diffs in number of days
           nextReviewDays = daysBetween(now, nextReviewDateStr)
           // logDebug('calcReviewFieldsForProject', `${String(thisProjectIn.reviewedDate)} + ${thisProjectIn.reviewInterval ?? ''} -> nextReviewDateStr: ${nextReviewDateStr ?? ''} = ${String(nextReviewDays) ?? '-'}`)
