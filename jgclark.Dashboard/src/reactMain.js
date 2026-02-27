@@ -9,7 +9,7 @@ import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getDashboardSettingsDefaults, getLogSettings, getNotePlanSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
-import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
+import { dashboardFilterDefs, dashboardSettingDefs, normaliseDashboardNumberSettings } from './dashboardSettings'
 import { getAllSectionsData } from './dataGeneration'
 import { getPerspectiveSettings, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
 import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
@@ -91,13 +91,24 @@ export async function setSetting(key: string, value: string): Promise<void> {
     logDebug('setSetting', `Existing setting keys: ${String(allKeys)}`)
     if (allKeys.includes(key)) {
       const thisSettingDetail = allSettings.find((s) => s.key === key) || {}
-      const setTo = thisSettingDetail.type === 'switch' ? value === 'true' : value
+      let setTo: any
+      if (thisSettingDetail.type === 'switch') {
+        setTo = value === 'true'
+      } else if (thisSettingDetail.type === 'number') {
+        const coerced = Number(value)
+        setTo = Number.isNaN(coerced) ? thisSettingDetail.default : coerced
+      } else {
+        setTo = value
+      }
       // $FlowFixMe[prop-missing]
       dashboardSettings[key] = setTo
       // logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo} / ${thisSettingType})`)
+      // Ensure numeric settings are stored as numbers, not strings
+      const normalisedDashboardSettings = normaliseDashboardNumberSettings(dashboardSettings)
+
       // TEST: use helper to save settings from now on
       // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
-      const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: dashboardSettings })
+      const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: normalisedDashboardSettings })
       if (!res) {
         throw new Error(`saveSettings failed for setting '${key}:${value}'`)
       }
@@ -128,7 +139,15 @@ export async function setSettings(paramsIn: string): Promise<void> {
       logDebug('setSettings', `- ${String(i)}: setting '${key}' -> '${value}'`)
       if (allKeys.includes(key)) {
         const thisSettingDetail = allSettings.find((s) => s.key === key) || {}
-        const setTo = thisSettingDetail.type === 'switch' ? value === 'true' : value
+        let setTo: any
+        if (thisSettingDetail.type === 'switch') {
+          setTo = value === 'true'
+        } else if (thisSettingDetail.type === 'number') {
+          const coerced = Number(value)
+          setTo = Number.isNaN(coerced) ? thisSettingDetail.default : coerced
+        } else {
+          setTo = value
+        }
         // $FlowFixMe[prop-missing]
         dashboardSettings[key] = setTo
         logDebug('setSettings', `  - set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo})`)
@@ -137,9 +156,12 @@ export async function setSettings(paramsIn: string): Promise<void> {
       }
     }
     logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)
+    // Ensure numeric settings are stored as numbers, not strings
+    const normalisedDashboardSettings = normaliseDashboardNumberSettings(dashboardSettings)
+
     // TEST: use helper to save settings from now on
     // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
-    const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: JSON.stringify(dashboardSettings) })
+    const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: JSON.stringify(normalisedDashboardSettings) })
     if (!res) {
       throw new Error(`saveSettings failed for params: '${paramsIn}'`)
     }

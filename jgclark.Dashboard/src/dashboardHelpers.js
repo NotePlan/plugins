@@ -6,7 +6,7 @@
 
 import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID, allSectionDetails } from './constants'
-import { dashboardSettingDefs, dashboardFilterDefs } from './dashboardSettings'
+import { dashboardSettingDefs, dashboardFilterDefs, normaliseDashboardNumberSettings } from './dashboardSettings'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type {
@@ -20,6 +20,7 @@ import type {
   TSection,
   TSectionCode,
   TSectionItem,
+  TSettingItem,
 } from './types'
 import { getNestedValue, setNestedValue, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
@@ -85,7 +86,7 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
         } plugin: `)
     }
 
-    let parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
+    let parsedDashboardSettings: TAnyObject = parseSettings(pluginSettings.dashboardSettings)
 
     // additional setting that always starts as true
     // parsedDashboardSettings.showSearchSection = true
@@ -100,7 +101,8 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
       await saveDashboardSettings(parsedDashboardSettings)
     } else {
       // Merge with defaults to ensure any new settings are added (existing settings take precedence)
-      const defaults = getDashboardSettingsDefaults()
+      const defaults: TAnyObject = getDashboardSettingsDefaults()
+      // $FlowIgnore[cannot-spread-indexer]
       parsedDashboardSettings = { ...defaults, ...parsedDashboardSettings, showSearchSection: true }
 
       // Migration: Convert old showProjectSection to showProjectReviewSection
@@ -113,6 +115,10 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
       }
     }
 
+    // Ensure that all numeric settings are actually numbers, not strings.
+    // This is defensive in case earlier versions or x-callbacks stored them as strings.
+    parsedDashboardSettings = normaliseDashboardNumberSettings(parsedDashboardSettings)
+
     // Note: I can't find the underlying issue, but we need to ensure number setting types are numbers, and not strings
     // const numberSettingTypes = dashboardSettingDefs.filter((ds) => ds.type === 'number')
     // for (const thisSetting of numberSettingTypes) {
@@ -120,16 +126,17 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     //   clvt(parsedDashboardSettings[thisSetting.key], `- numeric Setting '${String(thisSetting.key)}'`)
     // }
 
-    // TODO(later): remove when the underlying problem is corrected
-    // Warn if 'newTaskSectionHeadingLevel' setting is not a number
-    if (typeof parsedDashboardSettings.newTaskSectionHeadingLevel !== 'number') {
+    // Warn if for some reason key numeric settings still aren't numbers after normalisation
+    if (typeof parsedDashboardSettings.newTaskSectionHeadingLevel !== 'number'
+      || typeof parsedDashboardSettings.maxItemsToShowInSection !== 'number') {
       logWarn('getDashboardSettings', `At least one parsedDashboardSettings field is not a number type when it should be ...`)
       clvt(parsedDashboardSettings.maxItemsToShowInSection, `getDashboardSettings - parsedDashboardSettings.maxItemsToShowInSection:`)
       clvt(parsedDashboardSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedDashboardSettings.newTaskSectionHeadingLevel:`)
     }
 
     // $FlowFixMe[prop-missing] showSearchSection is included in defaults and merged above
-    return parsedDashboardSettings
+    // $FlowFixMe[incompatible-return] parsedDashboardSettings is treated as TDashboardSettings at runtime
+    return (parsedDashboardSettings: any)
   } catch (err) {
     logError('getDashboardSettings', `${err.name}: ${err.message}`)
     // $FlowFixMe[incompatible-return]
@@ -165,7 +172,7 @@ export async function saveDashboardSettings(settings: TDashboardSettings): Promi
 export function getDashboardSettingsDefaults(): TDashboardSettings {
   const dashboardFilterDefaults = dashboardFilterDefs.filter((f) => f.key !== 'includedFolders')
   const nonFilterDefaults = dashboardSettingDefs.filter((f) => f.key)
-  const dashboardSettingsDefaults = [...dashboardFilterDefaults, ...nonFilterDefaults].reduce((acc, curr) => {
+  const dashboardSettingsDefaults: TAnyObject = [...dashboardFilterDefaults, ...nonFilterDefaults].reduce((acc: TAnyObject, curr: TSettingItem) => {
     // logDebug('doSwitchToPerspective', `doSwitchToPerspective: curr.key='${String(curr.key)}' curr.default='${String(curr.default)}'`)
     if (curr.key && curr.default !== undefined) {
       // $FlowIgnore[prop-missing]
@@ -194,7 +201,7 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
   // clo(dashboardSettingsDefaults, `dashboardSettingsDefaults:`)
   // $FlowIgnore[prop-missing]
   // $FlowIgnore[cannot-spread-indexer]
-  return { ...dashboardSettingsDefaults, ...sectionDefaults }
+  return ({ ...dashboardSettingsDefaults, ...sectionDefaults }: any)
 }
 
 /**

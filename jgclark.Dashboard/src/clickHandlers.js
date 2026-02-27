@@ -12,6 +12,7 @@ import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getDashboardSettingsDefaults, handlerResult, makeDashboardParas, setPluginData } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettingsInAPerspective } from './perspectiveHelpers'
+import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings } from './types'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
@@ -513,20 +514,26 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     if (!DataStore.settings || !newSettings) {
       throw new Error(`newSettings is null or undefined.`)
     }
+    const isDashboardSettings = settingName === 'dashboardSettings'
+    // For dashboardSettings, ensure numeric settings are normalised to numbers
+    // $FlowFixMe[incompatible-call] normaliseDashboardNumberSettings accepts a generic object
+    const dashboardNewSettings: Partial<TDashboardSettings> = isDashboardSettings
+      ? (normaliseDashboardNumberSettings(newSettings): any)
+      : newSettings
     // If we are saving the dashboardSettings, and the perspectiveSettings are not being sent, then we need to save the active perspective settings
     let perspectivesToSave = settingName === 'dashboardSettings' ? data.perspectiveSettings : Array.isArray(newSettings) ? newSettings : []
     if (settingName === 'dashboardSettings' && !data.perspectiveSettings) {
       let needToSetDash = false
       const perspectiveSettings = await getPerspectiveSettings()
-      if (newSettings.usePerspectives) {
+      if (dashboardNewSettings.usePerspectives) {
         // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
         const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
         logDebug(`doDashboardSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
 
-        if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
+        if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(dashboardNewSettings)) {
           // Clean up the settings before then comparing them with the active perspective settings
           const dashboardSettingsDefaults = getDashboardSettingsDefaults()
-          const newSettingsWithDefaults = { ...dashboardSettingsDefaults, ...newSettings }
+          const newSettingsWithDefaults = { ...dashboardSettingsDefaults, ...dashboardNewSettings }
           const activePerspDefDashboardSettingsWithDefaults = { ...dashboardSettingsDefaults, ...activePerspDef.dashboardSettings }
           // $FlowIgnore[prop-missing]
           // $FlowIgnore[incompatible-call]
@@ -577,9 +584,9 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
         needToSetDash = true
       }
       if (needToSetDash) {
-        if (newSettings && typeof newSettings === 'object' && !Array.isArray(newSettings)) {
+        if (dashboardNewSettings && typeof dashboardNewSettings === 'object' && !Array.isArray(dashboardNewSettings)) {
           // $FlowFixMe[incompatible-call]
-          perspectivesToSave = setDashPerspectiveSettings(newSettings, perspectiveSettings)
+          perspectivesToSave = setDashPerspectiveSettings(dashboardNewSettings, perspectiveSettings)
         } else {
           logError(`doDashboardSettingsChanged`, `newSettings is not an object: ${JSP(newSettings)}`)
         }
@@ -587,7 +594,8 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     }
 
     const currentSettings = await getSettings('jgclark.Dashboard')
-    const combinedUpdatedSettings = { ...currentSettings, [settingName]: newSettings }
+    const settingsToSave = isDashboardSettings ? dashboardNewSettings : newSettings
+    const combinedUpdatedSettings = { ...currentSettings, [settingName]: settingsToSave }
 
     if (perspectivesToSave && Array.isArray(perspectivesToSave)) {
       const debugInfo = perspectivesToSave.map(
@@ -616,7 +624,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     }
 
     const res = await saveSettings(pluginID, combinedUpdatedSettings)
-    const updatedPluginData = { [settingName]: newSettings } // was also: pushFromServer: { [settingName]: true }
+    const updatedPluginData = { [settingName]: settingsToSave } // was also: pushFromServer: { [settingName]: true }
     if (perspectivesToSave) {
       // $FlowFixMe(incompatible-type)
       updatedPluginData.perspectiveSettings = perspectivesToSave
