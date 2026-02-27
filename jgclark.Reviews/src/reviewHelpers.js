@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-23 for v1.4.0.b2, @jgclark
+// Last updated 2026-02-26 for v1.4.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -67,6 +67,7 @@ export type ReviewConfig = {
   archiveFolder: string,
   nextActionTags: Array<string>,
   preferredWindowType: string,
+  autoUpdateAfterIdleTime?: number,
   progressHeading?: string,
   progressHeadingLevel: number,
   removeDueDatesOnPause: boolean,
@@ -139,6 +140,11 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     // Ensure displayPaused has a sensible default if missing from settings
     if (config.displayPaused == null) {
       config.displayPaused = true
+    }
+
+    // Ensure autoUpdateAfterIdleTime has a sensible default if missing from settings
+    if (config.autoUpdateAfterIdleTime == null) {
+      config.autoUpdateAfterIdleTime = 0
     }
 
     return config

@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------
 //  HTMLWinCommsSwitchboard.js - in the HTMLWindow process data and logic to/from the plugin
-// Last updated: 2026-02-07 for v1.3.0.b8 by @jgclark
+// Last updated: 2026-02-26 for v1.4.0.b4 by @jgclark
 //--------------------------------------------------------------------------------------
 /** 
  * This file is loaded by the browser via <script> tag in the HTML file
@@ -19,6 +19,21 @@
 // eslint-disable-next-line require-await
 async function delay(time) {
   return new Promise(resolve => setTimeout(resolve, time))
+}
+
+/**
+ * Get current vertical scroll position in the window
+ * @returns {number}
+ */
+function getScrollPos() {
+  if (typeof window.pageYOffset !== 'undefined') {
+    return window.pageYOffset
+  } else if (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined') {
+    return document.documentElement.scrollTop
+  } else if (document.body && typeof document.body.scrollTop !== 'undefined') {
+    return document.body.scrollTop
+  }
+  return 0
 }
 
 /**
@@ -155,7 +170,7 @@ async function completeTaskInDisplay(data) {
     if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
       // We need to un-hide the lower-priority items: do full refresh
       console.log(`We need to un-hide the lower-priority items: doing full refresh`)
-      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // = actionName, data
+      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '', scrollPos: getScrollPos() }) // = actionName, data
     }
 
     // See if we now have no remaining items at all
@@ -200,7 +215,7 @@ async function completeChecklistInDisplay(data) {
     if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
       // We need to un-hide the lower-priority items: do full refresh
       console.log(`We need to un-hide the lower-priority items: doing full refresh`)
-      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // = actionName, data
+      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '', scrollPos: getScrollPos() }) // = actionName, data
     }
 
     // See if we now have no remaining items at all
@@ -243,7 +258,7 @@ async function cancelTaskInDisplay(data) {
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
     console.log(`We need to un-hide the lower-priority items: doing full refresh`)
-    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '', scrollPos: getScrollPos() }) // actionName, data
   }
 }
 
@@ -272,7 +287,7 @@ async function cancelChecklistInDisplay(data) {
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
     console.log(`We need to un-hide the lower-priority items: doing full refresh`)
-    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '', scrollPos: getScrollPos() }) // actionName, data
   }
 }
 

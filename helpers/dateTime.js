@@ -331,6 +331,11 @@ export function convertISODateFilenameToNPDayFilename(dailyNoteFilename: string)
 
 // Note: ? This does not work to get reliable date string from note.date for daily notes
 export function toISODateString(dateObj: Date): string {
+  // Guard against null/invalid Date objects to avoid runtime errors
+  if (dateObj == null || !(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
+    logDebug('dateTime / toISODateString', `Invalid Date object passed: ${String(dateObj)}`)
+    return ''
+  }
   // logDebug('dateTime / toISODateString', `${dateObj.toISOString()} // ${toLocaleDateTimeString(dateObj)}`)
   return dateObj.toISOString().slice(0, 10)
 }
@@ -1233,7 +1238,7 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
 
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
     const baseDateMoment = moment(baseDateStrIn, momentDateFormat)
-    const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num).toDate()
+    const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment).toDate() : momentBusiness(baseDateMoment).businessAdd(num).toDate()
 
     // logDebug('dateTime / cOD', `for '${baseDateStrIn}' interval ${num} / ${unitForMoment} -> ${String(newDate)}`)
     return newDate

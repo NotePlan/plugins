@@ -143,7 +143,7 @@ function stringifyProjectObjects(objArray: Array<any>): string {
    * Also normalizes any existing date strings to YYYY-MM-DD format
    * @returns {any}
    */
-  const dateFieldNames = ['startDate', 'dueDate', 'reviewedDate', 'completedDate', 'cancelledDate']
+  const dateFieldNames = ['startDate', 'dueDate', 'reviewedDate', 'completedDate', 'cancelledDate', 'nextReviewDateStr']
   const RE_ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/
   
   function stringifyReplacer(key: string, value: any) {

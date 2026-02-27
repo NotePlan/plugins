@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-26 for v1.4.0.b3, @jgclark
+// Last updated 2026-02-26 for v1.4.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -508,7 +508,7 @@ export class Project {
       // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(this.reviewedDate)} / nextReviewDateStr = ${String(this.nextReviewDateStr)} / nextReviewDays = ${String(this.nextReviewDays)}`)
       return this.nextReviewDateStr
     } catch (error) {
-      logError('calcNextReviewDate', error.message)
+      logError('calcNextReviewDate', `${error.message} for project '${this.title}'`)
       return null
     }
   }
@@ -1023,6 +1023,38 @@ function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = 
 }
 
 /**
+ * Normalise a possibly non-ISO date string to strict ISO format (YYYY-MM-DD), or null if invalid.
+ * Handles legacy full ISO datetime strings (e.g. 'YYYY-MM-DDTHH:mm:ss.sssZ') by truncating to the date part.
+ * @param {?string} dateStrIn
+ * @param {string} context - description for logging
+ * @returns {?string} normalised ISO date string or null
+ * @private
+ */
+function normaliseISODateString(dateStrIn: ?string, context: string): ?string {
+  if (typeof dateStrIn !== 'string' || dateStrIn === '') {
+    return null
+  }
+
+  const reISODate = new RegExp(`^${RE_DATE}$`)
+  if (reISODate.test(dateStrIn)) {
+    return dateStrIn
+  }
+
+  // Handle full ISO datetime 'YYYY-MM-DDTHH:mm:ss.sssZ' by truncating to the date part
+  const isoDateTimeMatch = dateStrIn.match(/^(\d{4}-\d{2}-\d{2})T/)
+  if (isoDateTimeMatch && isoDateTimeMatch[1]) {
+    const truncated = isoDateTimeMatch[1]
+    if (reISODate.test(truncated)) {
+      logWarn('normaliseISODateString', `Truncating full ISO datetime '${dateStrIn}' to '${truncated}' for ${context}`)
+      return truncated
+    }
+  }
+
+  logWarn('normaliseISODateString', `Invalid date string '${dateStrIn}' for ${context}; treating as null`)
+  return null
+}
+
+/**
  * From a Project metadata object read in, calculate updated due/finished durations, and return an immutable updated Project object.
  * On error, returns the original Project object.
  * @author @jgclark
@@ -1075,14 +1107,15 @@ export function calcDurationsForProject(thisProjectIn: Project): Project {
 export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
   try {
     // logDebug('calcReviewFieldsForProject', `Starting for '${thisProjectIn.title}' ...`)
-    const now = moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+    const now = moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
 
     // Calculate next review due date, if there isn't already a nextReviewDateStr, and there's a review interval.
     let nextReviewDateStr: ?string = thisProjectIn.nextReviewDateStr
     let nextReviewDays: number = thisProjectIn.nextReviewDays
 
     // First check to see if project start is in future: if so set nextReviewDateStr to project start
-    const startDateIn = thisProjectIn.startDate
+    const rawStartDateIn = thisProjectIn.startDate
+    const startDateIn = normaliseISODateString(rawStartDateIn, 'startDate')
     if (startDateIn != null) {
       const momTSD = moment(startDateIn)
       if (momTSD.isAfter(now)) {
@@ -1093,24 +1126,40 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
     }
 
     // Now check to see if we have a specific nextReviewDateStr
-    if (thisProjectIn.nextReviewDateStr != null) {
-      nextReviewDays = daysBetween(now, thisProjectIn.nextReviewDateStr)
-      logDebug('calcReviewFieldsForProject', `- already had a nextReviewDateStr ${thisProjectIn.nextReviewDateStr ?? '?'} -> ${String(nextReviewDays)} interval`)
+    const rawNextReviewDateStrIn = thisProjectIn.nextReviewDateStr
+    const normalisedNextReviewDateStr = normaliseISODateString(rawNextReviewDateStrIn, 'nextReviewDateStr')
+
+    if (normalisedNextReviewDateStr != null) {
+      nextReviewDateStr = normalisedNextReviewDateStr
+      nextReviewDays = daysBetween(now, normalisedNextReviewDateStr)
+      logDebug('calcReviewFieldsForProject', `- already had a nextReviewDateStr ${normalisedNextReviewDateStr ?? '?'} -> ${String(nextReviewDays)} interval`)
     } else if (thisProjectIn.reviewInterval != null) {
       const reviewedDateIn = thisProjectIn.reviewedDate
       if (typeof reviewedDateIn === 'string' && reviewedDateIn !== '') {
         const calculatedNextReviewDateStr = calcNextReviewDate(reviewedDateIn, thisProjectIn.reviewInterval)
-        if (calculatedNextReviewDateStr != null) {
-          nextReviewDateStr = calculatedNextReviewDateStr
-          // this now uses moment and truncated (not rounded) date diffs in number of days
-          nextReviewDays = daysBetween(now, nextReviewDateStr)
-          // logDebug('calcReviewFieldsForProject', `${String(thisProjectIn.reviewedDate)} + ${thisProjectIn.reviewInterval ?? ''} -> nextReviewDateStr: ${nextReviewDateStr ?? ''} = ${String(nextReviewDays) ?? '-'}`)
+        const hasValidCalculated = calculatedNextReviewDateStr != null && calculatedNextReviewDateStr !== ''
+        if (hasValidCalculated) {
+          const safeCalculatedNextReviewDateStr = normaliseISODateString(calculatedNextReviewDateStr, 'calculatedNextReviewDateStr')
+          if (safeCalculatedNextReviewDateStr != null) {
+            nextReviewDateStr = safeCalculatedNextReviewDateStr
+            // this now uses moment and truncated (not rounded) date diffs in number of days
+            nextReviewDays = daysBetween(now, safeCalculatedNextReviewDateStr)
+            // logDebug('calcReviewFieldsForProject', `${String(thisProjectIn.reviewedDate)} + ${thisProjectIn.reviewInterval ?? ''} -> nextReviewDateStr: ${nextReviewDateStr ?? ''} = ${String(nextReviewDays) ?? '-'}`)
+          } else {
+            // Fall back to today rather than throwing (e.g. if calcNextReviewDate returned an unexpected format)
+            nextReviewDateStr = moment().format('YYYY-MM-DD')
+            nextReviewDays = 0
+            logWarn('calcReviewFieldsForProject', `Could not normalise calculated nextReviewDate '${String(calculatedNextReviewDateStr)}' for project '${thisProjectIn.title}'; using today`)
+          }
         } else {
-          throw new Error(`calculated nextReviewDate is null; reviewedDate = ${String(reviewedDateIn)}`)
+          // No valid calculated date (null or empty): treat next review as today
+          nextReviewDateStr = moment().format('YYYY-MM-DD')
+          nextReviewDays = 0
+          logDebug('calcReviewFieldsForProject', `calcNextReviewDate returned no date for reviewedDate=${String(reviewedDateIn)}; using today`)
         }
       } else {
         // no next review date, so set at today
-        nextReviewDateStr = toISODateString(now)
+        nextReviewDateStr = moment().format('YYYY-MM-DD')
         nextReviewDays = 0
       }
     }
@@ -1121,7 +1170,7 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
       nextReviewDays,
     })
   } catch (error) {
-    logError('calcReviewFieldsForProject', error.message)
+    logError('calcReviewFieldsForProject', `${error.message} in project '${thisProjectIn.title}'`)
     return thisProjectIn
   }
 }

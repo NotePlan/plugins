@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // HTML and JS template strings for Reviews plugin HTML view
 // Extracted from reviews.js to keep command logic separate from templates.
-// Last updated 2026-02-24 for v1.4.0.b3, @jgclark
+// Last updated 2026-02-26 for v1.4.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
 export const stylesheetinksInHeader: string = `
@@ -86,6 +86,51 @@ function setScrollPos(h) {
 </script>
 `
 
+export const autoRefreshScript: string = `
+<script type="text/javascript">
+(function() {
+  function getScrollPos() {
+    if (typeof window.pageYOffset !== 'undefined') {
+      return window.pageYOffset;
+    } else if (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined') {
+      return document.documentElement.scrollTop;
+    } else if (document.body && typeof document.body.scrollTop !== 'undefined') {
+      return document.body.scrollTop;
+    }
+    return 0;
+  }
+
+  function scheduleAutoRefresh() {
+    var meta = document.querySelector('meta[name="autoUpdateAfterIdleTime"]');
+    if (!meta) return;
+    var minutes = parseInt(meta.getAttribute('content') || '0', 10);
+    if (!minutes || minutes <= 0) return;
+    var intervalMs = minutes * 60 * 1000;
+
+    if (window.__reviewsAutoRefreshTimer) {
+      clearInterval(window.__reviewsAutoRefreshTimer);
+    }
+
+    window.__reviewsAutoRefreshTimer = setInterval(function() {
+      try {
+        var scrollPos = getScrollPos();
+        console.log('Auto-refreshing Project List at scrollPos', scrollPos);
+        sendMessageToPlugin('refresh', { scrollPos: scrollPos });
+      } catch (e) {
+        console.log('Auto-refresh error', e && e.message);
+      }
+    }, intervalMs);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleAutoRefresh);
+  } else {
+    scheduleAutoRefresh();
+  }
+})();
+</script>
+`
+
 export const commsBridgeScripts: string = `
 <!-- commsBridge scripts -->
 <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
@@ -115,7 +160,14 @@ export const shortcutsScript: string = `
 // send 'refresh' command
 shortcut.add("meta+r", function() {
   console.log("Shortcut '⌘r' triggered: will call refresh");
-  sendMessageToPlugin('refresh', {});
+  var scrollPos = (typeof window.pageYOffset !== 'undefined')
+    ? window.pageYOffset
+    : (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined')
+      ? document.documentElement.scrollTop
+      : (document.body && typeof document.body.scrollTop !== 'undefined')
+        ? document.body.scrollTop
+        : 0;
+  sendMessageToPlugin('refresh', { scrollPos: scrollPos });
 });
 // send 'toggleDisplayOnlyDue' command
 shortcut.add("meta+d", function() {

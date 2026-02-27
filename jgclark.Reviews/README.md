@@ -153,6 +153,7 @@ The settings relating to Progress are:
 
 ## Other Plugin settings
 - Open Project Lists in what sort of macOS window?: (from v1.3) Choose whether the Rich project list opens in NotePlan's main window or in a separate window.
+- **Automatic Update interval**: (from v1.4.0.b4) If set to any number > 0, the Rich Project Lists window will automatically refresh when it has been idle for that many minutes. Set to 0 to disable. When the list refreshes (manually or automatically), the current scroll position is preserved as closely as possible.
 - Next action tag(s): optional list of #hashtags to include in a task or checklist to indicate its the next action in this project (comma-separated; default '#next'). If there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist is shown as the next action. Only the first matching item is shown.
 - Display next actions in output? This requires the previous setting to be set (or use #sequential). Toggle is in the Filter… menu as "Show next actions?".
 - Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`. Note also: 

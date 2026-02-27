@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin (to/from HTML window)
-// Last updated 2026-02-16 for v1.3.0.b12, @jgclark
+// Last updated 2026-02-26 for v1.4.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -64,9 +64,11 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
       case 'onChangeCheckbox':
         await bridgeChangeCheckbox(data)
         break
-      case 'refresh':
-        await displayProjectLists()
+      case 'refresh': {
+        const scrollPos = data && typeof data.scrollPos === 'number' ? data.scrollPos : 0
+        await displayProjectLists(null, scrollPos)
         break
+      }
       case 'runPluginCommand':
         await runPluginCommand(data)
         break
