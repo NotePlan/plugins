@@ -149,7 +149,13 @@ export function getFrontmatterAttributes(note: CoreNoteFields): { [string]: stri
       const FMParas = getFrontmatterParagraphs(note, false)
       if (FMParas && FMParas.length > 0) {
         FMAttributes = FMParas.map((p) => {
-          const [key, value] = p.content.split(':')
+          const content = p.content || ''
+          const colonIndex = content.indexOf(':')
+          if (colonIndex === -1) {
+            return {}
+          }
+          const key = content.slice(0, colonIndex).trim()
+          const value = content.slice(colonIndex + 1).trim()
           return { [key]: value }
         }).reduce((acc, curr) => ({ ...acc, ...curr }), {})
       }
@@ -257,11 +263,15 @@ export function getFrontmatterNotes(includeTemplateFolders: boolean = false, onl
  */
 export function removeFrontMatter(note: CoreNoteFields, removeSeparators: boolean = false): boolean {
   try {
+    if (!note) {
+      logError('NPFrontMatter/removeFrontMatter()', 'note is null or undefined')
+      return false
+    }
     const fmParas = getFrontmatterParagraphs(note, removeSeparators)
     // clo(fmParas, 'fmParas')
     // clo(note.paragraphs, 'note.paragraphs')
     if (!fmParas) return false
-    const fm = getFrontmatterAttributes(note || '')
+    const fm = getFrontmatterAttributes(note)
     note.removeParagraphs(fmParas)
     if (removeSeparators && fm && fm.title) note.prependParagraph(`# ${fm.title}`, 'text')
     return true
@@ -934,7 +944,7 @@ export function isTriggerLoop(note: TNote, minimumTimeRequiredMS: number = 2000)
     }
     return false
   } catch (error) {
-    logError(pluginJson, 'isTriggerLoop error: ${error.message}')
+    logError(pluginJson, `isTriggerLoop error: ${error.message}`)
     return false
   }
 }
