@@ -802,4 +802,51 @@ describe('paragraph.js', () => {
       })
     })
   })
+
+  describe('getIndentLevelFromRawContent()', () => {
+    test('returns 0 for empty string', () => {
+      const result = p.getIndentLevelFromRawContent('')
+      expect(result).toEqual(0)
+    })
+
+    test('returns 0 for line with no leading whitespace', () => {
+      const result = p.getIndentLevelFromRawContent('* Task at root')
+      expect(result).toEqual(0)
+    })
+
+    test('returns 1 for line starting with single tab', () => {
+      const result = p.getIndentLevelFromRawContent('\t* Indented once')
+      expect(result).toEqual(1)
+    })
+
+    test('returns 2 for line starting with two tabs', () => {
+      const result = p.getIndentLevelFromRawContent('\t\t* Indented twice')
+      expect(result).toEqual(2)
+    })
+
+    test('treats every two leading spaces as one indent', () => {
+      const resultOneIndent = p.getIndentLevelFromRawContent('  * Indented once with 2 spaces')
+      const resultTwoIndents = p.getIndentLevelFromRawContent('    * Indented twice with 4 spaces')
+      expect(resultOneIndent).toEqual(1)
+      expect(resultTwoIndents).toEqual(2)
+    })
+
+    test('treats odd number of leading spaces as one fewer', () => {
+      const resultOneIndent = p.getIndentLevelFromRawContent('   * Indented once with 3 spaces')
+      const resultTwoIndents = p.getIndentLevelFromRawContent('     * Indented twice with 5 spaces')
+      expect(resultOneIndent).toEqual(1)
+      expect(resultTwoIndents).toEqual(2)
+    })
+
+    test('ignores spaces after markdown markers', () => {
+      const result = p.getIndentLevelFromRawContent('\t*  Indented once, extra spaces after marker')
+      expect(result).toEqual(1)
+    })
+
+    test('handles mixed leading spaces and tabs', () => {
+      const result = p.getIndentLevelFromRawContent('  \t\t* Mixed leading whitespace')
+      // Two spaces = 1 indent, plus 2 tabs = 2 more indents -> total 3
+      expect(result).toEqual(3)
+    })
+  })
 })

@@ -34,6 +34,7 @@ import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
 import { getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 import { getNoteFromFilename, getReferencedParagraphs } from '@helpers/NPnote'
 import { usersVersionHas } from '@helpers/NPVersions'
+import { getIndentLevelFromRawContent } from '@helpers/paragraph'
 import { isAChildPara } from '@helpers/parentsAndChildren'
 import { caseInsensitiveSubstringArrayIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
@@ -355,9 +356,11 @@ function getParagraphsFromCalendarNotes(
   }
 
   // Log if content contains TEST
+  // Log if content contains TEST
   if (parasToUse.some((para) => para.content.includes('TEST'))) {
     const testParas = parasToUse.filter((p) => p.content.includes('TEST'))
-    console.log(`getParagraphsFromCalendarNotes: FYI 👉 found TEST in paragraph(s):\n${JSP(testParas, 2)}`)
+    const testOutput = testParas.map((p) => `- ${String(p.lineIndex)}: ${p.rawContent}`).join('\n')
+    logInfo('getParagraphsFromCalendarNotes', `FYI 👉 found TEST in paragraph(s):\n${testOutput}`)
   }
   return parasToUse
 }
@@ -510,10 +513,13 @@ function getReferencedOpenParagraphs(
   }
 
   const note = possTimePeriodNote
-  logDebug('getReferencedOpenParagraphs', `- getting referenced paras for ${note.filename}`)
+  logDebug('getReferencedOpenParagraphs', `-> getting referenced paras for ${note.filename}`)
+  // Note: This isn't returning referenced child paragraphs. Error noted in NPNote.js
+  const refParas = getReferencedParagraphs(note, false)
+  // logDebug('getReferencedOpenParagraphs', `-> found ${String(refParas.length)} referenced paras for ${note.filename}: ${refParas.map((p) => `#${p.lineIndex}: ${p.rawContent}`).join('\n')}`)
   refOpenParas = alsoReturnTimeblockLines
-    ? getReferencedParagraphs(note, false).filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
-    : getReferencedParagraphs(note, false).filter((p) => isOpen(p))
+    ? refParas.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
+    : refParas.filter((p) => isOpen(p))
   logTimer('getReferencedOpenParagraphs', startTime, `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`)
 
   if (refOpenParas.length === 0) {
@@ -555,7 +561,8 @@ function getReferencedOpenParagraphs(
   // Log if content contains TEST
   if (refOpenParas.some((para) => para.content.includes('TEST'))) {
     const testParas = refOpenParas.filter((p) => p.content.includes('TEST'))
-    console.log(`getReferencedOpenParagraphs: FYI 👉 found TEST in paragraph(s):\n${JSP(testParas, 2)}`)
+    const testOutput = testParas.map((p) => `- ${String(p.lineIndex)}: ${p.rawContent}`).join('\n')
+    logInfo('getReferencedOpenParagraphs', `FYI 👉 found TEST in paragraph(s):\n${testOutput}`)
   }
 
   return refOpenParas
@@ -712,6 +719,14 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
       }
       const note = p.note
 
+      // Derive a reliable indent level from rawContent to work around Paragraph.indents API bug
+      const computedIndentLevel = getIndentLevelFromRawContent(p.rawContent ?? '')
+      const effectiveIndents = p.indents === 0 && computedIndentLevel > 0 ? computedIndentLevel : p.indents
+      // TODO(later): remove this debugging after TEST:
+      if (effectiveIndents !== p.indents) {
+        logInfo('makeDashboardParas', `👉👉👉 Found .indents mismatch for line ${p.lineIndex}: API indents=${p.indents}, effectiveIndents=${effectiveIndents}, rawContent:{${p.rawContent}}`)
+      }
+
       // Set default priorityDelta to 0
       let priorityDelta = 0
       if (note) {
@@ -725,13 +740,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
         // Note: debugging why sometimes hasChild is wrong
         // TODO(later): remove this debugging
         if (hasChild) {
-          const pp = note.paragraphs || []
-          const nextLineIndex = p.lineIndex + 1
-          clo(
-            p,
-            `FYI 👉 makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type
-            }} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`,
-          )
+          logInfo('makeDashboardParas', `FYI 👉 makeDashboardParas: found indented children for #${p.lineIndex}:in "${note.filename}" (indents:${effectiveIndents}) {${p.rawContent}}`)
           // clo(p.contentRange, `contentRange for paragraph`)
           clof(anyChildren, `Children of paragraph`, ['lineIndex', 'indents', 'content'])
           // clo(anyChildren[0].contentRange, `contentRange for child[0]`)
@@ -741,11 +750,6 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
           priorityDelta = getPriorityDeltaFromNote(note)
         }
 
-        // Note: debugging why sometimes indents is wrong - often 0 not 1
-        // TODO(later): remove this debugging
-        if (p.indents === 0 && (p.rawContent.startsWith(' ') || p.rawContent.startsWith('\t'))) {
-          logWarn('makeDashboardParas', `FYI 👉 for line ${p.lineIndex} found indents:0 rawContent: {${p.rawContent}}`)
-        }
 
         // Get icon and icon-color from note's frontmatter, if present.
         let noteIcon: ?string
@@ -777,7 +781,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
           prefix: p.rawContent.replace(p.content, ''),
           content: p.content,
           rawContent: p.rawContent,
-          indents: p.indents, // TEST: not returning correct indents at times? Certainly lands up being 0 when it should be 1.
+          indents: effectiveIndents,
           lineIndex: p.lineIndex,
           priority: getNumericPriorityFromPara(p) + priorityDelta,
           startTime: startTimeStr,
