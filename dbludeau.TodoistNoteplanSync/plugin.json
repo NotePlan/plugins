@@ -47,11 +47,48 @@
       "alias": [
         "tosp"
       ],
-      "description": "Sync Todoist project (list) linked to the current Noteplan note using frontmatter",
+      "description": "Sync Todoist project by name or from frontmatter",
       "jsFunction": "syncProject",
       "arguments": [
-        ""
+        "Project name(s) - comma-separated, or leave blank to use frontmatter",
+        "Date filter (today, overdue, current, 7 days, all) - optional"
       ]
+    },
+    {
+      "name": "todoist sync project by name",
+      "alias": [
+        "tospn"
+      ],
+      "description": "Sync Todoist project(s) by name - prompts for project names and filter",
+      "jsFunction": "syncProjectByName",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync project today",
+      "alias": [
+        "tospt"
+      ],
+      "description": "Sync Todoist project - only tasks due today",
+      "jsFunction": "syncProjectToday",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync project overdue",
+      "alias": [
+        "tospo"
+      ],
+      "description": "Sync Todoist project - only overdue tasks",
+      "jsFunction": "syncProjectOverdue",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync project current",
+      "alias": [
+        "tospc"
+      ],
+      "description": "Sync Todoist project - overdue + today tasks",
+      "jsFunction": "syncProjectCurrent",
+      "arguments": []
     },
     {
       "name": "todoist sync all linked projects",
@@ -74,6 +111,70 @@
       "arguments": [
         ""
       ]
+    },
+    {
+      "name": "todoist sync today by project",
+      "alias": [
+        "tostbp"
+      ],
+      "description": "Sync Todoist tasks due today (API semantics: only today, no overdue), organized by project",
+      "jsFunction": "syncTodayByProject",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync overdue by project",
+      "alias": [
+        "tosobp"
+      ],
+      "description": "Sync all overdue Todoist tasks, organized by project",
+      "jsFunction": "syncOverdueByProject",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync current by project",
+      "alias": [
+        "toscbp"
+      ],
+      "description": "Sync current Todoist tasks (today + overdue), organized by project",
+      "jsFunction": "syncCurrentByProject",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync week by project",
+      "alias": [
+        "toswbp"
+      ],
+      "description": "Sync all Todoist tasks due within 7 days, organized by project",
+      "jsFunction": "syncWeekByProject",
+      "arguments": []
+    },
+    {
+      "name": "todoist convert to todoist task",
+      "alias": [
+        "cttt",
+        "toct"
+      ],
+      "description": "Convert selected non-Todoist tasks to Todoist tasks in the Inbox",
+      "jsFunction": "convertToTodoistTask",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync status",
+      "alias": [
+        "toss"
+      ],
+      "description": "Sync task completion status between NotePlan and Todoist for current note (no add/remove)",
+      "jsFunction": "syncStatus",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync status all",
+      "alias": [
+        "tossa"
+      ],
+      "description": "Sync task completion status between NotePlan and Todoist across all linked notes",
+      "jsFunction": "syncStatusAll",
+      "arguments": []
     },
     {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
@@ -204,6 +305,61 @@
       "title": "Sync unassigned tasks",
       "description": "By default the sync will pull only tasks assigned to you.  If you want to sync all unassigned tasks as well, check this box.",
       "default": false
+    },
+    {
+      "note": "================== PROJECT SYNC SETTINGS ========================"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Project Sync Settings"
+    },
+    {
+      "type": "string",
+      "key": "projectDateFilter",
+      "title": "Date filter for project syncs",
+      "description": "Filter which tasks are synced based on due date. Choose 'all' to sync everything.",
+      "choices": ["all", "today", "overdue | today", "3 days", "7 days"],
+      "default": "overdue | today",
+      "required": false
+    },
+    {
+      "type": "string",
+      "key": "projectSeparator",
+      "title": "Separator between multiple projects",
+      "description": "How to visually separate tasks from different Todoist projects when using multiple projects per note (with todoist_ids frontmatter).",
+      "choices": ["## Project Name", "### Project Name", "#### Project Name", "Horizontal Rule", "No Separator"],
+      "default": "### Project Name",
+      "required": false
+    },
+    {
+      "type": "string",
+      "key": "projectPrefix",
+      "title": "Insert before project title",
+      "description": "What to insert before each project title/separator.",
+      "choices": ["Nothing", "Blank Line", "Horizontal Rule", "Blank Line + Horizontal Rule"],
+      "default": "Blank Line",
+      "required": false
+    },
+    {
+      "type": "string",
+      "key": "sectionFormat",
+      "title": "Section heading format",
+      "description": "How to format Todoist section headings within multi-project notes.",
+      "choices": ["### Section", "#### Section", "##### Section", "**Section**"],
+      "default": "#### Section",
+      "required": false
+    },
+    {
+      "type": "string",
+      "key": "sectionPrefix",
+      "title": "Insert before section heading",
+      "description": "What to insert before each section heading.",
+      "choices": ["Nothing", "Blank Line", "Horizontal Rule", "Blank Line + Horizontal Rule"],
+      "default": "Blank Line",
+      "required": false
     },
     {
       "note": "================== DEBUGGING SETTINGS ========================"
