@@ -1,8 +1,15 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.4.0.b5] - 2026-02-27
+- Project metadata can now be fully stored in frontmatter as well as in the note body. You have two options:
+  - You can now use a configurable frontmatter key name (default `project:`), to store it all in a single value.
+  - Or you can use separate frontmatter keys (`start`, `due`, `reviewed`, `completed`, `cancelled`, `review`, `nextReview`).  when they already exist, and keeps them in sync when they are present, without creating new keys for notes that don’t use them.
+    - Note: if you have configured different phrases for these strings, they are used instead (without the leading `@` character)
+- New: When any command updates a project note that had metadata in the body, it now writes to frontmatter and removes that body line. Migration includes all tags in the metadata line (e.g. `#project` or `#area`) as well as the dates in mentions (e.g. `@due(2026-08-22)`.
+
 ## [1.4.0.b4] - 2026-02-26
-- New: The Project List can automatically refresh. To use this, set the new setting "Automatic Update interval" to the number of minutes. Leave at 0 to turn off.
+- New: Automatic refresh for the Project List display (Rich window only). To use this, set the new setting "Automatic Update interval" to the number of minutes. Leave at 0 to turn off.
 
 ## [1.4.0.b3] - 2026-02-24
 - Dev: Refactor reviews.js significantly to better separate logic from display concerns. Adds new file `reviewsHTMLTemplates.js`.

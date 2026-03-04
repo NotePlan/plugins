@@ -10,6 +10,7 @@
 import { getActivePerspectiveDef, getAllowedFoldersInCurrentPerspective, getPerspectiveSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
 import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { type Progress } from './projectClass'
+import { checkString } from '@helpers/checkType'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   calcOffsetDate,
@@ -74,6 +75,7 @@ export type ReviewConfig = {
   sequentialTag: string,
   useDemoData: boolean,
   writeMostRecentProgressToFrontmatter?: boolean,
+  projectMetadataFrontmatterKey?: string,
   _logLevel: string,
   _logTimer: boolean,
 }
@@ -111,6 +113,16 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
     DataStore.setPreference('numberDaysForFutureToIgnore', config.numberDaysForFutureToIgnore)
     DataStore.setPreference('ignoreChecklistsInProgress', config.ignoreChecklistsInProgress)
+
+    // Frontmatter metadata preferences
+    // Allow any frontmatter key name, defaulting to 'project'
+    const rawSingleKeyName: string =
+      config.projectMetadataFrontmatterKey && typeof config.projectMetadataFrontmatterKey === 'string'
+        ? config.projectMetadataFrontmatterKey.trim()
+        : ''
+    const singleKeyName: string = rawSingleKeyName !== '' ? rawSingleKeyName : 'project'
+    config.projectMetadataFrontmatterKey = singleKeyName
+    DataStore.setPreference('projectMetadataFrontmatterKey', singleKeyName)
 
     // Set default for includedTeamspaces if not using Perspectives
     // Note: This value is only used when Perspectives are enabled, so the default doesn't affect filtering when Perspectives are off
@@ -208,9 +220,10 @@ export function getNextActionLineIndex(note: CoreNoteFields, naTag: string): num
  */
 export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: string): boolean {
   if (!sequentialTag) return false
-  const projectAttribute = getFrontmatterAttribute(note, 'project') ?? ''
+  const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+  const projectAttribute = getFrontmatterAttribute(note, combinedKey) ?? ''
   if (projectAttribute.includes(sequentialTag)) {
-    logDebug('isProjectNoteIsMarkedSequential', `found sequential tag '${sequentialTag}' in frontmatter 'project' attribute`)
+    logDebug('isProjectNoteIsMarkedSequential', `found sequential tag '${sequentialTag}' in frontmatter '${combinedKey}' attribute`)
     return true
   }
   const metadataLineIndex = getOrMakeMetadataLineIndex(note)
@@ -338,16 +351,18 @@ export function getOrMakeMetadataLineIndex(note: CoreNoteFields, metadataLinePla
 
     // If no metadataPara found, then insert one either after title, or in the frontmatter if present.
     if (Number.isNaN(lineNumber)) {
+      const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
       if (noteHasFrontMatter(note)) {
         logWarn('getOrMakeMetadataLineIndex', `I couldn't find an existing metadata line, so have added a placeholder at the top of the note. Please review it.`)
-        // $FlowIgnore[incompatible-call]
-        const res = updateFrontMatterVars(note, {
-          metadata: metadataLinePlaceholder,
-        })
+        const fmAttrs: { [string]: any } = {}
+        fmAttrs[singleKeyName] = metadataLinePlaceholder
+        // $FlowFixMe[incompatible-call]
+        const res = updateFrontMatterVars(note, fmAttrs)
         const updatedLines = note.paragraphs?.map((s) => s.content) ?? []
         // Find which line that project field is on
         for (let i = 1; i < updatedLines.length; i++) {
-          if (updatedLines[i].match(/^metadata:/i)) {
+          const re = new RegExp(`^${singleKeyName}:`, 'i')
+          if (updatedLines[i].match(re)) {
             lineNumber = i
             break
           }
@@ -401,22 +416,41 @@ export function updateMetadataInEditor(thisEditor: TEditor, updatedMetadataArr: 
       `starting for '${displayTitle(thisNote)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`,
     )
 
-    for (const item of updatedMetadataArr) {
-      const mentionName = item.split('(', 1)[0]
-      // logDebug('updateMetadataInEditor', `Processing ${item} for ${mentionName}`)
-      // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
-      updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
-      // Then append this @mention
-      updatedLine += ` ${item}`
-      // logDebug('updateMetadataInEditor', `-> ${updatedLine}`)
-    }
+    const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
+    const isFrontmatterLine = frontmatterPrefixRe.test(origLine)
 
-    // send update to Editor (removing multiple and trailing spaces)
-    metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
-    thisEditor.updateParagraph(metadataPara)
-    // await saveEditorToCache() // might be stopping code execution here for unknown reasons
-    logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
+    if (isFrontmatterLine) {
+      // Work on the value part only, then write back via frontmatter helper
+      let valueOnly = origLine.replace(frontmatterPrefixRe, '')
+      for (const item of updatedMetadataArr) {
+        const mentionName = item.split('(', 1)[0]
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
+        valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
+        valueOnly += ` ${item}`
+      }
+      const finalValue = valueOnly.replace(/\s{2,}/g, ' ').trim()
+      const fmAttrs: { [string]: any } = {}
+      fmAttrs[singleKeyName] = finalValue
+      // $FlowFixMe[incompatible-call]
+      const success = updateFrontMatterVars(thisEditor, fmAttrs)
+      if (!success) {
+        logError('updateMetadataInEditor', `Failed to update frontmatter ${singleKeyName} for '${displayTitle(thisEditor)}'`)
+      }
+    } else {
+      for (const item of updatedMetadataArr) {
+        const mentionName = item.split('(', 1)[0]
+        // Start by removing all instances of this @mention
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
+        updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
+        // Then append this @mention
+        updatedLine += ` ${item}`
+      }
+      // send update to Editor (removing multiple and trailing spaces)
+      metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
+      thisEditor.updateParagraph(metadataPara)
+      logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
+    }
   } catch (error) {
     logError('updateMetadataInEditor', error.message)
   }
@@ -453,18 +487,41 @@ export function updateMetadataInNote(note: CoreNoteFields, updatedMetadataArr: A
       `starting for '${displayTitle(note)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`,
     )
 
+    const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
+    const isFrontmatterLine = frontmatterPrefixRe.test(origLine)
+
+    if (isFrontmatterLine) {
+      let valueOnly = origLine.replace(frontmatterPrefixRe, '')
+      for (const item of updatedMetadataArr) {
+        const mentionName = item.split('(', 1)[0]
+        logDebug('updateMetadataInNote', `Processing ${item} for ${mentionName}`)
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
+        valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
+        valueOnly += ` ${item}`
+      }
+      const finalValue = valueOnly.replace(/\s{2,}/g, ' ').trim()
+      const fmAttrs: { [string]: any } = {}
+      fmAttrs[singleKeyName] = finalValue
+      // $FlowFixMe[incompatible-call]
+      const success = updateFrontMatterVars(note, fmAttrs)
+      if (!success) {
+        logError('updateMetadataInNote', `Failed to update frontmatter ${singleKeyName} for '${displayTitle(note)}'`)
+      } else {
+        logDebug('updateMetadataInNote', `- After update frontmatter ${singleKeyName}='${finalValue}'`)
+      }
+      return
+    }
+
     for (const item of updatedMetadataArr) {
       const mentionName = item.split('(', 1)[0]
       logDebug('updateMetadataInNote', `Processing ${item} for ${mentionName}`)
-      // Start by removing all instances of this @mention
       const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
       updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
-      // Then append this @mention
       updatedLine += ` ${item}`
       logDebug('updateMetadataInNote', `-> ${updatedLine}`)
     }
 
-    // update the note (removing multiple and trailing spaces)
     metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
     note.updateParagraph(metadataPara)
     logDebug('updateMetadataInNote', `- After update ${metadataPara.content}`)
@@ -537,19 +594,37 @@ export function deleteMetadataMentionInEditor(thisEditor: TEditor, mentionsToDel
 
     logDebug('deleteMetadataMentionInEditor', `starting for '${displayTitle(thisEditor)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
 
-    for (const mentionName of mentionsToDeleteArr) {
-      // logDebug('deleteMetadataMentionInEditor', `Processing ${item} for ${mentionName}`)
-      // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
-      newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
-      logDebug('deleteMetadataMentionInEditor', `-> ${newLine}`)
-    }
+    const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
+    const isFrontmatterLine = frontmatterPrefixRe.test(origLine)
 
-    // send update to Editor (removing multiple and trailing spaces)
-    metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
-    thisEditor.updateParagraph(metadataPara)
-    // await saveEditorToCache() // seems to stop here but without error
-    logDebug('deleteMetadataMentionInEditor', `- Finished`)
+    if (isFrontmatterLine) {
+      let valueOnly = origLine.replace(frontmatterPrefixRe, '')
+      for (const mentionName of mentionsToDeleteArr) {
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+        valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
+        logDebug('deleteMetadataMentionInEditor', `-> ${valueOnly}`)
+      }
+      const finalValue = valueOnly.replace(/\s{2,}/g, ' ').trim()
+      const fmAttrs: { [string]: any } = {}
+      fmAttrs[singleKeyName] = finalValue
+      // $FlowFixMe[incompatible-call]
+      const success = updateFrontMatterVars(thisEditor, fmAttrs)
+      if (!success) {
+        logError('deleteMetadataMentionInEditor', `Failed to update frontmatter ${singleKeyName} for '${displayTitle(thisEditor)}'`)
+      } else {
+        logDebug('deleteMetadataMentionInEditor', `- Finished frontmatter ${singleKeyName}='${finalValue}'`)
+      }
+    } else {
+      for (const mentionName of mentionsToDeleteArr) {
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+        newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
+        logDebug('deleteMetadataMentionInEditor', `-> ${newLine}`)
+      }
+      metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
+      thisEditor.updateParagraph(metadataPara)
+      logDebug('deleteMetadataMentionInEditor', `- Finished`)
+    }
   } catch (error) {
     logError('deleteMetadataMentionInEditor', `${error.message}`)
   }
@@ -580,18 +655,37 @@ export function deleteMetadataMentionInNote(noteToUse: CoreNoteFields, mentionsT
 
     logDebug('deleteMetadataMentionInNote', `starting for '${displayTitle(noteToUse)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
 
-    for (const mentionName of mentionsToDeleteArr) {
-      // logDebug('deleteMetadataMentionInNote', `Processing ${item} for ${mentionName}`)
-      // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
-      newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
-      logDebug('deleteMetadataMentionInNote', `-> ${newLine}`)
-    }
+    const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
+    const isFrontmatterLine = frontmatterPrefixRe.test(origLine)
 
-    // send update to noteToUse (removing multiple and trailing spaces)
-    metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
-    noteToUse.updateParagraph(metadataPara)
-    logDebug('deleteMetadataMentionInNote', `- Finished`)
+    if (isFrontmatterLine) {
+      let valueOnly = origLine.replace(frontmatterPrefixRe, '')
+      for (const mentionName of mentionsToDeleteArr) {
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+        valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
+        logDebug('deleteMetadataMentionInNote', `-> ${valueOnly}`)
+      }
+      const finalValue = valueOnly.replace(/\s{2,}/g, ' ').trim()
+      const fmAttrs: { [string]: any } = {}
+      fmAttrs[singleKeyName] = finalValue
+      // $FlowFixMe[incompatible-call]
+      const success = updateFrontMatterVars(noteToUse, fmAttrs)
+      if (!success) {
+        logError('deleteMetadataMentionInNote', `Failed to update frontmatter ${singleKeyName} for '${displayTitle(noteToUse)}'`)
+      } else {
+        logDebug('deleteMetadataMentionInNote', `- Finished frontmatter ${singleKeyName}='${finalValue}'`)
+      }
+    } else {
+      for (const mentionName of mentionsToDeleteArr) {
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+        newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
+        logDebug('deleteMetadataMentionInNote', `-> ${newLine}`)
+      }
+      metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
+      noteToUse.updateParagraph(metadataPara)
+      logDebug('deleteMetadataMentionInNote', `- Finished`)
+    }
   } catch (error) {
     logError('deleteMetadataMentionInNote', `${error.message}`)
   }

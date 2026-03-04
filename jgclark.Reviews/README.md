@@ -78,12 +78,69 @@ Aim: Make sure 007's Aston Martin continues to run well, is legal etc.
 (Note: This example uses my related [Repeat Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/) to give more flexibility than the built-in repeats.)
 
 ## Where you can put the project data (metadata fields)
-The plugin tries to be as flexible as possible about where project metadata can go. It looks in order for:
-- the first line starting 'project:' or 'medadata:' in the note or its frontmatter
-- the first line containing a @review() or @reviewed() mention
-- the first line starting with a #hashtag.
+The plugin tries to be as flexible as possible about where project metadata can go.
 
-If these can't be found, then the plugin creates a new line after the title, or if the note has frontmatter, a 'metadata:' line in the frontmatter.
+From **v1.4** it supports both:
+
+- **Body metadata line** (legacy and still supported), and
+- **Frontmatter metadata**, which over time becomes the main source of truth.
+
+When looking for project metadata it checks, in order:
+
+- the first line starting `project:` or `metadata:` in the note or its frontmatter
+- the first line containing a `@review()` or `@reviewed()` mention
+- the first line starting with a `#hashtag`.
+
+If these can't be found, then the plugin creates a new line after the title, or if the note has frontmatter, a new field in frontmatter under the configured key (see below).
+
+### Using frontmatter for project metadata
+
+If your note has a frontmatter block, the plugin can store project metadata there as well as (or instead of) in the body. There are two parts to this:
+
+- A **combined metadata field** containing the whole metadata line.
+- Optional **separate fields** for individual dates/values.
+
+#### Combined frontmatter key (default `project`)
+
+The **Frontmatter metadata key** setting controls which frontmatter key is used to store the combined metadata line. By default this is `project:`, but you can set it to any string you like (for example `metadata`).
+
+Internally this combined field stores exactly the same content as the body metadata line, for example:
+
+```yaml
+---
+title: Project Title
+project: #project @review(2w) @reviewed(2021-07-20) @start(2021-04-05) @due(2021-11-30)
+---
+```
+
+When a note still has a metadata line in the body but **no** value in the combined frontmatter key, the plugin will migrate that body line into the configured frontmatter key and **remove the metadata line from the body**. When any command later updates that project note, it writes to frontmatter and removes the previous body metadata line if present. All tags such as `#project` are preserved during migration.
+
+#### Separate frontmatter fields (if present)
+
+If you prefer, you can also use separate frontmatter fields for the different dates and values. The names of these fields are derived from your **metadata @mention settings**, by stripping any leading `@` or `#`. The equivalent would then read:
+
+```yaml
+---
+title: Project Title
+project: #project
+start: 2021-04-05
+due: 2021-11-30
+reviewed: 2021-07-20
+review: 2w
+nextReview: 2021-08-03
+---
+```
+
+The plugin:
+
+- **Reads** from these separate fields if they already exist in frontmatter (using whatever key names your current settings imply), and overlays them on top of what it finds in the combined line.
+- **Writes back** to these fields **only if they already exist**. It will not create new separate keys on its own; it simply keeps any existing ones in sync when it updates metadata, again using the key names derived from your current `*MentionStr` settings.
+
+You can therefore:
+
+- Use only the combined frontmatter key, or
+- Use both the combined key and any separate fields you choose to add, or
+- Continue to use just the body metadata line (the plugin will migrate it into frontmatter and remove it from the body when it next needs to update metadata).
 
 The first hashtag in the note defines its type, so as well as `#project`, `#area` you could have a `#goal` or whatever makes most sense for you. 
 
@@ -93,7 +150,7 @@ Other notes:
 - If there are multiple copies of a metadata field, only the first one is used.
 - I'm sometimes asked why I use `@reviewed(2021-06-25)` rather than `@reviewed/2021-06-25`. The answer is that while the latter form is displayed in a neater way in the sidebar, the date part isn't available in the NotePlan API as the part after the slash is not a valid @tag as it doesn't contain an alphabetic character.
 
-_The next major release of the plugin will make it possible to migrate all this metadata to the Frontmatter block that has become properly supported since NotePlan 3.16.3._
+_From v1.4.0.b5 the plugin migrates this metadata into the Frontmatter block (if present) and removes the body metadata line, leaving the note body cleaner._
 
 ## Selecting notes to include
 There are 2 parts of this:
