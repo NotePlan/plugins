@@ -1,7 +1,11 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-## [1.1.0.b6] - 2026-02-??? (unreleased)
+## [1.1.0.b7] - 2026-03-04 (unreleased)
+- the TOTALS section now slides under AVERAGES when window isn't wide enough
+- heatmap grid now adjusts width responsively.
+
+## [1.1.0.b6] - 2026-02-13 (unreleased)
 - change: **/period stats** now excludes future dates when the chosen period (week/month/quarter/year) extends beyond today.
 - dev: refactored `chartStats.js` to use the same data-gathering path as Period Stats and Progress Update (`gatherOccurrences` + `gatherOccurrencesHelpers` + `TMOccurrences`).
 - dev: refactored `chartStatsScript.js` to move stats generation code into `chartStats.js`, to improve testability and maintainability

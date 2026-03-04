@@ -7,7 +7,7 @@
  * 
  * Note: this file is run as a script in an HTMLView window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
  * 
- * Last updated: 2026-02-12 for v1.1.0 by @jgclark
+ * Last updated: 2026-03-04 for v1.1.0.b7 by @jgclark
  */
 //-----------------------------------------------------------
 
@@ -399,6 +399,36 @@
       return streak
     }
 
+    function resizeYesNoHeatmapCells() {
+      const vizContainers = document.querySelectorAll('.yesno-habit-viz')
+      if (!vizContainers || vizContainers.length === 0) return
+
+      vizContainers.forEach(function(viz) {
+        const grid = viz.querySelector('.heatmap-grid')
+        if (!grid) return
+        const cells = grid.querySelectorAll('.heatmap-cell')
+        const days = cells.length
+        if (!days) return
+
+        // Use the grid track width (via bounding client rect), which responds to window resizing
+        const containerWidth = viz.getBoundingClientRect().width
+        if (!containerWidth) return
+
+        const gap = 2 // match CSS gap in chartStats.css
+        const totalGap = gap * Math.max(0, days - 1)
+        const maxSize = 14.5 // px (~0.9rem) – do not exceed current size
+        const minSize = 4 // px – avoid disappearing cells
+        const available = containerWidth - totalGap
+        if (available <= 0) return
+
+        const size = Math.max(minSize, Math.min(maxSize, available / days))
+
+        cells.forEach(function(cell) {
+          cell.style.width = size + 'px'
+        })
+      })
+    }
+
     function createYesNoHeatmapSection() {
       const row = document.getElementById('yesno-heatmap-section')
       if (!row) return
@@ -448,8 +478,22 @@
         row.appendChild(statStreak)
         // container.appendChild(row)
       })
+
+      // After building all rows, size the cells to fit the available width
+      resizeYesNoHeatmapCells()
     }
 
     createYesNoHeatmapSection()
+
+    // Keep YES/NO cells responsive on window resize
+    let resizeTimeoutId
+    window.addEventListener('resize', function() {
+      if (resizeTimeoutId) {
+        clearTimeout(resizeTimeoutId)
+      }
+      resizeTimeoutId = setTimeout(function() {
+        resizeYesNoHeatmapCells()
+      }, 100)
+    })
   }
 })()

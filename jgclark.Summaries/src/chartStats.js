@@ -7,7 +7,7 @@
  *
  * Note: definitions of tags, habits, etc. are now taken from the settings for Progress Updates command.
  *
- * Last updated: 2026-02-12 for v1.1.0 by @jgclark
+ * Last updated: 2026-03-04 for v1.1.0.b7 by @jgclark
  */
 
 // =====================================================================
@@ -688,7 +688,7 @@ function generateYesNoFilterCheckboxes(habits: Array<string>): string {
 function generateYesNoCombinedContainer(): string {
   return `
     <div class="chart-wrapper">
-      <div class="chart-title">Yes/No Habits</div>
+      <div class="section-title">Yes/No Habits</div>
       <div class="viz-display yesno-heatmap-section" id="yesno-heatmap-section"></div>
     </div>
 `
