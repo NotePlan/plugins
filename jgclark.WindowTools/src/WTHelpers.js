@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for WindowTools plugin
 // Jonathan Clark
-// last update 2025-11-30 for v1.5.0 by @jgclark
+// last update 2026-03-06 for v1.5.1 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -43,6 +43,11 @@ export const pluginWindowsAndCommands: Array<PluginWindowCommand> = [
   { pluginWindowId: 'jgclark.Dashboard.main', pluginID: 'jgclark.Dashboard', pluginCommandName: 'Show Dashboard' },
   { pluginWindowId: 'jgclark.Reviews.rich-review-list', pluginID: 'jgclark.Reviews', pluginCommandName: 'project lists' },
   { pluginWindowId: 'jgclark.Summaries.heatmap', pluginID: 'jgclark.Summaries', pluginCommandName: 'heatmap for task completion' },
+  { pluginWindowId: 'jgclark.Summaries.chartSummaryStats', pluginID: 'jgclark.Summaries', pluginCommandName: 'chart progress summary' },
+  { pluginWindowId: 'form-browser-window main', pluginID: 'dwertheimer.forms', pluginCommandName: 'Sidebar Browser' },
+  { pluginWindowId: 'dwertheimer.Forms Form Builder React Window Service Form', pluginID: 'dwertheimer.forms', pluginCommandName: 'Form Builder/Editor' },
+  { pluginWindowId: 'main:emetzger.LinearCalendar:Linear Calendar', pluginID: 'emetzger.LinearCalendar', pluginCommandName: 'showLinearCalendar' },
+  { pluginWindowId: 'main:emetzger.Calendar:Calendar', pluginID: 'emetzger.Calendar', pluginCommandName: 'showCalendar' },
 ]
 
 // Data types
@@ -61,6 +66,7 @@ export type EditorWinDetails = {
   height: number,
 }
 
+// The HTMLWinDetails type is used to store the details of a single HTML window. Note: this is different from HTMLView from the API.
 export type HTMLWinDetails = {
   type: string, // "Plugin" is the only type supported so far
   pluginID: string,

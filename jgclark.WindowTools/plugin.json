@@ -8,9 +8,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/CHANGELOG.md",
-  "plugin.version": "1.5.0",
+  "plugin.version": "1.5.1",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "v1.5.0: Use 'smart placement' when opening new Editor windows in the commands. New setting 'Use Smart Placement?' allows you to turn off this behaviour.\nv1.4.0: New '/reset windows' command.\nNow can save folders andsidebar width in Window Sets, and open to that width (requires NP v3.19.2).\nOther improvements to Window Sets.\nv1.3.0: Improve note and heading pickers. Support for Teamspace notes in /open note... commands. Fix to Window Set selection.\nv1.2.1: update list of plugin windows it knows about\nv1.2.0: new command 'swap splits', plus positioning bug fix\nv1.1.2: Bug fixes.\nv1.1.1: improve migration from previous plugin ('WindowSets')\nv1.1.0: added x-callbacks for /open Window Set, /open note in new split and /open note in new window commands.\nv1.0.0: 3 new commands, and renamed plugin from 'Window Sets'. Also moved 3 window-related commands from 'Note Helpers' plugin.\nv0.4.0: First public release, and requires NP v3.9.8.",
+  "plugin.lastUpdateInfo": "v1.5.1: under-the-hood changes to deal with changes in NP's window handling.\nv1.5.0: Use 'smart placement' when opening new Editor windows in the commands. New setting 'Use Smart Placement?' allows you to turn off this behaviour.\nv1.4.0: New '/reset windows' command.\nNow can save folders andsidebar width in Window Sets, and open to that width (requires NP v3.19.2).\nOther improvements to Window Sets.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -117,55 +117,18 @@
       "jsFunction": "deleteWindowSet"
     },
     {
-      "name": "test: write window set note to pref",
-      "alias": [
-        "wnp"
-      ],
-      "description": "Write WS note to local preference",
-      "jsFunction": "writeWSNoteToPrefs"
-    },
-    {
-      "name": "test: write window set pref to note",
-      "alias": [
-        "wpn"
-      ],
-      "description": "Write WS local preference to note",
-      "jsFunction": "writeWSsToNote"
-    },
-    {
       "name": "onEditorWillSave",
       "hidden": true,
       "description": "Trigger entry point to sync WS note to local WS preference",
       "jsFunction": "onEditorWillSave"
     },
     {
-      "name": "test: log current window sets",
-      "alias": [
-        "lws"
-      ],
-      "description": "Log my available windows sets",
-      "jsFunction": "logWindowSets"
-    },
-    {
-      "name": "test: log current windows list",
+      "name": "log current windows list",
       "alias": [
         "lwl"
       ],
       "description": "Log list of currently-open windows/panes",
       "jsFunction": "logWindowsList"
-    },
-    {
-      "name": "test: set editor width",
-      "alias": [
-        "sew"
-      ],
-      "description": "Set width of an open editor split, by its index",
-      "jsFunction": "setEditorSplitWidth"
-    },
-    {
-      "name": "test: delete all saved Window Sets",
-      "description": "Delete all saved window sets",
-      "jsFunction": "deleteAllSavedWindowSets"
     },
     {
       "name": "test: log preference",
@@ -184,12 +147,49 @@
       "jsFunction": "unsetPreferenceAskUser"
     },
     {
-      "name": "test: updatePlugin",
-      "description": "Test migration to newer name",
-      "jsFunction": "testUpdate"
+      "name": "test: write window set note to pref",
+      "hidden": true,
+      "alias": [
+        "wnp"
+      ],
+      "description": "Write WS note to local preference",
+      "jsFunction": "writeWSNoteToPrefs"
+    },
+    {
+      "name": "test: write window set pref to note",
+      "hidden": true,
+      "alias": [
+        "wpn"
+      ],
+      "description": "Write WS local preference to note",
+      "jsFunction": "writeWSsToNote"
+    },
+    {
+      "name": "test: log current window sets",
+      "alias": [
+        "lws"
+      ],
+      "description": "Log my available windows sets",
+      "jsFunction": "logWindowSets"
+    },
+    {
+      "name": "test: set editor width",
+      "hidden": true,
+      "alias": [
+        "sew"
+      ],
+      "description": "Set width of an open editor split, by its index",
+      "jsFunction": "setEditorSplitWidth"
+    },
+    {
+      "name": "test: delete all saved Window Sets",
+      "hidden": true,
+      "description": "Delete all saved window sets",
+      "jsFunction": "deleteAllSavedWindowSets"
     },
     {
       "name": "test: log sidebar width",
+      "hidden": true,
       "description": "Log the current sidebar width (requires NP v3.19.2 or later)",
       "alias": [
         "lsbw"
@@ -198,6 +198,7 @@
     },
     {
       "name": "test: set sidebar width",
+      "hidden": true,
       "description": "Set the sidebar width (requires NP v3.19.2 or later)",
       "alias": [
         "ssbw"
@@ -209,6 +210,7 @@
     },
     {
       "name": "test: toggle sidebar",
+      "hidden": true,
       "description": "Toggle the sidebar (requires NP v3.19.2 or later)",
       "alias": [
         "tsb"
@@ -217,6 +219,7 @@
     },
     {
       "name": "test: open sidebar",
+      "hidden": true,
       "description": "Open the sidebar (requires NP v3.19.2 or later)",
       "alias": [
         "osb"
@@ -225,6 +228,7 @@
     },
     {
       "name": "test: close sidebar",
+      "hidden": true,
       "description": "Close the sidebar (requires NP v3.19.2 or later)",
       "alias": [
         "csb"

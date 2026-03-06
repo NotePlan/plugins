@@ -93,7 +93,10 @@ export async function saveWindowSet(): Promise<void> {
       }
     })
 
-    const htmlWinDetails: Array<wth.HTMLWinDetails> = NotePlan.htmlWindows.map((win) => {
+    // Get list of all _visible_ HTMLWindows
+    const htmlWinDetails: Array<wth.HTMLWinDetails> = NotePlan.htmlWindows
+      .filter((win) => win.isVisible ?? true)
+      .map((win) => {
       const winRect = win.windowRect
       return {
         type: win.type,
@@ -122,64 +125,12 @@ export async function saveWindowSet(): Promise<void> {
     let setName: string = ''
     let isNewSet = false
 
-    // Offer current set names and/or offer to create new one
-    if (savedWindowSets.length > 0) {
-      logDebug('saveWindowSet', `found ${String(savedWindowSets.length)} existing windowSets`)
-      let chosenSetIndex = -1
-
-      if (usersVersionHas('decoratedCommandBar')) {
-        const decoratedSetChoices: Array<TCommandBarOptionObject> = makeDecoratedWSChoices(savedWindowSets)
-        // Prepare a new window set option
-        const newWSChoice = ({
-          text: 'Add new Window Set',
-          icon: 'plus',
-          color: 'orange-500',
-          shortDescription: `New`,
-          alpha: 0.8,
-          darkAlpha: 0.8,
-        })
-        const chosenOption = await chooseDecoratedOptionWithModifiers(`Select Window Set to add or update for ${thisMachineName}?`, decoratedSetChoices, newWSChoice)
-        chosenSetIndex = chosenOption.index
-        if (chosenSetIndex === -1) {
-          isNewSet = true
-          setName = chosenOption.value ?? 'New Window Set'
-        } else {
-          setName = savedWindowSets[chosenSetIndex - 1]?.name ?? '(error)'
-          isNewSet = false
-          logDebug('saveWindowSet', `chosen WS '${setName}' from chosenSetIndex = ${String(chosenSetIndex)}`)
-        }
-      } else {
-        const simpleSetChoices = makeSimpleWSChoices(savedWindowSets, true)
-        const res: number | boolean = await chooseOption(`Select Window Set to add or update for ${thisMachineName}?`, simpleSetChoices)
-        if (typeof res !== 'number') {
-          logInfo('saveWindowSet', `User cancelled operation.`)
-          return
-        }
-        const WSNum: number = res
-        if (WSNum === -1) {
-          const newName = await getInputTrimmed('Enter name for new Window Set', 'OK', 'New Window Set name')
-          if (!newName) {
-            logInfo('saveWindowSet', `User cancelled operation.`)
-            return
-          }
-          setName = String(newName) // to satisfy flow
-          isNewSet = true
-        } else {
-          setName = savedWindowSets[WSNum]?.name ?? '(error)'
-          logDebug('saveWindowSet', `User selected existing WS '${setName}' from ${String(WSNum)} to update`)
-        }
-      }
-
-    } else {
-      // No current saved window sets
-      const newName = await getInputTrimmed('Enter name for new Window Set', 'OK', 'New Window Set name')
-      if (!newName) {
-        logInfo('saveWindowSet', `User cancelled operation.`)
-        return
-      }
-      setName = String(newName) // to satisfy flow
-      isNewSet = true
+    const windowSetNameResult = await chooseWindowSetNameForSave(savedWindowSets, thisMachineName)
+    if (!windowSetNameResult) {
+      return
     }
+    setName = windowSetNameResult.setName
+    isNewSet = windowSetNameResult.isNewSet
 
     // Start making WS object to save (for now without mainSidebarWidth)
     let thisWSToSave: wth.WindowSet = {
@@ -266,8 +217,14 @@ export async function saveWindowSet(): Promise<void> {
       ewCount++
     }
 
-    // Now process HTML windows
-    // Currently works from lookup list defined at top
+    if (ewCount === 0) {
+      logInfo('saveWindowSet', `- there are no editors reported by the API: possibly this is a folder view?`)
+      const windowSetNoteName = `${config.folderForDefinitions ?? '?'}/${config.noteTitleForDefinitions ?? '?'}`
+      const res = await showMessage(`There are no editor windows open. This is probably because you are showing a folder view, which doesn't get reported by the API. This can be added by manually editing the saved note '${windowSetNoteName}' -- see the documentation for more details.`, 'OK', 'Window Sets', false)
+    }
+
+    // Then process HTML windows
+    // Note: works from lookup list defined at top of WTHelpers.js file, which should be kept up to date with the plugins' HTMLWindows.
     for (const thisHtmlWinDetails of htmlWinDetails) {
       const thisWindowId = thisHtmlWinDetails.customId ?? '?'
       logDebug('saveWindowSet', `- plugin: ${thisWindowId}`)
@@ -297,7 +254,9 @@ export async function saveWindowSet(): Promise<void> {
 
     // Note: As of NP 3.9.9 (b1119), main width = width of whole window (including sidebars which is a bummer). The splits all have x=0/y=0, but width/height are accurate.
 
-      // Go through main + splits, summing as we go
+    // Go through main + splits, summing as we go
+    // Note: From 3.20.2 onwards, the editorWindows[0] may not exist, so we need to check for that.)
+    if (thisWSToSave.editorWindows[0]) {
       const mainX = thisWSToSave.editorWindows[0].x
       const mainY = thisWSToSave.editorWindows[0].y
       // We can't get width of just the first split; it reports the width of all splits together. So calculate
@@ -322,6 +281,9 @@ export async function saveWindowSet(): Promise<void> {
         }
       }
       clo(thisWSToSave, `saveWindowSet: thisWSToSave after dealing with EW splits`)
+    } else {
+      logDebug('saveWindowSet', `- there are no editorWindows`)
+    }
 
     // If we can find out the main sidebar width, and we want to save it, then add it to the WS object
     if (usersVersionHas('mainSidebarControl') && config.saveMainSidebarWidth) {
@@ -391,6 +353,78 @@ export async function saveWindowSet(): Promise<void> {
   catch (error) {
     logError('saveWindowSet', JSP(error))
   }
+}
+
+/**
+ * Offer current set names and/or offer to create new one, returning name and new/existing flag.
+ * Returns null if user cancels.
+ * @param {Array<wth.WindowSet>} savedWindowSets current saved window sets
+ * @param {string} thisMachineName machine name to include in prompts
+ * @returns {{ setName: string, isNewSet: boolean } | null}
+ */
+async function chooseWindowSetNameForSave(savedWindowSets: Array<wth.WindowSet>, thisMachineName: string): Promise<{ setName: string, isNewSet: boolean } | null> {
+  let setName: string = ''
+  let isNewSet = false
+
+  // Offer current set names and/or offer to create new one
+  if (savedWindowSets.length > 0) {
+    logDebug('chooseWindowSetNameForSave', `found ${String(savedWindowSets.length)} existing windowSets`)
+    let chosenSetIndex = -1
+
+    if (usersVersionHas('decoratedCommandBar')) {
+      const decoratedSetChoices: Array<TCommandBarOptionObject> = makeDecoratedWSChoices(savedWindowSets)
+      // Prepare a new window set option
+      const newWSChoice = ({
+        text: 'Add new Window Set',
+        icon: 'plus',
+        color: 'orange-500',
+        shortDescription: `New`,
+        alpha: 0.8,
+        darkAlpha: 0.8,
+      })
+      const chosenOption = await chooseDecoratedOptionWithModifiers(`Select Window Set to add or update for ${thisMachineName}?`, decoratedSetChoices, newWSChoice)
+      chosenSetIndex = chosenOption.index
+      if (chosenSetIndex === -1) {
+        isNewSet = true
+        setName = chosenOption.value ?? 'New Window Set'
+      } else {
+        setName = savedWindowSets[chosenSetIndex - 1]?.name ?? '(error)'
+        isNewSet = false
+        logDebug('chooseWindowSetNameForSave', `chosen WS '${setName}' from chosenSetIndex = ${String(chosenSetIndex)}`)
+      }
+    } else {
+      const simpleSetChoices = makeSimpleWSChoices(savedWindowSets, true)
+      const res: number | boolean = await chooseOption(`Select Window Set to add or update for ${thisMachineName}?`, simpleSetChoices)
+      if (typeof res !== 'number') {
+        logInfo('chooseWindowSetNameForSave', `User cancelled operation.`)
+        return null
+      }
+      const WSNum: number = res
+      if (WSNum === -1) {
+        const newName = await getInputTrimmed('Enter name for new Window Set', 'OK', 'New Window Set name')
+        if (!newName) {
+          logInfo('chooseWindowSetNameForSave', `User cancelled operation.`)
+          return null
+        }
+        setName = String(newName) // to satisfy flow
+        isNewSet = true
+      } else {
+        setName = savedWindowSets[WSNum]?.name ?? '(error)'
+        logDebug('chooseWindowSetNameForSave', `User selected existing WS '${setName}' from ${String(WSNum)} to update`)
+      }
+    }
+  } else {
+    // No current saved window sets
+    const newName = await getInputTrimmed('Enter name for new Window Set', 'OK', 'New Window Set name')
+    if (!newName) {
+      logInfo('chooseWindowSetNameForSave', `User cancelled operation.`)
+      return null
+    }
+    setName = String(newName) // to satisfy flow
+    isNewSet = true
+  }
+
+  return { setName, isNewSet }
 }
 
 /**
