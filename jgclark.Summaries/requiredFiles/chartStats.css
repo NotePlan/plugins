@@ -440,7 +440,9 @@ canvas {
 }
 
 .heatmap-cell {
-  width: 0.9rem; /* 1rem (square) doesn't look quite right */
+  /* width: 0.9rem; /* 1rem (square) doesn't look quite right */
+  flex: 0 1 0.9rem;
+  /* min-width: 0.1rem; */
   height: 1rem;
   border-radius: 3px;
   border: 1px solid var(--border-color);
@@ -471,7 +473,10 @@ canvas {
   column-gap: 0.75rem;
   row-gap: 0.25rem;
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) max-content max-content;
+  /* grid-template-columns: max-content minmax(0, max-content) max-content max-content; */
+  grid-template-columns: max-content 1fr max-content max-content;
+  /* resize: horizontal; */
+  overflow: hidden;
   align-items: center;
 }
 
@@ -489,21 +494,20 @@ canvas {
 
 .yesno-habit-viz {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-self: start;
-  width: 100%;
-  min-width: 0;
+  min-width: 2rem;
+  overflow: hidden;
 }
 
 .yesno-habit-stat-completion {
   font-size: 0.85rem;
   color: var(--text-primary);
-  text-align: end;
   justify-self: end;
 }
 .yesno-habit-stat-streak {
   font-size: 0.85rem;
   color: var(--text-primary);
-  text-align: end;
   justify-self: start;
 }

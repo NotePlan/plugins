@@ -399,42 +399,11 @@
       return streak
     }
 
-    function resizeYesNoHeatmapCells() {
-      const vizContainers = document.querySelectorAll('.yesno-habit-viz')
-      if (!vizContainers || vizContainers.length === 0) return
 
-      vizContainers.forEach(function(viz) {
-        const grid = viz.querySelector('.heatmap-grid')
-        if (!grid) return
-        const cells = grid.querySelectorAll('.heatmap-cell')
-        const days = cells.length
-        if (!days) return
-
-        // Use the grid track width (via bounding client rect), which responds to window resizing
-        const containerWidth = viz.getBoundingClientRect().width
-        if (!containerWidth) return
-
-        const gap = 2 // match CSS gap in chartStats.css
-        const totalGap = gap * Math.max(0, days - 1)
-        const maxSize = 14.5 // px (~0.9rem) – do not exceed current size
-        const minSize = 4 // px – avoid disappearing cells
-        const available = containerWidth - totalGap
-        if (available <= 0) return
-
-        const size = Math.max(minSize, Math.min(maxSize, available / days))
-
-        cells.forEach(function(cell) {
-          cell.style.width = size + 'px'
-        })
-      })
-    }
 
     function createYesNoHeatmapSection() {
       const row = document.getElementById('yesno-heatmap-section')
       if (!row) return
-
-      // const row = document.createElement('div')
-      // row.className = 'yesno-habit-row'
 
       row.innerHTML = ''
       yesNoHabits.forEach((habit, index) => {
@@ -445,18 +414,12 @@
         const completionRate = calculateCompletionRate(data)
         const streak = calculateStreak(data)
 
-        // const row = document.createElement('div')
-        // row.className = 'yesno-habit-row'
-        // row.id = 'yesno-row-' + index
-
         const label = document.createElement('span')
         label.className = 'yesno-habit-label'
         label.textContent = habit
         row.appendChild(label)
 
-        const vizContainer = document.createElement('span')
-        vizContainer.className = 'yesno-habit-viz'
-        const grid = document.createElement('span')
+        const grid = document.createElement('div')
         grid.className = 'heatmap-grid'
         data.forEach((value, i) => {
           const cell = document.createElement('div')
@@ -464,8 +427,7 @@
           cell.title = dates[i] + ': ' + (value === 1 ? 'Completed' : 'Not completed')
           grid.appendChild(cell)
         })
-        vizContainer.appendChild(grid)
-        row.appendChild(vizContainer)
+        row.appendChild(grid)
 
         const statCompletion = document.createElement('span')
         statCompletion.className = 'yesno-habit-stat-completion'
@@ -478,22 +440,9 @@
         row.appendChild(statStreak)
         // container.appendChild(row)
       })
-
-      // After building all rows, size the cells to fit the available width
-      resizeYesNoHeatmapCells()
     }
 
     createYesNoHeatmapSection()
 
-    // Keep YES/NO cells responsive on window resize
-    let resizeTimeoutId
-    window.addEventListener('resize', function() {
-      if (resizeTimeoutId) {
-        clearTimeout(resizeTimeoutId)
-      }
-      resizeTimeoutId = setTimeout(function() {
-        resizeYesNoHeatmapCells()
-      }, 100)
-    })
   }
 })()
