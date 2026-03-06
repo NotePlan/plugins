@@ -2,7 +2,7 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 <!-- - **index folders** command: index notes created or updated now include frontmatter `icon: list-ul` and `icon-color: yellow-500` for sidebar display. -->
 
-## [1.3.3] - 2026-03-06
+## [1.3.4] - 2026-03-06
 - allow `jumpToNoteHeading` to take an argument of the note title or filename, for use with callbacks or shortcuts.
 
 ## [1.3.2] - 2026-02-05
