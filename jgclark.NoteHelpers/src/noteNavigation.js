@@ -2,14 +2,14 @@
 //-----------------------------------------------------------------------------
 // Navigation functions for Note Helpers plugin for NotePlan
 // Jonathan Clark
-// Last updated 2025-11-07 for v1.2.4, @jgclark
+// Last updated 2026-03-06 for v1.3.3, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getSettings } from './noteHelpers'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { allNotesSortedByChanged,allRegularNotesSortedByChanged } from '@helpers/note'
+import { allNotesSortedByChanged,allRegularNotesSortedByChanged, getNote } from '@helpers/note'
 import {chooseNoteV2} from '@helpers/NPnote'
 import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import {
@@ -52,29 +52,38 @@ export async function jumpToHeading(heading?: string): Promise<void> {
 }
 
 /**
- * Jumps the cursor to the heading of the current note that the user selects
- * NB: need to update to allow this to work with sub-windows, when EM updates API
+ * Jumps the cursor to the heading of the current note that the user selects (or the note specified by the noteTitle parameter)
  * @author @jgclark
+ * @param {string?} noteTitleOrFilename optional title or filename of the note to jump to
  */
-export async function jumpToNoteHeading(): Promise<void> {
+export async function jumpToNoteHeading(noteTitleOrFilename?: string): Promise<void> {
   try {
-    // first jump to the note of interest, then to the heading
-    // const notesList = allNotesSortedByChanged()
-    // const re = await CommandBar.showOptions(
-    //   notesList.map((n) => displayTitle(n)),
-    //   'Select note to jump to',
-    // )
-    // const note = notesList[re.index]
-    const note = await chooseNoteV2(`Select note to jump to`, allRegularNotesSortedByChanged(), true, true, false, true)
-
-    // Open the note in the Editor
-    if (note != null && note.title != null) {
-      await Editor.openNoteByTitle(note.title)
+    if (noteTitleOrFilename != null && noteTitleOrFilename !== '') {
+      const note = await getNote(noteTitleOrFilename)
+      if (note != null && note.title != null) {
+        await Editor.openNoteByTitle(note.title)
+      } else {
+        logError("Couldn't open selected note")
+        return
+      }
     } else {
-      logError("Couldn't open selected note")
-      return
-    }
+      // first jump to the note of interest, then to the heading
+      // const notesList = allNotesSortedByChanged()
+      // const re = await CommandBar.showOptions(
+      //   notesList.map((n) => displayTitle(n)),
+      //   'Select note to jump to',
+      // )
+      // const note = notesList[re.index]
+      const note = await chooseNoteV2(`Select note to jump to`, allRegularNotesSortedByChanged(), true, true, false, true)
 
+      // Open the note in the Editor
+      if (note != null && note.title != null) {
+        await Editor.openNoteByTitle(note.title)
+      } else {
+        logError("Couldn't open selected note")
+        return
+      }
+    }
     // Now jump to the heading
     await jumpToHeading()
   } catch (e) {

@@ -76,6 +76,7 @@ The arguments are:
 | add trigger to note | `...add%20trigger%20to%20note&` | "triggers: ..." line to add to frontmatter | - |
 | index folders | `...index%20folders&` | folder name | other args as a `key=value;key2=value` string.<br />Possible keys are displayOrder (`alphabetical` (default) or `updatedDate`, `createdDate`),  dateDisplayType (`none` (default) or `timeSince`, `updateDate`), includeSubfolders (`true` or `false`) |
 | jump to heading | `...jump%20to%20heading&` | heading to jump to | - |
+| jump to note heading | `...jump%20to%20note's%20heading&` | filename or title of note to jump to | - |
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).
