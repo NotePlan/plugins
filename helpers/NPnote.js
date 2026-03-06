@@ -754,8 +754,9 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
 
     // Use .backlinks, which is described as "Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The headings of the linked paragraphs are also listed here, although they don't have to contain a link."
     // Note: @jgclark reckons that the subItem.headingLevel data returned by this might be wrong.
+    // FIXME: Seems this might be returning only backlinks at indent 0. Need to test.
     const backlinkParas: Array<TParagraph> = getFlatListOfBacklinks(calNote) // an array of notes which link to this note
-    // logDebug(`getReferencedParagraphs`, `found ${String(backlinkParas.length)} backlinked paras for ${displayTitle(calNote)}:`)
+    logDebug(`getReferencedParagraphs`, `found ${String(backlinkParas.length)} backlinked paras for ${displayTitle(calNote)}:`)
 
     backlinkParas.forEach((para) => {
       // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
@@ -768,14 +769,14 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
       if (includeHeadings) {
         // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
       } else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
-        // logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today from ${para.note?.filename ?? '<no note>'}`)
+        logDebug(`getReferencedParagraphs`, `- adding #${para.lineIndex}: '${para.content}' as it includes >${thisDateStr} or >today from ${para.note?.filename ?? '<no note>'}`)
         if (!para.note) {
           logWarn(`getReferencedParagraphs`, `  - this backlink para.note is null. Para:\n${JSON.stringify(para, null, 2)}`)
         }
 
         // Log if content contains TEST. TODO(later): remove after testing backlinks workaround
         if (para.content.includes('TEST')) {
-          console.log(`getReferencedParagraphs: FYI 👉 found TEST in paragraph's content for filename '${calNote.filename}':\n${JSP(para, 2)}`)
+          logInfo(`getReferencedParagraphs`, `FYI 👉 found TEST in #${para.lineIndex}: '${calNote.filename}' [${para.type}] {${para.rawContent}}`)
         }
 
         wantedParas.push(para)
@@ -784,7 +785,7 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
       }
     })
 
-    // logDebug(`getReferencedParagraphs`, `"${calNote.title || ''}" has ${wantedParas.length} wantedParas`)
+    logDebug(`getReferencedParagraphs`, `-> "${calNote.title || ''}" has ${wantedParas.length} wantedParas`)
     return wantedParas
   } catch (err) {
     logError('NPnote/getReferencedParagraphs', JSP(err))

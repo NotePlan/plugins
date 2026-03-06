@@ -969,6 +969,48 @@ export function convertRawContentToContent(rawContentIn: string): string {
 }
 
 /**
+ * Calculate indent level for a line from its raw content.
+ * Counts leading tab characters as one indent each, and leading spaces as one indent per two spaces.
+ * Intended to work around cases where the NotePlan API's .indents value is unreliable.
+ * @author @Cursor guided by @jgclark
+ *
+ * @param {string} rawContentIn
+ * @returns {number} calculated indent level (0 for no indent)
+ */
+export function getIndentLevelFromRawContent(rawContentIn: string): number {
+  try {
+    if (!rawContentIn || rawContentIn === '') {
+      return 0
+    }
+    let indentLevel = 0
+    let i = 0
+    const len = rawContentIn.length
+
+    while (i < len) {
+      const ch = rawContentIn[i]
+      if (ch === '\t') {
+        indentLevel += 1
+        i += 1
+      } else if (ch === ' ') {
+        let spaceCount = 0
+        while (i < len && rawContentIn[i] === ' ') {
+          spaceCount += 1
+          i += 1
+        }
+        indentLevel += Math.floor(spaceCount / 2)
+      } else {
+        break
+      }
+    }
+
+    return indentLevel
+  } catch (error) {
+    logError('getIndentLevelFromRawContent', error.message)
+    return 0
+  }
+}
+
+/**
  * Function to write paragraphs either to top of note, bottom of note, or after a heading.
  * Note: there is no API function to insert multiple paragraphs in one go, so we have to insert a raw text string version of the paragraphs that includes multiple lines.
  * Note: now can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports.

@@ -30,7 +30,7 @@ html {
 	scrollbar-gutter: stable;
 
 	/* Define 'Magic Numbers' -------------------------------- */
-	--itemIndentWidth: 1.5rem;
+	--itemIndentWidth: 1.7rem;
 	/* For the NP-generated close button on modal windows on mobile */
 	--modalCloseButtonSpacerWidth: 20px;
 }

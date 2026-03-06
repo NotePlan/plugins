@@ -80,11 +80,6 @@ export async function onSettingsUpdated(): Promise<void> {
   return // Placeholder only to try to stop error in logs
 }
 
-export async function testUpdate(): Promise<void> {
-  await onUpdateOrInstall(true)
-  return
-}
-
 export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<void> {
   try {
     logInfo(pluginID, `onUpdateOrInstall ...`)
