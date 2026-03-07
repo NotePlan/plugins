@@ -3,6 +3,7 @@
 
 ## [1.1.0.b8] - 2026-03-07
 - fix: totals for time-based tags
+- dev: hidden setting **useDemoData** for chart summary. When true, chart data is read from `demoData.json` (serialised occurrences) instead of live `gatherOccurrences`. When useDemoData is false and Log Level is DEBUG, running the chart summary writes the current live data to `demoData.json` for later use as demo data.
 
 ## [1.1.0.b7] - 2026-03-06 (unreleased)
 - the TOTALS section now slides under AVERAGES when window isn't wide enough

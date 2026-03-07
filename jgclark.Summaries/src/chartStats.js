@@ -7,7 +7,7 @@
  *
  * Note: definitions of tags, habits, etc. are now taken from the settings for Progress Updates command.
  *
- * Last updated: 2026-03-04 for v1.1.0.b7 by @jgclark
+ * Last updated: 2026-03-07 for v1.1.0.b9 by @jgclark
  */
 
 // =====================================================================
@@ -35,13 +35,14 @@ import moment from 'moment/min/moment-with-locales'
 import { logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import { gatherOccurrences, getSummariesSettings } from './summaryHelpers.js'
 import type { SummariesConfig } from './summarySettings.js'
-import type { OccurrencesToLookFor, TMOccurrences } from './TMOccurrences.js'
+import type { OccurrencesToLookFor } from './TMOccurrences.js'
+import { TMOccurrences } from './TMOccurrences.js'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { getLocale } from '@helpers/NPConfiguration'
-
+import { calcOffsetDateStr } from '@helpers/NPdateTime'
 
 // =====================================================================
 // TYPES and CONSTANTS
@@ -146,15 +147,47 @@ export async function chartSummaryStats(daysBack?: number): Promise<void> {
       ...(config.progressMentionsAverage ?? []),
       ...(config.progressMentionsTotal ?? [])
     ]
-    const tags = Array.from(new Set(tagsRaw))
+    let tags = Array.from(new Set(tagsRaw))
     // clo(tags, 'tags')
 
-    const rawDates = generateDateRange(daysToShow)
+    let rawDates = generateDateRange(daysToShow)
     const fromDateStr = rawDates.length > 0 ? rawDates[0] : ''
     const toDateStr = rawDates.length > 0 ? rawDates[rawDates.length - 1] : ''
     const occToLookFor = buildOccurrencesToLookForFromChartConfig(config)
     const periodString = `${daysToShow} days`
-    const occs = gatherOccurrences(periodString, fromDateStr, toDateStr, occToLookFor)
+
+    let occs: Array<TMOccurrences>
+    let usedDemoData = false
+    if (config.useDemoData === true) {
+      const payload = DataStore.loadJSON(DEMO_DATA_FILENAME)
+      if (isValidDemoPayload(payload)) {
+        rawDates = payload.rawDates
+        occs = demoPayloadToOccurrences(payload)
+        usedDemoData = true
+        // Show only terms present in demo file; include terms even if not in current config
+        tags = occs.filter((o) => o.type !== 'yesno').map((o) => o.term)
+      } else {
+        logWarn('chartSummaryStats', 'useDemoData true but demoData.json missing or invalid; using live data')
+        occs = gatherOccurrences(periodString, fromDateStr, toDateStr, occToLookFor)
+      }
+    } else {
+      occs = gatherOccurrences(periodString, fromDateStr, toDateStr, occToLookFor)
+      if (config._logLevel === 'DEBUG') {
+        // TODO: Commenting out because this crashes NP, for reasons I don't understand. I have manually created the data instead from this clo call:
+        // clo(payload, 'payload')
+        // try {
+          // const payload = occurrencesToDemoPayload(occs, rawDates)
+          // const saved = DataStore.saveJSON(payload, DEMO_DATA_FILENAME, true)
+          // if (saved) {
+          //   logInfo('chartSummaryStats', 'Wrote live data to demoData.json (DEBUG)')
+          // } else {
+          //   logWarn('chartSummaryStats', 'Failed to write demoData.json (DEBUG)')
+          // }
+        // } catch (e) {
+        //   logError('chartSummaryStats', `Failed to write demo data: ${e.message}`)
+        // }
+      }
+    }
 
     let tagData: Object
     let yesNoData: Object
@@ -167,7 +200,7 @@ export async function chartSummaryStats(daysBack?: number): Promise<void> {
         rawDates: [],
         timeTags: Array.isArray(config.chartTimeTags) ? config.chartTimeTags : []
       }
-      yesNoHabits = stringListOrArrayToArray(config.progressYesNo ?? [], ',')
+      yesNoHabits = usedDemoData ? [] : stringListOrArrayToArray(config.progressYesNo ?? [], ',')
       yesNoData = {
         dates: [],
         counts: yesNoHabits.reduce((acc, habit) => ({ ...acc, [habit]: [] }), {}),
@@ -231,6 +264,100 @@ function formatDateForDisplay(dateStr: string): string {
   const date = new Date(dateStr)
   const locale = getLocale({})
   return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+}
+
+// ==================================================================
+// DEMO DATA (useDemoData setting: serialise/deserialise TMOccurrences to JSON)
+// ==================================================================
+
+const DEMO_DATA_FILENAME = '../jgclark.Summaries/demoData.json'
+
+/** Plain shape for one occurrence in demoData.json (valuesMap as object for JSON). */
+type DemoOccurrenceItem = {
+  term: string,
+  type: string,
+  interval: string,
+  dateStr: string,
+  numDays: number,
+  valuesMap: { [string]: number },
+  total: number,
+  count: number
+}
+
+/** Payload shape for demoData.json: rawDates + array of occurrence items. */
+type DemoDataPayload = {
+  rawDates: Array<string>,
+  occurrences: Array<DemoOccurrenceItem>
+}
+
+/**
+ * Check that a loaded object looks like a valid demo data payload.
+ * @param {Object} payload - Loaded JSON
+ * @returns {boolean}
+ */
+function isValidDemoPayload(payload: any): boolean {
+  if (payload == null || typeof payload !== 'object') return false
+  if (!Array.isArray(payload.rawDates) || !Array.isArray(payload.occurrences)) return false
+  for (const item of payload.occurrences) {
+    if (item == null || typeof item.term !== 'string' || typeof item.type !== 'string' ||
+        item.valuesMap == null || typeof item.valuesMap !== 'object') return false
+  }
+  return true
+}
+
+/**
+ * Serialise occurrences and rawDates to the shape written to demoData.json.
+ * @param {Array<TMOccurrences>} occs - Live occurrences from gatherOccurrences
+ * @param {Array<string>} rawDates - Date range used for the chart
+ * @returns {DemoDataPayload}
+ */
+/**
+ * Copy Map to plain object (avoids Object.fromEntries for NotePlan JSContext compatibility).
+ * @param {Map<string, number>} map
+ * @returns {{ [string]: number }}
+ */
+function mapToPlainObject(map: Map<string, number>): { [string]: number } {
+  const obj: { [string]: number } = {}
+  map.forEach((v, k) => {
+    obj[k] = v
+  })
+  return obj
+}
+
+function occurrencesToDemoPayload(occs: Array<TMOccurrences>, rawDates: Array<string>): DemoDataPayload {
+  const occurrences = occs.map((occ) => ({
+    term: occ.term,
+    type: occ.type,
+    interval: occ.interval,
+    dateStr: occ.dateStr,
+    numDays: occ.numDays,
+    valuesMap: mapToPlainObject(occ.valuesMap),
+    total: occ.total,
+    count: occ.count
+  }))
+  return { rawDates, occurrences }
+}
+
+/**
+ * Deserialise demo data payload into TMOccurrences instances (valuesMap as Map).
+ * @param {DemoDataPayload} payload - Loaded from demoData.json
+ * @returns {Array<TMOccurrences>}
+ */
+function demoPayloadToOccurrences(payload: DemoDataPayload): Array<TMOccurrences> {
+  const result = []
+  for (const item of payload.occurrences) {
+    const toDateStr = item.numDays <= 1 ? item.dateStr : calcOffsetDateStr(item.dateStr, `${item.numDays - 1}d`)
+    const occ = new TMOccurrences(item.term, item.type, item.dateStr, toDateStr, item.interval ?? 'day')
+    const valuesMap = new Map<string, number>()
+    for (const k of Object.keys(item.valuesMap)) {
+      valuesMap.set(k, Number(item.valuesMap[k]))
+    }
+    occ.valuesMap = valuesMap
+    occ.total = item.total
+    occ.count = item.count
+    result.push(occ)
+  }
+  return result
 }
 
 // ==================================================================

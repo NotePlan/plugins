@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 2026-01-30 for v1.1.0.b1 by @jgclark
+// Last updated 2026-03-07 for v1.1.0.b9 by @jgclark
 //-----------------------------------------------------------------------------
 
 export {
@@ -78,9 +78,11 @@ export async function onUpdateOrInstall(): Promise<void> {
       excludeMentions: 'PSMentionsToExclude',
     }
     const migratedSettings = renameKeys(initialSettings, keysToChange)
+    // Also add hidden setting useDemoData
+    migratedSettings.useDemoData = false
+    // Write the settings back to the DataStore (if any changes were made)
     const diff = compareObjects(migratedSettings, initialSettings, [], true)
     if (diff != null) {
-      // Save the settings back to the DataStore
       logInfo(`onUpdateOrInstall`, `- changes to settings detected`)
       clo(initialSettings, `onUpdateOrInstall:  initialSettings:`)
       clo(migratedSettings, `onUpdateOrInstall:  migratedSettings:`)
