@@ -227,6 +227,25 @@ describe('chartStats display statistics', () => {
         expect(result[0].avgDisplay).toBe('7:30')
         expect(result[0].totalDisplay).toBe('7:30')
       })
+
+      test('time tag multi-day total shows full duration (e.g. 91:40 not 19:40 or 3:52)', () => {
+        // 13 values summing to ~91.67 h (from @sleep log); total must show full hours, not wrap at 24
+        const data = [7.3, 7.25, 5.35, 7.25, 7.6, 6.5, 7.25, 7.75, 7.283, 6.9, 6.717, 6.917, 7.6]
+        const sum = data.reduce((s, v) => s + v, 0)
+        expect(sum).toBeCloseTo(91.67, 1)
+        const tagData = {
+          counts: { '@sleep': data },
+          rawDates: [],
+          timeTags: ['@sleep']
+        }
+        const tags = ['@sleep']
+        const result = computeTagDisplayStats(tagData, tags, timeConfig)
+        expect(result[0].totalDisplay).toBe('91:40')
+        expect(result[0].avgDisplay).toBe('7:03') // 91.67/13 ≈ 7.05 → 7:03
+        const totalMins = 91 * 60 + 40
+        const avgMins = totalMins / 13
+        expect(totalMins).toBeGreaterThanOrEqual(avgMins)
+      })
     })
   })
 })

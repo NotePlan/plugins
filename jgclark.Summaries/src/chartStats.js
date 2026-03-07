@@ -370,12 +370,24 @@ function formatToSigFigs(num: number, sigFigs?: number): string {
 }
 
 /**
- * Format decimal hours as H:MM.
+ * Format decimal hours as H:MM (time-of-day, wraps at 24h).
  * @param {number} decimalHours - Hours as decimal (e.g. 7.5 = 7:30)
  * @returns {string} Time string
  */
 function formatTime(decimalHours: number): string {
   const hours = Math.floor(decimalHours) % 24
+  const minutes = Math.round((decimalHours % 1) * 60)
+  return String(hours) + ':' + String(minutes).padStart(2, '0')
+}
+
+/**
+ * Format decimal hours as H:MM for total duration (full hours, no wrap at 24).
+ * Use for time-tag total display so e.g. 91.67 h shows as "91:40" not "19:40".
+ * @param {number} decimalHours - Total hours as decimal (e.g. 91.67 = 91:40)
+ * @returns {string} Duration string
+ */
+function formatDuration(decimalHours: number): string {
+  const hours = Math.floor(decimalHours)
   const minutes = Math.round((decimalHours % 1) * 60)
   return String(hours) + ':' + String(minutes).padStart(2, '0')
 }
@@ -462,7 +474,9 @@ export function computeTagDisplayStats(tagData: Object, tags: Array<string>, con
     }
     const total = totals[i]
     if (isTimeTag(tag)) {
-      totalDisplay = total > 0 ? formatTime(total) : '0'
+      // Time-tag total: use sum(validData) and formatDuration so total matches average's data and shows full duration (no % 24)
+      const totalForDisplay = validData.length > 0 ? validData.reduce((s, v) => s + toNum(v), 0) : 0
+      totalDisplay = totalForDisplay > 0 ? formatDuration(totalForDisplay) : '0'
     } else {
       totalDisplay = formatToSigFigs(total, sigFigs)
     }

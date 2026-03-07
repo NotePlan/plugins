@@ -1,7 +1,10 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-## [1.1.0.b7] - 2026-03-04 (unreleased)
+## [1.1.0.b8] - 2026-03-07
+- fix: totals for time-based tags
+
+## [1.1.0.b7] - 2026-03-06 (unreleased)
 - the TOTALS section now slides under AVERAGES when window isn't wide enough
 - heatmap grid now adjusts width responsively.
 
