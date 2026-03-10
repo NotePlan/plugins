@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-10 for v1.3.0.b9, @jgclark
+// Last updated 2026-02-26 for v1.3.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -137,6 +137,11 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     // Ensure displayPaused has a sensible default if missing from settings
     if (config.displayPaused == null) {
       config.displayPaused = true
+    }
+
+    // Ensure reviewsTheme has a default if missing (e.g. before 'Theme to use for Project Lists' setting existed)
+    if (config.reviewsTheme == null || config.reviewsTheme === undefined) {
+      config.reviewsTheme = ''
     }
 
     return config

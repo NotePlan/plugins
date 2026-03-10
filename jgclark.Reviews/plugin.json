@@ -371,6 +371,14 @@
       "required": true
     },
     {
+      "key": "reviewsTheme",
+      "title": "Theme to use for Project Lists",
+      "description": "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme for the Rich project list window. Leave blank to use your current Theme.",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
       "key": "folderToStore",
       "title": "Folder to store markdown-style review notes",
       "description": "Folder where review notes will be stored (will be created if necessary). Note: this only applies to the markdown-style review notes, not the HTML-style ones.",
