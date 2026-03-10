@@ -1,6 +1,9 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [1.1.0.b9] - 2026-03-07
+- add demo mode for JGC, controlled by hidden 'useDemoData' boolean setting, and when true picking up from `demoData.json` file in the same folder as settings.
+
 ## [1.1.0.b8] - 2026-03-07
 - fix: totals for time-based tags
 - dev: hidden setting **useDemoData** for chart summary. When true, chart data is read from `demoData.json` (serialised occurrences) instead of live `gatherOccurrences`. When useDemoData is false and Log Level is DEBUG, running the chart summary writes the current live data to `demoData.json` for later use as demo data.
