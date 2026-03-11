@@ -18,11 +18,11 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - New: Added a 'Demo' mode, which swaps in a separate `allProjectsDemoListDefault.json` to display details of real (or potentially fictitious) projects for demo.
 
 ## [1.4.0.b1] - 2026-02-22
-### Changed
 - Change: Rich project list: column 3 (metadata column) now shows review and due status as coloured lozenges, plus project tag(s), #sequential when applicable, and all hashtags from the note's metadata line and frontmatter `project` value. New Project field `allProjectTags` holds this combined list.
 - Dev: Project class now uses ISO date strings (YYYY-MM-DD) for startDate, dueDate, reviewedDate, completedDate, and cancelledDate instead of JavaScript Date objects; removes Date/string conversion in constructor, allProjectsListHelpers, and reviewHelpers.
 
 ## [1.3.1] - 2026-02-26
+- New setting "Theme to use for Project Lists": if set to a valid installed Theme name, the Rich project list window uses that theme instead of your current NotePlan theme. Leave blank to use your current theme.
 - Fixed edge case with adding progress updates and frontmatter.
 
 ## [1.3.0] - 2026-02-20

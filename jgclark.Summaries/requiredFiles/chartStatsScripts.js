@@ -7,7 +7,7 @@
  * 
  * Note: this file is run as a script in an HTMLView window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
  * 
- * Last updated: 2026-02-12 for v1.1.0 by @jgclark
+ * Last updated: 2026-03-04 for v1.1.0.b7 by @jgclark
  */
 //-----------------------------------------------------------
 
@@ -399,12 +399,11 @@
       return streak
     }
 
+
+
     function createYesNoHeatmapSection() {
       const row = document.getElementById('yesno-heatmap-section')
       if (!row) return
-
-      // const row = document.createElement('div')
-      // row.className = 'yesno-habit-row'
 
       row.innerHTML = ''
       yesNoHabits.forEach((habit, index) => {
@@ -415,18 +414,12 @@
         const completionRate = calculateCompletionRate(data)
         const streak = calculateStreak(data)
 
-        // const row = document.createElement('div')
-        // row.className = 'yesno-habit-row'
-        // row.id = 'yesno-row-' + index
-
         const label = document.createElement('span')
         label.className = 'yesno-habit-label'
         label.textContent = habit
         row.appendChild(label)
 
-        const vizContainer = document.createElement('span')
-        vizContainer.className = 'yesno-habit-viz'
-        const grid = document.createElement('span')
+        const grid = document.createElement('div')
         grid.className = 'heatmap-grid'
         data.forEach((value, i) => {
           const cell = document.createElement('div')
@@ -434,8 +427,7 @@
           cell.title = dates[i] + ': ' + (value === 1 ? 'Completed' : 'Not completed')
           grid.appendChild(cell)
         })
-        vizContainer.appendChild(grid)
-        row.appendChild(vizContainer)
+        row.appendChild(grid)
 
         const statCompletion = document.createElement('span')
         statCompletion.className = 'yesno-habit-stat-completion'
@@ -451,5 +443,6 @@
     }
 
     createYesNoHeatmapSection()
+
   }
 })()

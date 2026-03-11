@@ -8,6 +8,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b22] 2026-02-27
+- fix (hopefully): work around indents API bug that stopped indented tasks being moved to different calendar notes
+- fix: ensure numeric dashboard settings (for example `maxItemsToShowInSection` and `newTaskSectionHeadingLevel`) are always stored and loaded as numbers, not strings
+- dev: normalise number-type settings in both the React settings dialog and `setSetting`/`setSettings` x-callback paths to avoid subtle type mismatches in future
 
 ## [2.4.0.b21] 2026-02-19 
 - new 'Start' review button in project dialog box.

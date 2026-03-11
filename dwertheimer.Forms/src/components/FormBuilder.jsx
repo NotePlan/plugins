@@ -4,7 +4,7 @@
 // Visual form builder for creating and editing form field definitions
 //--------------------------------------------------------------------------
 
-import React, { useState, useEffect, useMemo, useCallback, type Node } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef, type Node } from 'react'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { useAppContext } from './AppContext.jsx'
 import { FieldEditor } from './FieldEditor.jsx'
@@ -368,9 +368,13 @@ You can edit or delete this comment field - it's just a note to help you get sta
     // Note: We no longer auto-load notes for processing templates - they load lazily when dropdown opens
   }, [needsNotes, notesLoaded, loadingNotes, loadNotes, fields])
 
-  // Sync frontmatter when props change (e.g., when receivingTemplateTitle is set after template creation)
+  // Sync frontmatter when the receivingTemplateTitle *prop* changes (e.g. after template creation or initial load).
+  // We must NOT sync when only frontmatter.receivingTemplateTitle changes (user changed the dropdown), or we
+  // would overwrite the user's selection with the stale prop and the dropdown would "flip back".
+  const prevReceivingTemplateTitlePropRef = useRef(receivingTemplateTitle)
   useEffect(() => {
-    if (receivingTemplateTitle && receivingTemplateTitle !== frontmatter.receivingTemplateTitle) {
+    if (receivingTemplateTitle && receivingTemplateTitle !== prevReceivingTemplateTitlePropRef.current) {
+      prevReceivingTemplateTitlePropRef.current = receivingTemplateTitle
       const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''
       setFrontmatter((prev) => ({
         ...prev,
@@ -379,7 +383,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
         processingMethod: cleanedReceivingTemplateTitle ? 'form-processor' : prev.processingMethod || 'write-existing',
       }))
     }
-  }, [receivingTemplateTitle, frontmatter.receivingTemplateTitle])
+  }, [receivingTemplateTitle])
 
   // Initialize frontmatter with stripped quotes to prevent saving quoted values
   useEffect(() => {
@@ -611,7 +615,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
     <div className="form-builder-container">
       <div className="form-builder-header">
         <div className="form-builder-title-section">
-          <h2 className="form-builder-title">Form Builder (beta)</h2>
+          <h2 className="form-builder-title">Template Form Builder</h2>
           {templateTitle && (
             <div style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <div

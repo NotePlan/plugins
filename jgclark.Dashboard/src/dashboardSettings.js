@@ -50,8 +50,13 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 ]
 
 export const searchPanelSettings: Array<TSettingItem> = [
-  // TODO(later): fill in or remove
-  {},
+  // Placeholder definition to keep Flow happy until this is implemented.
+  {
+    key: 'searchPanelPlaceholder',
+    label: 'Search panel placeholder',
+    type: 'text',
+    default: '',
+  },
 ]
 
 // This section is an array that describes the order and type of the individual settings
@@ -465,6 +470,55 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: 'Please use the NotePlan Settings Pane for the Dashboard Plugin to change logging settings.',
   },
 ]
+
+/**
+ * Normalise all dashboard settings that are defined as type 'number' so they
+ * are stored as actual numbers, not strings or other types.
+ * This helps avoid subtle bugs where numeric settings are accidentally
+ * persisted as strings (e.g. from React inputs or x-callbacks).
+ *
+ * @param {TAnyObject} settingsIn - raw dashboard settings object
+ * @returns {TAnyObject} cloned settings object with numeric fields coerced to numbers where possible
+ */
+export function normaliseDashboardNumberSettings(settingsIn: TAnyObject): TAnyObject {
+  try {
+    if (!settingsIn || typeof settingsIn !== 'object') {
+      return settingsIn
+    }
+
+    const numberSettingDefs: Array<TSettingItem> = [...dashboardFilterDefs, ...dashboardSettingDefs].filter(
+      (def) => def.type === 'number' && def.key,
+    )
+
+    const settingsOut: TAnyObject = { ...settingsIn }
+
+    numberSettingDefs.forEach((def) => {
+      if (!def.key) {
+        return
+      }
+      const key: string = def.key
+      // $FlowIgnore[prop-missing]
+      const rawValue: any = settingsOut[key]
+      if (rawValue === null || rawValue === undefined) {
+        return
+      }
+      if (typeof rawValue === 'number') {
+        return
+      }
+
+      const coerced = Number(rawValue)
+      if (!Number.isNaN(coerced)) {
+        // $FlowIgnore[prop-missing]
+        settingsOut[key] = coerced
+      }
+    })
+
+    return settingsOut
+  } catch (error) {
+    logDebug('normaliseDashboardNumberSettings', `Error normalising settings: ${String(error?.message || error)}`)
+    return settingsIn
+  }
+}
 
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TSettingItem> => {
   return dashboardSettingDefs.map((setting) => {

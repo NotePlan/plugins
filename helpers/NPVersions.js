@@ -37,6 +37,7 @@ export function usersVersionHas(feature: string): boolean {
     showInMainWindow: '3.20.0', // Dec 2025, macOS build 1469
     showInMainWindowOniOS: '3.20.1', // Jan 2026, iOS build 1380
     reuseSplitView: '3.20.1', // Jan 2026, macOS build 1479ish
+    windowIsVisible: '3.20.2', // Mar 2026, macOS build 1494
   }
 
   // Check if the user's version meets the requirement for the requested feature

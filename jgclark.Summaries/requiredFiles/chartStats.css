@@ -86,6 +86,17 @@ h1 {
   margin-bottom: 1rem;
 }
 
+@media (max-width: 670px) {
+  .stats-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stats-section {
+    width: 100%;
+  }
+}
+
 .config-section {
   padding: 0.75rem;
   background: var(--bg-secondary);
@@ -334,7 +345,7 @@ h1 {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  /* margin-bottom: 0.25rem; */
+  margin-bottom: 0.25rem;
 }
 
 .chart-title {
@@ -423,13 +434,15 @@ canvas {
 
 .heatmap-grid {
   display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
+  flex-wrap: nowrap;
+  gap: 2px;
   align-items: center;
 }
 
 .heatmap-cell {
-  width: 1rem;
+  /* width: 0.9rem; /* 1rem (square) doesn't look quite right */
+  flex: 0 1 0.9rem;
+  /* min-width: 0.1rem; */
   height: 1rem;
   border-radius: 3px;
   border: 1px solid var(--border-color);
@@ -454,66 +467,16 @@ canvas {
   border-color: var(--border-color);
 }
 
-/*
-.heatmap-legend {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.heatmap-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.heatmap-legend-box {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  border: 1px solid var(--border-color);
-} */
-
-/*
-.viz-selector {
-  display: flex;
-  gap: 4px;
-  background: var(--bg-tertiary);
-  border-radius: 6px;
-  padding: 3px;
-}
-
-.viz-option {
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  background: transparent;
-}
-
-.viz-option:hover {
-  color: var(--text-primary);
-}
-
-.viz-option.active {
-  background: var(--accent-color);
-  color: white;
-} */
-
 /* Combined yes/no layout */
 .yesno-heatmap-section {
-  padding: 1rem 0.5rem 0.25rem;
-  column-gap: 1rem;
-  row-gap: 0.2rem;
+  padding: 0.75rem 0.5rem 0.25rem;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
   display: grid;
-  grid-template-columns: max-content max-content max-content auto;
+  /* grid-template-columns: max-content minmax(0, max-content) max-content max-content; */
+  grid-template-columns: max-content 1fr max-content max-content;
+  /* resize: horizontal; */
+  overflow: hidden;
   align-items: center;
 }
 
@@ -523,7 +486,7 @@ canvas {
 
 .yesno-habit-label {
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-primary);
   text-align: end;
   justify-self: end;
@@ -531,19 +494,20 @@ canvas {
 
 .yesno-habit-viz {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-self: start;
+  min-width: 2rem;
+  overflow: hidden;
 }
 
 .yesno-habit-stat-completion {
   font-size: 0.85rem;
   color: var(--text-primary);
-  text-align: end;
   justify-self: end;
 }
 .yesno-habit-stat-streak {
   font-size: 0.85rem;
   color: var(--text-primary);
-  text-align: end;
   justify-self: start;
 }

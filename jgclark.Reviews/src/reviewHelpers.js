@@ -159,6 +159,11 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
       config.autoUpdateAfterIdleTime = 0
     }
 
+    // Ensure reviewsTheme has a default if missing (e.g. before 'Theme to use for Project Lists' setting existed)
+    if (config.reviewsTheme == null || config.reviewsTheme === undefined) {
+      config.reviewsTheme = ''
+    }
+
     return config
   } catch (err) {
     logError('getReviewSettings', `${err.name}: ${err.message}`)

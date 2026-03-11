@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Summary settings helper module for jgclark.Summaries plugin
-// Last updated: 2026-02-04 for v1.1.0 by @jgclark
+// Last updated: 2026-03-07 for v1.1.0.b9 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -63,6 +63,9 @@ export type SummariesConfig = {
   // chartYesNoChartHeight?: number,
   // chart colors: single comma-separated string
   chartColors?: string,
+  // hidden / debugging ...
+  _logLevel?: string,
+  useDemoData?: boolean,
 }
 
 /**

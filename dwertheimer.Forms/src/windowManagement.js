@@ -873,9 +873,9 @@ export async function openFormBuilderWindow(argObj: Object): Promise<void> {
       },
       title: templateTitleForWindow
         ? templateTeamspaceTitle
-          ? `Form Builder - ${templateTeamspaceTitle} ${templateTitleForWindow}`
-          : `Form Builder - ${templateTitleForWindow}`
-        : 'Form Builder',
+          ? `Template Form Builder - ${templateTeamspaceTitle} ${templateTitleForWindow}`
+          : `Template Form Builder - ${templateTitleForWindow}`
+        : 'Template Form Builder',
       logProfilingMessage: false,
       debug: false,
       ENV_MODE,
