@@ -1,6 +1,13 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+<!-- ## [1.4.0.b7] - 2026-03-13???
+- When finishing a review, if project metadata is in frontmatter, any existing body metadata line is replaced with the message "Project metadata has been migrated to frontmatter"; on the next finish that message line is removed. -->
+
+## [1.4.0.b6] - 2026-03-12
+- New: Weekly per-folder Area/Project progress CSVs now use full folder paths consistently and include a totals row at the bottom of each table.
+- New: Weekly per-folder Area/Project progress can now be viewed as two heatmaps (notes progressed per week and tasks completed per week), using data from the CSVs.
+
 ## [1.4.0.b5] - 2026-02-27
 - Project metadata can now be fully stored in frontmatter as well as in the note body. You have two options:
   - You can now use a configurable frontmatter key name (default `project:`), to store it all in a single value.

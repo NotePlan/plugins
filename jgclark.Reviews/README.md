@@ -269,6 +269,19 @@ Progress: <num>@YYYY-MM-DD <short description>
 ```
 It will also update the project's `@reviewed(date)`.
 
+### "/heatmaps for weekly Projects Progress" command
+The **/weeklyProjectsProgress heatmaps** command scans your Area/Project folders by week, and shows a pair of heatmaps in new windows:
+
+- one heatmap for notes progressed per week per folder of notes (where a project note counts as being progressed if one or more tasks are completed)
+- one heatmap for tasks completed per week per folder of notes
+
+For those with lots of different projects or project groups, this is a handy way of seeing over time which of them are getting more or less attention.
+
+<!-- The **/weeklyProjectsProgress** command scans your Area/Project folders and writes two CSV files into the plugin’s hidden data folder:
+
+- one with the number of distinct notes progressed per folder per week
+- one with the total number of completed tasks per folder per week -->
+
 ## Capturing and Displaying 'Next Actions'
 Part of the "Getting Things Done" methodology is to be clear what your 'next action' is. If you put a standard tag on such actionable tasks/checklists (e.g. `#next` or `#na`) and set that in the plugin settings, the project list shows that next action after the progress summary. Only the first matching item is shown; if there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist is shown instead. You can set several next-action tags (e.g. `#na` for things you can do, `#waiting` for things you're waiting on others).
 
