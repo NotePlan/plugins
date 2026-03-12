@@ -7,7 +7,7 @@
 // Columns: successive week labels (e.g. 2026-W06)
 // Rows: folder names in alphabetical order
 //
-// Last updated 2026-02-06 for v1.3.0.b5 by @jgclark (spec) + @cursor (implementation)
+// Last updated 2026-03-12 for v1.4.0.b6 by @jgclark (spec) + @cursor (implementation)
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -21,6 +21,7 @@ import {
 import { getNPWeekData, pad } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
 import { getRegularNotesFromFilteredFolders, getFolderFromFilename } from '@helpers/folders'
+import { displayTitle } from '@helpers/general'
 import { isDone } from '@helpers/utils'
 
 //-----------------------------------------------------------------------------
@@ -156,13 +157,12 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
 
     // 2. Get all regular notes from filtered folders (respecting existing Summaries exclusions)
     const allNotes = getRegularNotesFromFilteredFolders(foldersToExclude, true)
-    logDebug(pluginJson, `projectsWeeklyProgressCSV: considering ${String(allNotes.length)} regular notes`)
+    logDebug('generateProjectsWeeklyProgressLines', `considering ${String(allNotes.length)} regular notes`)
 
     // 3. Filter notes to those whose folder name contains 'Area' or 'Project'
     const folderSet: Set<string> = new Set()
     const notesInTargetFolders = allNotes.filter((n) => {
       const folderPath = getFolderFromFilename(n.filename)
-      // const baseFolder = folderPath === '/' ? '/' : folderPath.split('/').pop() ?? folderPath
       if (isAreaOrProjectFolder(folderPath)) {
         folderSet.add(folderPath)
         return true
@@ -170,10 +170,10 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
       return false
     })
     const folders: Array<string> = Array.from(folderSet).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-    logInfo(pluginJson, `projectsWeeklyProgressCSV: found ${String(folders.length)} Area/Project folders and ${String(notesInTargetFolders.length)} notes in them`)
+    logInfo('generateProjectsWeeklyProgressLines', `found ${String(folders.length)} Area/Project folders and ${String(notesInTargetFolders.length)} notes in them`)
 
     if (folders.length === 0) {
-      logInfo(pluginJson, `projectsWeeklyProgressCSV: no Area/Project folders found – nothing to write`)
+      logInfo('generateProjectsWeeklyProgressLines', `no Area/Project folders found – nothing to write`)
       return [[], []]
     }
 
@@ -184,8 +184,6 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
     // 5. Scan notes and paragraphs
     for (const note of notesInTargetFolders) {
       const folderPath = getFolderFromFilename(note.filename)
-      const baseFolder = folderPath === '/' ? '/' : folderPath.split('/').pop() ?? folderPath
-
       for (const p of note.paragraphs) {
         if (!isDone(p)) continue
         const doneISO = getDoneISODateFromContent(p.content)
@@ -194,7 +192,7 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
         const weekLabel = getWeekLabelForISODate(doneISO, weeks)
         if (!weekLabel) continue
 
-        const key = makeFolderWeekKey(baseFolder, weekLabel)
+        const key = makeFolderWeekKey(folderPath, weekLabel)
 
         // tasks-per-week
         const currentTasks = tasksPerWeekMap.get(key) ?? 0
@@ -209,15 +207,17 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
 
     // 6. Build CSV tables
     const notesRows: Array<string> = [
-      ['Folder / Notes progressed per week', ...weekLabels].join(','),
+      ['Folder / Notes progressed per week', ...weekLabels, 'total'].join(','),
     ]
     const tasksRows: Array<string> = [
-      ['Folder / Tasks completed per week', ...weekLabels].join(','),
+      ['Folder / Tasks completed per week', ...weekLabels, 'total'].join(','),
     ]
 
     for (const folderName of folders) {
       const noteCounts: Array<string> = []
+      let noteCountTotal = 0
       const taskCounts: Array<string> = []
+      let taskCountTotal = 0
 
       for (const weekLabel of weekLabels) {
         const key = makeFolderWeekKey(folderName, weekLabel)
@@ -225,17 +225,44 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
         const noteCount = noteSet ? noteSet.size : 0
         const taskCount = tasksPerWeekMap.get(key) ?? 0
         noteCounts.push(String(noteCount))
+        noteCountTotal += noteCount
         taskCounts.push(String(taskCount))
+        taskCountTotal += taskCount
       }
 
       // Note: surround folder name with quotes in case folder name contains commas
-      notesRows.push([`"${folderName}"`].concat(noteCounts).join(','))
-      tasksRows.push([`"${folderName}"`].concat(taskCounts).join(','))
+      notesRows.push([`"${folderName}"`].concat(noteCounts).concat(String(noteCountTotal)).join(','))
+      tasksRows.push([`"${folderName}"`].concat(taskCounts).concat(String(taskCountTotal)).join(','))
     }
-    logInfo(pluginJson, `projectsWeeklyProgressCSV: generated ${String(notesRows.length)} notes rows and ${String(tasksRows.length)} tasks rows in ${timer(startTime)}`)
+
+    // Add totals row (sum of each column across all folders)
+    if (folders.length > 0) {
+      const notesColumnTotals: Array<number> = new Array<number>(weekLabels.length + 1).fill(0)
+      const tasksColumnTotals: Array<number> = new Array<number>(weekLabels.length + 1).fill(0)
+
+      for (const folderName of folders) {
+        const rowPartsNotes = notesRows.find((r) => r.startsWith(`"${folderName}"`))
+        const rowPartsTasks = tasksRows.find((r) => r.startsWith(`"${folderName}"`))
+        if (!rowPartsNotes || !rowPartsTasks) {
+          continue
+        }
+        const colsNotes = rowPartsNotes.split(',').slice(1).map((v) => Number(v) || 0)
+        const colsTasks = rowPartsTasks.split(',').slice(1).map((v) => Number(v) || 0)
+        colsNotes.forEach((val, idx) => {
+          notesColumnTotals[idx] += val
+        })
+        colsTasks.forEach((val, idx) => {
+          tasksColumnTotals[idx] += val
+        })
+      }
+
+      notesRows.push(['"TOTAL"', ...notesColumnTotals.map((n) => String(n))].join(','))
+      tasksRows.push(['"TOTAL"', ...tasksColumnTotals.map((n) => String(n))].join(','))
+    }
+    logInfo('projectsWeeklyProgressCSV', `Generated ${String(notesRows.length)} notes rows and ${String(tasksRows.length)} tasks rows in ${timer(startTime)}`)
     return [notesRows, tasksRows]
   } catch (error) {
-    logError(pluginJson, `projectsWeeklyProgressCSV: ${error.message}`)
+    logError('projectsWeeklyProgressCSV', error.message)
     throw error
   }
 }
@@ -254,7 +281,7 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
  */
 export async function writeProjectsWeeklyProgressToCSV(): Promise<void> {
   try {
-    logDebug(pluginJson, `projectsWeeklyProgressCSV: starting`)
+    logDebug(pluginJson, `writeProjectsWeeklyProgressToCSV: starting`)
 
     const [notesRows, tasksRows] = await generateProjectsWeeklyProgressLines()
 
@@ -266,9 +293,9 @@ export async function writeProjectsWeeklyProgressToCSV(): Promise<void> {
     const tasksCsvString = tasksRows.join('\n')
     await DataStore.saveData(tasksCsvString, TASK_COMPLETION_PER_FOLDER_FILENAME, true)
 
-    logInfo(pluginJson, `projectsWeeklyProgressCSV: written weekly progress CSV to '${PROGRESS_PER_FOLDER_FILENAME}' and '${TASK_COMPLETION_PER_FOLDER_FILENAME}'`)
+    logInfo('writeProjectsWeeklyProgressToCSV', `Written weekly progress CSV to '${PROGRESS_PER_FOLDER_FILENAME}' and '${TASK_COMPLETION_PER_FOLDER_FILENAME}'`)
   } catch (error) {
-    logError(pluginJson, `projectsWeeklyProgressCSV: ${error.message}`)
+    logError('writeProjectsWeeklyProgressToCSV', error.message)
     throw error
   }
 }
