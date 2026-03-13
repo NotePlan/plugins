@@ -51,7 +51,10 @@ export {
 export {
   generateCSSFromTheme
 } from '@helpers/NPThemeToCSS'
-export { writeProjectsWeeklyProgressToCSV } from './projectsWeeklyProgress'
+export {
+  writeProjectsWeeklyProgressToCSV,
+  showProjectsWeeklyProgressHeatmaps
+} from './projectsWeeklyProgress'
 
 // Note: There are other possible exports, including:
 export { testFonts } from '../experiments/fontTests.js'

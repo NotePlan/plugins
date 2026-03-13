@@ -161,11 +161,11 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
     const allNotes = getRegularNotesFromFilteredFolders(foldersToExclude, true)
     logDebug('generateProjectsWeeklyProgressLines', `considering ${String(allNotes.length)} regular notes`)
 
-    // 3. Filter notes to those whose folder name contains 'Area' or 'Project', and doesn't start or end with 'index' (case-insensitive)
+    // 3. Filter notes to those whose folder name contains 'Area' or 'Project', and doesn't start or end with 'index' or 'MOC' (case-insensitive)
     const folderSet: Set<string> = new Set()
     const notesInTargetFolders = allNotes.filter((n) => {
       const folderPath = getFolderFromFilename(n.filename)
-      if (isAreaOrProjectFolder(folderPath) && !n.title?.match(/^index$/i) && !n.title?.match(/index$/i)) {
+      if (isAreaOrProjectFolder(folderPath) && !n.title?.match(/^index $/i) && !n.title?.match(/ index$/i) && !n.title?.match(/^moc $/i) && !n.title?.match(/ moc$/i)) {
         folderSet.add(folderPath)
         return true
       }

@@ -55,6 +55,7 @@ export type ReviewConfig = {
   displayOnlyDue: boolean,
   displayProgress: boolean,
   projectTagsInColumn?: string, // 'column2' | 'column3'; default column2
+  statusLozengesInColumn2?: boolean,
   finishedListHeading: string,
   hideTopLevelFolder: boolean,
   ignoreChecklistsInProgress: boolean,

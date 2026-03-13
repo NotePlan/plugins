@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-02-22 for v1.4.0.b1 by @jgclark
+// Last updated 2026-03-13 for v1.4.0.b7 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
@@ -86,7 +86,14 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedT
   const openItemCount = generateItemCountsBadge(thisProject)
   const showTagsInColumn2 = config.projectTagsInColumn !== 'column3'
   const projectTagsInline = showTagsInColumn2 ? generateProjectTagsLozenges(thisProject) : ''
-  parts.push(`\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}${openItemCount}${projectTagsInline}</span>`)
+  const statusLozengesInline = config.statusLozengesInColumn2 ? buildStatusLozenges(thisProject).join('\n') : ''
+  parts.push(
+    `\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectTitle">${decoratedProjectTitle(
+      thisProject,
+      'Rich',
+      config,
+    )}${editButton}${openItemCount}${projectTagsInline}${statusLozengesInline}</span>`,
+  )
 
   if (!thisProject.isCompleted && !thisProject.isCancelled) {
     const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
@@ -99,8 +106,10 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedT
   }
   parts.push(`</div>`)
 
-  // Column 3: metadata (dates + project tags/hashtags)
-  parts.push(generateDateSection(thisProject, config))
+  // Column 3: metadata (dates + project tags/hashtags), unless status lozenges are shown inline in column 2
+  if (!config.statusLozengesInColumn2) {
+    parts.push(generateDateSection(thisProject, config))
+  }
   parts.push('\n\t</div>')
 
   return parts.join('')
@@ -164,6 +173,44 @@ function generateProjectTagsLozenges(thisProject: Project): string {
 }
 
 /**
+ * Build review/due status lozenges (without wrapping container), for use either in column 2 or column 3.
+ * @param {Project} thisProject
+ * @returns {Array<string>}
+ * @private
+ */
+function buildStatusLozenges(thisProject: Project): Array<string> {
+  const lozenges: Array<string> = []
+
+  // Review status lozenge (from getIntervalReviewStatus)
+  if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
+    const reviewStatus = getIntervalReviewStatus(thisProject.nextReviewDays)
+    if (reviewStatus.text !== '') {
+      lozenges.push(
+        `<span class="metadata-lozenge metadata-lozenge--${reviewStatus.color}">${addFAIcon(
+          reviewStatus.icon ?? '',
+          reviewStatus.color,
+        )} ${reviewStatus.text}</span>`,
+      )
+    }
+  }
+
+  // Due status lozenge (from getIntervalDueStatus), follows review in same container
+  if (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) {
+    const dueStatus = getIntervalDueStatus(thisProject.dueDays)
+    if (dueStatus.text !== '') {
+      lozenges.push(
+        `<span class="metadata-lozenge metadata-lozenge--${dueStatus.color}">${addFAIcon(
+          dueStatus.icon ?? '',
+          dueStatus.color,
+        )} ${dueStatus.text}</span>`,
+      )
+    }
+  }
+
+  return lozenges
+}
+
+/**
  * Generate progress section HTML (stats: percent done / item count; comment shown in progress line row when present)
  * @param {Project} thisProject
  * @param {ReviewConfig} config
@@ -218,6 +265,9 @@ function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Ar
 function generateDateSection(thisProject: Project, config: ReviewConfig): string {
   if (!config.displayDates) return ''
 
+  // When status lozenges are shown inline in column 2, there is no separate metadata column (column 3)
+  if (config.statusLozengesInColumn2) return ''
+
   if (thisProject.isPaused) return '<div class="project-grid-cell project-grid-cell--metadata"></div>'
 
   if (thisProject.isCompleted) {
@@ -237,16 +287,8 @@ function generateDateSection(thisProject: Project, config: ReviewConfig): string
     }
   }
 
-  // Review status lozenge (from getIntervalReviewStatus)
-  if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
-    const reviewStatus = getIntervalReviewStatus(thisProject.nextReviewDays)
-    lozenges.push(`<span class="metadata-lozenge metadata-lozenge--${reviewStatus.color}">${reviewStatus.text}</span>`)
-  }
-  // Due status lozenge (from getIntervalDueStatus), follows review in same column
-  if (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) {
-    const dueStatus = getIntervalDueStatus(thisProject.dueDays)
-    lozenges.push(`<span class="metadata-lozenge metadata-lozenge--${dueStatus.color}">${dueStatus.text}</span>`)
-  }
+  // Review/due status lozenges (from helper), follow tags in same column
+  lozenges.push(...buildStatusLozenges(thisProject))
 
   return `<div class="project-grid-cell project-grid-cell--metadata project-metadata-cell">${lozenges.join('\n')}</div>`
 }
@@ -512,9 +554,10 @@ export function generateTopBarHTML(config: any): string {
  */
 export function generateFolderHeaderHTML(folderPart: string, config: any): string {
   const parts: Array<string> = []
+  const hasMetadataColumn = config.displayDates && !config.statusLozengesInColumn2
   parts.push(` <div class="project-grid-row folder-header-row">`)
   parts.push(`  <div class="project-grid-cell project-grid-cell--span-2 folder-header h3">${folderPart}</div>`)
-  if (config.displayDates) {
+  if (hasMetadataColumn) {
     parts.push(`  <div class="project-grid-cell folder-header"></div>`) // deliberately no header text
   }
   parts.push(` </div>`)
@@ -557,7 +600,8 @@ export function generateSingleSectionHeaderHTML(noteCount: number, due: number, 
     const folderDisplayName = getFolderDisplayNameForHTML(config.foldersToInclude[0])
     parts.push(`<h4>${folderDisplayName} folder</h4>`)
   }
-  const gridClass = config.displayDates ? 'project-list-grid project-list-grid--with-dates' : 'project-list-grid project-list-grid--no-dates'
+  const hasMetadataColumn = config.displayDates && !config.statusLozengesInColumn2
+  const gridClass = hasMetadataColumn ? 'project-list-grid project-list-grid--with-dates' : 'project-list-grid project-list-grid--no-dates'
   parts.push(`\n<div class="${gridClass}">`)
   return parts.join('\n')
 }
@@ -601,8 +645,8 @@ export function generateHTMLForProjectTagSectionHeader(
     const folderDisplayName = getFolderDisplayNameForHTML(config.foldersToInclude[0])
     parts.push(`<h4>${folderDisplayName} folder</h4>`)
   }
-  
-  const gridClass = config.displayDates ? 'project-list-grid project-list-grid--with-dates' : 'project-list-grid project-list-grid--no-dates'
+  const hasMetadataColumn = config.displayDates && !config.statusLozengesInColumn2
+  const gridClass = hasMetadataColumn ? 'project-list-grid project-list-grid--with-dates' : 'project-list-grid project-list-grid--no-dates'
   parts.push(`\n<div class="${gridClass}">`)
 
   return parts.join('\n')

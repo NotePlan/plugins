@@ -3,6 +3,11 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 <!-- ## [1.4.0.b7] - 2026-03-13???
 - When finishing a review, if project metadata is in frontmatter, any existing body metadata line is replaced with the message "Project metadata has been migrated to frontmatter"; on the next finish that message line is removed. -->
+## [1.4.0.b7] - 2026-03-13
+- Status lozenge changes
+  - Shorten text and add icons
+  - Drop lozenges when not further out than 2 weeks
+  - Move to column 2 (via hidden setting 'statusLozengesInColumn2')
 
 ## [1.4.0.b6] - 2026-03-12
 - New: Weekly per-folder Area/Project progress CSVs now use full folder paths consistently and include a totals row at the bottom of each table.
