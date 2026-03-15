@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-02-26 for v1.4.0.b4, @jgclark
+// Last updated 2026-03-12 for v1.4.0.b6, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -20,9 +20,12 @@ import { checkForWantedResources, logAvailableSharedResources, logProvidedShared
 import {
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
+  getOrMakeMetadataLineIndex,
   getNextActionLineIndex,
   getReviewSettings,
   isProjectNoteIsMarkedSequential,
+  migrateProjectMetadataLineInEditor,
+  migrateProjectMetadataLineInNote,
   type ReviewConfig,
   updateMetadataInEditor,
   updateMetadataInNote,
@@ -79,7 +82,7 @@ import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInp
 const pluginID = 'jgclark.Reviews'
 const windowTitle = `Projects List`
 const windowTitleDemo = 'Projects List (Demo)'
-const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
+const filenameHTMLCopy = 'projects_list.html'
 const customRichWinId = `${pluginID}.rich-review-list`
 const customRichWinIdDemo = `${pluginID}.rich-review-list-demo`
 const customMarkdownWinId = `markdown-review-list`
@@ -213,11 +216,11 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
     } else {
       // Re-calculate the allProjects list (in foreground)
       await generateAllProjectsList(config, true)
-      logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectLists() if open`)
+      logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectListsIfOpen()`)
     }
 
     // Call the relevant rendering function, but only continue if relevant window is open
-    await renderProjectLists(config, false, scrollPos)
+    await renderProjectListsIfOpen(config, scrollPos)
     return {} // just to avoid NP silently failing when called by invokePluginCommandByName
   } catch (error) {
     logError('displayProjectLists', JSP(error))
@@ -253,14 +256,19 @@ export async function renderProjectLists(
 }
 
 /**
- * Render the project list, according to the chosen output style. Note: this does *not* re-calculate the project list.
+ * Render the project list, according to the chosen output style. This does *not* re-calculate the project list.
+ * Note: Called by Dashboard, as well as internally.
+ * @param {any} configIn (optional; will look up if not given)
+ * @param {number} scrollPos for HTML view (optional; defaults to 0)
  * @author @jgclark
  */
 export async function renderProjectListsIfOpen(
-): Promise<any> {
+  configIn?: any,
+  scrollPos?: number = 0
+): Promise<boolean> {
   try {
     logInfo(pluginJson, `renderProjectListsIfOpen ----------------------------------------`)
-    const config = await getReviewSettings()
+    const config = configIn ? configIn : await getReviewSettings()
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -268,12 +276,13 @@ export async function renderProjectListsIfOpen(
       renderProjectListsMarkdown(config, false)
     }
     if (config.outputStyle.match(/rich/i)) {
-      await renderProjectListsHTML(config, false)
+      await renderProjectListsHTML(config, false, scrollPos)
     }
-    // return {} just to avoid possibility of NP silently failing when called by invokePluginCommandByName
-    return {}
+    // return true to avoid possibility of NP silently failing when called by invokePluginCommandByName
+    return true
   } catch (error) {
     logError('renderProjectListsIfOpen', error.message)
+    return false
   }
 }
 
@@ -416,7 +425,7 @@ export async function renderProjectListsHTML(
       customId: richWinId,
       headerTags: `${faLinksInHeader}${stylesheetinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">\n<meta name="autoUpdateAfterIdleTime" content="${String(config.autoUpdateAfterIdleTime ?? 0)}">`,
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
-      specificCSS: '', // now in requiredFiles/reviewListCSS instead
+      specificCSS: '', // now in requiredFiles/projectList.css instead
       makeModal: false, // = not modal window
       bodyOptions: 'onload="showTimeAgo()"',
       preBodyScript: setPercentRingJSFunc + scrollPreLoadJSFuncs,
@@ -757,18 +766,24 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     const possibleThisEditor = getOpenEditorFromFilename(note.filename)
     if (possibleThisEditor) {
       logDebug('finishReviewCoreLogic', `Updating Editor '${displayTitle(possibleThisEditor)}' ...`)
-      // First update @review(date) on current open note
-      updateMetadataInEditor(possibleThisEditor, [reviewedTodayString])
+      const metadataLineIndex: number = getOrMakeMetadataLineIndex(possibleThisEditor)
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      deleteMetadataMentionInEditor(possibleThisEditor, [config.nextReviewMentionStr])
+      deleteMetadataMentionInEditor(possibleThisEditor, metadataLineIndex, [config.nextReviewMentionStr])
+      // Update @review(date) on current open note
+      updateMetadataInEditor(possibleThisEditor, [reviewedTodayString])
+      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+      migrateProjectMetadataLineInEditor(possibleThisEditor)
       await possibleThisEditor.save()
       // Note: no longer seem to need to update cache
     } else {
       logDebug('finishReviewCoreLogic', `Updating note '${displayTitle(note)}' ...`)
-      // First update @review(date) on the note
-      updateMetadataInNote(note, [reviewedTodayString])
+      const metadataLineIndex: number = getOrMakeMetadataLineIndex(note)
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      deleteMetadataMentionInNote(note, [config.nextReviewMentionStr])
+      deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
+      // Update @review(date) on the note
+      updateMetadataInNote(note, [reviewedTodayString])
+      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+      migrateProjectMetadataLineInNote(note)
       // $FlowIgnore[prop-missing]
       DataStore.updateCache(note, true)
     }
@@ -793,11 +808,13 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
 
       // Save changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
-      // Update display for user (but don't open if it isn't already)
-      await renderProjectLists(config, false)
+      // Update display for user (if window is already open)
+      // TODO: How can we keep the scrollPos?
+      await renderProjectListsIfOpen(config)
     } else {
       // Regenerate whole list (and display if window is already open)
       logInfo('finishReviewCoreLogic', `- In allProjects list couldn't find project '${note.filename}'. So regenerating whole list and will display if list is open.`)
+      // TODO: Split the following into just generate...(), and then move the renderProjectListsIfOpen() above to serve both if/else clauses
       await generateProjectListsAndRenderIfOpen()
     }
 
@@ -1046,7 +1063,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
       // Write changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't open window if not open already)
-      await renderProjectLists(config, false)
+      await renderProjectListsIfOpen(config)
     } else {
       // Regenerate whole list (and display if window is already open)
       logWarn('skipReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
@@ -1189,7 +1206,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
       // Write changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't focus)
-      await renderProjectLists(config, false)
+      await renderProjectListsIfOpen(config)
     }
   } catch (error) {
     logError('setNewReviewInterval', error.message)
@@ -1220,7 +1237,8 @@ export async function toggleDisplayFinished(): Promise<void> {
     // logDebug('toggleDisplayFinished', `updatedConfig.displayFinished? now is '${String(updatedConfig.displayFinished)}'`)
     const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
     // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    await renderProjectLists(updatedConfig, false)
+    // TODO: how to get scrollPos?
+    await renderProjectListsIfOpen(updatedConfig)
   }
   catch (error) {
     logError('toggleDisplayFinished', error.message)
@@ -1243,7 +1261,8 @@ export async function toggleDisplayOnlyDue(): Promise<void> {
     // logDebug('toggleDisplayOnlyDue', `updatedConfig.displayOnlyDue? now is '${String(updatedConfig.displayOnlyDue)}'`)
     const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
     // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    await renderProjectLists(updatedConfig, false)
+    // TODO: how to get scrollPos?
+    await renderProjectListsIfOpen(updatedConfig)
   }
   catch (error) {
     logError('toggleDisplayOnlyDue', error.message)
@@ -1265,7 +1284,8 @@ export async function toggleDisplayNextActions(): Promise<void> {
     // logDebug('toggleDisplayNextActions', `updatedConfig.displayNextActions? now is '${String(updatedConfig.displayNextActions)}'`)
     const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
     // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    await renderProjectLists(updatedConfig, false)
+    // TODO: how to get scrollPos?
+    await renderProjectListsIfOpen(updatedConfig)
   }
   catch (error) {
     logError('toggleDisplayNextActions', error.message)
@@ -1289,7 +1309,7 @@ export async function saveDisplayFilters(data: {
     config.displayPaused = data.displayPaused
     config.displayNextActions = data.displayNextActions
     await DataStore.saveJSON(config, '../jgclark.Reviews/settings.json', true)
-    await renderProjectLists(config, false)
+    await renderProjectListsIfOpen(config)
   } catch (error) {
     logError('saveDisplayFilters', error.message)
   }

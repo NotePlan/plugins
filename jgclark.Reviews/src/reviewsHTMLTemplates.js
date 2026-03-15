@@ -7,8 +7,8 @@
 
 export const stylesheetinksInHeader: string = `
 <!-- Load in Project List-specific CSS -->
-<link href="projectList.css" rel="stylesheet">
-<link href="projectListDialog.css" rel="stylesheet">
+<link href="./projectList.css" rel="stylesheet">
+<link href="./projectListDialog.css" rel="stylesheet">
 `
 
 export const faLinksInHeader: string = `

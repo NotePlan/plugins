@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-02-22 for v1.4.0.b1, @jgclark 
+ * Last updated 2026-03-15 for v1.4.0.b8, @jgclark 
  */
 
 body {
@@ -420,7 +420,7 @@ button, .fake-button, .clickTarget {
 
 /* -------------------------------------------------------- */
 /* first line of column 2 */
-.projectTitle {
+.projectMainDetailsRow {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -430,18 +430,28 @@ button, .fake-button, .clickTarget {
   cursor: pointer;
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
+  /* gap: 0.5rem; */
   color: var(--tint-color);
   font-size: 1.03rem; /* TODO: Gradually reduce from 1.1rem to 1.0rem? */
   font-weight: 500;
   text-decoration: none;
 }
+
 .noteTitleIcon {
-  /* placeholder */
+  width: 2rem;
+  flex-shrink: 0;
+  /* display: inline-flex; */
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
 }
 /* make noteTitle links underlined on mouse hover */
 .noteTitleText:hover {
   text-decoration: underline;
+}
+
+.titleAndEditButton {
+  display: flex;
 }
 
 /* ---- ITEM COUNTS ----------------------------------------- */
@@ -463,8 +473,15 @@ button, .fake-button, .clickTarget {
 }
 
 /* Project tags moved from column 3 to column 2 (after open-count badge) */
-.project-tags-inline {
-  margin-left: 0.35rem;
+.projectTagsInline {
+  margin-left: 0.2rem;
+  gap: 0.2rem;
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
 }
 
 /* ---- METADATA LOZENGES ---------------------------------- */
@@ -480,45 +497,49 @@ button, .fake-button, .clickTarget {
 }
 .metadata-lozenge {
   display: inline-block;
-  padding: 0.15rem 0.4rem;
-  border-radius: 6px;
+  color: rgb(from var(--fg-main-color) r g b / 0.5);
   font-size: 0.85rem;
   line-height: 1.1;
-  margin-right: 0.25rem;
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.2);
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  /* margin-right: 0.1rem; */
   text-wrap: nowrap;
 }
-.metadata-lozenge--tag {
+.lozenge-general {
   color: var(--fg-placeholder-color);
   background-color: var(--bg-lozenge-color, #FFFFFFBB);
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.2);
+  filter: saturate(80%);
 }
-.metadata-lozenge--red {
-  color: #b85450;
-  border: 1px solid #b8545070;
-  background-color:  #b8545010
+/* Note: color-mix() works, but needs to start with 'in oklch' in NP at March 2026 on macOS 15.7. */
+.lozenge-overdue {
+  color: var(--fg-error-color);
+  background-color: var(--bg-error-color);
+  /* background-color: color-mix(in oklch, var(--bg-main-color), red 8%); */
 }
-.metadata-lozenge--orange {
-  color: #c76a40;
-  border: 1px solid #c76a0070;
-  background-color:  #c76a4010
+.lozenge-due {
+  color: var(--fg-warn-color);
+  background-color: var(--bg-warn-color);
+  /* background-color: color-mix(in oklch, var(--bg-main-color), rgb(238, 199, 69) 20%); */
 }
-.metadata-lozenge--blue {
-  color: #1e66f5;
-  border: 1px solid #1e66f570;
-  background-color:  #1e66f510
+.lozenge-soon {
+  color: var(--fg-info-color);
+  background-color: var(--bg-info-color);
+  /* background-color: color-mix(in oklch, var(--bg-main-color), blue 15%); */
 }
-.metadata-lozenge--green {
-  color: #269F54;
-  border: 1px solid #269F5470;
-  background-color:  #269F5410
+.lozenge-green {
+  color: var(--fg-ok-color);
+  background-color: var(--bg-ok-color);
+  /* background-color: color-mix(in oklch, var(--bg-main-color), green 15%); */
 }
 
 /* ---- PROGRESS ----------------------------------------- */
 /* Progress line row: last progress comment, styled like Dashboard ProjectItem */
-.projectProgress {
+.projectProgressRow {
   color: var(--fg-placeholder-color);
   font-size: 0.95rem;
-  display: block;
+  display: flex;
+  align-items: baseline;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -528,28 +549,49 @@ button, .fake-button, .clickTarget {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
+  color: var(--fg-alt-color);
 }
+/* Centred in 1rem virtual column for column-2 row icons */
 .progressIcon {
-  color: var(--tint-color);
+  width: 2rem;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  /* padding-right: 0.35rem; */
+  /* color: var(--tint-color); */
 }
 .progressText {
-  /* placeholder */
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---- NEXT ACTIONS ----------------------------------------- */
-.nextAction {
-  display: block;
+.nextActionRow {
+  display: flex;
   align-items: baseline;
-  gap: 0.5rem;
-  overflow: hidden;
+  gap: 0;
+  /* overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
+  text-overflow: ellipsis; */
+  color: var(--fg-alt-color);
 }
+/* Centred in 1rem virtual column for column-2 row icons */
 .nextActionIcon {
-  /* placeholder */
+  width: 2rem;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  /* padding-right: 0.35rem; */
 }
 .nextActionText {
-  /* placeholder */
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---- ICONS etc. ----------------------------------------- */
