@@ -23,7 +23,7 @@ export type FilerConfig = {
   doneSectionHeadingName: string,
   recreateDoneSectionStructure: boolean,
   skipDoneSubtasksUnderOpenTasks: boolean,
-  onlyMoveCompletedWhenWholeSectionComplete: boolean,
+  whenToMoveCompletedToDone: string, // from choices: 'ask each time', 'move when whole section complete', 'move when any are complete' in v1.5.3. Previously a boolean setting 'onlyMoveCompletedWhenWholeSectionComplete'.
   whereToAddInSection: string, // 'start' (default) or 'end'
   typesToFile: string, // now a choice: all but incomplete tasks
   useBlocks: boolean,

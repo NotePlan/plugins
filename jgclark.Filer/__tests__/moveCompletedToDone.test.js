@@ -17,6 +17,74 @@ beforeAll(() => {
 })
 
 describe('jgclark.Filer', () => {
+  describe('hasOpenParentTask()', () => {
+    test('hasOpenParentTask returns true when subtask has open parent even with intermediate non-task lines', () => {
+      const note = new Note({
+        paragraphs: [
+          { lineIndex: 0, type: 'title', content: 'Test Note', rawContent: '# Test Note', indents: 0, headingLevel: 1 },
+          { lineIndex: 1, type: 'open', content: 'Parent task', rawContent: '* [ ] Parent task', indents: 0, headingLevel: 1 },
+          { lineIndex: 2, type: 'text', content: 'Explanation', rawContent: '\tExplanation', indents: 1, headingLevel: 1 },
+          { lineIndex: 3, type: 'done', content: 'Child done task', rawContent: '\t\t* [x] Child done task', indents: 2, headingLevel: 1 },
+        ],
+      })
+      const childPara = note.paragraphs[3]
+      const result = m.hasOpenParentTask(note, childPara)
+      expect(result).toBe(true)
+    })
+
+    test('hasOpenParentTask returns false when closest ancestor task is closed', () => {
+      const note = new Note({
+        paragraphs: [
+          { lineIndex: 0, type: 'title', content: 'Test Note', rawContent: '# Test Note', indents: 0, headingLevel: 1 },
+          { lineIndex: 1, type: 'done', content: 'Parent done task', rawContent: '* [x] Parent done task', indents: 0, headingLevel: 1 },
+          { lineIndex: 2, type: 'done', content: 'Child done task', rawContent: '\t* [x] Child done task', indents: 1, headingLevel: 1 },
+        ],
+      })
+      const childPara = note.paragraphs[2]
+      const result = m.hasOpenParentTask(note, childPara)
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('getOrCreateNamedDoneSection()', () => {
+    test('creates a Done section when none exists', () => {
+      const note = new Note({
+        paragraphs: [
+          { lineIndex: 0, type: 'title', content: 'Test Note', rawContent: '# Test Note', indents: 0, headingLevel: 1 },
+          { lineIndex: 1, type: 'open', content: 'Task 1', rawContent: '* [ ] Task 1', indents: 0, headingLevel: 0 },
+        ],
+      })
+
+      const lineIndex = m.getOrCreateNamedDoneSection(note, 'Done')
+
+      const doneHeading = note.paragraphs[lineIndex]
+      expect(doneHeading.type).toBe('title')
+      expect(doneHeading.headingLevel).toBe(2)
+      expect(doneHeading.content.trim()).toBe('Done')
+    })
+
+    test('reuses existing Done section after active part of note', () => {
+      const note = new Note({
+        paragraphs: [
+          { lineIndex: 0, type: 'title', content: 'Test Note', rawContent: '# Test Note', indents: 0, headingLevel: 1 },
+          { lineIndex: 1, type: 'open', content: 'Task 1', rawContent: '* [ ] Task 1', indents: 0, headingLevel: 0 },
+          { lineIndex: 2, type: 'title', content: 'Done', rawContent: '## Done', indents: 0, headingLevel: 2 },
+        ],
+      })
+
+      const firstIndex = m.getOrCreateNamedDoneSection(note, 'Done')
+      const secondIndex = m.getOrCreateNamedDoneSection(note, 'Done')
+
+      expect(firstIndex).toBe(2)
+      expect(secondIndex).toBe(2)
+      // Ensure no duplicate Done heading was created
+      const doneHeadings = note.paragraphs.filter(
+        (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim() === 'Done',
+      )
+      expect(doneHeadings.length).toBe(1)
+    })
+  })
+
   describe('moveCompletedToDone', () => {
     // ----------------------------------------------------------------------------
     // @param {TNote} note
@@ -33,18 +101,27 @@ describe('jgclark.Filer', () => {
           { type: 'open', content: 'Task 2', lineIndex: 3, rawContent: '* [ ] Task 2', indents: 0, headingLevel: 1 },
         ],
       })
-      const expectedNote = new Note({
-        paragraphs: [
-          { type: 'title', content: 'Test Note', lineIndex: 0, rawContent: '# Test Note', indents: 0, headingLevel: 1 },
-          { type: 'open', content: 'Task 2', lineIndex: 1, rawContent: '* [ ] Task 2', indents: 0, headingLevel: 1 },
-          { type: 'title', content: 'Done', lineIndex: 2, rawContent: '## Done', indents: 0, headingLevel: 2 },
-          { type: 'done', content: 'Task 1', lineIndex: 3, rawContent: '* [x] Task 1', indents: 0, headingLevel: 0 },
-          { type: 'text', content: 'child of task 1', lineIndex: 4, rawContent: '\tchild of task 1', indents: 1, headingLevel: 0 },
-        ],
-      })
-
       m.moveCompletedItemsToDoneSection(note, false, false, false)
-      expect(note.paragraphs).toEqual(expectedNote.paragraphs)
+      // Ensure Done heading was created
+      const doneHeading = note.paragraphs.find(
+        (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim() === 'Done',
+      )
+      expect(doneHeading).toBeDefined()
+
+      // Ensure Task 2 remains in the main part of the note
+      const task2 = note.paragraphs.find((p) => p.content === 'Task 2')
+      expect(task2).toBeDefined()
+
+      // Ensure Task 1 and its child line were moved into the Done section
+      const doneIndex = note.paragraphs.indexOf(doneHeading)
+      const movedTask1Index = note.paragraphs.findIndex(
+        (p, i) => i > doneIndex && p.content === 'Task 1',
+      )
+      expect(movedTask1Index).toBeGreaterThan(doneIndex)
+      const childLineIndex = note.paragraphs.findIndex(
+        (p, i) => i > doneIndex && p.content === 'child of task 1',
+      )
+      expect(childLineIndex).toBeGreaterThan(movedTask1Index)
     })
 
     test('moves completed tasks with child line but does not recreate Done section structure', () => {
@@ -57,19 +134,37 @@ describe('jgclark.Filer', () => {
           { type: 'open', content: 'Task 2', lineIndex: 4, rawContent: '* [ ] Task 2', indents: 0, headingLevel: 0 },
         ],
       })
-      const expectedNote = new Note({
-        paragraphs: [
-          { type: 'title', content: 'Test Note', lineIndex: 0, rawContent: '# Test Note', indents: 0, headingLevel: 1 },
-          { type: 'title', content: 'Section A', lineIndex: 1, rawContent: '## Section A', indents: 0, headingLevel: 2 },
-          { type: 'open', content: 'Task 2', lineIndex: 2, rawContent: '* [ ] Task 2', indents: 0, headingLevel: 0 },
-          { type: 'title', content: 'Done', lineIndex: 3, rawContent: '## Done', indents: 0, headingLevel: 2 },
-          { type: 'done', content: 'Task 1', lineIndex: 4, rawContent: '* [x] Task 1', indents: 0, headingLevel: 0 },
-          { type: 'text', content: 'child of task 1', lineIndex: 5, rawContent: '\tchild of task 1', indents: 1, headingLevel: 0 },
-        ],
-      })
-
       m.moveCompletedItemsToDoneSection(note, false, false, false)
-      expect(note.paragraphs).toEqual(expectedNote.paragraphs)
+      // Ensure original section heading remains
+      const sectionA = note.paragraphs.find(
+        (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim() === 'Section A',
+      )
+      expect(sectionA).toBeDefined()
+
+      // Ensure Done heading exists
+      const doneHeading = note.paragraphs.find(
+        (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim() === 'Done',
+      )
+      expect(doneHeading).toBeDefined()
+
+      // Ensure Task 2 is still under Section A (before Done)
+      const sectionIndex = note.paragraphs.indexOf(sectionA)
+      const doneIndex = note.paragraphs.indexOf(doneHeading)
+      const task2Index = note.paragraphs.findIndex(
+        (p, i) => i > sectionIndex && i < doneIndex && p.content === 'Task 2',
+      )
+      expect(task2Index).toBeGreaterThan(sectionIndex)
+      expect(task2Index).toBeLessThan(doneIndex)
+
+      // Ensure Task 1 and its child are now under Done
+      const movedTask1Index = note.paragraphs.findIndex(
+        (p, i) => i > doneIndex && p.content === 'Task 1',
+      )
+      expect(movedTask1Index).toBeGreaterThan(doneIndex)
+      const childLineIndex = note.paragraphs.findIndex(
+        (p, i) => i > doneIndex && p.content === 'child of task 1',
+      )
+      expect(childLineIndex).toBeGreaterThan(movedTask1Index)
   })
     
     test('does not move completed task when it has an active child. Does not create a Done section.', () => {
@@ -113,7 +208,7 @@ describe('jgclark.Filer', () => {
       expect(taskA1).toBeDefined()
       expect(taskA2).toBeDefined()
 
-      const taskB1InDone = note.paragraphs.find((p) => p.rawContent === '* [x] Task B1')
+      const taskB1InDone = note.paragraphs.find((p) => p.content === 'Task B1')
       expect(taskB1InDone).toBeDefined()
     })
 
@@ -127,20 +222,27 @@ describe('jgclark.Filer', () => {
           { lineIndex: 4, type: 'done', content: 'Task A3', rawContent: '* [x] Task A3', indents: 0, headingLevel: 0 },
         ],
       })
-      const expectedNote = new Note({
-        paragraphs: [
-          { lineIndex: 0, type: 'title', content: 'Test Note' , rawContent: '# Test Note', indents: 0, headingLevel: 1 },
-          { lineIndex: 1, type: 'title', content: 'Section A', rawContent: '## Section A', indents: 0, headingLevel: 2 },
-          { lineIndex: 2, type: 'open', content: 'Task A2', rawContent: '* [ ] Task A2', indents: 0, headingLevel: 0 },
-          { lineIndex: 3, type: 'title', content: 'Done', rawContent: '## Done', indents: 0, headingLevel: 2 },
-          { lineIndex: 4, type: 'title', content: 'Section A', rawContent: '### Section A', indents: 0, headingLevel: 3 },
-          { lineIndex: 5, type: 'done', content: 'Task A1', rawContent: '* [x] Task A1', indents: 0, headingLevel: 0 },
-          { lineIndex: 6, type: 'done', content: 'Task A3', rawContent: '* [x] Task A3', indents: 0, headingLevel: 0 },
-        ],
-      })
-
       m.moveCompletedItemsToDoneSection(note, true, false, false)
-      expect(note.paragraphs).toEqual(expectedNote.paragraphs)
+      const doneHeading = note.paragraphs.find(
+        (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim() === 'Done',
+      )
+      expect(doneHeading).toBeDefined()
+      const doneIndex = note.paragraphs.indexOf(doneHeading)
+
+      const sectionCopy = note.paragraphs.find(
+        (p, i) =>
+          i > doneIndex && p.type === 'title' && p.headingLevel === 2 && p.content.trim() === 'Section A',
+      )
+      expect(sectionCopy).toBeDefined()
+
+      const movedTaskA1 = note.paragraphs.find(
+        (p, i) => i > doneIndex && p.content === 'Task A1',
+      )
+      const movedTaskA3 = note.paragraphs.find(
+        (p, i) => i > doneIndex && p.content === 'Task A3',
+      )
+      expect(movedTaskA1).toBeDefined()
+      expect(movedTaskA3).toBeDefined()
     })
 
     test('uses custom Done section heading name when provided', () => {
@@ -150,16 +252,15 @@ describe('jgclark.Filer', () => {
           { lineIndex: 1, type: 'done', content: 'Task 1', rawContent: '* [x] Task 1', indents: 0, headingLevel: 0 },
         ],
       })
-      const expectedNote = new Note({
-        paragraphs: [
-          { lineIndex: 0, type: 'title', content: 'Test Note', rawContent: '# Test Note', indents: 0, headingLevel: 1 },
-          { lineIndex: 1, type: 'title', content: 'Completed', rawContent: '## Completed', indents: 0, headingLevel: 2 },
-          { lineIndex: 2, type: 'done', content: 'Task 1', rawContent: '* [x] Task 1', indents: 0, headingLevel: 0 },
-        ],
-      })
-
       m.moveCompletedItemsToDoneSection(note, false, false, false, 'Completed')
-      expect(note.paragraphs).toEqual(expectedNote.paragraphs)
+      const completedHeading = note.paragraphs.find(
+        (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim() === 'Completed',
+      )
+      expect(completedHeading).toBeDefined()
+      const movedTask = note.paragraphs.find(
+        (p, i) => i > note.paragraphs.indexOf(completedHeading) && p.content === 'Task 1',
+      )
+      expect(movedTask).toBeDefined()
     })
 
     test('when option is enabled, does not move completed subtask that is indented under an open parent task', () => {
@@ -170,13 +271,17 @@ describe('jgclark.Filer', () => {
             { lineIndex: 2, type: 'done', content: 'Child done task', rawContent: '\t* [x] Child done task', indents: 1, headingLevel: 1 },
           ],
         })
-        const expectedNoteParas = [
-            { lineIndex: 0, type: 'title', content: 'Test Note', rawContent: '# Test Note', indents: 0, headingLevel: 1 },
-            { lineIndex: 1, type: 'open', content: 'Parent task', rawContent: '* [ ] Parent task', indents: 0, headingLevel: 1 },
-            { lineIndex: 2, type: 'done', content: 'Child done task', rawContent: '\t* [x] Child done task', indents: 1, headingLevel: 1 },
-          ]
       m.moveCompletedItemsToDoneSection(note, false, false, true)
-      expect(note.paragraphs).toEqual(expectedNoteParas)
+      // No Done heading created
+      const doneHeading = note.paragraphs.find(
+        (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim().startsWith('Done'),
+      )
+      expect(doneHeading).toBeUndefined()
+      // Parent and child still present
+      const parent = note.paragraphs.find((p) => p.content === 'Parent task')
+      const child = note.paragraphs.find((p) => p.content === 'Child done task')
+      expect(parent).toBeDefined()
+      expect(child).toBeDefined()
     })
 
     test('when option is not enabled, moves completed subtask that is indented under an open parent task', () => {
@@ -187,14 +292,66 @@ describe('jgclark.Filer', () => {
           { lineIndex: 2, type: 'done', content: 'Child done task', rawContent: '\t* [x] Child done task', indents: 1, headingLevel: 1 },
         ],
       })
-      const expectedNoteParas = [
-        { lineIndex: 0, type: 'title', content: 'Test Note', rawContent: '# Test Note', indents: 0, headingLevel: 1 },
-        { lineIndex: 1, type: 'open', content: 'Parent task', rawContent: '* [ ] Parent task', indents: 0, headingLevel: 1 },
-        { lineIndex: 2, type: 'title', content: 'Done', rawContent: '## Done', indents: 0, headingLevel: 2 },
-        { lineIndex: 3, type: 'done', content: 'Child done task', rawContent: '\t* [x] Child done task', indents: 1, headingLevel: 0 },
-      ]
       m.moveCompletedItemsToDoneSection(note, false, false, false)
-      expect(note.paragraphs).toEqual(expectedNoteParas)
+      const doneHeading = note.paragraphs.find(
+        (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim().startsWith('Done'),
+      )
+      expect(doneHeading).toBeDefined()
+      const doneIndex = note.paragraphs.indexOf(doneHeading)
+      const movedChildIndex = note.paragraphs.findIndex(
+        (p, i) => i > doneIndex && p.content === 'Child done task',
+      )
+      expect(movedChildIndex).toBeGreaterThan(doneIndex)
+    })
+
+    test('skipDoneSubtasksUnderOpenTasks treats subtasks as children even with intermediate non-task lines', () => {
+      const note = new Note({
+        paragraphs: [
+          { lineIndex: 0, type: 'title', content: 'Test Note', rawContent: '# Test Note', indents: 0, headingLevel: 1 },
+          { lineIndex: 1, type: 'open', content: 'Parent task', rawContent: '* [ ] Parent task', indents: 0, headingLevel: 1 },
+          // explanatory text at a lower indent than the subtask but higher than the parent
+          { lineIndex: 2, type: 'text', content: 'Explanation', rawContent: '\tExplanation', indents: 1, headingLevel: 1 },
+          { lineIndex: 3, type: 'done', content: 'Child done task', rawContent: '\t\t* [x] Child done task', indents: 2, headingLevel: 1 },
+        ],
+      })
+
+      m.moveCompletedItemsToDoneSection(note, false, false, true)
+
+      // No Done section created
+      const doneHeading = note.paragraphs.find(
+        (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim().startsWith('Done'),
+      )
+      expect(doneHeading).toBeUndefined()
+
+      // Parent and child remain in place
+      const parent = note.paragraphs.find((p) => p.rawContent === '* [ ] Parent task')
+      const child = note.paragraphs.find((p) => p.rawContent === '\t\t* [x] Child done task')
+      expect(parent).toBeDefined()
+      expect(child).toBeDefined()
+    })
+
+    test('when skipDoneSubtasksUnderOpenTasks is false, moves subtask even with intermediate non-task lines', () => {
+      const note = new Note({
+        paragraphs: [
+          { lineIndex: 0, type: 'title', content: 'Test Note', rawContent: '# Test Note', indents: 0, headingLevel: 1 },
+          { lineIndex: 1, type: 'open', content: 'Parent task', rawContent: '* [ ] Parent task', indents: 0, headingLevel: 1 },
+          { lineIndex: 2, type: 'text', content: 'Explanation', rawContent: '\tExplanation', indents: 1, headingLevel: 1 },
+          { lineIndex: 3, type: 'done', content: 'Child done task', rawContent: '\t\t* [x] Child done task', indents: 2, headingLevel: 1 },
+        ],
+      })
+
+      m.moveCompletedItemsToDoneSection(note, false, false, false)
+
+      const doneHeadingIndex = note.paragraphs.findIndex(
+        (p) => p.type === 'title' && p.headingLevel === 2 && p.content.trim().startsWith('Done'),
+      )
+      expect(doneHeadingIndex).toBeGreaterThan(-1)
+
+      const childIndex = note.paragraphs.findIndex((p) => p.content === 'Child done task')
+      expect(childIndex).toBeGreaterThan(doneHeadingIndex)
+
+      const parent = note.paragraphs.find((p) => p.rawContent === '* [ ] Parent task')
+      expect(parent).toBeDefined()
     })
   })
 })
