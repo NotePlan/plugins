@@ -1,6 +1,10 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.18.0] - 2026-03-14 @jgclark
+### New
+- new **/Clean up note filenames** command: cleans encoded characters (e.g. `&#039;` `&mdash;`) and invalid path characters (e.g. `\\` `/` `:`) from note filenames in a chosen folder and its subfolders. Optional `folderToStart` parameter for template/callback; if omitted, prompts for folder. Teamspace notes are skipped.
+
 ## [1.17.0] - 2025-11-22 @jgclark
 ### New
 - new **/Remove empty lines** command, that removes *all* empty lines from the open note. This is useful when trying to tidy up content copied into NP from other sources.
