@@ -81,11 +81,27 @@ async function getFormSubmitWindowId(data: any): Promise<string> {
 
 /**
  * Route request to appropriate handler based on action type
+ * submitForm is routed to handleFormSubmitAction so the backend can close the floating window on success.
+ * Other requests (getFolders, getNotes, etc.) use the shared request handler.
  * @param {string} actionType - The action/command type
  * @param {any} data - Request data
  * @returns {Promise<RequestResponse>}
  */
 async function routeFormSubmitRequest(actionType: string, data: any): Promise<RequestResponse> {
+  if (actionType === 'submitForm') {
+    // Route submitForm through handleFormSubmitAction so it can close the window on success.
+    // If we can't resolve windowId or reactWindowData, fall back to handleRequest (submitFormRequest).
+    try {
+      const windowId = await getFormSubmitWindowId(data)
+      const reactWindowData = await getGlobalSharedData(windowId)
+      if (reactWindowData) {
+        logDebug(pluginJson, `formSubmitRouter: Routing submitForm to handleFormSubmitAction for windowId="${windowId}"`)
+        return await handleFormSubmitAction(data, reactWindowData, windowId)
+      }
+    } catch (e) {
+      logDebug(pluginJson, `formSubmitRouter: submitForm could not use handleFormSubmitAction (${e.message}), falling back to handleRequest`)
+    }
+  }
   // For shared requests (getFolders, getNotes, getTeamspaces, etc.), use the shared request handler
   return await handleRequest(actionType, data)
 }

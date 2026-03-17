@@ -4,13 +4,13 @@
 // Routes requests from FormBrowserView React component to appropriate handlers
 //--------------------------------------------------------------------------
 
+import pluginJson from '../plugin.json'
 import { getFormTemplates, getFormFields, handleSubmitForm, handleOpenFormBuilder, handleCreateNewForm, handleOpenNoteByTitle } from './formBrowserHandlers'
 import { handleDuplicateForm } from './formBuilderHandlers' // For duplicate functionality
 import { handleRequest } from './requestHandlers' // For shared requests like getTeamspaces
 import { newCommsRouter, type RequestResponse } from '@helpers/react/routerUtils'
-import pluginJson from '../plugin.json'
 
-const FORM_BROWSER_WINDOW_ID = 'form-browser-window'
+const FORM_BROWSER_WINDOW_ID = 'forms-chooser-window'
 
 /**
  * Route request to appropriate handler based on action type

@@ -54,7 +54,7 @@ export function getFormBuilderWindowId(templateTitle?: string, templateFilename?
  */
 export function getFormBrowserWindowId(identifier?: string): string {
   const suffix = identifier && identifier.trim() ? ` ${identifier.trim()}` : ''
-  return `form-browser-window${suffix}`
+  return `forms-chooser-window${suffix}`
 }
 
 /**

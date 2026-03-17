@@ -3,6 +3,7 @@
 
 ## [1.1.0.b9] - 2026-03-07
 - add demo mode for JGC, controlled by hidden 'useDemoData' boolean setting, and when true picking up from `demoData.json` file in the same folder as settings.
+- dev: shared the AnyChart heatmap HTML/JS pattern with the Reviews plugin for its weekly Area/Project progress heatmaps.
 
 ## [1.1.0.b8] - 2026-03-07
 - fix: totals for time-based tags

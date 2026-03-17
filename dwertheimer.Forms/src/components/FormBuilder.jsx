@@ -316,7 +316,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
         const notesData = await requestFromPlugin('getNotes', {
           includePersonalNotes: true,
           includeCalendarNotes: !forProcessingTemplates, // Skip calendar notes for processing templates (performance optimization)
-          includeRelativeNotes: !forProcessingTemplates, // Skip relative notes for processing templates
+          includeRelativeNotes: true, // Always include <current>, <today>, etc. so Target Note chooser shows them; Processing Template chooser filters them via includeRelativeNotes={false}
           includeTeamspaceNotes: true,
           space: spaceToUse, // Filter by selected space (empty string = Private)
         })
