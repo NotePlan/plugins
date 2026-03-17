@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Move completed / cancelled tasks and checklists in a note to a '## Done' section
 // Jonathan Clark, aided by Cursor AI
-// Last updated 2026-02-18 for v1.5.2 by @jgclark
+// Last updated 2026-03-16 for v1.5.3 by @jgclark
 // ----------------------------------------------------------------------------
 /**
  * Original prompt for AI:
@@ -13,22 +13,32 @@ There need to be two further options, added to the config settings for this plug
 The second is called "Only move completed items when whole section is complete?". If this is set, then set the parameter includeFromStartOfSection to true.
 Write this to a new file in the jgclark.Filer/src folder.
 Generate jest tests for this function.
+
+It did a reasonable job, but it hasn't used some existing helper functions, and it didn't use note.insertHeading() over .insertParagraph().
  */
 
-import pluginJson from '../plugin.json'
 import type { FilerConfig } from './filerHelpers'
 import { getFilerSettings } from './filerHelpers'
 import { blockHasActiveTasks, getParagraphBlock } from '@helpers/blocks'
 import { clo, JSP, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 import { getCurrentHeading, isParaAMatchForHeading } from '@helpers/headings'
-import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { findEndOfActivePartOfNote, insertParas } from '@helpers/paragraph'
 import { isClosed } from '@helpers/utils'
-import { showMessage } from '@helpers/userInput'
+import { showMessage, showMessageYesNoCancel } from '@helpers/userInput'
 
 //----------------------------------------------------------------------------
 // Constants
 
-const PLUGIN_ID = pluginJson['plugin.id']
+const PLUGIN_ID = "jgclark.Filer"
+const MAKE_HEADINGS_ONE_DEEPER: boolean = false
+const WHEN_TO_MOVE_ASK_EACH_TIME = 'ask each time'
+const WHEN_TO_MOVE_SECTION_COMPLETE = 'move when whole section complete'
+const WHEN_TO_MOVE_ANY_COMPLETE = 'move when any are complete'
+const WHEN_TO_MOVE_CHOICES: Array<string> = [
+  WHEN_TO_MOVE_ASK_EACH_TIME,
+  WHEN_TO_MOVE_SECTION_COMPLETE,
+  WHEN_TO_MOVE_ANY_COMPLETE,
+]
 
 //----------------------------------------------------------------------------
 // Helper Functions
@@ -52,12 +62,12 @@ function hasOpenParentTask(note: TNote, para: TParagraph): boolean {
   const currentIndex = para.lineIndex
   const currentIndent = para.indents ?? 0
 
-  // Walk upwards to find the nearest less-indented line
+  // Walk upwards to find any less-indented ancestor task line
   for (let i = currentIndex - 1; i >= 0; i--) {
     const candidate = paras[i]
     const candidateIndent = candidate.indents ?? 0
 
-    // Only consider true parents: first line above with lower indentation
+    // Only consider true parents: lines above with lower indentation
     if (candidateIndent < currentIndent) {
       const taskTypes = [
         'open',
@@ -68,11 +78,15 @@ function hasOpenParentTask(note: TNote, para: TParagraph): boolean {
       ]
       const isPotentialTaskParent = taskTypes.includes(candidate.type)
 
-      if (isPotentialTaskParent && !isClosed(candidate)) {
-        return true
+      if (isPotentialTaskParent) {
+        if (!isClosed(candidate)) {
+          return true
+        }
+        // Closed parent; keep scanning upwards in case there is an open ancestor task
+        continue
       }
-      // Once we've hit a less-indented line, nothing further up can be a direct parent
-      return false
+      // Non-task ancestor at a lower indent: keep searching upwards
+      continue
     }
   }
 
@@ -94,22 +108,15 @@ function getOrCreateSubheadingInDoneSection(
 ): TParagraph {
   // Always get fresh paragraph list to account for any previous insertions
   const paras = note.paragraphs
-  const desiredHeadingLevel = Math.min((sourceHeading.headingLevel ?? 2) + 1, 5)
+  const desiredHeadingLevel = Math.min(
+    (sourceHeading.headingLevel ?? 2) + (MAKE_HEADINGS_ONE_DEEPER ? 1 : 0),
+    5,
+  )
   
-  // Extract heading text from rawContent (which has the original format like "## Heading")
-  // or fall back to content if rawContent is not available
-  let headingTextContent = ''
-  if (sourceHeading.rawContent) {
-    // Parse rawContent to extract just the text part (strip ALL # markers and whitespace)
-    headingTextContent = sourceHeading.rawContent.trim()
-    // Remove any leading # characters and following whitespace
-    headingTextContent = headingTextContent.replace(/^#+\s*/, '')
-  } else {
-    // Fallback to content, ensuring no # markers
-    headingTextContent = sourceHeading.content.trim()
-    headingTextContent = headingTextContent.replace(/^#+\s*/, '').trim()
-    headingTextContent = headingTextContent.replace(/\s*#+\s*/g, ' ').trim()
-  }
+  // Extract a clean heading text (no leading '#' markers) from the source heading
+  const headingTextContent = (sourceHeading.rawContent ?? sourceHeading.content ?? '')
+    .replace(/^\s*#+\s+/, '')
+    .trim()
   
   // Look for an existing matching heading in the entire Done section
   // (search from Done heading to end of note, or until next level-2 heading)
@@ -119,14 +126,10 @@ function getOrCreateSubheadingInDoneSection(
     if (p.type === 'title' && (p.headingLevel ?? 1) <= 2 && i > doneHeadingLineIndex) {
       break
     }
-    // Check if this is a matching heading
-    // Compare using content (which Note mock strips # from) or rawContent
-    let pContent = ''
-    if (p.rawContent) {
-      pContent = p.rawContent.replace(/^\s*#+\s+/, '').trim()
-    } else {
-      pContent = p.content.trim().replace(/^#+\s*/, '').trim()
-    }
+    // Check if this is a matching heading (normalise away any leading '#')
+    const pContent = (p.rawContent ?? p.content ?? '')
+      .replace(/^\s*#+\s+/, '')
+      .trim()
     if (
       p.type === 'title' &&
       p.headingLevel === desiredHeadingLevel &&
@@ -147,30 +150,9 @@ function getOrCreateSubheadingInDoneSection(
     }
   }
 
-  // Create heading text with correct format: "### Heading" (not "# ### Heading")
-  // headingTextContent should already be clean (no # markers)
-  // Ensure headingTextContent is definitely clean before using it
-  const cleanHeadingText = headingTextContent.trim()
-  
-  // Final verification - ensure no # characters remain
-  if (cleanHeadingText.includes('#')) {
-    logWarn('moveCompletedToDone', `Warning: cleanHeadingText still contains #: "${cleanHeadingText}"`)
-    // Remove all # characters as a last resort
-    const finalClean = cleanHeadingText.replace(/#/g, '').trim()
-    if (finalClean) {
-      headingTextContent = finalClean
-    }
-  }
-  
-  const headingMarker = '#'.repeat(desiredHeadingLevel)
-  // Construct heading text: exactly "### Heading" format with single space after #
-  // Use the same approach as getOrCreateDoneSection for consistency
-  const headingText = `${headingMarker} ${headingTextContent.trim()}`
-  
-  logDebug('moveCompletedToDone', `Creating heading: "${headingText}", level=${desiredHeadingLevel}`)
-  
-  // Use 'title' type like we do for '## Done' - this should work consistently
-  note.insertParagraph(headingText, insertionIndex, 'text')
+  logDebug('moveCompletedToDone', `Creating heading: "${headingTextContent}", level=${desiredHeadingLevel}`)
+  // $FlowFixMe[incompatible-call]
+  note.insertHeading(headingTextContent, insertionIndex, desiredHeadingLevel)
 
   // After insertion, re-read the paragraph and verify/fix if needed
   const updatedParas = note.paragraphs
@@ -178,19 +160,17 @@ function getOrCreateSubheadingInDoneSection(
     (p, idx) => {
       if (idx < doneHeadingLineIndex) return false
       if (p.type !== 'title' || p.headingLevel !== desiredHeadingLevel) return false
-      // Compare using rawContent or content
-      let pContent = ''
-      if (p.rawContent) {
-        pContent = p.rawContent.replace(/^\s*#+\s+/, '').trim()
-      } else {
-        pContent = p.content.trim().replace(/^#+\s*/, '').trim()
-      }
-      return pContent === headingTextContent.trim()
+      // Compare using rawContent or content, normalising away leading '#'
+      const pContent = (p.rawContent ?? p.content ?? '')
+        .replace(/^\s*#+\s+/, '')
+        .trim()
+      return pContent === headingTextContent
     },
   )
   
   // If heading was found but has wrong rawContent (extra #), fix by setting content and updating
   if (insertedHeading && insertedHeading.rawContent) {
+    const headingMarker = '#'.repeat(desiredHeadingLevel)
     const expectedRawContent = `${headingMarker} ${headingTextContent.trim()}`
     const extraHashPrefix = `# ${expectedRawContent}`
     if (insertedHeading.rawContent !== expectedRawContent && insertedHeading.rawContent.startsWith(extraHashPrefix)) {
@@ -220,34 +200,55 @@ function appendParasUnderHeading(
   headingPara: TParagraph,
   parasToInsert: Array<TParagraph>,
 ): void {
-  if (headingPara.lineIndex == null) {
-    logWarn('moveCompletedToDone', 'appendParasUnderHeading: headingPara has no lineIndex')
-    return
-  }
-  const paras = note.paragraphs
-  const thisLevel = headingPara.headingLevel ?? 2
-  let insertionIndex = paras.length
-
-  for (let i = headingPara.lineIndex + 1; i < paras.length; i++) {
-    const p = paras[i]
-    if (p.type === 'title' && (p.headingLevel ?? 1) <= thisLevel) {
-      insertionIndex = i
-      break
+  try {
+    if (headingPara.lineIndex == null) {
+      logWarn('moveCompletedToDone', 'appendParasUnderHeading: headingPara has no lineIndex')
+      return
     }
-  }
+    const paras = note.paragraphs
+    const thisLevel = headingPara.headingLevel ?? 2
+    let insertionIndex = paras.length
+
+    for (let i = headingPara.lineIndex + 1; i < paras.length; i++) {
+      const p = paras[i]
+      if (p.type === 'title' && (p.headingLevel ?? 1) <= thisLevel) {
+        insertionIndex = i
+        break
+      }
+    }
 
   const linesToInsert = parasToInsert.map((p) => {
-    const line = p.rawContent ?? p.content ?? ''
+    // Use the logical content of the paragraph for tasks and checklists, and
+    // rawContent for other types so we preserve indentation and formatting.
+    const taskTypes = [
+      'open',
+      'scheduled',
+      'todo',
+      'checklist',
+      'checklistScheduled',
+      'done',
+      'cancelled',
+      'checklistDone',
+      'checklistCancelled',
+    ]
+    const useContent = taskTypes.includes(p.type)
+    const line = useContent ? (p.content ?? '') : (p.rawContent ?? p.content ?? '')
     // Trim trailing whitespace/newlines from each line to avoid extra blank paragraphs
     return line.replace(/\s+$/, '')
   })
-  if (linesToInsert.length === 0) {
-    return
-  }
+    const paraTypesToInsert = parasToInsert.map((p) => p.type)
+    if (linesToInsert.length === 0) {
+      return
+    }
 
-  // Insert as a single multi-line text block (without trailing newline to avoid empty paragraph)
-  const textBlock = linesToInsert.join('\n')
-  note.insertParagraph(textBlock, insertionIndex, 'text')
+    // v1: Insert as a single multi-line text block (without trailing newline to avoid empty paragraph)
+    // const textBlock = linesToInsert.join('\n')
+    // note.insertParagraph(textBlock, insertionIndex, 'text')
+    // v2: Insert as separate paragraphs
+    insertParas(note, insertionIndex, linesToInsert, paraTypesToInsert)
+  } catch (error) {
+    logError('moveCompletedToDone', error.message)
+  }
 }
 
 /**
@@ -273,9 +274,8 @@ function getOrCreateNamedDoneSection(note: TNote, doneSectionHeadingName: string
 
   // Create a new level-2 heading at the end of the note using the configured name
   const insertionIndex = paras.length
-  const headingText = `## ${doneSectionHeadingName}`
-  logDebug('moveCompletedToDone', `Creating new '${headingText}' heading at line ${insertionIndex}`)
-  note.insertParagraph(headingText, insertionIndex, 'text')
+  logDebug('moveCompletedToDone', `Creating new '## ${trimmedName}' heading at line ${insertionIndex}`)
+  note.insertHeading(trimmedName, insertionIndex, 2)
 
   // After insertion, ensure we return the actual line index of the new heading
   const updated = note.paragraphs
@@ -299,15 +299,26 @@ function getOrCreateNamedDoneSection(note: TNote, doneSectionHeadingName: string
  */
 function getNamedDoneSectionBlock(note: TNote, doneSectionHeadingName: string): Array<TParagraph> {
   const trimmedName = doneSectionHeadingName.trim()
+  const endOfActiveLineIndex = findEndOfActivePartOfNote(note, [trimmedName])
   const doneHeading = note.paragraphs.find(
-    (p) => isParaAMatchForHeading(p, trimmedName, 2),
+    (p, i) =>
+      i > endOfActiveLineIndex && isParaAMatchForHeading(p, trimmedName, 2),
   )
   if (!doneHeading || typeof doneHeading.lineIndex !== 'number') {
+    logInfo(
+      'getNamedDoneSectionBlock',
+      `No '## ${trimmedName}' heading found after the end of the active part of the note. Returning empty array.`,
+    )
     return []
   }
-  const block = getParagraphBlock(note, doneHeading.lineIndex, false, false)
-  return block
+  return getParagraphBlock(note, doneHeading.lineIndex, false, false)
 }
+
+// Export selected helpers for testing
+export { hasOpenParentTask, getOrCreateNamedDoneSection }
+
+//----------------------------------------------------------------------------
+// Core Function
 
 /**
  * Core worker: Move completed / cancelled tasks and checklists in the given note to a '## Done' section.
@@ -317,7 +328,7 @@ function getNamedDoneSectionBlock(note: TNote, doneSectionHeadingName: string): 
  *   when their entire section (under the current heading) has no active tasks.
  * - If "recreateDoneSectionStructure" is true, subheadings are recreated under '## Done'
  *   that mirror the parent headings of moved items.
- *
+ * @tests in moveCompletedToDone.test.js
  * @param {TNote} note
  * @param {boolean} recreateDoneSectionStructure
  * @param {boolean} onlyMoveCompletedWhenWholeSectionComplete
@@ -443,14 +454,12 @@ export function moveCompletedItemsToDoneSection(
       if (recreateDoneSectionStructure) {
         const parentHeading = getCurrentHeading(note, block[0])
         if (parentHeading) {
-          const desiredLevel = Math.min((parentHeading.headingLevel ?? 2) + 1, 5)
+          const desiredLevel = Math.min(
+            (parentHeading.headingLevel ?? 2) + (MAKE_HEADINGS_ONE_DEEPER ? 1 : 0),
+            5,
+          )
           // Extract heading text content for cache key (same way as in getOrCreateSubheadingInDoneSection)
-          let headingTextForCache = ''
-          if (parentHeading.rawContent) {
-            headingTextForCache = parentHeading.rawContent.replace(/^\s*#+\s+/, '').trim()
-          } else {
-            headingTextForCache = parentHeading.content.trim().replace(/^#+\s*/, '').trim()
-          }
+          const headingTextForCache = (parentHeading.rawContent ?? parentHeading.content ?? '').trim()
           const cacheKey = `${desiredLevel}:${headingTextForCache}`
           
           // Check cache first
@@ -497,13 +506,43 @@ export async function moveCompletedItemsToDoneSectionCommand(): Promise<void> {
 
     const config: FilerConfig = await getFilerSettings()
     const recreateDoneSectionStructure = Boolean(config.recreateDoneSectionStructure)
-    const onlyMoveCompletedWhenWholeSectionComplete = Boolean(config.onlyMoveCompletedWhenWholeSectionComplete)
     const skipDoneSubtasksUnderOpenTasks = Boolean(config.skipDoneSubtasksUnderOpenTasks)
     const rawDoneHeadingName = config.doneSectionHeadingName
     const doneSectionHeadingName =
       typeof rawDoneHeadingName === 'string' && rawDoneHeadingName.trim().length > 0
         ? rawDoneHeadingName.trim()
         : 'Done'
+
+    // Work out how/when to move completed items based on new string setting,
+    // with backward compatibility for the old boolean setting.
+    let whenToMoveCompletedToDone: string = config.whenToMoveCompletedToDone
+    if (!whenToMoveCompletedToDone || !WHEN_TO_MOVE_CHOICES.includes(whenToMoveCompletedToDone)) {
+      // Backward compatibility: map old boolean-only setting if present
+      // $FlowFixMe[prop-missing] - older settings files may still have this key
+      const legacyOnlyMoveCompletedWhenWholeSectionComplete = config.onlyMoveCompletedWhenWholeSectionComplete
+      if (typeof legacyOnlyMoveCompletedWhenWholeSectionComplete === 'boolean') {
+        whenToMoveCompletedToDone = legacyOnlyMoveCompletedWhenWholeSectionComplete
+          ? WHEN_TO_MOVE_SECTION_COMPLETE
+          : WHEN_TO_MOVE_ANY_COMPLETE
+      } else {
+        whenToMoveCompletedToDone = WHEN_TO_MOVE_ASK_EACH_TIME
+      }
+    }
+
+    let onlyMoveCompletedWhenWholeSectionComplete = whenToMoveCompletedToDone === WHEN_TO_MOVE_SECTION_COMPLETE
+
+    if (whenToMoveCompletedToDone === WHEN_TO_MOVE_ASK_EACH_TIME) {
+      const choice = await showMessageYesNoCancel(
+        'How should completed items be moved to the Done section this time?',
+        ['Move when whole section complete', 'Move when any are complete', 'Cancel'],
+        'Filer: Move completed to Done',
+      )
+      if (choice === 'Cancel') {
+        logInfo('moveCompletedToDone', 'User cancelled moveCompletedItemsToDoneSectionCommand from ask-each-time dialog.')
+        return
+      }
+      onlyMoveCompletedWhenWholeSectionComplete = choice === 'Move when whole section complete'
+    }
 
     const didMove = moveCompletedItemsToDoneSection(
       note,
@@ -519,7 +558,7 @@ export async function moveCompletedItemsToDoneSectionCommand(): Promise<void> {
          skipDoneSubtasksUnderOpenTasks ? 'skipping done subtasks under open tasks' : 'including done subtasks under open tasks'
          }.`
       await showMessage(
-        `No completed or cancelled items to move to the '${doneSectionHeadingName}' section.\n\nCurrent settings: ${currentSettingsStr}`,
+        `No completed or cancelled items to move to the '${doneSectionHeadingName}' section.\n\nMy current settings are: ${currentSettingsStr}`,
         'OK',
         'Filer: Move completed to Done',
       )
