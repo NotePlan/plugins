@@ -4,6 +4,20 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.1.6] 2026-03-16 @dwertheimer
+
+### Added
+- **Form Builder: Refresh button next to Space and Folder**: A refresh control (rotate icon) was added next to "Space:" and "Folder:" in the left sidebar (Write to existing, Create new, and Form processor sections) so folder and note lists can be refreshed after creating new folders without reopening the window.
+
+### Fixed
+- **Form Builder: Target Note chooser missing &lt;current&gt;**: The description stated that &lt;current&gt;, &lt;today&gt;, etc. could be chosen, but &lt;current&gt; (and other relative options) were missing when notes had been loaded first for the Processing Template dropdown. Notes are now always loaded with relative options included; the Processing Template chooser continues to hide them via `includeRelativeNotes={false}`.
+
+### Edited in this release
+- `dwertheimer.Forms/plugin.json` — Version 1.1.6; lastUpdateInfo.
+- `dwertheimer.Forms/CHANGELOG.md` — This section.
+- `dwertheimer.Forms/src/components/ProcessingMethodSection.jsx` — Refresh button next to Space and Folder labels (class `form-builder-refresh-folders-btn`).
+- `dwertheimer.Forms/src/components/FormBuilder.jsx` — `getNotes` now always requests `includeRelativeNotes: true` so Target Note chooser shows &lt;current&gt; and other relative options.
+
 ## [1.1.5] 2026-03-16 @dwertheimer
 
 ### Fixed
