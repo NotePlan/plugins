@@ -1,7 +1,18 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-## [1.1.0.b6] - 2026-02-??? (unreleased)
+## [1.1.0.b9] - 2026-03-07
+- add demo mode for JGC, controlled by hidden 'useDemoData' boolean setting, and when true picking up from `demoData.json` file in the same folder as settings.
+
+## [1.1.0.b8] - 2026-03-07
+- fix: totals for time-based tags
+- dev: hidden setting **useDemoData** for chart summary. When true, chart data is read from `demoData.json` (serialised occurrences) instead of live `gatherOccurrences`. When useDemoData is false and Log Level is DEBUG, running the chart summary writes the current live data to `demoData.json` for later use as demo data.
+
+## [1.1.0.b7] - 2026-03-06 (unreleased)
+- the TOTALS section now slides under AVERAGES when window isn't wide enough
+- heatmap grid now adjusts width responsively.
+
+## [1.1.0.b6] - 2026-02-13 (unreleased)
 - change: **/period stats** now excludes future dates when the chosen period (week/month/quarter/year) extends beyond today.
 - dev: refactored `chartStats.js` to use the same data-gathering path as Period Stats and Progress Update (`gatherOccurrences` + `gatherOccurrencesHelpers` + `TMOccurrences`).
 - dev: refactored `chartStatsScript.js` to move stats generation code into `chartStats.js`, to improve testability and maintainability

@@ -77,9 +77,9 @@ Aim: Make sure 007's Aston Martin continues to run well, is legal etc.
 ```
 (Note: This example uses my related [Repeat Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/) to give more flexibility than the built-in repeats.)
 
-## Where you can put the metadata fields
+## Where you can put the project data (metadata fields)
 The plugin tries to be as flexible as possible about where project metadata can go. It looks in order for:
-- the first line starting 'project:' or 'medadata:'
+- the first line starting 'project:' or 'medadata:' in the note or its frontmatter
 - the first line containing a @review() or @reviewed() mention
 - the first line starting with a #hashtag.
 
@@ -145,13 +145,13 @@ Progress: 0@2021-04-05 Project started with a briefing from M about SPECTRE's da
 
 The starting percentage number doesn't have to be given; if it's not it is _calculated from the % of open and completed tasks_ found in the note.
 
-There are settings that affect which open tasks/checklists are included:
+The settings relating to Progress are:
 - Ignore tasks set more than these days in the future: If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 1 day: all items with future scheduled dates are ignored.)
 - Ignore checklists in progress? If set, then checklists in progress will not be counted as part of the project's completion percentage.
-
-### Other settings
 - Progress Heading: (from v1.3) Optional heading name under which `Progress: ...` lines are stored in the project note. If you set this when the note already has progress lines, the plugin finds them and inserts the heading above.
-- Also write most recent Progress line to frontmatter?: (from v1.3) When on, the current progress line is written to frontmatter so it can be used in Folder Views (default: off).
+- Also write most recent Progress line to frontmatter?: (from v1.3) When on, the current progress line is also written to frontmatter so it can be used in Folder Views (default: off).
+
+## Other Plugin settings
 - Open Project Lists in what sort of macOS window?: (from v1.3) Choose whether the Rich project list opens in NotePlan's main window or in a separate window.
 - Next action tag(s): optional list of #hashtags to include in a task or checklist to indicate its the next action in this project (comma-separated; default '#next'). If there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist is shown as the next action. Only the first matching item is shown.
 - Display next actions in output? This requires the previous setting to be set (or use #sequential). Toggle is in the Filter… menu as "Show next actions?".
@@ -225,7 +225,10 @@ Another approach comes from user George C:
 - I also will copy over any tasks I didn't do from the previous day.
 
 ## Creating a new Project/Area note
-A good way to quickly create a new Project or Area note is to use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the Templating plugin. Here is what I use as my New Project Template:
+There are a variety of tools to help you create a new Project or Area note. 
+
+### Templating system
+Use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the built-in Templating system. Here is what I use as my New Project Template:
 
 ```markdown
 ---
@@ -239,11 +242,11 @@ Aim: <%- prompt('aim') %>
 Context: <%- prompt('context') %>
 ```
 
+### Template Forms
+[Template Forms](https://noteplan.co/plugins/dwertheimer.Forms) is a separate powerful plugin which provides a visual form builder, that works with a 'processing template'. It ships with an example New Project form; you can customise your own form(s) from this.
+
 ## Using with Dashboard plugin
 My separate [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) shows a simpler version of the data from the Projects Review List in its 'Projects' section. It has the same type of edit dialog to complete/cancel/finish review/skip review, and also shows progress indicators. From v1.3, when the Project Lists window is open it automatically refreshes when you change data (requires Dashboard v2.4.0 or later).
-
-## Configuration
-These commands require configuration before they will know how you intend to use projects and reviews. On macOS this is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel. On iOS/iPadOS run the '/Projects: update plugin settings' command instead.
 
 ## Running from an x-callback call
 Most of these commands can be run from an x-callback call:

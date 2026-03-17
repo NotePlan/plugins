@@ -1,0 +1,9 @@
+[
+  {
+    "id": "np.stockTicker",
+    "name": "Stock Ticker",
+    "author": "EduardMe",
+    "description": "Live stock portfolio tracker with real-time quotes and daily performance",
+    "repo": "EduardMe/noteplan-stock-ticker-plugin"
+  }
+]

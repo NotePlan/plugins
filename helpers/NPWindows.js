@@ -52,7 +52,7 @@ export function logWindowsList(): void {
   }
   c = 0
   for (const win of NotePlan.htmlWindows) {
-    outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? '-'}' ID:${win.id} Rect:${rectToString(win.windowRect)}`)
+    outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? '-'}' ${win.isVisible ? '' : '❌ INVISIBLE'} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
     c++
   }
   logInfo('logWindowsList', outputLines.join('\n'))
@@ -196,25 +196,32 @@ export function getNonMainWindowIds(windowType: TWindowType = 'Editor'): Array<s
 
 /**
  * Search open HTML windows and return the window object that matches a given customId (if available).
- * Matches are case-insensitive, and either an exact match or a starts-with-match.
+ * Matches are exact and case-insensitive.
+ * Note: From v3.20.2, this also checks the HTMLView.isVisible property to see if the window is actually visible, as it may be cached in memory. (Unless checkIsVisible is false, when no check is made.)
  * @param {string} customId - to look for
+ * @param {boolean} checkIsVisible - whether to check the HTMLView.isVisible property to see if the window is actually visible, as it may be cached in memory. (Default: true)
  * @returns {string} the matching open HTML window's ID or false if not found
  */
-export function getWindowIdFromCustomId(customId: string): string | false {
+export function getWindowIdFromCustomId(
+  customId: string,
+  checkIsVisible: boolean = true
+): string | false {
   if (NotePlan.environment.platform !== 'macOS') {
-    logDebug('getWindowIdFromCustomId', `Platform is ${NotePlan.environment.platform}`)
+    logDebug('getWindowIdFromCustomId', `Starting on ${NotePlan.environment.platform} for customId '${customId}'`)
     // return false
   }
+  let foundWin: ?HTMLView | ?TEditor = null
+  const doCheckIsVisible = checkIsVisible && usersVersionHas('windowIsVisible')
 
   // First try to find an HTML window with the same customId
   const allHTMLWindows = NotePlan.htmlWindows
   // clo(allHTMLWindows, 'getWindowIdFromCustomId: allHTMLWindows')
   for (const thisWin of allHTMLWindows) {
     // clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
-    if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
+    if (caseInsensitiveMatch(customId, thisWin.customId) /* || caseInsensitiveStartsWith(customId, thisWin.customId) */) {
       thisWin.customId = customId
       logDebug('getWindowIdFromCustomId', `Found HTML window '${thisWin.customId}' matching customId '${customId}' with ID '${thisWin.id}'`)
-      return thisWin.id
+      foundWin = thisWin
     }
   }
 
@@ -223,14 +230,19 @@ export function getWindowIdFromCustomId(customId: string): string | false {
   for (const thisWin of allEditorWindows) {
     if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
       logDebug('getWindowIdFromCustomId', `Found Editor window '${thisWin.customId}' matching customId '${customId}' with ID '${thisWin.id}'`)
-      return thisWin.id
+      foundWin = thisWin
     }
   }
 
-  logDebug(
-    'getWindowIdFromCustomId',
-    `Did not find open window with ID:"${customId}" on platform:"${NotePlan.environment.platform}". This is ok if the window is not open or the platform is not macOS.`,
-  )
+  if (foundWin) {
+    if (doCheckIsVisible && (foundWin.isVisible ?? false)) {
+      return foundWin.id
+    } else {
+      logInfo('getWindowIdFromCustomId', `Window '${foundWin.customId}' is available, but not visible, so will not return it.`)
+      return false
+    }
+  }
+  logDebug('getWindowIdFromCustomId', `Did not find ${checkIsVisible ? 'open' : 'visible or invisible'} window with ID:"${customId}" on platform ${NotePlan.environment.platform}.`)
   return false
 }
 

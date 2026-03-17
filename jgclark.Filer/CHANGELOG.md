@@ -1,6 +1,11 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.5.3] - 2025-03-16
+- fix: improvements to the **/move completed items to done section** command
+- dev: added tests for its helper functions
+- change: for the **/move completed items to done section** command, replaced the boolean setting "Only move completed items when whole section is complete?" with a new string setting "When to move completed items to Done". This offers three options: *ask each time* (default), *move when whole section complete*, and *move when any are complete*.
+
 ## [1.5.2] - 2025-02-18
 - Improvements to the **/move completed items to done section** command:
   - allow customising the "Done" section heading name. This defaults to `Done` but can be set to something else (for example `Completed`). (for @Jose)

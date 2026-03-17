@@ -85,7 +85,7 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
       // add to bottom of note
       smartAppendPara(destNote, parasToText(selectedParagraphsToUse), 'text')
     } else {
-      addParagraphsToNote(destNote, selectedParagraphsToUse, headingToFind, config.whereToAddInSection, true)
+      addParagraphsToNote(destNote, selectedParagraphsToUse, headingToFind, config.whereToAddInSection, true) // true = allow preamble before heading
     }
 
     // unhighlight the previous selection, for safety's sake

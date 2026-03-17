@@ -754,8 +754,9 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
 
     // Use .backlinks, which is described as "Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The headings of the linked paragraphs are also listed here, although they don't have to contain a link."
     // Note: @jgclark reckons that the subItem.headingLevel data returned by this might be wrong.
+    // FIXME: Seems this might be returning only backlinks at indent 0. Need to test.
     const backlinkParas: Array<TParagraph> = getFlatListOfBacklinks(calNote) // an array of notes which link to this note
-    // logDebug(`getReferencedParagraphs`, `found ${String(backlinkParas.length)} backlinked paras for ${displayTitle(calNote)}:`)
+    logDebug(`getReferencedParagraphs`, `found ${String(backlinkParas.length)} backlinked paras for ${displayTitle(calNote)}:`)
 
     backlinkParas.forEach((para) => {
       // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
@@ -768,14 +769,14 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
       if (includeHeadings) {
         // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
       } else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
-        // logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today from ${para.note?.filename ?? '<no note>'}`)
+        logDebug(`getReferencedParagraphs`, `- adding #${para.lineIndex}: '${para.content}' as it includes >${thisDateStr} or >today from ${para.note?.filename ?? '<no note>'}`)
         if (!para.note) {
           logWarn(`getReferencedParagraphs`, `  - this backlink para.note is null. Para:\n${JSON.stringify(para, null, 2)}`)
         }
 
         // Log if content contains TEST. TODO(later): remove after testing backlinks workaround
         if (para.content.includes('TEST')) {
-          console.log(`getReferencedParagraphs: FYI 👉 found TEST in paragraph's content for filename '${calNote.filename}':\n${JSP(para, 2)}`)
+          logInfo(`getReferencedParagraphs`, `FYI 👉 found TEST in #${para.lineIndex}: '${calNote.filename}' [${para.type}] {${para.rawContent}}`)
         }
 
         wantedParas.push(para)
@@ -784,7 +785,7 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
       }
     })
 
-    // logDebug(`getReferencedParagraphs`, `"${calNote.title || ''}" has ${wantedParas.length} wantedParas`)
+    logDebug(`getReferencedParagraphs`, `-> "${calNote.title || ''}" has ${wantedParas.length} wantedParas`)
     return wantedParas
   } catch (err) {
     logError('NPnote/getReferencedParagraphs', JSP(err))
@@ -1366,6 +1367,85 @@ export function getHeadingsFromNote(
     logError('NPnote/getHeadingsFromNote', error.message)
     return []
   }
+}
+
+/**
+ * Clean a filename basename (no path): decode HTML entities, fix garbled possessives, replace path-unsafe chars.
+ * Used by np.Tidy "Clean up note filenames" command. Does not use or change getFSSafeFilenameFromNoteTitle.
+ * @param {string} basename - filename basename, e.g. "Note name.md" or "Note name" (no path)
+ * @returns {string} cleaned basename (extension preserved if present)
+ */
+export function cleanFilenameBasename(basename: string): string {
+  if (typeof basename !== 'string' || basename === '') return basename
+  const lastDot = basename.lastIndexOf('.')
+  const namePart = lastDot >= 0 ? basename.slice(0, lastDot) : basename
+  const extPart = lastDot >= 0 ? basename.slice(lastDot) : '' // includes the dot
+  let s = namePart
+
+  // 1. Explicit HTML/entity replacements (order: &amp; before others that contain &)
+  
+  s = s.replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&ldquo;/gi, '"')
+    .replace(/&rdquo;/gi, '"')
+    .replace(/&#8211;/g, '-')
+    .replace(/&#8212;/g, '-')
+    .replace(/&mdash;/gi, '--')
+    .replace(/&ndash;/gi, '-')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#039;/gi, "'")
+  // 1a. Question marks: replace with ' in words but otherwise drop
+  s = s.replace(/(\w)\?(\w)/gi, "$1'$2")
+    .replace(/\?/gi, '')
+
+  // 1b. Replace curly quotes and em dash with straight equivalents. U+2018/U+2019→', U+201C/U+201D→", U+2014→--
+  s = s.replace(/\u2019/g, "'")
+    .replace(/‘/g, "'")
+    .replace(/’/g, "'")
+    .replace(/“/g, '"')
+    .replace(/”/g, '"')
+    .replace(/—/g, '--')
+  
+  // 2. Bullet U+2022 or pipe | → hyphen (dash)
+  s = s.replace(/\u2022/g, '-')
+    .replace(/\|/g, '-')
+  
+  // 3. Garbled possessive/contraction: Church?s → Church's, don?t → don't
+  s = s.replace(/(\w)\?s\b/g, "$1's")
+      .replace(/(\w)\?(\w)/g, "$1'$2")
+  
+  // 4. Remaining numeric and named HTML entities
+  s = s.replace(/&#(\d+);/g, (_, num) => {
+    const code = parseInt(num, 10)
+    if (code >= 0 && code <= 0x10ffff) {
+      try {
+        return String.fromCodePoint(code)
+      } catch (_e) {
+        return ''
+      }
+    }
+    return ''
+  })
+  s = s.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+    const code = parseInt(hex, 16)
+    if (code >= 0 && code <= 0x10ffff) {
+      try {
+        return String.fromCodePoint(code)
+      } catch (_e) {
+        return ''
+      }
+    }
+    return ''
+  })
+  const namedEntities = { apos: "'", nbsp: ' ' }
+  s = s.replace(/&([a-zA-Z]+);/g, (_, name) => namedEntities[name.toLowerCase()] ?? '')
+
+  // 5. Path-unsafe characters
+  s = s.replace(/\\/g, '_')
+    .replace(/\//g, '_')
+    .replace(/:/g, '_')
+  return s + extPart
 }
 
 /**

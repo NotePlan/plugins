@@ -1,6 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.3.1] - 2026-02-26
+- New setting "Theme to use for Project Lists": if set to a valid installed Theme name, the Rich project list window uses that theme instead of your current NotePlan theme. Leave blank to use your current theme.
+- Fixed edge case with adding progress updates and frontmatter.
+
 ## [1.3.0] - 2026-02-20
 ### Display Improvements
 - Supports opening the Project Lists window in NotePlan's main window on macOS. See Display setting "Open Project Lists in what sort of macOS window?".

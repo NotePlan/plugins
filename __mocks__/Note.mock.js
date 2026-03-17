@@ -13,7 +13,6 @@ import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 export class Note {
   // Explicitly define properties that are dynamically assigned
   content: string
-  paragraphs: any[]
   // Properties
   backlinks: any[] = [] /* sample:  [ SOMETHING ], */
   changedDate: any = {} /* new Date("Tue Sep 07 2021 06:49:41 GMT-0700 (PDT)"),  */
@@ -93,9 +92,15 @@ export class Note {
     await Promise.resolve()
     throw 'Note :: insertCompletedTodo Not implemented yet'
   }
-  async insertHeading(): Promise<void> {
-    await Promise.resolve()
-    throw 'Note :: insertHeading Not implemented yet'
+  insertHeading(content: string, lineIndex: number, headingLevel: number): void {
+    // .insertHeading(content, lineIndex, headingLevel)
+    const headingMark = '#'.repeat(headingLevel)
+    const heading = `${headingMark} ${content}`
+    const paras = makeParagraphsFromContent(heading)
+    this.paragraphs.splice(lineIndex, 0, ...paras)
+    this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
+    this.resetLineIndexesAndContent()
+    return
   }
   async insertList(): Promise<void> {
     await Promise.resolve()

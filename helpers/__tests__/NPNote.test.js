@@ -476,4 +476,111 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
   })
+
+  describe('cleanFilenameBasename', () => {
+    test('returns empty string unchanged', () => {
+      expect(NPNote.cleanFilenameBasename('')).toEqual('')
+    })
+
+    test('returns non-string unchanged', () => {
+      expect(NPNote.cleanFilenameBasename(null)).toEqual(null)
+    })
+
+    test('preserves basename with no changes needed', () => {
+      expect(NPNote.cleanFilenameBasename('Simple Note.md')).toEqual('Simple Note.md')
+      expect(NPNote.cleanFilenameBasename('Note')).toEqual('Note')
+    })
+
+    test('decodes &#039; to apostrophe', () => {
+      expect(NPNote.cleanFilenameBasename("Church&#039;s Notes.md")).toEqual("Church's Notes.md")
+    })
+
+    test('decodes &#8211; and &#8212; to hyphen', () => {
+      expect(NPNote.cleanFilenameBasename('Range &#8211; 2024.md')).toEqual('Range - 2024.md')
+      expect(NPNote.cleanFilenameBasename('Range &#8212; 2024.md')).toEqual('Range - 2024.md')
+    })
+
+    test('decodes &mdash; to double hyphen and &ndash; to hyphen', () => {
+      expect(NPNote.cleanFilenameBasename('A &mdash; B.md')).toEqual('A -- B.md')
+      expect(NPNote.cleanFilenameBasename('A &ndash; B.md')).toEqual('A - B.md')
+    })
+
+    test('decodes &amp; to &', () => {
+      expect(NPNote.cleanFilenameBasename('A &amp; B.md')).toEqual('A & B.md')
+    })
+
+    test('decodes &lt; and &gt; to < and >', () => {
+      expect(NPNote.cleanFilenameBasename('x &lt; y &gt; z.md')).toEqual('x < y > z.md')
+    })
+
+    test('decodes &quot;, &ldquo;, &rdquo; to double quote', () => {
+      expect(NPNote.cleanFilenameBasename('Say &quot;hi&quot;.md')).toEqual('Say "hi".md')
+      expect(NPNote.cleanFilenameBasename('Say &ldquo;hi&rdquo;.md')).toEqual('Say "hi".md')
+    })
+
+    test('replaces curly quotes and em dash with straight equivalents', () => {
+      expect(NPNote.cleanFilenameBasename('\u2018quoted\u2019.md')).toEqual('\'quoted\'.md')
+      expect(NPNote.cleanFilenameBasename('Is ‘Living in Love and Faith’ just a compromise')).toEqual('Is \'Living in Love and Faith\' just a compromise')
+      expect(NPNote.cleanFilenameBasename('\u201Cquoted\u201D.md')).toEqual('"quoted".md')
+      expect(NPNote.cleanFilenameBasename('\u201CQuoted\u201D.md')).toEqual('"Quoted".md')
+      expect(NPNote.cleanFilenameBasename('A \u2014 B.md')).toEqual('A -- B.md')
+    })
+
+    test('replaces bullet U+2022 with dash', () => {
+      expect(NPNote.cleanFilenameBasename('Item \u2022 Point.md')).toEqual('Item - Point.md')
+    })
+
+    test('replaces pipe | with dash', () => {
+      expect(NPNote.cleanFilenameBasename('Title | Author.txt')).toEqual('Title - Author.txt')
+    })
+
+    test('fixes garbled possessive ?s to apostrophe-s', () => {
+      expect(NPNote.cleanFilenameBasename('Church?s Notes.md')).toEqual("Church's Notes.md")
+      expect(NPNote.cleanFilenameBasename('James?s.md')).toEqual("James's.md")
+    })
+
+    test('fixes garbled contraction ? between letters to apostrophe', () => {
+      expect(NPNote.cleanFilenameBasename("don?t.md")).toEqual("don't.md")
+      expect(NPNote.cleanFilenameBasename("won?t.md")).toEqual("won't.md")
+    })
+
+    test('decodes remaining &#NNNN; decimal entities', () => {
+      expect(NPNote.cleanFilenameBasename('&#65;&#66;.md')).toEqual('AB.md')
+      expect(NPNote.cleanFilenameBasename('&#32;.md')).toEqual(' .md')
+    })
+
+    test('decodes remaining &#xHHHH; hex entities', () => {
+      expect(NPNote.cleanFilenameBasename('&#x41;&#x42;.md')).toEqual('AB.md')
+      expect(NPNote.cleanFilenameBasename('&#x20;.md')).toEqual(' .md')
+    })
+
+    test('decodes named entities apos', () => {
+      expect(NPNote.cleanFilenameBasename("O&#039;Reilly &apos; quote.md")).toEqual("O'Reilly ' quote.md")
+    })
+
+    test('nbsp -> space', () => {
+      expect(NPNote.cleanFilenameBasename('Space&nbsp;here.md')).toEqual('Space here.md')
+    })
+
+    test('replaces backslash, slash, colon with underscore', () => {
+      expect(NPNote.cleanFilenameBasename('path\\to\\file.md')).toEqual('path_to_file.md')
+      expect(NPNote.cleanFilenameBasename('path/to/file.md')).toEqual('path_to_file.md')
+      expect(NPNote.cleanFilenameBasename('Zoom ecclesiology/ the Church scattered and gathered')).toEqual('Zoom ecclesiology_ the Church scattered and gathered')
+      expect(NPNote.cleanFilenameBasename('Title: Subtitle.md')).toEqual('Title_ Subtitle.md')
+    })
+
+    test('preserves extension when cleaning name part only', () => {
+      expect(NPNote.cleanFilenameBasename("Church&#039;s Notes.md")).toEqual("Church's Notes.md")
+      expect(NPNote.cleanFilenameBasename('file.txt')).toEqual('file.txt')
+    })
+
+    test('handles basename without extension', () => {
+      expect(NPNote.cleanFilenameBasename("don?t")).toEqual("don't")
+      expect(NPNote.cleanFilenameBasename('&#65;&#66;')).toEqual('AB')
+    })
+
+    test('combined substitutions', () => {
+      expect(NPNote.cleanFilenameBasename("Church&#039;s &amp; Co?s Notes.md")).toEqual('Church\'s & Co\'s Notes.md')
+    })
+  })
 })
