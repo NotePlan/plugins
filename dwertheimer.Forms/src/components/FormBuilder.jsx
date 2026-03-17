@@ -316,7 +316,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
         const notesData = await requestFromPlugin('getNotes', {
           includePersonalNotes: true,
           includeCalendarNotes: !forProcessingTemplates, // Skip calendar notes for processing templates (performance optimization)
-          includeRelativeNotes: !forProcessingTemplates, // Skip relative notes for processing templates
+          includeRelativeNotes: true, // Always include <current>, <today>, etc. so Target Note chooser shows them; Processing Template chooser filters them via includeRelativeNotes={false}
           includeTeamspaceNotes: true,
           space: spaceToUse, // Filter by selected space (empty string = Private)
         })
@@ -372,9 +372,15 @@ You can edit or delete this comment field - it's just a note to help you get sta
   // We must NOT sync when only frontmatter.receivingTemplateTitle changes (user changed the dropdown), or we
   // would overwrite the user's selection with the stale prop and the dropdown would "flip back".
   const prevReceivingTemplateTitlePropRef = useRef(receivingTemplateTitle)
+  // Pending user selection: when user picks a template, setNotes (from getNotes) can commit before setFrontmatter,
+  // so one render can show stale frontmatter and the dropdown "reverts". We pass pendingRef ?? frontmatter so the
+  // display never reverts; clear the ref when frontmatter catches up or when we sync from prop.
+  const pendingReceivingTemplateTitleRef = useRef<?string>(null)
   useEffect(() => {
-    if (receivingTemplateTitle && receivingTemplateTitle !== prevReceivingTemplateTitlePropRef.current) {
-      prevReceivingTemplateTitlePropRef.current = receivingTemplateTitle
+    const prevProp = prevReceivingTemplateTitlePropRef.current
+    prevReceivingTemplateTitlePropRef.current = receivingTemplateTitle
+    if (receivingTemplateTitle && receivingTemplateTitle !== prevProp) {
+      pendingReceivingTemplateTitleRef.current = null
       const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''
       setFrontmatter((prev) => ({
         ...prev,
@@ -384,6 +390,13 @@ You can edit or delete this comment field - it's just a note to help you get sta
       }))
     }
   }, [receivingTemplateTitle])
+
+  // Clear pending ref once frontmatter has caught up to the user's selection (avoids keeping override forever)
+  useEffect(() => {
+    if (pendingReceivingTemplateTitleRef.current != null && frontmatter.receivingTemplateTitle === pendingReceivingTemplateTitleRef.current) {
+      pendingReceivingTemplateTitleRef.current = null
+    }
+  }, [frontmatter.receivingTemplateTitle])
 
   // Initialize frontmatter with stripped quotes to prevent saving quoted values
   useEffect(() => {
@@ -517,6 +530,9 @@ You can edit or delete this comment field - it's just a note to help you get sta
   const handleFrontmatterChange = (key: string, value: any) => {
     // Strip quotes from string values before saving
     const cleanedValue = typeof value === 'string' ? stripDoubleQuotes(value) : value
+    if (key === 'receivingTemplateTitle') {
+      pendingReceivingTemplateTitleRef.current = cleanedValue != null && cleanedValue !== '' ? String(cleanedValue) : null
+    }
     setFrontmatter((prev) => ({ ...prev, [key]: cleanedValue }))
     setHasUnsavedChanges(true)
   }
@@ -611,6 +627,10 @@ You can edit or delete this comment field - it's just a note to help you get sta
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
+  // Use pending ref so Processing Template dropdown never reverts when setNotes races with setFrontmatter
+  const effectiveReceivingTemplateTitle = pendingReceivingTemplateTitleRef.current ?? frontmatter.receivingTemplateTitle
+  const frontmatterForSettings = { ...frontmatter, receivingTemplateTitle: effectiveReceivingTemplateTitle }
+
   return (
     <div className="form-builder-container">
       <div className="form-builder-header">
@@ -701,7 +721,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
         <PanelGroup direction="horizontal" className="form-builder-panels">
           <Panel defaultSize={25} minSize={15} order={1}>
             <FormSettings
-              frontmatter={frontmatter}
+              frontmatter={frontmatterForSettings}
               onFrontmatterChange={handleFrontmatterChange}
               notes={notes}
               folders={folders}

@@ -323,7 +323,13 @@ async function prependOrAppendContentUnderExistingHeading(note: CoreNoteFields, 
  * @returns {Object} processed arguments object and validation info
  */
 export function processTemplateArguments(selectedTemplate: string, args: string | Object | null): { argObj: Object, isRunFromCode: boolean, passedTemplateBody: string | null } {
-  let isRunFromCode: boolean = Boolean(selectedTemplate.length === 0 && args && typeof args === 'object' && (args.getNoteTitled || args.templateBody))
+  // Run-from-code when no template name but args include getNoteTitled, non-empty templateBody, or newNoteTitle (e.g. Forms create-new)
+  const hasCodeStyleArgs =
+    selectedTemplate.length === 0 &&
+    args &&
+    typeof args === 'object' &&
+    (args.getNoteTitled || (args.templateBody != null && String(args.templateBody).length > 0) || args.newNoteTitle)
+  let isRunFromCode: boolean = Boolean(hasCodeStyleArgs)
   let passedTemplateBody: string | null = isRunFromCode && args && typeof args === 'object' && args.templateBody ? String(args.templateBody) : null
 
   const argObj =
@@ -819,7 +825,7 @@ export async function handleRegularNote(noteTitle: string, selectedTemplate: str
  * @param {string | Object} args - the arguments to pass to the template (either a string of key=value pairs or an object)
  * @author @dwertheimer
  */
-export async function templateRunnerExecute(_selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string | Object | null = ''): Promise<string | void> {
+export async function templateRunnerExecute(_selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string | Object | null = ''): Promise<string | void | null> {
   try {
     const selectedTemplate = _selectedTemplate.trim()
     const start = new Date()
@@ -841,6 +847,7 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
 
       if (!isRunFromCode && (!selectedTemplate || selectedTemplate.length === 0)) {
         await CommandBar.prompt('You must supply a template title as the first argument', helpInfo('Self-Running Templates'))
+        return null
       }
 
       logTimer('templateRunnerExecute', start, `TR Total Running Time -  after Step 1`)
@@ -1019,6 +1026,15 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
       } else {
         await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Self-Running Templates'))
       }
+    } else {
+      // No template name, not run-from-code, no passed template body: nothing to execute (e.g. Forms create-new with empty templateBody in args).
+      // Return null so caller (e.g. Forms) can treat as failure and show error instead of closing the window.
+      logDebug(
+        pluginJson,
+        `templateRunnerExecute: No template name, not run-from-code, and no passed template body; nothing to execute. Returning null.`,
+      )
+      logDebug(pluginJson, `TemplateRunnerExecute took ${timer(start)}`)
+      return null
     }
     logDebug(pluginJson, `TemplateRunnerExecute took ${timer(start)}`)
   } catch (error) {

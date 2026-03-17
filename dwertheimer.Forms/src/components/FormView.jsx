@@ -689,6 +689,8 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
         newNoteTitle: pluginData['newNoteTitle'] || '',
         newNoteFolder: pluginData['newNoteFolder'] || '',
         space: pluginData['space'] || '',
+        // Default true when missing (no shouldOpenInEditor in frontmatter = open in editor, matches Form Builder UI)
+        shouldOpenInEditor: pluginData?.shouldOpenInEditor !== false && pluginData?.shouldOpenInEditor !== 'false',
       }
 
       // Persist current data so plugin sees latest when it calls getGlobalSharedData (passthrough vars updated by sendActionToPlugin elsewhere)

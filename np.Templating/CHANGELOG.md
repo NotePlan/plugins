@@ -6,6 +6,18 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.2.10] 2026-03-16 @dwertheimer
+
+### Fixed
+- **templateRunner run-from-code when Forms create-new**: When called with no template name but args containing `newNoteTitle` (and optionally non-empty `templateBody`), `processTemplateArguments` now sets `isRunFromCode = true` so the main block runs and the note is created and optionally opened in the editor. Previously only `getNoteTitled` or non-empty `templateBody` triggered run-from-code, so Forms create-new with empty templateBody in the first pass never entered the block.
+- **templateRunner return value when nothing executed**: When the main block is not entered (no template name, not run-from-code, no passed template body), templateRunner now returns `null` instead of falling through to `undefined`, so callers (e.g. Forms) can treat it as failure and show an error instead of closing the window. Return type updated to `Promise<string | void | null>`.
+- **CommandBar.prompt return**: When "You must supply a template title" is shown, the function now returns `null` so the caller does not treat it as success.
+
+### Edited in this release
+- `np.Templating/plugin.json` — Version 2.2.10; lastUpdateInfo.
+- `np.Templating/CHANGELOG.md` — This section.
+- `np.Templating/src/NPTemplateRunner.js` — `processTemplateArguments`: treat `args.newNoteTitle` (or non-empty `args.templateBody`) as run-from-code; `templateRunnerExecute`: return `null` when main block skipped, and when CommandBar.prompt for missing template title; return type `Promise<string | void | null>`.
+
 ## [2.2.9] 2026-01-XX @dwertheimer
 - Add new hidden command `getRenderContext` for use by other plugins (e.g., Forms plugin)
   - Returns the full templating render context object with all globals, modules, and helpers (date, time, note, tasks, moment, etc.)

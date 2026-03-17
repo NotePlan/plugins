@@ -4,6 +4,50 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.1.6] 2026-03-16 @dwertheimer
+
+### Added
+- **Form Builder: Refresh button next to Space and Folder**: A refresh control (rotate icon) was added next to "Space:" and "Folder:" in the left sidebar (Write to existing, Create new, and Form processor sections) so folder and note lists can be refreshed after creating new folders without reopening the window.
+
+### Fixed
+- **Form Builder: Target Note chooser missing &lt;current&gt;**: The description stated that &lt;current&gt;, &lt;today&gt;, etc. could be chosen, but &lt;current&gt; (and other relative options) were missing when notes had been loaded first for the Processing Template dropdown. Notes are now always loaded with relative options included; the Processing Template chooser continues to hide them via `includeRelativeNotes={false}`.
+
+### Edited in this release
+- `dwertheimer.Forms/plugin.json` — Version 1.1.6; lastUpdateInfo.
+- `dwertheimer.Forms/CHANGELOG.md` — This section.
+- `dwertheimer.Forms/src/components/ProcessingMethodSection.jsx` — Refresh button next to Space and Folder labels (class `form-builder-refresh-folders-btn`).
+- `dwertheimer.Forms/src/components/FormBuilder.jsx` — `getNotes` now always requests `includeRelativeNotes: true` so Target Note chooser shows &lt;current&gt; and other relative options.
+
+## [1.1.5] 2026-03-16 @dwertheimer
+
+### Fixed
+- **Form window not closing after successful submit**: Submit was handled via the REQUEST path (`submitForm`) which never called `closeWindowFromCustomId`. The form-submit router now routes `submitForm` through `handleFormSubmitAction` when window data is available so the backend closes the floating window on success.
+- **Open new note in Editor not applied**: The "Open new note in Editor" checkbox value was not passed through to templateRunner. The payload now includes `shouldOpenInEditor`; the backend merges it from pluginData when missing; `resolveShouldOpenInEditor()` ensures missing/undefined defaults to true (matches Form Builder UI). Template frontmatter and loadFormContext also provide `shouldOpenInEditor`.
+- **Template body empty on create-new submit**: When submitting from the form window, `templateBody` and `newNoteFrontmatter` were not in the payload. The backend now merges them from `reactWindowData.pluginData` in `handleFormSubmitAction` so processCreateNew receives the form's template body and new-note frontmatter.
+- **Form closed without showing error when templateRunner did nothing**: When templateRunner skipped the main block (no template name, not run-from-code, no passed body), it returned undefined and Forms treated it as success. np.Templating now returns null in that case so Forms shows an error and keeps the window open.
+
+### Edited in this release
+- `dwertheimer.Forms/plugin.json` — Version 1.1.5; lastUpdateInfo.
+- `dwertheimer.Forms/CHANGELOG.md` — This section.
+- `dwertheimer.Forms/src/components/FormView.jsx` — Submit payload includes `shouldOpenInEditor`; comment for default true when missing.
+- `dwertheimer.Forms/src/components/ProcessingMethodSection.jsx` — Comment that checkbox defaults to on when missing from frontmatter.
+- `dwertheimer.Forms/src/formSubmitHandlers.js` — Route submitForm via handleFormSubmitAction in router; merge `shouldOpenInEditor`, `templateBody`, `newNoteFrontmatter` from pluginData in handleFormSubmitAction; `loadFormContextFromFilename` returns `shouldOpenInEditor` from frontmatter; `submitFormRequest` merges `shouldOpenInEditor` from payload/context; `resolveShouldOpenInEditor` import and use.
+- `dwertheimer.Forms/src/formSubmitRouter.js` — For actionType `submitForm`, resolve windowId and reactWindowData and call `handleFormSubmitAction` so backend can close window and use pluginData.
+- `dwertheimer.Forms/src/formSubmission.js` — Export `resolveShouldOpenInEditor()` (default true when missing); use it in handleSubmitButtonClick.
+- `dwertheimer.Forms/src/formBrowserRouter.js` — (existing changes in WC)
+- `dwertheimer.Forms/src/components/FormBrowserView.jsx` — (existing changes in WC)
+- `dwertheimer.Forms/src/windowManagement.js` — (existing changes in WC)
+
+## [1.1.3] 2026-02-23 @dwertheimer
+
+### Fixed
+- **Processing Template dropdown still reverting in some cases**: When the Processing Template dropdown was opened, `getNotes` ran and could commit (`setNotes`) before the user's `setFrontmatter` from selecting a template, so one render showed stale frontmatter and the dropdown appeared to revert. A pending-selection ref is now set on change and used for the displayed value until frontmatter catches up, so the selection always sticks. Sync effect also clears the pending ref when syncing from prop and only runs when the prop has changed from its previous value.
+- **Processing Template note chooser icon showing square with question mark**: The note chooser input used `iconClass: 'fa-file-lines'` without a Font Awesome 6 style prefix (`fa-solid`). FA6 requires the style prefix or the glyph renders as missing. SearchableChooser now normalizes the input icon class so a style prefix is always applied when missing.
+
+### Edited in this release
+- `dwertheimer.Forms/src/components/FormBuilder.jsx` — Pending `receivingTemplateTitle` ref set in `handleFrontmatterChange`; `frontmatterForSettings` passes effective value (pending ref ?? frontmatter); effect clears pending when frontmatter catches up; sync effect updates ref to current prop and clears pending when syncing from prop.
+- `helpers/react/DynamicDialog/SearchableChooser.jsx` — Input icon: when `iconClass` starts with `fa-` but has no style prefix (`fa-solid`/`fa-regular`/`fa-brands`), prepend `fa-solid ` so the icon renders correctly in FA6.
+
 ## [1.1.2] 2026-02-23 @dwertheimer
 
 ### Fixed

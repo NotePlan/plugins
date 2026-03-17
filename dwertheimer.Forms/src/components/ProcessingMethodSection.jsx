@@ -148,7 +148,7 @@ export function ProcessingMethodSection({
         </div>
       </div>
 
-      {/* Show in Editor checkbox - label changes based on processing method */}
+      {/* Show in Editor checkbox - label changes based on processing method. Default true when missing from frontmatter (new forms). */}
       {/* Hide for run-js-only since there's no note to open */}
       {processingMethod !== 'run-js-only' && (
         <div className="frontmatter-field">
@@ -168,9 +168,22 @@ export function ProcessingMethodSection({
       {processingMethod === 'write-existing' && (
         <>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
               Space:
               <InfoIcon text="Select the Space (Private or Teamspace) where the target note should be located. Notes will be filtered to only show notes from the selected space." />
+              <button
+                type="button"
+                className="form-builder-refresh-folders-btn"
+                title="Refresh folders and notes lists (e.g. after creating new folders)"
+                onClick={() => {
+                  onLoadFolders(true, frontmatter.space || undefined).catch((error) => {
+                    console.error('Error refreshing folders:', error)
+                  })
+                }}
+                style={{ marginLeft: 'auto', padding: '0.2rem 0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                <i className="fa-solid fa-arrows-rotate" aria-hidden="true" />
+              </button>
             </label>
             <SpaceChooser
               label=""
@@ -392,9 +405,22 @@ export function ProcessingMethodSection({
       {processingMethod === 'create-new' && (
         <>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
               Space:
               <InfoIcon text="Select the Space (Private or Teamspace) where the new note should be created." />
+              <button
+                type="button"
+                className="form-builder-refresh-folders-btn"
+                title="Refresh folders list (e.g. after creating new folders)"
+                onClick={() => {
+                  onLoadFolders(true, frontmatter.space || undefined).catch((error) => {
+                    console.error('Error refreshing folders:', error)
+                  })
+                }}
+                style={{ marginLeft: 'auto', padding: '0.2rem 0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                <i className="fa-solid fa-arrows-rotate" aria-hidden="true" />
+              </button>
             </label>
             <SpaceChooser
               label=""
@@ -420,9 +446,22 @@ export function ProcessingMethodSection({
             </div>
           </div>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
               Folder:
               <InfoIcon text="The folder where the new note will be created. Leave empty to create the note in the root folder, or select a specific folder. You can also create a new folder by using Option-click on a folder." />
+              <button
+                type="button"
+                className="form-builder-refresh-folders-btn"
+                title="Refresh folders list (e.g. after creating new folders)"
+                onClick={() => {
+                  onLoadFolders(true, frontmatter.space || undefined).catch((error) => {
+                    console.error('Error refreshing folders:', error)
+                  })
+                }}
+                style={{ marginLeft: 'auto', padding: '0.2rem 0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                <i className="fa-solid fa-arrows-rotate" aria-hidden="true" />
+              </button>
             </label>
             <FolderChooser
               label=""
@@ -723,9 +762,22 @@ export function ProcessingMethodSection({
       {processingMethod === 'form-processor' && (
         <>
           <div className="frontmatter-field" style={{ marginTop: '1rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
               Space:
               <InfoIcon text="Select the Space (Private or Teamspace) where the processing template should be located. Templates will be filtered to only show templates from the selected space." />
+              <button
+                type="button"
+                className="form-builder-refresh-folders-btn"
+                title="Refresh folders and notes lists (e.g. after creating new folders)"
+                onClick={() => {
+                  onLoadFolders(true, frontmatter.space || undefined).catch((error) => {
+                    console.error('Error refreshing folders:', error)
+                  })
+                }}
+                style={{ marginLeft: 'auto', padding: '0.2rem 0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                <i className="fa-solid fa-arrows-rotate" aria-hidden="true" />
+              </button>
             </label>
             <SpaceChooser
               label=""

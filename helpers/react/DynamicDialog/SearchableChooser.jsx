@@ -812,9 +812,14 @@ export function SearchableChooser({
           <i className={`fa-solid fa-chevron-down ${classNamePrefix}-arrow ${isOpen ? 'open' : ''}`}></i>
         ) : iconClass ? (
           <i
-            className={`${typeof iconClass === 'string' && iconClass.startsWith('fa-') ? iconClass : `fa-solid ${iconClass || ''}`} ${classNamePrefix}-icon ${
-              isOpen ? 'open' : ''
-            }`}
+            className={`${(() => {
+              const c = typeof iconClass === 'string' ? iconClass : ''
+              if (!c) return ''
+              // FA6 needs a style prefix (fa-solid, fa-regular, fa-brands) or the icon shows as missing glyph (square + ?)
+              if (/\bfa-(solid|regular|brands)\b/.test(c)) return c
+              if (c.startsWith('fa-')) return `fa-solid ${c}`
+              return `fa-solid fa-${c}`
+            })()} ${classNamePrefix}-icon ${isOpen ? 'open' : ''}`}
           ></i>
         ) : null}
       </div>
