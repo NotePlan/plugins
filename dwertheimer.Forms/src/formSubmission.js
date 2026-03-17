@@ -13,6 +13,17 @@ import { logError, logDebug, clo, JSP } from '@helpers/dev'
 // ============================================================================
 
 /**
+ * Resolve shouldOpenInEditor: when the field is missing (undefined/null) or not explicitly false, return true.
+ * Matches Form Builder UI where the checkbox defaults to "on" and is only written to frontmatter when unchecked.
+ * @param {*} value - Raw value from frontmatter, pluginData, or payload
+ * @returns {boolean} - true to open note in editor, false to leave it closed
+ */
+export function resolveShouldOpenInEditor(value: any): boolean {
+  if (value === false || value === 'false') return false
+  return true
+}
+
+/**
  * Check if a key is a valid JavaScript identifier
  * @param {string} key - The key to check
  * @returns {boolean} - True if the key is a valid JavaScript identifier
@@ -1210,7 +1221,8 @@ export async function handleSubmitButtonClick(data: any, formFields: Array<Objec
 
   // Mark form values as JSON for templating plugin
   formValues['__isJSON__'] = true
-  const shouldOpenInEditor = data.shouldOpenInEditor !== false // Default to true if not set
+  // Default true when field missing (form template has no shouldOpenInEditor in frontmatter = open in editor)
+  const shouldOpenInEditor = resolveShouldOpenInEditor(data.shouldOpenInEditor)
 
   // Add shouldOpenInEditor to data for processing functions
   data.shouldOpenInEditor = shouldOpenInEditor

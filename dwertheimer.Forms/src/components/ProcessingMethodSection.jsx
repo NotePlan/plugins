@@ -148,7 +148,7 @@ export function ProcessingMethodSection({
         </div>
       </div>
 
-      {/* Show in Editor checkbox - label changes based on processing method */}
+      {/* Show in Editor checkbox - label changes based on processing method. Default true when missing from frontmatter (new forms). */}
       {/* Hide for run-js-only since there's no note to open */}
       {processingMethod !== 'run-js-only' && (
         <div className="frontmatter-field">

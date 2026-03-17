@@ -52,11 +52,11 @@ export function FormBrowserView({
   const pendingRequestsRef = useRef<Map<string, { resolve: (data: any) => void, reject: (error: Error) => void, timeoutId: any }>>(new Map())
 
   // Store windowId in a ref so requestFromPlugin doesn't need to depend on pluginData
-  const windowIdRef = useRef<?string>(pluginData?.windowId || 'form-browser-window')
+  const windowIdRef = useRef<?string>(pluginData?.windowId || 'forms-chooser-window')
 
   // Update windowId ref when pluginData changes
   useEffect(() => {
-    windowIdRef.current = pluginData?.windowId || 'form-browser-window'
+    windowIdRef.current = pluginData?.windowId || 'forms-chooser-window'
   }, [pluginData?.windowId])
 
   // Listen for RESPONSE messages from Root and resolve pending requests
@@ -532,7 +532,7 @@ export function FormBrowserView({
   const handleSave = useCallback(
     (formValues: Object, windowId?: string) => {
       logDebug('FormBrowserView', 'Form submitted:', formValues)
-      
+
       // Clear any previous errors before submitting
       dispatch('UPDATE_DATA', {
         ...data,
@@ -564,132 +564,132 @@ export function FormBrowserView({
         setIsSubmitting(false)
         return
       }
-      requestFromPlugin('submitForm', {
+      requestFromPlugin(
+        'submitForm',
+        {
           keepOpenOnSubmit: true, // Tell plugin not to close the window
           templateFilename: selectedTemplate?.filename,
           formValues,
           windowId,
-        }, 30000) // Use 30s timeout like FormView
-          .then((responseData) => {
-            logDebug('FormBrowserView', 'Form submission response:', responseData)
-            
-            // Hide submitting overlay (with minimum display time so user sees it)
-            hideOverlay()
-            
-            // Check if the response indicates success or failure
-            // The responseData may be the data object from a successful response, or it may contain error info
-            if (responseData && typeof responseData === 'object') {
-              // Check for error indicators in the response (from pluginData)
-              const pluginDataFromResponse = responseData.pluginData || {}
-              const hasError =
-                pluginDataFromResponse.formSubmissionError ||
-                pluginDataFromResponse.aiAnalysisResult ||
-                responseData.formSubmissionError ||
-                responseData.aiAnalysisResult
-              if (hasError) {
-                // Extract error message
-                let errorMessage = 'Form submission failed.'
-                const formError = pluginDataFromResponse.formSubmissionError || responseData.formSubmissionError
-                const aiError = pluginDataFromResponse.aiAnalysisResult || responseData.aiAnalysisResult
-                
-                if (formError) {
-                  errorMessage = formError
-                } else if (aiError) {
-                  // Extract a brief summary from AI analysis
-                  const aiMsg = aiError
-                  const firstLine = aiMsg.split('\n')[0] || aiMsg.substring(0, 200)
-                  errorMessage = `Template error: ${firstLine}`
-                }
-                
-                logError('FormBrowserView', `Form submission failed: ${errorMessage}`)
-                
-                // Update pluginData with error so FormErrorBanner can display it
-                dispatch('UPDATE_DATA', {
-                  ...data,
-                  pluginData: {
-                    ...pluginData,
-                    formSubmissionError: formError || errorMessage,
-                    aiAnalysisResult: aiError || '',
-                  },
-                })
-                
-                dispatch('SHOW_TOAST', {
-                  type: 'ERROR',
-                  msg: errorMessage,
-                  timeout: 10000, // Longer timeout for error messages
-                })
-                // Don't reset form on error - keep it open so user can fix and retry
-                return
+        },
+        30000,
+      ) // Use 30s timeout like FormView
+        .then((responseData) => {
+          logDebug('FormBrowserView', 'Form submission response:', responseData)
+
+          // Hide submitting overlay (with minimum display time so user sees it)
+          hideOverlay()
+
+          // Check if the response indicates success or failure
+          // The responseData may be the data object from a successful response, or it may contain error info
+          if (responseData && typeof responseData === 'object') {
+            // Check for error indicators in the response (from pluginData)
+            const pluginDataFromResponse = responseData.pluginData || {}
+            const hasError =
+              pluginDataFromResponse.formSubmissionError || pluginDataFromResponse.aiAnalysisResult || responseData.formSubmissionError || responseData.aiAnalysisResult
+            if (hasError) {
+              // Extract error message
+              let errorMessage = 'Form submission failed.'
+              const formError = pluginDataFromResponse.formSubmissionError || responseData.formSubmissionError
+              const aiError = pluginDataFromResponse.aiAnalysisResult || responseData.aiAnalysisResult
+
+              if (formError) {
+                errorMessage = formError
+              } else if (aiError) {
+                // Extract a brief summary from AI analysis
+                const aiMsg = aiError
+                const firstLine = aiMsg.split('\n')[0] || aiMsg.substring(0, 200)
+                errorMessage = `Template error: ${firstLine}`
               }
+
+              logError('FormBrowserView', `Form submission failed: ${errorMessage}`)
+
+              // Update pluginData with error so FormErrorBanner can display it
+              dispatch('UPDATE_DATA', {
+                ...data,
+                pluginData: {
+                  ...pluginData,
+                  formSubmissionError: formError || errorMessage,
+                  aiAnalysisResult: aiError || '',
+                },
+              })
+
+              dispatch('SHOW_TOAST', {
+                type: 'ERROR',
+                msg: errorMessage,
+                timeout: 10000, // Longer timeout for error messages
+              })
+              // Don't reset form on error - keep it open so user can fix and retry
+              return
             }
-            
-            // Clear any errors on successful submission
-            dispatch('UPDATE_DATA', {
-              ...data,
-              pluginData: {
-                ...pluginData,
-                formSubmissionError: '',
-                aiAnalysisResult: '',
-              },
-            })
-            
-            // Show success toast with note information
-            let successMessage = 'Your form has been submitted successfully.'
-            if (responseData?.noteTitle) {
-              const action = responseData.processingMethod === 'create-new' ? 'created' : 'updated'
-              successMessage = `Form submitted successfully. Note "${responseData.noteTitle}" has been ${action}.`
-              
-              // Automatically open the note after a short delay
-              setTimeout(() => {
-                if (requestFromPlugin) {
-                  requestFromPlugin('openNote', {
-                    noteTitle: responseData.noteTitle,
-                  }).catch((error) => {
-                    logError('FormBrowserView', `Error opening note: ${error.message}`)
-                  })
-                }
-              }, 500)
-            }
-            
-            dispatch('SHOW_TOAST', {
-              type: 'SUCCESS',
-              msg: successMessage,
-              timeout: 5000,
-            })
-            
-            // Reset form after successful submission
-            handleCancel()
+          }
+
+          // Clear any errors on successful submission
+          dispatch('UPDATE_DATA', {
+            ...data,
+            pluginData: {
+              ...pluginData,
+              formSubmissionError: '',
+              aiAnalysisResult: '',
+            },
           })
-          .catch((error) => {
-            logError('FormBrowserView', `Error submitting form: ${error.message}`)
-            
-            // Hide submitting overlay on error (with minimum display time)
-            hideOverlay()
-            
-            // On error, show Toast notification but don't close the window
-            // The window should stay open so user can fix and retry
-            const errorMessage = error.message || 'An error occurred while submitting the form'
-            
-            // Update pluginData with error so FormErrorBanner can display it
-            dispatch('UPDATE_DATA', {
-              ...data,
-              pluginData: {
-                ...pluginData,
-                formSubmissionError: errorMessage,
-              },
-            })
-            
-            dispatch('SHOW_TOAST', {
-              type: 'ERROR',
-              msg: errorMessage,
-              timeout: 10000, // Longer timeout for error messages
-            })
-            // Don't reset form on error - let user see what they entered
+
+          // Show success toast with note information
+          let successMessage = 'Your form has been submitted successfully.'
+          if (responseData?.noteTitle) {
+            const action = responseData.processingMethod === 'create-new' ? 'created' : 'updated'
+            successMessage = `Form submitted successfully. Note "${responseData.noteTitle}" has been ${action}.`
+
+            // Automatically open the note after a short delay
+            setTimeout(() => {
+              if (requestFromPlugin) {
+                requestFromPlugin('openNote', {
+                  noteTitle: responseData.noteTitle,
+                }).catch((error) => {
+                  logError('FormBrowserView', `Error opening note: ${error.message}`)
+                })
+              }
+            }, 500)
+          }
+
+          dispatch('SHOW_TOAST', {
+            type: 'SUCCESS',
+            msg: successMessage,
+            timeout: 5000,
           })
+
+          // Reset form after successful submission
+          handleCancel()
+        })
+        .catch((error) => {
+          logError('FormBrowserView', `Error submitting form: ${error.message}`)
+
+          // Hide submitting overlay on error (with minimum display time)
+          hideOverlay()
+
+          // On error, show Toast notification but don't close the window
+          // The window should stay open so user can fix and retry
+          const errorMessage = error.message || 'An error occurred while submitting the form'
+
+          // Update pluginData with error so FormErrorBanner can display it
+          dispatch('UPDATE_DATA', {
+            ...data,
+            pluginData: {
+              ...pluginData,
+              formSubmissionError: errorMessage,
+            },
+          })
+
+          dispatch('SHOW_TOAST', {
+            type: 'ERROR',
+            msg: errorMessage,
+            timeout: 10000, // Longer timeout for error messages
+          })
+          // Don't reset form on error - let user see what they entered
+        })
     },
     [selectedTemplate, requestFromPlugin, handleCancel, dispatch, data, pluginData],
   )
-
 
   // Handle new form button - show dialog
   const handleNewForm = useCallback(() => {
@@ -741,7 +741,6 @@ export function FormBrowserView({
     setShowCreateFormDialog(false)
     setCreateFormDialogData({})
   }, [])
-
 
   // Handle edit form button
   const handleEditForm = useCallback(
@@ -829,7 +828,6 @@ export function FormBrowserView({
                 </div>
                 <div className="form-browser-list-header">
                   <h3>Template Forms ({filteredTemplates.length})</h3>
-
                 </div>
                 <div ref={listRef} className="form-browser-list" onKeyDown={handleKeyDown} tabIndex={0}>
                   {loading && templates.length === 0 ? (
@@ -885,9 +883,7 @@ export function FormBrowserView({
                       >
                         <div className="form-browser-list-item-content">
                           <span className="form-browser-list-item-label">{template.label}</span>
-                          {selectedSpace === '__all__' && template.spaceTitle && (
-                            <span className="form-browser-list-item-space">{template.spaceTitle}</span>
-                          )}
+                          {selectedSpace === '__all__' && template.spaceTitle && <span className="form-browser-list-item-space">{template.spaceTitle}</span>}
                         </div>
                         <div className="form-browser-list-item-actions" onClick={(e) => e.stopPropagation()}>
                           <button className="form-browser-list-item-button form-browser-list-item-button-edit" onClick={(e) => handleEditForm(template, e)} title="Edit form">

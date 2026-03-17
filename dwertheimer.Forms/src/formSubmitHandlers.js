@@ -7,7 +7,7 @@
 
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
-import { handleSubmitButtonClick } from './formSubmission'
+import { handleSubmitButtonClick, resolveShouldOpenInEditor } from './formSubmission'
 import { loadTemplateBodyFromTemplate, loadNewNoteFrontmatterFromTemplate, loadTemplateRunnerArgsFromTemplate } from './templateIO'
 import { WEBVIEW_WINDOW_ID, getFormWindowId, findFormWindowId } from './windowManagement'
 import { closeWindowFromCustomId } from '@helpers/NPWindows'
@@ -101,7 +101,7 @@ export async function getFormWindowIdForSubmission(data: any): Promise<string> {
  * Load form definition and template content from the form file (by filename).
  * Used by REQUEST/RESPONSE submit so we do not read reactWindowData.
  * @param {string} formTemplateFilename - Filename of the form template note
- * @returns {Promise<{ formFields: Array<Object>, templateBody: string, newNoteTitle: string, newNoteFolder: string, newNoteFrontmatter: string } | null>}
+ * @returns {Promise<{ formFields: Array<Object>, templateBody: string, newNoteTitle: string, newNoteFolder: string, newNoteFrontmatter: string, shouldOpenInEditor: boolean } | null>}
  */
 export async function loadFormContextFromFilename(
   formTemplateFilename: string,
@@ -111,6 +111,7 @@ export async function loadFormContextFromFilename(
   newNoteTitle: string,
   newNoteFolder: string,
   newNoteFrontmatter: string,
+  shouldOpenInEditor: boolean,
 } | null> {
   if (!formTemplateFilename || !formTemplateFilename.trim()) {
     return null
@@ -153,13 +154,16 @@ export async function loadFormContextFromFilename(
       newNoteFolder = stripDoubleQuotes(fm?.newNoteFolder || '') || ''
     }
     
-    logDebug(pluginJson, `loadFormContextFromFilename: Loaded from "${formTemplateFilename}": newNoteTitle="${newNoteTitle}", newNoteFolder="${newNoteFolder}", templateBody length=${templateBody.length}, templateRunnerArgs=${templateRunnerArgs ? 'loaded' : 'none'}`)
+    // Default true when field missing (no shouldOpenInEditor in frontmatter = open in editor, matches Form Builder UI)
+    const shouldOpenInEditor = resolveShouldOpenInEditor(fm?.shouldOpenInEditor)
+    logDebug(pluginJson, `loadFormContextFromFilename: Loaded from "${formTemplateFilename}": newNoteTitle="${newNoteTitle}", newNoteFolder="${newNoteFolder}", templateBody length=${templateBody.length}, templateRunnerArgs=${templateRunnerArgs ? 'loaded' : 'none'}, shouldOpenInEditor=${String(shouldOpenInEditor)}`)
     return {
       formFields,
       templateBody,
       newNoteTitle,
       newNoteFolder,
       newNoteFrontmatter,
+      shouldOpenInEditor,
     }
   } catch (error) {
     logError(pluginJson, `loadFormContextFromFilename: Error: ${error instanceof Error ? error.message : String(error)}`)
@@ -199,12 +203,18 @@ export async function submitFormRequest(data: any): Promise<RequestResponse> {
     }
     // Merge loaded form context (templateBody, newNoteFrontmatter, etc.) into data so processCreateNew can access it
     // processCreateNew reads from data.templateBody, not reactWindowData.pluginData.templateBody
+    // Use payload first, then form definition; default true when missing (matches Form Builder UI)
+    const shouldOpenInEditor =
+      data.shouldOpenInEditor !== undefined
+        ? resolveShouldOpenInEditor(data.shouldOpenInEditor)
+        : resolveShouldOpenInEditor(formContext.shouldOpenInEditor)
     const dataWithFormContext = {
       ...data,
       templateBody: data.templateBody || formContext.templateBody || '',
       newNoteFrontmatter: data.newNoteFrontmatter || formContext.newNoteFrontmatter || '',
       newNoteTitle: data.newNoteTitle || formContext.newNoteTitle || '',
       newNoteFolder: data.newNoteFolder || formContext.newNoteFolder || '',
+      shouldOpenInEditor,
     }
     logDebug(pluginJson, `submitFormRequest: [DIAG] calling handleSubmitButtonClick with loaded form (no reactWindowData)`)
     const result = await handleSubmitButtonClick(dataWithFormContext, formContext.formFields || [])
@@ -286,6 +296,25 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
       reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     } else if (data.passThroughVars) {
       reactWindowData.passThroughVars = { ...data.passThroughVars }
+    }
+
+    // Use payload first; when missing, use form definition (pluginData). Default true when missing (matches Form Builder UI)
+    if (data.shouldOpenInEditor === undefined) {
+      data.shouldOpenInEditor = resolveShouldOpenInEditor(reactWindowData?.pluginData?.shouldOpenInEditor)
+      logDebug(pluginJson, `handleFormSubmitAction: shouldOpenInEditor from pluginData: ${String(data.shouldOpenInEditor)}`)
+    }
+
+    // Payload does not include templateBody/newNoteFrontmatter; processCreateNew needs them from the form definition
+    if (data.templateBody === undefined || data.templateBody === '') {
+      const fromPlugin = reactWindowData?.pluginData?.templateBody
+      if (fromPlugin != null && String(fromPlugin).trim() !== '') {
+        data.templateBody = String(fromPlugin)
+        logDebug(pluginJson, `handleFormSubmitAction: templateBody from pluginData (length=${data.templateBody.length})`)
+      }
+    }
+    if (data.newNoteFrontmatter === undefined && reactWindowData?.pluginData?.newNoteFrontmatter != null) {
+      data.newNoteFrontmatter = reactWindowData.pluginData.newNoteFrontmatter
+      logDebug(pluginJson, `handleFormSubmitAction: newNoteFrontmatter from pluginData`)
     }
 
     logDebug(pluginJson, `[BACK-END] handleFormSubmitAction: Calling handleSubmitButtonClick...`)

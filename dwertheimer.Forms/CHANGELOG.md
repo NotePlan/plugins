@@ -4,6 +4,26 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.1.5] 2026-03-16 @dwertheimer
+
+### Fixed
+- **Form window not closing after successful submit**: Submit was handled via the REQUEST path (`submitForm`) which never called `closeWindowFromCustomId`. The form-submit router now routes `submitForm` through `handleFormSubmitAction` when window data is available so the backend closes the floating window on success.
+- **Open new note in Editor not applied**: The "Open new note in Editor" checkbox value was not passed through to templateRunner. The payload now includes `shouldOpenInEditor`; the backend merges it from pluginData when missing; `resolveShouldOpenInEditor()` ensures missing/undefined defaults to true (matches Form Builder UI). Template frontmatter and loadFormContext also provide `shouldOpenInEditor`.
+- **Template body empty on create-new submit**: When submitting from the form window, `templateBody` and `newNoteFrontmatter` were not in the payload. The backend now merges them from `reactWindowData.pluginData` in `handleFormSubmitAction` so processCreateNew receives the form's template body and new-note frontmatter.
+- **Form closed without showing error when templateRunner did nothing**: When templateRunner skipped the main block (no template name, not run-from-code, no passed body), it returned undefined and Forms treated it as success. np.Templating now returns null in that case so Forms shows an error and keeps the window open.
+
+### Edited in this release
+- `dwertheimer.Forms/plugin.json` — Version 1.1.5; lastUpdateInfo.
+- `dwertheimer.Forms/CHANGELOG.md` — This section.
+- `dwertheimer.Forms/src/components/FormView.jsx` — Submit payload includes `shouldOpenInEditor`; comment for default true when missing.
+- `dwertheimer.Forms/src/components/ProcessingMethodSection.jsx` — Comment that checkbox defaults to on when missing from frontmatter.
+- `dwertheimer.Forms/src/formSubmitHandlers.js` — Route submitForm via handleFormSubmitAction in router; merge `shouldOpenInEditor`, `templateBody`, `newNoteFrontmatter` from pluginData in handleFormSubmitAction; `loadFormContextFromFilename` returns `shouldOpenInEditor` from frontmatter; `submitFormRequest` merges `shouldOpenInEditor` from payload/context; `resolveShouldOpenInEditor` import and use.
+- `dwertheimer.Forms/src/formSubmitRouter.js` — For actionType `submitForm`, resolve windowId and reactWindowData and call `handleFormSubmitAction` so backend can close window and use pluginData.
+- `dwertheimer.Forms/src/formSubmission.js` — Export `resolveShouldOpenInEditor()` (default true when missing); use it in handleSubmitButtonClick.
+- `dwertheimer.Forms/src/formBrowserRouter.js` — (existing changes in WC)
+- `dwertheimer.Forms/src/components/FormBrowserView.jsx` — (existing changes in WC)
+- `dwertheimer.Forms/src/windowManagement.js` — (existing changes in WC)
+
 ## [1.1.3] 2026-02-23 @dwertheimer
 
 ### Fixed
