@@ -4,12 +4,13 @@
   "plugin.id": "jgclark.QuickCapture",
   "plugin.name": "⚡️ Quick Capture",
   "plugin.description": "Commands to more quickly add tasks/todos or general text to NotePlan notes. See website for configuration of special Inbox note, and how to use from other apps through x-callback calls.",
-  "plugin.icon": "",
+  "plugin.icon": "bolt",
+  "plugin.iconColor": "yellow-400",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "1.0.4",
+  "plugin.version": "1.0.5",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "1.0.4: Bug fix for '/quick add task to inbox' command.\n1.0.3: Bug fix for '/quick add line under heading' command.\n1.0.2: Rebuild to pick up improvements in updated note + folder pickers and week handling.\n1.0.1: Improved display of icons and calendar notes in note picker. Fix typos in prompts in some commands.\n1.0.0: Allows picking future calendar notes that don't yet exist. Support for notes in Teamspaces. Fixes commands that deal with the edge case where a note has frontmatter but the `# Title` is not in it. Fix to some x-callback calls.\n0.16.1: fix to display of relative dates in commmand bar; commands now work when adding items to future calendar notes that don't yet exist.\n0.16.0: new \"/jot\" and \"/quick add checklist under heading\" commands. Some bug fixes.\n0.15.2: bug fix.\n0.15.1: new x-callback args when creating headings. Bug fixes.\n0.15.0: new \"/quick add to this month's journal\" and \"/quick add to this year's journal\" commands. Speeding up some /quick... commands, and a bug fix.",
+  "plugin.lastUpdateInfo": "1.0.5: Make the '/quick add to ... journal' commands use the append/prepend setting.\n1.0.4: Bug fix for '/quick add task to inbox' command.\n1.0.3: Bug fix for '/quick add line under heading' command.\n1.0.2: Rebuild to pick up improvements in updated note + folder pickers and week handling.\n1.0.1: Improved display of icons and calendar notes in note picker. Fix typos in prompts in some commands.\n1.0.0: Allows picking future calendar notes that don't yet exist. Support for notes in Teamspaces. Fixes commands that deal with the edge case where a note has frontmatter but the `# Title` is not in it. Fix to some x-callback calls.\n0.16.1: fix to display of relative dates in commmand bar; commands now work when adding items to future calendar notes that don't yet exist.\n0.16.0: new \"/jot\" and \"/quick add checklist under heading\" commands. Some bug fixes.\n0.15.2: bug fix.\n0.15.1: new x-callback args when creating headings. Bug fixes.\n0.15.0: new \"/quick add to this month's journal\" and \"/quick add to this year's journal\" commands. Speeding up some /quick... commands, and a bug fix.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -39,18 +40,6 @@
         "text to add",
         "title of destination note (or 'Daily' or 'Weekly')",
         "heading to add under (optional)"
-      ]
-    },
-    {
-      "name": "quick append task to note",
-      "alias": [
-        "qat"
-      ],
-      "description": "Quickly append a task to a chosen project note",
-      "jsFunction": "appendTaskToNote",
-      "arguments": [
-        "note title",
-        "task to append"
       ]
     },
     {
@@ -116,8 +105,8 @@
         "add",
         "today"
       ],
-      "description": "Quickly append text to the Journal in today's note",
-      "jsFunction": "appendTextToDailyJournal",
+      "description": "Quickly add text to the Journal in today's note",
+      "jsFunction": "addTextToDailyJournal",
       "arguments": [
         "text to add"
       ]
@@ -127,8 +116,8 @@
       "alias": [
         "qajw"
       ],
-      "description": "Quickly append text to the Journal in this week's note",
-      "jsFunction": "appendTextToWeeklyJournal",
+      "description": "Quickly add text to the Journal in this week's note",
+      "jsFunction": "addTextToWeeklyJournal",
       "arguments": [
         "text to add"
       ]
@@ -138,8 +127,8 @@
       "alias": [
         "qajm"
       ],
-      "description": "Quickly append text to the Journal in this month's note",
-      "jsFunction": "appendTextToMonthlyJournal",
+      "description": "Quickly add text to the Journal in this month's note",
+      "jsFunction": "addTextToMonthlyJournal",
       "arguments": [
         "text to add"
       ]
@@ -149,10 +138,22 @@
       "alias": [
         "qajy"
       ],
-      "description": "Quickly append text to the Journal in this year's note",
-      "jsFunction": "appendTextToYearlyJournal",
+      "description": "Quickly add text to the Journal in this year's note",
+      "jsFunction": "addTextToYearlyJournal",
       "arguments": [
         "text to add"
+      ]
+    },
+    {
+      "name": "quick append task to note",
+      "alias": [
+        "qat"
+      ],
+      "description": "Quickly append a task to a chosen project note",
+      "jsFunction": "appendTaskToNote",
+      "arguments": [
+        "note title",
+        "task to append"
       ]
     },
     {
@@ -179,11 +180,6 @@
         "note title",
         "task to append"
       ]
-    },
-    {
-      "name": "QuickCapture: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "updateSettings"
     }
   ],
   "plugin.commands_disabled": [
@@ -200,6 +196,11 @@
         "note week (YYYY-Wnn)",
         "text to add"
       ]
+    },
+    {
+      "name": "QuickCapture: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
     },
     {
       "name": "test: smartCreateTest",
@@ -275,17 +276,9 @@
     {
       "key": "inboxHeading",
       "title": "Inbox Heading",
-      "description": "If the Inbox note setting is 'Daily' or 'Weekly', this is the Heading that inbox items are added under. If not set, then it will append or prepend to the note (as set below).",
+      "description": "If the Inbox note setting is 'Daily' or 'Weekly', this is the Heading that inbox items are added under. If not set, then it will append or prepend to the note (as set above).",
       "type": "string",
       "default": "📥 Inbox",
-      "required": false
-    },
-    {
-      "key": "textToAppendToJots",
-      "type": "string",
-      "title": "Text to append to new inbox jots",
-      "description": "Optional text (that can include hashtags, mentions or emojis) that will be appended to all new text jots captured to the inbox.",
-      "default": "💡",
       "required": false
     },
     {
@@ -294,6 +287,14 @@
       "title": "Text to append to new inbox tasks",
       "description": "Optional text (that can include hashtags, mentions or emojis) that will be appended to all new tasks captured to the inbox.",
       "default": "",
+      "required": false
+    },
+    {
+      "key": "textToAppendToJots",
+      "type": "string",
+      "title": "Text to append to new inbox jots",
+      "description": "Optional text (that can include hashtags, mentions or emojis) that will be appended to all new text jots captured to the inbox.",
+      "default": "💡",
       "required": false
     },
     {
