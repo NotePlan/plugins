@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "1.1.0.b9",
+  "plugin.version": "1.1.0.b10",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "1.1.0: significant new command '/chart progress summary'.\n1.0.3: worked around a new bug in the API affecting stats for hashtags and mentions.\n1.0.1: under-the-hood changes to progressUpdate.\n1.0.0: add support for 'all' time period in stats command. Allow override of settings for periodStats when called from x-callbacks. Other improvements and fixes.",
   "plugin.dependencies": [],
@@ -66,6 +66,11 @@
     },
     {
       "name": "chart progress summary",
+      "alias": [
+        "hsc",
+        "cps",
+        "habits"
+      ],
       "description": "Show Charts and summary stats for hashtags and mentions defined in the '/progress update' section",
       "jsFunction": "chartSummaryStats",
       "arguments": [
@@ -73,7 +78,7 @@
       ],
       "sidebarView": {
         "windowID": "jgclark.Summaries.chartSummaryStats",
-        "title": "Chart Summary Stats",
+        "title": "Habit & Summary Charts",
         "icon": "fa-chart-line",
         "iconColor": "amber-500"
       }
@@ -225,15 +230,17 @@
     {
       "key": "progressPeriod",
       "title": "What time period should the Progress update cover?",
-      "description": "Pick one of the options: 'wtd' (week to date), 'userwtd' (user's week to date), 'last7d' (last 7 days), 'mtd' (month to date), 'last2w' (last 2 weeks), 'last4w' (last 4 weeks).\n(This can be overriden when called from a Template by setting the relevant parameter.)",
+      "description": "Pick one of the options: 'wtd' (week to date), 'userwtd' (user's week to date), 'last7d' (last 7 days), 'last2w' (last 2 weeks), 'last4w' (last 4 weeks), 'mtd' (month to date), 'qtd' (quarter to date), 'last3m' (last 3 months).\n(This can be overriden when called from a Template by setting the relevant parameter.)",
       "type": "string",
       "choices": [
         "wtd",
         "userwtd",
         "last7d",
-        "mtd",
         "last2w",
-        "last4w"
+        "mtd",
+        "last4w",
+        "qtd",
+        "last3m"
       ],
       "default": "last7d",
       "required": true
@@ -337,14 +344,6 @@
     {
       "type": "heading",
       "title": "'/chart progress summary' command settings"
-    },
-    {
-      "key": "chartDefaultDaysBack",
-      "title": "Default days to display",
-      "description": "Default number of days to show in the Charts",
-      "type": "number",
-      "default": 30,
-      "required": true
     },
     {
       "key": "chartHeight",
@@ -582,6 +581,14 @@
     }
   ],
   "plugin.settings-disabled": [
+    {
+      "key": "chartDefaultDaysBack",
+      "title": "Default days to display",
+      "description": "Default number of days to show in the Charts",
+      "type": "number",
+      "default": 30,
+      "required": true
+    },
     {
       "key": "chartYesNoHabits",
       "title": "Yes/No habits for charts",

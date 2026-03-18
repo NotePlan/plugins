@@ -51,17 +51,17 @@
       localStorage.setItem('filtersCollapsed', isCollapsed ? 'true' : 'false')
     }
 
-    function updateDays() {
-      const daysInput = document.getElementById('days-input')
-      if (!daysInput) {
-        alert('Error: Could not find days input field')
+    function updatePeriod() {
+      const select = document.getElementById('period-select')
+      if (!select) {
+        alert('Error: Could not find period selector')
         return
       }
-      const days = parseInt(daysInput.value, 10)
-      if (!isNaN(days) && days > 0 && days <= 365) {
+      const period = select.value
+      if (period && typeof period === 'string') {
         const pluginID = 'jgclark.Summaries'
         const command = 'chartSummaryStats'
-        const url = 'noteplan://x-callback-url/runPlugin?pluginID=' + encodeURIComponent(pluginID) + '&command=' + encodeURIComponent(command) + '&arg0=' + days
+        const url = 'noteplan://x-callback-url/runPlugin?pluginID=' + encodeURIComponent(pluginID) + '&command=' + encodeURIComponent(command) + '&arg0=' + encodeURIComponent(period)
         const link = document.createElement('a')
         link.href = url
         link.style.display = 'none'
@@ -71,10 +71,10 @@
           document.body.removeChild(link)
         }, 100)
       } else {
-        alert('Please enter a valid number of days between 1 and 365')
+        alert('Please select a valid period')
       }
     }
-    window.updateDays = updateDays
+    window.updatePeriod = updatePeriod
 
     // Set initial theme for this window based on NotePlan's current theme mode
     // (mode is detected on the plugin side using the same approach as helpers/NPThemeToCSS)

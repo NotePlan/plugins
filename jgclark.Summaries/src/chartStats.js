@@ -30,7 +30,6 @@ In short: Chart.js doesn’t have a built-in “sparkline” type, but you can c
 
 // =====================================================================
 
-// import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import { logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import { gatherOccurrences, getSummariesSettings } from './summaryHelpers.js'
@@ -41,8 +40,9 @@ import { colorToModernSpecWithOpacity } from '@helpers/colors'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
+import { validateDateRangeAndConvertToISODateStrings } from '@helpers/dateTime'
 import { getLocale } from '@helpers/NPConfiguration'
-import { calcOffsetDateStr } from '@helpers/NPdateTime'
+import { calcOffsetDateStr, getPeriodStartEndDates } from '@helpers/NPdateTime'
 
 // =====================================================================
 // TYPES and CONSTANTS
@@ -131,13 +131,59 @@ async function loadCustomColors(): Promise<Array<{ border: string, bg: string, n
 // MAIN FUNCTION
 
 /**
- * Main function to show the habit charter
- * @param {number} [daysBack] - Number of days to look back (default from settings)
+ * Main function to show the habit charter.
+ * Can be called with either:
+ * - a period code string (e.g. 'wtd', 'last7d', 'last2w', 'mtd', 'last4w', 'qtd', 'last3m'), or
+ * - a number of days to look back (legacy behaviour; falls back to default period selection in the UI).
+ * @param {any} [periodOrDays] - Period code or number of days
  */
-export async function chartSummaryStats(daysBack?: number): Promise<void> {
+export async function chartSummaryStats(periodOrDays?: any): Promise<void> {
   try {
     const config = await getSummariesSettings()
-    const daysToShow = daysBack ?? config.chartDefaultDaysBack ?? 30
+    let rawDates: Array<string>
+    let fromDateStr = ''
+    let toDateStr = ''
+    let periodString = ''
+    let selectedPeriod = ''
+
+    // Use the period code provided, or the default period setting, or the legacy numeric days back
+    if (typeof periodOrDays === 'string' && periodOrDays !== '') {
+      // New behaviour: use named period codes, sharing logic with other period-based commands
+      const periodCode = periodOrDays
+      const range = await computeChartDateRangeForPeriod(config, periodCode)
+      rawDates = range.rawDates
+      fromDateStr = range.fromDateStr
+      toDateStr = range.toDateStr
+      periodString = range.periodString
+      selectedPeriod = range.selectedPeriod
+    } else if (periodOrDays == null || periodOrDays === '') {
+      // Default behaviour: use the same setting as "/progress update"
+      const defaultPeriod = (config.progressPeriod && typeof config.progressPeriod === 'string') ? config.progressPeriod : 'last4w'
+      const range = await computeChartDateRangeForPeriod(config, defaultPeriod)
+      rawDates = range.rawDates
+      fromDateStr = range.fromDateStr
+      toDateStr = range.toDateStr
+      periodString = range.periodString
+      selectedPeriod = range.selectedPeriod
+    } else {
+      // Legacy behaviour: numeric days back, or fallback to settings
+      const daysToShow = typeof periodOrDays === 'number' && !Number.isNaN(periodOrDays)
+        ? periodOrDays
+        : config.chartDefaultDaysBack ?? 30
+      rawDates = generateDateRange(daysToShow)
+      fromDateStr = rawDates.length > 0 ? rawDates[0] : ''
+      toDateStr = rawDates.length > 0 ? rawDates[rawDates.length - 1] : ''
+      periodString = `${daysToShow} days`
+      // Choose a reasonable default period selection for the UI
+      const defaultPeriod = config.progressPeriod && typeof config.progressPeriod === 'string'
+        ? config.progressPeriod
+        : 'last7d'
+      selectedPeriod = defaultPeriod
+    }
+
+    if (periodString && fromDateStr && toDateStr) {
+      logInfo('chartSummaryStats', `${periodString} (${fromDateStr} - ${toDateStr})`)
+    }
     // Combine all tag settings and deduplicate (same tag in multiple settings would otherwise appear twice in Totals/charts)
     const tagsRaw = [
       ...(config.progressMentions ?? []),
@@ -150,11 +196,7 @@ export async function chartSummaryStats(daysBack?: number): Promise<void> {
     let tags = Array.from(new Set(tagsRaw))
     // clo(tags, 'tags')
 
-    let rawDates = generateDateRange(daysToShow)
-    const fromDateStr = rawDates.length > 0 ? rawDates[0] : ''
-    const toDateStr = rawDates.length > 0 ? rawDates[rawDates.length - 1] : ''
     const occToLookFor = buildOccurrencesToLookForFromChartConfig(config)
-    const periodString = `${daysToShow} days`
 
     let occs: Array<TMOccurrences>
     let usedDemoData = false
@@ -215,7 +257,17 @@ export async function chartSummaryStats(daysBack?: number): Promise<void> {
       yesNoHabits = built.yesNoHabits
     }
 
-    const html = await makeChartSummaryHTML(tagData, yesNoData, tags, yesNoHabits, daysToShow, config)
+    const html = await makeChartSummaryHTML(
+      tagData,
+      yesNoData,
+      tags,
+      yesNoHabits,
+      selectedPeriod,
+      periodString,
+      fromDateStr,
+      toDateStr,
+      config,
+    )
 
     const windowOptions: HtmlWindowOptions = {
       customId: "jgclark.Summaries.chartSummaryStats",
@@ -253,6 +305,54 @@ function generateDateRange(daysBack: number): Array<string> {
     dates.push(dateStr)
   }
   return dates.sort()
+}
+
+/**
+ * Compute a date range and raw date list for a given period code (e.g. 'wtd', 'last7d', 'mtd', 'last2w', 'last4w', 'qtd', 'last3m').
+ * Reuses the same core helpers as the Progress Update command so behaviour stays consistent.
+ * @param {SummariesConfig} config - Plugin config (for excludeToday and default progressPeriod)
+ * @param {string} periodIn - Period code requested
+ * @returns {Promise<{ fromDateStr: string, toDateStr: string, periodString: string, rawDates: Array<string>, selectedPeriod: string }>}
+ */
+async function computeChartDateRangeForPeriod(
+  config: SummariesConfig,
+  periodIn: string,
+): Promise<{ fromDateStr: string, toDateStr: string, periodString: string, rawDates: Array<string>, selectedPeriod: string }> {
+  const allowedPeriods = [
+    'wtd',
+    'userwtd',
+    'last7d',
+    'last2w',
+    'last4w',
+    'mtd',
+    'qtd',
+    'last3m',
+  ]
+  const configDefaultPeriod = (config.progressPeriod && typeof config.progressPeriod === 'string')
+    ? config.progressPeriod
+    : 'last4w'
+  const selectedPeriod = allowedPeriods.includes(periodIn) ? periodIn : configDefaultPeriod
+
+  let fromDateStr = ''
+  let toDateStr = ''
+  let periodString = ''
+
+  // $FlowIgnore[incompatible-call] - TPeriodCode is more specific than string; rely on runtime guard above
+  const [fromDate, toDate, _periodType, computedPeriodString, _periodAndPartStr] = await getPeriodStartEndDates('', config.excludeToday, selectedPeriod)
+  const validated = validateDateRangeAndConvertToISODateStrings(fromDate, toDate, 'chart summary')
+  fromDateStr = validated.fromDateStr
+  toDateStr = validated.toDateStr
+  periodString = computedPeriodString
+
+  const rawDates: Array<string> = []
+  let cursor = moment(fromDateStr, 'YYYY-MM-DD')
+  const endMoment = moment(toDateStr, 'YYYY-MM-DD')
+  while (cursor.isSameOrBefore(endMoment, 'day')) {
+    rawDates.push(cursor.format('YYYY-MM-DD'))
+    cursor = cursor.add(1, 'day')
+  }
+
+  return { fromDateStr, toDateStr, periodString, rawDates, selectedPeriod }
 }
 
 /**
@@ -884,7 +984,10 @@ function generateClientScript(tagData: Object, yesNoData: Object, tags: Array<st
  * @param {Object} yesNoData - Data from collectYesNoData
  * @param {Array<string>} tags - Array of tags being tracked
  * @param {Array<string>} yesNoHabits - Array of yes/no habits being tracked
- * @param {number} daysBack - Number of days being displayed
+ * @param {string} selectedPeriod - Period code currently being displayed (e.g. 'wtd', 'last7d')
+ * @param {string} periodString - Human-readable period description
+ * @param {string} fromDateStr - Start date (YYYY-MM-DD)
+ * @param {string} toDateStr - End date (YYYY-MM-DD)
  * @param {SummariesConfig} config - other config options
  * @returns {string} HTML string
  */
@@ -893,7 +996,10 @@ async function makeChartSummaryHTML(
   yesNoData: Object,
   tags: Array<string>,
   yesNoHabits: Array<string>,
-  daysBack: number,
+  selectedPeriod: string,
+  periodString: string,
+  fromDateStr: string,
+  toDateStr: string,
   config: SummariesConfig
 ): Promise<string> {
   const colors = await loadCustomColors()
@@ -983,13 +1089,31 @@ async function makeChartSummaryHTML(
 
     <div class="controls-wrapper">
       <div class="config-section">
-        <div class="section-title">Configuration</div>
-        <div class="config-controls">
+        <!-- <div class="section-title">Configuration</div> -->
+        <div class="section-title">Period</div>
 
+          <!-- Legacy numeric 'Days to show' control kept for reference
           <div class="days-input-group">
             <label for="days-input">Days to show:</label>
-            <input type="number" id="days-input" class="days-input" value="${daysBack}" min="1" max="365" onkeypress="if(event.key==='Enter')updateDays()">
+            <input type="number" id="days-input" class="days-input" value="" min="1" max="365" onkeypress="if(event.key==='Enter')updateDays()">
             <button class="update-btn" onclick="updateDays()">Update</button>
+          </div>
+          -->
+
+          <div class="period-select-group">
+            <!-- <label for="period-select">Period:</label> -->
+            <select id="period-select" class="period-select" onchange="updatePeriod()">
+              <option value="wtd"${selectedPeriod === 'wtd' ? ' selected' : ''}>week to date</option>
+              <option value="last7d"${selectedPeriod === 'last7d' ? ' selected' : ''}>last 7 days</option>
+              <option value="last2w"${selectedPeriod === 'last2w' ? ' selected' : ''}>last 2 weeks</option>
+              <option value="mtd"${selectedPeriod === 'mtd' ? ' selected' : ''}>month to date</option>
+              <option value="last4w"${selectedPeriod === 'last4w' ? ' selected' : ''}>last 4 weeks</option>
+              <option value="qtd"${selectedPeriod === 'qtd' ? ' selected' : ''}>quarter to date</option>
+              <option value="last3m"${selectedPeriod === 'last3m' ? ' selected' : ''}>last 3 months</option>
+            </select>
+            <span class="stat-label">
+              ${fromDateStr && toDateStr ? `(${fromDateStr} - ${toDateStr})` : ''}
+            </span>
           </div>
         </div>
 
@@ -1029,7 +1153,6 @@ ${totalSelectorsHTML}
           </div>
         </div>
           -->
-      </div>
     </div>
 
     <div class="charts-container">
@@ -1041,6 +1164,7 @@ ${yesNoCombinedHTML}
     <div class="stats-wrapper">
       <div class="stats-section">
         <div class="section-title">Averages</div>
+        <span class="stat-label">(Over each data point, not each day)</span>
         <div class="stats">
 ${avgStatsHTML}
         </div>

@@ -1,6 +1,12 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [1.1.0.b10] - 2026-03-18
+- change charts display to use the existing "What time period should the Progress update cover?" setting, and to show it at the top of the display.
+- add "quarter to date" and "last 3 months" options to the available ones for the "What time period should the Progress update cover?" setting
+- further layout tweaks to suit longer data periods
+- switch to using window and sidebar title "Habit & Summary Charts"
+
 ## [1.1.0.b9] - 2026-03-07
 - add demo mode for JGC, controlled by hidden 'useDemoData' boolean setting, and when true picking up from `demoData.json` file in the same folder as settings.
 - dev: shared the AnyChart heatmap HTML/JS pattern with the Reviews plugin for its weekly Area/Project progress heatmaps.

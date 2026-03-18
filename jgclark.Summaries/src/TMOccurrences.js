@@ -151,7 +151,7 @@ export class TMOccurrences {
           // Now round to 3 significant figures
           value = Math.round(value * 1000) / 1000
         }
-        logDebug('TMOcc:addOccurrence', `- found mention duration ${_key} / ${value.toString()}`)
+        // logDebug('TMOcc:addOccurrence', `- found mention duration ${_key} / ${value.toString()}`)
       }
       // if this is a mention that finishes '(float)', then break into separate parts first
       else if (occurrenceStr.match(/\(-?\d+(\.\d+)?\)$/)) {

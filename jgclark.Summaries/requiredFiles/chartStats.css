@@ -107,6 +107,12 @@ h1 {
   align-items: baseline;
 }
 
+.period-select {
+  font-size: 0.85rem;
+  color: var(--fg-alt-color);
+  background-color: var(--bg-primary);
+}
+
 .stats-section {
   min-width: 200px;
   width: fit-content;
@@ -435,7 +441,7 @@ canvas {
 .heatmap-grid {
   display: flex;
   flex-wrap: nowrap;
-  gap: 2px;
+  gap: 1px;
   align-items: center;
 }
 
