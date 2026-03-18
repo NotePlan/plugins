@@ -337,7 +337,12 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     if (note.type === 'Notes') {
       const startOfActive = findStartOfActivePartOfNote(note)
       const endOfActive = findEndOfActivePartOfNote(note)
-      console.log(`- # paragraphs: ${note.paragraphs.length} (Active part: ${String(startOfActive)}-${String(endOfActive)})`)
+      console.log(`- # paragraphs: ${note.paragraphs.length} (Active part: ${String(startOfActive)}-${String(endOfActive)}) according to NOTE`)
+      if (usingEditor) {
+        const startOfActive = findStartOfActivePartOfNote(Editor)
+        const endOfActive = findEndOfActivePartOfNote(Editor)
+        console.log(`- # paragraphs: ${Editor.paragraphs.length} (Active part: ${String(startOfActive)}-${String(endOfActive)}) according to EDITOR`)
+      }
     } else {
       // Calendar note
       console.log(dt.getDateStringFromCalendarFilename(note.filename))
