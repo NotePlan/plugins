@@ -2,7 +2,7 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
 ## [1.4.0.b8] - 2026-03-16
-- When finishing a review, if project metadata is in frontmatter, any existing body metadata line is replaced with the message "Project metadata has been migrated to frontmatter"; on the next finish that message line is removed.
+- When finishing a review, if project metadata is in frontmatter, any existing body metadata line is replaced with the message "Project metadata has been migrated to frontmatter". On the next finish, that message line is removed.
 
 ## [1.4.0.b7] - 2026-03-13
 - Status lozenge changes

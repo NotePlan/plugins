@@ -441,6 +441,7 @@ export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
 
     // Scan the body only (after the closing ---). Find either the migration message or the first metadata-style line.
     const paras = thisEditor.paragraphs
+    // const initialLineCount: number = paras.length
     const endFMIndex = endOfFrontmatterLineIndex(noteForFM) ?? -1
 
     // First pass: handle migration message line (if present)
@@ -448,10 +449,19 @@ export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
       const p = paras[i]
       const content = p.content ?? ''
 
-      // If we already left the migration message on a previous run, remove that line and we're done.
+      // If we already left the migration message on a previous run, clear that line and we're done.
       if (content === PROJECT_METADATA_MIGRATED_MESSAGE) {
         logDebug('migrateProjectMetadataLineInEditor', `- Found existing migration message at line ${String(i)}; removing.`)
-        thisEditor.removeParagraph(p) // TEST: is this working?
+        // v1: not working, and I can't see why
+        // thisEditor.removeParagraph(p)
+        // v2: also not working
+        // thisEditor.removeParagraphAtIndex(p.lineIndex)
+        // if (Editor.paragraphs.length === initialLineCount) {
+        //   logWarn('migrateProjectMetadataLineInEditor', `- Line count didn't change from ${String(initialLineCount)} after removing migration message. This shouldn't happen.`)
+        // }
+        // v3: just clear the message instead TEST:
+        p.content = ''
+        thisEditor.updateParagraph(p)
         return
       }
     }
@@ -512,6 +522,7 @@ export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): voi
       logWarn('migrateProjectMetadataLineInNote', `- We've not been passed a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
+    logDebug('migrateProjectMetadataLineInNote', `Starting for '${displayTitle(noteToUse)}'`)
 
     // Ensure we have a frontmatter section to write to. TEST: Is this needed?
     if (!noteHasFrontMatter(noteToUse)) {
@@ -532,10 +543,11 @@ export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): voi
       const p = paras[i]
       const content = p.content ?? ''
 
-      // If we already left the migration message on a previous run, remove that line and we're done.
+      // If we already left the migration message on a previous run, clear that line and we're done.
       if (content === PROJECT_METADATA_MIGRATED_MESSAGE) {
-        logDebug('migrateProjectMetadataLineInNote', `- Found existing migration message at line ${String(i)}; removing.`)
-        noteToUse.removeParagraph(p) // FIXME: seems not to work
+        logDebug('migrateProjectMetadataLineInNote', `- Found existing migration message at line ${String(i)}; clearing its content.`)
+        p.content = ''
+        noteToUse.updateParagraph(p)
         return
       }
     }
@@ -554,21 +566,16 @@ export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): voi
       const bodyValue = metadataInfo.content.replace(/^(project|metadata|review|reviewed)\s*:\s*/i, '').trim()
 
       if (bodyValue !== '') {
+        logDebug('migrateProjectMetadataLineInNote', `- Merging body metadata into frontmatter key '${primaryKey}' with bodyValue '${bodyValue}'`)
         const mergedValue = (existingFMValue !== '' ? `${existingFMValue} ${bodyValue}` : bodyValue).replace(/\s{2,}/g, ' ').trim()
         const fmAttrs: { [string]: any } = {}
         fmAttrs[primaryKey] = mergedValue
         // $FlowFixMe[incompatible-call]
         const mergedOK = updateFrontMatterVars((noteToUse: any), fmAttrs)
         if (!mergedOK) {
-          logError(
-            'migrateProjectMetadataLineInNote',
-            `Failed to merge body metadata line into frontmatter key '${primaryKey}' for '${displayTitle(noteToUse)}'`,
-          )
+          logError('migrateProjectMetadataLineInNote',`Failed to merge body metadata line into frontmatter key '${primaryKey}' for '${displayTitle(noteToUse)}'`,)
         } else {
-          logDebug(
-            'migrateProjectMetadataLineInNote',
-            `- Merged body metadata into frontmatter key '${primaryKey}' for '${displayTitle(noteToUse)}'`,
-          )
+          logDebug('migrateProjectMetadataLineInNote',`- Merged body metadata into frontmatter key '${primaryKey}' for '${displayTitle(noteToUse)}'`,)
         }
       }
 

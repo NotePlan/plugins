@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-03-12 for v1.4.0.b6, @jgclark
+// Last updated 2026-03-17 for v1.4.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -764,26 +764,30 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     }
 
     const possibleThisEditor = getOpenEditorFromFilename(note.filename)
-    if (possibleThisEditor) {
-      logDebug('finishReviewCoreLogic', `Updating Editor '${displayTitle(possibleThisEditor)}' ...`)
+    if (possibleThisEditor && possibleThisEditor.note != null) {
+      logDebug('finishReviewCoreLogic', `Updating EDITOR note '${displayTitle(possibleThisEditor.note)}' ...`)
+      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+      // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
+      // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
+      migrateProjectMetadataLineInEditor(possibleThisEditor)
       const metadataLineIndex: number = getOrMakeMetadataLineIndex(possibleThisEditor)
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
       deleteMetadataMentionInEditor(possibleThisEditor, metadataLineIndex, [config.nextReviewMentionStr])
       // Update @review(date) on current open note
       updateMetadataInEditor(possibleThisEditor, [reviewedTodayString])
-      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
-      migrateProjectMetadataLineInEditor(possibleThisEditor)
       await possibleThisEditor.save()
       // Note: no longer seem to need to update cache
     } else {
       logDebug('finishReviewCoreLogic', `Updating note '${displayTitle(note)}' ...`)
+      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+      // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
+      // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
+      migrateProjectMetadataLineInNote(note)
       const metadataLineIndex: number = getOrMakeMetadataLineIndex(note)
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
       deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
       // Update @review(date) on the note
       updateMetadataInNote(note, [reviewedTodayString])
-      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
-      migrateProjectMetadataLineInNote(note)
       // $FlowIgnore[prop-missing]
       DataStore.updateCache(note, true)
     }

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-26 for v1.4.0.b4, @jgclark
+// Last updated 2026-03-17 for v1.4.0.b4+, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -1264,7 +1264,7 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
     if (normalisedNextReviewDateStr != null) {
       nextReviewDateStr = normalisedNextReviewDateStr
       nextReviewDays = daysBetween(now, normalisedNextReviewDateStr)
-      logDebug('calcReviewFieldsForProject', `- already had a nextReviewDateStr ${normalisedNextReviewDateStr ?? '?'} -> ${String(nextReviewDays)} interval`)
+      // logDebug('calcReviewFieldsForProject', `- already had a nextReviewDateStr ${normalisedNextReviewDateStr ?? '?'} -> ${String(nextReviewDays)} interval`)
     } else if (thisProjectIn.reviewInterval != null) {
       const reviewedDateIn = thisProjectIn.reviewedDate
       if (typeof reviewedDateIn === 'string' && reviewedDateIn !== '') {
