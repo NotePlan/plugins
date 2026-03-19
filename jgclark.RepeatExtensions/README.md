@@ -13,7 +13,7 @@ Here are some examples:
 
 See below for more details.
 
-Compared with the built-in functionality, it also allows you to easily change the text of a repeated task, which otherwise means visiting all the future notes with repeats.
+Compared with the built-in functionality, it also allows you to easily change the text of an existing repeated task, which otherwise means visiting all the future notes with repeats.
 
 ## Configuration
 For this feature to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
@@ -23,8 +23,8 @@ Note: because NotePlan never appends the completion date to completed **checklis
 There are some settings in the Plugin Settings pane for this plugin:
 - 'Delete completed item?', which deletes the completed repeated item (on either done or cancelled tasks).
 - Don't look for repeats in Done or Archive note sections? If set, it will not look for repeats in the ## Done or ## Archive sections of notes.
-<!-- - Run Task Sorter after changes? If set, it will run the '/Tasks Sort by User Default' command (from 'Task Sorting & Tools' plugin) after generating repeats, using the user's default sort order (set in that plugin's settings). -->
-<!-- - Allow repeats in cancelled paragraphs? If set, it will allow repeats in cancelled tasks. Note: this only works in notes with the repeat trigger (see below). -->
+- Allow repeats in cancelled paragraphs? If set, it will generate a new repeat when a task with `@repeat(...)` is newly changed to cancelled (`[-]`) in a note that has the save trigger enabled.
+- Run Task Sorter after changes? If turned on, it will run the '/Tasks Sort by User Default' command (from 'Task Sorting & Tools' plugin) on the section that includes the new repeat, using the user's default sort order (set in that plugin's settings).
 
 ## Running it Automatically
 The plugin can **automatically generate** the new repeated task immediately after you complete an existing one. Here's an example where it will repeat 6 weeks after completion:
@@ -35,6 +35,8 @@ This works by adding the following [trigger line](https://help.noteplan.co/artic
 ``` yaml
 triggers: onEditorWillSave => jgclark.RepeatExtensions.onEditorWillSave
 ```
+With this trigger in place, and if the setting **Allow repeats in cancelled paragraphs?** is enabled, repeats are also generated for **newly cancelled** tasks that include `@repeat(...)`.
+
 **Tip**: This is most easily done by using the **/add trigger to note** command from my [Note Helpers plugin](https://noteplan.co/plugins/jgclark.NoteHelpers/).
 Note: The `title:` of the note also needs to be in the frontmatter.
 
@@ -48,7 +50,7 @@ On the _currently open note_, open the command bar and type the **/generate repe
 - When run on a _Project note_, it creates the new repeated task straight before the completed task.
 - When run on a _Calendar note_, it creates the new repeated task on the date of the new repeat. This uses the same calendar note type: so a repeat in a weekly note will go to the appropriate weekly note, etc.
 
-## Specifiying the Intervals
+## Specifying the Intervals
 The time intervals have two parts: number and then a character. The **character** is one of:
 - `b` or `B`: business days (ignore weekends, but doesn't ignore public holidays, as they're different for each country)
 - `d` or `D`: days

@@ -2,20 +2,18 @@
 //-----------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-09-06, for v1.0.0
+// last updated 2026-03-19, for v1.1.0
 //-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
+import { generateNewRepeatDate, type RepeatConfig } from './repeatHelpers'
 import {
-  generateNewRepeatDate,
-  type RepeatConfig,
-} from './repeatHelpers'
-import {
+  convertISODateFilenameToNPDayFilename,
+  getTodaysDateHyphenated,
   RE_ANY_DUE_DATE_TYPE,
   RE_DONE_DATE_TIME,
   RE_DONE_DATE_TIME_CAPTURES,
   RE_ISO_DATE, // find dates of form YYYY-MM-DD
-  convertISODateFilenameToNPDayFilename,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logInfo, logWarn, logError } from "@helpers/dev"
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
@@ -72,6 +70,7 @@ export async function generateRepeatForPara(
 
     const newParaLineIndex = origPara.lineIndex
     let newPara: TParagraph
+    let noteContainingNewPara: TNote = noteToUse
 
     // Generate the new repeat date
     let newRepeatDateStr = generateNewRepeatDate(noteToUse, origPara.content, completedDate)
@@ -98,9 +97,9 @@ export async function generateRepeatForPara(
       logDebug('generateRepeatForPara', `- adding repeat to regular note where origPara is synced (${syncSourceNote.filename})`)
       newRepeatContent += ` >${newRepeatDateStr}`
       await syncSourceNote.insertParagraphBeforeParagraph(newRepeatContent, syncCopiesInRegularNotes[0], 'open')
-      newPara = noteToUse.paragraphs[newParaLineIndex]
-     }
-    else if (noteToUse.type === 'Notes') {
+      newPara = syncSourceNote.paragraphs[syncCopiesInRegularNotes[0].lineIndex]
+      noteContainingNewPara = syncSourceNote
+    } else if (noteToUse.type === 'Notes') {
       // First handle regular/project note. Or now, if the origPara is synced to a regular/project note
       logDebug('generateRepeatForPara', `- adding repeat to regular note ${noteToUse.filename}`)
       newRepeatContent += ` >${newRepeatDateStr}`
@@ -121,6 +120,7 @@ export async function generateRepeatForPara(
         logDebug('generateRepeatForPara', `- adding repeat to FUTURE calendar note for ${newRepeatDateStr}`)
         await futureNote.appendTodo(newRepeatContent)
         newPara = futureNote.paragraphs[futureNote.paragraphs.length - 1]
+        noteContainingNewPara = futureNote
       } else {
         newRepeatContent += ` >${newRepeatDateStr}`
         if (noteIsOpenInEditor) {
@@ -138,7 +138,7 @@ export async function generateRepeatForPara(
     // Add any indent for this new para
     if (newPara) {
       newPara.indents = origPara.indents
-      noteToUse.updateParagraph(newPara)
+      noteContainingNewPara.updateParagraph(newPara)
     }
 
     // Delete the completed item (if wanted)
@@ -165,3 +165,65 @@ export async function generateRepeatForPara(
     return null
   }
 } 
+
+/**
+ * Generate a repeat task for a cancelled paragraph that contains an extended @repeat(interval) tag.
+ * Note: this is intended to be called from a trigger, as it relies on detecting "newly cancelled" lines.
+ * Unlike generateRepeatForPara(), this does not shorten an @done(...) datetime tag, because cancelled tasks don't have one.
+ * The repeat date is computed using today's date as the "completedDate" anchor for '+...' intervals.
+ * @author @jgclark
+ * @param {TParagraph} origPara - The original cancelled paragraph containing the @repeat(interval) tag
+ * @param {CoreNoteFields} noteToUse - The note containing the paragraph
+ * @param {boolean} noteIsOpenInEditor - Whether the note is open in the editor
+ * @returns {Promise<TParagraph | null>} The newly created paragraph, or null if no repeat was generated
+ */
+export async function generateRepeatForCancelledPara(
+  origPara: TParagraph,
+  noteToUse: CoreNoteFields,
+  noteIsOpenInEditor: boolean,
+): Promise<TParagraph | null> {
+  try {
+    const line = origPara.content ?? ''
+    if (line === '') {
+      return null
+    }
+
+    const cancelledDate = getTodaysDateHyphenated() // today
+    const newRepeatDateStr = generateNewRepeatDate(noteToUse, line, cancelledDate)
+
+    // Remove any >date and any @done() (defensive), and strip task/checklist cancelled markers if present
+    let newRepeatContent = line
+      .replace(RE_ANY_DUE_DATE_TYPE, '')
+      .replace(/@done\(.*\)/, '')
+      .replace(/^\s*?\*\s\[\-\]\s/, '')
+      .replace(/^\s*?\-\s\[-\]\s/, '')
+      .replace(/^\s*?\+\s\[+\]\s/, '')
+    newRepeatContent = textWithoutSyncedCopyTag(newRepeatContent).trim()
+
+    let newPara: TParagraph
+    if (noteIsOpenInEditor) {
+      await Editor.insertParagraphBeforeParagraph(`${newRepeatContent} >${newRepeatDateStr}`, origPara, 'open')
+      newPara = Editor.paragraphs[origPara.lineIndex]
+    } else {
+      // $FlowIgnore[prop-missing] noteToUse is a TNote when not using Editor
+      await noteToUse.insertParagraphBeforeParagraph(`${newRepeatContent} >${newRepeatDateStr}`, origPara, 'open')
+      // $FlowIgnore[prop-missing] noteToUse is a TNote when not using Editor
+      newPara = noteToUse.paragraphs[origPara.lineIndex]
+    }
+
+    if (newPara) {
+      newPara.indents = origPara.indents
+      if (noteIsOpenInEditor) {
+        Editor.updateParagraph(newPara)
+      } else {
+        // $FlowIgnore[prop-missing] noteToUse is a TNote when not using Editor
+        noteToUse.updateParagraph(newPara)
+      }
+    }
+
+    return newPara
+  } catch (error) {
+    logError(pluginJson, `generateRepeatForCancelledPara(): ${JSP(error)}`)
+    return null
+  }
+}
