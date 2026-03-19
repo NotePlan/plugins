@@ -3,7 +3,6 @@ This plugin provides commands to more quickly add tasks/todos or general text to
 
 - **/quick add text to inbox** (alias **/jot** or **/inj**): Quickly add a text 'jot' to your chosen Inbox location. (To configure this, see below.)
 - **/quick add task to inbox** (alias **/int**): Quickly add a task to your chosen Inbox location. (To configure this, see below.)
-- **/quick append task to note** (alias **/qat**): Quickly append a task to a chosen project note
 - **/quick add checklist under heading** (alias **/qach**): Quickly add a checklist at the top of a chosen note's heading
 - **/quick add task under heading** (alias **/qath**): Quickly add a task at the top of a chosen note's heading
 - **/quick add line under heading** (alias **/qalh**): Quickly add text lines at the top of a chosen note's heading
@@ -12,6 +11,7 @@ This plugin provides commands to more quickly add tasks/todos or general text to
 - **/quick add to journal this week** (alias **/qajw**): Quickly add text to the Journal section of this week's note
 - **/quick add to this month's journal** (alias **/qajm**): Quickly add text to the Journal section of this month's note
 - **/quick add to this year's journal** (alias **/qajy**): Quickly add text to the Journal section of this year's note
+- **/quick append task to note** (alias **/qat**): Quickly append a task to a chosen project note
 - **/quick prepend task to calendar note** (alias **/qpc**): Quickly prepend a task to a chosen calendar note
 - **/quick prepend task to note** (alias **/qpt**): Quickly prepend a task to a chosen project note. (Inserts after title or YAML frontmatter, or starting metadata lines.)
 
@@ -34,7 +34,7 @@ The settings are:
   - Inbox Heading: If the first setting is 'Daily' or 'Weekly', this is the Heading that inbox items are added under. If not set, then it will append or prepend to the note (as set below).
 - Text to append to new inbox jots: optional text  (that can include hashtags, mentions or emojis) to add on the end of any text 'jots' captured to the inbox. By default it is '💡'.
 - Text to append to new inbox tasks: optional text  (that can include hashtags, mentions or emojis) to add on the end of any tasks captured to the inbox.
-- Where to add in notes?: either "prepend" (start) or "append" (end) in Inbox (and the other commands which use the term 'add'). Note: if the note has frontmatter, the item will be added _after_ that.
+- Where to add in notes?: either "prepend" (start) or "append" (end). This applies to all the "quick add..." commands. Note: if the note has frontmatter, the item will always be added _after_ that.
 - 'Heading Level for new Headings: Heading level (1-5) to use when adding new headings in notes.
 - Heading for your Journal entries: Optional heading to add your journal entries under with /quick add to journal ... commands
 

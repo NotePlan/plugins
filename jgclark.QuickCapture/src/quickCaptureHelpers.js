@@ -21,7 +21,7 @@ export type QCConfigType = {
   addInboxPosition: string,
   headingLevel: number,
   journalHeading?: string,
-  shouldAppend: boolean, // special case set in getQuickCaptureSettings()
+  shouldAppend: boolean, // special case set in getQuickCaptureSettings() from `addInboxPosition === 'append'`
   _logLevel: string,
 }
 

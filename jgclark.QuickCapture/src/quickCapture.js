@@ -2,14 +2,14 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 2026-01-31 for v1.0.3 by @jgclark
+// last update 2026-03-18 for v1.0.5 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getQuickCaptureSettings} from './quickCaptureHelpers'
 import {
   getDisplayDateStrFromFilenameDateStr,
-  getTodaysDateUnhyphenated,
+  getTodaysDateUnhyphenated
 } from '@helpers/dateTime'
 import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
@@ -490,19 +490,17 @@ export async function appendTaskToWeeklyNote(
 }
 
 /** /qajd
- * Quickly append text to today's journal
- * Extended in v0.9.0 to allow use from x-callback with single passed argument
- * Helpfully, doesn't fail if extra arguments passed
+ * Quickly add text to today's journal.
  * @author @jgclark
  * @param {string?} textArg
  */
-export async function appendTextToDailyJournal(textArg?: string = ''): Promise<void> {
+export async function addTextToDailyJournal(textArg?: string = ''): Promise<void> {
   try {
     logDebug(pluginJson, `starting /qaj with arg0='${textArg}'`)
     const todaysDateStr = getTodaysDateUnhyphenated()
     const config = await getQuickCaptureSettings()
     const journalHeading = config.journalHeading || ''
-    logDebug('appendTextToDailyJournal', `journalHeading = ${journalHeading}`)
+    logDebug('addTextToDailyJournal', `journalHeading = ${journalHeading}; shouldAppend = ${String(config.shouldAppend)}`)
     // Get input either from passed argument or ask user
     const text = (textArg != null && textArg !== '')
       ? textArg
@@ -519,24 +517,24 @@ export async function appendTextToDailyJournal(textArg?: string = ''): Promise<v
       throw new Error(`Cannot find daily note for ${todaysDateStr}`)
     }
   } catch (err) {
-    logWarn(pluginJson, `appendTextToDailyJournal: ${err.name}: ${err.message}`)
+    logWarn(pluginJson, `addTextToDailyJournal: ${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
 }
 
 /** /qajw
- * Quickly append text to this week's journal
+ * Quickly add text to this week's journal
  * @author @jgclark
  * @param {string?} textArg
  */
-export async function appendTextToWeeklyJournal(textArg?: string = ''): Promise<void> {
+export async function addTextToWeeklyJournal(textArg?: string = ''): Promise<void> {
   logDebug(pluginJson, `starting /qajw with arg0='${textArg}'`)
   try {
     const note = DataStore.calendarNoteByDate(new Date(), 'week')
     if (note != null) {
-      const todaysDateStr = getTodaysDateUnhyphenated()
       const config = await getQuickCaptureSettings()
       const journalHeading = config.journalHeading || ''
+      const todaysDateStr = getTodaysDateUnhyphenated()
 
       // Get input either from passed argument or ask user
       const text = (textArg != null && textArg !== '')
@@ -544,31 +542,32 @@ export async function appendTextToWeeklyJournal(textArg?: string = ''): Promise<
         : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${todaysDateStr}`)
 
       const matchedHeading = findHeadingStartsWith(note, journalHeading)
-      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
+      const headingToUse = matchedHeading ? matchedHeading : journalHeading
+      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} with matchedHeading '${matchedHeading}' to heading '${headingToUse}' at level ${config.headingLevel}`)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
-      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : journalHeading, true, true)
+      smartCreateSectionsAndPara(note, text, 'text', [headingToUse], config.headingLevel, config.shouldAppend)
     } else {
       throw new Error(`Cannot find current weekly note`)
     }
   } catch (err) {
-    logWarn(pluginJson, `appendTextToWeeklyJournal: ${err.name}: ${err.message}`)
+    logWarn(pluginJson, `addTextToWeeklyJournal: ${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
 }
 
 /** /qajm
- * Quickly append text to this month's journal
+ * Quickly add text to this month's journal
  * @author @jgclark
  * @param {string?} textArg
  */
-export async function appendTextToMonthlyJournal(textArg?: string = ''): Promise<void> {
+export async function addTextToMonthlyJournal(textArg?: string = ''): Promise<void> {
   logDebug(pluginJson, `starting /qajm with arg0='${textArg}'`)
   try {
     const note = DataStore.calendarNoteByDate(new Date(), 'month')
     if (note != null) {
-      const dateStr = getDisplayDateStrFromFilenameDateStr(note.filename) ?? ''
       const config = await getQuickCaptureSettings()
       const journalHeading = config.journalHeading || ''
+      const dateStr = getDisplayDateStrFromFilenameDateStr(note.filename) ?? ''
 
       // Get input either from passed argument or ask user
       const text = (textArg != null && textArg !== '')
@@ -576,45 +575,47 @@ export async function appendTextToMonthlyJournal(textArg?: string = ''): Promise
         : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${dateStr}`)
 
       const matchedHeading = findHeadingStartsWith(note, journalHeading)
-      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
+      const headingToUse = matchedHeading ? matchedHeading : journalHeading
+      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} with matchedHeading '${matchedHeading}' to heading '${headingToUse}' at level ${config.headingLevel}`)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
-      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : journalHeading, true, true)
+      smartCreateSectionsAndPara(note, text, 'text', [headingToUse], config.headingLevel, config.shouldAppend)
     } else {
       throw new Error(`Cannot find current monthly note`)
     }
   } catch (err) {
-    logWarn(pluginJson, `appendTextToMonthlyJournal: ${err.name}: ${err.message}`)
+    logWarn(pluginJson, `addTextToMonthlyJournal: ${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
 }
 
 /** /qajy
- * Quickly append text to this year's journal
+ * Quickly add text to this year's journal
  * @author @jgclark
  * @param {string?} textArg
  */
-export async function appendTextToYearlyJournal(textArg?: string = ''): Promise<void> {
+export async function addTextToYearlyJournal(textArg?: string = ''): Promise<void> {
   logDebug(pluginJson, `starting /qajy with arg0='${textArg}'`)
   try {
     const note = DataStore.calendarNoteByDate(new Date(), 'year')
     if (note != null) {
-      const dateStr = getDisplayDateStrFromFilenameDateStr(note.filename) ?? ''
       const config = await getQuickCaptureSettings()
       const journalHeading = config.journalHeading || ''
+      const dateStr = getDisplayDateStrFromFilenameDateStr(note.filename) ?? ''
       // Get input either from passed argument or ask user
       const text = (textArg != null && textArg !== '')
         ? textArg
         : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${dateStr}`)
 
       const matchedHeading = findHeadingStartsWith(note, journalHeading)
-      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
+      const headingToUse = matchedHeading ? matchedHeading : journalHeading
+      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} with matchedHeading '${matchedHeading}' to heading '${headingToUse}' at level ${config.headingLevel}`)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
-      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : journalHeading, true, true)
+      smartCreateSectionsAndPara(note, text, 'text', [headingToUse], config.headingLevel, config.shouldAppend)
     } else {
       throw new Error(`Cannot find current yearly note`)
     }
   } catch (err) {
-    logWarn(pluginJson, `appendTextToYearlyJournal: ${err.name}: ${err.message}`)
+    logWarn(pluginJson, `addTextToYearlyJournal: ${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
 }
