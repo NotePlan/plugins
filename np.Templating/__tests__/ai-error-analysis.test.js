@@ -10,6 +10,13 @@
 import path from 'path'
 import fs from 'fs/promises'
 import { existsSync } from 'fs'
+jest.mock('@helpers/userInput', () => {
+  const actual = jest.requireActual('@helpers/userInput')
+  return {
+    ...actual,
+    showMessageYesNo: jest.fn().mockResolvedValue('Yes'),
+  }
+})
 import TemplatingEngine from '../lib/TemplatingEngine'
 import { DataStore } from '@mocks/index'
 

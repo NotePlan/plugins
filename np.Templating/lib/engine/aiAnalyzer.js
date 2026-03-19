@@ -7,6 +7,7 @@
  * -----------------------------------------------------------------------------------------*/
 
 import { logDebug, logError, timer } from '@helpers/dev'
+import { showMessageYesNo } from '@helpers/userInput'
 import pluginJson from '../../plugin.json'
 import { appendPreviousPhaseErrorsToError } from './errorProcessor'
 import { notePlanTopLevelObjects } from '../globals'
@@ -75,6 +76,26 @@ export async function analyzeErrorWithAI(
       return basicErrorMessage
     }
 
+    // Ask user before sending any template/error details to NotePlan AI
+    const likelyCause = getLikelyCauseFromError(originalError)
+    const errorSummary = getErrorSummary(originalError)
+    const problematicLinesSnippet = getProblematicLinesSnippet(originalError, templateData, originalScript)
+
+    const userWantsAISuggestions = await showMessageYesNo(
+      `Templating failed to render your template.\n\n` +
+        `Likely cause: ${likelyCause}\n` +
+        `Error: ${errorSummary}\n` +
+        `${problematicLinesSnippet ? `\nProblematic snippet:\n${problematicLinesSnippet}\n` : ''}\n` +
+        `Send the template + error details to NotePlan AI to get suggestions for what to fix?`,
+      ['Yes', 'No'],
+      'Templating AI Help',
+    )
+
+    if (userWantsAISuggestions !== 'Yes') {
+      logDebug(pluginJson, `User declined NotePlan.AI analysis for error: ${errorSummary}`)
+      return originalError
+    }
+
     const startTime = new Date()
 
     // Prepare context information, filtering out polluted error variables
@@ -106,6 +127,56 @@ export async function analyzeErrorWithAI(
     logError(pluginJson, `AI error analysis failed: ${aiError.message}`)
     // Fall back to original error if AI analysis fails
     return originalError
+  }
+}
+
+/**
+ * Attempts to guess a high-level cause based on the template rendering error string.
+ * This is only used to make the UI prompt more helpful; the AI analysis still receives
+ * the full error + context to determine the correct fix.
+ * @param {string} originalError - Raw template rendering error message
+ * @returns {string} A short human-readable cause
+ */
+function getLikelyCauseFromError(originalError: string): string {
+  const err = String(originalError || '').toLowerCase()
+
+  if (err.includes('is not defined') || /referenceerror:.*is not defined/i.test(originalError)) return 'Undefined variable'
+  if (err.includes('syntaxerror')) return 'Syntax error'
+  if (err.includes('unclosed') || err.includes('matching close tag')) return 'Unclosed template tag'
+  if (err.includes('unexpected token')) return 'Unexpected token / malformed expression'
+  if (err.includes('referenceerror')) return 'Reference error'
+
+  return 'Template rendering error'
+}
+
+/**
+ * Gets a shorter one-line summary for UI usage.
+ * @param {string} originalError - Raw template rendering error message
+ * @returns {string} Short summary
+ */
+function getErrorSummary(originalError: string): string {
+  const safeError = String(originalError || '').trim()
+  if (!safeError) return 'Unknown error'
+  const firstLine = safeError.split('\n').map((l) => l.trim()).filter(Boolean)[0] || safeError
+  return firstLine.length > 240 ? firstLine.substring(0, 240) + '...' : firstLine
+}
+
+/**
+ * Generates a small snippet for the AI consent prompt, to help the user understand
+ * what looks problematic without spamming the dialog.
+ * @param {string} originalError - Raw template rendering error message
+ * @param {string} templateData - Processed template data
+ * @param {string} originalScript - Original user script
+ * @returns {string} Snippet to show in the prompt (possibly empty)
+ */
+function getProblematicLinesSnippet(originalError: string, templateData: string, originalScript: string): string {
+  try {
+    const problematicLines = extractProblematicLines(originalError, templateData, originalScript)
+    if (!problematicLines || !problematicLines.trim() || problematicLines === 'No original script available') return ''
+    const snippet = problematicLines.replace(/\s+/g, ' ').trim()
+    return snippet.length > 220 ? snippet.substring(0, 220) + '...' : snippet
+  } catch (e) {
+    return ''
   }
 }
 

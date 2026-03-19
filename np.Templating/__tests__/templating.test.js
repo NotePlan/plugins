@@ -1,4 +1,11 @@
 /* eslint-disable */
+jest.mock('@helpers/userInput', () => {
+  const actual = jest.requireActual('@helpers/userInput')
+  return {
+    ...actual,
+    showMessageYesNo: jest.fn().mockResolvedValue('Yes'),
+  }
+})
 import { CustomConsole } from '@jest/console' // see note below
 import { simpleFormatter, DataStore, NotePlan, Editor, CommandBar /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 

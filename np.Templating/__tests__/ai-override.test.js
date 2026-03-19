@@ -2,6 +2,14 @@
  * @jest-environment node
  */
 
+jest.mock('@helpers/userInput', () => {
+  const actual = jest.requireActual('@helpers/userInput')
+  return {
+    ...actual,
+    showMessageYesNo: jest.fn().mockResolvedValue('Yes'),
+  }
+})
+
 import { TemplatingEngine } from '../lib/TemplatingEngine'
 import { analyzeErrorWithAI } from '../lib/engine/aiAnalyzer'
 
