@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-03-15 for v1.4.0.b8, @jgclark 
+ * Last updated 2026-03-19 for v1.4.0.b9, @jgclark 
  */
 
 body {
@@ -9,8 +9,9 @@ body {
   --project-pause-color: #AAA;
   --project-no-percent-color: #BBB;
   --project-zero-progress-color: #9F2626;
-  --fg-placeholder-color: rgb(from var(--fg-main-color) r g b / 0.8);
+  --fg-dimmer-color: rgb(from var(--fg-main-color) r g b / 0.6);
   --bg-lozenge-color: rgb(from var(--bg-main-color) r g b / 0.8);
+  --bg-hover-color: rgb(from var(--fg-main-color) r g b / 0.03);
 }
 
 /* turn off special colouring and underlining for links -- turn on later when desired */
@@ -23,12 +24,6 @@ p b {
 }
 a, a:visited, a:active {
   color: inherit; text-decoration-line: none;
-}
-
-/* Remove margin-bottom and top from .h3 from last table */
-h3, .h3 {
-  margin-bottom: unset !important;
-  margin-top: unset !important;
 }
 
 /* TOPBAR ------------------------------------------------- */
@@ -76,7 +71,7 @@ h3, .h3 {
   flex: 1 1 auto;
 }
 .display-filters-option-count {
-  color: var(--fg-placeholder-color);
+  color: var(--fg-dimmer-color);
 }
 .display-filters-option--tag-row .apple-switch {
   flex: 0 0 auto;
@@ -129,23 +124,35 @@ h3, .h3 {
 /* MAIN GRID (replaces table) ----------------------------- */
 
 .project-list-grid {
+  background-color: var(--bg-alt-color);
   display: grid;
   width: 100%;
-  margin-bottom: 0rem;
+  /* margin-bottom: 0rem; */
 }
 
 /* First column fixed width (same as original col 1); middle column flexes; last column fits content like a table */
 .project-list-grid--with-dates {
-  grid-template-columns: 3.2rem 2fr 1fr;
+  grid-template-columns: auto 2fr 1fr;
 }
 
 .project-list-grid--no-dates {
-  grid-template-columns: 3.2rem 1fr;
+  margin: 0.3rem 0rem;
+  /* grid-template-columns: auto 1fr; */
 }
 
 /* Rows: children participate in parent grid */
 .project-grid-row {
-  display: contents;
+  display: grid;
+  grid-template-columns: 3rem auto;
+  column-gap: 0rem;
+  background-color: var(--bg-mid-color);
+  border: 1px solid var(--divider-color);
+  border-radius: 6px;
+  margin: 0.2rem 0.5rem;
+
+  &:hover {
+    background-color: var(--bg-hover-color);
+  }
 }
 
 .project-grid-cell {
@@ -155,18 +162,32 @@ h3, .h3 {
   padding-right: 0.4rem;
   font-size: 0.92rem;
   line-height: 1.35rem;
-  padding: 3px 0.2rem 2px 0.2rem;
+  /* padding: 3px 0.2rem 2px 0.2rem; */
+  padding: 5px 0.1rem 5px 0.1rem;
   border-left: none;
   border-right: none;
 }
 
-.project-grid-cell:first-child {
+/* .project-grid-cell:first-child {
   padding-left: 0.5rem;
-}
+} */
 
 /* Middle column: allow shrink so ellipsis can apply */
 .project-grid-cell--content {
   overflow: hidden;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-content: flex-start;
+  justify-content: flex-start;
+}
+
+/* Sub-rows under title: align text with .noteTitleText (same inset as .noteTitleIcon width) */
+.projectColumn2SubRow {
+  padding-left: 2rem;
+  box-sizing: border-box;
+  width: 100%;
   min-width: 0;
 }
 
@@ -260,7 +281,7 @@ summary::after {
 .project-grid-row.projectRow .project-grid-cell--content {
   min-height: calc(var(--body-line-height, 1.35rem) * 2.5);
 }
-.project-grid-row.folder-header-row .project-grid-cell {
+.folder-header-row {
   vertical-align: bottom;
   background-color: var(--bg-main-color);
   border-top: none;
@@ -268,9 +289,16 @@ summary::after {
   padding-bottom: 0.2rem;
 }
 
+/* TEST: new folder header row style to use with the bordered row style */
+.folder-header-row--newer {
+  vertical-align: bottom;
+  border: none;
+  background-color: unset;
+}
+
 .folder-header {
-  color: var(--tint-color);
-  font-size: 1.1rem !important; /* TODO: find better method for this than !important */
+  color: var(--h3-color);
+  font-size: 1.2rem !important; /* TODO: find better method for this than !important */
   padding-top: 0.7rem;
   padding-left: 0.5rem;
   padding-right: 0.3rem;
@@ -285,26 +313,33 @@ summary::after {
 
 /* column 1 space for icon and progress ring */
 .first-col-indicator {
-  padding: 0.5em 0.6rem 0.2rem 0.4rem; /* works but I don't understand why */
-  /* text-align: center; */
+  padding: 0.4em 0rem 0.2rem 0rem;
   justify-self: center;
-  align-content: center; /* was baseline; */
+  align-content: start; /* was center; */
 }
 
 /* Row borders: first row (folder header) top border; last row bottom border */
-.project-list-grid > .project-grid-row:first-child .project-grid-cell {
+/* .project-list-grid > .project-grid-row:first-child .project-grid-cell {
   border-top: 1px solid rgb(from var(--tint-color) r g b / 0.3);
 }
 .project-list-grid > .project-grid-row:last-child .project-grid-cell {
   border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.3);
-}
+} */
 /* Project row backgrounds (folder header is first child, so project rows are 2nd, 3rd, ...) */
-.project-list-grid > .project-grid-row.projectRow .project-grid-cell {
+/* .project-list-grid > .project-grid-row.projectRow .project-grid-cell {
   background-color: var(--bg-mid-color);
-}
-.project-list-grid > .project-grid-row.projectRow:nth-child(even) .project-grid-cell {
+} */
+/* Alternate row background colour: disabled for now */
+/* .project-list-grid > .project-grid-row.projectRow:nth-child(even) .project-grid-cell {
   background-color: var(--bg-alt-color);
-}
+} */
+
+/* Instead trying each row has its own background */
+/* .project-list-grid > .project-grid-row.projectRow {
+  background-color: var(--bg-alt-color);
+  border-bottom: 1px solid var(--divider-color);
+  border-radius: 6px;
+} */
 
 /* row class to indicate that a project is being reviewed */
 .project-grid-row.projectRow.reviewing .project-grid-cell {
@@ -352,7 +387,7 @@ dialog::backdrop {
 }
 
 .dialogProjectFolder {
-  color: var(--fg-placeholder-color);
+  color: var(--fg-dimmer-color);
 }
 
 .dialogProjectNoteLink {
@@ -391,8 +426,8 @@ button, .fake-button, .clickTarget {
   /* add a clearer border to all buttons */
   border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
 	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
-	padding: 2px 3px 0px 3px;
-	margin: 2px 4px 0px 0px;
+  padding: 3px 4px 2px 4px;
+  margin: 3px 3px 3px 0px;
 	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.9rem;
@@ -424,6 +459,7 @@ button, .fake-button, .clickTarget {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  line-height: 1.8rem;
 }
 /* make noteTitle icon + text bold and coloured, and indicate its clickable */
 .noteTitle {
@@ -507,7 +543,7 @@ button, .fake-button, .clickTarget {
   text-wrap: nowrap;
 }
 .lozenge-general {
-  color: var(--fg-placeholder-color);
+  color: var(--fg-dimmer-color);
   background-color: var(--bg-lozenge-color, #FFFFFFBB);
   filter: saturate(80%);
 }
@@ -536,7 +572,7 @@ button, .fake-button, .clickTarget {
 /* ---- PROGRESS ----------------------------------------- */
 /* Progress line row: last progress comment, styled like Dashboard ProjectItem */
 .projectProgressRow {
-  color: var(--fg-placeholder-color);
+  color: var(--fg-dimmer-color);
   font-size: 0.95rem;
   display: flex;
   align-items: baseline;
@@ -551,21 +587,32 @@ button, .fake-button, .clickTarget {
   gap: 0.5rem;
   color: var(--fg-alt-color);
 }
-/* Centred in 1rem virtual column for column-2 row icons */
-.progressIcon {
-  width: 2rem;
-  flex-shrink: 0;
-  display: flex;
-  justify-content: center;
-  align-items: baseline;
-  /* padding-right: 0.35rem; */
-  /* color: var(--tint-color); */
-}
 .progressText {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ---- FOLDER PATH ----------------------------------------- */
+/* Grouped-by-folder: folder path line under project title (column 2) */
+.projectFolderRow {
+  font-size: 0.92rem;
+  color: var(--fg-dimmer-color);
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+.projectFolderIcon {
+  width: 0.95rem;
+  flex-shrink: 0;
+}
+.projectFolderText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---- NEXT ACTIONS ----------------------------------------- */
@@ -577,15 +624,6 @@ button, .fake-button, .clickTarget {
   white-space: nowrap;
   text-overflow: ellipsis; */
   color: var(--fg-alt-color);
-}
-/* Centred in 1rem virtual column for column-2 row icons */
-.nextActionIcon {
-  width: 2rem;
-  flex-shrink: 0;
-  display: flex;
-  justify-content: center;
-  align-items: baseline;
-  /* padding-right: 0.35rem; */
 }
 .nextActionText {
   flex: 1;
@@ -613,6 +651,7 @@ button, .fake-button, .clickTarget {
 }
 /* set size of FA icon used in place of percent-display rings in first col */
 .circle-icon {
+  padding-top: 0.3rem; /* Needs to be nudged down slightly to optically align with the percent-ring-circles */
   font-size: 1.8rem;
 }
 /* add space before/after items (particularly icons) */
@@ -625,10 +664,9 @@ button, .fake-button, .clickTarget {
 .pad-right {
 	padding-right: 0.2rem;
 }
-
 /* add more space before items */
-.pad-left-more {
-	margin-left: 0.5rem;
+.pad-right-larger {
+	padding-right: 0.5rem;
 }
 
 /* ---- TOOLTIPs ------------------------------------------- */

@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-03-15 for v1.4.0.b8 by @jgclark
+// Last updated 2026-03-19 for v1.4.0.b9 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { Project } from './projectClass'
@@ -20,6 +20,47 @@ import { encodeRFC3986URIComponent, prepAndTruncateMarkdownForDisplay } from '@h
 //-----------------------------------------------------------------------------
 // Project Row HTML Generation
 //-----------------------------------------------------------------------------
+
+/**
+ * Folder label for a per-project row, matching folder header display (hideTopLevelFolder, root).
+ * @param {Project} thisProject
+ * @param {ReviewConfig} config
+ * @returns {string}
+ */
+function getFolderPartForProjectRow(thisProject: Project, config: ReviewConfig): string {
+  const folderDisplayName = getFolderDisplayNameForHTML(thisProject.folder)
+  let folderPart = folderDisplayName
+  if (config.hideTopLevelFolder) {
+    if (folderDisplayName.includes(']')) {
+      const match = folderDisplayName.match(/^(\[.*?\])\s*(.+)$/)
+      if (match) {
+        const pathPart = match[2]
+        const pathParts = pathPart.split('/').filter((p) => p !== '')
+        folderPart = `${match[1]} ${pathParts.length > 0 ? pathParts[pathParts.length - 1] : pathPart}`
+      } else {
+        folderPart = folderDisplayName.split('/').slice(-1)[0] || folderDisplayName
+      }
+    } else {
+      const pathParts = folderDisplayName.split('/').filter((p) => p !== '')
+      folderPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : folderDisplayName
+    }
+  }
+  if (thisProject.folder === '/') folderPart = '(root folder)'
+  return folderPart
+}
+
+/**
+ * Second line in column 2 when "Group by folder" is on: note folder path (same rules as folder headers).
+ * @param {Project} thisProject
+ * @param {ReviewConfig} config
+ * @returns {string}
+ */
+function generateGroupedFolderRowHtml(thisProject: Project, config: ReviewConfig): string {
+  const folderPart = getFolderPartForProjectRow(thisProject, config)
+  const reviewIntervalStr = `・ <i class="fa-light fa-repeat pad-right"></i>${thisProject.reviewInterval}`
+  const rowString = `\n\t\t\t<div class="projectFolderRow projectColumn2SubRow projectColumn2SubRow"><span class="projectFolderIcon"><i class="fa-regular fa-folder"></i></span><span class="pad-left-larger pad-right-larger projectFolderText">${folderPart}${reviewIntervalStr}</span></div>`
+  return rowString
+}
 
 /**
  * Returns line showing more detailed summary of the project, for output in Rich (HTML) or Markdown formats or simple list format.
@@ -96,6 +137,10 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedT
     )}${editButton}${openItemCount}<span class="projectTagsInline">${projectTags}${statusLozenges}</span></span>`,
   )
 
+  if (!config.displayGroupedByFolder) {
+    parts.push(generateGroupedFolderRowHtml(thisProject, config))
+  }
+
   if (!thisProject.isCompleted && !thisProject.isCancelled) {
     const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
       ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
@@ -168,7 +213,7 @@ function generateItemCountsBadge(thisProject: Project): string {
  * @private
  */
 function generateProjectTagsLozenges(thisProject: Project): Array<string> {
-  if (thisProject.allProjectTags == null || thisProject.allProjectTags.length === 0) return ''
+  if (thisProject.allProjectTags == null || thisProject.allProjectTags.length === 0) return []
   const tagsToUse = thisProject.allProjectTags.filter((hashtag) => hashtag !== '#sequential')
   const parts = tagsToUse.map((hashtag) => `<span class="metadata-lozenge lozenge-general">${hashtag}</span>`)
   return parts
@@ -222,7 +267,8 @@ function generateProgressSection(thisProject: Project, config: ReviewConfig, use
   // logDebug('generateProgressSection', `for ${thisProject.title}: lastProgressComment: ${thisProject.lastProgressComment}`)
   // If there is a progress comment, show it in the progress line row, otherwise show only stats
   if (thisProject.lastProgressComment !== '') {
-    return `${indent}<${tag} class="projectProgressRow"><span class="progressIcon"><i class="fa-regular fa-circle-info"></i></span><span class="progressText">${thisProject.lastProgressComment}</span></${tag}>`
+    return `${indent}<${tag} class="projectProgressRow projectColumn2SubRow projectColumn2SubRow"><span 
+    class="progressIcon"><i class="fa-regular fa-circle-info"></i></span><span class="pad-left-larger progressText">${thisProject.lastProgressComment}</span></${tag}>`
   } else {
   //   return `${indent}<${tag} class="progress"><span class="progressText">${statsProgress}</span></${tag}>`
     return ''
@@ -244,7 +290,7 @@ function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Ar
   for (const NAContent of nextActionsContent) {
     // const truncatedNAContent = trimString(NAContent, 80)
     const truncatedNAContent = prepAndTruncateMarkdownForDisplay(NAContent, 80)
-    parts.push(`\n\t\t\t<div class="nextActionRow"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText">${truncatedNAContent}</span></div>`)
+    parts.push(`\n\t\t\t<div class="nextActionRow projectColumn2SubRow projectColumn2SubRow"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="pad-left-larger nextActionText">${truncatedNAContent}</span></div>`)
   }
   return parts.join('')
 }
@@ -588,7 +634,8 @@ export function generateTopBarHTML(config: any): string {
 export function generateFolderHeaderHTML(folderPart: string, config: any): string {
   const parts: Array<string> = []
   const hasMetadataColumn = config.displayDates && !config.statusLozengesInColumn2
-  parts.push(` <div class="project-grid-row folder-header-row">`)
+  // Note: following uses header-row--newer to turn off borders on the folder header row
+  parts.push(` <div class="project-grid-row folder-header-row--newer">`)
   parts.push(`  <div class="project-grid-cell project-grid-cell--span-2 folder-header h3">${folderPart}</div>`)
   if (hasMetadataColumn) {
     parts.push(`  <div class="project-grid-cell folder-header"></div>`) // deliberately no header text
