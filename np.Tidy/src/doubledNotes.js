@@ -20,7 +20,7 @@ import { showMessage, showMessageYesNo } from "@helpers/userInput"
 // Constants
 
 const pluginID = 'np.Tidy'
-const MAX_PERCENT_DIFF_FOR_DOUBLED_NOTE = 20
+const MAX_PERCENT_DIFF_FOR_DOUBLED_NOTE = 15
 const OUTPUT_TITLE = 'Potentially Duplicated Content notes'
 const FALLBACK_OUTPUT_FILENAME = 'Possible Duplicated Content.md'
 
