@@ -1,6 +1,62 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b11] - 2026-03-20
+### Project Metadata & Frontmatter
+Project metadata can now be fully stored in frontmatter, either as a single configurable key (project:) or as separate keys for individual fields (start, due, reviewed, etc.). Migration is automatic — when any command updates a note with body-based metadata, it moves it to frontmatter and cleans up the body line. After a review is finished, any leftover body metadata line is replaced with a migration notice, then removed on the next finish.
+### Modernised Project List Design
+The Rich project list has been significantly modernised with a more compact, calmer layout showing more metadata at a glance.
+### New Controls
+An "Order by" control has been added to the top bar (completed/cancelled/paused projects sort last unless ordering by title). Automatic refresh for the Rich project list is available via a new "Automatic Update interval" setting (in minutes; 0 to disable).
+### Progress Reporting
+Weekly per-folder progress CSVs now use full folder paths consistently and include a totals row. This data can also be visualised as two heatmaps — notes progressed per week and tasks completed per week.
+### Other
+The "Group by folder" now defaults to off.
+<!--
+## [1.4.0.b10] - 2026-03-20
+- Add 'Order by' control to the Filter dropdown menu. Note: completed/cancelled/paused projects are shown last, unless you request ordering by title.
+
+## [1.4.0.b9] - 2026-03-20
+- Modernised layout significantly for Rich project list, including add more metadata in a compact and calmer look
+- Default for "Group by folder" is now off, for the best look.
+
+## [1.4.0.b8] - 2026-03-16
+- When finishing a review, if project metadata is in frontmatter, any existing body metadata line is replaced with the message "Project metadata has been migrated to frontmatter". On the next finish, that message line is removed.
+
+## [1.4.0.b7] - 2026-03-13
+- Status lozenge changes
+  - Shorten text and add icons
+  - Drop lozenges when not further out than 2 weeks
+  - Improved colouring, re-using earlier error/warn/info colours
+  - Move to column 2 (via hidden setting 'statusLozengesInColumn2')
+- Improved alignment of text and icons in column 2
+- Fixed bug where a specifically-set theme could pick up the wrong light/dark mode.
+
+## [1.4.0.b6] - 2026-03-12
+- New: Weekly per-folder Area/Project progress CSVs now use full folder paths consistently and include a totals row at the bottom of each table.
+- New: Weekly per-folder Area/Project progress can now be viewed as two heatmaps (notes progressed per week and tasks completed per week), using data from the CSVs.
+
+## [1.4.0.b5] - 2026-02-27
+- Project metadata can now be fully stored in frontmatter as well as in the note body. You have two options:
+  - You can now use a configurable frontmatter key name (default `project:`), to store it all in a single value.
+  - Or you can use separate frontmatter keys (`start`, `due`, `reviewed`, `completed`, `cancelled`, `review`, `nextReview`).  when they already exist, and keeps them in sync when they are present, without creating new keys for notes that don’t use them.
+    - Note: if you have configured different phrases for these strings, they are used instead (without the leading `@` character)
+- New: When any command updates a project note that had metadata in the body, it now writes to frontmatter and removes that body line. Migration includes all tags in the metadata line (e.g. `#project` or `#area`) as well as the dates in mentions (e.g. `@due(2026-08-22)`.
+
+## [1.4.0.b4] - 2026-02-26
+- New: Automatic refresh for the Project List display (Rich window only). To use this, set the new setting "Automatic Update interval" to the number of minutes. Leave at 0 to turn off.
+
+## [1.4.0.b3] - 2026-02-24
+- Dev: Refactor reviews.js significantly to better separate logic from display concerns. Adds new file `reviewsHTMLTemplates.js`.
+
+## [1.4.0.b2] - 2026-02-24
+- New: Added a 'Demo' mode, which swaps in a separate `allProjectsDemoListDefault.json` to display details of real (or potentially fictitious) projects for demo.
+
+## [1.4.0.b1] - 2026-02-22
+- Change: Rich project list: column 3 (metadata column) now shows review and due status as coloured lozenges, plus project tag(s), #sequential when applicable, and all hashtags from the note's metadata line and frontmatter `project` value. New Project field `allProjectTags` holds this combined list.
+- Dev: Project class now uses ISO date strings (YYYY-MM-DD) for startDate, dueDate, reviewedDate, completedDate, and cancelledDate instead of JavaScript Date objects; removes Date/string conversion in constructor, allProjectsListHelpers, and reviewHelpers.
+-->
+
 ## [1.3.1] - 2026-02-26
 - New setting "Theme to use for Project Lists": if set to a valid installed Theme name, the Rich project list window uses that theme instead of your current NotePlan theme. Leave blank to use your current theme.
 - Fixed edge case with adding progress updates and frontmatter.

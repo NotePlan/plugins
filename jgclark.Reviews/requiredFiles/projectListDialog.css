@@ -89,7 +89,7 @@ dialog:modal {
 .dialogLatestProgressLabel {
   font-weight: normal;
   text-align: left;
-  color: var(--fg-placeholder-color);
+  color: var(--fg-dimmer-color);
 }
 
 .dialogLatestProgressText {

@@ -3,19 +3,16 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-02-13 for v1.3.0.b9, @jgclark
+// Last updated 2026-02-23 for v1.4.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
-// import { generateCSSFromTheme } from '@helpers/HTMLView'
 import pluginJson from '../plugin.json'
 import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
-import { renderProjectLists } from './reviews'
-import { generateAllProjectsList } from './allProjectsListHelpers'
+import { displayProjectLists } from './reviews'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { editSettings } from '@helpers/NPSettings'
-import { isHTMLWindowOpen } from '@helpers/NPWindows'
 
 export {
   finishReview,
@@ -26,6 +23,7 @@ export {
   redisplayProjectListHTML,
   renderProjectLists,
   renderProjectListsIfOpen,
+  toggleDemoModeForProjectLists,
   setNewReviewInterval,
   skipReview,
   startReviews,
@@ -35,8 +33,8 @@ export {
 } from './reviews'
 export {
   generateAllProjectsList,
-  getNextNoteToReview, //  TODO: remove in time. But why?
-  getNextProjectsToReview, //  TODO: remove in time. But why?
+  getNextNoteToReview,
+  getNextProjectsToReview,
   logAllProjectsList
 } from './allProjectsListHelpers'
 // export { NOP } from './reviewHelpers'
@@ -50,7 +48,10 @@ export {
 export {
   generateCSSFromTheme
 } from '@helpers/NPThemeToCSS'
-export { writeProjectsWeeklyProgressToCSV } from './projectsWeeklyProgress'
+export {
+  writeProjectsWeeklyProgressToCSV,
+  showProjectsWeeklyProgressHeatmaps
+} from './projectsWeeklyProgress'
 
 // Note: There are other possible exports, including:
 export { testFonts } from '../experiments/fontTests.js'
@@ -82,16 +83,13 @@ export async function onSettingsUpdated(): Promise<void> {
   logDebug(pluginJson, 'Have updated Review settings, so will recalc the review list and display...')
   const config: ReviewConfig = await getReviewSettings()
 
-  // await makeFullReviewList(config, true)
-  await generateAllProjectsList(config, true)
+  await displayProjectLists()
 
-  // If v3.11+, can now refresh Dashboard
-  if (NotePlan.environment.buildVersion >= 1181) {
-    if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-      logDebug(pluginJson, `will refresh Project List as it is open`)
-      await renderProjectLists(config)
-    }
-  }
+  // Following should be handled in the above function
+  // if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
+  //   logDebug(pluginJson, `will refresh Project List as it is open`)
+  //   await renderProjectLists(config)
+  // }
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {

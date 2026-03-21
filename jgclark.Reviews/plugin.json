@@ -9,9 +9,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.com/plugins/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "1.3.1",
-  "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "1.3.1: Fixed edge case with adding progress updates and frontmatter.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
+  "plugin.version": "2.0.0.b11",
+  "plugin.releaseStatus": "beta",
+  "plugin.lastUpdateInfo": "2.0.0: Frontmatter metadata support, including configurable combined key and migration from body.\nSignificantly modernised layout for Rich project list.\n1.3.1: Fixed edge case with adding progress updates and frontmatter.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {
@@ -56,6 +56,12 @@
         "icon": "fa-chart-gantt",
         "iconColor": "orange-600"
       }
+    },
+    {
+      "hidden": true,
+      "name": "toggle demo mode for project lists",
+      "description": "Toggle demo mode for project lists. When true, '/project lists' shows fixed demo data (allProjectsDemoList.json), without recalculating from notes",
+      "jsFunction": "toggleDemoModeForProjectLists"
     },
     {
       "hidden": true,
@@ -164,16 +170,18 @@
       "jsFunction": "addProgressUpdate"
     },
     {
-      "name": "Projects: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "updateSettings"
-    },
-    {
       "hidden": false,
       "name": "weeklyProjectsProgress",
       "alias": [],
       "description": "Generate per-folder Area/Project progress stats as CSV files in the plugin data folder",
       "jsFunction": "writeProjectsWeeklyProgressToCSV"
+    },
+    {
+      "hidden": false,
+      "name": "heatmaps for weekly Projects Progress",
+      "alias": [],
+      "description": "Show per-folder Area/Project progress as two weekly heatmaps (notes progressed and tasks completed) in HTML windows",
+      "jsFunction": "showProjectsWeeklyProgressHeatmaps"
     },
     {
       "hidden": true,
@@ -232,6 +240,11 @@
       "name": "NOP",
       "description": "no operation - testing way to stop losing plugin context",
       "jsFunction": "NOP"
+    },
+    {
+      "name": "Projects: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
     },
     {
       "name": "test:redToGreenInterpolation",
@@ -404,7 +417,7 @@
       "title": "Show projects grouped by folder?",
       "description": "Whether to group the projects by their folder.",
       "type": "bool",
-      "default": true,
+      "default": false,
       "required": true
     },
     {
@@ -453,6 +466,36 @@
       "description": "Whether to display the next action in the output? Note: these are defined as the first item with the following 'next action tags' (below), or the first open task/checklist if the 'Sequential tag' (below) is set.",
       "type": "bool",
       "default": true,
+      "required": true
+    },
+    {
+      "key": "autoUpdateAfterIdleTime",
+      "title": "Automatic Update interval",
+      "description": "If set to any number > 0, the Project List will automatically refresh when the window is idle for a certain number of minutes. Set to 0 to disable.",
+      "type": "number",
+      "default": 0,
+      "required": true
+    },
+    {
+      "hidden": true,
+      "key": "projectTagsInColumn",
+      "title": "Where to show project tags?",
+      "description": "Project tags (e.g. #project, #area) can be shown in column 2 (after the open-count badge) or in column 3 (with review/due status).",
+      "type": "string",
+      "choices": [
+        "column2",
+        "column3"
+      ],
+      "default": "column3",
+      "required": true
+    },
+    {
+      "hidden": true,
+      "key": "statusLozengesInColumn2",
+      "title": "Show status lozenges at end of column 2 first line?",
+      "description": "When true, the review/due status lozenges are shown at the end of the first line in column 2, and the separate metadata column (column 3) is removed.",
+      "type": "bool",
+      "default": false,
       "required": true
     },
     {
@@ -637,6 +680,14 @@
       "required": true
     },
     {
+      "key": "projectMetadataFrontmatterKey",
+      "title": "Frontmatter metadata key",
+      "description": "Frontmatter key used to store the combined project metadata string (defaults to 'project'; 'metadata' is a common alternative).",
+      "type": "string",
+      "default": "project",
+      "required": true
+    },
+    {
       "type": "separator"
     },
     {
@@ -670,6 +721,14 @@
       "key": "_logTimer",
       "title": "Enable Timer logging?",
       "description": "For plugin authors to help optimise the plugin.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "useDemoData",
+      "title": "Use demo data?",
+      "description": "If set, then the project lists will use demo data instead of live data.",
       "type": "bool",
       "default": false,
       "required": true

@@ -1,14 +1,23 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-02-16 for v1.3.0.b12, @jgclark 
+ * Last updated 2026-03-19 for v1.4.0.b9, @jgclark 
  */
 
 body {
   margin: 0px;
 	--teamspace-color: #269F54;
-  --project-pause-color: #AAA;
   --project-no-percent-color: #BBB;
   --project-zero-progress-color: #9F2626;
+  --project-completed-color: var(--project-no-percent-color); /* just for the new border-left style */
+  --project-cancelled-color: var(--project-no-percent-color); /* just for the new border-left style */
+  --project-paused-color: #AAA;
+  --fg-dimmer-color: rgb(from var(--fg-main-color) r g b / 0.6);
+  --bg-lozenge-color: rgb(from var(--bg-main-color) r g b / 0.8);
+  --bg-hover-color: rgb(from var(--fg-main-color) r g b / 0.03);
+  --fg-due-color: hsla(45, 85%, 38%, 1); 
+  --fg-overdue-color: hsla(0, 85%, 38%, 1); 
+  --fg-soon-color: hsla(210, 85%, 38%, 1); 
+  --fg-not-due-color: hsla(120, 85%, 30%, 1); 
 }
 
 /* turn off special colouring and underlining for links -- turn on later when desired */
@@ -23,41 +32,105 @@ a, a:visited, a:active {
   color: inherit; text-decoration-line: none;
 }
 
-/* Remove margin-bottom and top from .h3 from last table */
-h3, .h3 {
-  margin-bottom: unset !important;
-  margin-top: unset !important;
-}
-
 /* TOPBAR ------------------------------------------------- */
 
-/* Keep a header stuck to top middle of window */
+/* Keep a header stuck to top; spread items evenly across the top bar */
 .topbar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  /* grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); */
   align-items: baseline;
+  column-gap: 0.5rem;
   position: sticky;
   top: 0px;
-  gap: 0.6rem;
   background-color: var(--bg-sidebar-color); 
   border-top: 1px solid var(--divider-color);
   border-bottom: 1px solid var(--divider-color);
-  line-height: 1.5rem; /* any less than this and the apple switches don't line up vertically properly */
-  padding: 0.4rem 0.8rem 0.3rem 0.8rem;
+  line-height: 1.2rem;
+  padding: 0.2rem 0.6rem 0.1rem 0.6rem;
   font-size: 0.95rem;
   z-index: 5;
-  row-gap: 0.3rem;
 
   .perspective-name {
     font-weight: 600;
   }
 }
 
+.topbar-left-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  justify-self: start;
+  min-width: 0;
+}
+
+.topbar-center-cluster {
+  justify-self: center;
+}
+
+.topbar-right-cluster {
+  justify-self: end;
+  min-width: 0;
+}
+
 .topbar-item {
   white-space: nowrap;     /* no wrapping inside items */
   flex: 0 0 auto;          /* don't stretch or shrink */
   min-width: max-content;
+}
+
+.topbar-select {
+  color: var(--fg-main-color);
+  background-color: var(--bg-alt-color);
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.35rem;
+  font-family: inherit; /* inherit from body font */
+}
+
+/* Tag toggles inside Filters dropdown; label left, count in parentheses, toggle right */
+.display-filters-tag-toggles {
+  margin-bottom: 0.2rem;
+}
+.display-filters-option--tag-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+.display-filters-option--tag-row .display-filters-option-text {
+  flex: 1 1 auto;
+}
+.display-filters-option-count {
+  color: var(--fg-dimmer-color);
+}
+.display-filters-option--tag-row .apple-switch {
+  flex: 0 0 auto;
+}
+.display-filters-divider {
+  border: 0;
+  border-top: 1px solid var(--fg-divider, var(--divider-color, #CDCFD0));
+  margin: 0.4rem 0;
+}
+
+.display-filters-order-row {
+  justify-self: stretch;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 0.5rem;
+  padding-top: 0.15rem;
+}
+.display-filters-order-label {
+  font-weight: normal;
+  cursor: default;
+}
+.display-filters-order-select {
+  flex: 0 1 auto;
+  min-width: 7.5rem;
 }
 
 /* Display filters: button uses .PCButton (same as Refresh), dropdown below */
@@ -70,12 +143,18 @@ h3, .h3 {
   top: 100%;
   right: 0;
   margin-top: 0.2rem;
-  min-width: 16rem;
+  min-width: max-content;
   background: var(--bg-main-color, #eff1f5);
   border: 1px solid var(--divider-color, #CDCFD0);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   z-index: 20;
+}
+/* Centred topbar trigger: panel hangs under the middle of the button */
+.topbar-center-cluster .display-filters-dropdown {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
 }
 .display-filters-dropdown.is-open {
   display: block;
@@ -102,23 +181,39 @@ h3, .h3 {
 /* MAIN GRID (replaces table) ----------------------------- */
 
 .project-list-grid {
+  background-color: var(--bg-alt-color);
   display: grid;
   width: 100%;
-  margin-bottom: 0rem;
+  /* margin-bottom: 0rem; */
 }
 
 /* First column fixed width (same as original col 1); middle column flexes; last column fits content like a table */
 .project-list-grid--with-dates {
-  grid-template-columns: 3.2rem 2fr 1fr;
+  grid-template-columns: auto 2fr 1fr;
 }
 
 .project-list-grid--no-dates {
-  grid-template-columns: 3.2rem 1fr;
+  margin: 0rem 0rem;
+  padding: 0.3rem 0rem;
+  /* grid-template-columns: auto 1fr; */
 }
 
 /* Rows: children participate in parent grid */
 .project-grid-row {
-  display: contents;
+  /* TEST: for just 1 col */
+  /* display: grid;
+  grid-template-columns: 3rem auto;
+  column-gap: 0rem; */
+  display: block;
+  background-color: var(--bg-mid-color);
+  border: 1px solid var(--divider-color);
+  border-radius: 6px;
+  margin: 0.2rem 0.5rem;
+  padding: 0.2rem;
+
+  &:hover {
+    background-color: var(--bg-hover-color);
+  }
 }
 
 .project-grid-cell {
@@ -128,18 +223,32 @@ h3, .h3 {
   padding-right: 0.4rem;
   font-size: 0.92rem;
   line-height: 1.35rem;
-  padding: 3px 0.2rem 2px 0.2rem;
+  /* padding: 3px 0.2rem 2px 0.2rem; */
+  padding: 5px 0.1rem 5px 0.1rem;
   border-left: none;
   border-right: none;
 }
 
-.project-grid-cell:first-child {
+/* .project-grid-cell:first-child {
   padding-left: 0.5rem;
-}
+} */
 
 /* Middle column: allow shrink so ellipsis can apply */
 .project-grid-cell--content {
   overflow: hidden;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-content: flex-start;
+  justify-content: flex-start;
+}
+
+/* Sub-rows under title: align text with .noteTitleText (same inset as .noteTitleIcon width) */
+.projectColumn2SubRow {
+  padding-left: 2rem;
+  box-sizing: border-box;
+  width: 100%;
   min-width: 0;
 }
 
@@ -148,7 +257,7 @@ h3, .h3 {
 }
 
 /* Legacy td/th kept for any remaining references; grid uses .project-grid-cell */
-td, th {
+/* td, th {
   font-weight: normal;
   text-align: left;
   padding-right: 0.4rem;
@@ -159,7 +268,7 @@ th {
 }
 td:first-child, th:first-child {
   padding-left: 0.5rem;
-}
+} */
 
 /* Display of Number of projects */
 .folder-header-text {
@@ -193,7 +302,6 @@ details[open] > summary::after {
   transform: rotate(90deg);
 }
 
-/* FIXME: Create inner wrapper for smooth animation */
 details > .details-content > * {
   overflow: hidden;
 }
@@ -234,19 +342,12 @@ summary::after {
 .project-grid-row.projectRow .project-grid-cell--content {
   min-height: calc(var(--body-line-height, 1.35rem) * 2.5);
 }
-.project-grid-row.folder-header-row .project-grid-cell {
-  vertical-align: bottom;
-  background-color: var(--bg-main-color);
-  border-top: none;
-  border-bottom: 0.6px solid var(--tint-color);
-  padding-bottom: 0.2rem;
-}
 
 .folder-header {
-  color: var(--tint-color);
-  padding-top: 0.7rem;
-  padding-left: 0.5rem;
-  padding-right: 0.3rem;
+  color: var(--h3-color);
+  font-size: 1.2rem !important; /* TODO: find better method for this than !important */
+  background-color: unset !important; /* TEST: override background-color set in the theme */
+  padding: 0.9rem 0.3rem 0.1rem 1.3rem;
 }
 
 .folder-name {
@@ -256,28 +357,50 @@ summary::after {
   padding-right: 1.0rem;
 }
 
+.folder-header-row {
+  vertical-align: bottom;
+  background-color: var(--bg-main-color);
+  border-top: none;
+  border-bottom: 0.6px solid var(--tint-color);
+  padding-bottom: 0.2rem;
+}
+
+/* TEST: new folder header row style to use with the bordered row style */
+.folder-header-row--newer {
+  vertical-align: bottom;
+  border: none;
+  background-color: unset;
+}
+
 /* column 1 space for icon and progress ring */
 .first-col-indicator {
-  padding: 0.5em 0.6rem 0.2rem 0.4rem; /* works but I don't understand why */
-  /* text-align: center; */
+  padding: 0.4em 0rem 0.2rem 0rem;
   justify-self: center;
-  align-content: center; /* was baseline; */
+  align-content: start; /* was center; */
 }
 
 /* Row borders: first row (folder header) top border; last row bottom border */
-.project-list-grid > .project-grid-row:first-child .project-grid-cell {
+/* .project-list-grid > .project-grid-row:first-child .project-grid-cell {
   border-top: 1px solid rgb(from var(--tint-color) r g b / 0.3);
 }
 .project-list-grid > .project-grid-row:last-child .project-grid-cell {
   border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.3);
-}
+} */
 /* Project row backgrounds (folder header is first child, so project rows are 2nd, 3rd, ...) */
-.project-list-grid > .project-grid-row.projectRow .project-grid-cell {
+/* .project-list-grid > .project-grid-row.projectRow .project-grid-cell {
   background-color: var(--bg-mid-color);
-}
-.project-list-grid > .project-grid-row.projectRow:nth-child(even) .project-grid-cell {
+} */
+/* Alternate row background colour: disabled for now */
+/* .project-list-grid > .project-grid-row.projectRow:nth-child(even) .project-grid-cell {
   background-color: var(--bg-alt-color);
-}
+} */
+
+/* Instead trying each row has its own background */
+/* .project-list-grid > .project-grid-row.projectRow {
+  background-color: var(--bg-alt-color);
+  border-bottom: 1px solid var(--divider-color);
+  border-radius: 6px;
+} */
 
 /* row class to indicate that a project is being reviewed */
 .project-grid-row.projectRow.reviewing .project-grid-cell {
@@ -325,7 +448,7 @@ dialog::backdrop {
 }
 
 .dialogProjectFolder {
-  color: var(--fg-placeholder-color);
+  color: var(--fg-dimmer-color);
 }
 
 .dialogProjectNoteLink {
@@ -364,11 +487,12 @@ button, .fake-button, .clickTarget {
   /* add a clearer border to all buttons */
   border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
 	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
-	padding: 2px 3px 0px 3px;
-	margin: 2px 4px 0px 0px;
+  padding: 2px 4px 1px 4px;
+  margin: 3px 3px 3px 0px;
 	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.9rem;
+  border-radius: 6px;
 
   /* color FA icons in these Buttons */
   i {
@@ -393,31 +517,44 @@ button, .fake-button, .clickTarget {
 
 /* -------------------------------------------------------- */
 /* first line of column 2 */
-.projectTitle {
+.projectMainDetailsRow {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  line-height: 1.8rem;
 }
 /* make noteTitle icon + text bold and coloured, and indicate its clickable */
 .noteTitle {
   cursor: pointer;
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
+  /* gap: 0.5rem; */
   color: var(--tint-color);
   font-size: 1.03rem; /* TODO: Gradually reduce from 1.1rem to 1.0rem? */
   font-weight: 500;
   text-decoration: none;
 }
-.noteTitle:hover {
-  /* placeholder */
+
+/* Stop any strikeout on completed/cancelled projects (which may come in from a theme) */
+.checked, .cancelled {
+  text-decoration: none !important;
 }
+
 .noteTitleIcon {
-  /* placeholder */
+  width: 2rem;
+  flex-shrink: 0;
+  /* display: inline-flex; */
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
 }
 /* make noteTitle links underlined on mouse hover */
 .noteTitleText:hover {
   text-decoration: underline;
+}
+
+.titleAndEditButton {
+  display: flex;
 }
 
 /* ---- ITEM COUNTS ----------------------------------------- */
@@ -438,7 +575,21 @@ button, .fake-button, .clickTarget {
   margin-left: 0.1rem;
 }
 
-/* Column 3: metadata (status lozenges + project tags). Status lozenges – colour from getIntervalReviewStatus / getIntervalDueStatus */
+/* Project tags moved from column 3 to column 2 (after open-count badge) */
+.projectTagsInline {
+  margin-left: 0.2rem;
+  gap: 0.2rem;
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+}
+
+/* ---- METADATA LOZENGES ---------------------------------- */
+
+/* Column 3: metadata (review/due status lozenges only; project tags are in column 2). Status lozenges – colour from getIntervalReviewStatus / getIntervalDueStatus */
 .project-metadata-cell {
   display: flex;
   align-items: center;
@@ -449,45 +600,49 @@ button, .fake-button, .clickTarget {
 }
 .metadata-lozenge {
   display: inline-block;
-  padding: 0.15rem 0.4rem;
-  border-radius: 6px;
+  color: rgb(from var(--fg-main-color) r g b / 0.5);
   font-size: 0.85rem;
   line-height: 1.1;
-  margin-right: 0.25rem;
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.2);
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  margin-right: 0.1rem;
   text-wrap: nowrap;
 }
-.metadata-lozenge--tag {
-  color: var(--fg-placeholder-color);
-  background-color: var(--bg-alt-color);
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.2);
+.lozenge-general {
+  color: var(--fg-dimmer-color);
+  background-color: var(--bg-lozenge-color, #FFFFFFBB);
+  filter: saturate(80%);
 }
-.metadata-lozenge--red {
-  color: #b85450;
-  /* border: 1px solid #b85450; */
-  background-color:  #b8545010
+/* Note: color-mix() works, but needs to start with 'in oklch' in NP at March 2026 on macOS 15.7. */
+.overdue {
+  color: var(--fg-overdue-color);
+  /* background-color: var(--bg-error-color); */
+  /* background-color: color-mix(in oklch, var(--bg-main-color), red 8%); */
 }
-.metadata-lozenge--orange {
-  color: #c76a40;
-  /* border: 1px solid #c76a00; */
-  background-color:  #c76a4010
+.due {
+  color: var(--fg-due-color);
+  /* background-color: var(--bg-warn-color); */
+  /* background-color: color-mix(in oklch, var(--bg-main-color), rgb(238, 199, 69) 20%); */
 }
-.metadata-lozenge--blue {
-  color: #1e66f5;
-  /* border: 1px solid #1e66f5; */
-  background-color:  #1e66f510
+.soon {
+  color: var(--fg-soon-color);
+  /* background-color: var(--bg-info-color); */
+  /* background-color: color-mix(in oklch, var(--bg-main-color), blue 15%); */
 }
-.metadata-lozenge--green {
-  color: #269F54;
-  /* border: 1px solid #269F54; */
-  background-color:  #269F5410
+.not-due {
+  color: var(--fg-not-due-color);
+  /* background-color: var(--bg-ok-color); */
+  /* background-color: color-mix(in oklch, var(--bg-main-color), green 15%); */
 }
 
 /* ---- PROGRESS ----------------------------------------- */
 /* Progress line row: last progress comment, styled like Dashboard ProjectItem */
-.projectProgress {
-  color: var(--fg-placeholder-color);
+.projectProgressRow {
+  color: var(--fg-dimmer-color);
   font-size: 0.95rem;
-  display: block;
+  display: flex;
+  align-items: baseline;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -497,35 +652,55 @@ button, .fake-button, .clickTarget {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-}
-.progressIcon {
-  color: var(--tint-color);
+  color: var(--fg-alt-color);
 }
 .progressText {
-  /* placeholder */
+  /* flex: 1; */
+  min-width: 0;
+  overflow: hidden;
+  /* FIXME: ellipsis isn't working any more */
+  text-overflow: ellipsis;
+}
+
+/* ---- FOLDER PATH ----------------------------------------- */
+/* Grouped-by-folder: folder path line under project title (column 2) */
+.projectFolderRow {
+  font-size: 0.92rem;
+  color: var(--fg-dimmer-color);
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+.projectFolderIcon {
+  width: 0.95rem;
+  flex-shrink: 0;
+}
+.projectFolderText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---- NEXT ACTIONS ----------------------------------------- */
-.nextAction {
-  display: block;
+.nextActionRow {
+  display: flex;
   align-items: baseline;
-  gap: 0.5rem;
-  overflow: hidden;
+  gap: 0;
+  /* overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.nextActionIcon {
-  /* placeholder */
+  text-overflow: ellipsis; */
+  color: var(--fg-alt-color);
 }
 .nextActionText {
-  /* placeholder */
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---- ICONS etc. ----------------------------------------- */
-/* set all FA icons to default to tint color */
-i.fa-solid, i.fa-regular {
-  /* color: var(--tint-color); */
-}
 /* make checkbox display larger, and like in the app. */
 .checkbox {
   font-family: "noteplanstate"; font-size: 1.4rem;
@@ -544,6 +719,7 @@ i.fa-solid, i.fa-regular {
 }
 /* set size of FA icon used in place of percent-display rings in first col */
 .circle-icon {
+  padding-top: 0.3rem; /* Needs to be nudged down slightly to optically align with the percent-ring-circles */
   font-size: 1.8rem;
 }
 /* add space before/after items (particularly icons) */
@@ -556,10 +732,9 @@ i.fa-solid, i.fa-regular {
 .pad-right {
 	padding-right: 0.2rem;
 }
-
 /* add more space before items */
-.pad-left-more {
-	margin-left: 0.5rem;
+.pad-right-larger {
+	padding-right: 0.5rem;
 }
 
 /* ---- TOOLTIPs ------------------------------------------- */
@@ -664,22 +839,3 @@ input.apple-switch:checked:after {
 input, label {
   vertical-align: top;
 }
-
-ul {
-  display: flex;
-  padding: 0.4rem;
-  margin: 0rem;
-}
-li {
-  break-inside: avoid;
-  display: block;
-  padding-inline: 0.4rem;
-}
-
-.fake-checkbox {
-  font-size: 1.0rem;
-  }
-.fake-checkbox::before {
-  content: '●';
-}
-
