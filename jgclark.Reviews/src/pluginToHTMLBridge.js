@@ -131,13 +131,14 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
 
 /**
  * Save display filters from the Display filters dropdown (all three at once).
- * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean }} data
+ * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean, displayOrder?: string }} data
  */
 export async function bridgeSaveDisplayFilters(data: {
   displayOnlyDue: boolean,
   displayFinished: boolean,
   displayPaused: boolean,
   displayNextActions: boolean,
+  displayOrder?: string,
 }): Promise<void> {
   try {
     await saveDisplayFilters(data)

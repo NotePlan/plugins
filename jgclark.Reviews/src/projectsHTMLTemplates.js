@@ -243,8 +243,15 @@ export const displayFiltersDropdownScript: string = `
       var finished = dropdown.querySelector('input[name="displayFinished"]');
       var paused = dropdown.querySelector('input[name="displayPaused"]');
       var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
+      var displayOrder = document.getElementById('displayOrderSelect');
       return onlyDue && finished && paused && nextActions
-        ? { displayOnlyDue: onlyDue.checked, displayFinished: finished.checked, displayPaused: paused.checked, displayNextActions: nextActions.checked }
+        ? {
+            displayOnlyDue: onlyDue.checked,
+            displayFinished: finished.checked,
+            displayPaused: paused.checked,
+            displayNextActions: nextActions.checked,
+            displayOrder: displayOrder ? displayOrder.value : 'review',
+          }
         : null;
     }
 
@@ -260,7 +267,8 @@ export const displayFiltersDropdownScript: string = `
             state.displayOnlyDue !== savedState.displayOnlyDue ||
             state.displayFinished !== savedState.displayFinished ||
             state.displayPaused !== savedState.displayPaused ||
-            state.displayNextActions !== savedState.displayNextActions;
+            state.displayNextActions !== savedState.displayNextActions ||
+            state.displayOrder !== savedState.displayOrder;
           if (hasChanges) {
             sendMessageToPlugin('saveDisplayFilters', state);
           }
@@ -300,6 +308,18 @@ export const displayFiltersDropdownScript: string = `
         closeDropdown(true);
       }
     });
+
+    // Sort order is an explicit immediate action: save + refresh on change.
+    var displayOrderSelect = document.getElementById('displayOrderSelect');
+    if (displayOrderSelect) {
+      displayOrderSelect.addEventListener('change', function() {
+        var state = getCheckboxState();
+        if (state) {
+          sendMessageToPlugin('saveDisplayFilters', state);
+          savedState = state;
+        }
+      });
+    }
   })();
 </script>
 `

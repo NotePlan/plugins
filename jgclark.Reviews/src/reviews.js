@@ -1298,13 +1298,14 @@ export async function toggleDisplayNextActions(): Promise<void> {
 
 /**
  * Save all display filter settings at once (used by Display filters dropdown).
- * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean }} data
+ * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean, displayOrder?: string }} data
  */
 export async function saveDisplayFilters(data: {
   displayOnlyDue: boolean,
   displayFinished: boolean,
   displayPaused: boolean,
   displayNextActions: boolean,
+  displayOrder?: string,
 }): Promise<void> {
   try {
     const config: ReviewConfig = await getReviewSettings()
@@ -1312,6 +1313,9 @@ export async function saveDisplayFilters(data: {
     config.displayFinished = data.displayFinished
     config.displayPaused = data.displayPaused
     config.displayNextActions = data.displayNextActions
+    if (typeof data.displayOrder === 'string' && data.displayOrder !== '') {
+      config.displayOrder = data.displayOrder
+    }
     await DataStore.saveJSON(config, '../jgclark.Reviews/settings.json', true)
     await renderProjectListsIfOpen(config)
   } catch (error) {

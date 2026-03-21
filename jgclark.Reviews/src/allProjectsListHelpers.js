@@ -104,7 +104,8 @@ function findReadyProjects(projects: Array<Project>, maxCount: number = 0): Arra
 }
 
 /**
- * Build sorting specification array based on config
+ * Build sorting specification array based on config: projectTagOrder > folder > [dueDays | nextReviewDays | title],
+ * but with 'active' before 'finished' sorting applied as well, unless displayOrder is 'title'.
  * @param {ReviewConfig} config - Review configuration
  * @returns {Array<string>} Array of field names to sort by
  * @private
@@ -117,16 +118,18 @@ function buildSortingSpecification(
   if (config.displayGroupedByFolder) {
     sortingSpec.push('folder')
   }
-  sortingSpec.push('isCancelled', 'isCompleted', 'isPaused') // i.e. 'active' before 'finished'
 
   switch (config.displayOrder) {
     case 'review':
-      sortingSpec.push('nextReviewDays')
+      // sorting 'active' before 'finished'
+      sortingSpec.push('isCancelled', 'isCompleted', 'isPaused', 'nextReviewDays')
       break
     case 'due':
-      sortingSpec.push('dueDays')
+      // sorting 'active' before 'finished'
+      sortingSpec.push('isCancelled', 'isCompleted', 'isPaused', 'dueDays')
       break
     case 'title':
+      // Note: *not* sorting 'active' before 'finished'
       sortingSpec.push('title')
       break
   }
@@ -708,7 +711,7 @@ export async function filterAndSortProjectsList(
     : allProjectInstances
 
   const filteredProjectList = (useDemoList) ? projectInstancesForTag : await filterProjectsList(projectInstancesForTag, config, dedupeList)
-  
+
   const sortedProjectList = sortProjectsList(filteredProjectList, config, sortingOrder) 
   logInfo('filterAndSortProjectsList', `- filtered ${filteredProjectList.length} projects, sorted ${sortedProjectList.length} projects`)
   return [sortedProjectList, projectInstancesForTag.length]

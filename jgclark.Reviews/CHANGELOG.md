@@ -1,7 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
-## [1.4.0.b9] - 2026-03-19
+## [1.4.0.b10] - 2026-03-20
+- Add 'Order by' control to the top bar. Note: completed/cancelled/paused projects are shown last, unless you request ordering by title.
+
+## [1.4.0.b9] - 2026-03-20
 - Modernised layout significantly for Rich project list, including add more metadata in a compact and calmer look
 - Default for "Group by folder" is now off, for the best look.
 

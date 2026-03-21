@@ -602,6 +602,7 @@ function getIntervalReviewStatus(interval: number): IntervalStatus {
  */
 export function generateTopBarHTML(config: any): string {
   const parts: Array<string> = []
+  const displayOrder = (typeof config.displayOrder === 'string' && config.displayOrder !== '') ? config.displayOrder : 'review'
   
   // Add buttons for various commands
   const refreshPCButton = makePluginCommandButton(
@@ -656,12 +657,14 @@ export function generateTopBarHTML(config: any): string {
   const refreshSection = `<div id="refresh" class="topbar-item">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
   parts.push(refreshSection)
 
+  parts.push(`<div id="topbar-controls">`)
   // Display filters: button (same style as Refresh) after Refresh + time, opens dropdown; click outside saves, Escape cancels
   const displayOnlyDue = config.displayOnlyDue ?? false
   const displayFinished = config.displayFinished ?? false
   const displayPaused = config.displayPaused ?? true
   const displayNextActions = config.displayNextActions ?? false
-  parts.push(`<div id="toggles" class="topbar-item display-filters-wrapper">`)
+  parts.push(`<span id="toggles" class="">`)
+  // parts.push(`<span id="toggles" class="topbar-item display-filters-wrapper">`)
   parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-filter pad-right"></i>Filters…</button>`)
   parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Display filters">`)
   parts.push(`    <div class="display-filters-dropdown-content">`)
@@ -688,6 +691,18 @@ export function generateTopBarHTML(config: any): string {
   parts.push(`      <label class="display-filters-option">Show next actions?<input class="apple-switch pad-left" type="checkbox" ${displayNextActions ? 'checked' : ''} name="displayNextActions" data-display-filter="true"></label>`)
   parts.push(`    </div>`)
   parts.push(`  </div>`)
+  parts.push(`</span>`)
+
+    // Display order control
+  parts.push(`<span id="sortOrderControl" class="topbar-item topbar-sort-control">`)
+  parts.push(`  <label for="displayOrderSelect" class="topbar-text">Order:</label>`)
+  parts.push(`  <select id="displayOrderSelect" class="topbar-select" name="displayOrder" aria-label="Sort projects by">`)
+  parts.push(`    <option value="review" ${displayOrder === 'review' ? 'selected' : ''}>Review date</option>`)
+  parts.push(`    <option value="due" ${displayOrder === 'due' ? 'selected' : ''}>Due date</option>`)
+  parts.push(`    <option value="title" ${displayOrder === 'title' ? 'selected' : ''}>Title</option>`)
+  parts.push(`  </select>`)
+  parts.push(`</span>`)
+
   parts.push(`</div>`)
 
   // const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${finishAndNextReviewPCButton}\n${nextReviewPCButton}\n</div>`
