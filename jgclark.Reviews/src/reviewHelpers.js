@@ -831,8 +831,8 @@ export async function updateDashboardIfOpen(): Promise<void> {
  */
 export function addFAIcon(faClasses: string, colorStr: string = ''): string {
   if (colorStr !== '') {
-    return `<span class="${faClasses}" style="color: ${colorStr}"></span>`
+    return `<i class="${faClasses}" style="color: ${colorStr}"></i>`
   } else {
-    return `<span class="${faClasses}"></span>`
+    return `<i class="${faClasses}"></i>`
   }
 }

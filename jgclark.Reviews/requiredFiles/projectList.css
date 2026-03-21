@@ -6,12 +6,18 @@
 body {
   margin: 0px;
 	--teamspace-color: #269F54;
-  --project-pause-color: #AAA;
   --project-no-percent-color: #BBB;
   --project-zero-progress-color: #9F2626;
+  --project-completed-color: var(--project-no-percent-color); /* just for the new border-left style */
+  --project-cancelled-color: var(--project-no-percent-color); /* just for the new border-left style */
+  --project-paused-color: #AAA;
   --fg-dimmer-color: rgb(from var(--fg-main-color) r g b / 0.6);
   --bg-lozenge-color: rgb(from var(--bg-main-color) r g b / 0.8);
   --bg-hover-color: rgb(from var(--fg-main-color) r g b / 0.03);
+  --fg-due-color: hsla(45, 85%, 38%, 1); 
+  --fg-overdue-color: hsla(0, 85%, 38%, 1); 
+  --fg-soon-color: hsla(210, 85%, 38%, 1); 
+  --fg-not-due-color: hsla(120, 85%, 30%, 1); 
 }
 
 /* turn off special colouring and underlining for links -- turn on later when desired */
@@ -136,15 +142,17 @@ a, a:visited, a:active {
 }
 
 .project-list-grid--no-dates {
-  margin: 0.3rem 0rem;
+  margin: 0rem 0rem;
   /* grid-template-columns: auto 1fr; */
 }
 
 /* Rows: children participate in parent grid */
 .project-grid-row {
-  display: grid;
+  /* TEST: for just 1 col */
+  /* display: grid;
   grid-template-columns: 3rem auto;
-  column-gap: 0rem;
+  column-gap: 0rem; */
+  display: block;
   background-color: var(--bg-mid-color);
   border: 1px solid var(--divider-color);
   border-radius: 6px;
@@ -281,6 +289,21 @@ summary::after {
 .project-grid-row.projectRow .project-grid-cell--content {
   min-height: calc(var(--body-line-height, 1.35rem) * 2.5);
 }
+
+.folder-header {
+  color: var(--h3-color);
+  font-size: 1.2rem !important; /* TODO: find better method for this than !important */
+  background-color: unset !important; /* TEST: override background-color set in the theme */
+  padding: 0.9rem 0.3rem 0.1rem 0.5rem;
+}
+
+.folder-name {
+  font-size: 1.0rem;
+  font-weight: bold;
+  padding-top: 0.8rem;
+  padding-right: 1.0rem;
+}
+
 .folder-header-row {
   vertical-align: bottom;
   background-color: var(--bg-main-color);
@@ -294,21 +317,6 @@ summary::after {
   vertical-align: bottom;
   border: none;
   background-color: unset;
-}
-
-.folder-header {
-  color: var(--h3-color);
-  font-size: 1.2rem !important; /* TODO: find better method for this than !important */
-  padding-top: 0.7rem;
-  padding-left: 0.5rem;
-  padding-right: 0.3rem;
-}
-
-.folder-name {
-  font-size: 1.0rem;
-  font-weight: bold;
-  padding-top: 0.8rem;
-  padding-right: 1.0rem;
 }
 
 /* column 1 space for icon and progress ring */
@@ -431,6 +439,7 @@ button, .fake-button, .clickTarget {
 	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.9rem;
+  border-radius: 6px;
 
   /* color FA icons in these Buttons */
   i {
@@ -471,6 +480,11 @@ button, .fake-button, .clickTarget {
   font-size: 1.03rem; /* TODO: Gradually reduce from 1.1rem to 1.0rem? */
   font-weight: 500;
   text-decoration: none;
+}
+
+/* Stop any strikeout on completed/cancelled projects (which may come in from a theme) */
+.checked, .cancelled {
+  text-decoration: none !important;
 }
 
 .noteTitleIcon {
@@ -539,7 +553,7 @@ button, .fake-button, .clickTarget {
   border: 1px solid rgb(from var(--fg-main-color) r g b / 0.2);
   padding: 0.15rem 0.4rem;
   border-radius: 6px;
-  /* margin-right: 0.1rem; */
+  margin-right: 0.1rem;
   text-wrap: nowrap;
 }
 .lozenge-general {
@@ -548,24 +562,24 @@ button, .fake-button, .clickTarget {
   filter: saturate(80%);
 }
 /* Note: color-mix() works, but needs to start with 'in oklch' in NP at March 2026 on macOS 15.7. */
-.lozenge-overdue {
-  color: var(--fg-error-color);
-  background-color: var(--bg-error-color);
+.overdue {
+  color: var(--fg-overdue-color);
+  /* background-color: var(--bg-error-color); */
   /* background-color: color-mix(in oklch, var(--bg-main-color), red 8%); */
 }
-.lozenge-due {
-  color: var(--fg-warn-color);
-  background-color: var(--bg-warn-color);
+.due {
+  color: var(--fg-due-color);
+  /* background-color: var(--bg-warn-color); */
   /* background-color: color-mix(in oklch, var(--bg-main-color), rgb(238, 199, 69) 20%); */
 }
-.lozenge-soon {
-  color: var(--fg-info-color);
-  background-color: var(--bg-info-color);
+.soon {
+  color: var(--fg-soon-color);
+  /* background-color: var(--bg-info-color); */
   /* background-color: color-mix(in oklch, var(--bg-main-color), blue 15%); */
 }
-.lozenge-green {
-  color: var(--fg-ok-color);
-  background-color: var(--bg-ok-color);
+.not-due {
+  color: var(--fg-not-due-color);
+  /* background-color: var(--bg-ok-color); */
   /* background-color: color-mix(in oklch, var(--bg-main-color), green 15%); */
 }
 
@@ -588,9 +602,10 @@ button, .fake-button, .clickTarget {
   color: var(--fg-alt-color);
 }
 .progressText {
-  flex: 1;
+  /* flex: 1; */
   min-width: 0;
   overflow: hidden;
+  /* FIXME: ellipsis isn't working any more */
   text-overflow: ellipsis;
 }
 

@@ -707,7 +707,8 @@ export async function filterAndSortProjectsList(
     ? allProjectInstances.filter((pi) => pi.projectTag === projectTag)
     : allProjectInstances
 
-  const filteredProjectList = await filterProjectsList(projectInstancesForTag, config, dedupeList)
+  const filteredProjectList = (useDemoList) ? projectInstancesForTag : await filterProjectsList(projectInstancesForTag, config, dedupeList)
+  
   const sortedProjectList = sortProjectsList(filteredProjectList, config, sortingOrder) 
   logInfo('filterAndSortProjectsList', `- filtered ${filteredProjectList.length} projects, sorted ${sortedProjectList.length} projects`)
   return [sortedProjectList, projectInstancesForTag.length]

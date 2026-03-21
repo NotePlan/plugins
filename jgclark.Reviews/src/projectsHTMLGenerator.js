@@ -3,9 +3,10 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-03-19 for v1.4.0.b9 by @jgclark
+// Last updated 2026-03-20 for v1.4.0.b9 by @jgclark
 //-----------------------------------------------------------------------------
 
+import moment from 'moment/min/moment-with-locales'
 import { Project } from './projectClass'
 import { addFAIcon, type ReviewConfig } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
@@ -55,10 +56,16 @@ function getFolderPartForProjectRow(thisProject: Project, config: ReviewConfig):
  * @param {ReviewConfig} config
  * @returns {string}
  */
-function generateGroupedFolderRowHtml(thisProject: Project, config: ReviewConfig): string {
+function generateFolderRowHtml(thisProject: Project, config: ReviewConfig): string {
   const folderPart = getFolderPartForProjectRow(thisProject, config)
-  const reviewIntervalStr = `・ <i class="fa-light fa-repeat pad-right"></i>${thisProject.reviewInterval}`
-  const rowString = `\n\t\t\t<div class="projectFolderRow projectColumn2SubRow projectColumn2SubRow"><span class="projectFolderIcon"><i class="fa-regular fa-folder"></i></span><span class="pad-left-larger pad-right-larger projectFolderText">${folderPart}${reviewIntervalStr}</span></div>`
+
+  // Show review interval (for active projects only)
+  const isActiveProject = !thisProject.isCompleted && !thisProject.isCancelled && !thisProject.isPaused
+  const reviewIntervalStr = isActiveProject ? `・ <i class="fa-light fa-repeat pad-right"></i>${thisProject.reviewInterval}` : ''
+
+  const statusLozenges = config.statusLozengesInColumn2 ? generateStatusLozengesSpans(thisProject).join('\n') : ''
+
+  const rowString = `\n\t\t\t<div class="projectFolderRow projectColumn2SubRow projectFolderText"><span class="projectFolderIcon"><i class="fa-regular fa-folder"></i></span><span class="pad-left pad-right-larger projectFolderText">${folderPart}${reviewIntervalStr} ${statusLozenges}</span></div>`
   return rowString
 }
 
@@ -119,46 +126,74 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedT
   const wantedTagsAttr = (wantedTagsForRow != null && wantedTagsForRow.length > 0)
     ? ` data-wanted-tags="${wantedTagsForRow.join(' ').replace(/"/g, '&quot;')}"`
     : ''
-  parts.push(`\t<div class="project-grid-row projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}"${wantedTagsAttr}>\n\t\t`)
+  const extraStyle = `style="border-left: 5px solid ${getProjectIndicatorColor(thisProject)};"`
+  parts.push(`\t<div class="project-grid-row projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}"${wantedTagsAttr}${extraStyle}>\n\t\t`)
   parts.push(generateCircleIndicator(thisProject))
 
   // Column 2a: Project name + link / edit button / open-count badge / project tags (if setting is column2)
-  const editButton = `\t\t\t\t\t<span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}', encodedLastProgressComment:'${encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')}'})"><i class="fa-light fa-edit"></i></span>\n`
-  const openItemCount = generateItemCountsBadge(thisProject)
+  const editButtonSpan = `\t\t\t\t\t<span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}', encodedLastProgressComment:'${encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')}'})"><i class="fa-light fa-edit"></i></span>\n`
 
   const showTagsInColumn2 = config.projectTagsInColumn !== 'column3'
-  const projectTags = showTagsInColumn2 ? generateProjectTagsLozenges(thisProject).join('\n') : ''
-  const statusLozenges = config.statusLozengesInColumn2 ? generateStatusLozenges(thisProject).join('\n') : ''
-  parts.push(
-    `\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectMainDetailsRow">${decoratedProjectTitle(
-      thisProject,
-      'Rich',
-      config,
-    )}${editButton}${openItemCount}<span class="projectTagsInline">${projectTags}${statusLozenges}</span></span>`,
-  )
+  const projectTags = showTagsInColumn2 ? generateProjectTagsLozengesSpan(thisProject).join('\n') : ''
 
+  // const statusLozenges = config.statusLozengesInColumn2 ? generateStatusLozengesSpans(thisProject).join('\n') : ''
+  // TEST: moved statusLozenges from after projectTags here to folder row
   if (!config.displayGroupedByFolder) {
-    parts.push(generateGroupedFolderRowHtml(thisProject, config))
+    parts.push(
+      `\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectMainDetailsRow">${decoratedProjectTitle(thisProject, 'Rich', config)}
+      ${editButtonSpan}
+      <span class="projectTagsInline">${projectTags}</span>
+      </span>`)
+  } else {
+    const statusLozenges = config.statusLozengesInColumn2 ? generateStatusLozengesSpans(thisProject).join('\n') : ''
+    parts.push(
+      `\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectMainDetailsRow">${decoratedProjectTitle(thisProject, 'Rich', config)}
+      ${editButtonSpan}
+      <span class="projectTagsInline">${projectTags}${statusLozenges}</span>
+      </span>`)
+  }
+  // Write possible row 2 under project title: folder path (if any)
+  if (!config.displayGroupedByFolder) {
+    parts.push(generateFolderRowHtml(thisProject, config))
   }
 
-  if (!thisProject.isCompleted && !thisProject.isCancelled) {
-    const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
-      ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
-      : []
-
-    // Write column 2b/2c under title: progress line row (if any) then stats then next actions
-    parts.push(generateProgressSection(thisProject, config, false))
-    parts.push(generateNextActionsSection(config, nextActionsContent))
-  }
+  // Write possible rows 3 + 4 under project title: progress line row (if any) then stats then next actions (if any)
+  const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
+    ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
+    : []
+  parts.push(generateProgressRowDiv(thisProject))
+  parts.push(generateNextActionsSection(config, nextActionsContent))
   parts.push(`</div>`)
 
   // Column 3: metadata (dates + project tags/hashtags), unless status lozenges are shown inline in column 2
   if (!config.statusLozengesInColumn2) {
-    parts.push(generateDateSection(thisProject, config))
+    parts.push(generateDateSectionForCol3(thisProject, config))
   }
   parts.push('\n\t</div>')
 
   return parts.join('')
+}
+
+/**
+ * Get the color for the project indicator
+ * @param {Project} thisProject
+ * @returns {string}
+ * @private
+ */
+function getProjectIndicatorColor(thisProject: Project): string {
+  if (thisProject.isCompleted) {
+    return 'var(--project-completed-color)'
+  } else if (thisProject.isCancelled) {
+    return 'var(--project-cancelled-color)'
+  } else if (thisProject.isPaused) {
+    return 'var(--project-paused-color)'
+  } else if (thisProject.percentComplete == null || isNaN(thisProject.percentComplete)) {
+    return 'var(--project-no-percent-color)'
+  } else if (thisProject.percentComplete === 0) {
+    return 'var(--project-zero-progress-color)'
+  } else {
+    return redToGreenInterpolation(thisProject.percentComplete)
+  }
 }
 
 /**
@@ -168,19 +203,28 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedT
  * @private
  */
 function generateCircleIndicator(thisProject: Project): string {
+  let specificClass = ''
+  let decoration = ''
   if (thisProject.isCompleted) {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check circle-icon')}</div>`
+    specificClass = 'checked'
+    decoration = addFAIcon('fa-solid fa-circle-check circle-icon')
   } else if (thisProject.isCancelled) {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</div>`
+    specificClass = 'cancelled'
+    decoration = addFAIcon('fa-solid fa-circle-xmark circle-icon')
   } else if (thisProject.isPaused) {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "var(--project-pause-color)")}</div>`
+    decoration = addFAIcon("fa-solid fa-circle-pause circle-icon", "var(--project-paused-color)")
   } else if (thisProject.percentComplete == null || isNaN(thisProject.percentComplete)) {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', 'var(--project-no-percent-color)')}</div>`
+    decoration = addFAIcon('fa-solid fa-circle circle-icon', 'var(--project-no-percent-color)')
   } else if (thisProject.percentComplete === 0) {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addSVGPercentRing(thisProject, 100, '#FF000088', '0')}</div>`
+    decoration = addSVGPercentRing(thisProject, 100, '#FF000088', '0')
   } else {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</div>`
+    decoration = addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))
   }
+  // Historic layout with circle
+  // const divString = `<div class="project-grid-cell first-col-indicator ${specificClass}">${decoration}</div>`
+  // TEST: New version without circle
+  const divString = ``
+  return divString
 }
 
 /**
@@ -189,21 +233,18 @@ function generateCircleIndicator(thisProject: Project): string {
  * @returns {string}
  * @private
  */
-function generateItemCountsBadge(thisProject: Project): string {
-  const parts: Array<string> = []
-  
+function getItemCountsString(thisProject: Project): string {
   // Only show counts for active projects
-  if (thisProject.isCompleted || thisProject.isCancelled) {
+  if (thisProject.isCompleted || thisProject.isCancelled || thisProject.isPaused) {
     return ''
   }
   
   // Task count badge (circle)
   const badgeNumber = (thisProject.numOpenItems - thisProject.numFutureItems > 0) ? thisProject.numOpenItems - thisProject.numFutureItems : 0
   if (badgeNumber > 0) {
-    parts.push(`<span class="openItemCount">${badgeNumber}</span>`)
+    return badgeNumber.toLocaleString()
   }
-  
-  return parts.join('')
+  return 'no'
 }
 
 /**
@@ -212,7 +253,7 @@ function generateItemCountsBadge(thisProject: Project): string {
  * @returns {Array<string>} lozenges
  * @private
  */
-function generateProjectTagsLozenges(thisProject: Project): Array<string> {
+function generateProjectTagsLozengesSpan(thisProject: Project): Array<string> {
   if (thisProject.allProjectTags == null || thisProject.allProjectTags.length === 0) return []
   const tagsToUse = thisProject.allProjectTags.filter((hashtag) => hashtag !== '#sequential')
   const parts = tagsToUse.map((hashtag) => `<span class="metadata-lozenge lozenge-general">${hashtag}</span>`)
@@ -225,25 +266,31 @@ function generateProjectTagsLozenges(thisProject: Project): Array<string> {
  * @returns {Array<string>} lozenges
  * @private
  */
-function generateStatusLozenges(thisProject: Project): Array<string> {
+function generateStatusLozengesSpans(thisProject: Project): Array<string> {
   const lozenges: Array<string> = []
+  // return empty array if project is completed, cancelled or paused
+  if (thisProject.isCompleted || thisProject.isCancelled || thisProject.isPaused) {
+    return []
+  }
 
-  // Review status lozenge (from getIntervalReviewStatus)
+  // Make Review status lozenge (from getIntervalReviewStatus)
   if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
     const reviewStatus = getIntervalReviewStatus(thisProject.nextReviewDays)
     if (reviewStatus.text !== '') {
       lozenges.push(
-        `<span class="metadata-lozenge lozenge-${reviewStatus.colorClass}">${addFAIcon(reviewStatus.icon ?? '')} ${reviewStatus.text}</span>`,
+        // `<span class="metadata-lozenge lozenge-${reviewStatus.colorClass}">${addFAIcon(reviewStatus.icon ?? '')} ${reviewStatus.text}</span>`,
+        `<span class="pad-left ${reviewStatus.colorClass}">${addFAIcon(reviewStatus.icon ?? '')} ${reviewStatus.text}</span>`,
       )
     }
   }
 
-  // Due status lozenge (from getIntervalDueStatus), follows review in same container
+  // Make Due status lozenge (from getIntervalDueStatus), follows review in same container
   if (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) {
     const dueStatus = getIntervalDueStatus(thisProject.dueDays)
     if (dueStatus.text !== '') {
       lozenges.push(
-        `<span class="metadata-lozenge lozenge-${dueStatus.colorClass}">${addFAIcon(dueStatus.icon ?? '')} ${dueStatus.text}</span>`,
+        // `<span class="metadata-lozenge lozenge-${dueStatus.colorClass}">${addFAIcon(dueStatus.icon ?? '')} ${dueStatus.text}</span>`,
+        `<span class="pad-left ${dueStatus.colorClass}">${addFAIcon(dueStatus.icon ?? '')} ${dueStatus.text}</span>`,
       )
     }
   }
@@ -254,25 +301,55 @@ function generateStatusLozenges(thisProject: Project): Array<string> {
 /**
  * Generate progress section HTML (stats: percent done / item count; comment shown in progress line row when present)
  * @param {Project} thisProject
- * @param {ReviewConfig} config
- * @param {boolean} useDiv - Whether to use div instead of span
  * @returns {string}
  * @private
  */
-function generateProgressSection(thisProject: Project, config: ReviewConfig, useDiv: boolean = false): string {
-  if (!config.displayProgress) return ''
-  const tag = useDiv ? 'div' : 'span'
-  const indent = useDiv ? '\t\t\t\t' : '\n\t\t\t\t'
-
-  // logDebug('generateProgressSection', `for ${thisProject.title}: lastProgressComment: ${thisProject.lastProgressComment}`)
-  // If there is a progress comment, show it in the progress line row, otherwise show only stats
-  if (thisProject.lastProgressComment !== '') {
-    return `${indent}<${tag} class="projectProgressRow projectColumn2SubRow projectColumn2SubRow"><span 
-    class="progressIcon"><i class="fa-regular fa-circle-info"></i></span><span class="pad-left-larger progressText">${thisProject.lastProgressComment}</span></${tag}>`
-  } else {
-  //   return `${indent}<${tag} class="progress"><span class="progressText">${statsProgress}</span></${tag}>`
-    return ''
+function generateProgressRowDiv(thisProject: Project): string {
+  // V2 with added info at start of line
+  // if (!config.displayProgress) return ''
+  // Start with stat progress % and number of open tasks
+  const timeAgoStr = (thisProject.isCompleted)
+    ? moment(thisProject.completedDate).fromNow()
+    : (thisProject.isCancelled)
+      ? moment(thisProject.cancelledDate).fromNow()
+      : (thisProject.isPaused)
+        ? 'paused'
+        : ''
+  const extraClass = (thisProject.isCompleted)
+    ? 'checked'
+    : (thisProject.isCancelled)
+      ? 'cancelled'
+      : (thisProject.isPaused)
+        ? 'paused'
+        : ''
+  const statsStr = (thisProject.isCompleted)
+    ? `<i class="fa-solid fa-circle-check pad-right"></i> ${timeAgoStr}`
+    : (thisProject.isCancelled)
+      ? `<i class="fa-solid fa-circle-xmark pad-right"></i> ${timeAgoStr}`
+      : (thisProject.isPaused)
+        ? `<i class="fa-solid fa-circle-pause pad-right"></i> ${timeAgoStr}`
+        : (isNaN(thisProject.percentComplete))
+          ? ''
+          : `${thisProject.percentComplete}% done ・ `
+  let statsString = `<span class="progressText ${extraClass}">${statsStr}</span>`
+  
+  if (!thisProject.isCompleted && !thisProject.isCancelled && !thisProject.isPaused) {
+    const itemCountsStr = getItemCountsString(thisProject)
+    const itemCountsDescription = (itemCountsStr === "1") ? `open item` : `open items`
+    statsString += `<span class="pad-left">${itemCountsStr} ${itemCountsDescription}</span>`
   }
+
+  // If there is a progress comment, show it in the progress line row, otherwise show only stats
+  // logDebug('generateProgressRowDiv', `for ${thisProject.title}: lastProgressComment: ${thisProject.lastProgressComment}`)
+  if (thisProject.lastProgressComment !== '') {
+    statsString += `<span 
+    class="progressIcon pad-left-larger"><i class="fa-regular fa-circle-info"></i></span><span class="pad-left">${thisProject.lastProgressComment}</span>`
+  // } else {
+  //   //   return `${indent}<${tag} class="progress"><span class="progressText">${statsProgress}</span></${tag}>`
+  //   return ''
+  }
+  const outputString = `\n\t\t\t\t<div class="projectProgressRow projectColumn2SubRow">${statsString}</div>`
+  return outputString
 }
 
 /**
@@ -296,15 +373,14 @@ function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Ar
 }
 
 /**
- * Generate column 3 (metadata column) HTML for Rich format.
- * Shows up to two coloured lozenges (review status then due status from getIntervalReviewStatus / getIntervalDueStatus),
+ * Generate HTML for column 3 (metadata column) for up to two coloured lozenges (review status then due status from getIntervalReviewStatus / getIntervalDueStatus),
  * and when present a line of project hashtags from from metadata line and/or frontmatter `project` value.
  * @param {Project} thisProject
  * @param {ReviewConfig} config
  * @returns {string}
  * @private
  */
-function generateDateSection(thisProject: Project, config: ReviewConfig): string {
+function generateDateSectionForCol3(thisProject: Project, config: ReviewConfig): string {
   if (!config.displayDates) return ''
 
   // When status lozenges are shown inline in column 2, there is no separate metadata column (column 3)
@@ -331,11 +407,11 @@ function generateDateSection(thisProject: Project, config: ReviewConfig): string
     // for (const hashtag of thisProject.allProjectTags) {
     //   lozenges.push(`<span class="metadata-lozenge lozenge-general">${hashtag}</span>`)
     // }
-    lozenges.push(...generateProjectTagsLozenges(thisProject))
+    lozenges.push(...generateProjectTagsLozengesSpan(thisProject))
   }
 
   // Review/due status lozenges (from helper), follow tags in same column
-  lozenges.push(...generateStatusLozenges(thisProject))
+  lozenges.push(...generateStatusLozengesSpans(thisProject))
 
   return `<div class="project-grid-cell project-grid-cell--metadata project-metadata-cell">${lozenges.join('\n')}</div>`
 }
@@ -368,8 +444,6 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
       // const tailwindColor = thisProject.iconColor != null && thisProject.iconColor !== '' ? thisProject.iconColor : ''
       const iconColorStyle = '' // tailwindColor !== '' ? ` style="color: ${tailwindToHsl(tailwindColor)};"` : ''
       const iconHTML = `<i class="fa-regular fa-${iconClass}"${iconColorStyle}></i>`
-      // logDebug('decoratedProjectTitle', `${thisProject.filename}: icon: ${thisProject.icon ?? '-'}, color: ${thisProject.iconColor ?? '-'}`)
-      // logDebug('decoratedProjectTitle', `${thisProject.filename}:iconClass: ${iconClass}, tailwindColor: ${tailwindColor}, iconColorStyle: ${iconColorStyle}`)
       
       return `<a class="noteTitle" href="${noteOpenActionURL}"><span class="noteTitleIcon">${iconHTML}</span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a>`
     }
@@ -498,8 +572,8 @@ type IntervalStatus = {
  */
 function getIntervalDueStatus(interval: number): IntervalStatus {
   // if (interval < -90) return { color: 'red', icon: 'fa-solid fa-flag-checkered', text: 'very overdue' }
-  if (interval < -14) return { colorClass: 'overdue', icon: 'fa-solid fa-flag-checkered', text: 'overdue' }
-  if (interval < 0) return { colorClass: 'due', icon: 'fa-regular fa-flag-checkered', text: 'due now' }
+  if (interval < -14) return { colorClass: 'overdue', icon: 'fa-light fa-flag-checkered', text: 'overdue' }
+  if (interval < 0) return { colorClass: 'due', icon: 'fa-light fa-flag-checkered', text: 'due now' }
   if (interval > 30) return { colorClass: 'soon', icon: 'fa-light fa-flag-checkered', text: 'due soon' }
   return { text: '', colorClass: '', icon: '' }
 }
@@ -511,8 +585,8 @@ function getIntervalDueStatus(interval: number): IntervalStatus {
  */
 function getIntervalReviewStatus(interval: number): IntervalStatus {
   // if (interval < -90) return { color: 'red', icon: 'fa-solid fa-user-clock', text: 'very overdue' }
-  if (interval < -14) return { colorClass: 'overdue', icon: 'fa-regular fa-user-clock', text: 'overdue' }
-  if (interval < 0) return { colorClass: 'due', icon: 'fa-regular fa-user-clock', text: 'due now' }
+  if (interval < -14) return { colorClass: 'overdue', icon: 'fa-light fa-user-clock', text: 'overdue' }
+  if (interval < 0) return { colorClass: 'due', icon: 'fa-light fa-user-clock', text: 'due now' }
   if (interval < 30) return { colorClass: 'soon', icon: 'fa-light fa-user-clock', text: 'due soon' }
   return { text: '', colorClass: '', icon: '' }
 }
@@ -616,7 +690,8 @@ export function generateTopBarHTML(config: any): string {
   parts.push(`  </div>`)
   parts.push(`</div>`)
 
-  const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${finishAndNextReviewPCButton}\n${nextReviewPCButton}\n</div>`
+  // const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${finishAndNextReviewPCButton}\n${nextReviewPCButton}\n</div>`
+  const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
   parts.push(controlButtons)
 
   // Finish the sticky top bar
@@ -635,7 +710,7 @@ export function generateFolderHeaderHTML(folderPart: string, config: any): strin
   const parts: Array<string> = []
   const hasMetadataColumn = config.displayDates && !config.statusLozengesInColumn2
   // Note: following uses header-row--newer to turn off borders on the folder header row
-  parts.push(` <div class="project-grid-row folder-header-row--newer">`)
+  parts.push(` <div class="folder-header-row--newer">`)
   parts.push(`  <div class="project-grid-cell project-grid-cell--span-2 folder-header h3">${folderPart}</div>`)
   if (hasMetadataColumn) {
     parts.push(`  <div class="project-grid-cell folder-header"></div>`) // deliberately no header text

@@ -430,7 +430,7 @@
       "title": "Show projects grouped by folder?",
       "description": "Whether to group the projects by their folder.",
       "type": "bool",
-      "default": true,
+      "default": false,
       "required": true
     },
     {

@@ -7,7 +7,6 @@
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
-// import { generateCSSFromTheme } from '@helpers/HTMLView'
 import pluginJson from '../plugin.json'
 import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
 import { renderProjectLists } from './reviews'

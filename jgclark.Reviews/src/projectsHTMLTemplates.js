@@ -79,9 +79,9 @@ function getCurrentScrollHeight() {
 
 // Note: saving scroll position to cookie does not work in Safari, but not in NP.
 function setScrollPos(h) {
+  <!-- console.log('setScrollPos = ' + String(h)); -->
   document.documentElement.scrollTop = h;
   document.body.scrollTop = h;
-  console.log('setScrollPos = ' + String(h));
 }
 </script>
 `
@@ -114,7 +114,7 @@ export const autoRefreshScript: string = `
     window.__reviewsAutoRefreshTimer = setInterval(function() {
       try {
         var scrollPos = getScrollPos();
-        console.log('Auto-refreshing Project List at scrollPos', scrollPos);
+        <!-- console.log('Auto-refreshing Project List at scrollPos', scrollPos); -->
         sendMessageToPlugin('refresh', { scrollPos: scrollPos });
       } catch (e) {
         console.log('Auto-refresh error', e && e.message);
@@ -225,7 +225,7 @@ export const addToggleEvents: string = `
     }, false);
     added++;
   }
-  console.log('- '+ String(added) + ' input ELs added');
+  <!-- console.log('- '+ String(added) + ' input ELs added'); -->
 </script>
 `
 

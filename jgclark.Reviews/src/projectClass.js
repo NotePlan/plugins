@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-03-17 for v1.4.0.b4+, @jgclark
+// Last updated 2026-03-21 for v1.4.0.b9, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -922,7 +922,6 @@ export class Project {
   completeProject(): string {
     try {
       // update the metadata fields
-      // this.isActive = false
       this.isCompleted = true
       this.isCancelled = false
       this.isPaused = false
@@ -953,7 +952,6 @@ export class Project {
   cancelProject(): string {
     try {
       // update the metadata fields
-      // this.isActive = false
       this.isCompleted = false
       this.isCancelled = true
       this.isPaused = false

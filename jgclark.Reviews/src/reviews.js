@@ -59,7 +59,7 @@ import {
   addToggleEvents,
   displayFiltersDropdownScript,
   tagTogglesVisibilityScript,
-} from './reviewsHTMLTemplates'
+} from './projectsHTMLTemplates.js'
 import { checkString } from '@helpers/checkType'
 import { getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
@@ -416,7 +416,7 @@ export async function renderProjectListsHTML(
 
     const setScrollPosJS: string = `
 <script type="text/javascript">
-  console.log('Attemping to set scroll pos to ${scrollPos}');
+  <!-- console.log('Attemping to set scroll pos to ${scrollPos}'); -->
   setScrollPos(${scrollPos});
 </script>`
 
