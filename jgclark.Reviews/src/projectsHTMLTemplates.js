@@ -243,7 +243,7 @@ export const displayFiltersDropdownScript: string = `
       var finished = dropdown.querySelector('input[name="displayFinished"]');
       var paused = dropdown.querySelector('input[name="displayPaused"]');
       var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
-      var displayOrder = document.getElementById('displayOrderSelect');
+      var displayOrder = dropdown.querySelector('#displayOrderSelect');
       return onlyDue && finished && paused && nextActions
         ? {
             displayOnlyDue: onlyDue.checked,
@@ -284,6 +284,10 @@ export const displayFiltersDropdownScript: string = `
           paused.checked = savedState.displayPaused;
           nextActions.checked = savedState.displayNextActions;
         }
+        var orderSel = dropdown.querySelector('#displayOrderSelect');
+        if (orderSel && savedState.displayOrder != null) {
+          orderSel.value = savedState.displayOrder;
+        }
       }
     }
 
@@ -310,7 +314,7 @@ export const displayFiltersDropdownScript: string = `
     });
 
     // Sort order is an explicit immediate action: save + refresh on change.
-    var displayOrderSelect = document.getElementById('displayOrderSelect');
+    var displayOrderSelect = dropdown.querySelector('#displayOrderSelect');
     if (displayOrderSelect) {
       displayOrderSelect.addEventListener('change', function() {
         var state = getCheckboxState();

@@ -139,15 +139,15 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedT
   // const statusLozenges = config.statusLozengesInColumn2 ? generateStatusLozengesSpans(thisProject).join('\n') : ''
   // TEST: moved statusLozenges from after projectTags here to folder row
   if (!config.displayGroupedByFolder) {
-    parts.push(
-      `\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectMainDetailsRow">${decoratedProjectTitle(thisProject, 'Rich', config)}
+    // parts.push(`\n\t\t\t<div class="project-grid-cell project-grid-cell--content">`)
+    parts.push(`\n\t\t\t\t<span class="projectMainDetailsRow">${ decoratedProjectTitle(thisProject, 'Rich', config)}
       ${editButtonSpan}
       <span class="projectTagsInline">${projectTags}</span>
       </span>`)
   } else {
     const statusLozenges = config.statusLozengesInColumn2 ? generateStatusLozengesSpans(thisProject).join('\n') : ''
-    parts.push(
-      `\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectMainDetailsRow">${decoratedProjectTitle(thisProject, 'Rich', config)}
+    // parts.push(`\n\t\t\t<div class="project-grid-cell project-grid-cell--content">`)
+    parts.push(`\n\t\t\t\t<span class="projectMainDetailsRow">${decoratedProjectTitle(thisProject, 'Rich', config)}
       ${editButtonSpan}
       <span class="projectTagsInline">${projectTags}${statusLozenges}</span>
       </span>`)
@@ -163,7 +163,7 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedT
     : []
   parts.push(generateProgressRowDiv(thisProject))
   parts.push(generateNextActionsSection(config, nextActionsContent))
-  parts.push(`</div>`)
+  // parts.push(`</div>`)
 
   // Column 3: metadata (dates + project tags/hashtags), unless status lozenges are shown inline in column 2
   if (!config.statusLozengesInColumn2) {
@@ -646,27 +646,29 @@ export function generateTopBarHTML(config: any): string {
     true
   )
 
-  // Start with a sticky top bar
+  // Start with a sticky top bar (grid with 4 elements spaced out)
   parts.push(`<div class="topbar">`)
-  
+
   if (config.usePerspectives) {
     const perspectiveSection = `<div id="persp" class="topbar-item">Persp: <span class="perspective-name">${config.perspectiveName}</span></div>`
     parts.push(perspectiveSection)
+  } else {
+    // Need an empty element to for the grid to work
+    parts.push(`<div class="topbar-item"></div>`)
   }
 
-  const refreshSection = `<div id="refresh" class="topbar-item">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+  const refreshSection = `<div id="refresh">${refreshPCButton}\n<span class="topbar-item">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
   parts.push(refreshSection)
 
-  parts.push(`<div id="topbar-controls">`)
-  // Display filters: button (same style as Refresh) after Refresh + time, opens dropdown; click outside saves, Escape cancels
+  parts.push(`<div class="topbar-center-cluster">`)
+  // Display filters: centred button opens dropdown; click outside saves, Escape cancels
   const displayOnlyDue = config.displayOnlyDue ?? false
   const displayFinished = config.displayFinished ?? false
   const displayPaused = config.displayPaused ?? true
   const displayNextActions = config.displayNextActions ?? false
-  parts.push(`<span id="toggles" class="">`)
-  // parts.push(`<span id="toggles" class="topbar-item display-filters-wrapper">`)
-  parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-filter pad-right"></i>Filters…</button>`)
-  parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Display filters">`)
+  parts.push(`<span id="toggles" class="display-filters-wrapper">`)
+  parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-filter pad-right"></i>Filter & Order…</button>`)
+  parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Filter and order">`)
   parts.push(`    <div class="display-filters-dropdown-content">`)
   // Tag toggles: one per wanted tag; when off, hide projects that only have that tag (client-side). Count = active (not paused/cancelled/completed).
   const projectTypeTags = config.projectTypeTags != null && typeof config.projectTypeTags === 'string' ? [config.projectTypeTags] : (config.projectTypeTags ?? [])
@@ -689,24 +691,23 @@ export function generateTopBarHTML(config: any): string {
   parts.push(`      <label class="display-filters-option">Show finished projects?<input class="apple-switch pad-left" type="checkbox" ${displayFinished ? 'checked' : ''} name="displayFinished" data-display-filter="true"></label>`)
   parts.push(`      <label class="display-filters-option">Show paused projects?<input class="apple-switch pad-left" type="checkbox" ${displayPaused ? 'checked' : ''} name="displayPaused" data-display-filter="true"></label>`)
   parts.push(`      <label class="display-filters-option">Show next actions?<input class="apple-switch pad-left" type="checkbox" ${displayNextActions ? 'checked' : ''} name="displayNextActions" data-display-filter="true"></label>`)
+  parts.push(`      <hr class="display-filters-divider">`)
+  parts.push(`      <div class="display-filters-order-row">`)
+  parts.push(`        <label for="displayOrderSelect" class="display-filters-order-label">Order by</label>`)
+  parts.push(`        <select id="displayOrderSelect" class="topbar-select display-filters-order-select" name="displayOrder" aria-label="Sort projects by">`)
+  parts.push(`          <option value="review" ${displayOrder === 'review' ? 'selected' : ''}>Review date</option>`)
+  parts.push(`          <option value="due" ${displayOrder === 'due' ? 'selected' : ''}>Due date</option>`)
+  parts.push(`          <option value="title" ${displayOrder === 'title' ? 'selected' : ''}>Title</option>`)
+  parts.push(`        </select>`)
+  parts.push(`      </div>`)
   parts.push(`    </div>`)
   parts.push(`  </div>`)
-  parts.push(`</span>`)
-
-    // Display order control
-  parts.push(`<span id="sortOrderControl" class="topbar-item topbar-sort-control">`)
-  parts.push(`  <label for="displayOrderSelect" class="topbar-text">Order:</label>`)
-  parts.push(`  <select id="displayOrderSelect" class="topbar-select" name="displayOrder" aria-label="Sort projects by">`)
-  parts.push(`    <option value="review" ${displayOrder === 'review' ? 'selected' : ''}>Review date</option>`)
-  parts.push(`    <option value="due" ${displayOrder === 'due' ? 'selected' : ''}>Due date</option>`)
-  parts.push(`    <option value="title" ${displayOrder === 'title' ? 'selected' : ''}>Title</option>`)
-  parts.push(`  </select>`)
   parts.push(`</span>`)
 
   parts.push(`</div>`)
 
   // const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${finishAndNextReviewPCButton}\n${nextReviewPCButton}\n</div>`
-  const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
+  const controlButtons = `<div class="topbar-right-cluster"><div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div></div>`
   parts.push(controlButtons)
 
   // Finish the sticky top bar
