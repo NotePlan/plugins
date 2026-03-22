@@ -1,6 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b12] - 2026-03-22
+- improve multi-column layout
+- remove two config settings that should have been removed earlier.
+
 ## [2.0.0.b11] - 2026-03-20
 ### Project Metadata & Frontmatter
 Project metadata can now be fully stored in frontmatter, either as a single configurable key (project:) or as separate keys for individual fields (start, due, reviewed, etc.). Migration is automatic — when any command updates a note with body-based metadata, it moves it to frontmatter and cleans up the body line. After a review is finished, any leftover body metadata line is replaced with a migration notice, then removed on the next finish.

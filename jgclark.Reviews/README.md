@@ -77,10 +77,29 @@ Aim: Make sure 007's Aston Martin continues to run well, is legal etc.
 ```
 (Note: This example uses my related [Repeat Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/) to give more flexibility than the built-in repeats.)
 
+## v2 changes
+New Filter & Order options in a dropdown:
+
+![New Filter & Order options in a dropdown:](filter+order-v2.0.0.b11.png)
+
+
+Each Project row show the following details:
+
+![Each Project row show the following details:](project-detail-numbered.png)
+1. Title, with its icon
+2. Edit button, brings up edit dialog
+3. Any hashtags defined on the project
+4. Folder it lives in
+5. The review interval
+6. Notes if the project or reviews are overdue or due soon.
+7. % completion (as before, but now shown in a more compact way)
+8. Latest 'progress' you've noted for the project
+9. Any 'next action' on the project
+
 ## Where you can put the project data (metadata fields)
 The plugin tries to be as flexible as possible about where project metadata can go.
 
-From **v1.4** it supports both:
+From **v2.0** it supports both:
 
 - **Body metadata line** (legacy and still supported), and
 - **Frontmatter metadata**, which over time becomes the main source of truth.
