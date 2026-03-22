@@ -1,10 +1,10 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-03-19 for v1.4.0.b9, @jgclark 
+ * Last updated 2026-03-22 for v2.0.0.b12, @jgclark 
  */
 
 body {
-  margin: 0px;
+  /* Colours specific to this plugin */
 	--teamspace-color: #269F54;
   --project-no-percent-color: #BBB;
   --project-zero-progress-color: #9F2626;
@@ -18,6 +18,10 @@ body {
   --fg-overdue-color: hsla(0, 85%, 38%, 1); 
   --fg-soon-color: hsla(210, 85%, 38%, 1); 
   --fg-not-due-color: hsla(120, 85%, 30%, 1); 
+  
+  /* Settings for overall body */
+  margin: 0px;
+  background-color: var(--bg-alt-color);
 }
 
 /* turn off special colouring and underlining for links -- turn on later when desired */
@@ -181,8 +185,8 @@ a, a:visited, a:active {
 /* MAIN GRID (replaces table) ----------------------------- */
 
 .project-list-grid {
+  /* display: grid; */ /* Needs to be turned off to get multi-columns to flow properly */
   background-color: var(--bg-alt-color);
-  display: grid;
   width: 100%;
   /* margin-bottom: 0rem; */
 }
@@ -210,6 +214,8 @@ a, a:visited, a:active {
   border-radius: 6px;
   margin: 0.2rem 0.5rem;
   padding: 0.2rem;
+  /* apply to a <div> to avoid column break part-way through item */
+	break-inside: avoid;
 
   &:hover {
     background-color: var(--bg-hover-color);
@@ -223,17 +229,11 @@ a, a:visited, a:active {
   padding-right: 0.4rem;
   font-size: 0.92rem;
   line-height: 1.35rem;
-  /* padding: 3px 0.2rem 2px 0.2rem; */
   padding: 5px 0.1rem 5px 0.1rem;
   border-left: none;
   border-right: none;
 }
 
-/* .project-grid-cell:first-child {
-  padding-left: 0.5rem;
-} */
-
-/* Middle column: allow shrink so ellipsis can apply */
 .project-grid-cell--content {
   overflow: hidden;
   min-width: 0;
@@ -256,87 +256,12 @@ a, a:visited, a:active {
   grid-column: span 2;
 }
 
-/* Legacy td/th kept for any remaining references; grid uses .project-grid-cell */
-/* td, th {
-  font-weight: normal;
-  text-align: left;
-  padding-right: 0.4rem;
-  font-size: 0.92rem;
-}
-th {
-  padding-bottom: 0.2rem;
-}
-td:first-child, th:first-child {
-  padding-left: 0.5rem;
-} */
-
 /* Display of Number of projects */
 .folder-header-text {
   font-size: 1.0rem;
   font-weight: normal;
   color: var(--fg-main-color);
   margin-left: 1rem;
-}
-
-details {
-  overflow: hidden;
-}
-
-/* Remove default disclosure triangle */
-details > summary {
-  list-style: none;
-}
-details > summary::-webkit-details-marker {
-  display: none;
-}
-
-/* Style for the container */
-details > .content {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 800ms ease-out;
-}
-
-/* Rotate triangle when open */
-details[open] > summary::after {
-  transform: rotate(90deg);
-}
-
-details > .details-content > * {
-  overflow: hidden;
-}
-
-/* When open, set full height */
-details[open] > .content {
-  grid-template-rows: 1fr;
-}
-
-/* Style the <summmary> tag in the <details> section */
-summary {
-  /* Create custom triangle with pseudo-element */
-  display: flex;
-  justify-content: start;
-  align-items: end;
-  cursor: pointer;
-  padding: 8px;
-  column-gap: 0.4rem;
-}
-  /* Animate the triangle icon */
-  /* summary i {
-    transition: transform 0.2s ease;
-  }
-  details[open] summary i {
-    transform: rotate(180deg);
-  }
-  summary::-webkit-details-marker {
-    display: none;
-  }
-  */
-
-/* Animate the triangle icon */
-summary::after {
-  content: '▶';
-  transition: all 0.2s ease;
 }
 
 .project-grid-row.projectRow .project-grid-cell--content {
@@ -379,44 +304,11 @@ summary::after {
   align-content: start; /* was center; */
 }
 
-/* Row borders: first row (folder header) top border; last row bottom border */
-/* .project-list-grid > .project-grid-row:first-child .project-grid-cell {
-  border-top: 1px solid rgb(from var(--tint-color) r g b / 0.3);
-}
-.project-list-grid > .project-grid-row:last-child .project-grid-cell {
-  border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.3);
-} */
-/* Project row backgrounds (folder header is first child, so project rows are 2nd, 3rd, ...) */
-/* .project-list-grid > .project-grid-row.projectRow .project-grid-cell {
-  background-color: var(--bg-mid-color);
-} */
-/* Alternate row background colour: disabled for now */
-/* .project-list-grid > .project-grid-row.projectRow:nth-child(even) .project-grid-cell {
-  background-color: var(--bg-alt-color);
-} */
-
-/* Instead trying each row has its own background */
-/* .project-list-grid > .project-grid-row.projectRow {
-  background-color: var(--bg-alt-color);
-  border-bottom: 1px solid var(--divider-color);
-  border-radius: 6px;
-} */
-
 /* row class to indicate that a project is being reviewed */
 .project-grid-row.projectRow.reviewing .project-grid-cell {
   background-color: rgba(from var(--tint-color) r g b / 0.15);
   border: 1px solid rgba(from var(--tint-color) r g b / 1);
 }
-
-/* in-line label to indicate that a project is being reviewed */
-/* Note: Not being used currently: using following instead */
-/* .underReviewLabel {
-  color: var(--bg-main-color);
-  background-color: var(--tint-color);
-  padding: 2px 4px 0px;
-  border-radius: 8px;
-  font-weight: 600;
-} */
 
 /* in-line label to indicate that a project is being reviewed */
 .underReviewText {
@@ -427,8 +319,8 @@ summary::after {
 /* allow multi-column flow: set max columns and min width, and some other bits and pieces */
 .multi-cols {
   column-count: 3; 
-  column-width: 30rem;
-  column-gap: 1rem;
+  column-width: 25rem;
+  column-gap: 0.4rem;
   column-rule: 1px dotted rgb(from var(--tint-color) r g b / 0.5);
 }
 
