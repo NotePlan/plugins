@@ -54,8 +54,7 @@ export type ReviewConfig = {
   displayOrder: string,
   displayOnlyDue: boolean,
   displayProgress: boolean,
-  projectTagsInColumn?: string, // 'column2' | 'column3'; default column2
-  statusLozengesInColumn2?: boolean,
+  // projectTagsInColumn?: string, // 'column2' | 'column3'; default column2 // remove from b12
   finishedListHeading: string,
   hideTopLevelFolder: boolean,
   ignoreChecklistsInProgress: boolean,
@@ -72,7 +71,7 @@ export type ReviewConfig = {
   autoUpdateAfterIdleTime?: number,
   progressHeading?: string,
   progressHeadingLevel: number,
-  statusLozengesInColumn2: boolean,
+  // statusLozengesInColumn2: boolean, // remove from b12
   writeMostRecentProgressToFrontmatter?: boolean,
   projectMetadataFrontmatterKey?: string,
   _logLevel: string,

@@ -63,7 +63,8 @@ function generateFolderRowHtml(thisProject: Project, config: ReviewConfig): stri
   const isActiveProject = !thisProject.isCompleted && !thisProject.isCancelled && !thisProject.isPaused
   const reviewIntervalStr = isActiveProject ? `・ <i class="fa-light fa-repeat pad-right"></i>${thisProject.reviewInterval}` : ''
 
-  const statusLozenges = config.statusLozengesInColumn2 ? generateStatusLozengesSpans(thisProject).join('\n') : ''
+  // const statusLozenges = config.statusLozengesInColumn2 ? generateStatusLozengesSpans(thisProject).join('\n') : ''
+  const statusLozenges = generateStatusLozengesSpans(thisProject).join('\n')
 
   const rowString = `\n\t\t\t<div class="projectFolderRow projectColumn2SubRow projectFolderText"><span class="projectFolderIcon"><i class="fa-regular fa-folder"></i></span><span class="pad-left pad-right-larger projectFolderText">${folderPart}${reviewIntervalStr} ${statusLozenges}</span></div>`
   return rowString
@@ -133,7 +134,7 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedT
   // Column 2a: Project name + link / edit button / open-count badge / project tags (if setting is column2)
   const editButtonSpan = `\t\t\t\t\t<span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}', encodedLastProgressComment:'${encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')}'})"><i class="fa-light fa-edit"></i></span>\n`
 
-  const showTagsInColumn2 = config.projectTagsInColumn !== 'column3'
+  const showTagsInColumn2 = true // TODO: remove this properly // config.projectTagsInColumn !== 'column3'
   const projectTags = showTagsInColumn2 ? generateProjectTagsLozengesSpan(thisProject).join('\n') : ''
 
   // const statusLozenges = config.statusLozengesInColumn2 ? generateStatusLozengesSpans(thisProject).join('\n') : ''
@@ -145,7 +146,8 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedT
       <span class="projectTagsInline">${projectTags}</span>
       </span>`)
   } else {
-    const statusLozenges = config.statusLozengesInColumn2 ? generateStatusLozengesSpans(thisProject).join('\n') : ''
+    // const statusLozenges = config.statusLozengesInColumn2 ? generateStatusLozengesSpans(thisProject).join('\n') : ''
+    const statusLozenges = generateStatusLozengesSpans(thisProject).join('\n')
     // parts.push(`\n\t\t\t<div class="project-grid-cell project-grid-cell--content">`)
     parts.push(`\n\t\t\t\t<span class="projectMainDetailsRow">${decoratedProjectTitle(thisProject, 'Rich', config)}
       ${editButtonSpan}
@@ -166,9 +168,9 @@ function generateRichHTMLRow(thisProject: Project, config: ReviewConfig, wantedT
   // parts.push(`</div>`)
 
   // Column 3: metadata (dates + project tags/hashtags), unless status lozenges are shown inline in column 2
-  if (!config.statusLozengesInColumn2) {
-    parts.push(generateDateSectionForCol3(thisProject, config))
-  }
+  // if (!config.statusLozengesInColumn2) {
+  //   parts.push(generateDateSectionForCol3(thisProject, config))
+  // }
   parts.push('\n\t</div>')
 
   return parts.join('')
@@ -384,7 +386,8 @@ function generateDateSectionForCol3(thisProject: Project, config: ReviewConfig):
   if (!config.displayDates) return ''
 
   // When status lozenges are shown inline in column 2, there is no separate metadata column (column 3)
-  if (config.statusLozengesInColumn2) return ''
+  // if (config.statusLozengesInColumn2) return ''
+  return ''
 
   if (thisProject.isPaused) return '<div class="project-grid-cell project-grid-cell--metadata"></div>'
 
@@ -403,12 +406,12 @@ function generateDateSectionForCol3(thisProject: Project, config: ReviewConfig):
   const lozenges: Array<string> = []
 
   // Project tags: in column 3 only when setting is 'column3'; otherwise they are in column 2
-  if (config.projectTagsInColumn === 'column3' && thisProject.allProjectTags != null && thisProject.allProjectTags.length > 0) {
-    // for (const hashtag of thisProject.allProjectTags) {
-    //   lozenges.push(`<span class="metadata-lozenge lozenge-general">${hashtag}</span>`)
-    // }
-    lozenges.push(...generateProjectTagsLozengesSpan(thisProject))
-  }
+  // if (config.projectTagsInColumn === 'column3' && thisProject.allProjectTags != null && thisProject.allProjectTags.length > 0) {
+  //   // for (const hashtag of thisProject.allProjectTags) {
+  //   //   lozenges.push(`<span class="metadata-lozenge lozenge-general">${hashtag}</span>`)
+  //   // }
+  //   lozenges.push(...generateProjectTagsLozengesSpan(thisProject))
+  // }
 
   // Review/due status lozenges (from helper), follow tags in same column
   lozenges.push(...generateStatusLozengesSpans(thisProject))
@@ -724,7 +727,7 @@ export function generateTopBarHTML(config: any): string {
  */
 export function generateFolderHeaderHTML(folderPart: string, config: any): string {
   const parts: Array<string> = []
-  const hasMetadataColumn = config.displayDates && !config.statusLozengesInColumn2
+  const hasMetadataColumn = false // config.displayDates && !config.statusLozengesInColumn2
   // Note: following uses header-row--newer to turn off borders on the folder header row
   parts.push(` <div class="folder-header-row--newer">`)
   parts.push(`  <div class="project-grid-cell project-grid-cell--span-2 folder-header h3">${folderPart}</div>`)
@@ -766,12 +769,14 @@ export function generateSingleSectionHeaderHTML(noteCount: number, due: number, 
   // parts.push(`    <span class="h2">Projects</span><span class="folder-header-text">${numberItemsStr}</span>`)
   // parts.push(`  </div>`)
   
-  parts.push(`\n<div class="details-content projects-single-section-content">`)
+  // TEST: try removing this which doesn't seem to add anything
+  // parts.push(`\n<div class="details-content projects-single-section-content">`)
+  
   if (!config.displayGroupedByFolder && config.foldersToInclude.length === 1) {
     const folderDisplayName = getFolderDisplayNameForHTML(config.foldersToInclude[0])
     parts.push(`<h4>${folderDisplayName} folder</h4>`)
   }
-  const hasMetadataColumn = config.displayDates && !config.statusLozengesInColumn2
+  const hasMetadataColumn = false // config.displayDates && !config.statusLozengesInColumn2
   const gridClass = hasMetadataColumn ? 'project-list-grid project-list-grid--with-dates' : 'project-list-grid project-list-grid--no-dates'
   parts.push(`\n<div class="${gridClass}">`)
   return parts.join('\n')
@@ -816,7 +821,7 @@ export function generateHTMLForProjectTagSectionHeader(
     const folderDisplayName = getFolderDisplayNameForHTML(config.foldersToInclude[0])
     parts.push(`<h4>${folderDisplayName} folder</h4>`)
   }
-  const hasMetadataColumn = config.displayDates && !config.statusLozengesInColumn2
+  const hasMetadataColumn = false // config.displayDates && !config.statusLozengesInColumn2
   const gridClass = hasMetadataColumn ? 'project-list-grid project-list-grid--with-dates' : 'project-list-grid project-list-grid--no-dates'
   parts.push(`\n<div class="${gridClass}">`)
 

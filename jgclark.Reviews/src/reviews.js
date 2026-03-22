@@ -404,7 +404,7 @@ export async function renderProjectListsHTML(
         lastFolder = thisProject.folder
       }
       outputArray.push('  </div>')
-      outputArray.push(' </div>') // details-content div
+      // outputArray.push(' </div>') // TEST: removing details-content div
     }
     logTimer('renderProjectListsHTML', funcTimer, `end single section (${noteCount} projects)`)
 
