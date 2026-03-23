@@ -40,12 +40,11 @@ import {
 } from './allProjectsListHelpers.js'
 import { calcReviewFieldsForProject, Project } from './projectClass'
 import {
-  generateProjectOutputLine,
-  generateTopBarHTML,
-  generateSingleSectionHeaderHTML,
-  generateTableStructureHTML,
-  generateProjectControlDialogHTML,
-  generateFolderHeaderHTML,
+  buildProjectLineForStyle,
+  buildProjectListTopBarHtml,
+  buildProjectListGridPrefixHtml,
+  buildProjectControlDialogHtml,
+  buildFolderGroupHeaderHtml,
 } from './projectsHTMLGenerator.js'
 import {
   stylesheetinksInHeader,
@@ -350,23 +349,18 @@ export async function renderProjectListsHTML(
     const outputArray = []
 
     // Generate top bar HTML (uses config.tagActiveCounts for dropdown tag counts)
-    outputArray.push(generateTopBarHTML(config))
+    outputArray.push(buildProjectListTopBarHtml(config))
 
     // Start multi-col working (if space)
     outputArray.push(`<div class="multi-cols">`)
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
-    let due = 0
-    for (const p of projectsToReview) {
-      if (!p.isPaused && p.nextReviewDays != null && !isNaN(p.nextReviewDays) && p.nextReviewDays <= 0) due += 1
-    }
     const noteCount = projectsToReview.length
-    outputArray.push(generateSingleSectionHeaderHTML(noteCount, due, config))
+    outputArray.push(buildProjectListGridPrefixHtml(config))
     if (useDemoData && noteCount === 0) {
       outputArray.push('<p class="project-grid-row demo-file-message">Demo file (allProjectsDemoList.json) not found or empty.</p>')
     }
     if (noteCount > 0) {
-      outputArray.push(generateTableStructureHTML(config, noteCount))
       let lastFolder = ''
       for (const thisProject of projectsToReview) {
         if (!useDemoData) {
@@ -395,21 +389,20 @@ export async function renderProjectListsHTML(
             }
           }
           if (thisProject.folder === '/') folderPart = '(root folder)'
-          outputArray.push(generateFolderHeaderHTML(folderPart, config))
+          outputArray.push(buildFolderGroupHeaderHtml(folderPart, config))
         }
         const wantedTagsForRow = (thisProject.allProjectTags != null && wantedTags.length > 0)
           ? thisProject.allProjectTags.filter(t => wantedTags.includes(t))
           : []
-        outputArray.push(generateProjectOutputLine(thisProject, config, 'Rich', wantedTagsForRow))
+        outputArray.push(buildProjectLineForStyle(thisProject, config, 'Rich', wantedTagsForRow))
         lastFolder = thisProject.folder
       }
       outputArray.push('  </div>')
-      // outputArray.push(' </div>') // TEST: removing details-content div
     }
     logTimer('renderProjectListsHTML', funcTimer, `end single section (${noteCount} projects)`)
 
     // Generate project control dialog HTML
-    outputArray.push(generateProjectControlDialogHTML())
+    outputArray.push(buildProjectControlDialogHtml())
 
     const body = outputArray.join('\n')
     logTimer('renderProjectListsHTML', funcTimer, `end of main loop`)
@@ -665,7 +658,7 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
         continue
       }
       // Make the output line for this project
-      const out = generateProjectOutputLine(thisProject, config, style)
+      const out = buildProjectLineForStyle(thisProject, config, style)
 
       // Add to number of notes to review (if appropriate)
       if (!thisProject.isPaused && thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays) && thisProject.nextReviewDays <= 0) {
@@ -707,7 +700,7 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
         // Handle root folder display - check if original folder was root, not the display name
         if (folder === '/') folderPart = '(root folder)'
         if (style.match(/rich/i)) {
-          outputArray.push(generateFolderHeaderHTML(folderPart, config))
+          outputArray.push(buildFolderGroupHeaderHtml(folderPart, config))
         } else if (style.match(/markdown/i)) {
           outputArray.push(`### ${folderPart}`)
         }

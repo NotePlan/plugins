@@ -4,6 +4,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 ## [2.0.0.b12] - 2026-03-22
 - improve multi-column layout
 - remove two config settings that should have been removed earlier.
+- dev: streamline CSS definitions
 
 ## [2.0.0.b11] - 2026-03-20
 ### Project Metadata & Frontmatter

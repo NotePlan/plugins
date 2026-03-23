@@ -7,7 +7,7 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment'
-import { generateProjectOutputLine } from './projectsHTMLGenerator'
+import { buildProjectLineForStyle } from './projectsHTMLGenerator'
 import { Project } from './projectClass'
 import { finishReviewForNote, renderProjectListsIfOpen } from './reviews'
 import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
@@ -76,7 +76,7 @@ async function reloadAndUpdateLists(note: TNote, config: ReviewConfig, shouldArc
  */
 function addToYearlyNote(thisProject: Project, config: ReviewConfig): void {
   // Pass config with showFolderName so folder appears before title (config may be frozen from loadJSON)
-  const lineToAdd = generateProjectOutputLine(thisProject,
+  const lineToAdd = buildProjectLineForStyle(thisProject,
     { ...config, showFolderName: true },
     'list') // list = for summary note, without [x] etc.
   const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)

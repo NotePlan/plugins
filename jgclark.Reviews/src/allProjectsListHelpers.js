@@ -284,20 +284,28 @@ export async function logAllProjectsList(): Promise<void> {
 
 /**
  * Return as Project instances all projects that match config items 'foldersToInclude', 'foldersToIgnore', and 'projectTypeTags'.
+ * Note: These may be taken from the Perspective settings before being passed to this function.
  * @author @jgclark
- * @param {any} configIn
- * @param {boolean} runInForeground?
+ * @param {ReviewConfig} configIn
+ * @param {boolean} runInForeground? (default: false)
  * @returns {Array<Project>}
  */
-async function getAllMatchingProjects(configIn: any, runInForeground: boolean = false): Promise<Array<Project>> {
-  const config = configIn ? configIn : await getReviewSettings() // get config from passed config if possible
+async function getAllMatchingProjects(
+  configIn: ReviewConfig,
+  runInForeground: boolean = false,
+): Promise<Array<Project>> {
+  // get config from passed config if possible
+  const config = configIn ? configIn : await getReviewSettings()
   if (!config) throw new Error('No config found. Stopping.')
 
   logInfo('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
-  const startTime = moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+  // logDebug('getAllMatchingProjects', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
+  // logDebug('getAllMatchingProjects', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
+
+  const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
 
   // Get list of folders, excluding @specials and our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore.
-  const filteredFolderList = (config.foldersToInclude.length > 0)
+  const filteredFolderList = (config.foldersToInclude?.length ?? 0 > 0)
     ? getFoldersMatching(config.foldersToInclude, true).sort()
     : getFolderListMinusExclusions(config.foldersToIgnore, true, false).sort()
 
@@ -311,7 +319,7 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
     if (!exists) acc.push(f)
     return acc
   }, [])
-  // logDebug('getAllMatchingProjects', `- filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
+  logInfo('getAllMatchingProjects', `-> ${String(filteredFolderListWithoutSubdirs.length)} filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
 
   // Filter the list of project notes from the DataStore.
   let filteredProjectNotes = filterProjectNotesByFolders(
@@ -419,7 +427,7 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
     if (res) {
       const reviewListDate = Date.now()
       DataStore.setPreference(generatedDatePrefName, reviewListDate)
-      logInfo('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
+      logDebug('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
       await updateDashboardIfOpen()
     } else {
       throw new Error(`Error writing JSON to '${allProjectsListFilename}'`)
