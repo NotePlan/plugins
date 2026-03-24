@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-02-26 for v1.3.1, @jgclark
+// Last updated 2026-03-21 for v1.4.0.b9, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -165,6 +165,29 @@ export class Project {
       let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
       let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
       const metadataLine = paras[metadataLineIndex].content
+
+      // If we have a metadata line in the body but no combined frontmatter value yet, migrate it into frontmatter and remove the body line
+      try {
+        const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+        const existingCombined = getFrontmatterAttribute(note, singleKeyName)
+        const existingCombinedStr = existingCombined != null && typeof existingCombined === 'string' ? existingCombined : ''
+        if (existingCombinedStr === '') {
+          const metadataParaToRemove = paras[metadataLineIndex]
+          const fmAttrs: { [string]: any } = {}
+          fmAttrs[singleKeyName] = metadataLine
+          // $FlowFixMe[incompatible-call]
+          const migratedOK = updateFrontMatterVars(note, fmAttrs)
+          if (migratedOK) {
+            note.removeParagraph(metadataParaToRemove)
+            DataStore.updateCache(note, true)
+            this.metadataParaLineIndex = getOrMakeMetadataLineIndex(note)
+            logDebug('ProjectConstructor', `- migrated body metadata line into frontmatter ${singleKeyName} and removed from body for '${this.title}'`)
+          }
+        }
+      } catch (e) {
+        logWarn('ProjectConstructor', `- migration to frontmatter metadata key failed for '${this.title}': ${e.message}`)
+      }
+
       if (mentions.length === 0) {
         logDebug('ProjectConstructor', `- Grr: .mentions empty: will use metadata line instead`)
         // Note: If necessary, fall back to getting mentions just from the metadataLine
@@ -212,6 +235,48 @@ export class Project {
         if (dateMatch && dateMatch[1]) {
           this.nextReviewDateStr = dateMatch[1]
         }
+      }
+
+      // Overlay metadata fields from separate frontmatter keys (if they exist)
+      try {
+        const startKey = checkString(DataStore.preference('startMentionStr') || '').replace(/^[@#]/, '') || 'start'
+        const dueKey = checkString(DataStore.preference('dueMentionStr') || '').replace(/^[@#]/, '') || 'due'
+        const reviewedKey = checkString(DataStore.preference('reviewedMentionStr') || '').replace(/^[@#]/, '') || 'reviewed'
+        const completedKey = checkString(DataStore.preference('completedMentionStr') || '').replace(/^[@#]/, '') || 'completed'
+        const cancelledKey = checkString(DataStore.preference('cancelledMentionStr') || '').replace(/^[@#]/, '') || 'cancelled'
+        const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
+        const nextReviewKey = checkString(DataStore.preference('nextReviewMentionStr') || '').replace(/^[@#]/, '') || 'nextReview'
+
+        const fmStart = getFrontmatterAttribute(this.note, startKey)
+        if (this.startDate == null && typeof fmStart === 'string' && fmStart !== '') {
+          this.startDate = fmStart
+        }
+        const fmDue = getFrontmatterAttribute(this.note, dueKey)
+        if (this.dueDate == null && typeof fmDue === 'string' && fmDue !== '') {
+          this.dueDate = fmDue
+        }
+        const fmReviewed = getFrontmatterAttribute(this.note, reviewedKey)
+        if (this.reviewedDate == null && typeof fmReviewed === 'string' && fmReviewed !== '') {
+          this.reviewedDate = fmReviewed
+        }
+        const fmCompleted = getFrontmatterAttribute(this.note, completedKey)
+        if (this.completedDate == null && typeof fmCompleted === 'string' && fmCompleted !== '') {
+          this.completedDate = fmCompleted
+        }
+        const fmCancelled = getFrontmatterAttribute(this.note, cancelledKey)
+        if (this.cancelledDate == null && typeof fmCancelled === 'string' && fmCancelled !== '') {
+          this.cancelledDate = fmCancelled
+        }
+        const fmReviewInterval = getFrontmatterAttribute(this.note, reviewIntervalKey)
+        if (typeof fmReviewInterval === 'string' && fmReviewInterval !== '') {
+          this.reviewInterval = fmReviewInterval
+        }
+        const fmNextReview = getFrontmatterAttribute(this.note, nextReviewKey)
+        if (this.nextReviewDateStr == null && typeof fmNextReview === 'string' && fmNextReview !== '') {
+          this.nextReviewDateStr = fmNextReview
+        }
+      } catch (e) {
+        logWarn('ProjectConstructor', `- overlay from separate frontmatter keys failed for '${this.title}': ${e.message}`)
       }
 
       // read in icon and iconColor from frontmatter (if present)
@@ -263,9 +328,10 @@ export class Project {
         this.generateNextActionComments(nextActionTags, paras, sequentialTag, Array.from(hashtags ?? []), metadataLine)
       }
 
-      // Build allProjectTags: and all hashtags from metadata line and frontmatter 'project' (including #sequential if applicable)
+      // Build allProjectTags: all hashtags from metadata line and combined frontmatter metadata field (including #sequential if applicable)
       const metadataLineHashtags = (`${metadataLine} `).split(/\s+/).filter((w) => w.length > 0 && w[0] === '#')
-      const projectAttr = getFrontmatterAttribute(this.note, 'project')
+      const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+      const projectAttr = getFrontmatterAttribute(this.note, combinedKey)
       const projectAttrStr = projectAttr != null && typeof projectAttr === 'string' ? projectAttr : ''
       const frontmatterProjectHashtags = projectAttrStr ? projectAttrStr.match(/#\S+/g) ?? [] : []
       const hasSequentialTag =
@@ -412,12 +478,76 @@ export class Project {
   }
 
   /**
-   * Update metadata paragraph and save to Editor or note
+   * Update metadata paragraph and save to Editor or note.
+   * Writes to frontmatter; if metadata was in the body, removes the body line after writing to frontmatter.
    * @private
    */
   updateMetadataAndSave(): void {
     const newMetadataLine = this.generateMetadataOutputLine()
-    this.updateMetadataLine(newMetadataLine)
+    const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
+    const currentContent = metadataPara != null ? metadataPara.content : ''
+    const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
+    const isFrontmatterStyleLine = currentContent.match(/^metadata:\s*/i) != null || frontmatterPrefixRe.test(currentContent)
+
+    this.updateFrontmatterMetadataFromFields(newMetadataLine)
+    if (!isFrontmatterStyleLine && metadataPara != null) {
+      // Metadata was in body; now in frontmatter, so remove the body line
+      this.note.removeParagraph(metadataPara)
+      DataStore.updateCache(this.note, true)
+      this.metadataParaLineIndex = getOrMakeMetadataLineIndex(this.note)
+      logDebug('updateMetadataAndSave', `Wrote metadata to frontmatter and removed body line for '${this.title}'`)
+    } else {
+      this.updateMetadataLine(newMetadataLine)
+    }
+  }
+
+  /**
+   * Ensure frontmatter combined metadata and (optionally) separate keys are kept in sync with Project fields.
+   * @param {string} newMetadataLine - Combined metadata string (without leading "metadata:" or "project:")
+   * @private
+   */
+  updateFrontmatterMetadataFromFields(newMetadataLine: string): void {
+    try {
+      const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+      const attrs: { [string]: any } = {}
+      attrs[singleKeyName] = newMetadataLine
+
+      // Derive possible separate frontmatter key names from mention strings
+      const startKey = checkString(DataStore.preference('startMentionStr') || '').replace(/^[@#]/, '') || 'start'
+      const dueKey = checkString(DataStore.preference('dueMentionStr') || '').replace(/^[@#]/, '') || 'due'
+      const reviewedKey = checkString(DataStore.preference('reviewedMentionStr') || '').replace(/^[@#]/, '') || 'reviewed'
+      const completedKey = checkString(DataStore.preference('completedMentionStr') || '').replace(/^[@#]/, '') || 'completed'
+      const cancelledKey = checkString(DataStore.preference('cancelledMentionStr') || '').replace(/^[@#]/, '') || 'cancelled'
+      const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
+      const nextReviewKey = checkString(DataStore.preference('nextReviewMentionStr') || '').replace(/^[@#]/, '') || 'nextReview'
+
+      // Only update separate keys that already exist in frontmatter
+      const hasStart = getFrontmatterAttribute(this.note, startKey) != null
+      if (hasStart && this.startDate != null) attrs[startKey] = this.startDate
+      const hasDue = getFrontmatterAttribute(this.note, dueKey) != null
+      if (hasDue && this.dueDate != null) attrs[dueKey] = this.dueDate
+      const hasReviewed = getFrontmatterAttribute(this.note, reviewedKey) != null
+      if (hasReviewed && this.reviewedDate != null) attrs[reviewedKey] = this.reviewedDate
+      const hasCompleted = getFrontmatterAttribute(this.note, completedKey) != null
+      if (hasCompleted && this.completedDate != null) attrs[completedKey] = this.completedDate
+      const hasCancelled = getFrontmatterAttribute(this.note, cancelledKey) != null
+      if (hasCancelled && this.cancelledDate != null) attrs[cancelledKey] = this.cancelledDate
+      const hasReviewInterval = getFrontmatterAttribute(this.note, reviewIntervalKey) != null
+      if (hasReviewInterval && this.reviewInterval != null) attrs[reviewIntervalKey] = this.reviewInterval
+      const hasNextReview = getFrontmatterAttribute(this.note, nextReviewKey) != null
+      if (hasNextReview && this.nextReviewDateStr != null) attrs[nextReviewKey] = this.nextReviewDateStr
+
+      // $FlowFixMe[incompatible-call]
+      const success = updateFrontMatterVars(this.note, attrs)
+      if (success) {
+        DataStore.updateCache(this.note, true)
+      } else {
+        logError('updateFrontmatterMetadataFromFields', `Failed to update frontmatter metadata for '${this.title}'`)
+      }
+    } catch (error) {
+      logError('updateFrontmatterMetadataFromFields', error.message)
+    }
   }
 
   /**
@@ -508,7 +638,7 @@ export class Project {
       // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(this.reviewedDate)} / nextReviewDateStr = ${String(this.nextReviewDateStr)} / nextReviewDays = ${String(this.nextReviewDays)}`)
       return this.nextReviewDateStr
     } catch (error) {
-      logError('calcNextReviewDate', error.message)
+      logError('calcNextReviewDate', `${error.message} for project '${this.title}'`)
       return null
     }
   }
@@ -530,11 +660,12 @@ export class Project {
     // Check if sequential tag is present in frontmatter 'project' attribute or metadata line
     let hasSequentialTag = false
     if (sequentialTagValue !== '') {
-      // Check frontmatter 'project' attribute
-      const projectAttribute = getFrontmatterAttribute(this.note, 'project')
+      // Check combined frontmatter metadata attribute
+      const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+      const projectAttribute = getFrontmatterAttribute(this.note, combinedKey)
       if (projectAttribute && typeof projectAttribute === 'string' && projectAttribute.includes(sequentialTagValue)) {
         hasSequentialTag = true
-        logDebug('Project', `  - found sequential tag '${sequentialTagValue}' in frontmatter 'project' attribute`)
+        logDebug('Project', `  - found sequential tag '${sequentialTagValue}' in frontmatter '${combinedKey}' attribute`)
       }
       // Check metadata line hashtags
       if (!hasSequentialTag && hashtagsValue.length > 0) {
@@ -791,7 +922,6 @@ export class Project {
   completeProject(): string {
     try {
       // update the metadata fields
-      // this.isActive = false
       this.isCompleted = true
       this.isCancelled = false
       this.isPaused = false
@@ -822,7 +952,6 @@ export class Project {
   cancelProject(): string {
     try {
       // update the metadata fields
-      // this.isActive = false
       this.isCompleted = false
       this.isCancelled = true
       this.isPaused = false
@@ -871,6 +1000,7 @@ export class Project {
 
       // Update metadata using helper that handles both frontmatter and regular paragraphs
       this.updateMetadataLine(newMetadataLine)
+      this.updateFrontmatterMetadataFromFields(newMetadataLine)
       const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
       if (possibleThisEditor) {
         await possibleThisEditor.save()
@@ -1023,6 +1153,38 @@ function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = 
 }
 
 /**
+ * Normalise a possibly non-ISO date string to strict ISO format (YYYY-MM-DD), or null if invalid.
+ * Handles legacy full ISO datetime strings (e.g. 'YYYY-MM-DDTHH:mm:ss.sssZ') by truncating to the date part.
+ * @param {?string} dateStrIn
+ * @param {string} context - description for logging
+ * @returns {?string} normalised ISO date string or null
+ * @private
+ */
+function normaliseISODateString(dateStrIn: ?string, context: string): ?string {
+  if (typeof dateStrIn !== 'string' || dateStrIn === '') {
+    return null
+  }
+
+  const reISODate = new RegExp(`^${RE_DATE}$`)
+  if (reISODate.test(dateStrIn)) {
+    return dateStrIn
+  }
+
+  // Handle full ISO datetime 'YYYY-MM-DDTHH:mm:ss.sssZ' by truncating to the date part
+  const isoDateTimeMatch = dateStrIn.match(/^(\d{4}-\d{2}-\d{2})T/)
+  if (isoDateTimeMatch && isoDateTimeMatch[1]) {
+    const truncated = isoDateTimeMatch[1]
+    if (reISODate.test(truncated)) {
+      logWarn('normaliseISODateString', `Truncating full ISO datetime '${dateStrIn}' to '${truncated}' for ${context}`)
+      return truncated
+    }
+  }
+
+  logWarn('normaliseISODateString', `Invalid date string '${dateStrIn}' for ${context}; treating as null`)
+  return null
+}
+
+/**
  * From a Project metadata object read in, calculate updated due/finished durations, and return an immutable updated Project object.
  * On error, returns the original Project object.
  * @author @jgclark
@@ -1075,14 +1237,15 @@ export function calcDurationsForProject(thisProjectIn: Project): Project {
 export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
   try {
     // logDebug('calcReviewFieldsForProject', `Starting for '${thisProjectIn.title}' ...`)
-    const now = moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+    const now = moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
 
     // Calculate next review due date, if there isn't already a nextReviewDateStr, and there's a review interval.
     let nextReviewDateStr: ?string = thisProjectIn.nextReviewDateStr
     let nextReviewDays: number = thisProjectIn.nextReviewDays
 
     // First check to see if project start is in future: if so set nextReviewDateStr to project start
-    const startDateIn = thisProjectIn.startDate
+    const rawStartDateIn = thisProjectIn.startDate
+    const startDateIn = normaliseISODateString(rawStartDateIn, 'startDate')
     if (startDateIn != null) {
       const momTSD = moment(startDateIn)
       if (momTSD.isAfter(now)) {
@@ -1093,24 +1256,40 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
     }
 
     // Now check to see if we have a specific nextReviewDateStr
-    if (thisProjectIn.nextReviewDateStr != null) {
-      nextReviewDays = daysBetween(now, thisProjectIn.nextReviewDateStr)
-      logDebug('calcReviewFieldsForProject', `- already had a nextReviewDateStr ${thisProjectIn.nextReviewDateStr ?? '?'} -> ${String(nextReviewDays)} interval`)
-    }
-    else if (thisProjectIn.reviewInterval != null) {
-      if (thisProjectIn.reviewedDate != null) {
-        const calculatedNextReviewDateStr = calcNextReviewDate(thisProjectIn.reviewedDate, thisProjectIn.reviewInterval)
-        if (calculatedNextReviewDateStr != null) {
-          nextReviewDateStr = calculatedNextReviewDateStr
-          // this now uses moment and truncated (not rounded) date diffs in number of days
-          nextReviewDays = daysBetween(now, nextReviewDateStr)
-          // logDebug('calcReviewFieldsForProject', `${String(thisProjectIn.reviewedDate)} + ${thisProjectIn.reviewInterval ?? ''} -> nextReviewDateStr: ${nextReviewDateStr ?? ''} = ${String(nextReviewDays) ?? '-'}`)
+    const rawNextReviewDateStrIn = thisProjectIn.nextReviewDateStr
+    const normalisedNextReviewDateStr = normaliseISODateString(rawNextReviewDateStrIn, 'nextReviewDateStr')
+
+    if (normalisedNextReviewDateStr != null) {
+      nextReviewDateStr = normalisedNextReviewDateStr
+      nextReviewDays = daysBetween(now, normalisedNextReviewDateStr)
+      // logDebug('calcReviewFieldsForProject', `- already had a nextReviewDateStr ${normalisedNextReviewDateStr ?? '?'} -> ${String(nextReviewDays)} interval`)
+    } else if (thisProjectIn.reviewInterval != null) {
+      const reviewedDateIn = thisProjectIn.reviewedDate
+      if (typeof reviewedDateIn === 'string' && reviewedDateIn !== '') {
+        const calculatedNextReviewDateStr = calcNextReviewDate(reviewedDateIn, thisProjectIn.reviewInterval)
+        const hasValidCalculated = calculatedNextReviewDateStr != null && calculatedNextReviewDateStr !== ''
+        if (hasValidCalculated) {
+          const safeCalculatedNextReviewDateStr = normaliseISODateString(calculatedNextReviewDateStr, 'calculatedNextReviewDateStr')
+          if (safeCalculatedNextReviewDateStr != null) {
+            nextReviewDateStr = safeCalculatedNextReviewDateStr
+            // this now uses moment and truncated (not rounded) date diffs in number of days
+            nextReviewDays = daysBetween(now, safeCalculatedNextReviewDateStr)
+            // logDebug('calcReviewFieldsForProject', `${String(thisProjectIn.reviewedDate)} + ${thisProjectIn.reviewInterval ?? ''} -> nextReviewDateStr: ${nextReviewDateStr ?? ''} = ${String(nextReviewDays) ?? '-'}`)
+          } else {
+            // Fall back to today rather than throwing (e.g. if calcNextReviewDate returned an unexpected format)
+            nextReviewDateStr = moment().format('YYYY-MM-DD')
+            nextReviewDays = 0
+            logWarn('calcReviewFieldsForProject', `Could not normalise calculated nextReviewDate '${String(calculatedNextReviewDateStr)}' for project '${thisProjectIn.title}'; using today`)
+          }
         } else {
-          throw new Error(`calculated nextReviewDate is null; reviewedDate = ${String(thisProjectIn.reviewedDate)}`)
+          // No valid calculated date (null or empty): treat next review as today
+          nextReviewDateStr = moment().format('YYYY-MM-DD')
+          nextReviewDays = 0
+          logDebug('calcReviewFieldsForProject', `calcNextReviewDate returned no date for reviewedDate=${String(reviewedDateIn)}; using today`)
         }
       } else {
         // no next review date, so set at today
-        nextReviewDateStr = toISODateString(now)
+        nextReviewDateStr = moment().format('YYYY-MM-DD')
         nextReviewDays = 0
       }
     }
@@ -1121,7 +1300,7 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
       nextReviewDays,
     })
   } catch (error) {
-    logError('calcReviewFieldsForProject', error.message)
+    logError('calcReviewFieldsForProject', `${error.message} in project '${thisProjectIn.title}'`)
     return thisProjectIn
   }
 }

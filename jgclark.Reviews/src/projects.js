@@ -3,13 +3,13 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 2026-02-13 for v1.3.0.b8, @jgclark
+// Last updated 2026-03-16 for v1.4.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment'
-import { generateProjectOutputLine } from './projectsHTMLGenerator'
+import { buildProjectLineForStyle } from './projectsHTMLGenerator'
 import { Project } from './projectClass'
-import { finishReviewForNote, renderProjectLists } from './reviews'
+import { finishReviewForNote, renderProjectListsIfOpen } from './reviews'
 import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
 import { updateAllProjectsListAfterChange } from './allProjectsListHelpers'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
@@ -63,8 +63,8 @@ async function reloadAndUpdateLists(note: TNote, config: ReviewConfig, shouldArc
   // Update the allProjects list
   await updateAllProjectsListAfterChange(note.filename ?? ERROR_FILENAME_PLACEHOLDER, shouldArchive, config)
 
-  // Re-render the outputs (but don't focus)
-  await renderProjectLists(config, false)
+  // Re-render the outputs if window open (but don't focus)
+  await renderProjectListsIfOpen(config)
 }
 
 /**
@@ -76,7 +76,7 @@ async function reloadAndUpdateLists(note: TNote, config: ReviewConfig, shouldArc
  */
 function addToYearlyNote(thisProject: Project, config: ReviewConfig): void {
   // Pass config with showFolderName so folder appears before title (config may be frozen from loadJSON)
-  const lineToAdd = generateProjectOutputLine(thisProject,
+  const lineToAdd = buildProjectLineForStyle(thisProject,
     { ...config, showFolderName: true },
     'list') // list = for summary note, without [x] etc.
   const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)

@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-02-20 for v1.3.0.b12, @jgclark
+// Last updated 2026-02-23 for v1.4.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -25,6 +25,9 @@ import { smartPrependPara } from '@helpers/paragraph'
 // Settings
 const pluginID = 'jgclark.Reviews'
 const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // fully specified to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
+const allProjectsDemoListDefaultFilename = `../${pluginID}/allProjectsDemoListDefault.json`
+// Backwards-compatible alias for existing demo-list helper
+const allProjectsDemoListFilename = allProjectsDemoListDefaultFilename
 const maxAgeAllProjectsListInHours = 1
 const generatedDatePrefName = 'Reviews-lastAllProjectsGenerationTime'
 const MS_PER_HOUR = 1000 * 60 * 60
@@ -101,7 +104,8 @@ function findReadyProjects(projects: Array<Project>, maxCount: number = 0): Arra
 }
 
 /**
- * Build sorting specification array based on config
+ * Build sorting specification array based on config: projectTagOrder > folder > [dueDays | nextReviewDays | title],
+ * but with 'active' before 'finished' sorting applied as well, unless displayOrder is 'title'.
  * @param {ReviewConfig} config - Review configuration
  * @returns {Array<string>} Array of field names to sort by
  * @private
@@ -114,16 +118,18 @@ function buildSortingSpecification(
   if (config.displayGroupedByFolder) {
     sortingSpec.push('folder')
   }
-  sortingSpec.push('isCancelled', 'isCompleted', 'isPaused') // i.e. 'active' before 'finished'
 
   switch (config.displayOrder) {
     case 'review':
-      sortingSpec.push('nextReviewDays')
+      // sorting 'active' before 'finished'
+      sortingSpec.push('isCancelled', 'isCompleted', 'isPaused', 'nextReviewDays')
       break
     case 'due':
-      sortingSpec.push('dueDays')
+      // sorting 'active' before 'finished'
+      sortingSpec.push('isCancelled', 'isCompleted', 'isPaused', 'dueDays')
       break
     case 'title':
+      // Note: *not* sorting 'active' before 'finished'
       sortingSpec.push('title')
       break
   }
@@ -140,7 +146,7 @@ function stringifyProjectObjects(objArray: Array<any>): string {
    * Also normalizes any existing date strings to YYYY-MM-DD format
    * @returns {any}
    */
-  const dateFieldNames = ['startDate', 'dueDate', 'reviewedDate', 'completedDate', 'cancelledDate']
+  const dateFieldNames = ['startDate', 'dueDate', 'reviewedDate', 'completedDate', 'cancelledDate', 'nextReviewDateStr']
   const RE_ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/
   
   function stringifyReplacer(key: string, value: any) {
@@ -278,20 +284,28 @@ export async function logAllProjectsList(): Promise<void> {
 
 /**
  * Return as Project instances all projects that match config items 'foldersToInclude', 'foldersToIgnore', and 'projectTypeTags'.
+ * Note: These may be taken from the Perspective settings before being passed to this function.
  * @author @jgclark
- * @param {any} configIn
- * @param {boolean} runInForeground?
+ * @param {ReviewConfig} configIn
+ * @param {boolean} runInForeground? (default: false)
  * @returns {Array<Project>}
  */
-async function getAllMatchingProjects(configIn: any, runInForeground: boolean = false): Promise<Array<Project>> {
-  const config = configIn ? configIn : await getReviewSettings() // get config from passed config if possible
+async function getAllMatchingProjects(
+  configIn: ReviewConfig,
+  runInForeground: boolean = false,
+): Promise<Array<Project>> {
+  // get config from passed config if possible
+  const config = configIn ? configIn : await getReviewSettings()
   if (!config) throw new Error('No config found. Stopping.')
 
   logInfo('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
-  const startTime = moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+  // logDebug('getAllMatchingProjects', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
+  // logDebug('getAllMatchingProjects', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
+
+  const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
 
   // Get list of folders, excluding @specials and our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore.
-  const filteredFolderList = (config.foldersToInclude.length > 0)
+  const filteredFolderList = (config.foldersToInclude?.length ?? 0 > 0)
     ? getFoldersMatching(config.foldersToInclude, true).sort()
     : getFolderListMinusExclusions(config.foldersToIgnore, true, false).sort()
 
@@ -305,7 +319,7 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
     if (!exists) acc.push(f)
     return acc
   }, [])
-  // logDebug('getAllMatchingProjects', `- filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
+  logInfo('getAllMatchingProjects', `-> ${String(filteredFolderListWithoutSubdirs.length)} filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
 
   // Filter the list of project notes from the DataStore.
   let filteredProjectNotes = filterProjectNotesByFolders(
@@ -413,13 +427,42 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
     if (res) {
       const reviewListDate = Date.now()
       DataStore.setPreference(generatedDatePrefName, reviewListDate)
-      logInfo('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
+      logDebug('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
       await updateDashboardIfOpen()
     } else {
       throw new Error(`Error writing JSON to '${allProjectsListFilename}'`)
     }
   } catch (error) {
     logError('writeAllProjectsList', JSP(error))
+  }
+}
+
+/**
+ * Copy the fixed demo default list JSON into the live allProjects list file.
+ * Does not touch any live project notes.
+ * @returns {Promise<boolean>} true if copy succeeded, false otherwise
+ */
+export async function copyDemoDefaultToAllProjectsList(): Promise<boolean> {
+  try {
+    if (!DataStore.fileExists(allProjectsDemoListDefaultFilename)) {
+      throw new Error(`Demo default file not found: ${allProjectsDemoListDefaultFilename}`)
+    }
+    const content = DataStore.loadData(allProjectsDemoListDefaultFilename, true)
+    if (content == null) {
+      throw new Error(`Couldn't read demo default file: ${allProjectsDemoListDefaultFilename}`)
+    }
+    const res = DataStore.saveData(String(content), allProjectsListFilename, true)
+    if (!res) {
+      throw new Error(`Couldn't write to ${allProjectsListFilename}`)
+    }
+    const now = Date.now()
+    DataStore.setPreference(generatedDatePrefName, now)
+    logInfo('copyDemoDefaultToAllProjectsList', `Copied demo list to ${allProjectsListFilename} at ${String(now)}`)
+    await updateDashboardIfOpen()
+    return true
+  } catch (error) {
+    logError('copyDemoDefaultToAllProjectsList', error.message)
+    return false
   }
 }
 
@@ -452,7 +495,8 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
 
 /**
  * Get all Project object instances from JSON list of all available project notes. Doesn't come ordered.
- * First checks to see how old the list is, and re-generates more than 'maxAgeAllProjectsListInHours' hours old.
+ * If in demo mode, just load from the allProjectsList, which should be the demo list. Don't worry about its age.
+ * If not demo mode, then first check to see how old the list is, and re-generates more than 'maxAgeAllProjectsListInHours' hours old.
  * @author @jgclark
  * @returns {Promise<Array<Project>>} allProjects Object, the same as what is written to disk
  */
@@ -462,31 +506,38 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
     const startTime = moment().toDate()
     let projectInstances: Array<Project>
 
-    // Check if file exists and is fresh enough
-    if (shouldRegenerateAllProjectsList()) {
-      if (DataStore.fileExists(allProjectsListFilename)) {
+    // Demo mode: never regenerate from live notes; ensure JSON exists (from demo default), then read it
+    const config = await getReviewSettings()
+    if (config.useDemoData ?? false) {
+      const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
+      projectInstances = JSON.parse(content)
+    } else {
+      // Check if file exists and is fresh enough
+      if (shouldRegenerateAllProjectsList()) {
+        if (DataStore.fileExists(allProjectsListFilename)) {
+          const fileAgeMs = getFileAgeMs(generatedDatePrefName)
+          const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
+          logDebug('getAllProjectsFromList', `- Regenerating allProjects list as more than ${String(maxAgeAllProjectsListInHours)} hours old (currently ${fileAgeHours} hours)`)
+        } else {
+          logDebug('getAllProjectsFromList', `- Generating allProjects list as can't find it`)
+        }
+        projectInstances = await generateAllProjectsList()
+      } else {
+        // Read from the list
         const fileAgeMs = getFileAgeMs(generatedDatePrefName)
         const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
-        logDebug('getAllProjectsFromList', `- Regenerating allProjects list as more than ${String(maxAgeAllProjectsListInHours)} hours old (currently ${fileAgeHours} hours)`)
-      } else {
-        logDebug('getAllProjectsFromList', `- Generating allProjects list as can't find it`)
+        logDebug('getAllProjectsFromList', `- Reading from current allProjectsList (as only ${fileAgeHours} hours old)`)
+        const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
+        // Make objects from this (except .note)
+        // Date fields (startDate, dueDate, etc.) are stored as ISO strings (YYYY-MM-DD) and left as strings
+        projectInstances = JSON.parse(content)
+        
+        // Recalculate review fields for all projects since nextReviewDays may be stale
+        // This is necessary because the JSON was written at a previous time, and nextReviewDays
+        // needs to be recalculated based on the current date
+        logDebug('getAllProjectsFromList', `- Recalculating review fields for ${projectInstances.length} projects loaded from JSON`)
+        projectInstances = projectInstances.map((project) => calcReviewFieldsForProject(project))
       }
-      projectInstances = await generateAllProjectsList()
-    } else {
-      // Read from the list
-      const fileAgeMs = getFileAgeMs(generatedDatePrefName)
-      const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
-      logDebug('getAllProjectsFromList', `- Reading from current allProjectsList (as only ${fileAgeHours} hours old)`)
-      const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
-      // Make objects from this (except .note)
-      // Date fields (startDate, dueDate, etc.) are stored as ISO strings (YYYY-MM-DD) and left as strings
-      projectInstances = JSON.parse(content)
-      
-      // Recalculate review fields for all projects since nextReviewDays may be stale
-      // This is necessary because the JSON was written at a previous time, and nextReviewDays
-      // needs to be recalculated based on the current date
-      logDebug('getAllProjectsFromList', `- Recalculating review fields for ${projectInstances.length} projects loaded from JSON`)
-      projectInstances = projectInstances.map((project) => calcReviewFieldsForProject(project))
     }
     logTimer(`getAllProjectsFromList`, startTime, `- read ${projectInstances.length} Projects from allProjects list`)
 
@@ -494,6 +545,28 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
   }
   catch (error) {
     logError('getAllProjectsFromList', error.message)
+    return []
+  }
+}
+
+/**
+ * Get all project objects from the fixed demo JSON list. No generation or recalculation; data is used as-is.
+ * @author @jgclark
+ * @returns {Promise<Array<Project|any>>} array of project-like objects from allProjectsDemoList.json, or [] if file missing
+ */
+export async function getAllProjectsFromDemoList(): Promise<Array<Project | any>> {
+  try {
+    logDebug('getAllProjectsFromDemoList', `Starting ...`)
+    if (!DataStore.fileExists(allProjectsDemoListFilename)) {
+      logWarn('getAllProjectsFromDemoList', `Demo file not found: ${allProjectsDemoListFilename}`)
+      return []
+    }
+    const content = DataStore.loadData(allProjectsDemoListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsDemoListFilename}>`
+    const projectInstances = JSON.parse(content)
+    logDebug('getAllProjectsFromDemoList', `- read ${projectInstances.length} projects from demo list (no recalculation)`)
+    return Array.isArray(projectInstances) ? projectInstances : []
+  } catch (error) {
+    logError('getAllProjectsFromDemoList', error.message)
     return []
   }
 }
@@ -622,6 +695,7 @@ export function sortProjectsList(
  * @param {string?} projectTag to filter by (optional)
  * @param {Array<string>?} sortingOrder array of field names to sort by; if given overrides the default sorting order from the Reviews plugin. (Optional)
  * @param {boolean?} dedupeList if true, deduplicate the list by removing projects with multiple 'projectTags'. (Optional, default is false)
+ * @param {boolean?} useDemoList if true, read from allProjectsDemoList.json instead of live list (optional, default is false)
  * @returns {Promise<[Array<Project>, number]>} [sorted projects, number projects unfiltered]
  */
 export async function filterAndSortProjectsList(
@@ -629,16 +703,23 @@ export async function filterAndSortProjectsList(
   projectTag: string = '',
   sortingOrder: Array<string> = [],
   dedupeList?: boolean = false,
+  useDemoList?: boolean = false,
 ): Promise<[Array<Project>, number]> {
-  const allProjectInstances = await getAllProjectsFromList()
-  logInfo('filterAndSortProjectsList', `Starting with tag '${projectTag}' for ${allProjectInstances.length} projects`)
+  let allProjectInstances: Array<Project>
+  if (useDemoList) {
+    allProjectInstances = await getAllProjectsFromDemoList()
+  } else {
+    allProjectInstances = await getAllProjectsFromList()
+  }
+  logInfo('filterAndSortProjectsList', `Starting with tag '${projectTag}' for ${allProjectInstances.length} projects${useDemoList ? ' (demo)' : ''}`)
   
   // Filter out projects that are not tagged with the projectTag
   const projectInstancesForTag = (projectTag !== '')
     ? allProjectInstances.filter((pi) => pi.projectTag === projectTag)
     : allProjectInstances
 
-  const filteredProjectList = await filterProjectsList(projectInstancesForTag, config, dedupeList)
+  const filteredProjectList = (useDemoList) ? projectInstancesForTag : await filterProjectsList(projectInstancesForTag, config, dedupeList)
+
   const sortedProjectList = sortProjectsList(filteredProjectList, config, sortingOrder) 
   logInfo('filterAndSortProjectsList', `- filtered ${filteredProjectList.length} projects, sorted ${sortedProjectList.length} projects`)
   return [sortedProjectList, projectInstancesForTag.length]
@@ -656,12 +737,17 @@ export async function filterAndSortProjectsList(
  * @param {ReviewConfig} config
  */
 export async function updateAllProjectsListAfterChange(
-  // reviewedTitle: string,
   reviewedFilename: string,
   simplyDelete: boolean,
   config: ReviewConfig,
 ): Promise<void> {
   try {
+    if (config.useDemoData ?? false) {
+      logInfo('updateAllProjectsListAfterChange', `Demo mode is on; not updating live notes, but will adjust JSON list if possible for '${reviewedFilename}'`)
+      // In demo mode we deliberately do not touch live notes or regenerate from them.
+      // We leave the JSON list unchanged here; any in-UI changes should go via updateProjectInAllProjectsList.
+      return
+    }
     if (reviewedFilename === '') {
       throw new Error('Empty filename passed')
     }

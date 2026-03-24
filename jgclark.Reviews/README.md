@@ -77,13 +77,89 @@ Aim: Make sure 007's Aston Martin continues to run well, is legal etc.
 ```
 (Note: This example uses my related [Repeat Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/) to give more flexibility than the built-in repeats.)
 
-## Where you can put the project data (metadata fields)
-The plugin tries to be as flexible as possible about where project metadata can go. It looks in order for:
-- the first line starting 'project:' or 'medadata:' in the note or its frontmatter
-- the first line containing a @review() or @reviewed() mention
-- the first line starting with a #hashtag.
+## v2 changes
+New Filter & Order options in a dropdown:
 
-If these can't be found, then the plugin creates a new line after the title, or if the note has frontmatter, a 'metadata:' line in the frontmatter.
+![New Filter & Order options in a dropdown:](filter+order-v2.0.0.b11.png)
+
+
+Each Project row show the following details:
+
+![Each Project row show the following details:](project-detail-numbered.png)
+1. Title, with its icon
+2. Edit button, brings up edit dialog
+3. Any hashtags defined on the project
+4. Folder it lives in
+5. The review interval
+6. Notes if the project or reviews are overdue or due soon.
+7. % completion (as before, but now shown in a more compact way)
+8. Latest 'progress' you've noted for the project
+9. Any 'next action' on the project
+
+## Where you can put the project data (metadata fields)
+The plugin tries to be as flexible as possible about where project metadata can go.
+
+From **v2.0** it supports both:
+
+- **Body metadata line** (legacy and still supported), and
+- **Frontmatter metadata**, which over time becomes the main source of truth.
+
+When looking for project metadata it checks, in order:
+
+- the first line starting `project:` or `metadata:` in the note or its frontmatter
+- the first line containing a `@review()` or `@reviewed()` mention
+- the first line starting with a `#hashtag`.
+
+If these can't be found, then the plugin creates a new line after the title, or if the note has frontmatter, a new field in frontmatter under the configured key (see below).
+
+### Using frontmatter for project metadata
+
+If your note has a frontmatter block, the plugin can store project metadata there as well as (or instead of) in the body. There are two parts to this:
+
+- A **combined metadata field** containing the whole metadata line.
+- Optional **separate fields** for individual dates/values.
+
+#### Combined frontmatter key (default `project`)
+
+The **Frontmatter metadata key** setting controls which frontmatter key is used to store the combined metadata line. By default this is `project:`, but you can set it to any string you like (for example `metadata`).
+
+Internally this combined field stores exactly the same content as the body metadata line, for example:
+
+```yaml
+---
+title: Project Title
+project: #project @review(2w) @reviewed(2021-07-20) @start(2021-04-05) @due(2021-11-30)
+---
+```
+
+When a note still has a metadata line in the body but **no** value in the combined frontmatter key, the plugin will migrate that body line into the configured frontmatter key and **remove the metadata line from the body**. When any command later updates that project note, it writes to frontmatter and removes the previous body metadata line if present. All tags such as `#project` are preserved during migration.
+
+#### Separate frontmatter fields (if present)
+
+If you prefer, you can also use separate frontmatter fields for the different dates and values. The names of these fields are derived from your **metadata @mention settings**, by stripping any leading `@` or `#`. The equivalent would then read:
+
+```yaml
+---
+title: Project Title
+project: #project
+start: 2021-04-05
+due: 2021-11-30
+reviewed: 2021-07-20
+review: 2w
+nextReview: 2021-08-03
+---
+```
+
+The plugin:
+
+- **Reads** from these separate fields if they already exist in frontmatter (using whatever key names your current settings imply), and overlays them on top of what it finds in the combined line.
+- **Writes back** to these fields **only if they already exist**. It will not create new separate keys on its own; it simply keeps any existing ones in sync when it updates metadata, again using the key names derived from your current `*MentionStr` settings.
+
+You can therefore:
+
+- Use only the combined frontmatter key, or
+- Use both the combined key and any separate fields you choose to add, or
+- Continue to use just the body metadata line (the plugin will migrate it into frontmatter and remove it from the body when it next needs to update metadata).
 
 The first hashtag in the note defines its type, so as well as `#project`, `#area` you could have a `#goal` or whatever makes most sense for you. 
 
@@ -93,7 +169,7 @@ Other notes:
 - If there are multiple copies of a metadata field, only the first one is used.
 - I'm sometimes asked why I use `@reviewed(2021-06-25)` rather than `@reviewed/2021-06-25`. The answer is that while the latter form is displayed in a neater way in the sidebar, the date part isn't available in the NotePlan API as the part after the slash is not a valid @tag as it doesn't contain an alphabetic character.
 
-_The next major release of the plugin will make it possible to migrate all this metadata to the Frontmatter block that has become properly supported since NotePlan 3.16.3._
+_From v1.4.0.b5 the plugin migrates this metadata into the Frontmatter block (if present) and removes the body metadata line, leaving the note body cleaner._
 
 ## Selecting notes to include
 There are 2 parts of this:
@@ -153,6 +229,7 @@ The settings relating to Progress are:
 
 ## Other Plugin settings
 - Open Project Lists in what sort of macOS window?: (from v1.3) Choose whether the Rich project list opens in NotePlan's main window or in a separate window.
+- **Automatic Update interval**: (from v1.4.0.b4) If set to any number > 0, the Rich Project Lists window will automatically refresh when it has been idle for that many minutes. Set to 0 to disable. When the list refreshes (manually or automatically), the current scroll position is preserved as closely as possible.
 - Next action tag(s): optional list of #hashtags to include in a task or checklist to indicate its the next action in this project (comma-separated; default '#next'). If there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist is shown as the next action. Only the first matching item is shown.
 - Display next actions in output? This requires the previous setting to be set (or use #sequential). Toggle is in the Filter… menu as "Show next actions?".
 - Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`. Note also: 
@@ -210,6 +287,19 @@ This prompts for a short description of latest progress (as short text string) a
 Progress: <num>@YYYY-MM-DD <short description>
 ```
 It will also update the project's `@reviewed(date)`.
+
+### "/heatmaps for weekly Projects Progress" command
+The **/weeklyProjectsProgress heatmaps** command scans your Area/Project folders by week, and shows a pair of heatmaps in new windows:
+
+- one heatmap for notes progressed per week per folder of notes (where a project note counts as being progressed if one or more tasks are completed)
+- one heatmap for tasks completed per week per folder of notes
+
+For those with lots of different projects or project groups, this is a handy way of seeing over time which of them are getting more or less attention.
+
+<!-- The **/weeklyProjectsProgress** command scans your Area/Project folders and writes two CSV files into the plugin’s hidden data folder:
+
+- one with the number of distinct notes progressed per folder per week
+- one with the total number of completed tasks per folder per week -->
 
 ## Capturing and Displaying 'Next Actions'
 Part of the "Getting Things Done" methodology is to be clear what your 'next action' is. If you put a standard tag on such actionable tasks/checklists (e.g. `#next` or `#na`) and set that in the plugin settings, the project list shows that next action after the progress summary. Only the first matching item is shown; if there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist is shown instead. You can set several next-action tags (e.g. `#na` for things you can do, `#waiting` for things you're waiting on others).

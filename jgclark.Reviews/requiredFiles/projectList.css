@@ -1,15 +1,36 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-02-16 for v1.3.0.b12, @jgclark 
+ * Last updated 2026-03-22 for v2.0.0.b12, @jgclark 
  */
 
+/* ============================================================
+   Scope: plugin tokens and page shell (most general)
+   ============================================================ */
+
 body {
-  margin: 0px;
+  /* Colours specific to this plugin */
 	--teamspace-color: #269F54;
-  --project-pause-color: #AAA;
   --project-no-percent-color: #BBB;
   --project-zero-progress-color: #9F2626;
+  --project-completed-color: var(--project-no-percent-color); /* just for the new border-left style */
+  --project-cancelled-color: var(--project-no-percent-color); /* just for the new border-left style */
+  --project-paused-color: #AAA;
+  --fg-dimmer-color: rgb(from var(--fg-main-color) r g b / 0.6);
+  --bg-lozenge-color: rgb(from var(--bg-main-color) r g b / 0.8);
+  --bg-hover-color: rgb(from var(--fg-main-color) r g b / 0.03);
+  --fg-due-color: hsla(45, 85%, 38%, 1); 
+  --fg-overdue-color: hsla(0, 85%, 38%, 1); 
+  --fg-soon-color: hsla(210, 85%, 38%, 1); 
+  --fg-not-due-color: hsla(120, 85%, 30%, 1); 
+  
+  /* Settings for overall body */
+  margin: 0px;
+  background-color: var(--bg-alt-color);
 }
+
+/* ============================================================
+   Base element defaults (type selectors)
+   ============================================================ */
 
 /* turn off special colouring and underlining for links -- turn on later when desired */
 p {
@@ -23,35 +44,148 @@ a, a:visited, a:active {
   color: inherit; text-decoration-line: none;
 }
 
-/* Remove margin-bottom and top from .h3 from last table */
-h3, .h3 {
-  margin-bottom: unset !important;
-  margin-top: unset !important;
+/* -------------------------------------------------------- */
+
+/* ============================================================
+   Form controls: shared base, then buttons, then specific widgets
+   ============================================================ */
+
+@layer A { /* all buttons, but at lower priority */
+	button, input {
+		color: var(--fg-main-color);
+		background-color: var(--bg-mid-color);
+		border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
+		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
+    border-radius: 4px;
+    font-weight: 500;
+
+    /* set backgrounds a little lighter on hover */
+    &:hover {
+      /* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to this */
+      /* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
+      filter: brightness(103%);
+    }
+	}
 }
+
+/* Show click pointer over buttons */
+button {
+	cursor: pointer;
+}
+
+/* For buttons that trigger callbacks */
+.PCButton {
+	color: var(--fg-main-color);
+	background-color: var(--bg-alt-color);
+  /* add a clearer border to all buttons */
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
+	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
+  padding: 2px 4px 1px 4px;
+  margin: 3px 3px 3px 0px;
+	white-space: nowrap;
+	cursor: pointer;
+	font-size: 0.9rem;
+  border-radius: 6px;
+
+  /* color FA icons in these Buttons */
+  i {
+    color: var(--tint-color);
+  }
+
+  /* set backgrounds a little lighter on hover */
+  &:hover {
+    filter: brightness(103%);
+  }
+}
+
+.dialogTrigger {
+	color: rgb(from var(--fg-main-color) r g b / 0.5);
+	cursor: pointer;
+}
+
+/* ---- TOGGLES ------------------------------------------- */
+/* For fancy toggle as checkbox */
+/* from [Pure CSS3 iOS switch checkbox.](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb) */
+
+input.apple-switch {
+  appearance: none;
+  position: relative;
+	vertical-align: baseline;
+  outline: none;
+  width: 2rem;
+  height: 1.2rem;
+  background-color: var(--bg-apple-switch-color);
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
+  box-shadow: none;
+  border-radius: 1.9rem;
+  margin-top: 0px;
+	margin-right: 4px;
+	transition: background-color 0.2s;
+}
+input.apple-switch:after {
+  content: "";
+  vertical-align: top;
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  background-color: var(--fg-apple-switch-color);
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+	box-shadow: 0px 0px 2px var(--divider-color);
+  margin-right: 1rem;
+	transition: left 0.2s ease, background-color 0.2s ease;
+}
+input.apple-switch:checked {
+  vertical-align: top;
+  background-color: hsl(from var(--tint-color) h s l); /* Note: in dark mode making this a little darker looks good, but not in light mode */
+  transition: background-color 0.3s ease;
+}
+input.apple-switch:checked:after {
+  vertical-align: top;
+  left: 0.85rem;
+  background-color: var(--fg-apple-switch-color);
+  box-shadow: 0px 0px 2px var(--divider-color);
+}
+input, label {
+  vertical-align: top;
+}
+
+/* ============================================================
+   Layout: top bar
+   ============================================================ */
 
 /* TOPBAR ------------------------------------------------- */
 
-/* Keep a header stuck to top middle of window */
+/* Keep a header stuck to top; spread items evenly across the top bar */
 .topbar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  /* grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); */
   align-items: baseline;
+  column-gap: 0.5rem;
   position: sticky;
   top: 0px;
-  gap: 0.6rem;
   background-color: var(--bg-sidebar-color); 
   border-top: 1px solid var(--divider-color);
   border-bottom: 1px solid var(--divider-color);
-  line-height: 1.5rem; /* any less than this and the apple switches don't line up vertically properly */
-  padding: 0.4rem 0.8rem 0.3rem 0.8rem;
+  line-height: 1.2rem;
+  padding: 0.2rem 0.6rem 0.1rem 0.6rem;
   font-size: 0.95rem;
   z-index: 5;
-  row-gap: 0.3rem;
 
   .perspective-name {
     font-weight: 600;
   }
+}
+
+.topbar-center-cluster {
+  justify-self: center;
+}
+
+.topbar-right-cluster {
+  justify-self: end;
+  min-width: 0;
 }
 
 .topbar-item {
@@ -59,6 +193,20 @@ h3, .h3 {
   flex: 0 0 auto;          /* don't stretch or shrink */
   min-width: max-content;
 }
+
+.topbar-select {
+  color: var(--fg-main-color);
+  background-color: var(--bg-alt-color);
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.35rem;
+  font-family: inherit; /* inherit from body font */
+}
+
+/* ============================================================
+   Layout: display filters dropdown (top bar child)
+   ============================================================ */
 
 /* Display filters: button uses .PCButton (same as Refresh), dropdown below */
 .display-filters-wrapper {
@@ -70,12 +218,18 @@ h3, .h3 {
   top: 100%;
   right: 0;
   margin-top: 0.2rem;
-  min-width: 16rem;
+  min-width: max-content;
   background: var(--bg-main-color, #eff1f5);
   border: 1px solid var(--divider-color, #CDCFD0);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   z-index: 20;
+}
+/* Centred topbar trigger: panel hangs under the middle of the button */
+.topbar-center-cluster .display-filters-dropdown {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
 }
 .display-filters-dropdown.is-open {
   display: block;
@@ -99,26 +253,84 @@ h3, .h3 {
   padding-bottom: 0.1rem;
 }
 
+/* Tag toggles inside Filters dropdown; label left, count in parentheses, toggle right */
+.display-filters-tag-toggles {
+  margin-bottom: 0.2rem;
+}
+.display-filters-option--tag-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+.display-filters-option--tag-row .display-filters-option-text {
+  flex: 1 1 auto;
+}
+.display-filters-option-count {
+  color: var(--fg-dimmer-color);
+}
+.display-filters-option--tag-row .apple-switch {
+  flex: 0 0 auto;
+}
+.display-filters-divider {
+  border: 0;
+  border-top: 1px solid var(--fg-divider, var(--divider-color, #CDCFD0));
+  margin: 0.4rem 0;
+}
+
+.display-filters-order-row {
+  justify-self: stretch;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 0.5rem;
+  padding-top: 0.15rem;
+}
+.display-filters-order-label {
+  font-weight: normal;
+  cursor: default;
+}
+.display-filters-order-select {
+  flex: 0 1 auto;
+  min-width: 7.5rem;
+}
+
+/* ============================================================
+   Layout: project list grid and columns wrapper
+   ============================================================ */
+
 /* MAIN GRID (replaces table) ----------------------------- */
 
 .project-list-grid {
-  display: grid;
+  /* display: grid; */ /* Needs to be turned off to get multi-columns to flow properly */
+  background-color: var(--bg-alt-color);
   width: 100%;
-  margin-bottom: 0rem;
+  /* margin-bottom: 0rem; */
 }
 
-/* First column fixed width (same as original col 1); middle column flexes; last column fits content like a table */
-.project-list-grid--with-dates {
-  grid-template-columns: 3.2rem 2fr 1fr;
-}
-
-.project-list-grid--no-dates {
-  grid-template-columns: 3.2rem 1fr;
+/* allow multi-column flow: set max columns and min width, and some other bits and pieces */
+.multi-cols {
+  column-count: 3; 
+  column-width: 25rem;
+  column-gap: 0.4rem;
+  column-rule: 1px dotted rgb(from var(--tint-color) r g b / 0.5);
 }
 
 /* Rows: children participate in parent grid */
 .project-grid-row {
-  display: contents;
+  display: block;
+  background-color: var(--bg-mid-color);
+  border: 1px solid var(--divider-color);
+  border-radius: 6px;
+  margin: 0.2rem 0.5rem;
+  padding: 0.2rem;
+  /* apply to a <div> to avoid column break part-way through item */
+	break-inside: avoid;
+
+  &:hover {
+    background-color: var(--bg-hover-color);
+  }
 }
 
 .project-grid-cell {
@@ -128,37 +340,20 @@ h3, .h3 {
   padding-right: 0.4rem;
   font-size: 0.92rem;
   line-height: 1.35rem;
-  padding: 3px 0.2rem 2px 0.2rem;
+  padding: 5px 0.1rem 5px 0.1rem;
   border-left: none;
   border-right: none;
 }
 
-.project-grid-cell:first-child {
-  padding-left: 0.5rem;
-}
-
-/* Middle column: allow shrink so ellipsis can apply */
-.project-grid-cell--content {
-  overflow: hidden;
+.project-metadata-row {
+  padding-left: 2rem;
+  box-sizing: border-box;
+  width: 100%;
   min-width: 0;
 }
 
 .project-grid-cell--span-2 {
   grid-column: span 2;
-}
-
-/* Legacy td/th kept for any remaining references; grid uses .project-grid-cell */
-td, th {
-  font-weight: normal;
-  text-align: left;
-  padding-right: 0.4rem;
-  font-size: 0.92rem;
-}
-th {
-  padding-bottom: 0.2rem;
-}
-td:first-child, th:first-child {
-  padding-left: 0.5rem;
 }
 
 /* Display of Number of projects */
@@ -169,115 +364,168 @@ td:first-child, th:first-child {
   margin-left: 1rem;
 }
 
-details {
-  overflow: hidden;
-}
-
-/* Remove default disclosure triangle */
-details > summary {
-  list-style: none;
-}
-details > summary::-webkit-details-marker {
-  display: none;
-}
-
-/* Style for the container */
-details > .content {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 800ms ease-out;
-}
-
-/* Rotate triangle when open */
-details[open] > summary::after {
-  transform: rotate(90deg);
-}
-
-/* FIXME: Create inner wrapper for smooth animation */
-details > .details-content > * {
-  overflow: hidden;
-}
-
-/* When open, set full height */
-details[open] > .content {
-  grid-template-rows: 1fr;
-}
-
-/* Style the <summmary> tag in the <details> section */
-summary {
-  /* Create custom triangle with pseudo-element */
-  display: flex;
-  justify-content: start;
-  align-items: end;
-  cursor: pointer;
-  padding: 8px;
-  column-gap: 0.4rem;
-}
-  /* Animate the triangle icon */
-  /* summary i {
-    transition: transform 0.2s ease;
-  }
-  details[open] summary i {
-    transform: rotate(180deg);
-  }
-  summary::-webkit-details-marker {
-    display: none;
-  }
-  */
-
-/* Animate the triangle icon */
-summary::after {
-  content: '▶';
-  transition: all 0.2s ease;
-}
-
-.project-grid-row.projectRow .project-grid-cell--content {
-  min-height: calc(var(--body-line-height, 1.35rem) * 2.5);
-}
-.project-grid-row.folder-header-row .project-grid-cell {
-  vertical-align: bottom;
-  background-color: var(--bg-main-color);
-  border-top: none;
-  border-bottom: 0.6px solid var(--tint-color);
-  padding-bottom: 0.2rem;
-}
-
 .folder-header {
+  color: var(--h3-color);
+  font-size: 1.2rem !important; /* TODO: find better method for these than !important */
+  background-color: unset !important;
+  padding: 0.9rem 0.3rem 0.1rem 1.3rem;
+}
+
+.folder-header-row {
+  vertical-align: bottom;
+  border: none;
+  background-color: unset;
+}
+
+/* -------------------------------------------------------- */
+
+/* ============================================================
+   Project row content (title line, tags, status colours, sub-rows)
+   ============================================================ */
+
+/* first line of column 2 */
+.projectMainDetailsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.8rem;
+}
+/* make noteTitle icon + text bold and coloured, and indicate its clickable */
+.noteTitle {
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  /* gap: 0.5rem; */
   color: var(--tint-color);
-  padding-top: 0.7rem;
-  padding-left: 0.5rem;
-  padding-right: 0.3rem;
+  font-size: 1.05rem;
+  font-weight: 500;
+  text-decoration: none;
 }
 
-.folder-name {
-  font-size: 1.0rem;
-  font-weight: bold;
-  padding-top: 0.8rem;
-  padding-right: 1.0rem;
+.noteTitleIcon {
+  width: 2rem;
+  flex-shrink: 0;
+  /* display: inline-flex; */
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+}
+/* make noteTitle links underlined on mouse hover */
+.noteTitleText:hover {
+  text-decoration: underline;
 }
 
-/* column 1 space for icon and progress ring */
-.first-col-indicator {
-  padding: 0.5em 0.6rem 0.2rem 0.4rem; /* works but I don't understand why */
-  /* text-align: center; */
-  justify-self: center;
-  align-content: center; /* was baseline; */
+/* Stop any strikeout on completed/cancelled projects (which may come in from a theme) */
+.checked, .cancelled {
+  text-decoration: none !important;
 }
 
-/* Row borders: first row (folder header) top border; last row bottom border */
-.project-list-grid > .project-grid-row:first-child .project-grid-cell {
-  border-top: 1px solid rgb(from var(--tint-color) r g b / 0.3);
+/* Project tags in column 2 (after title / edit) */
+.projectTagsInline {
+  margin-left: 0.2rem;
+  gap: 0.2rem;
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
 }
-.project-list-grid > .project-grid-row:last-child .project-grid-cell {
-  border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.3);
+
+/* ---- METADATA LOZENGES ---------------------------------- */
+
+/* Project tag pills and review/due colour classes from getIntervalReviewStatus / getIntervalDueStatus */
+.metadata-lozenge {
+  display: inline-block;
+  color: rgb(from var(--fg-main-color) r g b / 0.5);
+  font-size: 0.85rem;
+  line-height: 1.1;
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.2);
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  margin-right: 0.1rem;
+  text-wrap: nowrap;
 }
-/* Project row backgrounds (folder header is first child, so project rows are 2nd, 3rd, ...) */
-.project-list-grid > .project-grid-row.projectRow .project-grid-cell {
-  background-color: var(--bg-mid-color);
+.lozenge-general {
+  color: var(--fg-dimmer-color);
+  background-color: var(--bg-lozenge-color, #FFFFFFBB);
+  filter: saturate(80%);
 }
-.project-list-grid > .project-grid-row.projectRow:nth-child(even) .project-grid-cell {
-  background-color: var(--bg-alt-color);
+/* Note: color-mix() works, but needs to start with 'in oklch' in NP at March 2026 on macOS 15.7. */
+.overdue {
+  color: var(--fg-overdue-color);
 }
+.due {
+  color: var(--fg-due-color);
+}
+.soon {
+  color: var(--fg-soon-color);
+}
+.not-due {
+  color: var(--fg-not-due-color);
+}
+
+/* ---- PROGRESS ----------------------------------------- */
+/* Progress line row: last progress comment, styled like Dashboard ProjectItem */
+.projectProgressRow {
+  color: var(--fg-dimmer-color);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.progressText {
+  /* flex: 1; */
+  min-width: 0;
+  overflow: hidden;
+  /* FIXME: ellipsis isn't working any more */
+  text-overflow: ellipsis;
+}
+
+/* ---- FOLDER PATH ----------------------------------------- */
+/* Grouped-by-folder: folder path line under project title (column 2) */
+.projectFolderRow {
+  font-size: 0.92rem;
+  color: var(--fg-dimmer-color);
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+.projectFolderIcon {
+  width: 0.95rem;
+  flex-shrink: 0;
+}
+.projectFolderText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- NEXT ACTIONS ----------------------------------------- */
+.nextActionRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  /* overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis; */
+  color: var(--fg-alt-color);
+}
+.nextActionText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================
+   State modifiers and compound selectors (more specific)
+   ============================================================ */
 
 /* row class to indicate that a project is being reviewed */
 .project-grid-row.projectRow.reviewing .project-grid-cell {
@@ -286,28 +534,14 @@ summary::after {
 }
 
 /* in-line label to indicate that a project is being reviewed */
-/* Note: Not being used currently: using following instead */
-/* .underReviewLabel {
-  color: var(--bg-main-color);
-  background-color: var(--tint-color);
-  padding: 2px 4px 0px;
-  border-radius: 8px;
-  font-weight: 600;
-} */
-
-/* in-line label to indicate that a project is being reviewed */
 .underReviewText {
   color: var(--tint-color);
   font-weight: 600;
 }
 
-/* allow multi-column flow: set max columns and min width, and some other bits and pieces */
-.multi-cols {
-  column-count: 3; 
-  column-width: 30rem;
-  column-gap: 1rem;
-  column-rule: 1px dotted rgb(from var(--tint-color) r g b / 0.5);
-}
+/* ============================================================
+   Dialog
+   ============================================================ */
 
 /* -------------------------------------------------------- */
 
@@ -325,7 +559,7 @@ dialog::backdrop {
 }
 
 .dialogProjectFolder {
-  color: var(--fg-placeholder-color);
+  color: var(--fg-dimmer-color);
 }
 
 .dialogProjectNoteLink {
@@ -333,219 +567,11 @@ dialog::backdrop {
   color: var(--tint-color);
 }
 
-/* -------------------------------------------------------- */
-@layer A { /* all buttons, but at lower priority */
-	button, input {
-		color: var(--fg-main-color);
-		background-color: var(--bg-mid-color);
-		border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
-		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
-    border-radius: 4px;
-    font-weight: 500;
-
-    /* set backgrounds a little lighter on hover */
-    &:hover {
-      /* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to this */
-      /* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
-      filter: brightness(103%);
-    }
-	}
-}
-
-/* Show click pointer over buttons and equivalent */
-button, .fake-button, .clickTarget {
-	cursor: pointer;
-}
-
-/* For buttons that trigger callbacks */
-.PCButton {
-	color: var(--fg-main-color);
-	background-color: var(--bg-alt-color);
-  /* add a clearer border to all buttons */
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
-	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
-	padding: 2px 3px 0px 3px;
-	margin: 2px 4px 0px 0px;
-	white-space: nowrap;
-	cursor: pointer;
-	font-size: 0.9rem;
-
-  /* color FA icons in these Buttons */
-  i {
-    color: var(--tint-color);
-  }
-
-  /* set backgrounds a little lighter on hover */
-  &:hover {
-    filter: brightness(103%);
-  }
-}
-
-.dialogTrigger {
-	color: rgb(from var(--fg-main-color) r g b / 0.5);
-	cursor: pointer;
-}
-
-/* a top-right fixed position */
-.fix-top-right {
-  position: absolute; top: 1.7rem; right: 1rem;
-}
-
-/* -------------------------------------------------------- */
-/* first line of column 2 */
-.projectTitle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-/* make noteTitle icon + text bold and coloured, and indicate its clickable */
-.noteTitle {
-  cursor: pointer;
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  color: var(--tint-color);
-  font-size: 1.03rem; /* TODO: Gradually reduce from 1.1rem to 1.0rem? */
-  font-weight: 500;
-  text-decoration: none;
-}
-.noteTitle:hover {
-  /* placeholder */
-}
-.noteTitleIcon {
-  /* placeholder */
-}
-/* make noteTitle links underlined on mouse hover */
-.noteTitleText:hover {
-  text-decoration: underline;
-}
-
-/* ---- ITEM COUNTS ----------------------------------------- */
-
-/* Task count badge (rounded square) */
-.openItemCount {
-  display: inline-flex;
-  justify-content: center;
-  /* min-width: 0.9rem; */
-  height: 0.85rem;
-  padding: 0.1rem 0.2rem 0rem 0.2rem;
-  border-radius: 6px;
-  color: rgb(from var(--fg-main-color) r g b / 0.7);
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.4);
-  font-size: 0.7rem;
-  /* font-weight: 400; */
-  line-height: 0.8rem;
-  margin-left: 0.1rem;
-}
-
-/* Column 3: metadata (status lozenges + project tags). Status lozenges – colour from getIntervalReviewStatus / getIntervalDueStatus */
-.project-metadata-cell {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  overflow: auto;
-  white-space: nowrap;
-  gap: 0.15rem 0.3rem;
-}
-.metadata-lozenge {
-  display: inline-block;
-  padding: 0.15rem 0.4rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  line-height: 1.1;
-  margin-right: 0.25rem;
-  text-wrap: nowrap;
-}
-.metadata-lozenge--tag {
-  color: var(--fg-placeholder-color);
-  background-color: var(--bg-alt-color);
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.2);
-}
-.metadata-lozenge--red {
-  color: #b85450;
-  /* border: 1px solid #b85450; */
-  background-color:  #b8545010
-}
-.metadata-lozenge--orange {
-  color: #c76a40;
-  /* border: 1px solid #c76a00; */
-  background-color:  #c76a4010
-}
-.metadata-lozenge--blue {
-  color: #1e66f5;
-  /* border: 1px solid #1e66f5; */
-  background-color:  #1e66f510
-}
-.metadata-lozenge--green {
-  color: #269F54;
-  /* border: 1px solid #269F54; */
-  background-color:  #269F5410
-}
-
-/* ---- PROGRESS ----------------------------------------- */
-/* Progress line row: last progress comment, styled like Dashboard ProjectItem */
-.projectProgress {
-  color: var(--fg-placeholder-color);
-  font-size: 0.95rem;
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.progress {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-.progressIcon {
-  color: var(--tint-color);
-}
-.progressText {
-  /* placeholder */
-}
-
-/* ---- NEXT ACTIONS ----------------------------------------- */
-.nextAction {
-  display: block;
-  align-items: baseline;
-  gap: 0.5rem;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.nextActionIcon {
-  /* placeholder */
-}
-.nextActionText {
-  /* placeholder */
-}
+/* ============================================================
+   Utilities (single-purpose, broadly reusable)
+   ============================================================ */
 
 /* ---- ICONS etc. ----------------------------------------- */
-/* set all FA icons to default to tint color */
-i.fa-solid, i.fa-regular {
-  /* color: var(--tint-color); */
-}
-/* make checkbox display larger, and like in the app. */
-.checkbox {
-  font-family: "noteplanstate"; font-size: 1.4rem;
-}
-/* Set size of percent-display rings in first col */
-.percent-ring {
-  width: 2rem; height: 2rem;
-}
-/* details of ring-circle that can be set in CSS */
-.percent-ring-circle {
-  transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%;
-}
-/* details of ring text that can be set in CSS */
-.circle-percent-text {
-  font-family: "Avenir Next"; font-size: 2.4rem; font-weight: 500; color: var(--fg-main-color);
-}
-/* set size of FA icon used in place of percent-display rings in first col */
-.circle-icon {
-  font-size: 1.8rem;
-}
 /* add space before/after items (particularly icons) */
 .pad-left {
 	padding-left: 0.3rem;
@@ -556,14 +582,17 @@ i.fa-solid, i.fa-regular {
 .pad-right {
 	padding-right: 0.2rem;
 }
-
 /* add more space before items */
-.pad-left-more {
-	margin-left: 0.5rem;
+.pad-right-larger {
+	padding-right: 0.5rem;
 }
 
-/* ---- TOOLTIPs ------------------------------------------- */
+/* ============================================================
+   Optional / reserved (least critical for current UI)
+   ============================================================ */
 
+/* ---- TOOLTIPs ------------------------------------------- */
+/* Note: Currently unused, but keeping here in case we want this in future. */
 /* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
 .tooltip {
 	position: relative;
@@ -616,70 +645,3 @@ i.fa-solid, i.fa-regular {
 .tooltip:hover .tooltiptext {
   visibility: visible;
 }
-
-/* ---- TOGGLES ------------------------------------------- */
-/* For fancy toggle as checkbox */
-/* from [Pure CSS3 iOS switch checkbox.](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb) */
-
-input.apple-switch {
-  appearance: none;
-  position: relative;
-	vertical-align: baseline;
-  outline: none;
-  width: 2rem;
-  height: 1.2rem;
-  background-color: var(--bg-apple-switch-color);
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
-  box-shadow: none;
-  border-radius: 1.9rem;
-  margin-top: 0px;
-	margin-right: 4px;
-	transition: background-color 0.2s;
-}
-input.apple-switch:after {
-  content: "";
-  vertical-align: top;
-  position: absolute;
-  top: 1px;
-  left: 1px;
-  background-color: var(--fg-apple-switch-color);
-  width: 0.95rem;
-  height: 0.95rem;
-  border-radius: 50%;
-	box-shadow: 0px 0px 2px var(--divider-color);
-  margin-right: 1rem;
-	transition: left 0.2s ease, background-color 0.2s ease;
-}
-input.apple-switch:checked {
-  vertical-align: top;
-  background-color: hsl(from var(--tint-color) h s l); /* Note: in dark mode making this a little darker looks good, but not in light mode */
-  transition: background-color 0.3s ease;
-}
-input.apple-switch:checked:after {
-  vertical-align: top;
-  left: 0.85rem;
-  background-color: var(--fg-apple-switch-color);
-  box-shadow: 0px 0px 2px var(--divider-color);
-}
-input, label {
-  vertical-align: top;
-}
-
-ul {
-  display: flex;
-  padding: 0.4rem;
-  margin: 0rem;
-}
-li {
-  break-inside: avoid;
-  display: block;
-  padding-inline: 0.4rem;
-}
-
-.fake-checkbox {
-  font-size: 1.0rem;
-  }
-.fake-checkbox::before {
-  content: '●';
-}
-
