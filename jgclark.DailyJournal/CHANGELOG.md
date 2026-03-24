@@ -1,6 +1,8 @@
 # What's changed in 💭 Journalling Helpers Plugin?
 _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.DailyJournal/)._
 
+Note: I've replaced this plugin with the newer **Journalling & Reviews** one, which takes advantage of richer interfaces available from NP 3.20. This will no longer be updated, and will be retired in due course.
+
 ## [1.16.0] - 2025-11-01
 ### Added
 - Can now have multiple review questions per line. To separate the questions on the same line, use `||`. See documentation for more details.

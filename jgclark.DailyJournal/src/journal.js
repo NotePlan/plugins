@@ -106,7 +106,7 @@ export async function yearlyJournalQuestions(): Promise<void> {
  * @param {string} periodAdjective adjective for period: 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'
  * @returns {Promise<boolean>} true if we should continue, false if cancelled
  */
-async function ensureCorrectPeriodNote(period: string, periodAdjective: string): Promise<boolean> {
+async function ensureCorrectPeriodNoteIsOpen(period: string, periodAdjective: string): Promise<boolean> {
   // Open current calendar note if wanted
   const { note } = Editor
   const currentNotePeriod = (note && note.type === 'Calendar') ? getPeriodOfNPDateStr(note.title ?? '') : ''
@@ -337,7 +337,7 @@ async function processQuestion(
 
   // Look to see if this question has already been put into the note with something following it.
   // If so, skip this question.
-  const resAQ = returnAnsweredQuestion(parsedQuestion.question)
+  const resAQ = answerToQuestion(parsedQuestion.question)
   if (resAQ !== '') {
     logDebug(pluginJson, `- Found existing Q answer '${resAQ}', so won't ask again`)
     return ''
@@ -405,7 +405,7 @@ function writeAnswersToNote(output: string, config: JournalConfigType): void {
 async function processJournalQuestions(period: string, periodAdjective: string = ''): Promise<void> {
   try {
     // Ensure correct period note is open
-    const shouldContinue = await ensureCorrectPeriodNote(period, periodAdjective)
+    const shouldContinue = await ensureCorrectPeriodNoteIsOpen(period, periodAdjective)
     if (!shouldContinue) {
       return
     }
@@ -483,7 +483,7 @@ async function processJournalQuestions(period: string, periodAdjective: string =
  * @param {string} question
  * @returns {string} found answered question, or empty string
  */
-function returnAnsweredQuestion(question: string): string {
+function answerToQuestion(question: string): string {
   const RE_Q = `${question}.+`
   const { paragraphs } = Editor
   let result = ''

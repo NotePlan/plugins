@@ -1,0 +1,152 @@
+body {
+  color: var(--fg-main-color, #4c4f69);
+  background-color: var(--bg-main-color, #eff1f5);
+  margin: 1.0rem;
+}
+
+.section-wrap {
+  padding: 0.8rem 1.2rem;
+  border: 1px solid var(--divider-color, #CDCFD0);
+  border-radius: 6px;
+  background: var(--bg-alt-color, #e6e9ef);
+  color: var(--fg-main-color, #4c4f69);
+  margin: 1.0rem 0rem;
+}
+
+.review-title {
+  margin: 0 0 1rem 1rem;
+  color: var(--h2-color, #5c5f77);
+}
+
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.review-raw-question-line {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.5rem;
+}
+
+.review-raw-question-line-block {
+  flex: 1 1 100%;
+}
+
+/* .review-line-text-fragment {
+}
+*/
+
+.review-line-segment {
+  align-items: center;
+}
+
+.review-input-inline {
+  /* width: auto;
+  max-width: 6rem;
+  vertical-align: middle; */
+  margin: 0rem 0.2rem;
+}
+.review-subheading {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--h3-color, #5c5f77);
+  margin-top: 0.9rem;
+  /* margin-left: 0.3rem; */
+}
+.review-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.25rem;
+}
+.review-row-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+.review-label {
+  /* margin-left: 0.4rem; */
+  /* font-weight: 500; */
+  /* color: var(--h3-color, #5c5f77); */
+}
+.review-answer-inline {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+.review-answer {
+  width: 100%;
+}
+.review-input {
+  width: 100%;
+  resize: vertical;
+  font-family: "system-ui", sans-serif;
+  font-size: 0.9rem;
+}
+.review-input-short {
+  width: auto;
+  min-width: 2rem;
+  max-width: 4rem;
+  resize: none;
+}
+.review-input-fit {
+  width: fit-content;
+}
+.review-checkbox {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--tint-color, #dc8a78);
+  cursor: pointer;
+}
+.review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+}
+
+button, input, select, textarea {
+  font-size: 0.9rem;
+  font-family: "system-ui", sans-serif;
+  padding: 0.1rem 0.4rem;
+  color: var(--fg-main-color);
+  background-color: var(--bg-main-color);
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.2);
+  border-radius: 4px;
+  white-space: nowrap;
+  cursor: pointer;
+  outline-offset: -1px;
+  outline-width: 1px;
+  box-sizing: border-box;
+
+  /* set backgrounds a little lighter on hover */
+  &:hover {
+    /* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to this */
+    /* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
+    filter: brightness(102%);
+  }
+}
+
+/* textarea, input, select {
+  border-radius: 4px;
+  border: 1px solid var(--divider-color, #CDCFD0);
+  background-color: var(--bg-apple-input-color, #fbfbfb);
+  color: var(--fg-main-color, #4c4f69);  
+  padding: 0.2rem 0.2rem;
+} */
+
+.review-button {
+  font-size: 1.0rem;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
+}
+.review-button-primary {
+  border-color: var(--tint-color, #dc8a78);
+  color: var(--tint-color, #dc8a78);
+  font-weight: 600;
+}

@@ -1,0 +1,347 @@
+{
+  "noteplan.minAppVersion": "3.20.0",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "jgclark.Journalling",
+  "plugin.name": "💭 Journalling & Reviews",
+  "plugin.description": "Supports you reviewing your days/weeks/months/quarters/years into NotePlan in a 'Journal' section. Also makes it easier to apply start-of-day/week/month/quarter/year templates. Before use it requires some configuration: please see the documentation for details.",
+  "plugin.icon": "fa-clipboard-list",
+  "plugin.iconColor": "blue-600",
+  "plugin.author": "Jonathan Clark",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md",
+  "plugin.version": "2.0.0.b1",
+  "plugin.releaseStatus": "beta",
+  "plugin.lastUpdateInfo": "v2.0.0: First release of the new Journalling & Reviews plugin, but building on earlier 'Journalling Helpers' plugin (v1).",
+  "plugin.requiredFiles": [
+    "reviews.css"
+  ],
+  "plugin.requiredSharedFiles": [
+    "fontawesome.css",
+    "regular.min.flat4NP.css",
+    "solid.min.flat4NP.css",
+    "fa-regular-400.woff2",
+    "fa-solid-900.woff2",
+    "pluginToHTMLCommsBridge.js"
+  ],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "Daily Review",
+      "alias": [
+        "dr",
+        "journal",
+        "review"
+      ],
+      "description": "Ask Journal questions for an end-of-day review (requires configuring)",
+      "jsFunction": "dailyJournalQuestions",
+      "sidebarView": {
+        "windowID": "jgclark.Journalling.dayReview",
+        "title": "Daily Review",
+        "icon": "fa-regular fa-clipboard-list",
+        "iconColor": "blue-600"
+      }
+    },
+    {
+      "name": "Weekly Review",
+      "alias": [
+        "wr",
+        "journal",
+        "review"
+      ],
+      "description": "Ask Journal questions for an end-of-week review (requires configuring)",
+      "jsFunction": "weeklyJournalQuestions"
+    },
+    {
+      "name": "Monthly Review",
+      "alias": [
+        "mr",
+        "journal",
+        "review"
+      ],
+      "description": "Ask Journal questions for an end-of-month review (requires configuring)",
+      "jsFunction": "monthlyJournalQuestions"
+    },
+    {
+      "name": "Quarterly Review",
+      "alias": [
+        "qr",
+        "journal",
+        "review"
+      ],
+      "description": "Ask Journal questions for an end-of-quarter review (requires configuring)",
+      "jsFunction": "quarterlyJournalQuestions"
+    },
+    {
+      "name": "Yearly Review",
+      "alias": [
+        "yr",
+        "journal",
+        "review"
+      ],
+      "description": "Ask Journal questions for an end-of-year review (requires configuring)",
+      "jsFunction": "yearlyJournalQuestions"
+    },
+    {
+      "name": "dayStart",
+      "alias": [
+        "daily",
+        "ds",
+        "startDay"
+      ],
+      "description": "Apply Daily Note Template",
+      "jsFunction": "dayStart"
+    },
+    {
+      "name": "dayEnd",
+      "alias": [
+        "daily",
+        "de",
+        "endDay"
+      ],
+      "description": "Apply Day End Template",
+      "jsFunction": "dayEnd"
+    },
+    {
+      "name": "todayStart",
+      "alias": [
+        "day",
+        "today",
+        "ts"
+      ],
+      "description": "Apply Daily Note Template to Today's Calendar Note",
+      "jsFunction": "todayStart"
+    },
+    {
+      "name": "todayEnd",
+      "alias": [
+        "day",
+        "endToday",
+        "te"
+      ],
+      "description": "Apply Day End Template to Today's Calendar Note",
+      "jsFunction": "todayEnd"
+    },
+    {
+      "name": "weekStart",
+      "alias": [
+        "weekly",
+        "ws"
+      ],
+      "description": "Apply Weekly Note Template",
+      "jsFunction": "weekStart"
+    },
+    {
+      "name": "weekEnd",
+      "alias": [],
+      "description": "Apply Week End Template",
+      "jsFunction": "weekStart"
+    },
+    {
+      "name": "monthStart",
+      "alias": [
+        "monthly",
+        "ms"
+      ],
+      "description": "Apply Monthly Note Template (requires configuring)",
+      "jsFunction": "monthStart"
+    },
+    {
+      "hidden": true,
+      "name": "onReviewWindowAction",
+      "description": "Callback path for review UI",
+      "jsFunction": "onReviewWindowAction",
+      "parameters": [
+        "actionName ('cancel' or 'submit')",
+        "payload (object or string)"
+      ]
+    },
+    {
+      "name": "Journalling: Test onUpdateOrInstall",
+      "description": "onUpdateOrInstall",
+      "jsFunction": "onUpdateOrInstall"
+    }
+  ],
+  "plugin.commands_disabled": [
+    {
+      "name": "Journalling: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "General settings"
+    },
+    {
+      "key": "reviewSectionHeading",
+      "title": "Journal Section Heading",
+      "description": "The name of an existing markdown heading after which the Journal/Review answers are added - if it doesn't exist, it is added at the end of the note.",
+      "type": "string",
+      "default": "Journal",
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Journalling Review settings"
+    },
+    {
+      "key": "preferredWindowType",
+      "title": "Review Window type",
+      "description": "Choose what style of window to use for the review questions: 'New Window' for a separate window; 'Main Window' to take over the main window; 'Split View' for a split view in the main window.",
+      "type": "string",
+      "choices": [
+        "Main Window",
+        "New Window",
+        "Split View"
+      ],
+      "default": "New Window",
+      "required": true
+    },
+    {
+      "key": "openCalendarNoteWhenReviewing",
+      "title": "Open the calendar note when reviewing it?",
+      "description": "If true, the plugin automatically opens the current daily/weekly/monthly/quarterly/yearly note before running review questions.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "moods",
+      "title": "List of moods",
+      "description": "(Optional.) A comma-separated list of possible moods to select from.",
+      "type": "string",
+      "default": "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick",
+      "required": false
+    },
+    {
+      "key": "dailyReviewQuestions",
+      "title": "Daily Journal Questions",
+      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "type": "string",
+      "default": "@sleep(<int>)\n@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nGratitude: <string>\nGod was: <string>\nAlive: <string>\nNot Great: <string>\nLearn: <string>\nRemember: <string>",
+      "required": false
+    },
+    {
+      "key": "weeklyReviewQuestions",
+      "title": "Weekly Journal Questions",
+      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the weekly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "type": "string",
+      "default": "Big win: <string>\nNew/improved: <string>\nRegret: <string>\nFocus for next week: <string>",
+      "required": false
+    },
+    {
+      "key": "monthlyReviewQuestions",
+      "title": "Monthly Journal Questions",
+      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the monthly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "type": "string",
+      "default": "What's working well in processes: <string>\nProcesses that need work: <string>Personal Goals progress: <string>",
+      "required": false
+    },
+    {
+      "key": "quarterlyReviewQuestions",
+      "title": "Quarterly Journal Questions",
+      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the quarterly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "type": "string",
+      "default": "Goals met: <string>\nNew goals identified: <string>\nProjects finished: <string>\nNew projects identified: <string>",
+      "required": false
+    },
+    {
+      "key": "yearlyReviewQuestions",
+      "title": "Yearly Journal Questions",
+      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the yearly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "type": "string",
+      "default": "Goals met: <string>\nNew goals identified: <string>\nProjects finished: <string>\nNew projects identified: <string>",
+      "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Templates for Start/End of Period Notes"
+    },
+    {
+      "key": "startDailyTemplateTitle",
+      "title": "Start-of-Day Template Title",
+      "description": "The name of the template that `/dayStart` and `/todayStart` commands will use.",
+      "type": "string",
+      "default": "Daily Note Template",
+      "required": false
+    },
+    {
+      "key": "endDailyTemplateTitle",
+      "title": "End-of-DayTemplate Title",
+      "description": "The name of the template that `/dayEnd` and `/todayEnd` commands will use.",
+      "type": "string",
+      "default": "Daily Review Template",
+      "required": false
+    },
+    {
+      "key": "startWeeklyTemplateTitle",
+      "title": "Start-of-Week Template Title",
+      "description": "Optional name of the template that `/weekStart` command will use.",
+      "type": "string",
+      "default": "Weekly Note Template",
+      "required": false
+    },
+    {
+      "key": "endWeeklyTemplateTitle",
+      "title": "End-of-Week Template Title",
+      "description": "Optional name of the template that `/weekEnd` command will use.",
+      "type": "string",
+      "default": "Weekly Review Template",
+      "required": false
+    },
+    {
+      "key": "startMonthlyTemplateTitle",
+      "title": "Start-of-Month Template Title",
+      "description": "Optional name of the template that `/monthStart` command will use.",
+      "type": "string",
+      "default": "Monthly Note Template",
+      "required": false
+    },
+    {
+      "key": "endMonthlyTemplateTitle",
+      "title": "End-of-Month Template Title",
+      "description": "Optional name of the template that `/monthEnd` command will use.",
+      "type": "string",
+      "default": "Monthly Review Template",
+      "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "INFO",
+      "required": true
+    },
+    {
+      "key": "newInstall",
+      "title": "newInstall",
+      "description": "Indicates whether the plugin has been newly installed. Used by onUpdateOrInstall() to help migration.",
+      "type": "hidden",
+      "default": true,
+      "required": true
+    }
+  ]
+}
