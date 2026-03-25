@@ -45,13 +45,18 @@ This string includes both the questions and how to lay out the answers in the no
 - `<int>` asks for an integer number
 - `<number>` asks for a number (which may include fractional part)
 - `<string>` asks for a string
+- `<bullets>` asks for one or more lines; each non-empty line is written to the note as a markdown bullet (`- `)
+- `<checklists>` same, but each line is written with a checklist marker (`+ `)
+- `<tasks>` same, but each line is written with a task marker (`* `)
 - `<mood>`select one of the configured moods
 - `<done>` will include the rest of the text in the line and will be included in the output if you answer "Yes" to the "Yes"/"No" question about it
-- `<subheading>` includes the given string as `### Subheading`.
+- `<date>` is not a question: it is replaced in the window and output with the review note title (e.g. `2026-03-25`,  `2026-03` or `2026-W13`).
+- `<h2>` and `<h3>` (or the legacy equivalent `<subheading>`) includes the given string as a usual H2 or H3 markdown heading.
+- You can also use markdown heading lines directly in the settings, for example `## Heading` and `### Subheading`.
 
 Other notes:
 - You can includes line breaks ('new lines') with `\n` characters.
-- You can have multiple questions on a line by separating them with `||` (with or without extra spaces) in the settings string. The answers will also be placed on the one line, but with the `||` removed, and with a space separating them.
+- You can have multiple questions of type `<boolean>`, `<int>` or `<number>` on a line, with any text around them. The answers will also be placed on the one line, but with the `||` removed, and with a space separating them.
 - You can hide the question text by starting it with a dash e.g. `-(thoughts) <string>`. This will just output the entered text. (The identifier is there to work out which question the user currently is on.) ???
 - If a particular question isn't answered (i.e. no input entered), then that question isn't included in the output.
 - If a particular question has already been answered in the note (i.e. if a line starts with the same question text), it won't be asked again.
@@ -62,19 +67,15 @@ A comma-separated list of possible moods to select from.  They don't have to hav
 ### Example for /dayReview
 The following `reviewQuestions` string:
 ```
-@sleep(<number>) || @work(<int>)
-@fruitveg(<int>) || #stretches<boolean> || #closedRings<boolean>
+@sleep(<number>) @work(<int>)
+@fruitveg(<int>) #stretches<boolean> #closedRings<boolean>
 Mood: <mood>
 
 Significant Thoughts <subheading>
-- (Thought 1/3) <string>
-- (Thought 2/3) <string>
-- (Thought 3/3) <string>
+<bullets>
 
-Gratitude <subheading>
-- (Gratitude 1/3) <string>
-- (Gratitude 2/3) <string>
-- (Gratitude 3/3) <string>
+Focus areas for next week <h2>
+<checklists>
 ```
 after answering the questions, would produce something like this in today's note:
 
@@ -88,12 +89,10 @@ Mood: 😇 Blessed
 - Entered thought 1
 - Another thought
 
-### Gratitude
-- Thankful item 1
-- Thankful item 2
-- Isn't there lots to be thankful for!
+## Focus areas for next week
++ Area 1
++ Area 2
 ```
-Tip: you can also avoid answering like in Thought 3/3 - then there is also no bullet point in the final note.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).

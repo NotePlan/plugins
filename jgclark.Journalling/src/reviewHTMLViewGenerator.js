@@ -2,12 +2,13 @@
 //---------------------------------------------------------------
 // HTMLView generation helpers for single-window review mode
 // Jonathan Clark + Cursor
-// last update 2026-03-23 for v2.0.0.b1 by @jgclark + @Cursor
+// last update 2026-03-25 for v2.0.0.b3 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import moment from 'moment'
 import pluginJson from '../plugin.json'
 import type { JournalConfigType, ParsedQuestionType } from './journalHelpers'
+import { REVIEW_QUESTION_TYPE_NAMES_ALT } from './journalHelpers'
 import { RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 import {
@@ -28,8 +29,14 @@ import { RE_SYNC_MARKER } from '@helpers/regex'
 
 const useFlexbox = true
 
+// Types of questions that use a block layout in the review window.
+const blockRowTypes = ['string', 'subheading', 'h2', 'h3', 'bullets', 'checklists', 'tasks']
+
 // Keep in sync with parseQuestions() in journal.js (segment extraction).
-const REVIEW_SEGMENT_RE = new RegExp('[^<]*?<\\s*(?:string|int|number|boolean|mood|subheading)\\s*>\\)?[^\\s]*', 'gi')
+const REVIEW_SEGMENT_RE = new RegExp(
+  `[^<]*?<\\s*(?:${REVIEW_QUESTION_TYPE_NAMES_ALT})\\s*>\\)?[^\\s]*`,
+  'gi',
+)
 
 /** Remove @done(…) from summary lines (date with optional time), global. */
 const RE_DONE_MENTION_STRIP_FOR_SUMMARY_G = new RegExp(RE_DONE_DATE_OPT_TIME.source, 'gi')
@@ -183,6 +190,16 @@ function makeReviewRawQuestionLineDiv(
     .map((q, globalIndex) => ({ q, globalIndex }))
     .filter(({ q }) => q.lineIndex === lineIndex)
 
+  const headingTypes = ['subheading', 'h2', 'h3']
+  const isHeadingOnlyLine = !cleanRawLine.includes('<')
+    && lineQuestionsOrdered.length > 0
+    && lineQuestionsOrdered.every(({ q }) => headingTypes.includes(q.type))
+  if (isHeadingOnlyLine) {
+    return lineQuestionsOrdered
+      .map(({ q, globalIndex }) => makeReviewQuestionRowDiv(q, globalIndex, config, ''))
+      .join('\n')
+  }
+
   const parts: Array<string> = []
   let lastIndex = 0
   let segmentOrdinal = 0
@@ -203,8 +220,9 @@ function makeReviewRawQuestionLineDiv(
     }
     const { q: pq, globalIndex } = pair
     const initialVal = initialAnswers[`q_${globalIndex}`] ?? ''
-    if (pq.type === 'string' || pq.type === 'subheading') {
-      parts.push(`<div class="review-raw-question-line-block">${makeReviewQuestionRowDiv(pq, globalIndex, config, initialVal)}</div>`)
+
+    if (blockRowTypes.includes(pq.type)) {
+      parts.push(`<div class="review-raw-question-line">${makeReviewQuestionRowDiv(pq, globalIndex, config, initialVal)}</div>`)
     } else {
       const { prefix, suffix } = splitSegmentAtTypeMarker(segmentTrimmed, pq.type)
       const control = makeReviewInlineControl(pq, globalIndex, config, initialVal)
@@ -221,9 +239,9 @@ function makeReviewRawQuestionLineDiv(
   }
 
   if (parts.length === 0) {
-    return `<div class="review-raw-question-line"><span class="review-line-text-fragment">${escapeHTML(cleanRawLine)}</span></div>`
+    return `<div class="review-raw-question-line-block"><span class="review-line-text-fragment">${escapeHTML(cleanRawLine)}</span></div>`
   }
-  return `<div class="review-raw-question-line">${parts.join('')}</div>`
+  return `<div class="review-raw-question-line-block">${parts.join('')}</div>`
 }
 
 /**
@@ -233,7 +251,7 @@ function makeReviewRawQuestionLineDiv(
  * @param {Array<TCalendarItem>} eventsForPeriod
  * @returns {string} HTML string for the summary block
  */
-function makePeriodDaysSummaryDiv(periodType: string, eventsForPeriod: Array<TCalendarItem>): string {
+function makePeriodDaysSummaryDiv(_periodType: string, eventsForPeriod: Array<TCalendarItem>): string {
   clo(eventsForPeriod, 'eventsForPeriod')
   const totalDuration = eventsForPeriod.reduce((total, event) => total + getEventDurationHours(event), 0)
   return `
@@ -264,7 +282,7 @@ function getEventDurationHours(event: TCalendarItem): number {
  */
 function makePeriodSummaryDiv(
   periodType: string,
-  periodString: string,
+  _periodString: string,
   completedTasks: Array<string>,
   eventsForPeriod: Array<TCalendarItem>
 ): string {
@@ -279,12 +297,14 @@ function makePeriodSummaryDiv(
     : `<div class="summary-empty">No completed tasks found during the ${periodType}</div>`
 
   const outputHTML = `
+<div class="section-wrap">
   <div><span class="summary-title">${completedTasks.length} completed tasks</span></div>
   <div class="summary-content">
     ${summaryItems}
   </div>
   <div>${makePeriodDaysSummaryDiv(periodType, eventsForPeriod)}
-  </div>`
+  </div>
+</div>`
 
   return outputHTML
 }
@@ -304,15 +324,17 @@ function makeReviewQuestionRowDiv(
   initialValue: string = '',
 ): string {
   const fieldName = `q_${index}`
-  if (parsedQuestion.type === 'subheading') {
-    const cleanSubheading = stripPresentationDelimiters(parsedQuestion.question)
-    return `<div class="review-subheading">${escapeHTML(cleanSubheading)}</div>`
+  if (parsedQuestion.type === 'subheading' || parsedQuestion.type === 'h2' || parsedQuestion.type === 'h3') {
+    const cleanHeading = stripPresentationDelimiters(parsedQuestion.question)
+    const tag = parsedQuestion.type === 'h2' ? 'h2' : 'h3' // `<subheading>` defaults to h3
+    const className = tag
+    return `<div class="review-subheading ${className}">${escapeHTML(cleanHeading)}</div>`
   }
 
   const questionText = stripPresentationDelimiters(parsedQuestion.question).trim()
   const questionLabel = `<label class="review-label" for="${fieldName}">${escapeHTML(questionText)}</label>`
   let control = ''
-  const useInlineRow = useFlexbox && parsedQuestion.type !== 'string' && parsedQuestion.type !== 'subheading'
+  const useInlineRow = useFlexbox && !blockRowTypes.includes(parsedQuestion.type)
   const rowClass = useInlineRow ? 'review-row review-row-inline' : 'review-row'
   const checkedAttr = initialValue === 'yes' ? ' checked' : ''
   switch (parsedQuestion.type) {
@@ -341,8 +363,14 @@ function makeReviewQuestionRowDiv(
       break
     }
     case 'string':
-    default: {
+    case 'bullets':
+    case 'checklists':
+    case 'tasks': {
       control = `<textarea class="review-input" id="${fieldName}" name="${fieldName}" rows="3">${escapeHTML(initialValue)}</textarea>`
+      break
+    }
+    default: {
+      logWarn(`makeReviewQuestionRowDiv(): unknown question type: ${parsedQuestion.type} -- ignoring it.`)
       break
     }
   }
@@ -378,11 +406,12 @@ export function buildReviewHTML(
   initialAnswers?: { [string]: string },
 ): string {
   const resolvedInitialAnswers = initialAnswers ?? {}
-  const questionRows = rawQuestionLines
+  const renderQuestionLines = rawQuestionLines.map((l) => l.replace(/<\s*date\s*>/gi, periodString))
+  const questionRows = renderQuestionLines
     .map((line, lineIndex) => makeReviewRawQuestionLineDiv(line, lineIndex, parsedQuestions, config, resolvedInitialAnswers))
     .filter((row) => row !== '')
     .join('\n')
-  const possibleSummarySection = (periodType === 'day') ? makePeriodSummaryDiv(periodType, summaryCompletedTasks, eventsForPeriod) : ''
+  const possibleSummarySection = (periodType === 'day') ? makePeriodSummaryDiv(periodType, periodString, summaryCompletedTasks, eventsForPeriod) : ''
   
   return `
     <h2 class="review-title">${escapeHTML(periodAdjective)} Review for ${escapeHTML(periodString)}</h2>

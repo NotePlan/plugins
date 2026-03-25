@@ -356,6 +356,7 @@ async function createEventFromDateRange(eventTitle: string, dateRange: DateRange
  * @param {Array<string>} calendarSet optional list of calendars
  * @param {HourMinObj} start optional start time in the day
  * @param {HourMinObj} end optional end time in the day
+ * @param {boolean} includeAllDayEvents optional include all-day events (default: false)
  * @return {Array<TCalendarItem>} array of events as CalendarItems
  */
 export async function getEventsForDay(
@@ -363,9 +364,10 @@ export async function getEventsForDay(
   calendarSet: Array<string> = [],
   start: HourMinObj = { h: 0, m: 0 },
   end: HourMinObj = { h: 23, m: 59 },
+  includeAllDayEvents: boolean = false,
 ): Promise<Array<TCalendarItem> | null> {
   try {
-    // logDebug('NPCalendar / getEventsForDay', `starting with ${dateStr} ${calendarSet.toString()}`)
+    logDebug('NPCalendar / getEventsForDay', `starting with ${dateStrIn} ${calendarSet.toString()}`)
     const dateStr = convertISOToYYYYMMDD(dateStrIn)
     clo(calendarSet)
     const y = parseInt(dateStr.slice(0, 4))
@@ -376,10 +378,16 @@ export async function getEventsForDay(
     // logDebug('NPCalendar / getEventsForDay', `starting for period ${startOfDay.toString()} - ${endOfDay.toString()}`)
     let eArr: Array<TCalendarItem> = await Calendar.eventsBetween(startOfDay, endOfDay)
     const allEventCount = eArr.length
+    // logDebug('NPCalendar / getEventsForDay', `- ${allEventCount} events found (before filtering)`)
 
     // Filter out parts of multi-day events not in today
     eArr = keepTodayPortionOnly(eArr, getDateFromYYYYMMDDString(dateStr) ?? new Date())
 
+    // Filter out all-day events if not wanted
+    if (!includeAllDayEvents) {
+      eArr = eArr.filter((e) => !e.isAllDay)
+    }
+    // logDebug('NPCalendar / getEventsForDay', `- ${eArr.length} events kept (after filtering out all-day events)`)
     // If we have a calendarSet list, use to weed out events that don't match .calendar
     if (calendarSet && calendarSet.length > 0) {
       eArr = eArr.filter((e) => calendarSet.some((c) => e.calendar === c))

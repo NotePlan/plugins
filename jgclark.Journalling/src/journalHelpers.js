@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 2025-10-16 for v1.0.1 by @jgclark
+// last update 2026-03-25 for v2.0.0.b3 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -30,7 +30,8 @@ export type JournalConfigType = {
   monthlyReviewQuestions: string,
   quarterlyReviewQuestions: string,
   yearlyReviewQuestions: string,
-  moods: string
+  moods: string,
+  calendarSet: Array<string>,
 }
 
 export type ParsedQuestionType = {
@@ -39,6 +40,10 @@ export type ParsedQuestionType = {
   originalLine: string,
   lineIndex: number
 }
+
+/** `<type>` names in review question templates — keep in sync with `parseQuestions` and `REVIEW_SEGMENT_RE`. */
+export const REVIEW_QUESTION_TYPE_NAMES_ALT =
+  'string|int|number|boolean|mood|subheading|h2|h3|bullets|checklists|tasks'
 
 //---------------------------------------------------------------
 // Settings

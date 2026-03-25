@@ -4,12 +4,12 @@
   "plugin.id": "jgclark.Journalling",
   "plugin.name": "💭 Journalling & Reviews",
   "plugin.description": "Supports you reviewing your days/weeks/months/quarters/years into NotePlan in a 'Journal' section. Also makes it easier to apply start-of-day/week/month/quarter/year templates. Before use it requires some configuration: please see the documentation for details.",
-  "plugin.icon": "fa-clipboard-list",
+  "plugin.icon": "clipboard-list",
   "plugin.iconColor": "blue-600",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md",
-  "plugin.version": "2.0.0.b2",
+  "plugin.version": "2.0.0.b3",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "v2.0.0: First release of the new Journalling & Reviews plugin, but building on earlier 'Journalling Helpers' plugin (v1).",
   "plugin.requiredFiles": [
@@ -38,7 +38,7 @@
       "sidebarView": {
         "windowID": "jgclark.Journalling.dayReview",
         "title": "Daily Review",
-        "icon": "fa-regular fa-clipboard-list",
+        "icon": "clipboard-list",
         "iconColor": "blue-600"
       }
     },
@@ -216,6 +216,14 @@
       "required": true
     },
     {
+      "key": "calendarSet",
+      "title": "Calendars to include in review summaries",
+      "description": "Comma-separated list of calendar names to include in review summaries. If empty, no filtering will be done, and so all calendars will be included.",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
       "key": "moods",
       "title": "List of moods",
       "description": "(Optional.) A comma-separated list of possible moods to select from.",
@@ -226,7 +234,7 @@
     {
       "key": "dailyReviewQuestions",
       "title": "Daily Journal Questions",
-      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title).",
       "type": "string",
       "default": "@sleep(<int>)\n@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nGratitude: <string>\nGod was: <string>\nAlive: <string>\nNot Great: <string>\nLearn: <string>\nRemember: <string>",
       "required": false
@@ -234,7 +242,7 @@
     {
       "key": "weeklyReviewQuestions",
       "title": "Weekly Journal Questions",
-      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the weekly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the weekly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title).",
       "type": "string",
       "default": "Big win: <string>\nNew/improved: <string>\nRegret: <string>\nFocus for next week: <string>",
       "required": false
@@ -242,7 +250,7 @@
     {
       "key": "monthlyReviewQuestions",
       "title": "Monthly Journal Questions",
-      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the monthly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the monthly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title).",
       "type": "string",
       "default": "What's working well in processes: <string>\nProcesses that need work: <string>Personal Goals progress: <string>",
       "required": false
@@ -250,7 +258,7 @@
     {
       "key": "quarterlyReviewQuestions",
       "title": "Quarterly Journal Questions",
-      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the quarterly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the quarterly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title).",
       "type": "string",
       "default": "Goals met: <string>\nNew goals identified: <string>\nProjects finished: <string>\nNew projects identified: <string>",
       "required": false
@@ -258,7 +266,7 @@
     {
       "key": "yearlyReviewQuestions",
       "title": "Yearly Journal Questions",
-      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the yearly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the yearly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title).",
       "type": "string",
       "default": "Goals met: <string>\nNew goals identified: <string>\nProjects finished: <string>\nNew projects identified: <string>",
       "required": false

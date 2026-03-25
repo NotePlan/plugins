@@ -7,7 +7,7 @@
 
 import strftime from 'strftime'
 import pluginJson from '../plugin.json'
-import { getJournalSettings } from './journalHelpers'
+import { getJournalSettings, REVIEW_QUESTION_TYPE_NAMES_ALT } from './journalHelpers'
 import type { JournalConfigType, ParsedQuestionType } from './journalHelpers'
 import { stylesheetinksInHeader, faLinksInHeader, buildReviewHTML } from './reviewHTMLViewGenerator'
 import { RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE, getWeek, getPeriodOfNPDateStr, isDailyNote, isWeeklyNote, isMonthlyNote, isQuarterlyNote, isYearlyNote } from '@helpers/dateTime'
@@ -181,13 +181,47 @@ async function getQuestionsForPeriod(config: JournalConfigType, period: string):
  */
 export function parseQuestions(questionLines: Array<string> | string): Array<ParsedQuestionType> {
   const parsed = []
-  const typeRE = new RegExp('<\\s*(string|int|number|boolean|mood|subheading)\\s*>', 'i')
-  const segmentRE = new RegExp('[^<]*?<\\s*(?:string|int|number|boolean|mood|subheading)\\s*>\\)?[^\\s]*', 'gi')
+  const typeRE = new RegExp(`<\\s*(${REVIEW_QUESTION_TYPE_NAMES_ALT})\\s*>`, 'i')
+  const segmentRE = new RegExp(`[^<]*?<\\s*(?:${REVIEW_QUESTION_TYPE_NAMES_ALT})\\s*>\\)?[^\\s]*`, 'gi')
   const linesToProcess = Array.isArray(questionLines) ? questionLines : String(questionLines ?? '').split('\n')
 
   // Process each line, splitting by '||' to support multiple questions per line
   for (let lineIndex = 0; lineIndex < linesToProcess.length; lineIndex++) {
     const line = linesToProcess[lineIndex]
+    // Support explicit typed heading lines, e.g. `<h2> Heading` / `<h3>Heading`.
+    // These are not questions: they are carried through as heading blocks in the output.
+    const mTypedH2 = line.match(/^\s*<\s*h2\s*>\s*(.+)$/i)
+    if (mTypedH2) {
+      parsed.push({ question: String(mTypedH2[1] ?? '').trim(), type: 'h2', originalLine: line, lineIndex })
+      continue
+    }
+    const mTypedH3 = line.match(/^\s*<\s*h3\s*>\s*(.+)$/i)
+    if (mTypedH3) {
+      parsed.push({ question: String(mTypedH3[1] ?? '').trim(), type: 'h3', originalLine: line, lineIndex })
+      continue
+    }
+    // Support markdown heading lines in the settings, e.g. `## Heading` or `### Subheading`.
+    // These are carried through as HTML heading tags in the output.
+    const mH2 = line.match(/^##\s+(.+)$/)
+    if (mH2) {
+      parsed.push({ question: String(mH2[1] ?? '').trim(), type: 'h2', originalLine: line, lineIndex })
+      continue
+    }
+    const mH3 = line.match(/^###\s+(.+)$/)
+    if (mH3) {
+      parsed.push({ question: String(mH3[1] ?? '').trim(), type: 'h3', originalLine: line, lineIndex })
+      continue
+    }
+    // Support `<h2>` / `<h3>` markers as trailing decorators (e.g. `Title<h2>`).
+    // In this case, treat the line as a plain string question (marker is ignored for typing).
+    const mTrailingHeadingDecorator = line.match(/^(.*?)\s*<\s*(h2|h3)\s*>\s*$/i)
+    if (mTrailingHeadingDecorator) {
+      const base = String(mTrailingHeadingDecorator[1] ?? '').trim()
+      if (base !== '') {
+        parsed.push({ question: base, type: 'string', originalLine: `${base}: <string>`, lineIndex })
+        continue
+      }
+    }
     // Split the line by '||' to get individual questions (allowing optional whitespace around ||)
     const questionParts = line.split(/\s*\|\|\s*/).map(part => part.trim()).filter(part => part !== '')
 
@@ -202,7 +236,12 @@ export function parseQuestions(questionLines: Array<string> | string): Array<Par
         // Prefer #/@ tokens when present (e.g. #bible<boolean>, @sleep(<int>))
         const tokenMatch = segment.match(/([@#][^\s(<]+)/)
         const question = tokenMatch?.[1]
-          ?? segment.replace(/:|\(|\)|<string>|<int>|<number>|<boolean>|<mood>|<subheading>/gi, '').trim()
+          ?? segment
+            .replace(
+              /:|\(|\)|<string>|<int>|<number>|<boolean>|<mood>|<subheading>|<h2>|<h3>|<bullets>|<checklists>|<tasks>/gi,
+              '',
+            )
+            .trim()
         // logDebug(pluginJson, `- Q#${questionNum}: Line ${lineIndex}, type:${questionType} "${question}"`)
         parsed.push({ question, type: questionType, originalLine: segment, lineIndex })
       }
@@ -213,12 +252,24 @@ export function parseQuestions(questionLines: Array<string> | string): Array<Par
 }
 
 /**
- * Handle a subheading question type.
+ * Handle an HTML heading question type.
+ * @param {string} question the question text
+ * @param {string} headingType 'h2' | 'h3' | 'subheading' (legacy)
+ * @returns {string} the formatted heading block
+ */
+function handleHeadingQuestion(question: string, headingType: string): string {
+  const cleanHeading = question.replace(/<(?:subheading|h2|h3)>\s*$/i, '').trim()
+  const tag = headingType === 'h2' ? 'h2' : 'h3'
+  return `\n<${tag} class="review-subheading ${tag}">${cleanHeading}</${tag}>`
+}
+
+/**
+ * Handle a legacy `<subheading>` question type.
  * @param {string} question the question text
  * @returns {string} the formatted subheading line
  */
 function handleSubheadingQuestion(question: string): string {
-  return '\n### '.concat(question.replace(/<subheading>/, ''))
+  return handleHeadingQuestion(question, 'subheading')
 }
 
 /**
@@ -228,6 +279,55 @@ function handleSubheadingQuestion(question: string): string {
  */
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/** Output prefix per line for multiline journal types (`<bullets>`, `<checklists>`, `<tasks>`). */
+const MULTILINE_ANSWER_PREFIX_BY_TYPE: { [string]: string } = {
+  bullets: '- ',
+  checklists: '+ ',
+  tasks: '* ',
+}
+
+/**
+ * Markdown prefix written before each answer line for a multiline question type.
+ * @param {string} questionType
+ * @returns {string}
+ */
+function linePrefixForMultilineAnswerType(questionType: string): string {
+  return MULTILINE_ANSWER_PREFIX_BY_TYPE[questionType.toLowerCase()] ?? ''
+}
+
+/**
+ * Remove leading line markers from saved note text so the review textarea shows plain lines.
+ * @param {string} rawBlock
+ * @param {string} linePrefix e.g. '- '
+ * @returns {string}
+ */
+function stripMultilineAnswerPrefixes(rawBlock: string, linePrefix: string): string {
+  if (linePrefix === '') {
+    return rawBlock.trim()
+  }
+  return rawBlock
+    .split(/\r?\n/)
+    .map((l) => {
+      const trimmed = l.trim()
+      if (trimmed.startsWith(linePrefix)) {
+        return trimmed.slice(linePrefix.length).trim()
+      }
+      return trimmed
+    })
+    .join('\n')
+    .trim()
+}
+
+/**
+ * Replace `<date>` placeholders with the review note title string.
+ * @param {string} input
+ * @param {string} periodString
+ * @returns {string}
+ */
+function substituteDateToken(input: string, periodString: string): string {
+  return input.replace(/<\s*date\s*>/gi, periodString)
 }
 
 /**
@@ -287,7 +387,7 @@ function getParagraphLineContentsForReviewScan(note: TNote, reviewSectionHeading
 function extractExistingAnswerOnLine(parsedQuestion: ParsedQuestionType, line: string): string {
   const t = parsedQuestion.type.toLowerCase()
   const seg = parsedQuestion.originalLine.trim()
-  if (t === 'subheading') {
+  if (t === 'subheading' || t === 'h2' || t === 'h3') {
     return ''
   }
   if (t === 'boolean') {
@@ -311,8 +411,41 @@ function extractExistingAnswerOnLine(parsedQuestion: ParsedQuestionType, line: s
     const m = line.match(re)
     return m?.[1] != null ? m[1] : ''
   }
+  if (t === 'bullets' || t === 'checklists' || t === 'tasks') {
+    const marker = linePrefixForMultilineAnswerType(t)
+    const { prefix, suffix } = splitParsedSegmentAtTypeMarker(seg, parsedQuestion.type)
+    if (suffix === '') {
+      // If the template line is just `<bullets>`/`<checklists>`/`<tasks>`, only treat lines that actually begin with that marker as a match.
+      if (prefix === '') {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith(marker.trim())) {
+          return ''
+        }
+        return stripMultilineAnswerPrefixes(trimmed, marker)
+      }
+      const idx = line.indexOf(prefix)
+      if (idx < 0) {
+        return ''
+      }
+      const raw = line.slice(idx + prefix.length).trim()
+      if (raw === '') {
+        return ''
+      }
+      return stripMultilineAnswerPrefixes(raw, marker)
+    }
+    const re = new RegExp(`${escapeRegExp(prefix)}([\\s\\S]*?)${escapeRegExp(suffix)}`)
+    const m = line.match(re)
+    if (m?.[1] == null) {
+      return ''
+    }
+    return stripMultilineAnswerPrefixes(m[1].trim(), marker)
+  }
   if (t === 'mood' || t === 'string') {
     if (suffix === '') {
+      // If template is just `<string>` (no prefix), it's too ambiguous to pre-fill reliably (it would match every line).
+      if (prefix === '') {
+        return ''
+      }
       const idx = line.indexOf(prefix)
       if (idx < 0) {
         return ''
@@ -394,7 +527,7 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
     return on ? parsedQuestion.question : ''
   }
   const answer = (typeof answerRaw === 'string' ? answerRaw : String(answerRaw ?? '')).trim()
-  if (answer === '') {
+  if (answer === '' && t !== 'subheading' && t !== 'h2' && t !== 'h3') {
     return ''
   }
   switch (t) {
@@ -416,8 +549,30 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
     case 'mood': {
       return parsedQuestion.originalLine.replace(/<mood>/, answer)
     }
+    case 'bullets':
+    case 'checklists':
+    case 'tasks': {
+      const marker = linePrefixForMultilineAnswerType(t)
+      const lines = answer.split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== '')
+      if (lines.length === 0) {
+        return ''
+      }
+      const formatted = lines.map((l) => `${marker}${l}`).join('\n')
+      const ol = parsedQuestion.originalLine
+      if (ol.trimStart().startsWith('-')) {
+        return formatted
+      }
+      const tagRe = new RegExp(`<\\s*${escapeRegExp(t)}\\s*>`, 'i')
+      return ol.replace(tagRe, formatted)
+    }
     case 'subheading': {
       return handleSubheadingQuestion(parsedQuestion.question)
+    }
+    case 'h2': {
+      return handleHeadingQuestion(parsedQuestion.question, 'h2')
+    }
+    case 'h3': {
+      return handleHeadingQuestion(parsedQuestion.question, 'h3')
     }
     default: {
       return ''
@@ -431,13 +586,19 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
  * @param {{ [string]: string | boolean }} answersByIndex
  * @returns {string}
  */
-function buildOutputFromReviewWindowAnswers(parsedQuestions: Array<ParsedQuestionType>, answersByIndex: { [string]: string | boolean }): string {
+function buildOutputFromReviewWindowAnswers(
+  parsedQuestions: Array<ParsedQuestionType>,
+  rawQuestionLines: Array<string>,
+  periodString: string,
+  answersByIndex: { [string]: string | boolean },
+): string {
   let output = ''
   const questionsByLine = groupQuestionsByLine(parsedQuestions)
-  const lineIndices = Object.keys(questionsByLine).map(Number).sort((a, b) => a - b)
+  const lineCount = rawQuestionLines.length
+  const stripPresentationDelimiters = (input: string): string => input.replace(/ \|\| /g, ' ')
 
-  for (const lineIndex of lineIndices) {
-    const lineQuestions = questionsByLine[lineIndex]
+  for (let lineIndex = 0; lineIndex < lineCount; lineIndex++) {
+    const lineQuestions = questionsByLine[lineIndex] ?? []
     const lineAnswers: Array<string> = []
     for (let i = 0; i < lineQuestions.length; i++) {
       const globalIndex = parsedQuestions.findIndex((q) => q === lineQuestions[i])
@@ -453,9 +614,22 @@ function buildOutputFromReviewWindowAnswers(parsedQuestions: Array<ParsedQuestio
       }
     }
     if (lineAnswers.length > 0) {
-      let combinedLine = lineAnswers.join(' ')
-      combinedLine = combinedLine.replace(/\s+/g, ' ')
-      output += `${combinedLine}\n`
+      const hasMultiline = lineAnswers.some((a) => a.includes('\n'))
+      let combinedLine = hasMultiline ? lineAnswers.join('\n') : lineAnswers.join(' ')
+      if (!hasMultiline) {
+        combinedLine = combinedLine.replace(/\s+/g, ' ')
+      }
+      output += `${substituteDateToken(combinedLine, periodString)}\n`
+      continue
+    }
+
+    // If there are no questions/answers on this line, still carry `<date>` through into output.
+    const rawLine = rawQuestionLines[lineIndex] ?? ''
+    if (/<\s*date\s*>/i.test(rawLine)) {
+      const substituted = substituteDateToken(stripPresentationDelimiters(rawLine), periodString).trim()
+      if (substituted !== '') {
+        output += `${substituted}\n`
+      }
     }
   }
   return output
@@ -627,10 +801,10 @@ async function displayQuestionsWindow(
   calendarNote: TNote,
 ): Promise<void> {
   // Get the data sources we need for the review window
-  // const periodTitle = getReviewPeriodTitle(periodType)
   const summaryCompletedTasks = (periodAdjective === 'Day') ? getSummaryCompletedTasks(periodType, periodString) : []
-  const calendarSet: Array<string> = ['Jonathan (iCloud)', 'Us (iCloud)']
-  const eventsForPeriod: Array<TCalendarItem> = (periodType === 'Day') ? await getEventsForDay('2026-03-28', calendarSet) ?? [] : []
+  const calendarSet: Array<string> = config.calendarSet ?? []
+  logDebug(pluginJson, `calendarSet: [${String(calendarSet)}]`)
+  const eventsForPeriod: Array<TCalendarItem> = (periodType === 'day') ? await getEventsForDay(periodString, calendarSet) ?? [] : []
   clo(eventsForPeriod, 'eventsForPeriod')
   const scanLines = getParagraphLineContentsForReviewScan(calendarNote, config.reviewSectionHeading ?? '')
   const initialAnswers = buildInitialReviewAnswersByFieldName(parsedQuestions, scanLines)
@@ -661,7 +835,7 @@ async function displayQuestionsWindow(
     showReloadButton: true,
     reloadPluginID: pluginJson['plugin.id'],
     reloadCommandName: REVIEW_WINDOW_CALLBACK_COMMAND,
-    icon: 'fa-regular fa-clipboard-list',
+    icon: 'clipboard-list',
     iconColor: 'blue-600',
     autoTopPadding: true,
     makeModal: false,
@@ -803,7 +977,7 @@ export async function onReviewWindowAction(actionName: string, payload: string =
     const periodString = safePayload.periodString ?? ''
     const questionLines = await getQuestionsForPeriod(config, periodType)
     const parsedQuestions = parseQuestions(questionLines)
-    const output = buildOutputFromReviewWindowAnswers(parsedQuestions, answers)
+    const output = buildOutputFromReviewWindowAnswers(parsedQuestions, questionLines, periodString, answers)
     if (output !== '') {
       await writeAnswersToNote(periodString, output)
     } else {

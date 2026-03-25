@@ -11,6 +11,7 @@ import pluginJson from '../plugin.json'
 import { clo, compareObjects, JSP, logDebug, logInfo, logError } from "@helpers/dev"
 import { backupSettings, getSettings, pluginUpdated, saveSettings } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
+import { getEventsForDay } from '@helpers/NPCalendar'
 
 const pluginID = 'jgclark.Journalling'
 const oldPluginID = 'jgclark.DailyJournal'
