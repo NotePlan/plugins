@@ -17,6 +17,7 @@
 import { addMinutes, differenceInMinutes } from 'date-fns'
 import { keepTodayPortionOnly, RE_EVENT_ID } from './calendar'
 import {
+  convertISOToYYYYMMDD,
   getDateFromYYYYMMDDString,
   getISODateStringFromYYYYMMDD,
   type HourMinObj,
@@ -347,25 +348,25 @@ async function createEventFromDateRange(eventTitle: string, dateRange: DateRange
 }
 
 /**
- * Get list of events for the given day (specified as YYYYMMDD).
- * Now also filters out any that don't come from one of the calendars specified
- * in calendarSet.
+ * Get list of events for the given day (specified as YYYYMMDD or YYYY-MM-DD).
+ * Now also filters out any that don't come from one of the calendars specified in calendarSet.
  * @author @jgclark
  *
- * @param {string} dateStr YYYYMMDD date to use
+ * @param {string} dateStr YYYYMMDD or ISO date string or YYYY-Wnn date to use
  * @param {Array<string>} calendarSet optional list of calendars
  * @param {HourMinObj} start optional start time in the day
  * @param {HourMinObj} end optional end time in the day
  * @return {Array<TCalendarItem>} array of events as CalendarItems
  */
 export async function getEventsForDay(
-  dateStr: string,
+  dateStrIn: string,
   calendarSet: Array<string> = [],
   start: HourMinObj = { h: 0, m: 0 },
   end: HourMinObj = { h: 23, m: 59 },
 ): Promise<Array<TCalendarItem> | null> {
   try {
     // logDebug('NPCalendar / getEventsForDay', `starting with ${dateStr} ${calendarSet.toString()}`)
+    const dateStr = convertISOToYYYYMMDD(dateStrIn)
     clo(calendarSet)
     const y = parseInt(dateStr.slice(0, 4))
     const m = parseInt(dateStr.slice(4, 6))

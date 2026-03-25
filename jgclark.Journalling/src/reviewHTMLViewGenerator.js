@@ -5,9 +5,23 @@
 // last update 2026-03-23 for v2.0.0.b1 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
+import moment from 'moment'
 import pluginJson from '../plugin.json'
 import type { JournalConfigType, ParsedQuestionType } from './journalHelpers'
-import { makePluginCommandButton } from '@helpers/HTMLView.js'
+import { RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
+import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
+import {
+  convertBoldAndItalicToHTML,
+  convertHashtagsToHTML,
+  convertHighlightsToHTML,
+  convertMentionsToHTML,
+  convertUnderlinedToHTML,
+  makePluginCommandButton,
+  replaceMarkdownLinkWithHTMLLink,
+  simplifyInlineImagesForHTML,
+  simplifyNPEventLinksForHTML,
+} from '@helpers/HTMLView.js'
+import { RE_SYNC_MARKER } from '@helpers/regex'
 
 //-----------------------------------------------------------------------------
 // Constants
@@ -16,6 +30,9 @@ const useFlexbox = true
 
 // Keep in sync with parseQuestions() in journal.js (segment extraction).
 const REVIEW_SEGMENT_RE = new RegExp('[^<]*?<\\s*(?:string|int|number|boolean|mood|subheading)\\s*>\\)?[^\\s]*', 'gi')
+
+/** Remove @done(…) from summary lines (date with optional time), global. */
+const RE_DONE_MENTION_STRIP_FOR_SUMMARY_G = new RegExp(RE_DONE_DATE_OPT_TIME.source, 'gi')
 
 //-----------------------------------------------------------------------------
 // HTML template strings
@@ -60,6 +77,27 @@ function stripPresentationDelimiters(input: string): string {
 }
 
 /**
+ * Format one done-task line for HTML using the same NotePlan-oriented conversions as getNoteContentAsHTML (minus full-note showdown).
+ * @param {string} taskLine
+ * @returns {string}
+ */
+function formatTaskAsHTML(taskLine: string): string {
+  let line = taskLine.replace(RE_DONE_MENTION_STRIP_FOR_SUMMARY_G, '').replace(/\s{2,}/g, ' ').trim()
+  line = line.replace(RE_SYNC_MARKER, '')
+  line = line.trimRight()
+  line = convertBoldAndItalicToHTML(line)
+  line = replaceMarkdownLinkWithHTMLLink(line)
+  line = simplifyNPEventLinksForHTML(line)
+  line = simplifyInlineImagesForHTML(line)
+  line = convertHashtagsToHTML(line)
+  line = convertMentionsToHTML(line)
+  line = convertHighlightsToHTML(line)
+  line = line.replace(/\[\[([^\]]+)\]\]/g, (_match, title) => `~${String(title)}~`)
+  line = convertUnderlinedToHTML(line)
+  return line
+}
+
+/**
  * Split a question segment at the typed marker (e.g. `<int>`) so controls can sit inline with prefix/suffix text.
  * @param {string} segment
  * @param {string} questionType
@@ -84,21 +122,30 @@ function splitSegmentAtTypeMarker(segment: string, questionType: string): {| pre
  * @param {JournalConfigType} config
  * @returns {string}
  */
-function makeReviewInlineControl(parsedQuestion: ParsedQuestionType, globalIndex: number, config: JournalConfigType): string {
+function makeReviewInlineControl(
+  parsedQuestion: ParsedQuestionType,
+  globalIndex: number,
+  config: JournalConfigType,
+  initialValue: string = '',
+): string {
   const fieldName = `q_${globalIndex}`
+  const checkedAttr = initialValue === 'yes' ? ' checked' : ''
   switch (parsedQuestion.type) {
     case 'boolean': {
-      return `<input class="review-checkbox" id="${fieldName}" name="${fieldName}" type="checkbox" value="yes" />`
+      return `<input class="review-checkbox" id="${fieldName}" name="${fieldName}" type="checkbox" value="yes"${checkedAttr} />`
     }
     case 'int':
     case 'number': {
-      return `<input class="review-input review-input-short review-input-inline" id="${fieldName}" name="${fieldName}" type="text" value="" />`
+      return `<input class="review-input review-input-short review-input-inline" id="${fieldName}" name="${fieldName}" type="text" value="${escapeHTML(initialValue)}" />`
     }
     case 'mood': {
       const moodArray = typeof config.moods === 'string' ? config.moods.split(',').map((m) => m.trim()) : config.moods
       const moodOptions = moodArray
         .filter((m) => m !== '')
-        .map((mood) => `<option value="${escapeHTML(mood)}">${escapeHTML(mood)}</option>`)
+        .map((mood) => {
+          const selectedAttr = mood === initialValue ? ' selected' : ''
+          return `<option value="${escapeHTML(mood)}"${selectedAttr}>${escapeHTML(mood)}</option>`
+        })
         .join('')
       return `<select class="review-input review-input-fit review-input-inline" id="${fieldName}" name="${fieldName}">
         <option value="">Skip</option>
@@ -125,6 +172,7 @@ function makeReviewRawQuestionLineDiv(
   lineIndex: number,
   parsedQuestions: Array<ParsedQuestionType>,
   config: JournalConfigType,
+  initialAnswers: { [string]: string },
 ): string {
   const cleanRawLine = stripPresentationDelimiters(rawLine)
   if (cleanRawLine.trim() === '') {
@@ -154,11 +202,12 @@ function makeReviewRawQuestionLineDiv(
       continue
     }
     const { q: pq, globalIndex } = pair
+    const initialVal = initialAnswers[`q_${globalIndex}`] ?? ''
     if (pq.type === 'string' || pq.type === 'subheading') {
-      parts.push(`<div class="review-raw-question-line-block">${makeReviewQuestionRowDiv(pq, globalIndex, config)}</div>`)
+      parts.push(`<div class="review-raw-question-line-block">${makeReviewQuestionRowDiv(pq, globalIndex, config, initialVal)}</div>`)
     } else {
       const { prefix, suffix } = splitSegmentAtTypeMarker(segmentTrimmed, pq.type)
-      const control = makeReviewInlineControl(pq, globalIndex, config)
+      const control = makeReviewInlineControl(pq, globalIndex, config, initialVal)
       parts.push(
         `<span class="review-line-segment">${escapeHTML(prefix)}${control}${escapeHTML(suffix)}</span>`,
       )
@@ -178,6 +227,69 @@ function makeReviewRawQuestionLineDiv(
 }
 
 /**
+ * Build a summary of calendar events for the review period: count and total timed duration (all-day excluded from hours).
+ * @param {string} periodType
+ * @param {string} periodString
+ * @param {Array<TCalendarItem>} eventsForPeriod
+ * @returns {string} HTML string for the summary block
+ */
+function makePeriodDaysSummaryDiv(periodType: string, eventsForPeriod: Array<TCalendarItem>): string {
+  clo(eventsForPeriod, 'eventsForPeriod')
+  const totalDuration = eventsForPeriod.reduce((total, event) => total + getEventDurationHours(event), 0)
+  return `
+    <span class="summary-title">${eventsForPeriod.length} events, ${totalDuration.toFixed(1)} hours</span>`
+}
+
+/**
+ * Duration of a calendar item in hours (all-day => 0; uses `date` and `endDate` like EventHelpers).
+ * @param {TCalendarItem} event
+ * @returns {number}
+ */
+function getEventDurationHours(event: TCalendarItem): number {
+  if (event.isAllDay) {
+    return 0
+  }
+  const end = event.endDate != null ? event.endDate : event.date
+  return Math.max(0, moment(end).diff(moment(event.date), 'minutes') / 60)
+}
+
+/**
+ * Build a summary div for the review period.
+ * Present completed tasks in a nicely formatted multi-column list in small writing. Each one should start with a circle-check icon.
+ * @param {string} periodType
+ * @param {string} periodString
+ * @param {Array<string>} completedTasks
+ * @param {Array<TCalendarItem>} eventsForPeriod
+ * @returns {string} HTML string for the summary div
+ */
+function makePeriodSummaryDiv(
+  periodType: string,
+  periodString: string,
+  completedTasks: Array<string>,
+  eventsForPeriod: Array<TCalendarItem>
+): string {
+  const summaryItems = completedTasks.length > 0
+    ? completedTasks.map((taskLine) => `
+      <div class="summary-item">
+        <div class="summary-item-icon" aria-hidden="true">
+          <i class="fa-regular fa-circle-check"></i>
+        </div>
+        <div class="summary-item-text">${formatTaskAsHTML(taskLine)}</div>
+      </div>`).join('\n')
+    : `<div class="summary-empty">No completed tasks found during the ${periodType}</div>`
+
+  const outputHTML = `
+  <div><span class="summary-title">${completedTasks.length} completed tasks</span></div>
+  <div class="summary-content">
+    ${summaryItems}
+  </div>
+  <div>${makePeriodDaysSummaryDiv(periodType, eventsForPeriod)}
+  </div>`
+
+  return outputHTML
+}
+
+/**
  * Build a single form row for one question (used for string, subheading, and legacy paths).
  * Note: This assumes one question per line. *So no longer used for boolean/int/number/mood inline types (I hope).*
  * @param {ParsedQuestionType} parsedQuestion
@@ -188,7 +300,8 @@ function makeReviewRawQuestionLineDiv(
 function makeReviewQuestionRowDiv(
   parsedQuestion: ParsedQuestionType,
   index: number,
-  config: JournalConfigType
+  config: JournalConfigType,
+  initialValue: string = '',
 ): string {
   const fieldName = `q_${index}`
   if (parsedQuestion.type === 'subheading') {
@@ -201,21 +314,25 @@ function makeReviewQuestionRowDiv(
   let control = ''
   const useInlineRow = useFlexbox && parsedQuestion.type !== 'string' && parsedQuestion.type !== 'subheading'
   const rowClass = useInlineRow ? 'review-row review-row-inline' : 'review-row'
+  const checkedAttr = initialValue === 'yes' ? ' checked' : ''
   switch (parsedQuestion.type) {
     case 'boolean': {
-      control = `<input class="review-checkbox" id="${fieldName}" name="${fieldName}" type="checkbox" value="yes" />`
+      control = `<input class="review-checkbox" id="${fieldName}" name="${fieldName}" type="checkbox" value="yes"${checkedAttr} />`
       break
     }
     case 'int':
     case 'number': {
-      control = `<input class="review-input review-input-short" id="${fieldName}" name="${fieldName}" type="text" value="" />`
+      control = `<input class="review-input review-input-short" id="${fieldName}" name="${fieldName}" type="text" value="${escapeHTML(initialValue)}" />`
       break
     }
     case 'mood': {
       const moodArray = (typeof config.moods === 'string') ? config.moods.split(',').map((m) => m.trim()) : config.moods
       const moodOptions = moodArray
         .filter((m) => m !== '')
-        .map((mood) => `<option value="${escapeHTML(mood)}">${escapeHTML(mood)}</option>`)
+        .map((mood) => {
+          const selectedAttr = mood === initialValue ? ' selected' : ''
+          return `<option value="${escapeHTML(mood)}"${selectedAttr}>${escapeHTML(mood)}</option>`
+        })
         .join('')
       control = `<select class="review-input review-input-fit" id="${fieldName}" name="${fieldName}">
         <option value="">Skip</option>
@@ -225,7 +342,7 @@ function makeReviewQuestionRowDiv(
     }
     case 'string':
     default: {
-      control = `<textarea class="review-input" id="${fieldName}" name="${fieldName}" rows="3"></textarea>`
+      control = `<textarea class="review-input" id="${fieldName}" name="${fieldName}" rows="3">${escapeHTML(initialValue)}</textarea>`
       break
     }
   }
@@ -239,31 +356,39 @@ function makeReviewQuestionRowDiv(
  * @param {JournalConfigType} config
  * @param {Array<ParsedQuestionType>} parsedQuestions same order as parseQuestions(rawQuestionLines) (field names q_0 …)
  * @param {Array<string>} rawQuestionLines lines from getQuestionsForPeriod()
+ * @param {Array<string>} summaryCompletedTasks
  * @param {string} periodAdjective
+ * @param {string} periodType
  * @param {string} periodString the calendar note title string for the review period
+ * @param {Array<TCalendarItem>} eventsForPeriod
  * @param {string} callbackCommandName
+ * @param {{ [string]: string }=} initialAnswers field names q_0 … to pre-fill from the calendar note
  * @returns {string}
  */
 export function buildReviewHTML(
   config: JournalConfigType,
   parsedQuestions: Array<ParsedQuestionType>,
   rawQuestionLines: Array<string>,
-  periodAdjective: string,
-  periodType: string,
+  summaryCompletedTasks: Array<string>,
   periodString: string,
+  periodType: string,
+  periodAdjective: string,
+  eventsForPeriod: Array<TCalendarItem>,
   callbackCommandName: string,
+  initialAnswers?: { [string]: string },
 ): string {
+  const resolvedInitialAnswers = initialAnswers ?? {}
   const questionRows = rawQuestionLines
-    .map((line, lineIndex) => makeReviewRawQuestionLineDiv(line, lineIndex, parsedQuestions, config))
+    .map((line, lineIndex) => makeReviewRawQuestionLineDiv(line, lineIndex, parsedQuestions, config, resolvedInitialAnswers))
     .filter((row) => row !== '')
     .join('\n')
+  const possibleSummarySection = (periodType === 'day') ? makePeriodSummaryDiv(periodType, summaryCompletedTasks, eventsForPeriod) : ''
+  
   return `
-    <h2 class="review-title">${escapeHTML(periodAdjective)} Review for ${periodString}</h2>
-    <!--
-    <div class="section-wrap">
-      <p class="review-description">Something here ...</p>
-    </div>
-    -->
+    <h2 class="review-title">${escapeHTML(periodAdjective)} Review for ${escapeHTML(periodString)}</h2>
+    
+    ${possibleSummarySection}
+    
     <div class="section-wrap">
       <form id="review-form" class="review-form">
         ${questionRows}

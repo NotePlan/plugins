@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md",
-  "plugin.version": "2.0.0.b1",
+  "plugin.version": "2.0.0.b2",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "v2.0.0: First release of the new Journalling & Reviews plugin, but building on earlier 'Journalling Helpers' plugin (v1).",
   "plugin.requiredFiles": [
@@ -157,7 +157,12 @@
       ]
     },
     {
-      "name": "Journalling: Test onUpdateOrInstall",
+      "name": "Journalling: writeAnswersToNote",
+      "description": "writeAnswersToNote",
+      "jsFunction": "writeAnswersToNote"
+    },
+    {
+      "name": "Journalling: onUpdateOrInstall",
       "description": "onUpdateOrInstall",
       "jsFunction": "onUpdateOrInstall"
     }

@@ -3,7 +3,7 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2025-10-10 for v1.15.0 by @jgclark
+// last update 2026-03-24 for v2.0.0.b2 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -22,6 +22,7 @@ export {
   monthlyJournalQuestions,
   quarterlyJournalQuestions,
   yearlyJournalQuestions,
+  writeAnswersToNote // TODO(later): remove
 } from './journal'
 
 export {

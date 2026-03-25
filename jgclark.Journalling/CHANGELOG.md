@@ -3,13 +3,23 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
-## [2.0.0.b1] - 2026-03-23
-### Added
+## [2.0.0.b2] - 2026-03-24
+### Fixed
+- Review window `textarea` controls now wrap text correctly (`reviews.css` had inherited `white-space: nowrap` from the shared form-control rule).
+
+### New
+- When opening the review window, answers already present in the calendar note are pre-filled in the matching controls (under your **Review section heading** when that heading exists; otherwise the whole note is scanned). Latest matching paragraph wins so you can edit the most recent review block.
+- Added a period summary list above review questions: daily shows Dashboard-style completed tasks from changed notes for that day, and week/month/quarter/year show only in-period done items tagged `#win` or `#bigwin`, rendered with multi-column circle-check entries. Period boundaries use `getFirstDateInPeriod` / `getLastDateInPeriod`; task text uses the same HTMLView conversion helpers as note HTML export (hashtags, mentions, links, etc.). Summary lines omit the `@done(…)` stamp for readability.
+- Calendar event counts and timed duration in the summary use **EventHelpers** settings (`getEventsSettings`) and the same per-day `getEventsForDay` loop as EventHelpers’ `listDaysEvents`, with deduping for multi-day items.
+
+## [2.0.0.b1] - 2026-03-24
+### New
 - The **daily/weekly/monthly/...Review** commands now ask all their questions in a single window and writes answers to the review section in the usual format. It lays out the questions and spaces for answers as it will be added into the note, according to your settings.
 - As usual for my plugins, this picks up colours and fonts from your current NP Theme.
 - Added a `Review Window type` setting to choose the style of review window to use: 'New Window' for a separate window; 'Main Window' to take over the main window; 'Split View' for a split view in the main window.
 - Added `Open the calendar note when reviewing it?` setting (default: `true`) so review commands no longer ask the opening question.
 - The settings for review questions now no longer needs to have ` || ` delimiters.
+- It will migrate settings from the old **Journalling Helpers** plugin on first install.
 
 ### Fixed
 - Fixed a single-window review callback bridge bug that generated extra quotes around `DataStore.invokePluginCommandByName(...)`, causing a runtime JavaScript `SyntaxError` when submitting or cancelling.

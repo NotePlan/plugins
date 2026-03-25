@@ -18,6 +18,56 @@ body {
   color: var(--h2-color, #5c5f77);
 }
 
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.summary-title {
+  font-weight: 600;
+  color: var(--h3-color, #5c5f77);
+}
+
+.summary-content {
+  column-count: 2;
+  column-gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.summary-item {
+  break-inside: avoid;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.summary-item-icon {
+  color: #098308A0; /* TODO: set this to a theme colour */
+  line-height: 1.2;
+  margin-top: 0.04rem;
+  flex-shrink: 0;
+}
+
+.summary-item-text {
+  line-height: 1.25;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.summary-item-text .hashtag {
+  color: var(--hashtag-color, inherit);
+}
+
+.summary-item-text .attag {
+  color: var(--attag-color, inherit);
+}
+
+.summary-empty {
+  color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
+}
+
 .review-form {
   display: flex;
   flex-direction: column;
@@ -69,9 +119,7 @@ body {
   gap: 0.5rem;
 }
 .review-label {
-  /* margin-left: 0.4rem; */
-  /* font-weight: 500; */
-  /* color: var(--h3-color, #5c5f77); */
+  font-weight: 500;
 }
 .review-answer-inline {
   flex: 0 0 auto;
@@ -128,6 +176,12 @@ button, input, select, textarea {
     /* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
     filter: brightness(102%);
   }
+}
+
+/* Shared rule above uses white-space: nowrap for buttons/inputs; textareas must wrap. */
+textarea {
+  white-space: pre-wrap;
+  cursor: text;
 }
 
 /* textarea, input, select {

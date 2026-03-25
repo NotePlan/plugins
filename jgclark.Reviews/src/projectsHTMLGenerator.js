@@ -344,7 +344,7 @@ function formatProjectTitleForStyle(thisProject: Project, style: string, config:
       // Method 1: make [[notelinks]] via x-callbacks
       // Method 2: x-callback using note title
       // Method 3: x-callback using filename
-      // Note: using an "onclick="window.location.href='${noteOpenActionURL}'" handler instead of an anchor tag doesn't work in the NP constrained environment.
+      // Note: using an "onclick="window.location.href='${noteOpenActionURL}'" handler instead of an anchor tag doesn't work in the NP constrained environment. (Is this still true?)
       // Note: now using splitView if running in the main window on macOS
       const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
       const extraClasses = (thisProject.isCompleted) ? 'checked' : (thisProject.isCancelled) ? 'cancelled' : (thisProject.isPaused) ? 'paused' : ''

@@ -1,6 +1,6 @@
 /* globals describe, expect, test, it, jest, beforeAll, beforeEach, afterEach */
 
-import { parseQuestions } from '../src/journal'
+import { buildInitialReviewAnswersByFieldName, parseQuestions } from '../src/journal'
 import { DataStore } from '@mocks/index'
 
 beforeAll(() => {
@@ -57,6 +57,46 @@ Remember: <string>`
       expect(questions[8].type).toBe('mood')
       expect(questions[9].question).toBe('Gratitude')
       expect(questions[9].type).toBe('string')
+    })
+  })
+
+  describe('buildInitialReviewAnswersByFieldName', () => {
+    it('should extract int, boolean, mood, and string answers from review-style lines', () => {
+      const config = {
+        dailyReviewQuestions: `Health: @sleep(<int>) @fruitveg(<int>) #bible<boolean> #stretches<boolean> #closedRings<boolean>
+Work: @work(<int>) @1CB(<int>) @CRC(<int>)
+Mood: <mood>
+Gratitude: <string>
+God was: <string>`,
+      }
+      const questions = parseQuestions(config.dailyReviewQuestions)
+      const lines = [
+        'Health: @sleep(7) @fruitveg(5) #bible #stretches #closedRings',
+        'Work: @work(8) @1CB(1) @CRC(2)',
+        'Mood: Calm',
+        'Gratitude: Family time',
+        'God was: present',
+      ]
+      const initial = buildInitialReviewAnswersByFieldName(questions, lines)
+      expect(initial.q_0).toBe('7')
+      expect(initial.q_1).toBe('5')
+      expect(initial.q_2).toBe('yes')
+      expect(initial.q_3).toBe('yes')
+      expect(initial.q_4).toBe('yes')
+      expect(initial.q_5).toBe('8')
+      expect(initial.q_6).toBe('1')
+      expect(initial.q_7).toBe('2')
+      expect(initial.q_8).toBe('Calm')
+      expect(initial.q_9).toBe('Family time')
+      expect(initial.q_10).toBe('present')
+    })
+
+    it('should prefer the last matching line when several exist', () => {
+      const config = { dailyReviewQuestions: 'Gratitude: <string>' }
+      const questions = parseQuestions(config.dailyReviewQuestions)
+      const lines = ['Gratitude: first', 'Gratitude: second']
+      const initial = buildInitialReviewAnswersByFieldName(questions, lines)
+      expect(initial.q_0).toBe('second')
     })
   })
 })
