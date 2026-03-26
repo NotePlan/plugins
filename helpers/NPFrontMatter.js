@@ -572,7 +572,7 @@ export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
   try {
     const paras = note.paragraphs
     const lineCount = paras.length
-    logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
+    // logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
     // Can't have frontmatter as less than 2 separators
     if (paras.filter((p) => p.type === 'separator').length < 2) {
       return 0
@@ -590,7 +590,7 @@ export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
     while (lineIndex < lineCount) {
       const p = paras[lineIndex]
       if (p.type === 'separator') {
-        logDebug(`paragraph/endOfFrontmatterLineIndex`, `-> line ${lineIndex} of ${lineCount}`)
+        // logDebug(`paragraph/endOfFrontmatterLineIndex`, `-> line ${lineIndex} of ${lineCount}`)
         return lineIndex
       }
       lineIndex++
