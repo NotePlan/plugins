@@ -4,11 +4,13 @@
   "plugin.id": "jgclark.RepeatExtensions",
   "plugin.name": "🔁 @repeat Extensions",
   "plugin.description": "Commands to extend the built-in @repeat() mechanism with much more flexible time periods. To work it needs 'append completion date' turned on in Preferences > Todo.",
-  "plugin.icon": "",
+  "plugin.icon": "repeat",
+  "plugin.iconColor": "purple-400",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/",
-  "plugin.version": "1.0.1",
-  "plugin.lastUpdateInfo": "v1.0.1: turn on auto-update again.\nv1.0.0: Add ability to sort section after a repeat has been generated in it.\nv0.9.1: improvements to handling repeats on tasks with sync markers (the blue asterisks). See documentation for more details.\nv0.9.0: new setting 'Don't look for repeats in Done or Archive note sections?'.\nv0.8.2: suppressed warning on delete of completed repeat line (requires NP v3.15 beta).\nv0.8.1: fixed bug and improved logging.\nv0.8.0: new setting 'Delete completed item?'.\nv0.7.1: Support for new Tidy plugin command.\nv0.7.0: Smarter calculation on missing dueDate. Fix to monthly repeats in monthly notes.",
+  "plugin.version": "1.1.0",
+  "plugin.releaseStatus": "full",
+  "plugin.lastUpdateInfo": "v1.1.0: can now generate repeats on cancelled tasks -- in notes with the special repeat trigger in the frontmatter. To turn this on, set new option 'Allow repeats in cancelled paragraphs?' to true.\nv1.0.1: turn on auto-update again.\nv1.0.0: Add ability to sort section after a repeat has been generated in it.\nv0.9.1: improvements to handling repeats on tasks with sync markers (the blue asterisks). See documentation for more details.\nv0.9.0: new setting 'Don't look for repeats in Done or Archive note sections?'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -61,9 +63,17 @@
       "required": true
     },
     {
+      "key": "allowRepeatsInCancelledParas",
+      "title": "Allow repeats in cancelled paragraphs?",
+      "description": "If set, it will allow repeats in cancelled tasks. Note: this only works in notes with the repeat trigger set.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "key": "runTaskSorter",
       "title": "Run Task Sorter after changes?",
-      "description": "If set, it will sort the lines in the section after a repeat has been generated in it. The ordering is controlled by the next setting.",
+      "description": "If set, it will sort the lines in the section where a new repeated task has been generated. The ordering is controlled by the next setting.",
       "type": "bool",
       "default": false,
       "required": true
@@ -93,16 +103,6 @@
         "none"
       ],
       "default": "WARN",
-      "required": true
-    }
-  ],
-  "plugin.settings_for_future": [
-    {
-      "key": "allowRepeatsInCancelledParas",
-      "title": "Allow repeats in cancelled paragraphs?",
-      "description": "If set, it will allow repeats in cancelled tasks. Note: this only works in notes with the repeat trigger set.",
-      "type": "bool",
-      "default": false,
       "required": true
     }
   ]

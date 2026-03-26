@@ -77,7 +77,7 @@ export type NotePlanYearInfo = {
   endDate: Date,
 }
 
-export type TPeriodCode = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'YYYY-MMDD' | 'all' | 'lw' | 'last2w' | 'last4w' | 'last7d' | 'wtd' | 'userwtd' | 'ow' | 'lm' | 'mtd' | 'om' | 'lq' | 'qtd' | 'oq' | 'ly' | 'ytd' | 'oy'
+export type TPeriodCode = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'all' | 'lw' | 'last7d' | 'last2w' | 'last4w' | 'last3m' | 'wtd' | 'userwtd' | 'ow' | 'lm' | 'mtd' | 'om' | 'lq' | 'qtd' | 'oq' | 'ly' | 'ytd' | 'oy'
 
 
 //--------------------------------------------------------------------------------
@@ -303,6 +303,9 @@ export const periodTypesAndDescriptions = [
  * - {string} periodAndPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
  * - {number} periodNumber (e.g. 1 for first month/quarter etc.) or NaN if not valid.
  * Normally does this by asking user, unless param 'periodShortCode' is supplied.
+ * Parameter 'periodShortCodeArg' can be a YYYY-MM-DD date or one of the following periodShortCodes:
+ * 'today', 'week', 'month', 'quarter', 'year', 'all', 'lw', 'last7d', 'last2w', 'last4w',
+ * 'last3m', 'wtd', 'userwtd', 'ow', 'lm', 'mtd', 'om', 'lq', 'qtd', 'oq', 'ly', 'ytd', 'oy'
  * @author @jgclark
  *
  * @param {string?} question to show user
@@ -537,6 +540,17 @@ export async function getPeriodStartEndDates(
       fromDateMom = moment(toDateMom).subtract(27, 'days')
       fromDate = fromDateMom.toDate()
       logDebug('last4w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+      periodNumber = NaN
+      break
+    }
+    case 'last3m': {
+      // last 3 months, including today (rolling 3 calendar months)
+      periodString = `last 3 months`
+      periodAndPartStr = ``
+      toDateMom = moment(toDate).startOf('day')
+      fromDateMom = moment(toDateMom).subtract(3, 'month')
+      fromDate = fromDateMom.toDate()
+      logDebug('last3m', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
       periodNumber = NaN
       break
     }
@@ -1133,7 +1147,8 @@ export function localeRelativeDateFromNumber(diffIn: number, useShortStyle: bool
  * - relName: string - the relative date name (e.g. 'today', 'yesterday', 'in 2 days', 'this week', 'last week', 'next week', 'this month', 'last month', 'next month', 'this quarter', 'last quarter', 'next quarter')
  * - dateStr: string - the date string in the format of the note title (e.g. '2025-01-01', '2025-01-02', '2025-01-03', '2025-01-04', '2025-01-05', '2025-01-06', '2025-01-07', '2025-01-08', '2025-01-09', '2025-01-10')
  * - note: TNote - the note object for the relative date (if available)
- * Note: tests to see if NP API calls are available, and if not returns an empty array
+ * WARNING: This requires DataStore.calendarNoteByDateString to be available; if not it returns an empty array.
+ * Note: See React/HTML-safe version in dateString.js 
  * @author @jgclark
  * @param {boolean?} useISODailyDates? - if true, use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
  * @returns {Array<{relName:string, dateStr:string, note:?TNote}>} relative date name, relative date string, TNote for that relative date
@@ -1143,17 +1158,16 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<{ rel
     const relativeDates = []
     const todayMom = moment()
 
-    logInfo('NPdateTime::getRelativeDates', `Starting, with DataStore: ${typeof DataStore}`)
+    // logDebug('NPdateTime::getRelativeDates', `Starting, with DataStore: ${typeof DataStore}`)
     if (!DataStore || typeof DataStore !== 'object') {
-      // A further test for DataStore.calendarNoteByDateString, as that can sometimes fail even when DataStore is available
-      if (!DataStore.calendarNoteByDateString) {
-        logWarn('NPdateTime::getRelativeDates', `NP DataStore.calendarNoteByDateString function is not available, so returning an empty set.`)
-        // $FlowIgnore[prop-missing]
-        return [{}]
-      }
       // logDebug('NPdateTime::getRelativeDates', `NP DataStore functions are not available, so returning an empty set.`)
       // $FlowIgnore[prop-missing]
       return [{}]
+    }
+    // DataStore exists but calendarNoteByDateString can be undefined in WebView or when invoked across plugins
+    if (typeof DataStore.calendarNoteByDateString !== 'function') {
+      logWarn('NPdateTime::getRelativeDates', `NP DataStore.calendarNoteByDateString function is not available, so returning an empty set. Look at using helpers/react/dateStrings.js instead?`)
+      return []
     }
 
     // Calculate relative dates. Remember to clone todayMom first as moments aren't immutable!

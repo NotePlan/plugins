@@ -1,9 +1,13 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
+## [1.1.0] - 2026-03-18
+- This can nan now generate repeats on cancelled tasks -- in notes with the special repeat trigger in the frontmatter. To turn this on, set new option "Allow repeats in cancelled paragraphs?" to true. (Note: Because of API limitations, this will only work in notes with the repeat trigger set.)
+- Fix to possible bug identified by @Cursor.
+
 ## [1.0.1] - 2025-09-17
 ### Changed
-Adds future ability for plugin to auto-update itself.
+- Adds future ability for plugin to auto-update itself.
 
 ## [1.0.0] - 2025-09-06
 New feature: can now sort the section after a repeat has been generated in it. There are 2 new settings:

@@ -2811,6 +2811,14 @@ declare class HTMLView {
    * Note: Available with v3.9.1 build 1020
    */
   windowRect: Rect;
+/**
+ * HTMLView.isVisible
+ * Get whether the HTML window is currently visible.
+ * This is required because (from v3.20.1) showing a mainWindow keeps the HTMLView in memory for faster re-use, so we need to know if it is visible to avoid showing it unnecessarily.
+ * Note: Available from v3.20.2 (build 1494)
+ * @returns {boolean}
+ */
++isVisible ?: boolean;
 }
 
 /** JGC: I'm not entirely sure about this next line, but Window is some sort of thing. */

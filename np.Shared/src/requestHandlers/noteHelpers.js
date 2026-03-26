@@ -5,8 +5,9 @@
 //--------------------------------------------------------------------------
 
 import { getNoteDecorationForReact } from '@helpers/NPnote'
-import { logDebug } from '@helpers/dev'
+import { logDebug, logInfo } from '@helpers/dev'
 import { getRelativeDates } from '@helpers/NPdateTime'
+import { getRelativeDates as getRelativeDatesReact } from '@helpers/react/dateStrings'
 
 /**
  * Type definition for note options used in React components
@@ -170,7 +171,11 @@ function relNameToTemplateRunnerFormat(relName: string): ?string {
  */
 export function getRelativeNotesAsOptions(includeDecoration: boolean = false): Array<NoteOption> {
   try {
-    const relativeDates = getRelativeDates(true) // Use ISO daily dates
+    logInfo('getRelativeNotesAsOptions', `Starting, with DataStore: ${typeof DataStore}`)
+    // Use React-safe version when NotePlan API is not available (e.g. WebView or cross-plugin context)
+    const hasCalendarNoteByDateString =
+      typeof DataStore !== 'undefined' && typeof DataStore?.calendarNoteByDateString === 'function'
+    const relativeDates = hasCalendarNoteByDateString ? getRelativeDates(true) : getRelativeDatesReact(true) // Use ISO daily dates
     const relativeNotes: Array<NoteOption> = []
 
     for (const rd of relativeDates) {

@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Repeat Extensions plugin.
 // Jonathan Clark
-// last updated 2025-09-06, for v1.0.0
+// last updated 2026-03-18, for v1.0.2
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -30,13 +30,14 @@ const EXTENDED_REPEAT_STR: string = `@repeat\\(${RE_DATE_INTERVAL}\\)` // find @
 export const RE_EXTENDED_REPEAT: RegExp = new RegExp(EXTENDED_REPEAT_STR) // find @repeat()
 const EXTENDED_REPEAT_CAPTURE_STR: string = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
 export const RE_EXTENDED_REPEAT_CAPTURE: RegExp = new RegExp(EXTENDED_REPEAT_CAPTURE_STR) // find @repeat() and return part inside brackets
+export const RE_CANCELLED_TASK: RegExp = new RegExp(`[\\^\\n]\\s*?[\\*\\+\\-]\\s+\\[\\-\\]\\s`) // matches a task that has been cancelled, for use on rawContent, _which may be part of a multi-line string_
 
 const pluginID = pluginJson['plugin.id'] // was 'jgclark.Filer'
 
 export type RepeatConfig = {
   deleteCompletedRepeat: boolean,
   dontLookForRepeatsInDoneOrArchive: boolean,
-  // allowRepeatsInCancelledParas: boolean,
+  allowRepeatsInCancelledParas: boolean,
   runTaskSorter: boolean,
   taskSortingOrder: string,
   _logLevel: string,
@@ -95,7 +96,12 @@ export function generateNewRepeatDate(noteToUse: CoreNoteFields, currentContent:
   let newRepeatDateStr = ''
   const output = currentContent
 
-  if (dateIntervalString[0].startsWith('+')) {
+  if (dateIntervalString.length === 0) {
+    logError('generateNewRepeatDate', 'No @repeat(interval) found in content; cannot compute new date')
+    return completedDate
+  }
+
+  if (dateIntervalString.startsWith('+')) {
     // New repeat date = completed date (of form YYYY-MM-DD) + interval
     dateIntervalString = dateIntervalString.substring(1, dateIntervalString.length)
     newRepeatDateStr = calcOffsetDateStr(completedDate, dateIntervalString, outputTimeframe)

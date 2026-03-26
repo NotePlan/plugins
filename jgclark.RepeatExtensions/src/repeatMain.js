@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // Main functions for Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-09-06, for v1.0.0
+// last updated 2026-03-18, for v1.0.2
 //-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -63,6 +63,9 @@ export async function generateRepeats(
     }
 
     const config: RepeatConfig = await getRepeatSettings()
+    if (config == null) {
+      return 0
+    }
 
     // Work out where to stop looking: default to whole note, but if desired can stop where ## Done or ## Cancelled sections start, if present
     const lastLineIndexToCheck = (config.dontLookForRepeatsInDoneOrArchive)

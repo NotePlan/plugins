@@ -5,5 +5,26 @@
     "author": "EduardMe",
     "description": "Live stock portfolio tracker with real-time quotes and daily performance",
     "repo": "EduardMe/noteplan-stock-ticker-plugin"
+  },
+  {
+    "id": "asktru.WeeklyReview",
+    "name": "Weekly Review Dashboard",
+    "author": "asktru",
+    "description": "Dashboard for reviewing projects and areas on a schedule with status tracking and inline task management",
+    "repo": "asktru/noteplan-weekly-review"
+  },
+  {
+    "id": "asktru.TaskZoom",
+    "name": "Task Zoom",
+    "author": "asktru",
+    "description": "Todoist-inspired task filtering dashboard with query language, saveable filters, and multiple grouping modes",
+    "repo": "asktru/noteplan-task-zoom"
+  },
+  {
+    "id": "asktru.Reflect",
+    "name": "Reflect",
+    "author": "asktru",
+    "description": "Sunsama-like daily planning workflow with focus, planning, shutdown, and highlights tabs",
+    "repo": "asktru/noteplan-reflect"
   }
 ]

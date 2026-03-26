@@ -107,6 +107,38 @@ h1 {
   align-items: baseline;
 }
 
+.period-select {
+  font-size: 0.85rem;
+  color: var(--fg-alt-color);
+  background-color: var(--bg-primary);
+}
+
+.period-select-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.custom-date-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.custom-date-input {
+  padding: 3px 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.hidden {
+  display: none !important;
+}
+
 .stats-section {
   min-width: 200px;
   width: fit-content;
@@ -435,7 +467,7 @@ canvas {
 .heatmap-grid {
   display: flex;
   flex-wrap: nowrap;
-  gap: 2px;
+  gap: 1px;
   align-items: center;
 }
 
