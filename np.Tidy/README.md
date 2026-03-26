@@ -9,7 +9,7 @@ This plugin provides commands to help tidy up your notes:
     (See more details below.)
 - **/List duplicated content** (alias "doubles"):  creates/updates a note that lists calendar notes that potentially have doubled content (i.e. internal duplication within the note).
   - Note: this is unlikely to happen, but it happened to me a lot for reasons I don't understand. This command helped me go through the notes and manually delete the duplicated content. 
-  - Note: NotePlan 3.19.2 on Mac has added a "Content deduplicator tool" (in Sync > Advanced). This naturally has a nicer interface, but it only finds _exact duplication_, whereas the plugin allows for a 20% margin of difference, which I found necessary.
+  - Note: NotePlan 3.19.2 on Mac has added a "Content deduplicator tool" (in Sync > Advanced). This naturally has a nicer interface, but it only finds _exact duplication_, whereas the plugin allows for a 15% margin of difference, which I found necessary.
 - **/List duplicate notes** (alias "dupes"): creates/updates a note that lists all your notes with identical titles, along with summary details about those potential duplicates. It gives options to delete one or other of the conflicted versions:
     ![](duplicate-note-display@2x.png)
 - **/List missing daily notes**: create a note that lists any missing or empty daily notes in the last year.

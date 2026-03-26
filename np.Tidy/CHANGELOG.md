@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.18.1] - 2026-03-20 @jgclark
+- small tweaks to **/find duplicated content** command
+
 ## [1.18.0] - 2026-03-14 @jgclark
 ### New
 - new **/Clean up note filenames** command: cleans encoded characters (e.g. `&#039;` `&mdash;`) and invalid path characters (e.g. `\\` `/` `:`) from note filenames in a chosen folder and its subfolders. Optional `folderToStart` parameter for template/callback; if omitted, prompts for folder. Teamspace notes are skipped.

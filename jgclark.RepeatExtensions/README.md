@@ -40,7 +40,9 @@ With this trigger in place, and if the setting **Allow repeats in cancelled para
 **Tip**: This is most easily done by using the **/add trigger to note** command from my [Note Helpers plugin](https://noteplan.co/plugins/jgclark.NoteHelpers/).
 Note: The `title:` of the note also needs to be in the frontmatter.
 
-Alternatively, the separate [Tidy Up plugin](https://noteplan.co/plugins/np.Tidy/) has a **/Generate @repeats in recent notes** command, which when you run it checks all recently-changed notes, generating any new `@repeat`s that are required. It does _not_ require triggers to be in place. If you include this command in a daily **Template**, then this is as good as a fully automated command.  For example, I have this "template tag" in my end-of-day template:
+Note: Unfortunately this trigger does *not fire if you complete tasks in the references section of a note*. This is a limitation in NP, which I've asked to be addressed, but so far has not been.
+
+For this reason I've added the **/Generate @repeats in recent notes** command to the separate [Tidy Up plugin](https://noteplan.co/plugins/np.Tidy/), which when you run it checks all recently-changed notes, generating any new `@repeat`s that are required. It does _not_ require triggers to be in place. If you include this command in a daily **Template**, then this is as good as a fully automated command.  For example, I have this "template tag" in my end-of-day template:
 ```js
 <% await DataStore.invokePluginCommandByName("Generate @repeats in recent notes","np.Tidy",['{"runSilently":true}']) -%>
 ```

@@ -5,7 +5,18 @@
 import chroma from 'chroma-js'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 
+/**
+ * Check if a color is dark
+ * @param {string} bgColor
+ * @returns {boolean} - true if the color is dark, false otherwise
+ */
 export const isDark = (bgColor) => chroma(bgColor).luminance() < 0.5
+
+/**
+ * Check if a color is light
+ * @param {string} bgColor
+ * @returns {boolean} - true if the color is light, false otherwise
+ */
 export const isLight = (bgColor) => !isDark(bgColor)
 
 /**

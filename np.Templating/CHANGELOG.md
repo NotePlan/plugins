@@ -6,6 +6,15 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.2.11] 2026-03-19 @dwertheimer
+
+### Fixed
+- **Templating AI consent before analysis**: When template rendering fails and AI analysis is eligible, the plugin now prompts with a likely error cause + snippet before calling `NotePlan.ai` for suggestions.
+
+### Edited in this release
+- `np.Templating/lib/engine/aiAnalyzer.js` — prompt user with `showMessageYesNo` before calling `NotePlan.ai`
+- `np.Templating/__tests__/*` — mock AI consent prompt for deterministic tests
+
 ## [2.2.10] 2026-03-16 @dwertheimer
 
 ### Fixed

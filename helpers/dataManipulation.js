@@ -7,7 +7,7 @@ export type headingLevelType = 1 | 2 | 3 | 4 | 5
  * @author @jgclark
  *
  * @param {string} inStr the string to trim
- * @returns {string}
+ * @returns {string} trimmed string, or unchanged string if no quotes found
  */
 export function trimAnyQuotes(inStr: string): string {
   return inStr.match(/^'.*'$/) || inStr.match(/^".*"$/) ? inStr.slice(1, -1) : inStr
@@ -18,7 +18,7 @@ export function trimAnyQuotes(inStr: string): string {
  * @author @jgclark
  *
  * @param {string} inStr the string to trim
- * @returns {string}
+ * @returns {string} trimmed string, or unchanged string if not longer than maxLen
  */
 export function trimString(inStr: string, maxLen: number): string {
   return inStr.length > maxLen ? `${inStr.slice(0, maxLen)} ...` : inStr
@@ -28,7 +28,7 @@ export function trimString(inStr: string, maxLen: number): string {
  * Converts a string with dividers in it or an array into a unified array type
  * @param {string|Array<string>|null} input - string or array to be converted
  * @param {string} separator - separator to use to split string
- * @returns {Array<string>}
+ * @returns {Array<string>} array of strings, or empty array if input is null or undefined
  */
 export function stringListOrArrayToArray(input: string | Array<string> | null, separator: string): Array<string> {
   let fullArray = []

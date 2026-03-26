@@ -484,8 +484,8 @@ export function smartCreateSectionsAndPara(
       logDebug('paragraph/smartCreateSectionsAndPara', `all existingHeadingParas found, so only need to add the paragraph`)
     }
 
-    // Finally add the paragraph after the last heading in headingArray
-    destNote.addParagraphBelowHeadingTitle(paraText, paragraphType, headingArray[headingArray.length - 1], false, false)
+    // Finally add the paragraph in the section of the last heading in headingArray. ShouldAppend determines whether to add it at the start or end of that section.
+    destNote.addParagraphBelowHeadingTitle(paraText, paragraphType, headingArray[headingArray.length - 1], shouldAppend, false)
     logDebug('paragraph/smartCreateSectionsAndPara', `inserting para after heading "${headingArray[headingArray.length - 1]}" (i.e. line ${String(latestInsertionLineIndex + 1)})`)
   } catch (err) {
     logError('paragraph/smartCreateSectionsAndPara', err.message)

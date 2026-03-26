@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2025-11-01 for v1.15.2 by @jgclark
+// Last updated 2026-03-20 for v1.18.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -154,7 +154,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
         const deleteMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', true)
         // Write out all details for this dupe
         const teamspaceAwareFolderAndTitle = displayFolderAndTitle(n, false)
-        outputArray.push(`${String(i)}. ${teamspaceAwareFolderAndTitle}  [Open note](${openMe}) [Delete note ❌](${deleteMe})`)
+        outputArray.push(`${String(i)}. ${teamspaceAwareFolderAndTitle}.  [Open note](${openMe}) [Delete note ❌](${deleteMe})`)
         outputArray.push(`\t- ${String(n.paragraphs?.length ?? 0)} lines, ${String(n.content?.length ?? 0)} bytes, created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}`)
 
         // For all but the first of the duplicate set, show some comparison stats

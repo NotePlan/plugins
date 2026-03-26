@@ -7,6 +7,14 @@ import colors from 'chalk'
 global.NotePlan = new NotePlan() // because Mike calls NotePlan in a const declaration in NPTemplating, we need to set it first
 globalThis.NotePlan = global.NotePlan // because Mike calls NotePlan in a const declaration in NPTemplating, we need to set it first
 
+jest.mock('@helpers/userInput', () => {
+  const actual = jest.requireActual('@helpers/userInput')
+  return {
+    ...actual,
+    showMessageYesNo: jest.fn().mockResolvedValue('Yes'),
+  }
+})
+
 import TemplatingEngine from '../lib/TemplatingEngine'
 
 const DEFAULT_TEMPLATE_CONFIG = {

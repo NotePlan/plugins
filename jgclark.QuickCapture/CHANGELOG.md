@@ -1,6 +1,11 @@
 # What's changed in ⚡️ Quick Capture
 See [plugin documentation for more details](https://noteplan.co/plugins/jgclark.QuickCapture), and how to configure.
 
+## [1.0.5] - 2026-03-18
+- Fix the '/quick add to ... journal' commands so they now honour the append/prepend setting (thanks, @jokky102).
+- dev: Rename the internal journal helper functions to `addTextTo...Journal` to match the command names.
+- clarify some command descriptions.
+
 ## [1.0.4] - 2026-02-14
 ### Fixed
 - Setting 'Text to append to new inbox tasks' was not applied when adding tasks to the inbox; only the jot append setting was being used (thanks, @lt0807)

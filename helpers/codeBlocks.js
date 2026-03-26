@@ -6,6 +6,15 @@ import { showMessage } from '@helpers/userInput'
 
 export type CodeBlock = { type: string, code: string, paragraphs: Array<TParagraph> }
 
+/**
+ * Append a new fenced code block paragraph to an existing note.
+ * Note: This is a simple helper that always appends a new code fence; it does not try
+ * to find/replace an existing code block.
+ * @param {CoreNoteFields} destNote - The note to append the code block to.
+ * @param {string} textToAdd - The raw code/text to place inside the fenced block.
+ * @param {string} codeBlockType - The fence language/type after the opening ``` (e.g. 'javascript').
+ * @returns {boolean} - `true` if the paragraph was appended successfully; otherwise `false`.
+ */
 export function addCodeBlock(destNote: CoreNoteFields, textToAdd: string, codeBlockType: string): boolean {
   try {
     logDebug('addCodeBlock', `starting for note ${displayTitle(destNote)}`)
@@ -18,6 +27,14 @@ export function addCodeBlock(destNote: CoreNoteFields, textToAdd: string, codeBl
   }
 }
 
+/**
+ * Extract all fenced code blocks from a note.
+ * Code blocks are detected using paragraphs of type `code` whose content starts with ` ````
+ * (opening fence) and later ` ``` ` (closing fence). The returned structure also includes
+ * the original paragraph objects for each code block's interior.
+ * @param {CoreNoteFields} note - The note containing code fences.
+ * @returns {$ReadOnlyArray<$ReadOnly<CodeBlock>>} A read-only array of code blocks.
+ */
 export function getCodeBlocks(note: CoreNoteFields): $ReadOnlyArray<$ReadOnly<CodeBlock>> {
   const paragraphs = note.paragraphs ?? []
   // logDebug('getCodeBlocks', `Starting with ${String(paragraphs.length)} paragraphs in note '${displayTitle(note)}'`)
@@ -60,8 +77,8 @@ export function getCodeBlocks(note: CoreNoteFields): $ReadOnlyArray<$ReadOnly<Co
 }
 
 /**
- * Get all Code Blocks of a given type (or multiple types like ["javascript","js"])
- * Whatever is listed behind the ```nameHere in the code block
+ * Get all Code Blocks of a given type (or multiple types like ["javascript","js"]).
+ * Whatever is listed behind the ```nameHere in the code block.
  * @param {CoreNoteFields} note
  * @param {Array<string>|string} types -- either a single string type to look for or an array of them
  * @returns {$ReadOnlyArray<$ReadOnly<{ type: string, code: string }>>} an array of {type:string, code:string}
@@ -78,8 +95,8 @@ export function getCodeBlocksOfType(note: CoreNoteFields, types: Array<string> |
 }
 
 /**
- * Replace the content inside a code block while preserving the fences
- * If the code block doesn't exist, it will be added at the end of the note
+ * Replace the content inside a code block while preserving the fences. Returns true if successful, false otherwise.
+ * If the code block doesn't exist, it will be added at the end of the note.
  * @param {CoreNoteFields} note - The note containing the code block
  * @param {string} codeBlockType - The type/language of the code block (e.g., 'formfields', 'template:ignore form variables')
  * @param {string} newContent - The new content to put inside the code block
@@ -194,8 +211,8 @@ export function replaceCodeBlockContent(note: CoreNoteFields, codeBlockType: str
 }
 
 /**
- * Save content to a codeblock in a note (generalized helper)
- * Gets the note by filename, formats the content if needed, and saves it to the codeblock
+ * Save content to a codeblock in a note (generalized helper). Returns true if successful, false otherwise.
+ * Gets the note by filename, formats the content if needed, and saves it to the codeblock.
  * @param {string} noteFilename - The filename of the note
  * @param {string} codeBlockType - The type/language of the code block (e.g., 'formfields', 'template:ignore templateBody')
  * @param {string | any} content - The content to save (will be formatted if formatFn is provided)
@@ -255,8 +272,8 @@ export async function saveCodeBlockToNote(
 }
 
 /**
- * Load content from a codeblock in a note (generalized helper)
- * Can work with either a note object or a note filename
+ * Load content from a codeblock in a note (generalized helper). Returns the content as a string, or parsed content if parseFn is provided, or null if not found.
+ * Can work with either a note object or a note filename.
  * @param {CoreNoteFields | string} noteOrFilename - Either a note object or a note filename
  * @param {string} codeBlockType - The type/language of the code block (e.g., 'formfields', 'template:ignore templateBody')
  * @param {string} pluginIdentifier - Optional identifier for logging (defaults to 'loadCodeBlockFromNote')
