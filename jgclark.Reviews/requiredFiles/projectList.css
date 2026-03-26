@@ -177,8 +177,12 @@ input, label {
   .perspective-name {
     font-weight: 600;
   }
-}
 
+  .no-perspective {
+    grid-template-columns: auto auto auto;
+  }
+
+}
 .topbar-center-cluster {
   justify-self: center;
 }
@@ -313,7 +317,7 @@ input, label {
 .multi-cols {
   column-count: 3; 
   column-width: 25rem;
-  column-gap: 0.4rem;
+  column-gap: 0.3rem;
   column-rule: 1px dotted rgb(from var(--tint-color) r g b / 0.5);
 }
 

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-03-21 for v1.4.0.b9, @jgclark
+// Last updated 2026-03-26 for v1.4.0.b13, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -19,6 +19,7 @@ import { checkBoolean, checkNumber, checkString } from '@helpers/checkType'
 import {
   daysBetween,
   RE_DATE,
+  RE_DATE_INTERVAL,
   includesScheduledFurtherFutureDate,
   todaysDateISOString,
   toISODateString,
@@ -27,7 +28,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpe
 import { getFolderDisplayName, getFolderFromFilename } from '@helpers/folders'
 import { getOpenEditorFromFilename, saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getContentFromBrackets, getStringFromList } from '@helpers/general'
-import { endOfFrontmatterLineIndex, getFrontmatterAttribute, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { endOfFrontmatterLineIndex, getFrontmatterAttribute, getFrontmatterParagraphs, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
 import { createSectionsAndParaAfterPreamble, endOfPreambleSection, findHeading, getFieldParagraphsFromNote, simplifyRawContent } from '@helpers/paragraph'
 import {
@@ -37,6 +38,11 @@ import {
 import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
 
 //-----------------------------------------------------------------------------
+// Constants
+
+const DEFAULT_REVIEW_INTERVAL = '1w'
+
+//-----------------------------------------------------------------------------
 // Types
 
 export type Progress = {
@@ -44,6 +50,11 @@ export type Progress = {
   percentComplete: number,
   date: Date,
   comment: string
+}
+
+type FrontmatterFieldRead = {
+  exists: boolean,
+  value: ?string,
 }
 
 //-----------------------------------------------------------------------------
@@ -59,6 +70,58 @@ function getISODateStringFromMention(mentionStr: string): ?string {
   const RE_DATE_CAPTURE = new RegExp(`(${RE_DATE})`)
   const match = mentionStr.match(RE_DATE_CAPTURE)
   return match && match[1] ? match[1] : undefined
+}
+
+/**
+ * Parse a frontmatter value that may be plain content (e.g. '1w' / '2026-03-26')
+ * or a wrapped mention value (e.g. '@review(1w)' / '@due(2026-03-26)'),
+ * or a quoted value (e.g. '"1w"' / '"2026-03-26"'),
+ * or empty ('').
+ * Returns value trimmed and unquoted, and may be empty.
+ * @param {string} rawValue
+ * @returns {string}
+ * @private
+ */
+export function parseProjectFrontmatterValue(rawValue: string): string {
+  let trimmed = rawValue.trim()
+
+  // Remove double quotes that might surround the value
+  trimmed = trimmed.replace(/^"|"$/g, '')
+
+  // Remove any mention brackets and return the content
+  const mentionMatch = trimmed.match(/^@([A-Za-z0-9_-]+)\((.*)\)$/)
+  if (!mentionMatch) {
+    return trimmed
+  }
+
+  const mentionParam = mentionMatch[2] != null ? mentionMatch[2].trim() : ''
+  return mentionParam
+}
+
+/**
+ * Read a frontmatter key directly from raw frontmatter lines.
+ * This distinguishes between:
+ * - key missing
+ * - key present but empty/invalid
+ * @param {CoreNoteFields} note
+ * @param {string} fieldName
+ * @returns {FrontmatterFieldRead}
+ * @private
+ */
+export function readRawFrontmatterField(note: CoreNoteFields, fieldName: string): FrontmatterFieldRead {
+  const fmParas = getFrontmatterParagraphs(note, false)
+  if (!fmParas || fmParas.length === 0) {
+    return { exists: false, value: undefined }
+  }
+  const escapedFieldName = fieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const re = new RegExp(`^${escapedFieldName}:\\s*(.*)$`, 'i')
+  for (const para of fmParas) {
+    const match = para.content.match(re)
+    if (match) {
+      return { exists: true, value: match[1] != null ? match[1] : '' }
+    }
+  }
+  return { exists: false, value: undefined }
 }
 
 /**
@@ -160,7 +223,6 @@ export class Project {
       }
 
       const metadataLineIndex = getOrMakeMetadataLineIndex(note)
-      // this.metadataPara = paras[metadataLineIndex]
       this.metadataParaLineIndex = metadataLineIndex
       let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
       let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
@@ -175,7 +237,6 @@ export class Project {
           const metadataParaToRemove = paras[metadataLineIndex]
           const fmAttrs: { [string]: any } = {}
           fmAttrs[singleKeyName] = metadataLine
-          // $FlowFixMe[incompatible-call]
           const migratedOK = updateFrontMatterVars(note, fmAttrs)
           if (migratedOK) {
             note.removeParagraph(metadataParaToRemove)
@@ -213,7 +274,12 @@ export class Project {
         logWarn('ProjectConstructor', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
       }
 
-      // read in various metadata fields (if present)
+      // read in review interval (if present) -- see special handling below as well
+      const tempIntervalStr = getParamMentionFromList(mentions, checkString(DataStore.preference('reviewIntervalMentionStr')))
+      if (tempIntervalStr !== '') {
+        this.reviewInterval = getContentFromBrackets(tempIntervalStr) ?? ''
+      }
+      // read in various metadata fields from body of note (if present)
       this.startDate = this.parseDateMention(mentions, 'startMentionStr')
       this.dueDate = this.parseDateMention(mentions, 'dueMentionStr')
       // read in reviewed date (if present)
@@ -223,10 +289,6 @@ export class Project {
       this.completedDate = this.parseDateMention(mentions, 'completedMentionStr')
       // read in cancelled date (if present)
       this.cancelledDate = this.parseDateMention(mentions, 'cancelledMentionStr')
-      // read in review interval (if present)
-      const tempIntervalStr = getParamMentionFromList(mentions, checkString(DataStore.preference('reviewIntervalMentionStr')))
-      // $FlowIgnore[incompatible-type]
-      this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : '1w'
       // read in nextReview date (if present)
       const nextReviewStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
       if (nextReviewStr !== '') {
@@ -239,41 +301,100 @@ export class Project {
 
       // Overlay metadata fields from separate frontmatter keys (if they exist)
       try {
-        const startKey = checkString(DataStore.preference('startMentionStr') || '').replace(/^[@#]/, '') || 'start'
-        const dueKey = checkString(DataStore.preference('dueMentionStr') || '').replace(/^[@#]/, '') || 'due'
-        const reviewedKey = checkString(DataStore.preference('reviewedMentionStr') || '').replace(/^[@#]/, '') || 'reviewed'
-        const completedKey = checkString(DataStore.preference('completedMentionStr') || '').replace(/^[@#]/, '') || 'completed'
-        const cancelledKey = checkString(DataStore.preference('cancelledMentionStr') || '').replace(/^[@#]/, '') || 'cancelled'
-        const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
-        const nextReviewKey = checkString(DataStore.preference('nextReviewMentionStr') || '').replace(/^[@#]/, '') || 'nextReview'
+        const invalidFrontmatterKeysToRemove: Set<string> = new Set()
+        const reISODate = new RegExp(`^${RE_DATE}$`)
+        const normalizedFrontmatterAttrs: { [string]: string } = {}
 
-        const fmStart = getFrontmatterAttribute(this.note, startKey)
-        if (this.startDate == null && typeof fmStart === 'string' && fmStart !== '') {
-          this.startDate = fmStart
+        /**
+         * Helper to fetch and normalize field keys from DataStore preferences.
+         * Returns the cleaned string or a defaultKey if missing/empty.
+         */
+        const getFrontmatterFieldKey = (prefName: string, defaultKey: string): string =>
+          checkString(DataStore.preference(prefName) || '').replace(/^[@#]/, '') || defaultKey
+
+        const startKey = getFrontmatterFieldKey('startMentionStr', 'start')
+        const dueKey = getFrontmatterFieldKey('dueMentionStr', 'due')
+        const reviewedKey = getFrontmatterFieldKey('reviewedMentionStr', 'reviewed')
+        const completedKey = getFrontmatterFieldKey('completedMentionStr', 'completed')
+        const cancelledKey = getFrontmatterFieldKey('cancelledMentionStr', 'cancelled')
+        const reviewIntervalKey = getFrontmatterFieldKey('reviewIntervalMentionStr', 'review')
+        const nextReviewKey = getFrontmatterFieldKey('nextReviewMentionStr', 'nextReview')
+
+        /**
+         * Helper to read and assign a date field from frontmatter.
+         * @param {string} fieldKey
+         * @param {function} setter
+         * @returns {void}
+         */
+        const readAndAssignDateField = (fieldKey: string, setter: (value: string) => void): void => {
+          const field = readRawFrontmatterField(this.note, fieldKey)
+          if (!field.exists || !field.value) {
+            return
+          }
+          const originalValue = String(field.value)
+          const parsed = parseProjectFrontmatterValue(originalValue)
+          if (parsed !== '' && reISODate.test(parsed)) {
+            setter(parsed)
+            if (originalValue.trim() !== parsed) {
+              normalizedFrontmatterAttrs[fieldKey] = parsed
+            }
+          } else {
+            logWarn('ProjectConstructor', `Found invalid frontmatter '${fieldKey}' value '${String(field.value)}' in '${this.title}' (${this.filename}). Will remove the key.`)
+            invalidFrontmatterKeysToRemove.add(fieldKey)
+          }
         }
-        const fmDue = getFrontmatterAttribute(this.note, dueKey)
-        if (this.dueDate == null && typeof fmDue === 'string' && fmDue !== '') {
-          this.dueDate = fmDue
+
+        // Get/set reviewInterval. Note: this is unlike the following metadata fields
+        const fmReviewInterval = readRawFrontmatterField(this.note, reviewIntervalKey)
+
+        if (fmReviewInterval.exists && fmReviewInterval.value) {
+          this.reviewInterval = parseProjectFrontmatterValue(fmReviewInterval.value)
         }
-        const fmReviewed = getFrontmatterAttribute(this.note, reviewedKey)
-        if (this.reviewedDate == null && typeof fmReviewed === 'string' && fmReviewed !== '') {
-          this.reviewedDate = fmReviewed
+        // Now check for valid value in this.reviewInterval, and if not, then log warning and set to default
+        if (!this.reviewInterval || this.reviewInterval === '' || !this.reviewInterval.match(new RegExp(`^${RE_DATE_INTERVAL}$`))) {
+          logWarn('ProjectConstructor', `Found invalid frontmatter '${reviewIntervalKey}' value '${String(this.reviewInterval)}' in '${this.title}' (${this.filename}). Will set it to default '${DEFAULT_REVIEW_INTERVAL}'.`)
+          this.reviewInterval = DEFAULT_REVIEW_INTERVAL
+          const newAttr: { [string]: any } = {}
+          newAttr[reviewIntervalKey] = this.reviewInterval
+          updateFrontMatterVars(this.note, newAttr)
         }
-        const fmCompleted = getFrontmatterAttribute(this.note, completedKey)
-        if (this.completedDate == null && typeof fmCompleted === 'string' && fmCompleted !== '') {
-          this.completedDate = fmCompleted
+
+        readAndAssignDateField(startKey, (value) => {
+          this.startDate = value
+        })
+        readAndAssignDateField(dueKey, (value) => {
+          this.dueDate = value
+        })
+        readAndAssignDateField(reviewedKey, (value) => {
+          this.reviewedDate = value
+        })
+        readAndAssignDateField(completedKey, (value) => {
+          this.completedDate = value
+        })
+        readAndAssignDateField(cancelledKey, (value) => {
+          this.cancelledDate = value
+        })
+        readAndAssignDateField(nextReviewKey, (value) => {
+          this.nextReviewDateStr = value
+        })
+
+        if (invalidFrontmatterKeysToRemove.size > 0) {
+          for (const invalidKey of invalidFrontmatterKeysToRemove) {
+            logInfo('ProjectConstructor', `About to remove invalid frontmatter key '${invalidKey}' from '${this.title}' (${this.filename})`)
+            const removed = removeFrontMatterField(this.note, invalidKey)
+            if (!removed) {
+              logWarn('ProjectConstructor', `Failed to remove invalid frontmatter key '${invalidKey}' from '${this.title}' (${this.filename})`)
+            }
+          }
         }
-        const fmCancelled = getFrontmatterAttribute(this.note, cancelledKey)
-        if (this.cancelledDate == null && typeof fmCancelled === 'string' && fmCancelled !== '') {
-          this.cancelledDate = fmCancelled
+
+        if (Object.keys(normalizedFrontmatterAttrs).length > 0) {
+          updateFrontMatterVars(this.note, normalizedFrontmatterAttrs)
+          logDebug('ProjectConstructor', `Normalized frontmatter date fields [${Object.keys(normalizedFrontmatterAttrs).join(', ')}] in '${this.title}'`)
         }
-        const fmReviewInterval = getFrontmatterAttribute(this.note, reviewIntervalKey)
-        if (typeof fmReviewInterval === 'string' && fmReviewInterval !== '') {
-          this.reviewInterval = fmReviewInterval
-        }
-        const fmNextReview = getFrontmatterAttribute(this.note, nextReviewKey)
-        if (this.nextReviewDateStr == null && typeof fmNextReview === 'string' && fmNextReview !== '') {
-          this.nextReviewDateStr = fmNextReview
+
+        if (invalidFrontmatterKeysToRemove.size > 0 || Object.keys(normalizedFrontmatterAttrs).length > 0) {
+          DataStore.updateCache(this.note, true)
         }
       } catch (e) {
         logWarn('ProjectConstructor', `- overlay from separate frontmatter keys failed for '${this.title}': ${e.message}`)
@@ -367,6 +488,7 @@ export class Project {
         logDebug('ProjectConstructor', `Constructed ${this.projectTag} ${this.filename}:`)
         logDebug('ProjectConstructor', `  - folder = ${this.folder}`)
         logDebug('ProjectConstructor', `  - folder (for display) = ${getFolderDisplayName(this.folder)}`)
+        logDebug('ProjectConstructor', `  - reviewInterval = ${String(this.reviewInterval)}`)
         logDebug('ProjectConstructor', `  - metadataLine = ${metadataLine}`)
         if (this.isCompleted) logDebug('ProjectConstructor', `  - isCompleted ✔️`)
         if (this.isCancelled) logDebug('ProjectConstructor', `  - isCancelled ✔️`)
@@ -410,8 +532,21 @@ export class Project {
    * @private
    */
   parseDateMention(mentions: $ReadOnlyArray<string>, mentionKey: string): ?string {
-    const tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference(mentionKey)))
-    return tempStr !== '' ? getISODateStringFromMention(tempStr) : undefined
+    const mentionName = checkString(DataStore.preference(mentionKey))
+    const tempStr = getParamMentionFromList(mentions, mentionName)
+    if (tempStr === '') {
+      return undefined
+    }
+
+    const bracketContent = getContentFromBrackets(tempStr)
+    if (bracketContent == null || bracketContent.trim() === '') {
+      logWarn(
+        'ProjectConstructor',
+        `Found malformed ${mentionName}() with empty brackets in '${this.title}' (${this.filename}). Ignoring this value.`,
+      )
+      return undefined
+    }
+    return getISODateStringFromMention(tempStr)
   }
 
   /**

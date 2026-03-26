@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-03-22 for v1.4.0.b12, @jgclark
+// Last updated 2026-03-26 for v1.4.0.b13, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -59,6 +59,7 @@ export type ReviewConfig = {
   ignoreChecklistsInProgress: boolean,
   reviewedMentionStr: string,
   reviewIntervalMentionStr: string,
+  sequentialTag: string,
   showFolderName: boolean,
   startMentionStr: string,
   nextReviewMentionStr: string,

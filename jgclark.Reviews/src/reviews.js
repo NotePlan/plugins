@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-03-17 for v1.4.0.b8, @jgclark
+// Last updated 2026-03-26 for v1.4.0.b13, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -42,7 +42,6 @@ import { calcReviewFieldsForProject, Project } from './projectClass'
 import {
   buildProjectLineForStyle,
   buildProjectListTopBarHtml,
-  buildProjectListGridPrefixHtml,
   buildProjectControlDialogHtml,
   buildFolderGroupHeaderHtml,
 } from './projectsHTMLGenerator.js'
@@ -356,7 +355,6 @@ export async function renderProjectListsHTML(
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
     const noteCount = projectsToReview.length
-    outputArray.push(buildProjectListGridPrefixHtml(config))
     if (useDemoData && noteCount === 0) {
       outputArray.push('<p class="project-grid-row demo-file-message">Demo file (allProjectsDemoList.json) not found or empty.</p>')
     }

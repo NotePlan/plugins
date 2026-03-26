@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-03-22 for v1.4.0.b12 by @jgclark (function naming rationalised)
+// Last updated 2026-03-26 for v1.4.0.b13 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -495,6 +495,7 @@ function mapReviewDaysToStatus(interval: number): IntervalStatus {
  * @returns {string}
  */
 export function buildProjectListTopBarHtml(config: any): string {
+  const topbarClasses = config.usePerspectives ? 'topbar' : 'topbar no-perspective'
   const parts: Array<string> = []
   const displayOrder = (typeof config.displayOrder === 'string' && config.displayOrder !== '') ? config.displayOrder : 'review'
   
@@ -541,15 +542,11 @@ export function buildProjectListTopBarHtml(config: any): string {
     true
   )
 
-  // Start with a sticky top bar (grid with 4 elements spaced out)
-  parts.push(`<div class="topbar">`)
-
+  // Start with a sticky top bar (grid with 4 elements spaced out, or 3 if not using perspectives)
+  parts.push(`<div class="${topbarClasses}">`)
   if (config.usePerspectives) {
     const perspectiveSection = `<div id="persp" class="topbar-item">Persp: <span class="perspective-name">${config.perspectiveName}</span></div>`
     parts.push(perspectiveSection)
-  } else {
-    // Need an empty element to for the grid to work
-    parts.push(`<div class="topbar-item"></div>`)
   }
 
   const refreshSection = `<div id="refresh">${refreshPCButton}\n<span class="topbar-item">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
@@ -628,22 +625,6 @@ export function buildFolderGroupHeaderHtml(folderPart: string): string {
   parts.push(`  <div class="project-grid-cell project-grid-cell--span-2 folder-header h3">${folderPart}</div>`)
   parts.push(` </div>`)
   return parts.join('')
-}
-
-/**
- * Opening markup for the unified list: optional single-folder {@code <h4>}, then {@code <div class="project-list-grid …">} start tag.
- * @param {ReviewConfig} config
- * @returns {string}
- */
-export function buildProjectListGridPrefixHtml(config: ReviewConfig): string {
-  const parts: Array<string> = []
-
-  if (!config.displayGroupedByFolder && config.foldersToInclude?.length === 1) {
-    const folderDisplayName = getFolderDisplayNameForHTML(config.foldersToInclude[0])
-    parts.push(`<h4>${folderDisplayName} folder</h4>`)
-  }
-  parts.push(`\n<div class="project-list-grid project-list-grid--no-dates">`)
-  return parts.join('\n')
 }
 
 /**

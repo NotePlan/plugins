@@ -1,6 +1,11 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b13] - 2026-03-26
+- when invalid frontmatter metadata values are detected (like `review: @review()` or `due: @due()`), automatically remove the affected frontmatter key.
+- normalize mention-style date frontmatter values (e.g. `due: @due(2026-03-09)`) to plain date values (`due: 2026-03-09`) during Project constructor processing.
+- Handle frontmatter fields in a case-insensitive manner.
+
 ## [2.0.0.b12] - 2026-03-22
 - improve multi-column layout
 - remove two config settings that should have been removed earlier.
@@ -65,6 +70,7 @@ The "Group by folder" now defaults to off.
 ## [1.3.1] - 2026-02-26
 - New setting "Theme to use for Project Lists": if set to a valid installed Theme name, the Rich project list window uses that theme instead of your current NotePlan theme. Leave blank to use your current theme.
 - Fixed edge case with adding progress updates and frontmatter.
+- Fixed malformed frontmatter mentions (e.g. `@review()` or `@due()`) causing repeated runtime processing; now logs at WARN level and safely ignores empty bracket values.
 
 ## [1.3.0] - 2026-02-20
 ### Display Improvements

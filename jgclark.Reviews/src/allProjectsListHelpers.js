@@ -361,7 +361,7 @@ async function getAllMatchingProjects(
           await CommandBar.onAsyncThread()
         }
         for (const n of projectNotesArr) {
-          const np = new Project(n, tag, true, config.nextActionTags, config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT)
+          const np = new Project(n, tag, true, config.nextActionTags, config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT)
           projectInstances.push(np)
         }
         if (!runInForeground) {
