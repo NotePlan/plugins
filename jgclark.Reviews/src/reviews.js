@@ -64,7 +64,7 @@ import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInp
 const pluginID = 'jgclark.Reviews'
 const windowTitle = `Project Review List`
 const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
-const customRichWinId = `${pluginID}.rich-review-list`
+const PROJECT_LIST_WINDOW_ID = `${pluginID}.rich-review-list`
 const customMarkdownWinId = `markdown-review-list`
 
 //-----------------------------------------------------------------------------
@@ -82,11 +82,11 @@ async function setReviewingProjectInHTML(note: any, isReviewing: boolean): Promi
     if (!note || note.type !== 'Notes') {
       return
     }
-    if (!isHTMLWindowOpen(customRichWinId)) {
+    if (!isHTMLWindowOpen(PROJECT_LIST_WINDOW_ID)) {
       return
     }
     const encodedFilename = encodeRFC3986URIComponent(note.filename)
-    await sendToHTMLWindow(customRichWinId, 'SET_REVIEWING_PROJECT', { encodedFilename, isReviewing })
+    await sendToHTMLWindow(PROJECT_LIST_WINDOW_ID, 'SET_REVIEWING_PROJECT', { encodedFilename, isReviewing })
   } catch (error) {
     logError('setReviewingProjectInHTML', error.message)
   }
@@ -94,8 +94,8 @@ async function setReviewingProjectInHTML(note: any, isReviewing: boolean): Promi
 
 async function clearProjectReviewingInHTML(): Promise<void> {
   try {
-    await sendToHTMLWindow(customRichWinId, 'CLEAR_REVIEWING_PROJECT')
-    if (!isHTMLWindowOpen(customRichWinId)) {
+    await sendToHTMLWindow(PROJECT_LIST_WINDOW_ID, 'CLEAR_REVIEWING_PROJECT')
+    if (!isHTMLWindowOpen(PROJECT_LIST_WINDOW_ID)) {
       return
     }
   } catch (error) {
@@ -479,7 +479,7 @@ export async function renderProjectListsHTML(
       throw new Error('No projectTypeTags configured to display')
     }
 
-    if (!shouldOpen && !isHTMLWindowOpen(customRichWinId)) {
+    if (!shouldOpen && !isHTMLWindowOpen(PROJECT_LIST_WINDOW_ID)) {
       logDebug('renderProjectListsHTML', `not continuing, as HTML window isn't open and 'shouldOpen' is false.`)
       return
     }
@@ -546,7 +546,7 @@ export async function renderProjectListsHTML(
 
     const winOptions = {
       windowTitle: windowTitle,
-      customId: customRichWinId,
+      customId: PROJECT_LIST_WINDOW_ID,
       headerTags: `${faLinksInHeader}${stylesheetinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // now in requiredFiles/reviewListCSS instead
@@ -740,7 +740,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
         reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
         width: 800, // = default width of window (px)
         height: 1200, // = default height of window (px)
-        customId: customRichWinId,
+        customId: PROJECT_LIST_WINDOW_ID,
         shouldFocus: true, // shouuld focus
       }
       const _thisWindow = await showHTMLV2(savedHTML, winOptions)

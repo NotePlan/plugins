@@ -1,6 +1,9 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [1.1.0.b11] - 2026-03-20
+- add a new period selector option "Custom range ..." at the top of the "Habit & Summary Charts" window.
+
 ## [1.1.0.b10] - 2026-03-18
 - change charts display to use the existing "What time period should the Progress update cover?" setting, and to show it at the top of the display.
 - add "quarter to date" and "last 3 months" options to the available ones for the "What time period should the Progress update cover?" setting

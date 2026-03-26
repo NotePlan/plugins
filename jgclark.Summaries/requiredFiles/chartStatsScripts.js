@@ -7,12 +7,79 @@
  * 
  * Note: this file is run as a script in an HTMLView window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
  * 
- * Last updated: 2026-03-04 for v1.1.0.b7 by @jgclark
+ * Last updated: 2026-03-20 for v1.1.0.b10 by @jgclark
  */
 //-----------------------------------------------------------
 
 (function() {
   'use strict'
+
+  /**
+   * Period dropdown + custom range must be on window as soon as this script loads.
+   * initChartStats runs only after Chart.js is available (deferred), so inline onclick/onchange
+   * would otherwise call undefined until charts finished initializing.
+   */
+  window.updatePeriod = function() {
+    const select = document.getElementById('period-select')
+    if (!select) {
+      alert('Error: Could not find period selector')
+      return
+    }
+    const period = select.value
+    const summaryLabel = document.getElementById('period-summary-label')
+    const customControls = document.getElementById('custom-range-controls')
+    const isCustomRange = period === 'customRange'
+    if (summaryLabel) summaryLabel.classList.toggle('hidden', isCustomRange)
+    if (customControls) customControls.classList.toggle('hidden', !isCustomRange)
+    if (isCustomRange) return
+
+    if (period && typeof period === 'string') {
+      const pluginID = 'jgclark.Summaries'
+      const command = 'chartSummaryStats'
+      const url = 'noteplan://x-callback-url/runPlugin?pluginID=' + encodeURIComponent(pluginID) + '&command=' + encodeURIComponent(command) + '&arg0=' + encodeURIComponent(period)
+      const link = document.createElement('a')
+      link.href = url
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      setTimeout(function() {
+        document.body.removeChild(link)
+      }, 100)
+    } else {
+      alert('Please select a valid period')
+    }
+  }
+
+  window.generateCustomRange = function() {
+    const fromInput = document.getElementById('custom-from-date')
+    const toInput = document.getElementById('custom-to-date')
+    if (!fromInput || !toInput) {
+      alert('Error: Could not find custom date controls')
+      return
+    }
+    const fromDate = fromInput.value
+    const toDate = toInput.value
+    if (!fromDate || !toDate) {
+      alert('Please select both start and end dates')
+      return
+    }
+    if (fromDate > toDate) {
+      alert('Start date must be before or equal to end date')
+      return
+    }
+    const pluginID = 'jgclark.Summaries'
+    const command = 'chartSummaryStats'
+    const periodArg = 'customRange|' + fromDate + '|' + toDate
+    const url = 'noteplan://x-callback-url/runPlugin?pluginID=' + encodeURIComponent(pluginID) + '&command=' + encodeURIComponent(command) + '&arg0=' + encodeURIComponent(periodArg)
+    const link = document.createElement('a')
+    link.href = url
+    link.style.display = 'none'
+    document.body.appendChild(link)
+    link.click()
+    setTimeout(function() {
+      document.body.removeChild(link)
+    }, 100)
+  }
 
   window.initChartStats = function(tagData, yesNoData, tags, yesNoHabits, config) {
     const colors = config.colors
@@ -50,31 +117,6 @@
       const isCollapsed = content.classList.contains('collapsed')
       localStorage.setItem('filtersCollapsed', isCollapsed ? 'true' : 'false')
     }
-
-    function updatePeriod() {
-      const select = document.getElementById('period-select')
-      if (!select) {
-        alert('Error: Could not find period selector')
-        return
-      }
-      const period = select.value
-      if (period && typeof period === 'string') {
-        const pluginID = 'jgclark.Summaries'
-        const command = 'chartSummaryStats'
-        const url = 'noteplan://x-callback-url/runPlugin?pluginID=' + encodeURIComponent(pluginID) + '&command=' + encodeURIComponent(command) + '&arg0=' + encodeURIComponent(period)
-        const link = document.createElement('a')
-        link.href = url
-        link.style.display = 'none'
-        document.body.appendChild(link)
-        link.click()
-        setTimeout(function() {
-          document.body.removeChild(link)
-        }, 100)
-      } else {
-        alert('Please select a valid period')
-      }
-    }
-    window.updatePeriod = updatePeriod
 
     // Set initial theme for this window based on NotePlan's current theme mode
     // (mode is detected on the plugin side using the same approach as helpers/NPThemeToCSS)

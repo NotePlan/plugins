@@ -148,14 +148,23 @@ export async function chartSummaryStats(periodOrDays?: any): Promise<void> {
 
     // Use the period code provided, or the default period setting, or the legacy numeric days back
     if (typeof periodOrDays === 'string' && periodOrDays !== '') {
-      // New behaviour: use named period codes, sharing logic with other period-based commands
-      const periodCode = periodOrDays
-      const range = await computeChartDateRangeForPeriod(config, periodCode)
-      rawDates = range.rawDates
-      fromDateStr = range.fromDateStr
-      toDateStr = range.toDateStr
-      periodString = range.periodString
-      selectedPeriod = range.selectedPeriod
+      if (periodOrDays.startsWith('customRange|')) {
+        const customRange = computeChartDateRangeForCustomArg(periodOrDays)
+        rawDates = customRange.rawDates
+        fromDateStr = customRange.fromDateStr
+        toDateStr = customRange.toDateStr
+        periodString = customRange.periodString
+        selectedPeriod = customRange.selectedPeriod
+      } else {
+        // New behaviour: use named period codes, sharing logic with other period-based commands
+        const periodCode = periodOrDays
+        const range = await computeChartDateRangeForPeriod(config, periodCode)
+        rawDates = range.rawDates
+        fromDateStr = range.fromDateStr
+        toDateStr = range.toDateStr
+        periodString = range.periodString
+        selectedPeriod = range.selectedPeriod
+      }
     } else if (periodOrDays == null || periodOrDays === '') {
       // Default behaviour: use the same setting as "/progress update"
       const defaultPeriod = (config.progressPeriod && typeof config.progressPeriod === 'string') ? config.progressPeriod : 'last4w'
@@ -344,6 +353,48 @@ async function computeChartDateRangeForPeriod(
   toDateStr = validated.toDateStr
   periodString = computedPeriodString
 
+  const rawDates = buildRawDatesFromISODateRange(fromDateStr, toDateStr)
+
+  return { fromDateStr, toDateStr, periodString, rawDates, selectedPeriod }
+}
+
+/**
+ * Compute a date range from a custom period argument string in the form:
+ * 'customRange|YYYY-MM-DD|YYYY-MM-DD'
+ * @param {string} periodArg - Custom period argument from x-callback
+ * @returns {{ fromDateStr: string, toDateStr: string, periodString: string, rawDates: Array<string>, selectedPeriod: string }}
+ */
+function computeChartDateRangeForCustomArg(periodArg: string): {
+  fromDateStr: string,
+  toDateStr: string,
+  periodString: string,
+  rawDates: Array<string>,
+  selectedPeriod: string
+} {
+  const parts = periodArg.split('|')
+  const fromCandidate = parts.length > 1 ? parts[1] : ''
+  const toCandidate = parts.length > 2 ? parts[2] : ''
+  const fromMoment = moment(fromCandidate, 'YYYY-MM-DD', true)
+  const toMoment = moment(toCandidate, 'YYYY-MM-DD', true)
+  if (!fromMoment.isValid() || !toMoment.isValid()) {
+    throw new Error('Invalid custom date range. Please select valid start and end dates in YYYY-MM-DD format.')
+  }
+  const validated = validateDateRangeAndConvertToISODateStrings(fromMoment.toDate(), toMoment.toDate(), 'chart summary custom range')
+  const fromDateStr = validated.fromDateStr
+  const toDateStr = validated.toDateStr
+  const rawDates = buildRawDatesFromISODateRange(fromDateStr, toDateStr)
+  const periodString = 'custom range'
+  const selectedPeriod = 'customRange'
+  return { fromDateStr, toDateStr, periodString, rawDates, selectedPeriod }
+}
+
+/**
+ * Build all YYYY-MM-DD dates between (and including) two ISO date strings.
+ * @param {string} fromDateStr - Start date in YYYY-MM-DD format
+ * @param {string} toDateStr - End date in YYYY-MM-DD format
+ * @returns {Array<string>} Date strings sorted ascending
+ */
+function buildRawDatesFromISODateRange(fromDateStr: string, toDateStr: string): Array<string> {
   const rawDates: Array<string> = []
   let cursor = moment(fromDateStr, 'YYYY-MM-DD')
   const endMoment = moment(toDateStr, 'YYYY-MM-DD')
@@ -351,8 +402,7 @@ async function computeChartDateRangeForPeriod(
     rawDates.push(cursor.format('YYYY-MM-DD'))
     cursor = cursor.add(1, 'day')
   }
-
-  return { fromDateStr, toDateStr, periodString, rawDates, selectedPeriod }
+  return rawDates
 }
 
 /**
@@ -422,20 +472,6 @@ function mapToPlainObject(map: Map<string, number>): { [string]: number } {
     obj[k] = v
   })
   return obj
-}
-
-function occurrencesToDemoPayload(occs: Array<TMOccurrences>, rawDates: Array<string>): DemoDataPayload {
-  const occurrences = occs.map((occ) => ({
-    term: occ.term,
-    type: occ.type,
-    interval: occ.interval,
-    dateStr: occ.dateStr,
-    numDays: occ.numDays,
-    valuesMap: mapToPlainObject(occ.valuesMap),
-    total: occ.total,
-    count: occ.count
-  }))
-  return { rawDates, occurrences }
 }
 
 /**
@@ -1110,9 +1146,27 @@ async function makeChartSummaryHTML(
               <option value="last4w"${selectedPeriod === 'last4w' ? ' selected' : ''}>last 4 weeks</option>
               <option value="qtd"${selectedPeriod === 'qtd' ? ' selected' : ''}>quarter to date</option>
               <option value="last3m"${selectedPeriod === 'last3m' ? ' selected' : ''}>last 3 months</option>
+              <option value="customRange"${selectedPeriod === 'customRange' ? ' selected' : ''}>Custom range...</option>
             </select>
-            <span class="stat-label">
+            <span id="period-summary-label" class="stat-label${selectedPeriod === 'customRange' ? ' hidden' : ''}">
               ${fromDateStr && toDateStr ? `(${fromDateStr} - ${toDateStr})` : ''}
+            </span>
+            <span id="custom-range-controls" class="custom-date-controls${selectedPeriod === 'customRange' ? '' : ' hidden'}">
+              <input
+                type="date"
+                id="custom-from-date"
+                class="custom-date-input"
+                value="${fromDateStr || ''}"
+                aria-label="From date"
+              >
+              <input
+                type="date"
+                id="custom-to-date"
+                class="custom-date-input"
+                value="${toDateStr || ''}"
+                aria-label="To date"
+              >
+              <button class="update-btn" onclick="generateCustomRange()">Generate</button>
             </span>
           </div>
         </div>
