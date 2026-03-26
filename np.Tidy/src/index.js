@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 2026-03-14 for v1.18.0 by @jgclark
+// Last updated 2026-03-26 for v1.19.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -28,6 +28,7 @@ export {
   removeTriggersFromRecentCalendarNotes,
   tidyUpAll,
 } from './tidyMain'
+export { cancelIncompleteTasksInPastYear } from './cancelIncompleteTasks'
 export { listConflicts, openConflictSideBySide, resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion } from './conflicts'
 export { listPotentialDoubles } from './doubledNotes'
 export { listDuplicates } from './duplicates'
