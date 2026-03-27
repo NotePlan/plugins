@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Cancel incomplete tasks and checklists in calendar notes for a given past year
 // Jonathan Clark
-// Last updated 2026-03-26 for v1.19.0, @jgclark
+// Last updated 2026-03-27 for v1.19.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -166,7 +166,7 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
       yearStr = String(yearIn)
     }
     if (!yearStr) {
-      yearStr = await getInputTrimmed('Which calendar year of past notes do you want to process? (e.g. 2024)', 'OK', 'Cancel incomplete tasks in a past year')
+      yearStr = await getInputTrimmed('Which calendar year of past notes do you want to process? (e.g. 2024)', 'OK', 'Cancel incomplete tasks')
       if (yearStr === false) {
         logInfo('cancelIncompleteTasksInPastYear', 'User cancelled at year prompt')
         return
@@ -183,7 +183,7 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
     // Find past calendar notes
     const allPastCalendarNotes = pastCalendarNotes()
     if (allPastCalendarNotes.length === 0) {
-      await showMessage('There are no past calendar notes to process.', 'OK', 'Cancel incomplete tasks in a past year')
+      await showMessage('There are no past calendar notes to process.', 'OK', 'Cancel incomplete tasks')
       return
     }
 
@@ -207,7 +207,7 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
       }
       if (i % 50 === 0) {
         const progress = i / totalPast
-        CommandBar.showLoading(true, `Scanning calendar notes for year ${targetYearStr} ...`, progress)
+        CommandBar.showLoading(true, `Scanning calendar notes for year ${targetYearStr} …`, progress)
       }
     }
 
@@ -215,7 +215,7 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
     CommandBar.showLoading(false)
 
     if (notesToProcess.length === 0) {
-      await showMessage(`No past calendar notes were found for the year ${targetYearStr}.`, 'OK', 'Cancel incomplete tasks in a past year')
+      await showMessage(`No past calendar notes were found for the year ${targetYearStr}.`, 'OK', 'Cancel incomplete tasks')
       return
     }
 
@@ -279,7 +279,7 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
 
     if (grandTotalTasks === 0 && grandTotalChecklists === 0) {
       logInfo('cancelIncompleteTasksInPastYear', `🎉 No incomplete tasks or checklists were found in past calendar notes for ${targetYearStr}.`)
-      await showMessage(`No incomplete tasks or checklists were found in past calendar notes for ${targetYearStr}.`, 'OK', 'Cancel incomplete tasks in a past year')
+      await showMessage(`No incomplete tasks or checklists were found in past calendar notes for ${targetYearStr}.`, 'OK', 'Cancel incomplete tasks')
       return
     }
 
@@ -287,9 +287,9 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
     const lines = []
     lines.push(`In calendar notes for ${targetYearStr}, I found:`)
     lines.push('')
-    lines.push(`Total notes with incomplete items: ${grandTotalNotes.toLocaleString()}`)
-    lines.push(`Total incomplete tasks: ${grandTotalTasks.toLocaleString()}`)
-    lines.push(`Total incomplete checklists: ${grandTotalChecklists.toLocaleString()}`)
+    lines.push(`${grandTotalNotes.toLocaleString()} notes with incomplete items:`)
+    lines.push(`- ${grandTotalTasks.toLocaleString()} incomplete tasks`)
+    lines.push(`- ${grandTotalChecklists.toLocaleString()} incomplete checklists`)
     lines.push('')
 
     const teamspaceKeys = Object.keys(statsMap)
