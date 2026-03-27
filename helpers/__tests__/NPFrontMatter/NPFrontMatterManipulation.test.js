@@ -319,6 +319,18 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(note.paragraphs[1].content).toEqual(allParas[1].content)
         expect(note.paragraphs[2].content).toEqual(allParas[3].content)
       })
+      test('should remove matching field case-insensitively', () => {
+        const allParas = [
+          { type: 'separator', content: '---' },
+          { content: 'Due: [[2023-04-24]]' },
+          { content: 'title: note title' },
+          { type: 'separator', content: '---' },
+        ]
+        const note = new Note({ paragraphs: allParas, content: '' })
+        const result = f.removeFrontMatterField(note, 'due', '', true)
+        expect(result).toEqual(true)
+        expect(note.paragraphs.find((p) => /^due:/i.test(p.content))).toBeUndefined()
+      })
     })
   })
 })

@@ -299,8 +299,9 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
       return false
     }
     let removed = false
+    const normalizedFieldToRemove = fieldToRemove.toLowerCase()
     Object.keys(fmFields).forEach((thisKey) => {
-      if (thisKey === fieldToRemove) {
+      if (thisKey.toLowerCase() === normalizedFieldToRemove) {
         const thisValue = fmFields[thisKey]
         // logDebug('rFMF', `- for thisKey ${thisKey}, looking for <${fieldToRemove}:${value ?? "<undefined}"}> to remove. thisValue=${thisValue}`)
         if (!value || thisValue === value) {
@@ -312,7 +313,12 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
           for (let i = 1; i < fmParas.length; i++) {
             // ignore first and last paras which are separators
             const para = fmParas[i]
-            if ((!value && para.content.startsWith(fieldToRemove)) || (value && para.content === `${fieldToRemove}: ${quoteTextIfNeededForFM(value)}`)) {
+            const colonPos = para.content.indexOf(':')
+            const paraKey = colonPos > -1 ? para.content.slice(0, colonPos).trim() : ''
+            const paraValue = colonPos > -1 ? para.content.slice(colonPos + 1).trim() : ''
+            const keyMatches = paraKey.toLowerCase() === normalizedFieldToRemove
+            const valueMatches = !value || paraValue === quoteTextIfNeededForFM(value)
+            if (keyMatches && valueMatches) {
               // logDebug('rFMF', `- will delete fmPara ${String(i)}`)
               fmParas.splice(i, 1) // delete this item
               removed = true

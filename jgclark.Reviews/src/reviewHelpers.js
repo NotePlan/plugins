@@ -10,7 +10,7 @@
 import { getActivePerspectiveDef, getAllowedFoldersInCurrentPerspective, getPerspectiveSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
 import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { type Progress } from './projectClass'
-import { checkString } from '@helpers/checkType'
+import { checkBoolean, checkString } from '@helpers/checkType'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   calcOffsetDate,
@@ -23,7 +23,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttribute, noteHasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttribute, noteHasFrontMatter, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { getFieldParagraphsFromNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
 
@@ -67,6 +67,7 @@ export type ReviewConfig = {
   height: number,
   archiveUsingFolderStructure: boolean,
   archiveFolder: string,
+  removeDueDatesOnPause?: boolean,
   nextActionTags: Array<string>,
   preferredWindowType: string,
   autoUpdateAfterIdleTime?: number,
@@ -74,8 +75,122 @@ export type ReviewConfig = {
   progressHeadingLevel: number,
   writeMostRecentProgressToFrontmatter?: boolean,
   projectMetadataFrontmatterKey?: string,
+  writeDateMentionsInCombinedMetadata?: boolean,
   _logLevel: string,
   _logTimer: boolean,
+}
+
+/**
+ * Convert mention preference string into a frontmatter key name.
+ * @param {string} prefName
+ * @param {string} defaultKey
+ * @returns {string}
+ */
+function getFrontmatterFieldKeyFromMentionPreference(prefName: string, defaultKey: string): string {
+  return checkString(DataStore.preference(prefName) || '').replace(/^[@#]/, '') || defaultKey
+}
+
+/**
+ * Map date mention names (e.g. '@reviewed') to separate frontmatter keys (e.g. 'reviewed'), taking account that user may localise the mention strings.
+ * @returns {{ [string]: string }}
+ */
+function getDateMentionNameToFrontmatterKeyMap(): { [string]: string } {
+  const map: { [string]: string } = {}
+  map[checkString(DataStore.preference('startMentionStr') || '@start')] = getFrontmatterFieldKeyFromMentionPreference('startMentionStr', 'start')
+  map[checkString(DataStore.preference('dueMentionStr') || '@due')] = getFrontmatterFieldKeyFromMentionPreference('dueMentionStr', 'due')
+  map[checkString(DataStore.preference('reviewedMentionStr') || '@reviewed')] = getFrontmatterFieldKeyFromMentionPreference('reviewedMentionStr', 'reviewed')
+  map[checkString(DataStore.preference('completedMentionStr') || '@completed')] = getFrontmatterFieldKeyFromMentionPreference('completedMentionStr', 'completed')
+  map[checkString(DataStore.preference('cancelledMentionStr') || '@cancelled')] = getFrontmatterFieldKeyFromMentionPreference('cancelledMentionStr', 'cancelled')
+  map[checkString(DataStore.preference('nextReviewMentionStr') || '@nextReview')] = getFrontmatterFieldKeyFromMentionPreference('nextReviewMentionStr', 'nextReview')
+  map[checkString(DataStore.preference('reviewIntervalMentionStr') || '@review')] = getFrontmatterFieldKeyFromMentionPreference('reviewIntervalMentionStr', 'review')
+  return map
+}
+
+/**
+ * Normalize hashtag tokens for display/storage.
+ * Removes trailing punctuation like commas, but not '/' or '-' which can be part of a hashtag.
+ * @param {string} hashtag
+ * @returns {string}
+ */
+function normalizeHashtagForDisplay(hashtag: string): string {
+  return checkString(hashtag).trim().replace(/[,:;.!?]+$/g, '')
+}
+
+/**
+ * Extract only hashtags from a string, normalize, and de-duplicate (preserving first-seen order).
+ * Invariant: combined frontmatter key values must contain ONLY hashtags.
+ * @param {string} text
+ * @returns {string}
+ */
+function extractTagsOnly(text: string): string {
+  const seen = new Set < string > ()
+  const ordered: Array<string> = []
+  const candidates = text != null ? text.match(/#[^\s]+/g) ?? [] : []
+  for (const rawTag of candidates) {
+    const normalized = normalizeHashtagForDisplay(rawTag)
+    if (!normalized || !normalized.startsWith('#') || normalized.length <= 1) continue
+    if (!seen.has(normalized)) {
+      seen.add(normalized)
+      ordered.push(normalized)
+    }
+  }
+  return ordered.join(' ')
+}
+
+/**
+ * Populate separate frontmatter keys from embedded mentions inside the combined metadata value.
+ * This prevents losing embedded `@start(...)`, `@due(...)`, `@review(...)`, etc. when the combined key
+ * is rewritten tags-only.
+ * @param {string} combinedValueOnly - value-only part of the combined key (no `project:` prefix)
+ * @param {{ [string]: any }} fmAttrs - attributes bag to update
+ * @param {Array<string>} keysToRemove - keys to remove if the embedded mention param is empty/invalid
+ * @returns {void}
+ */
+function populateSeparateDateKeysFromCombinedValue(
+  combinedValueOnly: string,
+  fmAttrs: { [string]: any },
+  keysToRemove: Array<string>,
+): void {
+  const mentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
+  const intervalMentionName = checkString(DataStore.preference('reviewIntervalMentionStr') || '@review')
+
+  const reISODate = new RegExp(`^${RE_ISO_DATE}$`)
+  const reInterval = /^[+\-]?\d+[BbDdWwMmQqYy]$/
+
+  const embeddedMentions = combinedValueOnly != null ? combinedValueOnly.match(/@[\w\-\.]+\([^)]*\)/g) ?? [] : []
+
+  for (const embeddedMention of embeddedMentions) {
+    const mentionName = embeddedMention.split('(', 1)[0]
+    const frontmatterKeyName = mentionToFrontmatterKeyMap[mentionName]
+    if (!frontmatterKeyName) continue
+
+    const mentionParamMatch = embeddedMention.match(/\(([^)]*)\)\s*$/)
+    const mentionParam = mentionParamMatch && mentionParamMatch[1] != null ? mentionParamMatch[1].trim() : ''
+    if (mentionParam === '') {
+      keysToRemove.push(frontmatterKeyName)
+      continue
+    }
+
+    if (mentionName === intervalMentionName) {
+      if (reInterval.test(mentionParam)) fmAttrs[frontmatterKeyName] = mentionParam
+      else keysToRemove.push(frontmatterKeyName)
+    } else {
+      if (reISODate.test(mentionParam)) fmAttrs[frontmatterKeyName] = mentionParam
+      else keysToRemove.push(frontmatterKeyName)
+    }
+  }
+}
+
+/**
+ * Resolve a note-like object into a CoreNoteFields for frontmatter removals.
+ * @param {CoreNoteFields | TEditor} noteLike
+ * @returns {CoreNoteFields}
+ */
+function getNoteFromNoteLike(noteLike: CoreNoteFields | TEditor): CoreNoteFields {
+  // Note: TEditor in tests includes a `.note`, but we treat it generically here.
+  const maybeAny: any = (noteLike: any)
+  if (maybeAny.note != null) return maybeAny.note
+  return (noteLike: any)
 }
 
 /**
@@ -121,6 +236,8 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     const singleMetadataKeyName: string = rawSingleMetadataKeyName !== '' ? rawSingleMetadataKeyName : 'project'
     config.projectMetadataFrontmatterKey = singleMetadataKeyName
     DataStore.setPreference('projectMetadataFrontmatterKey', singleMetadataKeyName)
+    config.writeDateMentionsInCombinedMetadata = checkBoolean(config.writeDateMentionsInCombinedMetadata ?? false)
+    DataStore.setPreference('writeDateMentionsInCombinedMetadata', config.writeDateMentionsInCombinedMetadata)
 
     // Set default for includedTeamspaces if not using Perspectives
     // Note: This value is only used when Perspectives are enabled, so the default doesn't affect filtering when Perspectives are off
@@ -222,7 +339,7 @@ export function getNextActionLineIndex(note: CoreNoteFields, naTag: string): num
  */
 export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: string): boolean {
   if (!sequentialTag) return false
-  const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
+  const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
   const projectAttribute = getFrontmatterAttribute(note, combinedKey) ?? ''
   if (projectAttribute.includes(sequentialTag)) {
     logDebug('isProjectNoteIsMarkedSequential', `found sequential tag '${sequentialTag}' in frontmatter '${combinedKey}' attribute`)
@@ -319,7 +436,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
  * - first line containing a @review() or @reviewed() mention
  * - first line starting with a hashtag.
  * If these can't be found, then create a new line after the title, or in the 'metadata:' field if present in the frontmatter.
- * TODO: Ideally make a version of this that only checks metadata and doesn't create a new line if it doesn't exist.
+ * NOTE: Ideally make a version of this that only checks metadata and doesn't create a new line if it doesn't exist.
  * @author @jgclark
  *
  * @param {TNote} note to use
@@ -344,20 +461,38 @@ export function getOrMakeMetadataLineIndex(note: CoreNoteFields, metadataLinePla
     }
 
     let lineNumber: number = NaN
+    const singleMetadataKeyName: string = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const scanInFrontmatter = noteHasFrontMatter(note)
+    const endFMIndex = scanInFrontmatter ? (endOfFrontmatterLineIndex(note) ?? -1) : -1
+
+    // Invariant mode: when frontmatter exists, only treat the configured combined key line as the metadata line.
+    const combinedFrontmatterLineRE = new RegExp(`^${singleMetadataKeyName}:\\s*`, 'i')
+    const bodyMetadataLineRE = /^(project|metadata):/i
     for (let i = 1; i < lines.length; i++) {
-      if (lines[i].match(/^(project|metadata|review|reviewed):/i) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
+      if (scanInFrontmatter) {
+        if (i <= endFMIndex && lines[i].match(combinedFrontmatterLineRE)) {
+          lineNumber = i
+          break
+        }
+      } else {
+        if (
+          lines[i].match(bodyMetadataLineRE) ||
+          lines[i].match(/(@review|@reviewed)\(.+\)/) ||
+          lines[i].match(/^#\S/)
+        ) {
         lineNumber = i
         break
+      }
       }
     }
 
     // If no metadataPara found, then insert one either after title, or in the frontmatter if present.
     if (Number.isNaN(lineNumber)) {
-      const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
       if (noteHasFrontMatter(note)) {
         logWarn('getOrMakeMetadataLineIndex', `I couldn't find an existing metadata line, so have added a placeholder at the top of the note. Please review it.`)
         const fmAttrs: { [string]: any } = {}
-        fmAttrs[singleMetadataKeyName] = metadataLinePlaceholder
+        // Invariant: combined key must be tags-only (project tags). Dates/intervals live in their own keys.
+        fmAttrs[singleMetadataKeyName] = extractTagsOnly(metadataLinePlaceholder)
         // $FlowFixMe[incompatible-call]
         const res = updateFrontMatterVars(note, fmAttrs)
         const updatedLines = note.paragraphs?.map((s) => s.content) ?? []
@@ -433,7 +568,7 @@ export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
     logDebug('migrateProjectMetadataLineInEditor', `Starting for '${displayTitle(noteForFM)}'`)
 
     // Check that project metadata is actually stored in frontmatter (configurable key or 'metadata').
-    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
+    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
     const metadataAttr = getFrontmatterAttribute(noteForFM, singleMetadataKeyName)
     const metadataStrSavedFromBodyOfNote = typeof metadataAttr === 'string' ? metadataAttr.trim() : ''
 
@@ -477,9 +612,46 @@ export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
       const bodyValue = metadataInfo.content.replace(/^(project|metadata|review|reviewed)\s*:\s*/i, '').trim()
 
       if (bodyValue !== '') {
-        const mergedValue = (existingFMValue !== '' ? `${existingFMValue} ${bodyValue}` : bodyValue).replace(/\s{2,}/g, ' ').trim()
         const fmAttrs: { [string]: any } = {}
-        fmAttrs[singleMetadataKeyName] = mergedValue
+
+        // Invariant: combined key must contain ONLY hashtags.
+        fmAttrs[singleMetadataKeyName] = extractTagsOnly(`${existingFMValue !== '' ? `${existingFMValue} ` : ''}${bodyValue}`)
+
+        // Parse date/interval mention tokens from the body line into separate frontmatter keys.
+        const mentionTokens = (`${bodyValue} `)
+          .split(' ')
+          .filter((f) => f[0] === '@')
+          .map((t) => t.replace(/[,:;.!?]+$/g, ''))
+
+        const reISODate = new RegExp(`^${RE_ISO_DATE}$`)
+        const reInterval = /^[+\-]?\d+[BbDdWwMmQqYy]$/
+
+        const readBracketContent = (mentionTokenStr: string): string => {
+          const match = mentionTokenStr.match(/\(([^)]*)\)$/)
+          return match && match[1] != null ? match[1].trim() : ''
+        }
+
+        // Dates (including nextReview) are ISO dates.
+        const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
+        for (const mentionName of Object.keys(dateMentionToFrontmatterKeyMap)) {
+          const frontmatterKeyName = dateMentionToFrontmatterKeyMap[mentionName]
+          const mentionTokenStr = getParamMentionFromList(mentionTokens, mentionName)
+          if (!mentionTokenStr) continue
+          const bracketContent = readBracketContent(mentionTokenStr)
+          if (bracketContent !== '' && reISODate.test(bracketContent)) {
+            fmAttrs[frontmatterKeyName] = bracketContent
+          }
+        }
+
+        // Review interval: separate key, interval string (e.g. '1w')
+        const reviewIntervalMentionName = checkString(DataStore.preference('reviewIntervalMentionStr'))
+        const reviewIntervalTokenStr = reviewIntervalMentionName ? getParamMentionFromList(mentionTokens, reviewIntervalMentionName) : ''
+        const intervalBracketContent = reviewIntervalTokenStr ? readBracketContent(reviewIntervalTokenStr) : ''
+        const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
+        if (intervalBracketContent !== '' && reInterval.test(intervalBracketContent)) {
+          fmAttrs[reviewIntervalKey] = intervalBracketContent
+        }
+
         // $FlowFixMe[incompatible-call]
         const mergedOK = updateFrontMatterVars(noteForFM, fmAttrs)
         if (!mergedOK) {
@@ -506,10 +678,11 @@ export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
 }
 
 /**
- * If project metadata is now stored in frontmatter, then:
- * - replace any existing project metadata line in the body with a short migration message, or
- * - remove that migration message if it already exists.
- * NOTE: This helper does not save/update the note or cache; callers must handle persistence.
+/**
+ * Migrates any old-style single-line project metadata remaining in the note body into the appropriate frontmatter key, and, if migrated,
+ * replaces that body metadata line with a short migration message. 
+ * If the migration message already exists, it is removed.
+ * NOTE: This helper does not update the cache.
  * @author @jgclark
  * @param {CoreNoteFields} noteToUse - the note to update
  */
@@ -528,7 +701,7 @@ export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): voi
     }
 
     // Check that project metadata is actually stored in frontmatter (configurable key or 'metadata').
-    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
+    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
     const metadataAttr = getFrontmatterAttribute((noteToUse: any), singleMetadataKeyName)
     const metadataStrSavedFromBodyOfNote = typeof metadataAttr === 'string' ? metadataAttr.trim() : ''
 
@@ -565,9 +738,44 @@ export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): voi
 
       if (bodyValue !== '') {
         logDebug('migrateProjectMetadataLineInNote', `- Merging body metadata into frontmatter key '${primaryKey}' with bodyValue '${bodyValue}'`)
-        const mergedValue = (existingFMValue !== '' ? `${existingFMValue} ${bodyValue}` : bodyValue).replace(/\s{2,}/g, ' ').trim()
         const fmAttrs: { [string]: any } = {}
-        fmAttrs[primaryKey] = mergedValue
+
+        // Invariant: combined key must contain ONLY hashtags.
+        fmAttrs[primaryKey] = extractTagsOnly(`${existingFMValue !== '' ? `${existingFMValue} ` : ''}${bodyValue}`)
+
+        // Parse date/interval mention tokens from the body metadata line into separate frontmatter keys.
+        const mentionTokens = (`${bodyValue} `)
+          .split(' ')
+          .filter((f) => f[0] === '@')
+          .map((t) => t.replace(/[,:;.!?]+$/g, ''))
+
+        const reISODate = new RegExp(`^${RE_ISO_DATE}$`)
+        const reInterval = /^[+\-]?\d+[BbDdWwMmQqYy]$/
+
+        const readBracketContent = (mentionTokenStr: string): string => {
+          const match = mentionTokenStr.match(/\(([^)]*)\)$/)
+          return match && match[1] != null ? match[1].trim() : ''
+        }
+
+        const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
+        for (const mentionName of Object.keys(dateMentionToFrontmatterKeyMap)) {
+          const frontmatterKeyName = dateMentionToFrontmatterKeyMap[mentionName]
+          const mentionTokenStr = getParamMentionFromList(mentionTokens, mentionName)
+          if (!mentionTokenStr) continue
+          const bracketContent = readBracketContent(mentionTokenStr)
+          if (bracketContent !== '' && reISODate.test(bracketContent)) {
+            fmAttrs[frontmatterKeyName] = bracketContent
+          }
+        }
+
+        const reviewIntervalMentionName = checkString(DataStore.preference('reviewIntervalMentionStr'))
+        const reviewIntervalTokenStr = reviewIntervalMentionName ? getParamMentionFromList(mentionTokens, reviewIntervalMentionName) : ''
+        const intervalBracketContent = reviewIntervalTokenStr ? readBracketContent(reviewIntervalTokenStr) : ''
+        const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
+        if (intervalBracketContent !== '' && reInterval.test(intervalBracketContent)) {
+          fmAttrs[reviewIntervalKey] = intervalBracketContent
+        }
+
         // $FlowFixMe[incompatible-call]
         const mergedOK = updateFrontMatterVars((noteToUse: any), fmAttrs)
         if (!mergedOK) {
@@ -613,7 +821,7 @@ function updateMetadataCore(
   let updatedLine = origLine
 
   const endFMIndex = endOfFrontmatterLineIndex(noteLike) ?? -1
-  const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
+  const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
   const frontmatterPrefixRe = new RegExp(`^${singleMetadataKeyName}:\\s*`, 'i')
   const isFrontmatterLine = metadataLineIndex <= endFMIndex
 
@@ -624,21 +832,42 @@ function updateMetadataCore(
 
   if (isFrontmatterLine) {
     let valueOnly = origLine.replace(frontmatterPrefixRe, '')
+    const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
+    const fmAttrs: { [string]: any } = {}
+    const keysToRemove: Array<string> = []
+
+    // Move any embedded date/interval mentions from the combined key into their separate keys.
+    // This ensures they aren't lost when we rewrite the combined key tags-only.
+    populateSeparateDateKeysFromCombinedValue(valueOnly, fmAttrs, keysToRemove)
+
     for (const item of updatedMetadataArr) {
       const mentionName = item.split('(', 1)[0]
+      const mentionParamMatch = item.match(/\(([^)]*)\)$/)
+      const mentionParam = mentionParamMatch && mentionParamMatch[1] != null ? mentionParamMatch[1].trim() : ''
       const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
       valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
-      valueOnly += ` ${item}`
+      const separateDateKey = dateMentionToFrontmatterKeyMap[mentionName]
+      if (separateDateKey) {
+        if (mentionParam !== '') {
+          fmAttrs[separateDateKey] = mentionParam
+        } else {
+          keysToRemove.push(separateDateKey)
+        }
+      } else {
+        valueOnly += ` ${item}`
+      }
     }
-    const finalValue = valueOnly.replace(/\s{2,}/g, ' ').trim()
-    const fmAttrs: { [string]: any } = {}
-    fmAttrs[singleMetadataKeyName] = finalValue
+    fmAttrs[singleMetadataKeyName] = extractTagsOnly(valueOnly)
     // $FlowFixMe[incompatible-call]
     const success = updateFrontMatterVars(noteLike, fmAttrs)
     if (!success) {
       logError(logContext, `Failed to update frontmatter ${singleMetadataKeyName} for '${displayTitle(noteLike)}'`)
     } else {
-      logDebug(logContext, `- After update frontmatter ${singleMetadataKeyName}='${finalValue}'`)
+      const noteForRemoval = getNoteFromNoteLike(noteLike)
+      for (const keyToRemove of keysToRemove) {
+        removeFrontMatterField(noteForRemoval, keyToRemove)
+      }
+      logDebug(logContext, `- After update frontmatter ${singleMetadataKeyName}='${fmAttrs[singleMetadataKeyName]}'`)
     }
   } else {
     for (const item of updatedMetadataArr) {
@@ -724,7 +953,7 @@ function deleteMetadataMentionCore(
   let newLine = origLine
 
   const endOfFrontmatterIndex = endOfFrontmatterLineIndex(noteLike) ?? -1
-  const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
+  const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
   const frontmatterPrefixRe = new RegExp(`^${singleMetadataKeyName}:\\s*`, 'i')
   const isFrontmatterLine = metadataLineIndex <= endOfFrontmatterIndex
 
@@ -732,20 +961,34 @@ function deleteMetadataMentionCore(
 
   if (isFrontmatterLine) {
     let valueOnly = origLine.replace(frontmatterPrefixRe, '')
+    const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
+    const fmAttrs: { [string]: any } = {}
+    const keysToRemove: Array<string> = []
+
+    // Move any embedded date/interval mentions from the combined key into their separate keys
+    // before rewriting the combined key tags-only.
+    populateSeparateDateKeysFromCombinedValue(valueOnly, fmAttrs, keysToRemove)
+
     for (const mentionName of mentionsToDeleteArr) {
       const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
       valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
+      const separateDateKey = dateMentionToFrontmatterKeyMap[mentionName]
+      if (separateDateKey) {
+        keysToRemove.push(separateDateKey)
+      }
       logDebug(logContext, `-> ${valueOnly}`)
     }
-    const finalValue = valueOnly.replace(/\s{2,}/g, ' ').trim()
-    const fmAttrs: { [string]: any } = {}
-    fmAttrs[singleMetadataKeyName] = finalValue
+    fmAttrs[singleMetadataKeyName] = extractTagsOnly(valueOnly)
     // $FlowFixMe[incompatible-call]
     const success = updateFrontMatterVars(noteLike, fmAttrs)
     if (!success) {
       logError(logContext, `Failed to update frontmatter ${singleMetadataKeyName} for '${displayTitle(noteLike)}'`)
     } else {
-      logDebug(logContext, `- Finished frontmatter ${singleMetadataKeyName}='${finalValue}'`)
+      const noteForRemoval = getNoteFromNoteLike(noteLike)
+      for (const keyToRemove of keysToRemove) {
+        removeFrontMatterField(noteForRemoval, keyToRemove)
+      }
+      logDebug(logContext, `- Finished frontmatter ${singleMetadataKeyName}='${fmAttrs[singleMetadataKeyName]}'`)
     }
   } else {
     for (const mentionName of mentionsToDeleteArr) {

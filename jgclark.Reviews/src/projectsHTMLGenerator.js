@@ -495,7 +495,7 @@ function mapReviewDaysToStatus(interval: number): IntervalStatus {
  * @returns {string}
  */
 export function buildProjectListTopBarHtml(config: any): string {
-  const topbarClasses = config.usePerspectives ? 'topbar' : 'topbar no-perspective'
+  const topbarClasses = config.usePerspectives ? 'topbar' : 'topbar topbar-no-perspective'
   const parts: Array<string> = []
   const displayOrder = (typeof config.displayOrder === 'string' && config.displayOrder !== '') ? config.displayOrder : 'review'
   

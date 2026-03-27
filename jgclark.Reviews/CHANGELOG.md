@@ -1,10 +1,15 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b14] - 2026-03-26
+- change default metadata write behavior: project date fields now write to separate frontmatter keys (`start`, `due`, `reviewed`, `completed`, `cancelled`, `nextReview`) instead of being embedded in the combined `project`/`metadata` value.
+- nudge base font size down 1pt, to be closer to the NP interface
+
 ## [2.0.0.b13] - 2026-03-26
 - when invalid frontmatter metadata values are detected (like `review: @review()` or `due: @due()`), automatically remove the affected frontmatter key.
 - normalize mention-style date frontmatter values (e.g. `due: @due(2026-03-09)`) to plain date values (`due: 2026-03-09`) during Project constructor processing.
 - Handle frontmatter fields in a case-insensitive manner.
+- Fix gap at start of topbar if not showing Perspective.
 
 ## [2.0.0.b12] - 2026-03-22
 - improve multi-column layout

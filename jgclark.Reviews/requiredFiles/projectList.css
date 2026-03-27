@@ -7,7 +7,7 @@
    Scope: plugin tokens and page shell (most general)
    ============================================================ */
 
-body {
+html {
   /* Colours specific to this plugin */
 	--teamspace-color: #269F54;
   --project-no-percent-color: #BBB;
@@ -22,11 +22,15 @@ body {
   --fg-overdue-color: hsla(0, 85%, 38%, 1); 
   --fg-soon-color: hsla(210, 85%, 38%, 1); 
   --fg-not-due-color: hsla(120, 85%, 30%, 1); 
-  
+
+  font-size: 14pt;  
+}
+
+body {
   /* Settings for overall body */
   margin: 0px;
   background-color: var(--bg-alt-color);
-}
+} */
 
 /* ============================================================
    Base element defaults (type selectors)
@@ -178,11 +182,12 @@ input, label {
     font-weight: 600;
   }
 
-  .no-perspective {
-    grid-template-columns: auto auto auto;
-  }
 
 }
+.topbar-no-perspective {
+  grid-template-columns: auto auto auto;
+}
+
 .topbar-center-cluster {
   justify-self: center;
 }
@@ -316,7 +321,7 @@ input, label {
 /* allow multi-column flow: set max columns and min width, and some other bits and pieces */
 .multi-cols {
   column-count: 3; 
-  column-width: 25rem;
+  column-width: 30rem;
   column-gap: 0.3rem;
   column-rule: 1px dotted rgb(from var(--tint-color) r g b / 0.5);
 }

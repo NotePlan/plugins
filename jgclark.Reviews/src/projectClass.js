@@ -147,6 +147,25 @@ function formatDurationString(date: string | Date, startDate?: string | Date, ro
 }
 
 /**
+ * Should date mentions also be written into the combined metadata key?
+ * Defaults to false so date values are written as separate frontmatter keys.
+ * @returns {boolean}
+ */
+function shouldWriteDateMentionsInCombinedMetadata(): boolean {
+  return checkBoolean(DataStore.preference('writeDateMentionsInCombinedMetadata') ?? false)
+}
+
+/**
+ * Normalize hashtag tokens for display/filter use.
+ * Removes trailing punctuation (like commas) and trims whitespace.
+ * @param {string} hashtag
+ * @returns {string}
+ */
+function normalizeHashtagForDisplay(hashtag: string): string {
+  return checkString(hashtag).trim().replace(/[,:;.!?]+$/g, '')
+}
+
+/**
  * Define 'Project' class to use in GTD.
  * Holds title, last reviewed date, due date, review interval, completion date, progress information that is read from the note,
  * and other derived data.
@@ -236,7 +255,76 @@ export class Project {
         if (existingCombinedStr === '') {
           const metadataParaToRemove = paras[metadataLineIndex]
           const fmAttrs: { [string]: any } = {}
-          fmAttrs[singleKeyName] = metadataLine
+
+          // Invariant: combined frontmatter value must contain ONLY hashtags (project tags).
+          const hashtagsOnly = (`${metadataLine} `)
+            .match(/#[^\s]+/g)
+            ?.map((t) => normalizeHashtagForDisplay(t))
+            .filter((t) => t && t.startsWith('#') && t.length > 1) ?? []
+          const uniqueHashtags: Array<string> = []
+          const seen: Set<string> = new Set()
+          for (const t of hashtagsOnly) {
+            if (!seen.has(t)) {
+              seen.add(t)
+              uniqueHashtags.push(t)
+            }
+          }
+          fmAttrs[singleKeyName] = uniqueHashtags.join(' ')
+
+          // Also populate separate date/interval keys from mention tokens in the body metadata line.
+          const mentionTokens = (`${metadataLine} `)
+            .split(' ')
+            .filter((f) => f[0] === '@')
+            .map((t) => t.replace(/[,:;.!?]+$/g, ''))
+
+          const reISODate = new RegExp(`^${RE_DATE}$`)
+          const reISOInterval = new RegExp(`^${RE_DATE_INTERVAL}$`)
+
+          const getFrontmatterFieldKey = (prefName: string, defaultKey: string): string =>
+            checkString(DataStore.preference(prefName) || '').replace(/^[@#]/, '') || defaultKey
+
+          const startKey = getFrontmatterFieldKey('startMentionStr', 'start')
+          const dueKey = getFrontmatterFieldKey('dueMentionStr', 'due')
+          const reviewedKey = getFrontmatterFieldKey('reviewedMentionStr', 'reviewed')
+          const completedKey = getFrontmatterFieldKey('completedMentionStr', 'completed')
+          const cancelledKey = getFrontmatterFieldKey('cancelledMentionStr', 'cancelled')
+          const reviewIntervalKey = getFrontmatterFieldKey('reviewIntervalMentionStr', 'review')
+          const nextReviewKey = getFrontmatterFieldKey('nextReviewMentionStr', 'nextReview')
+
+          const readDateFromMentionList = (mentionPrefKey: string): ?string => {
+            const mentionName = checkString(DataStore.preference(mentionPrefKey))
+            const mentionTokenStr = mentionName ? getParamMentionFromList(mentionTokens, mentionName) : ''
+            if (mentionTokenStr === '') return undefined
+            const bracketContent = getContentFromBrackets(mentionTokenStr)
+            if (bracketContent == null || bracketContent.trim() === '') return undefined
+            const parsed = String(bracketContent).trim()
+            return reISODate.test(parsed) ? parsed : undefined
+          }
+
+          const startVal = readDateFromMentionList('startMentionStr')
+          if (startVal != null) fmAttrs[startKey] = startVal
+          const dueVal = readDateFromMentionList('dueMentionStr')
+          if (dueVal != null) fmAttrs[dueKey] = dueVal
+          const reviewedVal = readDateFromMentionList('reviewedMentionStr')
+          if (reviewedVal != null) fmAttrs[reviewedKey] = reviewedVal
+          const completedVal = readDateFromMentionList('completedMentionStr')
+          if (completedVal != null) fmAttrs[completedKey] = completedVal
+          const cancelledVal = readDateFromMentionList('cancelledMentionStr')
+          if (cancelledVal != null) fmAttrs[cancelledKey] = cancelledVal
+          const nextReviewVal = readDateFromMentionList('nextReviewMentionStr')
+          if (nextReviewVal != null) fmAttrs[nextReviewKey] = nextReviewVal
+
+          // Review interval is not ISO date.
+          const reviewIntervalMentionName = checkString(DataStore.preference('reviewIntervalMentionStr'))
+          const reviewIntervalTokenStr = reviewIntervalMentionName
+            ? getParamMentionFromList(mentionTokens, reviewIntervalMentionName)
+            : ''
+          const reviewIntervalBracket = reviewIntervalTokenStr ? getContentFromBrackets(reviewIntervalTokenStr) : undefined
+          const intervalStr = reviewIntervalBracket != null ? String(reviewIntervalBracket).trim() : ''
+          if (intervalStr !== '' && reISOInterval.test(intervalStr)) {
+            fmAttrs[reviewIntervalKey] = intervalStr
+          }
+
           const migratedOK = updateFrontMatterVars(note, fmAttrs)
           if (migratedOK) {
             note.removeParagraph(metadataParaToRemove)
@@ -269,6 +357,7 @@ export class Project {
             : (hashtags[1])
               ? hashtags[1]
               : ''
+        this.projectTag = normalizeHashtagForDisplay(this.projectTag)
       } catch (e) {
         this.projectTag = ''
         logWarn('ProjectConstructor', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
@@ -297,6 +386,53 @@ export class Project {
         if (dateMatch && dateMatch[1]) {
           this.nextReviewDateStr = dateMatch[1]
         }
+      }
+
+      // Backward-compatibility: if the combined frontmatter key still contains embedded date/interval mentions
+      // (e.g. `project: #project @start(YYYY-MM-DD) @due(...) @review(1w) ...`), extract them into the separate
+      // frontmatter-backed fields so they don't get dropped during subsequent writes.
+      try {
+        const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+        const combinedStrRaw = getFrontmatterAttribute(this.note, combinedKey)
+        const combinedStr = combinedStrRaw != null && typeof combinedStrRaw === 'string' ? combinedStrRaw : ''
+        if (combinedStr !== '') {
+          const reISODate = new RegExp(`^${RE_DATE}$`)
+          const reInterval = new RegExp(`^${RE_DATE_INTERVAL}$`)
+
+          const startMentionPref = checkString(DataStore.preference('startMentionStr'))
+          const dueMentionPref = checkString(DataStore.preference('dueMentionStr'))
+          const reviewedMentionPref = checkString(DataStore.preference('reviewedMentionStr'))
+          const completedMentionPref = checkString(DataStore.preference('completedMentionStr'))
+          const cancelledMentionPref = checkString(DataStore.preference('cancelledMentionStr'))
+          const reviewIntervalMentionPref = checkString(DataStore.preference('reviewIntervalMentionStr'))
+          const nextReviewMentionPref = checkString(DataStore.preference('nextReviewMentionStr'))
+
+          const mentionRegex = /@[\w\-\.]+\([^)]*\)/g
+          const embeddedMentions: Array<string> = combinedStr.match(mentionRegex) ?? []
+          for (const embeddedMention of embeddedMentions) {
+            const mentionName = embeddedMention.split('(', 1)[0]
+            const parsed = parseProjectFrontmatterValue(embeddedMention)
+            if (parsed === '') continue
+
+            if (mentionName === startMentionPref && (this.startDate == null || this.startDate === '')) {
+              if (reISODate.test(parsed)) this.startDate = parsed
+            } else if (mentionName === dueMentionPref && (this.dueDate == null || this.dueDate === '')) {
+              if (reISODate.test(parsed)) this.dueDate = parsed
+            } else if (mentionName === reviewedMentionPref && (this.reviewedDate == null || this.reviewedDate === '')) {
+              if (reISODate.test(parsed)) this.reviewedDate = parsed
+            } else if (mentionName === completedMentionPref && (this.completedDate == null || this.completedDate === '')) {
+              if (reISODate.test(parsed)) this.completedDate = parsed
+            } else if (mentionName === cancelledMentionPref && (this.cancelledDate == null || this.cancelledDate === '')) {
+              if (reISODate.test(parsed)) this.cancelledDate = parsed
+            } else if (mentionName === nextReviewMentionPref && (this.nextReviewDateStr == null || this.nextReviewDateStr === '')) {
+              if (reISODate.test(parsed)) this.nextReviewDateStr = parsed
+            } else if (mentionName === reviewIntervalMentionPref && (this.reviewInterval == null || this.reviewInterval === '' || !this.reviewInterval.match(reInterval))) {
+              if (reInterval.test(parsed)) this.reviewInterval = parsed
+            }
+          }
+        }
+      } catch (e) {
+        logWarn('ProjectConstructor', `- Failed to extract embedded date mentions from combined frontmatter for '${this.title}': ${e.message}`)
       }
 
       // Overlay metadata fields from separate frontmatter keys (if they exist)
@@ -328,7 +464,12 @@ export class Project {
          */
         const readAndAssignDateField = (fieldKey: string, setter: (value: string) => void): void => {
           const field = readRawFrontmatterField(this.note, fieldKey)
-          if (!field.exists || !field.value) {
+          if (!field.exists) {
+            return
+          }
+          if (field.value == null || String(field.value).trim() === '') {
+            logWarn('ProjectConstructor', `Found empty frontmatter '${fieldKey}' value in '${this.title}' (${this.filename}). Will remove the key.`)
+            invalidFrontmatterKeysToRemove.add(fieldKey)
             return
           }
           const originalValue = String(field.value)
@@ -339,24 +480,41 @@ export class Project {
               normalizedFrontmatterAttrs[fieldKey] = parsed
             }
           } else {
-            logWarn('ProjectConstructor', `Found invalid frontmatter '${fieldKey}' value '${String(field.value)}' in '${this.title}' (${this.filename}). Will remove the key.`)
+            logWarn('ProjectConstructor', `Found empty or invalid frontmatter '${fieldKey}' value '${String(field.value)}' in '${this.title}' (${this.filename}). Will remove the key.`)
             invalidFrontmatterKeysToRemove.add(fieldKey)
           }
         }
 
         // Get/set reviewInterval. Note: this is unlike the following metadata fields
         const fmReviewInterval = readRawFrontmatterField(this.note, reviewIntervalKey)
+        const reInterval = new RegExp(`^${RE_DATE_INTERVAL}$`)
 
+        let wroteReviewIntervalToFrontmatter = false
         if (fmReviewInterval.exists && fmReviewInterval.value) {
           this.reviewInterval = parseProjectFrontmatterValue(fmReviewInterval.value)
-        }
-        // Now check for valid value in this.reviewInterval, and if not, then log warning and set to default
-        if (!this.reviewInterval || this.reviewInterval === '' || !this.reviewInterval.match(new RegExp(`^${RE_DATE_INTERVAL}$`))) {
-          logWarn('ProjectConstructor', `Found invalid frontmatter '${reviewIntervalKey}' value '${String(this.reviewInterval)}' in '${this.title}' (${this.filename}). Will set it to default '${DEFAULT_REVIEW_INTERVAL}'.`)
-          this.reviewInterval = DEFAULT_REVIEW_INTERVAL
+          // Now check for valid value in this.reviewInterval, and if not, then log warning and set to default
+          if (!this.reviewInterval || this.reviewInterval === '' || !this.reviewInterval.match(reInterval)) {
+            logWarn(
+              'ProjectConstructor',
+              `Found invalid frontmatter '${reviewIntervalKey}' value '${String(this.reviewInterval)}' in '${this.title}' (${this.filename}). Will set it to default '${DEFAULT_REVIEW_INTERVAL}'.`,
+            )
+            this.reviewInterval = DEFAULT_REVIEW_INTERVAL
+            const newAttr: { [string]: any } = {}
+            newAttr[reviewIntervalKey] = this.reviewInterval
+            updateFrontMatterVars(this.note, newAttr)
+            wroteReviewIntervalToFrontmatter = true
+          }
+        } else {
+          // No frontmatter reviewInterval key yet. If we already have a valid in-memory value (e.g. from embedded mentions),
+          // write that to frontmatter; otherwise write the DEFAULT_REVIEW_INTERVAL.
+          const hasValidExistingInterval =
+            this.reviewInterval != null && this.reviewInterval !== '' && this.reviewInterval.match(reInterval)
+          const intervalToWrite = hasValidExistingInterval ? this.reviewInterval : DEFAULT_REVIEW_INTERVAL
+          this.reviewInterval = intervalToWrite
           const newAttr: { [string]: any } = {}
           newAttr[reviewIntervalKey] = this.reviewInterval
           updateFrontMatterVars(this.note, newAttr)
+          wroteReviewIntervalToFrontmatter = true
         }
 
         readAndAssignDateField(startKey, (value) => {
@@ -393,7 +551,11 @@ export class Project {
           logDebug('ProjectConstructor', `Normalized frontmatter date fields [${Object.keys(normalizedFrontmatterAttrs).join(', ')}] in '${this.title}'`)
         }
 
-        if (invalidFrontmatterKeysToRemove.size > 0 || Object.keys(normalizedFrontmatterAttrs).length > 0) {
+        if (
+          invalidFrontmatterKeysToRemove.size > 0 ||
+          Object.keys(normalizedFrontmatterAttrs).length > 0 ||
+          wroteReviewIntervalToFrontmatter
+        ) {
           DataStore.updateCache(this.note, true)
         }
       } catch (e) {
@@ -450,11 +612,19 @@ export class Project {
       }
 
       // Build allProjectTags: all hashtags from metadata line and combined frontmatter metadata field (including #sequential if applicable)
-      const metadataLineHashtags = (`${metadataLine} `).split(/\s+/).filter((w) => w.length > 0 && w[0] === '#')
+      const metadataLineHashtags = (`${metadataLine} `)
+        .split(/\s+/)
+        .filter((w) => w.length > 0 && w[0] === '#')
+        .map((t) => normalizeHashtagForDisplay(t))
+        .filter((t) => t.startsWith('#') && t.length > 1)
       const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
       const projectAttr = getFrontmatterAttribute(this.note, combinedKey)
       const projectAttrStr = projectAttr != null && typeof projectAttr === 'string' ? projectAttr : ''
-      const frontmatterProjectHashtags = projectAttrStr ? projectAttrStr.match(/#\S+/g) ?? [] : []
+      const frontmatterProjectHashtags = projectAttrStr
+        ? (projectAttrStr.match(/#\S+/g) ?? [])
+          .map((t) => normalizeHashtagForDisplay(t))
+          .filter((t) => t.startsWith('#') && t.length > 1)
+        : []
       const hasSequentialTag =
         sequentialTag !== '' &&
         (projectAttrStr.includes(sequentialTag) ||
@@ -462,9 +632,10 @@ export class Project {
           metadataLine.includes(sequentialTag))
       const seen = new Set<string>()
       const ordered: Array<string> = []
-      if (this.projectTag && !seen.has(this.projectTag)) {
-        seen.add(this.projectTag)
-        ordered.push(this.projectTag)
+      const normalizedProjectTag = normalizeHashtagForDisplay(this.projectTag)
+      if (normalizedProjectTag && !seen.has(normalizedProjectTag)) {
+        seen.add(normalizedProjectTag)
+        ordered.push(normalizedProjectTag)
       }
       if (hasSequentialTag && sequentialTag && !seen.has(sequentialTag)) {
         seen.add(sequentialTag)
@@ -540,10 +711,7 @@ export class Project {
 
     const bracketContent = getContentFromBrackets(tempStr)
     if (bracketContent == null || bracketContent.trim() === '') {
-      logWarn(
-        'ProjectConstructor',
-        `Found malformed ${mentionName}() with empty brackets in '${this.title}' (${this.filename}). Ignoring this value.`,
-      )
+      logWarn('ProjectConstructor', `Found empty ${mentionName}() in '${this.title}' (${this.filename}). Ignoring this value.`)
       return undefined
     }
     return getISODateStringFromMention(tempStr)
@@ -586,14 +754,18 @@ export class Project {
   updateMetadataLine(newMetadataLine: string): void {
     const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
     const currentContent = metadataPara.content
+    const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
 
-    // Check if metadata is stored in frontmatter (content starts with "metadata:")
-    const isInFrontmatter = currentContent.match(/^metadata:\s*/i) != null
+    // Check if metadata is stored in frontmatter (content starts with combined metadata key)
+    const isInFrontmatter = frontmatterPrefixRe.test(currentContent) || currentContent.match(/^metadata:\s*/i) != null
 
     if (isInFrontmatter) {
-      // Update using frontmatter helper to preserve the "metadata:" key
-      logDebug('updateMetadataLine', `Updating frontmatter metadata for '${this.title}'`)
-      const success = updateFrontMatterVars(this.note, { metadata: newMetadataLine })
+      // Update using frontmatter helper to preserve configured combined metadata key
+      logDebug('updateMetadataLine', `Updating frontmatter ${singleKeyName} tags only for '${this.title}'`)
+      const attrs: { [string]: any } = {}
+      attrs[singleKeyName] = this.getCombinedProjectTagsFrontmatterValue(singleKeyName)
+      const success = updateFrontMatterVars(this.note, attrs)
       if (success) {
         DataStore.updateCache(this.note, true)
       } else {
@@ -610,6 +782,55 @@ export class Project {
       }
       DataStore.updateCache(this.note, true)
     }
+  }
+
+  /**
+   * Build the combined frontmatter key value.
+   * Invariant: the combined key must contain ONLY project hashtags (e.g. '#project', '#area', '#sequential', and '#paused').
+   * @param {string} combinedKey
+   * @returns {string}
+   */
+  getCombinedProjectTagsFrontmatterValue(combinedKey: string): string {
+    const seen: Set<string> = new Set()
+    const ordered: Array<string> = []
+
+    const addTagsFromText = (text: string): void => {
+      const candidates = text != null ? text.match(/#[^\s]+/g) ?? [] : []
+      for (const rawTag of candidates) {
+        const normalized = normalizeHashtagForDisplay(rawTag)
+        if (!normalized || !normalized.startsWith('#') || normalized.length <= 1) continue
+        if (!seen.has(normalized)) {
+          seen.add(normalized)
+          ordered.push(normalized)
+        }
+      }
+    }
+
+    const combinedValue = getFrontmatterAttribute(this.note, combinedKey)
+    const combinedStr = combinedValue != null && typeof combinedValue === 'string' ? combinedValue : ''
+    addTagsFromText(combinedStr)
+
+    const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
+    const metadataLineStr = metadataPara != null ? metadataPara.content ?? '' : ''
+    addTagsFromText(metadataLineStr)
+
+    const normalizedProjectTag = normalizeHashtagForDisplay(this.projectTag)
+    if (normalizedProjectTag && normalizedProjectTag.startsWith('#') && normalizedProjectTag.length > 1) {
+      if (!seen.has(normalizedProjectTag)) {
+        seen.add(normalizedProjectTag)
+        ordered.push(normalizedProjectTag)
+      }
+    }
+
+    if (this.isPaused) {
+      const pausedTag = '#paused'
+      if (!seen.has(pausedTag)) {
+        seen.add(pausedTag)
+        ordered.push(pausedTag)
+      }
+    }
+
+    return ordered.join(' ')
   }
 
   /**
@@ -642,11 +863,11 @@ export class Project {
    * @param {string} newMetadataLine - Combined metadata string (without leading "metadata:" or "project:")
    * @private
    */
-  updateFrontmatterMetadataFromFields(newMetadataLine: string): void {
+  updateFrontmatterMetadataFromFields(_newMetadataLine: string): void {
     try {
       const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
       const attrs: { [string]: any } = {}
-      attrs[singleKeyName] = newMetadataLine
+      const keysToRemove: Array<string> = []
 
       // Derive possible separate frontmatter key names from mention strings
       const startKey = checkString(DataStore.preference('startMentionStr') || '').replace(/^[@#]/, '') || 'start'
@@ -657,25 +878,50 @@ export class Project {
       const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
       const nextReviewKey = checkString(DataStore.preference('nextReviewMentionStr') || '').replace(/^[@#]/, '') || 'nextReview'
 
-      // Only update separate keys that already exist in frontmatter
-      const hasStart = getFrontmatterAttribute(this.note, startKey) != null
-      if (hasStart && this.startDate != null) attrs[startKey] = this.startDate
-      const hasDue = getFrontmatterAttribute(this.note, dueKey) != null
-      if (hasDue && this.dueDate != null) attrs[dueKey] = this.dueDate
-      const hasReviewed = getFrontmatterAttribute(this.note, reviewedKey) != null
-      if (hasReviewed && this.reviewedDate != null) attrs[reviewedKey] = this.reviewedDate
-      const hasCompleted = getFrontmatterAttribute(this.note, completedKey) != null
-      if (hasCompleted && this.completedDate != null) attrs[completedKey] = this.completedDate
-      const hasCancelled = getFrontmatterAttribute(this.note, cancelledKey) != null
-      if (hasCancelled && this.cancelledDate != null) attrs[cancelledKey] = this.cancelledDate
-      const hasReviewInterval = getFrontmatterAttribute(this.note, reviewIntervalKey) != null
-      if (hasReviewInterval && this.reviewInterval != null) attrs[reviewIntervalKey] = this.reviewInterval
-      const hasNextReview = getFrontmatterAttribute(this.note, nextReviewKey) != null
-      if (hasNextReview && this.nextReviewDateStr != null) attrs[nextReviewKey] = this.nextReviewDateStr
+      if (this.startDate != null && this.startDate !== '') {
+        attrs[startKey] = this.startDate
+      } else {
+        keysToRemove.push(startKey)
+      }
+      if (this.dueDate != null && this.dueDate !== '') {
+        attrs[dueKey] = this.dueDate
+      } else {
+        keysToRemove.push(dueKey)
+      }
+      if (this.reviewedDate != null && this.reviewedDate !== '') {
+        attrs[reviewedKey] = this.reviewedDate
+      } else {
+        keysToRemove.push(reviewedKey)
+      }
+      if (this.completedDate != null && this.completedDate !== '') {
+        attrs[completedKey] = this.completedDate
+      } else {
+        keysToRemove.push(completedKey)
+      }
+      if (this.cancelledDate != null && this.cancelledDate !== '') {
+        attrs[cancelledKey] = this.cancelledDate
+      } else {
+        keysToRemove.push(cancelledKey)
+      }
+      if (this.reviewInterval != null && checkString(this.reviewInterval) !== '') {
+        attrs[reviewIntervalKey] = checkString(this.reviewInterval)
+      } else {
+        keysToRemove.push(reviewIntervalKey)
+      }
+      if (this.nextReviewDateStr != null && this.nextReviewDateStr !== '') {
+        attrs[nextReviewKey] = this.nextReviewDateStr
+      } else {
+        keysToRemove.push(nextReviewKey)
+      }
+      // Invariant: combined frontmatter key value contains ONLY hashtags.
+      attrs[singleKeyName] = this.getCombinedProjectTagsFrontmatterValue(singleKeyName)
 
       // $FlowFixMe[incompatible-call]
       const success = updateFrontMatterVars(this.note, attrs)
       if (success) {
+        for (const keyToRemove of keysToRemove) {
+          removeFrontMatterField(this.note, keyToRemove)
+        }
         DataStore.updateCache(this.note, true)
       } else {
         logError('updateFrontmatterMetadataFromFields', `Failed to update frontmatter metadata for '${this.title}'`)
@@ -1163,32 +1409,36 @@ export class Project {
   /**
    * Generate a one-line tab-sep summary line ready for Markdown note
    */
-  generateMetadataOutputLine(): string {
+  generateMetadataOutputLine(writeDateMentions: boolean = shouldWriteDateMentionsInCombinedMetadata()): string {
     const parts: Array<string> = []
     parts.push(this.projectTag)
     if (this.isPaused) parts.push('#paused')
-    const startDate = this.startDate
-    if (startDate != null) {
-      parts.push(`${checkString(DataStore.preference('startMentionStr'))}(${startDate})`)
-    }
-    const dueDate = this.dueDate
-    if (dueDate != null) {
-      parts.push(`${checkString(DataStore.preference('dueMentionStr'))}(${dueDate})`)
-    }
     if (this.reviewInterval != null) {
       parts.push(`${checkString(DataStore.preference('reviewIntervalMentionStr'))}(${checkString(this.reviewInterval)})`)
     }
-    const reviewedDate = this.reviewedDate
-    if (reviewedDate != null) {
-      parts.push(`${checkString(DataStore.preference('reviewedMentionStr'))}(${reviewedDate})`)
-    }
-    const completedDate = this.completedDate
-    if (completedDate != null) {
-      parts.push(`${checkString(DataStore.preference('completedMentionStr'))}(${completedDate})`)
-    }
-    const cancelledDate = this.cancelledDate
-    if (cancelledDate != null) {
-      parts.push(`${checkString(DataStore.preference('cancelledMentionStr'))}(${cancelledDate})`)
+
+    // Only include date mentions if we're writing them to the combined metadata key
+    if (writeDateMentions) {
+      const startDate = this.startDate
+      if (startDate != null) {
+        parts.push(`${checkString(DataStore.preference('startMentionStr'))}(${startDate})`)
+      }
+      const dueDate = this.dueDate
+      if (dueDate != null) {
+        parts.push(`${checkString(DataStore.preference('dueMentionStr'))}(${dueDate})`)
+      }
+      const reviewedDate = this.reviewedDate
+      if (reviewedDate != null) {
+        parts.push(`${checkString(DataStore.preference('reviewedMentionStr'))}(${reviewedDate})`)
+      }
+      const completedDate = this.completedDate
+      if (completedDate != null) {
+        parts.push(`${checkString(DataStore.preference('completedMentionStr'))}(${completedDate})`)
+      }
+      const cancelledDate = this.cancelledDate
+      if (cancelledDate != null) {
+        parts.push(`${checkString(DataStore.preference('cancelledMentionStr'))}(${cancelledDate})`)
+      }
     }
     return parts.join(' ')
   }
