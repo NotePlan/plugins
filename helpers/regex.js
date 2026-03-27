@@ -189,7 +189,9 @@ export const NP_RE_code_right_backtick: RegExp = /(`)([^`]{1,})(`)/
 export const RE_NP_HASHTAG: RegExp = /(?:^|[^A-Za-z0-9_])(#(?:[\w\d]+(?:[\/\-][\w\d]+)*))/
 export const RE_NP_HASHTAG_G: RegExp = /(?:^|[^A-Za-z0-9_])(#(?:[\w\d]+(?:[\/\-][\w\d]+)*))/g
 
-// FIXME: When above is fixed, fix this too
+// This is what @jgclark thinks it should be:
+export const RE_HASHTAG_G: RegExp = new RegExp(/(?:\s|^|\"|\(|\)|\')(#[A-Za-z][\w/_-]*)/g)
+
 // const EM_ORIG_ATTAG_STR = `(\s|^|[\\"\'\(\[\{\*\_])(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)`
 // const ATTAG_STR_FOR_JS = EM_ORIG_ATTAG_STR.replace(/\[:punct:\]/g, PUNCT_CLASS_STR_QUOTED)
 // export const NP_RE_attag_G: RegExp = new RegExp(ATTAG_STR_FOR_JS, 'g')
