@@ -4,6 +4,8 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 ## [2.0.0.b14] - 2026-03-26
 - change default metadata write behavior: project date fields now write to separate frontmatter keys (`start`, `due`, `reviewed`, `completed`, `cancelled`, `nextReview`) instead of being embedded in the combined `project`/`metadata` value.
 - nudge base font size down 1pt, to be closer to the NP interface
+- tweak the timing on "due soon" and "review soon" indicators
+- - dev: removed remaining TSV logic
 
 ## [2.0.0.b13] - 2026-03-26
 - when invalid frontmatter metadata values are detected (like `review: @review()` or `due: @due()`), automatically remove the affected frontmatter key.

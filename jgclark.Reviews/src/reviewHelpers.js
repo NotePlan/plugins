@@ -76,6 +76,7 @@ export type ReviewConfig = {
   writeMostRecentProgressToFrontmatter?: boolean,
   projectMetadataFrontmatterKey?: string,
   writeDateMentionsInCombinedMetadata?: boolean,
+  useDemoData: boolean,
   _logLevel: string,
   _logTimer: boolean,
 }

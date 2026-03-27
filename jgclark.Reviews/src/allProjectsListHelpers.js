@@ -600,7 +600,7 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
  * Used by filterAndSortProjectsList(); can be used when only filtering is needed.
  * @param {Array<Project>} projectInstancesIn projects to filter (e.g. from getAllProjectsFromList)
  * @param {ReviewConfig} config
- * @param {boolean?} dedupeList?
+ * @param {boolean?} dedupeList? (Optional, default is false)
  * @returns {Promise<Array<Project>>} filtered projects (unsorted)
  */
 export async function filterProjectsList(
@@ -633,12 +633,6 @@ export async function filterProjectsList(
       logDebug('filterProjectsList', `- after filtering out non-due, ${projectInstances.length} projects`)
     }
 
-    // Need to extend projectInstances with a proxy for the 'projectTag' field, so that we can sort by it according to the order it was given in config.projectTypeTags
-    projectInstances.forEach((pi) => {
-      // $FlowIgnore[prop-missing] deliberate temporary extension to Project class
-      pi.projectTagOrder = config.projectTypeTags.indexOf(pi.projectTag)
-    })
-
     // Dedupe the list if required
     if (dedupeList) {
       // Remove repeated projects with the same filename (keeping the first occurrence)
@@ -662,8 +656,7 @@ export async function filterProjectsList(
 }
 
 /**
- * Sort a list of Projects by projectTagOrder > folder > [nextReviewDays | dueDays | title],
- * unless overriden by parameter 'sortingOrder'.
+ * Sort a list of Projects by projectTagOrder > folder > [nextReviewDays | dueDays | title], unless overridden by parameter 'sortingOrder'.
  * Mutates each project to add projectTagOrder; returns a new sorted array.
  * @param {Array<Project>} projectInstances projects to sort (e.g. from filterProjectsList)
  * @param {ReviewConfig} config
@@ -683,10 +676,13 @@ export function sortProjectsList(
 
   // Sort projects by projectTagOrder > folder > [nextReviewDays | dueDays | title],
   // unless reviewDateSortOrder is true, in which case sort by [nextReviewDays | dueDays | title].
+  // TODO: Finish reviewing how allProjectTags is really being used, and remove this logging.
   const sortingSpecification = (sortingOrder.length > 0) ? sortingOrder : buildSortingSpecification(config)
   logDebug('sortProjectsList', `- sorting by ${String(sortingSpecification)}`)
-  return sortListBy(projectInstances, sortingSpecification)
-  // sortedProjectInstances.forEach(pi => logDebug('', `${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
+  const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)
+  // $FlowIgnore[prop-missing] deliberate temporary extension to Project class
+  sortedProjectInstances.forEach(pi => console.log(`${pi.projectTagOrder}\t[${String(pi.allProjectTags)}]\t${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
+  return sortedProjectInstances
 }
 
 /**
@@ -771,7 +767,7 @@ export async function updateAllProjectsListAfterChange(
     allProjects = allProjects.filter((project) => project.filename !== reviewedFilename)
     logInfo('updateAllProjectsListAfterChange', `- Deleted Project '${reviewedTitle}'`)
 
-    // unless we simply need to delete, add updated item back into the list
+    // add updated item back into the list (unless we simply need to delete)
     if (!simplyDelete) {
       const reviewedNote = await DataStore.noteByFilename(reviewedFilename, "Notes")
       if (!reviewedNote) {

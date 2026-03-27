@@ -471,7 +471,7 @@
     {
       "key": "autoUpdateAfterIdleTime",
       "title": "Automatic Update interval",
-      "description": "If set to any number > 0, the Project List will automatically refresh when the window is idle for a certain number of minutes. Set to 0 to disable.",
+      "description": "If set to any number > 0, the Project List will automatically refresh when the window is idle for a certain number of minutes. Set to 0 to disable.\nNote: this only works for the 'Rich' style of list.",
       "type": "number",
       "default": 0,
       "required": true

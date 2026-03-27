@@ -1,4 +1,5 @@
 /* globals describe, expect, test, beforeAll */
+// @flow
 
 import { Project } from '../projectClass'
 import { Note } from '@mocks/index'
@@ -8,6 +9,7 @@ const preferenceValues: { [string]: any } = {}
 beforeAll(() => {
   global.DataStore = {
     preference: (key: string): any => preferenceValues[key] ?? '',
+    updateCache: jest.fn(),
   }
 })
 
@@ -41,6 +43,59 @@ describe('Project constructor: embedded combined mentions', () => {
     expect(project.startDate).toBe('2026-02-09')
     expect(project.dueDate).toBe('2026-06-30')
     expect(project.reviewInterval).toBe('1w')
+  })
+
+  test('keeps slash-style project tags in combined frontmatter', () => {
+    preferenceValues['projectMetadataFrontmatterKey'] = 'project'
+    preferenceValues['ignoreChecklistsInProgress'] = true
+    preferenceValues['numberDaysForFutureToIgnore'] = 0
+
+    const note = new Note({
+      title: 'Slash Tag',
+      filename: 'slash-tag.md',
+      content:
+        '---\n' +
+        'project: #project/large #project/large,\n' +
+        '---\n' +
+        '# Slash Tag\n' +
+        'Body line\n',
+    })
+
+    const project = new Project((note: any), '', false, [], '')
+    const normalizedCombinedTags = project.getCombinedProjectTagsFrontmatterValue('project')
+
+    expect(project.projectTag).toBe('#project/large')
+    expect(project.allProjectTags).toContain('#project/large')
+    expect(project.allProjectTags.filter((t) => t === '#project/large')).toHaveLength(1)
+    expect(normalizedCombinedTags).toContain('#project/large')
+    expect(normalizedCombinedTags.includes(',')).toBe(false)
+  })
+
+  test('keeps hyphen-style project tags in combined frontmatter', () => {
+    preferenceValues['projectMetadataFrontmatterKey'] = 'project'
+    preferenceValues['ignoreChecklistsInProgress'] = true
+    preferenceValues['numberDaysForFutureToIgnore'] = 0
+
+    const note = new Note({
+      title: 'Hyphen Tag',
+      filename: 'hyphen-tag.md',
+      content:
+        '---\n' +
+        'project: #project-large, #project-small\n' +
+        '---\n' +
+        '# Hyphen Tag\n' +
+        'Body line\n',
+    })
+
+    const project = new Project((note: any), '', false, [], '')
+    const normalizedCombinedTags = project.getCombinedProjectTagsFrontmatterValue('project')
+
+    expect(project.projectTag).toBe('#project-large')
+    expect(project.allProjectTags).toContain('#project-large')
+    expect(project.allProjectTags).toContain('#project-small')
+    expect(project.allProjectTags.filter((t) => t === '#project-large')).toHaveLength(1)
+    expect(normalizedCombinedTags).toContain('#project-large')
+    expect(normalizedCombinedTags.includes(',')).toBe(false)
   })
 })
 

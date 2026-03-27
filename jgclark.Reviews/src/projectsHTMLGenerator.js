@@ -466,9 +466,9 @@ type IntervalStatus = {
  */
 function mapDueDaysToStatus(interval: number): IntervalStatus {
   // if (interval < -90) return { color: 'red', icon: 'fa-solid fa-flag-checkered', text: 'very overdue' }
-  if (interval < -14) return { colorClass: 'overdue', icon: 'fa-light fa-flag-checkered', text: 'overdue' }
-  if (interval < 0) return { colorClass: 'due', icon: 'fa-light fa-flag-checkered', text: 'due now' }
-  if (interval > 30) return { colorClass: 'soon', icon: 'fa-light fa-flag-checkered', text: 'due soon' }
+  if (interval < -7) return { colorClass: 'overdue', icon: 'fa-light fa-flag-checkered', text: 'overdue' }
+  if (interval < 7) return { colorClass: 'due', icon: 'fa-light fa-flag-checkered', text: 'due now' }
+  if (interval < 21) return { colorClass: 'soon', icon: 'fa-light fa-flag-checkered', text: 'due soon' }
   return { text: '', colorClass: '', icon: '' }
 }
 
@@ -479,9 +479,9 @@ function mapDueDaysToStatus(interval: number): IntervalStatus {
  */
 function mapReviewDaysToStatus(interval: number): IntervalStatus {
   // if (interval < -90) return { color: 'red', icon: 'fa-solid fa-user-clock', text: 'very overdue' }
-  if (interval < -14) return { colorClass: 'overdue', icon: 'fa-light fa-user-clock', text: 'overdue' }
-  if (interval < 0) return { colorClass: 'due', icon: 'fa-light fa-user-clock', text: 'due now' }
-  if (interval < 30) return { colorClass: 'soon', icon: 'fa-light fa-user-clock', text: 'due soon' }
+  if (interval < -7) return { colorClass: 'overdue', icon: 'fa-light fa-user-clock', text: 'overdue' }
+  if (interval < 2) return { colorClass: 'due', icon: 'fa-light fa-user-clock', text: 'review now' }
+  if (interval < 14) return { colorClass: 'soon', icon: 'fa-light fa-user-clock', text: 'review soon' }
   return { text: '', colorClass: '', icon: '' }
 }
 

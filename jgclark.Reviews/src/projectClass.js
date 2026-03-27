@@ -178,7 +178,7 @@ export class Project {
   filename: string
   folder: string
   metadataParaLineIndex: number
-  projectTag: string // #project, #area, etc.
+  projectTag: string // #project, #area, etc. **See below**
   title: string
   startDate: ?string // ISO date YYYY-MM-DD
   dueDate: ?string // ISO date YYYY-MM-DD
@@ -206,7 +206,19 @@ export class Project {
   ID: string // required when making HTML views
   icon: ?string // icon from frontmatter (optional)
   iconColor: ?string // iconColor from frontmatter (optional)
-  allProjectTags: Array<string> = [] // projectTag(s), #sequential if applicable, and all hashtags from metadata line and frontmatter 'project' (for column 3)
+  allProjectTags: Array<string> = [] // projectTag(s), #sequential if applicable, and all hashtags from metadata line and frontmatter 'project' (for column 3) **See below**
+
+  /**
+   * projectTag = single primary tag for the note (chosen from constructor input or first hashtag fallback).
+   * - Used for single-tag filtering in filterAndSortProjectsList() (pi.projectTag === projectTag) in jgclark.Reviews/src/allProjectsListHelpers.js
+   * - Used for sort proxy/order logic (projectTagOrder) in the same file
+   *
+   * allProjectTags = set/list of all relevant tags (primary tag + metadata/frontmatter tags + optional #sequential, de-duped in constructor order).
+   * - Used for UI tag chips in buildProjectTagLozengeSpans() in jgclark.Reviews/src/projectsHTMLGenerator.js
+   * - Used for "matches any configured project type" logic and per-tag counts in jgclark.Reviews/src/reviews.js
+   *
+   * Note: The constructor may need to be updated if these usages change.
+   */
 
   constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = [], sequentialTag: string = '') {
     try {
@@ -618,7 +630,8 @@ export class Project {
         .map((t) => normalizeHashtagForDisplay(t))
         .filter((t) => t.startsWith('#') && t.length > 1)
       const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-      const projectAttr = getFrontmatterAttribute(this.note, combinedKey)
+      const projectAttrRawField = readRawFrontmatterField(this.note, combinedKey)
+      const projectAttr = projectAttrRawField.exists ? projectAttrRawField.value : getFrontmatterAttribute(this.note, combinedKey)
       const projectAttrStr = projectAttr != null && typeof projectAttr === 'string' ? projectAttr : ''
       const frontmatterProjectHashtags = projectAttrStr
         ? (projectAttrStr.match(/#\S+/g) ?? [])
@@ -806,7 +819,8 @@ export class Project {
       }
     }
 
-    const combinedValue = getFrontmatterAttribute(this.note, combinedKey)
+    const combinedRawField = readRawFrontmatterField(this.note, combinedKey)
+    const combinedValue = combinedRawField.exists ? combinedRawField.value : getFrontmatterAttribute(this.note, combinedKey)
     const combinedStr = combinedValue != null && typeof combinedValue === 'string' ? combinedValue : ''
     addTagsFromText(combinedStr)
 
@@ -1298,9 +1312,9 @@ export class Project {
    * Close a Project/Area note by updating the metadata and saving it:
    * - adding @completed(<today's date>)
    * @author @jgclark
-   * @returns {string} new TSVSummaryLine or empty on failure
+   * @returns {boolean} true if metadata was updated and saved successfully, false otherwise
    */
-  completeProject(): string {
+  completeProject(): boolean {
     try {
       // update the metadata fields
       this.isCompleted = true
@@ -1313,14 +1327,12 @@ export class Project {
       // re-write the note's metadata line
       logDebug('completeProject', `Completing '${this.title}' ...`)
       this.updateMetadataAndSave()
-
-      const newMSL = this.TSVSummaryLine()
-      logDebug('completeProject', `- returning mSL '${newMSL}'`)
-      return newMSL
+      logDebug('completeProject', `- metadata updated and note saved`)
+      return true
     }
     catch (error) {
       logError(pluginJson, `Error completing project for ${this.title}: ${error.message}`)
-      return ''
+      return false
     }
   }
 
@@ -1328,9 +1340,9 @@ export class Project {
    * Cancel a Project/Area note by updating the metadata and saving it:
    * - adding @cancelled(<today's date>)
    * @author @jgclark
-   * @returns {string} new TSVSummaryLine or empty on failure
+   * @returns {boolean} true if metadata was updated and saved successfully, false otherwise
    */
-  cancelProject(): string {
+  cancelProject(): boolean {
     try {
       // update the metadata fields
       this.isCompleted = false
@@ -1343,14 +1355,12 @@ export class Project {
       // re-write the note's metadata line
       logDebug('cancelProject', `Cancelling '${this.title}' ...`)
       this.updateMetadataAndSave()
-
-      const newMSL = this.TSVSummaryLine()
-      logDebug('cancelProject', `- returning mSL '${newMSL}'`)
-      return newMSL
+      logDebug('cancelProject', `- metadata updated and note saved`)
+      return true
     }
     catch (error) {
       logError(pluginJson, `Error cancelling project for ${this.title}: ${error.message}`)
-      return ''
+      return false
     }
   }
 
@@ -1358,9 +1368,9 @@ export class Project {
    * Cancel a Project/Area note by updating the metadata and saving it:
    * - adding #paused
    * @author @jgclark
-   * @returns {string} new TSVSummaryLine or empty on failure
+   * @returns {boolean} true if metadata was updated and saved successfully, false otherwise
    */
-  async togglePauseProject(): Promise<string> {
+  async togglePauseProject(): Promise<boolean> {
     try {
       // Get progress field details (if wanted)
       logDebug('togglePauseProject', `Starting for '${this.title}' ...`)
@@ -1396,13 +1406,12 @@ export class Project {
         }
       }
 
-      const newMSL = this.TSVSummaryLine()
-      logDebug('togglePauseProject', `- returning newMSL '${newMSL}'`)
-      return newMSL
+      logDebug('togglePauseProject', `- metadata updated and note saved`)
+      return true
     }
     catch (error) {
       logError(pluginJson, `Error pausing project for ${this.title}: ${error.message}`)
-      return ''
+      return false
     }
   }
 
@@ -1410,8 +1419,7 @@ export class Project {
    * Generate a one-line tab-sep summary line ready for Markdown note
    */
   generateMetadataOutputLine(writeDateMentions: boolean = shouldWriteDateMentionsInCombinedMetadata()): string {
-    const parts: Array<string> = []
-    parts.push(this.projectTag)
+    const parts: Array<string> = [... this.allProjectTags]
     if (this.isPaused) parts.push('#paused')
     if (this.reviewInterval != null) {
       parts.push(`${checkString(DataStore.preference('reviewIntervalMentionStr'))}(${checkString(this.reviewInterval)})`)
@@ -1443,37 +1451,6 @@ export class Project {
     return parts.join(' ')
   }
 
-  /**
-   * v2: Returns TSV line to go in full-review-list with just the data needed to filter output lists
-   * @return {string}
-   */
-  TSVSummaryLine(): string {
-    try {
-      // next review in days
-      let output = (!this.isPaused && this.nextReviewDays != null && !isNaN(this.nextReviewDays)) ? String(this.nextReviewDays) : 'NaN'
-      output += '\t'
-      // due date in days
-      output += (!this.isPaused && this.dueDays != null && !isNaN(this.dueDays)) ? String(this.dueDays) : 'NaN'
-      // title
-      output += `\t${this.title}\t`
-      // folder
-      output += this.folder && this.folder !== undefined ? `${this.folder}\t` : '\t'
-      // note type, then other pseudo-tags
-      output += (this.projectTag) ? `${this.projectTag} ` : ''
-      output += this.isPaused ? '#paused' : ''
-      output += '\t'
-      output += (this.isCompleted)
-        ? 'finished'
-        : (this.isCancelled)
-          ? 'finished-cancelled'
-          : 'active'
-      return output
-    }
-    catch (error) {
-      logError('TSVSummaryLine', error.message)
-      return '<error>' // for completeness
-    }
-  }
 }
 
 //-----------------------------------------------------------------
