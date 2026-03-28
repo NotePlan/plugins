@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md",
-  "plugin.version": "2.0.0.b3",
+  "plugin.version": "2.0.0.b4",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "v2.0.0: First release of the new Journalling & Reviews plugin, but building on earlier 'Journalling Helpers' plugin (v1).",
   "plugin.requiredFiles": [
@@ -33,12 +33,12 @@
         "journal",
         "review"
       ],
-      "description": "Ask Journal questions for an end-of-day review (requires configuring)",
+      "description": "Ask Review/Journal questions at end-of-day",
       "jsFunction": "dailyJournalQuestions",
       "sidebarView": {
         "windowID": "jgclark.Journalling.dayReview",
         "title": "Daily Review",
-        "icon": "clipboard-list",
+        "icon": "fa-clipboard-list",
         "iconColor": "blue-600"
       }
     },
@@ -49,7 +49,7 @@
         "journal",
         "review"
       ],
-      "description": "Ask Journal questions for an end-of-week review (requires configuring)",
+      "description": "Ask Review/Journal questions at end-of-week",
       "jsFunction": "weeklyJournalQuestions"
     },
     {
@@ -59,7 +59,7 @@
         "journal",
         "review"
       ],
-      "description": "Ask Journal questions for an end-of-month review (requires configuring)",
+      "description": "Ask Review/Journal questions at end-of-month",
       "jsFunction": "monthlyJournalQuestions"
     },
     {
@@ -69,7 +69,7 @@
         "journal",
         "review"
       ],
-      "description": "Ask Journal questions for an end-of-quarter review (requires configuring)",
+      "description": "Ask Review/Journal questions at end-of-quarter",
       "jsFunction": "quarterlyJournalQuestions"
     },
     {
@@ -79,7 +79,7 @@
         "journal",
         "review"
       ],
-      "description": "Ask Journal questions for an end-of-year review (requires configuring)",
+      "description": "Ask Review/Journal questions at end-of-year",
       "jsFunction": "yearlyJournalQuestions"
     },
     {
@@ -157,11 +157,7 @@
       ]
     },
     {
-      "name": "Journalling: writeAnswersToNote",
-      "description": "writeAnswersToNote",
-      "jsFunction": "writeAnswersToNote"
-    },
-    {
+      "hidden": true,
       "name": "Journalling: onUpdateOrInstall",
       "description": "onUpdateOrInstall",
       "jsFunction": "onUpdateOrInstall"
@@ -180,11 +176,19 @@
       "title": "General settings"
     },
     {
-      "key": "reviewSectionHeading",
-      "title": "Journal Section Heading",
-      "description": "The name of an existing markdown heading after which the Journal/Review answers are added - if it doesn't exist, it is added at the end of the note.",
+      "key": "dailyJournalSectionHeading",
+      "title": "Daily Journal Section Heading",
+      "description": "The name of a section heading after which Daily Journal answers are added - if it doesn't exist, it is added at the end of the note.",
       "type": "string",
       "default": "Journal",
+      "required": true
+    },
+    {
+      "key": "reviewSectionHeading",
+      "title": "Review Section Heading",
+      "description": "The name of a section heading after which weekly/monthly/quarterly/yearly Review answers are added - if it doesn't exist, it is added at the end of the note.",
+      "type": "string",
+      "default": "Review",
       "required": true
     },
     {
@@ -233,42 +237,42 @@
     },
     {
       "key": "dailyReviewQuestions",
-      "title": "Daily Journal Questions",
-      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title).",
+      "title": "Daily Review/Journal Questions",
+      "description": "String that includes both the Journal/Review questions and how to lay out the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title) and '<datenext>' or '<nextdate>' (the following calendar period in the same format).",
       "type": "string",
       "default": "@sleep(<int>)\n@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nGratitude: <string>\nGod was: <string>\nAlive: <string>\nNot Great: <string>\nLearn: <string>\nRemember: <string>",
       "required": false
     },
     {
       "key": "weeklyReviewQuestions",
-      "title": "Weekly Journal Questions",
-      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the weekly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title).",
+      "title": "Weekly Review/Journal Questions",
+      "description": "String that includes both the Journal/Review questions and how to lay out the answers in the weekly note.\nSee 'Daily Review/ Journal Questions' above for details.",
       "type": "string",
-      "default": "Big win: <string>\nNew/improved: <string>\nRegret: <string>\nFocus for next week: <string>",
+      "default": "## Weekly Review for <date>\nWins: <string>\nNew or improved: <string>\nChallenges: <string>\n### 'Big Rocks' for <datenext>\n<tasks>",
       "required": false
     },
     {
       "key": "monthlyReviewQuestions",
-      "title": "Monthly Journal Questions",
-      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the monthly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title).",
+      "title": "Monthly Review/Journal Questions",
+      "description": "String that includes both the Journal/Review questions and how to lay out the answers in the monthly note.\nSee 'Daily Review/ Journal Questions' above for details.",
       "type": "string",
-      "default": "What's working well in processes: <string>\nProcesses that need work: <string>Personal Goals progress: <string>",
+      "default": "## Monthly Review for <date>\nWhat's working well in processes: <bullets>\nProcesses that need work: <bullets>\nPersonal Goals progress: <bullets>",
       "required": false
     },
     {
       "key": "quarterlyReviewQuestions",
-      "title": "Quarterly Journal Questions",
-      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the quarterly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title).",
+      "title": "Quarterly Review/Journal Questions",
+      "description": "String that includes both the Journal/Review questions and how to lay out the answers in the quarterly note.\nSee 'Daily Review/ Journal Questions' above for details.",
       "type": "string",
-      "default": "Goals met: <string>\nNew goals identified: <string>\nProjects finished: <string>\nNew projects identified: <string>",
+      "default": "## Quarterly Review for <date>\nGoals met: <bullets>\nNew goals identified: <bullets>\nProjects finished: <bullets>\nNew projects identified: <bullets>",
       "required": false
     },
     {
       "key": "yearlyReviewQuestions",
-      "title": "Yearly Journal Questions",
-      "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the yearly note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title).",
+      "title": "Yearly Review/Journal Questions",
+      "description": "String that includes both the Journal/Review questions and how to lay out the answers in the yearly note.\nSee 'Daily Review/ Journal Questions' above for details.",
       "type": "string",
-      "default": "Goals met: <string>\nNew goals identified: <string>\nProjects finished: <string>\nNew projects identified: <string>",
+      "default": "## Yearly Review for <date>\nMajor events in the year: <bullets>\nThemes/focus areas for next year: <bullets>",
       "required": false
     },
     {
@@ -288,7 +292,7 @@
     },
     {
       "key": "endDailyTemplateTitle",
-      "title": "End-of-DayTemplate Title",
+      "title": "End-of-Day Template Title",
       "description": "The name of the template that `/dayEnd` and `/todayEnd` commands will use.",
       "type": "string",
       "default": "Daily Review Template",

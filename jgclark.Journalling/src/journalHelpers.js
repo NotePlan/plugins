@@ -2,10 +2,11 @@
 //---------------------------------------------------------------
 // Helper functions for Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 2026-03-25 for v2.0.0.b3 by @jgclark + @Cursor
+// last update 2026-03-28 for v2.0.0.b4 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { getNextNPPeriodString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 
@@ -15,16 +16,16 @@ import { showMessage } from '@helpers/userInput'
 const pluginID = 'jgclark.Journalling'
 
 export type JournalConfigType = {
+  dailyJournalSectionHeading: string,
+  reviewSectionHeading: string,
   startDailyTemplateTitle: string,
   endDailyTemplateTitle: string,
   startWeeklyTemplateTitle: string,
   endWeeklyTemplateTitle: string,
   startMonthlyTemplateTitle: string,
   endMonthlyTemplateTitle: string,
-  reviewSectionHeading: string,
   openCalendarNoteWhenReviewing: boolean,
   preferredWindowType: string,
-  reviewUIMode?: string, // legacy setting kept for backward compatibility
   dailyReviewQuestions: string,
   weeklyReviewQuestions: string,
   monthlyReviewQuestions: string,
@@ -69,5 +70,43 @@ export async function getJournalSettings(): Promise<any> { // want to use Promis
   catch (error) {
     logError(pluginJson, `getJournalSettings: ${error.message}`)
     return // for completeness
+  }
+}
+
+
+/**
+ * Replace `<date>` with the calendar period title and `<datenext>` / `<nextdate>` with the following period.
+ * Used for the review HTML window and for text written back to the note.
+ * @param {string} input
+ * @param {string} periodString
+ * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
+ * @returns {string}
+ */
+export function substituteReviewPeriodPlaceholders(input: string, periodString: string, periodType: string): string {
+  const nextPeriodStr = getNextNPPeriodString(periodString, periodType)
+  return input
+    .replace(/<\s*date\s*>/gi, periodString)
+    .replace(/<\s*(?:datenext|nextdate)\s*>/gi, nextPeriodStr)
+}
+
+/**
+ * Title-case adjective for UI strings (window title, review heading, messages).
+ * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
+ * @returns {string} e.g. 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'
+ */
+export function getPeriodAdjectiveFromType(periodType: string): string {
+  switch (periodType) {
+    case 'day':
+      return 'Daily'
+    case 'week':
+      return 'Weekly'
+    case 'month':
+      return 'Monthly'
+    case 'quarter':
+      return 'Quarterly'
+    case 'year':
+      return 'Yearly'
+    default:
+      return '(error: unknown period type)'
   }
 }

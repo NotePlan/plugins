@@ -84,6 +84,29 @@ export async function onUpdateOrInstall(): Promise<void> {
       }
     }
 
+    // Migration safety for renamed heading setting:
+    // old "reviewSectionHeading" now maps to dailyJournalSectionHeading,
+    // while reviewSectionHeading is used for non-daily periods.
+    const latestSettings = (await getSettings(pluginID, DataStore.settings)) || DataStore.settings
+    const updatedSettings = { ...latestSettings }
+    const dailyHeading = String(updatedSettings.dailyJournalSectionHeading ?? '').trim()
+    const reviewHeading = String(updatedSettings.reviewSectionHeading ?? '').trim()
+    const needsDailyHeadingMigration = dailyHeading === '' && reviewHeading !== ''
+    const needsReviewHeadingDefault = reviewHeading === ''
+    if (needsDailyHeadingMigration || needsReviewHeadingDefault) {
+      if (needsDailyHeadingMigration) {
+        updatedSettings.dailyJournalSectionHeading = reviewHeading
+      }
+      if (needsReviewHeadingDefault) {
+        updatedSettings.reviewSectionHeading = dailyHeading !== '' ? dailyHeading : 'Review'
+      }
+      const migrationDiff = compareObjects(updatedSettings, latestSettings, [], true)
+      if (migrationDiff != null) {
+        logInfo(pluginID, 'onUpdateOrInstall: heading settings migration changes detected; saving')
+        await saveSettings(pluginID, updatedSettings)
+      }
+    }
+
     // Tell user the plugin has been updated
     logInfo(pluginID, `... finished onUpdateOrInstall`)
     await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed or Updated.` })

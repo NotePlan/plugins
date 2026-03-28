@@ -2,13 +2,17 @@
 //---------------------------------------------------------------
 // HTMLView generation helpers for single-window review mode
 // Jonathan Clark + Cursor
-// last update 2026-03-25 for v2.0.0.b3 by @jgclark + @Cursor
+// last update 2026-03-28 for v2.0.0.b4 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import moment from 'moment'
 import pluginJson from '../plugin.json'
 import type { JournalConfigType, ParsedQuestionType } from './journalHelpers'
-import { REVIEW_QUESTION_TYPE_NAMES_ALT } from './journalHelpers'
+import {
+  getPeriodAdjectiveFromType,
+  REVIEW_QUESTION_TYPE_NAMES_ALT,
+  substituteReviewPeriodPlaceholders,
+} from './journalHelpers'
 import { RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 import {
@@ -385,9 +389,8 @@ function makeReviewQuestionRowDiv(
  * @param {Array<ParsedQuestionType>} parsedQuestions same order as parseQuestions(rawQuestionLines) (field names q_0 …)
  * @param {Array<string>} rawQuestionLines lines from getQuestionsForPeriod()
  * @param {Array<string>} summaryCompletedTasks
- * @param {string} periodAdjective
- * @param {string} periodType
  * @param {string} periodString the calendar note title string for the review period
+ * @param {string} periodType
  * @param {Array<TCalendarItem>} eventsForPeriod
  * @param {string} callbackCommandName
  * @param {{ [string]: string }=} initialAnswers field names q_0 … to pre-fill from the calendar note
@@ -400,13 +403,13 @@ export function buildReviewHTML(
   summaryCompletedTasks: Array<string>,
   periodString: string,
   periodType: string,
-  periodAdjective: string,
   eventsForPeriod: Array<TCalendarItem>,
   callbackCommandName: string,
   initialAnswers?: { [string]: string },
 ): string {
+  const periodAdjective = getPeriodAdjectiveFromType(periodType)
   const resolvedInitialAnswers = initialAnswers ?? {}
-  const renderQuestionLines = rawQuestionLines.map((l) => l.replace(/<\s*date\s*>/gi, periodString))
+  const renderQuestionLines = rawQuestionLines.map((l) => substituteReviewPeriodPlaceholders(l, periodString, periodType))
   const questionRows = renderQuestionLines
     .map((line, lineIndex) => makeReviewRawQuestionLineDiv(line, lineIndex, parsedQuestions, config, resolvedInitialAnswers))
     .filter((row) => row !== '')
@@ -422,10 +425,10 @@ export function buildReviewHTML(
       <form id="review-form" class="review-form">
         ${questionRows}
         <div class="review-actions">
-          <button class="review-button" type="button" id="review-cancel" onclick=cancel()>Cancel</button>
+          <button class="review-button" type="button" id="review-cancel">Cancel</button>
           <!--${makePluginCommandButton('Cancel', pluginJson['plugin.id'], 'onReviewWindowAction', 'cancel', 'Cancel', true)} -->
           <!-- type="submit" -->
-          <button class="review-button review-button-primary" type="button"  id="review-submit" onclick=submit()>Save</button>
+          <button class="review-button review-button-primary" type="button" id="review-submit">Save</button>
         </div>
       </form>
     </div>
@@ -438,10 +441,28 @@ export function buildReviewHTML(
           console.log("sendToPlugin: hasSentReviewAction is true; stopping.")
           return
         }
-        hasSentReviewAction = true
-        // Use x-callback-url to avoid relying on DataStore in the WebView JS runtime.
         const actionName = String(commandArgs?.[0] ?? '')
         const payload = commandArgs?.[1] ?? {}
+        
+        // Primary path: use NotePlan's jsBridge to invoke DataStore from the native side.
+        // This avoids URL length limits for large review payloads.
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.jsBridge) {
+          const commandArgsArray = [actionName, JSON.stringify(payload)]
+          const code = '(async function() { await DataStore.invokePluginCommandByName(%%commandName%%, %%pluginID%%, %%commandArgs%%);})()'
+            .replace('%%commandName%%', JSON.stringify(commandName))
+            .replace('%%pluginID%%', JSON.stringify(pluginID))
+            .replace('%%commandArgs%%', JSON.stringify(commandArgsArray))
+          console.log("window.sendToPlugin: Sending via jsBridge:", commandName, pluginID)
+          window.webkit.messageHandlers.jsBridge.postMessage({
+            code: code,
+            onHandle: '',
+            id: '1',
+          })
+          hasSentReviewAction = true
+          return
+        }
+
+        // Fallback path: x-callback-url for contexts without jsBridge.
         const callbackUrl = 'noteplan://x-callback-url/runPlugin?pluginID='
           + encodeURIComponent(pluginID)
           + '&command='
@@ -452,9 +473,11 @@ export function buildReviewHTML(
           + encodeURIComponent(JSON.stringify(payload))
         console.log("window.sendToPlugin: Sending callbackURL: "+callbackUrl)
         window.location.href = callbackUrl
+        hasSentReviewAction = true
       }
       const reviewForm = document.getElementById('review-form')
       const cancelButton = document.getElementById('review-cancel')
+      const submitButton = document.getElementById('review-submit')
 
       /**
        * Collect answers from the review form and return as a JSON string.
@@ -470,11 +493,13 @@ export function buildReviewHTML(
         for (const checkbox of checkboxes) {
           answers[checkbox.name] = checkbox.checked
         }
-        // Add a special 'answer's for the period type (day, week, month, quarter, year) and string (e.g. '2026-03-23')
-        answers['periodType'] = '${periodType}'
-        answers['periodString'] = '${periodString}'
-        console.log("collectAnswers(): -> "+JSON.stringify(answers))
-        return answers
+        const payload = {
+          answers,
+          periodType: ${JSON.stringify(periodType)},
+          periodString: ${JSON.stringify(periodString)},
+        }
+        console.log("collectAnswers(): -> "+JSON.stringify(payload))
+        return payload
       }
 
       function cancel() {
@@ -482,9 +507,9 @@ export function buildReviewHTML(
         sendToPlugin('${callbackCommandName}', '${pluginJson['plugin.id']}', ['cancel', { }])
       }
 
-      function submit() {
-        console.log("HTMLView: submit() called")
-        sendToPlugin('${callbackCommandName}', '${pluginJson['plugin.id']}', ['submit', JSON.stringify(collectAnswers())])
+      function submitReview() {
+        console.log("HTMLView: submitReview() called")
+        sendToPlugin('${callbackCommandName}', '${pluginJson['plugin.id']}', ['submit', collectAnswers()])
       }
 
       const firstInputControl = reviewForm.querySelector('textarea, input:not([type="hidden"]), select')
@@ -492,19 +517,16 @@ export function buildReviewHTML(
         firstInputControl.focus()
       }
 
-<!--
-      reviewForm.addEventListener('submit', function (event) {
-        event.preventDefault()
-        sendToPlugin('${callbackCommandName}', '${pluginJson['plugin.id']}', ['submit', JSON.stringify(collectAnswers())])
-      })
-      console.log("HTMLView: added EL to reviewForm")
-
-      cancelButton.addEventListener('click', function () {
-        sendToPlugin('${callbackCommandName}', '${pluginJson['plugin.id']}', ['cancel', { }])
-      })
-      console.log("HTMLView: added EL to cancelButton")
--->
+      if (cancelButton) {
+        cancelButton.addEventListener('click', function () {
+          cancel()
+        })
+      }
+      if (submitButton) {
+        submitButton.addEventListener('click', function () {
+          submitReview()
+        })
+      }
     </script>
   `
 }
-

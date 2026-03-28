@@ -3,10 +3,16 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
+## [2.0.0.b4] - 2026-03-28
+- Split section-heading settings: `dailyJournalSectionHeading` is now used by daily journal commands, and `reviewSectionHeading` is used by weekly/monthly/quarterly/yearly review commands. Existing installs migrate heading values to preserve prior behavior.
+- **Review placeholders:** `<date>` is replaced with the current review period’s calendar title (e.g. `2026-03-28`, `2026-W13`, `2026Q1`) in the review window and the output. 
+- Added `<datenext>` (alias `<nextdate>`) that's similar to `<date>` but gives the **following** period in the same format (e.g. weekly `2024-W52` → `2025-W01`).
+- **Correct calendar note:** The open editor note is only reused when it matches the review command’s period type **and** the same period title (e.g. today for a daily review). Otherwise the plugin opens the intended note.
+
 ## [2.0.0.b3] - 2026-03-25
 - New review question types: `<bullets>` (each answer line written with a `- ` prefix), `<checklists>` (`+ ` per line), and `<tasks>` (`* ` per line). The review window uses a multi-line field; empty lines are skipped. Answers already in the calendar note are pre-filled with markers stripped.
 - Headings in review settings are now output as HTML headings: `<subheading>` outputs an `<h3 class="review-subheading h3">...`, and literal `##` / `###` lines in settings are carried through as `<h2>` / `<h3>` with `review-subheading` classes.
-- `<date>` placeholder is now supported in review question lines and is substituted with the relevant review note title string in both the window and output.
+- `<date>` placeholder is now supported in review question lines and is substituted with the relevant calendar period title in the review window and in saved output.
 
 ## [2.0.0.b2] - 2026-03-24
 - When opening the review window, answers already present in the calendar note are pre-filled in the matching controls (under your **Review section heading** when that heading exists; otherwise the whole note is scanned). Latest matching paragraph wins so you can edit the most recent review block.

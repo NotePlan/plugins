@@ -2,7 +2,8 @@
 
 // Last updated: 2026-03-25 for v2.0.0.b3 by @Cursor
 
-import { buildInitialReviewAnswersByFieldName, parseQuestions } from '../src/journal'
+import { buildInitialReviewAnswersByFieldName, buildOutputFromReviewWindowAnswers, parseQuestions } from '../src/journal'
+import { getPeriodAdjectiveFromType, substituteReviewPeriodPlaceholders } from '../src/journalHelpers'
 import { DataStore } from '@mocks/index'
 
 beforeAll(() => {
@@ -10,12 +11,10 @@ beforeAll(() => {
   // global.Clipboard = Clipboard
   // global.CommandBar = CommandBar
   global.DataStore = DataStore
-  // global.Editor = Editor
+  global.Editor = { paragraphs: [] }
   // global.NotePlan = NotePlan
   DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 })
-
-const pluginJson = 'jgclark.Journalling'
 
 // Jest suite
 describe('Journal', () => {
@@ -142,6 +141,42 @@ Do: <tasks>`
       expect(questions[0].question).toBe('Mood')
       expect(questions[0].lineIndex).toBe(1)
     })
+
+    it('should ignore <datenext> as a question token', () => {
+      const raw = `Next: <datenext>\nMood: <mood>`
+      const questions = parseQuestions(raw)
+      expect(questions.length).toBe(1)
+      expect(questions[0].type).toBe('mood')
+      expect(questions[0].question).toBe('Mood')
+      expect(questions[0].lineIndex).toBe(1)
+    })
+
+    it('should ignore <nextdate> as a question token', () => {
+      const raw = `Next: <nextdate>\nMood: <mood>`
+      const questions = parseQuestions(raw)
+      expect(questions.length).toBe(1)
+      expect(questions[0].type).toBe('mood')
+    })
+  })
+
+  describe('getPeriodAdjectiveFromType', () => {
+    it('should return title-case adjectives for known period types', () => {
+      expect(getPeriodAdjectiveFromType('day')).toBe('Daily')
+      expect(getPeriodAdjectiveFromType('week')).toBe('Weekly')
+      expect(getPeriodAdjectiveFromType('month')).toBe('Monthly')
+      expect(getPeriodAdjectiveFromType('quarter')).toBe('Quarterly')
+      expect(getPeriodAdjectiveFromType('year')).toBe('Yearly')
+    })
+    it('should return Calendar for unknown period type', () => {
+      expect(getPeriodAdjectiveFromType('unknown')).toBe('Calendar')
+    })
+  })
+
+  describe('substituteReviewPeriodPlaceholders', () => {
+    it('should expand <date>, <datenext>, and <nextdate>', () => {
+      const s = 'A <date> B <datenext> C <nextdate>'
+      expect(substituteReviewPeriodPlaceholders(s, '2024-W52', 'week')).toBe('A 2024-W52 B 2025-W01 C 2025-W01')
+    })
   })
 
   describe('buildInitialReviewAnswersByFieldName', () => {
@@ -199,6 +234,131 @@ Ship: <tasks>`,
       expect(initial.q_0).toBe('a\nb')
       expect(initial.q_1).toBe('eggs\nmilk')
       expect(initial.q_2).toBe('task one\ntask two')
+    })
+  })
+
+  describe('buildOutputFromReviewWindowAnswers', () => {
+    beforeEach(() => {
+      global.Editor = { paragraphs: [] }
+    })
+
+    it('should build one line for a single string answer and append newline', () => {
+      const raw = 'Gratitude: <string>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: 'Family' })
+      expect(out).toBe('Gratitude: Family\n')
+    })
+
+    it('should substitute <date> on template lines that have no questions', () => {
+      const raw = 'For: <date>\nMood: <mood>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-W13', 'week', { q_0: 'Calm' })
+      expect(out).toBe('For: 2026-W13\nMood: Calm\n')
+    })
+
+    it('should substitute <datenext> for the following period (weekly rollover)', () => {
+      const raw = 'Next: <datenext>\nMood: <mood>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2024-W52', 'week', { q_0: 'Calm' })
+      expect(out).toBe('Next: 2025-W01\nMood: Calm\n')
+    })
+
+    it('should substitute <nextdate> like <datenext>', () => {
+      const raw = 'Next: <nextdate>\nMood: <mood>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2024-W52', 'week', { q_0: 'Calm' })
+      expect(out).toBe('Next: 2025-W01\nMood: Calm\n')
+    })
+
+    it('should strip presentation delimiters before substituting <date>', () => {
+      const raw = 'Period: <date> || (review)'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03', 'month', {})
+      expect(out).toBe('Period: 2026-03 (review)\n')
+    })
+
+    it('should join multiple answers on the same line with a single space', () => {
+      const raw = 'Health: @sleep(<int>) @fruitveg(<int>)'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', {
+        q_0: '7',
+        q_1: '3',
+      })
+      expect(out).toBe('Health: @sleep(7) @fruitveg(3)\n')
+    })
+
+    it('should combine multiline bullet answers with newlines (inline tag replacement keeps prefix)', () => {
+      const raw = 'Wins: <bullets>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: 'first win\nsecond win' })
+      expect(out).toBe('Wins:\n- first win\n- second win\n')
+    })
+
+    it('should combine multiline checklist answers with newlines (inline tag replacement keeps prefix)', () => {
+      const raw = 'Shop: <checklists>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: 'eggs\nmilk' })
+      expect(out).toBe('Shop:\n+ eggs\n+ milk\n')
+    })
+
+    it('should combine multiline task answers with newlines (inline tag replacement keeps prefix)', () => {
+      const raw = 'Ship: <tasks>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: 'task one\ntask two' })
+      expect(out).toBe('Ship:\n* task one\n* task two\n')
+    })
+
+    it('should emit boolean tag when answer is true', () => {
+      const raw = '#bible<boolean>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: true })
+      expect(out).toBe('#bible\n')
+    })
+
+    it('should omit line when boolean answer is false', () => {
+      const raw = '#bible<boolean>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: false })
+      expect(out).toBe('')
+    })
+
+    it('should inject periodString after answers when the template line still contains <date>', () => {
+      const parsedQuestions = [
+        { question: 'Report', type: 'string', originalLine: 'Report <date>: <string>', lineIndex: 0 },
+      ]
+      const rawLines = ['Report <date>: <string>']
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-Q1', 'quarter', { q_0: 'done' })
+      expect(out).toBe('Report 2026-Q1: done\n')
+    })
+
+    it('should use submitted window answers even when the open note contains similar text', () => {
+      const raw = 'Gratitude test: <string>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      global.Editor = {
+        paragraphs: [{ content: 'Gratitude test: from note' }],
+      }
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: 'from window' })
+      expect(out).toBe('Gratitude test: from window\n')
+    })
+
+    it('should return empty string when there are no answers and no <date> lines', () => {
+      const raw = 'Note: <string>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', {})
+      expect(out).toBe('')
     })
   })
 })

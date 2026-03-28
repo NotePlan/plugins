@@ -2,15 +2,29 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-03-23 for v2.0.0.b1 by @jgclark + @Cursor
+// last update 2026-03-28 for v2.0.0.b4 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import strftime from 'strftime'
 import pluginJson from '../plugin.json'
-import { getJournalSettings, REVIEW_QUESTION_TYPE_NAMES_ALT } from './journalHelpers'
+import {
+  getJournalSettings,
+  getPeriodAdjectiveFromType,
+  REVIEW_QUESTION_TYPE_NAMES_ALT,
+  substituteReviewPeriodPlaceholders,
+} from './journalHelpers'
 import type { JournalConfigType, ParsedQuestionType } from './journalHelpers'
 import { stylesheetinksInHeader, faLinksInHeader, buildReviewHTML } from './reviewHTMLViewGenerator'
-import { RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE, getWeek, getPeriodOfNPDateStr, isDailyNote, isWeeklyNote, isMonthlyNote, isQuarterlyNote, isYearlyNote } from '@helpers/dateTime'
+import {
+  RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
+  getWeek,
+  getPeriodOfNPDateStr,
+  isDailyNote,
+  isWeeklyNote,
+  isMonthlyNote,
+  isQuarterlyNote,
+  isYearlyNote,
+} from '@helpers/dateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { showHTMLV2 } from '@helpers/HTMLView'
@@ -39,7 +53,7 @@ export async function dailyJournalQuestions(): Promise<void> {
     const thisPeriodStr = strftime(`%Y-%m-%d`)
     logDebug(pluginJson, `Starting for day ${thisPeriodStr}`)
 
-    await processJournalQuestions(thisPeriodStr, 'day', 'Daily')
+    await processJournalQuestions(thisPeriodStr, 'day')
   } catch (error) {
     logError(pluginJson, error.message)
   }
@@ -54,7 +68,7 @@ export async function weeklyJournalQuestions(): Promise<void> {
     const thisPeriodStr = `${strftime(`%Y`)}-W${currentWeekNum}`
     logDebug(pluginJson, `Starting for week ${thisPeriodStr}`)
 
-    await processJournalQuestions(thisPeriodStr, 'week', 'Weekly')
+    await processJournalQuestions(thisPeriodStr, 'week')
   } catch (error) {
     logError(pluginJson, error.message)
   }
@@ -68,7 +82,7 @@ export async function monthlyJournalQuestions(): Promise<void> {
     const thisPeriodStr = strftime(`%Y-%m`)
     logDebug(pluginJson, `Starting for month ${thisPeriodStr}`)
 
-    await processJournalQuestions(thisPeriodStr, 'month', 'Monthly')
+    await processJournalQuestions(thisPeriodStr, 'month')
   } catch (error) {
     logError(pluginJson, error.message)
   }
@@ -85,7 +99,7 @@ export async function quarterlyJournalQuestions(): Promise<void> {
     const thisPeriodStr = `${strftime(`%Y`)}Q${String(thisQ)}`
     logDebug(pluginJson, `Starting for quarter ${thisPeriodStr}`)
 
-    await processJournalQuestions(thisPeriodStr, 'quarter', 'Quarterly')
+    await processJournalQuestions(thisPeriodStr, 'quarter')
   } catch (error) {
     logError(pluginJson, error.message)
   }
@@ -99,38 +113,126 @@ export async function yearlyJournalQuestions(): Promise<void> {
     const thisPeriodStr = strftime(`%Y`)
     logDebug(pluginJson, `Starting for year ${thisPeriodStr}`)
 
-    await processJournalQuestions(thisPeriodStr, 'year', 'Yearly')
+    await processJournalQuestions(thisPeriodStr, 'year')
   } catch (error) {
     logError(pluginJson, error.message)
   }
 }
 
-//---------------------------------------------------------------
-// Private functions
-//---------------------------------------------------------------
+//---------------------------------------------------------
+// Main review function, called by the plugin.json commands
+//---------------------------------------------------------
 
 /**
- * Ensure the correct period note is open, or open it automatically if configured.
+ * Process questions for the given period, and write to the current note.
+ * If we're not in the correct note, offer to open it first.
+ * @author @jgclark
+ * @param {string} periodString the calendar note title string for the review period
  * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
- * @param {string} periodAdjective adjective for period: 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'
+ */
+async function processJournalQuestions(periodStringIn: string = '', periodType: string): Promise<void> {
+  try {
+    const periodAdjective = getPeriodAdjectiveFromType(periodType)
+    // Get configuration and questions
+    const config: JournalConfigType = await getJournalSettings()
+    const questionLines = await getQuestionsForPeriod(config, periodType)
+    // Only continue if we have some questions
+    const numQs = questionLines.length
+    if (!questionLines || numQs === 0 || questionLines[0] === '') {
+      await showMessage(`No questions for ${periodType} found in the plugin settings, so cannot continue.`)
+      throw new Error(`No questions for ${periodType} found in the plugin settings, so cannot continue.`)
+    }
+    logDebug(pluginJson, `Found ${numQs} question lines for ${periodType}`)
+    // Parse questions (may result in multiple questions per line if '||' is used)
+    const parsedQuestions = parseQuestions(questionLines)
+
+    // Either: check that we have a correct period note open;
+    // Or: open the current period note (if configured).
+    // Else: warn user and stop.
+    const { note } = Editor // TODO: use a helper to check all open editors
+    const currentNotePeriod = (note && note.type === 'Calendar') ? getPeriodOfNPDateStr(note.title ?? '') : ''
+    logDebug('processJournalQuestions', `Starting with open note:${String(note?.title ?? 'unknown')} is of period '${String(currentNotePeriod)}', and we want '${periodType}' period`)
+    const reviewNote: ?TNote = ensureCorrectPeriodNoteIsOpen(periodType, periodStringIn)
+    if (!reviewNote) {
+      await showMessage(`No ${periodAdjective} note found, so cannot continue.`)
+      throw new Error(`No ${periodAdjective} note found, so cannot continue.`)
+    }
+    const titleFromNote = reviewNote.title != null ? String(reviewNote.title).trim() : ''
+    const periodString = periodStringIn.trim() !== '' ? periodStringIn.trim() : titleFromNote
+    logDebug('processJournalQuestions', `- Will use review note:${String(periodString)}`)
+
+    await displayQuestionsWindow(parsedQuestions, periodString, periodType, config, questionLines, reviewNote)
+
+    // Write answers to note
+    // Answers are applied in onReviewWindowAction when the user saves the HTML form.
+  } catch (err) {
+    if (err === 'cancelled') {
+      logDebug(pluginJson, `Asking questions cancelled by user: stopping.`)
+    } else {
+      logDebug(pluginJson, err.message)
+    }
+  }
+}
+
+//-------------------------------------------------------------
+// Private functions
+//-------------------------------------------------------------
+
+/**
+ * Map review title strings to forms understood by getFirstDateInPeriod / getLastDateInPeriod (e.g. `2026Q1` -> `2026-Q1`).
+ * TODO: Revisit why this is necessary.
+ * @param {string} periodTitle
+ * @returns {string}
+ */
+function normalizeReviewPeriodTitleForNPDateHelpers(periodTitle: string): string {
+  const compactQuarter = periodTitle.match(/^(\d{4})Q([1-4])$/i)
+  if (compactQuarter) {
+    return `${compactQuarter[1]}-Q${compactQuarter[2]}`
+  }
+  return periodTitle
+}
+
+/**
+ * True when the editor’s open note is the calendar note for this review (same period type and same period as `periodStringIn` when it is non-empty).
+ * @param {TNote | void} note
+ * @param {string} periodType
+ * @param {string} periodStringIn
+ * @returns {boolean}
+ */
+function openEditorNoteMatchesReviewCommand(note: ?TNote, periodType: string, periodStringIn: string): boolean {
+  if (note == null || note.type !== 'Calendar') {
+    return false
+  }
+  const notePeriod = getPeriodOfNPDateStr(note.title ?? '')
+  if (notePeriod !== periodType) {
+    return false
+  }
+  const want = periodStringIn.trim()
+  if (want === '') {
+    return true
+  }
+  const a = normalizeReviewPeriodTitleForNPDateHelpers(String(note.title ?? '').trim())
+  const b = normalizeReviewPeriodTitleForNPDateHelpers(want)
+  return a === b
+}
+
+/**
+ * Reuse the open calendar note when it matches this review; otherwise open the calendar note for the current period.
+ * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
+ * @param {string} periodStringIn calendar title from the command (must match the open note to reuse it)
  * @returns {TNote | null} the note, or null if not found
  */
-function ensureCorrectPeriodNoteIsOpen(
-  periodType: string,
-  periodAdjective: string
-): TNote | null {
-  // Open current calendar note if wanted
+function ensureCorrectPeriodNoteIsOpen(periodType: string, periodStringIn: string = ''): TNote | null {
   const { note } = Editor
+  const periodAdjective = getPeriodAdjectiveFromType(periodType)
   logDebug('ensureCorrectPeriodNoteIsOpen', `current note=${String(note?.title ?? 'unknown')}`)
-  const currentNotePeriod = (note && note.type === 'Calendar') ? getPeriodOfNPDateStr(note.title ?? '') : ''
-  logDebug('ensureCorrectPeriodNoteIsOpen', `currentNotePeriod=${String(currentNotePeriod)}. Wanted: ${periodType}`)
-  if (currentNotePeriod === '' || currentNotePeriod === 'error' || currentNotePeriod !== periodType) {
-    Editor.openNoteByDate(new Date(), false, 0, 0, false, periodType)
-    logDebug('ensureCorrectPeriodNoteIsOpen', `Opened current ${periodAdjective} note automatically because openCalendarNoteWhenReviewing is true`)
-    return Editor.note ?? null
-  } else {
-    return note
+  if (openEditorNoteMatchesReviewCommand(note, periodType, periodStringIn)) {
+    logDebug('ensureCorrectPeriodNoteIsOpen', `Reusing open editor calendar note (matches ${periodType} / "${periodStringIn}")`)
+    return note ?? null
   }
+  logDebug('ensureCorrectPeriodNoteIsOpen', `Opening current ${periodAdjective} note (${periodType}); command period "${periodStringIn}"`)
+  Editor.openNoteByDate(new Date(), false, 0, 0, false, periodType)
+  return Editor.note ?? null
 }
 
 /**
@@ -174,8 +276,23 @@ async function getQuestionsForPeriod(config: JournalConfigType, period: string):
 }
 
 /**
+ * Get the configured section heading to use for a given review period.
+ * @param {JournalConfigType} config the journal configuration
+ * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
+ * @returns {string}
+ */
+function getSectionHeadingForPeriod(config: JournalConfigType, periodType: string): string {
+  if (periodType === 'day') {
+    return config.dailyJournalSectionHeading
+  } else {
+    return config.reviewSectionHeading
+  }
+}
+
+/**
  * Parse question lines to extract questions and their types.
  * Supports multiple questions per line separated by '||'.
+ * @tests in __tests__/journal.test.js
  * @param {Array<string> | string} questionLines raw question lines from config
  * @returns {Array<{question: string, type: string, originalLine: string, lineIndex: number}>} parsed questions with types and line index
  */
@@ -255,12 +372,12 @@ export function parseQuestions(questionLines: Array<string> | string): Array<Par
  * Handle an HTML heading question type.
  * @param {string} question the question text
  * @param {string} headingType 'h2' | 'h3' | 'subheading' (legacy)
- * @returns {string} the formatted heading block
+ * @returns {string} the formatted markdown heading block
  */
 function handleHeadingQuestion(question: string, headingType: string): string {
   const cleanHeading = question.replace(/<(?:subheading|h2|h3)>\s*$/i, '').trim()
-  const tag = headingType === 'h2' ? 'h2' : 'h3'
-  return `\n<${tag} class="review-subheading ${tag}">${cleanHeading}</${tag}>`
+  const headingMarker = headingType === 'h2' ? '##' : '###'
+  return `\n${headingMarker} ${cleanHeading}`
 }
 
 /**
@@ -318,16 +435,6 @@ function stripMultilineAnswerPrefixes(rawBlock: string, linePrefix: string): str
     })
     .join('\n')
     .trim()
-}
-
-/**
- * Replace `<date>` placeholders with the review note title string.
- * @param {string} input
- * @param {string} periodString
- * @returns {string}
- */
-function substituteDateToken(input: string, periodString: string): string {
-  return input.replace(/<\s*date\s*>/gi, periodString)
 }
 
 /**
@@ -478,6 +585,7 @@ function extractExistingAnswerForReviewForm(parsedQuestion: ParsedQuestionType, 
 
 /**
  * Map field names q_0, q_1, … to existing answers in the calendar note for pre-filling the review HTML form.
+ * @tests in __tests__/journal.test.js
  * @param {Array<ParsedQuestionType>} parsedQuestions
  * @param {Array<string>} paragraphLines lines to scan (e.g. from getParagraphLineContentsForReviewScan)
  * @returns {{ [string]: string }}
@@ -562,8 +670,12 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
       if (ol.trimStart().startsWith('-')) {
         return formatted
       }
-      const tagRe = new RegExp(`<\\s*${escapeRegExp(t)}\\s*>`, 'i')
-      return ol.replace(tagRe, formatted)
+      const { prefix, suffix } = splitParsedSegmentAtTypeMarker(ol, t)
+      const prefixTrimmed = prefix.trimEnd()
+      if (prefixTrimmed === '') {
+        return `${formatted}${suffix}`
+      }
+      return `${prefixTrimmed}\n${formatted}${suffix}`
     }
     case 'subheading': {
       return handleSubheadingQuestion(parsedQuestion.question)
@@ -582,14 +694,19 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
 
 /**
  * Build output from answers returned by single-window mode.
+ * @tests in __tests__/journal.test.js
  * @param {Array<ParsedQuestionType>} parsedQuestions
+ * @param {Array<string>} rawQuestionLines
+ * @param {string} periodString
+ * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
  * @param {{ [string]: string | boolean }} answersByIndex
  * @returns {string}
  */
-function buildOutputFromReviewWindowAnswers(
+export function buildOutputFromReviewWindowAnswers(
   parsedQuestions: Array<ParsedQuestionType>,
   rawQuestionLines: Array<string>,
   periodString: string,
+  periodType: string,
   answersByIndex: { [string]: string | boolean },
 ): string {
   let output = ''
@@ -603,11 +720,6 @@ function buildOutputFromReviewWindowAnswers(
     for (let i = 0; i < lineQuestions.length; i++) {
       const globalIndex = parsedQuestions.findIndex((q) => q === lineQuestions[i])
       const parsedQuestion = lineQuestions[i]
-      const resAQ = answerToQuestion(parsedQuestion.question)
-      if (resAQ !== '') {
-        logDebug(pluginJson, `- Found existing Q answer '${resAQ}', so won't ask again`)
-        continue
-      }
       const answer = answerFromReviewWindowPayload(parsedQuestion, answersByIndex[`q_${globalIndex}`] ?? '')
       if (answer !== '') {
         lineAnswers.push(answer)
@@ -619,14 +731,14 @@ function buildOutputFromReviewWindowAnswers(
       if (!hasMultiline) {
         combinedLine = combinedLine.replace(/\s+/g, ' ')
       }
-      output += `${substituteDateToken(combinedLine, periodString)}\n`
+      output += `${substituteReviewPeriodPlaceholders(combinedLine, periodString, periodType)}\n`
       continue
     }
 
-    // If there are no questions/answers on this line, still carry `<date>` through into output.
+    // If there are no questions/answers on this line, still carry `<date>` / `<datenext>` through into output.
     const rawLine = rawQuestionLines[lineIndex] ?? ''
-    if (/<\s*date\s*>/i.test(rawLine)) {
-      const substituted = substituteDateToken(stripPresentationDelimiters(rawLine), periodString).trim()
+    if (/<\s*date\s*>/i.test(rawLine) || /<\s*(?:datenext|nextdate)\s*>/i.test(rawLine)) {
+      const substituted = substituteReviewPeriodPlaceholders(stripPresentationDelimiters(rawLine), periodString, periodType).trim()
       if (substituted !== '') {
         output += `${substituted}\n`
       }
@@ -658,20 +770,6 @@ function getReviewPeriodTitle(period: string): string {
     default:
       return Editor.note?.title ?? ''
   }
-}
-
-/**
- * Map review title strings to forms understood by getFirstDateInPeriod / getLastDateInPeriod (e.g. `2026Q1` -> `2026-Q1`).
- * TODO: Revisit why this is necessary.
- * @param {string} periodTitle
- * @returns {string}
- */
-function normalizeReviewPeriodTitleForNPDateHelpers(periodTitle: string): string {
-  const compactQuarter = periodTitle.match(/^(\d{4})Q([1-4])$/i)
-  if (compactQuarter) {
-    return `${compactQuarter[1]}-Q${compactQuarter[2]}`
-  }
-  return periodTitle
 }
 
 // /**
@@ -785,7 +883,6 @@ function getSummaryCompletedTasks(periodType: string, periodString: string): Arr
  * @param {Array<ParsedQuestionType>} parsedQuestions
  * @param {string} periodString
  * @param {string} periodType
- * @param {string} periodAdjective adjective for period: 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'
  * @param {JournalConfigType} config
  * @param {Array<string>} rawQuestionLines lines from getQuestionsForPeriod (same array passed to parseQuestions)
  * @param {TNote} calendarNote the calendar note to scan for answers
@@ -795,18 +892,18 @@ async function displayQuestionsWindow(
   parsedQuestions: Array<ParsedQuestionType>,
   periodString: string,
   periodType: string,
-  periodAdjective: string,
   config: JournalConfigType,
   rawQuestionLines: Array<string>,
   calendarNote: TNote,
 ): Promise<void> {
+  const periodAdjective = getPeriodAdjectiveFromType(periodType)
   // Get the data sources we need for the review window
-  const summaryCompletedTasks = (periodAdjective === 'Day') ? getSummaryCompletedTasks(periodType, periodString) : []
+  const summaryCompletedTasks = periodType === 'day' ? getSummaryCompletedTasks(periodType, periodString) : []
   const calendarSet: Array<string> = config.calendarSet ?? []
-  logDebug(pluginJson, `calendarSet: [${String(calendarSet)}]`)
+  // logDebug(pluginJson, `calendarSet: [${String(calendarSet)}]`)
   const eventsForPeriod: Array<TCalendarItem> = (periodType === 'day') ? await getEventsForDay(periodString, calendarSet) ?? [] : []
-  clo(eventsForPeriod, 'eventsForPeriod')
-  const scanLines = getParagraphLineContentsForReviewScan(calendarNote, config.reviewSectionHeading ?? '')
+  const sectionHeading = getSectionHeadingForPeriod(config, periodType)
+  const scanLines = getParagraphLineContentsForReviewScan(calendarNote, sectionHeading)
   const initialAnswers = buildInitialReviewAnswersByFieldName(parsedQuestions, scanLines)
 
   // Build the HTML body for the review window from this data
@@ -817,7 +914,6 @@ async function displayQuestionsWindow(
     summaryCompletedTasks,
     periodString,
     periodType,
-    periodAdjective,
     eventsForPeriod,
     REVIEW_WINDOW_CALLBACK_COMMAND,
     initialAnswers,
@@ -855,15 +951,16 @@ async function displayQuestionsWindow(
 
 /**
  * Write the collected answers to the note:
- * Add the finished review text to the current calendar note, appending after the line found in config.reviewSectionHeading.
+ * Add the finished review text to the current calendar note, appending after the configured heading for that period.
  * If the heading doesn't exist, then append it first.
- * @param {JournalConfigType} config the journal configuration
  * @param {string} periodString the calendar note title string for the review period
+ * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
  * @param {string} answersText the text to insert into the journal
  * TODO(later): revert to being private, and take out of index.js & plugin.json
  */
 export async function writeAnswersToNote(
   periodStringIn: string = '',
+  periodTypeIn: string = '',
   answersTextIn: string = '',
 ): Promise<void> {
   try {
@@ -872,7 +969,14 @@ export async function writeAnswersToNote(
     if (periodString === '') {
       periodString = Editor.note?.title ?? ''
     }
+    const allowedPeriodTypes = ['day', 'week', 'month', 'quarter', 'year']
+    const isRecognizedPeriodType = allowedPeriodTypes.includes(periodTypeIn)
+    const periodType = isRecognizedPeriodType ? periodTypeIn : ''
     let answersText = answersTextIn ?? ''
+    // Backward-compatibility: earlier function signature was (periodString, answersText).
+    if (!isRecognizedPeriodType && periodTypeIn !== '' && answersText === '') {
+      answersText = periodTypeIn
+    }
     if (answersText === '') {
       const result = await getInput('No answers were collected from the review window. Please enter them manually here:', 'OK', 'Enter answers', '')
       if (result === false) {
@@ -887,13 +991,15 @@ export async function writeAnswersToNote(
     
     // $FlowIgnore(incompatible-call) .note is a superset of CoreNoteFields
     const outputNote = Editor
+    const resolvedPeriodType = periodType !== '' ? periodType : getPeriodOfNPDateStr(periodString)
+    const sectionHeading = getSectionHeadingForPeriod(config, resolvedPeriodType)
     // $FlowIgnore[incompatible-call] .note is a superset of CoreNoteFields
-    logDebug(pluginJson, `Appending answers to heading '${config.reviewSectionHeading}' in note ${displayTitle(Editor.note)}`)
-    const matchedHeading = findHeadingStartsWith(outputNote, config.reviewSectionHeading)
+    logDebug(pluginJson, `Appending answers to heading '${sectionHeading}' in note ${displayTitle(Editor.note)}`)
+    const matchedHeading = findHeadingStartsWith(outputNote, sectionHeading)
     outputNote.addParagraphBelowHeadingTitle(
       answersText,
       'empty',
-      matchedHeading ? matchedHeading : config.reviewSectionHeading,
+      matchedHeading ? matchedHeading : sectionHeading,
       true,
       true)
   } catch (err) {
@@ -901,56 +1007,9 @@ export async function writeAnswersToNote(
   }
 }
 
-/**
- * Process questions for the given period, and write to the current note.
- * If we're not in the correct note, offer to open it first.
- * @author @jgclark
- * @param {string} periodString the calendar note title string for the review period
- * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
- * @param {string} periodAdjective adjective for period: 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'
- */
-async function processJournalQuestions(
-  periodString: string,
-  periodType: string,
-  periodAdjective: string
-): Promise<void> {
-  try {
-    // Get configuration and questions
-    const config: JournalConfigType = await getJournalSettings()
-
-    // Ensure correct period note is open
-    const reviewNote = ensureCorrectPeriodNoteIsOpen(periodType, periodAdjective)
-    if (!reviewNote) {
-      await showMessage(`No ${periodAdjective} note found, so cannot continue.`)
-      throw new Error(`No ${periodAdjective} note found, so cannot continue.`)
-    }
-
-    const questionLines = await getQuestionsForPeriod(config, periodType)
-
-    // Only continue if we have some questions
-    const numQs = questionLines.length
-    if (!questionLines || numQs === 0 || questionLines[0] === '') {
-      await showMessage(`No questions for ${periodType} found in the plugin settings, so cannot continue.`)
-      throw new Error(`No questions for ${periodType} found in the plugin settings, so cannot continue.`)
-    }
-
-    logDebug(pluginJson, `Found ${numQs} question lines for ${periodType}`)
-
-    // Parse questions (may result in multiple questions per line if '||' is used)
-    const parsedQuestions = parseQuestions(questionLines)
-
-    await displayQuestionsWindow(parsedQuestions, periodString, periodType, periodAdjective, config, questionLines, reviewNote)
-
-    // Write answers to note
-    // Answers are applied in onReviewWindowAction when the user saves the HTML form.
-  } catch (err) {
-    if (err === 'cancelled') {
-      logDebug(pluginJson, `Asking questions cancelled by user: stopping.`)
-    } else {
-      logDebug(pluginJson, err.message)
-    }
-  }
-}
+//---------------------------------------------------------
+// Callback function for HTML single-window review actions
+//---------------------------------------------------------
 
 /**
  * Callback function for HTML single-window review actions.
@@ -959,6 +1018,7 @@ async function processJournalQuestions(
  */
 export async function onReviewWindowAction(actionName: string, payload: string = ''): Promise<void> {
   logDebug(pluginJson, `onReviewWindowAction action=${actionName}`)
+  // logDebug(pluginJson, `onReviewWindowAction payloadLength=${String(payload?.length ?? 0)} payloadPreview="${String(payload ?? '').slice(0, 100)}"`)
   const config: JournalConfigType = await getJournalSettings()
   if (actionName === 'cancel') {
     logDebug('Journalling/onReviewWindowAction', `Cancelled by user.`)
@@ -971,15 +1031,30 @@ export async function onReviewWindowAction(actionName: string, payload: string =
     // Allow callback payloads sent via x-callback-url arg1 JSON string.
     safePayload = JSON.parse(payload)
     clo(safePayload, `onReviewWindowAction: parsed payload`)
-    const answers = safePayload.answers ?? {}
+    let answers = safePayload.answers ?? {}
     // Get the period type and string from the hidden fields in the payload
-    const periodType = safePayload.periodType ?? ''
-    const periodString = safePayload.periodString ?? ''
+    let periodType = safePayload.periodType ?? ''
+    let periodString = safePayload.periodString ?? ''
+    // Backward-compatibility: older bridges flattened q_* plus period fields at top level.
+    if ((periodType === '' || periodString === '') && typeof safePayload === 'object' && safePayload != null) {
+      periodType = periodType || String(safePayload.periodType ?? '')
+      periodString = periodString || String(safePayload.periodString ?? '')
+    }
+    if ((answers == null || Object.keys(answers).length === 0) && typeof safePayload === 'object' && safePayload != null) {
+      const extractedAnswers = {}
+      const keys = Object.keys(safePayload)
+      for (const key of keys) {
+        if (key.startsWith('q_')) {
+          extractedAnswers[key] = safePayload[key]
+        }
+      }
+      answers = extractedAnswers
+    }
     const questionLines = await getQuestionsForPeriod(config, periodType)
     const parsedQuestions = parseQuestions(questionLines)
-    const output = buildOutputFromReviewWindowAnswers(parsedQuestions, questionLines, periodString, answers)
+    const output = buildOutputFromReviewWindowAnswers(parsedQuestions, questionLines, periodString, periodType, answers)
     if (output !== '') {
-      await writeAnswersToNote(periodString, output)
+      await writeAnswersToNote(periodString, periodType, output)
     } else {
       logWarn(pluginJson, 'No answers were collected from the review window')
     }
@@ -989,25 +1064,4 @@ export async function onReviewWindowAction(actionName: string, payload: string =
   } catch (err) {
     logError(pluginJson, `onReviewWindowAction: couldn't parse payload JSON string: ${err.message}`)
   }
-}
-
-/**
- * Look to see if this question has already been answered.
- * If so return the line's content -- or empty string.
- * @author @jgclark
- * 
- * @param {string} question
- * @returns {string} found answered question, or empty string
- */
-function answerToQuestion(question: string): string {
-  const RE_Q = `${question}.+`
-  const { paragraphs } = Editor
-  let result = ''
-  for (const p of paragraphs) {
-    const m = p.content.match(RE_Q)
-    if (m != null) {
-      result = m[0]
-    }
-  }
-  return result
 }
