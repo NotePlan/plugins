@@ -1249,6 +1249,69 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
 }
 
 /**
+ * Calendar period immediately after the given NotePlan period (same string family as note titles).
+ * Uses `calcOffsetDate` so week rollover matches ISO week handling (e.g. 2024-W52 → 2025-W01).
+ * @param {string} periodStringIn - e.g. YYYY-MM-DD, YYYY-Www, YYYY-MM, YYYY-Qn / YYYYQn, YYYY
+ * @param {string} periodType - 'day' | 'week' | 'month' | 'quarter' | 'year'
+ * @returns {string} next period title, or '' if parsing fails
+ */
+export function getNextNPPeriodString(periodStringIn: string, periodType: string): string {
+  try {
+    const trimmed = periodStringIn.trim()
+    const wantCompactQuarter = /^(\d{4})Q([1-4])$/i.test(trimmed)
+    let periodString = trimmed
+    const compactQ = trimmed.match(/^(\d{4})Q([1-4])$/i)
+    if (compactQ) {
+      periodString = `${compactQ[1]}-Q${compactQ[2]}`
+    }
+    const intervalByType: { [string]: string } = {
+      day: '+1d',
+      week: '+1w',
+      month: '+1m',
+      quarter: '+1q',
+      year: '+1y',
+    }
+    const interval = intervalByType[periodType]
+    if (!interval) {
+      logError('dateTime / getNextNPPeriodString', `Unknown periodType '${periodType}'`)
+      return ''
+    }
+    const newDate = calcOffsetDate(periodString, interval)
+    if (!newDate) {
+      return ''
+    }
+    let momentDateFormat = ''
+    if (periodString.match(RE_ISO_DATE)) {
+      momentDateFormat = 'YYYY-MM-DD'
+    } else if (periodString.match(RE_YYYYMMDD_DATE)) {
+      momentDateFormat = MOMENT_FORMAT_NP_DAY
+    } else if (periodString.match(RE_NP_WEEK_SPEC)) {
+      momentDateFormat = MOMENT_FORMAT_NP_WEEK
+    } else if (periodString.match(RE_NP_MONTH_SPEC)) {
+      momentDateFormat = MOMENT_FORMAT_NP_MONTH
+    } else if (periodString.match(RE_NP_QUARTER_SPEC)) {
+      momentDateFormat = MOMENT_FORMAT_NP_QUARTER
+    } else if (periodString.match(RE_NP_YEAR_SPEC)) {
+      momentDateFormat = MOMENT_FORMAT_NP_YEAR
+    } else {
+      logError('dateTime / getNextNPPeriodString', `Unrecognized period string '${periodString}'`)
+      return ''
+    }
+    let out = moment(newDate).format(momentDateFormat)
+    if (wantCompactQuarter && momentDateFormat === MOMENT_FORMAT_NP_QUARTER) {
+      const mq = out.match(/^(\d{4})-Q([1-4])$/i)
+      if (mq) {
+        out = `${mq[1]}Q${mq[2]}`
+      }
+    }
+    return out
+  } catch (e) {
+    logError('dateTime / getNextNPPeriodString', e.message)
+    return ''
+  }
+}
+
+/**
  * Split an interval (e.g. '-3m') into number (e.g. -3) and type ('month') parts
  * If interval arrives with {...} around the terms, remove them first
  * @param {string} intervalStr (e.g. '-3m' or '{-3m}')
