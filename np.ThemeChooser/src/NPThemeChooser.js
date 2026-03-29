@@ -68,7 +68,7 @@ export async function chooseTheme(
       logDebug(pluginJson, `chooseTheme: "${themeName}" chosen`)
       const selected = await getThemeObj(themeName)
       if (selected && selected.filename) {
-        logDebug(pluginJson, `chooseTheme: About to Editor.setTheme(${selected.filename}) Editor.setTheme(${selected.name})`)
+        logDebug(pluginJson, `chooseTheme: About to Editor.setTheme(${selected.filename}) Theme name: ${selected.name}`)
         Editor.setTheme(selected.filename)
       } else {
         logError(pluginJson, `chooseTheme filename does not exist: selected=${JSP(selected)}`)
@@ -269,6 +269,29 @@ export async function toggleTheme() {
 }
 
 /**
+ * Re-apply the active theme so NotePlan reloads theme CSS (same as `Editor.setTheme` with the current theme file).
+ * Plugin entrypoint for "/Refresh Current Theme"
+ * @returns {void}
+ */
+export function refreshCurrentTheme(): void {
+  try {
+    if (!Editor) {
+      showMessage(`You must be in the Editor with a document open to run this command`)
+      return
+    }
+    const filename = Editor.currentTheme?.filename
+    if (filename?.length) {
+      logDebug(pluginJson, `refreshCurrentTheme: Editor.setTheme(${filename})`)
+      Editor.setTheme(filename)
+    } else {
+      logError(pluginJson, `refreshCurrentTheme: no current theme filename`)
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
  * Change theme from frontmatter:
  *    triggers: onOpen => np.ThemeChooser.setTheme
  *    theme: "Theme Name"
@@ -281,12 +304,13 @@ export async function changeThemeFromFrontmatter() {
     logDebug(pluginJson, `changeThemeFromFrontmatter running`)
     const frontMatter = getFrontmatterAttributes(Editor)
     if (frontMatter && frontMatter.theme) {
-      const themeName = frontMatter.theme
-      // validate that a theme of that name exists
+      const themeName = String(frontMatter.theme).trim()
+      // validate that a theme of that name exists, then set by filename (avoid chooseTheme name/early-exit + double lookup)
       logDebug(pluginJson, `changeThemeFromFrontmatter: themeName="${themeName}"`)
       const themeObj = getThemeObjByName(themeName)
-      if (themeObj) {
-        await chooseTheme(themeName)
+      if (themeObj && themeObj.filename) {
+        logDebug(pluginJson, `changeThemeFromFrontmatter: Editor.setTheme(${themeObj.filename})`)
+        Editor.setTheme(themeObj.filename)
       } else {
         logDebug(pluginJson, `changeThemeFromFrontmatter: 'Theme named: "${themeName}" does not exist. Please check the exact name of the theme'`)
         await showMessage(`Theme named: "${themeName}" does not exist. Please check the exact name of the theme`)

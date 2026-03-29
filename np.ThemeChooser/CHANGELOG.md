@@ -1,5 +1,10 @@
 # np.ThemeChooser Changelog
 
+## [1.10.0] 2026-03-26 @dwertheimer
+
+- Add **Refresh Current Theme** command: re-applies the active theme (`Editor.setTheme` with the current file) to reload theme CSS after editing a theme
+- **setTheme** / frontmatter theme change: apply with `Editor.setTheme(filename)` directly after lookup (avoid routing through `chooseTheme`) so the theme does not snap back
+
 ## [1.9.1] 2025-02-20 @dwertheimer
 
 - Add support for Eduard's hex colors in frontmatter (do not quote the hex color even though it's illegal YAML)

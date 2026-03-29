@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.7.2",
   "plugin.id": "np.ThemeChooser",
   "plugin.name": "🎨 Theme Chooser",
-  "plugin.version": "1.9.1",
-  "plugin.lastUpdateInfo": "1.9.1 Add support for Eduard's hex colors in frontmatter.\nPreviously: Add color picker to choose colors and write to frontmatter",
+  "plugin.version": "1.10.1",
+  "plugin.lastUpdateInfo": "1.10.1 Add /Reload Page with Current Theme to re-apply the active theme and reload CSS.\nPreviously: Add /Refresh Current Theme to re-apply the active theme and reload CSS.",
   "plugin.description": "Choose from your favorite themes",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -38,6 +38,15 @@
       "arguments": [
         "theme name"
       ]
+    },
+    {
+      "name": "Reload Page with Current Theme",
+      "description": "Re-apply the active theme to reload theme CSS (e.g. after editing the theme file)",
+      "jsFunction": "refreshCurrentTheme",
+      "alias": [
+        "rthm", "refresh"
+      ],
+      "arguments": []
     },
     {
       "name": "Choose HTML Color for Background",
