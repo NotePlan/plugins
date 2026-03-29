@@ -473,15 +473,20 @@ export function getStringFromList(list: $ReadOnlyArray<string>, search: string):
  * @return {?string} - string from between the brackets, if found (e.g. '2w')
  */
 export function getContentFromBrackets(mention: string): ?string {
-  const RE_BRACKETS_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside parantheses
+  try {
+    if (mention === '') {
+      return // no text, so return nothing
+    }
 
-  if (mention === '') {
-    return // no text, so return nothing
-  }
-  const res = mention.match(RE_BRACKETS_STRING_CAPTURE) ?? []
-  if (res[1].length > 0) {
-    return res[1]
-  } else {
+    const RE_BRACKETS_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside parantheses
+    const res = mention.match(RE_BRACKETS_STRING_CAPTURE) ?? []
+    if (res[1] && res[1].length > 0) {
+      return res[1]
+    } else {
+      return
+    }
+  } catch (e) {
+    logError('general/getContentFromBrackets', `${e}. mention="${mention}". Returning an error string.`)
     return
   }
 }
