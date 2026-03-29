@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-03-26 for v1.4.0.b13, @jgclark
+// Last updated 2026-03-29 for v1.4.0.b15, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -1311,5 +1311,22 @@ export async function saveDisplayFilters(data: {
     await renderProjectListsIfOpen(config)
   } catch (error) {
     logError('saveDisplayFilters', error.message)
+  }
+}
+
+/**
+ * Pluralise a word based on the count.
+ * Note: Currently only supports English, but designed to be extended to other languages with different rule sets, by adding rulesets.
+ * @param {string} identifier - the word to pluralise
+ * @param {number} count - the number of items
+ * @returns {string} the pluralised word
+ */
+export function pluralise(identifier: string, count: number): string {
+  // const localeLanguage = NotePlan.environment.languageCode ?? 'en'
+  const localeLanguage = 'en'
+  if (localeLanguage === 'en') {
+    return (count === 1) ? `${identifier}` : `${identifier}s`
+  } else {
+    return (count === 1) ? `${identifier}` : `${identifier}s`
   }
 }
