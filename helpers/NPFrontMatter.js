@@ -330,7 +330,7 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
                 // logDebug('rFMF', `- now ${fmParas.length} FM paras remain`)
                 removeFrontMatter(note, false)
                 // logDebug('rFMF', `removeFrontMatter -> ${String(res1)}`)
-                writeFrontMatter(note, fmFields, false) // don't mind if there isn't a title; that's not relevant to this operation
+                writeFrontMatter(note, fmFields)
                 // logDebug('rFMF', `writeFrontMatter -> ${String(res2)}`)
               }
             }
@@ -479,7 +479,7 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
  * If optional title is given, it overrides any existing title in the note for the frontmatter title.
  * @author @dwertheimer based on @jgclark's convertNoteToFrontmatter code
  * @param {TNote} note
- * @param {boolean?} alsoEnsureTitle - if true then fail if a title can't be set. Default: true. For calendar notes this wants to be false.
+ * @param {boolean?} alsoEnsureTitle - If true (default), then set title in frontmatter, and fail if it can't be set. For calendar notes this wants to be false.
  * @param {string?} title - optional override text that will be added to the frontmatter as the note title (regardless of whether it already had for a title)
  * @returns {boolean} true if front matter existed or was added, false if failed for some reason
  * @author @dwertheimer

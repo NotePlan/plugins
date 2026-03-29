@@ -54,6 +54,18 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(true)
         expect(note.content).toMatch(/---\n---/)
       })
+      test('should set title in frontmatter and not remove from body if alsoEnsureTitle is true', () => {
+        const note = new Note({
+          content: '# Test Project note\n#project frontmatter', type: 'Notes', paragraphs: [
+            { content: '# Test Project note', headingLevel: 1, type: 'title', lineIndex: 0 },
+            { content: '#project frontmatter', headingLevel: 1, type: 'text', lineIndex: 1 },
+          ],
+          title: 'Test Project note',
+        })
+        const result = f.ensureFrontmatter(note, false)
+        expect(result).toEqual(true)
+        expect(note.content).toMatch(/---\n---\n# Test Project note\n#project frontmatter/)
+      })
       test('should set note title in frontmatter if had title in document', () => {
         const note = new Note({ paragraphs: [{ content: 'foo', headingLevel: 1, type: 'title' }], content: '# foo', title: 'foo' })
         const result = f.ensureFrontmatter(note)
