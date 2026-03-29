@@ -25,6 +25,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttribute, noteHasFrontMatter, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { getFieldParagraphsFromNote } from '@helpers/paragraph'
+import { getHashtagsFromString } from '@helpers/stringTransforms'
 import { showMessage } from '@helpers/userInput'
 
 //------------------------------
@@ -108,17 +109,7 @@ function getDateMentionNameToFrontmatterKeyMap(): { [string]: string } {
 }
 
 /**
- * Normalize hashtag tokens for display/storage.
- * Removes trailing punctuation like commas, but not '/' or '-' which can be part of a hashtag.
- * @param {string} hashtag
- * @returns {string}
- */
-function normalizeHashtagForDisplay(hashtag: string): string {
-  return checkString(hashtag).trim().replace(/[,:;.!?]+$/g, '')
-}
-
-/**
- * Extract only hashtags from a string, normalize, and de-duplicate (preserving first-seen order).
+ * Extract only hashtags from a string and de-duplicate (preserving first-seen order).
  * Invariant: combined frontmatter key values must contain ONLY hashtags.
  * @param {string} text
  * @returns {string}
@@ -126,13 +117,12 @@ function normalizeHashtagForDisplay(hashtag: string): string {
 function extractTagsOnly(text: string): string {
   const seen = new Set < string > ()
   const ordered: Array<string> = []
-  const candidates = text != null ? text.match(/#[^\s]+/g) ?? [] : []
-  for (const rawTag of candidates) {
-    const normalized = normalizeHashtagForDisplay(rawTag)
-    if (!normalized || !normalized.startsWith('#') || normalized.length <= 1) continue
-    if (!seen.has(normalized)) {
-      seen.add(normalized)
-      ordered.push(normalized)
+  const candidates = getHashtagsFromString(checkString(text))
+  for (const tag of candidates) {
+    if (!tag || !tag.startsWith('#') || tag.length <= 1) continue
+    if (!seen.has(tag)) {
+      seen.add(tag)
+      ordered.push(tag)
     }
   }
   return ordered.join(' ')
@@ -622,7 +612,6 @@ export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
         const mentionTokens = (`${bodyValue} `)
           .split(' ')
           .filter((f) => f[0] === '@')
-          .map((t) => t.replace(/[,:;.!?]+$/g, ''))
 
         const reISODate = new RegExp(`^${RE_ISO_DATE}$`)
         const reInterval = /^[+\-]?\d+[BbDdWwMmQqYy]$/
@@ -748,7 +737,6 @@ export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): voi
         const mentionTokens = (`${bodyValue} `)
           .split(' ')
           .filter((f) => f[0] === '@')
-          .map((t) => t.replace(/[,:;.!?]+$/g, ''))
 
         const reISODate = new RegExp(`^${RE_ISO_DATE}$`)
         const reInterval = /^[+\-]?\d+[BbDdWwMmQqYy]$/
@@ -1062,6 +1050,18 @@ export async function updateDashboardIfOpen(): Promise<void> {
   // Note: This covers codes from before and after Dashboard v2.4.0.b18. TODO(Later): remove the 'PROJ' code when v2.5.0 is released
   // Note: Wrap array in another array because invokePluginCommandByName spreads the array as individual arguments. This avoids only the first array item being used.
   const res = await DataStore.invokePluginCommandByName("refreshSectionsByCode", "jgclark.Dashboard", [['PROJACT', 'PROJREVIEW', 'PROJ']])
+}
+
+/**
+ * English plural for simple count labels (task/tasks, item/items).
+ * @param {'task' | 'item'} noun
+ * @param {number | string} count - numeric string (e.g. locale-formatted) is parsed
+ * @returns {string}
+ */
+export function pluralise(noun: string, count: number | string): string {
+  const n = typeof count === 'number' ? count : parseInt(String(count).replace(/,/g, ''), 10)
+  const num = Number.isFinite(n) ? n : 0
+  return num === 1 ? noun : `${noun}s`
 }
 
 /**

@@ -1,4 +1,4 @@
-/* globals describe, expect, test, beforeAll */
+/* globals describe, expect, test, beforeAll, jest */
 // @flow
 
 import { Project } from '../projectClass'
@@ -64,7 +64,7 @@ describe('Project constructor: embedded combined mentions', () => {
     const project = new Project((note: any), '', false, [], '')
     const normalizedCombinedTags = project.getCombinedProjectTagsFrontmatterValue('project')
 
-    expect(project.projectTag).toBe('#project/large')
+    expect(project.getLeadingProjectTag()).toBe('#project/large')
     expect(project.allProjectTags).toContain('#project/large')
     expect(project.allProjectTags.filter((t) => t === '#project/large')).toHaveLength(1)
     expect(normalizedCombinedTags).toContain('#project/large')
@@ -72,7 +72,7 @@ describe('Project constructor: embedded combined mentions', () => {
   })
 
   test('keeps hyphen-style project tags in combined frontmatter', () => {
-    preferenceValues['projectMetadataFrontmatterKey'] = 'project'
+    preferenceValues['projectMetadataFrontmatterKey'] = 'metadata'
     preferenceValues['ignoreChecklistsInProgress'] = true
     preferenceValues['numberDaysForFutureToIgnore'] = 0
 
@@ -81,18 +81,19 @@ describe('Project constructor: embedded combined mentions', () => {
       filename: 'hyphen-tag.md',
       content:
         '---\n' +
-        'project: #project-large, #project-small\n' +
+        'metadata: #project-large, #project-small\n' +
         '---\n' +
         '# Hyphen Tag\n' +
         'Body line\n',
     })
 
     const project = new Project((note: any), '', false, [], '')
-    const normalizedCombinedTags = project.getCombinedProjectTagsFrontmatterValue('project')
+    const normalizedCombinedTags = project.getCombinedProjectTagsFrontmatterValue('metadata')
 
-    expect(project.projectTag).toBe('#project-large')
+    expect(project.getLeadingProjectTag()).toBe('#project-large')
     expect(project.allProjectTags).toContain('#project-large')
     expect(project.allProjectTags).toContain('#project-small')
+    expect(project.allProjectTags).toHaveLength(2)
     expect(project.allProjectTags.filter((t) => t === '#project-large')).toHaveLength(1)
     expect(normalizedCombinedTags).toContain('#project-large')
     expect(normalizedCombinedTags.includes(',')).toBe(false)

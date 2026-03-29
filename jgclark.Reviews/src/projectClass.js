@@ -31,6 +31,7 @@ import { getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { endOfFrontmatterLineIndex, getFrontmatterAttribute, getFrontmatterParagraphs, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
 import { createSectionsAndParaAfterPreamble, endOfPreambleSection, findHeading, getFieldParagraphsFromNote, simplifyRawContent } from '@helpers/paragraph'
+import { getHashtagsFromString } from '@helpers/stringTransforms'
 import {
   getInputTrimmed,
   inputIntegerBounded,
@@ -156,16 +157,6 @@ function shouldWriteDateMentionsInCombinedMetadata(): boolean {
 }
 
 /**
- * Normalize hashtag tokens for display/filter use.
- * Removes trailing punctuation (like commas) and trims whitespace.
- * @param {string} hashtag
- * @returns {string}
- */
-function normalizeHashtagForDisplay(hashtag: string): string {
-  return checkString(hashtag).trim().replace(/[,:;.!?]+$/g, '')
-}
-
-/**
  * Define 'Project' class to use in GTD.
  * Holds title, last reviewed date, due date, review interval, completion date, progress information that is read from the note,
  * and other derived data.
@@ -178,7 +169,7 @@ export class Project {
   filename: string
   folder: string
   metadataParaLineIndex: number
-  projectTag: string // #project, #area, etc. **See below**
+  // projectTag: string // #project, #area, etc. Removed in b15 to now use .allProjectTags instead
   title: string
   startDate: ?string // ISO date YYYY-MM-DD
   dueDate: ?string // ISO date YYYY-MM-DD
@@ -209,18 +200,15 @@ export class Project {
   allProjectTags: Array<string> = [] // projectTag(s), #sequential if applicable, and all hashtags from metadata line and frontmatter 'project' (for column 3) **See below**
 
   /**
-   * projectTag = single primary tag for the note (chosen from constructor input or first hashtag fallback).
-   * - Used for single-tag filtering in filterAndSortProjectsList() (pi.projectTag === projectTag) in jgclark.Reviews/src/allProjectsListHelpers.js
-   * - Used for sort proxy/order logic (projectTagOrder) in the same file
-   *
    * allProjectTags = set/list of all relevant tags (primary tag + metadata/frontmatter tags + optional #sequential, de-duped in constructor order).
+   * - Primary tag is always at index 0, retrieved via getLeadingProjectTag()
    * - Used for UI tag chips in buildProjectTagLozengeSpans() in jgclark.Reviews/src/projectsHTMLGenerator.js
    * - Used for "matches any configured project type" logic and per-tag counts in jgclark.Reviews/src/reviews.js
    *
    * Note: The constructor may need to be updated if these usages change.
    */
 
-  constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = [], sequentialTag: string = '') {
+  constructor(note: TNote, _projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = [], sequentialTag: string = '') {
     try {
       const startTime = new Date()
       if (note == null || note.title == null) {
@@ -233,8 +221,6 @@ export class Project {
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
       this.ID = String(Math.round((Math.random()) * 99999))
-      // TODO: Cursor suggests a more robust approach, instead of random number:
-      // this.ID = `${this.filename}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
       // Sometimes we're called just after a note has been updated in the Editor. So check to see if note is open in Editor, and if so use that version, which could be newer.
       // (Unless 'checkEditor' false, to avoid triggering 'You are running this on an async thread' warnings.)
@@ -262,17 +248,16 @@ export class Project {
       // If we have a metadata line in the body but no combined frontmatter value yet, migrate it into frontmatter and remove the body line
       try {
         const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-        const existingCombined = getFrontmatterAttribute(note, singleKeyName)
+        const existingCombinedRawField = readRawFrontmatterField(note, singleKeyName)
+        const existingCombined = existingCombinedRawField.exists ? existingCombinedRawField.value : getFrontmatterAttribute(note, singleKeyName)
         const existingCombinedStr = existingCombined != null && typeof existingCombined === 'string' ? existingCombined : ''
         if (existingCombinedStr === '') {
           const metadataParaToRemove = paras[metadataLineIndex]
           const fmAttrs: { [string]: any } = {}
 
           // Invariant: combined frontmatter value must contain ONLY hashtags (project tags).
-          const hashtagsOnly = (`${metadataLine} `)
-            .match(/#[^\s]+/g)
-            ?.map((t) => normalizeHashtagForDisplay(t))
-            .filter((t) => t && t.startsWith('#') && t.length > 1) ?? []
+          const hashtagsOnly = getHashtagsFromString(`${metadataLine} `)
+            .filter((t) => t && t.startsWith('#') && t.length > 1)
           const uniqueHashtags: Array<string> = []
           const seen: Set<string> = new Set()
           for (const t of hashtagsOnly) {
@@ -287,7 +272,6 @@ export class Project {
           const mentionTokens = (`${metadataLine} `)
             .split(' ')
             .filter((f) => f[0] === '@')
-            .map((t) => t.replace(/[,:;.!?]+$/g, ''))
 
           const reISODate = new RegExp(`^${RE_DATE}$`)
           const reISOInterval = new RegExp(`^${RE_DATE_INTERVAL}$`)
@@ -358,20 +342,26 @@ export class Project {
         hashtags = (`${metadataLine} `).split(' ').filter((f) => f[0] === '#')
       }
 
-      // work out projectTag:
+      // Work out primary project tag:
       // - if projectTypeTag given, then use that
       // - else first or second hashtag in note
+      let primaryProjectTag = ''
       try {
-        this.projectTag = (projectTypeTag)
-          ? projectTypeTag
-          : (hashtags[0] !== '#paused')
-            ? hashtags[0]
-            : (hashtags[1])
-              ? hashtags[1]
+        const combinedKeyForPrimary = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+        const combinedRawFieldForPrimary = readRawFrontmatterField(this.note, combinedKeyForPrimary)
+        const combinedValueForPrimary = combinedRawFieldForPrimary.exists ? combinedRawFieldForPrimary.value : getFrontmatterAttribute(this.note, combinedKeyForPrimary)
+        const hashtagsFromCombinedValue = getHashtagsFromString(String(combinedValueForPrimary ?? ''))
+        const hashtagsFromMetadataLine = getHashtagsFromString(metadataLine)
+        const hashtagsForPrimary = hashtagsFromCombinedValue.length > 0 ? hashtagsFromCombinedValue : hashtagsFromMetadataLine
+        primaryProjectTag = (_projectTypeTag)
+          ? _projectTypeTag
+          : (hashtagsForPrimary[0] !== '#paused')
+            ? hashtagsForPrimary[0]
+            : (hashtagsForPrimary[1])
+              ? hashtagsForPrimary[1]
               : ''
-        this.projectTag = normalizeHashtagForDisplay(this.projectTag)
       } catch (e) {
-        this.projectTag = ''
+        primaryProjectTag = ''
         logWarn('ProjectConstructor', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
       }
 
@@ -623,53 +613,12 @@ export class Project {
         this.generateNextActionComments(nextActionTags, paras, sequentialTag, Array.from(hashtags ?? []), metadataLine)
       }
 
-      // Build allProjectTags: all hashtags from metadata line and combined frontmatter metadata field (including #sequential if applicable)
-      const metadataLineHashtags = (`${metadataLine} `)
-        .split(/\s+/)
-        .filter((w) => w.length > 0 && w[0] === '#')
-        .map((t) => normalizeHashtagForDisplay(t))
-        .filter((t) => t.startsWith('#') && t.length > 1)
-      const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-      const projectAttrRawField = readRawFrontmatterField(this.note, combinedKey)
-      const projectAttr = projectAttrRawField.exists ? projectAttrRawField.value : getFrontmatterAttribute(this.note, combinedKey)
-      const projectAttrStr = projectAttr != null && typeof projectAttr === 'string' ? projectAttr : ''
-      const frontmatterProjectHashtags = projectAttrStr
-        ? (projectAttrStr.match(/#\S+/g) ?? [])
-          .map((t) => normalizeHashtagForDisplay(t))
-          .filter((t) => t.startsWith('#') && t.length > 1)
-        : []
-      const hasSequentialTag =
-        sequentialTag !== '' &&
-        (projectAttrStr.includes(sequentialTag) ||
-          metadataLineHashtags.some((t) => t === sequentialTag) ||
-          metadataLine.includes(sequentialTag))
-      const seen = new Set<string>()
-      const ordered: Array<string> = []
-      const normalizedProjectTag = normalizeHashtagForDisplay(this.projectTag)
-      if (normalizedProjectTag && !seen.has(normalizedProjectTag)) {
-        seen.add(normalizedProjectTag)
-        ordered.push(normalizedProjectTag)
-      }
-      if (hasSequentialTag && sequentialTag && !seen.has(sequentialTag)) {
-        seen.add(sequentialTag)
-        ordered.push(sequentialTag)
-      }
-      for (const t of metadataLineHashtags) {
-        if (!seen.has(t)) {
-          seen.add(t)
-          ordered.push(t)
-        }
-      }
-      for (const t of frontmatterProjectHashtags) {
-        if (!seen.has(t)) {
-          seen.add(t)
-          ordered.push(t)
-        }
-      }
-      this.allProjectTags = ordered
+      // Build allProjectTags: all hashtags from metadata line and combined frontmatter metadata field, then de-duped
+      this.allProjectTags = this.buildAllProjectTags(primaryProjectTag)
+      logDebug('ProjectConstructor', `  - allProjectTags = [${String(this.allProjectTags)}]`)
 
       if (this.title.includes('TEST')) {
-        logDebug('ProjectConstructor', `Constructed ${this.projectTag} ${this.filename}:`)
+        logDebug('ProjectConstructor', `Constructed ${this.getLeadingProjectTag()} ${this.filename}:`)
         logDebug('ProjectConstructor', `  - folder = ${this.folder}`)
         logDebug('ProjectConstructor', `  - folder (for display) = ${getFolderDisplayName(this.folder)}`)
         logDebug('ProjectConstructor', `  - reviewInterval = ${String(this.reviewInterval)}`)
@@ -689,7 +638,7 @@ export class Project {
         logDebug('ProjectConstructor', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
         logDebug('ProjectConstructor', `  - allProjectTags = <${String(this.allProjectTags)}>`)
       } else {
-        logTimer('ProjectConstructor', startTime, `Constructed ${this.projectTag} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
+        logTimer('ProjectConstructor', startTime, `Constructed ${this.getLeadingProjectTag()} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
       }
     }
     catch (error) {
@@ -728,6 +677,38 @@ export class Project {
       return undefined
     }
     return getISODateStringFromMention(tempStr)
+  }
+
+  /**
+   * Build allProjectTags: all hashtags from metadata line and combined frontmatter metadata field, then de-duped
+   */
+  buildAllProjectTags(primaryProjectTag: string = ''): Array<string> {
+    const allTags: Array<string> = []
+    if (primaryProjectTag !== '' && primaryProjectTag.startsWith('#') && primaryProjectTag.length > 1) {
+      allTags.push(primaryProjectTag)
+    }
+    const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
+    const metadataLineStr = metadataPara != null ? metadataPara.content ?? '' : ''
+    const metadataLineHashtags = getHashtagsFromString(metadataLineStr)
+    allTags.push(...metadataLineHashtags)
+
+    const frontmatterKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const frontmatterRawField = readRawFrontmatterField(this.note, frontmatterKey)
+    const frontmatterValue = frontmatterRawField.exists ? frontmatterRawField.value : getFrontmatterAttribute(this.note, frontmatterKey)
+    const frontmatterStr = frontmatterValue != null && typeof frontmatterValue === 'string' ? frontmatterValue : ''
+    const frontmatterHashtags = getHashtagsFromString(frontmatterStr)
+    allTags.push(...frontmatterHashtags)
+    return allTags.filter((t, index, self) => self.indexOf(t) === index)
+  }
+
+  /**
+   * Return the primary project tag for this note.
+   * Uses the first tag in allProjectTags, or falls back to '#project' if none are available.
+   * @returns {string}
+   */
+  getLeadingProjectTag(): string {
+    const firstTag = this.allProjectTags != null && this.allProjectTags.length > 0 ? checkString(this.allProjectTags[0]) : ''
+    return firstTag !== '' ? firstTag : '#project'
   }
 
   /**
@@ -808,13 +789,12 @@ export class Project {
     const ordered: Array<string> = []
 
     const addTagsFromText = (text: string): void => {
-      const candidates = text != null ? text.match(/#[^\s]+/g) ?? [] : []
-      for (const rawTag of candidates) {
-        const normalized = normalizeHashtagForDisplay(rawTag)
-        if (!normalized || !normalized.startsWith('#') || normalized.length <= 1) continue
-        if (!seen.has(normalized)) {
-          seen.add(normalized)
-          ordered.push(normalized)
+      const candidates = getHashtagsFromString(checkString(text))
+      for (const tag of candidates) {
+        if (!tag || !tag.startsWith('#') || tag.length <= 1) continue
+        if (!seen.has(tag)) {
+          seen.add(tag)
+          ordered.push(tag)
         }
       }
     }
@@ -828,11 +808,11 @@ export class Project {
     const metadataLineStr = metadataPara != null ? metadataPara.content ?? '' : ''
     addTagsFromText(metadataLineStr)
 
-    const normalizedProjectTag = normalizeHashtagForDisplay(this.projectTag)
-    if (normalizedProjectTag && normalizedProjectTag.startsWith('#') && normalizedProjectTag.length > 1) {
-      if (!seen.has(normalizedProjectTag)) {
-        seen.add(normalizedProjectTag)
-        ordered.push(normalizedProjectTag)
+    const primaryProjectTag = checkString(this.getLeadingProjectTag())
+    if (primaryProjectTag && primaryProjectTag.startsWith('#') && primaryProjectTag.length > 1) {
+      if (!seen.has(primaryProjectTag)) {
+        seen.add(primaryProjectTag)
+        ordered.push(primaryProjectTag)
       }
     }
 
@@ -1482,7 +1462,6 @@ function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = 
     filename: project.filename,
     folder: project.folder,
     metadataParaLineIndex: project.metadataParaLineIndex,
-    projectTag: project.projectTag,
     title: project.title,
     startDate: project.startDate,
     dueDate: project.dueDate,

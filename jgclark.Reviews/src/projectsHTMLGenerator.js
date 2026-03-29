@@ -3,12 +3,13 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-03-26 for v1.4.0.b13 by @jgclark
+// Last updated 2026-03-27 for v1.4.0.b15 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import { Project } from './projectClass'
-import { addFAIcon, type ReviewConfig } from './reviewHelpers'
+import { addFAIcon, pluralise } from './reviewHelpers'
+import type { ReviewConfig } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
 import { logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
@@ -51,8 +52,8 @@ function projectFolderDisplayLabel(thisProject: Project, config: ReviewConfig): 
 }
 
 /**
- * One HTML row: outer {@code <div class="projectFolderRow">} with folder path, optional review interval, and review/due status {@code <span>}s.
- * Shown under the title when not grouping by folder.
+ * One HTML row '<div class="projectFolderRow">', with folder path, optional review interval, and review/due status <span>s.
+ * Shown under the title when 'displayGroupedByFolder' is false.
  * @param {Project} thisProject
  * @param {ReviewConfig} config
  * @returns {string}
@@ -71,10 +72,10 @@ function buildProjectFolderMetadataRowDiv(thisProject: Project, config: ReviewCo
 }
 
 /**
- * Format one project for export: HTML list row ({@code style === 'Rich'}), Markdown line, or simple list line.
+ * Format one project for export: HTML list row (style === 'Rich'), Markdown line, or simple list line.
  * @param {Project} thisProject
  * @param {ReviewConfig} config
- * @param {string} style {@code 'Rich'} (HTML grid row), {@code 'Markdown'}, or {@code 'list'}
+ * @param {string} style 'Rich' (HTML grid row), 'Markdown', or 'list'
  * @param {Array<string>?} wantedTagsForRow - when provided (single-section view), added as data-wanted-tags on the row for tag toggles
  * @returns {string} HTML or Markdown string for the project output line (or empty string if error)
  */
@@ -91,10 +92,11 @@ export function buildProjectLineForStyle(
   if (thisProject.percentComplete != null) {
     thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
     const totalItemsStr = (isNaN(thisProject.numTotalItems)) ? '0' : thisProject.numTotalItems.toLocaleString()
+    const numberToShow = thisProject.numCompletedItems + thisProject.numOpenItems
     if (ignoreChecklistsInProgress) {
-      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${(thisProject.numCompletedItems + thisProject.numOpenItems !== 1) ? 'tasks' : 'task'})`
+      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${pluralise('task', numberToShow)})`
     } else {
-      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${(thisProject.numCompletedItems + thisProject.numOpenItems !== 1) ? 'items' : 'item'})`
+      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${pluralise('item', numberToShow)})`
     }
   } else {
     statsProgress = '(0 tasks)'
@@ -112,7 +114,7 @@ export function buildProjectLineForStyle(
 }
 
 /**
- * HTML list row: outer {@code <div class="project-grid-row projectRow">} (title block, optional folder row, progress row, next-action rows).
+ * Return HTML list row '<div class="project-grid-row projectRow">': title block, optional folder row, progress row, next-action rows.
  * @param {Project} thisProject
  * @param {ReviewConfig} config
  * @param {Array<string>?} wantedTagsForRow - when provided, output as data-wanted-tags for tag-toggle filtering
@@ -157,7 +159,7 @@ function buildProjectListRowDiv(thisProject: Project, config: ReviewConfig, want
   const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
     ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
     : []
-  parts.push(buildProjectProgressRowDiv(thisProject))
+  parts.push(buildProjectProgressRowDiv(thisProject, config))
   parts.push(buildNextActionRowDivs(config, nextActionsContent))
 
   // End the row with the outer </div>
@@ -189,7 +191,8 @@ function getProjectIndicatorColor(thisProject: Project): string {
 }
 
 /**
- * Label for the progress line: localized open-item count, {@code ''} if inactive project, or {@code 'no'} when none.
+ * Label for the progress line: localized open-task count as a numeric string, '' if inactive project.
+ * When there are no open (non-future) tasks, returns '0'.
  * @param {Project} thisProject
  * @returns {string}
  * @private
@@ -199,17 +202,14 @@ function formatOpenItemCountForProgressLine(thisProject: Project): string {
   if (thisProject.isCompleted || thisProject.isCancelled || thisProject.isPaused) {
     return ''
   }
-  
-  // Task count badge (circle)
+
+  // Task count badge (circle): non-future open tasks
   const badgeNumber = (thisProject.numOpenItems - thisProject.numFutureItems > 0) ? thisProject.numOpenItems - thisProject.numFutureItems : 0
-  if (badgeNumber > 0) {
-    return badgeNumber.toLocaleString()
-  }
-  return 'no'
+  return badgeNumber.toLocaleString()
 }
 
 /**
- * Project tag chips: each entry is one {@code <span class="metadata-lozenge">…</span>} HTML string.
+ * Project tag chips: each entry is one HTML <span class="metadata-lozenge"> string.
  * @param {Project} thisProject
  * @returns {Array<string>}
  * @private
@@ -222,7 +222,7 @@ function buildProjectTagLozengeSpans(thisProject: Project): Array<string> {
 }
 
 /**
- * Review and due chips: each entry is one {@code <span>} HTML string (no outer wrapper).
+ * Review and due chips: each entry is one HTML <span> string.
  * @param {Project} thisProject
  * @returns {Array<string>}
  * @private
@@ -258,15 +258,17 @@ function buildReviewAndDueStatusSpans(thisProject: Project): Array<string> {
 }
 
 /**
- * One {@code <div class="projectProgressRow">}: completion/cancel/pause line, percent and open-item copy, optional progress comment.
+ * One '<div class="projectProgressRow">' completion/cancel/pause line, percent and open count copy, optional progress comment.
+ * Open task vs open item labels follow {@code DataStore.preference('ignoreChecklistsInProgress')} (same as {@link buildProjectLineForStyle}).
  * @param {Project} thisProject
+ * @param {ReviewConfig} _config unused; kept so callers pass config unchanged
  * @returns {string}
  * @private
  */
-function buildProjectProgressRowDiv(thisProject: Project): string {
+function buildProjectProgressRowDiv(thisProject: Project, _config: ReviewConfig): string {
   // V2 with added info at start of line
-  // if (!config.displayProgress) return ''
-  // Start with stat progress % and number of open tasks
+  // if (!_config.displayProgress) return ''
+  // Start with stat progress % and number of open tasks/items
   const timeAgoStr = (thisProject.isCompleted)
     ? moment(thisProject.completedDate).fromNow()
     : (thisProject.isCancelled)
@@ -287,15 +289,17 @@ function buildProjectProgressRowDiv(thisProject: Project): string {
       ? `<i class="fa-solid fa-circle-xmark pad-right"></i> ${timeAgoStr}`
       : (thisProject.isPaused)
         ? `<i class="fa-solid fa-circle-pause pad-right"></i> ${timeAgoStr}`
-        : (isNaN(thisProject.percentComplete))
-          ? ''
-          : `${thisProject.percentComplete}% done ・ `
+        : (typeof thisProject.percentComplete === 'number' && !isNaN(thisProject.percentComplete))
+          ? `${thisProject.percentComplete}% done ・ `
+          : ''
   let statsString = `<span class="progressText ${extraClass}">${statsStr}</span>`
-  
+
+  // Match buildProjectLineForStyle / Project counts: use NotePlan preference, not ReviewConfig (they can differ).
+  const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
   if (!thisProject.isCompleted && !thisProject.isCancelled && !thisProject.isPaused) {
     const itemCountsStr = formatOpenItemCountForProgressLine(thisProject)
-    const itemCountsDescription = (itemCountsStr === "1") ? `open item` : `open items`
-    statsString += `<span class="pad-left">${itemCountsStr} ${itemCountsDescription}</span>`
+    const openCountLabel = ignoreChecklistsInProgress ? pluralise('task', itemCountsStr) : pluralise('item', itemCountsStr)
+    statsString += `<span class="pad-left">${itemCountsStr} open ${openCountLabel}</span>`
   }
 
   // If there is a progress comment, show it in the progress line row, otherwise show only stats
@@ -312,7 +316,7 @@ function buildProjectProgressRowDiv(thisProject: Project): string {
 }
 
 /**
- * Zero or more {@code <div class="nextActionRow">} rows (plain text body), joined into one string. Truncates to 80 chars per line.
+ * Zero or more '<div class="nextActionRow">' rows (plain text body), joined into one string. Truncates to 80 chars per line.
  * @param {ReviewConfig} config
  * @param {Array<string>} nextActionsContent
  * @returns {string}
@@ -473,7 +477,7 @@ function mapDueDaysToStatus(interval: number): IntervalStatus {
 }
 
 /**
- * Map days-until-next-review to icon/text/css class for a status {@code <span>}.
+ * Map days-until-next-review to icon/text/css class for a status <span>.
  * @param {number} interval - days until next review (negative = overdue, positive = due in future)
  * @returns {IntervalStatus}
  */
@@ -490,7 +494,7 @@ function mapReviewDaysToStatus(interval: number): IntervalStatus {
 //-----------------------------------------------------------------------------
 
 /**
- * Sticky top bar markup ({@code <div>} tree): refresh, filters dropdown, review command buttons.
+ * Sticky top bar <div>: refresh, filters dropdown, review command buttons.
  * @param {any} config
  * @returns {string}
  */
@@ -589,6 +593,7 @@ export function buildProjectListTopBarHtml(config: any): string {
   parts.push(`        <select id="displayOrderSelect" class="topbar-select display-filters-order-select" name="displayOrder" aria-label="Sort projects by">`)
   parts.push(`          <option value="review" ${displayOrder === 'review' ? 'selected' : ''}>Review date</option>`)
   parts.push(`          <option value="due" ${displayOrder === 'due' ? 'selected' : ''}>Due date</option>`)
+  parts.push(`          <option value="firstTag" ${displayOrder === 'firstTag' ? 'selected' : ''}>(first) Project tag</option>`)
   parts.push(`          <option value="title" ${displayOrder === 'title' ? 'selected' : ''}>Title</option>`)
   parts.push(`        </select>`)
   parts.push(`      </div>`)

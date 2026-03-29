@@ -66,7 +66,7 @@ describe('projectClass frontmatter parsing helpers', () => {
       preferenceValues['reviewIntervalMentionStr'] = '@review'
 
       const project: any = Object.create(Project.prototype)
-      project.projectTag = '#project'
+      project.allProjectTags = ['#project']
       project.isPaused = false
       project.startDate = '2026-03-01'
       project.dueDate = '2026-03-22'
@@ -88,7 +88,7 @@ describe('projectClass frontmatter parsing helpers', () => {
       preferenceValues['reviewIntervalMentionStr'] = '@review'
 
       const project: any = Object.create(Project.prototype)
-      project.projectTag = '#project'
+      project.allProjectTags = ['#project']
       project.isPaused = false
       project.startDate = '2026-03-01'
       project.dueDate = '2026-03-22'

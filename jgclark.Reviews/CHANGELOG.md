@@ -1,11 +1,16 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b15] - 2026-03-29
+- add '(first) Project tag' as a sort order
+- dev: remove .projectTag and instead always use .allProjectTags.
+- fix `null% done` when no completed or open tasks.
+
 ## [2.0.0.b14] - 2026-03-26
 - change default metadata write behavior: project date fields now write to separate frontmatter keys (`start`, `due`, `reviewed`, `completed`, `cancelled`, `nextReview`) instead of being embedded in the combined `project`/`metadata` value.
 - nudge base font size down 1pt, to be closer to the NP interface
 - tweak the timing on "due soon" and "review soon" indicators
-- - dev: removed remaining TSV logic
+- dev: removed remaining TSV logic
 
 ## [2.0.0.b13] - 2026-03-26
 - when invalid frontmatter metadata values are detected (like `review: @review()` or `due: @due()`), automatically remove the affected frontmatter key.
