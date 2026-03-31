@@ -12,7 +12,7 @@
 import React, { useReducer, useEffect, useCallback } from 'react'
 import type { TPerspectiveDef } from '../../../types.js'
 import { PERSPECTIVE_ACTIONS } from '../../reducers/actionTypes'
-import { cleanDashboardSettingsInAPerspective, endsWithStar, setActivePerspective } from '../../../perspectiveHelpers'
+import { cleanDashboardSettingsInAPerspective, endsWithStar } from '../../../perspectiveHelpers'
 import {
   getDisplayListOfPerspectiveNames,
   getPerspectiveNamed,
@@ -382,12 +382,7 @@ const PerspectiveSelector = (): React$Node => {
           logDebug('PerspectiveSelector/handlePerspectiveChange', `Switch selected`)
         }
       }
-      // The perspectives ground truth is set by the plugin and will be returned in pluginData
-      // but for now, we will do an optimistic update so the UI is updated immediately
-      logDebug(`PerspectiveSelector/handlePerspectiveChange optimistic update to activePerspectiveName: "${selectedOption.value}"`)
-      const newPerspectiveSettings = setActivePerspective(selectedOption.value, perspectiveSettings)
-      dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: newPerspectiveSettings })
-      dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: selectedOption.value })
+      // Avoid optimistic UI: let the plugin drive the update so we never show the new perspective name with old sections.
       logDebug('PerspectiveSelector/handlePerspectiveChange', `Switching to perspective "${selectedOption.value}" sendActionToPlugin: "switchToPerspective"`)
       sendActionToPlugin(
         'switchToPerspective',

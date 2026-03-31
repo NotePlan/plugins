@@ -1154,9 +1154,12 @@ export function handlerResult(success: boolean, actionsOnSuccess?: Array<TAction
  */
 export async function setPluginData(changeObject: TAnyObject, changeMessage: string = ''): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  
-  reactWindowData.pluginData = { ...reactWindowData.pluginData, ...changeObject }
-  
+  if (!reactWindowData) {
+    logDebug('setPluginData', 'Dashboard shared data not ready yet; skipping update')
+    return
+  }
+  reactWindowData.pluginData = { ...(reactWindowData.pluginData || {}), ...changeObject }
+
   logInfo('setPluginData', `Sending changeMessage: "${changeMessage}"`)
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, changeMessage)
 }

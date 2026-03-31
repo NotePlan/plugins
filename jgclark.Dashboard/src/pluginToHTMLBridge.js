@@ -38,7 +38,7 @@ import {
   doSwitchToPerspective,
   doPerspectiveSettingsChanged,
 } from './perspectiveClickHandlers'
-import { incrementallyRefreshSomeSections, refreshSomeSections } from './refreshClickHandlers'
+import { incrementallyRefreshSomeSections, refreshSectionsBatch, refreshSomeSections } from './refreshClickHandlers'
 import {
   doAddProgressUpdate,
   doCancelProject,
@@ -612,9 +612,9 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       logDebug('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
       await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
     } else if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
-      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
+      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling refreshSectionsBatch (for ${String(enabledSections)}) ...`)
       await setPluginData({ perspectiveChanging: true }, `Starting perspective change`)
-      await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
+      await refreshSectionsBatch({ ...data, sectionCodes: enabledSections })
       logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (should hide modal spinner)`)
       await setPluginData({ perspectiveChanging: false }, `Ending perspective change`)
     } else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
