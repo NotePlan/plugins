@@ -3,6 +3,12 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
+## [2.0.0.b5] - 2026-03-31
+- Added a new review question type `<duration>` that accepts `[H]H:MM` input (for example `1:05` or `12:30`) in the review window and when writing answers to notes.
+- Ensure Question strings are handled case-insensitively
+- Added list of events in the day to the summary at the start
+- dev: Rename journal.js to periodReviews.js
+
 ## [2.0.0.b4] - 2026-03-28
 - Split section-heading settings: `dailyJournalSectionHeading` is now used by daily journal commands, and `reviewSectionHeading` is used by weekly/monthly/quarterly/yearly review commands. Existing installs migrate heading values to preserve prior behavior.
 - **Review placeholders:** `<date>` is replaced with the current review period’s calendar title (e.g. `2026-03-28`, `2026-W13`, `2026Q1`) in the review window and the output. 

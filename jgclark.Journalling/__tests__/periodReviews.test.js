@@ -2,7 +2,7 @@
 
 // Last updated: 2026-03-25 for v2.0.0.b3 by @Cursor
 
-import { buildInitialReviewAnswersByFieldName, buildOutputFromReviewWindowAnswers, parseQuestions } from '../src/journal'
+import { buildInitialReviewAnswersByFieldName, buildOutputFromReviewWindowAnswers, parseQuestions } from '../src/periodReviews'
 import { getPeriodAdjectiveFromType, substituteReviewPeriodPlaceholders } from '../src/journalHelpers'
 import { DataStore } from '@mocks/index'
 
@@ -17,7 +17,7 @@ beforeAll(() => {
 })
 
 // Jest suite
-describe('Journal', () => {
+describe('Reviews', () => {
   describe('parseQuestions', () => {
     it('should parse questions correctly (test 1)', () => {
       const config = {
@@ -70,6 +70,14 @@ Do: <tasks>`
       expect(questions[1].type).toBe('checklists')
       expect(questions[2].type).toBe('tasks')
       expect(questions[0].question).toBe('Wins')
+    })
+
+    it('should parse duration type', () => {
+      const raw = '@focus(<duration>)'
+      const questions = parseQuestions(raw)
+      expect(questions.length).toBe(1)
+      expect(questions[0].type).toBe('duration')
+      expect(questions[0].question).toBe('@focus')
     })
 
     it('should parse markdown headings (## / ###) into h2/h3', () => {
@@ -168,7 +176,7 @@ Do: <tasks>`
       expect(getPeriodAdjectiveFromType('year')).toBe('Yearly')
     })
     it('should return Calendar for unknown period type', () => {
-      expect(getPeriodAdjectiveFromType('unknown')).toBe('Calendar')
+      expect(getPeriodAdjectiveFromType('unknown')).toBe('(error: unknown period type)')
     })
   })
 
@@ -180,24 +188,25 @@ Do: <tasks>`
   })
 
   describe('buildInitialReviewAnswersByFieldName', () => {
-    it('should extract int, boolean, mood, and string answers from review-style lines', () => {
+    it('should extract int, duration, boolean, mood, and string answers from review-style lines', () => {
       const config = {
-        dailyReviewQuestions: `Health: @sleep(<int>) @fruitveg(<int>) #bible<boolean> #stretches<boolean> #closedRings<boolean>
+        dailyReviewQuestions: `Health: @sleep(<duration>) @fruitveg(<int>) #bible<boolean> #stretches<boolean> #closedRings<boolean>
 Work: @work(<int>) @1CB(<int>) @CRC(<int>)
 Mood: <mood>
 Gratitude: <string>
-God was: <string>`,
+Not Great: <string>`,
       }
       const questions = parseQuestions(config.dailyReviewQuestions)
-      const lines = [
-        'Health: @sleep(7) @fruitveg(5) #bible #stretches #closedRings',
+      const textLines = [
+        'Not great: something not great',
+        '### Journal',
+        'Health: @sleep(7:32) @fruitveg(5) #bible #stretches #closedRings',
         'Work: @work(8) @1CB(1) @CRC(2)',
         'Mood: Calm',
-        'Gratitude: Family time',
-        'God was: present',
+        'Gratitude: Family time'
       ]
-      const initial = buildInitialReviewAnswersByFieldName(questions, lines)
-      expect(initial.q_0).toBe('7')
+      const initial = buildInitialReviewAnswersByFieldName(questions, textLines)
+      expect(initial.q_0).toBe('7:32')
       expect(initial.q_1).toBe('5')
       expect(initial.q_2).toBe('yes')
       expect(initial.q_3).toBe('yes')
@@ -207,15 +216,15 @@ God was: <string>`,
       expect(initial.q_7).toBe('2')
       expect(initial.q_8).toBe('Calm')
       expect(initial.q_9).toBe('Family time')
-      expect(initial.q_10).toBe('present')
+      expect(initial.q_10).toBe('something not great')
     })
 
-    it('should prefer the last matching line when several exist', () => {
+    it('should prefer the first matching line when several exist', () => {
       const config = { dailyReviewQuestions: 'Gratitude: <string>' }
       const questions = parseQuestions(config.dailyReviewQuestions)
       const lines = ['Gratitude: first', 'Gratitude: second']
       const initial = buildInitialReviewAnswersByFieldName(questions, lines)
-      expect(initial.q_0).toBe('second')
+      expect(initial.q_0).toBe('first')
     })
 
     it('should extract multiline bullets, checklists, and tasks for pre-fill', () => {
@@ -234,6 +243,14 @@ Ship: <tasks>`,
       expect(initial.q_0).toBe('a\nb')
       expect(initial.q_1).toBe('eggs\nmilk')
       expect(initial.q_2).toBe('task one\ntask two')
+    })
+
+    it('should extract duration answers from review-style lines', () => {
+      const config = { dailyReviewQuestions: '@focus(<duration>)' }
+      const questions = parseQuestions(config.dailyReviewQuestions)
+      const lines = ['@focus(1:45)']
+      const initial = buildInitialReviewAnswersByFieldName(questions, lines)
+      expect(initial.q_0).toBe('1:45')
     })
   })
 
@@ -291,6 +308,22 @@ Ship: <tasks>`,
         q_1: '3',
       })
       expect(out).toBe('Health: @sleep(7) @fruitveg(3)\n')
+    })
+
+    it('should output duration answers in [H]H:MM format', () => {
+      const raw = '@focus(<duration>)'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: '1:30' })
+      expect(out).toBe('@focus(1:30)\n')
+    })
+
+    it('should omit invalid duration answers', () => {
+      const raw = '@focus(<duration>)'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: '1:75' })
+      expect(out).toBe('')
     })
 
     it('should combine multiline bullet answers with newlines (inline tag replacement keeps prefix)', () => {

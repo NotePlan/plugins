@@ -149,6 +149,9 @@ function makeReviewInlineControl(
     case 'number': {
       return `<input class="review-input review-input-short review-input-inline" id="${fieldName}" name="${fieldName}" type="text" value="${escapeHTML(initialValue)}" />`
     }
+    case 'duration': {
+      return `<input class="review-input review-input-short review-input-inline" id="${fieldName}" name="${fieldName}" type="text" value="${escapeHTML(initialValue)}" placeholder="H:MM" pattern="\\d{1,2}:[0-5]\\d" title="Enter duration as H:MM or HH:MM" />`
+    }
     case 'mood': {
       const moodArray = typeof config.moods === 'string' ? config.moods.split(',').map((m) => m.trim()) : config.moods
       const moodOptions = moodArray
@@ -256,10 +259,18 @@ function makeReviewRawQuestionLineDiv(
  * @returns {string} HTML string for the summary block
  */
 function makePeriodDaysSummaryDiv(_periodType: string, eventsForPeriod: Array<TCalendarItem>): string {
-  clo(eventsForPeriod, 'eventsForPeriod')
   const totalDuration = eventsForPeriod.reduce((total, event) => total + getEventDurationHours(event), 0)
-  return `
-    <span class="summary-title">${eventsForPeriod.length} events, ${totalDuration.toFixed(1)} hours</span>`
+  const output = []
+  output.push(`<div class="summary-title">${eventsForPeriod.length} events (${totalDuration.toFixed(1)} hours)</div>`)
+  output.push(`<div class="summary-content">`)
+  eventsForPeriod.forEach( e => {
+    output.push(`\t<div class="summary-item">`)
+    output.push(`\t\t<i aria-hidden="true" class="summary-item-event-icon fa-light fa-calendar-week"></i>`)
+    output.push(`\t\t<span class="summary-item-text">${e.title}</span>`)
+    output.push('\t</div>')
+  })
+  output.push(`</div>`)
+  return output.join('\n')  
 }
 
 /**
@@ -293,21 +304,18 @@ function makePeriodSummaryDiv(
   const summaryItems = completedTasks.length > 0
     ? completedTasks.map((taskLine) => `
       <div class="summary-item">
-        <div class="summary-item-icon" aria-hidden="true">
-          <i class="fa-regular fa-circle-check"></i>
-        </div>
-        <div class="summary-item-text">${formatTaskAsHTML(taskLine)}</div>
+        <i class="summary-item-completed-icon fa-regular fa-circle-check"></i>
+        <span class="summary-item-text">${formatTaskAsHTML(taskLine)}</span>
       </div>`).join('\n')
     : `<div class="summary-empty">No completed tasks found during the ${periodType}</div>`
 
   const outputHTML = `
 <div class="section-wrap">
-  <div><span class="summary-title">${completedTasks.length} completed tasks</span></div>
+  <div class="summary-title">${completedTasks.length} completed tasks</div>
   <div class="summary-content">
     ${summaryItems}
   </div>
-  <div>${makePeriodDaysSummaryDiv(periodType, eventsForPeriod)}
-  </div>
+  ${makePeriodDaysSummaryDiv(periodType, eventsForPeriod)}
 </div>`
 
   return outputHTML
@@ -349,6 +357,10 @@ function makeReviewQuestionRowDiv(
     case 'int':
     case 'number': {
       control = `<input class="review-input review-input-short" id="${fieldName}" name="${fieldName}" type="text" value="${escapeHTML(initialValue)}" />`
+      break
+    }
+    case 'duration': {
+      control = `<input class="review-input review-input-short" id="${fieldName}" name="${fieldName}" type="text" value="${escapeHTML(initialValue)}" placeholder="H:MM" pattern="\\d{1,2}:[0-5]\\d" title="Enter duration as H:MM or HH:MM" />`
       break
     }
     case 'mood': {

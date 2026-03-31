@@ -33,8 +33,8 @@ import { getEventsForDay } from '@helpers/NPCalendar'
 import { getFirstDateInPeriod, getLastDateInPeriod } from '@helpers/NPdateTime'
 import { getNotesChangedInInterval } from '@helpers/NPnote'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { closeWindowFromCustomId } from '@helpers/NPWindows'
-import { findHeadingStartsWith } from '@helpers/paragraph'
+import { closeWindowFromCustomId, isEditorWindowOpenByTitle } from '@helpers/NPWindows'
+import { findEndOfActivePartOfNote, findHeadingStartsWith } from '@helpers/paragraph'
 import { getInput, isInt, showMessage } from '@helpers/userInput'
 
 //---------------------------------------------------------------
@@ -42,6 +42,7 @@ import { getInput, isInt, showMessage } from '@helpers/userInput'
 
 const REVIEW_WINDOW_CUSTOM_ID = 'jgclark.Journalling.period-review'
 const REVIEW_WINDOW_CALLBACK_COMMAND = 'onReviewWindowAction'
+const RE_DURATION_HHMM = /^(\d{1,2}):([0-5]\d)$/
 
 //---------------------------------------------------------------
 
@@ -51,7 +52,7 @@ const REVIEW_WINDOW_CALLBACK_COMMAND = 'onReviewWindowAction'
 export async function dailyJournalQuestions(): Promise<void> {
   try {
     const thisPeriodStr = strftime(`%Y-%m-%d`)
-    logDebug(pluginJson, `Starting for day ${thisPeriodStr}`)
+    logDebug(pluginJson, `Starting for day (currently ${thisPeriodStr})`)
 
     await processJournalQuestions(thisPeriodStr, 'day')
   } catch (error) {
@@ -66,7 +67,7 @@ export async function weeklyJournalQuestions(): Promise<void> {
   try {
     const currentWeekNum = getWeek(new Date())
     const thisPeriodStr = `${strftime(`%Y`)}-W${currentWeekNum}`
-    logDebug(pluginJson, `Starting for week ${thisPeriodStr}`)
+    logDebug(pluginJson, `Starting for week (currently ${thisPeriodStr})`)
 
     await processJournalQuestions(thisPeriodStr, 'week')
   } catch (error) {
@@ -80,7 +81,7 @@ export async function weeklyJournalQuestions(): Promise<void> {
 export async function monthlyJournalQuestions(): Promise<void> {
   try {
     const thisPeriodStr = strftime(`%Y-%m`)
-    logDebug(pluginJson, `Starting for month ${thisPeriodStr}`)
+    logDebug(pluginJson, `Starting for month (currently ${thisPeriodStr})`)
 
     await processJournalQuestions(thisPeriodStr, 'month')
   } catch (error) {
@@ -97,7 +98,7 @@ export async function quarterlyJournalQuestions(): Promise<void> {
     const m = todaysDate.getMonth() // counting from 0
     const thisQ = Math.floor(m / 3) + 1
     const thisPeriodStr = `${strftime(`%Y`)}Q${String(thisQ)}`
-    logDebug(pluginJson, `Starting for quarter ${thisPeriodStr}`)
+    logDebug(pluginJson, `Starting for quarter (currently ${thisPeriodStr})`)
 
     await processJournalQuestions(thisPeriodStr, 'quarter')
   } catch (error) {
@@ -111,7 +112,7 @@ export async function quarterlyJournalQuestions(): Promise<void> {
 export async function yearlyJournalQuestions(): Promise<void> {
   try {
     const thisPeriodStr = strftime(`%Y`)
-    logDebug(pluginJson, `Starting for year ${thisPeriodStr}`)
+    logDebug(pluginJson, `Starting for year (currently ${thisPeriodStr})`)
 
     await processJournalQuestions(thisPeriodStr, 'year')
   } catch (error) {
@@ -127,16 +128,46 @@ export async function yearlyJournalQuestions(): Promise<void> {
  * Process questions for the given period, and write to the current note.
  * If we're not in the correct note, offer to open it first.
  * @author @jgclark
- * @param {string} periodString the calendar note title string for the review period
+ * @param {string} periodStringIn the calendar note title string for the review period
  * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
  */
 async function processJournalQuestions(periodStringIn: string = '', periodType: string): Promise<void> {
   try {
     const periodAdjective = getPeriodAdjectiveFromType(periodType)
-    // Get configuration and questions
+    // Get configuration
     const config: JournalConfigType = await getJournalSettings()
+    let reviewNote: ?TNote = null
+
+    // Check that we have a correct period note open ...
+    const { note: openEditorNote } = Editor
+    // FIXME: Check for Teamspace stuff here
+    if (openEditorNote && getPeriodOfNPDateStr(openEditorNote.title ?? '') === periodType) {
+      // Use the existing open note
+      reviewNote = openEditorNote
+      logDebug('processJournalQuestions', `Starting with open note '${String(reviewNote?.title ?? 'unknown')}' of period '${String(getPeriodOfNPDateStr(reviewNote?.title ?? ''))}'`)
+    } else {
+      // use the passed periodStringIn to open the correct note
+      logDebug('processJournalQuestions', `Starting by opening current ${periodAdjective} note '${String(periodStringIn)}'`)
+      reviewNote = await Editor.openNoteByTitle(periodStringIn)
+    }
+    if (!reviewNote) {
+      // Warn user and stop.
+      await showMessage(`Cannot open ${periodStringIn} note, so cannot continue. Please open the correct note first.`)
+      throw new Error(`Cannot open ${periodStringIn} note, so cannot continue.`)
+    }
+    
+    // const reviewNote: ?TNote = ensureCorrectPeriodNoteIsOpen(periodType, periodStringIn)
+    // if (!reviewNote) {
+    //   await showMessage(`No ${periodAdjective} note found, so cannot continue.`)
+    //   throw new Error(`No ${periodAdjective} note found, so cannot continue.`)
+    // }
+
+    const titleFromNote = reviewNote.title != null ? String(reviewNote.title).trim() : ''
+    const periodString = titleFromNote !== '' ? titleFromNote : periodStringIn !== '' ? periodStringIn : ''
+    logDebug('processJournalQuestions', `- Will use review note '${String(periodString)}' of period '${String(getPeriodOfNPDateStr(periodString))}'`)
+
+    // Get questions and parse them
     const questionLines = await getQuestionsForPeriod(config, periodType)
-    // Only continue if we have some questions
     const numQs = questionLines.length
     if (!questionLines || numQs === 0 || questionLines[0] === '') {
       await showMessage(`No questions for ${periodType} found in the plugin settings, so cannot continue.`)
@@ -145,21 +176,6 @@ async function processJournalQuestions(periodStringIn: string = '', periodType: 
     logDebug(pluginJson, `Found ${numQs} question lines for ${periodType}`)
     // Parse questions (may result in multiple questions per line if '||' is used)
     const parsedQuestions = parseQuestions(questionLines)
-
-    // Either: check that we have a correct period note open;
-    // Or: open the current period note (if configured).
-    // Else: warn user and stop.
-    const { note } = Editor // TODO: use a helper to check all open editors
-    const currentNotePeriod = (note && note.type === 'Calendar') ? getPeriodOfNPDateStr(note.title ?? '') : ''
-    logDebug('processJournalQuestions', `Starting with open note:${String(note?.title ?? 'unknown')} is of period '${String(currentNotePeriod)}', and we want '${periodType}' period`)
-    const reviewNote: ?TNote = ensureCorrectPeriodNoteIsOpen(periodType, periodStringIn)
-    if (!reviewNote) {
-      await showMessage(`No ${periodAdjective} note found, so cannot continue.`)
-      throw new Error(`No ${periodAdjective} note found, so cannot continue.`)
-    }
-    const titleFromNote = reviewNote.title != null ? String(reviewNote.title).trim() : ''
-    const periodString = periodStringIn.trim() !== '' ? periodStringIn.trim() : titleFromNote
-    logDebug('processJournalQuestions', `- Will use review note:${String(periodString)}`)
 
     await displayQuestionsWindow(parsedQuestions, periodString, periodType, config, questionLines, reviewNote)
 
@@ -292,7 +308,7 @@ function getSectionHeadingForPeriod(config: JournalConfigType, periodType: strin
 /**
  * Parse question lines to extract questions and their types.
  * Supports multiple questions per line separated by '||'.
- * @tests in __tests__/journal.test.js
+ * @tests in __tests__/periodReviews.test.js
  * @param {Array<string> | string} questionLines raw question lines from config
  * @returns {Array<{question: string, type: string, originalLine: string, lineIndex: number}>} parsed questions with types and line index
  */
@@ -355,7 +371,7 @@ export function parseQuestions(questionLines: Array<string> | string): Array<Par
         const question = tokenMatch?.[1]
           ?? segment
             .replace(
-              /:|\(|\)|<string>|<int>|<number>|<boolean>|<mood>|<subheading>|<h2>|<h3>|<bullets>|<checklists>|<tasks>/gi,
+              /:|\(|\)|<string>|<int>|<number>|<duration>|<boolean>|<mood>|<subheading>|<h2>|<h3>|<bullets>|<checklists>|<tasks>/gi,
               '',
             )
             .trim()
@@ -456,37 +472,19 @@ function splitParsedSegmentAtTypeMarker(segment: string, questionType: string): 
 }
 
 /**
- * Paragraph text lines to scan for existing review answers: after review heading if present, else whole note.
+ * Paragraph text lines to scan for existing review answers: across whole of active part of the note.
  * @param {TNote} note
  * @param {string} reviewSectionHeading
  * @returns {Array<string>}
  */
 function getParagraphLineContentsForReviewScan(note: TNote, reviewSectionHeading: string): Array<string> {
-  const paragraphs = note.paragraphs ?? []
-  if (!reviewSectionHeading || reviewSectionHeading.trim() === '') {
-    return paragraphs.map((p) => p.content)
-  }
-  const headingToFindLC = reviewSectionHeading.toLowerCase()
-  let startIdx = -1
-  for (let i = 0; i < paragraphs.length; i++) {
-    const paragraph = paragraphs[i]
-    if (paragraph.type !== 'title') {
-      continue
-    }
-    const c = paragraph.content.toLowerCase()
-    if (c.startsWith(headingToFindLC) || headingToFindLC === c || headingToFindLC.startsWith(c)) {
-      startIdx = i
-      break
-    }
-  }
-  if (startIdx < 0) {
-    return paragraphs.map((p) => p.content)
-  }
-  return paragraphs.slice(startIdx + 1).map((p) => p.content)
+  const endOfActiveLineIndex = findEndOfActivePartOfNote(note)
+  const paragraphTextLines = note.paragraphs.slice(0, endOfActiveLineIndex).map((p) => p.content) ?? []
+  return paragraphTextLines
 }
 
 /**
- * Parse one line of note content for a single parsed question's answer (form-ready value).
+ * Parse one line of note content for a single parsed question's answer (form-ready value). Match for question in case-insensitive way.
  * @param {ParsedQuestionType} parsedQuestion
  * @param {string} line
  * @returns {string} value for the HTML control, or '' if not found on this line
@@ -518,6 +516,11 @@ function extractExistingAnswerOnLine(parsedQuestion: ParsedQuestionType, line: s
     const m = line.match(re)
     return m?.[1] != null ? m[1] : ''
   }
+  if (t === 'duration') {
+    const re = new RegExp(`${escapeRegExp(prefix)}(\\d{1,2}:[0-5]\\d)${escapeRegExp(suffix)}`)
+    const m = line.match(re)
+    return m?.[1] != null ? m[1] : ''
+  }
   if (t === 'bullets' || t === 'checklists' || t === 'tasks') {
     const marker = linePrefixForMultilineAnswerType(t)
     const { prefix, suffix } = splitParsedSegmentAtTypeMarker(seg, parsedQuestion.type)
@@ -530,7 +533,7 @@ function extractExistingAnswerOnLine(parsedQuestion: ParsedQuestionType, line: s
         }
         return stripMultilineAnswerPrefixes(trimmed, marker)
       }
-      const idx = line.indexOf(prefix)
+      const idx = line.toLowerCase().indexOf(prefix.toLowerCase())
       if (idx < 0) {
         return ''
       }
@@ -540,7 +543,7 @@ function extractExistingAnswerOnLine(parsedQuestion: ParsedQuestionType, line: s
       }
       return stripMultilineAnswerPrefixes(raw, marker)
     }
-    const re = new RegExp(`${escapeRegExp(prefix)}([\\s\\S]*?)${escapeRegExp(suffix)}`)
+    const re = new RegExp(`${escapeRegExp(prefix)}([\\s\\S]*?)${escapeRegExp(suffix)}`, 'i')
     const m = line.match(re)
     if (m?.[1] == null) {
       return ''
@@ -553,13 +556,13 @@ function extractExistingAnswerOnLine(parsedQuestion: ParsedQuestionType, line: s
       if (prefix === '') {
         return ''
       }
-      const idx = line.indexOf(prefix)
+      const idx = line.toLowerCase().indexOf(prefix.toLowerCase())
       if (idx < 0) {
         return ''
       }
       return line.slice(idx + prefix.length).trim()
     }
-    const re = new RegExp(`${escapeRegExp(prefix)}(.*?)${escapeRegExp(suffix)}`)
+    const re = new RegExp(`${escapeRegExp(prefix)}(.*?)${escapeRegExp(suffix)}`, 'i')
     const m = line.match(re)
     return m?.[1] != null ? m[1].trim() : ''
   }
@@ -567,14 +570,14 @@ function extractExistingAnswerOnLine(parsedQuestion: ParsedQuestionType, line: s
 }
 
 /**
- * Latest matching answer in the note for one question (scans newest-to-oldest by paragraph order).
+ * Get first matching answer in the note for question
  * @param {ParsedQuestionType} parsedQuestion
- * @param {Array<string>} paragraphLines
+ * @param {Array<string>} textLines
  * @returns {string}
  */
-function extractExistingAnswerForReviewForm(parsedQuestion: ParsedQuestionType, paragraphLines: Array<string>): string {
-  for (let i = paragraphLines.length - 1; i >= 0; i--) {
-    const line = paragraphLines[i]
+function extractExistingAnswerForReviewForm(parsedQuestion: ParsedQuestionType, textLines: Array<string>): string {
+  for (let i = 0; i <= textLines.length - 1; i++) {
+    const line = textLines[i]
     const v = extractExistingAnswerOnLine(parsedQuestion, line)
     if (v !== '') {
       return v
@@ -585,21 +588,21 @@ function extractExistingAnswerForReviewForm(parsedQuestion: ParsedQuestionType, 
 
 /**
  * Map field names q_0, q_1, … to existing answers in the calendar note for pre-filling the review HTML form.
- * @tests in __tests__/journal.test.js
+ * @tests in __tests__/periodReviews.test.js
  * @param {Array<ParsedQuestionType>} parsedQuestions
- * @param {Array<string>} paragraphLines lines to scan (e.g. from getParagraphLineContentsForReviewScan)
+ * @param {Array<string>} textLines text of lines to scan
  * @returns {{ [string]: string }}
  */
 export function buildInitialReviewAnswersByFieldName(
   parsedQuestions: Array<ParsedQuestionType>,
-  paragraphLines: Array<string>,
+  textLines: Array<string>,
 ): { [string]: string } {
   const out: { [string]: string } = {}
-  for (let globalIndex = 0; globalIndex < parsedQuestions.length; globalIndex++) {
-    const pq = parsedQuestions[globalIndex]
-    const v = extractExistingAnswerForReviewForm(pq, paragraphLines)
+  for (let i = 0; i < parsedQuestions.length; i++) {
+    const pq = parsedQuestions[i]
+    const v = extractExistingAnswerForReviewForm(pq, textLines)
     if (v !== '') {
-      out[`q_${globalIndex}`] = v
+      out[`q_${i}`] = v
     }
   }
   return out
@@ -651,6 +654,12 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
       }
       return ''
     }
+    case 'duration': {
+      if (RE_DURATION_HHMM.test(answer)) {
+        return parsedQuestion.originalLine.startsWith('-') ? `- ${answer}` : parsedQuestion.originalLine.replace(/<duration>/, answer)
+      }
+      return ''
+    }
     case 'string': {
       return parsedQuestion.originalLine.startsWith('-') ? `- ${answer}` : parsedQuestion.originalLine.replace(/<string>/, answer)
     }
@@ -694,7 +703,7 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
 
 /**
  * Build output from answers returned by single-window mode.
- * @tests in __tests__/journal.test.js
+ * @tests in __tests__/periodReviews.test.js
  * @param {Array<ParsedQuestionType>} parsedQuestions
  * @param {Array<string>} rawQuestionLines
  * @param {string} periodString

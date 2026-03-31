@@ -5,7 +5,7 @@ body {
 }
 
 .section-wrap {
-  padding: 0.8rem 1.2rem;
+  padding: 0.6rem 1rem;
   border: 1px solid var(--divider-color, #CDCFD0);
   border-radius: 6px;
   background: var(--bg-alt-color, #e6e9ef);
@@ -27,26 +27,34 @@ body {
 .summary-title {
   font-weight: 600;
   color: var(--h3-color, #5c5f77);
+  padding: 0rem 0rem;
 }
 
 .summary-content {
   column-count: 2;
   column-gap: 1rem;
   font-size: 0.85rem;
+  margin-left: 0.75rem;
+  margin-bottom: 0.35rem;
 }
 
 .summary-item {
   break-inside: avoid;
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   gap: 0.4rem;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.15rem;
 }
 
-.summary-item-icon {
+.summary-item-completed-icon {
   color: #098308A0; /* TODO: set this to a theme colour */
   line-height: 1.2;
-  margin-top: 0.04rem;
+  flex-shrink: 0;
+}
+
+.summary-item-event-icon {
+  color: #098308A0; /* TODO: set this to a theme colour */
+  line-height: 1.2;
   flex-shrink: 0;
 }
 

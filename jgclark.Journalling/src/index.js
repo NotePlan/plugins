@@ -3,7 +3,7 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-03-24 for v2.0.0.b2 by @jgclark
+// last update 2026-03-28 for v2.0.0.b4 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -11,7 +11,6 @@ import pluginJson from '../plugin.json'
 import { clo, compareObjects, JSP, logDebug, logInfo, logError } from "@helpers/dev"
 import { backupSettings, getSettings, pluginUpdated, saveSettings } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
-import { getEventsForDay } from '@helpers/NPCalendar'
 
 const pluginID = 'jgclark.Journalling'
 const oldPluginID = 'jgclark.DailyJournal'
@@ -23,8 +22,7 @@ export {
   monthlyJournalQuestions,
   quarterlyJournalQuestions,
   yearlyJournalQuestions,
-  writeAnswersToNote // TODO(later): remove
-} from './journal'
+} from './periodReviews'
 
 export {
   dayStart,
@@ -35,6 +33,24 @@ export {
   weekEnd,
   monthStart,
 } from './templatesStartEnd'
+
+// TODO(later): remove
+// import { isEditorWindowOpen, isEditorWindowOpenByTitle } from '@helpers/NPWindows'
+// export function testEditorOpen(): void {
+//   try {
+//     // Test 1
+//     // const title = "2026-03-30"
+//     // const res = isEditorWindowOpenByTitle(title)
+//     // logInfo('testEditorOpen', `isEditorWindowOpenByTitle(${title}) => ${String(res)}`)
+
+//     // Test 2
+//     const title = "20260331.md" // "%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/20260331.md"
+//     const res = isEditorWindowOpen(title)
+//     logInfo('testEditorOpen', `isEditorWindowOpen(${title}) => ${String(res)}`)
+//   } catch (error) {
+//     logError('testEditorOpen', error.message)
+//   }
+// }
 
 export function init(): void {
   try {

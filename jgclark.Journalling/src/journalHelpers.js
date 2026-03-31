@@ -44,7 +44,7 @@ export type ParsedQuestionType = {
 
 /** `<type>` names in review question templates — keep in sync with `parseQuestions` and `REVIEW_SEGMENT_RE`. */
 export const REVIEW_QUESTION_TYPE_NAMES_ALT =
-  'string|int|number|boolean|mood|subheading|h2|h3|bullets|checklists|tasks'
+  'string|int|number|duration|boolean|mood|subheading|h2|h3|bullets|checklists|tasks'
 
 //---------------------------------------------------------------
 // Settings
