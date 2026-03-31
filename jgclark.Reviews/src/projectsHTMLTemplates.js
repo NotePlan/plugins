@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // HTML and JS template strings for Reviews plugin HTML view
 // Extracted from reviews.js to keep command logic separate from templates.
-// Last updated 2026-02-26 for v1.4.0.b4, @jgclark
+// Last updated 2026-03-29 for v1.4.0.b16, @jgclark
 //-----------------------------------------------------------------------------
 
 export const stylesheetinksInHeader: string = `
@@ -182,28 +182,28 @@ shortcut.add("meta+f", function() {
 </script>
 `
 
-export const setPercentRingJSFunc: string = `
-<script>
-/**
- * Sets the value of a SVG percent ring.
- * @param {number} percent The percent value to set.
- */
-function setPercentRing(percent, ID) {
-  let svg = document.getElementById(ID);
-  let circle = svg.querySelector('circle');
-  const radius = circle.r.baseVal.value;
-  const circumference = radius * 2 * Math.PI;
-  circle.style.strokeDasharray = String(circumference) + ' ' + String(circumference);
-  circle.style.strokeDashoffset = String(circumference);
+// export const setPercentRingJSFunc: string = `
+// <script>
+// /**
+//  * Sets the value of a SVG percent ring.
+//  * @param {number} percent The percent value to set.
+//  */
+// function setPercentRing(percent, ID) {
+//   let svg = document.getElementById(ID);
+//   let circle = svg.querySelector('circle');
+//   const radius = circle.r.baseVal.value;
+//   const circumference = radius * 2 * Math.PI;
+//   circle.style.strokeDasharray = String(circumference) + ' ' + String(circumference);
+//   circle.style.strokeDashoffset = String(circumference);
 
-  const offset = circumference - percent / 100 * circumference;
-  circle.style.strokeDashoffset = offset;  // Set to negative for anti-clockwise.
+//   const offset = circumference - percent / 100 * circumference;
+//   circle.style.strokeDashoffset = offset;  // Set to negative for anti-clockwise.
 
-  // let text = svg.querySelector('text');
-  // text.textContent = String(percent); // + '%';
-}
-</script>
-`
+//   // let text = svg.querySelector('text');
+//   // text.textContent = String(percent); // + '%';
+// }
+// </script>
+// `
 
 export const addToggleEvents: string = `
 <script>

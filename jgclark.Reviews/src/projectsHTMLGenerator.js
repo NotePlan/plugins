@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-03-27 for v1.4.0.b15 by @jgclark
+// Last updated 2026-03-29 for v1.4.0.b16, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -505,7 +505,7 @@ export function buildProjectListTopBarHtml(config: any): string {
   
   // Add buttons for various commands
   const refreshPCButton = makePluginCommandButton(
-    `<i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh`,
+    `<i class="fa-solid fa-arrow-rotate-right"></i><span class="hideable-label"> Refresh</span>`,
     'jgclark.Reviews',
     'project lists',
     '',
@@ -513,7 +513,7 @@ export function buildProjectListTopBarHtml(config: any): string {
     true
   )
   const startReviewPCButton = makePluginCommandButton(
-    `<i class="fa-solid fa-play"></i>\u00A0Start`,
+    `<i class="fa-solid fa-play"></i><span class="hideable-label"> Start</span>`,
     'jgclark.Reviews',
     'start reviews',
     '',
@@ -521,16 +521,15 @@ export function buildProjectListTopBarHtml(config: any): string {
     true
   )
   const reviewedPCButton = makePluginCommandButton(
-    `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish`,
+    `<i class="fa-regular fa-calendar-check"></i><span class="hideable-label"> Finish</span>`,
     'jgclark.Reviews',
     'finish project review',
     '',
     `Update the ${checkString(DataStore.preference('reviewedMentionStr'))}() date for the Project you're currently editing`,
     true
   )
-  // Note: this button is not currently used, but might be again, so leaving.
   const finishAndNextReviewPCButton = makePluginCommandButton(
-    `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
+    `<i class="fa-regular fa-calendar-check"></i><span class="hideable-label"> Finish +</span><i class="fa-solid fa-calendar-arrow-down pad-left"></i><span class="hideable-label"> Next</span>`,
     'jgclark.Reviews',
     'finish project review and start next',
     '',
@@ -538,7 +537,7 @@ export function buildProjectListTopBarHtml(config: any): string {
     true
   )
   const nextReviewPCButton = makePluginCommandButton(
-    `<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
+    `<i class="fa-solid fa-calendar-arrow-down"></i><span class="hideable-label"> Next</span>`,
     'jgclark.Reviews',
     'next project review',
     '',
@@ -553,7 +552,7 @@ export function buildProjectListTopBarHtml(config: any): string {
     parts.push(perspectiveSection)
   }
 
-  const refreshSection = `<div id="refresh">${refreshPCButton}\n<span class="topbar-item">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+  const refreshSection = `<div id="refresh">${refreshPCButton}\n<span class="topbar-item"><span class="hideable-label">Updated: </span><span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
   parts.push(refreshSection)
 
   parts.push(`<div class="topbar-center-cluster">`)
@@ -563,7 +562,7 @@ export function buildProjectListTopBarHtml(config: any): string {
   const displayPaused = config.displayPaused ?? true
   const displayNextActions = config.displayNextActions ?? false
   parts.push(`<span id="toggles" class="display-filters-wrapper">`)
-  parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-filter pad-right"></i>Filter & Order…</button>`)
+  parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false" title="Open dropdown to change Filtering and Ordering of the list"><i class="fa-solid fa-filter pad-right"></i><span class="hideable-label">Filter +</span><i class="fa-regular fa-arrow-down-short-wide pad-left"></i><span class="hideable-label">Order…</span></button>`)
   parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Filter and order">`)
   parts.push(`    <div class="display-filters-dropdown-content">`)
   // Tag toggles: one per wanted tag; when off, hide projects that only have that tag (client-side). Count = active (not paused/cancelled/completed).
@@ -607,7 +606,7 @@ export function buildProjectListTopBarHtml(config: any): string {
 <div class="topbar-right-cluster">
   <div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}
   ${reviewedPCButton}
-  <!--${finishAndNextReviewPCButton}-->
+  ${finishAndNextReviewPCButton}
   ${nextReviewPCButton}
   </div>
 </div>`
@@ -645,7 +644,7 @@ export function buildProjectControlDialogHtml(): string {
       <div><i class="pad-left pad-right fa-regular fa-file-lines"></i>
         <span id="dialogProjectFolder" class="dialogProjectFolder"></span>
         <b><span id="dialogProjectNote" class="dialogProjectNoteLink">?</span></b>
-        <span id="dialogProjectInterval" class="pad-left">?</span>
+        <span id="dialogProjectInterval" class="pad-left dialogProjectFolder">?</span>
       </div>
       <div class="dialog-top-right">
         <form><button id="closeButton" class="closeButton">
@@ -668,7 +667,7 @@ export function buildProjectControlDialogHtml(): string {
           <button data-control-str="pause">Toggle <i class="fa-solid fa-circle-pause"></i> Pause</button>
           <button data-control-str="complete"><i class="fa-solid fa-circle-check"></i> Complete</button>
           <button data-control-str="cancel"><i class="fa-solid fa-circle-xmark"></i> Cancel</button>
-          <button data-control-str="newrevint"><i class="fa-solid fa-arrows-left-right"></i> New Interval</button>
+          <button data-control-str="newrevint"><i class="fa-regular fa-repeat"></i> New Interval</button>
           <button data-control-str="addtask"><i class="fa-solid fa-circle-plus"></i> Add Task</button>
         </div>
         <div>Progress:</div>

@@ -57,7 +57,7 @@ function showProjectControlDialog(dataObject) {
   // Set the dialog interval from the note
   const thisReviewInterval = dataObject.reviewInterval ?? ''
   const dialogItemIntervalElem = document.getElementById('dialogProjectInterval')
-  dialogItemIntervalElem.innerHTML = ` (review every ${thisReviewInterval})`
+  dialogItemIntervalElem.innerHTML = ` <i class="fa-regular fa-repeat pad-left"></i> ${thisReviewInterval}`
 
   // Set latest progress summary (encoded for safe passing in onclick)
   const encodedLastProgress = dataObject.encodedLastProgressComment ?? ''

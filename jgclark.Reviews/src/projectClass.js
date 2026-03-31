@@ -615,7 +615,7 @@ export class Project {
 
       // Build allProjectTags: all hashtags from metadata line and combined frontmatter metadata field, then de-duped
       this.allProjectTags = this.buildAllProjectTags(primaryProjectTag)
-      logDebug('ProjectConstructor', `  - allProjectTags = [${String(this.allProjectTags)}]`)
+      // logDebug('ProjectConstructor', `  - allProjectTags = [${String(this.allProjectTags)}]`)
 
       if (this.title.includes('TEST')) {
         logDebug('ProjectConstructor', `Constructed ${this.getLeadingProjectTag()} ${this.filename}:`)
@@ -741,41 +741,138 @@ export class Project {
   }
 
   /**
-   * Update metadata line, handling both frontmatter and regular paragraph storage
-   * @param {string} newMetadataLine - The new metadata line content (without "metadata:" prefix)
+   * Sync project metadata to the note: always writes structured YAML frontmatter from Project fields
+   * (separate keys for dates/intervals + combined hashtag key), then optionally updates the body metadata
+   * paragraph when it is a plain line (not a frontmatter-style `project:` / `metadata:` line).
+   * @param {string} newMetadataLine - The new metadata content for body storage (without "metadata:" prefix)
+   * @param {object} [options]
+   * @param {boolean} [options.skipPlainBodyParagraphUpdate] - If true, only frontmatter is updated (e.g. before removing a body metadata line during migration so `getCombinedProjectTagsFrontmatterValue` can still read the old line)
+   * @param {boolean} [options.preserveSeparateKeysWhenEmptyOnProject] - If true, do not remove separate frontmatter keys when the corresponding Project field is empty (avoids wiping keys not loaded on the instance). Still write non-empty Project fields and the combined key. Use with `explicitKeysToRemoveFromFrontmatter` to remove specific keys (e.g. `nextReview` when pausing).
+   * @param {Array<string>} [options.explicitKeysToRemoveFromFrontmatter] - Keys to remove from frontmatter regardless of preserve mode (e.g. next review after `clearNextReviewMetadata`).
    * @private
    */
-  updateMetadataLine(newMetadataLine: string): void {
-    const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
-    const currentContent = metadataPara.content
+  updateProjectMetadata(
+    newMetadataLine: string,
+    options?: {|
+      skipPlainBodyParagraphUpdate?: boolean,
+    preserveSeparateKeysWhenEmptyOnProject?: boolean,
+    explicitKeysToRemoveFromFrontmatter?: Array<string>,
+    |},
+  ): void {
+  try {
     const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-    const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
+      const attrs: { [string]: any } = { }
+const keysToRemove: Array<string> = []
 
-    // Check if metadata is stored in frontmatter (content starts with combined metadata key)
-    const isInFrontmatter = frontmatterPrefixRe.test(currentContent) || currentContent.match(/^metadata:\s*/i) != null
+logDebug('updateProjectMetadata', `Updating project metadata for '${this.title}' with newMetadataLine: '${newMetadataLine}' and options: {${JSP(options)}}`)
+// Derive possible separate frontmatter key names from mention strings
+const startKey = checkString(DataStore.preference('startMentionStr') || '').replace(/^[@#]/, '') || 'start'
+const dueKey = checkString(DataStore.preference('dueMentionStr') || '').replace(/^[@#]/, '') || 'due'
+const reviewedKey = checkString(DataStore.preference('reviewedMentionStr') || '').replace(/^[@#]/, '') || 'reviewed'
+const completedKey = checkString(DataStore.preference('completedMentionStr') || '').replace(/^[@#]/, '') || 'completed'
+const cancelledKey = checkString(DataStore.preference('cancelledMentionStr') || '').replace(/^[@#]/, '') || 'cancelled'
+const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
+const nextReviewKey = checkString(DataStore.preference('nextReviewMentionStr') || '').replace(/^[@#]/, '') || 'nextReview'
 
-    if (isInFrontmatter) {
-      // Update using frontmatter helper to preserve configured combined metadata key
-      logDebug('updateMetadataLine', `Updating frontmatter ${singleKeyName} tags only for '${this.title}'`)
-      const attrs: { [string]: any } = {}
+const preserveEmpty = options?.preserveSeparateKeysWhenEmptyOnProject === true
+const explicitRemoves = options?.explicitKeysToRemoveFromFrontmatter ?? []
+
+if (preserveEmpty) {
+  if (this.startDate != null && this.startDate !== '') attrs[startKey] = this.startDate
+  if (this.dueDate != null && this.dueDate !== '') attrs[dueKey] = this.dueDate
+  if (this.reviewedDate != null && this.reviewedDate !== '') attrs[reviewedKey] = this.reviewedDate
+  if (this.completedDate != null && this.completedDate !== '') attrs[completedKey] = this.completedDate
+  if (this.cancelledDate != null && this.cancelledDate !== '') attrs[cancelledKey] = this.cancelledDate
+  if (this.reviewInterval != null && checkString(this.reviewInterval) !== '') attrs[reviewIntervalKey] = checkString(this.reviewInterval)
+  if (this.nextReviewDateStr != null && this.nextReviewDateStr !== '') attrs[nextReviewKey] = this.nextReviewDateStr
+  for (const key of explicitRemoves) {
+    if (key !== '' && !keysToRemove.includes(key)) keysToRemove.push(key)
+  }
+} else {
+  if (this.startDate != null && this.startDate !== '') {
+    attrs[startKey] = this.startDate
+  } else {
+    keysToRemove.push(startKey)
+  }
+  if (this.dueDate != null && this.dueDate !== '') {
+    attrs[dueKey] = this.dueDate
+  } else {
+    keysToRemove.push(dueKey)
+  }
+  if (this.reviewedDate != null && this.reviewedDate !== '') {
+    attrs[reviewedKey] = this.reviewedDate
+  } else {
+    keysToRemove.push(reviewedKey)
+  }
+  if (this.completedDate != null && this.completedDate !== '') {
+    attrs[completedKey] = this.completedDate
+  } else {
+    keysToRemove.push(completedKey)
+  }
+  if (this.cancelledDate != null && this.cancelledDate !== '') {
+    attrs[cancelledKey] = this.cancelledDate
+  } else {
+    keysToRemove.push(cancelledKey)
+  }
+  if (this.reviewInterval != null && checkString(this.reviewInterval) !== '') {
+    attrs[reviewIntervalKey] = checkString(this.reviewInterval)
+  } else {
+    keysToRemove.push(reviewIntervalKey)
+  }
+  if (this.nextReviewDateStr != null && this.nextReviewDateStr !== '') {
+    attrs[nextReviewKey] = this.nextReviewDateStr
+  } else {
+    keysToRemove.push(nextReviewKey)
+  }
+}
+
+// Invariant: combined frontmatter key value contains ONLY hashtags.
       attrs[singleKeyName] = this.getCombinedProjectTagsFrontmatterValue(singleKeyName)
+
+// $FlowFixMe[incompatible-call]
       const success = updateFrontMatterVars(this.note, attrs)
-      if (success) {
-        DataStore.updateCache(this.note, true)
-      } else {
-        logError('updateMetadataLine', `Failed to update frontmatter metadata for '${this.title}'`)
-      }
-    } else {
-      // Update regular paragraph content (existing behavior)
-      metadataPara.content = newMetadataLine
-      const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
-      if (possibleThisEditor) {
-        possibleThisEditor.updateParagraph(metadataPara)
-      } else {
-        this.note.updateParagraph(metadataPara)
-      }
-      DataStore.updateCache(this.note, true)
-    }
+if (!success) {
+  logError('updateProjectMetadata', `Failed to update frontmatter metadata for '${this.title}'`)
+}
+// Run removals even when updateFrontMatterVars returned false (e.g. Editor merge path or race);
+// otherwise explicit keys such as nextReview on pause are never stripped.
+for (const keyToRemove of keysToRemove) {
+  logDebug('updateProjectMetadata', `Removing frontmatter key '${keyToRemove}' from '${this.title}'`)
+  removeFrontMatterField(this.note, keyToRemove)
+}
+DataStore.updateCache(this.note, true)
+    } catch (error) {
+  logError('updateProjectMetadata', error.message)
+}
+
+if (options?.skipPlainBodyParagraphUpdate === true) {
+  return
+}
+
+const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
+if (metadataPara == null) {
+  return
+}
+const currentContent = metadataPara.content
+const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
+const isFrontmatterStyleParagraphLine =
+  frontmatterPrefixRe.test(currentContent) || currentContent.match(/^metadata:\s*/i) != null
+
+if (isFrontmatterStyleParagraphLine) {
+  // Structured frontmatter step already updated the real YAML combined key; no duplicate paragraph update
+  return
+}
+
+// Update regular paragraph content (plain body metadata line)
+metadataPara.content = newMetadataLine
+const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
+if (possibleThisEditor) {
+  possibleThisEditor.updateParagraph(metadataPara)
+} else {
+  this.note.updateParagraph(metadataPara)
+}
+DataStore.updateCache(this.note, true)
   }
 
   /**
@@ -840,88 +937,13 @@ export class Project {
     const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
     const isFrontmatterStyleLine = currentContent.match(/^metadata:\s*/i) != null || frontmatterPrefixRe.test(currentContent)
 
-    this.updateFrontmatterMetadataFromFields(newMetadataLine)
+    this.updateProjectMetadata(newMetadataLine, { skipPlainBodyParagraphUpdate: true })
     if (!isFrontmatterStyleLine && metadataPara != null) {
       // Metadata was in body; now in frontmatter, so remove the body line
       this.note.removeParagraph(metadataPara)
       DataStore.updateCache(this.note, true)
       this.metadataParaLineIndex = getOrMakeMetadataLineIndex(this.note)
-      logDebug('updateMetadataAndSave', `Wrote metadata to frontmatter and removed body line for '${this.title}'`)
-    } else {
-      this.updateMetadataLine(newMetadataLine)
-    }
-  }
-
-  /**
-   * Ensure frontmatter combined metadata and (optionally) separate keys are kept in sync with Project fields.
-   * @param {string} newMetadataLine - Combined metadata string (without leading "metadata:" or "project:")
-   * @private
-   */
-  updateFrontmatterMetadataFromFields(_newMetadataLine: string): void {
-    try {
-      const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-      const attrs: { [string]: any } = {}
-      const keysToRemove: Array<string> = []
-
-      // Derive possible separate frontmatter key names from mention strings
-      const startKey = checkString(DataStore.preference('startMentionStr') || '').replace(/^[@#]/, '') || 'start'
-      const dueKey = checkString(DataStore.preference('dueMentionStr') || '').replace(/^[@#]/, '') || 'due'
-      const reviewedKey = checkString(DataStore.preference('reviewedMentionStr') || '').replace(/^[@#]/, '') || 'reviewed'
-      const completedKey = checkString(DataStore.preference('completedMentionStr') || '').replace(/^[@#]/, '') || 'completed'
-      const cancelledKey = checkString(DataStore.preference('cancelledMentionStr') || '').replace(/^[@#]/, '') || 'cancelled'
-      const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
-      const nextReviewKey = checkString(DataStore.preference('nextReviewMentionStr') || '').replace(/^[@#]/, '') || 'nextReview'
-
-      if (this.startDate != null && this.startDate !== '') {
-        attrs[startKey] = this.startDate
-      } else {
-        keysToRemove.push(startKey)
-      }
-      if (this.dueDate != null && this.dueDate !== '') {
-        attrs[dueKey] = this.dueDate
-      } else {
-        keysToRemove.push(dueKey)
-      }
-      if (this.reviewedDate != null && this.reviewedDate !== '') {
-        attrs[reviewedKey] = this.reviewedDate
-      } else {
-        keysToRemove.push(reviewedKey)
-      }
-      if (this.completedDate != null && this.completedDate !== '') {
-        attrs[completedKey] = this.completedDate
-      } else {
-        keysToRemove.push(completedKey)
-      }
-      if (this.cancelledDate != null && this.cancelledDate !== '') {
-        attrs[cancelledKey] = this.cancelledDate
-      } else {
-        keysToRemove.push(cancelledKey)
-      }
-      if (this.reviewInterval != null && checkString(this.reviewInterval) !== '') {
-        attrs[reviewIntervalKey] = checkString(this.reviewInterval)
-      } else {
-        keysToRemove.push(reviewIntervalKey)
-      }
-      if (this.nextReviewDateStr != null && this.nextReviewDateStr !== '') {
-        attrs[nextReviewKey] = this.nextReviewDateStr
-      } else {
-        keysToRemove.push(nextReviewKey)
-      }
-      // Invariant: combined frontmatter key value contains ONLY hashtags.
-      attrs[singleKeyName] = this.getCombinedProjectTagsFrontmatterValue(singleKeyName)
-
-      // $FlowFixMe[incompatible-call]
-      const success = updateFrontMatterVars(this.note, attrs)
-      if (success) {
-        for (const keyToRemove of keysToRemove) {
-          removeFrontMatterField(this.note, keyToRemove)
-        }
-        DataStore.updateCache(this.note, true)
-      } else {
-        logError('updateFrontmatterMetadataFromFields', `Failed to update frontmatter metadata for '${this.title}'`)
-      }
-    } catch (error) {
-      logError('updateFrontmatterMetadataFromFields', error.message)
+  logDebug('updateMetadataAndSave', `Wrote metadata to frontmatter and removed body line for '${this.title}'`)
     }
   }
 
@@ -1263,6 +1285,16 @@ export class Project {
     }
   }
 
+/**
+ * Clear next-review fields so the `nextReview` frontmatter key is removed on the next metadata write.
+ * Used when pausing, completing, or cancelling a project.
+ * @private
+ */
+clearNextReviewMetadata(): void {
+  this.nextReviewDateStr = null
+  this.nextReviewDays = NaN
+}
+
   /**
    * Process the 'Progress:...' lines to retrieve metadata. Allowed forms are:
    *   Progress: n@YYYY-MM-DD message   (n = 0-100, preferred; also YYYYMMDD)
@@ -1303,6 +1335,7 @@ export class Project {
       this.completedDate = moment().format('YYYY-MM-DD') // ISO date string (local timezone)
       this.calculateDueDays()
       this.calculateCompletedOrCancelledDurations()
+      this.clearNextReviewMetadata()
 
       // re-write the note's metadata line
       logDebug('completeProject', `Completing '${this.title}' ...`)
@@ -1331,6 +1364,7 @@ export class Project {
       this.cancelledDate = moment().format('YYYY-MM-DD') // ISO date string (local timezone)
       this.calculateDueDays()
       this.calculateCompletedOrCancelledDurations()
+      this.clearNextReviewMetadata()
 
       // re-write the note's metadata line
       logDebug('cancelProject', `Cancelling '${this.title}' ...`)
@@ -1363,15 +1397,20 @@ export class Project {
 
       // Also set the reviewed date to today
       this.reviewedDate = moment().format('YYYY-MM-DD') // ISO date string (local timezone)
+      if(this.isPaused) {
+  this.clearNextReviewMetadata()
+}
 
       // re-write the note's metadata line
       logDebug('togglePauseProject', `Paused state now toggled to ${String(this.isPaused)} for '${this.title}' ...`)
       const newMetadataLine = this.generateMetadataOutputLine()
       logDebug('togglePauseProject', `- metadata now '${newMetadataLine}'`)
 
-      // Update metadata using helper that handles both frontmatter and regular paragraphs
-      this.updateMetadataLine(newMetadataLine)
-      this.updateFrontmatterMetadataFromFields(newMetadataLine)
+const nextReviewKey = checkString(DataStore.preference('nextReviewMentionStr') || '').replace(/^[@#]/, '') || 'nextReview'
+this.updateProjectMetadata(newMetadataLine, {
+  preserveSeparateKeysWhenEmptyOnProject: true,
+  explicitKeysToRemoveFromFrontmatter: this.isPaused ? [nextReviewKey] : [],
+})
       const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
       if (possibleThisEditor) {
         await possibleThisEditor.save()

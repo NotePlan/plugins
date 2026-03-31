@@ -75,6 +75,7 @@ a, a:visited, a:active {
 /* Show click pointer over buttons */
 button {
 	cursor: pointer;
+  white-space: nowrap;
 }
 
 /* For buttons that trigger callbacks */
@@ -86,7 +87,6 @@ button {
 	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
   padding: 2px 4px 1px 4px;
   margin: 3px 3px 3px 0px;
-	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.9rem;
   border-radius: 6px;
@@ -174,15 +174,23 @@ input, label {
   border-top: 1px solid var(--divider-color);
   border-bottom: 1px solid var(--divider-color);
   line-height: 1.2rem;
-  padding: 0.2rem 0.6rem 0.1rem 0.6rem;
+  padding: 0.3rem 0.6rem 0.2rem 0.6rem;
   font-size: 0.95rem;
   z-index: 5;
+  box-shadow: 0 2px 6px -2px var(--divider-color);
+  container-type: inline-size;
+  container-name: project-list-topbar;
 
   .perspective-name {
     font-weight: 600;
   }
+}
 
-
+/* Icon-only narrow top bar: hide command button captions; <i> icons stay visible */
+@container project-list-topbar (max-width: 50rem) {
+  .hideable-label {
+    display: none;
+  }
 }
 .topbar-no-perspective {
   grid-template-columns: auto auto auto;

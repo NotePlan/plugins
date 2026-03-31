@@ -70,7 +70,7 @@ export type ReviewConfig = {
   archiveFolder: string,
   removeDueDatesOnPause?: boolean,
   nextActionTags: Array<string>,
-  preferredWindowType: string,
+  preferredWindowType: string, // "New Window" |"Main Window" | "Split View"
   autoUpdateAfterIdleTime?: number,
   progressHeading?: string,
   progressHeadingLevel: number,
@@ -251,7 +251,7 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
       // logDebug('getReviewSettings', `- includedTeamspaces: [${String(config.includedTeamspaces)}]`)
 
       const validFolders = getAllowedFoldersInCurrentPerspective(perspectiveSettings)
-      logDebug('getReviewSettings', `-> validFolders for '${config.perspectiveName}': [${String(validFolders)}]`)
+      // logDebug('getReviewSettings', `-> validFolders for '${config.perspectiveName}': [${String(validFolders)}]`)
     }
 
     // Ensure displayPaused has a sensible default if missing from settings
@@ -541,6 +541,109 @@ function findFirstMetadataBodyLine(paras: Array<TParagraph>, startIndex: number)
 }
 
 /**
+ * Shared migration: clear migration placeholder line, or merge first body metadata line into frontmatter then replace with placeholder.
+ * @param {CoreNoteFields} note - note used for frontmatter reads/writes and endOfFrontmatterLineIndex
+ * @param {Array<TParagraph>} paras - paragraphs to scan (Editor or Note)
+ * @param {(p: TParagraph) => void} updateParagraph - persist paragraph edits (Editor.updateParagraph / note.updateParagraph)
+ * @param {string} logContext - log tag (migrateProjectMetadataLineInEditor | migrateProjectMetadataLineInNote)
+ * @param {boolean} ensureFrontmatterFirst - if true, create empty frontmatter when missing (Note path)
+ * @private
+ */
+function migrateProjectMetadataLineCore(
+  note: CoreNoteFields,
+  paras: Array<TParagraph>,
+  updateParagraph: (p: TParagraph) => void,
+  logContext: string,
+  ensureFrontmatterFirst: boolean,
+): void {
+  try {
+    if (ensureFrontmatterFirst && !noteHasFrontMatter(note)) {
+      ensureFrontmatter(note, false) // don't migrate title to frontmatter
+    }
+
+    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const primaryKey = singleMetadataKeyName
+    // $FlowFixMe[prop-missing] CoreNoteFields vs Note for NP frontmatter helpers
+    const metadataAttr = getFrontmatterAttribute((note: any), primaryKey)
+    const metadataStrSavedFromBodyOfNote = typeof metadataAttr === 'string' ? metadataAttr.trim() : ''
+
+    const endFMIndex = endOfFrontmatterLineIndex(note) ?? -1
+
+    for (let i = endFMIndex + 1; i < paras.length; i++) {
+      const p = paras[i]
+      const content = p.content ?? ''
+      if (content === PROJECT_METADATA_MIGRATED_MESSAGE) {
+        logDebug(logContext, `- Found existing migration message at line ${String(i)}; clearing line.`)
+        p.content = ''
+        updateParagraph(p)
+        return
+      }
+    }
+
+    const metadataInfo = findFirstMetadataBodyLine(paras, endFMIndex + 1)
+
+    if (metadataInfo == null) {
+      return
+    }
+
+    const existingFMValue = metadataStrSavedFromBodyOfNote
+    const bodyValue = metadataInfo.content.replace(/^(project|metadata|review|reviewed)\s*:\s*/i, '').trim()
+
+    if (bodyValue !== '') {
+      logDebug(logContext, `- Merging body metadata into frontmatter key '${primaryKey}' with bodyValue '${bodyValue}'`)
+      const fmAttrs: { [string]: any } = {}
+      fmAttrs[primaryKey] = extractTagsOnly(`${existingFMValue !== '' ? `${existingFMValue} ` : ''}${bodyValue}`)
+
+      const mentionTokens = (`${bodyValue} `)
+        .split(' ')
+        .filter((f) => f[0] === '@')
+
+      const reISODate = new RegExp(`^${RE_ISO_DATE}$`)
+      const reInterval = /^[+\-]?\d+[BbDdWwMmQqYy]$/
+
+      const readBracketContent = (mentionTokenStr: string): string => {
+        const match = mentionTokenStr.match(/\(([^)]*)\)$/)
+        return match && match[1] != null ? match[1].trim() : ''
+      }
+
+      const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
+      for (const mentionName of Object.keys(dateMentionToFrontmatterKeyMap)) {
+        const frontmatterKeyName = dateMentionToFrontmatterKeyMap[mentionName]
+        const mentionTokenStr = getParamMentionFromList(mentionTokens, mentionName)
+        if (!mentionTokenStr) continue
+        const bracketContent = readBracketContent(mentionTokenStr)
+        if (bracketContent !== '' && reISODate.test(bracketContent)) {
+          fmAttrs[frontmatterKeyName] = bracketContent
+        }
+      }
+
+      const reviewIntervalMentionName = checkString(DataStore.preference('reviewIntervalMentionStr'))
+      const reviewIntervalTokenStr = reviewIntervalMentionName ? getParamMentionFromList(mentionTokens, reviewIntervalMentionName) : ''
+      const intervalBracketContent = reviewIntervalTokenStr ? readBracketContent(reviewIntervalTokenStr) : ''
+      const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
+      if (intervalBracketContent !== '' && reInterval.test(intervalBracketContent)) {
+        fmAttrs[reviewIntervalKey] = intervalBracketContent
+      }
+
+      // $FlowFixMe[incompatible-call]
+      const mergedOK = updateFrontMatterVars((note: any), fmAttrs)
+      if (!mergedOK) {
+        logError(logContext, `Failed to merge body metadata line into frontmatter key '${primaryKey}' for '${displayTitle(note)}'`)
+      } else {
+        logDebug(logContext, `- Merged body metadata into frontmatter key '${primaryKey}' for '${displayTitle(note)}'`)
+      }
+    }
+
+    const metadataPara = paras[metadataInfo.index]
+    logDebug(logContext, `- Replacing body metadata line at ${String(metadataInfo.index)} with migration message.`)
+    metadataPara.content = PROJECT_METADATA_MIGRATED_MESSAGE
+    updateParagraph(metadataPara)
+  } catch (error) {
+    logError(logContext, error.message)
+  }
+}
+
+/**
  * If project metadata is now stored in frontmatter, then:
  * - replace any existing project metadata line in the body with a short migration message, or
  * - remove that migration message if it already exists.
@@ -550,127 +653,29 @@ function findFirstMetadataBodyLine(paras: Array<TParagraph>, startIndex: number)
  */
 export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
   try {
-    // Bail if this isn't a valid project note (Notes type, at least 2 paragraphs).
     if (thisEditor.note == null || thisEditor.note.type === 'Calendar' || thisEditor.paragraphs.length < 2) {
       logWarn('migrateProjectMetadataLineInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
     const noteForFM = thisEditor.note
     logDebug('migrateProjectMetadataLineInEditor', `Starting for '${displayTitle(noteForFM)}'`)
-
-    // Check that project metadata is actually stored in frontmatter (configurable key or 'metadata').
-    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-    const metadataAttr = getFrontmatterAttribute(noteForFM, singleMetadataKeyName)
-    const metadataStrSavedFromBodyOfNote = typeof metadataAttr === 'string' ? metadataAttr.trim() : ''
-
-    // Scan the body only (after the closing ---). Find either the migration message or the first metadata-style line.
-    const paras = thisEditor.paragraphs
-    // const initialLineCount: number = paras.length
-    const endFMIndex = endOfFrontmatterLineIndex(noteForFM) ?? -1
-
-    // First pass: handle migration message line (if present)
-    for (let i = endFMIndex + 1; i < paras.length; i++) {
-      const p = paras[i]
-      const content = p.content ?? ''
-
-      // If we already left the migration message on a previous run, clear that line and we're done.
-      if (content === PROJECT_METADATA_MIGRATED_MESSAGE) {
-        logDebug('migrateProjectMetadataLineInEditor', `- Found existing migration message at line ${String(i)}; removing.`)
-        // v1: not working, and I can't see why
-        // thisEditor.removeParagraph(p)
-        // v2: also not working
-        // thisEditor.removeParagraphAtIndex(p.lineIndex)
-        // if (Editor.paragraphs.length === initialLineCount) {
-        //   logWarn('migrateProjectMetadataLineInEditor', `- Line count didn't change from ${String(initialLineCount)} after removing migration message. This shouldn't happen.`)
-        // }
-        // v3: just clear the message instead TEST:
-        p.content = ''
+    migrateProjectMetadataLineCore(
+      noteForFM,
+      thisEditor.paragraphs,
+      (p) => {
         thisEditor.updateParagraph(p)
-        return
-      }
-    }
-
-    // Second pass: find the first metadata-style line in the body (if any).
-    const metadataInfo = findFirstMetadataBodyLine(paras, endFMIndex + 1)
-
-    // If we found an old metadata line in the body, first merge its contents into frontmatter (to avoid dropping mentions),
-    // then replace it with the migration message.
-    if (metadataInfo != null) {
-      // Decide which frontmatter key we are using (always use the configured combined-metadata key here)
-      const existingFMValue = metadataStrSavedFromBodyOfNote
-
-      // Strip any leading "project:" / "metadata:" / "review:" / "reviewed:" prefix from the body line
-      const bodyValue = metadataInfo.content.replace(/^(project|metadata|review|reviewed)\s*:\s*/i, '').trim()
-
-      if (bodyValue !== '') {
-        const fmAttrs: { [string]: any } = {}
-
-        // Invariant: combined key must contain ONLY hashtags.
-        fmAttrs[singleMetadataKeyName] = extractTagsOnly(`${existingFMValue !== '' ? `${existingFMValue} ` : ''}${bodyValue}`)
-
-        // Parse date/interval mention tokens from the body line into separate frontmatter keys.
-        const mentionTokens = (`${bodyValue} `)
-          .split(' ')
-          .filter((f) => f[0] === '@')
-
-        const reISODate = new RegExp(`^${RE_ISO_DATE}$`)
-        const reInterval = /^[+\-]?\d+[BbDdWwMmQqYy]$/
-
-        const readBracketContent = (mentionTokenStr: string): string => {
-          const match = mentionTokenStr.match(/\(([^)]*)\)$/)
-          return match && match[1] != null ? match[1].trim() : ''
-        }
-
-        // Dates (including nextReview) are ISO dates.
-        const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
-        for (const mentionName of Object.keys(dateMentionToFrontmatterKeyMap)) {
-          const frontmatterKeyName = dateMentionToFrontmatterKeyMap[mentionName]
-          const mentionTokenStr = getParamMentionFromList(mentionTokens, mentionName)
-          if (!mentionTokenStr) continue
-          const bracketContent = readBracketContent(mentionTokenStr)
-          if (bracketContent !== '' && reISODate.test(bracketContent)) {
-            fmAttrs[frontmatterKeyName] = bracketContent
-          }
-        }
-
-        // Review interval: separate key, interval string (e.g. '1w')
-        const reviewIntervalMentionName = checkString(DataStore.preference('reviewIntervalMentionStr'))
-        const reviewIntervalTokenStr = reviewIntervalMentionName ? getParamMentionFromList(mentionTokens, reviewIntervalMentionName) : ''
-        const intervalBracketContent = reviewIntervalTokenStr ? readBracketContent(reviewIntervalTokenStr) : ''
-        const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
-        if (intervalBracketContent !== '' && reInterval.test(intervalBracketContent)) {
-          fmAttrs[reviewIntervalKey] = intervalBracketContent
-        }
-
-        // $FlowFixMe[incompatible-call]
-        const mergedOK = updateFrontMatterVars(noteForFM, fmAttrs)
-        if (!mergedOK) {
-          logError(
-            'migrateProjectMetadataLineInEditor',
-            `Failed to merge body metadata line into frontmatter key '${singleMetadataKeyName}' for '${displayTitle(noteForFM)}'`,
-          )
-        } else {
-          logDebug(
-            'migrateProjectMetadataLineInEditor',
-            `- Merged body metadata into frontmatter key '${singleMetadataKeyName}' for '${displayTitle(noteForFM)}'`,
-          )
-        }
-      }
-
-      const metadataPara = paras[metadataInfo.index]
-      logDebug('migrateProjectMetadataLineInEditor', `- Replacing body metadata line at ${String(metadataInfo.index)} with migration message.`)
-      metadataPara.content = PROJECT_METADATA_MIGRATED_MESSAGE
-      thisEditor.updateParagraph(metadataPara)
-    }
+      },
+      'migrateProjectMetadataLineInEditor',
+      false,
+    )
   } catch (error) {
     logError('migrateProjectMetadataLineInEditor', error.message)
   }
 }
 
 /**
-/**
  * Migrates any old-style single-line project metadata remaining in the note body into the appropriate frontmatter key, and, if migrated,
- * replaces that body metadata line with a short migration message. 
+ * replaces that body metadata line with a short migration message.
  * If the migration message already exists, it is removed.
  * NOTE: This helper does not update the cache.
  * @author @jgclark
@@ -678,107 +683,20 @@ export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
  */
 export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): void {
   try {
-    // Bail if this isn't a valid project note (Notes type, at least 2 paragraphs).
     if (noteToUse == null || noteToUse.type === 'Calendar' || noteToUse.paragraphs.length < 2) {
       logWarn('migrateProjectMetadataLineInNote', `- We've not been passed a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
     logDebug('migrateProjectMetadataLineInNote', `Starting for '${displayTitle(noteToUse)}'`)
-
-    // Ensure we have a frontmatter section to write to. TEST: Is this needed?
-    if (!noteHasFrontMatter(noteToUse)) {
-      ensureFrontmatter(noteToUse)
-    }
-
-    // Check that project metadata is actually stored in frontmatter (configurable key or 'metadata').
-    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-    const metadataAttr = getFrontmatterAttribute((noteToUse: any), singleMetadataKeyName)
-    const metadataStrSavedFromBodyOfNote = typeof metadataAttr === 'string' ? metadataAttr.trim() : ''
-
-    // Scan the body only (after the closing ---). Find either the migration message or the first metadata-style line.
-    const paras = noteToUse.paragraphs
-    const endFMIndex = endOfFrontmatterLineIndex(noteToUse) ?? -1
-
-    // First pass: handle migration message line (if present)
-    for (let i = endFMIndex + 1; i < paras.length; i++) {
-      const p = paras[i]
-      const content = p.content ?? ''
-
-      // If we already left the migration message on a previous run, clear that line and we're done.
-      if (content === PROJECT_METADATA_MIGRATED_MESSAGE) {
-        logDebug('migrateProjectMetadataLineInNote', `- Found existing migration message at line ${String(i)}; clearing its content.`)
-        p.content = ''
+    migrateProjectMetadataLineCore(
+      noteToUse,
+      noteToUse.paragraphs,
+      (p) => {
         noteToUse.updateParagraph(p)
-        return
-      }
-    }
-
-    // Second pass: find the first metadata-style line in the body (if any).
-    const metadataInfo = findFirstMetadataBodyLine(paras, endFMIndex + 1)
-
-    // If we found an old metadata line in the body, first merge its contents into frontmatter (to avoid dropping mentions),
-    // then replace it with the migration message.
-    if (metadataInfo != null) {
-      // Decide which frontmatter key we are using
-      const primaryKey = singleMetadataKeyName ?? 'metadata'
-      const existingFMValue = metadataStrSavedFromBodyOfNote
-
-      // Strip any leading "project:" / "metadata:" / "review:" / "reviewed:" prefix from the body line
-      const bodyValue = metadataInfo.content.replace(/^(project|metadata|review|reviewed)\s*:\s*/i, '').trim()
-
-      if (bodyValue !== '') {
-        logDebug('migrateProjectMetadataLineInNote', `- Merging body metadata into frontmatter key '${primaryKey}' with bodyValue '${bodyValue}'`)
-        const fmAttrs: { [string]: any } = {}
-
-        // Invariant: combined key must contain ONLY hashtags.
-        fmAttrs[primaryKey] = extractTagsOnly(`${existingFMValue !== '' ? `${existingFMValue} ` : ''}${bodyValue}`)
-
-        // Parse date/interval mention tokens from the body metadata line into separate frontmatter keys.
-        const mentionTokens = (`${bodyValue} `)
-          .split(' ')
-          .filter((f) => f[0] === '@')
-
-        const reISODate = new RegExp(`^${RE_ISO_DATE}$`)
-        const reInterval = /^[+\-]?\d+[BbDdWwMmQqYy]$/
-
-        const readBracketContent = (mentionTokenStr: string): string => {
-          const match = mentionTokenStr.match(/\(([^)]*)\)$/)
-          return match && match[1] != null ? match[1].trim() : ''
-        }
-
-        const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
-        for (const mentionName of Object.keys(dateMentionToFrontmatterKeyMap)) {
-          const frontmatterKeyName = dateMentionToFrontmatterKeyMap[mentionName]
-          const mentionTokenStr = getParamMentionFromList(mentionTokens, mentionName)
-          if (!mentionTokenStr) continue
-          const bracketContent = readBracketContent(mentionTokenStr)
-          if (bracketContent !== '' && reISODate.test(bracketContent)) {
-            fmAttrs[frontmatterKeyName] = bracketContent
-          }
-        }
-
-        const reviewIntervalMentionName = checkString(DataStore.preference('reviewIntervalMentionStr'))
-        const reviewIntervalTokenStr = reviewIntervalMentionName ? getParamMentionFromList(mentionTokens, reviewIntervalMentionName) : ''
-        const intervalBracketContent = reviewIntervalTokenStr ? readBracketContent(reviewIntervalTokenStr) : ''
-        const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
-        if (intervalBracketContent !== '' && reInterval.test(intervalBracketContent)) {
-          fmAttrs[reviewIntervalKey] = intervalBracketContent
-        }
-
-        // $FlowFixMe[incompatible-call]
-        const mergedOK = updateFrontMatterVars((noteToUse: any), fmAttrs)
-        if (!mergedOK) {
-          logError('migrateProjectMetadataLineInNote',`Failed to merge body metadata line into frontmatter key '${primaryKey}' for '${displayTitle(noteToUse)}'`,)
-        } else {
-          logDebug('migrateProjectMetadataLineInNote',`- Merged body metadata into frontmatter key '${primaryKey}' for '${displayTitle(noteToUse)}'`,)
-        }
-      }
-
-      const metadataPara = paras[metadataInfo.index]
-      logDebug('migrateProjectMetadataLineInNote', `- Replacing body metadata line at ${String(metadataInfo.index)} with migration message.`)
-      metadataPara.content = PROJECT_METADATA_MIGRATED_MESSAGE
-      noteToUse.updateParagraph(metadataPara)
-    }
+      },
+      'migrateProjectMetadataLineInNote',
+      true,
+    )
   } catch (error) {
     logError('migrateProjectMetadataLineInNote', error.message)
   }
@@ -801,73 +719,77 @@ function updateMetadataCore(
   updatedMetadataArr: Array<string>,
   logContext: string,
 ): void {
-  const metadataPara = noteLike.paragraphs[metadataLineIndex]
-  if (!metadataPara) {
-    throw new Error(`Couldn't get metadata line ${metadataLineIndex} from ${displayTitle(noteLike)}`)
-  }
+  try {
+    const metadataPara = noteLike.paragraphs[metadataLineIndex]
+    if (!metadataPara) {
+      throw new Error(`Couldn't get metadata line ${metadataLineIndex} from ${displayTitle(noteLike)}`)
+    }
 
-  const origLine: string = metadataPara.content
-  let updatedLine = origLine
+    const origLine: string = metadataPara.content
+    let updatedLine = origLine
 
-  const endFMIndex = endOfFrontmatterLineIndex(noteLike) ?? -1
-  const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-  const frontmatterPrefixRe = new RegExp(`^${singleMetadataKeyName}:\\s*`, 'i')
-  const isFrontmatterLine = metadataLineIndex <= endFMIndex
+    const endFMIndex = endOfFrontmatterLineIndex(noteLike) ?? -1
+    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const frontmatterPrefixRe = new RegExp(`^${singleMetadataKeyName}:\\s*`, 'i')
+    const isFrontmatterLine = metadataLineIndex <= endFMIndex
 
-  logDebug(
-    logContext,
-    `starting for '${displayTitle(noteLike)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`,
-  )
+    logDebug(
+      logContext,
+      `starting for '${displayTitle(noteLike)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`,
+    )
 
-  if (isFrontmatterLine) {
-    let valueOnly = origLine.replace(frontmatterPrefixRe, '')
-    const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
-    const fmAttrs: { [string]: any } = {}
-    const keysToRemove: Array<string> = []
+    if (isFrontmatterLine) {
+      let valueOnly = origLine.replace(frontmatterPrefixRe, '')
+      const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
+      const fmAttrs: { [string]: any } = {}
+      const keysToRemove: Array<string> = []
 
-    // Move any embedded date/interval mentions from the combined key into their separate keys.
-    // This ensures they aren't lost when we rewrite the combined key tags-only.
-    populateSeparateDateKeysFromCombinedValue(valueOnly, fmAttrs, keysToRemove)
+      // Move any embedded date/interval mentions from the combined key into their separate keys.
+      // This ensures they aren't lost when we rewrite the combined key tags-only.
+      populateSeparateDateKeysFromCombinedValue(valueOnly, fmAttrs, keysToRemove)
 
-    for (const item of updatedMetadataArr) {
-      const mentionName = item.split('(', 1)[0]
-      const mentionParamMatch = item.match(/\(([^)]*)\)$/)
-      const mentionParam = mentionParamMatch && mentionParamMatch[1] != null ? mentionParamMatch[1].trim() : ''
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
-      valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
-      const separateDateKey = dateMentionToFrontmatterKeyMap[mentionName]
-      if (separateDateKey) {
-        if (mentionParam !== '') {
-          fmAttrs[separateDateKey] = mentionParam
+      for (const item of updatedMetadataArr) {
+        const mentionName = item.split('(', 1)[0]
+        const mentionParamMatch = item.match(/\(([^)]*)\)$/)
+        const mentionParam = mentionParamMatch && mentionParamMatch[1] != null ? mentionParamMatch[1].trim() : ''
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
+        valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
+        const separateDateKey = dateMentionToFrontmatterKeyMap[mentionName]
+        if (separateDateKey) {
+          if (mentionParam !== '') {
+            fmAttrs[separateDateKey] = mentionParam
+          } else {
+            keysToRemove.push(separateDateKey)
+          }
         } else {
-          keysToRemove.push(separateDateKey)
+          valueOnly += ` ${item}`
         }
+      }
+      fmAttrs[singleMetadataKeyName] = extractTagsOnly(valueOnly)
+      // $FlowFixMe[incompatible-call]
+      const success = updateFrontMatterVars(noteLike, fmAttrs)
+      if (!success) {
+        logError(logContext, `Failed to update frontmatter ${singleMetadataKeyName} for '${displayTitle(noteLike)}'`)
       } else {
-        valueOnly += ` ${item}`
+        const noteForRemoval = getNoteFromNoteLike(noteLike)
+        for (const keyToRemove of keysToRemove) {
+          removeFrontMatterField(noteForRemoval, keyToRemove)
+        }
+        logDebug(logContext, `- After update frontmatter ${singleMetadataKeyName}='${fmAttrs[singleMetadataKeyName]}'`)
       }
-    }
-    fmAttrs[singleMetadataKeyName] = extractTagsOnly(valueOnly)
-    // $FlowFixMe[incompatible-call]
-    const success = updateFrontMatterVars(noteLike, fmAttrs)
-    if (!success) {
-      logError(logContext, `Failed to update frontmatter ${singleMetadataKeyName} for '${displayTitle(noteLike)}'`)
     } else {
-      const noteForRemoval = getNoteFromNoteLike(noteLike)
-      for (const keyToRemove of keysToRemove) {
-        removeFrontMatterField(noteForRemoval, keyToRemove)
+      for (const item of updatedMetadataArr) {
+        const mentionName = item.split('(', 1)[0]
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
+        updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
+        updatedLine += ` ${item}`
       }
-      logDebug(logContext, `- After update frontmatter ${singleMetadataKeyName}='${fmAttrs[singleMetadataKeyName]}'`)
+      metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
+      noteLike.updateParagraph(metadataPara)
+      logDebug(logContext, `- After update ${metadataPara.content}`)
     }
-  } else {
-    for (const item of updatedMetadataArr) {
-      const mentionName = item.split('(', 1)[0]
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
-      updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
-      updatedLine += ` ${item}`
-    }
-    metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
-    noteLike.updateParagraph(metadataPara)
-    logDebug(logContext, `- After update ${metadataPara.content}`)
+  } catch (error) {
+    logError(logContext, error.message)
   }
 }
 
@@ -934,60 +856,64 @@ function deleteMetadataMentionCore(
   mentionsToDeleteArr: Array<string>,
   logContext: string,
 ): void {
-  const metadataPara = noteLike.paragraphs[metadataLineIndex]
-  if (!metadataPara) {
-    throw new Error(`Couldn't get metadata line ${metadataLineIndex} from ${displayTitle(noteLike)}`)
-  }
-  const origLine: string = metadataPara.content
-  let newLine = origLine
-
-  const endOfFrontmatterIndex = endOfFrontmatterLineIndex(noteLike) ?? -1
-  const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-  const frontmatterPrefixRe = new RegExp(`^${singleMetadataKeyName}:\\s*`, 'i')
-  const isFrontmatterLine = metadataLineIndex <= endOfFrontmatterIndex
-
-  logDebug(logContext, `starting for '${displayTitle(noteLike)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
-
-  if (isFrontmatterLine) {
-    let valueOnly = origLine.replace(frontmatterPrefixRe, '')
-    const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
-    const fmAttrs: { [string]: any } = {}
-    const keysToRemove: Array<string> = []
-
-    // Move any embedded date/interval mentions from the combined key into their separate keys
-    // before rewriting the combined key tags-only.
-    populateSeparateDateKeysFromCombinedValue(valueOnly, fmAttrs, keysToRemove)
-
-    for (const mentionName of mentionsToDeleteArr) {
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
-      valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
-      const separateDateKey = dateMentionToFrontmatterKeyMap[mentionName]
-      if (separateDateKey) {
-        keysToRemove.push(separateDateKey)
-      }
-      logDebug(logContext, `-> ${valueOnly}`)
+  try {
+    const metadataPara = noteLike.paragraphs[metadataLineIndex]
+    if (!metadataPara) {
+      throw new Error(`Couldn't get metadata line ${metadataLineIndex} from ${displayTitle(noteLike)}`)
     }
-    fmAttrs[singleMetadataKeyName] = extractTagsOnly(valueOnly)
-    // $FlowFixMe[incompatible-call]
-    const success = updateFrontMatterVars(noteLike, fmAttrs)
-    if (!success) {
-      logError(logContext, `Failed to update frontmatter ${singleMetadataKeyName} for '${displayTitle(noteLike)}'`)
+    const origLine: string = metadataPara.content
+    let newLine = origLine
+
+    const endOfFrontmatterIndex = endOfFrontmatterLineIndex(noteLike) ?? -1
+    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const frontmatterPrefixRe = new RegExp(`^${singleMetadataKeyName}:\\s*`, 'i')
+    const isFrontmatterLine = metadataLineIndex <= endOfFrontmatterIndex
+
+    logDebug(logContext, `starting for '${displayTitle(noteLike)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
+
+    if (isFrontmatterLine) {
+      let valueOnly = origLine.replace(frontmatterPrefixRe, '')
+      const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
+      const fmAttrs: { [string]: any } = {}
+      const keysToRemove: Array<string> = []
+
+      // Move any embedded date/interval mentions from the combined key into their separate keys
+      // before rewriting the combined key tags-only.
+      populateSeparateDateKeysFromCombinedValue(valueOnly, fmAttrs, keysToRemove)
+
+      for (const mentionName of mentionsToDeleteArr) {
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+        valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
+        const separateDateKey = dateMentionToFrontmatterKeyMap[mentionName]
+        if (separateDateKey) {
+          keysToRemove.push(separateDateKey)
+        }
+        logDebug(logContext, `-> ${valueOnly}`)
+      }
+      fmAttrs[singleMetadataKeyName] = extractTagsOnly(valueOnly)
+      // $FlowFixMe[incompatible-call]
+      const success = updateFrontMatterVars(noteLike, fmAttrs)
+      if (!success) {
+        logError(logContext, `Failed to update frontmatter ${singleMetadataKeyName} for '${displayTitle(noteLike)}'`)
+      } else {
+        const noteForRemoval = getNoteFromNoteLike(noteLike)
+        for (const keyToRemove of keysToRemove) {
+          removeFrontMatterField(noteForRemoval, keyToRemove)
+        }
+        logDebug(logContext, `- Finished frontmatter ${singleMetadataKeyName}='${fmAttrs[singleMetadataKeyName]}'`)
+      }
     } else {
-      const noteForRemoval = getNoteFromNoteLike(noteLike)
-      for (const keyToRemove of keysToRemove) {
-        removeFrontMatterField(noteForRemoval, keyToRemove)
+      for (const mentionName of mentionsToDeleteArr) {
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+        newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
+        logDebug(logContext, `-> ${newLine}`)
       }
-      logDebug(logContext, `- Finished frontmatter ${singleMetadataKeyName}='${fmAttrs[singleMetadataKeyName]}'`)
+      metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
+      noteLike.updateParagraph(metadataPara)
+      logDebug(logContext, `- Finished`)
     }
-  } else {
-    for (const mentionName of mentionsToDeleteArr) {
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
-      newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
-      logDebug(logContext, `-> ${newLine}`)
-    }
-    metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
-    noteLike.updateParagraph(metadataPara)
-    logDebug(logContext, `- Finished`)
+  } catch (error) {
+    logError(logContext, error.message)
   }
 }
 
