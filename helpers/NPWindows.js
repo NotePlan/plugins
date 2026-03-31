@@ -259,6 +259,9 @@ export function isHTMLWindowOpen(customId: string): boolean {
 
 /**
  * Is a given note open in a NP Editor window/split, based on its filename?
+ * Supports Teamspace notes.
+ * Note: see related isEditorWindowOpenByTitle() in same file.
+ * @test Manualy tested by JGC 31.3.2026
  * @author @jgclark
  * @param {string} filename to look for
  * @returns {boolean}
@@ -267,7 +270,28 @@ export function isEditorWindowOpen(filename: string): boolean {
   // Get list of open Editor windows/splits
   const allEditorWindows = NotePlan.editors
   for (const thisEditorWindow of allEditorWindows) {
-    if (thisEditorWindow.filename === filename) {
+    if (caseInsensitiveMatch(filename, thisEditorWindow.filename)) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Is a given note open in a NP Editor window/split, based on its title?
+ * Supports Calendar and Teamspace notes.
+ * Note: see related isEditorWindowOpen() in same file.
+ * @test Manualy tested by JGC 31.3.2026
+ * @author @jgclark
+ * @param {string} wantedTitle to look for
+ * @returns {boolean}
+ */
+export function isEditorWindowOpenByTitle(wantedTitle: string): boolean {
+  // Get list of open Editor windows/splits
+  const allEditorWindows = NotePlan.editors ?? []
+  logDebug('isEditorWindowOpenByTitle', `Looking for match in ${String(allEditorWindows.length)} Editors`)
+  for (const thisEditorWindow of allEditorWindows) {
+    if (caseInsensitiveMatch(wantedTitle, thisEditorWindow.title ?? '')) {
       return true
     }
   }
