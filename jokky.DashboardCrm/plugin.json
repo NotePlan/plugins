@@ -1,0 +1,112 @@
+{
+  "noteplan.minAppVersion": "3.20.0",
+  "plugin.id": "np.jokky102.crm",
+  "plugin.name": "📇 CRM",
+  "plugin.description": "A simple CRM for NotePlan. Manage contacts, log interactions, and schedule follow-up reminders — all stored as notes in your @CRM folder.",
+  "plugin.icon": "users",
+  "plugin.iconColor": "blue-500",
+  "plugin.author": "jokky102",
+  "plugin.version": "1.0.0",
+  "plugin.script": "src/script.js",
+  "plugin.commands": [
+    {
+      "name": "Add Contact",
+      "description": "Create a new contact in the CRM",
+      "jsFunction": "addRelationship",
+      "alias": ["ac"]
+    },
+    {
+      "name": "Log Interaction",
+      "description": "Log an interaction with a contact (no reminder)",
+      "jsFunction": "addInteraction",
+      "alias": ["li"]
+    },
+    {
+      "name": "Log Interaction & Schedule Reminder",
+      "description": "Log an interaction with a contact and schedule a follow-up reminder",
+      "jsFunction": "logInteractionWithReminder",
+      "alias": ["lir"]
+    },
+    {
+      "name": "Set Reminder",
+      "description": "Set a reminder to follow up with a contact",
+      "jsFunction": "setReminder",
+      "alias": ["sr"]
+    },
+    {
+      "name": "Show CRM Dashboard",
+      "description": "Open the CRM Dashboard",
+      "jsFunction": "showCRMDashboard",
+      "alias": ["crm"],
+      "sidebarView": {
+        "title": "CRM Dashboard",
+        "icon": "users",
+        "iconColor": "blue-500"
+      }
+    },
+    {
+      "name": "CRM Settings",
+      "description": "Update CRM plugin settings",
+      "jsFunction": "updateSettings",
+      "alias": ["crms"]
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Contact & Folder"
+    },
+    {
+      "key": "crm-relationship-tag",
+      "title": "Contact tag prefix",
+      "description": "The hashtag prefix used to categorise contacts (e.g. 'contact' produces #contact/Client, #contact/Friend, etc.).",
+      "type": "string",
+      "default": "contact",
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Interaction Logging"
+    },
+    {
+      "key": "crm-interaction-datetime",
+      "title": "Timestamp format",
+      "description": "Choose whether to log interactions with date only or with date and time (24h format).\n\nExamples:\n- Date only: 2026-03-31 ☎️ Call - ...\n- Date + time: 2026-03-31 | 09:52 ☎️ Call - ...",
+      "type": "string",
+      "default": "true",
+      "choices": [
+        "true",
+        "false"
+      ],
+      "required": true
+    },
+    {
+      "key": "crm-interaction-position",
+      "title": "Interaction position in note",
+      "description": "Where to insert new interactions inside the contact note.\n\n- append: newest at the bottom (chronological order)\n- prepend: newest at the top (reverse chronological, below the ## Interactions heading)",
+      "type": "string",
+      "default": "append",
+      "choices": [
+        "append",
+        "prepend"
+      ],
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Navigation"
+    },
+    {
+      "key": "crm-navigate-after-interaction",
+      "title": "Open contact note after logging interaction",
+      "description": "When enabled, NotePlan will navigate to the contact's note after you log an interaction. When disabled, you stay in your current context.",
+      "type": "string",
+      "default": "true",
+      "choices": [
+        "true",
+        "false"
+      ],
+      "required": true
+    }
+  ]
+}
