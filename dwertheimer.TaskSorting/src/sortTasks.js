@@ -1097,11 +1097,13 @@ export async function sortTasks(
 
 /**
  * sortTasksUnderHeading
- * Plugin entrypoint for "/sth".
+ * Plugin entrypoint for "/tsh" (Sort tasks under heading).
  * Can also be called from templates or other plugins.
- * @param {string} _heading - the heading to sort (probably comes in from xcallback)
- * @param {string} _sortOrder - the sort order (probably comes in from xcallback)
- * @param {boolean} _interleaveTaskTypes - whether to interleave task types (open/checklist together) or keep them separate
+ * X-callback / runPlugin args follow this order (see plugin.json for this command).
+ * @param {string|null} _heading - Section heading to sort under (e.g. "Open Tasks"), or null to prompt
+ * @param {string|Array<string>|null} _sortOrder - Sort fields (array or comma-separated string), or null to prompt
+ * @param {TNote|typeof Editor|null} _noteOverride - Note or Editor to operate on; omit/null uses Editor.note
+ * @param {string|boolean} _interleaveTaskTypes - Combine related task types (true) or keep 8 types separate (false)
  */
 export async function sortTasksUnderHeading(
   _heading: string | null,

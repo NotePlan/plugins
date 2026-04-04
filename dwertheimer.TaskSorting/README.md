@@ -62,7 +62,7 @@ Keeps all 8 task types completely separate:
 ### How to Control Task Grouping
 - **Interactive (`/ts`)**: Will prompt you to choose each time
 - **Quick Commands (`/tsd`, `/tsm`, `/tst`, `/tsc`)**: Set in Plugin Preferences → "Combine Related Task Types?"
-- **Via x-callback-url**: Pass `true` or `false` as `arg4` (interleaveTaskTypes parameter)
+- **Via x-callback URL** (command **Sort tasks on the page** only): use `arg4` — `true` to combine related task types, `false` for eight separate groups (see [X-callback URL examples](#x-callback-url-examples))
 - **Default**: Combined mode (interleaving enabled)
 
 ## Customization Options
@@ -101,13 +101,16 @@ This plugin will sort your tasks in the open note in the Editor interactively so
 
 When you run /ts, it will sort the tasks into task types (open|scheduled|completed|cancelled), and it will ask you how you want to sort within those categories and whether you want the output to have the category type headings or not, e.g.:
 
-#### Parameters (for x-callback-url calls):
-- `arg0`: `withUserInput` (true/false) - whether to prompt user interactively
-- `arg1`: `sortFields` (comma-separated string) - sort order, e.g. "-priority,content"
-- `arg2`: `withHeadings` (true/false) - whether to output section headings like "Open Tasks"
-- `arg3`: `subHeadingCategory` (true/false) - whether to output subheadings for each tag/mention
-- `arg4`: `interleaveTaskTypes` (true/false) - whether to interleave task types together or keep separate
-- `arg5`: `sortInHeadings` (true/false) - whether to sort within each heading separately or treat entire note as one unit
+#### X-callback URL parameters (**Sort tasks on the page**)
+
+NotePlan passes these in order as `arg0`, `arg1`, … in the URL:
+
+- **`arg0`**: `true` = show the usual questions in NotePlan; `false` = skip prompts and use the other args you supply
+- **`arg1`**: Sort order, comma-separated, e.g. `-priority,content`
+- **`arg2`**: `true` = add type headings (e.g. “Open Tasks”); `false` = do not add those headings
+- **`arg3`**: `true` = add subheadings when sorting by tag or mention; `false` = no subheadings
+- **`arg4`**: `true` = combine related types (open tasks and checklists together, etc.); `false` = eight separate groups
+- **`arg5`**: `true` = sort within each heading on its own; `false` = treat the whole note as one block (tasks can move to the top of the note)
 
 #### Examples:
 ```text
@@ -123,10 +126,10 @@ noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sor
 - Within each priority level, open tasks appear before checklists
 - This allows tasks to be sorted by priority first, then by type (open before checklist)
 
-**Sorting Behavior Options:**
-- **`sortInHeadings: true`** (default): Sort tasks within each heading separately. Tasks stay under their original headings but are sorted within each heading.
-- **`sortInHeadings: false`**: Treat the entire note as one unit. All open tasks move to the top of the page regardless of which heading they were originally under.
-- To use traditional grouping (all open tasks together, then all checklists together), set `interleaveTaskTypes=false`
+**Sorting behavior (same ideas as `arg5` and `arg4` above):**
+- **`arg5` true** (typical): Sort within each heading. Tasks stay under the heading they were under, but order changes inside that section.
+- **`arg5` false**: One sort for the whole note; open tasks can move to the very top of the note.
+- **Traditional eight-way grouping**: set **`arg4` false** (separate open vs checklist sections, etc.).
 
 ```text
 #### Open Tasks
@@ -179,36 +182,42 @@ For example, this command will sort all the tasks under the heading "Open Tasks"
 noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sort%20tasks%20under%20heading%20%28choose%29&arg0=Open%20Tasks&arg1=%5B%22-priority%22%2C%22content%22%5D
 ```
 
-### X-Callback URL Examples
+### X-callback URL examples
 
-**Sort tasks with interleaving (default behavior):**
+**Important:** **Sort tasks on the page** and **Sort tasks under heading (choose)** use different `arg0`, `arg1`, … meanings. Use the parameter list that matches the command in your URL.
+
+#### Sort tasks on the page
+
+Use the full parameter list under **`/ts`** above (`arg0` through `arg5`).
+
+**Combined task types (default style):**
 ```
 noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sort%20tasks%20on%20the%20page&arg0=false&arg1=-priority%2Ccontent&arg2=false&arg3=false&arg4=true
 ```
 
-**Sort tasks with traditional grouping (override default):**
+**Eight separate task-type groups instead:**
 ```
 noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sort%20tasks%20on%20the%20page&arg0=false&arg1=-priority%2Ccontent&arg2=false&arg3=false&arg4=false
 ```
 
-**Sort tasks under heading with interleaving (default):**
+#### Sort tasks under heading (choose)
+
+- **`arg0`**: The heading text to sort under (URL-encoded), e.g. `Open%20Tasks`
+- **`arg1`**: How to sort — either a comma-separated list or a JSON array string like `["-priority","content"]`
+- **`arg2`**: For normal x-callback links, use `null` or leave it off if your tool allows. (Some automations need this to point at a specific note — see the note below.)
+- **`arg3`**: `true` = combine related open/checklist types; `false` = eight separate groups
+
+**Combined task types under that heading:**
 ```
 noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sort%20tasks%20under%20heading%20%28choose%29&arg0=Open%20Tasks&arg1=%5B%22-priority%22%2C%22content%22%5D&arg2=null&arg3=true
 ```
 
-**Sort tasks under heading with traditional grouping:**
+**Eight separate groups under that heading:**
 ```
 noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sort%20tasks%20under%20heading%20%28choose%29&arg0=Open%20Tasks&arg1=%5B%22-priority%22%2C%22content%22%5D&arg2=null&arg3=false
 ```
 
-**Parameters explained:**
-- `arg0`: withUserInput (false = no prompts)
-- `arg1`: sortFields (comma-separated: "-priority,content")
-- `arg2`: withHeadings (false = no type headings)
-- `arg3`: subHeadingCategory (false = no subheadings)
-- `arg4`: interleaveTaskTypes (true = interleave by priority, false = traditional grouping by type)
-
-> **NOTE**: If you are calling this command from a plugin or a template and want to sort tasks under a heading in a specific note (or the Editor) you have been working on, you **should** pass the note as a third parameter to ensure that taskSorting is working on the same Object you have been working on, e.g. ("myHeading",["-priority","content"], Editor). For clarity, Task Sorting plugin works on **Editor.note**, but if you are using Editor (and not Note) you should pass Editor in as the noteOverride parameter, else the delayed write from Editor will overwrite any task sorting you do.
+> **Note for templates and other plugins:** If you run **Sort tasks under heading** from automation while the editor is open, you may need to pass the open note (or editor) as the **third** value so sorting applies to the same note you are editing. Otherwise a pending editor save can undo the sort.
 
 ## Task Sorting Notes
 
