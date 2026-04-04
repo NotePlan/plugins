@@ -18,6 +18,11 @@ const pluginID = 'jgclark.Journalling'
 export type JournalConfigType = {
   dailyJournalSectionHeading: string,
   reviewSectionHeading: string,
+  dayPlanItemsName: string,
+  weekPlanItemsName: string,
+  monthPlanItemsName: string,
+  quarterPlanItemsName: string,
+  yearPlanItemsName: string,
   startDailyTemplateTitle: string,
   endDailyTemplateTitle: string,
   startWeeklyTemplateTitle: string,
@@ -109,4 +114,88 @@ export function getPeriodAdjectiveFromType(periodType: string): string {
     default:
       return '(error: unknown period type)'
   }
+}
+
+/** Default plan-item labels when settings are missing or empty. */
+// TODO: make this look at the plugin.json "default" for the "key" below
+const PLAN_ITEMS_NAME_DEFAULTS: { [string]: string } = {
+  day: 'Big Rocks',
+  week: 'Top Wins',
+  month: 'Key Outcomes',
+  quarter: 'Goals',
+  year: 'Theme',
+}
+
+/** Settings keys for `getPlanItemsNameForPeriodType`. */
+const PLAN_ITEMS_NAME_CONFIG_KEYS: { [string]: string } = {
+  day: 'dayPlanItemsName',
+  week: 'weekPlanItemsName',
+  month: 'monthPlanItemsName',
+  quarter: 'quarterPlanItemsName',
+  year: 'yearPlanItemsName',
+}
+
+/**
+ * Configured label for planned items for a calendar period (e.g. "Big 3 Rocks").
+ * @param {JournalConfigType} config
+ * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
+ * @returns {string}
+ */
+export function getPlanItemsNameForPeriodType(config: JournalConfigType, periodType: string): string {
+  const key = PLAN_ITEMS_NAME_CONFIG_KEYS[periodType]
+  const fallback = PLAN_ITEMS_NAME_DEFAULTS[periodType] ?? 'Plans'
+  if (key == null) {
+    return fallback
+  }
+  // $FlowIgnore[prop-missing]: dynamic settings keys from plugin.json
+  const raw = config[key]
+  const s = typeof raw === 'string' ? raw.trim() : ''
+  return s !== '' ? s : fallback
+}
+
+/**
+ * Lowercase English noun for "the next …" in plan section titles.
+ * @param {string} periodType
+ * @returns {string}
+ */
+export function getPeriodNounForType(periodType: string): string {
+  const nouns: { [string]: string } = {
+    day: 'day',
+    week: 'week',
+    month: 'month',
+    quarter: 'quarter',
+    year: 'year',
+  }
+  return nouns[periodType] ?? 'period'
+}
+
+/**
+ * H2 / UI title for the **current** period’s plan in the review summary: `Planned: {planName}`.
+ * @param {string} planName
+ * @returns {string}
+ */
+export function buildThisPlanSectionHeadingTitle(planName: string): string {
+  return `Planned: ${planName}`
+}
+
+/**
+ * H2 / UI title for the planning textarea in the review HTML: `Planning: {planName} for the next {noun}`.
+ * @param {string} planName
+ * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
+ * @returns {string}
+ */
+export function buildNextPlanSectionHeadingTitle(planName: string, periodType: string): string {
+  const noun = getPeriodNounForType(periodType)
+  return `Planning: ${planName} for the next ${noun}`
+}
+
+/**
+ * H2 written **on the next calendar note** when saving planned tasks: `{planName} for {periodString}`.
+ * `periodString` must be that note’s calendar title (e.g. from `getNextNPPeriodString`).
+ * @param {string} planName
+ * @param {string} periodString — next period’s NotePlan calendar title
+ * @returns {string}
+ */
+export function buildNextPeriodNotePlanSectionHeadingTitle(planName: string, periodString: string): string {
+  return `${planName} for ${periodString}`
 }

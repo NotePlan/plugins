@@ -2,14 +2,16 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-03-28 for v2.0.0.b4 by @jgclark + @Cursor
+// last update 2026-04-02 for v2.0.0.b6 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import strftime from 'strftime'
 import pluginJson from '../plugin.json'
 import {
+  buildNextPeriodNotePlanSectionHeadingTitle,
   getJournalSettings,
   getPeriodAdjectiveFromType,
+  getPlanItemsNameForPeriodType,
   REVIEW_QUESTION_TYPE_NAMES_ALT,
   substituteReviewPeriodPlaceholders,
 } from './journalHelpers'
@@ -17,6 +19,8 @@ import type { JournalConfigType, ParsedQuestionType } from './journalHelpers'
 import { stylesheetinksInHeader, faLinksInHeader, buildReviewHTML } from './reviewHTMLViewGenerator'
 import {
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
+  getNextNPPeriodString,
+  getNPQuarterStr,
   getWeek,
   getPeriodOfNPDateStr,
   isDailyNote,
@@ -33,8 +37,9 @@ import { getEventsForDay } from '@helpers/NPCalendar'
 import { getFirstDateInPeriod, getLastDateInPeriod } from '@helpers/NPdateTime'
 import { getNotesChangedInInterval } from '@helpers/NPnote'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { closeWindowFromCustomId, isEditorWindowOpenByTitle } from '@helpers/NPWindows'
-import { findEndOfActivePartOfNote, findHeadingStartsWith } from '@helpers/paragraph'
+import { closeWindowFromCustomId } from '@helpers/NPWindows'
+import { isParaAMatchForHeading } from '@helpers/headings'
+import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { getInput, isInt, showMessage } from '@helpers/userInput'
 
 //---------------------------------------------------------------
@@ -43,6 +48,214 @@ import { getInput, isInt, showMessage } from '@helpers/userInput'
 const REVIEW_WINDOW_CUSTOM_ID = 'jgclark.Journalling.period-review'
 const REVIEW_WINDOW_CALLBACK_COMMAND = 'onReviewWindowAction'
 const RE_DURATION_HHMM = /^(\d{1,2}):([0-5]\d)$/
+
+/** Paragraph types treated as tasks under a plan H2 (carry-over + rewrite). */
+const PLAN_SECTION_PARA_TYPES: Set<string> = new Set([
+  'open',
+  'done',
+  'scheduled',
+  'checklist',
+  'checklistDone',
+  'checklistScheduled',
+  'list'
+])
+
+/**
+ * Normalize non-empty lines from the planning textarea for storage (strip task markers / leading `>>`).
+ * @param {string} planningFormText
+ * @returns {Array<string>}
+ */
+export function normalizePlanningTaskLinesFromForm(planningFormText: string): Array<string> {
+  const raw = typeof planningFormText === 'string' ? planningFormText : String(planningFormText ?? '')
+  return raw
+    .split(/\r?\n/)
+    .map((l) => {
+      let t = l.trim()
+      t = t.replace(/^\*\s*/, '')
+      if (t.startsWith('>>')) {
+        t = t.slice(2).trim()
+      }
+      return t
+    })
+    .filter((t) => t !== '')
+}
+
+/**
+ * Find first matching H2 in the active part of the note.
+ * @param {TNote} note
+ * @param {string} headingTitle
+ * @returns {TParagraph | null}
+ */
+function findPlanSectionHeadingPara(note: TNote, headingTitle: string): TParagraph | null {
+  logDebug('findPlanSectionHeadingPara', `Looking for heading {${headingTitle}} ...`)
+  const paras = note.paragraphs ?? []
+  const last = Math.min(findEndOfActivePartOfNote(note), paras.length - 1)
+  for (let i = 0; i <= last; i++) {
+    const p = paras[i]
+    if (p.type === 'title' && isParaAMatchForHeading(p, headingTitle, 2)) {
+      logDebug('', `- found line ${String(i)}: {${p.rawContent}} `)
+      return p
+    }
+  }
+  return null
+}
+
+/**
+ * Heading plus body paragraphs until the next H1/H2-style break (level &lt;= 2), for removal.
+ * @param {TNote} note
+ * @param {TParagraph} headingPara
+ * @returns {Array<TParagraph>}
+ */
+function getParagraphsForPlanSection(note: TNote, headingPara: TParagraph): Array<TParagraph> {
+  const toRemove: Array<TParagraph> = [headingPara]
+  const paras = note.paragraphs ?? []
+  const start = headingPara.lineIndex ?? 0
+  for (let i = start + 1; i < paras.length; i++) {
+    const p = paras[i]
+    if (p.type === 'title' && (p.headingLevel ?? 99) <= 2) {
+      break
+    }
+    toRemove.push(p)
+  }
+  return toRemove
+}
+
+/**
+ * Remove a plan H2 block (heading + body) if present.
+ * TODO: Probably can be simplified?
+ * @param {TNote} note
+ * @param {string} headingTitle
+ * @returns {void}
+ */
+function removePlanSectionFromNoteIfPresent(note: TNote, headingTitle: string): void {
+  const headingPara = findPlanSectionHeadingPara(note, headingTitle)
+  if (headingPara == null) {
+    return
+  }
+  const toRemove = getParagraphsForPlanSection(note, headingPara)
+  const sorted = [...toRemove].sort((a, b) => (b.lineIndex ?? 0) - (a.lineIndex ?? 0))
+  for (const p of sorted) {
+    note.removeParagraph(p)
+  }
+}
+
+/**
+ * Insert plan heading and open tasks at the start of the active body.
+ * Uses `insertParagraph(..., 'open')`, which adds the task `*` marker — pass body text `>> …` only so the note shows `* >> …`, not `* * >> …`.
+ * @param {TNote} note
+ * @param {string} headingTitle
+ * @param {Array<string>} taskTexts normalized plain lines (no `*` / `>>`)
+ * @returns {void}
+ */
+function insertPlanSectionAtActiveStart(note: TNote, headingTitle: string, taskTexts: Array<string>): void {
+  const startIdx = findStartOfActivePartOfNote(note)
+  if (Number.isNaN(startIdx)) {
+    logWarn(pluginJson, 'insertPlanSectionAtActiveStart: invalid start index')
+    return
+  }
+  note.insertHeading(headingTitle, startIdx, 2)
+  for (let i = 0; i < taskTexts.length; i++) {
+    const line = `>> ${taskTexts[i]}`
+    note.insertParagraph(line, startIdx + 1 + i, 'open')
+  }
+}
+
+/**
+ * Calendar note whose title equals `title` (trimmed), if any.
+ * @param {string} title
+ * @returns {TNote | null}
+ */
+function getCalendarNoteByTitle(title: string): TNote | null {
+  const want = String(title).trim()
+  const notes = DataStore.calendarNotes ?? []
+  for (const n of notes) {
+    if (String(n.title ?? '').trim() === want) {
+      return n
+    }
+  }
+  return null
+}
+
+/**
+ * Task lines under the configured plan H2 (active part only), for the review summary. Note: The heading match is partial + case insensitive
+ * @param {TNote} note
+ * @param {string} planName (e.g. 'Big Rocks')
+ * @returns {Array<{ content: string, isDone: boolean }>}
+ */
+export function extractPlanSectionItems(note: TNote, planName: string): Array<{ content: string, isDone: boolean }> {
+  // const headingPara = findPlanSectionHeadingPara(note, headingTitle)
+  const headingPara = findHeading(note, planName, true)
+  if (headingPara == null) {
+    logDebug('extractPlanSectionItems', `Can't find a heading including '${planName}', so returning empty array`)
+    return []
+  }
+  const heading = headingPara.content
+  logDebug('extractPlanSectionItems', `- matched heading '${heading}'`)
+  const out: Array<{ content: string, isDone: boolean }> = []
+  const paras = note.paragraphs ?? []
+  const start = headingPara.lineIndex ?? 0
+  const end = Math.min(findEndOfActivePartOfNote(note), paras.length)
+  logDebug('extractPlanSectionItems', `Found heading ${heading}, so processing lines ${String(start+1)}-${String(end)}`)
+  for (let i = start + 1; i <= end; i++) {
+    const p = paras[i]
+    if (p.type === 'title' && (p.headingLevel ?? 99) <= 2) {
+      // We're now in a different section, so stop processing
+      break
+    }
+    if (!PLAN_SECTION_PARA_TYPES.has(String(p.type))) {
+      continue
+    }
+    const isDone = p.type === 'done' || p.type === 'checklistDone'
+    out.push({ content: p.content, isDone })
+  }
+  return out
+}
+
+/**
+ * Write or clear planned tasks on the **next** calendar note: replace existing H2 with same title, insert at active start.
+ * @param {JournalConfigType} config
+ * @param {string} periodString
+ * @param {string} periodType
+ * @param {string} planningFormText
+ * @returns {Promise<void>}
+ */
+export async function writePlanningTasksToNextPeriodNote(
+  config: JournalConfigType,
+  periodString: string,
+  periodType: string,
+  planningFormText: string,
+): Promise<void> {
+  try {
+    const nextTitle = getNextNPPeriodString(periodString, periodType)
+    if (nextTitle === '') {
+      logWarn(pluginJson, `writePlanningTasksToNextPeriodNote: empty next period for "${periodString}" (${periodType})`)
+      return
+    }
+    const planName = getPlanItemsNameForPeriodType(config, periodType)
+    const headingTitle = buildNextPeriodNotePlanSectionHeadingTitle(planName, nextTitle)
+    logDebug('writePlanningTasksToNextPeriodNote', `planName='${planName}' headingTitle='${headingTitle}' / nextTitle='${nextTitle}'`)
+    let nextNote: ?TNote = getCalendarNoteByTitle(nextTitle)
+    if (!nextNote) {
+      logDebug('writePlanningTasksToNextPeriodNote', `Note '${nextTitle}' not found, so opening it`)
+      await Editor.openNoteByTitle(nextTitle)
+      nextNote = getCalendarNoteByTitle(nextTitle) ?? Editor.note
+    }
+    if (!nextNote) {
+      logError(pluginJson, `writePlanningTasksToNextPeriodNote: could not open calendar note '${nextTitle}'`)
+      return
+    }
+
+    logDebug('writePlanningTasksToNextPeriodNote', `Note '${nextTitle}' opened; will now write (or replace) plan section heading '${headingTitle}'`)
+    const normalizedLines = normalizePlanningTaskLinesFromForm(planningFormText)
+    removePlanSectionFromNoteIfPresent(nextNote, headingTitle)
+    if (normalizedLines.length > 0) {
+      insertPlanSectionAtActiveStart(nextNote, headingTitle, normalizedLines)
+    }
+    DataStore.updateCache(nextNote, true)
+  } catch (err) {
+    logError(pluginJson, `writePlanningTasksToNextPeriodNote: ${err.message}`)
+  }
+}
 
 //---------------------------------------------------------------
 
@@ -95,9 +308,7 @@ export async function monthlyJournalQuestions(): Promise<void> {
 export async function quarterlyJournalQuestions(): Promise<void> {
   try {
     const todaysDate = new Date()
-    const m = todaysDate.getMonth() // counting from 0
-    const thisQ = Math.floor(m / 3) + 1
-    const thisPeriodStr = `${strftime(`%Y`)}Q${String(thisQ)}`
+    const thisPeriodStr = getNPQuarterStr(todaysDate)
     logDebug(pluginJson, `Starting for quarter (currently ${thisPeriodStr})`)
 
     await processJournalQuestions(thisPeriodStr, 'quarter')
@@ -209,47 +420,49 @@ function normalizeReviewPeriodTitleForNPDateHelpers(periodTitle: string): string
 }
 
 /**
+ * TEST: Remove
  * True when the editor’s open note is the calendar note for this review (same period type and same period as `periodStringIn` when it is non-empty).
  * @param {TNote | void} note
  * @param {string} periodType
  * @param {string} periodStringIn
  * @returns {boolean}
  */
-function openEditorNoteMatchesReviewCommand(note: ?TNote, periodType: string, periodStringIn: string): boolean {
-  if (note == null || note.type !== 'Calendar') {
-    return false
-  }
-  const notePeriod = getPeriodOfNPDateStr(note.title ?? '')
-  if (notePeriod !== periodType) {
-    return false
-  }
-  const want = periodStringIn.trim()
-  if (want === '') {
-    return true
-  }
-  const a = normalizeReviewPeriodTitleForNPDateHelpers(String(note.title ?? '').trim())
-  const b = normalizeReviewPeriodTitleForNPDateHelpers(want)
-  return a === b
-}
+// function openEditorNoteMatchesReviewCommand(note: ?TNote, periodType: string, periodStringIn: string): boolean {
+//   if (note == null || note.type !== 'Calendar') {
+//     return false
+//   }
+//   const notePeriod = getPeriodOfNPDateStr(note.title ?? '')
+//   if (notePeriod !== periodType) {
+//     return false
+//   }
+//   const want = periodStringIn.trim()
+//   if (want === '') {
+//     return true
+//   }
+//   const a = normalizeReviewPeriodTitleForNPDateHelpers(String(note.title ?? '').trim())
+//   const b = normalizeReviewPeriodTitleForNPDateHelpers(want)
+//   return a === b
+// }
 
 /**
+ * TEST: Removing in favour of smarter helpers.
  * Reuse the open calendar note when it matches this review; otherwise open the calendar note for the current period.
  * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
  * @param {string} periodStringIn calendar title from the command (must match the open note to reuse it)
  * @returns {TNote | null} the note, or null if not found
  */
-function ensureCorrectPeriodNoteIsOpen(periodType: string, periodStringIn: string = ''): TNote | null {
-  const { note } = Editor
-  const periodAdjective = getPeriodAdjectiveFromType(periodType)
-  logDebug('ensureCorrectPeriodNoteIsOpen', `current note=${String(note?.title ?? 'unknown')}`)
-  if (openEditorNoteMatchesReviewCommand(note, periodType, periodStringIn)) {
-    logDebug('ensureCorrectPeriodNoteIsOpen', `Reusing open editor calendar note (matches ${periodType} / "${periodStringIn}")`)
-    return note ?? null
-  }
-  logDebug('ensureCorrectPeriodNoteIsOpen', `Opening current ${periodAdjective} note (${periodType}); command period "${periodStringIn}"`)
-  Editor.openNoteByDate(new Date(), false, 0, 0, false, periodType)
-  return Editor.note ?? null
-}
+// function ensureCorrectPeriodNoteIsOpen(periodType: string, periodStringIn: string = ''): TNote | null {
+//   const { note } = Editor
+//   const periodAdjective = getPeriodAdjectiveFromType(periodType)
+//   logDebug('ensureCorrectPeriodNoteIsOpen', `current note=${String(note?.title ?? 'unknown')}`)
+//   if (openEditorNoteMatchesReviewCommand(note, periodType, periodStringIn)) {
+//     logDebug('ensureCorrectPeriodNoteIsOpen', `Reusing open editor calendar note (matches ${periodType} / "${periodStringIn}")`)
+//     return note ?? null
+//   }
+//   logDebug('ensureCorrectPeriodNoteIsOpen', `Opening current ${periodAdjective} note (${periodType}); command period "${periodStringIn}"`)
+//   Editor.openNoteByDate(new Date(), false, 0, 0, false, periodType)
+//   return Editor.note ?? null
+// }
 
 /**
  * Get raw question lines for the given period from config. 
@@ -756,31 +969,6 @@ export function buildOutputFromReviewWindowAnswers(
   return output
 }
 
-/**
- * Get the current calendar title string for a review period.
- * @param {string} period
- * @returns {string}
- */
-function getReviewPeriodTitle(period: string): string {
-  const now = new Date()
-  switch (period) {
-    case 'day':
-      return strftime('%Y-%m-%d', now)
-    case 'week':
-      return `${strftime('%Y', now)}-W${getWeek(now)}`
-    case 'month':
-      return strftime('%Y-%m', now)
-    case 'quarter': {
-      const quarter = Math.floor(now.getMonth() / 3) + 1
-      return `${strftime('%Y', now)}Q${quarter}`
-    }
-    case 'year':
-      return strftime('%Y', now)
-    default:
-      return Editor.note?.title ?? ''
-  }
-}
-
 // /**
 //  * Stable key for deduping calendar items returned on multiple days (e.g. multi-day events).
 //  * @param {TCalendarItem} ev
@@ -914,6 +1102,8 @@ async function displayQuestionsWindow(
   const sectionHeading = getSectionHeadingForPeriod(config, periodType)
   const scanLines = getParagraphLineContentsForReviewScan(calendarNote, sectionHeading)
   const initialAnswers = buildInitialReviewAnswersByFieldName(parsedQuestions, scanLines)
+  const planName = getPlanItemsNameForPeriodType(config, periodType)
+  const carryOverPlanItems = extractPlanSectionItems(calendarNote, planName)
 
   // Build the HTML body for the review window from this data
   const htmlBody = buildReviewHTML(
@@ -925,7 +1115,9 @@ async function displayQuestionsWindow(
     periodType,
     eventsForPeriod,
     REVIEW_WINDOW_CALLBACK_COMMAND,
+    planName,
     initialAnswers,
+    carryOverPlanItems,
   )
 
   // Set the options and then open the review window
@@ -1003,7 +1195,7 @@ export async function writeAnswersToNote(
     const resolvedPeriodType = periodType !== '' ? periodType : getPeriodOfNPDateStr(periodString)
     const sectionHeading = getSectionHeadingForPeriod(config, resolvedPeriodType)
     // $FlowIgnore[incompatible-call] .note is a superset of CoreNoteFields
-    logDebug(pluginJson, `Appending answers to heading '${sectionHeading}' in note ${displayTitle(Editor.note)}`)
+    logDebug(pluginJson, `Appending answers to heading '${sectionHeading}' in note ${displayTitle(outputNote)}`)
     const matchedHeading = findHeadingStartsWith(outputNote, sectionHeading)
     outputNote.addParagraphBelowHeadingTitle(
       answersText,
@@ -1028,13 +1220,33 @@ export async function writeAnswersToNote(
 export async function onReviewWindowAction(actionName: string, payload: string = ''): Promise<void> {
   logDebug(pluginJson, `onReviewWindowAction action=${actionName}`)
   // logDebug(pluginJson, `onReviewWindowAction payloadLength=${String(payload?.length ?? 0)} payloadPreview="${String(payload ?? '').slice(0, 100)}"`)
-  const config: JournalConfigType = await getJournalSettings()
   if (actionName === 'cancel') {
     logDebug('Journalling/onReviewWindowAction', `Cancelled by user.`)
     closeWindowFromCustomId(REVIEW_WINDOW_CUSTOM_ID)
     return
   }
 
+  if (actionName === 'refresh') {
+    let refreshPayload: any = {}
+    try {
+      refreshPayload = payload !== '' ? JSON.parse(payload) : {}
+    } catch (err) {
+      logError(pluginJson, `onReviewWindowAction: refresh could not parse payload: ${err.message}`)
+      return
+    }
+    const periodType = String(refreshPayload.periodType ?? '')
+    const periodString = String(refreshPayload.periodString ?? '')
+    if (periodType === '' || periodString === '') {
+      logWarn(pluginJson, 'onReviewWindowAction: refresh missing periodType or periodString')
+      return
+    }
+    logDebug('Journalling/onReviewWindowAction', `Refresh: reopening review for ${periodType} ${periodString}`)
+    closeWindowFromCustomId(REVIEW_WINDOW_CUSTOM_ID)
+    await processJournalQuestions(periodString, periodType)
+    return
+  }
+
+  const config: JournalConfigType = await getJournalSettings()
   let safePayload: any = {}
   try {
     // Allow callback payloads sent via x-callback-url arg1 JSON string.
@@ -1065,8 +1277,11 @@ export async function onReviewWindowAction(actionName: string, payload: string =
     if (output !== '') {
       await writeAnswersToNote(periodString, periodType, output)
     } else {
-      logWarn(pluginJson, 'No answers were collected from the review window')
+      logWarn(pluginJson, 'No template question answers were collected from the review window')
     }
+    const planningRaw = answers.planning_tasks
+    const planningText = typeof planningRaw === 'string' ? planningRaw : String(planningRaw ?? '')
+    await writePlanningTasksToNextPeriodNote(config, periodString, periodType, planningText)
     logDebug('Journalling/onReviewWindowAction', `Finished.`)
     closeWindowFromCustomId(REVIEW_WINDOW_CUSTOM_ID)
 

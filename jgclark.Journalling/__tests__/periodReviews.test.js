@@ -2,8 +2,21 @@
 
 // Last updated: 2026-03-25 for v2.0.0.b3 by @Cursor
 
-import { buildInitialReviewAnswersByFieldName, buildOutputFromReviewWindowAnswers, parseQuestions } from '../src/periodReviews'
-import { getPeriodAdjectiveFromType, substituteReviewPeriodPlaceholders } from '../src/journalHelpers'
+import {
+  buildInitialReviewAnswersByFieldName,
+  buildOutputFromReviewWindowAnswers,
+  extractPlanSectionTaskItems,
+  normalizePlanningTaskLinesFromForm,
+  parseQuestions,
+} from '../src/periodReviews'
+import { buildReviewHTML } from '../src/reviewHTMLViewGenerator'
+import {
+  buildNextPeriodNotePlanSectionHeadingTitle,
+  buildNextPlanSectionHeadingTitle,
+  getPeriodAdjectiveFromType,
+  getPlanItemsNameForPeriodType,
+  substituteReviewPeriodPlaceholders,
+} from '../src/journalHelpers'
 import { DataStore } from '@mocks/index'
 
 beforeAll(() => {
@@ -184,6 +197,30 @@ Do: <tasks>`
     it('should expand <date>, <datenext>, and <nextdate>', () => {
       const s = 'A <date> B <datenext> C <nextdate>'
       expect(substituteReviewPeriodPlaceholders(s, '2024-W52', 'week')).toBe('A 2024-W52 B 2025-W01 C 2025-W01')
+    })
+  })
+
+  describe('buildReviewHTML', () => {
+    it('should substitute <date> in ## heading text (parsed question, not only raw line)', () => {
+      const raw = `## Weekly Review for <date>
+Wins: <string>`
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const html = buildReviewHTML(
+        { moods: 'Calm,Busy' },
+        parsedQuestions,
+        rawLines,
+        [],
+        '2026-W13',
+        'week',
+        [],
+        'onReviewWindowAction',
+        'Top Wins',
+        {},
+        [],
+      )
+      expect(html).toContain('Weekly Review for 2026-W13')
+      expect(html).not.toContain('&lt;date&gt;')
     })
   })
 
@@ -392,6 +429,50 @@ Ship: <tasks>`,
       const rawLines = raw.split('\n')
       const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', {})
       expect(out).toBe('')
+    })
+  })
+
+  describe('planning helpers', () => {
+    it('buildNextPlanSectionHeadingTitle should format review-window planning block title', () => {
+      expect(buildNextPlanSectionHeadingTitle('Top 3 Wins', 'week')).toBe('Planning: Top 3 Wins for the next week')
+      expect(buildNextPlanSectionHeadingTitle('Big 3 Rocks', 'day')).toBe('Planning: Big 3 Rocks for the next day')
+      expect(buildNextPlanSectionHeadingTitle('Goals', 'quarter')).toBe('Planning: Goals for the next quarter')
+    })
+
+    it('buildNextPeriodNotePlanSectionHeadingTitle should use plan name and target period calendar title', () => {
+      expect(buildNextPeriodNotePlanSectionHeadingTitle('Top 3 Wins', '2026-W14')).toBe('Top 3 Wins for 2026-W14')
+      expect(buildNextPeriodNotePlanSectionHeadingTitle('Big Rocks', '2026-04-04')).toBe('Big Rocks for 2026-04-04')
+      expect(buildNextPeriodNotePlanSectionHeadingTitle('Goals', '2026-Q2')).toBe('Goals for 2026-Q2')
+    })
+
+    it('getPlanItemsNameForPeriodType should use defaults when config keys missing or blank', () => {
+      const minimal = {}
+      expect(getPlanItemsNameForPeriodType(minimal, 'day')).toBe('Big 3 Rocks')
+      expect(getPlanItemsNameForPeriodType(minimal, 'week')).toBe('Top 3 Wins')
+      const custom = { weekPlanItemsName: 'Wins' }
+      expect(getPlanItemsNameForPeriodType(custom, 'week')).toBe('Wins')
+    })
+
+    it('normalizePlanningTaskLinesFromForm should strip task markers and >>', () => {
+      expect(normalizePlanningTaskLinesFromForm('')).toEqual([])
+      expect(normalizePlanningTaskLinesFromForm('  a  \n\n* >> b')).toEqual(['a', 'b'])
+      expect(normalizePlanningTaskLinesFromForm('>> solo')).toEqual(['solo'])
+    })
+
+    it('extractPlanSectionTaskItems should read open and done tasks under matching H2', () => {
+      const heading = 'Top 3 Wins for the next week'
+      const note = {
+        paragraphs: [
+          { type: 'title', headingLevel: 2, content: heading, lineIndex: 0 },
+          { type: 'open', content: '* >> First', lineIndex: 1 },
+          { type: 'done', content: '* >> Second @done(2026-03-30)', lineIndex: 2 },
+        ],
+      }
+      const items = extractPlanSectionTaskItems(note, heading)
+      expect(items.length).toBe(2)
+      expect(items[0].isDone).toBe(false)
+      expect(items[1].isDone).toBe(true)
+      expect(items[0].content).toContain('First')
     })
   })
 })

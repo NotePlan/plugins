@@ -9,6 +9,7 @@ import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '
  * Check whether a heading paragraph matches the given text at the specified level,
  * allowing an optional trailing ellipsis ("…"), which indicates that a heading has been folded.
  * It tolerates extra whitespace between the base text and the ellipsis.
+ * TODO: Write tests
  * @author Cursor, guided by @jgclark
  * @param {TParagraph} para
  * @param {string} headingName - base heading text to match (e.g. 'Done')
@@ -106,3 +107,5 @@ export function getCurrentHeading(note: CoreNoteFields, para: TParagraph): TPara
 export function isTitleWithEqualOrLowerHeadingLevel(item: TParagraph, prevLowestLevel: number): boolean {
   return item.type === 'title' && item.headingLevel <= prevLowestLevel
 }
+
+// Note: findHeadingStartsWith(note, headingToFind) couuld/should live here.

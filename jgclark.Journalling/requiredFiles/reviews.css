@@ -1,3 +1,5 @@
+/* last update 2026-04-02 for v2.0.0.b6 by @jgclark */
+
 body {
   color: var(--fg-main-color, #4c4f69);
   background-color: var(--bg-main-color, #eff1f5);
@@ -10,11 +12,41 @@ body {
   border-radius: 6px;
   background: var(--bg-alt-color, #e6e9ef);
   color: var(--fg-main-color, #4c4f69);
-  margin: 1.0rem 0rem;
+  margin: 0.5rem 0rem;
+
+  /* Override default markdown headings on descendants of .section-wrap */
+  .h2 {
+    font-size: 1.22rem;
+    padding: 0rem 0.1rem 0.4rem;
+    background-color: unset;
+    border: none;
+  }
+  .h3 {
+    font-size: 1.1rem;
+    padding: 0rem 0.1rem 0.4rem;
+    background-color: unset;
+    border: none;
+  }
+}
+
+.review-title-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1rem 0;
+  padding: 0 0.25rem 0 0.75rem;
+}
+
+.review-title-row-actions {
+  flex-shrink: 0;
 }
 
 .review-title {
-  margin: 0 0 1rem 1rem;
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   color: var(--h2-color, #5c5f77);
 }
 
@@ -27,14 +59,14 @@ body {
 .summary-title {
   font-weight: 600;
   color: var(--h3-color, #5c5f77);
-  padding: 0rem 0rem;
+  padding: 0rem 0rem 0.4rem 0.3rem;
 }
 
 .summary-content {
   column-count: 2;
   column-gap: 1rem;
   font-size: 0.85rem;
-  margin-left: 0.75rem;
+  margin-left: 0.25rem;
   margin-bottom: 0.35rem;
 }
 
@@ -46,14 +78,20 @@ body {
   margin-bottom: 0.15rem;
 }
 
+.summary-item-incomplete-icon {
+  color: var(--item-icon-color);
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
 .summary-item-completed-icon {
-  color: #098308A0; /* TODO: set this to a theme colour */
+  color: var(--fg-done-color);
   line-height: 1.2;
   flex-shrink: 0;
 }
 
 .summary-item-event-icon {
-  color: #098308A0; /* TODO: set this to a theme colour */
+  color: var(--fg-placeholder-color);
   line-height: 1.2;
   flex-shrink: 0;
 }
@@ -76,23 +114,28 @@ body {
   color: var(--fg-placeholder-color, rgba(76, 79, 105, 0.7));
 }
 
+.plan-title {
+  /** placeholder for future use */
+}
+
 .review-form {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  /* gap: 0.7rem; */
 }
 
 /* Used by whole-row questions, which require the label coming before them */
-.review-raw-question-line-block {
+.review-question-line-block {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.3rem 0.5rem;
+  gap: 0.1rem 0.5rem;
+  padding-bottom: 0.6rem;
 }
 
 /* Used by question rows, where the label is inline */
-.review-raw-question-line {
+.review-question-line {
   flex: 1 1 100%;
 }
 
@@ -110,18 +153,7 @@ body {
   vertical-align: middle; */
   margin: 0rem 0.2rem;
 }
-.review-subheading {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: var(--h3-color, #5c5f77);
-  margin-top: 0.9rem;
-}
 
-/* Used when settings contain markdown `##` headings or typed `<h2>` markers. */
-.review-subheading.h2, .review-subheading.h3 {
-  color: var(--h2-color, #5c5f77);
-  background-color: unset;
-}
 .review-row {
   display: flex;
   flex-direction: column;
@@ -211,7 +243,7 @@ textarea {
   font-size: 1.0rem;
   font-weight: 500;
   border-radius: 6px;
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.5rem;
   box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
 }
 .review-button-primary {

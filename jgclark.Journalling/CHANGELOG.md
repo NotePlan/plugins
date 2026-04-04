@@ -3,6 +3,14 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
+## [2.0.0.b6] - 2026-04-04
+- `<date>` / `<datenext>` / `<nextdate>` are now substituted in heading and label text taken from parsed questions (e.g. `## Weekly Review for <date>`), not only in the raw template line—so the window matches the period title.
+- **Planning vs reviewing:** New settings name planned items per period (daily through yearly, with defaults such as “Big 3 Rocks”, “Top 3 Wins”, etc.). The review window shows a **Summary** block (carry-over plan tasks from this note as open/complete icons, then the usual daily completed-task and event summary). 
+- A separate **planning** section after the main form writes an H2 and `>> …` tasks at the start of the **next** period’s calendar note, replacing any existing section with that title. Empty planning clears that section on the next note. That H2 uses `{planName} for {next period title}` (e.g. `Big Rocks for 2026-04-04`), distinct from the review-window “Planned:” / “Planning: … for the next …” labels.
+- Added fuller translation of markdown to how its displayed in user's current theme in NP, particularly including Priority markers.
+- Open and reference the quarterly calendar note using NotePlan’s title format `YYYY-Qn` not `YYYYQn`.
+- Reorganised the settings
+
 ## [2.0.0.b5] - 2026-03-31
 - Added a new review question type `<duration>` that accepts `[H]H:MM` input (for example `1:05` or `12:30`) in the review window and when writing answers to notes.
 - Ensure Question strings are handled case-insensitively

@@ -2,24 +2,29 @@
 //---------------------------------------------------------------
 // HTMLView generation helpers for single-window review mode
 // Jonathan Clark + Cursor
-// last update 2026-03-28 for v2.0.0.b4 by @jgclark + @Cursor
+// last update 2026-04-03 for v2.0.0.b6 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import moment from 'moment'
 import pluginJson from '../plugin.json'
 import type { JournalConfigType, ParsedQuestionType } from './journalHelpers'
 import {
+  buildNextPlanSectionHeadingTitle,
+  buildThisPlanSectionHeadingTitle,
   getPeriodAdjectiveFromType,
   REVIEW_QUESTION_TYPE_NAMES_ALT,
   substituteReviewPeriodPlaceholders,
 } from './journalHelpers'
 import { RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
+import { getTaskPriority } from '@helpers/paragraph'
 import {
   convertBoldAndItalicToHTML,
   convertHashtagsToHTML,
   convertHighlightsToHTML,
   convertMentionsToHTML,
+  convertPreformattedToHTML,
+  convertStrikethroughToHTML,
   convertUnderlinedToHTML,
   makePluginCommandButton,
   replaceMarkdownLinkWithHTMLLink,
@@ -27,6 +32,15 @@ import {
   simplifyNPEventLinksForHTML,
 } from '@helpers/HTMLView.js'
 import { RE_SYNC_MARKER } from '@helpers/regex'
+import {
+  // changeBareLinksToHTMLLink,
+  // changeMarkdownLinksToHTMLLink,
+  stripBackwardsDateRefsFromString,
+  stripThisWeeksDateRefsFromString,
+  stripTodaysDateRefsFromString,
+  truncateHTML,
+} from '@helpers/stringTransforms'
+
 
 //-----------------------------------------------------------------------------
 // Constants
@@ -89,22 +103,36 @@ function stripPresentationDelimiters(input: string): string {
 
 /**
  * Format one done-task line for HTML using the same NotePlan-oriented conversions as getNoteContentAsHTML (minus full-note showdown).
- * @param {string} taskLine
+ * @param {string} taskContent
  * @returns {string}
  */
-function formatTaskAsHTML(taskLine: string): string {
-  let line = taskLine.replace(RE_DONE_MENTION_STRIP_FOR_SUMMARY_G, '').replace(/\s{2,}/g, ' ').trim()
+function formatTaskAsHTML(taskContent: string): string {
+  const taskPriority = getTaskPriority(taskContent)
+  let line = taskContent.replace(RE_DONE_MENTION_STRIP_FOR_SUMMARY_G, '').replace(/\s{2,}/g, ' ').trim()
   line = line.replace(RE_SYNC_MARKER, '')
-  line = line.trimRight()
-  line = convertBoldAndItalicToHTML(line)
   line = replaceMarkdownLinkWithHTMLLink(line)
   line = simplifyNPEventLinksForHTML(line)
   line = simplifyInlineImagesForHTML(line)
   line = convertHashtagsToHTML(line)
   line = convertMentionsToHTML(line)
+  line = convertPreformattedToHTML(line)
+  line = convertStrikethroughToHTML(line)
   line = convertHighlightsToHTML(line)
-  line = line.replace(/\[\[([^\]]+)\]\]/g, (_match, title) => `~${String(title)}~`)
+  line = stripTodaysDateRefsFromString(line)
+  line = stripThisWeeksDateRefsFromString(line)
+  line = stripBackwardsDateRefsFromString(line)
+  line = convertBoldAndItalicToHTML(line)
   line = convertUnderlinedToHTML(line)
+  line = line.replace(/\[\[([^\]]+)\]\]/g, (_match, title) => `~${String(title)}~`)
+  line = line.trimRight()
+  line = truncateHTML(line, 120)
+
+  // If priority > 0, add priorityN styling around the whole string. Where it is "working-on", it uses priority4.
+  if (taskPriority > 0) {
+    // remove the priority markers from the start of the line
+    const lineWithoutPriorityMarkers = line.replace(/^!{1,3}\s*/, '').replace(/^>>\s?/, '')
+    line = `<span class="priority${String(taskPriority)}">${lineWithoutPriorityMarkers}</span>`
+  }
   return line
 }
 
@@ -179,14 +207,18 @@ function makeReviewInlineControl(
  * @param {number} lineIndex
  * @param {Array<ParsedQuestionType>} parsedQuestions
  * @param {JournalConfigType} config
+ * @param {string} periodString calendar period title for placeholder substitution in labels/headings
+ * @param {string} periodType
  * @returns {string}
  */
-function makeReviewRawQuestionLineDiv(
+function makeQuestionLineDiv(
   rawLine: string,
   lineIndex: number,
   parsedQuestions: Array<ParsedQuestionType>,
   config: JournalConfigType,
   initialAnswers: { [string]: string },
+  periodString: string,
+  periodType: string,
 ): string {
   const cleanRawLine = stripPresentationDelimiters(rawLine)
   if (cleanRawLine.trim() === '') {
@@ -203,7 +235,7 @@ function makeReviewRawQuestionLineDiv(
     && lineQuestionsOrdered.every(({ q }) => headingTypes.includes(q.type))
   if (isHeadingOnlyLine) {
     return lineQuestionsOrdered
-      .map(({ q, globalIndex }) => makeReviewQuestionRowDiv(q, globalIndex, config, ''))
+      .map(({ q, globalIndex }) => makeReviewQuestionRowDiv(q, globalIndex, config, '', periodString, periodType))
       .join('\n')
   }
 
@@ -229,7 +261,9 @@ function makeReviewRawQuestionLineDiv(
     const initialVal = initialAnswers[`q_${globalIndex}`] ?? ''
 
     if (blockRowTypes.includes(pq.type)) {
-      parts.push(`<div class="review-raw-question-line">${makeReviewQuestionRowDiv(pq, globalIndex, config, initialVal)}</div>`)
+      parts.push(
+        `<div class="review-question-line">${makeReviewQuestionRowDiv(pq, globalIndex, config, initialVal, periodString, periodType)}</div>`,
+      )
     } else {
       const { prefix, suffix } = splitSegmentAtTypeMarker(segmentTrimmed, pq.type)
       const control = makeReviewInlineControl(pq, globalIndex, config, initialVal)
@@ -246,26 +280,26 @@ function makeReviewRawQuestionLineDiv(
   }
 
   if (parts.length === 0) {
-    return `<div class="review-raw-question-line-block"><span class="review-line-text-fragment">${escapeHTML(cleanRawLine)}</span></div>`
+    // return `<div class="review-question-line-block"><span class="review-line-text-fragment">${escapeHTML(cleanRawLine)}</span></div>`
+    // TEST:
+    return `<span class="review-line-text-fragment">${escapeHTML(cleanRawLine)}</span>`
   }
-  return `<div class="review-raw-question-line-block">${parts.join('')}</div>`
+  return `<div class="review-question-line-block">${parts.join('')}</div>`
 }
 
 /**
  * Build a summary of calendar events for the review period: count and total timed duration (all-day excluded from hours).
- * @param {string} periodType
- * @param {string} periodString
  * @param {Array<TCalendarItem>} eventsForPeriod
  * @returns {string} HTML string for the summary block
  */
-function makePeriodDaysSummaryDiv(_periodType: string, eventsForPeriod: Array<TCalendarItem>): string {
+function makePeriodDaysSummaryDiv(eventsForPeriod: Array<TCalendarItem>): string {
   const totalDuration = eventsForPeriod.reduce((total, event) => total + getEventDurationHours(event), 0)
   const output = []
   output.push(`<div class="summary-title">${eventsForPeriod.length} events (${totalDuration.toFixed(1)} hours)</div>`)
   output.push(`<div class="summary-content">`)
   eventsForPeriod.forEach( e => {
     output.push(`\t<div class="summary-item">`)
-    output.push(`\t\t<i aria-hidden="true" class="summary-item-event-icon fa-light fa-calendar-week"></i>`)
+    output.push(`\t\t<i aria-hidden="true" class="summary-item-event-icon fa-regular fa-calendar-week"></i>`)
     output.push(`\t\t<span class="summary-item-text">${e.title}</span>`)
     output.push('\t</div>')
   })
@@ -287,38 +321,102 @@ function getEventDurationHours(event: TCalendarItem): number {
 }
 
 /**
- * Build a summary div for the review period.
- * Present completed tasks in a nicely formatted multi-column list in small writing. Each one should start with a circle-check icon.
+ * First summary block: carried-over plan tasks from this note (open = hollow circle, done = check).
+ * @param {Array<{ content: string, isDone: boolean }>} carryOverPlanItems
+ * @returns {string} HTML or empty when none
+ */
+function makeCarryOverPlanSummaryContentDiv(
+  planningSectionTitle: string,
+  carryOverPlanItems: Array<{ content: string, isDone: boolean }>,
+): string {
+  const rows: Array<string> = []
+  rows.push(`<div class="plan-title h3">${escapeHTML(planningSectionTitle)}</div>`)
+  rows.push(`<div class="summary-content">`)
+  if (carryOverPlanItems.length > 0) {
+    carryOverPlanItems.forEach((item) => {
+      if (item.isDone) {
+        rows.push(`
+      <div class="summary-item">
+        <i aria-hidden="true" class="summary-item-completed-icon fa-solid fa-circle-check"></i>
+        <span class="summary-item-text">${formatTaskAsHTML(item.content)}</span>
+      </div>`)
+      } else {
+      rows.push(`
+      <div class="summary-item">
+        <i aria-hidden="true" class="summary-item-incomplete-icon fa-regular fa-circle"></i>
+        <span class="summary-item-text">${formatTaskAsHTML(item.content)}</span>
+      </div>`)
+      }
+    })
+    rows.push(`</div>`)
+  } else {
+    rows.push(`<span class="summary-empty">No planned items found for this period</span>`)
+  }
+  rows.push(`</div>`)
+  return rows.join('\n')
+}
+
+/**
+ * Summary card: optional carry-over plan tasks, then (daily only) completed-task wins + calendar events.
  * @param {string} periodType
  * @param {string} periodString
+ * @param {Array<{ content: string, isDone: boolean }>} carryOverPlanItems
  * @param {Array<string>} completedTasks
  * @param {Array<TCalendarItem>} eventsForPeriod
- * @returns {string} HTML string for the summary div
+ * @returns {string} HTML for section-wrap or ''
  */
-function makePeriodSummaryDiv(
+function buildReviewSummarySectionHTML(
   periodType: string,
-  _periodString: string,
+  carryOverPlanItems: Array<{ content: string, isDone: boolean }>,
+  planningSectionTitle: string,
   completedTasks: Array<string>,
-  eventsForPeriod: Array<TCalendarItem>
+  eventsForPeriod: Array<TCalendarItem>,
 ): string {
-  const summaryItems = completedTasks.length > 0
-    ? completedTasks.map((taskLine) => `
+  const hasCarryOver = carryOverPlanItems.length > 0
+  const isDay = periodType === 'day'
+  if (!hasCarryOver && !isDay) {
+    return ''
+  }
+  const parts: Array<string> = [
+    '<div class="section-wrap" id="summary">',
+  ]
+  const carryBlock = makeCarryOverPlanSummaryContentDiv(planningSectionTitle, carryOverPlanItems)
+  parts.push(carryBlock)
+  if (isDay) {
+    const summaryItems =
+      completedTasks.length > 0
+        ? completedTasks
+            .map(
+              (taskLine) => `
       <div class="summary-item">
-        <i class="summary-item-completed-icon fa-regular fa-circle-check"></i>
+        <i aria-hidden="true" class="summary-item-completed-icon fa-regular fa-circle-check"></i>
         <span class="summary-item-text">${formatTaskAsHTML(taskLine)}</span>
-      </div>`).join('\n')
-    : `<div class="summary-empty">No completed tasks found during the ${periodType}</div>`
+      </div>`,
+            )
+            .join('\n')
+        : `<div class="summary-empty">No completed tasks found during the ${periodType}</div>`
+    parts.push(`<div class="summary-title">${completedTasks.length} completed tasks</div>`)
+    parts.push(`<div class="summary-content summary-content-completed-tasks">\n${summaryItems}\n</div>`)
+    parts.push(makePeriodDaysSummaryDiv(eventsForPeriod))
+  }
+  parts.push('</div>')
+  return parts.join('\n')
+}
 
-  const outputHTML = `
-<div class="section-wrap">
-  <div class="summary-title">${completedTasks.length} completed tasks</div>
-  <div class="summary-content">
-    ${summaryItems}
+/**
+ * Planning block (outside the main review form): title + tasks textarea.
+ * @param {string} planningSectionTitle
+ * @returns {string}
+ */
+function makePlanningSectionHTML(planningSectionTitle: string): string {
+  return `<div class="section-wrap" id="planning-questions">
+  <div class="plan-title h3">${escapeHTML(planningSectionTitle)}</div>
+  <div class="review-row">
+    <div class="review-answer">
+      <textarea class="review-input" id="planning_tasks" name="planning_tasks" rows="3" placeholder="Enter one per line"></textarea>
+    </div>
   </div>
-  ${makePeriodDaysSummaryDiv(periodType, eventsForPeriod)}
 </div>`
-
-  return outputHTML
 }
 
 /**
@@ -327,6 +425,9 @@ function makePeriodSummaryDiv(
  * @param {ParsedQuestionType} parsedQuestion
  * @param {number} index
  * @param {JournalConfigType} config
+ * @param {string} initialValue
+ * @param {string} periodString calendar period title for `<date>` / `<datenext>` in question text
+ * @param {string} periodType
  * @returns {string}
  */
 function makeReviewQuestionRowDiv(
@@ -334,16 +435,20 @@ function makeReviewQuestionRowDiv(
   index: number,
   config: JournalConfigType,
   initialValue: string = '',
+  periodString: string,
+  periodType: string,
 ): string {
   const fieldName = `q_${index}`
+  /** Parsed question text still contains `<date>` etc.; raw display lines are substituted earlier. */
+  const questionForDisplay = substituteReviewPeriodPlaceholders(parsedQuestion.question, periodString, periodType)
   if (parsedQuestion.type === 'subheading' || parsedQuestion.type === 'h2' || parsedQuestion.type === 'h3') {
-    const cleanHeading = stripPresentationDelimiters(parsedQuestion.question)
+    const cleanHeading = stripPresentationDelimiters(questionForDisplay)
     const tag = parsedQuestion.type === 'h2' ? 'h2' : 'h3' // `<subheading>` defaults to h3
     const className = tag
-    return `<div class="review-subheading ${className}">${escapeHTML(cleanHeading)}</div>`
+    return `<div class="h3 ${className}">${escapeHTML(cleanHeading)}</div>`
   }
 
-  const questionText = stripPresentationDelimiters(parsedQuestion.question).trim()
+  const questionText = stripPresentationDelimiters(questionForDisplay).trim()
   const questionLabel = `<label class="review-label" for="${fieldName}">${escapeHTML(questionText)}</label>`
   let control = ''
   const useInlineRow = useFlexbox && !blockRowTypes.includes(parsedQuestion.type)
@@ -378,7 +483,10 @@ function makeReviewQuestionRowDiv(
       </select>`
       break
     }
-    case 'string':
+    case 'string': {
+      control = `<textarea class="review-input" id="${fieldName}" name="${fieldName}" rows="2">${escapeHTML(initialValue)}</textarea>`
+      break
+    }
     case 'bullets':
     case 'checklists':
     case 'tasks': {
@@ -406,6 +514,7 @@ function makeReviewQuestionRowDiv(
  * @param {Array<TCalendarItem>} eventsForPeriod
  * @param {string} callbackCommandName
  * @param {{ [string]: string }=} initialAnswers field names q_0 … to pre-fill from the calendar note
+ * @param {{ carryOverPlanItems?: Array<{ content: string, isDone: boolean }>, planningSectionTitle?: string }=} reviewExtras carry-over plan tasks + planning block title
  * @returns {string}
  */
 export function buildReviewHTML(
@@ -417,43 +526,66 @@ export function buildReviewHTML(
   periodType: string,
   eventsForPeriod: Array<TCalendarItem>,
   callbackCommandName: string,
+  planName: string,
   initialAnswers?: { [string]: string },
+  carryOverPlanItems?: Array<{ content: string, isDone: boolean }>,
 ): string {
   const periodAdjective = getPeriodAdjectiveFromType(periodType)
   const resolvedInitialAnswers = initialAnswers ?? {}
+  const resolvedCarryOver = carryOverPlanItems ?? []
+  const plannedSectionTitle = buildThisPlanSectionHeadingTitle(planName)
+  const planningSectionTitle = buildNextPlanSectionHeadingTitle(planName, periodType)
   const renderQuestionLines = rawQuestionLines.map((l) => substituteReviewPeriodPlaceholders(l, periodString, periodType))
   const questionRows = renderQuestionLines
-    .map((line, lineIndex) => makeReviewRawQuestionLineDiv(line, lineIndex, parsedQuestions, config, resolvedInitialAnswers))
+    .map((line, lineIndex) =>
+      makeQuestionLineDiv(line, lineIndex, parsedQuestions, config, resolvedInitialAnswers, periodString, periodType),
+    )
     .filter((row) => row !== '')
     .join('\n')
-  const possibleSummarySection = (periodType === 'day') ? makePeriodSummaryDiv(periodType, periodString, summaryCompletedTasks, eventsForPeriod) : ''
-  
+  const summarySection = buildReviewSummarySectionHTML(
+    periodType,
+    resolvedCarryOver,
+    plannedSectionTitle,
+    summaryCompletedTasks,
+    eventsForPeriod,
+  )
+  const planningSectionHtml = planningSectionTitle !== '' ? makePlanningSectionHTML(planningSectionTitle) : ''
+
   return `
-    <h2 class="review-title">${escapeHTML(periodAdjective)} Review for ${escapeHTML(periodString)}</h2>
-    
-    ${possibleSummarySection}
-    
-    <div class="section-wrap">
+    <div class="review-title-row">
+      <h2 class="review-title">${escapeHTML(periodAdjective)} Review for ${escapeHTML(periodString)}</h2>
+      <div class="review-title-row-actions">
+        <button class="review-button" type="button" id="review-refresh" title="Reload questions and summary from the note">Refresh</button>
+      </div>
+    </div>
+
+    ${summarySection}
+
       <form id="review-form" class="review-form">
+    <div class="section-wrap" id="review-questions">
         ${questionRows}
-        <div class="review-actions">
-          <button class="review-button" type="button" id="review-cancel">Cancel</button>
-          <!--${makePluginCommandButton('Cancel', pluginJson['plugin.id'], 'onReviewWindowAction', 'cancel', 'Cancel', true)} -->
-          <!-- type="submit" -->
-          <button class="review-button review-button-primary" type="button" id="review-submit">Save</button>
-        </div>
+      </div>
+        
+        ${planningSectionHtml}
       </form>
+
+      <div class="review-actions">
+        <button class="review-button" type="button" id="review-cancel">Cancel</button>
+        <!--${makePluginCommandButton('Cancel', pluginJson['plugin.id'], 'onReviewWindowAction', 'cancel', 'Cancel', true)} -->
+        <!-- type="submit" -->
+        <button class="review-button review-button-primary" type="button" id="review-submit">Save</button>
     </div>
 
     <script type="text/javascript">
       let hasSentReviewAction = false
       const sendToPlugin = (commandName = '${callbackCommandName}', pluginID = '${pluginJson['plugin.id']}', commandArgs = []) => {
-        // Prevent duplicate callbacks if handlers get attached more than once.
-        if (hasSentReviewAction) {
+        const actionName = String(commandArgs?.[0] ?? '')
+        const locksForm = actionName === 'submit' || actionName === 'cancel'
+        // Prevent duplicate submit/cancel if handlers get attached more than once.
+        if (locksForm && hasSentReviewAction) {
           console.log("sendToPlugin: hasSentReviewAction is true; stopping.")
           return
         }
-        const actionName = String(commandArgs?.[0] ?? '')
         const payload = commandArgs?.[1] ?? {}
         
         // Primary path: use NotePlan's jsBridge to invoke DataStore from the native side.
@@ -470,7 +602,9 @@ export function buildReviewHTML(
             onHandle: '',
             id: '1',
           })
-          hasSentReviewAction = true
+          if (locksForm) {
+            hasSentReviewAction = true
+          }
           return
         }
 
@@ -485,11 +619,14 @@ export function buildReviewHTML(
           + encodeURIComponent(JSON.stringify(payload))
         console.log("window.sendToPlugin: Sending callbackURL: "+callbackUrl)
         window.location.href = callbackUrl
-        hasSentReviewAction = true
+        if (locksForm) {
+          hasSentReviewAction = true
+        }
       }
       const reviewForm = document.getElementById('review-form')
       const cancelButton = document.getElementById('review-cancel')
       const submitButton = document.getElementById('review-submit')
+      const refreshBtn = document.getElementById('review-refresh')
 
       /**
        * Collect answers from the review form and return as a JSON string.
@@ -504,6 +641,10 @@ export function buildReviewHTML(
         const checkboxes = reviewForm.querySelectorAll('input[type="checkbox"]')
         for (const checkbox of checkboxes) {
           answers[checkbox.name] = checkbox.checked
+        }
+        const planningEl = document.getElementById('planning_tasks')
+        if (planningEl) {
+          answers.planning_tasks = String(planningEl.value ?? '')
         }
         const payload = {
           answers,
@@ -524,6 +665,14 @@ export function buildReviewHTML(
         sendToPlugin('${callbackCommandName}', '${pluginJson['plugin.id']}', ['submit', collectAnswers()])
       }
 
+      function refreshReview() {
+        console.log("HTMLView: refreshReview() called")
+        sendToPlugin('${callbackCommandName}', '${pluginJson['plugin.id']}', ['refresh', {
+          periodType: ${JSON.stringify(periodType)},
+          periodString: ${JSON.stringify(periodString)},
+        }])
+      }
+
       const firstInputControl = reviewForm.querySelector('textarea, input:not([type="hidden"]), select')
       if (firstInputControl && typeof firstInputControl.focus === 'function') {
         firstInputControl.focus()
@@ -537,6 +686,11 @@ export function buildReviewHTML(
       if (submitButton) {
         submitButton.addEventListener('click', function () {
           submitReview()
+        })
+      }
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', function () {
+          refreshReview()
         })
       }
     </script>
