@@ -3,12 +3,12 @@
 /* eslint-disable import/order */
 /* global jest, it, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
 
-import * as f from '../src/cancelIncompleteTasksInPastYear.js'
+import * as f from '../src/cancelIncompleteTasks.js'
 import { CustomConsole, LogType, LogMessage } from '@jest/console'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, Note, NotePlan, Paragraph, simpleFormatter } from '@mocks/index'
 
 const PLUGIN_NAME = `np.Tidy`
-const FILENAME = `cancelIncompleteTasksInPastYear.js`
+const FILENAME = `cancelIncompleteTasks.js`
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(`${FILENAME}`, () => {
