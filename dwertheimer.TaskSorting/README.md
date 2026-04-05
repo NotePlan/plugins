@@ -112,6 +112,8 @@ NotePlan passes these in order as `arg0`, `arg1`, … in the URL:
 - **`arg4`**: `true` = combine related types (open tasks and checklists together, etc.); `false` = eight separate groups
 - **`arg5`**: `true` = sort within each heading on its own; `false` = treat the whole note as one block (tasks can move to the top of the note)
 
+X-callback links only use **`arg0`–`arg5`**. There is no URL form for passing a note object; see **Templates and plugins** below if you need that.
+
 #### Examples:
 ```text
 # Sort by priority without headings, treating entire note as one unit (moves all open tasks to top)
@@ -218,6 +220,16 @@ noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sor
 ```
 
 > **Note for templates and other plugins:** If you run **Sort tasks under heading** from automation while the editor is open, you may need to pass the open note (or editor) as the **third** value so sorting applies to the same note you are editing. Otherwise a pending editor save can undo the sort.
+
+### Templates and plugins (passing `Editor` or a `Note`)
+
+From Templating, Shortcuts, or another plugin you can pass **`Editor`** or a **`Note`** so the command sorts **that** object instead of relying only on whatever `Editor.note` happens to be at that moment (helps avoid a stale save overwriting your sort).
+
+- **Sort tasks on the page** — Add **`Editor` or `Note` as the seventh argument** after the six sort options (prompts, sort fields, headings, subheadings, combine types, sort-in-headings).
+- **Tasks Sort by Default** (`/tsd`), **by due date** (`/tsc`), **by @mention** (`/tsm`), **by #tag** (`/tst`), **tag + mention** (`/tstm`), **Tasks to Top** (`/tt`) — **One optional argument:** pass `Editor` or the `Note` to sort. If you omit it, behavior is the same as before (uses the open note in the editor).
+- **Sort tasks under heading** — Unchanged: optional **third** argument is still the note or `Editor` (see the x-callback section above).
+
+**Mark tasks** (`/mat`) and the **copy-tag** tools still only use the open editor; they do not take a note override yet.
 
 ## Task Sorting Notes
 

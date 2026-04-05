@@ -231,46 +231,46 @@ export async function openTasksToTop(
  * @description Bring tasks (tasks only, no surrounding text) to top of note
  * @returns {Promise<void>}
  */
-export async function tasksToTop() {
+export async function tasksToTop(noteOverride: TNote | typeof Editor | null = null) {
   try {
     logDebug(`tasksToTop(): Bringing tasks to top`)
-    await sortTasks(false, [], null, null, false, null)
+    await sortTasks(false, [], null, null, false, null, noteOverride)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
 }
 
-export async function sortTasksByPerson() {
+export async function sortTasksByPerson(noteOverride: TNote | typeof Editor | null = null) {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading, interleaveTaskTypes } = DataStore.settings
-    await sortTasks(false, ['mentions', '-priority', 'content'], includeHeading, includeSubHeading, interleaveTaskTypes ?? true, null)
+    await sortTasks(false, ['mentions', '-priority', 'content'], includeHeading, includeSubHeading, interleaveTaskTypes ?? true, null, noteOverride)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
 }
 
-export async function sortTasksByDue() {
+export async function sortTasksByDue(noteOverride: TNote | typeof Editor | null = null) {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading, interleaveTaskTypes } = DataStore.settings
-    await sortTasks(false, ['due', '-priority', 'content'], includeHeading, includeSubHeading, interleaveTaskTypes ?? true, null)
+    await sortTasks(false, ['due', '-priority', 'content'], includeHeading, includeSubHeading, interleaveTaskTypes ?? true, null, noteOverride)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
 }
 
-export async function sortTasksByTag() {
+export async function sortTasksByTag(noteOverride: TNote | typeof Editor | null = null) {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading, interleaveTaskTypes } = DataStore.settings
-    await sortTasks(false, ['hashtags', '-priority', 'content'], includeHeading, includeSubHeading, interleaveTaskTypes ?? true, null)
+    await sortTasks(false, ['hashtags', '-priority', 'content'], includeHeading, includeSubHeading, interleaveTaskTypes ?? true, null, noteOverride)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
 }
 
-export async function sortTasksDefault() {
+export async function sortTasksDefault(noteOverride: TNote | typeof Editor | null = null) {
   try {
     await saveEditorIfNecessary()
     const { defaultSort1, defaultSort2, defaultSort3, includeHeading, includeSubHeading, interleaveTaskTypes } = DataStore.settings
@@ -279,17 +279,17 @@ export async function sortTasksDefault() {
         interleaveTaskTypes,
       )}\nCalling sortTasks now`,
     )
-    await sortTasks(false, [defaultSort1, defaultSort2, defaultSort3], includeHeading, includeSubHeading, interleaveTaskTypes ?? true, null)
+    await sortTasks(false, [defaultSort1, defaultSort2, defaultSort3], includeHeading, includeSubHeading, interleaveTaskTypes ?? true, null, noteOverride)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
 }
 
-export async function sortTasksTagMention() {
+export async function sortTasksTagMention(noteOverride: TNote | typeof Editor | null = null) {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading, interleaveTaskTypes } = DataStore.settings
-    await sortTasks(false, ['hashtags', 'mentions'], includeHeading, includeSubHeading, interleaveTaskTypes ?? true, null)
+    await sortTasks(false, ['hashtags', 'mentions'], includeHeading, includeSubHeading, interleaveTaskTypes ?? true, null, noteOverride)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -966,6 +966,7 @@ export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<
  * @param {boolean} subHeadingCategory - subheadings (e.g. for each tag)
  * @param {boolean} interleaveTaskTypes - whether to interleave task types (open/checklist together) or keep them separate
  * @param {boolean} sortInHeadings - whether to sort within each heading separately (true) or treat entire note as one unit (false)
+ * @param {TNote|typeof Editor|null} _noteOverride - when set (e.g. pass Editor from Templating), sort this note instead of Editor.note only
  * @returns
  */
 export async function sortTasks(
@@ -975,6 +976,7 @@ export async function sortTasks(
   _subHeadingCategory: string | boolean | null = null,
   _interleaveTaskTypes: string | boolean = true,
   _sortInHeadings: string | boolean | null = null,
+  _noteOverride: TNote | typeof Editor | null = null,
 ) {
   // Cast parameters to proper types
   const withUserInput = getBooleanValue(_withUserInput, true)
@@ -1026,8 +1028,9 @@ export async function sortTasks(
   const interleaveTaskTypes = withUserInput ? await wantInterleaving() : interleaveTaskTypesParam
   logDebug(`\t user chose interleaveTaskTypes=${String(interleaveTaskTypes)}`)
   // logDebug(`\tFinished wantSubHeadings()=${String(printSubHeadings)}, now running sortParagraphsByType`)
-  if (!Editor.note) {
-    logError(pluginJson, `sortTasks: There is no Editor.note. Bailing`)
+  const noteToUse = _noteOverride ?? Editor.note
+  if (!noteToUse) {
+    logError(pluginJson, `sortTasks: There is no note to sort. Bailing`)
     clo(Editor, `sortTasks Editor`)
     return // doing this to make Flow happy
   }
@@ -1036,8 +1039,8 @@ export async function sortTasks(
   // Remove all existing task type headings BEFORE building sortGroups
   // This prevents task type headings from being treated as user section headings
   // Only do this if we're going to add headings back
-  if (printHeadings && Editor.note) {
-    const noteToClean = Editor.note // Store in const to make Flow happy
+  if (printHeadings && noteToUse) {
+    const noteToClean = noteToUse // Store in const to make Flow happy
     const headings = getTaskTypeHeadings()
     Object.keys(headings).forEach((key) => {
       const headingText = headings[key]
@@ -1060,8 +1063,8 @@ export async function sortTasks(
     logDebug(pluginJson, `sortTasks: Removed existing task type headings before sorting`)
   }
 
-  const activeParagraphs = Editor.note ? getActiveParagraphs(Editor.note) : []
-  const sortGroups = byHeading && Editor?.note?.title ? getTasksByHeading(Editor.note) : { [Editor?.note?.title || '']: activeParagraphs }
+  const activeParagraphs = noteToUse ? getActiveParagraphs(noteToUse) : []
+  const sortGroups = byHeading && noteToUse?.title ? getTasksByHeading(noteToUse) : { [noteToUse?.title || '']: activeParagraphs }
   clo(sortGroups, `sortTasks -- sortGroups obj=`)
   logDebug(pluginJson, `sortTasks have sortGroups object. key count=${Object.keys(sortGroups).length}. About to start the display loop`)
 
@@ -1078,19 +1081,19 @@ export async function sortTasks(
       const sortedTasks = sortParagraphsByType(sortGroups[key], sortOrder, interleaveForSorting)
       clo(sortedTasks, `sortTasks sortedTasks after sortParagraphsByType ${key}`)
       logDebug(`sortTasks: Using interleaveForSorting=${String(interleaveForSorting)} (printHeadings=${String(printHeadings)}, interleaveTaskTypes=${String(interleaveTaskTypes)})`)
-      if (Editor.note) await deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
+      if (noteToUse) await deleteExistingTasks(noteToUse, sortedTasks) // need to do this before adding new lines to preserve line numbers
       logDebug(
         `sortTasks: About to writeOutTasks with printHeadings=${String(printHeadings)} printSubHeadings=${String(printSubHeadings)} sortField1=${String(sortField1)} key=${String(
           key,
         )} interleaveTaskTypes=${String(interleaveTaskTypes)} byHeading=${String(byHeading)}`,
       )
-      if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', key, interleaveTaskTypes, !byHeading)
+      if (noteToUse) await writeOutTasks(noteToUse, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', key, interleaveTaskTypes, !byHeading)
     }
   }
 
   logDebug(`\tFinished writeOutTasks, now finished`)
   if (eliminateSpinsters) {
-    removeEmptyHeadings(Editor)
+    removeEmptyHeadings(noteToUse)
   }
   logDebug('Finished sortTasks()!')
 }
