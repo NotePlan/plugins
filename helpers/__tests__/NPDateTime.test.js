@@ -156,7 +156,7 @@ describe(`${FILENAME}`, () => {
     describe('very limited test without NP API', () => {
       test('should return empty as no DataStore calls are available', () => {
         const result = f.getRelativeDates()
-        expect(result).toEqual([{}])
+        expect(result).toEqual([])
       })
     })
   })

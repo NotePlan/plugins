@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md) for details on available commands and use case.
 
+## [1.2.9] - 2026-04-04 (@dwertheimer)
+
+- **Sort tasks on the page** (`sortTasks`): optional **Note** or **Editor** as last argument (same idea as **Sort tasks under heading**), for templates/plugins when you must target the note you are editing.
+- **Quick sort commands** (`tasksToTop`, `sortTasksDefault`, `sortTasksByDue`, `sortTasksByPerson`, `sortTasksByTag`, `sortTasksTagMention`): optional **Note** or **Editor** as sole extra argument when called from code.
+
 ## [1.2.8] - 2025-11-10 (@dwertheimer)
 
 - Fix for sorting tasks with combined/interleaved tasks and checklists
