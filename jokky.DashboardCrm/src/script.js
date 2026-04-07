@@ -6,12 +6,17 @@ const SETTINGS = {
   dataFolder: "@CRM",
 }
 
-// Legge le impostazioni: prima da DataStore.settings (UI plugin), poi da DataStore.preference (legacy), poi default
-function getSetting(key, defaultValue) {
-  const s = DataStore.settings
-  if (s && s[key] !== undefined && s[key] !== null && String(s[key]) !== "") return s[key]
-  const p = DataStore.preference(key)
-  if (p !== undefined && p !== null && String(p) !== "") return p
+const PLUGIN_ID = "np.jokky102.crm"
+const SETTINGS_FOLDER = "jokky.DashboardCrm"
+
+// Reads settings from settings.json (the file the sidebar UI writes to)
+async function getSetting(key, defaultValue) {
+  try {
+    const s = await DataStore.loadJSON(`../${SETTINGS_FOLDER}/settings.json`)
+    if (s && s[key] !== undefined && s[key] !== null && String(s[key]) !== "") return s[key]
+  } catch (e) {
+    console.log(`⚠️ getSetting error: ${e.message}`)
+  }
   return defaultValue
 }
 
@@ -36,7 +41,7 @@ const REMINDER_FREQUENCIES = {
   year: "Every year",
 }
 
-const WINDOW_ID = "np.crm:dashboard"
+const WINDOW_ID = "np.jokky102.crm.main"
 
 // MAIN COMMANDS
 
@@ -98,8 +103,10 @@ async function showCRMDashboard() {
 
     await HTMLView.showInMainWindow(html, "CRM Dashboard", {
       customId: WINDOW_ID,
+      splitView: false,
       icon: "users",
       iconColor: "blue-500",
+      autoTopPadding: true,
     })
 
     console.log(`✅ CRM Dashboard opened with ${contacts.length} contacts`)
@@ -121,17 +128,20 @@ async function logInteractionBase(contact) {
       "Add notes: '%@'"
     )
 
-    // Legge la nota direttamente senza aprirla nell'editor
+    // Reads the note directly without opening it in the editor
     const note = DataStore.projectNoteByFilename(contact.filename)
     if (!note) {
       console.log(`❌ Could not open note: ${contact.filename}`)
       return false
     }
 
-    const interaction = `${formatDateTime(new Date())} ${interactionType.value} - ${notes || "No notes"}`
-    const interactionPosition = getSetting("crm-interaction-position", "append")
+    const interaction = `${await formatDateTime(new Date())} ${interactionType.value} - ${notes || "No notes"}`
+    let interactionPosition = await getSetting("crm-interaction-position", "append")
+    if (typeof interactionPosition === "boolean") {
+      interactionPosition = interactionPosition ? "prepend" : "append"
+    }
     if (interactionPosition === "prepend") {
-      // Inserisce dopo l'intestazione "## Interactions" se esiste, altrimenti in cima
+      // Insert after the "## Interactions" heading if it exists, otherwise at the top
       const interactionsHeading = note.paragraphs.find(
         p => p.type === "title" && p.content.trim() === "Interactions"
       )
@@ -183,13 +193,13 @@ async function addInteraction() {
       ["OK"]
     )
 
-    // ✅ Naviga alla nota del contatto solo se la preferenza è abilitata
-    const navigateAfterInteraction = getSetting("crm-navigate-after-interaction", "true")
+    // ✅ Navigate to the contact note only if the preference is enabled
+    const navigateAfterInteraction = await getSetting("crm-navigate-after-interaction", "true")
     if (navigateAfterInteraction !== "false") {
       await Editor.openNoteByFilename(contact.filename)
     }
 
-    // ✅ Se la dashboard è aperta aggiornala in background senza navigarci
+    // ✅ If the dashboard is open, refresh it in the background without navigating to it
     await refreshDashboardIfOpen()
 
     console.log(`✅ Interaction logged for ${contact.name}`)
@@ -216,10 +226,10 @@ async function logInteractionWithReminder() {
     const success = await logInteractionBase(contact)
     if (!success) return
 
-    // ✅ Completa il reminder del contatto per oggi
+    // ✅ Complete the contact's reminder for today
     await completeContactReminder(contact.name)
 
-    // ✅ Crea il prossimo reminder se configurato
+    // ✅ Create the next reminder if configured
     console.log(`\n📋 ===== REMINDER CREATION DEBUG =====`)
     console.log(`Contact name: "${contact.name}"`)
     console.log(`Contact frequencyKey: "${contact.frequencyKey}"`)
@@ -255,13 +265,13 @@ async function logInteractionWithReminder() {
       ["OK"]
     )
 
-    // ✅ Naviga alla nota del contatto solo se la preferenza è abilitata
-    const navigateAfterInteraction = getSetting("crm-navigate-after-interaction", "true")
+    // ✅ Navigate to the contact note only if the preference is enabled
+    const navigateAfterInteraction = await getSetting("crm-navigate-after-interaction", "true")
     if (navigateAfterInteraction !== "false") {
       await Editor.openNoteByFilename(contact.filename)
     }
 
-    // ✅ Se la dashboard è aperta aggiornala in background senza navigarci
+    // ✅ If the dashboard is open, refresh it in the background without navigating to it
     await refreshDashboardIfOpen()
 
     console.log(`✅ Interaction logged and reminder scheduled for ${contact.name}`)
@@ -310,7 +320,7 @@ async function setReminder() {
       ["OK"]
     )
 
-    await refreshDashboard()
+    await refreshDashboardIfOpen()
 
     console.log(`✅ Reminder set for ${contact.name}`)
   } catch (error) {
@@ -320,8 +330,7 @@ async function setReminder() {
 
 async function updateSettings() {
   try {
-    const currentTag =
-      getSetting("crm-relationship-tag", SETTINGS.relationshipTag)
+    const currentTag = await getSetting("crm-relationship-tag", SETTINGS.relationshipTag)
 
     const tag = await CommandBar.showInput(
       "Relationship tag prefix",
@@ -329,40 +338,39 @@ async function updateSettings() {
       currentTag
     )
 
-    if (tag) {
-      DataStore.setPreference("crm-relationship-tag", tag)
-    const s = DataStore.settings || {}; s["crm-relationship-tag"] = tag; DataStore.settings = s
-    }
-
-    // Impostazione navigazione dopo interazione
+    // Navigation setting after interaction
     const navigateChoice = await CommandBar.showOptions(
       ["✅ Yes – open contact note after logging interaction", "🚫 No – stay in current context"],
       "After logging an interaction, open the contact note?"
     )
     const navVal = navigateChoice.index === 0 ? "true" : "false"
-    DataStore.setPreference("crm-navigate-after-interaction", navVal)
-    { const s = DataStore.settings || {}; s["crm-navigate-after-interaction"] = navVal; DataStore.settings = s }
 
-    // Impostazione formato data/ora interazione
+    // Interaction date/time format setting
     const datetimeChoice = await CommandBar.showOptions(
-      ["📅 Date only  (e.g. 2026-03-31)", "🕐 Date + time  (e.g. 2026-03-31 | 09:52)"],
+      ["📅 Date Only", "🕐 Date + Time"],
       "Interaction timestamp format"
     )
-    const dtVal = datetimeChoice.index === 0 ? "false" : "true"
-    DataStore.setPreference("crm-interaction-datetime", dtVal)
-    { const s = DataStore.settings || {}; s["crm-interaction-datetime"] = dtVal; DataStore.settings = s }
+    const dtVal = datetimeChoice.index === 0 ? "Date Only" : "Date + Time"
 
-    // Impostazione posizione interazione nella nota
+    // Interaction position setting in the note
     const positionChoice = await CommandBar.showOptions(
       ["⬇️ Append – newest at the bottom", "⬆️ Prepend – newest at the top"],
       "Where to add new interactions in the contact note?"
     )
     const posVal = positionChoice.index === 0 ? "append" : "prepend"
-    DataStore.setPreference("crm-interaction-position", posVal)
-    { const s = DataStore.settings || {}; s["crm-interaction-position"] = posVal; DataStore.settings = s }
 
-    await refreshDashboard()
-    console.log(`✅ Settings updated`)
+    // Save settings via DataStore.saveJSON in the file used by the sidebar UI
+    const currentSettings = (await DataStore.loadJSON(`../${SETTINGS_FOLDER}/settings.json`)) || {}
+    await DataStore.saveJSON({
+      ...currentSettings,
+      "crm-relationship-tag": tag || currentSettings["crm-relationship-tag"] || SETTINGS.relationshipTag,
+      "crm-navigate-after-interaction": navVal,
+      "crm-interaction-datetime": dtVal,
+      "crm-interaction-position": posVal,
+    }, `../${SETTINGS_FOLDER}/settings.json`)
+
+    console.log(`✅ Settings saved: datetime=${dtVal}, position=${posVal}, navigate=${navVal}`)
+    await refreshDashboardIfOpen()
   } catch (error) {
     console.log(`❌ Error updating settings: ${error.message}`)
   }
@@ -372,8 +380,6 @@ async function updateSettings() {
 
 async function getRelationships() {
   try {
-    // 🔑 FIX: Ignora la ricerca per tag e usa SOLO la cartella @CRM
-    // Questo evita di leggere note che contengono "contact" ma non sono contatti
     
     const folderNotes = DataStore.projectNotes.filter(
       (n) => n.filename && n.filename.startsWith(SETTINGS.dataFolder + "/")
@@ -383,7 +389,7 @@ async function getRelationships() {
 
     const relationships = folderNotes
       .map((note) => {
-        // Verifica che sia un contatto valido (abbia il tag #contact/)
+        // Verify that it is a valid contact (has the #contact/ tag)
         if (!note.content.includes("#contact/")) {
           console.log(`⚠️ Skipping ${note.title}: no #contact/ tag`)
           return null
@@ -420,21 +426,19 @@ function parseContactNote(note) {
     const categoryMatch = content.match(/\*\*Category\*\*:\s*(.+)/i)
     if (categoryMatch) category = categoryMatch[1].trim()
 
-    // 🔑 FIX: Cercare ENTRAMBI i formati: "**Frequency**" e "**Reminder Frequency**"
     let frequencyMatch = content.match(/\*\*Frequency\*\*:\s*(.+)/i)
     if (!frequencyMatch) {
       frequencyMatch = content.match(/\*\*Reminder Frequency\*\*:\s*(.+)/i)
     }
     if (frequencyMatch) frequency = frequencyMatch[1].trim()
 
-    // 🔑 FIX: Cercare ENTRAMBI i formati: "**Last Contact**" e "**Reminder Frequency Key**"
     let lastContactMatch = content.match(/\*\*Last Contact\*\*:\s*(.+)/i)
     if (lastContactMatch) lastContact = lastContactMatch[1].trim()
 
     console.log(`🔍 Parsing "${note.title}":`)
     console.log(`   Raw frequency text: "${frequency}"`)
     
-    // Estrai la chiave della frequenza dai valori
+    // Extract the frequency key from the values
     console.log(`   Checking against REMINDER_FREQUENCIES:`)
     for (const [key, value] of Object.entries(REMINDER_FREQUENCIES)) {
       console.log(`      ${key}: "${value}" === "${frequency}" ? ${value === frequency}`)
@@ -445,7 +449,7 @@ function parseContactNote(note) {
       }
     }
 
-    // 🔑 FALLBACK: Se non trova la frequenza, prova a cercare la chiave direttamente
+    // 🔑 FALLBACK: If the frequency is not found, try to find the key directly
     if (!frequencyKey) {
       const keyMatch = content.match(/\*\*Reminder Frequency Key\*\*:\s*(.+)/i)
       if (keyMatch) {
@@ -506,8 +510,8 @@ function scheduleNextReminder(contactName, frequencyKey, noteFilename) {
 
 async function completeContactReminder(contactName) {
   try {
-    // Cerca in un range ampio: da 2 anni fa a 2 anni nel futuro
-    // In modo da completare qualsiasi reminder del contatto, anche quelli futuri
+    // Search in a wide range: from 2 years ago to 2 years in the future
+    // This ensures any reminder for the contact, even future ones, is completed
     const from = new Date()
     from.setFullYear(from.getFullYear() - 2)
     const to = new Date()
@@ -546,8 +550,10 @@ async function refreshDashboard() {
     
     await HTMLView.showInMainWindow(html, "CRM Dashboard", {
       customId: WINDOW_ID,
+      splitView: false,
       icon: "users",
       iconColor: "blue-500",
+      autoTopPadding: true,
     })
     
     console.log(`✅ Dashboard refreshed`)
@@ -556,7 +562,7 @@ async function refreshDashboard() {
   }
 }
 
-// Aggiorna la dashboard solo se è già aperta, senza navigarci
+// Refresh the dashboard only if it is already open, without navigating to it
 async function refreshDashboardIfOpen() {
   try {
     const dashWindow = NotePlan.htmlWindows.find(w => w.customId === WINDOW_ID)
@@ -602,8 +608,12 @@ function formatDate(date) {
   return `${year}-${month}-${day}`
 }
 
-function formatDateTime(date) {
-  const showTime = getSetting("crm-interaction-datetime", "true") !== "false"
+async function formatDateTime(date) {
+  let value = await getSetting("crm-interaction-datetime", "Date + Time")
+  if (typeof value === "boolean" || value === "true" || value === "false") {
+    value = (value === true || value === "true") ? "Date + Time" : "Date Only"
+  }
+  const showTime = value === "Date + Time"
   const dateStr = formatDate(date)
   if (!showTime) return dateStr
   const hours = String(date.getHours()).padStart(2, "0")
@@ -749,7 +759,7 @@ function getCRMDashboardHTML(contacts) {
 
   <div class="action-buttons">
     <button class="btn" onclick="addInteractionFromDashboard()">📝 Log Interaction</button>
-    <button class="btn" onclick="addInteractionWithReminderFromDashboard()">📝 + 🔔 Log & Remind</button>
+    <button class="btn" onclick="addInteractionWithReminderFromDashboard()">🔔 Log & Remind</button>
     <button class="btn" onclick="addReminderFromDashboard()">⏰ Set Reminder</button>
     <button class="btn" onclick="addContactFromDashboard()">👤 Add Contact</button>
   </div>
@@ -839,8 +849,7 @@ function getCRMDashboardHTML(contacts) {
 
   async function addInteractionFromDashboard() {
     window.webkit.messageHandlers.jsBridge.postMessage({
-      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('addInteraction', 'np.crm', []); })()`)}
-,
+      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('addInteraction', 'np.jokky102.crm', []); })()`)},
       onHandle: "onBridgeCallback",
       id: "addInteraction"
     });
@@ -848,8 +857,7 @@ function getCRMDashboardHTML(contacts) {
 
   async function addInteractionWithReminderFromDashboard() {
     window.webkit.messageHandlers.jsBridge.postMessage({
-      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('logInteractionWithReminder', 'np.crm', []); })()`)}
-,
+      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('logInteractionWithReminder', 'np.jokky102.crm', []); })()`)},
       onHandle: "onBridgeCallback",
       id: "logInteractionWithReminder"
     });
@@ -857,8 +865,7 @@ function getCRMDashboardHTML(contacts) {
 
   async function addReminderFromDashboard() {
     window.webkit.messageHandlers.jsBridge.postMessage({
-      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('setReminder', 'np.crm', []); })()`)}
-,
+      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('setReminder', 'np.jokky102.crm', []); })()`)},
       onHandle: "onBridgeCallback",
       id: "setReminder"
     });
@@ -866,8 +873,7 @@ function getCRMDashboardHTML(contacts) {
 
   async function addContactFromDashboard() {
     window.webkit.messageHandlers.jsBridge.postMessage({
-      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('addRelationship', 'np.crm', []); })()`)}
-,
+      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('addRelationship', 'np.jokky102.crm', []); })()`)},
       onHandle: "onBridgeCallback",
       id: "addRelationship"
     });

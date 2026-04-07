@@ -39,6 +39,7 @@
       "jsFunction": "showCRMDashboard",
       "alias": ["crm"],
       "sidebarView": {
+        "windowID": "np.jokky102.crm.main",
         "title": "CRM Dashboard",
         "icon": "users",
         "iconColor": "blue-500"
@@ -73,10 +74,10 @@
       "title": "Timestamp format",
       "description": "Choose whether to log interactions with date only or with date and time (24h format).\n\nExamples:\n- Date only: 2026-03-31 ☎️ Call - ...\n- Date + time: 2026-03-31 | 09:52 ☎️ Call - ...",
       "type": "string",
-      "default": "true",
+      "default": "Date + Time",
       "choices": [
-        "true",
-        "false"
+        "Date Only",
+        "Date + Time"
       ],
       "required": true
     },
