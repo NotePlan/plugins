@@ -1404,4 +1404,25 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(dt.getNextNPPeriodString('2024', 'year')).toEqual('2025')
     })
   })
+
+  describe('getPreviousNPPeriodString()' /* function */, () => {
+    test('2025-W01 - week -> 2024-W52', () => {
+      expect(dt.getPreviousNPPeriodString('2025-W01', 'week')).toEqual('2024-W52')
+    })
+    test('2026-03-28 - day -> 2026-03-27', () => {
+      expect(dt.getPreviousNPPeriodString('2026-03-28', 'day')).toEqual('2026-03-27')
+    })
+    test('2027-01 - month -> 2026-12', () => {
+      expect(dt.getPreviousNPPeriodString('2027-01', 'month')).toEqual('2026-12')
+    })
+    test('2025-Q1 - quarter -> 2024-Q4', () => {
+      expect(dt.getPreviousNPPeriodString('2025-Q1', 'quarter')).toEqual('2024-Q4')
+    })
+    test('2025Q1 - quarter compact in -> 2024Q4 out', () => {
+      expect(dt.getPreviousNPPeriodString('2025Q1', 'quarter')).toEqual('2024Q4')
+    })
+    test('2025 - year -> 2024', () => {
+      expect(dt.getPreviousNPPeriodString('2025', 'year')).toEqual('2024')
+    })
+  })
 })

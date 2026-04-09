@@ -711,17 +711,20 @@ export function getWindowFromId(windowId: string): TEditor | HTMLView | false {
  * @returns {TEditor | HTMLView | false} the matching window object or false if not found
  */
 export function getWindowFromCustomId(windowCustomId: string): TEditor | HTMLView | false {
-  // First loop over all Editor windows
+  // First loop over all Editor windows (match rules aligned with getWindowIdFromCustomId)
   const allEditorWindows = NotePlan.editors
   for (const thisWindow of allEditorWindows) {
-    if (thisWindow.customId === windowCustomId) {
+    if (
+      caseInsensitiveMatch(windowCustomId, thisWindow.customId) ||
+      caseInsensitiveStartsWith(windowCustomId, thisWindow.customId)
+    ) {
       return thisWindow
     }
   }
   // And if not found so far, then all HTML windows
   const allHTMLWindows = NotePlan.htmlWindows
   for (const thisWindow of allHTMLWindows) {
-    if (thisWindow.customId === windowCustomId) {
+    if (caseInsensitiveMatch(windowCustomId, thisWindow.customId)) {
       return thisWindow
     }
   }
@@ -734,18 +737,21 @@ export function getWindowFromCustomId(windowCustomId: string): TEditor | HTMLVie
  * @param {string} windowCustomId
  */
 export function closeWindowFromCustomId(windowCustomId: string): void {
-  // First loop over all Editor windows
+  // First loop over all Editor windows (match rules aligned with getWindowIdFromCustomId)
   let thisWin: TEditor | HTMLView
   const allEditorWindows = NotePlan.editors
   for (const thisWindow of allEditorWindows) {
-    if (thisWindow.customId === windowCustomId) {
+    if (
+      caseInsensitiveMatch(windowCustomId, thisWindow.customId) ||
+      caseInsensitiveStartsWith(windowCustomId, thisWindow.customId)
+    ) {
       thisWin = thisWindow
     }
   }
   // And if not found so far, then all HTML windows
   const allHTMLWindows = NotePlan.htmlWindows
   for (const thisWindow of allHTMLWindows) {
-    if (thisWindow.customId === windowCustomId) {
+    if (caseInsensitiveMatch(windowCustomId, thisWindow.customId)) {
       thisWin = thisWindow
     }
   }

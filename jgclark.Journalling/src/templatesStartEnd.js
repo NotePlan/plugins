@@ -2,12 +2,12 @@
 //---------------------------------------------------------------
 // Add Templates to Periodic notes at start and end of period
 // Jonathan Clark
-// last update 2025-11-01 for v1.15.2 by @jgclark
+// last update 2026-04-05 for v0.1.0 by @jgclark
 //---------------------------------------------------------------
 
 import { type JournalConfigType, getJournalSettings } from './journalHelpers'
 import { isDailyNote, isMonthlyNote, isWeeklyNote } from '@helpers/dateTime'
-import { logDebug, logError, logInfo } from '@helpers/dev'
+import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getAttributes } from '@helpers/NPFrontMatter'
 import { showMessage } from '@helpers/userInput'
@@ -74,36 +74,48 @@ async function renderAndInsertTemplate(
   templateTitle: string,
   commandName: string,
 ): Promise<void> {
-  // Render the template, using recommended decoupled method of invoking a different plugin
-  const result = await DataStore.invokePluginCommandByName('renderTemplate', 'np.Templating', [templateTitle])
-  // TEST: turning off error message for now, as it fires on Templates that only do background work.
-  // if (result == null || result === '') {
-  //   throw new Error(`No result from running Template '${templateTitle}'. Stopping.`)
-  // }
-  
-  // Work out where to insert it in the note, by reading the template, and checking
-  // the frontmatter attributes for a 'location' field (append/insert/cursor)
-  const attrs = getAttributes(templateData, true)
-  const requestedTemplateLocation = attrs.location ?? 'insert'
-  let pos = 0
-  switch (requestedTemplateLocation) {
-    case 'insert': {
-      logDebug(commandName, `- Will insert to start of Editor`)
-      Editor.insertTextAtCharacterIndex(result, 0)
-      break
+  try {
+    if (!templateData || templateData === '') {
+      logWarn('renderAndInsertTemplate', `templateData is null or empty. Stopping.`)
+      return
     }
-    case 'append': {
-      pos = Editor.content?.length ?? 0 // end
-      logDebug(commandName, `- Will insert to end of Editor (pos ${pos})`)
-      Editor.insertTextAtCharacterIndex(result, pos)
-      break
+    // Render the template, using recommended decoupled method of invoking a different plugin
+    const resultingTextContent = (await DataStore.invokePluginCommandByName('renderTemplate', 'np.Templating', [templateTitle])).trim()
+    // If no resulting text, or just a newline, then stop early, to try to avoid race conditions for tag-only templates.
+    if (resultingTextContent == null || resultingTextContent === '' || resultingTextContent === '\n') {
+      logDebug('renderAndInsertTemplate', `No resulting text from running Template '${templateTitle}'. Stopping.`)
+      return
+    } else {
+      logDebug('renderAndInsertTemplate', `Successfully rendered Template '${templateTitle}' -> ${resultingTextContent.length} characters.`)
     }
-    // Note: unsure if this works.
-    case 'cursor': {
-      logDebug(commandName, `- Will insert to Editor at cursor position`)
-      Editor.insertTextAtCursor(result)
-      break
+    
+    // Work out where to insert it in the note, by reading the template, and checking
+    // the frontmatter attributes for a 'location' field (append/insert/cursor)
+    const attrs = getAttributes(templateData, true)
+    const requestedTemplateLocation = attrs.location ?? 'insert'
+    let pos = 0
+    switch (requestedTemplateLocation) {
+      case 'insert': {
+        logDebug(commandName, `- Will insert to start of Editor`)
+        Editor.insertTextAtCharacterIndex(resultingTextContent, 0)
+        break
+      }
+      case 'append': {
+        pos = Editor.content?.length ?? 0 // end
+        logDebug(commandName, `- Will insert to end of Editor (pos ${pos})`)
+        Editor.insertTextAtCharacterIndex(resultingTextContent, pos)
+        break
+      }
+      // Note: unsure if this works.
+      case 'cursor': {
+        logDebug(commandName, `- Will insert to Editor at cursor position`)
+        Editor.insertTextAtCursor(resultingTextContent)
+        break
+      }
     }
+  } catch (error) {
+    logError('renderAndInsertTemplate', error.message)
+    await showMessage(`Error: ${error.message}`)
   }
 }
 

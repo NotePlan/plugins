@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md",
-  "plugin.version": "2.0.0.b6",
+  "plugin.version": "2.0.0.b7",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "v2.0.0: First release of the new Journalling & Reviews plugin, but building on earlier 'Journalling Helpers' plugin (v1).",
   "plugin.requiredFiles": [
@@ -264,7 +264,7 @@
       "title": "Weekly Review/Journal Questions",
       "description": "String that includes both the Journal/Review questions and how to lay out the answers in the weekly note.\nSee 'Daily Review/ Journal Questions' above for details.",
       "type": "string",
-      "default": "## Weekly Review for <date>\nWins: <string>\nNew or improved: <string>\nChallenges: <string>",
+      "default": "## Weekly Review for <date>\nWins: <bullets>\nNew or improved: <bullets>\nChallenges: <bullets>",
       "required": false
     },
     {

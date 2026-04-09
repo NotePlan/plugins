@@ -3,6 +3,13 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
+## [2.0.0.b7] - 2026-04-05
+- Review summary: Done tasks whose body starts with `>>` (after the task marker and optional `!` priorities) count as **wins** for the period, same as `#win` / `#bigwin`, without needing a “Wins” section. They appear in the same **completed tasks** list as other done items (wins first), not duplicated. **Weekly/monthly/quarterly/yearly** summaries use the same win rules when listing done tasks for the period (even if there are no carry-over plan items).
+- Review window: Fix daily summary layout when carry-over plan items exist.
+- Review window: Fix `<h2>…` / `<h3>…` question lines being split by the flex segment matcher, leaving text fragments.
+- dev: Refactor review flow — `reviewQuestions.js` (parse / pre-fill / answer output), more helpers in `journalHelpers.js`, slimmer `periodReviews.js`; shared segment regex for HTML + parser; `writeAnswersToNote` is module-private.
+- dev: Update Template handling in applyTemplateToNote() to not make any Editor inserts if there's nothing to insert. Aim: avoid race conditions.
+
 ## [2.0.0.b6] - 2026-04-04
 - `<date>` / `<datenext>` / `<nextdate>` are now substituted in heading and label text taken from parsed questions (e.g. `## Weekly Review for <date>`), not only in the raw template line—so the window matches the period title.
 - **Planning vs reviewing:** New settings name planned items per period (daily through yearly, with defaults such as “Big 3 Rocks”, “Top 3 Wins”, etc.). The review window shows a **Summary** block (carry-over plan tasks from this note as open/complete icons, then the usual daily completed-task and event summary). 

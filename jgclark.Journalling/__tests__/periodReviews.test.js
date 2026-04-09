@@ -3,20 +3,23 @@
 // Last updated: 2026-03-25 for v2.0.0.b3 by @Cursor
 
 import {
-  buildInitialReviewAnswersByFieldName,
-  buildOutputFromReviewWindowAnswers,
-  extractPlanSectionTaskItems,
-  normalizePlanningTaskLinesFromForm,
-  parseQuestions,
-} from '../src/periodReviews'
-import { buildReviewHTML } from '../src/reviewHTMLViewGenerator'
-import {
   buildNextPeriodNotePlanSectionHeadingTitle,
   buildNextPlanSectionHeadingTitle,
   getPeriodAdjectiveFromType,
   getPlanItemsNameForPeriodType,
+  mergeUniqueSummaryDoneTaskLines,
+  normalizePlanningTaskLinesFromForm,
+  splitMergedSummaryDoneLinesIntoWinsAndOthers,
   substituteReviewPeriodPlaceholders,
+  summaryTaskLineDedupeKey,
 } from '../src/journalHelpers'
+import { extractPlanSectionItems, taskContentIsSummaryWin } from '../src/periodReviews'
+import { buildReviewHTML } from '../src/reviewHTMLViewGenerator'
+import {
+  buildInitialReviewAnswersByFieldName,
+  buildOutputFromReviewWindowAnswers,
+  parseQuestions,
+} from '../src/reviewQuestions'
 import { DataStore } from '@mocks/index'
 
 beforeAll(() => {
@@ -211,6 +214,7 @@ Wins: <string>`
         parsedQuestions,
         rawLines,
         [],
+        [],
         '2026-W13',
         'week',
         [],
@@ -219,8 +223,146 @@ Wins: <string>`
         {},
         [],
       )
-      expect(html).toContain('Weekly Review for 2026-W13')
+      expect(html).toContain('Weekly Review for')
+      expect(html).toContain('2026-W13')
       expect(html).not.toContain('&lt;date&gt;')
+    })
+
+    it('should render a typed `<h2>…` line as one heading (segment regex must not split after the first word)', () => {
+      const raw = `<h2>Stats for <date>
+Mood: <mood>`
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const html = buildReviewHTML(
+        { moods: 'Calm,Busy' },
+        parsedQuestions,
+        rawLines,
+        [],
+        [],
+        '2026-04-06',
+        'day',
+        [],
+        'onReviewWindowAction',
+        'Big Wins',
+        {},
+        [],
+      )
+      expect(html).toContain('Stats for 2026-04-06')
+      expect(html).not.toContain('review-line-text-fragment"> for 2026-04-06</span>')
+    })
+
+    it('should keep daily completed-tasks and events inside #summary section-wrap when carry-over plan items exist', () => {
+      const raw = `## Stats for <date>
+Mood: <mood>`
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const eventsForPeriod = [
+        {
+          title: 'Pray for Jill',
+          date: new Date('2026-04-07T10:00:00'),
+          endDate: new Date('2026-04-07T10:18:00'),
+          isAllDay: false,
+        },
+      ]
+      const html = buildReviewHTML(
+        { moods: 'Calm,Busy' },
+        parsedQuestions,
+        rawLines,
+        [],
+        [],
+        '2026-04-07',
+        'day',
+        eventsForPeriod,
+        'onReviewWindowAction',
+        'Wins',
+        {},
+        [{ content: 'Rest day', isDone: false }],
+      )
+      const summaryMarker = 'id="summary">'
+      const summaryStart = html.indexOf(summaryMarker)
+      expect(summaryStart).toBeGreaterThan(-1)
+      const afterSummary = html.slice(summaryStart + summaryMarker.length)
+      const formIdx = afterSummary.indexOf('<form id="review-form"')
+      expect(formIdx).toBeGreaterThan(-1)
+      const summaryInner = afterSummary.slice(0, formIdx)
+      const completedIdx = summaryInner.indexOf('completed tasks')
+      expect(completedIdx).toBeGreaterThan(-1)
+      let depth = 1
+      const upToCompleted = summaryInner.slice(0, completedIdx)
+      const re = /<\/div\s*>|<div\b/gi
+      let m
+      while ((m = re.exec(upToCompleted)) !== null) {
+        if (m[0].startsWith('</')) depth--
+        else depth++
+      }
+      expect(depth).toBeGreaterThan(0)
+    })
+
+    it('should list wins first then "other completed task(s)" heading and other dones (daily, each once)', () => {
+      const raw = `Mood: <mood>`
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const html = buildReviewHTML(
+        { moods: 'Calm,Busy' },
+        parsedQuestions,
+        rawLines,
+        ['* >> Planned win @done(2026-04-07)'],
+        ['Plain task @done(2026-04-07)'],
+        '2026-04-07',
+        'day',
+        [],
+        'onReviewWindowAction',
+        'Big Wins',
+        {},
+        [],
+      )
+      expect(html.indexOf('summary-content-wins')).toBe(-1)
+      expect(html).toContain('summary-content-completed-tasks')
+      expect(html).toContain('1 other completed task')
+      expect(html).not.toMatch(/\b2 completed tasks\b/)
+      expect(html.indexOf('Planned win')).toBeLessThan(html.indexOf('other completed'))
+      expect(html.indexOf('other completed')).toBeLessThan(html.indexOf('Plain task'))
+    })
+  })
+
+  describe('splitMergedSummaryDoneLinesIntoWinsAndOthers', () => {
+    it('should split merged list after last leading win line', () => {
+      const merged = [
+        '* >> Win @done(2026-04-08)',
+        'Plain @done(2026-04-08)',
+      ]
+      const { wins, others } = splitMergedSummaryDoneLinesIntoWinsAndOthers(merged)
+      expect(wins).toEqual(['* >> Win @done(2026-04-08)'])
+      expect(others).toEqual(['Plain @done(2026-04-08)'])
+    })
+  })
+
+  describe('mergeUniqueSummaryDoneTaskLines', () => {
+    it('should keep win order, drop duplicate keys, and omit lines matching carry-over text', () => {
+      const wins = ['* >> A @done(2026-04-08)', '  * >> A @done(2026-04-08)  ']
+      const rest = ['B @done(2026-04-08)', 'B @done(2026-04-08)']
+      expect(mergeUniqueSummaryDoneTaskLines(wins, rest, [])).toEqual(['* >> A @done(2026-04-08)', 'B @done(2026-04-08)'])
+      expect(
+        mergeUniqueSummaryDoneTaskLines(['x @done'], ['y'], [{ content: 'x @done', isDone: false }]),
+      ).toEqual(['y'])
+    })
+
+    it('should treat summaryTaskLineDedupeKey as trim-only', () => {
+      expect(summaryTaskLineDedupeKey('  hello  ')).toBe('hello')
+    })
+  })
+
+  describe('taskContentIsSummaryWin', () => {
+    it('should treat >> after optional task marker and priorities as a win', () => {
+      expect(taskContentIsSummaryWin('* >> Ship it @done(2026-04-08)')).toBe(true)
+      expect(taskContentIsSummaryWin('>> Ship it @done(2026-04-08)')).toBe(true)
+      expect(taskContentIsSummaryWin('! >> Ship @done(2026-04-08)')).toBe(true)
+      expect(taskContentIsSummaryWin('Regular task @done(2026-04-08)')).toBe(false)
+    })
+
+    it('should treat #win / #bigwin as wins regardless of >>', () => {
+      expect(taskContentIsSummaryWin('Launched #win @done(2026-04-08)')).toBe(true)
+      expect(taskContentIsSummaryWin('Big thing #bigwin @done(2026-04-08)')).toBe(true)
     })
   })
 
@@ -288,6 +430,30 @@ Ship: <tasks>`,
       const lines = ['@focus(1:45)']
       const initial = buildInitialReviewAnswersByFieldName(questions, lines)
       expect(initial.q_0).toBe('1:45')
+    })
+
+    it('should extract token duration answers even when template segment has extra prefix text', () => {
+      const config = { dailyReviewQuestions: 'Health: @sleep(<duration>) @fruitveg(<int>)' }
+      const questions = parseQuestions(config.dailyReviewQuestions)
+      const lines = ['@sleep(7:52)']
+      const initial = buildInitialReviewAnswersByFieldName(questions, lines)
+      expect(initial.q_0).toBe('7:52')
+    })
+
+    it('should extract token int answers even when template segment has extra prefix text', () => {
+      const config = { dailyReviewQuestions: 'Health: @sleep(<duration>) @fruitveg(<int>)' }
+      const questions = parseQuestions(config.dailyReviewQuestions)
+      const lines = ['@fruitveg(5)']
+      const initial = buildInitialReviewAnswersByFieldName(questions, lines)
+      expect(initial.q_1).toBe('5')
+    })
+
+    it('should extract token number answers even when template segment has extra prefix text', () => {
+      const config = { dailyReviewQuestions: 'Stats: @weight(<number>)' }
+      const questions = parseQuestions(config.dailyReviewQuestions)
+      const lines = ['@weight(6.8)']
+      const initial = buildInitialReviewAnswersByFieldName(questions, lines)
+      expect(initial.q_0).toBe('6.8')
     })
   })
 
@@ -447,8 +613,8 @@ Ship: <tasks>`,
 
     it('getPlanItemsNameForPeriodType should use defaults when config keys missing or blank', () => {
       const minimal = {}
-      expect(getPlanItemsNameForPeriodType(minimal, 'day')).toBe('Big 3 Rocks')
-      expect(getPlanItemsNameForPeriodType(minimal, 'week')).toBe('Top 3 Wins')
+      expect(getPlanItemsNameForPeriodType(minimal, 'day')).toBe('Big Rocks')
+      expect(getPlanItemsNameForPeriodType(minimal, 'week')).toBe('Top Wins')
       const custom = { weekPlanItemsName: 'Wins' }
       expect(getPlanItemsNameForPeriodType(custom, 'week')).toBe('Wins')
     })
@@ -459,7 +625,7 @@ Ship: <tasks>`,
       expect(normalizePlanningTaskLinesFromForm('>> solo')).toEqual(['solo'])
     })
 
-    it('extractPlanSectionTaskItems should read open and done tasks under matching H2', () => {
+    it('extractPlanSectionItems should read open and done tasks under matching H2', () => {
       const heading = 'Top 3 Wins for the next week'
       const note = {
         paragraphs: [
@@ -468,7 +634,7 @@ Ship: <tasks>`,
           { type: 'done', content: '* >> Second @done(2026-03-30)', lineIndex: 2 },
         ],
       }
-      const items = extractPlanSectionTaskItems(note, heading)
+      const items = extractPlanSectionItems(note, heading)
       expect(items.length).toBe(2)
       expect(items[0].isDone).toBe(false)
       expect(items[1].isDone).toBe(true)

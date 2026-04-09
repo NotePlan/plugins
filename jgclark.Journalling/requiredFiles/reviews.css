@@ -4,6 +4,10 @@ body {
   color: var(--fg-main-color, #4c4f69);
   background-color: var(--bg-main-color, #eff1f5);
   margin: 1.0rem;
+
+  /* Basic common HTML 'resets' */
+  scrollbar-gutter: stable;
+  interpolate-size: allow-keywords;
 }
 
 .section-wrap {
@@ -50,6 +54,17 @@ body {
   color: var(--h2-color, #5c5f77);
 }
 
+.review-title-period-with-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.review-period-step-button {
+  padding: 0rem 0.2rem;
+  font-weight: 600;
+}
+
 .summary {
   display: flex;
   flex-direction: column;
@@ -66,7 +81,7 @@ body {
   column-count: 2;
   column-gap: 1rem;
   font-size: 0.85rem;
-  margin-left: 0.25rem;
+  margin-left: 1.0rem; /* 0.25rem; */
   margin-bottom: 0.35rem;
 }
 

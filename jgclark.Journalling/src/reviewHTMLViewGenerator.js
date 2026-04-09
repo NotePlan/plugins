@@ -12,9 +12,11 @@ import {
   buildNextPlanSectionHeadingTitle,
   buildThisPlanSectionHeadingTitle,
   getPeriodAdjectiveFromType,
-  REVIEW_QUESTION_TYPE_NAMES_ALT,
+  mergeUniqueSummaryDoneTaskLines,
+  splitMergedSummaryDoneLinesIntoWinsAndOthers,
   substituteReviewPeriodPlaceholders,
 } from './journalHelpers'
+import { getReviewQuestionSegmentRegExpGi } from './reviewQuestions'
 import { RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 import { getTaskPriority } from '@helpers/paragraph'
@@ -49,12 +51,6 @@ const useFlexbox = true
 
 // Types of questions that use a block layout in the review window.
 const blockRowTypes = ['string', 'subheading', 'h2', 'h3', 'bullets', 'checklists', 'tasks']
-
-// Keep in sync with parseQuestions() in journal.js (segment extraction).
-const REVIEW_SEGMENT_RE = new RegExp(
-  `[^<]*?<\\s*(?:${REVIEW_QUESTION_TYPE_NAMES_ALT})\\s*>\\)?[^\\s]*`,
-  'gi',
-)
 
 /** Remove @done(…) from summary lines (date with optional time), global. */
 const RE_DONE_MENTION_STRIP_FOR_SUMMARY_G = new RegExp(RE_DONE_DATE_OPT_TIME.source, 'gi')
@@ -230,10 +226,15 @@ function makeQuestionLineDiv(
     .filter(({ q }) => q.lineIndex === lineIndex)
 
   const headingTypes = ['subheading', 'h2', 'h3']
-  const isHeadingOnlyLine = !cleanRawLine.includes('<')
-    && lineQuestionsOrdered.length > 0
-    && lineQuestionsOrdered.every(({ q }) => headingTypes.includes(q.type))
-  if (isHeadingOnlyLine) {
+  const lineHasOnlyHeadingQuestions =
+    lineQuestionsOrdered.length > 0 && lineQuestionsOrdered.every(({ q }) => headingTypes.includes(q.type))
+  // `##` / `###` lines have no angle-bracket markup; `<h2>…` / `<h3>…` lines do — both must use the
+  // heading path. Otherwise `getReviewQuestionSegmentRegExpGi` matches `<h2>` as a “typed segment”
+  const isMarkdownStyleHeadingLine = lineHasOnlyHeadingQuestions && !cleanRawLine.includes('<')
+  const isTypedOpenTagHeadingLine =
+    lineHasOnlyHeadingQuestions &&
+    (/^\s*<\s*h2\s*>/i.test(cleanRawLine) || /^\s*<\s*h3\s*>/i.test(cleanRawLine))
+  if (isMarkdownStyleHeadingLine || isTypedOpenTagHeadingLine) {
     return lineQuestionsOrdered
       .map(({ q, globalIndex }) => makeReviewQuestionRowDiv(q, globalIndex, config, '', periodString, periodType))
       .join('\n')
@@ -242,8 +243,9 @@ function makeQuestionLineDiv(
   const parts: Array<string> = []
   let lastIndex = 0
   let segmentOrdinal = 0
-  REVIEW_SEGMENT_RE.lastIndex = 0
-  let match = REVIEW_SEGMENT_RE.exec(cleanRawLine)
+  const segmentRe = getReviewQuestionSegmentRegExpGi()
+  segmentRe.lastIndex = 0
+  let match = segmentRe.exec(cleanRawLine)
   while (match !== null) {
     if (match.index > lastIndex) {
       parts.push(`<span class="review-line-text-fragment">${escapeHTML(cleanRawLine.slice(lastIndex, match.index))}</span>`)
@@ -254,7 +256,7 @@ function makeQuestionLineDiv(
     if (!pair) {
       parts.push(`<span class="review-line-text-fragment">${escapeHTML(match[0])}</span>`)
       lastIndex = match.index + match[0].length
-      match = REVIEW_SEGMENT_RE.exec(cleanRawLine)
+      match = segmentRe.exec(cleanRawLine)
       continue
     }
     const { q: pq, globalIndex } = pair
@@ -272,7 +274,7 @@ function makeQuestionLineDiv(
       )
     }
     lastIndex = match.index + match[0].length
-    match = REVIEW_SEGMENT_RE.exec(cleanRawLine)
+    match = segmentRe.exec(cleanRawLine)
   }
 
   if (lastIndex < cleanRawLine.length) {
@@ -348,20 +350,60 @@ function makeCarryOverPlanSummaryContentDiv(
       </div>`)
       }
     })
-    rows.push(`</div>`)
   } else {
     rows.push(`<span class="summary-empty">No planned items found for this period</span>`)
   }
+  // Single close for summary-content — avoid an extra </div> when items exist (that closed section-wrap early).
   rows.push(`</div>`)
   return rows.join('\n')
 }
 
 /**
- * Summary card: optional carry-over plan tasks, then (daily only) completed-task wins + calendar events.
+ * HTML list rows for done tasks in the summary (wins or completed — same markup).
+ * @param {Array<string>} taskLines
+ * @returns {string}
+ */
+function formatSummaryTaskItemsHTML(taskLines: Array<string>): string {
+  return taskLines
+    .map(
+      (taskLine) => `
+      <div class="summary-item">
+        <i aria-hidden="true" class="summary-item-completed-icon fa-regular fa-circle-check"></i>
+        <span class="summary-item-text">${formatTaskAsHTML(taskLine)}</span>
+      </div>`,
+    )
+    .join('\n')
+}
+
+/**
+ * Singular or plural "task" / "tasks" for summary counts (0 uses "tasks").
+ * @param {number} count
+ * @returns {string}
+ */
+function pluralCompletedTaskWord(count: number): string {
+  return count === 1 ? 'task' : 'tasks'
+}
+
+/**
+ * Title row for the done-task summary: plain "N completed task(s)", or "N other completed task(s)" after a wins block.
+ * @param {number} lineCount
+ * @param {'plain' | 'other'} variant
+ * @returns {string}
+ */
+function formatCompletedTasksSummaryHeading(lineCount: number, variant: 'plain' | 'other'): string {
+  const w = pluralCompletedTaskWord(lineCount)
+  if (variant === 'other') {
+    return `${lineCount} other completed ${w}`
+  }
+  return `${lineCount} completed ${w}`
+}
+
+/**
+ * Summary card: optional carry-over plan tasks, then one completed-task list (wins first: #win / #bigwin / `>>`, then other dones; each line once) and (daily only) calendar events.
  * @param {string} periodType
- * @param {string} periodString
  * @param {Array<{ content: string, isDone: boolean }>} carryOverPlanItems
- * @param {Array<string>} completedTasks
+ * @param {Array<string>} winTasks
+ * @param {Array<string>} completedTasks non-win completed tasks (daily only)
  * @param {Array<TCalendarItem>} eventsForPeriod
  * @returns {string} HTML for section-wrap or ''
  */
@@ -369,12 +411,18 @@ function buildReviewSummarySectionHTML(
   periodType: string,
   carryOverPlanItems: Array<{ content: string, isDone: boolean }>,
   planningSectionTitle: string,
+  winTasks: Array<string>,
   completedTasks: Array<string>,
   eventsForPeriod: Array<TCalendarItem>,
 ): string {
   const hasCarryOver = carryOverPlanItems.length > 0
   const isDay = periodType === 'day'
-  if (!hasCarryOver && !isDay) {
+  const carryKeysOnly: Array<{ content: string }> = carryOverPlanItems.map((c) => ({ content: c.content }))
+  /** Full list: unique wins (not in carry) first, then unique non-wins — same order as mergeUniqueSummaryDoneTaskLines. */
+  const mergedCompletedLines: Array<string> = mergeUniqueSummaryDoneTaskLines(winTasks, completedTasks, carryKeysOnly)
+  /** Split by the same win rules as note scanning (not by merge prefix length — avoids runtime mismatch). */
+  const { wins: mergedWinsLines, others: mergedOtherLines } = splitMergedSummaryDoneLinesIntoWinsAndOthers(mergedCompletedLines)
+  if (!hasCarryOver && !isDay && mergedCompletedLines.length === 0) {
     return ''
   }
   const parts: Array<string> = [
@@ -382,22 +430,37 @@ function buildReviewSummarySectionHTML(
   ]
   const carryBlock = makeCarryOverPlanSummaryContentDiv(planningSectionTitle, carryOverPlanItems)
   parts.push(carryBlock)
+
+  const pushDoneTasksSummaryBlocks = () => {
+    if (mergedCompletedLines.length === 0) {
+      parts.push(`<div class="summary-title">${formatCompletedTasksSummaryHeading(0, 'plain')}</div>`)
+      parts.push(
+        `<div class="summary-content summary-content-completed-tasks">\n<div class="summary-empty">No completed tasks found during the ${periodType}</div>\n</div>`,
+      )
+      return
+    }
+    if (mergedWinsLines.length > 0 && mergedOtherLines.length > 0) {
+      parts.push(
+        `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(mergedWinsLines)}\n</div>`,
+      )
+      parts.push(`<div class="summary-title">${formatCompletedTasksSummaryHeading(mergedOtherLines.length, 'other')}</div>`)
+      parts.push(
+        `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(mergedOtherLines)}\n</div>`,
+      )
+      return
+    }
+    const singleBlockLines = mergedWinsLines.length > 0 ? mergedWinsLines : mergedOtherLines
+    parts.push(`<div class="summary-title">${formatCompletedTasksSummaryHeading(singleBlockLines.length, 'plain')}</div>`)
+    parts.push(
+      `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(singleBlockLines)}\n</div>`,
+    )
+  }
+
   if (isDay) {
-    const summaryItems =
-      completedTasks.length > 0
-        ? completedTasks
-            .map(
-              (taskLine) => `
-      <div class="summary-item">
-        <i aria-hidden="true" class="summary-item-completed-icon fa-regular fa-circle-check"></i>
-        <span class="summary-item-text">${formatTaskAsHTML(taskLine)}</span>
-      </div>`,
-            )
-            .join('\n')
-        : `<div class="summary-empty">No completed tasks found during the ${periodType}</div>`
-    parts.push(`<div class="summary-title">${completedTasks.length} completed tasks</div>`)
-    parts.push(`<div class="summary-content summary-content-completed-tasks">\n${summaryItems}\n</div>`)
+    pushDoneTasksSummaryBlocks()
     parts.push(makePeriodDaysSummaryDiv(eventsForPeriod))
+  } else if (mergedCompletedLines.length > 0) {
+    pushDoneTasksSummaryBlocks()
   }
   parts.push('</div>')
   return parts.join('\n')
@@ -484,7 +547,7 @@ function makeReviewQuestionRowDiv(
       break
     }
     case 'string': {
-      control = `<textarea class="review-input" id="${fieldName}" name="${fieldName}" rows="2">${escapeHTML(initialValue)}</textarea>`
+      control = `<textarea class="review-input" id="${fieldName}" name="${fieldName}" rows="3">${escapeHTML(initialValue)}</textarea>`
       break
     }
     case 'bullets':
@@ -508,7 +571,8 @@ function makeReviewQuestionRowDiv(
  * @param {JournalConfigType} config
  * @param {Array<ParsedQuestionType>} parsedQuestions same order as parseQuestions(rawQuestionLines) (field names q_0 …)
  * @param {Array<string>} rawQuestionLines lines from getQuestionsForPeriod()
- * @param {Array<string>} summaryCompletedTasks
+ * @param {Array<string>} summaryWinTasks done tasks tagged as wins (#win / #bigwin / `>>`); listed first in the single summary list
+ * @param {Array<string>} summaryCompletedTasks other done tasks (daily only; excludes win lines)
  * @param {string} periodString the calendar note title string for the review period
  * @param {string} periodType
  * @param {Array<TCalendarItem>} eventsForPeriod
@@ -521,6 +585,7 @@ export function buildReviewHTML(
   config: JournalConfigType,
   parsedQuestions: Array<ParsedQuestionType>,
   rawQuestionLines: Array<string>,
+  summaryWinTasks: Array<string>,
   summaryCompletedTasks: Array<string>,
   periodString: string,
   periodType: string,
@@ -546,6 +611,7 @@ export function buildReviewHTML(
     periodType,
     resolvedCarryOver,
     plannedSectionTitle,
+    summaryWinTasks,
     summaryCompletedTasks,
     eventsForPeriod,
   )
@@ -553,7 +619,12 @@ export function buildReviewHTML(
 
   return `
     <div class="review-title-row">
-      <h2 class="review-title">${escapeHTML(periodAdjective)} Review for ${escapeHTML(periodString)}</h2>
+      <div class="h2 review-title">
+        <span class="review-title-label">${escapeHTML(periodAdjective)} Review for
+        <button class="review-period-step-button" type="button" id="review-period-prev" title="Previous period" aria-label="Previous period"><i class="fa-regular fa-angle-left"></i></button>
+        ${escapeHTML(periodString)}
+        <button class="review-period-step-button" type="button" id="review-period-next" title="Next period" aria-label="Next period"><i class="fa-regular fa-angle-right"></i></button>
+      </div>
       <div class="review-title-row-actions">
         <button class="review-button" type="button" id="review-refresh" title="Reload questions and summary from the note">Refresh</button>
       </div>
@@ -627,6 +698,8 @@ export function buildReviewHTML(
       const cancelButton = document.getElementById('review-cancel')
       const submitButton = document.getElementById('review-submit')
       const refreshBtn = document.getElementById('review-refresh')
+      const periodPrevBtn = document.getElementById('review-period-prev')
+      const periodNextBtn = document.getElementById('review-period-next')
 
       /**
        * Collect answers from the review form and return as a JSON string.
@@ -673,6 +746,15 @@ export function buildReviewHTML(
         }])
       }
 
+      function navigatePeriod(direction) {
+        console.log("HTMLView: navigatePeriod(" + direction + ") called")
+        sendToPlugin('${callbackCommandName}', '${pluginJson['plugin.id']}', ['navigatePeriod', {
+          periodType: ${JSON.stringify(periodType)},
+          periodString: ${JSON.stringify(periodString)},
+          direction: direction,
+        }])
+      }
+
       const firstInputControl = reviewForm.querySelector('textarea, input:not([type="hidden"]), select')
       if (firstInputControl && typeof firstInputControl.focus === 'function') {
         firstInputControl.focus()
@@ -691,6 +773,16 @@ export function buildReviewHTML(
       if (refreshBtn) {
         refreshBtn.addEventListener('click', function () {
           refreshReview()
+        })
+      }
+      if (periodPrevBtn) {
+        periodPrevBtn.addEventListener('click', function () {
+          navigatePeriod('prev')
+        })
+      }
+      if (periodNextBtn) {
+        periodNextBtn.addEventListener('click', function () {
+          navigatePeriod('next')
         })
       }
     </script>
