@@ -1,16 +1,18 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
-## [2.0.0.b16] - 2026-03-???
+## [2.0.0.b16] - 2026-03-11???
+- further layout improvements to top bar and edit dialog when project list displayed in a very narrow window
+- remove `nextReview` frontmatter when pausing, completing, or cancelling a project
+- change the sorting order for "(first) project tag" to come in the order that they're defined in setting "Project Display order", rather than simple alphabetical order (for @Doug)
+- ??? something about titles and FM
 - dev: extract `migrateProjectMetadataLineCore` in reviewHelpers.js for Editor vs Note migration paths
 - dev: extract `startReviewCoreLogic` in reviews.js for `startReviews`, `startReviewForNote`, and `finishReviewAndStartNextReview`
-- further layout improvements to top bar and edit dialog  when project list displayed in a very narrow window
-- remove `nextReview` frontmatter when pausing, completing, or cancelling a project
 - dev: when pausing, update reviewed date and remove `nextReview` only; leave other separate frontmatter keys unchanged (full sync still used for complete/cancel/migration). Always apply frontmatter key removals after `updateFrontMatterVars` so `nextReview` is removed even if that helper returns false.
 - dev: consolidate `updateProjectMetadata` and `updateFrontmatterMetadataFromFields` into a single method (structured frontmatter + optional plain body paragraph update)
 
 ## [2.0.0.b15] - 2026-03-29
-- add '(first) Project tag' as a sort order
+- add "(first) Project tag" as a sort order
 - dev: remove .projectTag and instead always use .allProjectTags.
 - fix `null% done` when no completed or open tasks.
 

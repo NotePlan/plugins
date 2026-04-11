@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-03-27 for v1.4.0.b15, @jgclark
+// Last updated 2026-04-11 for v1.4.0.b16, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -123,7 +123,7 @@ function getLeadingProjectTag(project: Project | any): string {
 
 /**
  * Build sorting specification array based on config.
- * - firstTag mode: lexicographic on primary tag > nextReviewDays > Title
+ * - firstTag mode: primary tag order per config.projectTypeTags > nextReviewDays > Title
  * - review mode: nextReviewDays > Title
  * - due mode: dueDays > Title
  * - title mode: Title
@@ -140,7 +140,7 @@ export function buildSortingSpecification(
   }
   switch (config.displayOrder) {
     case 'firstTag':
-      sortingSpec.push('firstProjectTagForSort', 'nextReviewDays', 'title')
+      sortingSpec.push('projectTagOrder', 'nextReviewDays', 'title')
       break
     case 'review':
       sortingSpec.push('nextReviewDays', 'title')
@@ -676,7 +676,7 @@ export async function filterProjectsList(
 
 /**
  * Sort a list of Projects by config-driven keys (see buildSortingSpecification), unless overridden by parameter 'sortingOrder'.
- * Mutates each project to add projectTagOrder (for debug logging) and firstProjectTagForSort when displayOrder is 'firstTag'.
+ * Mutates each project to add projectTagOrder (index in config.projectTypeTags for firstTag sort; for debug logging otherwise).
  * @param {Array<Project>} projectInstances projects to sort (e.g. from filterProjectsList)
  * @param {ReviewConfig} config
  * @param {Array<string>?} sortingOrder array of field names to sort by; if given overrides the default sorting order from the Reviews plugin. (Optional)
@@ -688,14 +688,12 @@ export function sortProjectsList(
   sortingOrder: Array<string> = [],
 ): Array<Project> {
   logDebug('sortProjectsList', `Starting with input sortingOrder: [${String(sortingOrder)}]`)
-  // Start by extending Project class with firstProjectTagForSort and projectTagOrder properties
+  const projectTypeTagsForOrder =
+    config.projectTypeTags != null && typeof config.projectTypeTags === 'string' ? [config.projectTypeTags] : (config.projectTypeTags ?? [])
+  // Extend Project with projectTagOrder (sort key for firstTag mode: order matches config.projectTypeTags)
   projectInstances.forEach((pi) => {
-    if (config.displayOrder === 'firstTag') {
-      // $FlowIgnore[prop-missing] deliberate temporary extension for sortListBy
-      pi.firstProjectTagForSort = getLeadingProjectTag(pi)
-    }
     // $FlowIgnore[prop-missing] deliberate temporary extension to Project class
-    pi.projectTagOrder = config.projectTypeTags.indexOf(getLeadingProjectTag(pi))
+    pi.projectTagOrder = projectTypeTagsForOrder.indexOf(getLeadingProjectTag(pi))
   })
 
   // TODO: Finish reviewing how allProjectTags is really being used, and remove this logging.

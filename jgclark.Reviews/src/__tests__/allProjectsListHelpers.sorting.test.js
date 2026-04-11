@@ -44,29 +44,33 @@ describe('buildSortingSpecification', () => {
     expect(spec).toEqual(['title'])
   })
 
-  test('firstTag: firstProjectTagForSort, nextReviewDays, title', () => {
+  test('firstTag: projectTagOrder (config.projectTypeTags order), nextReviewDays, title', () => {
     const spec = buildSortingSpecification(sortConfig({ displayOrder: 'firstTag' }))
-    expect(spec).toEqual(['firstProjectTagForSort', 'nextReviewDays', 'title'])
+    expect(spec).toEqual(['projectTagOrder', 'nextReviewDays', 'title'])
   })
 
   test('firstTag with folder: folder first', () => {
     const spec = buildSortingSpecification(
       sortConfig({ displayOrder: 'firstTag', displayGroupedByFolder: true }),
     )
-    expect(spec).toEqual(['folder', 'firstProjectTagForSort', 'nextReviewDays', 'title'])
+    expect(spec).toEqual(['folder', 'projectTagOrder', 'nextReviewDays', 'title'])
   })
 })
 
 describe('sortProjectsList firstTag', () => {
-  test('sorts by primary tag then nextReviewDays', () => {
-    const config = sortConfig({ displayOrder: 'firstTag' })
+  test('sorts by config.projectTypeTags order of primary tag, then nextReviewDays', () => {
+    const config = sortConfig({
+      displayOrder: 'firstTag',
+      // #zebra before #apple here — opposite of alphabetical
+      projectTypeTags: ['#zebra', '#apple'],
+    })
     const projects: Array<any> = [
-      { allProjectTags: ['#zebra'], nextReviewDays: 5, title: 'Z', folder: '/a' },
       { allProjectTags: ['#apple'], nextReviewDays: 10, title: 'A', folder: '/a' },
+      { allProjectTags: ['#zebra'], nextReviewDays: 5, title: 'Z', folder: '/a' },
       { allProjectTags: ['#apple'], nextReviewDays: 3, title: 'B', folder: '/a' },
     ]
     const sorted = sortProjectsList(projects, config, [])
-    expect(sorted.map((p) => p.allProjectTags[0])).toEqual(['#apple', '#apple', '#zebra'])
-    expect(sorted.map((p) => p.nextReviewDays)).toEqual([3, 10, 5])
+    expect(sorted.map((p) => p.allProjectTags[0])).toEqual(['#zebra', '#apple', '#apple'])
+    expect(sorted.map((p) => p.nextReviewDays)).toEqual([5, 3, 10])
   })
 })
