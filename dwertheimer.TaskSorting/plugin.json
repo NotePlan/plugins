@@ -3,9 +3,10 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.TaskSorting",
   "plugin.name": "🥷 Task Sorting & Tools",
-  "plugin.version": "1.2.8",
-  "plugin.lastUpdateInfo": "1.2.8: Fix for sorting tasks with combined/interleaved tasks and checklists",
+  "plugin.version": "1.2.9",
+  "plugin.lastUpdateInfo": "1.2.9: Optional Note/Editor override for Sort tasks on the page and quick sort commands (same idea as Sort under heading)",
   "plugin.description": "Commands for sorting tasks in a note",
+  "plugin.releaseStatus": "beta",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles-EDIT_ME": [
     "html-plugin-comms.js"
@@ -32,7 +33,8 @@
         "withHeadings (true/false)",
         "subHeadingCategory (true/false)",
         "interleaveTaskTypes (true/false) - whether to combine related task types (open+checklist together) or keep all 8 types separate. Default: true (combined, recommended)",
-        "sortInHeadings (true/false) - whether to sort tasks within each heading separately (true) or treat entire note as one unit (false). Default: null (use DataStore setting)"
+        "sortInHeadings (true/false) - whether to sort tasks within each heading separately (true) or treat entire note as one unit (false). Default: null (use DataStore setting)",
+        "noteOverride (optional) - Note or Editor object for templates/plugins; omit for normal use (not available in x-callback URLs)"
       ]
     },
     {
@@ -55,6 +57,9 @@
       "jsFunction": "sortTasksDefault",
       "alias": [
         "tsd"
+      ],
+      "arguments": [
+        "noteOverride (optional) - Note or Editor for templates/plugins; omit for normal use"
       ]
     },
     {
@@ -63,6 +68,9 @@
       "jsFunction": "sortTasksByDue",
       "alias": [
         "tsc"
+      ],
+      "arguments": [
+        "noteOverride (optional) - Note or Editor for templates/plugins; omit for normal use"
       ]
     },
     {
@@ -71,6 +79,9 @@
       "jsFunction": "sortTasksByPerson",
       "alias": [
         "tsm"
+      ],
+      "arguments": [
+        "noteOverride (optional) - Note or Editor for templates/plugins; omit for normal use"
       ]
     },
     {
@@ -79,6 +90,9 @@
       "jsFunction": "sortTasksByTag",
       "alias": [
         "tst"
+      ],
+      "arguments": [
+        "noteOverride (optional) - Note or Editor for templates/plugins; omit for normal use"
       ]
     },
     {
@@ -87,6 +101,9 @@
       "jsFunction": "sortTasksTagMention",
       "alias": [
         "tstm"
+      ],
+      "arguments": [
+        "noteOverride (optional) - Note or Editor for templates/plugins; omit for normal use"
       ]
     },
     {
@@ -95,6 +112,9 @@
       "jsFunction": "tasksToTop",
       "alias": [
         "tt"
+      ],
+      "arguments": [
+        "noteOverride (optional) - Note or Editor for templates/plugins; omit for normal use"
       ]
     },
     {

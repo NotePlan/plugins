@@ -1,6 +1,10 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.19.0] - 2026-03-26 @jgclark
+### New
+- new **/Cancel incomplete tasks in a past year** command that, for a year of your choice, counts and logs incomplete tasks and checklists in past calendar notes (daily, weekly, monthly, quarterly and yearly), shows per-note-type and per-Teamspace counts with a strong warning, and then (if confirmed) bulk-cancels those items.
+
 ## [1.18.1] - 2026-03-20 @jgclark
 - small tweaks to **/find duplicated content** command
 

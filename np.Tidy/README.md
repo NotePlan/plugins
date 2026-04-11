@@ -27,6 +27,7 @@ This plugin provides commands to help tidy up your notes:
 - **/Remove @done() markers** (alias "rdm"): Remove @done(...) markers from recently-updated notes, optionally just from completed checklist items.
 - **/Remove >today tags from completed todos** (alias "rmt"): Removes the ">today" tag still attached to completed/cancelled tasks that means they keep showing up in Today's references every day forever. Does not touch open tasks.
 - **/Remove triggers from recent calendar notes** (alias "rtcn"): Remove one or more triggers from recently changed calendar notes (in the past).
+- **/Cancel incomplete tasks in a past year** (alias "citpy"): For a chosen year, finds all *past* calendar notes (daily, weekly, monthly, quarterly, yearly), shows counts of incomplete tasks and checklists per note type and Teamspace with a strong warning, and then (if confirmed) bulk-cancels all open/scheduled tasks and checklists in those notes.
 - **/Log notes changed in interval** (alias "lncii"): Write a list of notes changed in the last interval of days to the plugin console log. It will default to the 'Default Recent Time Interval' setting unless passed as a parameter.
 
 Most can be used with parameters from a Template, or via an x-callback call.
@@ -146,6 +147,7 @@ Some commands have parameters that can be passed:
 | Remove time parts from @done() dates | parameters (JSON) |
 | Remove >today tags from completed todos | runSilently |
 | Remove triggers from recent calendar notes | parameters (JSON) |
+| Cancel incomplete tasks in a past year | year (YYYY) to process |
 
 Note: where it just says 'parameters (JSON)' this means you can pass in any relevant setting names which will override what's in your settings for the plugin:
 - foldersToExclude (Array<string>)
