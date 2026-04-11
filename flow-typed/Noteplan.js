@@ -1192,6 +1192,44 @@ declare class CommandBar {
    * @param {string?} defaultValue
    */
   static textPrompt(title: string, message: string, defaultValue?: string): Promise<string | false>;
+  /**
+   * CommandBar.showForm()
+   * Plugin developers can present multi-field forms inside the Command Bar using CommandBar.showForm(). This lets you collect structured input from the user (text, numbers, dates, toggles, and dropdowns) in a single step, instead of chaining multiple showInput or showOptions calls.
+   * Field types:
+   * Type | What it renders | Value returned
+   * ------- | ------- | -------
+   * string | Text field | String
+   * string + choices | Dropdown picker | String
+   * string + boxHeight | Multi-line text area | String
+   * number | Numeric text field | Number
+   * bool | Toggle switch | Boolean
+   * date | Date picker with calendar | String (ISO format yyyy-MM-dd)
+   * hidden | Not displayed | Default value passed through
+   * ------- | ------- | -------
+   * Fields that produce a value also need a key (the property name in the result). Properties:
+   * - type: the type of the field (required)
+   * - key: the key of the field (required for fields that produce a value)
+   * - label: the label of the field (required)
+   * - placeholder: grey hint text shown when the field is empty (string and number fields) (optional)
+   * - default: pre-filled value (optional)
+   * - required: if true, the form won't submit until this field has a value (optional)
+   * - description: help text the user can reveal by tapping the info button next to the field (optional)
+   * It returns a CommandBarFormResult with two properties:
+   * - submitted (boolean): true if the user pressed Submit, false if they cancelled
+   * - values (object): the entered values, keyed by each field's key
+   * Full details at https://help.noteplan.co/article/281-commandbar-forms-plugin.
+   * Note: Available from v3.21
+   * @param {string} title
+   * @param {string} submitText
+   * @param {Array<{label: string, type: string, key: string, placeholder?: string, default?: string, required?: boolean, description?: string }>} fields in the form
+   * @return {Promise<CommandBarFormResult>}
+  */
+  static showForm(title: string, submitText: string, fields: $ReadOnlyArray<{ label: string, type: string, key: string, placeholder?: string, default?: string, required?: boolean, description?: string }>): Promise<CommandBarFormResult>;
+}
+
+type CommandBarFormResult = {
+  +submitted: boolean,
+  +values: object,
 }
 
 type CalendarDateUnit = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second'
