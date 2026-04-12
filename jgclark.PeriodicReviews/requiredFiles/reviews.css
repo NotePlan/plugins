@@ -87,7 +87,7 @@ body {
 
 .summary-item {
   break-inside: avoid;
-  display: flex;
+  display: block;
   align-items: baseline;
   gap: 0.4rem;
   margin-bottom: 0.15rem;

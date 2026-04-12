@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 2026-04-05 for v2.0.0.b7 by @jgclark + @Cursor
+// last update 2026-04-11 for v2.0.0.b9 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,9 +13,9 @@ import { showMessage } from '@helpers/userInput'
 //---------------------------------------------------------------
 // Constants & Types
 
-const pluginID = 'jgclark.Journalling'
+const pluginID = 'jgclark.PeriodicReviews'
 
-export type JournalConfigType = {
+export type PeriodicReviewConfigType = {
   dailyJournalSectionHeading: string,
   reviewSectionHeading: string,
   dayPlanItemsName: string,
@@ -58,7 +58,7 @@ export type ParsedQuestionType = {
 export async function getJournalSettings(): Promise<any> { // want to use Promise<JournalConfigType> but too many flow errors result
   try {
     // Get settings using Config system
-    const config: JournalConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    const config: PeriodicReviewConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
 
     if (config == null || Object.keys(config).length === 0) {
       logError(pluginJson, `getJournalSettings() cannot find '${pluginID}' plugin settings. Stopping.`)
@@ -82,7 +82,7 @@ export async function getJournalSettings(): Promise<any> { // want to use Promis
  * @param {string} period for journal questions: 'day', 'week', 'month', 'quarter', 'year'
  * @returns {Promise<Array<string>>} array of question lines, or empty array if unsupported
  */
-export async function getQuestionsForPeriod(config: JournalConfigType, period: string): Promise<Array<string>> {
+export async function getQuestionsForPeriod(config: PeriodicReviewConfigType, period: string): Promise<Array<string>> {
   let rawQuestionLines: Array<string> = []
   switch (period) {
     case 'day': {
@@ -121,7 +121,7 @@ export async function getQuestionsForPeriod(config: JournalConfigType, period: s
  * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
  * @returns {string}
  */
-export function getSectionHeadingForPeriod(config: JournalConfigType, periodType: string): string {
+export function getSectionHeadingForPeriod(config: PeriodicReviewConfigType, periodType: string): string {
   if (periodType === 'day') {
     return config.dailyJournalSectionHeading
   }
@@ -144,6 +144,7 @@ export function normalizeReviewPeriodTitleForNPDateHelpers(periodTitle: string):
 
 /**
  * Normalize non-empty lines from the planning textarea for storage (strip task markers / leading `>>`).
+ * TODO: Is this needed? Surely no leading '>>' from the textarea?
  * @param {string} planningFormText
  * @returns {Array<string>}
  */
@@ -224,14 +225,15 @@ const PLAN_ITEMS_NAME_CONFIG_KEYS: { [string]: string } = {
  * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
  * @returns {string}
  */
-export function getPlanItemsNameForPeriodType(config: JournalConfigType, periodType: string): string {
+export function getPlanItemsNameForPeriodType(config: PeriodicReviewConfigType, periodType: string): string {
   const key = PLAN_ITEMS_NAME_CONFIG_KEYS[periodType]
   const fallback = PLAN_ITEMS_NAME_DEFAULTS[periodType] ?? 'Plans'
   if (key == null) {
     return fallback
   }
-  // $FlowIgnore[prop-missing]: dynamic settings keys from plugin.json
-  const raw = (config: { [string]: mixed })[key]
+  // $FlowFixM
+  // e[invalid-computed-prop]
+  const raw = config[key]
   const s = typeof raw === 'string' ? raw.trim() : ''
   return s !== '' ? s : fallback
 }

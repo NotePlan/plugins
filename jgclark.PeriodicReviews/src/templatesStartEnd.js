@@ -5,7 +5,7 @@
 // last update 2026-04-05 for v0.1.0 by @jgclark
 //---------------------------------------------------------------
 
-import { type JournalConfigType, getJournalSettings } from './journalHelpers'
+import { type JournalConfigType, getJournalSettings } from './periodicReviewHelpers'
 import { isDailyNote, isMonthlyNote, isWeeklyNote } from '@helpers/dateTime'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'

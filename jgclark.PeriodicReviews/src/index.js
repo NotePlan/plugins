@@ -3,7 +3,7 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-03-28 for v2.0.0.b4 by @jgclark
+// last update 2026-04-11 for v2.0.0.b9 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -12,16 +12,16 @@ import { clo, compareObjects, JSP, logDebug, logInfo, logError } from "@helpers/
 import { backupSettings, getSettings, pluginUpdated, saveSettings } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 
-const pluginID = 'jgclark.Journalling'
+const pluginID = 'jgclark.PeriodicReviews'
 const oldPluginID = 'jgclark.DailyJournal'
 
 export {
-  dailyJournalQuestions,
+  dailyReviewQuestions,
+  weeklyReviewQuestions,
+  monthlyReviewQuestions,
+  quarterlyReviewQuestions,
+  yearlyReviewQuestions,
   onReviewWindowAction,
-  weeklyJournalQuestions,
-  monthlyJournalQuestions,
-  quarterlyJournalQuestions,
-  yearlyJournalQuestions,
 } from './periodReviews'
 
 export {

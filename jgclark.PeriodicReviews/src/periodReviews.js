@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-04-05 for v2.0.0.b7 by @jgclark + @Cursor
+// last update 2026-04-11 for v2.0.0.b9 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import strftime from 'strftime'
@@ -18,9 +18,9 @@ import {
   normalizeReviewPeriodTitleForNPDateHelpers,
   summaryTaskLineDedupeKey,
   taskContentIsSummaryWin,
-} from './journalHelpers'
+} from './periodicReviewHelpers'
 export { taskContentIsSummaryWin }
-import type { JournalConfigType, ParsedQuestionType } from './journalHelpers'
+import type { PeriodicReviewConfigType, ParsedQuestionType } from './periodicReviewHelpers'
 import {
   buildInitialReviewAnswersByFieldName,
   buildOutputFromReviewWindowAnswers,
@@ -46,21 +46,24 @@ import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { closeWindowFromCustomId } from '@helpers/NPWindows'
 import { isParaAMatchForHeading } from '@helpers/headings'
 import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { getInput, showMessage } from '@helpers/userInput'
 
 //---------------------------------------------------------------
 // Constants & Types
 
-const REVIEW_WINDOW_CUSTOM_ID = 'jgclark.Journalling.period-review'
+const REVIEW_WINDOW_CUSTOM_ID = 'jgclark.PeriodicReviews.period-review'
 const REVIEW_WINDOW_CALLBACK_COMMAND = 'onReviewWindowAction'
 
-/** Paragraph types treated as tasks under a plan H2 (carry-over + rewrite). */
+/** Paragraph types treated as tasks under a plan H2 (carry-over + rewrite). Includes cancelled so >> plan lines stay in the summary as not done. */
 const PLAN_SECTION_PARA_TYPES: Set<string> = new Set([
   'open',
   'done',
   'scheduled',
+  'cancelled',
   'checklist',
   'checklistDone',
+  'checklistCancelled',
   'checklistScheduled',
   'list'
 ])
@@ -162,32 +165,57 @@ function getCalendarNoteByTitle(title: string): TNote | null {
 }
 
 /**
- * Task lines under the configured plan H2 (active part only), for the review summary. Note: The heading match is partial + case insensitive
+ * Return task lines for the review summary from:
+ * - the configured 'planName' section (if given)
+ * - any with priority '>>' (if 'planName' is empty, or can't find the 'planName' section)
+ * Note: The heading match is partial + case insensitive.
  * @param {TNote} note
- * @param {string} planName (e.g. 'Big Rocks')
+ * @param {string} planName (e.g. 'Big Rocks', or empty)
  * @returns {Array<{ content: string, isDone: boolean }>}
  */
-export function extractPlanSectionItems(note: TNote, planName: string): Array<{ content: string, isDone: boolean }> {
-  // const headingPara = findPlanSectionHeadingPara(note, headingTitle)
-  const headingPara = findHeading(note, planName, true)
-  if (headingPara == null) {
-    logDebug('extractPlanSectionItems', `Can't find a heading including '${planName}', so returning empty array`)
-    return []
-  }
-  const heading = headingPara.content
-  logDebug('extractPlanSectionItems', `- matched heading '${heading}'`)
-  const out: Array<{ content: string, isDone: boolean }> = []
+export function extractPlanSectionItems(
+  note: TNote,
+  planName: string = ''
+): Array<{ content: string, isDone: boolean }> {
   const paras = note.paragraphs ?? []
-  const start = headingPara.lineIndex ?? 0
-  const end = Math.min(findEndOfActivePartOfNote(note), paras.length)
-  logDebug('extractPlanSectionItems', `Found heading ${heading}, so processing lines ${String(start+1)}-${String(end)}`)
+  let start = findStartOfActivePartOfNote(note)
+  const end = findEndOfActivePartOfNote(note)
+  const out: Array<{ content: string, isDone: boolean }> = []
+
+  // Get relevant set of paras to parse
+  if (planName !== '') {
+    const headingPara = findHeading(note, planName, true)
+    if (headingPara != null) {
+      const heading = headingPara.content
+      logDebug('extractPlanSectionItems', `- matched heading '${heading}'`)
+      start = headingPara.lineIndex ?? 0
+      logDebug('extractPlanSectionItems', `Found heading ${heading}, so processing lines ${String(start + 1)}-${String(end)}`)
+      for (let i = start + 1; i <= end; i++) {
+        const p = paras[i]
+        if (p.type === 'title' && (p.headingLevel ?? 99) <= 2) {
+          // We're now in a different section, so stop processing
+          break
+        }
+        if (!PLAN_SECTION_PARA_TYPES.has(String(p.type))) {
+          continue
+        }
+        const isDone = p.type === 'done' || p.type === 'checklistDone'
+        out.push({ content: p.content, isDone })
+      }
+      return out
+    } else {
+      logDebug('extractPlanSectionItems', `Can't find a heading including '${planName}', so will now look for any other >> items`)
+    }
+  }
+
+  logDebug('extractPlanSectionItems', `Will look for >> tasks in lines ${String(start+1)}-${String(end)}`)
   for (let i = start + 1; i <= end; i++) {
     const p = paras[i]
-    if (p.type === 'title' && (p.headingLevel ?? 99) <= 2) {
-      // We're now in a different section, so stop processing
-      break
-    }
     if (!PLAN_SECTION_PARA_TYPES.has(String(p.type))) {
+      continue
+    }
+    if (getNumericPriorityFromPara(p) !== 4) {
+      // i.e. if not '>>' priority
       continue
     }
     const isDone = p.type === 'done' || p.type === 'checklistDone'
@@ -198,14 +226,14 @@ export function extractPlanSectionItems(note: TNote, planName: string): Array<{ 
 
 /**
  * Write or clear planned tasks on the **next** calendar note: replace existing H2 with same title, insert at active start.
- * @param {JournalConfigType} config
+ * @param {PeriodicReviewConfigType} config
  * @param {string} periodString
  * @param {string} periodType
  * @param {string} planningFormText
  * @returns {Promise<void>}
  */
 export async function writePlanningTasksToNextPeriodNote(
-  config: JournalConfigType,
+  config: PeriodicReviewConfigType,
   periodString: string,
   periodType: string,
   planningFormText: string,
@@ -250,11 +278,11 @@ export async function writePlanningTasksToNextPeriodNote(
  * @param {() => string} getPeriodString
  * @returns {Promise<void>}
  */
-async function runJournalQuestionsForCurrentPeriod(periodType: string, getPeriodString: () => string): Promise<void> {
+async function runReviewQuestionsForCurrentPeriod(periodType: string, getPeriodString: () => string): Promise<void> {
   try {
     const thisPeriodStr = getPeriodString()
     logDebug(pluginJson, `Starting for ${periodType} (currently ${thisPeriodStr})`)
-    await processJournalQuestions(thisPeriodStr, periodType)
+    await processReviewQuestions(thisPeriodStr, periodType)
   } catch (error) {
     logError(pluginJson, error.message)
   }
@@ -263,15 +291,15 @@ async function runJournalQuestionsForCurrentPeriod(periodType: string, getPeriod
 /**
  * Gather answers to daily journal questions, and inserts at the cursor.
  */
-export async function dailyJournalQuestions(): Promise<void> {
-  await runJournalQuestionsForCurrentPeriod('day', () => strftime('%Y-%m-%d'))
+export async function dailyReviewQuestions(): Promise<void> {
+  await runReviewQuestionsForCurrentPeriod('day', () => strftime('%Y-%m-%d'))
 }
 
 /**
  * Gather answers to weekly journal questions, and inserts at the cursor.
  */
-export async function weeklyJournalQuestions(): Promise<void> {
-  await runJournalQuestionsForCurrentPeriod('week', () => {
+export async function weeklyReviewQuestions(): Promise<void> {
+  await runReviewQuestionsForCurrentPeriod('week', () => {
     const currentWeekNum = getWeek(new Date())
     return `${strftime('%Y')}-W${currentWeekNum}`
   })
@@ -280,22 +308,22 @@ export async function weeklyJournalQuestions(): Promise<void> {
 /**
  * Gather answers to monthly journal questions, and inserts at the cursor.
  */
-export async function monthlyJournalQuestions(): Promise<void> {
-  await runJournalQuestionsForCurrentPeriod('month', () => strftime('%Y-%m'))
+export async function monthlyReviewQuestions(): Promise<void> {
+  await runReviewQuestionsForCurrentPeriod('month', () => strftime('%Y-%m'))
 }
 
 /**
  * Gather answers to quarterly journal questions, and inserts at the cursor.
  */
-export async function quarterlyJournalQuestions(): Promise<void> {
-  await runJournalQuestionsForCurrentPeriod('quarter', () => getNPQuarterStr(new Date()))
+export async function quarterlyReviewQuestions(): Promise<void> {
+  await runReviewQuestionsForCurrentPeriod('quarter', () => getNPQuarterStr(new Date()))
 }
 
 /**
  * Gather answers to yearly journal questions, and inserts at the cursor.
  */
-export async function yearlyJournalQuestions(): Promise<void> {
-  await runJournalQuestionsForCurrentPeriod('year', () => strftime('%Y'))
+export async function yearlyReviewQuestions(): Promise<void> {
+  await runReviewQuestionsForCurrentPeriod('year', () => strftime('%Y'))
 }
 
 //---------------------------------------------------------
@@ -309,11 +337,11 @@ export async function yearlyJournalQuestions(): Promise<void> {
  * @param {string} periodStringIn the calendar note title string for the review period
  * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
  */
-async function processJournalQuestions(periodStringIn: string = '', periodType: string): Promise<void> {
+async function processReviewQuestions(periodStringIn: string = '', periodType: string): Promise<void> {
   try {
     const periodAdjective = getPeriodAdjectiveFromType(periodType)
     // Get configuration
-    const config: JournalConfigType = await getJournalSettings()
+    const config: PeriodicReviewConfigType = await getJournalSettings()
     let reviewNote: ?TNote = null
 
     // Check that we have the correct period note open (same type *and* same title as requested).
@@ -326,10 +354,10 @@ async function processJournalQuestions(periodStringIn: string = '', periodType: 
     if (openEditorNote && getPeriodOfNPDateStr(openTitle) === periodType && titlesMatch) {
       // Use the existing open note
       reviewNote = openEditorNote
-      logDebug('processJournalQuestions', `Starting with open note '${String(reviewNote?.title ?? 'unknown')}' of period '${String(getPeriodOfNPDateStr(reviewNote?.title ?? ''))}'`)
+      logDebug('processReviewQuestions', `Starting with open note '${String(reviewNote?.title ?? 'unknown')}' of period '${String(getPeriodOfNPDateStr(reviewNote?.title ?? ''))}'`)
     } else {
       // use the passed periodStringIn to open the correct note
-      logDebug('processJournalQuestions', `Starting by opening current ${periodAdjective} note '${String(periodStringIn)}'`)
+      logDebug('processReviewQuestions', `Starting by opening current ${periodAdjective} note '${String(periodStringIn)}'`)
       reviewNote = await Editor.openNoteByTitle(periodStringIn)
     }
     if (!reviewNote) {
@@ -338,15 +366,9 @@ async function processJournalQuestions(periodStringIn: string = '', periodType: 
       throw new Error(`Cannot open ${periodStringIn} note, so cannot continue.`)
     }
     
-    // const reviewNote: ?TNote = ensureCorrectPeriodNoteIsOpen(periodType, periodStringIn)
-    // if (!reviewNote) {
-    //   await showMessage(`No ${periodAdjective} note found, so cannot continue.`)
-    //   throw new Error(`No ${periodAdjective} note found, so cannot continue.`)
-    // }
-
     const titleFromNote = reviewNote.title != null ? String(reviewNote.title).trim() : ''
     const periodString = titleFromNote !== '' ? titleFromNote : periodStringIn !== '' ? periodStringIn : ''
-    logDebug('processJournalQuestions', `- Will use review note '${String(periodString)}' of period '${String(getPeriodOfNPDateStr(periodString))}'`)
+    logDebug('processReviewQuestions', `- Will use review note '${String(periodString)}' of period '${String(getPeriodOfNPDateStr(periodString))}'`)
 
     // Get questions and parse them
     const questionLines = await getQuestionsForPeriod(config, periodType)
@@ -396,59 +418,63 @@ function getParagraphLineContentsForReviewScan(note: TNote): Array<string> {
  * @param {string} periodString
  * @returns {{ wins: Array<string>, completed: Array<string> }}
  */
-function getSummaryTasksForReview(periodType: string, periodString: string): {| wins: Array<string>, completed: Array<string> |} {
-  const npPeriodKey = normalizeReviewPeriodTitleForNPDateHelpers(periodString)
-  const startISO = getFirstDateInPeriod(npPeriodKey)
-  const endISO = getLastDateInPeriod(npPeriodKey)
-  if (startISO === '(error)' || endISO === '(error)') {
-    logWarn(pluginJson, `getSummaryTasksForReview: could not parse period "${periodString}"`)
-    return { wins: [], completed: [] }
-  }
-  const periodStartMs = new Date(`${startISO}T12:00:00`).getTime()
-  const lookbackDaysRaw = Math.ceil((Date.now() - periodStartMs) / 86400000) + 1
-  const lookbackDays = Math.min(Math.max(0, lookbackDaysRaw), 400)
-  const isDailyPeriod = periodType === 'day'
-  const notesToScan = getNotesChangedInInterval(lookbackDays, ['Calendar', 'Notes'])
-  const wins: Array<string> = []
-  const completed: Array<string> = []
-  /** Same task line can appear on multiple notes (or with different surrounding whitespace); show each logical line once. */
-  const seenKeys = new Set<string>()
+function getDoneTasksForSummary(periodType: string, periodString: string): {| wins: Array < string >, completed: Array < string > |} {
+  try {
+    const npPeriodKey = normalizeReviewPeriodTitleForNPDateHelpers(periodString)
+    const startISO = getFirstDateInPeriod(npPeriodKey)
+    const endISO = getLastDateInPeriod(npPeriodKey)
+    if (startISO === '(error)' || endISO === '(error)') {
+      logWarn('getDoneTasksForSummary', `Could not parse period "${periodString}"`)
+      return { wins: [], completed: [] }
+    }
+    const periodStartMs = new Date(`${startISO}T12:00:00`).getTime()
+    const lookbackDaysRaw = Math.ceil((Date.now() - periodStartMs) / 86400000) + 1
+    const lookbackDays = Math.min(Math.max(0, lookbackDaysRaw), 400)
+    const isDailyPeriod = periodType === 'day'
+    const notesToScan = getNotesChangedInInterval(lookbackDays, ['Calendar', 'Notes'])
+    const wins: Array<string> = []
+    const completed: Array<string> = []
+    /** Same task line can appear on multiple notes (or with different surrounding whitespace); show each logical line once. */
+    const seenKeys = new Set < string > ()
 
-  for (const note of notesToScan) {
-    for (const para of note.paragraphs) {
-      if (para.type !== 'done') {
-        continue
-      }
-      const doneDateMatch = para.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE)
-      const doneDate = doneDateMatch?.[1] ?? ''
-      if (doneDate === '') {
-        continue
-      }
-      const isInPeriod = doneDate >= startISO && doneDate <= endISO
-      if (!isInPeriod) {
-        continue
-      }
-      const dedupeKey = summaryTaskLineDedupeKey(para.content)
-      if (dedupeKey === '' || seenKeys.has(dedupeKey)) {
-        continue
-      }
-      seenKeys.add(dedupeKey)
-      const isWin = taskContentIsSummaryWin(para.content)
-      if (!isDailyPeriod) {
+    for (const note of notesToScan) {
+      for (const para of note.paragraphs) {
+        if (para.type !== 'done') {
+          continue
+        }
+        const doneDateMatch = para.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE)
+        const doneDate = doneDateMatch?.[1] ?? ''
+        if (doneDate === '') {
+          continue
+        }
+        const isInPeriod = doneDate >= startISO && doneDate <= endISO
+        if (!isInPeriod) {
+          continue
+        }
+        const dedupeKey = summaryTaskLineDedupeKey(para.content)
+        if (dedupeKey === '' || seenKeys.has(dedupeKey)) {
+          continue
+        }
+        seenKeys.add(dedupeKey)
+        const isWin = taskContentIsSummaryWin(para.content)
+        if (!isDailyPeriod) {
+          if (isWin) {
+            wins.push(para.content)
+          }
+          continue
+        }
         if (isWin) {
           wins.push(para.content)
+        } else {
+          completed.push(para.content)
         }
-        continue
-      }
-      if (isWin) {
-        wins.push(para.content)
-      } else {
-        completed.push(para.content)
       }
     }
-  }
 
-  return { wins, completed }
+    return { wins, completed }
+  } catch (error) {
+    logError('getDoneTasksForSummary', error.message)
+  }
 }
 
 /**
@@ -457,7 +483,7 @@ function getSummaryTasksForReview(periodType: string, periodString: string): {| 
  * @param {Array<ParsedQuestionType>} parsedQuestions
  * @param {string} periodString
  * @param {string} periodType
- * @param {JournalConfigType} config
+ * @param {PeriodicReviewConfigType} config
  * @param {Array<string>} rawQuestionLines lines from getQuestionsForPeriod (same array passed to parseQuestions)
  * @param {TNote} calendarNote the calendar note to scan for answers
  * @returns {void}
@@ -466,20 +492,20 @@ async function displayQuestionsWindow(
   parsedQuestions: Array<ParsedQuestionType>,
   periodString: string,
   periodType: string,
-  config: JournalConfigType,
+  config: PeriodicReviewConfigType,
   rawQuestionLines: Array<string>,
   calendarNote: TNote,
 ): Promise<void> {
   const periodAdjective = getPeriodAdjectiveFromType(periodType)
   // Get the data sources we need for the review window
-  const { wins: summaryWinTasks, completed: summaryCompletedTasks } = getSummaryTasksForReview(periodType, periodString)
+  const { wins: summaryWinTasks, completed: summaryCompletedTasks } = getDoneTasksForSummary(periodType, periodString)
   const calendarSet: Array<string> = config.calendarSet ?? []
   // logDebug(pluginJson, `calendarSet: [${String(calendarSet)}]`)
   const eventsForPeriod: Array<TCalendarItem> = (periodType === 'day') ? await getEventsForDay(periodString, calendarSet) ?? [] : []
   const scanLines = getParagraphLineContentsForReviewScan(calendarNote)
   const initialAnswers = buildInitialReviewAnswersByFieldName(parsedQuestions, scanLines)
   const planName = getPlanItemsNameForPeriodType(config, periodType)
-  const carryOverPlanItems = extractPlanSectionItems(calendarNote, planName)
+  const carryOverPlanItems = extractPlanSectionItems(calendarNote) // TEST: trying without sending planName parameter
 
   // Build the HTML body for the review window from this data
   const htmlBody = buildReviewHTML(
@@ -501,9 +527,9 @@ async function displayQuestionsWindow(
   const preferredWindowType = config.preferredWindowType ?? 'New Window'
   const windowOptions: HtmlWindowOptions = {
     customId: REVIEW_WINDOW_CUSTOM_ID,
-    windowTitle: `${periodAdjective} Review for ${periodString}`,
+    windowTitle: `${periodAdjective} Review`,
     headerTags: `${faLinksInHeader}${stylesheetinksInHeader}`,
-    savedFilename: `../../jgclark.Journalling/period-review-${periodType}.html`,
+    savedFilename: `../../jgclark.PeriodicReviews/period-review-${periodType}.html`,
     showInMainWindow: preferredWindowType !== 'New Window',
     splitView: preferredWindowType === 'Split View',
     showReloadButton: true,
@@ -541,7 +567,7 @@ async function writeAnswersToNote(
   answersTextIn: string = '',
 ): Promise<void> {
   try {
-    const config: JournalConfigType = await getJournalSettings()
+    const config: PeriodicReviewConfigType = await getJournalSettings()
     let periodString = periodStringIn ?? ''
     if (periodString === '') {
       periodString = Editor.note?.title ?? ''
@@ -639,7 +665,7 @@ export async function onReviewWindowAction(actionName: string, payload: mixed = 
       return
     }
     logDebug('Journalling/onReviewWindowAction', `Refresh: reopening review for ${periodType} ${periodString}`)
-    await processJournalQuestions(periodString, periodType)
+    await processReviewQuestions(periodString, periodType)
     return
   }
 
@@ -665,11 +691,11 @@ export async function onReviewWindowAction(actionName: string, payload: mixed = 
       return
     }
     logDebug('Journalling/onReviewWindowAction', `Navigate ${direction}: reopening review for ${periodType} ${targetPeriodString}`)
-    await processJournalQuestions(targetPeriodString, periodType)
+    await processReviewQuestions(targetPeriodString, periodType)
     return
   }
 
-  const config: JournalConfigType = await getJournalSettings()
+  const config: PeriodicReviewConfigType = await getJournalSettings()
   let safePayload: any = {}
   try {
     // Allow callback payloads as JSON string (x-callback / jsBridge) or as an object (native bridge).

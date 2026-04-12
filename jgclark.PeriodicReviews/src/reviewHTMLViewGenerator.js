@@ -2,12 +2,12 @@
 //---------------------------------------------------------------
 // HTMLView generation helpers for single-window review mode
 // Jonathan Clark + Cursor
-// last update 2026-04-03 for v2.0.0.b6 by @jgclark + @Cursor
+// last update 2026-04-11 for v2.0.0.b9 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import moment from 'moment'
 import pluginJson from '../plugin.json'
-import type { JournalConfigType, ParsedQuestionType } from './journalHelpers'
+import type { PeriodicReviewConfigType, ParsedQuestionType } from './periodicReviewHelpers'
 import {
   buildNextPlanSectionHeadingTitle,
   buildThisPlanSectionHeadingTitle,
@@ -15,7 +15,7 @@ import {
   mergeUniqueSummaryDoneTaskLines,
   splitMergedSummaryDoneLinesIntoWinsAndOthers,
   substituteReviewPeriodPlaceholders,
-} from './journalHelpers'
+} from './periodicReviewHelpers'
 import { getReviewQuestionSegmentRegExpGi } from './reviewQuestions'
 import { RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
@@ -139,8 +139,11 @@ function formatTaskAsHTML(taskContent: string): string {
  * @returns {{ prefix: string, suffix: string }}
  */
 function splitSegmentAtTypeMarker(segment: string, questionType: string): {| prefix: string, suffix: string |} {
-  const safeType = questionType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const re = new RegExp(`<\\s*${safeType}\\s*>`, 'i')
+  const pattern =
+    questionType.toLowerCase() === 'int'
+      ? '<\\s*(?:integer|int)\\s*>'
+      : `<\\s*${questionType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*>`
+  const re = new RegExp(pattern, 'i')
   const m = segment.match(re)
   if (!m || m.index == null) {
     return { prefix: segment, suffix: '' }
@@ -160,7 +163,7 @@ function splitSegmentAtTypeMarker(segment: string, questionType: string): {| pre
 function makeReviewInlineControl(
   parsedQuestion: ParsedQuestionType,
   globalIndex: number,
-  config: JournalConfigType,
+  config: PeriodicReviewConfigType,
   initialValue: string = '',
 ): string {
   const fieldName = `q_${globalIndex}`
@@ -211,7 +214,7 @@ function makeQuestionLineDiv(
   rawLine: string,
   lineIndex: number,
   parsedQuestions: Array<ParsedQuestionType>,
-  config: JournalConfigType,
+  config: PeriodicReviewConfigType,
   initialAnswers: { [string]: string },
   periodString: string,
   periodType: string,
@@ -228,13 +231,10 @@ function makeQuestionLineDiv(
   const headingTypes = ['subheading', 'h2', 'h3']
   const lineHasOnlyHeadingQuestions =
     lineQuestionsOrdered.length > 0 && lineQuestionsOrdered.every(({ q }) => headingTypes.includes(q.type))
-  // `##` / `###` lines have no angle-bracket markup; `<h2>…` / `<h3>…` lines do — both must use the
-  // heading path. Otherwise `getReviewQuestionSegmentRegExpGi` matches `<h2>` as a “typed segment”
+  // `##` / `###` lines have no angle-bracket typed segments; use the heading row path so the flex
+  // segment matcher does not treat heading text as inline fragments.
   const isMarkdownStyleHeadingLine = lineHasOnlyHeadingQuestions && !cleanRawLine.includes('<')
-  const isTypedOpenTagHeadingLine =
-    lineHasOnlyHeadingQuestions &&
-    (/^\s*<\s*h2\s*>/i.test(cleanRawLine) || /^\s*<\s*h3\s*>/i.test(cleanRawLine))
-  if (isMarkdownStyleHeadingLine || isTypedOpenTagHeadingLine) {
+  if (isMarkdownStyleHeadingLine) {
     return lineQuestionsOrdered
       .map(({ q, globalIndex }) => makeReviewQuestionRowDiv(q, globalIndex, config, '', periodString, periodType))
       .join('\n')
@@ -282,8 +282,6 @@ function makeQuestionLineDiv(
   }
 
   if (parts.length === 0) {
-    // return `<div class="review-question-line-block"><span class="review-line-text-fragment">${escapeHTML(cleanRawLine)}</span></div>`
-    // TEST:
     return `<span class="review-line-text-fragment">${escapeHTML(cleanRawLine)}</span>`
   }
   return `<div class="review-question-line-block">${parts.join('')}</div>`
@@ -295,17 +293,23 @@ function makeQuestionLineDiv(
  * @returns {string} HTML string for the summary block
  */
 function makePeriodDaysSummaryDiv(eventsForPeriod: Array<TCalendarItem>): string {
-  const totalDuration = eventsForPeriod.reduce((total, event) => total + getEventDurationHours(event), 0)
   const output = []
-  output.push(`<div class="summary-title">${eventsForPeriod.length} events (${totalDuration.toFixed(1)} hours)</div>`)
-  output.push(`<div class="summary-content">`)
-  eventsForPeriod.forEach( e => {
-    output.push(`\t<div class="summary-item">`)
-    output.push(`\t\t<i aria-hidden="true" class="summary-item-event-icon fa-regular fa-calendar-week"></i>`)
-    output.push(`\t\t<span class="summary-item-text">${e.title}</span>`)
-    output.push('\t</div>')
-  })
-  output.push(`</div>`)
+  if (eventsForPeriod.length > 0) {
+    const totalDuration = eventsForPeriod.reduce((total, event) => total + getEventDurationHours(event), 0)
+    output.push(`<div class="summary-title">${eventsForPeriod.length} events`)
+    if (totalDuration > 0) {
+      output.push(` (${totalDuration.toFixed(1)} hours)`)
+    }
+    output.push(`</div>`)
+    output.push(`<div class="summary-content">`)
+    eventsForPeriod.forEach(e => {
+      output.push(`\t<div class="summary-item">`)
+      output.push(`\t\t<i aria-hidden="true" class="summary-item-event-icon fa-regular fa-calendar-week"></i>`)
+      output.push(`\t\t<span class="summary-item-text">${e.title}</span>`)
+      output.push('\t</div>')
+    })
+    output.push(`</div>`)
+  }
   return output.join('\n')  
 }
 
@@ -496,7 +500,7 @@ function makePlanningSectionHTML(planningSectionTitle: string): string {
 function makeReviewQuestionRowDiv(
   parsedQuestion: ParsedQuestionType,
   index: number,
-  config: JournalConfigType,
+  config: PeriodicReviewConfigType,
   initialValue: string = '',
   periodString: string,
   periodType: string,
@@ -582,7 +586,7 @@ function makeReviewQuestionRowDiv(
  * @returns {string}
  */
 export function buildReviewHTML(
-  config: JournalConfigType,
+  config: PeriodicReviewConfigType,
   parsedQuestions: Array<ParsedQuestionType>,
   rawQuestionLines: Array<string>,
   summaryWinTasks: Array<string>,

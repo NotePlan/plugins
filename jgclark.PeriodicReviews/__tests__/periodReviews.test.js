@@ -12,7 +12,7 @@ import {
   splitMergedSummaryDoneLinesIntoWinsAndOthers,
   substituteReviewPeriodPlaceholders,
   summaryTaskLineDedupeKey,
-} from '../src/journalHelpers'
+} from '../src/periodicReviewHelpers'
 import { extractPlanSectionItems, taskContentIsSummaryWin } from '../src/periodReviews'
 import { buildReviewHTML } from '../src/reviewHTMLViewGenerator'
 import {
@@ -111,26 +111,29 @@ Do: <tasks>`
       expect(questions[2].lineIndex).toBe(2)
     })
 
-    it('should parse h2/h3 types in various positions', () => {
-      const raw = `<h2> Top Heading\n<h3>Sub Heading\nTitle<h2>`
+    it('should parse <integer> the same as <int>', () => {
+      const raw = `Hours: <integer> || Count: <int>`
       const questions = parseQuestions(raw)
-      expect(questions.length).toBe(3)
-      expect(questions[0].type).toBe('h2')
-      expect(questions[0].question).toBe('Top Heading')
-      expect(questions[0].lineIndex).toBe(0)
-      expect(questions[1].type).toBe('h3')
-      expect(questions[1].question).toBe('Sub Heading')
-      expect(questions[1].lineIndex).toBe(1)
-      expect(questions[2].type).toBe('string')
-      expect(questions[2].question).toBe('Title')
-      expect(questions[2].lineIndex).toBe(2)
+      expect(questions.length).toBe(2)
+      expect(questions[0].type).toBe('int')
+      expect(questions[0].question).toBe('Hours')
+      expect(questions[1].type).toBe('int')
+      expect(questions[1].question).toBe('Count')
+    })
+
+    it('should strip full <string> tokens from label text (no stray marker for the review window)', () => {
+      const questions = parseQuestions('Gratitude: <string>')
+      expect(questions.length).toBe(1)
+      expect(questions[0].type).toBe('string')
+      expect(questions[0].question).toBe('Gratitude')
+      expect(questions[0].question).not.toMatch(/[<>]/)
     })
 
     it('should cope with lines which are just <string> / <bullets> / <checklists> / <tasks>', () => {
       const config = {
         dailyReviewQuestions: `<string>
 <bullets>
-<h2>H2 Heading
+## H2 Heading
 <checklists>
 ### H3 Heading
 <tasks>`,
@@ -228,8 +231,8 @@ Wins: <string>`
       expect(html).not.toContain('&lt;date&gt;')
     })
 
-    it('should render a typed `<h2>…` line as one heading (segment regex must not split after the first word)', () => {
-      const raw = `<h2>Stats for <date>
+    it('should render a ## heading line as one heading (segment regex must not split after the first word)', () => {
+      const raw = `## Stats for <date>
 Mood: <mood>`
       const parsedQuestions = parseQuestions(raw)
       const rawLines = raw.split('\n')
@@ -513,6 +516,14 @@ Ship: <tasks>`,
       expect(out).toBe('Health: @sleep(7) @fruitveg(3)\n')
     })
 
+    it('should substitute answers into <integer> segments like <int>', () => {
+      const raw = 'Count: <integer>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: '42' })
+      expect(out).toBe('Count: 42\n')
+    })
+
     it('should output duration answers in [H]H:MM format', () => {
       const raw = '@focus(<duration>)'
       const parsedQuestions = parseQuestions(raw)
@@ -639,6 +650,20 @@ Ship: <tasks>`,
       expect(items[0].isDone).toBe(false)
       expect(items[1].isDone).toBe(true)
       expect(items[0].content).toContain('First')
+    })
+
+    it('extractPlanSectionItems should include cancelled >> tasks as not done (summary treats like open)', () => {
+      const note = {
+        paragraphs: [
+          { type: 'title', headingLevel: 2, content: 'Home', lineIndex: 0 },
+          { type: 'cancelled', content: '>> Sort new Santander account', lineIndex: 1 },
+          { type: 'done', content: 'Update milk order again @done(2026-04-12 00:05)', lineIndex: 2 },
+        ],
+      }
+      const items = extractPlanSectionItems(note, '')
+      expect(items.length).toBe(1)
+      expect(items[0].isDone).toBe(false)
+      expect(items[0].content).toContain('Sort new Santander')
     })
   })
 })

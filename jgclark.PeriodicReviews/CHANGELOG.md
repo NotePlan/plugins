@@ -1,12 +1,22 @@
-# What's changed in 💭 Journalling  & Reviews Plugin?
+# What's changed in  Periodic Reviews Plugin?
 _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.DailyJournal/)._
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
-## [2.0.0.b7] - 2026-04-05
+## [2.0.0.b9] - 2026-04-11
+- settled on name 'Periodic Reviews' not 'Journalling & Reviews'
+- Summary / carry-over plan tasks: include **cancelled** `>>` lines (e.g. `* [-] >> …`); they show as **not** done like open items. Fix: plan-section extraction no longer stopped after the first task under a matching H2.
+
+## [2.0.0.b8] - 2026-04-10
+- Review window: Fix `<string>` (and other `<type>` markers) sometimes appearing before the textarea — label text now strips full angle-bracket tokens, not bare type names.
+- Review question templates: `<integer>` is accepted as an alias for `<int>`. Simplifying, dropped support for  `<h2>` / `<h3>` question lines.
+- Further layout improvements to Summary area
+- 
+
+## [2.0.0.b7] - 2026-04-09
 - Review summary: Done tasks whose body starts with `>>` (after the task marker and optional `!` priorities) count as **wins** for the period, same as `#win` / `#bigwin`, without needing a “Wins” section. They appear in the same **completed tasks** list as other done items (wins first), not duplicated. **Weekly/monthly/quarterly/yearly** summaries use the same win rules when listing done tasks for the period (even if there are no carry-over plan items).
 - Review window: Fix daily summary layout when carry-over plan items exist.
-- Review window: Fix `<h2>…` / `<h3>…` question lines being split by the flex segment matcher, leaving text fragments.
+- Review window: Fix heading-only template lines being split by the flex segment matcher, leaving text fragments.
 - dev: Refactor review flow — `reviewQuestions.js` (parse / pre-fill / answer output), more helpers in `journalHelpers.js`, slimmer `periodReviews.js`; shared segment regex for HTML + parser; `writeAnswersToNote` is module-private.
 - dev: Update Template handling in applyTemplateToNote() to not make any Editor inserts if there's nothing to insert. Aim: avoid race conditions.
 

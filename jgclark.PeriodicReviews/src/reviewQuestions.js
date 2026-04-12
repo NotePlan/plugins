@@ -2,17 +2,28 @@
 //---------------------------------------------------------------
 // Review question parsing, pre-fill extraction, and answer → note text.
 // Jonathan Clark
-// last update 2026-04-05 for v2.0.0.b7 by @jgclark + @Cursor
+// last update 2026-04-11 for v2.0.0.b9 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
-import type { ParsedQuestionType } from './journalHelpers'
-import { substituteReviewPeriodPlaceholders } from './journalHelpers'
+import type { ParsedQuestionType } from './periodicReviewHelpers'
+import { substituteReviewPeriodPlaceholders } from './periodicReviewHelpers'
 import { escapeRegExp } from '@helpers/regex'
 import { isInt } from '@helpers/userInput'
 
-/** `<type>` names in review question templates — single source for parse + HTML segment splitting. */
+/** `<type>` names in review question templates — single source for parse + HTML segment splitting. (`integer` before `int` so `<integer>` matches as one token.) */
 export const REVIEW_QUESTION_TYPE_NAMES_ALT =
-  'string|int|number|duration|boolean|mood|subheading|h2|h3|bullets|checklists|tasks'
+  'string|integer|int|number|duration|boolean|mood|subheading|bullets|checklists|tasks'
+
+/**
+ * Strip `:`, parentheses, and angle-bracket type tokens (`<string>`, `<int>`, …) from a segment when deriving the human label.
+ * Must match full `<type>` tags only — not bare names (e.g. `string` would wrongly match inside words and leave stray `<>`).
+ */
+const RE_SEGMENT_LABEL_STRIP = new RegExp(
+  `:|\\(|\\)|<\\s*(?:${REVIEW_QUESTION_TYPE_NAMES_ALT.split('|')
+    .map((t) => escapeRegExp(t))
+    .join('|')})\\s*>`,
+  'gi',
+)
 
 /**
  * TODO: pull these two to be just a constant.
@@ -49,16 +60,6 @@ export function parseQuestions(questionLines: Array<string> | string): Array<Par
 
   for (let lineIndex = 0; lineIndex < linesToProcess.length; lineIndex++) {
     const line = linesToProcess[lineIndex]
-    const mTypedH2 = line.match(/^\s*<\s*h2\s*>\s*(.+)$/i)
-    if (mTypedH2) {
-      parsed.push({ question: String(mTypedH2[1] ?? '').trim(), type: 'h2', originalLine: line, lineIndex })
-      continue
-    }
-    const mTypedH3 = line.match(/^\s*<\s*h3\s*>\s*(.+)$/i)
-    if (mTypedH3) {
-      parsed.push({ question: String(mTypedH3[1] ?? '').trim(), type: 'h3', originalLine: line, lineIndex })
-      continue
-    }
     const mH2 = line.match(/^##\s+(.+)$/)
     if (mH2) {
       parsed.push({ question: String(mH2[1] ?? '').trim(), type: 'h2', originalLine: line, lineIndex })
@@ -69,14 +70,6 @@ export function parseQuestions(questionLines: Array<string> | string): Array<Par
       parsed.push({ question: String(mH3[1] ?? '').trim(), type: 'h3', originalLine: line, lineIndex })
       continue
     }
-    const mTrailingHeadingDecorator = line.match(/^(.*?)\s*<\s*(h2|h3)\s*>\s*$/i)
-    if (mTrailingHeadingDecorator) {
-      const base = String(mTrailingHeadingDecorator[1] ?? '').trim()
-      if (base !== '') {
-        parsed.push({ question: base, type: 'string', originalLine: `${base}: <string>`, lineIndex })
-        continue
-      }
-    }
     const questionParts = line.split(/\s*\|\|\s*/).map(part => part.trim()).filter(part => part !== '')
 
     for (const questionPart of questionParts) {
@@ -84,15 +77,12 @@ export function parseQuestions(questionLines: Array<string> | string): Array<Par
       for (const segmentRaw of segments) {
         const segment = segmentRaw.trim()
         const reArray = segment.match(typeRE)
-        const questionType = reArray?.[1] ?? '<error in question type>'
+        let questionType = String(reArray?.[1] ?? '<error in question type>').toLowerCase()
+        if (questionType === 'integer') {
+          questionType = 'int'
+        }
         const tokenMatch = segment.match(/([@#][^\s(<]+)/)
-        const question = tokenMatch?.[1]
-          ?? segment
-            .replace(
-              /:|\(|\)|<string>|<int>|<number>|<duration>|<boolean>|<mood>|<subheading>|<h2>|<h3>|<bullets>|<checklists>|<tasks>/gi,
-              '',
-            )
-            .trim()
+        const question = tokenMatch?.[1] ?? segment.replace(RE_SEGMENT_LABEL_STRIP, '').trim()
         parsed.push({ question, type: questionType, originalLine: segment, lineIndex })
       }
     }
@@ -104,11 +94,11 @@ export function parseQuestions(questionLines: Array<string> | string): Array<Par
 /**
  * Handle an HTML heading question type.
  * @param {string} question the question text
- * @param {string} headingType 'h2' | 'h3' | 'subheading' (legacy; subheading uses same marker as h3)
+ * @param {string} headingType 'subheading' (legacy; subheading uses same marker as h3)
  * @returns {string} the formatted markdown heading block
  */
 function handleHeadingQuestion(question: string, headingType: string): string {
-  const cleanHeading = question.replace(/<(?:subheading|h2|h3)>\s*$/i, '').trim()
+  const cleanHeading = question.replace(/<\s*subheading\s*>\s*$/i, '').trim()
   const headingMarker = headingType === 'h2' ? '##' : '###'
   return `\n${headingMarker} ${cleanHeading}`
 }
@@ -159,8 +149,11 @@ function stripMultilineAnswerPrefixes(rawBlock: string, linePrefix: string): str
  * @returns {{ prefix: string, suffix: string }}
  */
 function splitParsedSegmentAtTypeMarker(segment: string, questionType: string): {| prefix: string, suffix: string |} {
-  const safeType = escapeRegExp(questionType)
-  const re = new RegExp(`<\\s*${safeType}\\s*>`, 'i')
+  const pattern =
+    questionType.toLowerCase() === 'int'
+      ? '<\\s*(?:integer|int)\\s*>'
+      : `<\\s*${escapeRegExp(questionType)}\\s*>`
+  const re = new RegExp(pattern, 'i')
   const m = segment.match(re)
   if (!m || m.index == null) {
     return { prefix: segment, suffix: '' }
@@ -354,7 +347,9 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
   switch (t) {
     case 'int': {
       if (isInt(answer)) {
-        return parsedQuestion.originalLine.startsWith('-') ? `- ${answer}` : parsedQuestion.originalLine.replace(/<int>/, answer)
+        return parsedQuestion.originalLine.startsWith('-')
+          ? `- ${answer}`
+          : parsedQuestion.originalLine.replace(/<\s*(?:integer|int)\s*>/i, answer)
       }
       return ''
     }
