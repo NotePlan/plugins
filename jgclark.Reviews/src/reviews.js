@@ -57,6 +57,7 @@ import {
   addToggleEvents,
   displayFiltersDropdownScript,
   tagTogglesVisibilityScript,
+  windowCloseAndReopenScripts,
 } from './projectsHTMLTemplates.js'
 import { checkString } from '@helpers/checkType'
 import { getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
@@ -432,7 +433,7 @@ export async function renderProjectListsHTML(
       postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + tagTogglesVisibilityScript + autoRefreshScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>
       <script type="text/javascript" src="./projectListEvents.js"></script>
-      ` + commsBridgeScripts + shortcutsScript + addToggleEvents, // + collapseSection +  resizeListenerScript + unloadListenerScript,
+      ` + commsBridgeScripts + shortcutsScript + addToggleEvents + windowCloseAndReopenScripts, // + collapseSection +  resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 660, // = default width of window (px)

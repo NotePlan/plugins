@@ -1,7 +1,8 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
-## [2.0.0.b16] - 2026-03-11???
+## [2.0.0.b16] - 2026-03-13???
+- dev: now pauses/unpauses the auto refresh timers when the rich window is hidden by NP
 - further layout improvements to top bar and edit dialog when project list displayed in a very narrow window
 - remove `nextReview` frontmatter when pausing, completing, or cancelling a project
 - change the sorting order for "(first) project tag" to come in the order that they're defined in setting "Project Display order", rather than simple alphabetical order (for @Doug)
