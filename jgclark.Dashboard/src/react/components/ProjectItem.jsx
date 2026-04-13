@@ -2,18 +2,18 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by ItemRow component
-// Last updated 2026-01-24 for v2.4.0.b18 by @jgclark
+// Last updated 2026-04-13 for v2.4.0.b24 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
 import type { TSection, TSectionItem, MessageDataObject } from '../../types.js'
+import { applyDashboardSettingsToDisplayedItemHtml, makeStringContentToLookLikeNPDisplayInReact } from '../dashboardLineToNPDisplayHTML.js'
 import { useAppContext } from './AppContext.jsx'
 import SmallCircularProgressIndicator from './SmallCircularProgressIndicator.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
 // import NoteTitleLink from './NoteTitleLink.jsx'
 // import { getFolderFromFilename } from '@helpers/folders'
-import { prepAndTruncateMarkdownForDisplay } from '@helpers/stringTransforms'
-import { logDebug, logInfo } from '@helpers/react/reactDev.js'
+import { logDebug } from '@helpers/react/reactDev.js'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import { parseTeamspaceFilename, TEAMSPACE_FA_ICON } from '@helpers/teamspace'
 type Props = {
@@ -42,6 +42,7 @@ function ProjectItem({ item, thisSection }: Props): Node {
   let teamspaceName = null
   if (isFromTeamspace) {
     const teamspaceTitle = item.teamspaceTitle && item.teamspaceTitle !== 'Unknown Teamspace' ? item.teamspaceTitle : ''
+    // TODO: Review why the use of this is now commented out
     teamspaceName = (
       <span className="pad-left teamspaceName pad-right">
         <i className={`${TEAMSPACE_FA_ICON} pad-right`}></i>
@@ -53,28 +54,38 @@ function ProjectItem({ item, thisSection }: Props): Node {
     }
   }
 
-  // Format and display project progress if present
-  const progressContent = progressText && (
+  // Format and display project progress if present (same NP-style HTML as task rows: hashtags, links, etc.)
+  const progressHtml =
+    progressText !== ''
+      ? applyDashboardSettingsToDisplayedItemHtml(
+        makeStringContentToLookLikeNPDisplayInReact(progressText, { truncateLength: 0, taskPriority: 0 }),
+        dashboardSettings,
+      )
+      : ''
+  const progressContent = progressHtml ? (
     <>
       <br></br>
       <div className="projectProgress">
         <i className="fa-regular fa-circle-info pad-right"></i>
-        {progressText}
+        <span className="projectProgressHtml" dangerouslySetInnerHTML={{ __html: progressHtml }} />
       </div>
     </>
-  )
+  ) : null
 
   // Format and display nextActions if present
   const nextActions = item.project?.nextActions
   const nextActionsContent = nextActions && nextActions.length > 0 ? (
     <>
       {nextActions.map((nextAction, index) => {
-        const truncatedAction = prepAndTruncateMarkdownForDisplay(nextAction, 100)
+        const nextActionHtml = applyDashboardSettingsToDisplayedItemHtml(
+          makeStringContentToLookLikeNPDisplayInReact(nextAction, { truncateLength: 100, taskPriority: 0 }),
+          dashboardSettings,
+        )
         return (
           <React.Fragment key={index}>
             <div className="projectNextAction">
               <i className="fa-regular fa-circle pad-right"></i>
-              {truncatedAction}
+              <span className="projectNextActionHtml" dangerouslySetInnerHTML={{ __html: nextActionHtml }} />
             </div>
           </React.Fragment>
         )
