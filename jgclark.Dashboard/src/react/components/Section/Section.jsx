@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2026-01-23 for v2.4.0.b18 by @jgclark
+// Last updated 2026-04-13 for v2.4.0.b23 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -182,6 +182,17 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
               },
             ]
           }
+          break
+        case 'WINS':
+          // TODO: In time make this a different message?
+          logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display congrats message`)
+          sectionItems = [
+            {
+              ID: `${section.sectionCode}-Empty`,
+              sectionCode: section.sectionCode,
+              itemType: 'itemCongrats',
+            },
+          ]
           break
         case 'TAG':
           logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display congrats message`)

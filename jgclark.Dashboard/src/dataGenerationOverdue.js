@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { createSectionItemObject, filterParasByRelevantFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections, filterParasByAllowedTeamspaces, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
+import { createSectionItemObject, filterParasByRelevantFolders, filterParasByIgnoreTerms, filterParasByExcludedCalendarSections, filterParasByAllowedTeamspaces, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
 import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -221,7 +221,7 @@ export async function getRelevantOverdueTasks(
     filteredOverdueParas = filterParasByIgnoreTerms(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
 
     // Also if wanted, apply to calendar headings in this note
-    filteredOverdueParas = filterParasByCalendarHeadingSections(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
+    filteredOverdueParas = filterParasByExcludedCalendarSections(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
     logTimer('getRelevantOverdueTasks', thisStartTime, `After filtering, ${overdueParas.length} overdue items`)
 
     // Remove items that appear in this section twice (which can happen if a task is sync'd), based just on their content

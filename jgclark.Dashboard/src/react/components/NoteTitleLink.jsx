@@ -3,7 +3,7 @@
 // Shared component for rendering a clickable note title link with icon.
 // Note: it does not handle Teamspace indicators or folder names.
 // Used by both ItemNoteLink and ProjectItem components.
-// Last updated 2026-02-05 for v2.4.0.b16+ by @jgclark
+// Last updated 2026-04-13 for v2.4.0.b23 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useCallback } from 'react'
@@ -50,15 +50,15 @@ function NoteTitleLink({
 
   // Compute icon: use frontmatter icon if present, otherwise use default logic
   const noteIconToUse = noteData.icon
-    ? `fa-regular fa-${noteData.icon}`
+    ? `fa-light fa-${noteData.icon}`
     : defaultIcon ?? (isDailyDateStr(filename)
-    ? 'fa-regular fa-calendar-star'
+      ? 'fa-light fa-calendar-star'
     : isWeeklyDateStr(filename)
-    ? 'fa-regular fa-calendar-week'
+        ? 'fa-light fa-calendar-week'
     : isMonthlyDateStr(filename)
-    ? 'fa-regular fa-calendar-days'
+          ? 'fa-light fa-calendar-days'
     : isQuarterlyDateStr(filename)
-    ? 'fa-regular fa-calendar-range'
+            ? 'fa-light fa-calendar-range'
     : 'fa-light fa-file-lines')
 
   // Get icon-color from frontmatter if present

@@ -121,6 +121,8 @@ export type TDashboardSettings = {
   showWeekSection: boolean,
   showYesterdaySection: boolean,
   showInfoSection: boolean,
+  showWinsSection: boolean,
+  treatTopPriorityAsWins: boolean,
   customSectionDisplayOrder: ?Array<TSectionCode>
 }
 
@@ -146,8 +148,9 @@ export type TDashboardPluginSettings = {
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'Y' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJACT' | 'PROJREVIEW' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' | 'INFO' // where DT = today, DY = yesterday, TAG = Tag, PROJACT = Active Projects section, PROJREVIEW = Projects to Review section, TB = Top Bar / TimeBlock
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'Y' | 'WINS' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJACT' | 'PROJREVIEW' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' | 'INFO' // where DT = today, DY = yesterday, WINS = client-only rollup for >> / priority-4, TAG = Tag, PROJACT = Active Projects section, PROJREVIEW = Projects to Review section, TB = Top Bar / TimeBlock
 // Note: INFO is a new section code for v2.3.0 for testing.
+// Note: WINS added v2.4.0 (TEST:) as a synthetic section built from priority-4 items in current calendar sections.
 // Note: When adding a new section code, make sure to update the constants in constants.js and dashboardSettings.js files, and getSomeSectionsData in dataGeneration.js
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }

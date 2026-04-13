@@ -4,7 +4,7 @@
 // action when the window has not been used in the last 'idleTime' milliseconds.
 // Also triggers a refresh at midnight every day (if Dashboard is open!)
 //
-// Note: currently this only can see 'idle' in the Dashboard windows, not in the main
+// Note: this only sees 'idle' in the Dashboard windows, not in the main
 // NotePlan windows.
 //------------------------------------------------------------------------------
 
@@ -14,6 +14,13 @@ import moment from 'moment/min/moment-with-locales'
 import { logDebug, logInfo } from '@helpers/react/reactDev'
 import { getTimeAgoString } from '@helpers/dateTime.js'
 import { dt } from '@helpers/dev'
+
+// How often to check for things
+const TICK_INTERVAL = 15000 // 15 seconds
+
+// When the computer goes to sleep and wakes up, it can fire multiple queued events at once.
+// We only want to execute the onIdleTimeout function once, so we try to ignore events that seem to have happened during sleep/wake
+const LEGAL_DRIFT_THRESHHOLD = 10000 // 10 seconds
 
 /**
  * Props type for IdleTimer component.
@@ -29,10 +36,9 @@ type IdleTimerProps = {|
 |};
 
 const msToMinutes = (ms: number): number => Math.round(ms / 1000 / 60)
+const msToSeconds = (ms: number): number => Math.round(ms / 1000)
 
-// When the computer goes to sleep and wakes up, it can fire multiple queued events at once.
-// We only want to execute the onIdleTimeout function once, so we try to ignore events that seem to have happened during sleep/wake
-const LEGAL_DRIFT_THRESHHOLD = 10000 // 10 seconds
+//------------------------------------------------------------------------------
 
 /**
  * IdleTimer component to keep track of user idle time and perform an action when the user is idle.
@@ -47,31 +53,6 @@ function IdleTimer({ idleTime, onIdleTimeout, userIsInteracting = false }: IdleT
   // Do NOT use 'mousemove' - it fires constantly while the cursor is over the window
   // and prevents the idle timer from ever firing when the user is viewing the Dashboard.
   // Similarly 'scroll' is not meaningful interaction.
-  // useEffect(() => {
-  //   const handleUserActivity = () => {
-  //     setLastActivity(Date.now())
-  //   }
-
-  //   const handleVisibilityChange = () => {
-  //     if (document.visibilityState === 'visible') {
-  //       setLastActivity(Date.now())
-  //     }
-  //   }
-
-  //   // window.addEventListener('mousemove', handleUserActivity)
-  //   // window.addEventListener('scroll', handleUserActivity)
-  //   window.addEventListener('keydown', handleUserActivity)
-  //   window.addEventListener('touchstart', handleUserActivity)
-  //   document.addEventListener('visibilitychange', handleVisibilityChange)
-
-  //   return () => {
-  //     // window.removeEventListener('mousemove', handleUserActivity)
-  //     // window.removeEventListener('scroll', handleUserActivity)
-  //     window.removeEventListener('keydown', handleUserActivity)
-  //     window.removeEventListener('touchstart', handleUserActivity)
-  //     document.removeEventListener('visibilitychange', handleVisibilityChange)
-  //   }
-  // }, [])
 
   useEffect(() => {
     // Run a 'tick' every 15 seconds to check for midnight refresh and idle timeout
@@ -103,10 +84,11 @@ function IdleTimer({ idleTime, onIdleTimeout, userIsInteracting = false }: IdleT
         }
         setLastActivity(Date.now()) // Reset the timer after calling onIdleTimeout
       } else {
-        logDebug('IdleTimer', `${dt().padEnd(19)} Still under the ${msToMinutes(idleTime)}m limit; It has been ${(Date.now() - lastActivity) / 1000}s since last activity`)
+        logDebug('IdleTimer', `${dt().padEnd(19)} Still under the ${msToMinutes(idleTime)}m limit; It has been ${msToSeconds(Date.now() - lastActivity)}s since last activity`)
       }
-    }, /* tickInterval */ 15000)
+    }, TICK_INTERVAL)
 
+    // ? Clean up the interval when the component unmounts
     return () => {
       clearInterval(interval)
     }

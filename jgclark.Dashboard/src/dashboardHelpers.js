@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-02-08 for v2.4.0.b20, @jgclark
+// Last updated 2026-04-13 for v2.4.0.b23, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -37,7 +37,7 @@ import { getNoteFromFilename, getReferencedParagraphs } from '@helpers/NPnote'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { getIndentLevelFromRawContent } from '@helpers/paragraph'
 import { isAChildPara } from '@helpers/parentsAndChildren'
-import { caseInsensitiveSubstringArrayIncludes } from '@helpers/search'
+import { caseInsensitiveStartsWith, caseInsensitiveSubstringArrayIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
@@ -490,7 +490,7 @@ function filterOpenParagraphs(
   openParas = filterParasByIncludedCalendarSections(openParas, dashboardSettings, startTime, 'filterOpenParagraphs')
 
   // Filter out anything matching 'ignoreItemsWithTerms' setting, if set
-  openParas = filterParasByCalendarHeadingSections(openParas, dashboardSettings, startTime, 'filterOpenParagraphs')
+  openParas = filterParasByExcludedCalendarSections(openParas, dashboardSettings, startTime, 'filterOpenParagraphs')
 
   return openParas
 }
@@ -947,7 +947,8 @@ export function filterParasByIgnoreTerms(
 }
 
 /**
- * Filter paragraphs to only include those from included calendar sections. It uses an exact match on headings, not partial matches.
+ * Filter paragraphs to only include those from included calendar sections. 
+ * Heading matching is case-insensitive prefix: each configured section name must match the start of a heading in the paragraph's hierarchy (see caseInsensitiveStartsWith with strictSubset false).
  * @tests in jest file
  * @param {Array<TParagraph>} paras - paragraphs to filter
  * @param {TDashboardSettings} dashboardSettings - dashboard settings containing included calendar sections
@@ -965,6 +966,8 @@ export function filterParasByIncludedCalendarSections(
     return paras
   }
   const includedCalendarSections = stringListOrArrayToArray(dashboardSettings.includedCalendarSections, ',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
 
   // TEST: this is where TB defeat happens for headings
   const filteredParas = paras.filter((p) => {
@@ -972,7 +975,9 @@ export function filterParasByIncludedCalendarSections(
     if (p.note?.type !== 'Calendar') return true
     // Apply to all H4/H3/H2 headings in the hierarchy for this para
     const theseHeadings = getHeadingHierarchyForThisPara(p)
-    return theseHeadings.some((h) => includedCalendarSections.includes(h))
+    return theseHeadings.some((h) =>
+      includedCalendarSections.some((inc) => caseInsensitiveStartsWith(inc, h.trim(), false))
+    )
   })
   logTimer(functionName, startTime, `- ${filteredParas.length} paras after filtering out calendar headings`)
   return filteredParas
@@ -987,7 +992,7 @@ export function filterParasByIncludedCalendarSections(
  * @param {string} functionName - name of calling function for logging
  * @returns {Array<TParagraph>} filtered paragraphs
  */
-export function filterParasByCalendarHeadingSections(
+export function filterParasByExcludedCalendarSections(
   paras: Array<TParagraph>,
   dashboardSettings: TDashboardSettings,
   startTime: Date,
@@ -998,7 +1003,7 @@ export function filterParasByCalendarHeadingSections(
   }
   const thisNote = paras[0]?.note
   // TEST: Does this work for Teamspace notes? Teamspace notes are reported as 'unknown' here
-  logDebug('filterParasByCalendarHeadingSections', `Starting for note ${thisNote?.filename ?? '(unknown)'}`)
+  logDebug('filterParasByExcludedCalendarSections', `Starting for note ${thisNote?.filename ?? '(unknown)'}`)
 
   const filteredParas = paras.filter((p) => {
     // only apply to calendar notes

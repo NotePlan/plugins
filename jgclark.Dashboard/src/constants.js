@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 2026-01-23 for v2.4.0.b18, @jgclark
+// Last updated 2026-04-13 for v2.4.0.b23, @jgclark
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -13,6 +13,7 @@ export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be us
 
 export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'TB', sectionName: 'Current time blocks', showSettingName: 'showTimeBlockSection' },
+  { sectionCode: 'WINS', sectionName: 'Wins', showSettingName: 'showWinsSection' },
   { sectionCode: 'DT', sectionName: 'Today', showSettingName: 'showTodaySection' },
   { sectionCode: 'DY', sectionName: 'Yesterday', showSettingName: 'showYesterdaySection' },
   { sectionCode: 'DO', sectionName: 'Tomorrow', showSettingName: 'showTomorrowSection' },
@@ -39,10 +40,11 @@ export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map((s) =>
 
 export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y']
 
-export const defaultSectionDisplayOrder = ['SEARCH', 'INFO', 'SAVEDSEARCH', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJACT', 'PROJREVIEW']
+export const defaultSectionDisplayOrder = ['SEARCH', 'INFO', 'SAVEDSEARCH', 'TB', 'WINS', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJACT', 'PROJREVIEW']
 
 // change this order to change which duplicate items get kept - the first on the list. Should not include 'dontDedupeSectionCodes' below.
-export const sectionPriority = ['TB', 'TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
+// WINS before DT/W/M/Q so hideDuplicates keeps >> items in Wins and strips them from period sections.
+export const sectionPriority = ['TB', 'TAG', 'WINS', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
 
 // Those sections we can't or shouldn't attempt to dedupe:
 // - TB as its for info only

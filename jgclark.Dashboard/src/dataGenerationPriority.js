@@ -10,7 +10,7 @@ import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionItemObject,
-  filterParasByCalendarHeadingSections,
+  filterParasByExcludedCalendarSections,
   filterParasByIgnoreTerms,
   filterParasByRelevantFolders,
   getNotePlanSettings,
@@ -183,7 +183,7 @@ async function getRelevantPriorityTasks(config: TDashboardSettings): Promise<Arr
     filteredPriorityParas = filterParasByIgnoreTerms(filteredPriorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
 
     // Also if wanted, apply to calendar headings in this note
-    filteredPriorityParas = filterParasByCalendarHeadingSections(filteredPriorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
+    filteredPriorityParas = filterParasByExcludedCalendarSections(filteredPriorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
 
     // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
     // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time

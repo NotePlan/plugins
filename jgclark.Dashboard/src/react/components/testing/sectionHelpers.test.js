@@ -48,4 +48,55 @@ describe('sectionHelpers', () => {
       expect(orderedSections).toEqual(expectedSections)
     })
   })
+
+  describe('injectSyntheticWinsSection', () => {
+    const baseSettings = {
+      showWinsSection: true,
+      treatTopPriorityAsWins: true,
+      showTodaySection: true,
+      showWeekSection: true,
+      showMonthSection: false,
+      showQuarterSection: false,
+    }
+
+    test('returns unchanged when showWinsSection is false', () => {
+      const sections = [{ sectionCode: 'DT', sectionItems: [], isReferenced: false, ID: 'DT', name: 'Today', showSettingName: 'showTodaySection', description: '' }]
+      const out = sh.injectSyntheticWinsSection(sections, { ...baseSettings, showWinsSection: false })
+      expect(out).toBe(sections)
+    })
+
+    test('appends WINS with priority-4 items from visible DT/W in order', () => {
+      const sections = [
+        {
+          ID: 'DT',
+          name: 'Today',
+          showSettingName: 'showTodaySection',
+          sectionCode: 'DT',
+          isReferenced: false,
+          description: '',
+          sectionItems: [
+            { ID: 'DT-0', itemType: 'open', sectionCode: 'DT', para: { priority: 1, type: 'open', content: 'a', filename: 'x.md' } },
+            { ID: 'DT-1', itemType: 'open', sectionCode: 'DT', para: { priority: 4, type: 'open', content: 'win', filename: 'x.md' } },
+          ],
+        },
+        {
+          ID: 'W',
+          name: 'Week',
+          showSettingName: 'showWeekSection',
+          sectionCode: 'W',
+          isReferenced: false,
+          description: '',
+          sectionItems: [{ ID: 'W-0', itemType: 'open', sectionCode: 'W', para: { priority: 4, type: 'open', content: 'w2', filename: 'y.md' } }],
+        },
+      ]
+      const out = sh.injectSyntheticWinsSection(sections, baseSettings)
+      expect(out.length).toBe(sections.length + 1)
+      const wins = out[out.length - 1]
+      expect(wins.sectionCode).toBe('WINS')
+      expect(wins.sectionItems.map((i) => i.para.content)).toEqual(['win', 'w2'])
+      expect(wins.sectionItems[0].ID).toBe('WINS-DT-1')
+      expect(wins.sectionItems[0].sectionCode).toBe('DT')
+      expect(wins.totalCount).toBe(2)
+    })
+  })
 })

@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2025-11-29 for v2.3.0.b16 by @jgclark
+// Last updated 2026-04-13 for v2.4.0.b23 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -49,10 +49,11 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
 
   //------ Constants & Calculations --------------------------
 
+  const effectiveSectionCode = item.sectionCode ?? thisSection.sectionCode
   const messageObject: MessageDataObject = {
     item: item,
     actionType: '(not yet set)',
-    sectionCodes: [thisSection.sectionCode], // for the DialogForTaskItems
+    sectionCodes: [effectiveSectionCode], // for the DialogForTaskItems (Wins rollup keeps source section on item)
   }
 
   // logDebug('ItemContent', `- for ${item.ID}: '${item.para?.content ?? '<null>'}'`)

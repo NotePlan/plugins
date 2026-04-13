@@ -8,6 +8,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b23] 2026-04-13
+- new **Wins** Section which shows any top-priority tasks (with the `>>` prefix) from as many of the current Calendar sections are turned on. You need to turn this on through the new setting **Show '>>' priority marker as a separate section**.  It has a subtly different background color.
+- "Calendar note Sections to Include" now matches headings by case-insensitive prefix (e.g. `Wins` matches `Wins for 2026-04-13`), not exact full-heading text
+- change icons in the note title links to be 'light' not 'regular'
+
 ## [2.4.0.b22] 2026-02-27
 - fix (hopefully): work around indents API bug that stopped indented tasks being moved to different calendar notes
 - fix: ensure numeric dashboard settings (for example `maxItemsToShowInSection` and `newTaskSectionHeadingLevel`) are always stored and loaded as numbers, not strings

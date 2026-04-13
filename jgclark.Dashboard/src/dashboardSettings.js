@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-02-07 for v2.4.0.b20, @jgclark
+// Last updated 2026-04-13 for v2.4.0.b23, @jgclark
 //-----------------------------------------------------------------------------
 
 import { defaultSectionDisplayOrder } from './constants.js'
@@ -132,7 +132,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'includedCalendarSections',
     label: 'Calendar note Sections to Include',
     description:
-      "Comma-separated list of calendar note section headings to include when selecting open tasks/checklists to show. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all sections are included.",
+      "Comma-separated list of calendar note section heading prefixes (case-insensitive). A task is included if any heading above it starts with one of these values (after trimming). For example, 'Wins' matches 'Wins' and 'Wins for 2026 Q2'. If left blank, all sections are included. Very short names can match more than one section if one heading is a prefix of another.",
     type: 'input',
     default: '',
     compactDisplay: true,
@@ -239,6 +239,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Display settings',
     description:
       'Settings that control how the Dashboard displays information. There are also toggles that control filtering of which Sections to show in the Filters dropdown menu.',
+  },
+  {
+    label: "Show '>>' priority marker as a separate section",
+    key: 'treatTopPriorityAsWins',
+    type: 'switch',
+    default: false,
+    description:
+      "Treat the '>>' priority as indicating a particular priority item ('big win', 'big rock'), and if present, show any incomplete ones from the day and week (and month/quarter when those sections are on) as a separate **Wins** section. Lower-priority filtering (! / !! / !!!) still uses the highest among those tiers without being overridden by >>.",
   },
   {
     type: 'orderingPanel',

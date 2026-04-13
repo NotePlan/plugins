@@ -1,6 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show Note Titles as clickable links. Handles Teamspace indicators and folder names.
+// Used by ItemContent and DialogFor*Items components.
 // Last updated 2026-02-05 for v2.4.0.b20 by @jgclark
 //--------------------------------------------------------------------------
 

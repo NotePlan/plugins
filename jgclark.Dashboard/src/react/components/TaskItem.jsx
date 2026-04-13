@@ -3,7 +3,7 @@
 // Dashboard React component to create a full content line for a Task item: 
 // icon, content, noteLink and the fa-edit icon at the end.
 // 
-// Last updated 2025-07-22 for v2.3.0.b6
+// Last updated 2026-04-13 for v2.4.0.b23
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useState } from 'react'
@@ -21,10 +21,11 @@ type Props = {
 function TaskItem({ item, thisSection }: Props): Node {
   const [visible, setVisible] = useState(true)
 
+  const effectiveSectionCode = item.sectionCode ?? thisSection.sectionCode
   const messageObject: MessageDataObject = {
     item: item,
     actionType: '(not yet set)',
-    sectionCodes: [thisSection.sectionCode], // for the DialogForTaskItems
+    sectionCodes: [effectiveSectionCode], // for the DialogForTaskItems (Wins rollup keeps source section on item)
   }
 
   // Handle icon click, following action in the lower-level StatusIcon component (e.g. cancel/complete)
@@ -56,7 +57,6 @@ function TaskItem({ item, thisSection }: Props): Node {
   }
 
   // Add an indent level to the start of the item iff it is a child and it has a selected parent and test that parent is being shown!
-  // TEST: this. First clause has been commented out for some time.
   const indentLevelToDisplay = item.para?.isAChild && item.parentID && item.parentID !== '' ? (item.para?.indents ?? 0) : 0
 
   return (

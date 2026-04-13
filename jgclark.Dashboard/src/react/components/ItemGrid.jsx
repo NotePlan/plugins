@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // A grid layout for items within a section.
 // Called by ItemGrid component.
-// Last updated 2025-07-22 for v2.3.0.b by @jgclark
+// Last updated 2026-04-13 for v2.4.0.b23 by @jgclark
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -11,7 +11,7 @@ import ItemRow from './ItemRow.jsx'
 import { logDebug, logInfo } from '@helpers/react/reactDev.js'
 
 // Set to true to see some subtle shading of section backgrounds
-// const showColoredBackgrounds = false
+// const showColoredBackgrounds = true
 
 type Props = {
   items: Array<TSectionItem>,
@@ -28,10 +28,13 @@ function ItemGrid({ items, thisSection, onToggleShowAll }: Props): React$Node {
     : []
 
   // Calculate a subtle green background colour for the section if there are no items,
-  // or if the first item is a congrats message,
+  // or if the first item is a congrats message.
   // or if the section has asked for a coloured background.
+  // WINS uses theme alt background only for that section.
   const sectionBackgroundColor =
-    items.length === 0 || items[0].itemType === 'itemCongrats'
+    thisSection.sectionCode === 'WINS'
+      ? 'var(--bg-alt-color)'
+      : items.length === 0 || items[0].itemType === 'itemCongrats'
       ? `color-mix(in srgb, var(--bg-main-color), green 4%)`
       : thisSection.showColoredBackground && thisSection.sectionTitleColorPart
       ? `color-mix(in srgb, var(--bg-main-color), var(--fg-${thisSection.sectionTitleColorPart}) 4%)`

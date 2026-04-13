@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2026-02-19 for v2.4.0.b21, @jgclark
+// Last updated for 2026-04-13 for v2.4.0.b23, @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -18,7 +18,7 @@ import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettin
 import type { TSection, TActionButton } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
-import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
+import { getSectionsWithoutDuplicateLines, injectSyntheticWinsSection, countTotalVisibleSectionItems, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
 import { calculateMaxPriorityAcrossAllSections } from './Section/useSectionSortAndFilter.jsx'
 import Header from './Header'
 import IdleTimer from './IdleTimer.jsx'
@@ -96,12 +96,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   // Order the display of sections, and count the total number of items to show
   const { sections, totalSectionItems } = useMemo(() => {
-    let workingSections = origSections
+    let workingSections = origSections.slice()
+    // If wanted, inject the synthetic Wins section built from priority-4 items in current calendar sections
+    workingSections = injectSyntheticWinsSection(workingSections, dashboardSettings)
     if (workingSections.length >= 1 && dashboardSettings?.hideDuplicates) {
       // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
 
       // Sections other than the standard task-based ones need to be ignored here
-      const dedupedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dontDedupeSectionCodes, dashboardSettings)
+      const dedupedSections = getSectionsWithoutDuplicateLines(workingSections.slice(), ['filename', 'content'], sectionPriority, dontDedupeSectionCodes, dashboardSettings)
       workingSections = dedupedSections
     }
 
@@ -113,7 +115,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       sections: sortedSections,
       totalSectionItems: totalVisibleAfterSort,
     }
-  }, [origSections, dashboardSettings, dashboardSettings?.customSectionDisplayOrder])
+  }, [
+    origSections,
+    dashboardSettings,
+    dashboardSettings?.customSectionDisplayOrder,
+    dashboardSettings?.hideDuplicates,
+    dashboardSettings?.showWinsSection,
+    dashboardSettings?.treatTopPriorityAsWins,
+  ])
 
   // For PerspectivesTable
   const settingDefs = useMemo(
@@ -265,19 +274,23 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // NOTE: This can conflict with section-level updates during initial render, so we use a ref
   // to track if sections have actually changed (not just pluginData.currentMaxPriorityFromAllVisibleSections)
   const prevSectionsRef = useRef<Array<TSection>>([])
+  const prevTreatTopPriorityAsWinsRef = useRef <? boolean > (undefined)
   useEffect(() => {
-    // Only recalculate if sections array reference actually changed (items removed/added).
-    // Don't recalculate if only currentMaxPriorityFromAllVisibleSections changed (that's handled by sections).
     const sectionsChanged = prevSectionsRef.current !== sections
-    if (sectionsChanged) {
-      const newMaxPriority = calculateMaxPriorityAcrossAllSections(sections)
-      if (newMaxPriority !== pluginData.currentMaxPriorityFromAllVisibleSections) {
-        logDebug('Dashboard', `New max priority after sections changed: ${newMaxPriority}`)
-        updatePluginData({ ...pluginData, currentMaxPriorityFromAllVisibleSections: newMaxPriority }, `Recalculated max priority after sections changed: ${newMaxPriority}`)
-      }
-      prevSectionsRef.current = sections
+    const treatTopPriorityChanged = prevTreatTopPriorityAsWinsRef.current !== dashboardSettings?.treatTopPriorityAsWins
+    if (!sectionsChanged && !treatTopPriorityChanged) {
+      return
     }
-  }, [sections, pluginData.currentMaxPriorityFromAllVisibleSections])
+    prevSectionsRef.current = sections
+    prevTreatTopPriorityAsWinsRef.current = dashboardSettings?.treatTopPriorityAsWins
+    const newMaxPriority = calculateMaxPriorityAcrossAllSections(sections, {
+      treatTopPriorityAsWins: dashboardSettings?.treatTopPriorityAsWins === true,
+    })
+    if (newMaxPriority !== pluginData.currentMaxPriorityFromAllVisibleSections) {
+      logDebug('Dashboard', `New max priority after sections/treatTopPriorityAsWins changed: ${newMaxPriority}`)
+      updatePluginData({ ...pluginData, currentMaxPriorityFromAllVisibleSections: newMaxPriority }, `Recalculated max priority: ${newMaxPriority}`)
+    }
+  }, [sections, dashboardSettings?.treatTopPriorityAsWins, pluginData.currentMaxPriorityFromAllVisibleSections])
 
   //----------------------------------------------------------------------
   // Handlers
@@ -302,7 +315,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }
 
   // Maintain a stable button handler reference for each section to avoid unnecessary re-renders.
-  const handleSectionButtonClick = useCallback((button: TActionButton): void => { }, [])
+  const handleSectionButtonClick = useCallback((_button: TActionButton): void => { }, [])
 
   //----------------------------------------------------------------------
   // Render

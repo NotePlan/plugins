@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin
-// Last updated 2025-07-18 for v2.3.0.b6 by @jgclark
+// Last updated 2026-04-13 for v2.4.0.b23 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -100,10 +100,10 @@ export const openTodayItems: Array<TSectionItem> = [
   {
     ID: '0-4',
     sectionCode: 'DT',
-    itemType: 'checklist',
+    itemType: 'timeblock', // Note: is this right?
     para: {
       noteType: 'Calendar',
-      type: 'list', // Note: this is a list, not an open item
+      type: 'list', // Note: this is a paragraph type 'list', not an open item
       filename: thisFilename,
       lineIndex: 5,
       priority: 0,
@@ -130,26 +130,25 @@ export const openTodayItems: Array<TSectionItem> = [
       indents: 0,
     },
   },
-]
-export const refTodayItems: Array<TSectionItem> = [
   {
-    ID: '1-0',
-    sectionCode: 'DT',
-    itemType: 'open',
+    ID: '0-6',
+    sectionCode: 'DY',
+    itemType: 'checklist',
     para: {
-      type: 'open',
-      noteType: 'Notes',
-      filename: 'CCC Areas/Mission Partners.md',
-      lineIndex: 5,
-      title: 'Mission Partners',
-      priority: 0,
-      content: 'Update display board with CFL visit https://bcfd.org.uk/ at 08:00-10:00',
-      rawContent: 'Update display board with CFL visit https://bcfd.org.uk/ at 08:00-10:00',
-      prefix: '* ',
-      hasChild: true,
+      noteType: 'Calendar',
+      type: 'checklist',
+      filename: thisFilename,
+      lineIndex: 8,
+      priority: 4,
+      content: '>> Arrange EV charger repair',
+      rawContent: '>> Arrange EV charger repair',
+      prefix: '+ ',
+      changedDate: new Date('2023-02-27T00:00:00.000Z'),
       indents: 0,
     },
   },
+]
+export const refTodayItems: Array<TSectionItem> = [
   {
     ID: '1-1',
     sectionCode: 'DT',
@@ -195,23 +194,6 @@ const yesterday = new moment().subtract(1, 'days').toDate()
 thisDateStr = moment(yesterday).format('YYYYMMDD')
 thisFilename = `${thisDateStr}.md`
 export const openYesterdayParas: Array<TSectionItem> = [
-  {
-    ID: '2-0',
-    sectionCode: 'DY',
-    itemType: 'open',
-    para: {
-      type: 'open',
-      noteType: 'Calendar',
-      filename: thisFilename,
-      lineIndex: 8,
-      priority: 4,
-      content: '>> Arrange EV charger repair',
-      rawContent: '>> Arrange EV charger repair',
-      prefix: '+ ',
-      changedDate: new Date('2023-02-27T00:00:00.000Z'),
-      indents: 0,
-    },
-  },
   {
     ID: '2-1',
     sectionCode: 'DY',
@@ -290,6 +272,24 @@ export const openYesterdayParas: Array<TSectionItem> = [
 ]
 
 export const refYesterdayParas: Array<TSectionItem> = [
+  {
+    ID: '2-5',
+    sectionCode: 'DY',
+    itemType: 'open',
+    para: {
+      type: 'open',
+      noteType: 'Notes',
+      filename: 'CCC Areas/Mission Partners.md',
+      lineIndex: 5,
+      title: 'Mission Partners',
+      priority: 0,
+      content: 'Update display board with CFL visit https://bcfd.org.uk/ at 08:00-10:00',
+      rawContent: 'Update display board with CFL visit https://bcfd.org.uk/ at 08:00-10:00',
+      prefix: '* ',
+      hasChild: true,
+      indents: 0,
+    },
+  },
   {
     ID: '2-6',
     sectionCode: 'DY',
@@ -594,25 +594,25 @@ export const openMonthParas: Array<TSectionItem> = [
       indents: 0,
     },
   },
-]
-export const refMonthParas: Array<TSectionItem> = [
   {
     ID: '8-1',
     sectionCode: 'M',
     itemType: 'open',
     para: {
       type: 'open',
-      noteType: 'Notes',
-      filename: 'Home 🏠 Areas/Tax Returns.md',
-      lineIndex: 18,
-      title: 'Tax Returns',
-      priority: 1,
+      noteType: 'Calendar',
+      filename: thisFilename,
+      lineIndex: 9,
+      priority: 4,
       content: 'Pay tax bill',
       rawContent: 'Pay tax bill',
       prefix: '* ',
       indents: 0,
     },
   },
+]
+
+export const refMonthParas: Array<TSectionItem> = [
 ]
 
 //-----------------------------------------------------------

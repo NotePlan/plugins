@@ -2,16 +2,18 @@
 /* Last updated 2026-02-07 for v2.4.0.b20 by @jgclark */
 
 /* ------------------------------------------------------------------ */
-/* Some colours specified from measuring the colour of NP elements from the sidebar */
 html {
+	/* These colours specified from measuring the colour of NP elements from the sidebar */
 	--fg-sidebarDaily: #d0703c;
 	--fg-sidebarWeekly: #be23b6;
 	--fg-sidebarMonthly: #f5528b;
 	--fg-sidebarQuarterly: #e08008;
 	--fg-sidebarYearly: #efba13;
+	--fg-sidebarSearch: #9da5a8;
+	/* Others that are theme colours */
 	--fg-sidebarHashtag: var(--hashtag-color);
 	--fg-sidebarMention: var(--attag-color);
-	--fg-sidebarSearch: #9da5a8;
+	--fg-sidebarWins: var(--fg-ok-color);
 }
 /* But still need these as named styles */
 .sidebarDaily {color: var(--fg-sidebarDaily);}
@@ -19,9 +21,10 @@ html {
 .sidebarMonthly {color: var(--fg-sidebarMonthly);}
 .sidebarQuarterly {color: var(--fg-sidebarQuarterly);}
 .sidebarYearly {color: var(--fg-sidebarYearly);}
+.sidebarSearch {color: var(--fg-sidebarSearch);}
 .sidebarHashtag {color: var(--hashtag-color);}
 .sidebarMention {color: var(--attag-color);}
-.sidebarSearch {color: var(--fg-sidebarSearch);}
+.sidebarWins {color: var(--fg-sidebarWins);}
 
 /* ------------------------------------------------------------------ */
 

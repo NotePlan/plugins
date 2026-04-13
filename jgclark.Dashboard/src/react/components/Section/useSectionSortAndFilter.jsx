@@ -6,7 +6,7 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-02-08 for v2.4.0.b20, @jgclark
+// Last updated 2026-04-13 for v2.4.0.b23, @jgclark/@Cursor
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -101,6 +101,42 @@ const useSectionSortAndFilter = (
       setItemsToShow(memoizedItems)
       setLimitApplied(false)
     }
+    // If we have a Synthetic Wins section, show >> / priority-4 items only; do not contribute to global filterPriority max
+    else if (section.sectionCode === 'WINS') {
+      const specialMessageItems = memoizedItems.filter((item) => treatSingleItemTypesAsZeroItems.includes(item.itemType))
+      const taskItems = memoizedItems.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType))
+      let toShow = taskItems
+      if (memoizedDashboardSettings?.ignoreChecklistItems) {
+        toShow = toShow.filter((si) => !(si.para?.type === 'checklist'))
+      }
+      setCalculatedMaxPriority(-1)
+      if (toShow.length === 0) {
+        const emptyOrCongrats =
+          specialMessageItems.length > 0
+            ? specialMessageItems
+            : [
+              {
+                ID: `${section.ID}-Empty`,
+                sectionCode: 'WINS',
+                // TODO: Possibly specialise this further.
+                itemType: 'itemCongrats',
+              },
+            ]
+        setFilteredItems([])
+        setItemsToShow(emptyOrCongrats)
+        setNumFilteredOutThisSection(0)
+        setLimitApplied(false)
+      } else {
+        toShow.sort(itemSort)
+        const ordered = reorderChildrenAfterParents(toShow)
+        const needToApplyLimit = limitToApply > 0 && ordered.length > limitToApply
+        const limited = needToApplyLimit ? ordered.slice(0, limitToApply) : ordered
+        setFilteredItems(limited)
+        setItemsToShow(limited)
+        setNumFilteredOutThisSection(0)
+        setLimitApplied(needToApplyLimit)
+      }
+    }
     // Handle PROJECT sections differently: no priorities
     else if (section.sectionCode === 'PROJREVIEW' || section.sectionCode === 'PROJACT') {
       // Only apply the limit to the number of items to show
@@ -123,12 +159,21 @@ const useSectionSortAndFilter = (
         // totalCountToUse = totalCountToUse - (regularTaskItems.length - typeWantedItems.length)
       }
 
+      const calendarCodesForWinsSplit = ['DT', 'W', 'M', 'Q', 'Y']
+      if (
+        memoizedDashboardSettings?.treatTopPriorityAsWins &&
+        memoizedDashboardSettings?.showWinsSection !== false &&
+        calendarCodesForWinsSplit.includes(section.sectionCode)
+      ) {
+        typeWantedItems = typeWantedItems.filter((si) => si.para?.priority !== 4)
+      }
+
       // If we want to filter by priority, find highest priority seen (globally), and then filter out lower-priority items.
       // Only calculate max priority from remaining regular task items, not special message types
       let filteredItems = typeWantedItems
       let priorityFilteringHappening = false
       if (filterByPriority) {
-        const thisSectionCalculatedMaxPriority = getMaxPriorityInItems(typeWantedItems)
+        const thisSectionCalculatedMaxPriority = getMaxPriorityInItems(typeWantedItems, memoizedDashboardSettings)
         // logDebug('useSectionSortAndFilter', `Section ${section.sectionCode} calculated max priority: ${thisSectionCalculatedMaxPriority}`)
         setCalculatedMaxPriority(thisSectionCalculatedMaxPriority)
 
@@ -215,7 +260,8 @@ const useSectionSortAndFilter = (
       setFilteredItems(filteredItems)
       setItemsToShow(itemsToShow)
       setNumFilteredOutThisSection(numFilteredOutThisSection)
-      setLimitApplied(limitApplied)
+      const limitAppliedHere = limitToApply > 0 && orderedFilteredItems.length > limitToApply
+      setLimitApplied(limitAppliedHere)
     }
   }, [section, memoizedItems, memoizedDashboardSettings, currentMaxPriorityFromAllVisibleSections, showAllTasks])
 
@@ -234,21 +280,31 @@ const useSectionSortAndFilter = (
 
 /**
  * Calculate the maximum priority in a list of items. Returns -1 if there are no items. Returns the highest priority found, or 0 if no items have a priority.
- * @param {Array<TSectionItem>} items 
+ * When `dashboardSettings.treatTopPriorityAsWins`, priority 4 (>>) is ignored so filterPriorityItems uses the highest among ! / !! / !!! only.
+ * @param {Array<TSectionItem>} items
+ * @param {Object} [dashboardSettings]
  * @returns {number} The maximum priority found, or -1 if there are no items, or 0 if no items have a priority.
  */
-function getMaxPriorityInItems(items: Array<TSectionItem>): number {
+export function getMaxPriorityInItems(items: Array<TSectionItem>, dashboardSettings?: { treatTopPriorityAsWins?: boolean, ... }): number {
   if (items.length === 0) {
     return -1
   }
+  const ignoreTopPriority = dashboardSettings?.treatTopPriorityAsWins === true
   let maxPrioritySeen = 0
   for (const i of items) {
     // Skip special message types when calculating max priority
     if (treatSingleItemTypesAsZeroItems.includes(i.itemType)) {
       continue
     }
-    if (i.para?.priority && i.para.priority > maxPrioritySeen) {
-      maxPrioritySeen = i.para.priority
+    const p = i.para?.priority
+    if (!p) {
+      continue
+    }
+    if (ignoreTopPriority && p === 4) {
+      continue
+    }
+    if (p > maxPrioritySeen) {
+      maxPrioritySeen = p
     // logDebug('useSectionSortAndFilter', `- raised max priority to ${String(maxPrioritySeen)}`)
     }
   }
@@ -258,14 +314,18 @@ function getMaxPriorityInItems(items: Array<TSectionItem>): number {
 /**
  * Calculate the maximum priority across all visible sections
  * @param {Array<TSection>} sections - All sections to check
+ * @param {Object} [dashboardSettings] - When treatTopPriorityAsWins, skip synthetic WINS and ignore priority 4 in max
  * @returns {number} The maximum priority found across all sections, or -1 if no items have priority
  */
-export function calculateMaxPriorityAcrossAllSections(sections: Array<TSection>): number {
+export function calculateMaxPriorityAcrossAllSections(sections: Array<TSection>, dashboardSettings?: { treatTopPriorityAsWins?: boolean, ... }): number {
   let globalMaxPriority = -1
 
   sections.forEach((section) => {
+    if (section.sectionCode === 'WINS') {
+      return
+    }
     if (section.sectionItems && section.sectionItems.length > 0) {
-      const sectionMaxPriority = getMaxPriorityInItems(section.sectionItems)
+      const sectionMaxPriority = getMaxPriorityInItems(section.sectionItems, dashboardSettings)
       if (sectionMaxPriority > globalMaxPriority) {
         globalMaxPriority = sectionMaxPriority
       }

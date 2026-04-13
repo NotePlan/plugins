@@ -78,4 +78,42 @@ describe('useSectionSortAndFilter', () => {
       expect(reorderedData).toEqual(expectedOrderedResult)
     })
   })
+
+  describe('getMaxPriorityInItems', () => {
+    test('includes priority 4 when treatTopPriorityAsWins is off', () => {
+      const items = [
+        { itemType: 'open', para: { priority: 4 } },
+        { itemType: 'open', para: { priority: 2 } },
+      ]
+      expect(sh.getMaxPriorityInItems(items)).toBe(4)
+      expect(sh.getMaxPriorityInItems(items, {})).toBe(4)
+    })
+
+    test('ignores priority 4 when treatTopPriorityAsWins is on', () => {
+      const items = [
+        { itemType: 'open', para: { priority: 4 } },
+        { itemType: 'open', para: { priority: 2 } },
+      ]
+      expect(sh.getMaxPriorityInItems(items, { treatTopPriorityAsWins: true })).toBe(2)
+    })
+  })
+
+  describe('calculateMaxPriorityAcrossAllSections', () => {
+    test('skips WINS section and ignores priority 4 when treatTopPriorityAsWins is true', () => {
+      const sections = [
+        {
+          sectionCode: 'WINS',
+          sectionItems: [{ itemType: 'open', para: { priority: 4 } }],
+        },
+        {
+          sectionCode: 'DT',
+          sectionItems: [
+            { itemType: 'open', para: { priority: 4 } },
+            { itemType: 'open', para: { priority: 1 } },
+          ],
+        },
+      ]
+      expect(sh.calculateMaxPriorityAcrossAllSections(sections, { treatTopPriorityAsWins: true })).toBe(1)
+    })
+  })
 })

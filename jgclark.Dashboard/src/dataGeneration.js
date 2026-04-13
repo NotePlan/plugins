@@ -7,7 +7,7 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import type { TDashboardSettings, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSettingItem } from './types'
-import { allSectionCodes, defaultSectionDisplayOrder } from './constants.js'
+import { allSectionCodes } from './constants.js'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionItemsFromParas,
@@ -30,7 +30,6 @@ import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
 import { getNPMonthStr, getNPQuarterStr, getNPYearStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getHeadingsFromNote } from '@helpers/NPnote'
-// import { sortListBy } from '@helpers/sorting'
 import { getSettings } from '@helpers/NPConfiguration'
 import { getLiveWindowRect, getStoredWindowRect, logWindowsList, rectToString } from '@helpers/NPWindows'
 
@@ -91,6 +90,7 @@ export async function getSomeSectionsData(
       sections.push(...todaySections)
     }
     if (sectionCodesToGet.includes('TB') && config.showTimeBlockSection) sections.push(...getTimeBlockSectionData(config, useDemoData, useEditorWherePossible))
+    // Note: the WINS section is generated separately in the front end after the other sections are generated.
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DO') && config.showTomorrowSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('LW') && config.showLastWeekSection) sections.push(...getLastWeekSectionData(config, useDemoData, useEditorWherePossible))

@@ -1,8 +1,8 @@
 /* globals describe, expect, test, jest, beforeEach */
-// Tests written by Cursor, 2026-01-25, directed by JGC.
+// Tests written by Cursor, directed by JGC. Last updated 2026-04-13 for v2.4.0.b23
 
 import { CustomConsole } from '@jest/console'
-import { filterToOpenParagraphs, filterBySchedulingRules, filterParasByIgnoreTerms, filterParasByIncludedCalendarSections, filterParasByCalendarHeadingSections, getStartTimeFromPara } from '../dashboardHelpers.js'
+import { filterToOpenParagraphs, filterBySchedulingRules, filterParasByIgnoreTerms, filterParasByIncludedCalendarSections, filterParasByExcludedCalendarSections, getStartTimeFromPara } from '../dashboardHelpers.js'
 import { DataStore, Editor, CommandBar, NotePlan, Paragraph, Note, simpleFormatter } from '@mocks/index'
 import * as timeblocks from '@helpers/timeblocks'
 import * as dateTime from '@helpers/dateTime'
@@ -634,6 +634,59 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toContain(para1)
       })
 
+      test('should keep paragraphs when calendar heading is a dated extension of included section name', () => {
+        const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
+        const para1 = new Paragraph({ type: 'open', content: 'Task 1', note: calendarNote })
+        const paras = [para1]
+        const dashboardSettings = { includedCalendarSections: 'Wins' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockImplementation((p) => {
+          if (p === para1) return ['Wins for 2025-01-25']
+          return []
+        })
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(1)
+        expect(result).toContain(para1)
+      })
+
+      test('should match included calendar section prefix case-insensitively', () => {
+        const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
+        const para1 = new Paragraph({ type: 'open', content: 'Task 1', note: calendarNote })
+        const paras = [para1]
+        const dashboardSettings = { includedCalendarSections: 'HOME' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockImplementation((p) => {
+          if (p === para1) return ['home']
+          return []
+        })
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(1)
+        expect(result).toContain(para1)
+      })
+
+      test('should not match when configured value is not a heading prefix', () => {
+        const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
+        const para1 = new Paragraph({ type: 'open', content: 'Task 1', note: calendarNote })
+        const paras = [para1]
+        const dashboardSettings = { includedCalendarSections: 'Home' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockImplementation((p) => {
+          if (p === para1) return ['The Home Areas']
+          return []
+        })
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(0)
+      })
+
       test('should keep non-calendar note paragraphs regardless of settings', () => {
         // Setup
         const projectNote = new Note({ filename: 'project.md', type: 'Notes' })
@@ -700,7 +753,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    describe('filterParasByCalendarHeadingSections()', () => {
+    describe('filterParasByExcludedCalendarSections()', () => {
       test('should return all paragraphs when ignoreItemsWithTerms is not set', () => {
         // Setup
         const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
@@ -710,7 +763,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const startTime = new Date()
         const functionName = 'testFunction'
 
-        const result = filterParasByCalendarHeadingSections(paras, dashboardSettings, startTime, functionName)
+        const result = filterParasByExcludedCalendarSections(paras, dashboardSettings, startTime, functionName)
         expect(result).toHaveLength(1)
         expect(result).toContain(para1)
       })
@@ -727,7 +780,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const startTime = new Date()
         const functionName = 'testFunction'
 
-        const result = filterParasByCalendarHeadingSections(paras, dashboardSettings, startTime, functionName)
+        const result = filterParasByExcludedCalendarSections(paras, dashboardSettings, startTime, functionName)
         expect(result).toHaveLength(1)
         expect(result).toContain(para1)
       })
@@ -752,7 +805,7 @@ describe(`${PLUGIN_NAME}`, () => {
           return []
         })
 
-        const result = filterParasByCalendarHeadingSections(paras, dashboardSettings, startTime, functionName)
+        const result = filterParasByExcludedCalendarSections(paras, dashboardSettings, startTime, functionName)
         expect(result).toHaveLength(1)
         expect(result).toContain(para2)
         expect(result).not.toContain(para1)
@@ -778,7 +831,7 @@ describe(`${PLUGIN_NAME}`, () => {
           return []
         })
 
-        const result = filterParasByCalendarHeadingSections(paras, dashboardSettings, startTime, functionName)
+        const result = filterParasByExcludedCalendarSections(paras, dashboardSettings, startTime, functionName)
         expect(result).toHaveLength(2)
         expect(result).toContain(para1)
         expect(result).toContain(para2)
@@ -804,7 +857,7 @@ describe(`${PLUGIN_NAME}`, () => {
           return []
         })
 
-        const result = filterParasByCalendarHeadingSections(paras, dashboardSettings, startTime, functionName)
+        const result = filterParasByExcludedCalendarSections(paras, dashboardSettings, startTime, functionName)
         expect(result).toHaveLength(1)
         expect(result).toContain(para1)
         expect(result).not.toContain(para2)
@@ -830,7 +883,7 @@ describe(`${PLUGIN_NAME}`, () => {
           return []
         })
 
-        const result = filterParasByCalendarHeadingSections(paras, dashboardSettings, startTime, functionName)
+        const result = filterParasByExcludedCalendarSections(paras, dashboardSettings, startTime, functionName)
         // para1 should be kept (non-calendar), para2 should be filtered out (calendar, heading has @work)
         expect(result).toHaveLength(1)
         expect(result).toContain(para1)
@@ -852,7 +905,7 @@ describe(`${PLUGIN_NAME}`, () => {
         // Mock getHeadingHierarchyForThisPara to return empty array
         jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockReturnValue([])
 
-        const result = filterParasByCalendarHeadingSections(paras, dashboardSettings, startTime, functionName)
+        const result = filterParasByExcludedCalendarSections(paras, dashboardSettings, startTime, functionName)
         // Paragraphs with no headings should be kept (no headings to check)
         expect(result).toHaveLength(1)
         expect(result).toContain(para1)
@@ -878,7 +931,7 @@ describe(`${PLUGIN_NAME}`, () => {
           return []
         })
 
-        const result = filterParasByCalendarHeadingSections(paras, dashboardSettings, startTime, functionName)
+        const result = filterParasByExcludedCalendarSections(paras, dashboardSettings, startTime, functionName)
         expect(result).toHaveLength(1)
         expect(result).toContain(para2)
         expect(result).not.toContain(para1)
@@ -906,7 +959,7 @@ describe(`${PLUGIN_NAME}`, () => {
           return []
         })
 
-        const result = filterParasByCalendarHeadingSections(paras, dashboardSettings, startTime, functionName)
+        const result = filterParasByExcludedCalendarSections(paras, dashboardSettings, startTime, functionName)
         expect(result).toHaveLength(2)
         expect(result[0]).toBe(para1)
         expect(result[1]).toBe(para3)

@@ -3,12 +3,12 @@ _Please see the [Plugin documentation](https://noteplan.co/plugins/jgclark.Windo
 
 <!-- - TODO: Extend to deal with closed main sidebars.
 - TODO: Can now save a folder as part of a window set. (Note: not yet a particular 'folder view'.) -->
-## [1.5.1] - 2026-03-06
+## [1.5.0.a2] - 2026-03-06
 - dev: under-the-hood changes to deal with changes in NP's window handling:
   - ignores new class of invisible HTMLWindows (well, as far as the API is accurate)
   - allows for editor[0] not to exist, and adds messages about folder views.
 
-## [1.5.0] - 2025-11-30
+## [1.5.0.a1] - 2025-11-30
 - **open note in new window** and **open current note in new window** now don't just open the new 'floating' window wherever NP decides, which is often unhelpful. Instead it tries to place it next to, _but not on top of_, existing NP windows.  You can turn off this behaviour using the new '
 - prevent the **open ... note in new window/split** commands from running on iOS and iPadOS, as they don't have any effect.
 
