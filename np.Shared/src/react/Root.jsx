@@ -41,6 +41,7 @@ import { Toast } from './Toast.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
 import { SimpleDialog } from '@helpers/react/SimpleDialog'
 import { logDebug, formatReactError, JSP, clo, logError, logInfo } from '@helpers/react/reactDev'
+import { pluginEnvelopeFromResponsePayload } from '@helpers/react/pluginRequestEnvelope'
 import './Root.css'
 
 const ROOT_DEBUG = false
@@ -389,16 +390,12 @@ export function Root(/* props: Props */): Node {
               case 'RESPONSE':
                 // Handle response from plugin for request/response pattern
                 {
-                  const { correlationId, success, data, error } = payload
+                  const { correlationId } = payload
                   const pending = pendingRequestsRef.current.get(correlationId)
                   if (pending) {
                     pendingRequestsRef.current.delete(correlationId)
                     clearTimeout(pending.timeoutId)
-                    if (success) {
-                      pending.resolve(data)
-                    } else {
-                      pending.reject(new Error(error || 'Request failed'))
-                    }
+                    pending.resolve(pluginEnvelopeFromResponsePayload(payload))
                   } else if (ROOT_DEBUG || debug) {
                     // This is normal when child components handle their own request/response pattern
                     logDebug(`Root`, `RESPONSE received for correlationId not in Root's pending map: ${correlationId}`)

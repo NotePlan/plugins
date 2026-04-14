@@ -6,6 +6,7 @@
 import React, { useState, useEffect, type Node } from 'react'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { MarkdownPreview } from '@helpers/react/DynamicDialog/MarkdownPreview.jsx'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 
 type FormFieldsListProps = {
   fields: Array<TSettingItem>,
@@ -86,7 +87,7 @@ export function FormFieldsList({
                 className="PCButton"
                 onClick={async () => {
                   try {
-                    await requestFromPlugin('testFormFieldRender', {})
+                    unwrapPluginRequestData(await requestFromPlugin('testFormFieldRender', {}))
                   } catch (error) {
                     console.error('Error opening form field examples:', error)
                   }

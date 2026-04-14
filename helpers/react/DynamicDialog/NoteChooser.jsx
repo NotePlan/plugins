@@ -12,6 +12,7 @@ import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
 import ContainedMultiSelectChooser from './ContainedMultiSelectChooser.jsx'
 import { truncateText, calculatePortalPosition } from '@helpers/react/reactUtils.js'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { getNoteDecorationForReact, TEAMSPACE_ICON_COLOR } from '@helpers/NPnote.js'
 import { getFolderFromFilename } from '@helpers/folders.js'
 import { parseTeamspaceFilename, getFilenameWithoutTeamspaceID } from '@helpers/teamspace.js'
@@ -169,11 +170,12 @@ export function NoteChooser({
       setIsCreatingNote(true)
       logDebug('NoteChooser', `Creating note "${noteTitle}" in "${folder || '/'}"`)
 
-      // requestFromPlugin resolves with just the data (filename) on success, or rejects on error
-      const createdFilename = await requestFromPlugin('createNote', {
-        noteTitle: noteTitle.trim(),
-        folder: folder || '/',
-      })
+      const createdFilename = unwrapPluginRequestData(
+        await requestFromPlugin('createNote', {
+          noteTitle: noteTitle.trim(),
+          folder: folder || '/',
+        }),
+      )
 
       if (createdFilename && typeof createdFilename === 'string') {
         logDebug('NoteChooser', `Successfully created note: "${createdFilename}"`)

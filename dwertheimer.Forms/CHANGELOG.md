@@ -4,6 +4,15 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.1.7] 2026-04-13 @dwertheimer
+
+### Changed
+- **PluginRequestEnvelope**: Forms WebViews and DynamicDialog-related callers now use `@helpers/react/pluginRequestEnvelope` (`unwrapPluginRequestData` / explicit `success` + `data` + `message`) so `requestFromPlugin` matches `np.Shared` Root and `routerUtils` RESPONSE payloads. Structured failures (e.g. `submitForm`) inspect the envelope instead of relying on reject alone. **Release together with np.Shared 1.0.7+** (or matching Root bundle).
+
+### Edited in this release
+- `dwertheimer.Forms/plugin.json` — Version 1.1.7; lastUpdateInfo.
+- `dwertheimer.Forms/CHANGELOG.md` — This section.
+
 ## [1.1.6] 2026-03-16 @dwertheimer
 
 ### Added

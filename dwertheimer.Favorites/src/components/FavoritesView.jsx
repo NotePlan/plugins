@@ -14,6 +14,7 @@ import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 import { waitForCondition } from '@helpers/promisePolyfill'
+import { pluginEnvelopeFromResponsePayload, unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { InfoIcon } from '@helpers/react/InfoIcon'
 import IdleTimer from '@helpers/react/IdleTimer'
 import './FavoritesView.css'
@@ -137,18 +138,12 @@ function FavoritesViewComponent({
         const payload = eventData.payload
         if (payload && typeof payload === 'object') {
           const correlationId = (payload: any).correlationId
-          const success = (payload: any).success
           if (correlationId && typeof correlationId === 'string') {
-            const { data: responseData, error } = (payload: any)
             const pending = pendingRequestsRef.current.get(correlationId)
             if (pending) {
               pendingRequestsRef.current.delete(correlationId)
               clearTimeout(pending.timeoutId)
-              if (success) {
-                pending.resolve(responseData)
-              } else {
-                pending.reject(new Error(error || 'Request failed'))
-              }
+              pending.resolve(pluginEnvelopeFromResponsePayload(payload))
             }
           }
         }
@@ -169,7 +164,7 @@ function FavoritesViewComponent({
   const loadFavoriteNotes = useCallback(async () => {
     try {
       setLoading(true)
-      const notes = await requestFromPlugin('getFavoriteNotes')
+      const notes = unwrapPluginRequestData(await requestFromPlugin('getFavoriteNotes'))
       if (Array.isArray(notes)) {
         setFavoriteNotes(notes)
         logDebug('FavoritesView', `Loaded ${notes.length} favorite notes`)
@@ -206,7 +201,7 @@ function FavoritesViewComponent({
   const loadFavoriteCommands = useCallback(async () => {
     try {
       setLoading(true)
-      const commands = await requestFromPlugin('getFavoriteCommands')
+      const commands = unwrapPluginRequestData(await requestFromPlugin('getFavoriteCommands'))
       if (Array.isArray(commands)) {
         setFavoriteCommands(commands)
         logDebug('FavoritesView', `Loaded ${commands.length} favorite commands`)
@@ -230,7 +225,7 @@ function FavoritesViewComponent({
   // Load project notes for NoteChooser
   const loadProjectNotes = useCallback(async () => {
     try {
-      const notes = await requestFromPlugin('getProjectNotes')
+      const notes = unwrapPluginRequestData(await requestFromPlugin('getProjectNotes'))
       if (Array.isArray(notes)) {
         setProjectNotes(notes)
         logDebug('FavoritesView', `Loaded ${notes.length} project notes`)
@@ -243,7 +238,7 @@ function FavoritesViewComponent({
   // Load preset commands for command dialog
   const loadPresetCommands = useCallback(async () => {
     try {
-      const commands = await requestFromPlugin('getPresetCommands')
+      const commands = unwrapPluginRequestData(await requestFromPlugin('getPresetCommands'))
       if (Array.isArray(commands)) {
         setPresetCommands(commands)
         logDebug('FavoritesView', `Loaded ${commands.length} preset commands`)
@@ -264,11 +259,8 @@ function FavoritesViewComponent({
           setShowAddNoteDialog(false)
           setAddNoteDialogData({})
 
-          // Add the favorite
-          // Note: requestFromPlugin resolves with result.data (unwrapped), or rejects on error
-          // If we get here without throwing, the request succeeded
-          const response = await requestFromPlugin('addFavoriteNote', { filename })
-          logDebug('FavoritesView', `addFavoriteNote response:`, response)
+          unwrapPluginRequestData(await requestFromPlugin('addFavoriteNote', { filename }))
+          logDebug('FavoritesView', `addFavoriteNote: success`)
 
           // Show success toast
           dispatch('SHOW_TOAST', {
@@ -286,7 +278,7 @@ function FavoritesViewComponent({
             async () => {
               // Reload notes to get fresh data, then check
               if (showNotes) {
-                const notes = await requestFromPlugin('getFavoriteNotes')
+                const notes = unwrapPluginRequestData(await requestFromPlugin('getFavoriteNotes'))
                 if (Array.isArray(notes)) {
                   return notes.some((note) => note.filename === filename)
                 }
@@ -338,19 +330,17 @@ function FavoritesViewComponent({
     async (updatedSettings: { [key: string]: any }) => {
       try {
         if (updatedSettings.preset && updatedSettings.commandName && updatedSettings.url) {
-          const response = await requestFromPlugin('addFavoriteCommand', {
-            jsFunction: updatedSettings.preset,
-            name: updatedSettings.commandName,
-            data: updatedSettings.url,
-          })
-          if (response && response.success) {
-            await loadFavoriteCommands()
-            setShowAddCommandDialog(false)
-            setAddCommandDialogData({})
-            logDebug('FavoritesView', 'Successfully added favorite command')
-          } else {
-            logError('FavoritesView', `Failed to add favorite command: ${response?.message || 'Unknown error'}`)
-          }
+          unwrapPluginRequestData(
+            await requestFromPlugin('addFavoriteCommand', {
+              jsFunction: updatedSettings.preset,
+              name: updatedSettings.commandName,
+              data: updatedSettings.url,
+            }),
+          )
+          await loadFavoriteCommands()
+          setShowAddCommandDialog(false)
+          setAddCommandDialogData({})
+          logDebug('FavoritesView', 'Successfully added favorite command')
         }
       } catch (error) {
         logError('FavoritesView', `Error adding favorite command: ${error.message}`)
@@ -368,11 +358,12 @@ function FavoritesViewComponent({
     async (key: string, value: string) => {
       if (key === 'getCallbackURL') {
         try {
-          const urlResponse = await requestFromPlugin('getCallbackURL', {})
-          if (urlResponse && urlResponse.success && urlResponse.url) {
-            // Update the URL field in the dialog
-            setAddCommandDialogData((prev) => ({ ...prev, url: urlResponse.url }))
-            logDebug('FavoritesView', `Got URL from Link Creator: ${urlResponse.url}`)
+          const envelope = await requestFromPlugin('getCallbackURL', {})
+          const url =
+            envelope.success && envelope.data && typeof envelope.data === 'object' && typeof envelope.data.url === 'string' ? envelope.data.url : null
+          if (url) {
+            setAddCommandDialogData((prev) => ({ ...prev, url }))
+            logDebug('FavoritesView', `Got URL from Link Creator: ${url}`)
           }
         } catch (error) {
           logError('FavoritesView', `Error getting callback URL: ${error.message}`)
@@ -449,7 +440,7 @@ function FavoritesViewComponent({
   const handleRemoveFavorite = useCallback(
     async (filename: string) => {
       try {
-        await requestFromPlugin('removeFavoriteNote', { filename })
+        unwrapPluginRequestData(await requestFromPlugin('removeFavoriteNote', { filename }))
         // Show toast notification
         dispatch('SHOW_TOAST', {
           type: 'SUCCESS',
@@ -927,18 +918,12 @@ export function FavoritesView({ data, dispatch, reactSettings, setReactSettings,
         const payload = eventData.payload
         if (payload && typeof payload === 'object') {
           const correlationId = (payload: any).correlationId
-          const success = (payload: any).success
           if (correlationId && typeof correlationId === 'string') {
-            const { data: responseData, error } = (payload: any)
             const pending = pendingRequestsRef.current.get(correlationId)
             if (pending) {
               pendingRequestsRef.current.delete(correlationId)
               clearTimeout(pending.timeoutId)
-              if (success) {
-                pending.resolve(responseData)
-              } else {
-                pending.reject(new Error(error || 'Request failed'))
-              }
+              pending.resolve(pluginEnvelopeFromResponsePayload(payload))
             }
           }
         }

@@ -8,6 +8,7 @@
 import React, { useState, useMemo } from 'react'
 import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
 import { truncatePath } from '@helpers/react/reactUtils.js'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { getFolderDecorationFromPath } from '@helpers/userInput.js'
 import { parseTeamspaceFilename } from '@helpers/teamspace.js'
@@ -83,7 +84,7 @@ export function FolderChooser({
     try {
       logDebug('FolderChooser', `[DIAG] loadTeamspaces START: folders.length=${folders.length}`)
       // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-      const teamspacesData = await requestFromPlugin('getTeamspaces', {})
+      const teamspacesData = unwrapPluginRequestData(await requestFromPlugin('getTeamspaces', {}))
       const loadElapsed = performance.now() - loadStartTime
       logDebug('FolderChooser', `[DIAG] loadTeamspaces COMPLETE: elapsed=${loadElapsed.toFixed(2)}ms`)
 
@@ -241,10 +242,11 @@ export function FolderChooser({
 
       const fullPath = parentFolderPath === '/' || parentFolderPath === '' ? folderName : `${parentFolderPath}/${folderName}`
 
-      // requestFromPlugin resolves with just the data (folder path) on success, or rejects on error
-      const createdFolder = await requestFromPlugin('createFolder', {
-        folderPath: fullPath,
-      })
+      const createdFolder = unwrapPluginRequestData(
+        await requestFromPlugin('createFolder', {
+          folderPath: fullPath,
+        }),
+      )
 
       if (createdFolder && typeof createdFolder === 'string') {
         logDebug('FolderChooser', `Successfully created folder: "${createdFolder}"`)

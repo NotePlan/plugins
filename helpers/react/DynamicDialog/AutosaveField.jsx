@@ -5,6 +5,7 @@
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { logDebug, logError } from '@helpers/react/reactDev'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 
 type AutosaveFieldProps = {
   label?: string,
@@ -204,11 +205,13 @@ ${JSON.stringify(stateWithTimestamp, null, 2)}
 \`\`\``
 
         // Await the save to ensure it completes before form submission
-        await requestFromPlugin('saveAutosave', {
-          filename,
-          content: formStateCode,
-          formState: stateWithTimestamp, // Also send as object for easier parsing (with timestamp)
-        })
+        unwrapPluginRequestData(
+          await requestFromPlugin('saveAutosave', {
+            filename,
+            content: formStateCode,
+            formState: stateWithTimestamp, // Also send as object for easier parsing (with timestamp)
+          }),
+        )
 
         // Update last saved state and time
         lastSavedStateRef.current = currentState

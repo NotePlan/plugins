@@ -13,6 +13,7 @@ import { SpaceChooser as SpaceChooserComponent } from '@helpers/react/DynamicDia
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { pluginEnvelopeFromResponsePayload, unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import './FormBrowserView.css'
 import './FormView.css' // Import FormView.css for form-submitting-overlay styles
 
@@ -73,17 +74,12 @@ export function FormBrowserView({
           const success = (payload: any).success
           logDebug('FormBrowserView', `handleResponse: Received RESPONSE with correlationId="${String(correlationId || '')}", success=${String(success || false)}`)
           if (correlationId && typeof correlationId === 'string') {
-            const { data: responseData, error } = (payload: any)
             const pending = pendingRequestsRef.current.get(correlationId)
             if (pending) {
               pendingRequestsRef.current.delete(correlationId)
               clearTimeout(pending.timeoutId)
               logDebug('FormBrowserView', `handleResponse: Resolving request for correlationId="${correlationId}", success=${String(success || false)}`)
-              if (success) {
-                pending.resolve(responseData)
-              } else {
-                pending.reject(new Error(error || 'Request failed'))
-              }
+              pending.resolve(pluginEnvelopeFromResponsePayload(payload))
             } else {
               logDebug('FormBrowserView', `handleResponse: No pending request found for correlationId="${correlationId}"`)
             }
@@ -183,12 +179,11 @@ export function FormBrowserView({
   const loadTemplates = useCallback(async () => {
     try {
       setLoading(true)
-      const responseData = await requestFromPlugin('getFormTemplates', {
-        space: selectedSpace || '__all__', // Default to showing all spaces if not set
-      })
-      // requestFromPlugin resolves with the data from the response (result.data from handler)
-      // The handler returns { success: true, data: formTemplates }
-      // So responseData should be the formTemplates array
+      const responseData = unwrapPluginRequestData(
+        await requestFromPlugin('getFormTemplates', {
+          space: selectedSpace || '__all__', // Default to showing all spaces if not set
+        }),
+      )
       if (Array.isArray(responseData)) {
         setTemplates(responseData)
         logDebug('FormBrowserView', `Loaded ${responseData.length} templates`)
@@ -211,13 +206,13 @@ export function FormBrowserView({
     async (template: FormTemplate) => {
       try {
         setLoading(true)
-        const responseData = await requestFromPlugin('getFormFields', {
-          templateFilename: template.filename,
-          templateTitle: template.label,
-          windowId: windowIdRef.current || '',
-        })
-        // requestFromPlugin resolves with the data from the response (result.data from handler)
-        // The handler now returns { success: true, data: { formFields, frontmatter } }
+        const responseData = unwrapPluginRequestData(
+          await requestFromPlugin('getFormFields', {
+            templateFilename: template.filename,
+            templateTitle: template.label,
+            windowId: windowIdRef.current || '',
+          }),
+        )
         if (responseData && typeof responseData === 'object' && Array.isArray(responseData.formFields)) {
           setFormFields(responseData.formFields)
           setFrontmatter(responseData.frontmatter || {})
@@ -230,7 +225,7 @@ export function FormBrowserView({
           if (needsFolders) {
             try {
               // Pass space: null to get all folders from all spaces (FolderChooser will filter client-side based on spaceFilter prop)
-              const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true, space: null })
+              const foldersData = unwrapPluginRequestData(await requestFromPlugin('getFolders', { excludeTrash: true, space: null }))
               if (Array.isArray(foldersData)) {
                 setFolders(foldersData)
               }
@@ -241,7 +236,7 @@ export function FormBrowserView({
 
           if (needsNotes) {
             try {
-              const notesData = await requestFromPlugin('getNotes', { includeCalendarNotes: false })
+              const notesData = unwrapPluginRequestData(await requestFromPlugin('getNotes', { includeCalendarNotes: false }))
               if (Array.isArray(notesData)) {
                 setNotes(notesData)
               }
@@ -574,57 +569,42 @@ export function FormBrowserView({
         },
         30000,
       ) // Use 30s timeout like FormView
-        .then((responseData) => {
-          logDebug('FormBrowserView', 'Form submission response:', responseData)
+        .then((envelope: any) => {
+          logDebug('FormBrowserView', 'Form submission response:', envelope)
 
-          // Hide submitting overlay (with minimum display time so user sees it)
           hideOverlay()
 
-          // Check if the response indicates success or failure
-          // The responseData may be the data object from a successful response, or it may contain error info
-          if (responseData && typeof responseData === 'object') {
-            // Check for error indicators in the response (from pluginData)
-            const pluginDataFromResponse = responseData.pluginData || {}
-            const hasError =
-              pluginDataFromResponse.formSubmissionError || pluginDataFromResponse.aiAnalysisResult || responseData.formSubmissionError || responseData.aiAnalysisResult
-            if (hasError) {
-              // Extract error message
-              let errorMessage = 'Form submission failed.'
-              const formError = pluginDataFromResponse.formSubmissionError || responseData.formSubmissionError
-              const aiError = pluginDataFromResponse.aiAnalysisResult || responseData.aiAnalysisResult
-
-              if (formError) {
-                errorMessage = formError
-              } else if (aiError) {
-                // Extract a brief summary from AI analysis
-                const aiMsg = aiError
-                const firstLine = aiMsg.split('\n')[0] || aiMsg.substring(0, 200)
-                errorMessage = `Template error: ${firstLine}`
-              }
-
-              logError('FormBrowserView', `Form submission failed: ${errorMessage}`)
-
-              // Update pluginData with error so FormErrorBanner can display it
-              dispatch('UPDATE_DATA', {
-                ...data,
-                pluginData: {
-                  ...pluginData,
-                  formSubmissionError: formError || errorMessage,
-                  aiAnalysisResult: aiError || '',
-                },
-              })
-
-              dispatch('SHOW_TOAST', {
-                type: 'ERROR',
-                msg: errorMessage,
-                timeout: 10000, // Longer timeout for error messages
-              })
-              // Don't reset form on error - keep it open so user can fix and retry
-              return
+          if (!envelope.success) {
+            const payloadData = envelope.data && typeof envelope.data === 'object' ? envelope.data : {}
+            const formError = payloadData.formSubmissionError
+            const aiError = payloadData.aiAnalysisResult
+            let errorMessage = envelope.message || 'Form submission failed.'
+            if (formError) {
+              errorMessage = formError
+            } else if (aiError) {
+              const aiMsg = aiError
+              const firstLine = aiMsg.split('\n')[0] || aiMsg.substring(0, 200)
+              errorMessage = `Template error: ${firstLine}`
             }
+            logError('FormBrowserView', `Form submission failed: ${errorMessage}`)
+            dispatch('UPDATE_DATA', {
+              ...data,
+              pluginData: {
+                ...pluginData,
+                formSubmissionError: formError || errorMessage,
+                aiAnalysisResult: aiError || '',
+              },
+            })
+            dispatch('SHOW_TOAST', {
+              type: 'ERROR',
+              msg: errorMessage,
+              timeout: 10000,
+            })
+            return
           }
 
-          // Clear any errors on successful submission
+          const responseData = envelope.data || {}
+
           dispatch('UPDATE_DATA', {
             ...data,
             pluginData: {
@@ -634,19 +614,19 @@ export function FormBrowserView({
             },
           })
 
-          // Show success toast with note information
-          let successMessage = 'Your form has been submitted successfully.'
-          if (responseData?.noteTitle) {
+          let successMessage = envelope.message || 'Your form has been submitted successfully.'
+          if (responseData && typeof responseData === 'object' && responseData.noteTitle) {
             const action = responseData.processingMethod === 'create-new' ? 'created' : 'updated'
             successMessage = `Form submitted successfully. Note "${responseData.noteTitle}" has been ${action}.`
 
-            // Automatically open the note after a short delay
             setTimeout(() => {
               if (requestFromPlugin) {
                 requestFromPlugin('openNote', {
                   noteTitle: responseData.noteTitle,
-                }).catch((error) => {
-                  logError('FormBrowserView', `Error opening note: ${error.message}`)
+                }).then((openEnvelope: any) => {
+                  if (!openEnvelope.success) {
+                    logError('FormBrowserView', `Error opening note: ${openEnvelope.message || 'Request failed'}`)
+                  }
                 })
               }
             }, 500)
@@ -658,7 +638,6 @@ export function FormBrowserView({
             timeout: 5000,
           })
 
-          // Reset form after successful submission
           handleCancel()
         })
         .catch((error) => {
@@ -716,19 +695,18 @@ export function FormBrowserView({
 
       try {
         logDebug('FormBrowserView', `Creating new form: name="${formName}", space="${spaceId || 'Private'}"`)
-        const result = await requestFromPlugin('createNewForm', {
+        const envelope = await requestFromPlugin('createNewForm', {
           formName,
           space: spaceId,
         })
 
-        if (result && result.success !== false) {
-          // Reload templates to show the new form
+        if (envelope.success && envelope.data && typeof envelope.data === 'object' && envelope.data.templateFilename) {
           await loadTemplates()
           setShowCreateFormDialog(false)
           setCreateFormDialogData({})
           logDebug('FormBrowserView', `Form "${formName}" created successfully`)
         } else {
-          logError('FormBrowserView', `Failed to create form: ${result?.message || 'Unknown error'}`)
+          logError('FormBrowserView', `Failed to create form: ${envelope.message || JSON.stringify(envelope)}`)
         }
       } catch (error) {
         logError('FormBrowserView', `Error creating new form: ${error.message}`)

@@ -4,6 +4,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useEffect, useState, useRef } from 'react'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import './FormView.css'
 
 type FormErrorBannerProps = {
@@ -42,9 +43,13 @@ const FormErrorBanner = ({
       // Render markdown to HTML using requestFromPlugin
       if (requestFromPlugin) {
         requestFromPlugin('renderMarkdown', { markdown: aiAnalysisResult })
-          .then((response: any) => {
-            // renderMarkdown returns { success: true, data: html }
-            const html = response?.data || response
+          .then((envelope: any) => {
+            let html: any
+            try {
+              html = unwrapPluginRequestData(envelope)
+            } catch {
+              html = null
+            }
             if (typeof html === 'string') {
               setAiAnalysisHtml(html)
             } else {

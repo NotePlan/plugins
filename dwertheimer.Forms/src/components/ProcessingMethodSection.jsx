@@ -14,6 +14,7 @@ import { FolderChooser } from '@helpers/react/DynamicDialog/FolderChooser.jsx'
 import { SpaceChooser } from '@helpers/react/DynamicDialog/SpaceChooser.jsx'
 import { InfoIcon } from '@helpers/react/InfoIcon.jsx'
 import { logDebug } from '@helpers/react/reactDev'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 
 export type ProcessingMethodSectionProps = {
   processingMethod: string,
@@ -891,15 +892,17 @@ export function ProcessingMethodSection({
                         if (notes.length === 0) {
                           logDebug(pluginData, `ProcessingMethodSection: Notes not loaded, loading notes for processing templates via requestFromPlugin...`)
                           try {
-                            const notesData = await requestFromPlugin('getNotes', {
-                              includePersonalNotes: true,
-                              includeCalendarNotes: false, // Skip calendar notes for processing templates (performance)
-                              includeRelativeNotes: false, // Skip relative notes for processing templates
-                              includeTeamspaceNotes: true,
-                              space: frontmatter.space || '', // Filter by selected space
-                              filterByType: ['forms-processor', 'template-runner'],
-                              includeTemplatesAndForms: true,
-                            })
+                            const notesData = unwrapPluginRequestData(
+                              await requestFromPlugin('getNotes', {
+                                includePersonalNotes: true,
+                                includeCalendarNotes: false, // Skip calendar notes for processing templates (performance)
+                                includeRelativeNotes: false, // Skip relative notes for processing templates
+                                includeTeamspaceNotes: true,
+                                space: frontmatter.space || '', // Filter by selected space
+                                filterByType: ['forms-processor', 'template-runner'],
+                                includeTemplatesAndForms: true,
+                              }),
+                            )
                             if (Array.isArray(notesData)) {
                               notesToSearch = notesData
                               logDebug(pluginData, `ProcessingMethodSection: Loaded ${notesData.length} notes via requestFromPlugin`)
@@ -923,16 +926,20 @@ export function ProcessingMethodSection({
 
                       if (filenameToOpen) {
                         logDebug(pluginData, `ProcessingMethodSection: Opening note with filename="${filenameToOpen}"`)
-                        await requestFromPlugin('openNote', {
-                          filename: filenameToOpen,
-                        })
+                        unwrapPluginRequestData(
+                          await requestFromPlugin('openNote', {
+                            filename: filenameToOpen,
+                          }),
+                        )
                       } else if (currentTitle) {
                         // Fallback: try to open by title directly
                         logDebug(pluginData, `ProcessingMethodSection: No filename found, trying to open by title: "${currentTitle}"`)
                         try {
-                          await requestFromPlugin('openNote', {
-                            title: currentTitle,
-                          })
+                          unwrapPluginRequestData(
+                            await requestFromPlugin('openNote', {
+                              title: currentTitle,
+                            }),
+                          )
                         } catch (titleError) {
                           const errorMsg = `Could not find or open processing template "${currentTitle}". Please select the template again.`
                           logDebug(pluginData, `ProcessingMethodSection: ${errorMsg}`)
@@ -964,30 +971,24 @@ export function ProcessingMethodSection({
               onClick={async () => {
                 try {
                   // This will be handled by the plugin - we'll need to add a request handler
-                  const result = await requestFromPlugin('createProcessingTemplate', {
+                  const envelope = await requestFromPlugin('createProcessingTemplate', {
                     formTemplateTitle: templateTitle,
                     formTemplateFilename: templateFilename,
                   })
-                  console.log(`createProcessingTemplate: Received result: ${JSON.stringify(result)}, type: ${typeof result}, JSON: ${JSON.stringify(result)}`)
+                  console.log(`createProcessingTemplate: envelope: ${JSON.stringify(envelope)}`)
+                  if (!envelope.success) {
+                    console.warn(`createProcessingTemplate: ${envelope.message}`)
+                    return
+                  }
+                  const result = envelope.data
                   let processingTitle = null
                   let processingFilename = null
 
                   if (result && typeof result === 'string') {
-                    // Backward compatibility: if result is just a string
                     processingTitle = result
-                  } else if (result && typeof result === 'object') {
-                    // New format: result.data contains { processingTitle, processingFilename }
-                    if (result.data && typeof result.data === 'object' && result.data.processingTitle) {
-                      processingTitle = result.data.processingTitle
-                      processingFilename = result.data.processingFilename || null
-                    } else if (result.data && typeof result.data === 'string') {
-                      // Handle case where response might be wrapped in an object with just a string
-                      processingTitle = result.data
-                    } else if (result.processingTitle) {
-                      // Handle case where response includes both title and filename at top level
-                      processingTitle = result.processingTitle
-                      processingFilename = result.processingFilename || null
-                    }
+                  } else if (result && typeof result === 'object' && result.processingTitle) {
+                    processingTitle = result.processingTitle
+                    processingFilename = result.processingFilename || null
                   }
 
                   if (processingTitle) {
@@ -996,10 +997,9 @@ export function ProcessingMethodSection({
                     if (processingFilename) {
                       setSelectedProcessingTemplateFilename(processingFilename)
                     }
-                    // Reload notes so the new processing template appears in the dropdown
                     await onLoadNotes(true) // Load only project notes for processing templates
                   } else {
-                    console.warn(`createProcessingTemplate: Unexpected result format: ${JSON.stringify(result)}, typeof: ${typeof result}, JSON: ${JSON.stringify(result)}`)
+                    console.warn(`createProcessingTemplate: Unexpected data format: ${JSON.stringify(result)}`)
                   }
                 } catch (error) {
                   const errorMessage = error?.message || error?.toString() || String(error) || 'Unknown error'

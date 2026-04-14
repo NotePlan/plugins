@@ -8,6 +8,7 @@ import { type PassedData } from '../shared/types.js'
 import { AppProvider } from './AppContext.jsx'
 import FormBuilder from './FormBuilder.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
+import { pluginEnvelopeFromResponsePayload } from '@helpers/react/pluginRequestEnvelope'
 import { FORMBUILDER_WINDOW_ID } from '../shared/constants.js'
 import './FormBuilder.css'
 
@@ -66,17 +67,12 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings, onSub
           const success = (payload: any).success
           logDebug('FormBuilderView', `handleResponse: Received RESPONSE with correlationId="${String(correlationId || '')}", success=${String(success || false)}`)
           if (correlationId && typeof correlationId === 'string') {
-            const { data: responseData, error } = (payload: any)
             const pending = pendingRequestsRef.current.get(correlationId)
             if (pending) {
               pendingRequestsRef.current.delete(correlationId)
               clearTimeout(pending.timeoutId)
               logDebug('FormBuilderView', `handleResponse: Resolving request for correlationId="${correlationId}", success=${String(success || false)}`)
-              if (success) {
-                pending.resolve(responseData)
-              } else {
-                pending.reject(new Error(error || 'Request failed'))
-              }
+              pending.resolve(pluginEnvelopeFromResponsePayload(payload))
             } else {
               logDebug('FormBuilderView', `handleResponse: No pending request found for correlationId="${correlationId}"`)
             }
@@ -147,14 +143,22 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings, onSub
     clo(fields, 'FormBuilderView: handleSave fields')
     clo(frontmatter, 'FormBuilderView: handleSave frontmatter')
     try {
-      const result = await requestFromPlugin(onSubmitOrCancelCallFunctionNamed, {
+      const envelope = await requestFromPlugin(onSubmitOrCancelCallFunctionNamed, {
         type: 'save',
         fields,
         frontmatter,
         templateFilename: pluginData.templateFilename || '',
         templateTitle: pluginData.templateTitle || '',
       })
-      return { success: true, message: result?.message || 'Form saved successfully' }
+      if (!envelope.success) {
+        return { success: false, message: envelope.message || 'Failed to save form' }
+      }
+      const result = envelope.data
+      const titleForMsg = result && typeof result === 'object' && typeof result.templateTitle === 'string' ? result.templateTitle : null
+      return {
+        success: true,
+        message: envelope.message || (titleForMsg ? `Form saved successfully to "${titleForMsg}"` : 'Form saved successfully'),
+      }
     } catch (error) {
       logError('FormBuilderView', `handleSave error: ${error.message}`)
       return { success: false, message: error.message || 'Failed to save form' }

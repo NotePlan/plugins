@@ -8,6 +8,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import ContainedMultiSelectChooser from './ContainedMultiSelectChooser.jsx'
 import { DropdownSelectChooser, type DropdownOption } from './DropdownSelectChooser.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import './MentionChooser.css'
 
 export type MentionChooserProps = {
@@ -99,7 +100,8 @@ export function MentionChooser({
         setLoading(true)
         logDebug('MentionChooser', 'Loading mentions from plugin (delayed)')
         requestFromPlugin('getMentions', {})
-          .then((mentionsData: Array<string>) => {
+          .then((envelope: any) => {
+            const mentionsData: Array<string> = unwrapPluginRequestData(envelope)
             // CRITICAL: Check if component is still mounted before setting state
             if (!isMountedRef.current) {
               return

@@ -2,6 +2,11 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [1.0.7] @dwertheimer 2026-04-13
+
+### Changed
+- **REQUEST/RESPONSE**: `Root.jsx` now resolves `requestFromPlugin` promises with `pluginEnvelopeFromResponsePayload()` from `@helpers/react/pluginRequestEnvelope` (`success`, `data`, `message`) instead of raw handler `data` only. Timeouts and unmount still reject. **Consumers must be updated** to use `unwrapPluginRequestData` or inspect the envelope (coordinate release with dependent plugins).
+
 ## [1.0.6] @dwertheimer 2026-01-25
 
 ### Fixed

@@ -8,6 +8,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import ContainedMultiSelectChooser from './ContainedMultiSelectChooser.jsx'
 import { DropdownSelectChooser, type DropdownOption } from './DropdownSelectChooser.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import './FrontmatterKeyChooser.css'
 
 export type FrontmatterKeyChooserProps = {
@@ -153,7 +154,8 @@ export function FrontmatterKeyChooser({
           folderString,
           fullPathMatch,
         })
-          .then((valuesData: Array<string>) => {
+          .then((envelope: any) => {
+            const valuesData: Array<string> = unwrapPluginRequestData(envelope)
             // Check if key changed during async operation by comparing to the captured key
             if (loadingKeyRef.current !== frontmatterKey) {
               logDebug('FrontmatterKeyChooser', `Key changed during load (was "${loadingKeyRef.current}", now "${frontmatterKey}"), ignoring results`)

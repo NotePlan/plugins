@@ -65,13 +65,22 @@ Located in Root.jsx (from np.Shared) and exposed via `AppContext`. This function
 - Returns a Promise that resolves when the response arrives
 - Includes timeout handling (default: 10 seconds)
 
-### Response Handler
+### Response Handler and `PluginRequestEnvelope`
 
-Root.jsx listens for `RESPONSE` messages via `window.addEventListener('message')`:
+Root.jsx (and any WebView that implements its own pending map) listens for `RESPONSE` via `window.addEventListener('message')`:
 
-- Looks up correlation ID in pending requests Map
-- Resolves or rejects the Promise based on `success` flag
-- Cleans up pending requests on component unmount
+- Looks up the correlation ID in the pending-requests `Map`
+- **Always resolves** with `pluginEnvelopeFromResponsePayload(payload)` from `@helpers/react/pluginRequestEnvelope.js`
+- **Rejects** only for timeouts, unmount, or transport failures — not for handler-level `success: false`
+
+The normalized shape is:
+
+- `{ success: true, data: <handler data>, message?: string }`
+- `{ success: false, data: <handler data or null>, message: string }`
+
+For most calls, use `unwrapPluginRequestData(envelope)` to get `data` or throw `Error(message)`. **Do not** use unwrap when you need structured failure payloads (e.g. `submitForm` with `formSubmissionError` / `aiAnalysisResult` in `data`).
+
+Wire payload from `routerUtils` includes `message` and, when `success` is false, legacy `error` (same text); the helper accepts both.
 
 ### Usage in React Components
 
@@ -608,20 +617,21 @@ export const onMessageFromHTMLView = newCommsRouter({
 **React Component:**
 
 ```javascript
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
+
 function CreateFolderButton() {
   const { requestFromPlugin } = useAppContext()
 
   const handleCreateFolder = async () => {
     try {
-      const result = await requestFromPlugin('createFolder', {
-        folderPath: 'New Project',
-        parentFolder: 'Projects'
-      })
-      
-      if (result.success) {
-        console.log('Folder created:', result.folderPath)
-      } else {
-        console.error('Failed to create folder:', result.error)
+      const createdPath = unwrapPluginRequestData(
+        await requestFromPlugin('createFolder', {
+          folderPath: 'New Project',
+          parentFolder: 'Projects',
+        }),
+      )
+      if (typeof createdPath === 'string') {
+        console.log('Folder created:', createdPath)
       }
     } catch (error) {
       console.error('Error creating folder:', error)

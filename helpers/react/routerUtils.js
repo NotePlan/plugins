@@ -76,9 +76,9 @@ function getWindowIdFromRequest(data: any, defaultWindowId: string): string {
  *
  * RESPONSE PATTERN:
  * - Handler functions return: { success: boolean, data?: any, message?: string }
- * - This function sends a RESPONSE message to React with: { correlationId, success, data, error }
- * - React's handleResponse extracts payload.data and resolves the promise with just the data
- * - So requestFromPlugin() resolves with result.data (the actual data, not the wrapper object)
+ * - This function sends a RESPONSE message to React with: { correlationId, success, data, message, error? }
+ * - `message` is the handler's message; when success is false, `error` duplicates it for legacy readers
+ * - React MUST resolve requestFromPlugin with pluginEnvelopeFromResponsePayload(payload) — see @helpers/react/pluginRequestEnvelope.js
  *
  * @param {Object} options - Configuration options
  * @param {string} options.actionType - The action/command type
@@ -137,12 +137,14 @@ export async function handleRequestResponse({
       `${routerName}: Sending RESPONSE for "${actionType}": dataType=${dataType}, isArray=${String(isDataArray)}, length=${String(dataLength)}, correlationId="${data.__correlationId}"`,
     )
 
-    // Send response back to React
+    // Send response back to React (envelope fields consumed by pluginEnvelopeFromResponsePayload)
+    const handlerMessage = result.message
     sendToHTMLWindow(windowId, 'RESPONSE', {
       correlationId: data.__correlationId,
       success: result.success,
       data: dataToSend,
-      error: result.message,
+      message: handlerMessage,
+      error: result.success ? undefined : handlerMessage,
     })
     return {}
   } catch (error) {
@@ -154,11 +156,13 @@ export async function handleRequestResponse({
     } else {
       windowId = getWindowIdFromRequest(data, defaultWindowId)
     }
+    const errText = error.message || String(error) || 'Unknown error'
     sendToHTMLWindow(windowId, 'RESPONSE', {
       correlationId: data.__correlationId,
       success: false,
       data: null,
-      error: error.message || String(error) || 'Unknown error',
+      message: errText,
+      error: errText,
     })
     return {}
   }
@@ -170,8 +174,8 @@ export async function handleRequestResponse({
  *
  * RESPONSE PATTERN:
  * - Handlers return { success: boolean, data?: any, message?: string }
- * - Router sends RESPONSE message: { correlationId, success, data, error }
- * - React resolves promise with payload.data (just the data, not the wrapper)
+ * - Router sends RESPONSE: { correlationId, success, data, message, error? }
+ * - React resolves requestFromPlugin with PluginRequestEnvelope via pluginEnvelopeFromResponsePayload()
  *
  * FALLBACK PATTERN:
  * - If routeRequest returns a response with success=false and message indicating "not found" or "unknown",

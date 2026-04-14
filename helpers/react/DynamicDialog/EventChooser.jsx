@@ -8,6 +8,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react'
 import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
 import { truncateText } from '@helpers/react/reactUtils.js'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { startOfDay, endOfDay } from 'date-fns'
 import './EventChooser.css'
 
@@ -328,8 +329,8 @@ export function EventChooser({
         logDebug('EventChooser', `Loading events for ${targetDate.toDateString()} (local: ${dateString}, UTC: ${utcDateString})`)
 
         // Request events from plugin - the plugin will call Calendar.eventsBetween()
-        // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-        const eventsData = await requestFromPlugin('getEvents', {
+        const eventsData = unwrapPluginRequestData(
+          await requestFromPlugin('getEvents', {
           dateString, // Pass date as YYYY-MM-DD string in LOCAL timezone (not UTC)
           // Don't pass date as ISO string - it will be in UTC and cause timezone issues
           // The plugin will use dateString (YYYY-MM-DD) which is already in local timezone
@@ -339,7 +340,8 @@ export function EventChooser({
           eventFilterRegex: eventFilterRegex || undefined,
           includeReminders: includeReminders || undefined,
           reminderLists: reminderLists && reminderLists.length > 0 ? reminderLists : undefined,
-        })
+          }),
+        )
 
         if (Array.isArray(eventsData)) {
           // Convert events from plugin to EventOption format and sort by time

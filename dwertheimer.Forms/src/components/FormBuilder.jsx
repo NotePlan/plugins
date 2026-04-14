@@ -14,6 +14,7 @@ import { FormFieldsList } from './FormFieldsList.jsx'
 import { FormPreview } from './FormPreview.jsx'
 import { stripDoubleQuotes } from '@helpers/stringTransforms'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { type TSettingItem, type TSettingItemType } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import './FormBuilder.css'
@@ -245,19 +246,18 @@ You can edit or delete this comment field - it's just a note to help you get sta
       return
     }
     try {
-      const result = await requestFromPlugin('duplicateForm', {
+      const envelope = await requestFromPlugin('duplicateForm', {
         templateFilename,
         templateTitle,
         receivingTemplateTitle: frontmatter.receivingTemplateTitle || frontmatter.formProcessorTitle || '',
       })
-      if (result.success) {
-        // Show success message and reload the new form
-        alert(result.message || 'Form duplicated successfully')
-        // The new form should be opened automatically by the plugin
-        // For now, we'll just show the message
-      } else {
-        alert(result.message || 'Failed to duplicate form')
+      if (!envelope.success) {
+        alert(envelope.message || 'Failed to duplicate form')
+        return
       }
+      const result = envelope.data
+      const newTitle = result && typeof result === 'object' && typeof result.newTemplateTitle === 'string' ? result.newTemplateTitle : null
+      alert(newTitle ? `Form "${newTitle}" duplicated successfully` : envelope.message || 'Form duplicated successfully')
     } catch (error) {
       alert(`Error duplicating form: ${error.message || String(error)}`)
     }
@@ -277,11 +277,12 @@ You can edit or delete this comment field - it's just a note to help you get sta
         // Use spaceOverride if provided, otherwise use frontmatter.space
         const spaceToUse = spaceOverride !== null && spaceOverride !== undefined ? spaceOverride : frontmatter.space || ''
         logDebug('FormBuilder', `Loading folders on demand... (space=${spaceToUse || 'Private'})`)
-        // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-        const foldersData = await requestFromPlugin('getFolders', {
-          excludeTrash: true,
-          space: spaceToUse, // Filter by selected space (empty string = Private)
-        })
+        const foldersData = unwrapPluginRequestData(
+          await requestFromPlugin('getFolders', {
+            excludeTrash: true,
+            space: spaceToUse, // Filter by selected space (empty string = Private)
+          }),
+        )
         if (Array.isArray(foldersData)) {
           setFolders(foldersData)
           setFoldersLoaded(true)
@@ -310,16 +311,15 @@ You can edit or delete this comment field - it's just a note to help you get sta
         // Use spaceOverride if provided, otherwise use frontmatter.space
         const spaceToUse = spaceOverride !== null && spaceOverride !== undefined ? spaceOverride : frontmatter.space || ''
         logDebug('FormBuilder', `Loading notes on demand... (forProcessingTemplates=${String(forProcessingTemplates)}, space=${spaceToUse || 'Private'})`)
-        // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-        // For processing templates, we only need project notes (not calendar notes) - this is much faster
-        // For form fields, we might need all note types
-        const notesData = await requestFromPlugin('getNotes', {
-          includePersonalNotes: true,
-          includeCalendarNotes: !forProcessingTemplates, // Skip calendar notes for processing templates (performance optimization)
-          includeRelativeNotes: true, // Always include <current>, <today>, etc. so Target Note chooser shows them; Processing Template chooser filters them via includeRelativeNotes={false}
-          includeTeamspaceNotes: true,
-          space: spaceToUse, // Filter by selected space (empty string = Private)
-        })
+        const notesData = unwrapPluginRequestData(
+          await requestFromPlugin('getNotes', {
+            includePersonalNotes: true,
+            includeCalendarNotes: !forProcessingTemplates, // Skip calendar notes for processing templates (performance optimization)
+            includeRelativeNotes: true, // Always include <current>, <today>, etc. so Target Note chooser shows them; Processing Template chooser filters them via includeRelativeNotes={false}
+            includeTeamspaceNotes: true,
+            space: spaceToUse, // Filter by selected space (empty string = Private)
+          }),
+        )
         if (Array.isArray(notesData)) {
           setNotes(notesData)
           setNotesLoaded(true)
@@ -644,7 +644,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
                 onClick={async () => {
                   if (templateFilename) {
                     try {
-                      await requestFromPlugin('openNote', { filename: templateFilename })
+                      unwrapPluginRequestData(await requestFromPlugin('openNote', { filename: templateFilename }))
                     } catch (error) {
                       console.error('Error opening note:', error)
                     }

@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import './MarkdownPreview.css'
 
 export type MarkdownPreviewProps = {
@@ -73,7 +74,7 @@ export function MarkdownPreview({
         setLoading(true)
         try {
           if (requestFromPlugin) {
-            const html = await requestFromPlugin('renderMarkdown', { markdown: markdownText })
+            const html = unwrapPluginRequestData(await requestFromPlugin('renderMarkdown', { markdown: markdownText }))
             if (typeof html === 'string') {
               setHtmlContent(html)
               setError(null)
@@ -101,11 +102,13 @@ export function MarkdownPreview({
         setLoading(true)
         try {
           logDebug('MarkdownPreview', `Loading note: ${noteToLoad}`)
-          const html = await requestFromPlugin('getNoteContentAsHTML', {
-            noteIdentifier: noteToLoad,
-            isFilename: Boolean(noteFilename || sourceNoteValue),
-            isTitle: Boolean(noteTitle && !noteFilename && !sourceNoteValue),
-          })
+          const html = unwrapPluginRequestData(
+            await requestFromPlugin('getNoteContentAsHTML', {
+              noteIdentifier: noteToLoad,
+              isFilename: Boolean(noteFilename || sourceNoteValue),
+              isTitle: Boolean(noteTitle && !noteFilename && !sourceNoteValue),
+            }),
+          )
           if (typeof html === 'string') {
             setHtmlContent(html)
             setError(null)

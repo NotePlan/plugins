@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 
 export type UseRequestWithRetryOptions = {
   requestFromPlugin?: (command: string, dataToSend?: any, timeout?: number) => Promise<any>,
@@ -140,30 +141,52 @@ export function useRequestWithRetry({
           logDebug(identifierStr, `Making request: "${identifierStr}" with params: ${JSON.stringify(requestParams)}`)
         }
 
-        const response = await requestFromPlugin(command, requestParams)
+        const envelope = await requestFromPlugin(command, requestParams)
 
         // Check if request was aborted
         if (hasAbortController && abortControllerRef.current?.signal.aborted) {
           return
         }
 
-        logDebug(identifierStr, `Received response: ${Array.isArray(response) ? `Array with ${response.length} items` : typeof response}`)
+        let normalizedResponse: any
+        try {
+          normalizedResponse = unwrapPluginRequestData(envelope)
+        } catch (unwrapErr) {
+          const err = unwrapErr instanceof Error ? unwrapErr : new Error(String(unwrapErr))
+          logDebug(identifierStr, `Plugin request failed: ${err.message}`)
+          if (currentRetry < maxRetries) {
+            logDebug(identifierStr, `Request failed, retrying (${currentRetry + 1}/${maxRetries})...`)
+            setRetryCount(currentRetry + 1)
+            await makeRequest(currentRetry + 1)
+          } else {
+            lastIdentifierRef.current = currentIdentifier
+            loadedRef.current = true
+            setData(null)
+            setError(err)
+            setLoading(false)
+            loadingRef.current = false
+            if (onError) {
+              onError(err)
+            }
+          }
+          return
+        }
+
+        logDebug(identifierStr, `Received response: ${Array.isArray(normalizedResponse) ? `Array with ${normalizedResponse.length} items` : typeof normalizedResponse}`)
 
         // Log response details for debugging
-        if (typeof response === 'object' && response !== null) {
-          const isArray = Array.isArray(response)
-          const keys = Object.keys(response)
+        if (typeof normalizedResponse === 'object' && normalizedResponse !== null) {
+          const isArray = Array.isArray(normalizedResponse)
+          const keys = Object.keys(normalizedResponse)
           logDebug(identifierStr, `Response details: isArray=${String(isArray)}, keys=${keys.length}, keys=${keys.join(', ')}`)
 
           // If it's an object (not array), log what's in it
           if (!isArray && keys.length > 0) {
-            logDebug(identifierStr, `Response object contents: ${JSON.stringify(response).substring(0, 200)}`)
+            logDebug(identifierStr, `Response object contents: ${JSON.stringify(normalizedResponse).substring(0, 200)}`)
           }
         } else {
-          logDebug(identifierStr, `Response is not an object: type=${typeof response}, value=${String(response)}`)
+          logDebug(identifierStr, `Response is not an object: type=${typeof normalizedResponse}, value=${String(normalizedResponse)}`)
         }
-
-        const normalizedResponse = response
 
         // Validate response if validator provided
         let isValid = true

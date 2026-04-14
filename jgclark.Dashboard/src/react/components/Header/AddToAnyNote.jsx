@@ -9,6 +9,7 @@ import { logTimer } from '@helpers/dev'
 import DynamicDialog, { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 import type { NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { pluginEnvelopeFromResponsePayload, unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { getElementCoordinates } from '@helpers/react/reactUtils.js'
 import './AddToAnyNote.css' // Import CSS for dialog positioning
 
@@ -96,21 +97,14 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
 
         // Check if this is a RESPONSE message (format from sendToHTMLWindow)
         if (eventData && eventData.type === 'RESPONSE' && eventData.payload) {
-          const { correlationId, success, data, error } = eventData.payload
+          const { correlationId } = eventData.payload
 
           if (correlationId && typeof correlationId === 'string') {
             const pending = pendingRequestsRef.current.get(correlationId)
             if (pending) {
               pendingRequestsRef.current.delete(correlationId)
               clearTimeout(pending.timeoutId)
-              if (success) {
-                // Resolve with just the data (matching pattern used in np.Shared and other components)
-                // The router sends: { correlationId, success, data, error }
-                // We extract just the data to match the expected pattern where requestFromPlugin resolves with result.data
-                pending.resolve(data)
-              } else {
-                pending.reject(new Error(error || 'Request failed'))
-              }
+              pending.resolve(pluginEnvelopeFromResponsePayload(eventData.payload))
             }
           }
         }
@@ -186,7 +180,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
           }
 
           // Load all note types
-          const notesData = await requestFromPlugin('getNotes', requestParams)
+          const notesData = unwrapPluginRequestData(await requestFromPlugin('getNotes', requestParams))
           const requestElapsed = performance.now() - requestStartTime
           logDebug('AddToAnyNote', `[PERF] Request completed: elapsed=${requestElapsed.toFixed(2)}ms`)
 
@@ -608,24 +602,24 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
             heading: heading || null,
             space: space || null,
           }
-          const result = await requestFromPlugin('addTaskToNote', taskData)
+          const envelope = await requestFromPlugin('addTaskToNote', taskData)
 
-          logDebug('AddToAnyNote', `Add task result: ${JSON.stringify(result)}`)
+          logDebug('AddToAnyNote', `Add task envelope: ${JSON.stringify(envelope)}`)
 
-          // Show toast for success, banner for failure
-          // The backend will return a message indicating implementation status
-          if (result.success) {
-            // Success: show toast
+          if (envelope.success) {
+            const result = envelope.data
+            const successMsg =
+              envelope.message ||
+              (result && typeof result === 'object' && typeof result.filename === 'string' ? `Task added to ${result.filename}` : 'Task added successfully')
             dispatch('SHOW_TOAST', {
               type: 'success',
-              msg: result.message || 'Task added successfully',
+              msg: successMsg,
               timeout: 5000,
             })
           } else {
-            // Failure: show banner
             dispatch('SHOW_BANNER', {
               type: 'error',
-              msg: result.message || result.error || 'Unknown error',
+              msg: envelope.message || 'Unknown error',
             })
           }
         } catch (error) {

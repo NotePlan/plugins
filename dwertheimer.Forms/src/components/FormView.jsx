@@ -39,6 +39,7 @@ import FormErrorBanner from './FormErrorBanner.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
+import { pluginEnvelopeFromResponsePayload, unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import './FormView.css'
 
 /** Commands that load data for choosers; suppressed during submit to avoid storm of REQUESTS that can cause freeze */
@@ -249,9 +250,8 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     try {
       setLoadingFolders(true)
       logDebug('FormView', 'Loading folders on demand... (all spaces)')
-      // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-      // Pass space: null to get all folders from all spaces (FolderChooser will filter client-side based on spaceFilter prop)
-      const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true, space: null })
+      // requestFromPlugin resolves with PluginRequestEnvelope; unwrap throws on handler failure
+      const foldersData = unwrapPluginRequestData(await requestFromPlugin('getFolders', { excludeTrash: true, space: null }))
       if (Array.isArray(foldersData)) {
         setFolders(foldersData)
         setFoldersLoaded(true)
@@ -276,7 +276,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       setFoldersLoaded(false) // Reset to allow reload
       logDebug('FormView', 'Reloading folders after folder creation... (all spaces)')
       // Pass space: null to get all folders from all spaces
-      const foldersData = await requestFromPlugin('getFolders', { excludeTrash: true, space: null })
+      const foldersData = unwrapPluginRequestData(await requestFromPlugin('getFolders', { excludeTrash: true, space: null }))
       if (Array.isArray(foldersData)) {
         setFolders(foldersData)
         setFoldersLoaded(true)
@@ -309,12 +309,14 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       const includeRelativeNotes = noteChooserFields.some((field) => field.includeRelativeNotes === true)
       const includeTeamspaceNotes = noteChooserFields.some((field) => field.includeTeamspaceNotes === true)
 
-      const notesData = await requestFromPlugin('getNotes', {
-        includeCalendarNotes,
-        includePersonalNotes,
-        includeRelativeNotes,
-        includeTeamspaceNotes,
-      })
+      const notesData = unwrapPluginRequestData(
+        await requestFromPlugin('getNotes', {
+          includeCalendarNotes,
+          includePersonalNotes,
+          includeRelativeNotes,
+          includeTeamspaceNotes,
+        }),
+      )
       if (Array.isArray(notesData)) {
         setNotes(notesData)
         setNotesLoaded(true)
@@ -351,14 +353,14 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       // Since teamspace notes default to true, we include them if any field has it true or undefined
       const includeTeamspaceNotes = noteChooserFields.some((field) => field.includeTeamspaceNotes !== false) // At least one field wants them
 
-      // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-      // We load with union of all options, then each NoteChooser filters client-side
-      const notesData = await requestFromPlugin('getNotes', {
-        includeCalendarNotes,
-        includePersonalNotes,
-        includeRelativeNotes,
-        includeTeamspaceNotes,
-      })
+      const notesData = unwrapPluginRequestData(
+        await requestFromPlugin('getNotes', {
+          includeCalendarNotes,
+          includePersonalNotes,
+          includeRelativeNotes,
+          includeTeamspaceNotes,
+        }),
+      )
       if (Array.isArray(notesData)) {
         setNotes(notesData)
         setNotesLoaded(true)
@@ -418,7 +420,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
         // $FlowFixMe[prop-missing] - payload structure is validated above
         const payload = eventData.payload
         if (payload && typeof payload === 'object' && payload.correlationId && typeof payload.correlationId === 'string') {
-          const { correlationId, success, data: responseData, error: responseError } = payload
+          const { correlationId, success } = payload
           const pending = pendingRequestsRef.current.get(correlationId)
           if (pending) {
             const resolveStartTime = performance.now()
@@ -432,21 +434,14 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
               ).toFixed(2)}ms`,
             )
 
-            // Use requestAnimationFrame to yield before resolving
-            // Resolve with responseData for success; for failure, pass __error + message so handleSave can show it without wiping state
-            // (when backend returns success=false, data is often null—resolving with null and skipping dispatch hid the error)
-            const valueToResolve = success
-              ? responseData
-              : responseData && typeof responseData === 'object'
-              ? responseData
-              : { __error: true, message: responseError || 'Request failed' }
+            const envelope = pluginEnvelopeFromResponsePayload(payload)
             requestAnimationFrame(() => {
               const resolveElapsed = performance.now() - resolveStartTime
               logDebug(
                 'FormView',
-                `[DIAG] handleResponse RESOLVING AFTER RAF: correlationId="${correlationId}", success=${String(success)}, resolveElapsed=${resolveElapsed.toFixed(2)}ms`,
+                `[DIAG] handleResponse RESOLVING AFTER RAF: correlationId="${correlationId}", success=${String(envelope.success)}, resolveElapsed=${resolveElapsed.toFixed(2)}ms`,
               )
-              pending.resolve(valueToResolve)
+              pending.resolve(envelope)
             })
           } else {
             logDebug('FormView', `[DIAG] handleResponse UNKNOWN: correlationId="${correlationId}" not found in pending requests`)
@@ -706,25 +701,39 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       // Use 30s timeout so backend's getRenderContext (20s) can complete; if backend hangs, user sees "Request timeout" and overlay clears.
       const SUBMIT_TIMEOUT_MS = 30000
       requestFromPlugin('submitForm', payload, SUBMIT_TIMEOUT_MS)
-        .then((result: any) => {
-          // result is response.data from backend: { formSubmissionError?, aiAnalysisResult? }, or { __error, message } on failure
-          if (result && result.__error === true && typeof result.message === 'string') {
-            const errorData = {
-              ...data,
-              pluginData: { ...(data.pluginData || {}), formSubmissionError: result.message },
+        .then((envelope: any) => {
+          if (envelope && envelope.success === false) {
+            const payloadData = envelope.data && typeof envelope.data === 'object' ? envelope.data : null
+            if (payloadData && (payloadData.formSubmissionError != null || payloadData.aiAnalysisResult != null)) {
+              const basePluginData = data.pluginData || {}
+              const mergedPluginData = { ...basePluginData }
+              if ('formSubmissionError' in payloadData) {
+                mergedPluginData.formSubmissionError = payloadData.formSubmissionError
+              }
+              if ('aiAnalysisResult' in payloadData) {
+                mergedPluginData.aiAnalysisResult = payloadData.aiAnalysisResult
+              }
+              dispatch('UPDATE_DATA', { ...data, pluginData: mergedPluginData })
+            } else {
+              const errorData = {
+                ...data,
+                pluginData: { ...(data.pluginData || {}), formSubmissionError: envelope.message || 'Form submission failed' },
+              }
+              dispatch('UPDATE_DATA', errorData)
             }
-            dispatch('UPDATE_DATA', errorData)
-          } else if (result && typeof result === 'object' && !result.__error) {
-            // Merge submission result (formSubmissionError, aiAnalysisResult) into pluginData; do not replace full data
-            const basePluginData = data.pluginData || {}
-            const mergedPluginData = { ...basePluginData }
-            if ('formSubmissionError' in result) {
-              mergedPluginData.formSubmissionError = result.formSubmissionError
+          } else if (envelope && envelope.success === true) {
+            const result = envelope.data
+            if (result && typeof result === 'object') {
+              const basePluginData = data.pluginData || {}
+              const mergedPluginData = { ...basePluginData }
+              if ('formSubmissionError' in result) {
+                mergedPluginData.formSubmissionError = result.formSubmissionError
+              }
+              if ('aiAnalysisResult' in result) {
+                mergedPluginData.aiAnalysisResult = result.aiAnalysisResult
+              }
+              dispatch('UPDATE_DATA', { ...data, pluginData: mergedPluginData })
             }
-            if ('aiAnalysisResult' in result) {
-              mergedPluginData.aiAnalysisResult = result.aiAnalysisResult
-            }
-            dispatch('UPDATE_DATA', { ...data, pluginData: mergedPluginData })
           }
           setIsSubmitting(false)
           setFormSubmitted(true) // Only now: effect runs with real pluginData and decides close vs keep-open

@@ -8,6 +8,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b25] 2026-04-14 @dwertheimer
+- dev: `requestFromPlugin` now resolves with shared `PluginRequestEnvelope` (`@helpers/react/pluginRequestEnvelope`) so success, `data`, and `message` are explicit; Add Task dialog uses this contract
+
 ## [2.4.0.b24] 2026-04-14
 - Active Projects: next actions and progress comments now use the same rich-text display as other Dashboard task rows (hashtags, @mentions, links, dates, etc.), including the same “hide scheduled dates” and “hide priority markers” settings.
 

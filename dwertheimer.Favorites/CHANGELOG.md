@@ -1,5 +1,9 @@
 # Favorites Plugin Changelog
 
+## [1.3.6] - 2026-04-13 @dwertheimer
+
+- **PluginRequestEnvelope**: Favorites browser `requestFromPlugin` resolves with `@helpers/react/pluginRequestEnvelope` (`unwrapPluginRequestData` / explicit `success` + `data` + `message`). **Release together with np.Shared 1.0.7+** (or matching Root bundle).
+
 ## [1.3.5] - 2026-01-20 @dwertheimer
 
 - Fixed sidebar icon colour issue by using proper css variables for colors.

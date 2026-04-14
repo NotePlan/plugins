@@ -36,6 +36,7 @@ import { AppProvider } from './AppContext.jsx'
 import CompositeLineExample from './CompositeLineExample.jsx'
 import Button from './Button.jsx'
 import { clo, logDebug, timer } from '@helpers/react/reactDev'
+import { pluginEnvelopeFromResponsePayload } from '@helpers/react/pluginRequestEnvelope'
 /**
  * Root element for the Plugin's React Tree
  * @param {any} data
@@ -163,16 +164,11 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
           const correlationId = (payload: any).correlationId
           const success = (payload: any).success
           if (correlationId && typeof correlationId === 'string') {
-            const { data: responseData, error } = (payload: any)
             const pending = pendingRequestsRef.current.get(correlationId)
             if (pending) {
               pendingRequestsRef.current.delete(correlationId)
               clearTimeout(pending.timeoutId)
-              if (success) {
-                pending.resolve(responseData)
-              } else {
-                pending.reject(new Error(error || 'Request failed'))
-              }
+              pending.resolve(pluginEnvelopeFromResponsePayload(payload))
             }
           }
         }
