@@ -18,6 +18,12 @@ When you run NotePlan **v3.21** or newer, consecutive **`prompt`** and **`prompt
 
 For **what breaks a batch**, **dependent dropdowns**, and how to **pack more fields into one form**, see <Link href="./PromptCommandBarForms">Command Bar prompt forms (detailed)</Link>.
 
+### Explicit form: `promptForm({ ... })`
+
+If you want **one** Command Bar form **without** relying on consecutive `prompt` / `promptDate` tags (for example, with other template lines in between, or a field order you control in one place), use a single **`promptForm`** tag with a **JSON5 object** argument. Each field’s **`key`** becomes a **session variable** you can output later with `<%- key %>`.
+
+Syntax, field types (`string`, `number`, `bool`, `date`, `hidden`), and examples are documented on <Link href="./PromptCommandBarForms">Command Bar prompt forms (detailed)</Link> under **Explicit multi-field form (`promptForm`)**.
+
 <Callout
   type="warning"
   title="Single Quotes">

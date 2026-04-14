@@ -44,6 +44,7 @@ describe('isCode', () => {
     expect(isCode("<%- promptDate('dueDate', 'Select due date:') %>")).toBe(false)
     expect(isCode("<%- promptDateInterval('range', 'Select date range:') %>")).toBe(false)
     expect(isCode("<%- promptTag('Select a tag:') %>")).toBe(false)
+    expect(isCode(`<%- promptForm({ title: 'T', fields: [{ type: 'string', key: 'a', title: 'A' }] }) %>`)).toBe(false)
   })
 
   it('should not detect include tags', () => {

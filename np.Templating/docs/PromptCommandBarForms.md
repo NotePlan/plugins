@@ -65,6 +65,64 @@ cityChoices: <%- ['A', 'B', 'C'] %>
 If you format dates elsewhere in templates with **different** patterns, the **form’s** date line may use **slightly different** letters or symbols in its pattern string. For custom layouts, set **`dateFormat`** (or **`format`**) on the `promptDate` itself so the form matches what you want.
 </Callout>
 
+## Explicit multi-field form (`promptForm`)
+
+Use one tag when you want a **single** `CommandBar.showForm` and full control over **title**, **submit** label, and **fields**—without depending on **back-to-back** `prompt` / `promptDate` tags.
+
+- **NotePlan 3.21+** with Command Bar forms (`usersVersionHas('commandBarForms')`). If forms are not available, Templating **asks each field in order** (text, choices, date, etc.) like separate prompts.
+- The argument must be a **single object literal** inside `promptForm( ... )`. You can use **JSON5** syntax (unquoted keys, trailing commas, single-quoted strings).
+- Each field **`key`** is written to **session data** (and a cleaned key when needed), same idea as other prompts—use `<%- yourKey %>` later in the template.
+- The **`promptForm` tag itself** produces **no visible text** after preprocessing; place your summary lines where you want using the keys you declared.
+
+### Object shape
+
+| Property | Required | Description |
+| -------- | -------- | ----------- |
+| `fields` | **yes** | Non-empty array of field objects (see below). |
+| `title` | no | Form title in the Command Bar. Default: `Template`. |
+| `submitText` | no | Submit button label. Default: `Continue`. |
+
+### Field objects
+
+| Property | Required | Description |
+| -------- | -------- | ----------- |
+| `type` | **yes** | `string`, `number`, `bool`, `date`, or `hidden`. |
+| `key` | **yes** | Session variable name for this value. |
+| `title` or `label` | recommended | Label shown on the form (defaults to `key`). |
+| `choices` | no | String array → dropdown (`string` type). |
+| `default` | no | Default value (required for `hidden`). |
+| `required` | no | If true, user must fill the field (where the form API supports it). |
+| `placeholder` | no | Hint text for text fields. |
+| `description` | no | Help text (info button in Command Bar). |
+| `format` | no | For `type: 'date'`, Swift-style pattern (e.g. `yyyy-MM-dd`). |
+| `boxHeight` | no | Multi-line text area height for `string`. |
+
+### Example
+
+```markdown
+<%- promptForm({
+  title: 'Project setup',
+  submitText: 'Continue',
+  fields: [
+    { type: 'string', key: 'docName', title: 'Document name', required: true },
+    { type: 'string', key: 'priority', title: 'Priority', choices: ['High', 'Medium', 'Low'] },
+    { type: 'date', key: 'due', title: 'Due date', format: 'yyyy-MM-dd', required: false },
+    { type: 'hidden', key: 'source', default: 'template' },
+  ],
+}) %>
+
+- **Name:** <%- docName %>
+- **Priority:** <%- priority %>
+- **Due:** <%- due %>
+```
+
+**Authoring tip:** You can paste a skeleton like the above into an AI assistant and ask it to fill in `fields` for your use case; keep **`key`** names valid for template variables (letters, numbers, underscore).
+
+### Cancel and errors
+
+- **Cancel** on the form stops template prompt processing (**same** as other prompts).
+- A **bad** `promptForm` object (missing `fields`, invalid JSON, unknown `type`, etc.) yields an **HTML error comment** in the preprocessed template instead of opening a form.
+
 ## Tips: get **more** fields on **one** form
 
 1. Put all the **`prompt`** and **`promptDate`** lines you want on **one** screen **next to each other**, with **no** interval / tag / mention / key prompts **between** them.

@@ -6,6 +6,17 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.3.1] 2026-04-14 @dwertheimer
+
+### Added
+- **`promptForm({ ... })`**: Explicit **single-tag** Command Bar multi-field form. Pass a JSON5 object with `title`, `submitText`, and `fields` (`string`, `number`, `bool`, `date`, `hidden`); each field `key` is written to session for use as `<%- key %>`. Uses `CommandBar.showForm` when `usersVersionHas('commandBarForms')`; otherwise asks fields **sequentially** (text / choices / date). Cancel returns `false` like other prompts; invalid config yields an HTML error comment.
+
+### Edited in this release
+- `np.Templating/lib/support/modules/prompts/PromptFormHandler.js`, `index.js`
+- `np.Templating/__tests__/promptFormTag.test.js`, `isCode.test.js`
+- `np.Templating/docs/PromptCommands.md`, `PromptCommandBarForms.md`
+- `np.Templating/plugin.json` — version **2.3.1**
+
 ## [2.3.0] 2026-04-13 @dwertheimer
 
 ### Requirements

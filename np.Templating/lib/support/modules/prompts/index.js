@@ -5,6 +5,7 @@
 
 import { processPrompts, processPromptTag, getRegisteredPromptNames, isPromptTag } from './PromptRegistry'
 import './StandardPromptHandler'
+import './PromptFormHandler'
 import './PromptKeyHandler'
 import './PromptDateHandler'
 import './PromptDateIntervalHandler'
