@@ -1209,22 +1209,38 @@ declare class CommandBar {
    * Fields that produce a value also need a key (the property name in the result). Properties:
    * - type: the type of the field (required)
    * - key: the key of the field (required for fields that produce a value)
-   * - label: the label of the field (required)
+   * - title: the visible label of the field (required)
+   * - label: optional duplicate of title (some native form code paths use label)
    * - placeholder: grey hint text shown when the field is empty (string and number fields) (optional)
    * - default: pre-filled value (optional)
    * - required: if true, the form won't submit until this field has a value (optional)
    * - description: help text the user can reveal by tapping the info button next to the field (optional)
+   * - format: for type date, output format such as YYYY-MM-dd (optional; see plugin settings date fields)
    * It returns a CommandBarFormResult with two properties:
    * - submitted (boolean): true if the user pressed Submit, false if they cancelled
    * - values (object): the entered values, keyed by each field's key
    * Full details at https://help.noteplan.co/article/281-commandbar-forms-plugin.
    * Note: Available from v3.21
-   * @param {string} title
-   * @param {string} submitText
-   * @param {Array<{label: string, type: string, key: string, placeholder?: string, default?: string, required?: boolean, description?: string }>} fields in the form
+   * @param {{ title: string, submitText: string, fields: Array<Object> }} formConfig — single argument object (see https://help.noteplan.co/article/281-commandbar-forms-plugin)
    * @return {Promise<CommandBarFormResult>}
-  */
-  static showForm(title: string, submitText: string, fields: $ReadOnlyArray<{ label: string, type: string, key: string, placeholder?: string, default?: string, required?: boolean, description?: string }>): Promise<CommandBarFormResult>;
+   */
+  static showForm(formConfig: {|
+    +title: string,
+    +submitText: string,
+    +fields: $ReadOnlyArray<{|
+      +type: string,
+      +key: string,
+      +title: string,
+      label?: string,
+      placeholder?: string,
+      default?: string | number | boolean,
+      required?: boolean,
+      description?: string,
+      format?: string,
+      choices?: $ReadOnlyArray<string>,
+      boxHeight?: number,
+    |}>,
+  |}): Promise<CommandBarFormResult>;
 }
 
 type CommandBarFormResult = {

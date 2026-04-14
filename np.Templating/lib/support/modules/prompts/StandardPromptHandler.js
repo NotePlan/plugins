@@ -4,7 +4,7 @@
  */
 
 import pluginJson from '../../../../plugin.json'
-import { registerPromptType, getRegisteredPromptNames } from './PromptRegistry'
+import { registerPromptType, getRegisteredPromptNames } from './promptTypesRegistry'
 import BasePromptHandler from './BasePromptHandler'
 import { log, logError, logDebug } from '@helpers/dev'
 
@@ -327,6 +327,104 @@ export default class StandardPromptHandler {
   }
 
   /**
+   * Decide whether the user must answer the prompt or an existing session value can be reused.
+   * Used by CommandBar form batching and by process().
+   * @param {string} tag - The template tag.
+   * @param {any} sessionData - The current session data.
+   * @param {Object} params - Parsed parameters from parseParameters.
+   * @returns {{ kind: 'use_existing', value: string, firstParamVarName: ?string } | { kind: 'show_ui', firstParamVarName: ?string }}
+   */
+  static getPromptExecutionDecision(
+    tag: string,
+    sessionData: any,
+    params: any,
+  ): {| kind: 'use_existing', value: string, firstParamVarName: ?string |} | {| kind: 'show_ui', firstParamVarName: ?string |} {
+    const { varName, promptMessage, options, forcePrompt } = params
+
+    logDebug(
+      pluginJson,
+      `StandardPromptHandler.getPromptExecutionDecision: varName="${varName}", promptMessage="${promptMessage}", options=${JSON.stringify(options)}, forcePrompt=${
+        forcePrompt ? 'true' : 'false'
+      }`,
+    )
+
+    let firstParamVarName = null
+    const promptParamMatch = tag.match(/(?:^|\s)prompt\(\s*['"]([^'"]+)['"]\s*,/)
+    if (promptParamMatch && promptParamMatch[1]) {
+      firstParamVarName = promptParamMatch[1]
+      logDebug(pluginJson, `StandardPromptHandler.getPromptExecutionDecision: firstParamVarName=${firstParamVarName}`)
+    }
+
+    const hasAwait = tag.includes('await prompt')
+    const shouldForcePrompt = forcePrompt === true
+
+    const isFunctionCallText = (value: any): boolean => {
+      if (typeof value !== 'string') return false
+      const promptTypes = getRegisteredPromptNames()
+      const promptTypesPattern = promptTypes.join('|')
+      const pattern = new RegExp(`^(await\\s+)?(${promptTypesPattern})\\s*\\(.*\\)$`)
+      return pattern.test(value)
+    }
+
+    let shouldExecutePrompt = shouldForcePrompt || hasAwait
+    let existingValue = null
+
+    if (varName && sessionData[varName] !== undefined) {
+      if (isFunctionCallText(sessionData[varName]) || sessionData[varName] === `await prompt(${varName})` || sessionData[varName] === `prompt(${varName})`) {
+        shouldExecutePrompt = true
+        logDebug(pluginJson, `StandardPromptHandler.getPromptExecutionDecision: function call text in sessionData[${varName}]`)
+      } else if (BasePromptHandler.isValidSessionValue(sessionData[varName], 'prompt', varName) && !shouldExecutePrompt && sessionData[varName] !== '') {
+        existingValue = sessionData[varName]
+        logDebug(pluginJson, `StandardPromptHandler.getPromptExecutionDecision: existing from sessionData[${varName}]`)
+      } else if (sessionData[varName] === '') {
+        shouldExecutePrompt = true
+        logDebug(pluginJson, `StandardPromptHandler.getPromptExecutionDecision: empty string in sessionData[${varName}]`)
+      }
+    }
+
+    if (!existingValue && !shouldExecutePrompt && firstParamVarName && sessionData[firstParamVarName] !== undefined) {
+      if (
+        isFunctionCallText(sessionData[firstParamVarName]) ||
+        sessionData[firstParamVarName] === `await prompt(${firstParamVarName})` ||
+        sessionData[firstParamVarName] === `prompt(${firstParamVarName})`
+      ) {
+        shouldExecutePrompt = true
+        logDebug(pluginJson, `StandardPromptHandler.getPromptExecutionDecision: function call text in sessionData[${firstParamVarName}]`)
+      } else if (BasePromptHandler.isValidSessionValue(sessionData[firstParamVarName], 'prompt', firstParamVarName) && sessionData[firstParamVarName] !== '') {
+        existingValue = sessionData[firstParamVarName]
+        logDebug(pluginJson, `StandardPromptHandler.getPromptExecutionDecision: existing from sessionData[${firstParamVarName}]`)
+      } else if (sessionData[firstParamVarName] === '') {
+        shouldExecutePrompt = true
+        logDebug(pluginJson, `StandardPromptHandler.getPromptExecutionDecision: empty string in sessionData[${firstParamVarName}]`)
+      }
+    }
+
+    if (
+      varName &&
+      sessionData[varName] &&
+      typeof sessionData[varName] === 'string' &&
+      (sessionData[varName].includes('await prompt') || sessionData[varName].includes('prompt('))
+    ) {
+      shouldExecutePrompt = true
+    }
+
+    if (
+      firstParamVarName &&
+      sessionData[firstParamVarName] &&
+      typeof sessionData[firstParamVarName] === 'string' &&
+      (sessionData[firstParamVarName].includes('await prompt') || sessionData[firstParamVarName].includes('prompt('))
+    ) {
+      shouldExecutePrompt = true
+    }
+
+    if (existingValue !== null && !shouldExecutePrompt) {
+      return { kind: 'use_existing', value: existingValue, firstParamVarName }
+    }
+
+    return { kind: 'show_ui', firstParamVarName }
+  }
+
+  /**
    * Process the standardPrompt tag.
    * @param {string} tag - The template tag.
    * @param {any} sessionData - The current session data.
@@ -343,108 +441,16 @@ export default class StandardPromptHandler {
       }`,
     )
 
-    // Extract the variable name from the first parameter if it exists
-    // This handles the case where prompt("varName", "message") is used
-    let firstParamVarName = null
-    const promptParamMatch = tag.match(/(?:^|\s)prompt\(\s*['"]([^'"]+)['"]\s*,/)
-    if (promptParamMatch && promptParamMatch[1]) {
-      firstParamVarName = promptParamMatch[1]
-      logDebug(pluginJson, `StandardPromptHandler.process: Detected variable name in first parameter: ${firstParamVarName}`)
-    }
+    const decision = StandardPromptHandler.getPromptExecutionDecision(tag, sessionData, params)
+    const firstParamVarName = decision.firstParamVarName
 
-    // Check if this is a variable assignment with await
-    const hasAwait = tag.includes('await prompt')
-
-    // Check if forcePrompt is set
-    const shouldForcePrompt = forcePrompt === true
-
-    // Function to check if a value looks like a function call text
-    const isFunctionCallText = (value: any): boolean => {
-      if (typeof value !== 'string') return false
-
-      // Test for any prompt function call patterns with or without await
-      const promptTypes = getRegisteredPromptNames()
-      // const promptTypes = getRegisteredPromptNames ? getRegisteredPromptNames() : ['prompt', 'promptKey', 'promptDate', 'promptTag', 'promptMention', 'promptDateInterval']
-      const promptTypesPattern = promptTypes.join('|')
-      const pattern = new RegExp(`^(await\\s+)?(${promptTypesPattern})\\s*\\(.*\\)$`)
-
-      return pattern.test(value)
-    }
-
-    // For StandardPromptHandler (the "prompt" type), always execute when forcePrompt is true or has await
-    let shouldExecutePrompt = shouldForcePrompt || hasAwait
-    let existingValue = null
-
-    // Check for function call text values in session data which need to be replaced
-    if (varName && sessionData[varName] !== undefined) {
-      if (isFunctionCallText(sessionData[varName]) || sessionData[varName] === `await prompt(${varName})` || sessionData[varName] === `prompt(${varName})`) {
-        // Force prompt execution to replace function call text
-        shouldExecutePrompt = true
-        logDebug(pluginJson, `StandardPromptHandler.process: Found function call text in session data[${varName}]: "${sessionData[varName]}", will execute prompt`)
-      } else if (BasePromptHandler.isValidSessionValue(sessionData[varName], 'prompt', varName) && !shouldExecutePrompt && sessionData[varName] !== '') {
-        // Only use existing value if it's valid, non-empty, and we don't need to force execution
-        existingValue = sessionData[varName]
-        logDebug(pluginJson, `StandardPromptHandler.process: Using valid existing value from session data[${varName}]: "${existingValue}"`)
-      } else if (sessionData[varName] === '') {
-        // Treat empty strings as a reason to show the prompt
-        shouldExecutePrompt = true
-        logDebug(pluginJson, `StandardPromptHandler.process: Found empty string in session data[${varName}], will execute prompt`)
-      }
-    }
-
-    // Check first parameter variable name as well
-    if (!existingValue && !shouldExecutePrompt && firstParamVarName && sessionData[firstParamVarName] !== undefined) {
-      if (
-        isFunctionCallText(sessionData[firstParamVarName]) ||
-        sessionData[firstParamVarName] === `await prompt(${firstParamVarName})` ||
-        sessionData[firstParamVarName] === `prompt(${firstParamVarName})`
-      ) {
-        shouldExecutePrompt = true
-        logDebug(
-          pluginJson,
-          `StandardPromptHandler.process: Found function call text in session data[${firstParamVarName}]: "${sessionData[firstParamVarName]}", will execute prompt`,
-        )
-      } else if (BasePromptHandler.isValidSessionValue(sessionData[firstParamVarName], 'prompt', firstParamVarName) && sessionData[firstParamVarName] !== '') {
-        existingValue = sessionData[firstParamVarName]
-        logDebug(pluginJson, `StandardPromptHandler.process: Using valid existing value from session data[${firstParamVarName}]: "${existingValue}"`)
-      } else if (sessionData[firstParamVarName] === '') {
-        // Treat empty strings as a reason to show the prompt
-        shouldExecutePrompt = true
-        logDebug(pluginJson, `StandardPromptHandler.process: Found empty string in session data[${firstParamVarName}], will execute prompt`)
-      }
-    }
-
-    // Special case for "prompt" function: always execute if value matches exact function call pattern
-    if (
-      varName &&
-      sessionData[varName] &&
-      typeof sessionData[varName] === 'string' &&
-      (sessionData[varName].includes('await prompt') || sessionData[varName].includes('prompt('))
-    ) {
-      shouldExecutePrompt = true
-      logDebug(pluginJson, `StandardPromptHandler.process: Found prompt function call pattern in value: "${sessionData[varName]}", will execute prompt`)
-    }
-
-    // Also check for first param var name
-    if (
-      firstParamVarName &&
-      sessionData[firstParamVarName] &&
-      typeof sessionData[firstParamVarName] === 'string' &&
-      (sessionData[firstParamVarName].includes('await prompt') || sessionData[firstParamVarName].includes('prompt('))
-    ) {
-      shouldExecutePrompt = true
-      logDebug(pluginJson, `StandardPromptHandler.process: Found prompt function call pattern in value: "${sessionData[firstParamVarName]}", will execute prompt`)
-    }
-
-    // If we have a valid existing value that's not a function call, use it
-    if (existingValue !== null && !shouldExecutePrompt) {
-      // Store the value in both variable names to ensure consistency
+    if (decision.kind === 'use_existing') {
+      const existingValue = decision.value
       if (varName) sessionData[varName] = existingValue
       if (firstParamVarName && firstParamVarName !== varName) sessionData[firstParamVarName] = existingValue
       return existingValue
     }
 
-    // At this point, we need to execute the prompt
     try {
       let response: string = ''
 

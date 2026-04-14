@@ -5,7 +5,7 @@
  */
 
 import pluginJson from '../../../../plugin.json'
-import { registerPromptType } from './PromptRegistry'
+import { registerPromptType } from './promptTypesRegistry'
 import { parsePromptParameters, filterItems, promptForItem } from './sharedPromptFunctions'
 import BasePromptHandler from './BasePromptHandler'
 import { log, logError, logDebug } from '@helpers/dev'

@@ -724,3 +724,10 @@ describe('StandardPromptHandler parseParameters with comma-separated strings', (
     expect(result.options).toEqual(['2025-07-19', '2025-07-20', '2025-07-26'])
   })
 })
+
+describe('BasePromptHandler.convertToArrayIfNeeded', () => {
+  it("keeps empty string as first element (promptDate ['', false])", () => {
+    const result = BasePromptHandler.convertToArrayIfNeeded("['', false]")
+    expect(result).toEqual(['', 'false'])
+  })
+})

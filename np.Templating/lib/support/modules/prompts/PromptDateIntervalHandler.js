@@ -5,7 +5,7 @@
 
 import pluginJson from '../../../../plugin.json'
 import BasePromptHandler from './BasePromptHandler'
-import { registerPromptType } from './PromptRegistry'
+import { registerPromptType } from './promptTypesRegistry'
 import { log, logError, logDebug } from '@helpers/dev'
 import { askDateInterval } from '@helpers/userInput'
 

@@ -6,7 +6,7 @@
 
 import pluginJson from '../../../../plugin.json'
 import { replaceSmartQuotes } from '../../../utils/stringUtils'
-import { getRegisteredPromptNames, cleanVarName } from './PromptRegistry'
+import { getRegisteredPromptNames, cleanVarName } from './promptTypesRegistry'
 import { log, logError, logDebug } from '@helpers/dev'
 
 /**
@@ -967,14 +967,11 @@ export default class BasePromptHandler {
         }
 
         // Split by commas, handling quoted elements
-        const items = content
-          .split(/,(?=(?:[^']*'[^']*')*[^']*$)/)
-          .map((item) => {
-            // Clean up items and remove quotes
-            const trimmed = item.trim()
-            return BasePromptHandler.removeQuotes(trimmed)
-          })
-          .filter(Boolean)
+        const items = content.split(/,(?=(?:[^']*'[^']*')*[^']*$)/).map((item) => {
+          // Clean up items and remove quotes. Do not drop empty strings — promptDate uses ['', false] for “no default”.
+          const trimmed = item.trim()
+          return BasePromptHandler.removeQuotes(trimmed)
+        })
 
         return items
       } catch (e) {
@@ -1124,7 +1121,7 @@ export default class BasePromptHandler {
    * Handles nested placeholders within items.
    * @param {string} arrayContentString - The string content of the array.
    * @param {Array<string>} quotedTexts - Original quotedTexts array (needed for nested restoration).
-   * @returns {Array<string>} Parsed array of strings.
+   * @returns {Array<string>} Parsed array of strings (leading `''` is kept for promptDate defaults; trailing empty slots from a trailing comma are dropped).
    * @private
    */
   static _parseArrayLiteralString(arrayContentString: string, quotedTexts: Array<string>): Array<string> {
@@ -1177,17 +1174,20 @@ export default class BasePromptHandler {
     items.push(currentItem.trim())
 
     // Now process each extracted item: restore placeholders, then remove outer quotes
-    return items
-      .map((item) => {
-        // Restore nested quoted text placeholders first
-        let restoredItem = item
-        quotedTexts.forEach((qText, index) => {
-          restoredItem = restoredItem.replace(`__QUOTED_TEXT_${index}__`, qText)
-        })
-        // Then remove outer quotes
-        return BasePromptHandler.removeQuotes(restoredItem)
+    const mapped = items.map((item) => {
+      // Restore nested quoted text placeholders first
+      let restoredItem = item
+      quotedTexts.forEach((qText, index) => {
+        restoredItem = restoredItem.replace(`__QUOTED_TEXT_${index}__`, qText)
       })
-      .filter(Boolean) // Keep filtering empty strings for now
+      // Then remove outer quotes
+      return BasePromptHandler.removeQuotes(restoredItem)
+    })
+    // Drop only trailing empties (e.g. trailing comma in "a, b,") — keep leading '' for promptDate(['', false]).
+    while (mapped.length > 0 && mapped[mapped.length - 1] === '') {
+      mapped.pop()
+    }
+    return mapped
   }
 
   /**

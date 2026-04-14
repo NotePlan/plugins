@@ -6,174 +6,20 @@
 
 import pluginJson from '../../../../plugin.json'
 import { getTags } from '../../../shared/templateUtils'
-import { log, logError, logDebug } from '@helpers/dev'
-import { escapeRegExp } from '@helpers/regex'
+import {
+  handlePromptResponse,
+  notePlanSupportsCommandBarForms,
+  replacePromptResultInTemplate,
+  runCommandBarFormBatch,
+  tryCollectFormBatch,
+} from './promptFormBatch'
+import { parseTagContent } from './promptTagParse'
+import { findMatchingPromptType, isPromptTag } from './promptTypesRegistry'
+import { logDebug, logError } from '@helpers/dev'
 
-/**
- * @typedef {Object} PromptType
- * @property {string} name - The unique name of the prompt type.
- * @property {?RegExp} pattern - Optional regex to match tags for this prompt type. If not provided, will be generated from name.
- * @property {(tag: string, sessionData?: any) => any} parseParameters - A function that extracts parameters from the tag.
- * @property {(tag: string, sessionData: any, params: any) => Promise<string>} process - A function that processes the prompt and returns its response.
- */
-export type PromptType = {|
-  name: string,
-  pattern?: RegExp,
-  parseParameters: (tag: string, sessionData?: any) => any,
-  process: (tag: string, sessionData: any, params: any) => Promise<string>,
-|}
-
-/** The registry mapping prompt type names to their handlers. */
-const promptRegistry: { [string]: PromptType } = {}
-
-/**
- * Cleans a variable name by replacing spaces with underscores and removing invalid characters.
- * This is a local copy of the function to avoid circular dependencies.
- * @param {string} varName - The variable name to clean.
- * @returns {string} The cleaned variable name.
- */
-export function cleanVarName(varName: string): string {
-  if (!varName || typeof varName !== 'string') return 'unnamed'
-
-  // Remove any quotes (single, double, backticks) that might have been included
-  let cleaned = varName.replace(/["'`]/g, '')
-
-  // Remove any prompt type prefixes
-  const promptTypes = getRegisteredPromptNames()
-  const promptTypePattern = new RegExp(`^(${promptTypes.join('|')})`, 'i')
-  cleaned = cleaned.replace(promptTypePattern, '')
-
-  // Replace spaces with underscores
-  cleaned = cleaned.replace(/ /gi, '_')
-
-  // Remove question marks
-  cleaned = cleaned.replace(/\?/gi, '')
-
-  // Remove any characters that aren't valid in JavaScript identifiers
-  // Keep alphanumeric characters, underscores, dollar signs, and Unicode letters
-  cleaned = cleaned.replace(/[^\p{L}\p{Nd}_$]/gu, '')
-
-  // Ensure the variable name starts with a letter, underscore, or dollar sign
-  if (!/^[\p{L}_$]/u.test(cleaned)) {
-    cleaned = `var_${cleaned}`
-  }
-
-  // Handle the case where we might end up with an empty string
-  if (!cleaned) return 'unnamed'
-
-  // Ensure we don't accidentally use a JavaScript reserved word
-  const reservedWords = [
-    'break',
-    'case',
-    'catch',
-    'class',
-    'const',
-    'continue',
-    'debugger',
-    'default',
-    'delete',
-    'do',
-    'else',
-    'export',
-    'extends',
-    'finally',
-    'for',
-    'function',
-    'if',
-    'import',
-    'in',
-    'instanceof',
-    'new',
-    'return',
-    'super',
-    'switch',
-    'this',
-    'throw',
-    'try',
-    'typeof',
-    'var',
-    'void',
-    'while',
-    'with',
-    'yield',
-  ]
-
-  if (reservedWords.includes(cleaned)) {
-    cleaned = `var_${cleaned}`
-  }
-
-  return cleaned
-}
-
-/**
- * Generates a RegExp pattern for a prompt type based on its name
- * @param {string} promptName - The name of the prompt type
- * @returns {RegExp} The pattern to match this prompt type
- */
-function generatePromptPattern(promptName: string): RegExp {
-  // Create a pattern that only matches the exact prompt name followed by parentheses
-  // Using word boundary to ensure we don't match substrings of other prompt names
-  return new RegExp(`\\b${promptName}\\s*\\(`, 'i')
-}
-
-/**
- * Registers a new prompt type.
- * @param {PromptType} promptType The prompt type to register.
- */
-export function registerPromptType(promptType: PromptType): void {
-  // If no pattern is provided, generate one from the name
-  if (!promptType.pattern) {
-    promptType.pattern = generatePromptPattern(promptType.name)
-  }
-  promptRegistry[promptType.name] = promptType
-}
-
-/**
- * Find a matching prompt type for a given tag content
- * @param {string} tagContent - The content of the tag to match
- * @returns {?{promptType: Object, name: string}} The matching prompt type and its name, or null if none found
- */
-export function findMatchingPromptType(tagContent: string): ?{ promptType: Object, name: string } {
-  for (const [name, promptType] of Object.entries(promptRegistry)) {
-    const pattern = promptType.pattern || generatePromptPattern(promptType.name)
-
-    if (pattern.test(tagContent)) {
-      return { promptType, name }
-    }
-  }
-
-  return null
-}
-
-/**
- * Extract content from a template tag based on its type
- * @param {string} tag - The full tag string
- * @returns {{content: string, isOutputTag: boolean, isExecutionTag: boolean}} Parsed tag info
- */
-function parseTagContent(tag: string): { content: string, isOutputTag: boolean, isExecutionTag: boolean } {
-  let content = ''
-  let isOutputTag = false
-  let isExecutionTag = false
-
-  if (tag.startsWith('<%- ')) {
-    // Extract the content between <%- and %> (or -%>)
-    const endOffset = tag.endsWith('-%>') ? 3 : 2
-    content = tag.substring(3, tag.length - endOffset).trim()
-    isOutputTag = true
-  } else if (tag.startsWith('<%=')) {
-    // Extract the content between <%= and %> (or -%>)
-    const endOffset = tag.endsWith('-%>') ? 3 : 2
-    content = tag.substring(3, tag.length - endOffset).trim()
-    isOutputTag = true
-  } else if (tag.startsWith('<%')) {
-    // Extract the content between <% and %> (or -%>)
-    const endOffset = tag.endsWith('-%>') ? 3 : 2
-    content = tag.substring(2, tag.length - endOffset).trim()
-    isExecutionTag = true
-  }
-
-  return { content, isOutputTag, isExecutionTag }
-}
+export type { PromptType } from './promptTypesRegistry'
+export { cleanVarName, findMatchingPromptType, getRegisteredPromptNames, isPromptTag, registerPromptType } from './promptTypesRegistry'
+export { applyPromptResponseToTemplate } from './promptFormBatch'
 
 /**
  * Handle session value replacement for unquoted parameters in prompt calls
@@ -243,13 +89,14 @@ async function fixStringifiedResponse(response: string, promptTypeName: string, 
 
 /**
  * Processes a variable assignment with a prompt (e.g., const myVar = promptKey("category"))
+ * @param {string} _tag - The original template tag (reserved for callers / future use)
  * @param {string} varType - The variable declaration type (const, let, var)
  * @param {string} varName - The variable name
  * @param {string} promptCall - The prompt function call
  * @param {any} sessionData - The session data
  * @returns {Promise<string|false>} Empty string for successful assignment, false if cancelled
  */
-async function processVariableAssignment(tag: string, varType: string, varName: string, promptCall: string, sessionData: any): Promise<string | false> {
+async function processVariableAssignment(_tag: string, varType: string, varName: string, promptCall: string, sessionData: any): Promise<string | false> {
   logDebug(pluginJson, `Found variable assignment: type=${varType}, varName=${varName}, promptCall=${promptCall}`)
 
   // Find the matching prompt type for the prompt call
@@ -361,33 +208,6 @@ async function processNonAssignmentPrompt(tag: string, content: string, sessionD
 }
 
 /**
- * Handles the response from a prompt, storing it in session data and returning appropriate output
- * @param {string} tag - The original tag
- * @param {string} varName - The variable name to store the response
- * @param {string} response - The prompt response
- * @param {any} sessionData - The session data
- * @returns {string} The output for the template
- */
-function handlePromptResponse(tag: string, varName: string, response: string, sessionData: any): string {
-  // Store both the original and cleaned variable names
-  const cleanedVarName = cleanVarName(varName)
-  sessionData[varName] = response
-  sessionData[cleanedVarName] = response
-
-  // Check if this is an output tag (<%- ... %>) or execution tag (<% ... %>)
-  const isOutputTag = tag.startsWith('<%- ')
-  if (isOutputTag) {
-    // For output tags, return the variable reference to output the value
-    logDebug(pluginJson, `PromptRegistry::processPromptTag Creating variable reference for output: ${cleanedVarName} -- "<%- ${cleanedVarName} %>"`)
-    return `<%- ${cleanedVarName} ${tag.endsWith('-%>') ? '-%>' : '%>'}`
-  } else {
-    // For execution tags, return empty string (no output)
-    logDebug(pluginJson, `PromptRegistry::processPromptTag Execution tag completed - returning empty string`)
-    return ''
-  }
-}
-
-/**
  * Processes a single prompt tag using the registered prompt types
  * Sets the sessionData[varName] to the response and returns an EJS tag with the variable name to be placed in the template
  * @param {string} tag The template tag to process.
@@ -447,8 +267,33 @@ export async function processPrompts(templateData: string, initialSessionData: a
     // Ensure tags is an array
     const tagsArray = Array.isArray(tags) ? tags : tags && typeof tags.then === 'function' ? await tags : []
 
-    for (const tag of tagsArray) {
+    for (let tagIdx = 0; tagIdx < tagsArray.length; tagIdx++) {
+      const tag = tagsArray[tagIdx]
       if (!isPromptTag(tag)) continue
+
+      if (notePlanSupportsCommandBarForms()) {
+        try {
+          const batchInfo = tryCollectFormBatch(tagsArray, tagIdx, sessionData)
+          if (batchInfo && batchInfo.tags.length >= 2) {
+            logDebug(pluginJson, `processPrompts: CommandBar.showForm batch (${String(batchInfo.tags.length)} prompts)`)
+            const batchResult = await runCommandBarFormBatch(batchInfo, sessionData, sessionTemplateData)
+            if (batchResult === false) {
+              logDebug(pluginJson, 'Prompt form batch was cancelled, returning false')
+              return false
+            }
+            if (batchResult == null) {
+              logDebug(pluginJson, 'processPrompts: showForm unavailable or invalid result; processing prompts one at a time')
+            } else {
+              sessionTemplateData = batchResult.sessionTemplateData
+              tagIdx += batchInfo.tags.length - 1
+              continue
+            }
+          }
+        } catch (batchError) {
+          logError(pluginJson, `processPrompts: form batch error (falling back to single prompts): ${batchError.message}`)
+        }
+      }
+
       try {
         logDebug(pluginJson, `processPrompts Processing tag: ${tag.substring(0, 100)}${tag.length > 100 ? '...' : ''}`)
         const promptResponseText = await processPromptTag(tag, sessionData)
@@ -462,10 +307,7 @@ export async function processPrompts(templateData: string, initialSessionData: a
           // prompts with variable setting but no output and a slurping tag at the end will be processed here
           // in all other scenarios we can let EJS deal with the slurping
           // the edge case here is that it will greedy chomp multiple newlines which the user may not want
-          const doChomp = tag.endsWith('-%>')
-          const replaceWhat = doChomp ? new RegExp(`${escapeRegExp(tag)}\\s*\\n*`) : tag
-          const replaceWithWhat = tag.startsWith('<% ') ? '' : promptResponseText // do not output if it was a control tag
-          sessionTemplateData = sessionTemplateData.replace(replaceWhat, replaceWithWhat)
+          sessionTemplateData = replacePromptResultInTemplate(sessionTemplateData, tag, promptResponseText)
         }
         // If promptResponseText === tag, don't replace anything (tag was not processed)
       } catch (error) {
@@ -481,39 +323,4 @@ export async function processPrompts(templateData: string, initialSessionData: a
   }
 
   return { sessionTemplateData, sessionData }
-}
-
-/**
- * Get all registered prompt type names
- * @returns {Array<string>} Array of registered prompt type names
- */
-export function getRegisteredPromptNames(): Array<string> {
-  // Make sure the normal prompt is replaced last since prompt is part of promptInterval etc.
-  const promptNames = Object.keys(promptRegistry)
-    .filter((name) => name !== 'prompt')
-    .concat('prompt')
-  return promptNames
-}
-
-/**
- * Checks if a tag is a prompt*() tag
- * @param {string} tag - The tag to check
- * @returns {boolean} True if the tag is a prompt tag, false otherwise
- */
-export function isPromptTag(tag: string): boolean {
-  // Simple check: if there's a dot before prompt, it's not a templating prompt
-  // Look for pattern like "something.prompt(" to exclude object method calls
-  if (tag.match(/\w+\.\w+\s*\(/)) {
-    return false
-  }
-
-  // Build regex pattern from registered prompt names
-  const promptNames = getRegisteredPromptNames()
-  // Escape special regex characters in prompt names
-  const escapedNames = promptNames.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-  // Join names with | for alternation in regex
-  const promptPattern = escapedNames.join('|')
-  // Add word boundary checks to ensure we only match standalone prompt type names
-  const promptRegex = new RegExp(`(?:^|\\s|\\()(?:${promptPattern})\\s*\\(`, 'i')
-  return promptRegex.test(tag)
 }

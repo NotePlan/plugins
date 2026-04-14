@@ -6,6 +6,37 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.3.0] 2026-04-13 @dwertheimer
+
+### Requirements
+
+- **`noteplan.minAppVersion` is now `3.21`.** This matches [Command Bar plugin forms](https://help.noteplan.co/article/281-commandbar-forms-plugin) (`CommandBar.showForm`), which the plugin uses to combine multiple independent `prompt` / `promptDate` tags into one form. Older NotePlan builds cannot use that API; keeping the minimum at 3.21 avoids implying full support on earlier app versions.
+- **User-facing documentation** for commands, prompts, and examples remains at [NotePlan Templating docs](https://noteplan.co/templates/docs) (`plugin.url` — the canonical docs URL for this plugin, not a version string).
+
+### Added
+- **Command Bar multi-prompt forms**: When rendering templates, consecutive **`prompt`** and **`promptDate`** tags that are **independent** (later prompts do not need a variable that an earlier tag in the same batch will set) are shown in a **single** `CommandBar.showForm` instead of chaining `textPrompt`, `showOptions`, or the legacy date picker flow for each field.
+- **When batching does not apply**: If a later prompt’s options reference session data that only exists after an earlier answer (e.g. dropdown choices from a prior prompt), processing stays **sequential**. The same applies if **`promptTag`**, **`promptMention`**, **`promptKey`**, or **`promptDateInterval`** appear, or non-prompt tags break contiguity (e.g. `<%# ... %>`). Cancelling the form cancels template prompt processing, same as cancelling a single prompt.
+- **Runtime gates**: Batching runs only when `usersVersionHas('commandBarForms')` and `CommandBar.showForm` exist; tests and partial environments fall back to the previous one-prompt-at-a-time behavior without throwing.
+
+### Fixed
+
+- **`CommandBar.showForm` call shape**: NotePlan expects a **single** argument `{ title, submitText, fields }` (not three positional args), and each field uses **`title`** for the visible label, not `label` ([forms docs](https://help.noteplan.co/article/281-commandbar-forms-plugin)).
+- **`promptDate` in batched forms**: `convertToArrayIfNeeded` no longer drops an empty default (`['', false]` became `['false']`, which produced `default: "false"` and broke date fields). Form batching now matches `PromptDateHandler` for `canBeEmpty` (string `'false'` is not treated as “allow empty”).
+- **`CommandBar.showForm` date rows**: Date fields include **`label`** (same as `title`) and **`format`**, default **`yyyy-MM-dd`**. Override via `promptDate` JSON options **`dateFormat`** or **`format`** (e.g. `'{ dateFormat: "MM/dd/yyyy" }'`).
+
+### Changed
+
+- **Prompt registry split**: `promptTypesRegistry.js` holds registration and lookup so handlers do not circular-import `PromptRegistry.js` (needed for form batching helpers that reference standard/date handlers).
+- **`StandardPromptHandler`**: `getPromptExecutionDecision()` centralizes “reuse session vs show UI” for both normal processing and batch eligibility.
+- **`PromptDateHandler`**: `shouldShowPromptUI()` for batching; batched dates use the form’s **`date`** field (ISO `yyyy-MM-dd`).
+
+### Edited in this release
+- `np.Templating/plugin.json` — version **2.3.0**, `noteplan.minAppVersion` **3.21**, `lastUpdateInfo` summary + docs URL.
+- `np.Templating/lib/support/modules/prompts/promptTypesRegistry.js`, `PromptRegistry.js`, `StandardPromptHandler.js`, `PromptDateHandler.js`
+- `np.Templating/__tests__/promptFormBatch.test.js`
+- `np.Templating/docs/PromptCommands.md`
+- `flow-typed/Noteplan.js` — `showForm({ title, submitText, fields })` and field `title` / `choices`
+
 ## [2.2.11] 2026-03-19 @dwertheimer
 
 ### Fixed

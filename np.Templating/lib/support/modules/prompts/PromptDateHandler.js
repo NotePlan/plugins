@@ -5,7 +5,7 @@
 
 import pluginJson from '../../../../plugin.json'
 import BasePromptHandler from './BasePromptHandler'
-import { registerPromptType } from './PromptRegistry'
+import { registerPromptType } from './promptTypesRegistry'
 import { log, logError, logDebug } from '@helpers/dev'
 import { datePicker } from '@helpers/userInput'
 
@@ -63,13 +63,27 @@ export default class PromptDateHandler {
   }
 
   /**
+   * Whether the date prompt should be shown (vs reusing sessionData).
+   * Used when batching CommandBar forms.
+   * @param {any} sessionData - Session data
+   * @param {Object} params - Parsed parameters
+   * @returns {boolean} true if the user should be asked
+   */
+  static shouldShowPromptUI(sessionData: any, params: any): boolean {
+    const { varName } = params
+    if (!varName) return true
+    if (!sessionData[varName]) return true
+    return !BasePromptHandler.isValidSessionValue(sessionData[varName], 'promptDate', varName)
+  }
+
+  /**
    * Process the promptDate tag.
    * @param {string} tag - The template tag.
    * @param {any} sessionData - The current session data.
    * @param {Object} params - The parameters from parseParameters.
-   * @returns {Promise<string>} The processed prompt result.
+   * @returns {Promise<string | false>} The processed prompt result or false if cancelled.
    */
-  static async process(tag: string, sessionData: any, params: any): Promise<string> {
+  static async process(tag: string, sessionData: any, params: any): Promise<string | false> {
     const { varName, promptMessage, options } = params
 
     if (varName && sessionData[varName] && BasePromptHandler.isValidSessionValue(sessionData[varName], 'promptDate', varName)) {
@@ -80,7 +94,7 @@ export default class PromptDateHandler {
 
     try {
       const response = await PromptDateHandler.promptDate(tag, promptMessage, options)
-      logDebug(`promptDate process handler return ${typeof response} ${response}`)
+      logDebug(`promptDate process handler return ${typeof response} ${String(response)}`)
       // Store the result in session data
       if (varName) sessionData[varName] = response
 

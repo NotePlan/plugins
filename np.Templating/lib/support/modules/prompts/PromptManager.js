@@ -5,7 +5,7 @@
  */
 
 import pluginJson from '../../../../plugin.json'
-import { getRegisteredPromptNames, findMatchingPromptType } from './PromptRegistry'
+import { getRegisteredPromptNames, findMatchingPromptType } from './promptTypesRegistry'
 import { logDebug, logError } from '@helpers/dev'
 
 /**
