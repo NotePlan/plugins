@@ -26,5 +26,26 @@
     "author": "asktru",
     "description": "Sunsama-like daily planning workflow with focus, planning, shutdown, and highlights tabs",
     "repo": "asktru/noteplan-reflect"
+  },
+  {
+    "id": "asktru.NoteGraph",
+    "name": "Note Graph",
+    "author": "asktru",
+    "description": "Interactive force-directed graph visualization of note connections via wiki links and backlinks",
+    "repo": "asktru/noteplan-notegraph"
+  },
+  {
+    "id": "asktru.Donote",
+    "name": "Donote",
+    "author": "asktru",
+    "description": "Note viewer with three-panel layout, full markdown rendering, task management, and smart filters",
+    "repo": "asktru/noteplan-donote"
+  },
+  {
+    "id": "MarcoBarna.CRMDashboard",
+    "name": "CRM Dashboard",
+    "author": "MarcoBarna",
+    "description": "Lightweight CRM for managing contacts, logging interactions, and scheduling follow-up reminders",
+    "repo": "MarcoBarna/noteplan-crm-dashboard"
   }
 ]
