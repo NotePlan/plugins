@@ -1,7 +1,15 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
-## [2.0.0.b16] - 2026-03-13???
+## [2.0.0.b18] - 2026-04-15
+- dev: In `Project` construction, when metadata exists in both frontmatter and note body, the body metadata line is now logged at INFO level and removed so frontmatter remains authoritative.
+- dev: When metadata exists only in the note body, this is now logged at INFO level and migrated using the standard note/editor migration helpers.
+- dev: Rename helper `getOrMakeMetadataLineIndex()` to `getMetadataLineIndexFromBody()`: it now only searches the note body and returns `false` when not found; callers now log DEBUG when body metadata is absent.
+
+## [2.0.0.b17] - 2026-03-14
+- **Add progress update** now uses the new Command Bar Form capability to ask for details in one step; older NotePlan versions keep the two separate prompts and always uses today's date in the progress line.
+
+## [2.0.0.b16] - 2026-03-13
 - dev: now pauses/unpauses the auto refresh timers when the rich window is hidden by NP
 - further layout improvements to top bar and edit dialog when project list displayed in a very narrow window
 - remove `nextReview` frontmatter when pausing, completing, or cancelling a project

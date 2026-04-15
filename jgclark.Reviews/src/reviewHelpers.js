@@ -336,8 +336,12 @@ export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: stri
     logDebug('isProjectNoteIsMarkedSequential', `found sequential tag '${sequentialTag}' in frontmatter '${combinedKey}' attribute`)
     return true
   }
-  const metadataLineIndex = getOrMakeMetadataLineIndex(note)
+  const metadataLineIndex = getMetadataLineIndexFromBody(note)
   const paras = note.paragraphs ?? []
+  if (metadataLineIndex === false) {
+    logDebug('isProjectNoteIsMarkedSequential', `No metadata line found in note body for '${displayTitle(note)}'`)
+    return false
+  }
   const metadataLine = paras.length > metadataLineIndex ? paras[metadataLineIndex].content : ''
   const hashtags = (`${metadataLine} `).split(' ').filter((f) => f[0] === '#')
   if (hashtags.some((tag) => tag === sequentialTag)) {
@@ -422,90 +426,36 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
 }
 
 /**
- * Works out which line (if any) of the current note is project-style metadata line, defined as
+ * Works out which body line (if any) of the current note is project-style metadata line, defined as
  * - line starting 'project:' or 'medadata:'
  * - first line containing a @review() or @reviewed() mention
  * - first line starting with a hashtag.
- * If these can't be found, then create a new line after the title, or in the 'metadata:' field if present in the frontmatter.
- * NOTE: Ideally make a version of this that only checks metadata and doesn't create a new line if it doesn't exist.
  * @author @jgclark
  *
  * @param {TNote} note to use
- * @param {string} metadataLinePlaceholder optional to use if we need to make a new metadata line
- * @returns {number} the line number for the existing or new metadata line
+ * @returns {number | false} the line number for an existing body metadata line, else false
  */
-export function getOrMakeMetadataLineIndex(note: CoreNoteFields, metadataLinePlaceholder: string = '#project @review(1w) <-- _update your tag and your review interval here_'): number {
+export function getMetadataLineIndexFromBody(note: CoreNoteFields | TEditor): number | false {
   try {
     const lines = note.paragraphs?.map((s) => s.content) ?? []
-    logDebug('getOrMakeMetadataLineIndex', `Starting with ${lines.length} lines for ${displayTitle(note)}`)
-
-    // Belt-and-Braces: deal with empty or almost-empty notes
-    if (lines.length === 0) {
-      note.appendParagraph('<placeholder title>', 'title')
-      note.appendParagraph(metadataLinePlaceholder, 'text')
-      logInfo('getOrMakeMetadataLineIndex', `- Finishing after appending placeholder title and metadata placeholder line`)
-      return 1
-    } else if (lines.length === 1) {
-      note.appendParagraph(metadataLinePlaceholder, 'text')
-      logInfo('getOrMakeMetadataLineIndex', `- Finishing after appending metadata placeholder line`)
-      return 1
-    }
-
-    let lineNumber: number = NaN
-    const singleMetadataKeyName: string = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-    const scanInFrontmatter = noteHasFrontMatter(note)
-    const endFMIndex = scanInFrontmatter ? (endOfFrontmatterLineIndex(note) ?? -1) : -1
-
-    // Invariant mode: when frontmatter exists, only treat the configured combined key line as the metadata line.
-    const combinedFrontmatterLineRE = new RegExp(`^${singleMetadataKeyName}:\\s*`, 'i')
+    logDebug('getMetadataLineIndexFromBody', `Starting with ${lines.length} lines for ${displayTitle(note)}`)
+    let lineNumber: number | false = false
+    const endFMIndex = noteHasFrontMatter(note) ? (endOfFrontmatterLineIndex(note) ?? -1) : -1
     const bodyMetadataLineRE = /^(project|metadata):/i
-    for (let i = 1; i < lines.length; i++) {
-      if (scanInFrontmatter) {
-        if (i <= endFMIndex && lines[i].match(combinedFrontmatterLineRE)) {
-          lineNumber = i
-          break
-        }
-      } else {
-        if (
-          lines[i].match(bodyMetadataLineRE) ||
-          lines[i].match(/(@review|@reviewed)\(.+\)/) ||
-          lines[i].match(/^#\S/)
-        ) {
+    for (let i = endFMIndex + 1; i < lines.length; i++) {
+      if (
+        lines[i].match(bodyMetadataLineRE) ||
+        lines[i].match(/(@review|@reviewed)\(.+\)/) ||
+        lines[i].match(/^#\S/)
+      ) {
         lineNumber = i
         break
       }
-      }
     }
-
-    // If no metadataPara found, then insert one either after title, or in the frontmatter if present.
-    if (Number.isNaN(lineNumber)) {
-      if (noteHasFrontMatter(note)) {
-        logWarn('getOrMakeMetadataLineIndex', `I couldn't find an existing metadata line, so have added a placeholder at the top of the note. Please review it.`)
-        const fmAttrs: { [string]: any } = {}
-        // Invariant: combined key must be tags-only (project tags). Dates/intervals live in their own keys.
-        fmAttrs[singleMetadataKeyName] = extractTagsOnly(metadataLinePlaceholder)
-        // $FlowFixMe[incompatible-call]
-        const res = updateFrontMatterVars(note, fmAttrs)
-        const updatedLines = note.paragraphs?.map((s) => s.content) ?? []
-        // Find which line that project field is on
-        for (let i = 1; i < updatedLines.length; i++) {
-          const re = new RegExp(`^${singleMetadataKeyName}:`, 'i')
-          if (updatedLines[i].match(re)) {
-            lineNumber = i
-            break
-          }
-        }
-      } else {
-        logWarn('getOrMakeMetadataLineIndex', `Warning: Can't find an existing metadata line, so will insert one after title`)
-        note.insertParagraph(metadataLinePlaceholder, 1, 'text')
-        lineNumber = 1
-      }
-    }
-    // logDebug('getOrMakeMetadataLineIndex', `Metadata line = ${String(lineNumber)}`)
     return lineNumber
   } catch (error) {
-    logError('getOrMakeMetadataLineIndex', error.message)
-    return 0
+    logError('getMetadataLineIndexFromBody', error.message)
+    return false
   }
 }
 
@@ -811,7 +761,11 @@ export function updateMetadataInEditor(thisEditor: TEditor, updatedMetadataArr: 
       return
     }
 
-    const metadataLineIndex: number = getOrMakeMetadataLineIndex(thisEditor)
+    const metadataLineIndex = getMetadataLineIndexFromBody(thisEditor)
+    if (metadataLineIndex === false) {
+      logDebug('updateMetadataInEditor', `No metadata line found in note body for '${displayTitle(thisEditor)}'`)
+      return
+    }
     updateMetadataCore(thisEditor, metadataLineIndex, updatedMetadataArr, 'updateMetadataInEditor')
   } catch (error) {
     logError('updateMetadataInEditor', error.message)
@@ -834,7 +788,11 @@ export function updateMetadataInNote(note: CoreNoteFields, updatedMetadataArr: A
       return
     }
 
-    const metadataLineIndex: number = getOrMakeMetadataLineIndex(note)
+    const metadataLineIndex = getMetadataLineIndexFromBody(note)
+    if (metadataLineIndex === false) {
+      logDebug('updateMetadataInNote', `No metadata line found in note body for '${displayTitle(note)}'`)
+      return
+    }
     updateMetadataCore(note, metadataLineIndex, updatedMetadataArr, 'updateMetadataInNote')
   } catch (error) {
     logError('updateMetadataInNote', `${error.message}`)

@@ -20,7 +20,7 @@ import { checkForWantedResources, logAvailableSharedResources, logProvidedShared
 import {
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
-  getOrMakeMetadataLineIndex,
+  getMetadataLineIndexFromBody,
   getNextActionLineIndex,
   getReviewSettings,
   isProjectNoteIsMarkedSequential,
@@ -767,16 +767,34 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
 
     const possibleThisEditor = getOpenEditorFromFilename(note.filename)
     if (possibleThisEditor && possibleThisEditor !== false) {
-      const thisEditorNote: CoreNoteFields = possibleThisEditor?.note
+      const thisEditorNote: ?CoreNoteFields = possibleThisEditor.note
+      if (!thisEditorNote) {
+        logDebug('finishReviewCoreLogic', `No editor note found for '${displayTitle(note)}'; falling back to datastore note update path.`)
+        migrateProjectMetadataLineInNote(note)
+        const metadataLineIndex = getMetadataLineIndexFromBody(note)
+        if (metadataLineIndex === false) {
+          logDebug('finishReviewCoreLogic', `No metadata line found in note body for '${displayTitle(note)}'`)
+        } else {
+          deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
+        }
+        updateMetadataInNote(note, [reviewedTodayString])
+        // $FlowIgnore[prop-missing]
+        DataStore.updateCache(note, true)
+        return
+      }
       logDebug('finishReviewCoreLogic', `Updating EDITOR note '${displayTitle(thisEditorNote)}' ...`)
       // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
       // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
       // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
       // FIXME: The following 3 calls get "Warning: The editor is not open! 'Editor' values will be undefined and functions not working. Open a note to fix this." errors
       migrateProjectMetadataLineInEditor(possibleThisEditor)
-      const metadataLineIndex: number = getOrMakeMetadataLineIndex(possibleThisEditor)
-      // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      deleteMetadataMentionInEditor(possibleThisEditor, metadataLineIndex, [config.nextReviewMentionStr])
+      const metadataLineIndex = getMetadataLineIndexFromBody(possibleThisEditor)
+      if (metadataLineIndex === false) {
+        logDebug('finishReviewCoreLogic', `No metadata line found in note body for '${displayTitle(thisEditorNote)}'`)
+      } else {
+        // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
+        deleteMetadataMentionInEditor(possibleThisEditor, metadataLineIndex, [config.nextReviewMentionStr])
+      }
       // Update @review(date) on current open note
       updateMetadataInEditor(possibleThisEditor, [reviewedTodayString])
       await possibleThisEditor.save()
@@ -787,9 +805,13 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
       // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
       migrateProjectMetadataLineInNote(note)
-      const metadataLineIndex: number = getOrMakeMetadataLineIndex(note)
-      // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
+      const metadataLineIndex = getMetadataLineIndexFromBody(note)
+      if (metadataLineIndex === false) {
+        logDebug('finishReviewCoreLogic', `No metadata line found in note body for '${displayTitle(note)}'`)
+      } else {
+        // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
+        deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
+      }
       // Update @review(date) on the note
       updateMetadataInNote(note, [reviewedTodayString])
       // $FlowIgnore[prop-missing]

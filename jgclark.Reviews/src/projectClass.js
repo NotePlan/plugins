@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-03-26 for v1.4.0.b13, @jgclark
+// Last updated 2026-04-14 for v2.0.0.b17, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -10,9 +10,11 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import {
   calcNextReviewDate,
-  getOrMakeMetadataLineIndex,
+  getMetadataLineIndexFromBody,
   getParamMentionFromList,
   getReviewSettings,
+  migrateProjectMetadataLineInEditor,
+  migrateProjectMetadataLineInNote,
   processMostRecentProgressParagraph,
 } from './reviewHelpers'
 import { checkBoolean, checkNumber, checkString } from '@helpers/checkType'
@@ -30,11 +32,13 @@ import { getOpenEditorFromFilename, saveEditorIfNecessary } from '@helpers/NPEdi
 import { getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { endOfFrontmatterLineIndex, getFrontmatterAttribute, getFrontmatterParagraphs, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { createSectionsAndParaAfterPreamble, endOfPreambleSection, findHeading, getFieldParagraphsFromNote, simplifyRawContent } from '@helpers/paragraph'
 import { getHashtagsFromString } from '@helpers/stringTransforms'
 import {
   getInputTrimmed,
   inputIntegerBounded,
+  isInt,
 } from '@helpers/userInput'
 import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
 
@@ -156,6 +160,138 @@ function shouldWriteDateMentionsInCombinedMetadata(): boolean {
   return checkBoolean(DataStore.preference('writeDateMentionsInCombinedMetadata') ?? false)
 }
 
+/** Full-line match for ISO YYYY-MM-DD (same rule as RE_DATE). */
+const RE_ISO_DATE_LINE = new RegExp(`^${RE_DATE}$`)
+
+/**
+ * Normalize a date value from CommandBar.showForm (string or Date) to YYYY-MM-DD, or today's date if invalid.
+ * @param {mixed} value
+ * @returns {string}
+ * @private
+ */
+function normalizeProgressDateFromForm(value: mixed): string {
+  const today = todaysDateISOString
+  if (value == null || value === '') {
+    return today
+  }
+  if (value instanceof Date) {
+    const iso = toISODateString(value)
+    return iso !== '' && RE_ISO_DATE_LINE.test(iso) ? iso : today
+  }
+  const s = String(value).trim()
+  if (RE_ISO_DATE_LINE.test(s)) {
+    return s
+  }
+  logWarn('Project / normalizeProgressDateFromForm', `Bad date value '${String(value)}', using ${today}`)
+  return today
+}
+
+/**
+ * Interpret CommandBar.showForm() result for add-progress: comment (required), progress date, optional integer %.
+ * @param {CommandBarFormResult} formResult
+ * @returns {?{ comment: string, progressDateStr: string, percentStr: string }}
+ * @private
+ */
+function parseRawProgressFormValues(formResult: CommandBarFormResult): ?{ comment: string, progressDateStr: string, percentStr: string } {
+  try {
+    if (formResult == null || typeof formResult !== 'object') {
+      throw new Error(`formResult is null or not an object`)
+    }
+    if (formResult.submitted === false) {
+      logWarn('parseRawProgressFormValues', `user didn't submit form: stopping.`)
+      return null
+    }
+    const fieldMap: { [string]: mixed } = formResult.values ?? {}
+    const commentRaw = fieldMap.comment
+    const comment = typeof commentRaw === 'string' ? commentRaw.trim() : String(commentRaw ?? '').trim()
+    if (comment === '') {
+      logDebug('parseRawProgressFormValues', `Empty comment; treating as invalid`)
+      return null
+    }
+    const dateRaw = fieldMap.progressDate ?? fieldMap.date
+    const progressDateStr = normalizeProgressDateFromForm(dateRaw)
+    let percentStr = ''
+    const pr = fieldMap.percentComplete ?? fieldMap.percent
+    if (pr != null && pr !== '') {
+      const ps = String(pr).trim()
+      if (ps !== '' && isInt(ps)) {
+        const v = parseFloat(ps)
+        if (v >= 0 && v <= 100) {
+          percentStr = String(v)
+        }
+      }
+    }
+    return { comment, progressDateStr, percentStr }
+  } catch (error) {
+    logError('parseRawProgressFormValues', `Error parsing form result: ${error.message}`)
+    return null
+  }
+}
+
+/**
+ * Ask for progress comment, optional % complete, and progress date.
+ * Uses CommandBar.showForm when NotePlan supports commandBarForms (v3.21+); otherwise two separate prompts (date = today).
+ * @param {string} projectTitle
+ * @param {string} prompt - leading phrase before quoted title
+ * @param {number} lastPercentComplete - for hint text (may be NaN)
+ * @returns {Promise<?{ comment: string, progressDateStr: string, percentStr: string }>}
+ * @private
+ */
+async function promptAddProgressLineInputs(
+  projectTitle: string,
+  prompt: string,
+  lastPercentComplete: number,
+): Promise<?{ comment: string, progressDateStr: string, percentStr: string }> {
+  const message1 = `${prompt} '${projectTitle}'`
+  const message2 = !isNaN(lastPercentComplete)
+    ? `Enter your estimate of project completion (as %; last was ${String(lastPercentComplete)}%) if wanted`
+    : `Enter your estimate of project completion (as %) if wanted`
+
+  // $FlowFixMe[prop-missing] CommandBar.showForm (NP 3.21+) - see flow-typed/Noteplan.js
+  const commandBarWithForm: any = CommandBar
+  if (usersVersionHas('commandBarForms') && typeof commandBarWithForm.showForm === 'function') {
+    try {
+      // NotePlan 3.21+: single form with text, date (default today), and optional %.
+      // Field shape matches CommandBar.showForm (commandBarForms); adjust if NotePlan's schema differs.
+      const raw = await commandBarWithForm.showForm({
+        title: `Add Progress for '${projectTitle}'`,
+        submitText: 'Add',
+        fields: [
+          { type: 'string', key: 'comment', title: 'Comment', required: true },
+          // TODO(Eduard): align the format string to moment style
+          { type: 'date', key: 'progressDate', title: 'Date', description: 'Date of comment', default: todaysDateISOString, format: 'yyyy-MM-dd', required: false },
+          { type: 'number', key: 'percentComplete', title: 'Percent Complete (optional; last was ${String(lastPercentComplete)}%)', description: message2, placeholder: '%', min: 0, max: 100, optional: true, required: false },
+        ],
+      })
+      if (raw == null || raw === false) {
+        logDebug('promptAddProgressLineInputs', `User cancelled CommandBar.showForm`)
+        return null
+      }
+      const parsed = parseRawProgressFormValues(raw)
+      if (parsed) {
+        return parsed
+      }
+      logDebug('promptAddProgressLineInputs', `Invalid showForm submission`)
+      return null
+    } catch (error) {
+      logWarn('promptAddProgressLineInputs', `CommandBar.showForm failed (${error.message}); using separate prompts`)
+    }
+  }
+
+  const resText = await getInputTrimmed(message1, 'OK', `Add Progress comment`)
+  if (!resText) {
+    logDebug('promptAddProgressLineInputs', `No valid progress comment`)
+    return null
+  }
+  const comment = String(resText)
+  const resNum = await inputIntegerBounded('Add Progress % completion', message2, 100, 0)
+  let percentStr = ''
+  if (!isNaN(resNum)) {
+    percentStr = String(resNum)
+  }
+  return { comment, progressDateStr: todaysDateISOString, percentStr }
+}
+
 /**
  * Define 'Project' class to use in GTD.
  * Holds title, last reviewed date, due date, review interval, completion date, progress information that is read from the note,
@@ -225,9 +361,11 @@ export class Project {
       // Sometimes we're called just after a note has been updated in the Editor. So check to see if note is open in Editor, and if so use that version, which could be newer.
       // (Unless 'checkEditor' false, to avoid triggering 'You are running this on an async thread' warnings.)
       let paras: Array<TParagraph>
+      let usingEditor = false
       if (checkEditor && Editor && Editor.note && (Editor.note.filename === note.filename)) {
         const editorNote: CoreNoteFields = Editor.note
         paras = editorNote.paragraphs
+        usingEditor = true
         this.note = Editor.note // Note: not plain Editor, as otherwise it isn't the right type and will throw app run-time errors later.
         const versionDateMS = editorNote.versions && editorNote.versions.length > 0 ? new Date(editorNote.versions[0].date).getTime() : NaN
         const timeSinceLastEdit: number = isNaN(versionDateMS) ? NaN : Date.now() - versionDateMS
@@ -239,99 +377,32 @@ export class Project {
         // logDebug('ProjectConstructor', `- read note from datastore `)
       }
 
-      const metadataLineIndex = getOrMakeMetadataLineIndex(note)
-      this.metadataParaLineIndex = metadataLineIndex
+      const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+      const combinedMetadataField = readRawFrontmatterField(this.note, singleKeyName)
+      const hasFrontmatterMetadata = combinedMetadataField.exists && String(combinedMetadataField.value ?? '').trim() !== ''
+      const metadataLineIndexBefore = getMetadataLineIndexFromBody(this.note)
+      if (hasFrontmatterMetadata && metadataLineIndexBefore !== false) {
+        const bodyMetadataToRemove = paras[metadataLineIndexBefore].content
+        logInfo('ProjectConstructor', `Both frontmatter and body metadata exist for '${this.title}'. Removing body metadata line '${bodyMetadataToRemove}'.`)
+        this.note.removeParagraph(paras[metadataLineIndexBefore])
+        DataStore.updateCache(this.note, true)
+      } else if (!hasFrontmatterMetadata && metadataLineIndexBefore !== false) {
+        logInfo('ProjectConstructor', `Only body metadata exists for '${this.title}'. Migrating metadata to frontmatter.`)
+        if (usingEditor) {
+          // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
+          migrateProjectMetadataLineInEditor(Editor)
+        } else {
+          migrateProjectMetadataLineInNote(this.note)
+        }
+        DataStore.updateCache(this.note, true)
+      }
+
+      paras = this.note.paragraphs
+      const metadataLineIndex = getMetadataLineIndexFromBody(this.note)
+      this.metadataParaLineIndex = metadataLineIndex === false ? NaN : metadataLineIndex
       let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
       let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
-      const metadataLine = paras[metadataLineIndex].content
-
-      // If we have a metadata line in the body but no combined frontmatter value yet, migrate it into frontmatter and remove the body line
-      try {
-        const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-        const existingCombinedRawField = readRawFrontmatterField(note, singleKeyName)
-        const existingCombined = existingCombinedRawField.exists ? existingCombinedRawField.value : getFrontmatterAttribute(note, singleKeyName)
-        const existingCombinedStr = existingCombined != null && typeof existingCombined === 'string' ? existingCombined : ''
-        if (existingCombinedStr === '') {
-          const metadataParaToRemove = paras[metadataLineIndex]
-          const fmAttrs: { [string]: any } = {}
-
-          // Invariant: combined frontmatter value must contain ONLY hashtags (project tags).
-          const hashtagsOnly = getHashtagsFromString(`${metadataLine} `)
-            .filter((t) => t && t.startsWith('#') && t.length > 1)
-          const uniqueHashtags: Array<string> = []
-          const seen: Set<string> = new Set()
-          for (const t of hashtagsOnly) {
-            if (!seen.has(t)) {
-              seen.add(t)
-              uniqueHashtags.push(t)
-            }
-          }
-          fmAttrs[singleKeyName] = uniqueHashtags.join(' ')
-
-          // Also populate separate date/interval keys from mention tokens in the body metadata line.
-          const mentionTokens = (`${metadataLine} `)
-            .split(' ')
-            .filter((f) => f[0] === '@')
-
-          const reISODate = new RegExp(`^${RE_DATE}$`)
-          const reISOInterval = new RegExp(`^${RE_DATE_INTERVAL}$`)
-
-          const getFrontmatterFieldKey = (prefName: string, defaultKey: string): string =>
-            checkString(DataStore.preference(prefName) || '').replace(/^[@#]/, '') || defaultKey
-
-          const startKey = getFrontmatterFieldKey('startMentionStr', 'start')
-          const dueKey = getFrontmatterFieldKey('dueMentionStr', 'due')
-          const reviewedKey = getFrontmatterFieldKey('reviewedMentionStr', 'reviewed')
-          const completedKey = getFrontmatterFieldKey('completedMentionStr', 'completed')
-          const cancelledKey = getFrontmatterFieldKey('cancelledMentionStr', 'cancelled')
-          const reviewIntervalKey = getFrontmatterFieldKey('reviewIntervalMentionStr', 'review')
-          const nextReviewKey = getFrontmatterFieldKey('nextReviewMentionStr', 'nextReview')
-
-          const readDateFromMentionList = (mentionPrefKey: string): ?string => {
-            const mentionName = checkString(DataStore.preference(mentionPrefKey))
-            const mentionTokenStr = mentionName ? getParamMentionFromList(mentionTokens, mentionName) : ''
-            if (mentionTokenStr === '') return undefined
-            const bracketContent = getContentFromBrackets(mentionTokenStr)
-            if (bracketContent == null || bracketContent.trim() === '') return undefined
-            const parsed = String(bracketContent).trim()
-            return reISODate.test(parsed) ? parsed : undefined
-          }
-
-          const startVal = readDateFromMentionList('startMentionStr')
-          if (startVal != null) fmAttrs[startKey] = startVal
-          const dueVal = readDateFromMentionList('dueMentionStr')
-          if (dueVal != null) fmAttrs[dueKey] = dueVal
-          const reviewedVal = readDateFromMentionList('reviewedMentionStr')
-          if (reviewedVal != null) fmAttrs[reviewedKey] = reviewedVal
-          const completedVal = readDateFromMentionList('completedMentionStr')
-          if (completedVal != null) fmAttrs[completedKey] = completedVal
-          const cancelledVal = readDateFromMentionList('cancelledMentionStr')
-          if (cancelledVal != null) fmAttrs[cancelledKey] = cancelledVal
-          const nextReviewVal = readDateFromMentionList('nextReviewMentionStr')
-          if (nextReviewVal != null) fmAttrs[nextReviewKey] = nextReviewVal
-
-          // Review interval is not ISO date.
-          const reviewIntervalMentionName = checkString(DataStore.preference('reviewIntervalMentionStr'))
-          const reviewIntervalTokenStr = reviewIntervalMentionName
-            ? getParamMentionFromList(mentionTokens, reviewIntervalMentionName)
-            : ''
-          const reviewIntervalBracket = reviewIntervalTokenStr ? getContentFromBrackets(reviewIntervalTokenStr) : undefined
-          const intervalStr = reviewIntervalBracket != null ? String(reviewIntervalBracket).trim() : ''
-          if (intervalStr !== '' && reISOInterval.test(intervalStr)) {
-            fmAttrs[reviewIntervalKey] = intervalStr
-          }
-
-          const migratedOK = updateFrontMatterVars(note, fmAttrs)
-          if (migratedOK) {
-            note.removeParagraph(metadataParaToRemove)
-            DataStore.updateCache(note, true)
-            this.metadataParaLineIndex = getOrMakeMetadataLineIndex(note)
-            logDebug('ProjectConstructor', `- migrated body metadata line into frontmatter ${singleKeyName} and removed from body for '${this.title}'`)
-          }
-        }
-      } catch (e) {
-        logWarn('ProjectConstructor', `- migration to frontmatter metadata key failed for '${this.title}': ${e.message}`)
-      }
+      const metadataLine = metadataLineIndex === false ? '' : paras[metadataLineIndex].content
 
       if (mentions.length === 0) {
         logDebug('ProjectConstructor', `- Grr: .mentions empty: will use metadata line instead`)
@@ -942,7 +1013,8 @@ DataStore.updateCache(this.note, true)
       // Metadata was in body; now in frontmatter, so remove the body line
       this.note.removeParagraph(metadataPara)
       DataStore.updateCache(this.note, true)
-      this.metadataParaLineIndex = getOrMakeMetadataLineIndex(this.note)
+      const metadataLineIndexAfterUpdate = getMetadataLineIndexFromBody(this.note)
+      this.metadataParaLineIndex = metadataLineIndexAfterUpdate === false ? NaN : metadataLineIndexAfterUpdate
   logDebug('updateMetadataAndSave', `Wrote metadata to frontmatter and removed body line for '${this.title}'`)
     }
   }
@@ -1120,29 +1192,26 @@ DataStore.updateCache(this.note, true)
         logDebug('Project::addProgressLine', `Can't find open Editor for note '${thisFilename}', so will use DATASTORE note`)
       }
         
-      // Get progress heading from config
-      const message1 = `${prompt} '${this.title}'`
-      const resText = await getInputTrimmed(message1, 'OK', `Add Progress comment`)
-      if (!resText) {
+      const inputs = await promptAddProgressLineInputs(this.title, prompt, this.percentComplete)
+      if(!inputs) {
         logDebug('Project::addProgressLine', `No valid progress line given.`)
         return
       }
-      const comment = String(resText) // to keep flow happy
-
-      const message2 = (!isNaN(this.percentComplete)) ? `Enter project completion (as %; last was ${String(this.percentComplete)}%) if wanted` : `Enter project completion (as %) if wanted`
-      const resNum = await inputIntegerBounded('Add Progress % completion', message2, 100, 0)
-      let percentStr = ''
-      if (isNaN(resNum)) {
+      const { comment, progressDateStr, percentStr } = inputs
+      if(percentStr === '') {
         logDebug('Project::addProgressLine', `No percent completion given.`)
-      } else {
-        this.percentComplete = resNum
-        percentStr = String(resNum)
+} else if (isInt(percentStr)) {
+  const resNum = parseFloat(percentStr)
+  if (!isNaN(resNum)) {
+    this.percentComplete = resNum
+  }
       }
 
-      // Update the project's metadata
-      this.lastProgressComment = `${comment} (today)`
-      const newProgressLine = `Progress: ${percentStr}@${todaysDateISOString} ${comment}`
-      const newProgressLineForFrontmatter = `${percentStr}@${todaysDateISOString} ${comment}`
+// Update the project's metadata (label "today" when the chosen date is today)
+const progressDateLabel = progressDateStr === todaysDateISOString ? 'today' : progressDateStr
+this.lastProgressComment = `${comment} (${progressDateLabel})`
+const newProgressLine = `Progress: ${percentStr}@${progressDateStr} ${comment}`
+const newProgressLineForFrontmatter = `${percentStr}@${progressDateStr} ${comment}`
 
       // Get progress heading and level from config
       const config = await getReviewSettings()
