@@ -1,4 +1,4 @@
-/* last update 2026-04-02 for v2.0.0.b6 by @jgclark */
+/* last update 2026-04-15 for v2.0.0.b10 by @jgclark */
 
 body {
   color: var(--fg-main-color, #4c4f69);
@@ -75,6 +75,42 @@ body {
   font-weight: 600;
   color: var(--h3-color, #5c5f77);
   padding: 0rem 0rem 0.4rem 0.3rem;
+}
+
+/* Collapsible summary lists (`<details>` / `<summary>` in review HTML) */
+.summary-details {
+  margin: 0 0 0.35rem 0;
+}
+
+.summary-details > summary.summary-title {
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  list-style: none;
+}
+
+/* Native triangle is tiny or missing in some WebViews; use a right-side chevron instead */
+.summary-details > summary.summary-title::-webkit-details-marker {
+  display: none;
+}
+
+.summary-details > summary.summary-title::after {
+  content: '\25B8';
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+  opacity: 0.75;
+  color: var(--item-icon-color, #1e66f5);
+  transition: transform 0.15s ease;
+}
+
+.summary-details[open] > summary.summary-title::after {
+  transform: rotate(90deg);
 }
 
 .summary-content {

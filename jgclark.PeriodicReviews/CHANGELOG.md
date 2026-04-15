@@ -3,6 +3,17 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
+## [2.0.0.b11] - 2026-04-15
+- Make the details in the summary sections 
+collapsible
+- Fix so that review commands no longer switch the editor to the “current” period’s note when you already have another calendar note of that same kind open (for example, yesterday’s daily note stays open instead of jumping to today).
+
+## [2.0.0.b10] - 2026-04-13
+- Review window **Summary**: completed-task list(s) and the calendar events list are each wrapped in HTML `<details>` / `<summary>` (expanded by default) so you can collapse the lists while keeping the headings visible.
+- New optional settings **Planned items prefix** (default `>>`) and **Planned items suffix** (default `#win`) for text written with each planned item into the **next** period’s calendar note.
+- Review window submit: do not log “no template question answers” when the user only filled the **planning** textarea (next-period plan lines still count as a substantive submit).
+- Review window callback: `onReviewWindowAction` now **returns `{}`** on every path when invoked via `DataStore.invokePluginCommandByName` (required by NotePlan; missing return can stop the handler after the “Executing function” log). Normalize a single-array bridge payload `[actionName, payload]` when needed; bail out cleanly if settings fail to load.
+
 ## [2.0.0.b9] - 2026-04-11
 - settled on name 'Periodic Reviews' not 'Journalling & Reviews'
 - Summary / carry-over plan tasks: include **cancelled** `>>` lines (e.g. `* [-] >> …`); they show as **not** done like open items. Fix: plan-section extraction no longer stopped after the first task under a matching H2.

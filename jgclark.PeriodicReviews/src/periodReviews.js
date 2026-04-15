@@ -2,13 +2,15 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-04-11 for v2.0.0.b9 by @jgclark + @Cursor
+// last update 2026-04-13 for v2.0.0.b10 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import strftime from 'strftime'
 import pluginJson from '../plugin.json'
 import {
   buildNextPeriodNotePlanSectionHeadingTitle,
+  formatPlannedItemLineForNextNote,
+  getEffectivePlannedItemAffixes,
   getJournalSettings,
   getPeriodAdjectiveFromType,
   getPlanItemsNameForPeriodType,
@@ -129,22 +131,21 @@ function removePlanSectionFromNoteIfPresent(note: TNote, headingTitle: string): 
 
 /**
  * Insert plan heading and open tasks at the start of the active body.
- * Uses `insertParagraph(..., 'open')`, which adds the task `*` marker — pass body text `>> …` only so the note shows `* >> …`, not `* * >> …`.
+ * Uses `insertParagraph(..., 'open')`, which adds the task `*` marker — pass full line text (prefix/suffix already applied), not a second task marker.
  * @param {TNote} note
  * @param {string} headingTitle
- * @param {Array<string>} taskTexts normalized plain lines (no `*` / `>>`)
+ * @param {Array<string>} taskLines full paragraph content (not rawContent) per planned item (after prefix/suffix formatting)
  * @returns {void}
  */
-function insertPlanSectionAtActiveStart(note: TNote, headingTitle: string, taskTexts: Array<string>): void {
+function insertPlanSectionAtActiveStart(note: TNote, headingTitle: string, taskLines: Array<string>): void {
   const startIdx = findStartOfActivePartOfNote(note)
   if (Number.isNaN(startIdx)) {
     logWarn(pluginJson, 'insertPlanSectionAtActiveStart: invalid start index')
     return
   }
   note.insertHeading(headingTitle, startIdx, 2)
-  for (let i = 0; i < taskTexts.length; i++) {
-    const line = `>> ${taskTexts[i]}`
-    note.insertParagraph(line, startIdx + 1 + i, 'open')
+  for (let i = 0; i < taskLines.length; i++) {
+    note.insertParagraph(taskLines[i], startIdx + 1 + i, 'open')
   }
 }
 
@@ -260,9 +261,11 @@ export async function writePlanningTasksToNextPeriodNote(
 
     logDebug('writePlanningTasksToNextPeriodNote', `Note '${nextTitle}' opened; will now write (or replace) plan section heading '${headingTitle}'`)
     const normalizedLines = normalizePlanningTaskLinesFromForm(planningFormText)
+    const { prefix: plannedPrefix, suffix: plannedSuffix } = getEffectivePlannedItemAffixes(config)
+    const formattedLines = normalizedLines.map((body) => formatPlannedItemLineForNextNote(body, plannedPrefix, plannedSuffix))
     removePlanSectionFromNoteIfPresent(nextNote, headingTitle)
-    if (normalizedLines.length > 0) {
-      insertPlanSectionAtActiveStart(nextNote, headingTitle, normalizedLines)
+    if (formattedLines.length > 0) {
+      insertPlanSectionAtActiveStart(nextNote, headingTitle, formattedLines)
     }
     DataStore.updateCache(nextNote, true)
   } catch (err) {
@@ -282,7 +285,7 @@ async function runReviewQuestionsForCurrentPeriod(periodType: string, getPeriodS
   try {
     const thisPeriodStr = getPeriodString()
     logDebug(pluginJson, `Starting for ${periodType} (currently ${thisPeriodStr})`)
-    await processReviewQuestions(thisPeriodStr, periodType)
+    await processReviewQuestions(thisPeriodStr, periodType, { preferOpenNoteOfMatchingPeriodType: true })
   } catch (error) {
     logError(pluginJson, error.message)
   }
@@ -336,25 +339,38 @@ export async function yearlyReviewQuestions(): Promise<void> {
  * @author @jgclark
  * @param {string} periodStringIn the calendar note title string for the review period
  * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
+ * @param {{ preferOpenNoteOfMatchingPeriodType?: boolean }} options when `preferOpenNoteOfMatchingPeriodType` is true (commands that target the “current” period), keep the editor focused if it already has any calendar note of that period type (e.g. do not switch a daily note from yesterday to today). When false or omitted, the open note is only reused if its title matches `periodStringIn` (needed for refresh / prev-next navigation).
  */
-async function processReviewQuestions(periodStringIn: string = '', periodType: string): Promise<void> {
+async function processReviewQuestions(
+  periodStringIn: string = '',
+  periodType: string,
+  options?: {| preferOpenNoteOfMatchingPeriodType?: boolean |},
+): Promise<void> {
   try {
     const periodAdjective = getPeriodAdjectiveFromType(periodType)
+    const preferOpenSameKind = options?.preferOpenNoteOfMatchingPeriodType === true
     // Get configuration
     const config: PeriodicReviewConfigType = await getJournalSettings()
     let reviewNote: ?TNote = null
 
-    // Check that we have the correct period note open (same type *and* same title as requested).
+    // Reuse the editor note when it is a calendar note of the requested period *kind* (day/week/…).
+    // For refresh / navigatePeriod we require an exact title match so we actually move to the requested period.
     const { note: openEditorNote } = Editor
     const wantTitle = String(periodStringIn).trim()
     const openTitle = String(openEditorNote?.title ?? '').trim()
     const titlesMatch =
       normalizeReviewPeriodTitleForNPDateHelpers(openTitle) === normalizeReviewPeriodTitleForNPDateHelpers(wantTitle)
+    const openPeriodKind = openTitle !== '' ? getPeriodOfNPDateStr(openTitle) : '(error)'
+    const editorHasMatchingPeriodType = openEditorNote != null && openPeriodKind === periodType
+    const useOpenNote = editorHasMatchingPeriodType && (preferOpenSameKind || titlesMatch)
     // TODO: Check for Teamspace stuff here
-    if (openEditorNote && getPeriodOfNPDateStr(openTitle) === periodType && titlesMatch) {
-      // Use the existing open note
+    if (useOpenNote) {
       reviewNote = openEditorNote
-      logDebug('processReviewQuestions', `Starting with open note '${String(reviewNote?.title ?? 'unknown')}' of period '${String(getPeriodOfNPDateStr(reviewNote?.title ?? ''))}'`)
+      logDebug(
+        'processReviewQuestions',
+        `Starting with open note '${String(reviewNote?.title ?? 'unknown')}' of period '${String(getPeriodOfNPDateStr(reviewNote?.title ?? ''))}'` +
+          (preferOpenSameKind && !titlesMatch ? ` (keeping editor instead of '${String(periodStringIn)}')` : ''),
+      )
     } else {
       // use the passed periodStringIn to open the correct note
       logDebug('processReviewQuestions', `Starting by opening current ${periodAdjective} note '${String(periodStringIn)}'`)
@@ -637,69 +653,96 @@ function parseReviewWindowPayload(payload: mixed): any {
 }
 
 /**
- * Callback function for HTML single-window review actions.
- * @param {string} actionName
- * @param {mixed} payload — JSON string or object (NotePlan may pass either)
+ * Normalize args from DataStore.invokePluginCommandByName: usually (actionName, payload), but some bridges pass one array [actionName, payload].
+ * @param {mixed} actionNameIn
+ * @param {mixed} payloadIn
+ * @returns {{ actionName: string, payload: mixed }}
  */
-export async function onReviewWindowAction(actionName: string, payload: mixed = ''): Promise<void> {
+function normalizeReviewWindowInvokeArgs(actionNameIn: mixed, payloadIn: mixed): { actionName: string, payload: mixed } {
+  if (Array.isArray(actionNameIn)) {
+    return {
+      actionName: String(actionNameIn[0] ?? ''),
+      payload: actionNameIn.length >= 2 ? actionNameIn[1] : payloadIn,
+    }
+  }
+  return {
+    actionName: typeof actionNameIn === 'string' ? actionNameIn : String(actionNameIn ?? ''),
+    payload: payloadIn,
+  }
+}
+
+/**
+ * Callback function for HTML single-window review actions.
+ * Must return a value when invoked via DataStore.invokePluginCommandByName or NotePlan can fail silently after logging execution.
+ * @param {mixed} actionNameIn
+ * @param {mixed} payload — JSON string or object (NotePlan may pass either)
+ * @returns {Promise<{||}>}
+ */
+export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed = ''): Promise<{||}> {
+  const { actionName, payload: payloadResolved } = normalizeReviewWindowInvokeArgs(actionNameIn, payload)
   logDebug(pluginJson, `onReviewWindowAction action=${actionName}`)
   // logDebug(pluginJson, `onReviewWindowAction payloadLength=${String(payload?.length ?? 0)} payloadPreview="${String(payload ?? '').slice(0, 100)}"`)
   if (actionName === 'cancel') {
     logDebug('Journalling/onReviewWindowAction', `Cancelled by user.`)
     closeWindowFromCustomId(REVIEW_WINDOW_CUSTOM_ID)
-    return
+    return {}
   }
 
   if (actionName === 'refresh') {
     let refreshPayload: any = {}
     try {
-      refreshPayload = parseReviewWindowPayload(payload)
+      refreshPayload = parseReviewWindowPayload(payloadResolved)
     } catch (err) {
       logError(pluginJson, `onReviewWindowAction: refresh could not parse payload: ${err.message}`)
-      return
+      return {}
     }
     const periodType = String(refreshPayload.periodType ?? '')
     const periodString = String(refreshPayload.periodString ?? '')
     if (periodType === '' || periodString === '') {
       logWarn(pluginJson, 'onReviewWindowAction: refresh missing periodType or periodString')
-      return
+      return {}
     }
     logDebug('Journalling/onReviewWindowAction', `Refresh: reopening review for ${periodType} ${periodString}`)
     await processReviewQuestions(periodString, periodType)
-    return
+    return {}
   }
 
   if (actionName === 'navigatePeriod') {
     let navPayload: any = {}
     try {
-      navPayload = parseReviewWindowPayload(payload)
+      navPayload = parseReviewWindowPayload(payloadResolved)
     } catch (err) {
       logError(pluginJson, `onReviewWindowAction: navigatePeriod could not parse payload: ${err.message}`)
-      return
+      return {}
     }
     const periodType = String(navPayload.periodType ?? '')
     const periodString = String(navPayload.periodString ?? '')
     const direction = String(navPayload.direction ?? '')
     if (periodType === '' || periodString === '' || (direction !== 'prev' && direction !== 'next')) {
       logWarn(pluginJson, 'onReviewWindowAction: navigatePeriod missing periodType, periodString, or valid direction')
-      return
+      return {}
     }
     const targetPeriodString =
       direction === 'next' ? getNextNPPeriodString(periodString, periodType) : getPreviousNPPeriodString(periodString, periodType)
     if (targetPeriodString === '') {
       logWarn(pluginJson, `onReviewWindowAction: navigatePeriod could not compute ${direction} period from "${periodString}" (${periodType})`)
-      return
+      return {}
     }
     logDebug('Journalling/onReviewWindowAction', `Navigate ${direction}: reopening review for ${periodType} ${targetPeriodString}`)
     await processReviewQuestions(targetPeriodString, periodType)
-    return
+    return {}
   }
 
-  const config: PeriodicReviewConfigType = await getJournalSettings()
+  const configMaybe: ?PeriodicReviewConfigType = await getJournalSettings()
+  if (configMaybe == null || typeof configMaybe !== 'object') {
+    logError(pluginJson, 'onReviewWindowAction: no journal settings loaded; cannot save review')
+    return {}
+  }
+  const config: PeriodicReviewConfigType = configMaybe
   let safePayload: any = {}
   try {
     // Allow callback payloads as JSON string (x-callback / jsBridge) or as an object (native bridge).
-    safePayload = parseReviewWindowPayload(payload)
+    safePayload = parseReviewWindowPayload(payloadResolved)
     clo(safePayload, `onReviewWindowAction: parsed payload`)
     let answers = safePayload.answers ?? {}
     // Get the period type and string from the hidden fields in the payload
@@ -720,21 +763,24 @@ export async function onReviewWindowAction(actionName: string, payload: mixed = 
       }
       answers = extractedAnswers
     }
+    const planningRaw =
+      answers.planning_tasks ?? (typeof safePayload === 'object' && safePayload != null ? (safePayload: any).planning_tasks : undefined)
+    const planningText = typeof planningRaw === 'string' ? planningRaw : String(planningRaw ?? '')
+    const hasPlanningContent = normalizePlanningTaskLinesFromForm(planningText).length > 0
     const questionLines = await getQuestionsForPeriod(config, periodType)
     const parsedQuestions = parseQuestions(questionLines)
     const output = buildOutputFromReviewWindowAnswers(parsedQuestions, questionLines, periodString, periodType, answers)
     if (output !== '') {
       await writeAnswersToNote(periodString, periodType, output)
-    } else {
+    } else if (!hasPlanningContent) {
       logWarn(pluginJson, 'No template question answers were collected from the review window')
     }
-    const planningRaw = answers.planning_tasks
-    const planningText = typeof planningRaw === 'string' ? planningRaw : String(planningRaw ?? '')
     await writePlanningTasksToNextPeriodNote(config, periodString, periodType, planningText)
     logDebug('Journalling/onReviewWindowAction', `Finished.`)
     closeWindowFromCustomId(REVIEW_WINDOW_CUSTOM_ID)
-
+    return {}
   } catch (err) {
-    logError(pluginJson, `onReviewWindowAction: couldn't parse payload JSON string: ${err.message}`)
+    logError(pluginJson, `onReviewWindowAction: ${err.message}`)
+    return {}
   }
 }

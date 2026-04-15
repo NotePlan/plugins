@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // HTMLView generation helpers for single-window review mode
 // Jonathan Clark + Cursor
-// last update 2026-04-11 for v2.0.0.b9 by @jgclark + @Cursor
+// last update 2026-04-15 for v2.0.0.b10 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import moment from 'moment'
@@ -288,29 +288,64 @@ function makeQuestionLineDiv(
 }
 
 /**
+ * Heading for the wins-only block when wins and other completed tasks are both shown.
+ * @param {number} count
+ * @returns {string}
+ */
+function formatWinsSummaryHeading(count: number): string {
+  return count === 1 ? '1 win' : `${count} wins`
+}
+
+/**
+ * Wrap a summary subheading and body in `<details>` / `<summary>` for collapsible lists.
+ * @param {string} detailsExtraClassNames classes after base `summary-details` (e.g. `summary-details-events`)
+ * @param {string} summaryLabelPlainText visible heading (HTML-escaped)
+ * @param {string} bodyInnerHtml markup after `</summary>`
+ * @param {{ defaultOpen?: boolean, summaryExtraClasses?: string }=} opts first summary defaults open; later sections default closed
+ * @returns {string}
+ */
+function wrapSummaryDetailsBlock(
+  detailsExtraClassNames: string,
+  summaryLabelPlainText: string,
+  bodyInnerHtml: string,
+  opts?: {| defaultOpen?: boolean, summaryExtraClasses?: string |},
+): string {
+  const extra = detailsExtraClassNames.trim()
+  const classes = extra === '' ? 'summary-details' : `summary-details ${extra}`
+  const defaultOpen = opts?.defaultOpen ?? true
+  const summaryExtra = opts?.summaryExtraClasses != null ? opts.summaryExtraClasses.trim() : ''
+  const summaryClasses = summaryExtra === '' ? 'summary-title' : `summary-title ${summaryExtra}`
+  const openAttr = defaultOpen ? ' open' : ''
+  return `<details class="${classes}"${openAttr}>
+  <summary class="${summaryClasses}">${escapeHTML(summaryLabelPlainText)}</summary>
+${bodyInnerHtml}
+</details>`
+}
+
+/**
  * Build a summary of calendar events for the review period: count and total timed duration (all-day excluded from hours).
  * @param {Array<TCalendarItem>} eventsForPeriod
  * @returns {string} HTML string for the summary block
  */
 function makePeriodDaysSummaryDiv(eventsForPeriod: Array<TCalendarItem>): string {
-  const output = []
-  if (eventsForPeriod.length > 0) {
-    const totalDuration = eventsForPeriod.reduce((total, event) => total + getEventDurationHours(event), 0)
-    output.push(`<div class="summary-title">${eventsForPeriod.length} events`)
-    if (totalDuration > 0) {
-      output.push(` (${totalDuration.toFixed(1)} hours)`)
-    }
-    output.push(`</div>`)
-    output.push(`<div class="summary-content">`)
-    eventsForPeriod.forEach(e => {
-      output.push(`\t<div class="summary-item">`)
-      output.push(`\t\t<i aria-hidden="true" class="summary-item-event-icon fa-regular fa-calendar-week"></i>`)
-      output.push(`\t\t<span class="summary-item-text">${e.title}</span>`)
-      output.push('\t</div>')
-    })
-    output.push(`</div>`)
+  if (eventsForPeriod.length === 0) {
+    return ''
   }
-  return output.join('\n')  
+  const totalDuration = eventsForPeriod.reduce((total, event) => total + getEventDurationHours(event), 0)
+  let title = `${eventsForPeriod.length} events`
+  if (totalDuration > 0) {
+    title += ` (${totalDuration.toFixed(1)} hours)`
+  }
+  const output = []
+  output.push(`<div class="summary-content">`)
+  eventsForPeriod.forEach((e) => {
+    output.push(`\t<div class="summary-item">`)
+    output.push(`\t\t<i aria-hidden="true" class="summary-item-event-icon fa-regular fa-calendar-week"></i>`)
+    output.push(`\t\t<span class="summary-item-text">${e.title}</span>`)
+    output.push('\t</div>')
+  })
+  output.push(`</div>`)
+  return wrapSummaryDetailsBlock('summary-details-events', title, output.join('\n'), { defaultOpen: false })
 }
 
 /**
@@ -328,6 +363,7 @@ function getEventDurationHours(event: TCalendarItem): number {
 
 /**
  * First summary block: carried-over plan tasks from this note (open = hollow circle, done = check).
+ * Wrapped in `<details open>` so the heading matches other summary sections; first section stays expanded by default.
  * @param {Array<{ content: string, isDone: boolean }>} carryOverPlanItems
  * @returns {string} HTML or empty when none
  */
@@ -336,7 +372,6 @@ function makeCarryOverPlanSummaryContentDiv(
   carryOverPlanItems: Array<{ content: string, isDone: boolean }>,
 ): string {
   const rows: Array<string> = []
-  rows.push(`<div class="plan-title h3">${escapeHTML(planningSectionTitle)}</div>`)
   rows.push(`<div class="summary-content">`)
   if (carryOverPlanItems.length > 0) {
     carryOverPlanItems.forEach((item) => {
@@ -357,9 +392,11 @@ function makeCarryOverPlanSummaryContentDiv(
   } else {
     rows.push(`<span class="summary-empty">No planned items found for this period</span>`)
   }
-  // Single close for summary-content — avoid an extra </div> when items exist (that closed section-wrap early).
   rows.push(`</div>`)
-  return rows.join('\n')
+  return wrapSummaryDetailsBlock('summary-details-carry-over-plan', planningSectionTitle, rows.join('\n'), {
+    defaultOpen: true,
+    summaryExtraClasses: 'plan-title h3',
+  })
 }
 
 /**
@@ -437,26 +474,43 @@ function buildReviewSummarySectionHTML(
 
   const pushDoneTasksSummaryBlocks = () => {
     if (mergedCompletedLines.length === 0) {
-      parts.push(`<div class="summary-title">${formatCompletedTasksSummaryHeading(0, 'plain')}</div>`)
       parts.push(
-        `<div class="summary-content summary-content-completed-tasks">\n<div class="summary-empty">No completed tasks found during the ${periodType}</div>\n</div>`,
+        wrapSummaryDetailsBlock(
+          'summary-details-completed-tasks',
+          formatCompletedTasksSummaryHeading(0, 'plain'),
+          `<div class="summary-content summary-content-completed-tasks">\n<div class="summary-empty">No completed tasks found during the ${periodType}</div>\n</div>`,
+          { defaultOpen: false },
+        ),
       )
       return
     }
     if (mergedWinsLines.length > 0 && mergedOtherLines.length > 0) {
       parts.push(
-        `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(mergedWinsLines)}\n</div>`,
+        wrapSummaryDetailsBlock(
+          'summary-details-completed-wins',
+          formatWinsSummaryHeading(mergedWinsLines.length),
+          `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(mergedWinsLines)}\n</div>`,
+          { defaultOpen: false },
+        ),
       )
-      parts.push(`<div class="summary-title">${formatCompletedTasksSummaryHeading(mergedOtherLines.length, 'other')}</div>`)
       parts.push(
-        `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(mergedOtherLines)}\n</div>`,
+        wrapSummaryDetailsBlock(
+          'summary-details-completed-other',
+          formatCompletedTasksSummaryHeading(mergedOtherLines.length, 'other'),
+          `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(mergedOtherLines)}\n</div>`,
+          { defaultOpen: false },
+        ),
       )
       return
     }
     const singleBlockLines = mergedWinsLines.length > 0 ? mergedWinsLines : mergedOtherLines
-    parts.push(`<div class="summary-title">${formatCompletedTasksSummaryHeading(singleBlockLines.length, 'plain')}</div>`)
     parts.push(
-      `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(singleBlockLines)}\n</div>`,
+      wrapSummaryDetailsBlock(
+        'summary-details-completed-tasks',
+        formatCompletedTasksSummaryHeading(singleBlockLines.length, 'plain'),
+        `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(singleBlockLines)}\n</div>`,
+        { defaultOpen: false },
+      ),
     )
   }
 

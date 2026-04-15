@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.co/plugins/jgclark.PeriodicReviews/",
   "plugin.changelog": "https://noteplan.co/plugins/jgclark.PeriodicReviews/CHANGELOG.md",
-  "plugin.version": "2.0.0.b8",
+  "plugin.version": "2.0.0.b11",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "v2.0.0: First release of the new Periodic Reviews plugin, building on earlier 'Journalling Helpers' plugin (v1).",
   "plugin.requiredFiles": [
@@ -50,7 +50,13 @@
         "review"
       ],
       "description": "Ask Review questions at end-of-week",
-      "jsFunction": "weeklyReviewQuestions"
+      "jsFunction": "weeklyReviewQuestions",
+      "sidebarView": {
+        "windowID": "jgclark.PeriodicReviews.weekReview",
+        "title": "Weekly Review",
+        "icon": "fa-calendar-week",
+        "iconColor": "purple-500"
+      }
     },
     {
       "name": "Monthly Review",
@@ -245,7 +251,7 @@
     {
       "key": "dayPlanItemsName",
       "title": "Daily Planned items heading",
-      "description": "Optional. Used in the review window and as the H2 title prefix for the main few planned tasks to write to the next day's note (e.g. 'Big Wins' for next day).",
+      "description": "Used in the review window and as the H2 title prefix for the main few planned tasks to write to the next day's note (e.g. 'Big Wins' for next day). Optional.",
       "type": "string",
       "default": "Big Wins",
       "required": false
@@ -261,7 +267,7 @@
     {
       "key": "weekPlanItemsName",
       "title": "Weekly Planned items heading",
-      "description": "Optional. Used in the review window and as the H2 title prefix for the main few planned tasks to write to the next week's note (e.g. 'Big Rocks' for next week).",
+      "description": "Used in the review window and as the H2 title prefix for the main few planned tasks to write to the next week's note (e.g. 'Big Rocks' for next week). Optional.",
       "type": "string",
       "default": "Big Rocks",
       "required": false
@@ -277,7 +283,7 @@
     {
       "key": "monthPlanItemsName",
       "title": "Name for Monthly Planned items",
-      "description": "Optional. Used in the review window and as the H2 title prefix for the main few planned items to write to the next month's note (e.g. 'Key Outcomes' for next month).",
+      "description": "Used in the review window and as the H2 title prefix for the main few planned items to write to the next month's note (e.g. 'Key Outcomes' for next month). Optional.",
       "type": "string",
       "default": "Key Outcomes",
       "required": false
@@ -293,7 +299,7 @@
     {
       "key": "quarterPlanItemsName",
       "title": "Name for Quarterly Planned items",
-      "description": "Optional. Used in the review window and as the H2 title prefix for the main few planned items to write to the next quarter's note (e.g. 'Goals' for next quarter').",
+      "description": "Used in the review window and as the H2 title prefix for the main few planned items to write to the next quarter's note (e.g. 'Goals' for next quarter'). Optional.",
       "type": "string",
       "default": "Goals",
       "required": false
@@ -309,9 +315,25 @@
     {
       "key": "yearPlanItemsName",
       "title": "Name for Yearly Planned items",
-      "description": "Optional. Used in the review window and as the H2 title prefix for the main few planned items to write to the next year's note (e.g. 'Themes' for next year').",
+      "description": "Used in the review window and as the H2 title prefix for the main few planned items to write to the next year's note (e.g. 'Themes' for next year'). Optional.",
       "type": "string",
       "default": "Theme",
+      "required": false
+    },
+    {
+      "key": "plannedItemsPrefix",
+      "title": "Planned items prefix (for next period note)",
+      "description": "String added to the start of each planned item when writing them into the next period's calendar note. Default is '>>' but other priority or strings can be used. Optional.",
+      "type": "string",
+      "default": ">>",
+      "required": false
+    },
+    {
+      "key": "plannedItemsSuffix",
+      "title": "Planned items suffix (for next period note)",
+      "description": "String added to the end of each planned item when writing them into the next period's calendar note. Optional.",
+      "type": "string",
+      "default": "#win",
       "required": false
     },
     {

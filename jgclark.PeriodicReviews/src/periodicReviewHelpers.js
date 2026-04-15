@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 2026-04-11 for v2.0.0.b9 by @jgclark
+// last update 2026-04-13 for v2.0.0.b10 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -38,6 +38,8 @@ export type PeriodicReviewConfigType = {
   yearlyReviewQuestions: string,
   moods: string,
   calendarSet: Array<string>,
+  plannedItemsPrefix?: string,
+  plannedItemsSuffix?: string,
 }
 
 /** One parsed segment from review settings; `<type>` names are defined in `reviewQuestions.js` (`REVIEW_QUESTION_TYPE_NAMES_ALT`). */
@@ -161,6 +163,42 @@ export function normalizePlanningTaskLinesFromForm(planningFormText: string): Ar
       return t
     })
     .filter((t) => t !== '')
+}
+
+/**
+ * Effective prefix/suffix for lines written to the next period note (after `normalizePlanningTaskLinesFromForm`).
+ * Defaults are empty string, if not set.
+ * @param {PeriodicReviewConfigType} config
+ * @returns {{ prefix: string, suffix: string }}
+ */
+export function getEffectivePlannedItemAffixes(config: PeriodicReviewConfigType): { prefix: string, suffix: string } {
+  const affix = (raw: mixed, defaultValue: string): ?string => {
+    if (raw === undefined || raw === null || typeof raw !== 'string') return defaultValue
+    return raw.trim() === '' ? null : raw
+  }
+  return {
+    prefix: affix(config.plannedItemsPrefix, ''),
+    suffix: affix(config.plannedItemsSuffix, ''),
+  }
+}
+
+/**
+ * Build one task line body for the next period note: optional suffix on `body`, then optional prefix.
+ * @param {string} body normalized plain text (no task marker)
+ * @param {?string} prefix
+ * @param {?string} suffix
+ * @returns {string}
+ */
+export function formatPlannedItemLineForNextNote(body: string, prefix: ?string, suffix: ?string): string {
+  const join = (left: string, right: string): string => {
+    if (left === '') return right
+    if (right === '') return left
+    return /\s$/.test(left) || /^\s/.test(right) ? `${left}${right}` : `${left} ${right}`
+  }
+  let line = body
+  if (suffix != null) line = join(line, suffix)
+  if (prefix != null) line = join(prefix, line)
+  return line
 }
 
 /**

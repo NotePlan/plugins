@@ -1,10 +1,12 @@
-/* globals describe, expect, test, it, jest, beforeAll, beforeEach, afterEach */
+/* globals describe, expect, it, beforeAll, beforeEach */
 
-// Last updated: 2026-03-25 for v2.0.0.b3 by @Cursor
+// Last updated: 2026-04-13 for v2.0.0.b10 by @jgclark
 
 import {
   buildNextPeriodNotePlanSectionHeadingTitle,
   buildNextPlanSectionHeadingTitle,
+  formatPlannedItemLineForNextNote,
+  getEffectivePlannedItemAffixes,
   getPeriodAdjectiveFromType,
   getPlanItemsNameForPeriodType,
   mergeUniqueSummaryDoneTaskLines,
@@ -288,17 +290,13 @@ Mood: <mood>`
       const formIdx = afterSummary.indexOf('<form id="review-form"')
       expect(formIdx).toBeGreaterThan(-1)
       const summaryInner = afterSummary.slice(0, formIdx)
-      const completedIdx = summaryInner.indexOf('completed tasks')
-      expect(completedIdx).toBeGreaterThan(-1)
-      let depth = 1
-      const upToCompleted = summaryInner.slice(0, completedIdx)
-      const re = /<\/div\s*>|<div\b/gi
-      let m
-      while ((m = re.exec(upToCompleted)) !== null) {
-        if (m[0].startsWith('</')) depth--
-        else depth++
-      }
-      expect(depth).toBeGreaterThan(0)
+      expect(summaryInner).toContain('completed tasks')
+      expect(summaryInner).toContain('Pray for Jill')
+      expect(summaryInner).toContain('<details class="summary-details summary-details-carry-over-plan" open>')
+      expect(summaryInner).toContain('<details class="summary-details summary-details-completed-tasks">')
+      expect(summaryInner).toContain('<details class="summary-details summary-details-events">')
+      expect(summaryInner.indexOf('summary-details-carry-over-plan')).toBeLessThan(summaryInner.indexOf('summary-details-completed-tasks'))
+      expect(summaryInner.indexOf('summary-details-completed-tasks')).toBeLessThan(summaryInner.indexOf('summary-details-events'))
     })
 
     it('should list wins first then "other completed task(s)" heading and other dones (daily, each once)', () => {
@@ -321,6 +319,11 @@ Mood: <mood>`
       )
       expect(html.indexOf('summary-content-wins')).toBe(-1)
       expect(html).toContain('summary-content-completed-tasks')
+      expect(html).toMatch(/\bsummary-details-completed-wins\b/)
+      expect(html).toMatch(/\bsummary-details-completed-other\b/)
+      expect(html).toContain('<details class="summary-details summary-details-carry-over-plan" open>')
+      expect(html).toContain('<details class="summary-details summary-details-completed-wins">')
+      expect(html).toContain('<details class="summary-details summary-details-completed-other">')
       expect(html).toContain('1 other completed task')
       expect(html).not.toMatch(/\b2 completed tasks\b/)
       expect(html.indexOf('Planned win')).toBeLessThan(html.indexOf('other completed'))
@@ -634,6 +637,37 @@ Ship: <tasks>`,
       expect(normalizePlanningTaskLinesFromForm('')).toEqual([])
       expect(normalizePlanningTaskLinesFromForm('  a  \n\n* >> b')).toEqual(['a', 'b'])
       expect(normalizePlanningTaskLinesFromForm('>> solo')).toEqual(['solo'])
+    })
+
+    it('formatPlannedItemLineForNextNote should apply prefix/suffix with sensible spacing', () => {
+      expect(formatPlannedItemLineForNextNote('foo', '>> ', '#win')).toBe('>> foo #win')
+      expect(formatPlannedItemLineForNextNote('foo', null, '#win')).toBe('foo #win')
+      expect(formatPlannedItemLineForNextNote('foo', '>> ', null)).toBe('>> foo')
+      expect(formatPlannedItemLineForNextNote('foo', null, null)).toBe('foo')
+      expect(formatPlannedItemLineForNextNote('foo', '', '')).toBe('foo')
+      expect(formatPlannedItemLineForNextNote('foo', '>>', '#win')).toBe('>> foo #win')
+    })
+
+    it('getEffectivePlannedItemAffixes should default missing keys to empty affixes and treat blank strings as disabled', () => {
+      expect(getEffectivePlannedItemAffixes({})).toEqual({ prefix: '', suffix: '' })
+      expect(
+        getEffectivePlannedItemAffixes({
+          plannedItemsPrefix: '',
+          plannedItemsSuffix: '',
+        }),
+      ).toEqual({
+        prefix: null,
+        suffix: null,
+      })
+      expect(
+        getEffectivePlannedItemAffixes({
+          plannedItemsPrefix: '!! ',
+          plannedItemsSuffix: '',
+        }),
+      ).toEqual({
+        prefix: '!! ',
+        suffix: null,
+      })
     })
 
     it('extractPlanSectionItems should read open and done tasks under matching H2', () => {
