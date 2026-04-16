@@ -23,6 +23,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
+import { escapeRegExp } from '@helpers/regex'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttribute, noteHasFrontMatter, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { getFieldParagraphsFromNote } from '@helpers/paragraph'
 import { getHashtagsFromString } from '@helpers/stringTransforms'
@@ -336,10 +337,10 @@ export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: stri
     logDebug('isProjectNoteIsMarkedSequential', `found sequential tag '${sequentialTag}' in frontmatter '${combinedKey}' attribute`)
     return true
   }
-  const metadataLineIndex = getMetadataLineIndexFromBody(note)
+  const metadataLineIndex = getProjectMetadataLineIndex(note)
   const paras = note.paragraphs ?? []
   if (metadataLineIndex === false) {
-    logDebug('isProjectNoteIsMarkedSequential', `No metadata line found in note body for '${displayTitle(note)}'`)
+    logDebug('isProjectNoteIsMarkedSequential', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
     return false
   }
   const metadataLine = paras.length > metadataLineIndex ? paras[metadataLineIndex].content : ''
@@ -455,6 +456,37 @@ export function getMetadataLineIndexFromBody(note: CoreNoteFields | TEditor): nu
     return lineNumber
   } catch (error) {
     logError('getMetadataLineIndexFromBody', error.message)
+    return false
+  }
+}
+
+/**
+ * Line index for the combined project metadata line: prefer a body line (legacy), else the `project:` / `metadata:` line inside YAML frontmatter.
+ * Use this when mutating @mentions so frontmatter-only notes are updated.
+ * TODO(later): remove the body part of this entirely (and getMetadataLineIndexFromBody())
+ * @param {CoreNoteFields | TEditor} note
+ * @returns {number | false}
+ */
+export function getProjectMetadataLineIndex(note: CoreNoteFields | TEditor): number | false {
+  try {
+    const bodyIdx = getMetadataLineIndexFromBody(note)
+    if (bodyIdx !== false) return bodyIdx
+    if (!noteHasFrontMatter(note)) return false
+    const endFMIndex = endOfFrontmatterLineIndex(note)
+    if (endFMIndex == null || isNaN(endFMIndex) || endFMIndex < 2) return false
+    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+    const primaryRe = new RegExp(`^${escapeRegExp(singleMetadataKeyName)}:\\s*`, 'i')
+    const metadataAliasRe = /^metadata:\s*/i
+    const paras = note.paragraphs ?? []
+    for (let i = 1; i < endFMIndex; i++) {
+      const content = paras[i]?.content ?? ''
+      if (primaryRe.test(content) || metadataAliasRe.test(content)) {
+        return i
+      }
+    }
+    return false
+  } catch (error) {
+    logError('getProjectMetadataLineIndex', error.message)
     return false
   }
 }
@@ -753,7 +785,7 @@ function updateMetadataCore(
  */
 export function updateMetadataInEditor(thisEditor: TEditor, updatedMetadataArr: Array<string>): void {
   try {
-    logDebug('updateMetadataInEditor', `Starting for '${displayTitle(Editor)}' with metadata ${String(updatedMetadataArr)}`)
+    logDebug('updateMetadataInEditor', `Starting for '${displayTitle(thisEditor)}' with metadata ${String(updatedMetadataArr)}`)
 
     // Only proceed if we're in a valid Project note (with at least 2 lines)
     if (thisEditor.note == null || thisEditor.note.type === 'Calendar' || thisEditor.note.paragraphs.length < 2) {
@@ -761,9 +793,9 @@ export function updateMetadataInEditor(thisEditor: TEditor, updatedMetadataArr: 
       return
     }
 
-    const metadataLineIndex = getMetadataLineIndexFromBody(thisEditor)
+    const metadataLineIndex = getProjectMetadataLineIndex(thisEditor)
     if (metadataLineIndex === false) {
-      logDebug('updateMetadataInEditor', `No metadata line found in note body for '${displayTitle(thisEditor)}'`)
+      logDebug('updateMetadataInEditor', `No project metadata line found (body or frontmatter) for '${displayTitle(thisEditor)}'`)
       return
     }
     updateMetadataCore(thisEditor, metadataLineIndex, updatedMetadataArr, 'updateMetadataInEditor')
@@ -788,9 +820,9 @@ export function updateMetadataInNote(note: CoreNoteFields, updatedMetadataArr: A
       return
     }
 
-    const metadataLineIndex = getMetadataLineIndexFromBody(note)
+    const metadataLineIndex = getProjectMetadataLineIndex(note)
     if (metadataLineIndex === false) {
-      logDebug('updateMetadataInNote', `No metadata line found in note body for '${displayTitle(note)}'`)
+      logDebug('updateMetadataInNote', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
       return
     }
     updateMetadataCore(note, metadataLineIndex, updatedMetadataArr, 'updateMetadataInNote')

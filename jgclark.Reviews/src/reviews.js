@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-03-29 for v1.4.0.b15, @jgclark
+// Last updated 2026-04-16 for v2.0.0.b19, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -20,7 +20,7 @@ import { checkForWantedResources, logAvailableSharedResources, logProvidedShared
 import {
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
-  getMetadataLineIndexFromBody,
+  getProjectMetadataLineIndex,
   getNextActionLineIndex,
   getReviewSettings,
   isProjectNoteIsMarkedSequential,
@@ -38,7 +38,7 @@ import {
   generateAllProjectsList,
   updateProjectInAllProjectsList,
 } from './allProjectsListHelpers.js'
-import { calcReviewFieldsForProject, Project } from './projectClass'
+import { calcReviewFieldsForProject, clearNextReviewMetadataFields, Project } from './projectClass'
 import {
   buildProjectLineForStyle,
   buildProjectListTopBarHtml,
@@ -771,9 +771,9 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       if (!thisEditorNote) {
         logDebug('finishReviewCoreLogic', `No editor note found for '${displayTitle(note)}'; falling back to datastore note update path.`)
         migrateProjectMetadataLineInNote(note)
-        const metadataLineIndex = getMetadataLineIndexFromBody(note)
+        const metadataLineIndex = getProjectMetadataLineIndex(note)
         if (metadataLineIndex === false) {
-          logDebug('finishReviewCoreLogic', `No metadata line found in note body for '${displayTitle(note)}'`)
+          logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
         } else {
           deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
         }
@@ -788,9 +788,9 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
       // FIXME: The following 3 calls get "Warning: The editor is not open! 'Editor' values will be undefined and functions not working. Open a note to fix this." errors
       migrateProjectMetadataLineInEditor(possibleThisEditor)
-      const metadataLineIndex = getMetadataLineIndexFromBody(possibleThisEditor)
+      const metadataLineIndex = getProjectMetadataLineIndex(possibleThisEditor)
       if (metadataLineIndex === false) {
-        logDebug('finishReviewCoreLogic', `No metadata line found in note body for '${displayTitle(thisEditorNote)}'`)
+        logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(thisEditorNote)}'`)
       } else {
         // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
         deleteMetadataMentionInEditor(possibleThisEditor, metadataLineIndex, [config.nextReviewMentionStr])
@@ -805,9 +805,9 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
       // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
       migrateProjectMetadataLineInNote(note)
-      const metadataLineIndex = getMetadataLineIndexFromBody(note)
+      const metadataLineIndex = getProjectMetadataLineIndex(note)
       if (metadataLineIndex === false) {
-        logDebug('finishReviewCoreLogic', `No metadata line found in note body for '${displayTitle(note)}'`)
+        logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
       } else {
         // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
         deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
@@ -836,8 +836,8 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         logDebug('finishReviewCoreLogic', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDateStr)})`)
       }
 
-      // Clear @nextReview(date) metadata from the note
-      thisNoteAsProject.clearNextReviewMetadata()
+      // Clear next-review fields on the project list entry TEST:
+      clearNextReviewMetadataFields(thisNoteAsProject)
 
       // Save changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
@@ -986,15 +986,13 @@ export async function nextReview(): Promise<void> {
  */
 export async function finishReview(): Promise<void> {
   try {
-    // Find first proper Editor window that isn't an HTML "main window"
-    const allEditorWindows = NotePlan.editors
-    const firstEditorWindow = allEditorWindows[0]
-    if (!firstEditorWindow) {
+    // Use the focused Editor (global `Editor`), not NotePlan.editors[0] - the first array entry is not always the active window.
+    const currentNote = Editor?.note
+    if (!currentNote) {
       logWarn('finishReview', `- There's no proper Editor window to finish reviewing.`)
     }
-    const currentNote = firstEditorWindow // note: not Editor.note
     if (currentNote && currentNote.type === 'Notes') {
-      logInfo('finishReview', `Starting with Editor '${displayTitle(currentNote)}'`)
+      logInfo('finishReview', `Starting with Editor note '${displayTitle(currentNote)}'`)
       await finishReviewCoreLogic(currentNote)
     } else {
       logWarn('finishReview', `- There's no project note in the Editor to finish reviewing.`)

@@ -3,13 +3,14 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-02-23 for v1.4.0.b2, @jgclark
+// Last updated 2026-04-16 for v2.0.0.b19, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
-import { displayProjectLists } from './reviews'
+import { generateAllProjectsList } from './allProjectsListHelpers'
+import { getReviewSettings } from './reviewHelpers'
+import { renderProjectListsIfOpen } from './reviews'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { editSettings } from '@helpers/NPSettings'
@@ -79,17 +80,19 @@ export async function testSettingsUpdated(): Promise<void> {
 }
 
 export async function onSettingsUpdated(): Promise<void> {
-  // Re-generate the allProjects list in case there's a change in a relevant setting
-  logDebug(pluginJson, 'Have updated Review settings, so will recalc the review list and display...')
-  const config: ReviewConfig = await getReviewSettings()
-
-  await displayProjectLists()
-
-  // Following should be handled in the above function
-  // if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-  //   logDebug(pluginJson, `will refresh Project List as it is open`)
-  //   await renderProjectLists(config)
-  // }
+  // Re-generate the allProjects list in case there's a change in a relevant setting (same as displayProjectLists).
+  // Only refresh the project list window if it is already open; do not open it from saving settings alone.
+  try {
+    const config = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+    logDebug(pluginJson, 'Have updated Review settings; recalculating review list and refreshing project list UI if already open...')
+    if (!(config.useDemoData ?? false)) {
+      await generateAllProjectsList(config, true)
+    }
+    await renderProjectListsIfOpen(config)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {

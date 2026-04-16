@@ -1,6 +1,6 @@
 /* globals beforeAll, describe, expect, test */
 
-import { getMetadataLineIndexFromBody } from '../reviewHelpers'
+import { getMetadataLineIndexFromBody, getProjectMetadataLineIndex } from '../reviewHelpers'
 import { Note } from '@mocks/index'
 
 const preferenceValues: { [string]: any } = {}
@@ -64,5 +64,42 @@ describe('getMetadataLineIndexFromBody', () => {
 
     const actualIndex = getMetadataLineIndexFromBody((note: any))
     expect(actualIndex).toBe(false)
+  })
+})
+
+describe('getProjectMetadataLineIndex', () => {
+  test('returns frontmatter combined key line when body has no metadata line', () => {
+    preferenceValues['projectMetadataFrontmatterKey'] = 'project'
+
+    const note = new Note({
+      title: 'Example',
+      filename: 'example.md',
+      content:
+        '---\n' +
+        'project: #project @review(1m)\n' +
+        '---\n' +
+        '# Example\n' +
+        '\n' +
+        'Body line 1\n',
+    })
+
+    const projectLineIndex = note.paragraphs.findIndex((p: any) => String(p.content).startsWith('project:'))
+    expect(projectLineIndex).toBeGreaterThan(0)
+    const actualIndex = getProjectMetadataLineIndex((note: any))
+    expect(actualIndex).toBe(projectLineIndex)
+  })
+
+  test('matches body-only helper when metadata is in the note body', () => {
+    const note = new Note({
+      title: 'Example',
+      filename: 'example.md',
+      content:
+        '# Example\n' +
+        'project: #project @review(1w)\n' +
+        '\n' +
+        'Body line 1\n',
+    })
+
+    expect(getProjectMetadataLineIndex((note: any))).toBe(getMetadataLineIndexFromBody((note: any)))
   })
 })

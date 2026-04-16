@@ -11,6 +11,7 @@ import pluginJson from '../plugin.json'
 import {
   calcNextReviewDate,
   getMetadataLineIndexFromBody,
+  getProjectMetadataLineIndex,
   getParamMentionFromList,
   getReviewSettings,
   migrateProjectMetadataLineInEditor,
@@ -243,9 +244,9 @@ async function promptAddProgressLineInputs(
   lastPercentComplete: number,
 ): Promise<?{ comment: string, progressDateStr: string, percentStr: string }> {
   const message1 = `${prompt} '${projectTitle}'`
-  const message2 = !isNaN(lastPercentComplete)
-    ? `Enter your estimate of project completion (as %; last was ${String(lastPercentComplete)}%) if wanted`
-    : `Enter your estimate of project completion (as %) if wanted`
+  const lastPercentMessage = !isNaN(lastPercentComplete)
+    ? `; last was ${String(lastPercentComplete)}`
+    : ``
 
   // $FlowFixMe[prop-missing] CommandBar.showForm (NP 3.21+) - see flow-typed/Noteplan.js
   const commandBarWithForm: any = CommandBar
@@ -259,8 +260,8 @@ async function promptAddProgressLineInputs(
         fields: [
           { type: 'string', key: 'comment', title: 'Comment', required: true },
           // TODO(Eduard): align the format string to moment style
-          { type: 'date', key: 'progressDate', title: 'Date', description: 'Date of comment', default: todaysDateISOString, format: 'yyyy-MM-dd', required: false },
-          { type: 'number', key: 'percentComplete', title: 'Percent Complete (optional; last was ${String(lastPercentComplete)}%)', description: message2, placeholder: '%', min: 0, max: 100, optional: true, required: false },
+          { type: 'date', key: 'progressDate', title: 'Date', description: 'Date of comment', default: todaysDateISOString, required: false },
+          { type: 'number', key: 'percentComplete', title: `Percent Complete (optional %${lastPercentMessage})`, description: `Enter your estimate of project completion (as %${lastPercentMessage}) if wanted`, placeholder: '%', min: 0, max: 100, optional: true, required: false },
         ],
       })
       if (raw == null || raw === false) {
@@ -380,13 +381,13 @@ export class Project {
       const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
       const combinedMetadataField = readRawFrontmatterField(this.note, singleKeyName)
       const hasFrontmatterMetadata = combinedMetadataField.exists && String(combinedMetadataField.value ?? '').trim() !== ''
-      const metadataLineIndexBefore = getMetadataLineIndexFromBody(this.note)
-      if (hasFrontmatterMetadata && metadataLineIndexBefore !== false) {
-        const bodyMetadataToRemove = paras[metadataLineIndexBefore].content
+      const metadataBodyLineIndex = getMetadataLineIndexFromBody(this.note)
+      if (hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
+        const bodyMetadataToRemove = paras[metadataBodyLineIndex].content
         logInfo('ProjectConstructor', `Both frontmatter and body metadata exist for '${this.title}'. Removing body metadata line '${bodyMetadataToRemove}'.`)
-        this.note.removeParagraph(paras[metadataLineIndexBefore])
+        this.note.removeParagraph(paras[metadataBodyLineIndex])
         DataStore.updateCache(this.note, true)
-      } else if (!hasFrontmatterMetadata && metadataLineIndexBefore !== false) {
+      } else if (!hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
         logInfo('ProjectConstructor', `Only body metadata exists for '${this.title}'. Migrating metadata to frontmatter.`)
         if (usingEditor) {
           // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
@@ -398,7 +399,7 @@ export class Project {
       }
 
       paras = this.note.paragraphs
-      const metadataLineIndex = getMetadataLineIndexFromBody(this.note)
+      const metadataLineIndex = getProjectMetadataLineIndex(this.note)
       this.metadataParaLineIndex = metadataLineIndex === false ? NaN : metadataLineIndex
       let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
       let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
@@ -1013,7 +1014,7 @@ DataStore.updateCache(this.note, true)
       // Metadata was in body; now in frontmatter, so remove the body line
       this.note.removeParagraph(metadataPara)
       DataStore.updateCache(this.note, true)
-      const metadataLineIndexAfterUpdate = getMetadataLineIndexFromBody(this.note)
+  const metadataLineIndexAfterUpdate = getProjectMetadataLineIndex(this.note)
       this.metadataParaLineIndex = metadataLineIndexAfterUpdate === false ? NaN : metadataLineIndexAfterUpdate
   logDebug('updateMetadataAndSave', `Wrote metadata to frontmatter and removed body line for '${this.title}'`)
     }
@@ -1360,8 +1361,7 @@ const newProgressLineForFrontmatter = `${percentStr}@${progressDateStr} ${commen
  * @private
  */
 clearNextReviewMetadata(): void {
-  this.nextReviewDateStr = null
-  this.nextReviewDays = NaN
+  clearNextReviewMetadataFields(this)
 }
 
   /**
@@ -1539,6 +1539,15 @@ this.updateProjectMetadata(newMetadataLine, {
     return parts.join(' ')
   }
 
+}
+
+/**
+ * Clear next-review fields on a Project instance or a plain project-like object from {@link createImmutableProjectCopy} / {@link calcReviewFieldsForProject} (those copies have no prototype methods).
+ * @param {Project} project
+ */
+export function clearNextReviewMetadataFields(project: Project): void {
+  project.nextReviewDateStr = null
+  project.nextReviewDays = NaN
 }
 
 //-----------------------------------------------------------------

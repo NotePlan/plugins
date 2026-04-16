@@ -1,6 +1,13 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b19] - 2026-04-16
+- **Finish review** uses the focused editor (`Editor.note`), not the first window in `NotePlan.editors`, so the correct note is updated when multiple editors are open.
+- Fix error clearing next-review fields
+- Stop saving plugin settings from opening the Project List window if it wasn't already open.
+- Fix **Finish review** (and other metadata updates) when project metadata lives only in YAML frontmatter: `@reviewed(...)` and related edits now target the frontmatter `project:` line, not only a body metadata line.
+- dev: `isProjectNoteIsMarkedSequential()` now uses `getProjectMetadataLineIndex()` when scanning the metadata line so `#sequential` is detected on the YAML `project:` line when there is no body metadata line.
+
 ## [2.0.0.b18] - 2026-04-15
 - dev: In `Project` construction, when metadata exists in both frontmatter and note body, the body metadata line is now logged at INFO level and removed so frontmatter remains authoritative.
 - dev: When metadata exists only in the note body, this is now logged at INFO level and migrated using the standard note/editor migration helpers.
@@ -14,7 +21,6 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - further layout improvements to top bar and edit dialog when project list displayed in a very narrow window
 - remove `nextReview` frontmatter when pausing, completing, or cancelling a project
 - change the sorting order for "(first) project tag" to come in the order that they're defined in setting "Project Display order", rather than simple alphabetical order (for @Doug)
-- ??? something about titles and FM
 - dev: extract `migrateProjectMetadataLineCore` in reviewHelpers.js for Editor vs Note migration paths
 - dev: extract `startReviewCoreLogic` in reviews.js for `startReviews`, `startReviewForNote`, and `finishReviewAndStartNextReview`
 - dev: when pausing, update reviewed date and remove `nextReview` only; leave other separate frontmatter keys unchanged (full sync still used for complete/cancel/migration). Always apply frontmatter key removals after `updateFrontMatterVars` so `nextReview` is removed even if that helper returns false.
