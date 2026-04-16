@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2026-04-13 for v2.4.0.b23, @jgclark
+// Last updated for 2026-04-16 for v2.4.0.b25, @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -11,11 +11,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
+import useMidnightRollover from '../customHooks/useMidnightRollover.jsx'
 import { dontDedupeSectionCodes, sectionPriority, defaultSectionDisplayOrder } from '../../constants.js'
 import { copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { findSectionItems } from '../../dashboardHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
-import type { TSection, TActionButton } from '../../types.js'
+import type { TActionButton } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
 import { getSectionsWithoutDuplicateLines, injectSyntheticWinsSection, countTotalVisibleSectionItems, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
@@ -82,7 +83,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }
   // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs, and not in Demo mode)
   const shortDelayTimerIsOn = logSettings._logLevel !== 'DEV' && !pluginData.demoMode
-  const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: shortDelayTimerIsOn })
+  const { refreshTimer, cancelRefreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: shortDelayTimerIsOn })
 
   //----------------------------------------------------------------------
   // Refs
@@ -93,6 +94,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // State
   //----------------------------------------------------------------------
   const [dropdownMenuOpen, setDropdownMenuOpen] = useState(false)
+  const [isViewVisible, setIsViewVisible] = useState(true)
 
   // Order the display of sections, and count the total number of items to show
   const { sections, totalSectionItems } = useMemo(() => {
@@ -137,7 +139,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   )
 
   // Disable auto-update in Demo mode
-  const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0 && !pluginData.demoMode
+  const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0 && !pluginData.demoMode && isViewVisible
 
   // Pause IdleTimer while any of the edit/settings dialogs or dropdown menus are open (DialogForTaskItems, DialogForProjectItems, Dashboard Settings, Header dropdowns)
   const dialogsOpen =
@@ -270,27 +272,16 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [pluginData.startDelayedRefreshTimer])
 
-  // Recalculate maximum priority when sections change (e.g., when items are removed)
-  // NOTE: This can conflict with section-level updates during initial render, so we use a ref
-  // to track if sections have actually changed (not just pluginData.currentMaxPriorityFromAllVisibleSections)
-  const prevSectionsRef = useRef<Array<TSection>>([])
-  const prevTreatTopPriorityAsWinsRef = useRef <? boolean > (undefined)
+  // Recalculate maximum priority when sections or dashboard settings change (e.g. filters) so global priority threshold stays correct without a full refresh.
   useEffect(() => {
-    const sectionsChanged = prevSectionsRef.current !== sections
-    const treatTopPriorityChanged = prevTreatTopPriorityAsWinsRef.current !== dashboardSettings?.treatTopPriorityAsWins
-    if (!sectionsChanged && !treatTopPriorityChanged) {
-      return
-    }
-    prevSectionsRef.current = sections
-    prevTreatTopPriorityAsWinsRef.current = dashboardSettings?.treatTopPriorityAsWins
     const newMaxPriority = calculateMaxPriorityAcrossAllSections(sections, {
       treatTopPriorityAsWins: dashboardSettings?.treatTopPriorityAsWins === true,
     })
     if (newMaxPriority !== pluginData.currentMaxPriorityFromAllVisibleSections) {
-      logDebug('Dashboard', `New max priority after sections/treatTopPriorityAsWins changed: ${newMaxPriority}`)
+      logDebug('Dashboard', `New max priority after sections/dashboardSettings change: ${newMaxPriority}`)
       updatePluginData({ ...pluginData, currentMaxPriorityFromAllVisibleSections: newMaxPriority }, `Recalculated max priority: ${newMaxPriority}`)
     }
-  }, [sections, dashboardSettings?.treatTopPriorityAsWins, pluginData.currentMaxPriorityFromAllVisibleSections])
+  }, [sections, dashboardSettings, pluginData.currentMaxPriorityFromAllVisibleSections])
 
   //----------------------------------------------------------------------
   // Handlers
@@ -310,6 +301,43 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     sendActionToPlugin(actionType, { actionType }, 'Auto-Refresh time!', true)
   }
 
+  // Trigger a once-per-day refresh of enabled sections, independent of idle auto-update settings.
+  const handleDateRollover = useCallback(() => {
+    const actionType = 'refreshEnabledSections'
+    logDebug('Dashboard', 'Date rollover detected; sending refreshEnabledSections')
+    sendActionToPlugin(actionType, { actionType }, 'Date rollover detected; sending refreshEnabledSections', true)
+  }, [sendActionToPlugin])
+
+  const refreshVisibleDashboard = useCallback(() => {
+    logDebug('Dashboard', 'onViewDidAppear event handler called for Dashboard window')
+    setIsViewVisible(true)
+    const actionType = 'refreshEnabledSections'
+    sendActionToPlugin(actionType, { actionType }, 'Dashboard window became visible; sending action refreshEnabledSections', true)
+  }, [sendActionToPlugin])
+
+  const pauseHiddenDashboard = useCallback(() => {
+    logDebug('Dashboard', 'onViewWillDisappear event handler called for Dashboard window')
+    setIsViewVisible(false)
+    cancelRefreshTimer()
+  }, [cancelRefreshTimer])
+
+  useEffect(() => {
+    window.addEventListener('onViewDidAppear', refreshVisibleDashboard)
+    window.addEventListener('onViewWillDisappear', pauseHiddenDashboard)
+
+    return () => {
+      window.removeEventListener('onViewDidAppear', refreshVisibleDashboard)
+      window.removeEventListener('onViewWillDisappear', pauseHiddenDashboard)
+    }
+  }, [pauseHiddenDashboard, refreshVisibleDashboard])
+
+  useMidnightRollover({
+    enabled: !pluginData.demoMode,
+    userIsInteracting: dialogsOpen,
+    isViewVisible,
+    onDateRollover: handleDateRollover,
+  })
+
   const hidePerspectivesTable = () => {
     setReactSettings((prevReactSettings) => ({ ...prevReactSettings, perspectivesTableVisible: false }))
   }
@@ -325,7 +353,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     <>
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
       {autoUpdateEnabled && (
-          <IdleTimer idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000} onIdleTimeout={autoRefresh} userIsInteracting={dialogsOpen} />
+          <IdleTimer
+            idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000}
+            onIdleTimeout={autoRefresh}
+            userIsInteracting={dialogsOpen}
+          />
       )}
       {/* Note: this is where I might want to put further periodic data generation functions: completed task counter etc. */}
       {reactSettings?.perspectivesTableVisible && (
@@ -349,7 +381,12 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         <NonModalSpinner textBelow="Switching perspectives" style={{ container: { color: 'var(--tint-color)', textAlign: 'center', marginTop: '0.6rem', marginBottom: '0rem' } }} />
       )}
       {pluginData?.logSettings?._logLevel === 'DEV' && (
-        <DebugPanel isVisible={showDebugPanel} getContext={getContext} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />
+          <DebugPanel
+            isVisible={showDebugPanel}
+            getContext={getContext}
+            testGroups={(testGroups: any)}
+            defaultExpandedKeys={['Context Variables', 'perspectiveSettings']}
+          />
       )}
       </div>
       {/* Note: the Tooltip Portal is deliberately outside the Dashboard Container, not that it seems to have any effect on the tooltip z-index issue. */}

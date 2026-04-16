@@ -100,7 +100,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
 
     // Decide whether to run silently
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
-    logDebug('removeDoneMarkers', `runSilently = ${String(runSilently)}`)
+    logDebug('listDuplicates', `runSilently = ${String(runSilently)}`)
 
     CommandBar.showLoading(true, `Finding duplicates`)
     await CommandBar.onAsyncThread()

@@ -174,7 +174,7 @@ export type TSection = {
   showColoredBackground?: boolean, // whether to show a colored background for the section
 }
 
-export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'offerToFilter' | 'timeblock' | 'noSearchResults' | 'info' | 'preLimitOverdues' | 'error'
+export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'winsCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'offerToFilter' | 'timeblock' | 'noSearchResults' | 'info' | 'preLimitOverdues' | 'error'
 // Note: If you add a new item type, make sure to update the ItemRow.jsx and StatusIcon.jsx components to display it properly
 
 // an item within a section, with optional TParagraphForDashboard

@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2026-04-13 by @jgclark for v2.4.0.b23
+// Last updated 2026-04-15 by @jgclark for v2.4.0.b25
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
@@ -398,7 +398,7 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
     description: '{countWithLimit} big-win {itemType}',
     totalCount: winItems.length,
     sectionItems: winItems,
-    FAIconClass: 'fa-regular fa-trophy',
+    FAIconClass: 'fa-regular fa-fw fa-crosshairs',
     sectionTitleColorPart: 'sidebarWins',
     actionButtons: [],
   }

@@ -147,7 +147,7 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
 
     // Decide whether to run silently, using parameter if given
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
-    logDebug('removeDoneMarkers', `runSilently: ${String(runSilently)}`)
+    logDebug('removeSectionFromAllNotes', `runSilently: ${String(runSilently)}`)
     // We also need a string version of this for legacy reasons
     const runSilentlyAsString: string = runSilently ? 'yes' : 'no'
 

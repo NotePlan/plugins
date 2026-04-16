@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2026-02-08 for v2.4.0.b20, @jgclark
+// Last updated 2026-04-15 for v2.4.0.b25, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -129,7 +129,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       showSettingName: 'showTodaySection',
       sectionCode: thisSectionCode,
       description: sectionDescription,
-      FAIconClass: 'fa-regular fa-calendar-star',
+      FAIconClass: 'fa-regular fa-fw fa-calendar-star',
       sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
       sectionItems: items,
@@ -229,7 +229,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         showSettingName: 'showTodaySection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${todayDateLocale}`,
-        FAIconClass: 'fa-regular fa-calendar-star',
+        FAIconClass: 'fa-regular fa-fw fa-calendar-star',
         sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,
@@ -325,7 +325,7 @@ export function getTimeBlockSectionData(
       name: timeBlockItems.length > 1 ? 'Current time blocks' : 'Current time block', // singular if only one item
       showSettingName: 'showTimeBlockSection',
       description: '',
-      FAIconClass: 'fa-regular fa-calendar-clock',
+      FAIconClass: 'fa-regular fa-fw  fa-calendar-clock',
       sectionTitleColorPart: 'timeBlockColor',
       sectionFilename: thisFilename,
       sectionItems: timeBlockItems,
@@ -409,7 +409,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       showSettingName: 'showYesterdaySection',
       sectionCode: thisSectionCode,
       description: sectionDescription,
-      FAIconClass: 'fa-regular fa-calendar-arrow-up',
+      FAIconClass: 'fa-regular fa-fw fa-calendar-arrow-up',
       sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
       sectionItems: items,
@@ -463,7 +463,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         showSettingName: 'showYesterdaySection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${yesterdayDateLocale}`,
-        FAIconClass: 'fa-regular fa-calendar-star',
+        FAIconClass: 'fa-regular fa-fw fa-calendar-star',
         sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,
@@ -563,7 +563,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
       showSettingName: 'showTomorrowSection',
       sectionCode: thisSectionCode,
       description: sectionDescription,
-      FAIconClass: 'fa-regular fa-calendar-arrow-down',
+      FAIconClass: 'fa-regular fa-fw fa-calendar-arrow-down',
       sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
       sectionItems: items,
@@ -628,7 +628,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         showSettingName: 'showTomorrowSection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${tomorrowDateLocale}`,
-        FAIconClass: 'fa-regular fa-calendar-arrow-down',
+        FAIconClass: 'fa-regular fa-fw fa-calendar-arrow-down',
         sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,

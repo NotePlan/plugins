@@ -9,9 +9,9 @@
 // refreshTimer()
 //------------------------------------------------------------------------------
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAppContext } from '../components/AppContext.jsx'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug, logError, logInfo, logWarn } from '@helpers/react/reactDev.js'
 
 /**
  * Options for the refresh timer hook.
@@ -30,6 +30,7 @@ type RefreshTimerOptions = {
  */
 type RefreshTimerReturn = {
   refreshTimer: () => void,
+  cancelRefreshTimer: () => void,
 }
 
 /**
@@ -43,12 +44,19 @@ function useRefreshTimer(options: RefreshTimerOptions): RefreshTimerReturn {
   const [timerId, setTimerId] = useState <? TimeoutID > (null)
   const { sendActionToPlugin } = useAppContext()
 
+  const cancelRefreshTimer = useCallback((): void => {
+    if (timerId) {
+      clearTimeout(timerId)
+      setTimerId(null)
+      logInfo('useRefreshTimer', 'Cancelling previously set Timer ...')
+    }
+  }, [timerId])
+
   useEffect(() => {
     return () => {
       // Clear the timer when the component unmounts
       if (timerId) {
         clearTimeout(timerId)
-        logDebug('useRefreshTimer', 'Timer was set previously, resetting timer...')
       }
     }
   }, [timerId])
@@ -57,10 +65,7 @@ function useRefreshTimer(options: RefreshTimerOptions): RefreshTimerReturn {
    * Function to trigger refresh.
    */
   const refreshTimer = (): void => {
-    if (timerId) {
-      // If a timer is already running, clear it
-      clearTimeout(timerId)
-    }
+    cancelRefreshTimer()
     // Set a new timer with the maximum delay
     const newTimerId = setTimeout(() => {
       // Trigger the refresh action
@@ -75,7 +80,7 @@ function useRefreshTimer(options: RefreshTimerOptions): RefreshTimerReturn {
     setTimerId(newTimerId)
   }
 
-  return { refreshTimer }
+  return { refreshTimer, cancelRefreshTimer }
 }
 
 export default useRefreshTimer

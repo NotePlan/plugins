@@ -76,7 +76,7 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
   // Normalize string encoding before stringifying to prevent corruption
   // We do this BEFORE the replace operations to ensure all strings are in a valid state
   const normalizedArgs = normalizeStringEncoding(commandArgs)
-
+  const truncatedArgs = (normalizedArgs.length > 100) ? normalizedArgs.slice(0, 100) : normalizedArgs
   const code = '(async function() { await DataStore.invokePluginCommandByName("%%commandName%%", "%%pluginID%%", %%commandArgs%%);})()'
     .replace('%%commandName%%', commandName)
     .replace('%%pluginID%%', pluginID)
@@ -84,7 +84,7 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
     // This works around problems with $$ characters in commandArgs that could interfere
     // with template string processing. The function is called at replacement time.
     .replace('%%commandArgs%%', () => JSON.stringify(normalizedArgs))
-  console.log(`bridge::runPluginCommand JS file in np.Shared Sending command "${commandName}" to NotePlan: "${pluginID}" with args:`, commandArgs)
+  console.log(`bridge::runPluginCommand JS file in np.Shared Sending command "${commandName}" to NotePlan: "${pluginID}" with args:`, truncatedArgs)
   if (window.webkit) {
     window.webkit.messageHandlers.jsBridge.postMessage({
       code: code,

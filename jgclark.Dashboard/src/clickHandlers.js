@@ -4,17 +4,22 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-01-18 for v2.4.0.b16, @jgclark
+// Last updated 2026-04-15 for v2.4.0.b25, @jgclark
 //-----------------------------------------------------------------------------
 
-import { WEBVIEW_WINDOW_ID } from './constants'
+import {
+  WEBVIEW_WINDOW_ID,
+  allCalendarSectionCodes,
+  allSectionDetails,
+  SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS,
+} from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getDashboardSettingsDefaults, handlerResult, makeDashboardParas, setPluginData } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettingsInAPerspective } from './perspectiveHelpers'
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { validateAndFlattenMessageObject } from './shared'
-import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings } from './types'
+import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TSectionCode } from './types'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
@@ -499,12 +504,53 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
 }
 
 /**
+ * Show-setting keys that correspond to calendar period sections (DT through Y) only.
+ * @author @Cursor
+ * @returns {Set<string>}
+ */
+function getCalendarSectionVisibilitySettingNames(): Set<string> {
+  return new Set(
+    allSectionDetails
+      .filter((d) => allCalendarSectionCodes.includes(d.sectionCode))
+      .map((d) => d.showSettingName)
+      .filter(Boolean),
+  )
+}
+
+/**
+ * Return which of SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS are enabled in merged dashboard settings.
+ * @author @Cursor
+ * @param {{ [key: string]: any }} mergedSettings
+ * @returns {Array<TSectionCode>}
+ */
+function getEnabledSectionCodesAmongCalendarVisibilityRefreshList(mergedSettings: { [key: string]: any }): Array<TSectionCode> {
+  return SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS.filter((code) => {
+    const detail = allSectionDetails.find((s) => s.sectionCode === code)
+    if (!detail?.showSettingName) return false
+    // $FlowIgnore[invalid-computed-prop]
+    return mergedSettings[detail.showSettingName] !== false
+  })
+}
+
+/**
+ * Top-level keys from a `compareObjects` diff (object form only).
+ * @author @Cursor
+ * @param {any} diff
+ * @returns {Array<string>}
+ */
+function getDiffTopLevelKeys(diff: any): Array<string> {
+  if (diff == null) return []
+  if (typeof diff !== 'object' || Array.isArray(diff)) return []
+  return Array.from(Object.keys(diff))
+}
+
+/**
  * Update a single key in Dashboard part of DataStore.settings.
  * Note: See doPerspectiveSettingsChanged() for updating perspectiveSettings.
  * @param {MessageDataObject} data - a MDO that should have a key "settings" with the items to be set to the settingName key
  * @param {string} settingName - the single key to set to the value of data.settings
  * @returns {TBridgeClickHandlerResult}
- * @author @dwertheimer
+ * @author @dwertheimer + @Cursor
  */
 export async function doDashboardSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
   try {
@@ -632,13 +678,54 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
 
     // Always close any unused sections, as some sections may no longer be needed
-    const resultsToHandle = ['CLOSE_UNNEEDED_SECTIONS']
-    // If we aren't just saving perspectiveSettings, then we need to refresh the enabled sections, as potentially every section might be altered
+    const resultsToHandle: Array<TActionOnReturn> = ['CLOSE_UNNEEDED_SECTIONS']
+    let resultExtra: { sectionCodes?: Array<TSectionCode> } = {}
+
     if (settingName === 'dashboardSettings') {
-      resultsToHandle.push('REFRESH_ALL_ENABLED_SECTIONS')
+      const defaults = getDashboardSettingsDefaults()
+      // $FlowIgnore[prop-missing]
+      const prevMerged: { [string]: any } = { ...defaults, ...(currentSettings?.dashboardSettings || {}) }
+      // $FlowIgnore[prop-missing]
+      const nextMerged: { [string]: any } = { ...defaults, ...(settingsToSave || {}) }
+      const diff = compareObjects(prevMerged, nextMerged, ['lastModified', 'lastChange', 'usePerspectives'])
+      const diffKeys = getDiffTopLevelKeys(diff)
+      const calendarVisibilityKeys = getCalendarSectionVisibilitySettingNames()
+
+      if (diffKeys.length === 0) {
+        logInfo(
+          'doDashboardSettingsChanged',
+          `Section refresh plan: no differing keys after merge (or non-object diff); incremental section refresh from settings: none (TB still refreshed if enabled, via processActionOnReturn)`,
+        )
+      } else {
+        const onlyCalendarVisibility = diffKeys.every((k) => calendarVisibilityKeys.has(k))
+
+        if (onlyCalendarVisibility) {
+          const eligible = getEnabledSectionCodesAmongCalendarVisibilityRefreshList(nextMerged)
+          if (eligible.length > 0) {
+            resultsToHandle.push('REFRESH_SECTION_IN_JSON')
+            resultExtra = { sectionCodes: eligible }
+            logInfo(
+              'doDashboardSettingsChanged',
+              `Section refresh plan: only calendar section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh: [${eligible.join(
+                ', ',
+              )}] (enabled among ${SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS.join(', ')}); TB appended when enabled in processActionOnReturn`,
+            )
+          } else {
+            logInfo(
+              'doDashboardSettingsChanged',
+              `Section refresh plan: only calendar section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh from Wins/Priority/Overdue list: none (all off); TB still refreshed if enabled`,
+            )
+          }
+        } else {
+          logInfo(
+            'doDashboardSettingsChanged',
+            `Section refresh plan: non-calendar or mixed settings changed (diff keys: ${diffKeys.join(', ')}); incremental section refresh from settings: none; TB still refreshed if enabled`,
+          )
+        }
+      }
     }
 
-    return handlerResult(res, resultsToHandle)
+    return handlerResult(res, resultsToHandle, resultExtra)
   } catch (error) {
     logError('doDashboardSettingsChanged', error.message)
     return handlerResult(false, [], { errorMsg: `When trying to save settings, an error occurred: ${error.message}`, errorMessageLevel: 'ERROR' })

@@ -1,7 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Constants for Dashboard code
-// Last updated 2026-04-13 for v2.4.0.b23, @jgclark
+// Constants for Dashboard code.
+// Check each of them when adding a new Section.
+// Last updated 2026-04-15 for v2.4.0.b25, @jgclark
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -31,8 +32,8 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'PRIORITY', sectionName: 'Priority', showSettingName: 'showPrioritySection' },
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
   { sectionCode: 'SEARCH', sectionName: 'Search', showSettingName: '' },
-  { sectionCode: 'INFO', sectionName: 'Info', showSettingName: 'showInfoSection' },
   // For possible future use:
+  // { sectionCode: 'INFO', sectionName: 'Info', showSettingName: 'showInfoSection' },
   // { sectionCode: 'SAVEDSEARCH', sectionName: 'Saved Search', showSettingName: 'showSavedSearchSection' },
 ]
 
@@ -55,4 +56,11 @@ export const dontDedupeSectionCodes = ['INFO', 'PROJACT', 'PROJREVIEW', 'SEARCH'
 export const interactiveProcessingPossibleSectionTypes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY']
 
 // Treat these itemTypes as if they are zero items, so we don't show the Interactive or other Processing buttons, and correct the count in the description
-export const treatSingleItemTypesAsZeroItems = ['itemCongrats', 'projectCongrats', 'noSearchResults', 'preLimitOverdues']
+export const treatSingleItemTypesAsZeroItems = ['itemCongrats', 'winsCongrats', 'projectCongrats', 'noSearchResults', 'preLimitOverdues']
+
+/** When the user toggles visibility of a calendar period section only, refresh these sections (if enabled) so Wins / Priority / Overdue deduping stays correct. */
+export const SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS: Array<TSectionCode> = ['WINS', 'PRIORITY', 'OVERDUE']
+
+/** Font Awesome classes for the Item and Wins congrats messages (`section.FAIconClass`); use the same for `winsCongrats` message rows. */
+export const winsSectionHeaderFAIconClass = 'fa-regular fa-trophy'
+export const itemCongratsFAIconClass = 'fa-light fa-champagne-glasses'

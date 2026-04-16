@@ -116,7 +116,7 @@ export async function getProjectReviewSectionData(config: TDashboardSettings, us
     description: sectionDescription,
     sectionItems: items,
     totalCount: items.length,
-    FAIconClass: 'fa-regular fa-chart-gantt',
+    FAIconClass: 'fa-regular fa-fw fa-chart-gantt',
     // FAIconClass: 'fa-light fa-square-kanban',
     // NP has no sectionTitleColorPart, so will use default
     generatedDate: new Date(),
@@ -259,7 +259,7 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
     description: sectionDescription,
     sectionItems: items,
     totalCount: items.length,
-    FAIconClass: 'fa-regular fa-chart-gantt',
+    FAIconClass: 'fa-regular fa-fw fa-chart-gantt',
     // FAIconClass: 'fa-light fa-square-kanban',
     // NP has no sectionTitleColorPart, so will use default
     generatedDate: new Date(),

@@ -95,7 +95,7 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
 
     // Decide whether to run silently
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
-    logDebug('removeDoneMarkers', `runSilently = ${String(runSilently)}`)
+    logDebug('listPotentialDoubledNotes', `runSilently = ${String(runSilently)}`)
 
     // If we're running NP 3.19.2+ then show a message about the new built-in feature
     if (!runSilently && usersVersionHas('contentDeduplicator')) {

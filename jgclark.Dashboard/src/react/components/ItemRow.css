@@ -1,5 +1,5 @@
 /* CSS specific to ItemRow component and its children.
-/* Last updated 2025-11-23 for v2.3.0.b15, @jgclark */
+/* Last updated 2026-04-15 for v2.4.0.b25, @jgclark */
 
 /* Default class for MessageOnlyItems that don't supply their own class */
 .messageItemRow {
@@ -18,6 +18,11 @@
 }
 
 .itemCongrats {
+  font-style: italic;
+  color: var(--fg-done-color);
+}
+
+.winsCongrats {
   font-style: italic;
   color: var(--fg-done-color);
 }

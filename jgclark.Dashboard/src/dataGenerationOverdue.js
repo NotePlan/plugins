@@ -156,7 +156,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       showSettingName: 'showOverdueSection',
       sectionCode: thisSectionCode,
       description: sectionDescription,
-      FAIconClass: 'fa-regular fa-alarm-exclamation',
+      FAIconClass: 'fa-regular fa-fw fa-alarm-exclamation',
       // no sectionTitleColorPart, so will use default
       sectionFilename: '',
       sectionItems: items,

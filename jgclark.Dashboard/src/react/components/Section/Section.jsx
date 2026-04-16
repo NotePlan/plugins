@@ -184,13 +184,12 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           }
           break
         case 'WINS':
-          // TODO: In time make this a different message?
-          logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display congrats message`)
+          logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display wins congrats message`)
           sectionItems = [
             {
               ID: `${section.sectionCode}-Empty`,
               sectionCode: section.sectionCode,
-              itemType: 'itemCongrats',
+              itemType: 'winsCongrats',
             },
           ]
           break
@@ -245,8 +244,14 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   useEffect(() => {
     const refreshInterval = 54000 // A little less than 1 minute -- don't want it to collide with the IdleTimer if possible
     let timerId
+    let isTBEnabledInSettings = dashboardSettings?.showTimeBlockSection !== false
+    if (section.showSettingName && dashboardSettings) {
+      // $FlowIgnore[invalid-computed-prop]
+      const showSettingValue = dashboardSettings[section.showSettingName]
+      isTBEnabledInSettings = showSettingValue !== false
+    }
 
-    if (section.sectionCode === 'TB') {
+    if (section.sectionCode === 'TB' && isTBEnabledInSettings) {
       timerId = setInterval(() => {
         refreshTimeBlockSection()
       }, refreshInterval)
@@ -257,7 +262,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         clearInterval(timerId)
       }
     }
-  }, [section.sectionCode, refreshTimeBlockSection])
+  }, [dashboardSettings, section.sectionCode, section.showSettingName, refreshTimeBlockSection])
 
   //----------------------------------------------------------------------
   // Hooks
