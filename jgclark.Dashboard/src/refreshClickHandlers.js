@@ -152,16 +152,33 @@ export async function incrementallyRefreshSomeSections(
 export async function refreshSomeSections(data: MessageDataObject, calledByTrigger: boolean = false): Promise<TBridgeClickHandlerResult> {
   try {
     const startTime = new Date()
-    const { sectionCodes } = data
-    if (!sectionCodes) {
+    let sectionCodesToRefresh = data.sectionCodes
+    if (!sectionCodesToRefresh) {
       throw new Error('No sections to refresh. If this happens again, please report it to the developer.')
     }
 
-    logDebug('refreshSomeSections', `Starting for ${String(sectionCodes)}`)
+    logDebug('refreshSomeSections', `Starting for ${String(sectionCodesToRefresh)}`)
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    if (!reactWindowData?.pluginData) {
+      logDebug('refreshSomeSections', 'Dashboard shared data not ready yet (no pluginData); skipping refresh')
+      return handlerResult(true)
+    }
     const pluginData: TPluginData = reactWindowData.pluginData
+    if (pluginData.dashboardSettings?.showTimeBlockSection === false && sectionCodesToRefresh.includes('TB')) {
+      sectionCodesToRefresh = sectionCodesToRefresh.filter((sectionCode) => sectionCode !== 'TB')
+      logDebug('refreshSomeSections', `Filtered TB from requested sections as Time Block is disabled -> ${String(sectionCodesToRefresh)}`)
+      if (sectionCodesToRefresh.length === 0) {
+        logDebug('refreshSomeSections', 'No eligible sections remain after filtering; skipping refresh')
+        return handlerResult(true)
+      }
+    }
     // show refreshing message until done
-    if (!pluginData.refreshing === true) await setPluginData({ refreshing: sectionCodes, currentMaxPriorityFromAllVisibleSections: 0 }, `Starting refresh for sections ${sectionCodes.toString()}`)
+    if (!pluginData.refreshing === true) {
+      await setPluginData(
+        { refreshing: sectionCodesToRefresh, currentMaxPriorityFromAllVisibleSections: 0 },
+        `Starting refresh for sections ${sectionCodesToRefresh.toString()}`,
+      )
+    }
     let existingSections = pluginData.sections
 
     // Now remove any referenced sections if separateSectionForReferencedNotes is now off
@@ -175,7 +192,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
     // Note: this is clearly done somewhere else! (so won't do here as well)
 
     // Force the wanted sections to refresh
-    const newSections = await getSomeSectionsData(sectionCodes, pluginData.demoMode, calledByTrigger)
+    const newSections = await getSomeSectionsData(sectionCodesToRefresh, pluginData.demoMode, calledByTrigger)
     // logTimer('refreshSomeSections', startTime, `- after getSomeSectionsData(): [${getDisplayListOfSectionCodes(newSections)}]`)
     const mergedSections = mergeSections(existingSections, newSections)
     // logTimer('refreshSomeSections', startTime, `- after mergeSections(): [${getDisplayListOfSectionCodes(mergedSections)}]`)
@@ -187,12 +204,12 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
     // updates.totalDoneCounts = getTotalDoneCountsFromSections(mergedSections)
 
     if (!pluginData.refreshing === true) updates.refreshing = false
-    await setPluginData(updates, `Finished refreshSomeSections for [${String(sectionCodes)}] (${timer(startTime)})`)
+    await setPluginData(updates, `Finished refreshSomeSections for [${String(sectionCodesToRefresh)}] (${timer(startTime)})`)
 
     // count sectionItems in all sections
     const totalSectionItems = mergedSections.reduce((acc, section) => acc + section.sectionItems.length, 0)
     // logDebug('refreshSomeSections', `Total section items: ${totalSectionItems} from [${sectionCodes.toString()}]`)
-    logTimer('refreshSomeSections', startTime, `for section(s) ${sectionCodes.toString()}`, 2000)
+    logTimer('refreshSomeSections', startTime, `for section(s) ${sectionCodesToRefresh.toString()}`, 2000)
     return handlerResult(true, [], { sectionItems: totalSectionItems })
   }
   catch (error) {

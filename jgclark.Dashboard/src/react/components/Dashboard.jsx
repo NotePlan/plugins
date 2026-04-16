@@ -270,27 +270,16 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [pluginData.startDelayedRefreshTimer])
 
-  // Recalculate maximum priority when sections change (e.g., when items are removed)
-  // NOTE: This can conflict with section-level updates during initial render, so we use a ref
-  // to track if sections have actually changed (not just pluginData.currentMaxPriorityFromAllVisibleSections)
-  const prevSectionsRef = useRef<Array<TSection>>([])
-  const prevTreatTopPriorityAsWinsRef = useRef <? boolean > (undefined)
+  // Recalculate maximum priority when sections or dashboard settings change (e.g. filters) so global priority threshold stays correct without a full refresh.
   useEffect(() => {
-    const sectionsChanged = prevSectionsRef.current !== sections
-    const treatTopPriorityChanged = prevTreatTopPriorityAsWinsRef.current !== dashboardSettings?.treatTopPriorityAsWins
-    if (!sectionsChanged && !treatTopPriorityChanged) {
-      return
-    }
-    prevSectionsRef.current = sections
-    prevTreatTopPriorityAsWinsRef.current = dashboardSettings?.treatTopPriorityAsWins
     const newMaxPriority = calculateMaxPriorityAcrossAllSections(sections, {
       treatTopPriorityAsWins: dashboardSettings?.treatTopPriorityAsWins === true,
     })
     if (newMaxPriority !== pluginData.currentMaxPriorityFromAllVisibleSections) {
-      logDebug('Dashboard', `New max priority after sections/treatTopPriorityAsWins changed: ${newMaxPriority}`)
+      logDebug('Dashboard', `New max priority after sections/dashboardSettings change: ${newMaxPriority}`)
       updatePluginData({ ...pluginData, currentMaxPriorityFromAllVisibleSections: newMaxPriority }, `Recalculated max priority: ${newMaxPriority}`)
     }
-  }, [sections, dashboardSettings?.treatTopPriorityAsWins, pluginData.currentMaxPriorityFromAllVisibleSections])
+  }, [sections, dashboardSettings, pluginData.currentMaxPriorityFromAllVisibleSections])
 
   //----------------------------------------------------------------------
   // Handlers

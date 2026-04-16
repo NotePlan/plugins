@@ -116,7 +116,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
       showSettingName: 'showPrioritySection',
       sectionCode: thisSectionCode,
       description: sectionDescription,
-      FAIconClass: 'fa-regular fa-angles-up',
+      FAIconClass: 'fa-regular fa-fw fa-angles-up',
       // FAIconClass: 'fa-light fa-star-exclamation',
       // no sectionTitleColorPart, so will use default
       sectionFilename: '',

@@ -207,7 +207,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
       showSettingName: 'showSearchSection',
       sectionCode: thisSectionCode,
       description: sectionDescription,
-      FAIconClass: 'fa-regular fa-search',
+      FAIconClass: 'fa-regular fa-fw fa-search',
       sectionTitleColorPart: 'sidebarSearch',
       sectionItems: itemsLimited,
       totalCount: itemCount,
@@ -369,7 +369,7 @@ export async function getSavedSearchResults(
       showSettingName: 'showSearchSection', // TODO(later): This will probably change to showQuickSearchSection if we have multiple saved search sections.
       sectionCode: thisSectionCode,
       description: sectionDescription,
-      FAIconClass: 'fa-regular fa-search',
+      FAIconClass: 'fa-regular fa-fw fa-search',
       sectionTitleColorPart: 'sidebarSearch',
       sectionItems: itemsLimited,
       totalCount: itemCount,

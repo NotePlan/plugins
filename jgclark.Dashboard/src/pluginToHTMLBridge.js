@@ -57,7 +57,7 @@ import { findSectionItems, getDashboardSettings, getListOfEnabledSections, setPl
 // import { showDashboardReact } from './reactMain' // Note: fixed circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
-import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
+import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified, TSectionCode } from './types'
 import { clo, clof, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
@@ -552,30 +552,44 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 
     // FIXME: Probably works, but it looks like enabledSections is not being updated before this is called.
     if (actionsOnSuccess.includes('CLOSE_UNNEEDED_SECTIONS')) {
-    // Identify which sections to close
+      // Identify which sections to close (only rows present in plugin JSON; synthetic sections e.g. WINS are injected in React only)
       const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
       const sections = reactWindowData.pluginData.sections
       const enabledSectionIDs = enabledSections.map((s) => sections.find((section) => section.sectionCode === s)?.ID ?? '')
       logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: currently enabled sections: [${String(enabledSections)}]`)
       logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: currently enabled sectiond IDs: [${String(enabledSectionIDs)}]`)
 
+      // Section codes present in plugin JSON before any splice (used to explain empty removals when UI hides client-only sections)
+      const sectionCodesInPluginJson = new Set(sections.map((s) => s.sectionCode))
+
       // Handle sections that are not enabled
       const sectionIDsToClose = sections.filter(section => !enabledSections.includes(section.sectionCode)).map(section => section.ID)
       logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: will close sections: [${sectionIDsToClose.join(',')}]`)
-      const actuallyClosed: Array<string> = []
+      const actuallyClosedCodes: Array<string> = []
       for (const sectionID of sectionIDsToClose) {
         const sectionIndex = sections.findIndex((section) => section.ID === sectionID)
         if (sectionIndex !== -1) {
-          logDebug('processActionOnReturn', `Closing section ID: ${sectionID}`)
+          const code = sections[sectionIndex].sectionCode
+          logDebug('processActionOnReturn', `Closing section ${String(code)} (ID: ${sectionID})`)
           sections.splice(sectionIndex, 1)
-          actuallyClosed.push(sectionID)
+          actuallyClosedCodes.push(code)
         }
       }
+      // Built only in React (`injectSyntheticWinsSection`), never in plugin `sections` JSON
+      const syntheticSectionCodesNotInPluginJson: Array<TSectionCode> = ['WINS']
+      const clientOnlyHiddenBySettings = syntheticSectionCodesNotInPluginJson.filter(
+        (code) => !enabledSections.includes(code) && !sectionCodesInPluginJson.has(code),
+      )
+      const removedFromJson = actuallyClosedCodes.length ? actuallyClosedCodes.join(',') : 'none'
+      const clientOnlyNote =
+        clientOnlyHiddenBySettings.length > 0
+          ? `; client-only section(s) hidden by settings: [${clientOnlyHiddenBySettings.join(',')}]`
+          : ''
       await sendToHTMLWindow(
         WEBVIEW_WINDOW_ID,
         'UPDATE_DATA',
         reactWindowData,
-        `Closed section(s): [${actuallyClosed.join(',')}]`
+        `CLOSE_UNNEEDED_SECTIONS: removed from plugin JSON: [${removedFromJson}]${clientOnlyNote}`,
       )
     }
 
@@ -628,17 +642,17 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         await incrementallyRefreshSomeSections({ ...data, sectionCodes: [sectionCode] })
       }
     } else {
-      // At least update TB section (if enabled) to make sure its as up to date as possible
+      // At least update TB section (if enabled) whenever any other refresh path did not already run; merge TB into existing REFRESH_SECTION_IN_JSON sectionCodes when present
       if (enabledSections.includes('TB')) {
-        logDebug('processActionOnReturn', `Adding REFRESH_SECTION_IN_JSON for TB ...`)
+        logDebug('processActionOnReturn', `Ensuring REFRESH_SECTION_IN_JSON includes TB ...`)
         if (!actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
           actionsOnSuccess.push('REFRESH_SECTION_IN_JSON')
-          if (!handlerResult.sectionCodes) {
-            handlerResult.sectionCodes = []
-          }
-          if (!handlerResult.sectionCodes.includes('TB')) {
-            handlerResult.sectionCodes = [...(handlerResult.sectionCodes ?? []), 'TB']
-          }
+        }
+        if (!handlerResult.sectionCodes) {
+          handlerResult.sectionCodes = []
+        }
+        if (!handlerResult.sectionCodes.includes('TB')) {
+          handlerResult.sectionCodes = [...(handlerResult.sectionCodes ?? []), 'TB']
         }
         logDebug('processActionOnReturn', `... -> ${String(handlerResult.sectionCodes)}`)
       }

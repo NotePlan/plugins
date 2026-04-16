@@ -8,6 +8,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b25] 2026-04-15
+- removed the "Info" section from being available. Keeping code as it may well be useful as the basis for something else in future.
+- dev: Add new type of congrats message if all the Wins have been completed.
+- dev: Suppress the 1-minute refreshes for Time Blocks, if that section is not turned on.
+- perf: After saving header dropdown settings, refresh only Wins / Priority / Overdue when the user changed calendar section visibility only (Time Blocks section is also refreshed when enabled, same as other post-action paths). Otherwise close unused sections only without those incremental refreshes. INFO logs describe the chosen plan. Max priority is recalculated when dashboard settings change.
+
 ## [2.4.0.b24] 2026-04-14
 - Active Projects: next actions and progress comments now use the same rich-text display as other Dashboard task rows (hashtags, @mentions, links, dates, etc.), including the same “hide scheduled dates” and “hide priority markers” settings.
 

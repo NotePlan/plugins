@@ -6,7 +6,7 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-04-13 for v2.4.0.b23, @jgclark/@Cursor
+// Last updated 2026-04-15 for v2.4.0.b25, @jgclark/@Cursor
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -118,8 +118,7 @@ const useSectionSortAndFilter = (
               {
                 ID: `${section.ID}-Empty`,
                 sectionCode: 'WINS',
-                // TODO: Possibly specialise this further.
-                itemType: 'itemCongrats',
+                itemType: 'winsCongrats',
               },
             ]
         setFilteredItems([])
