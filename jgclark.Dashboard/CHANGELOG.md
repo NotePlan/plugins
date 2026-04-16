@@ -8,6 +8,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b26] 2026-04-16
+- added support for new onViewWillDisappear and onViewDidAppear triggers -- to stop most timers, and refresh, respectively.
+- perf: Date-rollover refresh is now independent of idle auto-update. When the local calendar date changes while Dashboard is open, it refreshes enabled sections once per new day (after any open dialogs/dropdowns close), even if automatic idle refresh is disabled.
+
 ## [2.4.0.b25] 2026-04-15
 - removed the "Info" section from being available. Keeping code as it may well be useful as the basis for something else in future.
 - dev: Add new type of congrats message if all the Wins have been completed.
