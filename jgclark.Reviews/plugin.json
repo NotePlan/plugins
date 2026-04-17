@@ -232,6 +232,12 @@
       "name": "renderProjectListsIfOpen",
       "description": "render current allProjects list in current style(s) if already open",
       "jsFunction": "renderProjectListsIfOpen"
+    },
+    {
+      "hidden": true,
+      "name": "test:onUpdateOrInstall",
+      "description": "onUpdateOrInstall",
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.inactiveCommands": [

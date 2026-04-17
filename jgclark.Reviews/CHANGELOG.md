@@ -1,6 +1,12 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b20] - 2026-04-17
+- dev: removed editSettings for iOS (no longer needed)
+- add more info to user if settings.json cannot be found
+- tighten detection of body metadata to exclude lines starting `#`
+- ??? think about a better time to do the migration of files
+
 ## [2.0.0.b19] - 2026-04-16
 - **Finish review** uses the focused editor (`Editor.note`), not the first window in `NotePlan.editors`, so the correct note is updated when multiple editors are open.
 - Fix error clearing next-review fields

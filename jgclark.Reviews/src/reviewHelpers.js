@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-03-26 for v1.4.0.b13, @jgclark
+// Last updated 2026-04-17 for v2.0.0.b20, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -200,8 +200,8 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     // Otherwise complain, as there should be settings.
     if (config == null || Object.keys(config).length === 0) {
       if (!externalCall) {
-        await showMessage(`Cannot find settings for the 'Projects & Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
-        throw new Error(`Can't find settings file '../jgclark.Reviews/settings.json', so stopping.`)
+        await showMessage(`Cannot find settings for the 'Projects & Reviews' plugin. Please try deleting and then reinstalling the Plugin from the Plugin Preferences pane. If this persists, please raise an issue on Discord.`, 'OK, thanks', 'Error finding settings')
+        throw new Error(`Can't find settings file 'NotePlan/Plugins/data/jgclark.Reviews/settings.json', so advised user to reinstall the plugin. Stopping.`)
       }
       // $FlowFixMe[incompatible-return] as we're returning null if no settings found
       return null
@@ -255,17 +255,13 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
       // logDebug('getReviewSettings', `-> validFolders for '${config.perspectiveName}': [${String(validFolders)}]`)
     }
 
-    // Ensure displayPaused has a sensible default if missing from settings
+    // Ensure following have sensible defaults if missing from settings
     if (config.displayPaused == null) {
       config.displayPaused = true
     }
-
-    // Ensure autoUpdateAfterIdleTime has a sensible default if missing from settings
     if (config.autoUpdateAfterIdleTime == null) {
       config.autoUpdateAfterIdleTime = 0
     }
-
-    // Ensure reviewsTheme has a default if missing (e.g. before 'Theme to use for Project Lists' setting existed)
     if (config.reviewsTheme == null || config.reviewsTheme === undefined) {
       config.reviewsTheme = ''
     }
@@ -442,12 +438,10 @@ export function getMetadataLineIndexFromBody(note: CoreNoteFields | TEditor): nu
     logDebug('getMetadataLineIndexFromBody', `Starting with ${lines.length} lines for ${displayTitle(note)}`)
     let lineNumber: number | false = false
     const endFMIndex = noteHasFrontMatter(note) ? (endOfFrontmatterLineIndex(note) ?? -1) : -1
-    const bodyMetadataLineRE = /^(project|metadata):/i
     for (let i = endFMIndex + 1; i < lines.length; i++) {
       if (
-        lines[i].match(bodyMetadataLineRE) ||
-        lines[i].match(/(@review|@reviewed)\(.+\)/) ||
-        lines[i].match(/^#\S/)
+        lines[i].match(/^(project|metadata):/i) ||
+        lines[i].match(/(@review|@reviewed)\(\d{4}-\d{2}-\d{2}\)/i)
       ) {
         lineNumber = i
         break
