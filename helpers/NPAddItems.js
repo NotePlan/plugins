@@ -87,12 +87,14 @@ export function coreAddChecklistToNoteHeading(
           shouldAppend,
         )
       }
-      DataStore.updateCache(note, false)
-      const resultingPara = findParaFromStringAndFilename(note.filename, content)
-      return resultingPara || null
     }
+
+    DataStore.updateCache(note, false)
+    const resultingPara = findParaFromStringAndFilename(note.filename, content)
+    return resultingPara || null
   } catch (err) {
     logError('coreAddChecklistToNoteHeading', err.message)
+    return null
     // await showMessage(err.message)
   }
 }
@@ -168,11 +170,11 @@ export function coreAddTaskToNoteHeading(
           shouldAppend,
         )
       }
-
-      DataStore.updateCache(note, false)
-      const resultingPara = findParaFromStringAndFilename(note.filename, content)
-      return resultingPara || null
     }
+
+    DataStore.updateCache(note, false)
+    const resultingPara = findParaFromStringAndFilename(note.filename, content)
+    return resultingPara || null
   } catch (err) {
     logError('coreAddTaskToNoteHeading', err.message)
     return null

@@ -8,6 +8,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b28] 2026-04-16
+- fix: Add Task (and QuickCapture checklist path) with **top of note** or **bottom of note** now succeeds — `coreAddTaskToNoteHeading` / `coreAddChecklistToNoteHeading` in `@helpers/NPAddItems` now return the new paragraph for those branches (previously returned nothing, so Dashboard reported "Failed to add task to note")
+
 ## [2.4.0.b27] 2026-04-16 @dwertheimer
 - dev: `requestFromPlugin` now resolves with shared `PluginRequestEnvelope` (`@helpers/react/pluginRequestEnvelope`) so success, `data`, and `message` are explicit; Add Task dialog uses this contract
 
