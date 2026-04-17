@@ -17,7 +17,12 @@ describe('prompt form batch (CommandBar.showForm)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    global.DataStore = { settings: { _logLevel: 'none' } }
+    global.DataStore = {
+      settings: { _logLevel: 'none' },
+      projectNotes: [],
+      calendarNotes: [],
+      calendarNoteByDateString: jest.fn(() => null),
+    }
     global.NotePlan = { environment: { version: '3.21.0', platform: 'macOS' } }
     global.CommandBar = {
       showForm: jest.fn(),
@@ -44,6 +49,52 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     expect(global.CommandBar.textPrompt).not.toHaveBeenCalled()
     expect(result.sessionData.firstName).toBe('Ada')
     expect(result.sessionData.lastName).toBe('Lovelace')
+  })
+
+  test('onePromptAtATime in session skips showForm batching (one dialog per prompt)', async () => {
+    global.CommandBar.showForm.mockResolvedValue({
+      submitted: true,
+      values: { firstName: 'X', lastName: 'Y' },
+    })
+    global.CommandBar.textPrompt.mockResolvedValueOnce('One').mockResolvedValueOnce('Two')
+
+    const template =
+      "<%- prompt('firstName', 'First name?') %>\n" + "<%- prompt('lastName', 'Last name?') %>\n" + 'Hello'
+
+    const result = await processPrompts(template, { onePromptAtATime: true })
+
+    expect(result).not.toBe(false)
+    if (result === false) return
+    expect(global.CommandBar.showForm).not.toHaveBeenCalled()
+    expect(global.CommandBar.textPrompt).toHaveBeenCalledTimes(2)
+    expect(result.sessionData.firstName).toBe('One')
+    expect(result.sessionData.lastName).toBe('Two')
+  })
+
+  test('onePromptAtATime under session.data skips batching (frontmatter shape)', async () => {
+    global.CommandBar.textPrompt.mockResolvedValueOnce('A').mockResolvedValueOnce('B')
+
+    const template = "<%- prompt('x', 'X?') %>\n<%- prompt('y', 'Y?') %>"
+    const result = await processPrompts(template, { data: { onePromptAtATime: true } })
+
+    expect(result).not.toBe(false)
+    if (result === false) return
+    expect(global.CommandBar.showForm).not.toHaveBeenCalled()
+    expect(result.sessionData.x).toBe('A')
+    expect(result.sessionData.y).toBe('B')
+  })
+
+  test('batchPrompts: false skips showForm batching', async () => {
+    global.CommandBar.textPrompt.mockResolvedValueOnce('p').mockResolvedValueOnce('q')
+
+    const template = "<%- prompt('a', 'A?') %>\n<%- prompt('b', 'B?') %>"
+    const result = await processPrompts(template, { batchPrompts: false })
+
+    expect(result).not.toBe(false)
+    if (result === false) return
+    expect(global.CommandBar.showForm).not.toHaveBeenCalled()
+    expect(result.sessionData.a).toBe('p')
+    expect(result.sessionData.b).toBe('q')
   })
 
   test('dependent options: second prompt uses session key from first — no batch, sequential prompts', async () => {

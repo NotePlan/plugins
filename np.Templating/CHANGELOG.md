@@ -6,6 +6,27 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.3.3] 2026-04-16 @dwertheimer
+
+### Fixed
+
+- **Frontmatter booleans and zero:** `FrontmatterModule.parse` / `.attributes` no longer replace YAML **`false`** or numeric **`0`** with an empty string. That bug broke **`batchPrompts: false`** (and any other falsey-but-valid frontmatter), so consecutive `prompt` / `promptDate` still batched. Only **`null`** / **`undefined`** are coerced to `''` now.
+
+### Edited in this release
+
+- `np.Templating/lib/support/modules/FrontmatterModule.js`, `np.Templating/__tests__/frontmatter-module.test.js`
+- `np.Templating/plugin.json` — version **2.3.3**
+
+## [2.3.2] 2026-04-14 @dwertheimer
+
+### Added
+- **Opt out of automatic prompt batching** per template: frontmatter **`onePromptAtATime: true`** (or **`batchPrompts: false`**) disables merging consecutive `prompt` / `promptDate` into one `CommandBar.showForm`; each prompt uses its normal UI. Read from session root or `session.data`. Does not affect explicit **`promptForm({ ... })`**.
+
+### Edited in this release
+- `np.Templating/lib/support/modules/prompts/promptFormBatch.js`, `PromptRegistry.js`, `promptFormBatch.test.js`
+- `np.Templating/docs/PromptCommandBarForms.md`, `PromptCommands.md`
+- `np.Templating/plugin.json` — version **2.3.2**
+
 ## [2.3.1] 2026-04-14 @dwertheimer
 
 ### Fixed

@@ -10,6 +10,17 @@ import pluginJson from '../../../plugin.json'
 import { getSanitizedFmParts, isValidYamlContent, getValuesForFrontmatterTag, updateFrontMatterVars, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 import { logDebug, logError, JSP } from '@helpers/dev'
 
+/**
+ * Normalize a parsed frontmatter value for templates: only `null` / `undefined` become `''`.
+ * Preserves boolean `false`, numeric `0`, and `''` so flags like `batchPrompts: false` stay usable.
+ * @param {mixed} val
+ * @returns {mixed}
+ */
+function coalesceNullFrontmatterValue(val: mixed): mixed {
+  if (val == null) return ''
+  return val
+}
+
 export default class FrontmatterModule {
   // $FlowIgnore
   constructor(NPTemplating: any = null) {
@@ -56,8 +67,9 @@ export default class FrontmatterModule {
   parse(template: string = ''): any {
     if (this.isFrontmatterTemplate(template)) {
       const fmData = getSanitizedFmParts(template)
+      const attrsForParse: any = fmData.attributes
       Object.keys(fmData?.attributes).forEach((key) => {
-        fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
+        attrsForParse[key] = coalesceNullFrontmatterValue(attrsForParse[key])
       })
       // fmData.body = fmData.body.replace(/---/gi, '*****')
 
@@ -77,8 +89,9 @@ export default class FrontmatterModule {
   attributes(templateData: string = ''): any {
     try {
       const fmData = getSanitizedFmParts(templateData)
+      const attrsForAttributes: any = fmData.attributes
       Object.keys(fmData?.attributes).forEach((key) => {
-        fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
+        attrsForAttributes[key] = coalesceNullFrontmatterValue(attrsForAttributes[key])
       })
 
       return fmData && fmData?.attributes ? fmData.attributes : {}

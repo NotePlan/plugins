@@ -1,4 +1,6 @@
 module.exports = {
+  // NotePlan globals before test files load (NPdateTime getRelativeDates at import time needs DataStore)
+  setupFiles: ['<rootDir>/jest.noteplan-globals.js'],
   // A map from regular expressions to module names that allow to stub out resources with a single module
   moduleNameMapper: {
     '^@helpers/(.*)$': '<rootDir>/helpers/$1',

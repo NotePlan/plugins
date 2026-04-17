@@ -106,6 +106,33 @@ Some content here`
       expect(result.attributes.name).toEqual('Mike Erickson')
     })
 
+    it(`should preserve boolean false in ${method('.parse')} / ${method('.attributes')} (e.g. batchPrompts)`, async () => {
+      const data = `---
+title: Test note
+batchPrompts: false
+---
+
+# Body`
+
+      const parsed = new FrontmatterModule().parse(data)
+      expect(parsed.attributes.batchPrompts).toEqual(false)
+
+      const attrs = new FrontmatterModule().attributes(data)
+      expect(attrs.batchPrompts).toEqual(false)
+    })
+
+    it(`should preserve numeric zero in ${method('.parse')}`, async () => {
+      const data = `---
+title: Test
+count: 0
+---
+
+x`
+
+      const parsed = new FrontmatterModule().parse(data)
+      expect(parsed.attributes.count).toEqual(0)
+    })
+
     it(`should contain template in 'body' property when using ${method('.parse')} method`, async () => {
       const data = await factory('frontmatter-extended.ejs')
 

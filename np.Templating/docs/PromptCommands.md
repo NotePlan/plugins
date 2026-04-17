@@ -12,6 +12,7 @@ import prompt2 from '@/images/prompt2.png'
 
 When you run NotePlan **v3.21** or newer, consecutive **`prompt`** and **`promptDate`** tags that are independent (later prompts do not need answers from earlier ones for their options) are combined into a **single** [Command Bar form](https://help.noteplan.co/article/281-commandbar-forms-plugin) via `CommandBar.showForm`, so you answer multiple fields in one step.
 
+- **Per-template opt-out:** In template frontmatter, set **`onePromptAtATime: true`** (or **`batchPrompts: false`**) to keep the **classic one-question-at-a-time** flow for that template. See <Link href="./PromptCommandBarForms">Command Bar prompt forms (detailed)</Link>.
 - **Still one-at-a-time** when a later `prompt` would need a variable that an earlier prompt in the same run will set (for example a dropdown whose options come from a prior answer), or when other prompt types or template code sit between prompts.
 - **`promptTag`**, **`promptMention`**, **`promptKey`**, and **`promptDateInterval`** are never merged into a form; they keep their existing UIs.
 - If the user cancels the form, template processing stops (same as cancelling a single prompt).

@@ -74,6 +74,54 @@ function sessionDataLookup(sessionData: any, key: string): mixed {
 }
 
 /**
+ * True for common YAML/string affirmatives (frontmatter often arrives as strings).
+ * @param {mixed} val
+ * @returns {boolean}
+ */
+function isTruthyPreference(val: mixed): boolean {
+  if (val === true) return true
+  if (typeof val === 'string') {
+    const t = val.trim().toLowerCase()
+    return t === 'true' || t === 'yes' || t === '1' || t === 'on'
+  }
+  return false
+}
+
+/**
+ * True when `batchPrompts` explicitly turns off auto-batching.
+ * @param {mixed} val
+ * @returns {boolean}
+ */
+function isFalsyBatchPrompts(val: mixed): boolean {
+  if (val === false) return true
+  if (typeof val === 'string') {
+    const t = val.trim().toLowerCase()
+    return t === 'false' || t === 'no' || t === '0' || t === 'off'
+  }
+  return false
+}
+
+/**
+ * Whether consecutive independent `prompt` / `promptDate` tags may be merged into one `CommandBar.showForm`.
+ * Templates can opt out via frontmatter **`onePromptAtATime: true`** (easiest to read) or **`batchPrompts: false`**.
+ * Does not affect the explicit **`promptForm({ ... })`** tag, which always uses one form when the API is available.
+ * @param {any} sessionData - Render session; keys may live on the root or under `data` (frontmatter merge).
+ * @returns {boolean}
+ */
+export function shouldOfferConsecutivePromptFormBatch(sessionData: any): boolean {
+  if (!notePlanSupportsCommandBarForms()) return false
+  if (isTruthyPreference(sessionDataLookup(sessionData, 'onePromptAtATime'))) {
+    logDebug(pluginJson, 'shouldOfferConsecutivePromptFormBatch: off (onePromptAtATime)')
+    return false
+  }
+  if (isFalsyBatchPrompts(sessionDataLookup(sessionData, 'batchPrompts'))) {
+    logDebug(pluginJson, 'shouldOfferConsecutivePromptFormBatch: off (batchPrompts false)')
+    return false
+  }
+  return true
+}
+
+/**
  * Extract `prompt(...)` / `promptDate(...)` call text and optional assignment target from a tag.
  * @param {string} tag - Full EJS tag
  * @returns {?{ promptCall: string, assignmentVarName: ?string }}

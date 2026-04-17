@@ -19,7 +19,12 @@ describe('promptForm tag', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     usersVersionHas.mockImplementation((feature) => feature === 'commandBarForms')
-    global.DataStore = { settings: { _logLevel: 'none' } }
+    global.DataStore = {
+      settings: { _logLevel: 'none' },
+      projectNotes: [],
+      calendarNotes: [],
+      calendarNoteByDateString: jest.fn(() => null),
+    }
     global.CommandBar = {
       showForm: jest.fn(),
       textPrompt: jest.fn().mockResolvedValue('typed'),

@@ -13,6 +13,37 @@ This page describes **which questions can share one form**, **what forces separa
 - On older versions of NotePlan, everything behaves as before: **one question at a time**.
 </Callout>
 
+## Frontmatter: turn off automatic combining for one template
+
+By default, back-to-back `prompt` / `promptDate` tags may share **one** Command Bar form. To force the **classic one-question-at-a-time** flow for **this template only**, set one of these keys in the template’s **frontmatter** properties:
+
+| Key | Values that disable batching | Effect |
+| --- | --- | --- |
+| **`onePromptAtATime`** | **Truthy** (`true`, `yes`, etc.) | Do **not** merge consecutive `prompt` / `promptDate` into one form; ask each in its own step. |
+| **`batchPrompts`** | **Falsy** (`false`, `no`, etc.) | Same as above — “don’t batch” wording. |
+
+You only need **one** of these; they are alternatives for the same behavior.
+
+```markdown
+---
+title: My template
+onePromptAtATime: true
+---
+
+# Body
+
+<%- prompt('a', 'First') %>
+<%- prompt('b', 'Second') %>
+```
+
+```markdown
+---
+batchPrompts: false
+---
+```
+
+**Does not apply** to the explicit **`promptForm({ ... })`** tag — that always opens a single declared form when Command Bar forms are available.
+
 ## How “one form” vs “several steps” is decided
 
 Think of your template as a **list of prompt tags in order, top to bottom**.

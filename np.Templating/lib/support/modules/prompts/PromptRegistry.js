@@ -8,9 +8,9 @@ import pluginJson from '../../../../plugin.json'
 import { getTags } from '../../../shared/templateUtils'
 import {
   handlePromptResponse,
-  notePlanSupportsCommandBarForms,
   replacePromptResultInTemplate,
   runCommandBarFormBatch,
+  shouldOfferConsecutivePromptFormBatch,
   tryCollectFormBatch,
 } from './promptFormBatch'
 import { parseTagContent } from './promptTagParse'
@@ -271,7 +271,7 @@ export async function processPrompts(templateData: string, initialSessionData: a
       const tag = tagsArray[tagIdx]
       if (!isPromptTag(tag)) continue
 
-      if (notePlanSupportsCommandBarForms()) {
+      if (shouldOfferConsecutivePromptFormBatch(sessionData)) {
         try {
           const batchInfo = tryCollectFormBatch(tagsArray, tagIdx, sessionData)
           if (batchInfo && batchInfo.tags.length >= 2) {
