@@ -61,7 +61,7 @@ import { getOpenTasksAndChildren } from '@helpers/parentsAndChildren'
 
 import { formatWithNotePlanWeeks } from '@helpers/notePlanWeekFormatter'
 
-import { escapeRegExp } from '@helpers/regex'
+import { escapeRegExp } from '@helpers/regexEscape'
 
 import { semverVersionToNumber } from '@helpers/utils'
 

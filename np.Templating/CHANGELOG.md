@@ -8,6 +8,10 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 
 ## [2.3.1] 2026-04-14 @dwertheimer
 
+### Fixed
+
+- **macOS 12 (Monterey) / older JavaScriptCore**: Removed RegExp negative lookbehind from `convertEJSClosingTags` in `templateUtils.js` (replaced with a replace callback) so template rendering no longer throws `Invalid regular expression: invalid group specifier name`. Templating now imports `escapeRegExp` from `@helpers/regexEscape` instead of `@helpers/regex` so the plugin bundle does not need to evaluate `helpers/regex.js` literals that use the same class of syntax.
+
 ### Added
 - **`promptForm({ ... })`**: Explicit **single-tag** Command Bar multi-field form. Pass a JSON5 object with `title`, `submitText`, and `fields` (`string`, `number`, `bool`, `date`, `hidden`); each field `key` is written to session for use as `<%- key %>`. Uses `CommandBar.showForm` when `usersVersionHas('commandBarForms')`; otherwise asks fields **sequentially** (text / choices / date). Cancel returns `false` like other prompts; invalid config yields an HTML error comment.
 

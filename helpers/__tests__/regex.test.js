@@ -1,7 +1,9 @@
 /* globals describe, expect, test */
 
 import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
-import { RE_BARE_URI_MATCH_G, RE_TEAMSPACE_NOTE_UUID } from '../regex'
+import { markdownRegex } from '../markdown-regex'
+import { escapeRegExp, NP_RE_link, RE_BARE_URI_MATCH_G, RE_TEAMSPACE_NOTE_UUID } from '../regex'
+import { escapeRegExp as escapeRegExpDirect } from '../regexEscape'
 
 // Make DataStore and Editor available globally for the source code
 global.DataStore = DataStore
@@ -114,6 +116,55 @@ describe('Tests for RE_BARE_URI_MATCH_G', () => {
     expect(matches[0][1]).toBe('https://example.com')
     expect(matches[1][1]).toBe('www.test.org')
     expect(matches[2][1]).toBe('https://another.com')
+  })
+})
+
+describe('regex.js re-exports escapeRegExp from regexEscape', () => {
+  test('escapeRegExp matches regexEscape module', () => {
+    expect(escapeRegExp('a+b')).toBe(escapeRegExpDirect('a+b'))
+  })
+})
+
+describe('NP_RE_link (no RegExp lookbehind — macOS 12 / older JSC compatible)', () => {
+  test('matches https URL in prose', () => {
+    const m = 'Visit https://example.com today'.match(NP_RE_link)
+    expect(m).not.toBeNull()
+    expect(m[0]).toContain('https://example.com')
+  })
+
+  test('does not include trailing period in matched URL when period is sentence punctuation', () => {
+    const m = 'Read https://example.com. Then continue.'.match(NP_RE_link)
+    expect(m).not.toBeNull()
+    expect(m[0]).toBe('https://example.com')
+  })
+
+  test('matches bare domain with listed TLD', () => {
+    const m = 'Go to foo.com for details'.match(NP_RE_link)
+    expect(m).not.toBeNull()
+    expect(m[0]).toContain('foo.com')
+  })
+
+  test('matches URL with path and query', () => {
+    const m = 'Link https://a.example.org/p/q?x=1 end'.match(NP_RE_link)
+    expect(m).not.toBeNull()
+    expect(m[0]).toContain('https://a.example.org/p/q?x=1')
+  })
+})
+
+describe('markdownRegex.link pattern compiles and aligns with NP_RE_link behavior', () => {
+  test('link regex string has no lookbehind (?<= / (?<! ) and parses', () => {
+    const src = markdownRegex.link.regex
+    expect(src).not.toMatch(/\(\?<(?:=|!)/)
+    expect(() => new RegExp(src)).not.toThrow()
+  })
+
+  test('compiled markdown link regex matches https like NP_RE_link', () => {
+    const re = new RegExp(markdownRegex.link.regex)
+    const text = 'See https://example.com. Next'
+    const mNp = text.match(NP_RE_link)
+    const mMd = text.match(re)
+    expect(mNp && mMd).toBeTruthy()
+    expect(mMd[0]).toBe(mNp[0])
   })
 })
 

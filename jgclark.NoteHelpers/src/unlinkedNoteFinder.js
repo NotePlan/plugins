@@ -78,10 +78,10 @@ function findUnlinkedNotesInNote(currentNote: TNote, noteTitlesSortedByLength: A
 
   noteTitlesSortedByLength.forEach((note) => {
     if (currentNote.title !== note && content.includes(note)) {
-      content = content.replaceAll(buildRegex(note), (_) => {
+      content = content.replaceAll(buildRegex(note), (fullMatch, boundaryPrefix) => {
         logDebug(`Found link to: ${note}`)
         foundLinks++
-        return `[[${note}]]`
+        return `${boundaryPrefix}[[${note}]]`
       })
     }
   })
@@ -111,12 +111,15 @@ function findUnlinkedNotesInNote(currentNote: TNote, noteTitlesSortedByLength: A
  * - Is case-insensitive and performs a global search (flags 'gi').
  *
  * Breakdown of the regex pattern:
- * `w*(?<=[\\s,.:;"'])|^)`: Matches any leading whitespace or specific punctuation characters before the note title.
- * `(${sanitizeForRegex(noteTitle)})`: The sanitized note title to be matched.
- * `(?![^[\\]]{2})1: Negative lookahead to ensure the note title is  followed by two closing square brackets (]]).
+ * `(^|[\\s,.:;"'])`: Start of string or a boundary character (group 1, re-inserted on replace). Replaces the old
+ * `(w*(?<=[\\s,.:;"'])|^)` which used a RegExp lookbehind — unsupported on macOS 12 / older JavaScriptCore.
+ * `(${sanitizeForRegex(noteTitle)})`: The sanitized note title.
+ *
+ * Note: the historical `(?![^[\]]{2})` suffix parsed in a way that made its `{2}` quantifier ineffective in V8,
+ * so it was effectively a no-op; it is omitted for identical behavior without relying on that quirk.
  */
 export function buildRegex(noteTitle: string): RegExp {
-  return new RegExp(`(w*(?<=[\\s,.:;"'])|^)(${sanitizeForRegex(noteTitle)})(?![^[\]]{2})`, 'gi')
+  return new RegExp(`(^|[\\s,.:;"'])(${sanitizeForRegex(noteTitle)})`, 'gi')
 }
 
 /**

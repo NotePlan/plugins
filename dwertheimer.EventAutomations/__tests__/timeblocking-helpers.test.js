@@ -180,6 +180,10 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(tb.getDurationFromLine(" '2.5h", "'")).toEqual(150)
       expect(tb.getDurationFromLine(" '2.5m", "'")).toEqual(3)
       expect(tb.getDurationFromLine(" '2h5m", "'")).toEqual(125)
+      // Numbered capture groups (not (?<name>…)) — older JavaScriptCore
+      expect(tb.getDurationFromLine(" '1h30m", "'")).toEqual(90)
+      expect(tb.getDurationFromLine(" '.5h", "'")).toEqual(30)
+      expect(tb.getDurationFromLine(" '1h", "'")).toEqual(60)
     })
 
     test('addDurationToTasks ', () => {

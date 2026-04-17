@@ -193,7 +193,7 @@ export const markdownRegex = {
 
   link: {
     regex:
-      '((\\b([0-9a-zA-Z\\-\\.\\+]+):\\/\\/[^：\\s{}\\(\\)\\[<>±„"“]+(?<![\\.,;!"\\]\\*]))|[^：\\*\\s{}\\(\\)\\[<>±„"“]+\\.(com|org|edu|gov|uk|net|in|co\\.in|co\\.uk|co|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|mil|ac|kr|an|aq|at|bb|bw|cd|cy|dz|ec|ee|eg|et|fi|gh|gl|gr|hk|ht|hu|ie|il|iq|is|kh|kg|kz|lr|lv|nz|pe|pa|ph|pk|pl|pt|sg|tw|ua|me)(([\\/%]+[^：\\s{}\\(\\)\\[<>±]*)(?<![\\.,;!"\\]„"“])|$|(?=[^a-zA-Z])))',
+      '((\\b([0-9a-zA-Z\\-\\.\\+]+):\\/\\/[^：\\s{}\\(\\)\\[<>±„"“]*[^：\\s{}\\(\\)\\[<>±„"“\\.,;!"\\]\\*])|[^：\\*\\s{}\\(\\)\\[<>±„"“]+\\.(com|org|edu|gov|uk|net|in|co\\.in|co\\.uk|co|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|mil|ac|kr|an|aq|at|bb|bw|cd|cy|dz|ec|ee|eg|et|fi|gh|gl|gr|hk|ht|hu|ie|il|iq|is|kh|kg|kz|lr|lv|nz|pe|pa|ph|pk|pl|pt|sg|tw|ua|me)(([\\/%]+[^：\\s{}\\(\\)\\[<>±]*[^：\\s{}\\(\\)\\[<>±\\.,;!"\\]„"“])|$|(?=[^a-zA-Z])))',
     matchPosition: 1,
     type: 'link',
   },

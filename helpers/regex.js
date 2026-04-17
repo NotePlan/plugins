@@ -18,6 +18,9 @@
 //---------------------------------------------------------------------
 
 import { RE_DATE_TIME } from '@helpers/dateTime'
+import { escapeRegExp } from '@helpers/regexEscape'
+
+export { escapeRegExp }
 
 // Times, Dates
 export const RE_SCHEDULED_DATES_G: RegExp = />(today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?))/g // from Eduard, but tweaked to ignore ones that start with @ rather than >
@@ -169,8 +172,10 @@ export const NP_RE_todo: RegExp = /(^\h*[\*\-]{1} |^\h*[0-9]+[\.\)] )(?:(?!\[[x\
 export const NP_RE_tabbed: RegExp = /^(\t+)(?:[\*\-\>]{1} .*|[0-9]+[\.\)] .*)$/
 export const NP_RE_quote_mark: RegExp = /(^\h*> )(.*)/
 export const NP_RE_quote_content: RegExp = /(^\h*> )(.*)/
+// No RegExp lookbehind: not supported on macOS 12 / older JavaScriptCore. Trailing punctuation
+// exclusion is expressed as "last URL char must not be in this set" (equivalent to +(?<![set])).
 export const NP_RE_link: RegExp =
-  /((\b([0-9a-zA-Z\-\.\+]+):\/\/[^：\s{}\[<>±„\"“]+(?<![\.,;!\"\]\*]))|[^：\*\s{}\(\)\[<>±„\"“]+\.(com|org|edu|gov|uk|net|in|co\.in|co\.uk|co|cn|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|mil|ac|kr|an|aq|at|bb|bw|cd|cy|dz|ec|ee|eg|et|fi|gh|gl|gr|hk|ht|hu|ie|il|iq|is|kh|kg|kz|lr|lv|nz|pe|pa|ph|pk|pl|pt|sg|tw|ua|me|tr|cc)(([\/%]+[^：\s{}\[<>±]*)(?<![\.,;!\"\]„\"“])|$|(?=[^a-zA-Z])))/ // for any URIs
+  /((\b([0-9a-zA-Z\-\.\+]+):\/\/[^：\s{}\[<>±„\"“]*[^：\s{}\[<>±„\"“\.,;!\"\]\*])|[^：\*\s{}\(\)\[<>±„\"“]+\.(com|org|edu|gov|uk|net|in|co\.in|co\.uk|co|cn|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|mil|ac|kr|an|aq|at|bb|bw|cd|cy|dz|ec|ee|eg|et|fi|gh|gl|gr|hk|ht|hu|ie|il|iq|is|kh|kg|kz|lr|lv|nz|pe|pa|ph|pk|pl|pt|sg|tw|ua|me|tr|cc)(([\/%]+[^：\s{}\[<>±]*[^：\s{}\[<>±\.,;!\"\]„\"“])|$|(?=[^a-zA-Z])))/ // for any URIs
 export const NP_RE_schedule_to_date_link: RegExp =
   /[>@](today|tomorrow|yesterday|(([0-9]{4})-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])))( ((0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]( ?[aApP][mM])?))?/
 export const NP_RE_done_date: RegExp = /@done\((([0-9]{4})-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))( ((0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]( ?[aApP][mM])?))?\)/
@@ -238,17 +243,3 @@ export function isCalendarNoteFilename(stringToTest: string): boolean {
   return /^\d{4}\d{2}\d{2}\.(md|txt)$/.test(stringToTest)
 }
 
-/**
- * Escapes RegExp special characters in a string
- * Because if you are using a user-created string in a `new RegExp()` command, you need to worry about whether
- * The user has included reserved chars in there. If so, you need to double-escape them so they are treated as strings
- * Usage:
- * const sanitizedBlockName = escapeRegExp(unsafeString);
- * const regex = new RegExp(sanitizedBlockName, 'gi');
- * @param {string} str - The string to escape.
- * @return {string} The escaped string.
- */
-export function escapeRegExp(str: string): string {
-  // RegExp special characters and their escape sequence
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}

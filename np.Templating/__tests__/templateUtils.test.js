@@ -4,8 +4,10 @@
 
 import { CustomConsole } from '@jest/console'
 import { describe, test, expect, beforeAll } from '@jest/globals'
-import { convertEJSClosingTags } from '../lib/shared/templateUtils.js'
+import fs from 'fs'
+import path from 'path'
 import { simpleFormatter, DataStore } from '@mocks/index'
+import { convertEJSClosingTags, getTags } from '../lib/shared/templateUtils.js'
 
 beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter)
@@ -46,6 +48,12 @@ describe('convertEJSClosingTags', () => {
   test('should NOT convert <% %> tags that already have -%>', () => {
     const input = '<% if (condition) { -%>Hello World<% } -%>'
     const expected = '<% if (condition) { -%>Hello World<% } -%>'
+    expect(convertEJSClosingTags(input)).toBe(expected)
+  })
+
+  test('should NOT convert <% %> tags that already have _%>', () => {
+    const input = '<% if (condition) { _%>Hello World<% } _%>'
+    const expected = '<% if (condition) { _%>Hello World<% } _%>'
     expect(convertEJSClosingTags(input)).toBe(expected)
   })
 
@@ -121,5 +129,27 @@ describe('convertEJSClosingTags', () => {
 <% } -%>`
 
     expect(convertEJSClosingTags(input)).toBe(expected)
+  })
+})
+
+describe('getTags', () => {
+  test('returns empty array for empty template string', async () => {
+    await expect(getTags('')).resolves.toEqual([])
+  })
+
+  test('captures multiline EJS tags (dotAll)', async () => {
+    const template = 'a <% \n line1 \n line2 \n %> b'
+    const tags = await getTags(template)
+    expect(tags).toHaveLength(1)
+    expect(tags[0]).toContain('line1')
+    expect(tags[0]).toContain('line2')
+  })
+})
+
+describe('convertEJSClosingTags — RegExp syntax (older JavaScriptCore)', () => {
+  test('does not rely on lookbehind in source (guard for macOS 12)', () => {
+    const filePath = path.join(__dirname, '../lib/shared/templateUtils.js')
+    const src = fs.readFileSync(filePath, 'utf8')
+    expect(src).not.toMatch(/\(\?<(?:=|!)/)
   })
 })

@@ -13,7 +13,7 @@ import { cleanVarName, findMatchingPromptType, isPromptTag } from './promptTypes
 import { parseTagContent } from './promptTagParse'
 import { clo, logDebug, logWarn } from '@helpers/dev'
 import { usersVersionHas } from '@helpers/NPVersions'
-import { escapeRegExp } from '@helpers/regex'
+import { escapeRegExp } from '@helpers/regexEscape'
 
 /** Default ISO-style format for CommandBar.showForm date fields (Swift-style pattern). */
 const SHOW_FORM_DATE_FORMAT_DEFAULT = 'yyyy-MM-dd'

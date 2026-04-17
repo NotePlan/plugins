@@ -168,9 +168,13 @@ export function makeAllItemsTodos(paras: Array<TParagraph>): Array<TParagraph> {
   })
 }
 
-// $FlowIgnore - can't find a Flow type for RegExp
+// Numbered groups only: named groups (?<name>...) are not supported on macOS 12 / older JavaScriptCore.
+// Group 2 = hours number, group 5 = minutes number (when present).
 export const durationRegEx = (durationMarker: string) =>
-  new RegExp(`\\s*${durationMarker}((?<hours>[0-9]+\\.?[0-9]*|\\.[0-9]+)(hours|hour|hr|h))?((?<minutes>[0-9]+\\.?[0-9]*|\\.[0-9]+)(minutes|mins|min|m))?`, 'mg')
+  new RegExp(
+    `\\s*${durationMarker}(([0-9]+\\.?[0-9]*|\\.[0-9]+)(hours|hour|hr|h))?(([0-9]+\\.?[0-9]*|\\.[0-9]+)(minutes|mins|min|m))?`,
+    'mg',
+  )
 
 export const removeDurationParameter = (text: string, durationMarker: string): string => text.replace(durationRegEx(durationMarker), '').trim()
 
@@ -179,8 +183,8 @@ export function getDurationFromLine(line: string, durationMarker: string): numbe
   const match = regex.exec(line)
   let mins = 0
   if (match) {
-    const hours = match?.groups?.hours ? Number(match.groups.hours) : 0
-    const minutes = match?.groups?.minutes ? Number(match.groups.minutes) : 0
+    const hours = match[2] != null && match[2] !== '' ? Number(match[2]) : 0
+    const minutes = match[5] != null && match[5] !== '' ? Number(match[5]) : 0
     mins = Math.ceil(hours * 60 + minutes)
   }
   clo(match, `+++++++ getDurationFromLine match=${String(match)}, so setting mins=${mins} for "${line}"; match groups=`)

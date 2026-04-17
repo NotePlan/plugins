@@ -109,3 +109,19 @@ describe('Regex tests for various specific terms', () => {
     })
   })
 })
+
+describe('buildRegex replace callback (boundary prefix, no lookbehind)', () => {
+  test('preserves leading space when inserting [[link]]', () => {
+    const note = 'example'
+    const input = 'Check this example today'
+    const out = input.replaceAll(buildRegex(note), (_full, boundary) => `${boundary}[[${note}]]`)
+    expect(out).toBe('Check this [[example]] today')
+  })
+
+  test('preserves comma boundary when inserting [[link]]', () => {
+    const note = 'Bar'
+    const input = 'Foo, Bar baz'
+    const out = input.replaceAll(buildRegex(note), (_full, boundary) => `${boundary}[[${note}]]`)
+    expect(out).toBe('Foo, [[Bar]] baz')
+  })
+})
