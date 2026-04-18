@@ -398,8 +398,12 @@ export class Project {
         DataStore.updateCache(this.note, true)
       }
 
+      // Get the single metadata line (where it still exists; we're now trying to remove them from the note body)
       paras = this.note.paragraphs
-      const metadataLineIndex = getProjectMetadataLineIndex(this.note)
+      const metadataLineIndex = getProjectMetadataLineIndex(
+        this.note,
+        metadataBodyLineIndex === false ? false : undefined,
+      )
       this.metadataParaLineIndex = metadataLineIndex === false ? NaN : metadataLineIndex
       let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
       let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date

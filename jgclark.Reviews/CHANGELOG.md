@@ -3,6 +3,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 ## [2.0.0.b20] - 2026-04-18
 - dev: fix small issues found by Cursor
+- dev: avoid two calls to getMetadataLineIndexFromBody() in Project constructors
 - dev: removed editSettings for iOS (no longer needed)
 - add more info to user if settings.json cannot be found
 - tighten detection of body metadata to exclude lines starting `#`

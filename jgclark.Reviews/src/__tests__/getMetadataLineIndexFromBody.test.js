@@ -1,4 +1,5 @@
 /* globals beforeAll, describe, expect, test */
+// @flow
 
 import { getMetadataLineIndexFromBody, getProjectMetadataLineIndex } from '../reviewHelpers'
 import { Note } from '@mocks/index'
@@ -87,6 +88,28 @@ describe('getProjectMetadataLineIndex', () => {
     expect(projectLineIndex).toBeGreaterThan(0)
     const actualIndex = getProjectMetadataLineIndex((note: any))
     expect(actualIndex).toBe(projectLineIndex)
+  })
+
+  test('cached false skips body scan but matches full call for frontmatter-only metadata', () => {
+    preferenceValues['projectMetadataFrontmatterKey'] = 'project'
+
+    const note = new Note({
+      title: 'Example',
+      filename: 'example.md',
+      content:
+        '---\n' +
+        'project: #project @review(1m)\n' +
+        '---\n' +
+        '# Example\n' +
+        '\n' +
+        'Body line 1\n',
+    })
+
+    const fullScan = getProjectMetadataLineIndex((note: any))
+    const withCachedFalse = getProjectMetadataLineIndex((note: any), false)
+    expect(withCachedFalse).toBe(fullScan)
+    const projectLineIndex = note.paragraphs.findIndex((p: any) => String(p.content).startsWith('project:'))
+    expect(fullScan).toBe(projectLineIndex)
   })
 
   test('matches body-only helper when metadata is in the note body', () => {

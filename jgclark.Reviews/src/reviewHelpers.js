@@ -9,6 +9,7 @@
 // Import Helper functions
 import { getActivePerspectiveDef, getAllowedFoldersInCurrentPerspective, getPerspectiveSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
 import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
+import { WEBVIEW_WINDOW_ID as DASHBOARD_WINDOW_ID} from '../../jgclark.Dashboard/src/constants'
 import { type Progress } from './projectClass'
 import { checkBoolean, checkString } from '@helpers/checkType'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -26,6 +27,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { escapeRegExp } from '@helpers/regex'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttribute, noteHasFrontMatter, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { getFieldParagraphsFromNote } from '@helpers/paragraph'
 import { getHashtagsFromString } from '@helpers/stringTransforms'
 import { showMessage } from '@helpers/userInput'
@@ -189,9 +191,9 @@ function getNoteFromNoteLike(noteLike: CoreNoteFields | TEditor): CoreNoteFields
 /**
  * Get config settings
  * @author @jgclark
- * @return {ReviewConfig} object with configuration
+ * @return {?ReviewConfig} object with configuration, or null if no settings found
  */
-export async function getReviewSettings(externalCall: boolean = false): Promise<ReviewConfig> {
+export async function getReviewSettings(externalCall: boolean = false): ?Promise<ReviewConfig> {
   try {
     logDebug('getReviewSettings', `Starting${externalCall ? ' from a different plugin' : ''} ...`)
     // Get settings
@@ -253,9 +255,6 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
       // logDebug('getReviewSettings', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
       config.includedTeamspaces = currentPerspective.dashboardSettings?.includedTeamspaces ?? ['private']
       // logDebug('getReviewSettings', `- includedTeamspaces: [${String(config.includedTeamspaces)}]`)
-
-      const validFolders = getAllowedFoldersInCurrentPerspective(perspectiveSettings)
-      // logDebug('getReviewSettings', `-> validFolders for '${config.perspectiveName}': [${String(validFolders)}]`)
     }
 
     // Ensure following have sensible defaults if missing from settings
@@ -291,7 +290,7 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
  */
 export function calcNextReviewDate(lastReviewDate: string | Date, interval: string): ?string {
   try {
-    if (typeof lastReviewDate !== 'string' && lastReviewDate === '') {
+    if (typeof lastReviewDate === 'string' && lastReviewDate === '') {
       return todaysDateISOString
     }
     const lastReviewDateStr: string = lastReviewDate instanceof Date ? toISODateString(lastReviewDate) :  lastReviewDate !== '' ? String(lastReviewDate) : todaysDateISOString
@@ -325,7 +324,7 @@ export function getParamMentionFromList(mentionList: $ReadOnlyArray<string>, men
  */
 export function getNextActionLineIndex(note: CoreNoteFields, naTag: string): number {
   // logDebug('getNextActionLineIndex', `Checking for @${naTag} in ${displayTitle(note)} with ${note.paragraphs.length} paras`)
-  const NAParas = note.paragraphs.filter((p) => p.content.includes(naTag)) ?? []
+  const NAParas = note.paragraphs.filter((p) => p.content.includes(naTag))
   logDebug('getNextActionLineIndex', `Found ${NAParas.length} matching ${naTag} paras`)
   const result = NAParas.length > 0 ? NAParas[0].lineIndex : NaN
   return result
@@ -436,7 +435,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
 
 /**
  * Works out which body line (if any) of the current note is project-style metadata line, defined as
- * - line starting 'project:' or 'medadata:'
+ * - line starting 'project:' or 'metadata:'
  * - first line containing a @review() or @reviewed() mention
  * - first line starting with a hashtag.
  * @author @jgclark
@@ -471,11 +470,16 @@ export function getMetadataLineIndexFromBody(note: CoreNoteFields | TEditor): nu
  * Use this when mutating @mentions so frontmatter-only notes are updated.
  * TODO(later): remove the body part of this entirely (and getMetadataLineIndexFromBody())
  * @param {CoreNoteFields | TEditor} note
+ * @param {number | false | void} cachedBodyMetadataLineIndex - If `false`, skip `getMetadataLineIndexFromBody` (caller already knows there is no body metadata line). If a number, use as body line index without rescanning (only when note was not mutated since that scan). If omitted, scan the body as usual.
  * @returns {number | false}
  */
-export function getProjectMetadataLineIndex(note: CoreNoteFields | TEditor): number | false {
+export function getProjectMetadataLineIndex(
+  note: CoreNoteFields | TEditor,
+  cachedBodyMetadataLineIndex?: number | false,
+): number | false {
   try {
-    const bodyIdx = getMetadataLineIndexFromBody(note)
+    const bodyIdx =
+      cachedBodyMetadataLineIndex === undefined ? getMetadataLineIndexFromBody(note) : cachedBodyMetadataLineIndex
     if (bodyIdx !== false) return bodyIdx
     if (!noteHasFrontMatter(note)) return false
     const endFMIndex = endOfFrontmatterLineIndex(note)
@@ -956,30 +960,37 @@ export function deleteMetadataMentionInNote(noteToUse: CoreNoteFields, metadataL
 
 /**
  * Update Dashboard if it is open.
- * Note: Designed to fail silently if it isn't installed, or open.
  * It is called automatically whenever the allProjectsList is updated, regardless of which function triggers it:
  * - generateAllProjectsList → writeAllProjectsList → updateDashboardIfOpen
  * - updateProjectInAllProjectsList → writeAllProjectsList → updateDashboardIfOpen
  * - updateAllProjectsListAfterChange → writeAllProjectsList → updateDashboardIfOpen
+ * Note: Designed to fail silently if it isn't installed, or open.
+ * WARNING: Be careful of causing race conditions with Perspective changes in Dashboard.
  * @author @jgclark
  */
 export async function updateDashboardIfOpen(): Promise<void> {
-  // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
-  // WARNING: Be careful of causing race conditions with Perspective changes in Dashboard.
-
-  // v2 (internal invoke plugin command)
-  logInfo('updateDashboardIfOpen', `About to run Dashboard:refreshSectionByCode(...)`)
-  // Note: This covers codes from before and after Dashboard v2.4.0.b18. TODO(Later): remove the 'PROJ' code when v2.5.0 is released
-  // Note: Wrap array in another array because invokePluginCommandByName spreads the array as individual arguments. This avoids only the first array item being used.
-  const res = await DataStore.invokePluginCommandByName("refreshSectionsByCode", "jgclark.Dashboard", [['PROJACT', 'PROJREVIEW', 'PROJ']])
-  if (res == null) {
-    logError('updateDashboardIfOpen', `Failed to update Dashboard for some reason.`)
+  try {
+    if (!isHTMLWindowOpen(DASHBOARD_WINDOW_ID)) {
+      logDebug('updateDashboardIfOpen', `Dashboard not open, so won't proceed ...`)
+      return
+    }
+    // v2 (internal invoke plugin command)
+    logInfo('updateDashboardIfOpen', `About to run Dashboard:refreshSectionByCode(...)`)
+    // Note: This covers codes from before and after Dashboard v2.4.0.b18. TODO(Later): remove the 'PROJ' code when v2.5.0 is released
+    // Note: Wrap array in another array because invokePluginCommandByName spreads the array as individual arguments. This avoids only the first array item being used.
+    const res = await DataStore.invokePluginCommandByName("refreshSectionsByCode", "jgclark.Dashboard", [['PROJACT', 'PROJREVIEW', 'PROJ']])
+    if (res == null) {
+      logError('updateDashboardIfOpen', `Failed to update Dashboard for some reason.`)
+    }
+  } catch (error) {
+    logError('updateDashboardIfOpen', `${error.message}`)
   }
 }
 
 /**
- * English plural for simple count labels (task/tasks, item/items).
- * @param {'task' | 'item'} noun
+ * Pluralise a word based on the count.
+ * Note: Currently only supports English, but designed to be extended to other languages with different rule sets, by adding rulesets.
+ * @param {string} noun - the word to pluralise (e.g. 'task', 'item')
  * @param {number | string} count - numeric string (e.g. locale-formatted) is parsed
  * @returns {string}
  */

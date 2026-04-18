@@ -72,7 +72,6 @@ import { getOrOpenEditorFromFilename, getOpenEditorFromFilename, isNoteOpenInEdi
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import {
-  // findEditorWindowByFilename,
   isHTMLWindowOpen, logWindowsList,
   openNoteInSplitViewIfNotOpenAlready,
   setEditorWindowId
@@ -242,6 +241,10 @@ export async function renderProjectLists(
 ): Promise<void> {
   try {
     const config = (configIn) ? configIn : await getReviewSettings()
+    if (config == null) {
+      await showMessage('No Projects & Reviews settings found. Stopping. Please try deleting and re-installing the plugin.')
+      throw new Error('No config found. Stopping.')
+    }
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -252,7 +255,7 @@ export async function renderProjectLists(
       await renderProjectListsHTML(config, shouldOpen, scrollPos)
     }
   } catch (error) {
-    logError('renderProjectLists', `Error: ${error.message}. configIn: ${JSP(configIn, 2)}`)
+    logError('renderProjectLists', `Error: ${error.message}.\nconfigIn: ${JSP(configIn, 2)}`)
   }
 }
 
@@ -353,15 +356,15 @@ export async function renderProjectListsHTML(
     // Generate top bar HTML (uses config.tagActiveCounts for dropdown tag counts)
     outputArray.push(buildProjectListTopBarHtml(config))
 
-    // Start multi-col working (if space)
-    outputArray.push(`<div class="multi-cols">`)
-
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
     const noteCount = projectsToReview.length
     if (useDemoData && noteCount === 0) {
       outputArray.push('<p class="project-grid-row demo-file-message">Demo file (allProjectsDemoList.json) not found or empty.</p>')
     }
     if (noteCount > 0) {
+      // Start multi-col working (if space)
+      outputArray.push(`<div class="multi-cols">`)
+
       let lastFolder = ''
       for (const thisProject of projectsToReview) {
         if (!useDemoData) {
@@ -390,7 +393,7 @@ export async function renderProjectListsHTML(
             }
           }
           if (thisProject.folder === '/') folderPart = '(root folder)'
-          outputArray.push(buildFolderGroupHeaderHtml(folderPart, config))
+          outputArray.push(buildFolderGroupHeaderHtml(folderPart))
         }
         const wantedTagsForRow = (thisProject.allProjectTags != null && wantedTags.length > 0)
           ? thisProject.allProjectTags.filter(t => wantedTags.includes(t))
@@ -435,7 +438,7 @@ export async function renderProjectListsHTML(
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 660, // = default width of window (px)
       height: 1200, // = default height of window (px)
-      shouldFocus: false, // shouuld not focus, if Window already exists
+      shouldFocus: false, // should not focus, if Window already exists
       // If we should open in main/split view, or the default new window
       showInMainWindow: config.preferredWindowType !== 'New Window',
       splitView: config.preferredWindowType === 'Split View',
@@ -505,7 +508,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         if (note != null) {
           const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`{"projectTypeTags":["${tag}"]}`))
 
-          // Get the summary line for each revelant project
+          // Get the summary line for each relevant project
           const [outputArray, noteCount, due] = await generateReviewOutputLines(tag, 'Markdown', config)
           logTimer('renderProjectListsMarkdown', funcTimer, `after generateReviewOutputLines(${tag}) for ${String(due)} projects`)
           if (isNaN(noteCount)) logWarn('renderProjectListsMarkdown', `Warning: noteCount is NaN`)
@@ -735,7 +738,7 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
  */
 async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
@@ -890,17 +893,11 @@ async function startReviewCoreLogic(
   await setReviewingProjectInHTML(noteToReview, true)
   logInfo(logContext, `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
 
-  // FIXME: TEST: This needs to be smarter:
+  // TEST: This needs to be smarter:
   // - check if note is already open in one of the Editor windows. If so just focus it. Otherwise open it in the Editor (if running from 'New Window' or 'Split View' mode), or a new split view if not.
   // V1
   // const possibleEditor: TEditor | false = findEditorWindowByFilename(noteToReview.filename)
-  // if (possibleEditor !== false) {
-  //   logInfo(logContext, `- Note '${displayTitle(noteToReview)}' is already open in Editor window '${possibleEditor.id}'. Focusing it.`)
-  //   possibleEditor.focus()
-  // } else {
-  //   logInfo(logContext, `- Note '${displayTitle(noteToReview)}' is not open in any Editor window. Opening it in a new Editor window.`)
-  //   await Editor.openNoteByFilename(noteToReview.filename)
-  // }
+  // etc.
 
   // V2
   if (config.preferredWindowType === 'Main Window') {
@@ -931,7 +928,7 @@ async function startReviewCoreLogic(
  */
 export async function startReviews(): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     // Get the next note to review, based on allProjectsList, ordered by most overdue for review.
@@ -950,13 +947,13 @@ export async function startReviews(): Promise<void> {
 
 /**
  * Start a single project review.
- * Note: Used by Project List dialog (and Dashboard in future?)
+ * Note: Used by Project List dialog (and Dashboard in future?). So bypasses startReviewCoreLogic() but should remain very similar.
  * @param {TNote} noteToReview - the note to start reviewing
  * @author @jgclark
  */
 export async function startReviewForNote(noteToReview: TNote): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     logInfo('startReviewForNote', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
@@ -1036,7 +1033,7 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
 export async function finishReviewAndStartNextReview(): Promise<void> {
   try {
     logDebug('finishReviewAndStartNextReview', `Starting`)
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     // Finish review of the current project
@@ -1067,8 +1064,8 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
  */
 async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: string = ''): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (config == null) throw new Error('No config found. Stopping.')
     logDebug('skipReviewCoreLogic', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
     let newDateStr: string = ''
 
@@ -1158,7 +1155,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
  */
 export async function skipReview(): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
     const currentNote = Editor
     if (!currentNote || currentNote.type !== 'Notes') {
@@ -1198,7 +1195,7 @@ export async function skipReview(): Promise<void> {
  */
 export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     if (!note || note.type !== 'Notes') {
@@ -1223,8 +1220,8 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
  */
 export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (config == null) throw new Error('No config found. Stopping.')
     logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
     const note: CoreNoteFields = noteArg ? noteArg : Editor
     if (!note || note.type !== 'Notes') {
@@ -1299,7 +1296,7 @@ export async function toggleDisplayFinished(): Promise<void> {
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
     // v2 directly update settings.json instead
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     const savedValue = config.displayFinished ?? true
@@ -1309,7 +1306,7 @@ export async function toggleDisplayFinished(): Promise<void> {
     const updatedConfig = config
     updatedConfig.displayFinished = newValue
     // logDebug('toggleDisplayFinished', `updatedConfig.displayFinished? now is '${String(updatedConfig.displayFinished)}'`)
-    const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+    const _res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
     // clo(updatedConfig, 'updatedConfig at end of toggle...()')
     // TODO: how to get scrollPos?
     await renderProjectListsIfOpen(updatedConfig)
@@ -1326,7 +1323,7 @@ export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
     // v2 directly update settings.json instead
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     const savedValue = config.displayOnlyDue ?? true
@@ -1335,7 +1332,7 @@ export async function toggleDisplayOnlyDue(): Promise<void> {
     const updatedConfig = config
     updatedConfig.displayOnlyDue = newValue
     // logDebug('toggleDisplayOnlyDue', `updatedConfig.displayOnlyDue? now is '${String(updatedConfig.displayOnlyDue)}'`)
-    const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+    const _res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
     // clo(updatedConfig, 'updatedConfig at end of toggle...()')
     // TODO: how to get scrollPos?
     await renderProjectListsIfOpen(updatedConfig)
@@ -1351,7 +1348,7 @@ export async function toggleDisplayOnlyDue(): Promise<void> {
 export async function toggleDisplayNextActions(): Promise<void> {
   try {
     // v2 directly update settings.json
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     const savedValue = config.displayNextActions ?? false
@@ -1360,7 +1357,7 @@ export async function toggleDisplayNextActions(): Promise<void> {
     const updatedConfig = config
     updatedConfig.displayNextActions = newValue
     // logDebug('toggleDisplayNextActions', `updatedConfig.displayNextActions? now is '${String(updatedConfig.displayNextActions)}'`)
-    const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+    const _res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
     // clo(updatedConfig, 'updatedConfig at end of toggle...()')
     // TODO: how to get scrollPos?
     await renderProjectListsIfOpen(updatedConfig)
@@ -1382,7 +1379,7 @@ export async function saveDisplayFilters(data: {
   displayOrder?: string,
 }): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     config.displayOnlyDue = data.displayOnlyDue
@@ -1396,22 +1393,5 @@ export async function saveDisplayFilters(data: {
     await renderProjectListsIfOpen(config)
   } catch (error) {
     logError('saveDisplayFilters', error.message)
-  }
-}
-
-/**
- * Pluralise a word based on the count.
- * Note: Currently only supports English, but designed to be extended to other languages with different rule sets, by adding rulesets.
- * @param {string} identifier - the word to pluralise
- * @param {number} count - the number of items
- * @returns {string} the pluralised word
- */
-export function pluralise(identifier: string, count: number): string {
-  // const localeLanguage = NotePlan.environment.languageCode ?? 'en'
-  const localeLanguage = 'en'
-  if (localeLanguage === 'en') {
-    return (count === 1) ? `${identifier}` : `${identifier}s`
-  } else {
-    return (count === 1) ? `${identifier}` : `${identifier}s`
   }
 }
