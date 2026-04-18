@@ -503,6 +503,32 @@ describe(`${FILE}`, () => {
     })
   })
 
+  describe('getContentFromBrackets()' /* function */, () => {
+    test('returns undefined for empty string', () => {
+      expect(g.getContentFromBrackets('')).toBeUndefined()
+    })
+    test('returns first parenthesized segment (non-greedy)', () => {
+      expect(g.getContentFromBrackets('@review(2w)')).toEqual('2w')
+      expect(g.getContentFromBrackets('prefix @mention(abc) suffix')).toEqual('abc')
+    })
+    test('returns undefined when there are no parentheses', () => {
+      expect(g.getContentFromBrackets('@review')).toBeUndefined()
+      expect(g.getContentFromBrackets('plain text')).toBeUndefined()
+    })
+    test('returns undefined when parentheses are empty', () => {
+      expect(g.getContentFromBrackets('@review()')).toBeUndefined()
+    })
+    test('returns content including inner parentheses up to first closing paren', () => {
+      expect(g.getContentFromBrackets('x(a(b)c)')).toEqual('a(b')
+    })
+    test('returns whitespace-only capture when brackets contain only spaces', () => {
+      expect(g.getContentFromBrackets('x(   )')).toEqual('   ')
+    })
+    test('returns a date string from a particular user error case', () => {
+      expect(g.getContentFromBrackets('@start(3/14/26)')).toEqual('3/14/26')
+    })
+  })
+
   /*
    * getTagParamsFromString()
    * NB: an async function
@@ -539,6 +565,26 @@ describe(`${FILE}`, () => {
     test('should return NaN (requires less strict JSON5)', async () => {
       const result = await g.getTagParamsFromString('{area:NaN, template:"BAR",}', 'area', 'default')
       expect(result).toEqual(NaN)
+    })
+    test('returns error string for malformed JSON5', async () => {
+      const result = await g.getTagParamsFromString('{area:broken', 'area', 'default')
+      expect(result).toEqual('❗️error')
+    })
+    test('returns error string when parse result is not an object (e.g. string)', async () => {
+      const result = await g.getTagParamsFromString('"only-a-string"', 'area', 'default')
+      expect(result).toEqual('❗️error')
+    })
+    test('returns error string when root JSON value is null', async () => {
+      const result = await g.getTagParamsFromString('null', 'area', 'default')
+      expect(result).toEqual('❗️error')
+    })
+    test('returns default when key is missing on a parsed array root', async () => {
+      const result = await g.getTagParamsFromString('[1,2,3]', 'area', 'default')
+      expect(result).toEqual('default')
+    })
+    test('returns boolean and number defaults unchanged when key missing', async () => {
+      expect(await g.getTagParamsFromString('{}', 'missing', false)).toEqual(false)
+      expect(await g.getTagParamsFromString('{}', 'missing', 0)).toEqual(0)
     })
   })
 })

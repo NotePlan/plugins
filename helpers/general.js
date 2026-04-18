@@ -468,22 +468,24 @@ export function getStringFromList(list: $ReadOnlyArray<string>, search: string):
 
 /**
  * Extract contents of bracketed part of a string (e.g. '@mention(something)').
+ * Note: doesn't handle nested parentheses.
  * @author @jgclark
+ * @tests in jest file, written by @jgclark + @Cursor
  * @param {string} - string that contains a bracketed mention e.g. @review(2w)
  * @return {?string} - string from between the brackets, if found (e.g. '2w')
  */
 export function getContentFromBrackets(mention: string): ?string {
-  const RE_BRACKETS_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside parantheses
-
   if (mention === '') {
     return // no text, so return nothing
   }
-  const res = mention.match(RE_BRACKETS_STRING_CAPTURE) ?? []
-  if (res[1].length > 0) {
+  const RE_BRACKETS_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside parantheses
+
+  const res = mention.match(RE_BRACKETS_STRING_CAPTURE)
+  // When there is no match, match() is null — do not default to [] or res[1] is undefined and .length throws.
+  if (res != null && res[1] != null && res[1].length > 0) {
     return res[1]
-  } else {
-    return
   }
+  return
 }
 
 type Replacement = { key: string, value: string }
@@ -508,7 +510,8 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
  * Get a particular parameter setting from a JSON5 parameter string
  * Note: Replaces an earlier version called getTagParams
  * @author @dwertheimer
- *
+ * @tests in jest file, written by @Cursor
+ * 
  * @param {string} paramString - the contents of the template tag as a JSON5 string (e.g. either '{"template":"FOO", "area":"BAR"}' or '{template:"FOO", area:"BAR"}')
  * @param {string} wantedParam - the name of the parameter to get (e.g. 'template')
  * @param {any} defaultValue - default value to use if parameter not found
