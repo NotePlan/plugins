@@ -1,6 +1,55 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b20] - 2026-04-18
+- dev: fix small issues found by Cursor
+- dev: removed editSettings for iOS (no longer needed)
+- add more info to user if settings.json cannot be found
+- tighten detection of body metadata to exclude lines starting `#`
+- ??? think about a better time to do the migration of files
+
+## [2.0.0.b19] - 2026-04-16
+- **Finish review** uses the focused editor (`Editor.note`), not the first window in `NotePlan.editors`, so the correct note is updated when multiple editors are open.
+- Fix error clearing next-review fields
+- Stop saving plugin settings from opening the Project List window if it wasn't already open.
+- Fix **Finish review** (and other metadata updates) when project metadata lives only in YAML frontmatter: `@reviewed(...)` and related edits now target the frontmatter `project:` line, not only a body metadata line.
+- dev: `isProjectNoteIsMarkedSequential()` now uses `getProjectMetadataLineIndex()` when scanning the metadata line so `#sequential` is detected on the YAML `project:` line when there is no body metadata line.
+
+## [2.0.0.b18] - 2026-04-15
+- dev: In `Project` construction, when metadata exists in both frontmatter and note body, the body metadata line is now logged at INFO level and removed so frontmatter remains authoritative.
+- dev: When metadata exists only in the note body, this is now logged at INFO level and migrated using the standard note/editor migration helpers.
+- dev: Rename helper `getOrMakeMetadataLineIndex()` to `getMetadataLineIndexFromBody()`: it now only searches the note body and returns `false` when not found; callers now log DEBUG when body metadata is absent.
+
+## [2.0.0.b17] - 2026-03-14
+- **Add progress update** now uses the new Command Bar Form capability to ask for details in one step; older NotePlan versions keep the two separate prompts and always uses today's date in the progress line.
+
+## [2.0.0.b16] - 2026-03-13
+- dev: now pauses/unpauses the auto refresh timers when the rich window is hidden by NP
+- further layout improvements to top bar and edit dialog when project list displayed in a very narrow window
+- remove `nextReview` frontmatter when pausing, completing, or cancelling a project
+- change the sorting order for "(first) project tag" to come in the order that they're defined in setting "Project Display order", rather than simple alphabetical order (for @Doug)
+- dev: extract `migrateProjectMetadataLineCore` in reviewHelpers.js for Editor vs Note migration paths
+- dev: extract `startReviewCoreLogic` in reviews.js for `startReviews`, `startReviewForNote`, and `finishReviewAndStartNextReview`
+- dev: when pausing, update reviewed date and remove `nextReview` only; leave other separate frontmatter keys unchanged (full sync still used for complete/cancel/migration). Always apply frontmatter key removals after `updateFrontMatterVars` so `nextReview` is removed even if that helper returns false.
+- dev: consolidate `updateProjectMetadata` and `updateFrontmatterMetadataFromFields` into a single method (structured frontmatter + optional plain body paragraph update)
+
+## [2.0.0.b15] - 2026-03-29
+- add "(first) Project tag" as a sort order
+- dev: remove .projectTag and instead always use .allProjectTags.
+- fix `null% done` when no completed or open tasks.
+
+## [2.0.0.b14] - 2026-03-26
+- change default metadata write behavior: project date fields now write to separate frontmatter keys (`start`, `due`, `reviewed`, `completed`, `cancelled`, `nextReview`) instead of being embedded in the combined `project`/`metadata` value.
+- nudge base font size down 1pt, to be closer to the NP interface
+- tweak the timing on "due soon" and "review soon" indicators
+- dev: removed remaining TSV logic
+
+## [2.0.0.b13] - 2026-03-26
+- when invalid frontmatter metadata values are detected (like `review: @review()` or `due: @due()`), automatically remove the affected frontmatter key.
+- normalize mention-style date frontmatter values (e.g. `due: @due(2026-03-09)`) to plain date values (`due: 2026-03-09`) during Project constructor processing.
+- Handle frontmatter fields in a case-insensitive manner.
+- Fix gap at start of topbar if not showing Perspective.
+
 ## [2.0.0.b12] - 2026-03-22
 - improve multi-column layout
 - remove two config settings that should have been removed earlier.
@@ -65,6 +114,7 @@ The "Group by folder" now defaults to off.
 ## [1.3.1] - 2026-02-26
 - New setting "Theme to use for Project Lists": if set to a valid installed Theme name, the Rich project list window uses that theme instead of your current NotePlan theme. Leave blank to use your current theme.
 - Fixed edge case with adding progress updates and frontmatter.
+- Fixed malformed frontmatter mentions (e.g. `@review()` or `@due()`) causing repeated runtime processing; now logs at WARN level and safely ignores empty bracket values.
 
 ## [1.3.0] - 2026-02-20
 ### Display Improvements

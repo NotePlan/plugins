@@ -419,11 +419,11 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
     if (!activeDef) throw new Error(`getDashboardSettingsFromPerspective: getActivePerspectiveDef failed`)
     const prevDashboardSettings = await getDashboardSettings()
     if (!prevDashboardSettings) throw new Error(`getDashboardSettingsFromPerspective: getDashboardSettings failed`)
-    
+
     // Get defaults to ensure all section show settings are included
     // $FlowIgnore[incompatible-call] - getDashboardSettingsDefaults is exported from dashboardHelpers
     const defaults = getDashboardSettingsDefaults()
-    
+
     // apply the new perspective's settings to the main dashboard settings
     // Merge order: defaults -> prevDashboardSettings -> perspective settings
     // This ensures that if a perspective doesn't have a section show setting (like showProjectActiveSection),

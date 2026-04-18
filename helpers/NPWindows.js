@@ -47,12 +47,12 @@ export function logWindowsList(): void {
 
   let c = 0
   for (const win of NotePlan.editors) {
-    outputLines.push(`- ${String(c)}: ${win.windowType}: customId:'${win.customId ?? '-'}' filename:${win.filename ?? '-'} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
+    outputLines.push(`- E ${String(c)}: ${win.windowType}: customId:'${win.customId ?? '-'}' filename:${win.filename ?? '-'} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
     c++
   }
   c = 0
   for (const win of NotePlan.htmlWindows) {
-    outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? '-'}' ${win.isVisible ? '' : '❌ INVISIBLE'} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
+    outputLines.push(`- H ${String(c)}: ${win.type}: customId:'${win.customId ?? '-'}' ${win.isVisible ? '' : '❌ INVISIBLE'} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
     c++
   }
   logInfo('logWindowsList', outputLines.join('\n'))
@@ -615,17 +615,24 @@ export async function openNoteInNewSplitIfNeeded(filename: string): Promise<bool
 /**
  * Open a note in a split view using x-callback-url, but only if it is not already open in any Editor window.
  * Uses the 'reuseSplitView' openType so that a single split view is reused where possible.
- * Note: This is in place of `await   Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)` which doesn't have reuseSplitView option. (Yet.)
+ * Note: This is in place of `await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)` which doesn't have reuseSplitView option. (Yet.)
  * @author @jgclark
  * @param {string} filename - filename of the note to open
  * @returns {boolean} true if a new split view was opened, false if the note was already open
  */
 export function openNoteInSplitViewIfNotOpenAlready(filename: string, callingFunctionName?: string): boolean {
   try {
-    if (noteOpenInEditor(filename)) {
-      logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) Note '${filename}' is already open in an Editor window. Skipping.`)
+    const possibleEditor: TEditor | false = findEditorWindowByFilename(filename)
+    if (possibleEditor !== false) {
+      logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) Note '${filename}' is already open in Editor window '${possibleEditor.id}'. Focusing it.`)
+      possibleEditor.focus()
       return false
     }
+
+    // if (noteOpenInEditor(filename)) {
+    //   logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) Note '${filename}' is already open in an Editor window. Skipping.`)
+    //   return false
+    // }
 
     const splitOpenType = usersVersionHas('reuseSplitView') ? 'reuseSplitView' : 'splitView'
     const callbackUrl = createOpenOrDeleteNoteCallbackUrl(filename, 'filename', null, splitOpenType, false)

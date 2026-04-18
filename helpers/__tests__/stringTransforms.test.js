@@ -753,6 +753,11 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = st.stripHashtagsFromString(input)
       expect(result).toEqual('Text here')
     })
+    test('should strip hashtags containing dashes', () => {
+      const input = 'Text #tag-123 #bob-12-oh here'
+      const result = st.stripHashtagsFromString(input)
+      expect(result).toEqual('Text here')
+    })
     test('should not strip hashtag starting with number', () => {
       const input = 'Text #123tag should remain'
       const result = st.stripHashtagsFromString(input)
@@ -767,6 +772,77 @@ describe(`${PLUGIN_NAME}`, () => {
       const input = 'Text #tag '
       const result = st.stripHashtagsFromString(input)
       expect(result).toEqual('Text')
+    })
+  })
+
+
+  /*
+   * getHashtagsFromString()
+   */
+  describe('getHashtagsFromString()', () => {
+    test('should be empty from empty', () => {
+      const result = st.getHashtagsFromString('')
+      expect(result).toEqual([])
+    })
+    test('should get single hashtag at start', () => {
+      const input = '#tag at the beginning'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual(['#tag'])
+    })
+    test('should get single hashtag in middle', () => {
+      const input = 'This has #tag in the middle'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual(['#tag'])
+    })
+    test('should get single hashtag at end', () => {
+      const input = 'Text at the end #tag'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual(['#tag'])
+    })
+    test('should get multiple hashtags', () => {
+      const input = 'This has #tag1 and #tag2 and #tag3 here'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual(['#tag1', '#tag2', '#tag3'])
+    })
+    test('should get hashtag after space', () => {
+      const input = 'Text #hashtag more text'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual(['#hashtag'])
+    })
+    test('should get hashtag in quotes', () => {
+      const input = 'quoted "#hashtag" text'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual(['#hashtag'])
+    })
+    test('should get hashtag in parenthesis', () => {
+      const input = 'Text (#hashtag) more'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual(['#hashtag'])
+    })
+    test('should get multi-part hashtag', () => {
+      const input = 'Text #Ephesians/3/20 more'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual(['#Ephesians/3/20'])
+    })
+    test('should get hashtag with underscores', () => {
+      const input = 'Text #tag_with_underscores here'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual(['#tag_with_underscores'])
+    })
+    test('should get hashtag with numbers', () => {
+      const input = 'Text #tag123 here'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual(['#tag123'])
+    })
+    test('should get hashtags containing dashes', () => {
+      const input = 'Text #tag-123 #bob-12-oh here'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual(['#tag-123', '#bob-12-oh'])
+    })
+    test('should not get hashtag starting with number', () => {
+      const input = 'Text #123tag should get nothing'
+      const result = st.getHashtagsFromString(input)
+      expect(result).toEqual([])
     })
   })
 

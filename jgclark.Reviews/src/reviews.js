@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-04-18 for v2.0.0.b13, @jgclark
+// Last updated 2026-04-16 for v2.0.0.b19, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -20,7 +20,7 @@ import { checkForWantedResources, logAvailableSharedResources, logProvidedShared
 import {
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
-  getOrMakeMetadataLineIndex,
+  getProjectMetadataLineIndex,
   getNextActionLineIndex,
   getReviewSettings,
   isProjectNoteIsMarkedSequential,
@@ -38,11 +38,10 @@ import {
   generateAllProjectsList,
   updateProjectInAllProjectsList,
 } from './allProjectsListHelpers.js'
-import { calcReviewFieldsForProject, Project } from './projectClass'
+import { calcReviewFieldsForProject, clearNextReviewMetadataFields, Project } from './projectClass'
 import {
   buildProjectLineForStyle,
   buildProjectListTopBarHtml,
-  buildProjectListGridPrefixHtml,
   buildProjectControlDialogHtml,
   buildFolderGroupHeaderHtml,
 } from './projectsHTMLGenerator.js'
@@ -54,10 +53,11 @@ import {
   commsBridgeScripts,
   shortcutsScript,
   autoRefreshScript,
-  setPercentRingJSFunc,
+  // setPercentRingJSFunc,
   addToggleEvents,
   displayFiltersDropdownScript,
   tagTogglesVisibilityScript,
+  windowCloseAndReopenScripts,
 } from './projectsHTMLTemplates.js'
 import { checkString } from '@helpers/checkType'
 import { getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
@@ -71,7 +71,12 @@ import { calcOffsetDateStr, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getOrOpenEditorFromFilename, getOpenEditorFromFilename, isNoteOpenInEditor, saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { isHTMLWindowOpen, logWindowsList, setEditorWindowId } from '@helpers/NPWindows'
+import {
+  // findEditorWindowByFilename,
+  isHTMLWindowOpen, logWindowsList,
+  openNoteInSplitViewIfNotOpenAlready,
+  setEditorWindowId
+} from '@helpers/NPWindows'
 import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -353,7 +358,6 @@ export async function renderProjectListsHTML(
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
     const noteCount = projectsToReview.length
-    outputArray.push(buildProjectListGridPrefixHtml(config))
     if (useDemoData && noteCount === 0) {
       outputArray.push('<p class="project-grid-row demo-file-message">Demo file (allProjectsDemoList.json) not found or empty.</p>')
     }
@@ -410,22 +414,26 @@ export async function renderProjectListsHTML(
   setScrollPos(${scrollPos});
 </script>`
 
+    const headerTags = `${faLinksInHeader}${stylesheetinksInHeader}
+  <meta name="startTime" content="${String(Date.now())}">
+  <meta name="autoUpdateAfterIdleTime" content="${String(config.autoUpdateAfterIdleTime ?? 0)}">`
+
     const winOptions = {
       windowTitle: useDemoData ? windowTitleDemo : windowTitle,
       customId: richWinId,
-      headerTags: `${faLinksInHeader}${stylesheetinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">\n<meta name="autoUpdateAfterIdleTime" content="${String(config.autoUpdateAfterIdleTime ?? 0)}">`,
+      headerTags: headerTags,
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // now in requiredFiles/projectList.css instead
       makeModal: false, // = not modal window
       bodyOptions: 'onload="showTimeAgo()"',
-      preBodyScript: setPercentRingJSFunc + scrollPreLoadJSFuncs,
+      preBodyScript: /* setPercentRingJSFunc + */ scrollPreLoadJSFuncs,
       postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + tagTogglesVisibilityScript + autoRefreshScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>
       <script type="text/javascript" src="./projectListEvents.js"></script>
-      ` + commsBridgeScripts + shortcutsScript + addToggleEvents, // + collapseSection +  resizeListenerScript + unloadListenerScript,
+      ` + commsBridgeScripts + shortcutsScript + addToggleEvents + windowCloseAndReopenScripts, // + collapseSection +  resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
-      width: 800, // = default width of window (px)
+      width: 660, // = default width of window (px)
       height: 1200, // = default height of window (px)
       shouldFocus: false, // shouuld not focus, if Window already exists
       // If we should open in main/split view, or the default new window
@@ -751,21 +759,42 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         }
       }
     }
+
     // For sequential projects, just make a log note if there are no open tasks
     if (isSequential && numOpenItems === 0) {
       logDebug('finishReviewCoreLogic', `Note: no open tasks found for sequential project '${displayTitle(note)}'.`)
     }
 
     const possibleThisEditor = getOpenEditorFromFilename(note.filename)
-    if (possibleThisEditor && possibleThisEditor.note != null) {
-      logDebug('finishReviewCoreLogic', `Updating EDITOR note '${displayTitle(possibleThisEditor.note)}' ...`)
+    if (possibleThisEditor && possibleThisEditor !== false) {
+      const thisEditorNote: ?CoreNoteFields = possibleThisEditor.note
+      if (!thisEditorNote) {
+        logDebug('finishReviewCoreLogic', `No editor note found for '${displayTitle(note)}'; falling back to datastore note update path.`)
+        migrateProjectMetadataLineInNote(note)
+        const metadataLineIndex = getProjectMetadataLineIndex(note)
+        if (metadataLineIndex === false) {
+          logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
+        } else {
+          deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
+        }
+        updateMetadataInNote(note, [reviewedTodayString])
+        // $FlowIgnore[prop-missing]
+        DataStore.updateCache(note, true)
+        return
+      }
+      logDebug('finishReviewCoreLogic', `Updating EDITOR note '${displayTitle(thisEditorNote)}' ...`)
       // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
       // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
       // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
+      // FIXME: The following 3 calls get "Warning: The editor is not open! 'Editor' values will be undefined and functions not working. Open a note to fix this." errors
       migrateProjectMetadataLineInEditor(possibleThisEditor)
-      const metadataLineIndex: number = getOrMakeMetadataLineIndex(possibleThisEditor)
-      // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      deleteMetadataMentionInEditor(possibleThisEditor, metadataLineIndex, [config.nextReviewMentionStr])
+      const metadataLineIndex = getProjectMetadataLineIndex(possibleThisEditor)
+      if (metadataLineIndex === false) {
+        logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(thisEditorNote)}'`)
+      } else {
+        // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
+        deleteMetadataMentionInEditor(possibleThisEditor, metadataLineIndex, [config.nextReviewMentionStr])
+      }
       // Update @review(date) on current open note
       updateMetadataInEditor(possibleThisEditor, [reviewedTodayString])
       await possibleThisEditor.save()
@@ -776,17 +805,21 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
       // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
       migrateProjectMetadataLineInNote(note)
-      const metadataLineIndex: number = getOrMakeMetadataLineIndex(note)
-      // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
+      const metadataLineIndex = getProjectMetadataLineIndex(note)
+      if (metadataLineIndex === false) {
+        logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
+      } else {
+        // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
+        deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
+      }
       // Update @review(date) on the note
       updateMetadataInNote(note, [reviewedTodayString])
       // $FlowIgnore[prop-missing]
       DataStore.updateCache(note, true)
     }
-    logDebug('finishReviewCoreLogic', `- done`)
 
     // Then update the Project instance
+    logDebug('finishReviewCoreLogic', `- updating Project instance`)
     // v1:
     // const thisNoteAsProject = new Project(noteToUse)
     // v2: Try to find this project in allProjects, and update that as well
@@ -803,6 +836,9 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         logDebug('finishReviewCoreLogic', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDateStr)})`)
       }
 
+      // Clear next-review fields on the project list entry TEST:
+      clearNextReviewMetadataFields(thisNoteAsProject)
+
       // Save changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (if window is already open)
@@ -818,7 +854,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     // Ensure the Project List window (if open) no longer shows this project as being actively reviewed
     await clearProjectReviewingInHTML()
 
-    logDebug('finishReviewCoreLogic', `- finished successfully`)
+    logDebug('finishReviewCoreLogic', `- done`)
   }
   catch (error) {
     logError('finishReviewCoreLogic', error.message)
@@ -826,6 +862,66 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
 }
 
 // --------------------------------------------------------------------
+
+/**
+ * Core of the logic for starting a project review: optionally confirm with user, open note in Editor, highlight as active review in Project List HTML.
+ * @param {TNote} noteToReview
+ * @param {ReviewConfig} config
+ * @param {boolean} offerConfirm - If true and config.confirmNextReview, prompt before opening (startReviews / finish-and-next). If false, open immediately (startReviewForNote).
+ * @param {string} logContext - Log tag (e.g. startReviews, startReviewForNote, finishReviewAndStartNextReview)
+ * @returns {Promise<boolean>} true if the note was opened, false if user cancelled confirmation
+ * @private
+ */
+async function startReviewCoreLogic(
+  noteToReview: TNote,
+  config: ReviewConfig,
+  offerConfirm: boolean,
+  logContext: string,
+): Promise<boolean> {
+  if (offerConfirm && config.confirmNextReview) {
+    const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
+    if (res !== 'OK') {
+      logDebug(logContext, `- User didn't want to continue.`)
+      return false
+    }
+  }
+
+  // Show that this project is now being reviewed, if the 'Rich' Project List is open
+  await setReviewingProjectInHTML(noteToReview, true)
+  logInfo(logContext, `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
+
+  // FIXME: TEST: This needs to be smarter:
+  // - check if note is already open in one of the Editor windows. If so just focus it. Otherwise open it in the Editor (if running from 'New Window' or 'Split View' mode), or a new split view if not.
+  // V1
+  // const possibleEditor: TEditor | false = findEditorWindowByFilename(noteToReview.filename)
+  // if (possibleEditor !== false) {
+  //   logInfo(logContext, `- Note '${displayTitle(noteToReview)}' is already open in Editor window '${possibleEditor.id}'. Focusing it.`)
+  //   possibleEditor.focus()
+  // } else {
+  //   logInfo(logContext, `- Note '${displayTitle(noteToReview)}' is not open in any Editor window. Opening it in a new Editor window.`)
+  //   await Editor.openNoteByFilename(noteToReview.filename)
+  // }
+
+  // V2
+  if (config.preferredWindowType === 'Main Window') {
+    // Open in split view
+    const res = openNoteInSplitViewIfNotOpenAlready(noteToReview.filename)
+    if (res) {
+      logInfo(logContext, `- Note '${displayTitle(noteToReview)}' was opened in a new split view.`)
+    } else {
+      logInfo(logContext, `- Note '${displayTitle(noteToReview)}' was already open in an Editor window. Focusing it.`)
+    }
+  } else {
+    // Open in main Editor window
+    const openedNote = await Editor.openNoteByFilename(noteToReview.filename)
+    if (openedNote) {
+      logInfo(logContext, `- Note '${displayTitle(noteToReview)}' was opened in the main Editor.`)
+    } else {
+      logWarn(logContext, `- Note '${displayTitle(noteToReview)}' couldn't be opened in the main Editor window.`)
+    }
+  }
+  return true
+}
 
 /**
  * Start a series of project reviews..
@@ -840,24 +936,13 @@ export async function startReviews(): Promise<void> {
 
     // Get the next note to review, based on allProjectsList, ordered by most overdue for review.
     const noteToReview = await getNextNoteToReview()
-    // Open that note in an Editor, confirming with the user if necessary.
     if (!noteToReview) {
       logInfo('startReviews', '🎉 No notes to review!')
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
       return
     }
 
-    if (config.confirmNextReview) {
-      const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
-      if (res !== 'OK') {
-        logDebug('startReviews', `- User didn't want to continue.`)
-        return
-      }
-    }
-    logInfo('startReviews', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
-    await Editor.openNoteByFilename(noteToReview.filename)
-    // Highlight this project in the Project List window (if open)
-    await setReviewingProjectInHTML(noteToReview, true)
+    await startReviewCoreLogic(noteToReview, config, true, 'startReviews')
   } catch (error) {
     logError('startReviews', error.message)
   }
@@ -905,9 +990,13 @@ export async function nextReview(): Promise<void> {
  */
 export async function finishReview(): Promise<void> {
   try {
-    const currentNote = Editor // note: not Editor.note
+    // Use the focused Editor (global `Editor`), not NotePlan.editors[0] - the first array entry is not always the active window.
+    const currentNote = Editor?.note
+    if (!currentNote) {
+      logWarn('finishReview', `- There's no proper Editor window to finish reviewing.`)
+    }
     if (currentNote && currentNote.type === 'Notes') {
-      logInfo('finishReview', `Starting with Editor '${displayTitle(currentNote)}'`)
+      logInfo('finishReview', `Starting with Editor note '${displayTitle(currentNote)}'`)
       await finishReviewCoreLogic(currentNote)
     } else {
       logWarn('finishReview', `- There's no project note in the Editor to finish reviewing.`)
@@ -958,17 +1047,7 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
     const noteToReview: ?TNote = await getNextNoteToReview()
     if (noteToReview != null) {
       logDebug('finishReviewAndStartNextReview', `- Opening '${displayTitle(noteToReview)}' as nextReview note ...`)
-      if (config.confirmNextReview) {
-        // Check whether to open that note in editor
-        const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
-        if (res !== 'OK') {
-          return
-        }
-      }
-      await Editor.openNoteByFilename(noteToReview.filename)
-
-      // Highlight this as the newly active review in the Project List window (if open)
-      await setReviewingProjectInHTML(noteToReview, true)
+      await startReviewCoreLogic(noteToReview, config, true, 'finishReviewAndStartNextReview')
     } else {
       logInfo('finishReviewAndStartNextReview', `- 🎉 No more notes to review!`)
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
@@ -1317,5 +1396,22 @@ export async function saveDisplayFilters(data: {
     await renderProjectListsIfOpen(config)
   } catch (error) {
     logError('saveDisplayFilters', error.message)
+  }
+}
+
+/**
+ * Pluralise a word based on the count.
+ * Note: Currently only supports English, but designed to be extended to other languages with different rule sets, by adding rulesets.
+ * @param {string} identifier - the word to pluralise
+ * @param {number} count - the number of items
+ * @returns {string} the pluralised word
+ */
+export function pluralise(identifier: string, count: number): string {
+  // const localeLanguage = NotePlan.environment.languageCode ?? 'en'
+  const localeLanguage = 'en'
+  if (localeLanguage === 'en') {
+    return (count === 1) ? `${identifier}` : `${identifier}s`
+  } else {
+    return (count === 1) ? `${identifier}` : `${identifier}s`
   }
 }

@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggers and other hooks
-// Last updated  for v2.1.0
+// Last updated 2026-02-27 for v2.4.0.b22, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -123,7 +123,7 @@ export async function onEditorWillSave(): Promise<void> {
     }
 
     // Only proceed if the dashboard window is open
-    if (!isHTMLWindowOpen(`${pluginJson['plugin.id']}.main`)) {
+    if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
       logDebug('decideWhetherToUpdateDashboard', `Dashboard window not open, so stopping.`)
       return
     }

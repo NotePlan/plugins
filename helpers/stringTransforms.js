@@ -20,6 +20,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import {
+  RE_HASHTAG_G,
   RE_MARKDOWN_LINKS_CAPTURE_G,
   RE_BARE_URI_MATCH_G,
   RE_SYNC_MARKER,
@@ -331,14 +332,13 @@ export function stripWikiLinksFromString(original: string): string {
  */
 export function stripHashtagsFromString(original: string): string {
   let output = original
-  // Note: the regex from @EduardMe's file is /(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/ but :punct: doesn't work in JS, so here's my simplified version
   // TODO: matchAll?
-  const captures = output.match(/(?:\s|^|\"|\(|\)|\')(#[A-Za-z][\w\/]*)/g)
+  const captures = output.match(RE_HASHTAG_G)
   if (captures) {
     // clo(captures, 'results from hashtag matches:')
     for (const capture of captures) {
       // Extract the full hashtag including #, handling both cases where capture starts with prefix or just the hashtag
-      const hashtagMatch = capture.match(/#[A-Za-z][\w\/]*/)
+      const hashtagMatch = capture.match(/#[A-Za-z][\w/_-]*/)
       if (hashtagMatch) {
         const fullHashtag = hashtagMatch[0]
         // Check if the hashtag is at the start of the string (after removing any prefix from capture)
@@ -353,6 +353,22 @@ export function stripHashtagsFromString(original: string): string {
     }
   }
   return output
+}
+
+/**
+ * Get all #hashtags from string
+ * @tests in jest file
+ * @author @jgclark
+ * @param {string} original
+ * @returns {Array<string>} array of hashtags
+ */
+export function getHashtagsFromString(original: string): Array<string> {
+  const captures = original.matchAll(RE_HASHTAG_G)
+  const hashtags: Array<string> = []
+  for (const c of captures) {
+    hashtags.push(c[1])
+  }
+  return hashtags
 }
 
 /**

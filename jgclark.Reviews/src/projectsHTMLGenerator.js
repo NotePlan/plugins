@@ -3,12 +3,13 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-03-22 for v1.4.0.b12 by @jgclark (function naming rationalised)
+// Last updated 2026-03-29 for v1.4.0.b16, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import { Project } from './projectClass'
-import { addFAIcon, type ReviewConfig } from './reviewHelpers'
+import { addFAIcon, pluralise } from './reviewHelpers'
+import type { ReviewConfig } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
 import { logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
@@ -51,8 +52,8 @@ function projectFolderDisplayLabel(thisProject: Project, config: ReviewConfig): 
 }
 
 /**
- * One HTML row: outer {@code <div class="projectFolderRow">} with folder path, optional review interval, and review/due status {@code <span>}s.
- * Shown under the title when not grouping by folder.
+ * One HTML row '<div class="projectFolderRow">', with folder path, optional review interval, and review/due status <span>s.
+ * Shown under the title when 'displayGroupedByFolder' is false.
  * @param {Project} thisProject
  * @param {ReviewConfig} config
  * @returns {string}
@@ -71,10 +72,10 @@ function buildProjectFolderMetadataRowDiv(thisProject: Project, config: ReviewCo
 }
 
 /**
- * Format one project for export: HTML list row ({@code style === 'Rich'}), Markdown line, or simple list line.
+ * Format one project for export: HTML list row (style === 'Rich'), Markdown line, or simple list line.
  * @param {Project} thisProject
  * @param {ReviewConfig} config
- * @param {string} style {@code 'Rich'} (HTML grid row), {@code 'Markdown'}, or {@code 'list'}
+ * @param {string} style 'Rich' (HTML grid row), 'Markdown', or 'list'
  * @param {Array<string>?} wantedTagsForRow - when provided (single-section view), added as data-wanted-tags on the row for tag toggles
  * @returns {string} HTML or Markdown string for the project output line (or empty string if error)
  */
@@ -91,10 +92,11 @@ export function buildProjectLineForStyle(
   if (thisProject.percentComplete != null) {
     thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
     const totalItemsStr = (isNaN(thisProject.numTotalItems)) ? '0' : thisProject.numTotalItems.toLocaleString()
+    const numberToShow = thisProject.numCompletedItems + thisProject.numOpenItems
     if (ignoreChecklistsInProgress) {
-      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${(thisProject.numCompletedItems + thisProject.numOpenItems !== 1) ? 'tasks' : 'task'})`
+      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${pluralise('task', numberToShow)})`
     } else {
-      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${(thisProject.numCompletedItems + thisProject.numOpenItems !== 1) ? 'items' : 'item'})`
+      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${pluralise('item', numberToShow)})`
     }
   } else {
     statsProgress = '(0 tasks)'
@@ -112,7 +114,7 @@ export function buildProjectLineForStyle(
 }
 
 /**
- * HTML list row: outer {@code <div class="project-grid-row projectRow">} (title block, optional folder row, progress row, next-action rows).
+ * Return HTML list row '<div class="project-grid-row projectRow">': title block, optional folder row, progress row, next-action rows.
  * @param {Project} thisProject
  * @param {ReviewConfig} config
  * @param {Array<string>?} wantedTagsForRow - when provided, output as data-wanted-tags for tag-toggle filtering
@@ -157,7 +159,7 @@ function buildProjectListRowDiv(thisProject: Project, config: ReviewConfig, want
   const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
     ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
     : []
-  parts.push(buildProjectProgressRowDiv(thisProject))
+  parts.push(buildProjectProgressRowDiv(thisProject, config))
   parts.push(buildNextActionRowDivs(config, nextActionsContent))
 
   // End the row with the outer </div>
@@ -189,7 +191,8 @@ function getProjectIndicatorColor(thisProject: Project): string {
 }
 
 /**
- * Label for the progress line: localized open-item count, {@code ''} if inactive project, or {@code 'no'} when none.
+ * Label for the progress line: localized open-task count as a numeric string, '' if inactive project.
+ * When there are no open (non-future) tasks, returns '0'.
  * @param {Project} thisProject
  * @returns {string}
  * @private
@@ -199,17 +202,14 @@ function formatOpenItemCountForProgressLine(thisProject: Project): string {
   if (thisProject.isCompleted || thisProject.isCancelled || thisProject.isPaused) {
     return ''
   }
-  
-  // Task count badge (circle)
+
+  // Task count badge (circle): non-future open tasks
   const badgeNumber = (thisProject.numOpenItems - thisProject.numFutureItems > 0) ? thisProject.numOpenItems - thisProject.numFutureItems : 0
-  if (badgeNumber > 0) {
-    return badgeNumber.toLocaleString()
-  }
-  return 'no'
+  return badgeNumber.toLocaleString()
 }
 
 /**
- * Project tag chips: each entry is one {@code <span class="metadata-lozenge">…</span>} HTML string.
+ * Project tag chips: each entry is one HTML <span class="metadata-lozenge"> string.
  * @param {Project} thisProject
  * @returns {Array<string>}
  * @private
@@ -222,7 +222,7 @@ function buildProjectTagLozengeSpans(thisProject: Project): Array<string> {
 }
 
 /**
- * Review and due chips: each entry is one {@code <span>} HTML string (no outer wrapper).
+ * Review and due chips: each entry is one HTML <span> string.
  * @param {Project} thisProject
  * @returns {Array<string>}
  * @private
@@ -258,15 +258,17 @@ function buildReviewAndDueStatusSpans(thisProject: Project): Array<string> {
 }
 
 /**
- * One {@code <div class="projectProgressRow">}: completion/cancel/pause line, percent and open-item copy, optional progress comment.
+ * One '<div class="projectProgressRow">' completion/cancel/pause line, percent and open count copy, optional progress comment.
+ * Open task vs open item labels follow {@code DataStore.preference('ignoreChecklistsInProgress')} (same as {@link buildProjectLineForStyle}).
  * @param {Project} thisProject
+ * @param {ReviewConfig} _config unused; kept so callers pass config unchanged
  * @returns {string}
  * @private
  */
-function buildProjectProgressRowDiv(thisProject: Project): string {
+function buildProjectProgressRowDiv(thisProject: Project, _config: ReviewConfig): string {
   // V2 with added info at start of line
-  // if (!config.displayProgress) return ''
-  // Start with stat progress % and number of open tasks
+  // if (!_config.displayProgress) return ''
+  // Start with stat progress % and number of open tasks/items
   const timeAgoStr = (thisProject.isCompleted)
     ? moment(thisProject.completedDate).fromNow()
     : (thisProject.isCancelled)
@@ -287,15 +289,17 @@ function buildProjectProgressRowDiv(thisProject: Project): string {
       ? `<i class="fa-solid fa-circle-xmark pad-right"></i> ${timeAgoStr}`
       : (thisProject.isPaused)
         ? `<i class="fa-solid fa-circle-pause pad-right"></i> ${timeAgoStr}`
-        : (isNaN(thisProject.percentComplete))
-          ? ''
-          : `${thisProject.percentComplete}% done ・ `
+        : (typeof thisProject.percentComplete === 'number' && !isNaN(thisProject.percentComplete))
+          ? `${thisProject.percentComplete}% done ・ `
+          : ''
   let statsString = `<span class="progressText ${extraClass}">${statsStr}</span>`
-  
+
+  // Match buildProjectLineForStyle / Project counts: use NotePlan preference, not ReviewConfig (they can differ).
+  const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
   if (!thisProject.isCompleted && !thisProject.isCancelled && !thisProject.isPaused) {
     const itemCountsStr = formatOpenItemCountForProgressLine(thisProject)
-    const itemCountsDescription = (itemCountsStr === "1") ? `open item` : `open items`
-    statsString += `<span class="pad-left">${itemCountsStr} ${itemCountsDescription}</span>`
+    const openCountLabel = ignoreChecklistsInProgress ? pluralise('task', itemCountsStr) : pluralise('item', itemCountsStr)
+    statsString += `<span class="pad-left">${itemCountsStr} open ${openCountLabel}</span>`
   }
 
   // If there is a progress comment, show it in the progress line row, otherwise show only stats
@@ -312,7 +316,7 @@ function buildProjectProgressRowDiv(thisProject: Project): string {
 }
 
 /**
- * Zero or more {@code <div class="nextActionRow">} rows (plain text body), joined into one string. Truncates to 80 chars per line.
+ * Zero or more '<div class="nextActionRow">' rows (plain text body), joined into one string. Truncates to 80 chars per line.
  * @param {ReviewConfig} config
  * @param {Array<string>} nextActionsContent
  * @returns {string}
@@ -466,22 +470,22 @@ type IntervalStatus = {
  */
 function mapDueDaysToStatus(interval: number): IntervalStatus {
   // if (interval < -90) return { color: 'red', icon: 'fa-solid fa-flag-checkered', text: 'very overdue' }
-  if (interval < -14) return { colorClass: 'overdue', icon: 'fa-light fa-flag-checkered', text: 'overdue' }
-  if (interval < 0) return { colorClass: 'due', icon: 'fa-light fa-flag-checkered', text: 'due now' }
-  if (interval > 30) return { colorClass: 'soon', icon: 'fa-light fa-flag-checkered', text: 'due soon' }
+  if (interval < -7) return { colorClass: 'overdue', icon: 'fa-light fa-flag-checkered', text: 'overdue' }
+  if (interval < 7) return { colorClass: 'due', icon: 'fa-light fa-flag-checkered', text: 'due now' }
+  if (interval < 21) return { colorClass: 'soon', icon: 'fa-light fa-flag-checkered', text: 'due soon' }
   return { text: '', colorClass: '', icon: '' }
 }
 
 /**
- * Map days-until-next-review to icon/text/css class for a status {@code <span>}.
+ * Map days-until-next-review to icon/text/css class for a status <span>.
  * @param {number} interval - days until next review (negative = overdue, positive = due in future)
  * @returns {IntervalStatus}
  */
 function mapReviewDaysToStatus(interval: number): IntervalStatus {
   // if (interval < -90) return { color: 'red', icon: 'fa-solid fa-user-clock', text: 'very overdue' }
-  if (interval < -14) return { colorClass: 'overdue', icon: 'fa-light fa-user-clock', text: 'overdue' }
-  if (interval < 0) return { colorClass: 'due', icon: 'fa-light fa-user-clock', text: 'due now' }
-  if (interval < 30) return { colorClass: 'soon', icon: 'fa-light fa-user-clock', text: 'due soon' }
+  if (interval < -7) return { colorClass: 'overdue', icon: 'fa-light fa-user-clock', text: 'overdue' }
+  if (interval < 2) return { colorClass: 'due', icon: 'fa-light fa-user-clock', text: 'review now' }
+  if (interval < 14) return { colorClass: 'soon', icon: 'fa-light fa-user-clock', text: 'review soon' }
   return { text: '', colorClass: '', icon: '' }
 }
 
@@ -490,17 +494,18 @@ function mapReviewDaysToStatus(interval: number): IntervalStatus {
 //-----------------------------------------------------------------------------
 
 /**
- * Sticky top bar markup ({@code <div>} tree): refresh, filters dropdown, review command buttons.
+ * Sticky top bar <div>: refresh, filters dropdown, review command buttons.
  * @param {any} config
  * @returns {string}
  */
 export function buildProjectListTopBarHtml(config: any): string {
+  const topbarClasses = config.usePerspectives ? 'topbar' : 'topbar topbar-no-perspective'
   const parts: Array<string> = []
   const displayOrder = (typeof config.displayOrder === 'string' && config.displayOrder !== '') ? config.displayOrder : 'review'
   
   // Add buttons for various commands
   const refreshPCButton = makePluginCommandButton(
-    `<i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh`,
+    `<i class="fa-solid fa-arrow-rotate-right"></i><span class="hideable-label"> Refresh</span>`,
     'jgclark.Reviews',
     'project lists',
     '',
@@ -508,7 +513,7 @@ export function buildProjectListTopBarHtml(config: any): string {
     true
   )
   const startReviewPCButton = makePluginCommandButton(
-    `<i class="fa-solid fa-play"></i>\u00A0Start`,
+    `<i class="fa-solid fa-play"></i><span class="hideable-label"> Start</span>`,
     'jgclark.Reviews',
     'start reviews',
     '',
@@ -516,16 +521,15 @@ export function buildProjectListTopBarHtml(config: any): string {
     true
   )
   const reviewedPCButton = makePluginCommandButton(
-    `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish`,
+    `<i class="fa-regular fa-calendar-check"></i><span class="hideable-label"> Finish</span>`,
     'jgclark.Reviews',
     'finish project review',
     '',
     `Update the ${checkString(DataStore.preference('reviewedMentionStr'))}() date for the Project you're currently editing`,
     true
   )
-  // Note: this button is not currently used, but might be again, so leaving.
   const finishAndNextReviewPCButton = makePluginCommandButton(
-    `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
+    `<i class="fa-regular fa-calendar-check"></i><span class="hideable-label"> Finish +</span><i class="fa-solid fa-calendar-arrow-down pad-left"></i><span class="hideable-label"> Next</span>`,
     'jgclark.Reviews',
     'finish project review and start next',
     '',
@@ -533,7 +537,7 @@ export function buildProjectListTopBarHtml(config: any): string {
     true
   )
   const nextReviewPCButton = makePluginCommandButton(
-    `<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
+    `<i class="fa-solid fa-calendar-arrow-down"></i><span class="hideable-label"> Next</span>`,
     'jgclark.Reviews',
     'next project review',
     '',
@@ -541,18 +545,14 @@ export function buildProjectListTopBarHtml(config: any): string {
     true
   )
 
-  // Start with a sticky top bar (grid with 4 elements spaced out)
-  parts.push(`<div class="topbar">`)
-
+  // Start with a sticky top bar (grid with 4 elements spaced out, or 3 if not using perspectives)
+  parts.push(`<div class="${topbarClasses}">`)
   if (config.usePerspectives) {
     const perspectiveSection = `<div id="persp" class="topbar-item">Persp: <span class="perspective-name">${config.perspectiveName}</span></div>`
     parts.push(perspectiveSection)
-  } else {
-    // Need an empty element to for the grid to work
-    parts.push(`<div class="topbar-item"></div>`)
   }
 
-  const refreshSection = `<div id="refresh">${refreshPCButton}\n<span class="topbar-item">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+  const refreshSection = `<div id="refresh">${refreshPCButton}\n<span class="topbar-item"><span class="hideable-label">Updated: </span><span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
   parts.push(refreshSection)
 
   parts.push(`<div class="topbar-center-cluster">`)
@@ -562,7 +562,7 @@ export function buildProjectListTopBarHtml(config: any): string {
   const displayPaused = config.displayPaused ?? true
   const displayNextActions = config.displayNextActions ?? false
   parts.push(`<span id="toggles" class="display-filters-wrapper">`)
-  parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-filter pad-right"></i>Filter & Order…</button>`)
+  parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false" title="Open dropdown to change Filtering and Ordering of the list"><i class="fa-solid fa-filter pad-right"></i><span class="hideable-label">Filter +</span><i class="fa-regular fa-arrow-down-short-wide pad-left"></i><span class="hideable-label">Order…</span></button>`)
   parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Filter and order">`)
   parts.push(`    <div class="display-filters-dropdown-content">`)
   // Tag toggles: one per wanted tag; when off, hide projects that only have that tag (client-side). Count = active (not paused/cancelled/completed).
@@ -592,6 +592,7 @@ export function buildProjectListTopBarHtml(config: any): string {
   parts.push(`        <select id="displayOrderSelect" class="topbar-select display-filters-order-select" name="displayOrder" aria-label="Sort projects by">`)
   parts.push(`          <option value="review" ${displayOrder === 'review' ? 'selected' : ''}>Review date</option>`)
   parts.push(`          <option value="due" ${displayOrder === 'due' ? 'selected' : ''}>Due date</option>`)
+  parts.push(`          <option value="firstTag" ${displayOrder === 'firstTag' ? 'selected' : ''}>(first) Project tag</option>`)
   parts.push(`          <option value="title" ${displayOrder === 'title' ? 'selected' : ''}>Title</option>`)
   parts.push(`        </select>`)
   parts.push(`      </div>`)
@@ -605,7 +606,7 @@ export function buildProjectListTopBarHtml(config: any): string {
 <div class="topbar-right-cluster">
   <div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}
   ${reviewedPCButton}
-  <!--${finishAndNextReviewPCButton}-->
+  ${finishAndNextReviewPCButton}
   ${nextReviewPCButton}
   </div>
 </div>`
@@ -631,22 +632,6 @@ export function buildFolderGroupHeaderHtml(folderPart: string): string {
 }
 
 /**
- * Opening markup for the unified list: optional single-folder {@code <h4>}, then {@code <div class="project-list-grid …">} start tag.
- * @param {ReviewConfig} config
- * @returns {string}
- */
-export function buildProjectListGridPrefixHtml(config: ReviewConfig): string {
-  const parts: Array<string> = []
-
-  if (!config.displayGroupedByFolder && config.foldersToInclude?.length === 1) {
-    const folderDisplayName = getFolderDisplayNameForHTML(config.foldersToInclude[0])
-    parts.push(`<h4>${folderDisplayName} folder</h4>`)
-  }
-  parts.push(`\n<div class="project-list-grid project-list-grid--no-dates">`)
-  return parts.join('\n')
-}
-
-/**
  * {@code <dialog id="projectControlDialog">} markup for per-project actions.
  * @returns {string}
  */
@@ -659,7 +644,7 @@ export function buildProjectControlDialogHtml(): string {
       <div><i class="pad-left pad-right fa-regular fa-file-lines"></i>
         <span id="dialogProjectFolder" class="dialogProjectFolder"></span>
         <b><span id="dialogProjectNote" class="dialogProjectNoteLink">?</span></b>
-        <span id="dialogProjectInterval" class="pad-left">?</span>
+        <span id="dialogProjectInterval" class="pad-left dialogProjectFolder">?</span>
       </div>
       <div class="dialog-top-right">
         <form><button id="closeButton" class="closeButton">
@@ -682,7 +667,7 @@ export function buildProjectControlDialogHtml(): string {
           <button data-control-str="pause">Toggle <i class="fa-solid fa-circle-pause"></i> Pause</button>
           <button data-control-str="complete"><i class="fa-solid fa-circle-check"></i> Complete</button>
           <button data-control-str="cancel"><i class="fa-solid fa-circle-xmark"></i> Cancel</button>
-          <button data-control-str="newrevint"><i class="fa-solid fa-arrows-left-right"></i> New Interval</button>
+          <button data-control-str="newrevint"><i class="fa-regular fa-repeat"></i> New Interval</button>
           <button data-control-str="addtask"><i class="fa-solid fa-circle-plus"></i> Add Task</button>
         </div>
         <div>Progress:</div>

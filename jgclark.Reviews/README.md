@@ -13,7 +13,7 @@ After each project name (the title of the note) is an edit icon, which when clic
 
 ![Edit dialog](edit-dialog-1.1.png)
 
-User George (@george65) has recorded two video walkthroughs that show most of what the plugin does (recorded using an earlier version of the plugin, so the UI is different):
+User George (@george65) has recorded two video walkthroughs that show most of what the plugin does (recorded using a rather earlier version of the plugin, so the UI is different):
 
 - [Inside Look: How George, CMO of Verge.io, Uses NotePlan for Effective Project Management](https://www.youtube.com/watch?v=J-FlyffE9iA) featuring this and my Dashboard plugin.
 
@@ -32,7 +32,7 @@ Each **Project** is described by a separate note, and has a lifecycle something 
 
 ![project lifecycle](project-flowchart_bordered.jpg)
 
-Each such project contains the `#project` hashtag, `@review(...)` and some other **metadata** fields (see below for where to put them).  For example:
+Each such project contains some **metadata** fields including `#project` hashtag, `@review(...)` and some others (see below for more details).  For example:
 
 ```markdown
 # Secret Undertaking

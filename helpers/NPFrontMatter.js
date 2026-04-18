@@ -299,8 +299,9 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
       return false
     }
     let removed = false
+    const normalizedFieldToRemove = fieldToRemove.toLowerCase()
     Object.keys(fmFields).forEach((thisKey) => {
-      if (thisKey === fieldToRemove) {
+      if (thisKey.toLowerCase() === normalizedFieldToRemove) {
         const thisValue = fmFields[thisKey]
         // logDebug('rFMF', `- for thisKey ${thisKey}, looking for <${fieldToRemove}:${value ?? "<undefined}"}> to remove. thisValue=${thisValue}`)
         if (!value || thisValue === value) {
@@ -312,7 +313,12 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
           for (let i = 1; i < fmParas.length; i++) {
             // ignore first and last paras which are separators
             const para = fmParas[i]
-            if ((!value && para.content.startsWith(fieldToRemove)) || (value && para.content === `${fieldToRemove}: ${quoteTextIfNeededForFM(value)}`)) {
+            const colonPos = para.content.indexOf(':')
+            const paraKey = colonPos > -1 ? para.content.slice(0, colonPos).trim() : ''
+            const paraValue = colonPos > -1 ? para.content.slice(colonPos + 1).trim() : ''
+            const keyMatches = paraKey.toLowerCase() === normalizedFieldToRemove
+            const valueMatches = !value || paraValue === quoteTextIfNeededForFM(value)
+            if (keyMatches && valueMatches) {
               // logDebug('rFMF', `- will delete fmPara ${String(i)}`)
               fmParas.splice(i, 1) // delete this item
               removed = true
@@ -324,7 +330,7 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
                 // logDebug('rFMF', `- now ${fmParas.length} FM paras remain`)
                 removeFrontMatter(note, false)
                 // logDebug('rFMF', `removeFrontMatter -> ${String(res1)}`)
-                writeFrontMatter(note, fmFields, false) // don't mind if there isn't a title; that's not relevant to this operation
+                writeFrontMatter(note, fmFields)
                 // logDebug('rFMF', `writeFrontMatter -> ${String(res2)}`)
               }
             }
@@ -473,7 +479,7 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
  * If optional title is given, it overrides any existing title in the note for the frontmatter title.
  * @author @dwertheimer based on @jgclark's convertNoteToFrontmatter code
  * @param {TNote} note
- * @param {boolean?} alsoEnsureTitle - if true then fail if a title can't be set. Default: true. For calendar notes this wants to be false.
+ * @param {boolean?} alsoEnsureTitle - If true (default), then set title in frontmatter, and fail if it can't be set. For calendar notes this wants to be false.
  * @param {string?} title - optional override text that will be added to the frontmatter as the note title (regardless of whether it already had for a title)
  * @returns {boolean} true if front matter existed or was added, false if failed for some reason
  * @author @dwertheimer
@@ -983,8 +989,12 @@ export function determineAttributeChanges(
  * @param {string} value - The attribute value to normalize.
  * @returns {string} - The normalized value.
  */
-export function normalizeValue(value: string): string {
-  return value.replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1')
+export function normalizeValue(value: mixed): string {
+  if (value == null) {
+    return ''
+  }
+  const asString = typeof value === 'string' ? value : String(value)
+  return asString.replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1')
 }
 
 /**
@@ -1010,13 +1020,35 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
     logDebug('updateFrontMatterVars', `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs after ensureFrontmatter`)
 
     const existingAttributes = { ...getFrontmatterAttributes(note) } || {}
+    const existingKeyByLowercase: { [string]: string } = {}
+    // Build lookup from raw frontmatter lines to preserve original key casing.
+    const existingFrontmatterParas = getFrontmatterParagraphs(note, false)
+    if (existingFrontmatterParas && existingFrontmatterParas.length > 0) {
+      existingFrontmatterParas.forEach((para) => {
+        const colonIndex = para.content.indexOf(':')
+        if (colonIndex > 0) {
+          const rawKey = para.content.slice(0, colonIndex).trim()
+          if (rawKey !== '') {
+            existingKeyByLowercase[rawKey.toLowerCase()] = rawKey
+          }
+        }
+      })
+    }
+    // Fallback to parsed attributes map when needed.
+    Object.keys(existingAttributes).forEach((existingKey) => {
+      const lcKey = existingKey.toLowerCase()
+      if (!existingKeyByLowercase[lcKey]) {
+        existingKeyByLowercase[lcKey] = existingKey
+      }
+    })
     // Normalize newAttributes before comparison
     clo(existingAttributes, `updateFrontMatterVars: existingAttributes`)
     const normalizedNewAttributes: { [string]: any } = {}
     clo(Object.keys(newAttributes), `updateFrontMatterVars: Object.keys(newAttributes) = ${JSON.stringify(Object.keys(newAttributes))}`)
-    Object.keys(newAttributes).forEach((key: string) => {
-      const value = newAttributes[key]
-      logDebug('updateFrontMatterVars', `newAttributes key: ${key}, value: ${value}`) // ✅
+    Object.keys(newAttributes).forEach((rawKey: string) => {
+      const canonicalKey = existingKeyByLowercase[rawKey.toLowerCase()] || rawKey
+      const value = newAttributes[rawKey]
+      logDebug('updateFrontMatterVars', `newAttributes key: ${rawKey}, value: ${value}`) // ✅
 
       // Handle null/undefined - skip them (they won't be in normalizedNewAttributes,
       // so if deleteMissingAttributes is true, they will be deleted)
@@ -1027,7 +1059,7 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       let normalizedValue: string
       if (typeof value === 'object') {
         normalizedValue = JSON.stringify(value)
-      } else if (key === 'triggers') {
+      } else if (canonicalKey.toLowerCase() === 'triggers') {
         normalizedValue = value.trim()
       } else {
         const trimmedValue = value.trim()
@@ -1035,10 +1067,10 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
         // quoteTextIfNeededForFM will handle empty strings correctly (returns '' without quotes)
         normalizedValue = quoteTextIfNeededForFM(trimmedValue)
       }
-      logDebug('updateFrontMatterVars', `normalizedValue for key: ${key} = ${normalizedValue}`)
+      logDebug('updateFrontMatterVars', `normalizedValue for key: ${canonicalKey} = ${normalizedValue}`)
 
       // $FlowIgnore
-      normalizedNewAttributes[key] = normalizedValue
+      normalizedNewAttributes[canonicalKey] = normalizedValue
     })
 
     const { keysToAdd, keysToUpdate, keysToDelete } = determineAttributeChanges(existingAttributes, normalizedNewAttributes, deleteMissingAttributes)
@@ -1062,7 +1094,8 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
     keysToUpdate.forEach((key: string) => {
       // $FlowIgnore
       const attributeLine = `${key}: ${normalizedNewAttributes[key]}`
-      const paragraph = note.paragraphs.find((para) => para.content.startsWith(`${key}:`))
+      const keyPrefixRe = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:`, 'i')
+      const paragraph = note.paragraphs.find((para) => keyPrefixRe.test(para.content))
       if (paragraph) {
         logDebug('updateFrontMatterVars', `updateFrontMatterVars: updating paragraph "${paragraph.content}" with "${attributeLine}"`)
         paragraph.content = attributeLine
@@ -1104,18 +1137,19 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
           return false
         }
       } else {
-        throw new Error(`Failed to find closing '---' in note "${note.filename || ''}" could not add new attribute "${key}".`)
+        logError('updateFrontMatterVars', `Failed to find closing '---' in note "${note.filename || ''}" for new attribute "${key}".`)
       }
     })
 
     // Delete attributes that are no longer present
     const paragraphsToDelete = []
     keysToDelete.forEach((key) => {
-      const paragraph = note.paragraphs.find((para) => para.content.startsWith(`${key}:`))
+      const keyPrefixRe = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:`, 'i')
+      const paragraph = note.paragraphs.find((para) => keyPrefixRe.test(para.content))
       if (paragraph) {
         paragraphsToDelete.push(paragraph)
       } else {
-        throw new Error(`Failed to find paragraph for key "${key}".`)
+        logWarn('updateFrontMatterVars', `Couldn't find paragraph for key "${key}" while deleting; will continue.`)
       }
     })
     if (paragraphsToDelete.length > 0) {

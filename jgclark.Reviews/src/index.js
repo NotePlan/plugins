@@ -3,16 +3,17 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-04-17 for v1.4.0.b10, @jgclark
+// Last updated 2026-04-17 for v2.0.0.b20, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-// import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
-import { displayProjectLists } from './reviews'
-import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { generateAllProjectsList } from './allProjectsListHelpers'
+import { renderProjectListsIfOpen } from './reviews'
+import { getReviewSettings } from './reviewHelpers'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
-import { editSettings } from '@helpers/NPSettings'
+import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { showMessage } from '@helpers/userInput'
 
 export {
   finishReview,
@@ -79,41 +80,32 @@ export async function testSettingsUpdated(): Promise<void> {
 }
 
 export async function onSettingsUpdated(): Promise<void> {
-  // Re-generate the allProjects list in case there's a change in a relevant setting
-  logDebug(pluginJson, 'Have updated Review settings, so will recalc the review list and display...')
-  await displayProjectLists()
+  // Re-generate the allProjects list in case there's a change in a relevant setting (same as displayProjectLists).
+  // Only refresh the project list window if it is already open; do not open it from saving settings alone.
+  try {
+    const config = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+    logDebug(pluginJson, 'Have updated Review settings; recalculating review list and refreshing project list UI if already open...')
+    if (!(config.useDemoData ?? false)) {
+      await generateAllProjectsList(config, true)
+    }
+    await renderProjectListsIfOpen(config)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+    await showMessage(`Sorry, there's been an error updating the settings for this plugin: ${error.message}. Please check the logs for more details, and raise an issue on Discord.`, 'OK, thanks', 'Error updating settings')
+  }
 }
 
-export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {
+export async function onUpdateOrInstall(): Promise<void> {
   try {
     logInfo(pluginID, `onUpdateOrInstall ...`)
-    let updateSettingsResult = updateSettingData(pluginJson)
+    const updateSettingsResult = updateSettingData(pluginJson)
     logInfo(pluginID, `- updateSettingData code: ${updateSettingsResult}`)
 
-    if (forceUpdated) {
-      logInfo('', `- Forcing pluginUpdated() ...`)
-      updateSettingsResult = 1
-    }
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
-
   } catch (error) {
     logError(pluginID, error.message)
   }
   logInfo(pluginID, `- finished`)
-}
-
-
-/**
- * Update Settings/Preferences (for iOS etc)
- * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
- * @author @dwertheimer
- */
-export async function updateSettings() {
-  try {
-    logDebug(pluginJson, `updateSettings running`)
-    await editSettings(pluginJson)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
 }

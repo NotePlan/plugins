@@ -7,7 +7,7 @@
    Scope: plugin tokens and page shell (most general)
    ============================================================ */
 
-body {
+html {
   /* Colours specific to this plugin */
 	--teamspace-color: #269F54;
   --project-no-percent-color: #BBB;
@@ -22,11 +22,15 @@ body {
   --fg-overdue-color: hsla(0, 85%, 38%, 1); 
   --fg-soon-color: hsla(210, 85%, 38%, 1); 
   --fg-not-due-color: hsla(120, 85%, 30%, 1); 
-  
+
+  font-size: 14pt;  
+}
+
+body {
   /* Settings for overall body */
   margin: 0px;
   background-color: var(--bg-alt-color);
-}
+} */
 
 /* ============================================================
    Base element defaults (type selectors)
@@ -71,6 +75,7 @@ a, a:visited, a:active {
 /* Show click pointer over buttons */
 button {
 	cursor: pointer;
+  white-space: nowrap;
 }
 
 /* For buttons that trigger callbacks */
@@ -82,7 +87,6 @@ button {
 	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
   padding: 2px 4px 1px 4px;
   margin: 3px 3px 3px 0px;
-	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.9rem;
   border-radius: 6px;
@@ -170,13 +174,26 @@ input, label {
   border-top: 1px solid var(--divider-color);
   border-bottom: 1px solid var(--divider-color);
   line-height: 1.2rem;
-  padding: 0.2rem 0.6rem 0.1rem 0.6rem;
+  padding: 0.3rem 0.6rem 0.2rem 0.6rem;
   font-size: 0.95rem;
   z-index: 5;
+  box-shadow: 0 2px 6px -2px var(--divider-color);
+  container-type: inline-size;
+  container-name: project-list-topbar;
 
   .perspective-name {
     font-weight: 600;
   }
+}
+
+/* Icon-only narrow top bar: hide command button captions; <i> icons stay visible */
+@container project-list-topbar (max-width: 50rem) {
+  .hideable-label {
+    display: none;
+  }
+}
+.topbar-no-perspective {
+  grid-template-columns: auto auto auto;
 }
 
 .topbar-center-cluster {
@@ -312,8 +329,8 @@ input, label {
 /* allow multi-column flow: set max columns and min width, and some other bits and pieces */
 .multi-cols {
   column-count: 3; 
-  column-width: 25rem;
-  column-gap: 0.4rem;
+  column-width: 30rem;
+  column-gap: 0.3rem;
   column-rule: 1px dotted rgb(from var(--tint-color) r g b / 0.5);
 }
 

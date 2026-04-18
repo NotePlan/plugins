@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-01-04 for v2.4.0.b by @jgclark
+// Last updated 2026-03-30 for v2.4.0.b23 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { WEBVIEW_WINDOW_ID } from './constants'
@@ -14,6 +14,7 @@ import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from '.
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
+import { isHTMLWindowOpen } from '@helpers/NPWindows'
 
 /********************************************************************************
  *                             Data types + constants
@@ -34,6 +35,11 @@ import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
 export async function refreshDashboard(): Promise<void> {
   try {
     logInfo('refreshDashboard', `Starting to refresh Dashboard...`)
+
+    if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
+      logInfo('refreshDashboard', `- my window is not visible, so not refreshing`)
+      return
+    }
     const startTime = new Date()
 
     // show refreshing message until done
@@ -100,6 +106,12 @@ export async function incrementallyRefreshSomeSections(
     if (!sectionCodes) {
       throw new Error('No sections to incrementally refresh. If this happens again, please report it to the developer.')
     }
+
+    if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
+      logInfo('incrementallyRefreshSomeSections', `- my window is not visible, so not refreshing`)
+      return handlerResult(false, [], { errorMsg: 'Dashboard window not visible, so not refreshing', errorMessageLevel: 'INFO' })
+    }
+
     logDebug('incrementallyRefreshSomeSections', `Starting incremental refresh for sections [${String(sectionCodes)}]`)
     await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
 
@@ -143,6 +155,63 @@ export async function incrementallyRefreshSomeSections(
 }
 
 /**
+ * Refresh the given sections in one batch and send a single setPluginData.
+ * Used for perspective switch to avoid multiple redraws (one update instead of N).
+ * @param {MessageDataObject} data - must include sectionCodes
+ * @returns {TBridgeClickHandlerResult}
+ */
+export async function refreshSectionsBatch(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  try {
+    const start = new Date()
+    const { sectionCodes } = data
+    if (!sectionCodes) {
+      throw new Error('No sections to refresh. If this happens again, please report it to the developer.')
+    }
+
+    // - add check for window visibility to prevent errors when window is not visible
+    if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
+      logInfo('refreshSectionsBatch', `- my window is not visible, so not refreshing`)
+      return handlerResult(false, [], { errorMsg: 'Dashboard window not visible, so not refreshing', errorMessageLevel: 'INFO' })
+    }
+
+    logDebug('refreshSectionsBatch', `Starting batch refresh for sections [${String(sectionCodes)}]`)
+    await setPluginData({ refreshing: true }, `Starting batch refresh for sections ${String(sectionCodes)}`)
+
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    const demoMode = reactWindowData?.pluginData?.demoMode ?? false
+    const newSections = await getSomeSectionsData(sectionCodes, demoMode, false)
+
+    await setPluginData(
+      { sections: newSections, refreshing: false, firstRun: false },
+      `Finished batch refresh for [${String(sectionCodes)}] (${timer(start)})`,
+    )
+    logTimer('refreshSectionsBatch', start, `- ${sectionCodes.length} sections: ${sectionCodes.toString()}`)
+
+    const NPSettings = await getNotePlanSettings()
+    if (NPSettings.doneDatesAvailable) {
+      const startTime = new Date()
+      const config: any = await getDashboardSettings()
+      const totalDoneCount = await updateDoneCountsFromChangedNotes(
+        `update done counts at end of refreshSectionsBatch (for [${sectionCodes.join(',')}])`,
+        config.FFlag_ShowSectionTimings === true,
+      )
+      await setPluginData({ totalDoneCount, firstRun: false }, 'Updating doneCounts at end of refreshSectionsBatch')
+      logTimer('refreshSectionsBatch', startTime, `- done counts`, 200)
+    }
+    if (isTagMentionCacheGenerationScheduled()) {
+      logInfo('refreshSectionsBatch', `- generating scheduled tag mention cache`)
+      const _promise = generateTagMentionCache()
+    }
+    return handlerResult(true)
+  }
+  catch (error) {
+    await setPluginData({ refreshing: false, firstRun: false }, `Error in refreshSectionsBatch; closing modal spinner`)
+    logError('refreshSectionsBatch', error)
+    return handlerResult(false, [], { errorMsg: error.message, errorMessageLevel: 'ERROR' })
+  }
+}
+
+/**
  * Tell the React window to update by re-generating a subset of Sections.
  * Returns them all in one shot vs incrementallyRefreshSomeSections which updates one at a time.
  * @param {MessageDataObject} data
@@ -159,6 +228,10 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
     logDebug('refreshSomeSections', `Starting for ${String(sectionCodes)}`)
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    if (!reactWindowData?.pluginData) {
+      logDebug('refreshSomeSections', 'Dashboard shared data not ready yet (no pluginData); skipping refresh')
+      return handlerResult(true)
+    }
     const pluginData: TPluginData = reactWindowData.pluginData
     // show refreshing message until done
     if (!pluginData.refreshing === true) await setPluginData({ refreshing: sectionCodes, currentMaxPriorityFromAllVisibleSections: 0 }, `Starting refresh for sections ${sectionCodes.toString()}`)

@@ -196,10 +196,10 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
     const thisProject = new Project(note)
 
     // Call the class' method to update its metadata
-    const newSummaryLine = thisProject.completeProject()
+    const success = thisProject.completeProject()
 
     // If this has worked, then handle post-processing
-    if (newSummaryLine && newSummaryLine !== '') {
+    if (success) {
       const config: ReviewConfig = await getReviewSettings()
       if (config) {
         await handleProjectCompletionOrCancellation(thisProject, note, config, 'completed')
@@ -253,10 +253,10 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
     await thisProject.addProgressLine()
 
     // Call the class' method to update its metadata
-    const newSummaryLine = thisProject.cancelProject()
+    const success = thisProject.cancelProject()
 
     // If this has worked, then handle post-processing
-    if (newSummaryLine && newSummaryLine !== '') {
+    if (success) {
       const config: ReviewConfig = await getReviewSettings()
       if (config) {
         await handleProjectCompletionOrCancellation(thisProject, note, config, 'cancelled')
@@ -304,10 +304,10 @@ export async function togglePauseProject(noteArg?: TNote): Promise<void> {
     const thisProject = new Project(note)
 
     // Call the class' method to update its metadata
-    const newSummaryLine = await thisProject.togglePauseProject()
+    const success = await thisProject.togglePauseProject()
 
     // If this has worked, then handle post-processing
-    if (newSummaryLine && newSummaryLine !== '') {
+    if (success) {
       const config: ReviewConfig = await getReviewSettings()
       if (config) {
         // Reload note and update lists (no archiving for pause)

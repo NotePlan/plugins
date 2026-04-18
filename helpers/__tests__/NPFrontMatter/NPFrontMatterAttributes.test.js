@@ -341,6 +341,49 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(barParagraph).toBeDefined()
         expect(barParagraph.content).toEqual('bar: newBaz')
       })
+
+      test('should update existing key regardless of case and not add duplicate key', () => {
+        const note = new Note({
+          content: '---\ntitle: foo\nDue: 2026-03-01\n---\n',
+          paragraphs: [
+            { type: 'separator', content: '---', lineIndex: 0 },
+            { content: 'title: foo', lineIndex: 1 },
+            { content: 'Due: 2026-03-01', lineIndex: 2 },
+            { type: 'separator', content: '---', lineIndex: 3 },
+          ],
+          title: 'foo',
+        })
+
+        const result = f.updateFrontMatterVars(note, { title: 'foo', due: '2026-03-09' })
+        expect(result).toEqual(true)
+
+        const dueParagraphs = note.paragraphs.filter((p) => /^due:/i.test(p.content))
+        expect(dueParagraphs.length).toEqual(1)
+        expect(dueParagraphs[0].content).toEqual('Due: 2026-03-09')
+      })
+
+      test('should treat lower-case incoming key as matching existing mixed-case key when deleting missing attributes', () => {
+        const note = new Note({
+          content: '---\ntitle: foo\nDue: 2026-03-01\nOld: remove_me\n---\n',
+          paragraphs: [
+            { type: 'separator', content: '---', lineIndex: 0 },
+            { content: 'title: foo', lineIndex: 1 },
+            { content: 'Due: 2026-03-01', lineIndex: 2 },
+            { content: 'Old: remove_me', lineIndex: 3 },
+            { type: 'separator', content: '---', lineIndex: 4 },
+          ],
+          title: 'foo',
+        })
+
+        const result = f.updateFrontMatterVars(note, { title: 'foo', due: '2026-03-09' }, true)
+        expect(result).toEqual(true)
+
+        const dueParagraph = note.paragraphs.find((p) => /^due:/i.test(p.content))
+        expect(dueParagraph).toBeDefined()
+        expect(dueParagraph?.content).toEqual('Due: 2026-03-09')
+        const oldParagraph = note.paragraphs.find((p) => /^old:/i.test(p.content))
+        expect(oldParagraph).toBeUndefined()
+      })
     })
   })
 })

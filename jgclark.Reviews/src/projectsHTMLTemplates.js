@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // HTML and JS template strings for Reviews plugin HTML view
 // Extracted from reviews.js to keep command logic separate from templates.
-// Last updated 2026-02-26 for v1.4.0.b4, @jgclark
+// Last updated 2026-03-29 for v1.4.0.b16, @jgclark
 //-----------------------------------------------------------------------------
 
 export const stylesheetinksInHeader: string = `
@@ -100,6 +100,9 @@ export const autoRefreshScript: string = `
     return 0;
   }
 
+  // Expose the function to get the scroll position to the window object so it can also be used by the windowCloseAndReopenScripts function.
+  window.__reviewsGetScrollPos = getScrollPos;
+
   function scheduleAutoRefresh() {
     var meta = document.querySelector('meta[name="autoUpdateAfterIdleTime"]');
     if (!meta) return;
@@ -114,7 +117,7 @@ export const autoRefreshScript: string = `
     window.__reviewsAutoRefreshTimer = setInterval(function() {
       try {
         var scrollPos = getScrollPos();
-        <!-- console.log('Auto-refreshing Project List at scrollPos', scrollPos); -->
+        console.log('Auto-refreshing Project List at scrollPos ' + String(scrollPos));
         sendMessageToPlugin('refresh', { scrollPos: scrollPos });
       } catch (e) {
         console.log('Auto-refresh error', e && e.message);
@@ -179,29 +182,6 @@ shortcut.add("meta+f", function() {
   console.log("Shortcut '⌘f' triggered: will call toggleDisplayFinished");
   sendMessageToPlugin('runPluginCommand', {pluginID: 'jgclark.Reviews', commandName: 'toggleDisplayFinished', commandArgs: []});
 });
-</script>
-`
-
-export const setPercentRingJSFunc: string = `
-<script>
-/**
- * Sets the value of a SVG percent ring.
- * @param {number} percent The percent value to set.
- */
-function setPercentRing(percent, ID) {
-  let svg = document.getElementById(ID);
-  let circle = svg.querySelector('circle');
-  const radius = circle.r.baseVal.value;
-  const circumference = radius * 2 * Math.PI;
-  circle.style.strokeDasharray = String(circumference) + ' ' + String(circumference);
-  circle.style.strokeDashoffset = String(circumference);
-
-  const offset = circumference - percent / 100 * circumference;
-  circle.style.strokeDashoffset = offset;  // Set to negative for anti-clockwise.
-
-  // let text = svg.querySelector('text');
-  // text.textContent = String(percent); // + '%';
-}
 </script>
 `
 
@@ -361,5 +341,52 @@ export const tagTogglesVisibilityScript: string = `
     });
     if (document.readyState !== 'loading') applyTagToggleVisibility();
   })();
+</script>
+`
+
+export const windowCloseAndReopenScripts: string = `
+<script>
+/**
+ * Event handler for when the window is re-opened. (This is a workaround for the fact that the window is not actually closed, but just hidden, and can be re-opened by the user without the data being refreshed.)
+ * Note: this only works from v3.21.0
+ */
+window.addEventListener('onViewDidAppear', () => {
+  console.log('onViewDidAppear event handler called for Project List window');
+  refreshData();
+});
+
+/**
+ * Internal function to refresh data when the window is re-opened.
+ * Note: when this approach is copied into other plugins, it may need to have saved the 'disappear' time and only update if its been a long enough interval since then.
+ */
+function refreshData() {
+  console.log('refreshData called for Project List window');
+  try {
+    var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0;
+    sendMessageToPlugin('refresh', { scrollPos: scrollPos });
+  } catch (e) {
+    console.log('refreshData error', e && e.message);
+  }
+}
+
+/**
+ * Event handler for when the window is closed. (This is a workaround for the fact that the window is not actually closed, but just hidden, with timers still running.)
+ * Note: this only works from v3.21.0
+ */
+window.addEventListener('onViewWillDisappear', () => {
+  console.log('onViewWillDisappear event handler called for Project List window');
+  cancelAutoRefresh();
+});
+
+/**
+ * Cancel any automatic updates.
+ */
+function cancelAutoRefresh() {
+  console.log('cancelAutoRefresh called for Project List window');
+  if (window.__reviewsAutoRefreshTimer) {
+    clearInterval(window.__reviewsAutoRefreshTimer);
+    window.__reviewsAutoRefreshTimer = null;
+  }
+}
 </script>
 `
