@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-03-17 for v1.4.0.b8, @jgclark
+// Last updated 2026-04-18 for v2.0.0.b13, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -113,17 +113,14 @@ async function setReviewingProjectInHTML(note: any, isReviewing: boolean): Promi
 
 async function clearProjectReviewingInHTML(): Promise<void> {
   try {
-    await sendToHTMLWindow(customRichWinId, 'CLEAR_REVIEWING_PROJECT')
     if (!isHTMLWindowOpen(customRichWinId)) {
       return
     }
+    await sendToHTMLWindow(customRichWinId, 'CLEAR_REVIEWING_PROJECT')
   } catch (error) {
     logError('clearProjectReviewingInHTML', error.message)
   }
 }
-
-
-
 
 //-----------------------------------------------------------------------------
 // Main functions
@@ -222,7 +219,7 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
     await renderProjectListsIfOpen(config, scrollPos)
     return {} // just to avoid NP silently failing when called by invokePluginCommandByName
   } catch (error) {
-    logError('displayProjectLists', JSP(error))
+    logError('generateProjectListsAndRenderIfOpen', JSP(error))
   }
 }
 
@@ -502,8 +499,8 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
 
           // Get the summary line for each revelant project
           const [outputArray, noteCount, due] = await generateReviewOutputLines(tag, 'Markdown', config)
-          logTimer('renderProjectListsHTML', funcTimer, `after generateReviewOutputLines(${tag}) for ${String(due)} projects`)
-          if (isNaN(noteCount)) logWarn('renderProjectListsHTML', `Warning: noteCount is NaN`)
+          logTimer('renderProjectListsMarkdown', funcTimer, `after generateReviewOutputLines(${tag}) for ${String(due)} projects`)
+          if (isNaN(noteCount)) logWarn('renderProjectListsMarkdown', `Warning: noteCount is NaN`)
 
           // print header info just the once (if any notes)
           const startReviewButton = `[Start reviewing ${due} ready for review](${startReviewXCallbackURL})`
@@ -547,7 +544,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         // Calculate the Summary list(s)
         const [outputArray, noteCount, due] = await generateReviewOutputLines('', 'Markdown', config)
         const startReviewButton = `[Start reviewing ${due} ready for review](${startReviewXCallbackURL})`
-        logTimer('renderProjectListsHTML', funcTimer, `after generateReviewOutputLines`)
+        logTimer('renderProjectListsMarkdown', funcTimer, `after generateReviewOutputLines`)
 
         const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', '') //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=`
         const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
@@ -582,7 +579,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
 }
 
 /**
- * Re-display the project list from saved HTML file, if available, or if not then render the current all projects list.
+ * Re-display the project list from saved HTML file, if available.
  * Note: this is a test function that does not re-calculate the data.
  * @author @jgclark
  */
@@ -598,19 +595,19 @@ export async function redisplayProjectListHTML(): Promise<void> {
     if (savedHTML !== '') {
       const winOptions = {
         windowTitle: windowTitle,
-        headerTags: '', // don't set as it is already in the saved file
-        generalCSSIn: '', // don't set as it is already in the saved file
-        specificCSS: '', // now provided by separate projectList.css
-        makeModal: false, // = not modal window
-        bodyOptions: '', // don't set as it is already in the saved file
-        preBodyScript: '', // don't set as it is already in the saved file
-        postBodyScript: '', // don't set as it is already in the saved file
-        savedFilename: '', // don't re-save it
-        reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
-        width: 800, // = default width of window (px)
-        height: 1200, // = default height of window (px)
+        headerTags: '',
+        generalCSSIn: '',
+        specificCSS: '',
+        makeModal: false,
+        bodyOptions: '',
+        preBodyScript: '',
+        postBodyScript: '',
+        savedFilename: '',
+        reuseUsersWindowRect: true,
+        width: 800,
+        height: 1200,
         customId: customRichWinId,
-        shouldFocus: true, // shouuld focus
+        shouldFocus: true,
       }
       const _thisWindow = await showHTMLV2(savedHTML, winOptions)
       // clo(_thisWindow, 'created window')
@@ -618,6 +615,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
       return
     } else {
       logWarn('redisplayProjectListHTML', `Couldn't read from saved HTML file ${filenameHTMLCopy}.`)
+      await showMessage('Sorry, I can\'t find the saved HTML file for Project Lists.')
     }
   } catch (error) {
     logError('redisplayProjectListHTML', error.message)
@@ -648,7 +646,9 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
     let due = 0
     const outputArray: Array<string> = []
 
-    // TEST: Now use numberProjectsUnfiltered by passing it up to the display.
+    // TODO: @Cursor noticed this:
+    // "Callers destructure it as noteCount (e.g. renderProjectListsMarkdown around 504, 548), but the value is numberProjectsUnfiltered from filterAndSortProjectsList, not the per-loop noteCount (lines 647–710). Headers like “Total X active projects” can disagree with the number of lines actually listed if those differ. Worth aligning the JSDoc, return value, and UI strings with either unfiltered total or rows emitted."
+    // This is true, but not dealing with this at the moment.
 
     // Process each project
     for (const thisProject of projectsToReview) {
@@ -700,7 +700,7 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
         // Handle root folder display - check if original folder was root, not the display name
         if (folder === '/') folderPart = '(root folder)'
         if (style.match(/rich/i)) {
-          outputArray.push(buildFolderGroupHeaderHtml(folderPart, config))
+          outputArray.push(buildFolderGroupHeaderHtml(folderPart))
         } else if (style.match(/markdown/i)) {
           outputArray.push(`### ${folderPart}`)
         }
@@ -874,13 +874,13 @@ export async function startReviewForNote(noteToReview: TNote): Promise<void> {
     const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
-    logInfo('startReviews', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
+    logInfo('startReviewForNote', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
     await Editor.openNoteByFilename(noteToReview.filename)
     // Highlight this project in the Project List window (if open)
     await setReviewingProjectInHTML(noteToReview, true)
   
   } catch (error) {
-    logError('startReviews', error.message)
+    logError('startReviewForNote', error.message)
   }
 }
 
@@ -990,7 +990,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
   try {
     const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
-    logDebug('skipReviewForNote', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
+    logDebug('skipReviewCoreLogic', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
     let newDateStr: string = ''
 
     // Calculate new date from param 'skipIntervalOrDate' (if given) or ask user
@@ -1002,7 +1002,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
           ? skipIntervalOrDate
           : ''
       if (newDateStr === '') {
-        logWarn('skipReviewForNote', `${skipIntervalOrDate} is not a valid interval, so will stop.`)
+        logWarn('skipReviewCoreLogic', `${skipIntervalOrDate} is not a valid interval, so will stop.`)
         return
       }
     }
@@ -1124,6 +1124,7 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
 
     if (!note || note.type !== 'Notes') {
       logWarn('skipReviewForNote', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
+      return
     }
     logDebug('skipReviewForNote', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
     await skipReviewCoreLogic(note, skipIntervalOrDate)
@@ -1213,21 +1214,18 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
 //-------------------------------------------------------------------------------
 
 /** 
- * Toggle displayFinished setting, held as a NP preference, as it is shared between frontend and backend
+ * Toggle displayFinished setting, held as a setting in the `settings.json` file.
 */
 export async function toggleDisplayFinished(): Promise<void> {
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
     // v2 directly update settings.json instead
     const config: ReviewConfig = await getReviewSettings()
-    const savedValue = config.displayFinished ?? 'hide'
-    // const newValue = (savedValue === 'display')
-    //   ? 'display at end'
-    //   : (savedValue === 'display at end')
-    //     ? 'hide'
-    //     : 'display'
+    if (!config) throw new Error('No config found. Stopping.')
+
+    const savedValue = config.displayFinished ?? true
     const newValue = !savedValue
-    logDebug('toggleDisplayOnlyDue', `displayOnlyDue? now '${String(newValue)}' (was '${String(savedValue)}')`)
+    logDebug('toggleDisplayFinished', `displayFinished? now '${String(newValue)}' (was '${String(savedValue)}')`)
 
     const updatedConfig = config
     updatedConfig.displayFinished = newValue
@@ -1243,13 +1241,15 @@ export async function toggleDisplayFinished(): Promise<void> {
 }
 
 /** 
- * Toggle displayFinished setting, held as a NP preference, as it is shared between frontend and backend
+ * Toggle displayOnlyDue setting, held as a setting in the `settings.json` file.
 */
 export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
     // v2 directly update settings.json instead
     const config: ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
     const savedValue = config.displayOnlyDue ?? true
     const newValue = !savedValue
     logDebug('toggleDisplayOnlyDue', `displayOnlyDue? now '${String(newValue)}' (was '${String(savedValue)}')`)
@@ -1267,12 +1267,14 @@ export async function toggleDisplayOnlyDue(): Promise<void> {
 }
 
 /** 
- * Toggle displayNextActions setting, held as a NP preference, as it is shared between frontend and backend
+ * Toggle displayNextActions setting, held as a setting in the `settings.json` file.
 */
 export async function toggleDisplayNextActions(): Promise<void> {
   try {
     // v2 directly update settings.json
     const config: ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
     const savedValue = config.displayNextActions ?? false
     const newValue = !savedValue
     logDebug('toggleDisplayNextActions', `displayNextActions? now '${String(newValue)}' (was '${String(savedValue)}')`)
@@ -1302,6 +1304,8 @@ export async function saveDisplayFilters(data: {
 }): Promise<void> {
   try {
     const config: ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
     config.displayOnlyDue = data.displayOnlyDue
     config.displayFinished = data.displayFinished
     config.displayPaused = data.displayPaused

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-03-22 for v1.4.0.b12, @jgclark
+// Last updated 2026-04-18 for v2.0.0.b13, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -19,6 +19,7 @@ import {
   getJSDateStartOfToday,
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
+  todaysDateISOString,
   toISODateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
@@ -44,16 +45,16 @@ export type ReviewConfig = {
   cancelledMentionStr: string,
   completedMentionStr: string,
   confirmNextReview: boolean,
+  displayArchivedProjects: boolean,
   displayDates: boolean,
   displayPaused: boolean,
-  dueMentionStr: string,
-  displayArchivedProjects: boolean,
   displayFinished: boolean,
   displayGroupedByFolder: boolean,
   displayNextActions: boolean,
   displayOrder: string,
   displayOnlyDue: boolean,
   displayProgress: boolean,
+  dueMentionStr: string,
   finishedListHeading: string,
   hideTopLevelFolder: boolean,
   ignoreChecklistsInProgress: boolean,
@@ -92,8 +93,8 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     // Otherwise complain, as there should be settings.
     if (config == null || Object.keys(config).length === 0) {
       if (!externalCall) {
-        await showMessage(`Cannot find settings for the 'Projects & Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
-        throw new Error(`Can't find settings file '../jgclark.Reviews/settings.json', so stopping.`)
+        await showMessage(`Cannot find settings file for the 'Projects & Reviews' plugin. Please delete and re-install this plugin from the Plugin Preferences pane, and then try again.`)
+        throw new Error(`Can't find settings file '../jgclark.Reviews/settings.json', so asked user to delete and re-install plugin, and then try again.`)
       }
       // $FlowFixMe[incompatible-return] as we're returning null if no settings found
       return null
@@ -112,6 +113,7 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     DataStore.setPreference('ignoreChecklistsInProgress', config.ignoreChecklistsInProgress)
 
     // Frontmatter metadata preferences
+    // Set a preference for the key name to use for project metadata in the frontmatter. (Dev Note: This is to make the setting available in the Project class.)
     // Allow any frontmatter key name, defaulting to 'project'
     const rawSingleMetadataKeyName: string =
       config.projectMetadataFrontmatterKey && typeof config.projectMetadataFrontmatterKey === 'string'
@@ -123,11 +125,12 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
 
     // Set default for includedTeamspaces if not using Perspectives
     // Note: This value is only used when Perspectives are enabled, so the default doesn't affect filtering when Perspectives are off
+    // TODO: Review if this still makes sense.
     if (!config.usePerspectives) {
       config.includedTeamspaces = ['private'] // Default value (not used when Perspectives are off)
     }
 
-    // If we want to use Perspectives, get all perspective settings
+    // If we want to use Perspectives, get all perspective settings from Dashboard plugin.
     if (config.usePerspectives) {
       const perspectiveSettings: Array<TPerspectiveDef> = await getPerspectiveSettings(false)
       // Get the current Perspective
@@ -155,7 +158,7 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
       config.autoUpdateAfterIdleTime = 0
     }
 
-    // Ensure reviewsTheme has a default if missing (e.g. before 'Theme to use for Project Lists' setting existed)
+    // Ensure reviewsTheme has a default if missing (e.g. before 'Theme to use for Project Lists' setting existed from v1.3.1)
     if (config.reviewsTheme == null || config.reviewsTheme === undefined) {
       config.reviewsTheme = ''
     }
@@ -179,9 +182,17 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
  * @return {?string} - ISO date string (YYYY-MM-DD) or null if calculation fails
  */
 export function calcNextReviewDate(lastReviewDate: string | Date, interval: string): ?string {
-  const lastReviewDateStr: string = typeof lastReviewDate === 'string' ? lastReviewDate : toISODateString(lastReviewDate)
-  const reviewDate: Date | null = lastReviewDate != null ? calcOffsetDate(lastReviewDateStr, interval) : getJSDateStartOfToday()
-  return reviewDate != null ? toISODateString(reviewDate) : null
+  try {
+    if (typeof lastReviewDate !== 'string' && lastReviewDate === '') {
+      return todaysDateISOString
+    }
+    const lastReviewDateStr: string = lastReviewDate instanceof Date ? toISODateString(lastReviewDate) :  lastReviewDate !== '' ? String(lastReviewDate) : todaysDateISOString
+    const reviewDate: Date | null = lastReviewDate != null ? calcOffsetDate(lastReviewDateStr, interval) : getJSDateStartOfToday()
+    return reviewDate != null ? toISODateString(reviewDate) : null
+  } catch (error) {
+    logError('calcNextReviewDate', error.message)
+    return null
+  }
 }
 
 /**
@@ -221,7 +232,7 @@ export function getNextActionLineIndex(note: CoreNoteFields, naTag: string): num
  */
 export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: string): boolean {
   if (!sequentialTag) return false
-  const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
+  const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
   const projectAttribute = getFrontmatterAttribute(note, combinedKey) ?? ''
   if (projectAttribute.includes(sequentialTag)) {
     logDebug('isProjectNoteIsMarkedSequential', `found sequential tag '${sequentialTag}' in frontmatter '${combinedKey}' attribute`)
@@ -250,14 +261,8 @@ export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: stri
  */
 export function processMostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress {
   try {
-    let lastDate = new Date('0000-01-01') // earliest possible YYYY-MM-DD date
-    let outputProgress: Progress = {
-      lineIndex: 1,
-      percentComplete: NaN,
-      date: new Date('0001-01-01'),
-      comment: '(no comment found)',
-    }
-
+    let maxDate: Date = new Date('0000-01-01') // earliest possible YYYY-MM-DD date
+    let outputProgress: ?Progress = null
     for (const progressPara of progressParas) {
       const progressLine = progressPara.content
       // logDebug('processMostRecentProgressParagraph', progressLine)
@@ -288,7 +293,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
       const percent: number = !isNaN(rawPercent) ? Math.min(100, Math.max(0, rawPercent)) : NaN
       // logDebug('processMostRecentProgressParagraph', `-> ${String(percent)}`)
 
-      if (thisDate > lastDate) {
+      if (thisDate > maxDate) {
         // logDebug('Project::processMostRecentProgressParagraph', `Found latest datePart ${thisDatePart}`)
         outputProgress = {
           lineIndex: progressPara.lineIndex,
@@ -296,11 +301,16 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
           date: thisDate,
           comment: comment,
         }
+        maxDate = thisDate
       }
-      lastDate = thisDate
     }
     // clo(outputProgress, 'processMostRecentProgressParagraph ->')
-    return outputProgress
+    return outputProgress ?? {
+      lineIndex: 1,
+      percentComplete: NaN,
+      date: new Date('0001-01-01'),
+      comment: '(no comment found)',
+    }
   } catch (e) {
     logError('Project::processMostRecentProgressParagraph', e.message)
     return {
@@ -314,11 +324,12 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
 
 /**
  * Works out which line (if any) of the current note is project-style metadata line, defined as
- * - line starting 'project:' or 'medadata:'
+ * - line starting 'project:' or 'metadata:'
  * - first line containing a @review() or @reviewed() mention
  * - first line starting with a hashtag.
  * If these can't be found, then create a new line after the title, or in the 'metadata:' field if present in the frontmatter.
  * TODO: Ideally make a version of this that only checks metadata and doesn't create a new line if it doesn't exist.
+ * FIXME: What's going on here? I changed this already, but now can't find it in the codebase.
  * @author @jgclark
  *
  * @param {TNote} note to use
@@ -352,7 +363,7 @@ export function getOrMakeMetadataLineIndex(note: CoreNoteFields, metadataLinePla
 
     // If no metadataPara found, then insert one either after title, or in the frontmatter if present.
     if (Number.isNaN(lineNumber)) {
-      const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
+      const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
       if (noteHasFrontMatter(note)) {
         logWarn('getOrMakeMetadataLineIndex', `I couldn't find an existing metadata line, so have added a placeholder at the top of the note. Please review it.`)
         const fmAttrs: { [string]: any } = {}
@@ -431,8 +442,8 @@ export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
     const noteForFM = thisEditor.note
     logDebug('migrateProjectMetadataLineInEditor', `Starting for '${displayTitle(noteForFM)}'`)
 
-    // Check that project metadata is actually stored in frontmatter (configurable key or 'metadata').
-    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
+    // Check that project metadata is actually stored in frontmatter (configurable key or 'project').
+    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
     const metadataAttr = getFrontmatterAttribute(noteForFM, singleMetadataKeyName)
     const metadataStrSavedFromBodyOfNote = typeof metadataAttr === 'string' ? metadataAttr.trim() : ''
 
@@ -526,8 +537,8 @@ export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): voi
       ensureFrontmatter(noteToUse)
     }
 
-    // Check that project metadata is actually stored in frontmatter (configurable key or 'metadata').
-    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
+    // Check that project metadata is actually stored in frontmatter (configurable key or 'project').
+    const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
     const metadataAttr = getFrontmatterAttribute((noteToUse: any), singleMetadataKeyName)
     const metadataStrSavedFromBodyOfNote = typeof metadataAttr === 'string' ? metadataAttr.trim() : ''
 
@@ -556,7 +567,7 @@ export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): voi
     // then replace it with the migration message.
     if (metadataInfo != null) {
       // Decide which frontmatter key we are using
-      const primaryKey = singleMetadataKeyName ?? 'metadata'
+      const primaryKey = singleMetadataKeyName ?? 'project'
       const existingFMValue = metadataStrSavedFromBodyOfNote
 
       // Strip any leading "project:" / "metadata:" / "review:" / "reviewed:" prefix from the body line
@@ -612,7 +623,7 @@ function updateMetadataCore(
   let updatedLine = origLine
 
   const endFMIndex = endOfFrontmatterLineIndex(noteLike) ?? -1
-  const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
+  const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
   const frontmatterPrefixRe = new RegExp(`^${singleMetadataKeyName}:\\s*`, 'i')
   const isFrontmatterLine = metadataLineIndex <= endFMIndex
 
@@ -625,6 +636,7 @@ function updateMetadataCore(
     let valueOnly = origLine.replace(frontmatterPrefixRe, '')
     for (const item of updatedMetadataArr) {
       const mentionName = item.split('(', 1)[0]
+      // TODO: Harden the regex for the mention name.
       const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
       valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
       valueOnly += ` ${item}`
@@ -642,6 +654,7 @@ function updateMetadataCore(
   } else {
     for (const item of updatedMetadataArr) {
       const mentionName = item.split('(', 1)[0]
+      // TODO: Harden the regex for the mention name.
       const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
       updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
       updatedLine += ` ${item}`
@@ -662,7 +675,7 @@ function updateMetadataCore(
  */
 export function updateMetadataInEditor(thisEditor: TEditor, updatedMetadataArr: Array<string>): void {
   try {
-    logDebug('updateMetadataInEditor', `Starting for '${displayTitle(Editor)}' with metadata ${String(updatedMetadataArr)}`)
+    logDebug('updateMetadataInEditor', `Starting for '${displayTitle(thisEditor)}' with metadata ${String(updatedMetadataArr)}`)
 
     // Only proceed if we're in a valid Project note (with at least 2 lines)
     if (thisEditor.note == null || thisEditor.note.type === 'Calendar' || thisEditor.note.paragraphs.length < 2) {
@@ -689,7 +702,7 @@ export function updateMetadataInNote(note: CoreNoteFields, updatedMetadataArr: A
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (note == null || note.type === 'Calendar' || note.paragraphs.length < 2) {
-      logWarn('updateMetadataInEditor', `- We don't have a valid Project note (and with at least 2 lines). Stopping.`)
+      logWarn('updateMetadataInNote', `- We don't have a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
 
@@ -723,7 +736,7 @@ function deleteMetadataMentionCore(
   let newLine = origLine
 
   const endOfFrontmatterIndex = endOfFrontmatterLineIndex(noteLike) ?? -1
-  const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'metadata')
+  const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
   const frontmatterPrefixRe = new RegExp(`^${singleMetadataKeyName}:\\s*`, 'i')
   const isFrontmatterLine = metadataLineIndex <= endOfFrontmatterIndex
 
@@ -748,6 +761,7 @@ function deleteMetadataMentionCore(
     }
   } else {
     for (const mentionName of mentionsToDeleteArr) {
+      // TODO: Harden the regex for the mention name.
       const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
       newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
       logDebug(logContext, `-> ${newLine}`)
@@ -817,11 +831,15 @@ export async function updateDashboardIfOpen(): Promise<void> {
   // Note: This covers codes from before and after Dashboard v2.4.0.b18. TODO(Later): remove the 'PROJ' code when v2.5.0 is released
   // Note: Wrap array in another array because invokePluginCommandByName spreads the array as individual arguments. This avoids only the first array item being used.
   const res = await DataStore.invokePluginCommandByName("refreshSectionsByCode", "jgclark.Dashboard", [['PROJACT', 'PROJREVIEW', 'PROJ']])
+  if (res == null) {
+    logError('updateDashboardIfOpen', `Failed to update Dashboard for some reason.`)
+  }
 }
 
 /**
  * Insert a fontawesome icon in given color.
- * Other styling comes from CSS for 'circle-icon' (just sets size)
+ * Other styling comes from CSS for 'circle-icon' (just sets size).
+ * Note: parameters are all generated internally, so don't need to be escaped into the HTML. 
  * @param {string} faClasses CSS class name(s) to use for FA icons
  * @param {string} colorStr optional, any valid CSS color value or var(...)
  * @returns HTML string to insert

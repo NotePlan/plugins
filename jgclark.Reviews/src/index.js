@@ -3,12 +3,12 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-02-23 for v1.4.0.b2, @jgclark
+// Last updated 2026-04-17 for v1.4.0.b10, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
+// import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
 import { displayProjectLists } from './reviews'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
@@ -81,15 +81,7 @@ export async function testSettingsUpdated(): Promise<void> {
 export async function onSettingsUpdated(): Promise<void> {
   // Re-generate the allProjects list in case there's a change in a relevant setting
   logDebug(pluginJson, 'Have updated Review settings, so will recalc the review list and display...')
-  const config: ReviewConfig = await getReviewSettings()
-
   await displayProjectLists()
-
-  // Following should be handled in the above function
-  // if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-  //   logDebug(pluginJson, `will refresh Project List as it is open`)
-  //   await renderProjectLists(config)
-  // }
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {
