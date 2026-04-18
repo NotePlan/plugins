@@ -7,6 +7,7 @@ import React, { useState, useEffect, useMemo, useRef, type Node } from 'react'
 import { ConditionsEditor } from './ConditionsEditor.jsx'
 import { OptionsEditor } from './OptionsEditor.jsx'
 import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 
 type FieldEditorProps = {
   field: TSettingItem,
@@ -101,7 +102,8 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
     calendarsLoadingRef.current = true
 
     requestFn('getAvailableCalendars', { writeOnly: false })
-      .then((calendarsData) => {
+      .then((envelope: any) => {
+        const calendarsData = unwrapPluginRequestData(envelope)
         console.log('[FieldEditor DIAG] calendars useEffect: received data, isMounted=', isMounted, 'data type=', Array.isArray(calendarsData) ? 'array' : typeof calendarsData)
         if (isMounted && Array.isArray(calendarsData)) {
           setCalendars(calendarsData)
@@ -147,7 +149,8 @@ export function FieldEditor({ field, allFields, onSave, onCancel, requestFromPlu
     reminderListsLoadingRef.current = true
 
     requestFn('getAvailableReminderLists', {})
-      .then((listsData) => {
+      .then((envelope: any) => {
+        const listsData = unwrapPluginRequestData(envelope)
         console.log(
           '[FieldEditor DIAG] reminderLists useEffect: received data, isMounted=',
           isMounted,

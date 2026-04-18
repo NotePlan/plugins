@@ -8,6 +8,34 @@ import { sendToHTMLWindow } from '../HTMLView'
 import { logDebug, logError, clo, JSP, logTimer, timer } from '@helpers/dev'
 
 /**
+ * NotePlan's invokePluginCommandByName may wrap the callee's return value as
+ * `{ success: true, data: <actual RequestResponse from handleSharedRequest> }`.
+ * If so, unwrap one level so handleRequestResponse sends the real handler payload in `data`.
+ *
+ * @param {any} raw - Return value from DataStore.invokePluginCommandByName
+ * @param {any} pluginJson - Caller plugin json (for logging)
+ * @returns {any} Normalized object to treat as RequestResponse, or raw if no wrap detected
+ */
+function normalizeSharedInvokeResult(raw: any, pluginJson: any): any {
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw) || !('success' in raw)) {
+    return raw
+  }
+  const inner = raw.data
+  if (
+    raw.success === true &&
+    inner != null &&
+    typeof inner === 'object' &&
+    !Array.isArray(inner) &&
+    typeof inner.success === 'boolean' &&
+    'data' in inner
+  ) {
+    logDebug(pluginJson, `[routerUtils] normalizeSharedInvokeResult: peeled outer invoke wrapper for nested RequestResponse`)
+    return inner
+  }
+  return raw
+}
+
+/**
  * Get shared handlers from np.Shared
  * Uses DataStore.invokePluginCommandByName to call np.Shared's handleSharedRequest function
  * @param {string} requestType - The request type
@@ -31,7 +59,8 @@ async function callSharedHandler(requestType: string, params: Object, pluginJson
 
     // Use DataStore.invokePluginCommandByName to call np.Shared's handleSharedRequest
     // This requires np.Shared to have handleSharedRequest registered in plugin.json
-    const result = await DataStore.invokePluginCommandByName('handleSharedRequest', 'np.Shared', [requestType, params, pluginJson])
+    const raw = await DataStore.invokePluginCommandByName('handleSharedRequest', 'np.Shared', [requestType, params, pluginJson])
+    const result = normalizeSharedInvokeResult(raw, pluginJson)
 
     if (result && typeof result === 'object' && 'success' in result) {
       logDebug(pluginJson, `[routerUtils] np.Shared handler result for "${requestType}": success=${String(result.success)}`)
@@ -131,7 +160,11 @@ export async function handleRequestResponse({
     // Log response format details for debugging
     const dataType = dataToSend != null ? typeof dataToSend : 'null'
     const isDataArray = Array.isArray(dataToSend)
-    const dataLength = isDataArray ? dataToSend.length : (dataToSend != null && typeof dataToSend === 'object' ? Object.keys(dataToSend).length : 'N/A')
+    const dataLength = isDataArray
+      ? dataToSend.length
+      : dataToSend != null && typeof dataToSend === 'object'
+        ? Object.keys(dataToSend).length
+        : 'N/A'
     logDebug(
       pluginJson,
       `${routerName}: Sending RESPONSE for "${actionType}": dataType=${dataType}, isArray=${String(isDataArray)}, length=${String(dataLength)}, correlationId="${data.__correlationId}"`,

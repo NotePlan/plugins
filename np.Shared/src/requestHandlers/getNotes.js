@@ -21,7 +21,7 @@ export type RequestResponse = {
  * @param {boolean} params.includePersonalNotes - Include personal/project notes (default: true)
  * @param {boolean} params.includeRelativeNotes - Include relative notes like <today>, <thisweek>, etc. (default: false)
  * @param {boolean} params.includeTeamspaceNotes - Include teamspace notes (default: true)
- * @param {string} params.space - Space ID to filter by (empty string = Private, teamspace ID = specific teamspace)
+ * @param {string} params.space - Space ID to filter by: empty string / omitted = Private only; teamspace UUID = that space; `'__all__'` = all accessible spaces (private + teamspaces per flags below)
  * @param {Object} pluginJson - Plugin JSON object for logging
  * @returns {RequestResponse}
  */
@@ -31,7 +31,7 @@ export function getNotes(
     includePersonalNotes?: boolean,
     includeRelativeNotes?: boolean,
     includeTeamspaceNotes?: boolean,
-    space?: string, // Space ID (empty string = Private, teamspace ID = specific teamspace)
+    space?: string, // Space ID ('' = Private, UUID = teamspace, '__all__' = all spaces)
   } = {},
   pluginJson: any,
 ): RequestResponse {
@@ -41,13 +41,15 @@ export function getNotes(
     const includePersonalNotes = params.includePersonalNotes ?? true
     const includeRelativeNotes = params.includeRelativeNotes ?? false
     const includeTeamspaceNotes = params.includeTeamspaceNotes ?? true
-    const spaceId = params.space ?? '' // Empty string = Private (default)
+    const includeAllSpaces = params.space === '__all__'
+    // When not '__all__': empty string / undefined = Private only; non-empty string = that teamspace
+    const spaceId: string = includeAllSpaces ? '' : params.space ?? ''
 
     logDebug(
       pluginJson,
       `[np.Shared/requestHandlers] getNotes START: includeCalendarNotes=${String(includeCalendarNotes)}, includePersonalNotes=${String(includePersonalNotes)}, includeRelativeNotes=${String(
         includeRelativeNotes,
-      )}, includeTeamspaceNotes=${String(includeTeamspaceNotes)}, space=${spaceId || 'Private'}`,
+      )}, includeTeamspaceNotes=${String(includeTeamspaceNotes)}, space=${includeAllSpaces ? '__all__' : spaceId || 'Private'}`,
     )
 
     const allNotes: Array<any> = []
@@ -71,20 +73,19 @@ export function getNotes(
         const noteTeamspaceID = note.teamspaceID || null
 
         // First check if we should include teamspace notes at all
-        if (includeTeamspaceNotes || !isTeamspaceNote) {
-          // If space filter is specified, only include notes from that space
-          if (spaceId !== '') {
-            // Space filter is set - only include notes from that specific space
-            if (spaceId === noteTeamspaceID) {
-              allNotes.push(note)
-            }
-            // Skip notes that don't match the space filter
-          } else {
-            // No space filter (Private) - only include private notes (non-teamspace)
-            if (!isTeamspaceNote) {
-              allNotes.push(note)
-            }
-            // Skip teamspace notes when space filter is Private (empty string)
+        if (!(includeTeamspaceNotes || !isTeamspaceNote)) {
+          continue
+        }
+
+        if (includeAllSpaces) {
+          allNotes.push(note)
+        } else if (spaceId !== '') {
+          if (spaceId === noteTeamspaceID) {
+            allNotes.push(note)
+          }
+        } else {
+          if (!isTeamspaceNote) {
+            allNotes.push(note)
           }
         }
       }
@@ -106,20 +107,23 @@ export function getNotes(
         const noteTeamspaceID = note.teamspaceID || null
 
         // Only include if it's actually a calendar note (not a project note that got mixed in)
-        if (isCalendarNote) {
-          // If space filter is specified, only include notes from that space
-          if (spaceId !== '') {
-            // Space filter is set - only include notes from that specific space
-            if (spaceId === noteTeamspaceID) {
-              allNotes.push(note)
-            }
-            // Skip notes that don't match the space filter
-          } else {
-            // No space filter (Private) - only include private notes (non-teamspace)
-            if (!isTeamspaceNote) {
-              allNotes.push(note)
-            }
-            // Skip teamspace notes when space filter is Private (empty string)
+        if (!isCalendarNote) {
+          continue
+        }
+
+        if (!(includeTeamspaceNotes || !isTeamspaceNote)) {
+          continue
+        }
+
+        if (includeAllSpaces) {
+          allNotes.push(note)
+        } else if (spaceId !== '') {
+          if (spaceId === noteTeamspaceID) {
+            allNotes.push(note)
+          }
+        } else {
+          if (!isTeamspaceNote) {
+            allNotes.push(note)
           }
         }
       }

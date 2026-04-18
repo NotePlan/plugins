@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import SearchableChooser, { type ChooserConfig } from './SearchableChooser'
+import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { TEAMSPACE_ICON_COLOR } from '@helpers/NPnote.js'
 import { TEAMSPACE_FA_ICON, PRIVATE_FA_ICON } from '@helpers/teamspace'
@@ -138,8 +139,8 @@ export function SpaceChooser({
       isLoadingRef.current = true
       setIsLoading(true)
       logDebug('SpaceChooser', `[DIAG] loadSpaces START`)
-      // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
-      const teamspacesData = await requestFn('getTeamspaces', {})
+      // requestFromPlugin resolves with PluginRequestEnvelope { success, data, message }; unwrap to teamspace array
+      const teamspacesData = unwrapPluginRequestData(await requestFn('getTeamspaces', {}))
       const loadElapsed = performance.now() - loadStartTime
       logDebug('SpaceChooser', `[DIAG] loadSpaces COMPLETE: elapsed=${loadElapsed.toFixed(2)}ms`)
 

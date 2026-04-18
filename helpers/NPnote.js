@@ -16,6 +16,7 @@ import { getBlockUnderHeading } from '@helpers/NPParagraph'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { caseInsensitiveArrayIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
+import { getNoteChooserTemplateTokenForDisplay } from '@helpers/noteChooserFilenameResolve'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
 
@@ -255,14 +256,19 @@ export function getNoteDecorationForReact(note: TNote | NoteOption): { icon: str
   const isTeamspace = possTeamspaceDetails.isTeamspace || note.isTeamspaceNote === true
   const color = isTeamspace ? TEAMSPACE_ICON_COLOR : userSetIconColor ? userSetIconColor : folderIconDetails.color
 
-  // Short description - use same logic as chooseNoteV2
+  // Short description - use same logic as chooseNoteV2, plus NoteChooser relative codes (`<today>`, etc.)
   let shortDescription: ?string = null
   if (note.type === 'Notes') {
     // For Notes, show folder display name (same as chooseNoteV2)
     shortDescription = getFolderDisplayName(getFolderFromFilename(note.filename) ?? '')
-  } else if (isTeamspace && 'teamspaceTitle' in note && note.teamspaceTitle) {
-    // For teamspace notes, show teamspace title
-    shortDescription = note.teamspaceTitle
+  } else {
+    const relToken = getNoteChooserTemplateTokenForDisplay((note: any))
+    if (relToken) {
+      shortDescription = relToken
+    } else if (isTeamspace && 'teamspaceTitle' in note && note.teamspaceTitle) {
+      // For teamspace notes without a matching relative token, show teamspace title
+      shortDescription = note.teamspaceTitle
+    }
   }
 
   return {

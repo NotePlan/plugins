@@ -2,6 +2,17 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [1.0.9] 2026-04-17
+
+### Fixed
+- **getNotes**: `space: '__all__'` now returns notes from Private and all teamspaces (still respects `includeTeamspaceNotes`). Previously the sentinel was not implemented; callers that omitted `space` after selecting “all spaces” only received Private notes.
+
+## [1.0.8] 2026-04-17
+
+### Fixed
+- **routerUtils / np.Shared fallback**: `DataStore.invokePluginCommandByName('handleSharedRequest', …)` may return an extra wrapper `{ success: true, data: <inner RequestResponse> }`. `callSharedHandler` in `@helpers/react/routerUtils` now peels that layer so the WebView RESPONSE `data` field is the real handler payload (e.g. teamspace array), not a nested `{ success, data }`. Fixes SpaceChooser and any other chooser using the shared-handler fallback showing "Invalid response format" for an object that looked like a success envelope.
+- **getHeadings**: Resolves NoteChooser relative filenames (`<today>`, `<thisweek>`, etc.) via `resolveNoteChooserFilenameForLookup` in `@helpers/noteChooserFilenameResolve` before `getNoteByFilename`, so heading lists load for calendar relative picks (was logging `couldn't find a note for '<today>'`).
+
 ## [1.0.7] @dwertheimer 2026-04-13
 
 ### Changed

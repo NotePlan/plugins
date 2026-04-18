@@ -8,6 +8,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b30] 2026-04-17
+- fix: **Add Task → Note**: choosing **All spaces** now loads notes from every space via np.Shared `getNotes` (`space: '__all__'`). Previously the UI could send no space filter and the handler only returned Private notes, so the chooser looked “stuck” at ~25 items and search could not find teamspace notes.
+
+## [2.4.0.b29] 2026-04-17
+- fix: **SpaceChooser / getTeamspaces**: `unwrapPluginRequestData` plus `@helpers/react/routerUtils` `normalizeSharedInvokeResult` (peel extra `invokePluginCommandByName` wrapper around np.Shared `RequestResponse`) so the WebView receives a teamspace **array**, not a nested `{ success, data }` — fixes `[DIAG] loadSpaces: Invalid response format`
+- fix: **Add Task** resolves NoteChooser relative note values (`<today>`, `<thisweek>`, etc.) to real filenames via `resolveNoteChooserFilenameForLookup` in `@helpers/noteChooserFilenameResolve` before opening the note (requires matching **np.Shared** `getHeadings` fix for heading chooser)
+
 ## [2.4.0.b28] 2026-04-16
 - fix: Add Task (and QuickCapture checklist path) with **top of note** or **bottom of note** now succeeds — `coreAddTaskToNoteHeading` / `coreAddChecklistToNoteHeading` in `@helpers/NPAddItems` now return the new paragraph for those branches (previously returned nothing, so Dashboard reported "Failed to add task to note")
 

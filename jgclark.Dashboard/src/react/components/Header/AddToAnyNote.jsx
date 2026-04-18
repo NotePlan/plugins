@@ -154,28 +154,19 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
           }
 
           // Add space filter if provided
-          // Note: getNotes handler expects:
-          // - empty string ('') for Private space
-          // - teamspace ID (UUID string) for specific teamspace
-          // - undefined/null to default to Private (but we'll be explicit)
+          // Note: np.Shared getNotes expects:
+          // - empty string ('') for Private space only
+          // - teamspace ID (UUID string) for a specific teamspace
+          // - '__all__' for private + teamspace notes (respecting includeTeamspaceNotes)
           if (space !== null && space !== undefined) {
             if (space === '__all__') {
-              // For "__all__", we need to get notes from all spaces
-              // The handler doesn't support this directly, so we'll omit the space parameter
-              // and let it default to Private, then manually include teamspace notes
-              // Actually, let's just pass null/undefined to let it default
-              // But wait - the handler defaults to Private. We need a different approach.
-              // For now, let's just omit the space parameter and the handler will default to Private
-              // This is a limitation - "__all__" will show Private notes only
+              requestParams.space = '__all__'
             } else if (space === '' || space === 'Private') {
-              // Private space - pass empty string
               requestParams.space = ''
             } else {
-              // Specific teamspace ID - pass as-is
               requestParams.space = space
             }
           } else {
-            // No space specified - default to Private (empty string)
             requestParams.space = ''
           }
 

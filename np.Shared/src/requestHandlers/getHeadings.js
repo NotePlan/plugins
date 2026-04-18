@@ -4,9 +4,10 @@
 // Returns list of headings from a specified note
 //--------------------------------------------------------------------------
 
-import { getNoteByFilename } from '@helpers/note'
-import { getHeadingsFromNote } from '@helpers/NPnote'
 import { logDebug, logError } from '@helpers/dev'
+import { getNoteByFilename } from '@helpers/note'
+import { resolveNoteChooserFilenameForLookup } from '@helpers/noteChooserFilenameResolve'
+import { getHeadingsFromNote } from '@helpers/NPnote'
 
 // RequestResponse type definition
 export type RequestResponse = {
@@ -27,8 +28,6 @@ export type RequestResponse = {
 export function getHeadings(params: { noteFilename: string, optionAddTopAndBottom?: boolean, includeArchive?: boolean }, pluginJson: any): RequestResponse {
   const startTime: number = Date.now()
   try {
-    logDebug(pluginJson, `[np.Shared/requestHandlers] getHeadings START: noteFilename="${params.noteFilename}"`)
-
     if (!params.noteFilename) {
       return {
         success: false,
@@ -37,8 +36,14 @@ export function getHeadings(params: { noteFilename: string, optionAddTopAndBotto
       }
     }
 
-    // Get the note by filename
-    const note = getNoteByFilename(params.noteFilename)
+    const resolvedFilename = resolveNoteChooserFilenameForLookup(params.noteFilename)
+    logDebug(
+      pluginJson,
+      `[np.Shared/requestHandlers] getHeadings START: noteFilename="${params.noteFilename}" resolved="${resolvedFilename}"`,
+    )
+
+    // Get the note by filename (relative chooser values like <today> are resolved first)
+    const note = getNoteByFilename(resolvedFilename)
     if (!note) {
       return {
         success: false,

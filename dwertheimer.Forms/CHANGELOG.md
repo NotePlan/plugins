@@ -4,6 +4,22 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+## [1.1.9] 2026-04-17
+
+### Fixed
+- **SpaceChooser / getTeamspaces**: Form Builder, Form Browser, and DynamicDialog `space-chooser` fields rely on `@helpers/react/routerUtils` when calling np.Shared’s `handleSharedRequest` fallback. NotePlan’s `invokePluginCommandByName` can wrap the inner `RequestResponse`; that unwrap is fixed in `routerUtils` so teamspace lists load (not a nested `{ success, data }` after `unwrapPluginRequestData`). **Rebuild** FormView / FormBuilderView / FormBrowserView bundles after pulling helpers + np.Shared.
+
+### Edited in this release
+- `dwertheimer.Forms/plugin.json`, `CHANGELOG.md`.
+
+## [1.1.8] 2026-04-17
+
+### Fixed
+- **Field Editor (event-chooser)**: `getAvailableCalendars` and `getAvailableReminderLists` responses are unwrapped with `unwrapPluginRequestData` (same PluginRequestEnvelope contract as other choosers). Previously `.then` treated the full `{ success, data }` object as the list and `Array.isArray` failed.
+
+### Edited in this release
+- `dwertheimer.Forms/src/components/FieldEditor.jsx`, `plugin.json`, `CHANGELOG.md`.
+
 ## [1.1.7] 2026-04-13 @dwertheimer
 
 ### Changed

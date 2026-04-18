@@ -10,6 +10,7 @@ import { isValidCalendarNoteFilename, convertISOToYYYYMMDD, isDailyDateStr } fro
 import { logDebug, logError } from '@helpers/dev'
 import { coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { getNoteFromFilename } from '@helpers/NPnote'
+import { resolveNoteChooserFilenameForLookup } from '@helpers/noteChooserFilenameResolve'
 import { processChosenHeading } from '@helpers/userInput'
 
 // RequestResponse type definition
@@ -43,18 +44,20 @@ export async function addTaskToNote(params: { filename: string, taskText: string
       }
     }
 
+    // Resolve NoteChooser relative tokens (<today>, <thisweek>, …) to a real storage filename
+    let normalizedFilename = resolveNoteChooserFilenameForLookup(filename)
+
     // Normalize filename: convert ISO date format (YYYY-MM-DD) to NotePlan format (YYYYMMDD) if needed
     // Check if filename (without extension) is a daily date string in ISO format
-    const filenameWithoutExt = filename.replace(/\.(md|txt)$/, '')
-    let normalizedFilename = filename
+    const filenameWithoutExt = normalizedFilename.replace(/\.(md|txt)$/, '')
     if (isDailyDateStr(filenameWithoutExt)) {
       // Convert ISO format to NotePlan format for calendar notes
       const convertedDate = convertISOToYYYYMMDD(filenameWithoutExt)
       if (convertedDate !== filenameWithoutExt) {
         // Conversion happened - reconstruct filename with NotePlan format
-        const ext = filename.match(/\.(md|txt)$/)?.[0] || '.md'
+        const ext = normalizedFilename.match(/\.(md|txt)$/)?.[0] || '.md'
         normalizedFilename = `${convertedDate}${ext}`
-        logDebug('requestHandlers/addTaskToNote', `Converted ISO date filename "${filename}" to NotePlan format "${normalizedFilename}"`)
+        logDebug('requestHandlers/addTaskToNote', `Converted ISO date filename to NotePlan format "${normalizedFilename}"`)
       }
     }
     logDebug('requestHandlers/addTaskToNote', `normalizedFilename: "${normalizedFilename}"`)
