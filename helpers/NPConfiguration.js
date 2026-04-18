@@ -56,27 +56,53 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
 }
 
 /**
+ * Return the Default for a setting from plugin.json.
+ * Only return empty string when default is null/undefined, so false and 0 are preserved.
+ * @param {any} setting - single entry from plugin.settings
+ * @returns {any}
+ */
+function getDefaultValueForNewSetting(setting: any): any {
+  const d = setting?.default
+  return d === undefined || d === null ? '' : d
+}
+
+/**
  * Add new top-level keys to setting.json's data in the event plugin.settings object has been updated in a Plugin's plugin.json file.
  * @author @codedungeon
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
- * @return {number} update result (1 settings updated, 0 no update necessary, -1 update failed)
+ * @return {number} update result (1 settings updated, 0 no update necessary, -1 update failed or invalid pluginJsonData)
  */
 export function updateSettingData(pluginJsonData: any): number {
   let updateResult = 0
+
+  if (pluginJsonData == null || typeof pluginJsonData !== 'object' || Array.isArray(pluginJsonData)) {
+    logWarn(
+      'NPConfiguration/updateSettingData',
+      'Invalid pluginJsonData: expected a non-null object (not an array). Skipping settings migration.',
+    )
+    return -1
+  }
 
   const newSettings = {}
   const currentSettingData = DataStore.settings
 
   const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
-  pluginSettings.forEach((setting) => {
-    const key: any = setting?.key || null
-    if (key) {
+  pluginSettings.forEach((setting, index) => {
+    const key: any = setting?.key
+    const hasValidKey = key != null && key !== ''
+    if (hasValidKey) {
       if (!currentSettingData.hasOwnProperty(key)) {
-        newSettings[key] = setting?.default || ''
+        newSettings[key] = getDefaultValueForNewSetting(setting)
         updateResult = 1 // we have made at least one update, change result code accordingly
       } else {
         newSettings[key] = currentSettingData[key]
       }
+    } else if (setting != null && typeof setting === 'object' && !Array.isArray(setting)) {
+      const pluginId = pluginJsonData['plugin.id'] != null ? String(pluginJsonData['plugin.id']) : '(unknown plugin)'
+      logWarn(
+        'NPConfiguration/updateSettingData',
+        `plugin.settings[${index}] has no valid key; skipping. plugin.id=${pluginId}`,
+      )
     }
   })
   // logDebug(`NPConfiguration/updateSettingData: Object.keys(DataStore): ${Object.keys(DataStore).join(',')}`)
@@ -102,8 +128,8 @@ export function updateSettingData(pluginJsonData: any): number {
       DataStore.settings = newSettings
     }
   } catch (error) {
-    console.log(
-      'NPConfiguration/updateSettingData/Plugin Settings Migration Failed. Was not able to automatically migrate your plugin settings to the new version. Please open the plugin settings and save in order to update your settings.',
+    logError('updateSettingData', 
+      'Plugin Settings Migration Failed. Was not able to automatically migrate your plugin settings to the new version. Please open the plugin settings, check them, and then save in order to update your settings.',
     )
     updateResult = -1
   }
