@@ -1,12 +1,13 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
-## [2.0.0.b21] - 2026-04-19
+## [2.0.0.b21] - 2026-04-19 (released)
 - New cache to significantly speed up display of the Project List when a project note hasn't changed since the last run. 
   - dev: regenerating `allProjectsList` reuses cached JSON rows when `note.changedDate` matches stored `noteChangedAtMs` (skips `Project` constructor; still runs `calcReviewFieldsForProject`).
 - dev: Attempted to speed up the Project constructor:
   - `Project` constructor batches `DataStore.preference` reads for mention strings and separate frontmatter key names; `parseDateMention` accepts optional resolved mention names to avoid duplicate lookups
   - reuse first `readRawFrontmatterField` result for primary project tag resolution (same combined key)
+- dev: confirmed that note's title is not migrated from H1 to frontmatter.
 
 ## [2.0.0.b20] - 2026-04-18
 - dev: fix small issues found by Cursor
@@ -41,7 +42,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - dev: when pausing, update reviewed date and remove `nextReview` only; leave other separate frontmatter keys unchanged (full sync still used for complete/cancel/migration). Always apply frontmatter key removals after `updateFrontMatterVars` so `nextReview` is removed even if that helper returns false.
 - dev: consolidate `updateProjectMetadata` and `updateFrontmatterMetadataFromFields` into a single method (structured frontmatter + optional plain body paragraph update)
 
-## [2.0.0.b15] - 2026-03-29
+## [2.0.0.b15] - 2026-03-29 (released)
 - add "(first) Project tag" as a sort order
 - dev: remove .projectTag and instead always use .allProjectTags.
 - fix `null% done` when no completed or open tasks.
@@ -52,7 +53,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - tweak the timing on "due soon" and "review soon" indicators
 - dev: removed remaining TSV logic
 
-## [2.0.0.b13] - 2026-03-26
+## [2.0.0.b13] - 2026-03-26 (released)
 - when invalid frontmatter metadata values are detected (like `review: @review()` or `due: @due()`), automatically remove the affected frontmatter key.
 - normalize mention-style date frontmatter values (e.g. `due: @due(2026-03-09)`) to plain date values (`due: 2026-03-09`) during Project constructor processing.
 - Handle frontmatter fields in a case-insensitive manner.
