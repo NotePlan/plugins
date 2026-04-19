@@ -336,7 +336,7 @@ Context: <%- prompt('context') %>
 [Template Forms](https://noteplan.co/plugins/dwertheimer.Forms) is a separate powerful plugin which provides a visual form builder, that works with a 'processing template'. It ships with an example New Project form; you can customise your own form(s) from this.
 
 ## Using with Dashboard plugin
-My separate [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) shows a simpler version of the data from the Projects Review List in its 'Projects' section. It has the same type of edit dialog to complete/cancel/finish review/skip review, and also shows progress indicators. From v1.3, when the Project Lists window is open it automatically refreshes when you change data (requires Dashboard v2.4.0 or later).
+My separate [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) shows a simpler version of the data from the Projects Review List in its 2 'Projects' sections. It has the same type of edit dialog to complete/cancel/finish review/skip review, and also shows progress indicators. From v1.3, when the Project Lists window is open it automatically refreshes when you change data (requires Dashboard v2.4.0 or later).
 
 ## Running from an x-callback call
 Most of these commands can be run from an x-callback call:
@@ -353,7 +353,7 @@ that then needs to be URL encoded e.g.
 The name of the settings are taken from the `key`s from the plugin's `plugin.json` file, which are mostly the names shown in the settings dialog without spaces.
 
 ## Thanks
-Particular thanks to George C, 'John1' and David W for their suggestions and beta testing.
+Particular thanks to George C, 'John1' and David W for their suggestions and beta testing, plus others on the NotePlan Discord server.
 
 ## Known issues
 Due to limitations in the NotePlan API for plugins, it's generally not possible to control which split window a note is opened in, when you click on a project note in the Project List window.

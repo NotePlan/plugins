@@ -4,12 +4,12 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-04-11 for v1.4.0.b16, @jgclark
+// Last updated 2026-04-19 for v2.0.0.b21, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { Project, calcReviewFieldsForProject } from './projectClass.js'
+import { Project, calcReviewFieldsForProject, getNoteChangeTimeMsForCache } from './projectClass.js'
 import { getReviewSettings, updateDashboardIfOpen } from './reviewHelpers.js'
 import type { ReviewConfig } from './reviewHelpers.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -34,6 +34,37 @@ const MS_PER_HOUR = 1000 * 60 * 60
 const ERROR_FILENAME_PLACEHOLDER = 'error'
 const ERROR_READING_PLACEHOLDER = '<error reading'
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
+
+/**
+ * Stable key for matching a cached allProjectsList row to `new Project(note, tag, ...)`.
+ * @param {string} filename
+ * @param {string} tag - Same tag as passed to Project constructor (project type tag)
+ * @returns {string}
+ */
+function makeProjectListCacheKey(filename: string, tag: string): string {
+  return `${filename}\u0000${tag}`
+}
+
+/**
+ * Read the on-disk allProjects list for constructor cache hints only (no age-based regeneration).
+ * @returns {Array<any>}
+ */
+function loadRawAllProjectsListSnapshot(): Array<any> {
+  try {
+    if (!DataStore.fileExists(allProjectsListFilename)) {
+      return []
+    }
+    const content = DataStore.loadData(allProjectsListFilename, true)
+    if (content == null || content === '') {
+      return []
+    }
+    const parsed = JSON.parse(content)
+    return Array.isArray(parsed) ? parsed : []
+  } catch (error) {
+    logWarn('loadRawAllProjectsListSnapshot', error.message)
+    return []
+  }
+}
 
 //-------------------------------------------------------------------------------
 // Helper functions
@@ -358,6 +389,15 @@ async function getAllMatchingProjects(
 
   logTimer(`getAllMatchingProjects`, startTime, `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`)
 
+  const snapshotRows = loadRawAllProjectsListSnapshot()
+  const projectListRowByKey: Map<string, any> = new Map()
+  for (const row of snapshotRows) {
+    if (row != null && typeof row.filename === 'string' && row.filename !== '') {
+      const tagForKey = getLeadingProjectTag(row)
+      projectListRowByKey.set(makeProjectListCacheKey(row.filename, tagForKey), row)
+    }
+  }
+
   // Iterate over the folders, looking for notes that match the projectTypeTags
   const projectInstances = []
   for (const folder of filteredFolderList) {
@@ -379,8 +419,26 @@ async function getAllMatchingProjects(
         if (!runInForeground) {
           await CommandBar.onAsyncThread()
         }
+        const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
         for (const n of projectNotesArr) {
-          const np = new Project(n, tag, true, config.nextActionTags, config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT)
+          const currentMs = getNoteChangeTimeMsForCache(n, true)
+          const cacheKey = makeProjectListCacheKey(n.filename, tag)
+          const cachedRow = projectListRowByKey.get(cacheKey)
+          let np: Project
+          if (
+            currentMs != null &&
+            cachedRow != null &&
+            typeof cachedRow.noteChangedAtMs === 'number' &&
+            cachedRow.noteChangedAtMs === currentMs
+          ) {
+            logDebug('getAllMatchingProjects', `- Using cached details for ${tag} '${n.filename}'`)
+            const cloned = { ...cachedRow }
+            cloned.note = n
+            np = calcReviewFieldsForProject(cloned)
+          } else {
+            logDebug('getAllMatchingProjects', `- Cache MISS, so calling Project constructor for ${tag} '${n.filename}'`)
+            np = new Project(n, tag, true, config.nextActionTags, sequentialTagResolved)
+          }
           projectInstances.push(np)
         }
         if (!runInForeground) {

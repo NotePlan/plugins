@@ -1,6 +1,13 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b21] - 2026-04-19
+- New cache to significantly speed up display of the Project List when a project note hasn't changed since the last run. 
+  - dev: regenerating `allProjectsList` reuses cached JSON rows when `note.changedDate` matches stored `noteChangedAtMs` (skips `Project` constructor; still runs `calcReviewFieldsForProject`).
+- dev: Attempted to speed up the Project constructor:
+  - `Project` constructor batches `DataStore.preference` reads for mention strings and separate frontmatter key names; `parseDateMention` accepts optional resolved mention names to avoid duplicate lookups
+  - reuse first `readRawFrontmatterField` result for primary project tag resolution (same combined key)
+
 ## [2.0.0.b20] - 2026-04-18
 - dev: fix small issues found by Cursor
 - dev: avoid two calls to getMetadataLineIndexFromBody() in Project constructors
