@@ -200,7 +200,7 @@ export function getNonMainWindowIds(windowType: TWindowType = 'Editor'): Array<s
  * Note: From v3.20.2, this also checks the HTMLView.isVisible property to see if the window is actually visible, as it may be cached in memory. (Unless checkIsVisible is false, when no check is made.)
  * @param {string} customId - to look for
  * @param {boolean} checkIsVisible - whether to check the HTMLView.isVisible property to see if the window is actually visible, as it may be cached in memory. (Default: true)
- * @returns {string} the matching open HTML window's ID or false if not found
+ * @returns {string | false} the matching open HTML window's ID or false if not found
  */
 export function getWindowIdFromCustomId(
   customId: string,
@@ -236,6 +236,7 @@ export function getWindowIdFromCustomId(
 
   if (foundWin) {
     if (doCheckIsVisible && (foundWin.isVisible ?? false)) {
+      // logDebug('getWindowIdFromCustomId', `Window '${customId}' is available and visible, so will return its ID '${foundWin.id}'.`)
       return foundWin.id
     } else {
       logInfo('getWindowIdFromCustomId', `Window '${foundWin.customId}' is available, but not visible, so will not return it.`)

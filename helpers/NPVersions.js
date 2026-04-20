@@ -12,7 +12,7 @@ import { semverVersionToNumber } from './utils'
  * @returns {boolean} true if the user's version of NotePlan has the feature, false otherwise
  */
 export function usersVersionHas(feature: string): boolean {
-  logDebug('usersVersionHas', `NotePlan v${NotePlan.environment.version}`)
+  // logDebug('usersVersionHas', `NotePlan v${NotePlan.environment.version}`)
   // Note: this ignores any non-numeric, non-period characters (e.g., "-beta3")
   const userVersionNumber: number = semverVersionToNumber(NotePlan.environment.version) || 0
   // logDebug('usersVersionHas', `userVersionNumber: ${String(userVersionNumber)}`)

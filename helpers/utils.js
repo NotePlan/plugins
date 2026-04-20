@@ -202,7 +202,7 @@ export function semverVersionToNumber(version: string): number {
     })
 
     if (parts.length === 2) {
-      logDebug('semverVersionToNumber', `checking version=${version}; adding a .0 to make 3 parts`)
+      // logDebug('semverVersionToNumber', `checking version=${version}; adding a .0 to make 3 parts`)
       parts.push(0)
     }
     else if (parts.length < 2) {

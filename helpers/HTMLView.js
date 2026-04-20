@@ -716,10 +716,8 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
 
     const windowExists = isHTMLWindowOpen(windowId)
     if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = undefined`)
-    // runJavaScript expects the window's internal id; resolve customId to actual id when present
-    // TEST: this change identified by Cursor
     // TEST: Not sure the comment about iphone/ipad is still relevant, but leaving it in for now.
-    const windowIdToSend = windowExists ? (getWindowIdFromCustomId(windowId) || windowId) : undefined // for iphone/ipad you have to send undefined
+    const windowIdToSend = windowExists ? windowId : undefined // for iphone/ipad you have to send undefined
 
     const dataWithUpdated = {
       ...data,
