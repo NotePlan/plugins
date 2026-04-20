@@ -49,7 +49,7 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
   // ----------------------------------------------------------------------
   // Context
   // ----------------------------------------------------------------------
-  const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData, /*reactSettings, setReactSettings*/ } = useAppContext()
+  const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData /*reactSettings, setReactSettings*/ } = useAppContext()
   const { isDialogOpen, openDialog, closeDialog } = useSettingsDialogHandler()
 
   // ----------------------------------------------------------------------
@@ -79,9 +79,9 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
    * Synchronize tempDashboardSettings with dashboardSettings when the dropdown menu is not open.
    */
   useEffect(() => {
-    logDebug(`Header/useEffect dashboardSettings or openDropdownMenu changed. openDropdownMenu=${String(openDropdownMenu)}`, { dashboardSettings })
+    logDebug(`Header/useEffect dashboardSettings or openDropdownMenu changed. openDropdownMenu=${String(openDropdownMenu)}`)
     if (!openDropdownMenu) {
-      logDebug(`Header/useEffect dashboardSettings or openDropdownMenu changed memo. openDropdownMenu=${String(openDropdownMenu)}`, { dashboardSettings })
+      logDebug(`Header/useEffect dashboardSettings or openDropdownMenu changed memo. openDropdownMenu=${String(openDropdownMenu)}`)
       setTempDashboardSettings({ ...dashboardSettings })
     }
   }, [dashboardSettings, openDropdownMenu])
@@ -270,7 +270,6 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
     sendActionToPlugin('addTaskAnywhere', {}, 'Add task to any note', false)
   }, [sendActionToPlugin])
 
-
   // ----------------------------------------------------------------------
   // Constants
   // ----------------------------------------------------------------------
@@ -284,12 +283,15 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
   const featureFlagItems = useMemo(() => createFeatureFlagItems(tempDashboardSettings), [tempDashboardSettings])
 
   // Show Feature Flags menu if any FF is set, or we're in DEV logging mode (and not in demo mode)
-  const showFeatureFlagsMenu = (logSettings._logLevel === 'DEV' || dashboardSettings.FFlag_DebugPanel
-    || dashboardSettings.FFlag_ShowTestingPanel
-    || dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging
-    || dashboardSettings.FFlag_HardRefreshButton
-    || dashboardSettings.FFlag_ShowSectionTimings
-    || dashboardSettings.FFlag_UseTagCache) && !pluginData.demoMode
+  const showFeatureFlagsMenu =
+    (logSettings._logLevel === 'DEV' ||
+      dashboardSettings.FFlag_DebugPanel ||
+      dashboardSettings.FFlag_ShowTestingPanel ||
+      dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging ||
+      dashboardSettings.FFlag_HardRefreshButton ||
+      dashboardSettings.FFlag_ShowSectionTimings ||
+      dashboardSettings.FFlag_UseTagCache) &&
+    !pluginData.demoMode
   const showRefreshButton = pluginData.platform !== 'iOS'
   const showHardRefreshButton = dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
   const isNarrowWidth = window.innerWidth <= 700
@@ -319,9 +321,7 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
 
         {showRefreshButton && (
           <div className="refreshButtons">
-            <RefreshControl refreshing={pluginData.refreshing === true}
-              firstRun={firstRun}
-              handleRefreshClick={handleRefreshClick(false)} />
+            <RefreshControl refreshing={pluginData.refreshing === true} firstRun={firstRun} handleRefreshClick={handleRefreshClick(false)} />
             {showHardRefreshButton && (
               <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton" title="Hard Refresh (restart whole Dashboard)">
                 <i className={'fa-regular fa-arrows-retweet'}></i>
@@ -361,12 +361,7 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
           {useDynamicAddToAnywhere ? (
             <AddToAnyNote sendActionToPlugin={sendActionToPlugin} />
           ) : (
-            <button
-              accessKey="a"
-              className="buttonsWithoutBordersOrBackground"
-              title="Add new task/checklist"
-              onClick={handleAddTaskAnywhere}
-            >
+            <button accessKey="a" className="buttonsWithoutBordersOrBackground" title="Add new task/checklist" onClick={handleAddTaskAnywhere}>
               <i className="fa-solid fa-hexagon-plus"></i>
             </button>
           )}
@@ -400,21 +395,16 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
             labelPosition="left"
           />
           {/* Cog Icon for opening the settings dialog */}
-          <button accessKey=","
-            className="dropdown buttonsWithoutBordersOrBackground"
-            onClick={() => openDialog()}
-            title="Open Dashboard Settings dialog">
+          <button accessKey="," className="dropdown buttonsWithoutBordersOrBackground" onClick={() => openDialog()} title="Open Dashboard Settings dialog">
             <i className="fa-solid fa-gear"></i>
           </button>
 
           {/* Spacer for the NP-generated close button on modal windows on mobile */}
           {isModal && <span className="modalCloseButtonSpacer"></span>}
-          
         </div>
 
         {/* Render the SettingsDialog only when it is open */}
         {isDialogOpen && <SettingsDialog items={dashboardSettingsItems} className={'dashboard-settings'} onSaveChanges={handleChangesInSettings} />}
-
       </header>
 
       {/* SearchPanel container with sliding animation */}

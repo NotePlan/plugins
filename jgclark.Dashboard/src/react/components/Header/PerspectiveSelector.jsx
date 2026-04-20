@@ -83,7 +83,7 @@ const PerspectiveSelector = (): React$Node => {
         const copySettings = notIsDash ? [{ label: 'Copy Settings to…', value: 'Copy Perspective' }] : []
         const deletePersp = notIsDash ? [{ label: 'Delete Perspective…', value: 'Delete Perspective' }] : []
         const editAllPerspectives = [{ label: 'Edit All Perspectives…', value: 'Edit All Perspectives' }]
-        logDebug('PerspectiveSelector/SET_PERSPECTIVE_OPTIONS', `notIsDash=${String(notIsDash)} action.payload=`, { activePersp: thisPersp }, { payload: action.payload })
+        logDebug('PerspectiveSelector/SET_PERSPECTIVE_OPTIONS', `notIsDash=${String(notIsDash)} action.activePersp=${String(thisPersp?.name)}`)
         const perspectiveNameOptions = [
           ...action.payload,
           ...separatorOption,

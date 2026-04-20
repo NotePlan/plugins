@@ -45,7 +45,9 @@ export const useSyncDashboardSettingsWithPlugin = (
   useEffect(() => {
     const pluginDataDSettingsChanged = pluginDataDSettings && compareFn(lastpluginDataDSettingsRef.current, pluginDataDSettings) !== null
     logDebug(
-      `useSyncDashboardSettingsWithPlugin effect1 PLUGIN->REACT checking pluginData?.pushFromServer?.dashboardSettings=${String(pluginData?.pushFromServer?.dashboardSettings) || ''}`,
+      `useSyncDashboardSettingsWithPlugin effect1 PLUGIN->REACT checking pluginData?.pushFromServer?.dashboardSettings=${
+        String(pluginData?.pushFromServer?.dashboardSettings) || ''
+      }`,
     )
     if (pluginDataDSettingsChanged) {
       logDebug(
@@ -118,9 +120,7 @@ export const useSyncDashboardSettingsWithPlugin = (
 
   useEffect(() => {
     if (pluginData.pushFromServer.dashboardSettings) {
-      logDebug(`useSyncDashboardSettingsWithPlugin pluginData.pushFromServer.dashboardSettings is true; resetting it`, {
-        pluginData,
-      })
+      logDebug(`useSyncDashboardSettingsWithPlugin pluginData.pushFromServer.dashboardSettings is true; resetting it`)
       const newPluginData = { ...pluginData, pushFromServer: { ...pluginData.pushFromServer, dashboardSettings: false } }
       updatePluginData(newPluginData, `acknowledging server push`)
     }
