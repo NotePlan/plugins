@@ -2,14 +2,15 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-04-17 for v2.0.0.b20, @jgclark
+// Last updated 2026-04-20 for v2.0.0.b21, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
-import { getActivePerspectiveDef, getAllowedFoldersInCurrentPerspective, getPerspectiveSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
+import { getActivePerspectiveDef, getPerspectiveSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
 import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { WEBVIEW_WINDOW_ID as DASHBOARD_WINDOW_ID} from '../../jgclark.Dashboard/src/constants'
+import pluginJson from '../plugin.json'
 import { type Progress } from './projectClass'
 import { checkBoolean, checkString } from '@helpers/checkType'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -25,10 +26,11 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { escapeRegExp } from '@helpers/regex'
+import { backupSettings } from '@helpers/NPConfiguration'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttribute, noteHasFrontMatter, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { getFieldParagraphsFromNote } from '@helpers/paragraph'
+import { escapeRegExp } from '@helpers/regex'
 import { getHashtagsFromString } from '@helpers/stringTransforms'
 import { showMessage } from '@helpers/userInput'
 
@@ -68,8 +70,8 @@ export type ReviewConfig = {
   showFolderName: boolean,
   startMentionStr: string,
   nextReviewMentionStr: string,
-  width: number,
-  height: number,
+  // width: number, // TEST: removing -- can't have hidden numeric settings, unfortunately
+  // height: number, // TEST: removing
   archiveUsingFolderStructure: boolean,
   archiveFolder: string,
   removeDueDatesOnPause?: boolean,
@@ -195,7 +197,7 @@ function getNoteFromNoteLike(noteLike: CoreNoteFields | TEditor): CoreNoteFields
  */
 export async function getReviewSettings(externalCall: boolean = false): ?Promise<ReviewConfig> {
   try {
-    logDebug('getReviewSettings', `Starting${externalCall ? ' from a different plugin' : ''} ...`)
+    logInfo(pluginJson, `getReviewSettings() Starting${externalCall ? ' from a different plugin' : ''} ...`)
     // Get settings
     const config: ReviewConfig = await DataStore.loadJSON('../jgclark.Reviews/settings.json')
 
@@ -203,13 +205,11 @@ export async function getReviewSettings(externalCall: boolean = false): ?Promise
     // Otherwise complain, as there should be settings.
     if (config == null || Object.keys(config).length === 0) {
       if (!externalCall) {
-        await showMessage(`Cannot find settings file for the 'Projects & Reviews' plugin. Please delete and re-install this plugin from the Plugin Preferences pane, and then try again.`)
-        throw new Error(`Can't find settings file '../jgclark.Reviews/settings.json', so asked user to delete and re-install plugin, and then try again.`)
+        // Throw an error to trigger the backupSettings call in the catch block
+        throw new Error
       }
-      // $FlowFixMe[incompatible-return] as we're returning null if no settings found
-      return null
     }
-    // clo(config, `Review settings`)
+    // clo(config, `Review settings for '${pluginJson['plugin.version']}' version:`)
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
     DataStore.setPreference('startMentionStr', config.startMentionStr)
@@ -272,8 +272,10 @@ export async function getReviewSettings(externalCall: boolean = false): ?Promise
 
     return config
   } catch (err) {
-    logError('getReviewSettings', `${err.name}: ${err.message}`)
-    // $FlowFixMe[incompatible-return] as we're returning null if no settings found
+    logError(pluginJson, `getReviewSettings() error: ${err.name}: ${err.message}`)
+    await backupSettings('jgclark.Reviews', 'error_in_file')
+    await showMessage(`Sorry, there's been an error getting the settings for this plugin.\nI have tried to make a copy of the settings file to send to the plugin author on Discord if you wish.\n\nnNow please delete your NotePlan/Plugins/data/jgclark.Reviews/settings.json file. Then re-run the command, which should create a new settings file from the plugin defaults. If the issue persists, please raise an issue on Discord.`, 'OK, thanks', 'Settings Error')
+    // FlowFixMe[incompatible-return] as we're returning null if no settings found
     return null
   }
 }

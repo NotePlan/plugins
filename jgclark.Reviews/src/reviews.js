@@ -95,13 +95,14 @@ const customMarkdownWinId = `markdown-review-list`
 //-----------------------------------------------------------------------------
 
 /**
- * Tell the Project List HTML window which project is currently being reviewed.
- * Adds or removes the 'reviewing' class on the matching projectRow, if the window is open.
+ * Tell the Project List HTML window which project is currently being reviewed (if the window is open).
+ * Adds or removes the 'reviewing' class on the matching projectRow.
+ * TODO: this is OK on 'start review' but not on 'next review'. Is it the wrong windowID?
  * @param {CoreNoteFields | TNote | any} note - note being reviewed
- * @param {boolean} isReviewing - whether this note is now being reviewed
  */
-async function setReviewingProjectInHTML(note: any, isReviewing: boolean): Promise<void> {
+async function setReviewingProjectInHTML(note: any): Promise<void> {
   try {
+    logDebug('setReviewingProjectInHTML', `Setting 'reviewing' state for note '${displayTitle(note)}' for window ${customRichWinId}`)
     if (!note || note.type !== 'Notes') {
       return
     }
@@ -109,12 +110,16 @@ async function setReviewingProjectInHTML(note: any, isReviewing: boolean): Promi
       return
     }
     const encodedFilename = encodeRFC3986URIComponent(note.filename)
-    await sendToHTMLWindow(customRichWinId, 'SET_REVIEWING_PROJECT', { encodedFilename, isReviewing })
+    await sendToHTMLWindow(customRichWinId, 'SET_REVIEWING_PROJECT', { encodedFilename })
   } catch (error) {
     logError('setReviewingProjectInHTML', error.message)
   }
 }
 
+/**
+ * Clear the 'reviewing' state from all project rows in the Project List HTML window.
+ * @author @jgclark 
+ */
 async function clearProjectReviewingInHTML(): Promise<void> {
   try {
     if (!isHTMLWindowOpen(customRichWinId)) {
@@ -890,15 +895,15 @@ async function startReviewCoreLogic(
   }
 
   // Show that this project is now being reviewed, if the 'Rich' Project List is open
-  await setReviewingProjectInHTML(noteToReview, true)
   logInfo(logContext, `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
+  await setReviewingProjectInHTML(noteToReview, true)
 
-  // TEST: This needs to be smarter:
-  // - check if note is already open in one of the Editor windows. If so just focus it. Otherwise open it in the Editor (if running from 'New Window' or 'Split View' mode), or a new split view if not.
+  // Check if note is already open in one of the Editor windows:
+  // - If so, just focus it.
+  // - Otherwise open it in the Editor (if running from 'New Window' or 'Split View' mode), or a new split view if not.
   // V1
   // const possibleEditor: TEditor | false = findEditorWindowByFilename(noteToReview.filename)
   // etc.
-
   // V2
   if (config.preferredWindowType === 'Main Window') {
     // Open in split view
@@ -932,14 +937,14 @@ export async function startReviews(): Promise<void> {
     if (!config) throw new Error('No config found. Stopping.')
 
     // Get the next note to review, based on allProjectsList, ordered by most overdue for review.
-    const noteToReview = await getNextNoteToReview()
+    const noteToReview: ?TNote = await getNextNoteToReview()
     if (!noteToReview) {
       logInfo('startReviews', '🎉 No notes to review!')
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
       return
+    } else {
+      await startReviewCoreLogic(noteToReview, config, true, 'startReviews')
     }
-
-    await startReviewCoreLogic(noteToReview, config, true, 'startReviews')
   } catch (error) {
     logError('startReviews', error.message)
   }
@@ -1042,12 +1047,12 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
 
     // Read review list to work out what's the next one to review
     const noteToReview: ?TNote = await getNextNoteToReview()
-    if (noteToReview != null) {
-      logDebug('finishReviewAndStartNextReview', `- Opening '${displayTitle(noteToReview)}' as nextReview note ...`)
-      await startReviewCoreLogic(noteToReview, config, true, 'finishReviewAndStartNextReview')
-    } else {
+    if (!noteToReview) {
       logInfo('finishReviewAndStartNextReview', `- 🎉 No more notes to review!`)
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
+    } else {
+      logDebug('finishReviewAndStartNextReview', `- Opening '${displayTitle(noteToReview)}' as nextReview note ...`)
+      await startReviewCoreLogic(noteToReview, config, true, 'finishReviewAndStartNextReview')
     }
   } catch (error) {
     logError('finishReviewAndStartNextReview', error.message)
@@ -1169,7 +1174,12 @@ export async function skipReview(): Promise<void> {
     // Then move to nextReview
     // Read review list to work out what's the next one to review
     const noteToReview: ?TNote = await getNextNoteToReview()
-    if (noteToReview != null) {
+    if (!noteToReview) {
+      logInfo('skipReview', `- 🎉 No more notes to review!`)
+      await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
+      return
+    }
+    else {
       if (config.confirmNextReview) {
         // Check whether to open that note in editor
         const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
@@ -1179,9 +1189,6 @@ export async function skipReview(): Promise<void> {
       }
       logDebug('skipReview', `- opening '${displayTitle(noteToReview)}' as next note ...`)
       await Editor.openNoteByFilename(noteToReview.filename)
-    } else {
-      logInfo('skipReview', `- 🎉 No more notes to review!`)
-      await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
     }
   } catch (error) {
     logError('skipReview', error.message)

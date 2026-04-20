@@ -1,6 +1,12 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b22] - 2026-04-20 (released)
+- fix: setting the 'currently reviewing' state in the Project List stopped the review from starting (thanks, @Garba)
+- dev: failed attempt to delete settings.json file if found to be invalid. Discovered there's no need to write a default copy, as the app does this anyway if the file is missing.
+- dev: turn down some logging
+- dev: revert change to HTMLView::sendToHTMLWindow which Cursor made, and broke things.
+
 ## [2.0.0.b21] - 2026-04-19 (released)
 - New cache to significantly speed up display of the Project List when a project note hasn't changed since the last run. 
   - dev: regenerating `allProjectsList` reuses cached JSON rows when `note.changedDate` matches stored `noteChangedAtMs` (skips `Project` constructor; still runs `calcReviewFieldsForProject`).

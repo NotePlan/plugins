@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-04-19 for v2.0.0.b21, @jgclark
+// Last updated 2026-04-20 for v2.0.0.b21, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -745,7 +745,7 @@ export function sortProjectsList(
   config: ReviewConfig,
   sortingOrder: Array<string> = [],
 ): Array<Project> {
-  logDebug('sortProjectsList', `Starting with input sortingOrder: [${String(sortingOrder)}]`)
+  // logDebug('sortProjectsList', `Starting with input sortingOrder: [${String(sortingOrder)}]`)
   const projectTypeTagsForOrder =
     config.projectTypeTags != null && typeof config.projectTypeTags === 'string' ? [config.projectTypeTags] : (config.projectTypeTags ?? [])
   // Extend Project with projectTagOrder (sort key for firstTag mode: order matches config.projectTypeTags)
@@ -756,7 +756,7 @@ export function sortProjectsList(
 
   // TODO: Finish reviewing how allProjectTags is really being used, and remove this logging.
   const sortingSpecification = (sortingOrder.length > 0) ? sortingOrder : buildSortingSpecification(config)
-  logDebug('sortProjectsList', `- sorting by ${String(sortingSpecification)}`)
+  // logDebug('sortProjectsList', `- sorting by ${String(sortingSpecification)}`)
   const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)
   // $FlowIgnore[prop-missing] deliberate temporary extension to Project class
   // sortedProjectInstances.forEach(pi => console.log(`${pi.projectTagOrder}\t[${String(pi.allProjectTags)}]\t${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
@@ -879,7 +879,8 @@ export async function updateAllProjectsListAfterChange(
 export async function getNextNoteToReview(): Promise<?TNote> {
   try {
     logDebug(pluginJson, `getNextNoteToReview() starting ...`)
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) { throw new Error('Stopping as I can\'t get the Review settings.') }
 
     // Get all available Projects -- not filtering by projectTag here
     const [allProjectsSorted, _numberProjectsUnfiltered] = await filterAndSortProjectsList(config)
@@ -898,7 +899,7 @@ export async function getNextNoteToReview(): Promise<?TNote> {
       logDebug('getNextNoteToReview', `- Next to review -> '${thisNoteFilename}'`)
       const nextNote = DataStore.projectNoteByFilename(thisNoteFilename)
       if (!nextNote) {
-        logWarn('getNextNoteToReview', `Couldn't find note '${thisNoteFilename}' -- suggest you should re-run Project Lists to ensure this is up to date`)
+        logWarn('getNextNoteToReview', `Couldn't find note '${thisNoteFilename}' -- please re-run Project Lists to ensure this is up to date`)
         return null
       } else {
         logDebug('getNextNoteToReview', `-> ${displayTitle(nextNote)}`)

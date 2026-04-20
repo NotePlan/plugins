@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------
 //  HTMLWinCommsSwitchboard.js - in the HTMLWindow process data and logic to/from the plugin
-// Last updated: 2026-02-26 for v1.4.0.b4 by @jgclark
+// Last updated: 2026-04-20 for v2.0.0.b21 by @jgclark
 //--------------------------------------------------------------------------------------
 /** 
  * This file is loaded by the browser via <script> tag in the HTML file
@@ -97,24 +97,25 @@ function setReviewingProject(data) {
     console.log(`setReviewingProject: no encodedFilename provided`)
     return
   }
-
   console.log(`setReviewingProject: for encodedFilename: ${encodedFilename}`)
 
   // First clear any existing 'reviewing' state on all project rows
-  const allRows = document.querySelectorAll('.project-grid-row.projectRow.reviewing')
-  for (const row of allRows) {
-    row.classList.remove('reviewing')
-  }
+  clearReviewingProject(data)
 
   // Then set 'reviewing' on the matching row
   const matchingRows = document.querySelectorAll('.project-grid-row.projectRow')
   for (const row of matchingRows) {
     if (row.dataset.encodedFilename === encodedFilename) {
+      console.log(`setReviewingProject: found match`)
       row.classList.add('reviewing')
-      // And replace the third child (metadata cell) with content 'Under Review'
-      // Note: This is a hack, and should be dealt with in the generator, but this will do for now.
-      const thirdChild = row.children[2]
-      if (thirdChild) thirdChild.innerHTML = '<p class="underReviewText">Under Review</p>'
+      // And add another child of span "projectTagsInline" as `<span class="metadata=lozenge lozenge-reviewing">Under Review</span>`
+      const projectTagsInline = row.querySelector('.projectTagsInline')
+      if (projectTagsInline) {
+        const newSpan = document.createElement('span')
+        newSpan.className = 'metadata-lozenge lozenge-reviewing'
+        newSpan.innerHTML = 'Under Review'
+        projectTagsInline.appendChild(newSpan)
+      }
     }
   }
 }
@@ -131,13 +132,17 @@ function clearReviewingProject(data) {
   //   return
   // }
   // console.log(`clearReviewingProject: for encodedFilename: ${encodedFilename}`)
-
   console.log(`clearReviewingProject: clearing all reviewing states`)
 
   // Clear any existing 'reviewing' state on all project rows
   const allRows = document.querySelectorAll('.project-grid-row.projectRow.reviewing')
   for (const row of allRows) {
     row.classList.remove('reviewing')
+  }
+  // Clear any existing 'reviewing' lozenges on all project rows
+  const allLozenges = document.querySelectorAll('.metadata-lozenge.lozenge-reviewing')
+  for (const lozenge of allLozenges) {
+    lozenge.remove()
   }
 }
 
