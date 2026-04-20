@@ -340,12 +340,26 @@ function makePeriodDaysSummaryDiv(eventsForPeriod: Array<TCalendarItem>): string
   output.push(`<div class="summary-content">`)
   eventsForPeriod.forEach((e) => {
     output.push(`\t<div class="summary-item">`)
-    output.push(`\t\t<i aria-hidden="true" class="summary-item-event-icon fa-regular fa-calendar-week"></i>`)
+    output.push(`\t\t<i aria-hidden="true" class="summary-item-icon event-icon fa-regular fa-calendar-week"></i>`)
     output.push(`\t\t<span class="summary-item-text">${e.title}</span>`)
     output.push('\t</div>')
   })
   output.push(`</div>`)
   return wrapSummaryDetailsBlock('summary-details-events', title, output.join('\n'), { defaultOpen: false })
+}
+
+/**
+ * Placeholder for the calendar-events block while the WebView loads events via `Calendar.*`.
+ * Client script replaces this with markup matching {@link makePeriodDaysSummaryDiv} (or removes it when there are no events).
+ * @returns {string}
+ */
+function makeCalendarEventsSummaryMountHTML(): string {
+  return `<details class="summary-details summary-details-events periodic-review-calendar-events-details-loading" id="periodic-review-calendar-events-details">
+  <summary class="summary-title">Calendar events</summary>
+  <div id="periodic-review-calendar-events-mount" class="periodic-review-calendar-events-mount">
+    <div class="periodic-review-calendar-events-loading-msg">Loading calendar…</div>
+  </div>
+</details>`
 }
 
 /**
@@ -378,13 +392,13 @@ function makeCarryOverPlanSummaryContentDiv(
       if (item.isDone) {
         rows.push(`
       <div class="summary-item">
-        <i aria-hidden="true" class="summary-item-completed-icon fa-solid fa-circle-check"></i>
+        <i aria-hidden="true" class="summary-item-icon item-completed-icon fa-solid fa-circle-check"></i>
         <span class="summary-item-text">${formatTaskAsHTML(item.content)}</span>
       </div>`)
       } else {
       rows.push(`
       <div class="summary-item">
-        <i aria-hidden="true" class="summary-item-incomplete-icon fa-regular fa-circle"></i>
+        <i aria-hidden="true" class="summary-item-icon summary-item-incomplete-icon fa-regular fa-circle"></i>
         <span class="summary-item-text">${formatTaskAsHTML(item.content)}</span>
       </div>`)
       }
@@ -409,7 +423,7 @@ function formatSummaryTaskItemsHTML(taskLines: Array<string>): string {
     .map(
       (taskLine) => `
       <div class="summary-item">
-        <i aria-hidden="true" class="summary-item-completed-icon fa-regular fa-circle-check"></i>
+        <i aria-hidden="true" class="summary-item-icon item-completed-icon fa-regular fa-circle-check"></i>
         <span class="summary-item-text">${formatTaskAsHTML(taskLine)}</span>
       </div>`,
     )
@@ -445,7 +459,7 @@ function formatCompletedTasksSummaryHeading(lineCount: number, variant: 'plain' 
  * @param {Array<{ content: string, isDone: boolean }>} carryOverPlanItems
  * @param {Array<string>} winTasks
  * @param {Array<string>} completedTasks non-win completed tasks (daily only)
- * @param {Array<TCalendarItem>} eventsForPeriod
+ * @param {Array<TCalendarItem>} eventsForPeriod server-built events when not using client summary
  * @returns {string} HTML for section-wrap or ''
  */
 function buildReviewSummarySectionHTML(
@@ -454,7 +468,7 @@ function buildReviewSummarySectionHTML(
   planningSectionTitle: string,
   winTasks: Array<string>,
   completedTasks: Array<string>,
-  eventsForPeriod: Array<TCalendarItem>,
+  eventsForPeriod: Array<TCalendarItem>
 ): string {
   const hasCarryOver = carryOverPlanItems.length > 0
   const isDay = periodType === 'day'
@@ -637,6 +651,9 @@ function makeReviewQuestionRowDiv(
  * @param {string} callbackCommandName
  * @param {{ [string]: string }=} initialAnswers field names q_0 … to pre-fill from the calendar note
  * @param {{ carryOverPlanItems?: Array<{ content: string, isDone: boolean }>, planningSectionTitle?: string }=} reviewExtras carry-over plan tasks + planning block title
+ * @param {Array<string>=} calendarSetForClientSummary calendars to include (empty = all), for WebView `Calendar.*` path
+ * @param {string=} reviewDayYyyymmdd YYYYMMDD from `convertISOToYYYYMMDD(periodString)` when period is daily
+ * @param {boolean=} overrideExperimentalClientCalendar override module flag: false forces server-rendered events; true forces client mount when daily + review day set
  * @returns {string}
  */
 export function buildReviewHTML(
@@ -652,10 +669,15 @@ export function buildReviewHTML(
   planName: string,
   initialAnswers?: { [string]: string },
   carryOverPlanItems?: Array<{ content: string, isDone: boolean }>,
+  calendarSetForClientSummary?: Array<string>,
+  reviewDayYyyymmdd?: string,
+  overrideExperimentalClientCalendar?: ?boolean,
 ): string {
   const periodAdjective = getPeriodAdjectiveFromType(periodType)
   const resolvedInitialAnswers = initialAnswers ?? {}
   const resolvedCarryOver = carryOverPlanItems ?? []
+  const calendarSetResolved: Array<string> = calendarSetForClientSummary ?? []
+  const reviewDayResolved: string = reviewDayYyyymmdd ?? ''
   const plannedSectionTitle = buildThisPlanSectionHeadingTitle(planName)
   const planningSectionTitle = buildNextPlanSectionHeadingTitle(planName, periodType)
   const renderQuestionLines = rawQuestionLines.map((l) => substituteReviewPeriodPlaceholders(l, periodString, periodType))
@@ -671,7 +693,7 @@ export function buildReviewHTML(
     plannedSectionTitle,
     summaryWinTasks,
     summaryCompletedTasks,
-    eventsForPeriod,
+    eventsForPeriod
   )
   const planningSectionHtml = planningSectionTitle !== '' ? makePlanningSectionHTML(planningSectionTitle) : ''
 
@@ -705,7 +727,7 @@ export function buildReviewHTML(
         <button class="review-button review-button-primary" type="button" id="review-submit">Save</button>
     </div>
 
-    <script type="text/javascript">
+      <script>
       let hasSentReviewAction = false
       const sendToPlugin = (commandName = '${callbackCommandName}', pluginID = '${pluginJson['plugin.id']}', commandArgs = []) => {
         const actionName = String(commandArgs?.[0] ?? '')

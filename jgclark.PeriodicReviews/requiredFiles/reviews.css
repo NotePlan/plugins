@@ -129,19 +129,23 @@ body {
   margin-bottom: 0.15rem;
 }
 
+.summary-item-icon {
+  margin-right: 0.3rem;
+}
+
 .summary-item-incomplete-icon {
   color: var(--item-icon-color);
   line-height: 1.2;
   flex-shrink: 0;
 }
 
-.summary-item-completed-icon {
+.item-completed-icon {
   color: var(--fg-done-color);
   line-height: 1.2;
   flex-shrink: 0;
 }
 
-.summary-item-event-icon {
+.event-icon {
   color: var(--fg-placeholder-color);
   line-height: 1.2;
   flex-shrink: 0;
