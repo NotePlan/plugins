@@ -2,6 +2,9 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.23.3] - 2026-04-21 @jgclark
+- New optional `startDay` parameter that can be used in Event List and Matching Event Lists template and x-callback calls. This takes a date in the format `YYYY-MM-DD` to set the first day of the range; if omitted, behaviour is unchanged, which is to start from the open calendar note’s period.
+
 ## [0.23.2] - 2025-11-22 @jgclark
 - add some missing PLACEHOLDERS in the setting descriptions
 - dev: refactor code for improved maintainability

@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 2025-11-21 for v0.23.0, by @jgclark
+// Last updated 2026-04-21 for v0.23.3, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 

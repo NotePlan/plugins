@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 2025-11-23 for v0.23.2, by @jgclark
+// Last updated 2026-04-21 for v0.23.3, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well, @akrabat
 // ----------------------------------------------------------------------------
 
@@ -9,10 +9,12 @@ import pluginJson from '../plugin.json'
 import { getEventsSettings } from './eventsHelpers'
 import { getEventsForDay, type EventsConfig } from '@helpers/NPCalendar'
 import {
+  getAPIDateStrFromDisplayDateStr,
   getCalendarNoteTimeframe,
   getDateFromYYYYMMDDString,
   isDailyNote,
   isWeeklyNote,
+  RE_ISO_DATE,
   toLocaleDateString,
   toLocaleTime,
 } from '@helpers/dateTime'
@@ -131,6 +133,43 @@ function normalizeParamString(paramStringIn: ?string, functionName: string): str
     return ''
   }
   return paramStringIn
+}
+
+/**
+ * Resolve first calendar day (YYYYMMDD) for event lists: optional `startDay` (YYYY-MM-DD) in param JSON, else from calendar note filename.
+ * @param {string} paramString - JSON5 parameter string
+ * @param {string} calendarFilename - Editor.filename for the open calendar note
+ * @returns {Promise<string>} YYYYMMDD string for the first day in the range
+ */
+export async function getEventListStartDayYYYYMMDD(paramString: string, calendarFilename: string): Promise<string> {
+  // logDebug(pluginJson, `getEventListStartDayYYYYMMDD: starting for paramString='${paramString}' / calendarFilename='${calendarFilename}'`)
+  const base = getDateStrForStartofPeriodFromCalendarFilename(calendarFilename)
+  const startDayRaw = await getTagParamsFromString(paramString, 'startDay', '')
+  if (startDayRaw === '' || startDayRaw === '❗️error') {
+    return base
+  }
+  if (typeof startDayRaw !== 'string') {
+    logWarn(pluginJson, `getEventListStartDayYYYYMMDD: startDay must be a string, ignoring`)
+    return base
+  }
+  const trimmed = startDayRaw.trim()
+  if (trimmed === '') {
+    return base
+  }
+  const isoDateRE = new RegExp(`^${RE_ISO_DATE}$`)
+  if (!isoDateRE.test(trimmed)) {
+    logWarn(pluginJson, `getEventListStartDayYYYYMMDD: invalid startDay format '${trimmed}', expected YYYY-MM-DD`)
+    return base
+  }
+  const y = Number(trimmed.slice(0, 4))
+  const mo = Number(trimmed.slice(5, 7))
+  const d = Number(trimmed.slice(8, 10))
+  const asDate = new Date(y, mo - 1, d)
+  if (asDate.getFullYear() !== y || asDate.getMonth() !== mo - 1 || asDate.getDate() !== d) {
+    logWarn(pluginJson, `getEventListStartDayYYYYMMDD: startDay is not a valid calendar date '${trimmed}'`)
+    return base
+  }
+  return getAPIDateStrFromDisplayDateStr(trimmed)
 }
 
 /**
@@ -288,7 +327,7 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
     const config = await getEventsSettings()
     const noteTimeFrame = getCalendarNoteTimeframe(openNote)
     if (!noteTimeFrame) throw new Error(`No noteTimeFrame found for note ${openNote.filename}. Stopping.`)
-    const startDayDateString = getDateStrForStartofPeriodFromCalendarFilename(Editor.filename)
+    const startDayDateString = await getEventListStartDayYYYYMMDD(paramString, Editor.filename)
 
     // Get format parameters, checking both new and legacy parameter names
     const format = await getFormatParam(paramString, ['format', 'template'], config.formatEventsDisplay || DEFAULT_FORMAT_EVENTS)
@@ -399,7 +438,7 @@ export async function listMatchingDaysEvents(
     const config = await getEventsSettings()
     const noteTimeFrame = getCalendarNoteTimeframe(openNote)
     if (!noteTimeFrame) throw new Error(`No noteTimeFrame found for note ${openNote.filename}. Stopping.`)
-    const startDayDateString = getDateStrForStartofPeriodFromCalendarFilename(Editor.filename)
+    const startDayDateString = await getEventListStartDayYYYYMMDD(paramString, Editor.filename)
     logDebug(pluginJson, `listMatchingDaysEvents: starting for noteTimeFrame=${noteTimeFrame} / date ${startDayDateString} with paramString='${paramString}'`)
 
     if (config.addMatchingEvents == null) {
