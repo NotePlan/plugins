@@ -2,6 +2,9 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 <!-- - **index folders** command: index notes created or updated now include frontmatter `icon: list-ul` and `icon-color: yellow-500` for sidebar display. -->
 
+## [1.3.6] - 2026-04-25
+- 'new note' commands now suggest title from frontmatter or first line of text, and don't fail on blank titles.
+
 ## [1.3.5] - 2026-03-18
 - fix to potential bug found by @Cursor
 - add small detail to /print note helper
