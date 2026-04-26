@@ -1251,7 +1251,7 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
 /**
  * Calendar period immediately after the given NotePlan period (same string family as note titles).
  * Uses `calcOffsetDate` so week rollover matches ISO week handling (e.g. 2024-W52 → 2025-W01).
- * @param {string} periodStringIn - e.g. YYYY-MM-DD, YYYY-Www, YYYY-MM, YYYY-Qn / YYYYQn, YYYY
+ * @param {string} periodStringIn - e.g. YYYY-MM-DD, YYYY-Www, YYYY-MM, YYYY-Qn (or compact version YYYYQn), YYYY
  * @param {string} periodType - 'day' | 'week' | 'month' | 'quarter' | 'year'
  * @returns {string} next period title, or '' if parsing fails
  */
@@ -1314,7 +1314,7 @@ export function getNextNPPeriodString(periodStringIn: string, periodType: string
 /**
  * Calendar period immediately before the given NotePlan period (same string family as note titles).
  * Uses `calcOffsetDate` so week rollover matches ISO week handling (e.g. 2025-W01 → 2024-W52).
- * @param {string} periodStringIn - e.g. YYYY-MM-DD, YYYY-Www, YYYY-MM, YYYY-Qn / YYYYQn, YYYY
+ * @param {string} periodStringIn - e.g. YYYY-MM-DD, YYYY-Www, YYYY-MM, YYYY-Qn (or compact version YYYYQn), YYYY
  * @param {string} periodType - 'day' | 'week' | 'month' | 'quarter' | 'year'
  * @returns {string} previous period title, or '' if parsing fails
  */

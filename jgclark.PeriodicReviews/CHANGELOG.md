@@ -5,6 +5,9 @@ Note: this is a new plugin, forked from my original **Journalling Helpers** one.
 
 ## [2.0.0.b12] - 2026-04-26
 - Review write-back: for `<string>` or mixed typed lines (for example duration/int/boolean combinations on one template line) now upsert to the existing matching line in the review section. Note: unchecked booleans explicitly clear previously written boolean tokens on that line.
+- Review summary: completed-task lists now show only for daily/weekly reviews; monthly, quarterly, and yearly reviews no longer render completed-task blocks.
+- Tweaks to layout in Summary areas.
+- dev: Removed quarter-title normalization in review helpers and switched review flow to pass raw period titles directly for note matching and summary period boundary lookups.
 
 ## [2.0.0.b11] - 2026-04-20
 - Make the details in the summary sections 

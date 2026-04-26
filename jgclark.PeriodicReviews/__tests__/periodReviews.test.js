@@ -338,6 +338,48 @@ Mood: <mood>`
       expect(html.indexOf('Planned win')).toBeLessThan(html.indexOf('other completed'))
       expect(html.indexOf('other completed')).toBeLessThan(html.indexOf('Plain task'))
     })
+
+    it('should not render completed-task summary blocks for quarterly reviews', () => {
+      const raw = `Mood: <mood>`
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const html = buildReviewHTML(
+        { moods: 'Calm,Busy' },
+        parsedQuestions,
+        rawLines,
+        ['Quarter win @done(2026-04-07) #win'],
+        ['Quarter done @done(2026-04-07)'],
+        '2026-Q2',
+        'quarter',
+        [],
+        'onReviewWindowAction',
+        'Goals',
+        {},
+        [],
+      )
+      expect(html).not.toMatch(/\bsummary-details-completed-tasks\b/)
+    })
+
+    it('should render single-item completed summary blocks as single-column', () => {
+      const raw = `Mood: <mood>`
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const html = buildReviewHTML(
+        { moods: 'Calm,Busy' },
+        parsedQuestions,
+        rawLines,
+        ['* >> Planned win @done(2026-04-07)'],
+        [],
+        '2026-04-07',
+        'day',
+        [],
+        'onReviewWindowAction',
+        'Big Wins',
+        {},
+        [],
+      )
+      expect(html).toContain('summary-content summary-content-single summary-content-completed-tasks')
+    })
   })
 
   describe('splitMergedSummaryDoneLinesIntoWinsAndOthers', () => {

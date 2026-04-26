@@ -323,6 +323,19 @@ ${bodyInnerHtml}
 }
 
 /**
+ * Summary content wrapper class for one subsection: use multi-column only when there are at least 2 items.
+ * @param {number} itemCount
+ * @param {string=} extraClassNames optional additional classes
+ * @returns {string}
+ */
+function getSummaryContentClassNames(itemCount: number, extraClassNames: string = ''): string {
+  const isMultiColumn = itemCount >= 2
+  const base = isMultiColumn ? 'summary-content' : 'summary-content summary-content-single'
+  const extra = extraClassNames.trim()
+  return extra === '' ? base : `${base} ${extra}`
+}
+
+/**
  * Build a summary of calendar events for the review period: count and total timed duration (all-day excluded from hours).
  * @param {Array<TCalendarItem>} eventsForPeriod
  * @returns {string} HTML string for the summary block
@@ -337,7 +350,7 @@ function makePeriodDaysSummaryDiv(eventsForPeriod: Array<TCalendarItem>): string
     title += ` (${totalDuration.toFixed(1)} hours)`
   }
   const output = []
-  output.push(`<div class="summary-content">`)
+  output.push(`<div class="${getSummaryContentClassNames(eventsForPeriod.length)}">`)
   eventsForPeriod.forEach((e) => {
     output.push(`\t<div class="summary-item">`)
     output.push(`\t\t<i aria-hidden="true" class="summary-item-icon event-icon fa-regular fa-calendar-week"></i>`)
@@ -386,7 +399,7 @@ function makeCarryOverPlanSummaryContentDiv(
   carryOverPlanItems: Array<{ content: string, isDone: boolean }>,
 ): string {
   const rows: Array<string> = []
-  rows.push(`<div class="summary-content">`)
+  rows.push(`<div class="${getSummaryContentClassNames(carryOverPlanItems.length)}">`)
   if (carryOverPlanItems.length > 0) {
     carryOverPlanItems.forEach((item) => {
       if (item.isDone) {
@@ -472,12 +485,14 @@ function buildReviewSummarySectionHTML(
 ): string {
   const hasCarryOver = carryOverPlanItems.length > 0
   const isDay = periodType === 'day'
+  const isWeek = periodType === 'week'
+  const shouldShowCompletedTaskBlocks = isDay || isWeek
   const carryKeysOnly: Array<{ content: string }> = carryOverPlanItems.map((c) => ({ content: c.content }))
   /** Full list: unique wins (not in carry) first, then unique non-wins — same order as mergeUniqueSummaryDoneTaskLines. */
   const mergedCompletedLines: Array<string> = mergeUniqueSummaryDoneTaskLines(winTasks, completedTasks, carryKeysOnly)
   /** Split by the same win rules as note scanning (not by merge prefix length — avoids runtime mismatch). */
   const { wins: mergedWinsLines, others: mergedOtherLines } = splitMergedSummaryDoneLinesIntoWinsAndOthers(mergedCompletedLines)
-  if (!hasCarryOver && !isDay && mergedCompletedLines.length === 0) {
+  if (!hasCarryOver && !shouldShowCompletedTaskBlocks) {
     return ''
   }
   const parts: Array<string> = [
@@ -492,7 +507,7 @@ function buildReviewSummarySectionHTML(
         wrapSummaryDetailsBlock(
           'summary-details-completed-tasks',
           formatCompletedTasksSummaryHeading(0, 'plain'),
-          `<div class="summary-content summary-content-completed-tasks">\n<div class="summary-empty">No completed tasks found during the ${periodType}</div>\n</div>`,
+          `<div class="${getSummaryContentClassNames(0, 'summary-content-completed-tasks')}">\n<div class="summary-empty">No completed tasks found during the ${periodType}</div>\n</div>`,
           { defaultOpen: false },
         ),
       )
@@ -503,7 +518,7 @@ function buildReviewSummarySectionHTML(
         wrapSummaryDetailsBlock(
           'summary-details-completed-wins',
           formatWinsSummaryHeading(mergedWinsLines.length),
-          `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(mergedWinsLines)}\n</div>`,
+          `<div class="${getSummaryContentClassNames(mergedWinsLines.length, 'summary-content-completed-tasks')}">\n${formatSummaryTaskItemsHTML(mergedWinsLines)}\n</div>`,
           { defaultOpen: false },
         ),
       )
@@ -511,7 +526,7 @@ function buildReviewSummarySectionHTML(
         wrapSummaryDetailsBlock(
           'summary-details-completed-other',
           formatCompletedTasksSummaryHeading(mergedOtherLines.length, 'other'),
-          `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(mergedOtherLines)}\n</div>`,
+          `<div class="${getSummaryContentClassNames(mergedOtherLines.length, 'summary-content-completed-tasks')}">\n${formatSummaryTaskItemsHTML(mergedOtherLines)}\n</div>`,
           { defaultOpen: false },
         ),
       )
@@ -522,7 +537,7 @@ function buildReviewSummarySectionHTML(
       wrapSummaryDetailsBlock(
         'summary-details-completed-tasks',
         formatCompletedTasksSummaryHeading(singleBlockLines.length, 'plain'),
-        `<div class="summary-content summary-content-completed-tasks">\n${formatSummaryTaskItemsHTML(singleBlockLines)}\n</div>`,
+        `<div class="${getSummaryContentClassNames(singleBlockLines.length, 'summary-content-completed-tasks')}">\n${formatSummaryTaskItemsHTML(singleBlockLines)}\n</div>`,
         { defaultOpen: false },
       ),
     )
@@ -531,7 +546,7 @@ function buildReviewSummarySectionHTML(
   if (isDay) {
     pushDoneTasksSummaryBlocks()
     parts.push(makePeriodDaysSummaryDiv(eventsForPeriod))
-  } else if (mergedCompletedLines.length > 0) {
+  } else if (isWeek && mergedCompletedLines.length > 0) {
     pushDoneTasksSummaryBlocks()
   }
   parts.push('</div>')

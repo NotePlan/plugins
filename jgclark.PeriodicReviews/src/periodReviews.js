@@ -17,7 +17,6 @@ import {
   getQuestionsForPeriod,
   getSectionHeadingForPeriod,
   normalizePlanningTaskLinesFromForm,
-  normalizeReviewPeriodTitleForNPDateHelpers,
   summaryTaskLineDedupeKey,
   taskContentIsSummaryWin,
 } from './periodicReviewHelpers'
@@ -363,8 +362,7 @@ async function processReviewQuestions(
     const { note: openEditorNote } = Editor
     const wantTitle = String(periodStringIn).trim()
     const openTitle = String(openEditorNote?.title ?? '').trim()
-    const titlesMatch =
-      normalizeReviewPeriodTitleForNPDateHelpers(openTitle) === normalizeReviewPeriodTitleForNPDateHelpers(wantTitle)
+    const titlesMatch = openTitle === wantTitle
     const openPeriodKind = openTitle !== '' ? getPeriodOfNPDateStr(openTitle) : '(error)'
     const editorHasMatchingPeriodType = openEditorNote != null && openPeriodKind === periodType
     const useOpenNote = editorHasMatchingPeriodType && (preferOpenSameKind || titlesMatch)
@@ -434,16 +432,20 @@ function getParagraphLineContentsForReviewScan(note: TNote): Array<string> {
  * Collect done task lines for the review summary: wins (#win / #bigwin / `>>`) vs other completed tasks.
  * The HTML view merges them into one list (wins first; each line once).
  * - day: wins and completed are split (completed excludes win lines).
- * - week/month/quarter/year: only wins are returned; `completed` is empty.
+ * - week: only wins are returned; `completed` is empty.
+ * - month/quarter/year: no done-task summary lines are returned.
  * @param {string} periodType
  * @param {string} periodString
  * @returns {{ wins: Array<string>, completed: Array<string> }}
  */
 function getDoneTasksForSummary(periodType: string, periodString: string): {| wins: Array < string >, completed: Array < string > |} {
   try {
-    const npPeriodKey = normalizeReviewPeriodTitleForNPDateHelpers(periodString)
-    const startISO = getFirstDateInPeriod(npPeriodKey)
-    const endISO = getLastDateInPeriod(npPeriodKey)
+    const supportsDoneTaskSummary = periodType === 'day' || periodType === 'week'
+    if (!supportsDoneTaskSummary) {
+      return { wins: [], completed: [] }
+    }
+    const startISO = getFirstDateInPeriod(periodString)
+    const endISO = getLastDateInPeriod(periodString)
     if (startISO === '(error)' || endISO === '(error)') {
       logWarn('getDoneTasksForSummary', `Could not parse period "${periodString}"`)
       return { wins: [], completed: [] }
@@ -495,6 +497,7 @@ function getDoneTasksForSummary(periodType: string, periodString: string): {| wi
     return { wins, completed }
   } catch (error) {
     logError('getDoneTasksForSummary', error.message)
+    return { wins: [], completed: [] }
   }
 }
 
@@ -698,7 +701,7 @@ async function writeAnswersToNote(
     }
 
     // Get the correct Editor for the calendar note
-    // TODO: find the right existing helper function to use periodString to get the correct note
+    // TODO: find the right existing helper/dateTime.js or /NPdateTime.js function to use periodString to get the correct note
     
     // $FlowIgnore(incompatible-call) .note is a superset of CoreNoteFields
     const outputNote = Editor

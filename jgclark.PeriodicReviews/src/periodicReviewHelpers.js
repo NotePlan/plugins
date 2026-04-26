@@ -131,22 +131,7 @@ export function getSectionHeadingForPeriod(config: PeriodicReviewConfigType, per
 }
 
 /**
- * Map review title strings to forms understood by getFirstDateInPeriod / getLastDateInPeriod (e.g. `2026Q1` -> `2026-Q1`).
- * TODO: Revisit why this is necessary.
- * @param {string} periodTitle
- * @returns {string}
- */
-export function normalizeReviewPeriodTitleForNPDateHelpers(periodTitle: string): string {
-  const compactQuarter = periodTitle.match(/^(\d{4})Q([1-4])$/i)
-  if (compactQuarter) {
-    return `${compactQuarter[1]}-Q${compactQuarter[2]}`
-  }
-  return periodTitle
-}
-
-/**
- * Normalize non-empty lines from the planning textarea for storage (strip task markers / leading `>>`).
- * TODO: Is this needed? Surely no leading '>>' from the textarea?
+ * Normalize non-empty lines from the planning textarea for storage (strip task markers and any leading `>>').
  * @tests in jest file
  * @param {string} planningFormText
  * @returns {Array<string>}

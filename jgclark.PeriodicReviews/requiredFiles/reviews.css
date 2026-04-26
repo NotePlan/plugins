@@ -1,4 +1,4 @@
-/* last update 2026-04-15 for v2.0.0.b10 by @jgclark */
+/* last update 2026-04-26 for v2.0.0.b12 by @jgclark */
 
 body {
   color: var(--fg-main-color, #4c4f69);
@@ -27,7 +27,7 @@ body {
   }
   .h3 {
     font-size: 1.1rem;
-    padding: 0rem 0.1rem 0.4rem;
+    padding: 0rem 0.1rem 0.2rem;
     background-color: unset;
     border: none;
   }
@@ -74,7 +74,7 @@ body {
 .summary-title {
   font-weight: 600;
   color: var(--h3-color, #5c5f77);
-  padding: 0rem 0rem 0.4rem 0.3rem;
+  padding: 0rem 0rem 0.4rem 0rem;
 }
 
 /* Collapsible summary lists (`<details>` / `<summary>` in review HTML) */
@@ -117,20 +117,26 @@ body {
   column-count: 2;
   column-gap: 1rem;
   font-size: 0.85rem;
-  margin-left: 1.0rem; /* 0.25rem; */
+  margin-left: 0rem;
   margin-bottom: 0.35rem;
+}
+
+.summary-content-single {
+  column-count: 1;
 }
 
 .summary-item {
   break-inside: avoid;
-  display: block;
+  display: flex;
   align-items: baseline;
   gap: 0.4rem;
   margin-bottom: 0.15rem;
 }
 
 .summary-item-icon {
-  margin-right: 0.3rem;
+  flex-shrink: 0;
+  width: 1.1rem;
+  text-align: center;
 }
 
 .summary-item-incomplete-icon {
@@ -152,6 +158,9 @@ body {
 }
 
 .summary-item-text {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
   line-height: 1.25;
   white-space: normal;
   word-break: break-word;
