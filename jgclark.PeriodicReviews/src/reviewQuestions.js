@@ -176,8 +176,23 @@ function normalizeStringMatchKey(input: string): string {
 }
 
 /**
+ * Return normalized upsert key from one parsed segment prefix.
+ * @param {ParsedQuestionType} parsedQuestion
+ * @returns {string}
+ */
+function getSegmentPrefixUpsertKey(parsedQuestion: ParsedQuestionType): string {
+  const { prefix } = splitParsedSegmentAtTypeMarker(String(parsedQuestion.originalLine ?? ''), String(parsedQuestion.type ?? ''))
+  const key = normalizeStringMatchKey(prefix)
+  if (key === '' || key.startsWith('-')) {
+    return ''
+  }
+  return key
+}
+
+/**
  * Return stable match key for a parsed `<string>` question segment (text before the `<string>` tag).
  * Empty key means this question should not attempt line upsert matching.
+ * @tests in jest file
  * @param {ParsedQuestionType} parsedQuestion
  * @returns {string}
  */
@@ -192,6 +207,7 @@ export function getStringQuestionMatchKeyFromParsedQuestion(parsedQuestion: Pars
 
 /**
  * Return the `<string>` question match key corresponding to an output line, if any.
+ * @tests in jest file
  * @param {string} outputLine
  * @param {Array<ParsedQuestionType>} parsedQuestions
  * @returns {string}
@@ -207,6 +223,93 @@ export function getStringQuestionMatchKeyFromOutputLine(outputLine: string, pars
     .sort((a, b) => b.length - a.length)
   const matchedKey = candidateKeys.find((k) => normalizedOutput.startsWith(k))
   return matchedKey ?? ''
+}
+
+/**
+ * Return stable match key for a parsed template line (lineIndex group), used by mixed-line upsert.
+ * @tests in jest file
+ * @param {Array<ParsedQuestionType>} parsedQuestions
+ * @param {number} lineIndex
+ * @returns {string}
+ */
+export function getTemplateLineUpsertKey(parsedQuestions: Array<ParsedQuestionType>, lineIndex: number): string {
+  const lineQuestions = parsedQuestions.filter((pq) => pq.lineIndex === lineIndex)
+  if (lineQuestions.length === 0) {
+    return ''
+  }
+  for (const pq of lineQuestions) {
+    const key = getSegmentPrefixUpsertKey(pq)
+    if (key !== '') {
+      return key
+    }
+  }
+  return ''
+}
+
+/**
+ * Return the template-line upsert key corresponding to an output line, if any.
+ * @tests in jest file
+ * @param {string} outputLine
+ * @param {Array<ParsedQuestionType>} parsedQuestions
+ * @returns {string}
+ */
+export function getTemplateLineUpsertKeyFromOutputLine(outputLine: string, parsedQuestions: Array<ParsedQuestionType>): string {
+  const normalizedOutput = normalizeStringMatchKey(outputLine)
+  if (normalizedOutput === '') {
+    return ''
+  }
+  const lineIndexes = Array.from(new Set(parsedQuestions.map((pq) => pq.lineIndex)))
+  const candidateKeys = lineIndexes
+    .map((idx) => getTemplateLineUpsertKey(parsedQuestions, idx))
+    .filter((k) => k !== '')
+    .sort((a, b) => b.length - a.length)
+  const matchedKey = candidateKeys.find((k) => normalizedOutput.startsWith(k))
+  return matchedKey ?? ''
+}
+
+/**
+ * For unchecked boolean answers present in payload, return question-text tokens to clear from existing upsert target lines.
+ * @tests in jest file
+ * @param {Array<ParsedQuestionType>} parsedQuestions
+ * @param {{ [string]: string | boolean }} answersByIndex
+ * @returns {Array<{ lineKey: string, tokensToClear: Array<string> }>}
+ */
+export function getBooleanClearDirectivesFromAnswers(
+  parsedQuestions: Array<ParsedQuestionType>,
+  answersByIndex: { [string]: string | boolean },
+): Array<{| lineKey: string, tokensToClear: Array<string> |}> {
+  const tokensByLineKey: { [string]: Array<string> } = {}
+  for (let i = 0; i < parsedQuestions.length; i++) {
+    const pq = parsedQuestions[i]
+    if (String(pq.type).toLowerCase() !== 'boolean') {
+      continue
+    }
+    const fieldName = `q_${i}`
+    if (!(fieldName in answersByIndex)) {
+      continue
+    }
+    const raw = answersByIndex[fieldName]
+    const isChecked = raw === true || String(raw ?? '').toLowerCase() === 'yes'
+    if (isChecked) {
+      continue
+    }
+    const token = String(pq.question ?? '').trim()
+    if (token === '') {
+      continue
+    }
+    const lineKey = getTemplateLineUpsertKey(parsedQuestions, pq.lineIndex)
+    if (lineKey === '') {
+      continue
+    }
+    if (!tokensByLineKey[lineKey]) {
+      tokensByLineKey[lineKey] = []
+    }
+    tokensByLineKey[lineKey].push(token)
+  }
+  return Object.keys(tokensByLineKey).map((lineKey) => ({
+    lineKey,
+    tokensToClear: tokensByLineKey[lineKey],
+  }))
 }
 
 /**

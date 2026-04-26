@@ -4,7 +4,7 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
 ## [2.0.0.b12] - 2026-04-26
-- Review write-back: for `<string>` answers, if a line starting with the same question prefix already exists in the review section, it is updated in place instead of appending a duplicate line.
+- Review write-back: for `<string>` or mixed typed lines (for example duration/int/boolean combinations on one template line) now upsert to the existing matching line in the review section. Note: unchecked booleans explicitly clear previously written boolean tokens on that line.
 
 ## [2.0.0.b11] - 2026-04-20
 - Make the details in the summary sections 

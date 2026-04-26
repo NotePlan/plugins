@@ -147,6 +147,7 @@ export function normalizeReviewPeriodTitleForNPDateHelpers(periodTitle: string):
 /**
  * Normalize non-empty lines from the planning textarea for storage (strip task markers / leading `>>`).
  * TODO: Is this needed? Surely no leading '>>' from the textarea?
+ * @tests in jest file
  * @param {string} planningFormText
  * @returns {Array<string>}
  */
@@ -168,6 +169,7 @@ export function normalizePlanningTaskLinesFromForm(planningFormText: string): Ar
 /**
  * Effective prefix/suffix for lines written to the next period note (after `normalizePlanningTaskLinesFromForm`).
  * Defaults are empty string, if not set.
+ * @tests in jest file
  * @param {PeriodicReviewConfigType} config
  * @returns {{ prefix: string, suffix: string }}
  */
@@ -184,6 +186,7 @@ export function getEffectivePlannedItemAffixes(config: PeriodicReviewConfigType)
 
 /**
  * Build one task line body for the next period note: optional suffix on `body`, then optional prefix.
+ * @tests in jest file
  * @param {string} body normalized plain text (no task marker)
  * @param {?string} prefix
  * @param {?string} suffix
@@ -204,6 +207,7 @@ export function formatPlannedItemLineForNextNote(body: string, prefix: ?string, 
 /**
  * Replace `<date>` with the calendar period title and `<datenext>` / `<nextdate>` with the following period.
  * Used for the review HTML window and for text written back to the note.
+ * @tests in jest file
  * @param {string} input
  * @param {string} periodString
  * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
@@ -218,6 +222,7 @@ export function substituteReviewPeriodPlaceholders(input: string, periodString: 
 
 /**
  * Title-case adjective for UI strings (window title, review heading, messages).
+ * @tests in jest file
  * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
  * @returns {string} e.g. 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'
  */
@@ -259,6 +264,7 @@ const PLAN_ITEMS_NAME_CONFIG_KEYS: { [string]: string } = {
 
 /**
  * Configured label for planned items for a calendar period (e.g. "Big 3 Rocks").
+ * @tests in jest file
  * @param {JournalConfigType} config
  * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
  * @returns {string}
@@ -303,6 +309,7 @@ export function buildThisPlanSectionHeadingTitle(planName: string): string {
 
 /**
  * H2 / UI title for the planning textarea in the review HTML: `Planning: {planName} for the next {noun}`.
+ * @tests in jest file
  * @param {string} planName
  * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
  * @returns {string}
@@ -315,6 +322,7 @@ export function buildNextPlanSectionHeadingTitle(planName: string, periodType: s
 /**
  * H2 written **on the next calendar note** when saving planned tasks: `{planName} for {periodString}`.
  * `periodString` must be that note’s calendar title (e.g. from `getNextNPPeriodString`).
+ * @tests in jest file
  * @param {string} planName
  * @param {string} periodString — next period’s NotePlan calendar title
  * @returns {string}
@@ -325,6 +333,7 @@ export function buildNextPeriodNotePlanSectionHeadingTitle(planName: string, per
 
 /**
  * Normalize a task line for comparing duplicates (trim; used when scanning notes and when merging summary lists).
+ * @tests in jest file
  * @param {string} content
  * @returns {string}
  */
@@ -364,6 +373,7 @@ function taskLineHasDoubleChevronWinPrefix(content: string): boolean {
 
 /**
  * A done task counts as a "win" for the review summary when tagged #win / #bigwin or prefixed with `>>` on the task body.
+ * @tests in jest file
  * @param {string} content
  * @returns {boolean}
  */
@@ -374,6 +384,7 @@ export function taskContentIsSummaryWin(content: string): boolean {
 /**
  * Split the merged summary list into a leading win block and the rest ("other completed").
  * Uses the same win rules as {@link taskContentIsSummaryWin} so runtime HTML matches note scanning.
+ * @tests in jest file
  * @param {Array<string>} mergedLines output of mergeUniqueSummaryDoneTaskLines (wins first, then others)
  * @returns {{ wins: Array<string>, others: Array<string> }}
  */
@@ -393,6 +404,7 @@ export function splitMergedSummaryDoneLinesIntoWinsAndOthers(mergedLines: Array<
 /**
  * Merge win-first and other completed lines into one list: each normalized line at most once.
  * Lines whose key matches a carry-over plan row are omitted (that row is already shown in the carry-over block).
+ * @tests in jest file
  * @param {Array<string>} winTasks
  * @param {Array<string>} completedTasks
  * @param {Array<{ content: string }>} carryOverPlanItems

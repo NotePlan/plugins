@@ -26,12 +26,13 @@ import type { PeriodicReviewConfigType, ParsedQuestionType } from './periodicRev
 import {
   buildInitialReviewAnswersByFieldName,
   buildOutputFromReviewWindowAnswers,
-  getStringQuestionMatchKeyFromOutputLine,
+  getBooleanClearDirectivesFromAnswers,
+  getTemplateLineUpsertKeyFromOutputLine,
   parseQuestions,
 } from './reviewQuestions'
 import { stylesheetinksInHeader, faLinksInHeader, buildReviewHTML } from './reviewHTMLViewGenerator'
 import {
-  convertISOToYYYYMMDD,
+  // convertISOToYYYYMMDD,
   getNextNPPeriodString,
   getNPQuarterStr,
   getPreviousNPPeriodString,
@@ -50,6 +51,7 @@ import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { closeWindowFromCustomId } from '@helpers/NPWindows'
 import { isParaAMatchForHeading } from '@helpers/headings'
 import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { escapeRegExp } from '@helpers/regex'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { getInput, showMessage } from '@helpers/userInput'
 
@@ -172,6 +174,7 @@ function getCalendarNoteByTitle(title: string): TNote | null {
  * - the configured 'planName' section (if given)
  * - any with priority '>>' (if 'planName' is empty, or can't find the 'planName' section)
  * Note: The heading match is partial + case insensitive.
+ * @tests in jest file
  * @param {TNote} note
  * @param {string} planName (e.g. 'Big Rocks', or empty)
  * @returns {Array<{ content: string, isDone: boolean }>}
@@ -572,18 +575,21 @@ async function displayQuestionsWindow(
 }
 
 /**
- * Determine which answer lines should update existing `<string>` lines in a review section, and which should append.
+ * Determine which answer lines should update existing lines in a review section, and which should append.
+ * @tests in jest file
  * @param {Array<TParagraph>} paragraphs
  * @param {string} sectionHeading
  * @param {Array<string>} rawAnswerLines
  * @param {Array<ParsedQuestionType>} parsedQuestions
+ * @param {Array<{ lineKey: string, tokensToClear: Array<string> }>} booleanClearDirectives
  * @returns {{ updates: Array<{ para: TParagraph, content: string }>, appendLines: Array<string> }}
  */
-export function partitionReviewAnswerLinesForStringUpsert(
+export function partitionReviewAnswerLinesForMixedUpsert(
   paragraphs: Array<TParagraph>,
   sectionHeading: string,
   rawAnswerLines: Array<string>,
   parsedQuestions: Array<ParsedQuestionType>,
+  booleanClearDirectives: Array<{| lineKey: string, tokensToClear: Array<string> |}> = [],
 ): {| updates: Array<{| para: TParagraph, content: string |}>, appendLines: Array<string> |} {
   const normalize = (input: string): string => String(input ?? '').trim().replace(/\s+/g, ' ').toLowerCase()
   const headingLC = normalize(sectionHeading)
@@ -600,8 +606,8 @@ export function partitionReviewAnswerLinesForStringUpsert(
     if (trimmedLine === '') {
       continue
     }
-    const stringMatchKey = getStringQuestionMatchKeyFromOutputLine(trimmedLine, parsedQuestions)
-    if (stringMatchKey === '' || headingLineIndex < 0) {
+    const lineMatchKey = getTemplateLineUpsertKeyFromOutputLine(trimmedLine, parsedQuestions)
+    if (lineMatchKey === '' || headingLineIndex < 0) {
       appendLines.push(answerLine)
       continue
     }
@@ -613,7 +619,7 @@ export function partitionReviewAnswerLinesForStringUpsert(
       if (lineIndex <= headingLineIndex || lineIndex >= sectionEndLineIndex || p.type === 'title') {
         return false
       }
-      return normalize(String(p.content ?? '')).startsWith(stringMatchKey)
+      return normalize(String(p.content ?? '')).startsWith(lineMatchKey)
     })
     if (paraToUpdate) {
       usedLineIndexes.add(paraToUpdate.lineIndex ?? -1)
@@ -621,6 +627,34 @@ export function partitionReviewAnswerLinesForStringUpsert(
     } else {
       appendLines.push(answerLine)
     }
+  }
+  for (const directive of booleanClearDirectives) {
+    const lineKeyNormalized = normalize(directive.lineKey)
+    if (lineKeyNormalized === '' || headingLineIndex < 0 || directive.tokensToClear.length === 0) {
+      continue
+    }
+    let updateEntry = updates.find((u) => normalize(String(u.content ?? '')).startsWith(lineKeyNormalized))
+    if (updateEntry == null) {
+      const paraToUpdate = paragraphs.find((p) => {
+        const lineIndex = p.lineIndex ?? -1
+        if (lineIndex <= headingLineIndex || lineIndex >= sectionEndLineIndex || p.type === 'title') {
+          return false
+        }
+        return normalize(String(p.content ?? '')).startsWith(lineKeyNormalized)
+      })
+      if (paraToUpdate == null) {
+        continue
+      }
+      updateEntry = { para: paraToUpdate, content: String(paraToUpdate.content ?? '') }
+      updates.push(updateEntry)
+    }
+    let nextContent = String(updateEntry.content ?? '')
+    for (const token of directive.tokensToClear) {
+      const tokenRE = new RegExp(`(?:^|\\s)${escapeRegExp(token)}(?=\\s|$)`, 'g')
+      nextContent = nextContent.replace(tokenRE, ' ')
+    }
+    nextContent = nextContent.replace(/\s+/g, ' ').trim()
+    updateEntry.content = nextContent
   }
   return { updates, appendLines }
 }
@@ -638,6 +672,7 @@ async function writeAnswersToNote(
   periodTypeIn: string = '',
   answersTextIn: string = '',
   parsedQuestionsIn: Array<ParsedQuestionType> = [],
+  answersByIndexIn: { [string]: string | boolean } = {},
 ): Promise<void> {
   try {
     const config: PeriodicReviewConfigType = await getJournalSettings()
@@ -673,11 +708,15 @@ async function writeAnswersToNote(
     logDebug(pluginJson, `Appending answers to heading '${sectionHeading}' in note ${displayTitle(outputNote)}`)
     const matchedHeading = findHeadingStartsWith(outputNote, sectionHeading)
     const headingToUse = matchedHeading ? matchedHeading : sectionHeading
-    const { updates, appendLines } = partitionReviewAnswerLinesForStringUpsert(
+    // Get the boolean clear directives for unchecked boolean answers. 
+    // Note: @Cursor says this more complex upsert functionality is needed as we want to be able to clear boolean tokens on existing lines. @jgclark doesn't understand this, but has left it as it works.
+    const booleanClearDirectives = getBooleanClearDirectivesFromAnswers(parsedQuestionsIn, answersByIndexIn)
+    const { updates, appendLines } = partitionReviewAnswerLinesForMixedUpsert(
       outputNote.paragraphs ?? [],
       headingToUse,
       answersText.split(/\r?\n/),
       parsedQuestionsIn,
+      booleanClearDirectives,
     )
     for (const { para, content } of updates) {
       para.content = content
@@ -844,7 +883,7 @@ export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed =
     const parsedQuestions = parseQuestions(questionLines)
     const output = buildOutputFromReviewWindowAnswers(parsedQuestions, questionLines, periodString, periodType, answers)
     if (output !== '') {
-      await writeAnswersToNote(periodString, periodType, output, parsedQuestions)
+      await writeAnswersToNote(periodString, periodType, output, parsedQuestions, answers)
     } else if (!hasPlanningContent) {
       logWarn(pluginJson, 'No template question answers were collected from the review window')
     }

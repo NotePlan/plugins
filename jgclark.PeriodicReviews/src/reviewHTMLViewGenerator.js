@@ -640,6 +640,7 @@ function makeReviewQuestionRowDiv(
 
 /**
  * Build HTML body for single-window review form.
+ * @tests in jest file
  * @param {JournalConfigType} config
  * @param {Array<ParsedQuestionType>} parsedQuestions same order as parseQuestions(rawQuestionLines) (field names q_0 …)
  * @param {Array<string>} rawQuestionLines lines from getQuestionsForPeriod()

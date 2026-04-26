@@ -17,15 +17,18 @@ import {
 } from '../src/periodicReviewHelpers'
 import {
   extractPlanSectionItems,
-  partitionReviewAnswerLinesForStringUpsert,
+  partitionReviewAnswerLinesForMixedUpsert,
   taskContentIsSummaryWin,
 } from '../src/periodReviews'
 import { buildReviewHTML } from '../src/reviewHTMLViewGenerator'
 import {
   buildInitialReviewAnswersByFieldName,
   buildOutputFromReviewWindowAnswers,
+  getBooleanClearDirectivesFromAnswers,
   getStringQuestionMatchKeyFromOutputLine,
   getStringQuestionMatchKeyFromParsedQuestion,
+  getTemplateLineUpsertKey,
+  getTemplateLineUpsertKeyFromOutputLine,
   parseQuestions,
 } from '../src/reviewQuestions'
 import { DataStore } from '@mocks/index'
@@ -45,7 +48,7 @@ describe('Reviews', () => {
   describe('parseQuestions', () => {
     it('should parse questions correctly (test 1)', () => {
       const config = {
-        dailyReviewQuestions: `Health: @sleep(<int>) @fruitveg(<int>) #bible<boolean> #stretches<boolean> #closedRings<boolean>
+        dailyReviewQuestions: `Health: @sleep(<int>) @fruitveg(<int>) #bible<boolean> #stretches <boolean> #closedRings <boolean>
 Work: @work(<int>) @1CB(<int>) @CRC(<int>)
 Mood: <mood>
 Gratitude: <string>
@@ -629,9 +632,38 @@ Ship: <tasks>`,
       const key = getStringQuestionMatchKeyFromOutputLine('Gratitude: new answer', parsed)
       expect(key).toBe('gratitude:')
     })
+
+    it('should return template-line key for mixed typed lines', () => {
+      const parsed = parseQuestions('Health: @sleep(<duration>) @fruitveg(<int>) || #waterlitre <boolean>')
+      expect(getTemplateLineUpsertKey(parsed, 0)).toBe('health: @sleep(')
+      expect(getTemplateLineUpsertKeyFromOutputLine('Health: @sleep(7:30) @fruitveg(5) #waterlitre', parsed)).toBe('health: @sleep(')
+    })
+
+    it('should return boolean clear directives for unchecked booleans', () => {
+      const parsed = parseQuestions('Health: @sleep(<duration>) || #waterlitre <boolean> || #bible <boolean>')
+      const directives = getBooleanClearDirectivesFromAnswers(parsed, {
+        q_0: '7:00',
+        q_1: false,
+        q_2: true,
+      })
+      expect(directives.length).toBe(1)
+      expect(directives[0].lineKey).toBe('health: @sleep(')
+      expect(directives[0].tokensToClear).toEqual(['#waterlitre'])
+    })
+
+    it('should return clear directives for unchecked non-hashtag boolean question text', () => {
+      const parsed = parseQuestions('Health: @sleep(<duration>) || Did stretches<boolean>')
+      const directives = getBooleanClearDirectivesFromAnswers(parsed, {
+        q_0: '7:00',
+        q_1: false,
+      })
+      expect(directives.length).toBe(1)
+      expect(directives[0].lineKey).toBe('health: @sleep(')
+      expect(directives[0].tokensToClear).toEqual(['Did stretches'])
+    })
   })
 
-  describe('partitionReviewAnswerLinesForStringUpsert', () => {
+  describe('partitionReviewAnswerLinesForMixedUpsert', () => {
     it('should update existing matching <string> line and append unmatched lines', () => {
       const parsedQuestions = parseQuestions('Gratitude: <string>\nLearn: <string>')
       const paragraphs = [
@@ -641,7 +673,7 @@ Ship: <tasks>`,
         { type: 'title', content: 'Next Section', lineIndex: 5, headingLevel: 2 },
       ]
       const answerLines = ['Gratitude: new', 'Learn: new']
-      const { updates, appendLines } = partitionReviewAnswerLinesForStringUpsert(
+      const { updates, appendLines } = partitionReviewAnswerLinesForMixedUpsert(
         paragraphs,
         'Review',
         answerLines,
@@ -651,6 +683,105 @@ Ship: <tasks>`,
       expect(updates[0].para.lineIndex).toBe(3)
       expect(updates[0].content).toBe('Gratitude: new')
       expect(appendLines).toEqual(['Learn: new'])
+    })
+
+    it('should upsert mixed Health line and clear unchecked boolean tokens, including || separators', () => {
+      const raw = 'Health: @sleep(<duration>) @fruitveg(<int>) || #waterlitre <boolean> || #bible <boolean>'
+      const parsedQuestions = parseQuestions(raw)
+      const directives = getBooleanClearDirectivesFromAnswers(parsedQuestions, {
+        q_0: '7:20',
+        q_1: '4',
+        q_2: false,
+        q_3: true,
+      })
+      const paragraphs = [
+        { type: 'title', content: 'Review', lineIndex: 2, headingLevel: 2 },
+        { type: 'text', content: 'Health: @sleep(6:30) @fruitveg(2) #waterlitre #bible', lineIndex: 3 },
+        { type: 'title', content: 'Next Section', lineIndex: 5, headingLevel: 2 },
+      ]
+      const answerLines = ['Health: @sleep(7:20) @fruitveg(4) #bible']
+      const { updates, appendLines } = partitionReviewAnswerLinesForMixedUpsert(
+        paragraphs,
+        'Review',
+        answerLines,
+        parsedQuestions,
+        directives,
+      )
+      expect(updates.length).toBe(1)
+      expect(updates[0].content).toBe('Health: @sleep(7:20) @fruitveg(4) #bible')
+      expect(appendLines).toEqual([])
+    })
+
+    it('should upsert mixed Health line and clear unchecked boolean tokens, WITHOUT || separators, and varying order', () => {
+      const raw = 'Health: @sleep(<duration>) @fruitveg(<int>)  #waterlitre<boolean> <boolean>#bible'
+      const parsedQuestions = parseQuestions(raw)
+      const directives = getBooleanClearDirectivesFromAnswers(parsedQuestions, {
+        q_0: '7:20',
+        q_1: '4',
+        q_2: false,
+        q_3: true,
+      })
+      const paragraphs = [
+        { type: 'title', content: 'Review', lineIndex: 2, headingLevel: 2 },
+        { type: 'text', content: 'Health: @sleep(6:30) @fruitveg(2) #waterlitre #bible', lineIndex: 3 },
+        { type: 'title', content: 'Next Section', lineIndex: 5, headingLevel: 2 },
+      ]
+      const answerLines = ['Health: @sleep(7:20) @fruitveg(4) #bible']
+      const { updates, appendLines } = partitionReviewAnswerLinesForMixedUpsert(
+        paragraphs,
+        'Review',
+        answerLines,
+        parsedQuestions,
+        directives,
+      )
+      expect(updates.length).toBe(1)
+      expect(updates[0].content).toBe('Health: @sleep(7:20) @fruitveg(4) #bible')
+      expect(appendLines).toEqual([])
+    })
+
+    it('should clear unchecked boolean token from existing mixed line even when no non-boolean answers are emitted', () => {
+      const raw = 'Health: @sleep(<duration>) || #waterlitre <boolean>'
+      const parsedQuestions = parseQuestions(raw)
+      const directives = getBooleanClearDirectivesFromAnswers(parsedQuestions, {
+        q_1: false,
+      })
+      const paragraphs = [
+        { type: 'title', content: 'Review', lineIndex: 2, headingLevel: 2 },
+        { type: 'text', content: 'Health: @sleep(6:30) #waterlitre', lineIndex: 3 },
+        { type: 'title', content: 'Next Section', lineIndex: 5, headingLevel: 2 },
+      ]
+      const { updates, appendLines } = partitionReviewAnswerLinesForMixedUpsert(
+        paragraphs,
+        'Review',
+        [],
+        parsedQuestions,
+        directives,
+      )
+      expect(updates.length).toBe(1)
+      expect(updates[0].content).toBe('Health: @sleep(6:30)')
+      expect(appendLines).toEqual([])
+    })
+
+    it('should clear unchecked non-hashtag boolean phrase from existing mixed line', () => {
+      const raw = 'Health: @sleep(<duration>) || Did stretches<boolean>'
+      const parsedQuestions = parseQuestions(raw)
+      const directives = getBooleanClearDirectivesFromAnswers(parsedQuestions, {
+        q_1: false,
+      })
+      const paragraphs = [
+        { type: 'title', content: 'Review', lineIndex: 2, headingLevel: 2 },
+        { type: 'text', content: 'Health: @sleep(6:30) Did stretches', lineIndex: 3 },
+        { type: 'title', content: 'Next Section', lineIndex: 5, headingLevel: 2 },
+      ]
+      const { updates } = partitionReviewAnswerLinesForMixedUpsert(
+        paragraphs,
+        'Review',
+        [],
+        parsedQuestions,
+        directives,
+      )
+      expect(updates.length).toBe(1)
+      expect(updates[0].content).toBe('Health: @sleep(6:30)')
     })
   })
 

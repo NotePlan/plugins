@@ -243,7 +243,7 @@
     {
       "key": "dailyReviewQuestions",
       "title": "Daily Review/Journal Questions",
-      "description": "String that includes both the Journal/Review questions and how to lay out the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>'/'<integer>', '<number>', '<duration>' ([H]H:MM), '<string>', '<subheading>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title) and '<datenext>' or '<nextdate>' (the following calendar period in the same format). Headings: use literal '##'/'###' lines or '<subheading>'.",
+      "description": "Multi-line string that includes both the Journal/Review questions and how to lay out the answers in the daily note.\nThe special codes that define the type of question asked are '<integer>' (or '<int>'), '<number>', '<duration>' ([H]H:MM), '<string>', '<mood>', '<bullets>', '<checklists>', '<tasks>', and '<date>' (replaced with the review note title) and '<datenext>' or '<nextdate>' (the following calendar period in the same format).\nUse '||' to separate multiple questions on a single line.\nFor <boolean>s, its question text is the word or phrase that comes before it.\nHeadings: use literal '##'/'###' lines or '<subheading>'.",
       "type": "string",
       "default": "@sleep(<int>)\n@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nGratitude: <string>\nGod was: <string>\nAlive: <string>\nNot Great: <string>\nLearn: <string>\nRemember: <string>",
       "required": false
