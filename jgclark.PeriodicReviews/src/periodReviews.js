@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-04-13 for v2.0.0.b10 by @jgclark + @Cursor
+// last update 2026-04-26 for v2.0.0.b12 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import strftime from 'strftime'
@@ -26,6 +26,7 @@ import type { PeriodicReviewConfigType, ParsedQuestionType } from './periodicRev
 import {
   buildInitialReviewAnswersByFieldName,
   buildOutputFromReviewWindowAnswers,
+  getStringQuestionMatchKeyFromOutputLine,
   parseQuestions,
 } from './reviewQuestions'
 import { stylesheetinksInHeader, faLinksInHeader, buildReviewHTML } from './reviewHTMLViewGenerator'
@@ -571,6 +572,60 @@ async function displayQuestionsWindow(
 }
 
 /**
+ * Determine which answer lines should update existing `<string>` lines in a review section, and which should append.
+ * @param {Array<TParagraph>} paragraphs
+ * @param {string} sectionHeading
+ * @param {Array<string>} rawAnswerLines
+ * @param {Array<ParsedQuestionType>} parsedQuestions
+ * @returns {{ updates: Array<{ para: TParagraph, content: string }>, appendLines: Array<string> }}
+ */
+export function partitionReviewAnswerLinesForStringUpsert(
+  paragraphs: Array<TParagraph>,
+  sectionHeading: string,
+  rawAnswerLines: Array<string>,
+  parsedQuestions: Array<ParsedQuestionType>,
+): {| updates: Array<{| para: TParagraph, content: string |}>, appendLines: Array<string> |} {
+  const normalize = (input: string): string => String(input ?? '').trim().replace(/\s+/g, ' ').toLowerCase()
+  const headingLC = normalize(sectionHeading)
+  const sectionHeadingPara = paragraphs.find((p) => p.type === 'title' && normalize(String(p.content ?? '')).startsWith(headingLC))
+  const headingLineIndex = sectionHeadingPara?.lineIndex ?? -1
+  const sectionEndLineIndex = headingLineIndex >= 0
+    ? paragraphs.find((p) => p.type === 'title' && (p.headingLevel ?? 99) <= 2 && (p.lineIndex ?? -1) > headingLineIndex)?.lineIndex ?? paragraphs.length
+    : -1
+  const updates: Array<{| para: TParagraph, content: string |}> = []
+  const appendLines: Array<string> = []
+  const usedLineIndexes: Set<number> = new Set()
+  for (const answerLine of rawAnswerLines) {
+    const trimmedLine = String(answerLine ?? '').trim()
+    if (trimmedLine === '') {
+      continue
+    }
+    const stringMatchKey = getStringQuestionMatchKeyFromOutputLine(trimmedLine, parsedQuestions)
+    if (stringMatchKey === '' || headingLineIndex < 0) {
+      appendLines.push(answerLine)
+      continue
+    }
+    const paraToUpdate = paragraphs.find((p) => {
+      const lineIndex = p.lineIndex ?? -1
+      if (usedLineIndexes.has(lineIndex)) {
+        return false
+      }
+      if (lineIndex <= headingLineIndex || lineIndex >= sectionEndLineIndex || p.type === 'title') {
+        return false
+      }
+      return normalize(String(p.content ?? '')).startsWith(stringMatchKey)
+    })
+    if (paraToUpdate) {
+      usedLineIndexes.add(paraToUpdate.lineIndex ?? -1)
+      updates.push({ para: paraToUpdate, content: answerLine })
+    } else {
+      appendLines.push(answerLine)
+    }
+  }
+  return { updates, appendLines }
+}
+
+/**
  * Write the collected answers to the note:
  * Add the finished review text to the current calendar note, appending after the configured heading for that period.
  * If the heading doesn't exist, then append it first.
@@ -582,6 +637,7 @@ async function writeAnswersToNote(
   periodStringIn: string = '',
   periodTypeIn: string = '',
   answersTextIn: string = '',
+  parsedQuestionsIn: Array<ParsedQuestionType> = [],
 ): Promise<void> {
   try {
     const config: PeriodicReviewConfigType = await getJournalSettings()
@@ -616,12 +672,28 @@ async function writeAnswersToNote(
     // $FlowIgnore[incompatible-call] .note is a superset of CoreNoteFields
     logDebug(pluginJson, `Appending answers to heading '${sectionHeading}' in note ${displayTitle(outputNote)}`)
     const matchedHeading = findHeadingStartsWith(outputNote, sectionHeading)
-    outputNote.addParagraphBelowHeadingTitle(
-      answersText,
-      'empty',
-      matchedHeading ? matchedHeading : sectionHeading,
-      true,
-      true)
+    const headingToUse = matchedHeading ? matchedHeading : sectionHeading
+    const { updates, appendLines } = partitionReviewAnswerLinesForStringUpsert(
+      outputNote.paragraphs ?? [],
+      headingToUse,
+      answersText.split(/\r?\n/),
+      parsedQuestionsIn,
+    )
+    for (const { para, content } of updates) {
+      para.content = content
+      outputNote.updateParagraph(para)
+    }
+    if (appendLines.length > 0) {
+      outputNote.addParagraphBelowHeadingTitle(
+        appendLines.join('\n'),
+        'empty',
+        headingToUse,
+        true,
+        true)
+    }
+    if (outputNote.note) {
+      DataStore.updateCache(outputNote.note, true)
+    }
   } catch (err) {
     logError(pluginJson, `writeAnswersToNote: ${err.message}`)
   }
@@ -772,7 +844,7 @@ export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed =
     const parsedQuestions = parseQuestions(questionLines)
     const output = buildOutputFromReviewWindowAnswers(parsedQuestions, questionLines, periodString, periodType, answers)
     if (output !== '') {
-      await writeAnswersToNote(periodString, periodType, output)
+      await writeAnswersToNote(periodString, periodType, output, parsedQuestions)
     } else if (!hasPlanningContent) {
       logWarn(pluginJson, 'No template question answers were collected from the review window')
     }

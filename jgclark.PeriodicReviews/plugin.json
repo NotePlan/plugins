@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.co/plugins/jgclark.PeriodicReviews/",
   "plugin.changelog": "https://noteplan.co/plugins/jgclark.PeriodicReviews/CHANGELOG.md",
-  "plugin.version": "2.0.0.b11",
+  "plugin.version": "2.0.0.b12",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "v2.0.0: First release of the new Periodic Reviews plugin, building on earlier 'Journalling Helpers' plugin (v1).",
   "plugin.requiredFiles": [

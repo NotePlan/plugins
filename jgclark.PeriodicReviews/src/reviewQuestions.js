@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Review question parsing, pre-fill extraction, and answer → note text.
 // Jonathan Clark
-// last update 2026-04-11 for v2.0.0.b9 by @jgclark + @Cursor
+// last update 2026-04-26 for v2.0.0.b12 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import type { ParsedQuestionType } from './periodicReviewHelpers'
@@ -161,6 +161,52 @@ function splitParsedSegmentAtTypeMarker(segment: string, questionType: string): 
   const idx = m.index
   const tagLen = m[0].length
   return { prefix: segment.slice(0, idx), suffix: segment.slice(idx + tagLen) }
+}
+
+/**
+ * Normalize a line prefix used to match `<string>` answers against existing note content.
+ * @param {string} input
+ * @returns {string}
+ */
+function normalizeStringMatchKey(input: string): string {
+  return String(input ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+}
+
+/**
+ * Return stable match key for a parsed `<string>` question segment (text before the `<string>` tag).
+ * Empty key means this question should not attempt line upsert matching.
+ * @param {ParsedQuestionType} parsedQuestion
+ * @returns {string}
+ */
+export function getStringQuestionMatchKeyFromParsedQuestion(parsedQuestion: ParsedQuestionType): string {
+  if (String(parsedQuestion.type).toLowerCase() !== 'string') {
+    return ''
+  }
+  const { prefix } = splitParsedSegmentAtTypeMarker(String(parsedQuestion.originalLine ?? ''), 'string')
+  const key = normalizeStringMatchKey(prefix)
+  return key.startsWith('-') ? '' : key
+}
+
+/**
+ * Return the `<string>` question match key corresponding to an output line, if any.
+ * @param {string} outputLine
+ * @param {Array<ParsedQuestionType>} parsedQuestions
+ * @returns {string}
+ */
+export function getStringQuestionMatchKeyFromOutputLine(outputLine: string, parsedQuestions: Array<ParsedQuestionType>): string {
+  const normalizedOutput = normalizeStringMatchKey(outputLine)
+  if (normalizedOutput === '') {
+    return ''
+  }
+  const candidateKeys = parsedQuestions
+    .map((pq) => getStringQuestionMatchKeyFromParsedQuestion(pq))
+    .filter((k) => k !== '')
+    .sort((a, b) => b.length - a.length)
+  const matchedKey = candidateKeys.find((k) => normalizedOutput.startsWith(k))
+  return matchedKey ?? ''
 }
 
 /**

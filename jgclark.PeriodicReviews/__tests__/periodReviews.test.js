@@ -15,11 +15,17 @@ import {
   substituteReviewPeriodPlaceholders,
   summaryTaskLineDedupeKey,
 } from '../src/periodicReviewHelpers'
-import { extractPlanSectionItems, taskContentIsSummaryWin } from '../src/periodReviews'
+import {
+  extractPlanSectionItems,
+  partitionReviewAnswerLinesForStringUpsert,
+  taskContentIsSummaryWin,
+} from '../src/periodReviews'
 import { buildReviewHTML } from '../src/reviewHTMLViewGenerator'
 import {
   buildInitialReviewAnswersByFieldName,
   buildOutputFromReviewWindowAnswers,
+  getStringQuestionMatchKeyFromOutputLine,
+  getStringQuestionMatchKeyFromParsedQuestion,
   parseQuestions,
 } from '../src/reviewQuestions'
 import { DataStore } from '@mocks/index'
@@ -609,6 +615,42 @@ Ship: <tasks>`,
       const rawLines = raw.split('\n')
       const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', {})
       expect(out).toBe('')
+    })
+  })
+
+  describe('string upsert helpers', () => {
+    it('should derive stable match key from a parsed <string> question', () => {
+      const parsed = parseQuestions('Gratitude: <string>')
+      expect(getStringQuestionMatchKeyFromParsedQuestion(parsed[0])).toBe('gratitude:')
+    })
+
+    it('should return a matching key from an output line', () => {
+      const parsed = parseQuestions('Gratitude: <string>\nLearn: <string>')
+      const key = getStringQuestionMatchKeyFromOutputLine('Gratitude: new answer', parsed)
+      expect(key).toBe('gratitude:')
+    })
+  })
+
+  describe('partitionReviewAnswerLinesForStringUpsert', () => {
+    it('should update existing matching <string> line and append unmatched lines', () => {
+      const parsedQuestions = parseQuestions('Gratitude: <string>\nLearn: <string>')
+      const paragraphs = [
+        { type: 'title', content: 'Review', lineIndex: 2, headingLevel: 2 },
+        { type: 'text', content: 'Gratitude: old', lineIndex: 3 },
+        { type: 'text', content: 'Other note line', lineIndex: 4 },
+        { type: 'title', content: 'Next Section', lineIndex: 5, headingLevel: 2 },
+      ]
+      const answerLines = ['Gratitude: new', 'Learn: new']
+      const { updates, appendLines } = partitionReviewAnswerLinesForStringUpsert(
+        paragraphs,
+        'Review',
+        answerLines,
+        parsedQuestions,
+      )
+      expect(updates.length).toBe(1)
+      expect(updates[0].para.lineIndex).toBe(3)
+      expect(updates[0].content).toBe('Gratitude: new')
+      expect(appendLines).toEqual(['Learn: new'])
     })
   })
 
