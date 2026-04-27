@@ -321,6 +321,9 @@ export async function handleOpenTaskAction(origPara: TParagraph): Promise<number
 export async function handleArrowDatesAction(origPara: TParagraph, userChoice: string, optionChosen?: CommandBarChoice): Promise<number> {
   const cmdPressed = optionChosen ? optionChosen.keyModifiers?.length && optionChosen.keyModifiers.includes('cmd') : false
   origPara.content = replaceArrowDatesInString(origPara.content, cmdPressed ? '' : userChoice)
+  // Mark the task as scheduled (change type from open/checklist to scheduled)
+  if (origPara.type === 'open') origPara.type = 'scheduled'
+  if (origPara.type === 'checklist') origPara.type = 'checklistScheduled'
   updateParagraph(origPara) // Note: after origPara is updated, the pointer is no longer good in Obj-C
   if (cmdPressed) {
     logDebug(pluginJson, `handleArrowDatesAction: keyModifiers: ${optionChosen ? optionChosen.keyModifiers.toString() : ''}`)
