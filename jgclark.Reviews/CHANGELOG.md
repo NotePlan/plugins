@@ -1,6 +1,24 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b24] - 2026-04-29
+- fix race in `finishReview`: when migrating metadata in an open editor, frontmatter/body updates now use the same editor object so `Editor.save()` no longer wipes frontmatter
+- fix frontmatter migration side-effect: adding YAML `title:` no longer removes the note's body H1 heading
+- address cause of "can't update dashboard for some reason" log error
+- remove hidden setting `writeDateMentionsInCombinedMetadata`; date/interval metadata now persists via separate YAML keys, while `projectMetadataFrontmatterKey` remains tags-only
+- add stronger one-time migration logging and behavior for legacy metadata:
+  - migrate embedded `@mentions` from combined tags key into separate YAML keys, then normalize combined key to hashtags-only
+  - support multi-line body metadata blocks during migration
+  - when metadata is duplicated in both body and frontmatter, frontmatter wins and body mention lines are cleared
+
+## [2.0.0.b23] - 2026-04-26
+- When **completing** or **cancelling**  a project a new form is shown that asks:
+  - whether to archive the project note?
+  - should a note of the completion/cancellation be made in the current Quarterly or Yearly note?
+  - is there any final 'progress' comment to make?
+- When the displayed Rich project list is updated, it now keeps as close to its current scroll position as possible.
+- Fixed race conditions when pausing/completing/cancelling a project that meant the update to the frontmatter was undone.
+
 ## [2.0.0.b22] - 2026-04-20 (released)
 - fix: setting the 'currently reviewing' state in the Project List stopped the review from starting (thanks, @Garba)
 - dev: failed attempt to delete settings.json file if found to be invalid. Discovered there's no need to write a default copy, as the app does this anyway if the file is missing.

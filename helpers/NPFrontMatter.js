@@ -535,7 +535,9 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
           logError('ensureFrontmatter', `Cannot find title for '${note.filename}'. Stopping conversion.`)
         }
 
-        if (firstLineIsTitle) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
+        // Keep the body H1 line even when writing title to frontmatter.
+        // Several plugins rely on visible H1 titles in note content.
+        // (Callers that want to remove a duplicate heading should do so explicitly.)
         fm = `---\ntitle: ${quoteTextIfNeededForFM(newTitle)}\n---`
       } else {
         logDebug('ensureFrontmatter', `- just adding empty frontmatter to this calendar note`)

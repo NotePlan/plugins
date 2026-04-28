@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // HTML and JS template strings for Reviews plugin HTML view
 // Extracted from reviews.js to keep command logic separate from templates.
-// Last updated 2026-03-29 for v1.4.0.b16, @jgclark
+// Last updated 2026-04-26 for v2.0.0.b23, @jgclark
 //-----------------------------------------------------------------------------
 
 export const stylesheetinksInHeader: string = `
@@ -175,12 +175,16 @@ shortcut.add("meta+r", function() {
 // send 'toggleDisplayOnlyDue' command
 shortcut.add("meta+d", function() {
   console.log("Shortcut '⌘d' triggered: will call toggleDisplayOnlyDue");
-  sendMessageToPlugin('runPluginCommand', {pluginID: 'jgclark.Reviews', commandName:'toggleDisplayOnlyDue', commandArgs: []});
+  var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0
+  // console.log("Sending to backend: toggleDisplayOnlyDue scrollPos=" + String(scrollPos))
+  sendMessageToPlugin('runPluginCommand', {pluginID: 'jgclark.Reviews', commandName:'toggleDisplayOnlyDue', commandArgs: [scrollPos], scrollPos: scrollPos});
 });
 // send 'toggleDisplayFinished' command
 shortcut.add("meta+f", function() {
   console.log("Shortcut '⌘f' triggered: will call toggleDisplayFinished");
-  sendMessageToPlugin('runPluginCommand', {pluginID: 'jgclark.Reviews', commandName: 'toggleDisplayFinished', commandArgs: []});
+  var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0
+  // console.log("Sending to backend: toggleDisplayFinished scrollPos=" + String(scrollPos))
+  sendMessageToPlugin('runPluginCommand', {pluginID: 'jgclark.Reviews', commandName: 'toggleDisplayFinished', commandArgs: [scrollPos], scrollPos: scrollPos});
 });
 </script>
 `
@@ -201,7 +205,9 @@ export const addToggleEvents: string = `
     console.log("- adding event for checkbox '"+thisSettingName+"' currently set to state "+input.checked);
     input.addEventListener('change', function (event) {
       event.preventDefault();
-      sendMessageToPlugin('onChangeCheckbox', { settingName: thisSettingName, state: event.target.checked });
+      var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0
+      // console.log("Sending to backend: onChangeCheckbox(" + thisSettingName + ") scrollPos=" + String(scrollPos))
+      sendMessageToPlugin('onChangeCheckbox', { settingName: thisSettingName, state: event.target.checked, scrollPos: scrollPos });
     }, false);
     added++;
   }
@@ -250,7 +256,9 @@ export const displayFiltersDropdownScript: string = `
             state.displayNextActions !== savedState.displayNextActions ||
             state.displayOrder !== savedState.displayOrder;
           if (hasChanges) {
-            sendMessageToPlugin('saveDisplayFilters', state);
+            var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0
+            // console.log("Sending to backend: saveDisplayFilters scrollPos=" + String(scrollPos))
+            sendMessageToPlugin('saveDisplayFilters', { ...state, scrollPos: scrollPos });
           }
         }
       } else if (savedState) {
@@ -299,7 +307,9 @@ export const displayFiltersDropdownScript: string = `
       displayOrderSelect.addEventListener('change', function() {
         var state = getCheckboxState();
         if (state) {
-          sendMessageToPlugin('saveDisplayFilters', state);
+          var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0
+          // console.log("Sending to backend: saveDisplayFilters(displayOrderChange) scrollPos=" + String(scrollPos))
+          sendMessageToPlugin('saveDisplayFilters', { ...state, scrollPos: scrollPos });
           savedState = state;
         }
       });

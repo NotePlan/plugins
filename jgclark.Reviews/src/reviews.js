@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-04-16 for v2.0.0.b19, @jgclark
+// Last updated 2026-04-28 for v2.0.0.b24, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -27,8 +27,8 @@ import {
   migrateProjectMetadataLineInEditor,
   migrateProjectMetadataLineInNote,
   type ReviewConfig,
-  updateMetadataInEditor,
-  updateMetadataInNote,
+  updateBodyMetadataInEditor,
+  updateBodyMetadataInNote,
 } from './reviewHelpers'
 import {
   copyDemoDefaultToAllProjectsList,
@@ -276,15 +276,15 @@ export async function renderProjectListsIfOpen(
   scrollPos?: number = 0
 ): Promise<boolean> {
   try {
-    logInfo(pluginJson, `renderProjectListsIfOpen ----------------------------------------`)
+    logDebug(pluginJson, `renderProjectListsIfOpen starting...`)
     const config = configIn ? configIn : await getReviewSettings()
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
-    if (config.outputStyle.match(/markdown/i)) {
+    if (config?.outputStyle.match(/markdown/i)) {
       // eslint-disable-next-line no-floating-promise/no-floating-promise -- no need to wait here
       renderProjectListsMarkdown(config, false)
     }
-    if (config.outputStyle.match(/rich/i)) {
+    if (config?.outputStyle.match(/rich/i)) {
       await renderProjectListsHTML(config, false, scrollPos)
     }
     // return true to avoid possibility of NP silently failing when called by invokePluginCommandByName
@@ -324,7 +324,7 @@ export async function renderProjectListsHTML(
     }
 
     const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-    logInfo(pluginJson, `renderProjectLists ----------------------------------------`)
+    logInfo(pluginJson, `renderProjectLists ------------------------------------`)
     logDebug('renderProjectListsHTML', `Starting for ${String(config.projectTypeTags)} tags${useDemoData ? ' (demo)' : ''}`)
 
     // Test to see if we have the font resources we want
@@ -418,8 +418,15 @@ export async function renderProjectListsHTML(
 
     const setScrollPosJS: string = `
 <script type="text/javascript">
-  <!-- console.log('Attemping to set scroll pos to ${scrollPos}'); -->
+  console.log('Reviews render refresh: applying scrollPos = ${scrollPos}');
   setScrollPos(${scrollPos});
+  console.log('Reviews render refresh: post-set current scrollPos = ' + String((typeof window.pageYOffset !== 'undefined')
+    ? window.pageYOffset
+    : (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined')
+      ? document.documentElement.scrollTop
+      : (document.body && typeof document.body.scrollTop !== 'undefined')
+        ? document.body.scrollTop
+        : 0));
 </script>`
 
     const headerTags = `${faLinksInHeader}${stylesheetinksInHeader}
@@ -741,7 +748,7 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
  * Finish a project review -- private core logic used by 2 functions.
  * @param (CoreNoteFields) note - The note to finish
  */
-async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
+async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -785,7 +792,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         } else {
           deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
         }
-        updateMetadataInNote(note, [reviewedTodayString])
+        updateBodyMetadataInNote(note, [reviewedTodayString])
         // $FlowIgnore[prop-missing]
         DataStore.updateCache(note, true)
         return
@@ -804,7 +811,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         deleteMetadataMentionInEditor(possibleThisEditor, metadataLineIndex, [config.nextReviewMentionStr])
       }
       // Update @review(date) on current open note
-      updateMetadataInEditor(possibleThisEditor, [reviewedTodayString])
+      updateBodyMetadataInEditor(possibleThisEditor, [reviewedTodayString])
       await possibleThisEditor.save()
       // Note: no longer seem to need to update cache
     } else {
@@ -821,7 +828,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
       }
       // Update @review(date) on the note
-      updateMetadataInNote(note, [reviewedTodayString])
+      updateBodyMetadataInNote(note, [reviewedTodayString])
       // $FlowIgnore[prop-missing]
       DataStore.updateCache(note, true)
     }
@@ -851,12 +858,12 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (if window is already open)
       // TODO: How can we keep the scrollPos?
-      await renderProjectListsIfOpen(config)
+      await renderProjectListsIfOpen(config, scrollPos)
     } else {
       // Regenerate whole list (and display if window is already open)
       logInfo('finishReviewCoreLogic', `- In allProjects list couldn't find project '${note.filename}'. So regenerating whole list and will display if list is open.`)
       // TODO: Split the following into just generate...(), and then move the renderProjectListsIfOpen() above to serve both if/else clauses
-      await generateProjectListsAndRenderIfOpen()
+      await generateProjectListsAndRenderIfOpen(scrollPos)
     }
 
     // Ensure the Project List window (if open) no longer shows this project as being actively reviewed
@@ -1015,7 +1022,7 @@ export async function finishReview(): Promise<void> {
  * @author @jgclark
  * @param {TNote} noteIn
  */
-export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
+export async function finishReviewForNote(noteToUse: TNote, scrollPos: number = 0): Promise<void> {
   try {
     if (!noteToUse || noteToUse.type !== 'Notes') {
       logWarn('finishReviewForNote', `- Not passed a valid project note to finish reviewing. Stopping.`)
@@ -1023,7 +1030,7 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
     }
 
     logInfo('finishReviewForNote', `Starting for passed note '${displayTitle(noteToUse)}'`)
-    await finishReviewCoreLogic(noteToUse)
+    await finishReviewCoreLogic(noteToUse, scrollPos)
   }
   catch (error) {
     logError('finishReviewForNote', error.message)
@@ -1067,7 +1074,7 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
  * @param (CoreNoteFields) note
  * @param (string?) skipIntervalOrDate (optional)
  */
-async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: string = ''): Promise<void> {
+async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: string = '', scrollPos: number = 0): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (config == null) throw new Error('No config found. Stopping.')
@@ -1113,7 +1120,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
     if (possibleThisEditor) {
       // Update metadata in the current open note
       logDebug('skipReviewCoreLogic', `Updating Editor ...`)
-      updateMetadataInEditor(possibleThisEditor, [nextReviewMetadataStr])
+      updateBodyMetadataInEditor(possibleThisEditor, [nextReviewMetadataStr])
 
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
@@ -1122,7 +1129,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
     } else {
       // add/update metadata on the note
       logDebug('skipReviewCoreLogic', `Updating note ...`)
-      updateMetadataInNote(note, [nextReviewMetadataStr])
+      updateBodyMetadataInNote(note, [nextReviewMetadataStr])
     }
     logDebug('skipReviewCoreLogic', `- done`)
 
@@ -1141,11 +1148,11 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
       // Write changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't open window if not open already)
-      await renderProjectListsIfOpen(config)
+      await renderProjectListsIfOpen(config, scrollPos)
     } else {
       // Regenerate whole list (and display if window is already open)
       logWarn('skipReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
-      await generateProjectListsAndRenderIfOpen()
+      await generateProjectListsAndRenderIfOpen(scrollPos)
     }
   }
   catch (error) {
@@ -1200,7 +1207,7 @@ export async function skipReview(): Promise<void> {
  * Note: skipReview() is an interactive version of this for Editor.note
  * @author @jgclark
  */
-export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string): Promise<void> {
+export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string, scrollPos: number = 0): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -1210,7 +1217,7 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
       return
     }
     logDebug('skipReviewForNote', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
-    await skipReviewCoreLogic(note, skipIntervalOrDate)
+    await skipReviewCoreLogic(note, skipIntervalOrDate, scrollPos)
   }
   catch (error) {
     logError('skipReviewForNote', error.message)
@@ -1225,7 +1232,7 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
  * @author @jgclark
  * @param {TNote?} noteArg 
  */
-export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
+export async function setNewReviewInterval(noteArg?: TNote, scrollPos: number = 0): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (config == null) throw new Error('No config found. Stopping.')
@@ -1256,10 +1263,10 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
       logDebug('setNewReviewInterval', `Updating metadata in Editor`)
       const possibleThisEditor = getOpenEditorFromFilename(note.filename)
       if (possibleThisEditor) {
-        updateMetadataInEditor(possibleThisEditor, [`@review(${newIntervalStr})`])
+        updateBodyMetadataInEditor(possibleThisEditor, [`@review(${newIntervalStr})`])
       } else {
         logDebug('setNewReviewInterval', `- Couldn't find open Editor for note '${note.filename}', so will update note directly.`)
-        updateMetadataInNote(note, [`@review(${newIntervalStr})`])
+        updateBodyMetadataInNote(note, [`@review(${newIntervalStr})`])
       }
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
@@ -1267,7 +1274,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     } else {
       // update metadata on the note
       logDebug('setNewReviewInterval', `Updating metadata in note`)
-      updateMetadataInNote(note, [`@review(${newIntervalStr})`])
+      updateBodyMetadataInNote(note, [`@review(${newIntervalStr})`])
     }
     logDebug('setNewReviewInterval', `- done`)
 
@@ -1287,7 +1294,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
       // Write changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't focus)
-      await renderProjectListsIfOpen(config)
+      await renderProjectListsIfOpen(config, scrollPos)
     }
   } catch (error) {
     logError('setNewReviewInterval', error.message)
@@ -1299,7 +1306,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
 /** 
  * Toggle displayFinished setting, held as a setting in the `settings.json` file.
 */
-export async function toggleDisplayFinished(): Promise<void> {
+export async function toggleDisplayFinished(scrollPos: number = 0): Promise<void> {
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
     // v2 directly update settings.json instead
@@ -1315,8 +1322,7 @@ export async function toggleDisplayFinished(): Promise<void> {
     // logDebug('toggleDisplayFinished', `updatedConfig.displayFinished? now is '${String(updatedConfig.displayFinished)}'`)
     const _res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
     // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    // TODO: how to get scrollPos?
-    await renderProjectListsIfOpen(updatedConfig)
+    await renderProjectListsIfOpen(updatedConfig, scrollPos)
   }
   catch (error) {
     logError('toggleDisplayFinished', error.message)
@@ -1326,7 +1332,7 @@ export async function toggleDisplayFinished(): Promise<void> {
 /** 
  * Toggle displayOnlyDue setting, held as a setting in the `settings.json` file.
 */
-export async function toggleDisplayOnlyDue(): Promise<void> {
+export async function toggleDisplayOnlyDue(scrollPos: number = 0): Promise<void> {
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
     // v2 directly update settings.json instead
@@ -1341,8 +1347,7 @@ export async function toggleDisplayOnlyDue(): Promise<void> {
     // logDebug('toggleDisplayOnlyDue', `updatedConfig.displayOnlyDue? now is '${String(updatedConfig.displayOnlyDue)}'`)
     const _res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
     // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    // TODO: how to get scrollPos?
-    await renderProjectListsIfOpen(updatedConfig)
+    await renderProjectListsIfOpen(updatedConfig, scrollPos)
   }
   catch (error) {
     logError('toggleDisplayOnlyDue', error.message)
@@ -1352,7 +1357,7 @@ export async function toggleDisplayOnlyDue(): Promise<void> {
 /** 
  * Toggle displayNextActions setting, held as a setting in the `settings.json` file.
 */
-export async function toggleDisplayNextActions(): Promise<void> {
+export async function toggleDisplayNextActions(scrollPos: number = 0): Promise<void> {
   try {
     // v2 directly update settings.json
     const config: ?ReviewConfig = await getReviewSettings()
@@ -1366,8 +1371,7 @@ export async function toggleDisplayNextActions(): Promise<void> {
     // logDebug('toggleDisplayNextActions', `updatedConfig.displayNextActions? now is '${String(updatedConfig.displayNextActions)}'`)
     const _res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
     // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    // TODO: how to get scrollPos?
-    await renderProjectListsIfOpen(updatedConfig)
+    await renderProjectListsIfOpen(updatedConfig, scrollPos)
   }
   catch (error) {
     logError('toggleDisplayNextActions', error.message)
@@ -1384,7 +1388,7 @@ export async function saveDisplayFilters(data: {
   displayPaused: boolean,
   displayNextActions: boolean,
   displayOrder?: string,
-}): Promise<void> {
+}, scrollPos: number = 0): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -1397,7 +1401,7 @@ export async function saveDisplayFilters(data: {
       config.displayOrder = data.displayOrder
     }
     await DataStore.saveJSON(config, '../jgclark.Reviews/settings.json', true)
-    await renderProjectListsIfOpen(config)
+    await renderProjectListsIfOpen(config, scrollPos)
   } catch (error) {
     logError('saveDisplayFilters', error.message)
   }

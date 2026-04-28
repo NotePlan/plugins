@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-04-19 for v2.0.0.b21, @jgclark
+// Last updated 2026-04-26 for v2.0.0.b23, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -13,6 +13,7 @@ import {
   getMetadataLineIndexFromBody,
   getProjectMetadataLineIndex,
   getParamMentionFromList,
+  PROJECT_METADATA_MIGRATED_MESSAGE,
   getReviewSettings,
   migrateProjectMetadataLineInEditor,
   migrateProjectMetadataLineInNote,
@@ -47,6 +48,7 @@ import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
 // Constants
 
 const DEFAULT_REVIEW_INTERVAL = '1w'
+const MIGRATE_IN_PROJECT_CONSTRUCTOR = false
 
 //-----------------------------------------------------------------------------
 // Types
@@ -184,15 +186,6 @@ function formatDurationString(date: string | Date, startDate?: string | Date, ro
     }
     return duration
   }
-}
-
-/**
- * Should date mentions also be written into the combined metadata key?
- * Defaults to false so date values are written as separate frontmatter keys.
- * @returns {boolean}
- */
-function shouldWriteDateMentionsInCombinedMetadata(): boolean {
-  return checkBoolean(DataStore.preference('writeDateMentionsInCombinedMetadata') ?? false)
 }
 
 /** Full-line match for ISO YYYY-MM-DD (same rule as RE_DATE). */
@@ -443,22 +436,43 @@ export class Project {
       const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
       const numberDaysForFutureToIgnore = checkNumber(DataStore.preference('numberDaysForFutureToIgnore')) || 0
 
-      const hasFrontmatterMetadata = combinedMetadataField.exists && String(combinedMetadataField.value ?? '').trim() !== ''
+      const hasCombinedTagsMetadata = combinedMetadataField.exists && String(combinedMetadataField.value ?? '').trim() !== ''
+      const hasSeparateFrontmatterMetadata =
+        ['start', 'due', 'reviewed', 'completed', 'cancelled', 'review', 'nextReview']
+          .map((k) => readRawFrontmatterField(this.note, k))
+          .some((field) => field.exists && String(field.value ?? '').trim() !== '')
+      const hasFrontmatterMetadata = hasCombinedTagsMetadata || hasSeparateFrontmatterMetadata
       const metadataBodyLineIndex = getMetadataLineIndexFromBody(this.note)
+      logDebug(
+        'ProjectConstructor',
+        `- metadata presence for '${this.title}': combined=${String(hasCombinedTagsMetadata)} separate=${String(hasSeparateFrontmatterMetadata)} bodyIndex=${String(metadataBodyLineIndex)}`,
+      )
       if (hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
-        const bodyMetadataToRemove = paras[metadataBodyLineIndex].content
-        logInfo('ProjectConstructor', `Both frontmatter and body metadata exist for '${this.title}'. Removing body metadata line '${bodyMetadataToRemove}'.`)
-        this.note.removeParagraph(paras[metadataBodyLineIndex])
-        DataStore.updateCache(this.note, true)
-      } else if (!hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
-        logInfo('ProjectConstructor', `Only body metadata exists for '${this.title}'. Migrating metadata to frontmatter.`)
-        if (usingEditor) {
-          // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
-          migrateProjectMetadataLineInEditor(Editor)
+        if (MIGRATE_IN_PROJECT_CONSTRUCTOR) {
+          logInfo('ProjectConstructor', `Both frontmatter and body metadata exist for '${this.title}'. Keeping frontmatter values and migrating/cleaning body metadata block.`)
+          if (usingEditor) {
+            // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
+            migrateProjectMetadataLineInEditor(Editor)
+          } else {
+            migrateProjectMetadataLineInNote(this.note)
+          }
+          DataStore.updateCache(this.note, true)
         } else {
-          migrateProjectMetadataLineInNote(this.note)
+          logDebug('ProjectConstructor', `MIGRATE_IN_PROJECT_CONSTRUCTOR=false: skipping body->frontmatter cleanup for '${this.title}'`)
         }
-        DataStore.updateCache(this.note, true)
+      } else if (!hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
+        if (MIGRATE_IN_PROJECT_CONSTRUCTOR) {
+          logInfo('ProjectConstructor', `Only body metadata exists for '${this.title}'. Migrating metadata block to frontmatter.`)
+          if (usingEditor) {
+            // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
+            migrateProjectMetadataLineInEditor(Editor)
+          } else {
+            migrateProjectMetadataLineInNote(this.note)
+          }
+          DataStore.updateCache(this.note, true)
+        } else {
+          logDebug('ProjectConstructor', `MIGRATE_IN_PROJECT_CONSTRUCTOR=false: skipping body-only migration for '${this.title}'`)
+        }
       }
 
       // Get the single metadata line (where it still exists; we're now trying to remove them from the note body)
@@ -527,45 +541,94 @@ export class Project {
         }
       }
 
-      // Backward-compatibility: if the combined frontmatter key still contains embedded date/interval mentions
-      // (e.g. `project: #project @start(YYYY-MM-DD) @due(...) @review(1w) ...`), extract them into the separate
-      // frontmatter-backed fields so they don't get dropped during subsequent writes.
-      try {
-        const combinedStrRaw = getFrontmatterAttribute(this.note, singleKeyName)
-        const combinedStr = combinedStrRaw != null && typeof combinedStrRaw === 'string' ? combinedStrRaw : ''
-        if (combinedStr !== '') {
-          const reISODate = new RegExp(`^${RE_DATE}$`)
-          const reInterval = new RegExp(`^${RE_DATE_INTERVAL}$`)
+      if (MIGRATE_IN_PROJECT_CONSTRUCTOR) {
+        // One-time migration path: if the tags key still contains embedded date/interval mentions
+        // (e.g. `project: #project @start(YYYY-MM-DD) @due(...) @review(1w) ...`), extract them into separate
+        // frontmatter-backed fields and normalize the tags key to hashtags-only.
+        try {
+          const combinedStrRaw = combinedMetadataField.exists ? combinedMetadataField.value : getFrontmatterAttribute(this.note, singleKeyName)
+          const combinedStr = combinedStrRaw != null && typeof combinedStrRaw === 'string' ? combinedStrRaw : ''
+          if (combinedStr !== '') {
+            const reISODate = new RegExp(`^${RE_DATE}$`)
+            const reInterval = new RegExp(`^${RE_DATE_INTERVAL}$`)
+            const migrationAttrs: { [string]: any } = {}
+            const migratedKeys: Array<string> = []
 
-          const mentionRegex = /@[\w\-\.]+\([^)]*\)/g
-          const embeddedMentions: Array<string> = combinedStr.match(mentionRegex) ?? []
-          for (const embeddedMention of embeddedMentions) {
-            const mentionName = embeddedMention.split('(', 1)[0]
-            const parsed = parseProjectFrontmatterValue(embeddedMention)
-            if (parsed === '') continue
+            const mentionRegex = /@[\w\-\.]+\([^)]*\)/g
+            const embeddedMentions: Array<string> = combinedStr.match(mentionRegex) ?? []
+            if (embeddedMentions.length > 0) {
+              logDebug(
+                'ProjectConstructor',
+                `- Found ${String(embeddedMentions.length)} embedded mention(s) in '${singleKeyName}' for '${this.title}': ${combinedStr}`,
+              )
+            }
+            for (const embeddedMention of embeddedMentions) {
+              const mentionName = embeddedMention.split('(', 1)[0]
+              const parsed = parseProjectFrontmatterValue(embeddedMention)
+              if (parsed === '') continue
 
-            if (mentionName === startMentionName && (this.startDate == null || this.startDate === '')) {
-              if (reISODate.test(parsed)) this.startDate = parsed
-            } else if (mentionName === dueMentionName && (this.dueDate == null || this.dueDate === '')) {
-              if (reISODate.test(parsed)) this.dueDate = parsed
-            } else if (mentionName === reviewedMentionName && (this.reviewedDate == null || this.reviewedDate === '')) {
-              if (reISODate.test(parsed)) this.reviewedDate = parsed
-            } else if (mentionName === completedMentionName && (this.completedDate == null || this.completedDate === '')) {
-              if (reISODate.test(parsed)) this.completedDate = parsed
-            } else if (mentionName === cancelledMentionName && (this.cancelledDate == null || this.cancelledDate === '')) {
-              if (reISODate.test(parsed)) this.cancelledDate = parsed
-            } else if (mentionName === nextReviewMentionName && (this.nextReviewDateStr == null || this.nextReviewDateStr === '')) {
-              if (reISODate.test(parsed)) this.nextReviewDateStr = parsed
-            } else if (
-              mentionName === reviewIntervalMentionName &&
-              (this.reviewInterval == null || this.reviewInterval === '' || !this.reviewInterval.match(reInterval))
-            ) {
-              if (reInterval.test(parsed)) this.reviewInterval = parsed
+              if (mentionName === startMentionName && (this.startDate == null || this.startDate === '')) {
+                if (reISODate.test(parsed)) {
+                  this.startDate = parsed
+                  migrationAttrs[fmKey.start] = parsed
+                  migratedKeys.push(fmKey.start)
+                }
+              } else if (mentionName === dueMentionName && (this.dueDate == null || this.dueDate === '')) {
+                if (reISODate.test(parsed)) {
+                  this.dueDate = parsed
+                  migrationAttrs[fmKey.due] = parsed
+                  migratedKeys.push(fmKey.due)
+                }
+              } else if (mentionName === reviewedMentionName && (this.reviewedDate == null || this.reviewedDate === '')) {
+                if (reISODate.test(parsed)) {
+                  this.reviewedDate = parsed
+                  migrationAttrs[fmKey.reviewed] = parsed
+                  migratedKeys.push(fmKey.reviewed)
+                }
+              } else if (mentionName === completedMentionName && (this.completedDate == null || this.completedDate === '')) {
+                if (reISODate.test(parsed)) {
+                  this.completedDate = parsed
+                  migrationAttrs[fmKey.completed] = parsed
+                  migratedKeys.push(fmKey.completed)
+                }
+              } else if (mentionName === cancelledMentionName && (this.cancelledDate == null || this.cancelledDate === '')) {
+                if (reISODate.test(parsed)) {
+                  this.cancelledDate = parsed
+                  migrationAttrs[fmKey.cancelled] = parsed
+                  migratedKeys.push(fmKey.cancelled)
+                }
+              } else if (mentionName === nextReviewMentionName && (this.nextReviewDateStr == null || this.nextReviewDateStr === '')) {
+                if (reISODate.test(parsed)) {
+                  this.nextReviewDateStr = parsed
+                  migrationAttrs[fmKey.nextReview] = parsed
+                  migratedKeys.push(fmKey.nextReview)
+                }
+              } else if (
+                mentionName === reviewIntervalMentionName &&
+                (this.reviewInterval == null || this.reviewInterval === '' || !this.reviewInterval.match(reInterval))
+              ) {
+                if (reInterval.test(parsed)) {
+                  this.reviewInterval = parsed
+                  migrationAttrs[fmKey.reviewInterval] = parsed
+                  migratedKeys.push(fmKey.reviewInterval)
+                }
+              }
+            }
+            if (embeddedMentions.length > 0) {
+              migrationAttrs[singleKeyName] = this.getProjectTagsFrontmatterValue(singleKeyName)
+              updateFrontMatterVars(this.note, migrationAttrs)
+              DataStore.updateCache(this.note, true)
+              logDebug(
+                'ProjectConstructor',
+                `- Migrated tags-key mentions for '${this.title}': wrote keys [${migratedKeys.join(', ')}], normalized '${singleKeyName}' to tags-only`,
+              )
             }
           }
+        } catch (e) {
+          logWarn('ProjectConstructor', `- Failed tags-key embedded mention migration for '${this.title}': ${e.message}`)
         }
-      } catch (e) {
-        logWarn('ProjectConstructor', `- Failed to extract embedded date mentions from combined frontmatter for '${this.title}': ${e.message}`)
+      } else {
+        logDebug('ProjectConstructor', `MIGRATE_IN_PROJECT_CONSTRUCTOR=false: skipping tags-key embedded mention migration for '${this.title}'`)
       }
 
       // Overlay metadata fields from separate frontmatter keys (if they exist)
@@ -866,7 +929,7 @@ export class Project {
    * paragraph when it is a plain line (not a frontmatter-style `project:` / `metadata:` line).
    * @param {string} newMetadataLine - The new metadata content for body storage (without "metadata:" prefix)
    * @param {object} [options]
-   * @param {boolean} [options.skipPlainBodyParagraphUpdate] - If true, only frontmatter is updated (e.g. before removing a body metadata line during migration so `getCombinedProjectTagsFrontmatterValue` can still read the old line)
+   * @param {boolean} [options.skipPlainBodyParagraphUpdate] - If true, only frontmatter is updated (e.g. before removing a body metadata line during migration so `getProjectTagsFrontmatterValue` can still read the old line)
    * @param {boolean} [options.preserveSeparateKeysWhenEmptyOnProject] - If true, do not remove separate frontmatter keys when the corresponding Project field is empty (avoids wiping keys not loaded on the instance). Still write non-empty Project fields and the combined key. Use with `explicitKeysToRemoveFromFrontmatter` to remove specific keys (e.g. `nextReview` when pausing).
    * @param {Array<string>} [options.explicitKeysToRemoveFromFrontmatter] - Keys to remove from frontmatter regardless of preserve mode (e.g. next review after `clearNextReviewMetadata`).
    * @private
@@ -880,6 +943,13 @@ export class Project {
     |},
   ): void {
   try {
+    const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
+    let noteForWrites: TNote = this.note
+    if(possibleThisEditor && possibleThisEditor.note) {
+  noteForWrites = possibleThisEditor.note
+}
+const metadataLineIndex = getProjectMetadataLineIndex(noteForWrites)
+this.metadataParaLineIndex = metadataLineIndex === false ? NaN : metadataLineIndex
     const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
       const attrs: { [string]: any } = { }
 const keysToRemove: Array<string> = []
@@ -947,10 +1017,10 @@ if (preserveEmpty) {
 }
 
 // Invariant: combined frontmatter key value contains ONLY hashtags.
-      attrs[singleKeyName] = this.getCombinedProjectTagsFrontmatterValue(singleKeyName)
+attrs[singleKeyName] = this.getProjectTagsFrontmatterValue(singleKeyName)
 
 // $FlowFixMe[incompatible-call]
-      const success = updateFrontMatterVars(this.note, attrs)
+const success = updateFrontMatterVars(possibleThisEditor ?? noteForWrites, attrs)
 if (!success) {
   logError('updateProjectMetadata', `Failed to update frontmatter metadata for '${this.title}'`)
 }
@@ -958,18 +1028,56 @@ if (!success) {
 // otherwise explicit keys such as nextReview on pause are never stripped.
 for (const keyToRemove of keysToRemove) {
   logDebug('updateProjectMetadata', `Removing frontmatter key '${keyToRemove}' from '${this.title}'`)
-  removeFrontMatterField(this.note, keyToRemove)
+  removeFrontMatterField(noteForWrites, keyToRemove)
 }
-DataStore.updateCache(this.note, true)
+DataStore.updateCache(noteForWrites, true)
     } catch (error) {
   logError('updateProjectMetadata', error.message)
 }
 
 if (options?.skipPlainBodyParagraphUpdate === true) {
+  const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
+  let noteForWrites: TNote = this.note
+  if (possibleThisEditor && possibleThisEditor.note) {
+    noteForWrites = possibleThisEditor.note
+  }
+  const endFMIndex = endOfFrontmatterLineIndex(noteForWrites) ?? -1
+  for (let i = endFMIndex + 1; i < noteForWrites.paragraphs.length; i++) {
+    const bodyPara = noteForWrites.paragraphs[i]
+    if ((bodyPara?.content ?? '') === PROJECT_METADATA_MIGRATED_MESSAGE) {
+      bodyPara.content = ''
+      if (possibleThisEditor) {
+        possibleThisEditor.updateParagraph(bodyPara)
+      } else {
+        noteForWrites.updateParagraph(bodyPara)
+      }
+      DataStore.updateCache(noteForWrites, true)
+      break
+    }
+  }
   return
 }
 
-const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
+const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
+let noteForWrites: TNote = this.note
+if (possibleThisEditor && possibleThisEditor.note) {
+  noteForWrites = possibleThisEditor.note
+}
+const endFMIndex = endOfFrontmatterLineIndex(noteForWrites) ?? -1
+for (let i = endFMIndex + 1; i < noteForWrites.paragraphs.length; i++) {
+  const bodyPara = noteForWrites.paragraphs[i]
+  if ((bodyPara?.content ?? '') === PROJECT_METADATA_MIGRATED_MESSAGE) {
+    bodyPara.content = ''
+    if (possibleThisEditor) {
+      possibleThisEditor.updateParagraph(bodyPara)
+    } else {
+      noteForWrites.updateParagraph(bodyPara)
+    }
+    DataStore.updateCache(noteForWrites, true)
+    break
+  }
+}
+const metadataPara = noteForWrites.paragraphs[this.metadataParaLineIndex]
 if (metadataPara == null) {
   return
 }
@@ -978,21 +1086,21 @@ const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatt
 const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
 const isFrontmatterStyleParagraphLine =
   frontmatterPrefixRe.test(currentContent) || currentContent.match(/^metadata:\s*/i) != null
+const metadataParaInFrontmatter = this.metadataParaLineIndex > 0 && this.metadataParaLineIndex < endFMIndex
 
-if (isFrontmatterStyleParagraphLine) {
+if (isFrontmatterStyleParagraphLine && metadataParaInFrontmatter) {
   // Structured frontmatter step already updated the real YAML combined key; no duplicate paragraph update
   return
 }
 
 // Update regular paragraph content (plain body metadata line)
 metadataPara.content = newMetadataLine
-const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
 if (possibleThisEditor) {
   possibleThisEditor.updateParagraph(metadataPara)
 } else {
-  this.note.updateParagraph(metadataPara)
+  noteForWrites.updateParagraph(metadataPara)
 }
-DataStore.updateCache(this.note, true)
+DataStore.updateCache(noteForWrites, true)
   }
 
   /**
@@ -1001,7 +1109,7 @@ DataStore.updateCache(this.note, true)
    * @param {string} combinedKey
    * @returns {string}
    */
-  getCombinedProjectTagsFrontmatterValue(combinedKey: string): string {
+getProjectTagsFrontmatterValue(combinedKey: string): string {
     const seen: Set<string> = new Set()
     const ordered: Array<string> = []
 
@@ -1050,7 +1158,7 @@ DataStore.updateCache(this.note, true)
    * @private
    */
   updateMetadataAndSave(): void {
-    const newMetadataLine = this.generateMetadataOutputLine()
+    const newMetadataLine = this.generateMarkdownOutputLine()
     const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
     const currentContent = metadataPara != null ? metadataPara.content : ''
     const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
@@ -1229,7 +1337,10 @@ DataStore.updateCache(this.note, true)
    * And add to the metadata area of the note
    * @param {string} prompt message, to which is added the note title
    */
-  async addProgressLine(prompt: string = 'Enter comment about current progress for'): Promise<void> {
+  async addProgressLine(
+    prompt: string = 'Enter comment about current progress for',
+    prefilledInputs ?: { comment: string, progressDateStr?: string, percentStr?: string },
+  ): Promise < void> {
     try {
       const thisFilename = this.note.filename
       // Figure out if we're working in the Editor or a note
@@ -1241,12 +1352,22 @@ DataStore.updateCache(this.note, true)
         logDebug('Project::addProgressLine', `Can't find open Editor for note '${thisFilename}', so will use DATASTORE note`)
       }
         
-      const inputs = await promptAddProgressLineInputs(this.title, prompt, this.percentComplete)
+      const inputs = prefilledInputs
+      ? {
+        comment: String(prefilledInputs.comment ?? '').trim(),
+        progressDateStr: normalizeProgressDateFromForm(prefilledInputs.progressDateStr),
+        percentStr: String(prefilledInputs.percentStr ?? '').trim(),
+      }
+      : await promptAddProgressLineInputs(this.title, prompt, this.percentComplete)
       if(!inputs) {
         logDebug('Project::addProgressLine', `No valid progress line given.`)
         return
       }
       const { comment, progressDateStr, percentStr } = inputs
+      if(!comment) {
+      logDebug('Project::addProgressLine', `No valid progress comment given.`)
+      return
+    }
       if(percentStr === '') {
         logDebug('Project::addProgressLine', `No percent completion given.`)
 } else if (isInt(percentStr)) {
@@ -1270,10 +1391,12 @@ const newProgressLineForFrontmatter = `${percentStr}@${progressDateStr} ${commen
 
       // Optionally mirror the most recent progress line into frontmatter
       if (writeMostRecentProgressToFrontmatter) {
-        const success = updateFrontMatterVars(this.note, { progress: newProgressLineForFrontmatter })
+        const frontmatterTarget: TEditor | TNote = possibleThisEditor ? possibleThisEditor : this.note
+        const noteForCache: TNote = possibleThisEditor && possibleThisEditor.note ? possibleThisEditor.note : this.note
+        const success = updateFrontMatterVars(frontmatterTarget, { progress: newProgressLineForFrontmatter })
         if (success) {
           logDebug('Project::addProgressLine', `Updated frontmatter progress OK for '${this.title}'`)
-          DataStore.updateCache(this.note, true)
+          DataStore.updateCache(noteForCache, true)
         } else {
           logError('Project::addProgressLine', `Failed to update frontmatter progress for '${this.title}'`)
         }
@@ -1506,6 +1629,8 @@ clearNextReviewMetadata(): void {
       // Get progress field details (if wanted)
       logDebug('togglePauseProject', `Starting for '${this.title}' ...`)
       await this.addProgressLine(this.isPaused ? 'Comment (if wanted) as you resume' : 'Comment (if wanted) as you pause')
+      const metadataLineIndex = getProjectMetadataLineIndex(this.note)
+      this.metadataParaLineIndex = metadataLineIndex === false ? NaN : metadataLineIndex
 
       // update the metadata fields
       this.isCompleted = false
@@ -1520,7 +1645,7 @@ clearNextReviewMetadata(): void {
 
       // re-write the note's metadata line
       logDebug('togglePauseProject', `Paused state now toggled to ${String(this.isPaused)} for '${this.title}' ...`)
-      const newMetadataLine = this.generateMetadataOutputLine()
+const newMetadataLine = this.generateMarkdownOutputLine()
       logDebug('togglePauseProject', `- metadata now '${newMetadataLine}'`)
 
 const nextReviewKey = checkString(DataStore.preference('nextReviewMentionStr') || '').replace(/^[@#]/, '') || 'nextReview'
@@ -1536,7 +1661,7 @@ this.updateProjectMetadata(newMetadataLine, {
       // if we want to remove all due dates on pause, then do that
       if (this.isPaused) {
         const config = await getReviewSettings()
-        if (config.removeDueDatesOnPause) {
+        if (config && config.removeDueDatesOnPause) {
           logDebug('togglePauseProject', `- project now paused, and we want to remove due dates ...`)
           const res = removeAllDueDates(this.filename)
         }
@@ -1554,7 +1679,7 @@ this.updateProjectMetadata(newMetadataLine, {
   /**
    * Generate a one-line tab-sep summary line ready for Markdown note
    */
-  generateMetadataOutputLine(writeDateMentions: boolean = shouldWriteDateMentionsInCombinedMetadata()): string {
+generateMarkdownOutputLine(writeDateMentions: boolean = false): string {
     const parts: Array<string> = [... this.allProjectTags]
     if (this.isPaused) parts.push('#paused')
     if (this.reviewInterval != null) {

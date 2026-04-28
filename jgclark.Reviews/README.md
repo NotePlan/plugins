@@ -34,6 +34,8 @@ Each **Project** is described by a separate note, and has a lifecycle something 
 
 Each such project contains some **metadata** fields including `#project` hashtag, `@review(...)` and some others (see below for more details).  For example:
 
+TODO: update these!
+
 ```markdown
 # Secret Undertaking
 #project @review(2w) @reviewed(2021-07-20) @start(2021-04-05) @due(2021-11-30)
@@ -82,7 +84,6 @@ New Filter & Order options in a dropdown:
 
 ![New Filter & Order options in a dropdown:](filter+order-v2.0.0.b11.png)
 
-
 Each Project row show the following details:
 
 ![Each Project row show the following details:](project-detail-numbered.png)
@@ -97,20 +98,20 @@ Each Project row show the following details:
 9. Any 'next action' on the project
 
 ## Where you can put the project data (metadata fields)
-The plugin tries to be as flexible as possible about where project metadata can go.
+From **v2.0** you can write it in 3 ways/places:
 
-From **v2.0** it supports both:
+- legacy **Body metadata line**;
+- single **Frontmatter metadata** line;
+- multiple **Frontmatter metadata** lines -- this is the preferred way, and it will migrate to this.
 
-- **Body metadata line** (legacy and still supported), and
-- **Frontmatter metadata**, which over time becomes the main source of truth.
+When locating the **combined metadata line** (the paragraph the plugin edits when it updates `@mentions` in the body), it resolves in this order:
 
-When looking for project metadata it checks, in order:
+- **Body:** scans top to bottom **below** any YAML frontmatter (or from the first line if there is no `---` block) for the first line where **either** the line starts with `project:` or `metadata:` (case-insensitive), **or** it contains `@review(YYYY-MM-DD)` or `@reviewed(YYYY-MM-DD)` with a **calendar date** in parentheses. Interval-only forms such as `@review(2w)` do **not** satisfy this second case on their own—put those on a `project:` / `metadata:` line, in frontmatter, or rely on NotePlan’s mention list.
+- **Frontmatter:** if no body line matches, it uses the first line **inside** the YAML block that starts with your configured **Frontmatter metadata key** (default `project:`) or `metadata:`.
 
-- the first line starting `project:` or `metadata:` in the note or its frontmatter
-- the first line containing a `@review()` or `@reviewed()` mention
-- the first line starting with a `#hashtag`.
+Hashtags (for example `#project`) are **not** used to pick this line by themselves; the plugin still reads them from that line when present, from the combined frontmatter value, or from NotePlan’s `hashtags` / `mentions` APIs as described below.
 
-If these can't be found, then the plugin creates a new line after the title, or if the note has frontmatter, a new field in frontmatter under the configured key (see below).
+If no such line exists yet, then the plugin creates a new line after the title, or if the note has frontmatter, a new field in frontmatter under the configured key (see below).
 
 ### Using frontmatter for project metadata
 
@@ -200,8 +201,8 @@ You can set the '**Output style to use**'. This is either the 'Rich' style or or
 - the button 'Start reviews' / 'Start reviewing notes ready for review' is a shortcut to the '/start reviews' command (described below).
 - each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
-### Progress Summaries
-In a project/area note you can, if you wish, include a **one-line summary** of your view on its current **overall progress**. If given, the latest one is shown in the project lists. To continue the example above, here's the start of the note a few weeks later, showing I think it's only 10% complete:
+### Progress Comments
+In a project/area note you can, if you wish, include a **one-line comment** of your view on its current **overall progress**. If given, the latest one is shown in the project lists. To continue the example above, here's the start of the note a few weeks later, showing I think it's only 10% complete:
 
 ```markdown
 # Secret Undertaking
@@ -221,7 +222,9 @@ Progress: 0@2021-04-05 Project started with a briefing from M about SPECTRE's da
 
 The starting percentage number doesn't have to be given; if it's not it is _calculated from the % of open and completed tasks_ found in the note.
 
-The settings relating to Progress are:
+To add a progress comment, either run the "/add progress comment" command, or click the "Add Progress" button in the edit dialog. Note: Add a comment also automatically updates the "reviewed" date on the project.
+
+The settings relating to Progress calculations and comments are:
 - Ignore tasks set more than these days in the future: If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 1 day: all items with future scheduled dates are ignored.)
 - Ignore checklists in progress? If set, then checklists in progress will not be counted as part of the project's completion percentage.
 - Progress Heading: (from v1.3) Optional heading name under which `Progress: ...` lines are stored in the project note. If you set this when the note already has progress lines, the plugin finds them and inserts the heading above.

@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
 // Note: this file is run as a script in the Project List window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
-// Last updated: 2026-02-08 for v1.3.0.b8 by @jgclark
+// Last updated: 2026-04-26 for v2.0.0.b23 by @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handler
@@ -154,7 +154,17 @@ function showProjectControlDialog(dataObject) {
   // For clicking on dialog buttons
   function handleButtonClick(functionToInvoke, controlStr, encodedFilename, metaModifier) {
     console.log(`Button clicked on encodedFilename: ${encodedFilename} with controlStr: ${controlStr}, metaModifier: ${metaModifier}`)
-    sendMessageToPlugin('onClickProjectListItem', { itemID: '-', type: functionToInvoke, controlStr: controlStr, encodedFilename: encodedFilename, metaModifier: metaModifier })
+    const scrollPos = typeof window.__reviewsGetScrollPos === 'function'
+      ? window.__reviewsGetScrollPos()
+      : (typeof window.pageYOffset !== 'undefined'
+        ? window.pageYOffset
+        : (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined'
+          ? document.documentElement.scrollTop
+          : (document.body && typeof document.body.scrollTop !== 'undefined'
+            ? document.body.scrollTop
+            : 0)))
+    // console.log(`Sending to backend: onClickProjectListItem(${functionToInvoke}) scrollPos=${String(scrollPos)}`)
+    sendMessageToPlugin('onClickProjectListItem', { itemID: '-', type: functionToInvoke, controlStr: controlStr, encodedFilename: encodedFilename, metaModifier: metaModifier, scrollPos: scrollPos })
     // Dismiss dialog
     closeDialog()
   }

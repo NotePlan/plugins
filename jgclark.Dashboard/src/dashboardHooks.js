@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggers and other hooks
-// Last updated 2026-02-27 for v2.4.0.b22, @jgclark
+// Last updated 2026-04-28 for v2.4.0.31, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -10,7 +10,7 @@ import pluginJson from '../plugin.json'
 import { incrementallyRefreshSomeSections, refreshSomeSections } from './refreshClickHandlers'
 import { allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 // import { getSomeSectionsData } from './dataGeneration'
-import type { MessageDataObject, TSectionCode } from './types'
+import type { MessageDataObject, TBridgeClickHandlerResult, TSectionCode } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
   getNPMonthStr,
@@ -179,34 +179,38 @@ export async function onEditorWillSave(): Promise<void> {
 
 /**
  * Refresh a section given by its code -- if the Dashboard is open already.
+ * Note: as called by DataStore.invokePluginCommandByName (from jgclark.Reviews) there needs to be a return value.
  */
-export async function refreshSectionByCode(sectionCode: TSectionCode): Promise<void> {
+export async function refreshSectionByCode(sectionCode: TSectionCode): Promise<boolean> {
   if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
     logDebug('refreshSectionByCode', `Dashboard not open, so won't proceed ...`)
-    return
+    return true
   }
-  logDebug('refreshSectionByCode', `Dashboard is open, so will refresh section ${sectionCode} ...`)
+  logDebug('refreshSectionByCode', `Dashboard is open, so will refreshSomeSections for ${sectionCode} ...`)
   const data: MessageDataObject = {
     sectionCodes: [sectionCode],
     actionType: 'refreshSomeSections',
   }
-  const res = await refreshSomeSections(data, true)
-  logDebug('refreshSectionByCode', `done.`)
+  const res: TBridgeClickHandlerResult = await refreshSomeSections(data, true)
+  logDebug('refreshSectionByCode', `- result was ${res.success ? 'Success' : 'Failed'}`)
+  return res.success
 }
 
 /**
  * Refresh a section given by its code -- if the Dashboard is open already.
+ * Note: as called by DataStore.invokePluginCommandByName (from jgclark.Reviews) there needs to be a return value.
  */
-export async function refreshSectionsByCode(sectionCodes: Array<TSectionCode>): Promise<void> {
+export async function refreshSectionsByCode(sectionCodes: Array<TSectionCode>): Promise<boolean> {
   if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
     logDebug('refreshSectionsByCode', `Dashboard not open, so won't proceed ...`)
-    return
+    return true
   }
-  logDebug('refreshSectionsByCode', `Dashboard is open, so will refresh sections ${String(sectionCodes)} ...`)
+  logDebug('refreshSectionsByCode', `Dashboard is open, so will refreshSomeSections for ${String(sectionCodes)} ...`)
   const data: MessageDataObject = {
     sectionCodes: sectionCodes,
     actionType: 'refreshSomeSections',
   }
-  const res = await refreshSomeSections(data, true)
-  logDebug('refreshSectionsByCode', `done.`)
+  const res: TBridgeClickHandlerResult = await refreshSomeSections(data, true)
+  logDebug('refreshSectionsByCode', `- result was ${res.success ? 'Success' : 'Failed'}`)
+  return res.success
 }

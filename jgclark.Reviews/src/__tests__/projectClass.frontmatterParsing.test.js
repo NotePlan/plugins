@@ -55,9 +55,8 @@ describe('projectClass frontmatter parsing helpers', () => {
     })
   })
 
-  describe('generateMetadataOutputLine', () => {
+  describe('generateMarkdownOutputLine', () => {
     test('omits date mentions by default but keeps review interval', () => {
-      preferenceValues['writeDateMentionsInCombinedMetadata'] = false
       preferenceValues['startMentionStr'] = '@start'
       preferenceValues['dueMentionStr'] = '@due'
       preferenceValues['reviewedMentionStr'] = '@reviewed'
@@ -75,11 +74,10 @@ describe('projectClass frontmatter parsing helpers', () => {
       project.completedDate = undefined
       project.cancelledDate = undefined
 
-      expect(project.generateMetadataOutputLine(false)).toBe('#project @review(1w)')
+      expect(project.generateMarkdownOutputLine(false)).toBe('#project @review(1w)')
     })
 
-    test('includes date mentions when explicitly enabled', () => {
-      preferenceValues['writeDateMentionsInCombinedMetadata'] = true
+    test('includes date mentions when explicitly enabled by argument', () => {
       preferenceValues['startMentionStr'] = '@start'
       preferenceValues['dueMentionStr'] = '@due'
       preferenceValues['reviewedMentionStr'] = '@reviewed'
@@ -97,7 +95,7 @@ describe('projectClass frontmatter parsing helpers', () => {
       project.completedDate = undefined
       project.cancelledDate = undefined
 
-      expect(project.generateMetadataOutputLine(true)).toBe('#project @review(1w) @start(2026-03-01) @due(2026-03-22) @reviewed(2026-03-20)')
+      expect(project.generateMarkdownOutputLine(true)).toBe('#project @review(1w) @start(2026-03-01) @due(2026-03-22) @reviewed(2026-03-20)')
     })
   })
 })

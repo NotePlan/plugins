@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin (to/from HTML window)
-// Last updated 2026-02-26 for v1.4.0.b4, @jgclark
+// Last updated 2026-04-26 for v1.4.0.b23, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -38,8 +38,13 @@ type MessageDataObject = {
   type: string,
   controlStr: string,
   encodedFilename: string,
+  scrollPos?: number,
 }
-type SettingDataObject = { settingName: string, state: string }
+type SettingDataObject = {
+  settingName: string,
+  state: string,
+  scrollPos?: number,
+}
 
 const windowCustomId = `${pluginJson['plugin.id']}.main`
 
@@ -66,6 +71,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
         break
       case 'refresh': {
         const scrollPos = data && typeof data.scrollPos === 'number' ? data.scrollPos : 0
+        logInfo('onMessageFromHTMLView/refresh', `received scrollPos from frontend = ${String(scrollPos)}`)
         await displayProjectLists(null, scrollPos)
         break
       }
@@ -92,8 +98,23 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
 export async function runPluginCommand(data: any) {
   try {
     logDebug(pluginJson, `runPluginCommand: received command '${data.commandName}' with args [${data.commandArgs}]`)
-    // clo(data, 'runPluginCommand received data object')
-    await DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs ?? [])
+    const scrollPos = data && typeof data.scrollPos === 'number' ? data.scrollPos : 0
+    logInfo('runPluginCommand', `received scrollPos from frontend = ${String(scrollPos)} for command '${String(data.commandName)}'`)
+    switch (data.commandName) {
+      case 'toggleDisplayFinished':
+        await toggleDisplayFinished(scrollPos)
+        break
+      case 'toggleDisplayOnlyDue':
+        await toggleDisplayOnlyDue(scrollPos)
+        break
+      case 'toggleDisplayNextActions':
+        await toggleDisplayNextActions(scrollPos)
+        break
+      default:
+        // clo(data, 'runPluginCommand received data object')
+        await DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs ?? [])
+        break
+    }
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -109,18 +130,20 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
   try {
     clo(data, 'bridgeChangeCheckbox received data object')
     const { settingName, state } = data
+    const scrollPos = data && typeof data.scrollPos === 'number' ? data.scrollPos : 0
     logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)
+    logInfo('bridgeChangeCheckbox', `received scrollPos from frontend = ${String(scrollPos)} for setting '${String(settingName)}'`)
     switch (settingName) {
       case 'displayFinished': {
-        toggleDisplayFinished()
+        await toggleDisplayFinished(scrollPos)
         break
       }
       case 'displayOnlyDue': {
-        toggleDisplayOnlyDue()
+        await toggleDisplayOnlyDue(scrollPos)
         break
       }
       case 'displayNextActions': {
-        toggleDisplayNextActions()
+        await toggleDisplayNextActions(scrollPos)
         break
       }
     }
@@ -139,9 +162,19 @@ export async function bridgeSaveDisplayFilters(data: {
   displayPaused: boolean,
   displayNextActions: boolean,
   displayOrder?: string,
+  scrollPos?: number,
 }): Promise<void> {
   try {
-    await saveDisplayFilters(data)
+    const scrollPos = data && typeof data.scrollPos === 'number' ? data.scrollPos : 0
+    logInfo('bridgeSaveDisplayFilters', `received scrollPos from frontend = ${String(scrollPos)}`)
+    const filterData = {
+      displayOnlyDue: data.displayOnlyDue,
+      displayFinished: data.displayFinished,
+      displayPaused: data.displayPaused,
+      displayNextActions: data.displayNextActions,
+      displayOrder: data.displayOrder,
+    }
+    await saveDisplayFilters(filterData, scrollPos)
   } catch (error) {
     logError('bridgeSaveDisplayFilters', error.message)
   }
@@ -163,8 +196,10 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
     const type = data.type
     const controlStr = data.controlStr ?? ''
     const filename = decodeRFC3986URIComponent(data.encodedFilename ?? '')
-    logDebug('', '-------------------- bridgeClickProjectListItem:')
+    const scrollPos = data && typeof data.scrollPos === 'number' ? data.scrollPos : 0
+    logDebug('', 'bridgeClickProjectListItem: --------------------')
     logInfo('bridgeClickProjectListItem', `itemID: ${ID}, type: ${type}, filename: ${filename}`)
+    // logDebug('bridgeClickProjectListItem', `received scrollPos from frontend = ${String(scrollPos)} for type '${String(type)}'`)
     // clo(data, 'bridgeClickProjectListItem received data object')
     switch (type) {
       case 'completeProject': {
@@ -173,7 +208,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         if (note) {
           completeProject
           logDebug('bCPLI / completeProject', `-> completeProject on filename ${filename} (ID ${ID})`)
-          await completeProject(note)
+          await completeProject(note, scrollPos)
         }
         // The above handles refreshing the allProjects list and display
         // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
@@ -185,7 +220,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         const note = await DataStore.projectNoteByFilename(filename)
         if (note) {
           logDebug('bCPLI / cancelProject', `-> cancelProject on filename ${filename} (ID ${ID})`)
-          await cancelProject(note)
+          await cancelProject(note, scrollPos)
         }
         // The above handles refreshing the allProjects list and display
         // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
@@ -197,7 +232,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         const note = await DataStore.projectNoteByFilename(filename)
         if (note) {
           logDebug('bCPLI / toggleProject', `-> togglePauseProject on filename ${filename} (ID ${ID})`)
-          await togglePauseProject(note)
+          await togglePauseProject(note, scrollPos)
         }
         // The above handles refreshing the allProjects list and display
         // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
@@ -223,7 +258,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         if (note) {
           logDebug('bCPLI / reviewFinished', `-> reviewFinished on filename ${filename} (ID ${ID})`)
           // update this to actually take a note to work on
-          await finishReviewForNote(note)
+          await finishReviewForNote(note, scrollPos)
           logDebug('bCPLI / reviewFinished', `-> after finishReview`)
 
           // The above handles refreshing the allProjects list and display
@@ -239,7 +274,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         if (note) {
           const period = controlStr.replace('nr', '')
           logDebug('bCPLI / setNextReviewDate', `-> will skip review by '${period}' for filename ${filename} (ID ${ID})`)
-          await skipReviewForNote(note, period)
+          await skipReviewForNote(note, period, scrollPos)
           logDebug('bCPLI / setNextReviewDate', `-> after setNextReviewDate`)
 
           // The above handles refreshing the allProjects list and display
@@ -253,7 +288,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         // Mimic the '/set new review interval' command.
         const note = await DataStore.projectNoteByFilename(filename)
         if (note) {
-          await setNewReviewInterval(note)
+          await setNewReviewInterval(note, scrollPos)
           logDebug('bCPLI / setNewReviewInterval', `-> after setNewReviewInterval`)
 
           // The above handles refreshing the allProjects list and display
@@ -268,7 +303,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         const note = await DataStore.projectNoteByFilename(filename)
         if (note) {
           logDebug('bCPLI / addProgress', `-> addProgress on filename ${filename} (ID ${ID})`)
-          await addProgressUpdate(note)
+          await addProgressUpdate(note, scrollPos)
           logDebug('bCPLI / addProgress', `-> after addProgressUpdate`)
 
           // The above handles refreshing the allProjects list and display

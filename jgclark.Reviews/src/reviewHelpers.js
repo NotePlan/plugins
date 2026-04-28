@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-04-20 for v2.0.0.b21, @jgclark
+// Last updated 2026-04-28 for v2.0.0.b24, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -82,7 +82,6 @@ export type ReviewConfig = {
   progressHeadingLevel: number,
   writeMostRecentProgressToFrontmatter?: boolean,
   projectMetadataFrontmatterKey?: string,
-  writeDateMentionsInCombinedMetadata?: boolean,
   useDemoData: boolean,
   _logLevel: string,
   _logTimer: boolean,
@@ -165,15 +164,33 @@ function populateSeparateDateKeysFromCombinedValue(
     const mentionParam = mentionParamMatch && mentionParamMatch[1] != null ? mentionParamMatch[1].trim() : ''
     if (mentionParam === '') {
       keysToRemove.push(frontmatterKeyName)
+      logDebug(
+        'populateSeparateDateKeysFromCombinedValue',
+        `Found empty embedded mention '${embeddedMention}' in combined value; scheduling frontmatter key '${frontmatterKeyName}' for removal`,
+      )
       continue
     }
 
     if (mentionName === intervalMentionName) {
-      if (reInterval.test(mentionParam)) fmAttrs[frontmatterKeyName] = mentionParam
-      else keysToRemove.push(frontmatterKeyName)
+      if (reInterval.test(mentionParam)) {
+        fmAttrs[frontmatterKeyName] = mentionParam
+        logDebug(
+          'populateSeparateDateKeysFromCombinedValue',
+          `Mapped embedded interval mention '${embeddedMention}' to frontmatter '${frontmatterKeyName}=${mentionParam}'`,
+        )
+      } else {
+        keysToRemove.push(frontmatterKeyName)
+      }
     } else {
-      if (reISODate.test(mentionParam)) fmAttrs[frontmatterKeyName] = mentionParam
-      else keysToRemove.push(frontmatterKeyName)
+      if (reISODate.test(mentionParam)) {
+        fmAttrs[frontmatterKeyName] = mentionParam
+        logDebug(
+          'populateSeparateDateKeysFromCombinedValue',
+          `Mapped embedded date mention '${embeddedMention}' to frontmatter '${frontmatterKeyName}=${mentionParam}'`,
+        )
+      } else {
+        keysToRemove.push(frontmatterKeyName)
+      }
     }
   }
 }
@@ -197,7 +214,9 @@ function getNoteFromNoteLike(noteLike: CoreNoteFields | TEditor): CoreNoteFields
  */
 export async function getReviewSettings(externalCall: boolean = false): ?Promise<ReviewConfig> {
   try {
-    logInfo(pluginJson, `getReviewSettings() Starting${externalCall ? ' from a different plugin' : ''} ...`)
+    if (externalCall) {
+      logInfo(pluginJson, `getReviewSettings() Starting from a different plugin ...`)
+    }
     // Get settings
     const config: ReviewConfig = await DataStore.loadJSON('../jgclark.Reviews/settings.json')
 
@@ -232,9 +251,6 @@ export async function getReviewSettings(externalCall: boolean = false): ?Promise
     const singleMetadataKeyName: string = rawSingleMetadataKeyName !== '' ? rawSingleMetadataKeyName : 'project'
     config.projectMetadataFrontmatterKey = singleMetadataKeyName
     DataStore.setPreference('projectMetadataFrontmatterKey', singleMetadataKeyName)
-    config.writeDateMentionsInCombinedMetadata = checkBoolean(config.writeDateMentionsInCombinedMetadata ?? false)
-    DataStore.setPreference('writeDateMentionsInCombinedMetadata', config.writeDateMentionsInCombinedMetadata)
-
     // Set default for includedTeamspaces if not using Perspectives
     // Note: This value is only used when Perspectives are enabled, so the default doesn't affect filtering when Perspectives are off
     // TODO: Review if this still makes sense.
@@ -350,7 +366,7 @@ export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: stri
   const metadataLineIndex = getProjectMetadataLineIndex(note)
   const paras = note.paragraphs ?? []
   if (metadataLineIndex === false) {
-    logDebug('isProjectNoteIsMarkedSequential', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
+    // logDebug('isProjectNoteIsMarkedSequential', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
     return false
   }
   const metadataLine = paras.length > metadataLineIndex ? paras[metadataLineIndex].content : ''
@@ -452,11 +468,14 @@ export function getMetadataLineIndexFromBody(note: CoreNoteFields | TEditor): nu
     let lineNumber: number | false = false
     const endFMIndex = noteHasFrontMatter(note) ? (endOfFrontmatterLineIndex(note) ?? -1) : -1
     for (let i = endFMIndex + 1; i < lines.length; i++) {
+      const thisLine = lines[i] ?? ''
       if (
-        lines[i].match(/^(project|metadata):/i) ||
-        lines[i].match(/(@review|@reviewed)\(\d{4}-\d{2}-\d{2}\)/i)
+        thisLine.match(/^(project|metadata|review|reviewed):/i) ||
+        thisLine.match(/^@\w[\w\-.]*\([^)]*\)\s*$/) ||
+        thisLine.match(/^#(?!#)\S/)
       ) {
         lineNumber = i
+        logDebug('getMetadataLineIndexFromBody', `Found body metadata-like line ${String(i)}: '${thisLine}'`)
         break
       }
     }
@@ -525,7 +544,7 @@ function findFirstMetadataBodyLine(paras: Array<TParagraph>, startIndex: number)
     const isMetadataStyleLine =
       content.match(/^(project|metadata|review|reviewed):/i) != null ||
       content.match(/(@review|@reviewed)\(.+\)/) != null ||
-      content.match(/^#\S/) != null
+      content.match(/^#(?!#)\S/) != null
 
     if (isMetadataStyleLine) {
       return { index: i, content }
@@ -534,9 +553,67 @@ function findFirstMetadataBodyLine(paras: Array<TParagraph>, startIndex: number)
   return null
 }
 
+type MetadataBodyBlock = {
+  startIndex: number,
+  paragraphIndices: Array<number>,
+  mergedContent: string,
+}
+
+/**
+ * Return true if line looks like a body metadata starter or continuation.
+ * @param {string} content
+ * @returns {boolean}
+ */
+function isMetadataBodyLikeLine(content: string): boolean {
+  const trimmed = content.trim()
+  if (trimmed === '') return true
+  if (trimmed === PROJECT_METADATA_MIGRATED_MESSAGE) return true
+  return (
+    trimmed.match(/^(project|metadata|review|reviewed):/i) != null ||
+    trimmed.match(/^@\w[\w\-.]*\([^)]*\)\s*$/) != null ||
+    trimmed.match(/^#(?!#)\S/) != null
+  )
+}
+
+/**
+ * Find the first metadata block in note body and return merged content + paragraph indices.
+ * This supports both single-line and multi-line body metadata layouts.
+ * @param {Array<TParagraph>} paras
+ * @param {number} startIndex
+ * @returns {?MetadataBodyBlock}
+ */
+function findMetadataBodyBlock(paras: Array<TParagraph>, startIndex: number): ?MetadataBodyBlock {
+  const first = findFirstMetadataBodyLine(paras, startIndex)
+  if (first == null) return null
+
+  const paragraphIndices: Array<number> = [first.index]
+  for (let i = first.index + 1; i < paras.length; i++) {
+    const content = paras[i]?.content ?? ''
+    if (!isMetadataBodyLikeLine(content)) {
+      break
+    }
+    paragraphIndices.push(i)
+  }
+
+  const mergedParts: Array<string> = []
+  for (const paraIndex of paragraphIndices) {
+    const raw = paras[paraIndex]?.content ?? ''
+    if (raw === PROJECT_METADATA_MIGRATED_MESSAGE) continue
+    const normalized = raw.replace(/^(project|metadata|review|reviewed)\s*:\s*/i, '').trim()
+    if (normalized !== '') {
+      mergedParts.push(normalized)
+    }
+  }
+  return {
+    startIndex: first.index,
+    paragraphIndices,
+    mergedContent: mergedParts.join(' ').trim(),
+  }
+}
+
 /**
  * Shared migration: clear migration placeholder line, or merge first body metadata line into frontmatter then replace with placeholder.
- * @param {CoreNoteFields} note - note used for frontmatter reads/writes and endOfFrontmatterLineIndex
+ * @param {CoreNoteFields | TEditor} note - note/editor used for frontmatter reads/writes and endOfFrontmatterLineIndex
  * @param {Array<TParagraph>} paras - paragraphs to scan (Editor or Note)
  * @param {(p: TParagraph) => void} updateParagraph - persist paragraph edits (Editor.updateParagraph / note.updateParagraph)
  * @param {string} logContext - log tag (migrateProjectMetadataLineInEditor | migrateProjectMetadataLineInNote)
@@ -544,7 +621,7 @@ function findFirstMetadataBodyLine(paras: Array<TParagraph>, startIndex: number)
  * @private
  */
 function migrateProjectMetadataLineCore(
-  note: CoreNoteFields,
+  note: CoreNoteFields | TEditor,
   paras: Array<TParagraph>,
   updateParagraph: (p: TParagraph) => void,
   logContext: string,
@@ -574,14 +651,17 @@ function migrateProjectMetadataLineCore(
       }
     }
 
-    const metadataInfo = findFirstMetadataBodyLine(paras, endFMIndex + 1)
-
-    if (metadataInfo == null) {
+    const metadataBlock = findMetadataBodyBlock(paras, endFMIndex + 1)
+    if (metadataBlock == null) {
       return
     }
+    logDebug(
+      logContext,
+      `- Found body metadata block start=${String(metadataBlock.startIndex)} indices=[${metadataBlock.paragraphIndices.join(', ')}] merged='${metadataBlock.mergedContent}'`,
+    )
 
     const existingFMValue = metadataStrSavedFromBodyOfNote
-    const bodyValue = metadataInfo.content.replace(/^(project|metadata|review|reviewed)\s*:\s*/i, '').trim()
+    const bodyValue = metadataBlock.mergedContent
 
     if (bodyValue !== '') {
       logDebug(logContext, `- Merging body metadata into frontmatter key '${primaryKey}' with bodyValue '${bodyValue}'`)
@@ -607,7 +687,17 @@ function migrateProjectMetadataLineCore(
         if (!mentionTokenStr) continue
         const bracketContent = readBracketContent(mentionTokenStr)
         if (bracketContent !== '' && reISODate.test(bracketContent)) {
-          fmAttrs[frontmatterKeyName] = bracketContent
+          const existingValueRaw = getFrontmatterAttribute((note: any), frontmatterKeyName)
+          const existingParsed = existingValueRaw != null ? String(existingValueRaw).trim() : ''
+          if (existingParsed !== '' && reISODate.test(existingParsed)) {
+            logDebug(
+              logContext,
+              `- Keeping existing frontmatter '${frontmatterKeyName}=${existingParsed}' and ignoring body token '${mentionTokenStr}'`,
+            )
+          } else {
+            fmAttrs[frontmatterKeyName] = bracketContent
+            logDebug(logContext, `- Migrating body token '${mentionTokenStr}' to frontmatter '${frontmatterKeyName}=${bracketContent}'`)
+          }
         }
       }
 
@@ -616,7 +706,17 @@ function migrateProjectMetadataLineCore(
       const intervalBracketContent = reviewIntervalTokenStr ? readBracketContent(reviewIntervalTokenStr) : ''
       const reviewIntervalKey = checkString(DataStore.preference('reviewIntervalMentionStr') || '').replace(/^[@#]/, '') || 'review'
       if (intervalBracketContent !== '' && reInterval.test(intervalBracketContent)) {
-        fmAttrs[reviewIntervalKey] = intervalBracketContent
+        const existingReviewRaw = getFrontmatterAttribute((note: any), reviewIntervalKey)
+        const existingReviewParsed = existingReviewRaw != null ? String(existingReviewRaw).trim() : ''
+        if (existingReviewParsed !== '' && reInterval.test(existingReviewParsed)) {
+          logDebug(
+            logContext,
+            `- Keeping existing frontmatter '${reviewIntervalKey}=${existingReviewParsed}' and ignoring body interval '${reviewIntervalTokenStr}'`,
+          )
+        } else {
+          fmAttrs[reviewIntervalKey] = intervalBracketContent
+          logDebug(logContext, `- Migrating body interval '${intervalBracketContent}' to '${reviewIntervalKey}'`)
+        }
       }
 
       // $FlowFixMe[incompatible-call]
@@ -628,10 +728,21 @@ function migrateProjectMetadataLineCore(
       }
     }
 
-    const metadataPara = paras[metadataInfo.index]
-    logDebug(logContext, `- Replacing body metadata line at ${String(metadataInfo.index)} with migration message.`)
+    const metadataPara = paras[metadataBlock.startIndex]
+    logDebug(logContext, `- Replacing body metadata anchor line at ${String(metadataBlock.startIndex)} with migration message.`)
     metadataPara.content = PROJECT_METADATA_MIGRATED_MESSAGE
     updateParagraph(metadataPara)
+
+    for (const paraIndex of metadataBlock.paragraphIndices) {
+      if (paraIndex === metadataBlock.startIndex) continue
+      const continuationPara = paras[paraIndex]
+      if (!continuationPara) continue
+      if (continuationPara.content.trim() !== '') {
+        logDebug(logContext, `- Clearing migrated continuation line ${String(paraIndex)} content='${continuationPara.content}'`)
+      }
+      continuationPara.content = ''
+      updateParagraph(continuationPara)
+    }
   } catch (error) {
     logError(logContext, error.message)
   }
@@ -651,10 +762,9 @@ export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
       logWarn('migrateProjectMetadataLineInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
-    const noteForFM = thisEditor.note
-    logDebug('migrateProjectMetadataLineInEditor', `Starting for '${displayTitle(noteForFM)}'`)
+    logDebug('migrateProjectMetadataLineInEditor', `Starting for '${displayTitle(thisEditor)}'`)
     migrateProjectMetadataLineCore(
-      noteForFM,
+      thisEditor,
       thisEditor.paragraphs,
       (p) => {
         thisEditor.updateParagraph(p)
@@ -795,24 +905,24 @@ function updateMetadataCore(
  * @param {Array<string>} mentions to update:
  * @returns { ?TNote } current note
  */
-export function updateMetadataInEditor(thisEditor: TEditor, updatedMetadataArr: Array<string>): void {
+export function updateBodyMetadataInEditor(thisEditor: TEditor, updatedMetadataArr: Array<string>): void {
   try {
-    logDebug('updateMetadataInEditor', `Starting for '${displayTitle(thisEditor)}' with metadata ${String(updatedMetadataArr)}`)
+    logDebug('updateBodyMetadataInEditor', `Starting for '${displayTitle(thisEditor)}' with metadata ${String(updatedMetadataArr)}`)
 
     // Only proceed if we're in a valid Project note (with at least 2 lines)
     if (thisEditor.note == null || thisEditor.note.type === 'Calendar' || thisEditor.note.paragraphs.length < 2) {
-      logWarn('updateMetadataInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
+      logWarn('updateBodyMetadataInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
 
     const metadataLineIndex = getProjectMetadataLineIndex(thisEditor)
     if (metadataLineIndex === false) {
-      logDebug('updateMetadataInEditor', `No project metadata line found (body or frontmatter) for '${displayTitle(thisEditor)}'`)
+      logDebug('updateBodyMetadataInEditor', `No project metadata line found (body or frontmatter) for '${displayTitle(thisEditor)}'`)
       return
     }
-    updateMetadataCore(thisEditor, metadataLineIndex, updatedMetadataArr, 'updateMetadataInEditor')
+    updateMetadataCore(thisEditor, metadataLineIndex, updatedMetadataArr, 'updateBodyMetadataInEditor')
   } catch (error) {
-    logError('updateMetadataInEditor', error.message)
+    logError('updateBodyMetadataInEditor', error.message)
   }
 }
 
@@ -824,22 +934,22 @@ export function updateMetadataInEditor(thisEditor: TEditor, updatedMetadataArr: 
  * @param {TNote} noteToUse
  * @param {Array<string>} mentions to update:
  */
-export function updateMetadataInNote(note: CoreNoteFields, updatedMetadataArr: Array<string>): void {
+export function updateBodyMetadataInNote(note: CoreNoteFields, updatedMetadataArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (note == null || note.type === 'Calendar' || note.paragraphs.length < 2) {
-      logWarn('updateMetadataInNote', `- We don't have a valid Project note (and with at least 2 lines). Stopping.`)
+      logWarn('updateBodyMetadataInNote', `- We don't have a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
 
     const metadataLineIndex = getProjectMetadataLineIndex(note)
     if (metadataLineIndex === false) {
-      logDebug('updateMetadataInNote', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
+      logDebug('updateBodyMetadataInNote', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
       return
     }
-    updateMetadataCore(note, metadataLineIndex, updatedMetadataArr, 'updateMetadataInNote')
+    updateMetadataCore(note, metadataLineIndex, updatedMetadataArr, 'updateBodyMetadataInNote')
   } catch (error) {
-    logError('updateMetadataInNote', `${error.message}`)
+    logError('updateBodyMetadataInNote', `${error.message}`)
   }
 }
 
@@ -980,10 +1090,7 @@ export async function updateDashboardIfOpen(): Promise<void> {
     logInfo('updateDashboardIfOpen', `About to run Dashboard:refreshSectionByCode(...)`)
     // Note: This covers codes from before and after Dashboard v2.4.0.b18. TODO(Later): remove the 'PROJ' code when v2.5.0 is released
     // Note: Wrap array in another array because invokePluginCommandByName spreads the array as individual arguments. This avoids only the first array item being used.
-    const res = await DataStore.invokePluginCommandByName("refreshSectionsByCode", "jgclark.Dashboard", [['PROJACT', 'PROJREVIEW', 'PROJ']])
-    if (res == null) {
-      logError('updateDashboardIfOpen', `Failed to update Dashboard for some reason.`)
-    }
+    const _res = await DataStore.invokePluginCommandByName("refreshSectionsByCode", "jgclark.Dashboard", [['PROJACT', 'PROJREVIEW', 'PROJ']])
   } catch (error) {
     logError('updateDashboardIfOpen', `${error.message}`)
   }

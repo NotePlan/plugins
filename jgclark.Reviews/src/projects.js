@@ -14,15 +14,26 @@ import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
 import { updateAllProjectsListAfterChange } from './allProjectsListHelpers'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { archiveNoteUsingFolder } from '@helpers/NPnote'
-import { showMessageYesNo } from '@helpers/userInput'
+import { usersVersionHas } from '@helpers/NPVersions'
+import { getInputTrimmed, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 // Constants
 
 const thisYearStr = moment().format('YYYY')
+const thisQuarterStr = moment().format('YYYY-[Q]Q')
+const thisDayStr = moment().format('YYYY-MM-DD')
 const ERROR_FILENAME_PLACEHOLDER = '<error>'
 const ARCHIVE_PROMPT_YES = 'Yes'
 const ARCHIVE_PROMPT_NO = 'No'
+
+type SummaryDestination = 'none' | 'quarterly' | 'yearly'
+
+type ProjectCloseoutInputs = {
+  willArchive: boolean,
+  summaryDestination: SummaryDestination,
+  finalProgressComment: string,
+}
 
 //-----------------------------------------------------------------------------
 // Private functions
@@ -56,7 +67,7 @@ function validateAndGetNote(noteArg?: TNote, functionName: string = 'function'):
  * @returns {Promise<void>}
  * @private
  */
-async function reloadAndUpdateLists(note: TNote, config: ReviewConfig, shouldArchive: boolean): Promise<void> {
+async function reloadAndUpdateLists(note: TNote, config: ReviewConfig, shouldArchive: boolean, scrollPos: number = 0): Promise<void> {
   // Reload the note according to @Eduard
   await Editor.openNoteByFilename(note.filename)
 
@@ -64,25 +75,30 @@ async function reloadAndUpdateLists(note: TNote, config: ReviewConfig, shouldArc
   await updateAllProjectsListAfterChange(note.filename ?? ERROR_FILENAME_PLACEHOLDER, shouldArchive, config)
 
   // Re-render the outputs if window open (but don't focus)
-  await renderProjectListsIfOpen(config)
+  await renderProjectListsIfOpen(config, scrollPos)
 }
 
+type SummaryCalendarPeriod = 'quarter' | 'year'
+
 /**
- * Add project line to yearly note
- * @param {Project} thisProject - Project instance
- * @param {ReviewConfig} config - Review configuration
+ * Add a project line to a yearly or quarterly summary calendar note.
+ * Pass `showFolderName: true` so folder appears before title (config may be frozen from loadJSON).
+ * @param {Project} thisProject
+ * @param {ReviewConfig} config
+ * @param {SummaryCalendarPeriod} period - 'year' for the current calendar year, 'quarter' for the current quarter
  * @returns {void}
  * @private
  */
-function addToYearlyNote(thisProject: Project, config: ReviewConfig): void {
-  // Pass config with showFolderName so folder appears before title (config may be frozen from loadJSON)
+function addToSummaryCalendarNote(thisProject: Project, config: ReviewConfig, period: SummaryCalendarPeriod): void {
   const lineToAdd = buildProjectLineForStyle(thisProject,
     { ...config, showFolderName: true },
     'list') // list = for summary note, without [x] etc.
-  const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
-  if (yearlyNote != null) {
-    logInfo('addToYearlyNote', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
-    yearlyNote.addParagraphBelowHeadingTitle(
+  const dateString = period === 'year' ? thisYearStr : thisQuarterStr
+  const summaryNote = DataStore.calendarNoteByDateString(dateString)
+  if (summaryNote != null) {
+    const periodLabel = period === 'year' ? 'yearly' : 'quarterly'
+    logInfo('addToSummaryCalendarNote', `Will add '${lineToAdd}' to ${periodLabel} note '${summaryNote.filename}'`)
+    summaryNote.addParagraphBelowHeadingTitle(
       lineToAdd,
       'text', // bullet character gets included in the passed in string
       config.finishedListHeading,
@@ -90,6 +106,146 @@ function addToYearlyNote(thisProject: Project, config: ReviewConfig): void {
       true // do create heading if not found already
     )
   }
+}
+
+/**
+ * Add project line to selected summary note.
+ * @param {Project} thisProject
+ * @param {ReviewConfig} config
+ * @param {SummaryDestination} summaryDestination
+ * @returns {void}
+ * @private
+ */
+function addToSummaryNote(thisProject: Project, config: ReviewConfig, summaryDestination: SummaryDestination): void {
+  if (summaryDestination === 'quarterly') {
+    addToSummaryCalendarNote(thisProject, config, 'quarter')
+    return
+  }
+  if (summaryDestination === 'yearly') {
+    addToSummaryCalendarNote(thisProject, config, 'year')
+  }
+}
+
+/**
+ * Convert free text to SummaryDestination with safe default.
+ * @param {mixed} value
+ * @returns {SummaryDestination}
+ * @private
+ */
+function parseSummaryDestination(value: mixed): SummaryDestination {
+  const raw = String(value ?? '').trim().toLowerCase()
+  if (['quarterly', 'Quarterly', 'quarter', 'q', 'current quarter'].includes(raw)) {
+    return 'quarterly'
+  }
+  if (['yearly', 'Yearly', 'year', 'y', 'current year'].includes(raw)) {
+    return 'yearly'
+  }
+  if (['none', 'no', 'n', 'skip', 'off'].includes(raw)) {
+    return 'none'
+  }
+  return 'yearly'
+}
+
+/**
+ * Convert free text to yes/no boolean with safe default.
+ * @param {mixed} value
+ * @param {boolean} defaultValue
+ * @returns {boolean}
+ * @private
+ */
+function parseBooleanChoice(value: mixed, defaultValue: boolean = false): boolean {
+  const raw = String(value ?? '').trim().toLowerCase()
+  if (['yes', 'y', 'true', '1', 'archive'].includes(raw)) return true
+  if (['no', 'n', 'false', '0', 'keep'].includes(raw)) return false
+  return defaultValue
+}
+
+/**
+ * Parse form result for complete/cancel project closeout form.
+ * @param {CommandBarFormResult} formResult
+ * @returns {?ProjectCloseoutInputs}
+ * @private
+ */
+function parseProjectCloseoutFormValues(formResult: CommandBarFormResult): ?ProjectCloseoutInputs {
+  try {
+    if (formResult == null || typeof formResult !== 'object') {
+      throw new Error('formResult is null or not an object')
+    }
+    if (formResult.submitted === false) {
+      logDebug('parseProjectCloseoutFormValues', `User didn't submit form`)
+      return null
+    }
+    const fieldMap: { [string]: mixed } = formResult.values ?? {}
+    const willArchive = parseBooleanChoice(fieldMap.archiveProject, false)
+    const summaryDestination = parseSummaryDestination(fieldMap.summaryDestination)
+    const finalProgressComment = String(fieldMap.finalProgressComment ?? '').trim()
+    return { willArchive, summaryDestination, finalProgressComment }
+  } catch (error) {
+    logError('parseProjectCloseoutFormValues', `Error parsing form result: ${error.message}`)
+    return null
+  }
+}
+
+/**
+ * Collect closeout decisions for complete/cancel project.
+ * Uses a single CommandBar form when available in current NotePlan; otherwise falls back to prompts.
+ * @param {'completed' | 'cancelled'} actionType
+ * @param {string} projectTitle
+ * @returns {Promise<?ProjectCloseoutInputs>}
+ * @private
+ */
+async function promptProjectCloseoutInputs(actionType: 'completed' | 'cancelled', projectTitle: string): Promise<?ProjectCloseoutInputs> {
+  const actionWord = actionType === 'completed' ? 'Complete' : 'Cancel'
+  const commandBarWithForm: any = CommandBar
+  if (usersVersionHas('commandBarForms') && typeof commandBarWithForm.showForm === 'function') {
+    try {
+      const raw = await commandBarWithForm.showForm({
+        title: `${actionWord} Project '${projectTitle}'`,
+        submitText: actionWord,
+        fields: [
+          { type: 'bool', key: 'archiveProject', title: 'Archive project note?', default: true, required: true },
+          { type: 'string', key: 'summaryDestination', title: 'Add summary line to a calendar note?', choices: ['Quarterly', 'Yearly', 'none'], default: 'yearly', required: true },
+          { type: 'string', key: 'finalProgressComment', title: 'Final progress comment (optional)', description: "Optional final comments to add as a 'Progress' line", required: false },
+        ],
+      })
+      if (raw == null || raw === false) {
+        logDebug('promptProjectCloseoutInputs', `User cancelled CommandBar.showForm`)
+        return null
+      }
+      return parseProjectCloseoutFormValues(raw)
+    } catch (error) {
+      logWarn('promptProjectCloseoutInputs', `CommandBar.showForm failed (${error.message}); using separate prompts`)
+    }
+  }
+
+  const archivePrompt = actionType === 'completed'
+    ? 'Archive this completed project note?'
+    : actionType === 'completed'
+      ? 'Archive this cancelled project note?'
+      : '(invalid action type)'
+  const willArchive = await showMessageYesNo(archivePrompt, [ARCHIVE_PROMPT_YES, ARCHIVE_PROMPT_NO]) === ARCHIVE_PROMPT_YES
+
+  const summaryRaw = await getInputTrimmed(
+    "Add line to which summary note? (quarterly / yearly / none)",
+    'OK',
+    `${actionWord} Project`,
+  )
+  if (summaryRaw === false || summaryRaw == null) {
+    logDebug('promptProjectCloseoutInputs', `User cancelled summary destination prompt`)
+    return null
+  }
+  const summaryDestination = parseSummaryDestination(summaryRaw)
+
+  const finalCommentRaw = await getInputTrimmed(
+    'Final progress comment? (optional; leave blank for none)',
+    'OK',
+    `${actionWord} Project`,
+  )
+  const finalProgressComment = (finalCommentRaw && finalCommentRaw !== true)
+    ? String(finalCommentRaw).trim()
+    : ''
+
+  return { willArchive, summaryDestination, finalProgressComment }
 }
 
 /**
@@ -125,19 +281,17 @@ async function handleProjectCompletionOrCancellation(
   thisProject: Project,
   note: TNote,
   config: ReviewConfig,
-  actionType: 'completed' | 'cancelled'
+  actionType: 'completed' | 'cancelled',
+  closeoutInputs: ProjectCloseoutInputs,
+  scrollPos: number = 0,
 ): Promise<void> {
-  // Ask whether to move it to the @Archive
-  const archivePrompt = actionType === 'completed'
-    ? 'Shall I move this completed note to the Archive?'
-    : 'Shall I move this cancelled note to the Archive?'
-  const willArchive = await showMessageYesNo(archivePrompt, [ARCHIVE_PROMPT_YES, ARCHIVE_PROMPT_NO]) === ARCHIVE_PROMPT_YES
+  const { willArchive, summaryDestination } = closeoutInputs
 
   // Reload note and update lists
-  await reloadAndUpdateLists(note, config, willArchive)
+  await reloadAndUpdateLists(note, config, willArchive, scrollPos)
 
-  // Add to yearly note
-  await addToYearlyNote(thisProject, config)
+  // Add to chosen summary note
+  addToSummaryNote(thisProject, config, summaryDestination)
 
   // Archive if requested
   const newFilename = await archiveNoteIfRequested(note, config, willArchive)
@@ -155,7 +309,7 @@ async function handleProjectCompletionOrCancellation(
  * @author @jgclark
  * @param {TNote?} noteArg 
  */
-export async function addProgressUpdate(noteArg?: TNote): Promise<void> {
+export async function addProgressUpdate(noteArg?: TNote, scrollPos: number = 0): Promise<void> {
   try {
     logDebug('addProgressUpdate', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
 
@@ -172,7 +326,7 @@ export async function addProgressUpdate(noteArg?: TNote): Promise<void> {
     const thisProject = new Project(note)
     // Add progress line to note, and then update reviewed date
     await thisProject.addProgressLine()
-    await finishReviewForNote(note)
+    await finishReviewForNote(note, scrollPos)
   } catch (error) {
     logError('addProgressUpdate', JSP(error))
   }
@@ -188,21 +342,34 @@ export async function addProgressUpdate(noteArg?: TNote): Promise<void> {
  * @author @jgclark
  * @param {TNote?} noteArg 
  */
-export async function completeProject(noteArg?: TNote): Promise<void> {
+export async function completeProject(noteArg?: TNote, scrollPos: number = 0): Promise<void> {
   try {
     logDebug('project/completeProject', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
 
     const note = validateAndGetNote(noteArg, 'completeProject')
     const thisProject = new Project(note)
+    const closeoutInputs = await promptProjectCloseoutInputs('completed', thisProject.title)
+    if (!closeoutInputs) {
+      logDebug('project/completeProject', `User cancelled complete-project closeout prompt`)
+      return
+    }
+
+    if (closeoutInputs.finalProgressComment !== '') {
+      await thisProject.addProgressLine('Final progress comment for', {
+        comment: closeoutInputs.finalProgressComment,
+        progressDateStr: thisDayStr,
+        percentStr: '',
+      })
+    }
 
     // Call the class' method to update its metadata
     const success = thisProject.completeProject()
 
     // If this has worked, then handle post-processing
     if (success) {
-      const config: ReviewConfig = await getReviewSettings()
+      const config: ?ReviewConfig = await getReviewSettings()
       if (config) {
-        await handleProjectCompletionOrCancellation(thisProject, note, config, 'completed')
+        await handleProjectCompletionOrCancellation(thisProject, note, config, 'completed', closeoutInputs, scrollPos)
       } else {
         logError('project/completeProject', 'Error getting review settings.')
       }
@@ -242,24 +409,34 @@ export async function completeProjectByFilename(filename: string): Promise<void>
  * @author @jgclark
  * @param {TNote?} noteArg 
  */
-export async function cancelProject(noteArg?: TNote): Promise<void> {
+export async function cancelProject(noteArg?: TNote, scrollPos: number = 0): Promise<void> {
   try {
     logDebug('project/cancelProject', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
 
     const note = validateAndGetNote(noteArg, 'cancelProject')
     const thisProject = new Project(note)
+    const closeoutInputs = await promptProjectCloseoutInputs('cancelled', thisProject.title)
+    if (!closeoutInputs) {
+      logDebug('project/cancelProject', `User cancelled cancel-project closeout prompt`)
+      return
+    }
 
-    // Add a progress line to the note
-    await thisProject.addProgressLine()
+    if (closeoutInputs.finalProgressComment !== '') {
+      await thisProject.addProgressLine('Final progress comment for', {
+        comment: closeoutInputs.finalProgressComment,
+        progressDateStr: thisDayStr,
+        percentStr: '',
+      })
+    }
 
     // Call the class' method to update its metadata
     const success = thisProject.cancelProject()
 
     // If this has worked, then handle post-processing
     if (success) {
-      const config: ReviewConfig = await getReviewSettings()
+      const config: ?ReviewConfig = await getReviewSettings()
       if (config) {
-        await handleProjectCompletionOrCancellation(thisProject, note, config, 'cancelled')
+        await handleProjectCompletionOrCancellation(thisProject, note, config, 'cancelled', closeoutInputs, scrollPos)
       } else {
         logError('cancelProject', 'Error getting review settings.')
       }
@@ -296,7 +473,7 @@ export async function cancelProjectByFilename(filename: string): Promise<void> {
  * @author @jgclark
  * @param {TNote?} noteArg 
  */
-export async function togglePauseProject(noteArg?: TNote): Promise<void> {
+export async function togglePauseProject(noteArg?: TNote, scrollPos: number = 0): Promise<void> {
   try {
     logDebug('togglePauseProject', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
 
@@ -308,10 +485,10 @@ export async function togglePauseProject(noteArg?: TNote): Promise<void> {
 
     // If this has worked, then handle post-processing
     if (success) {
-      const config: ReviewConfig = await getReviewSettings()
+      const config: ?ReviewConfig = await getReviewSettings()
       if (config) {
         // Reload note and update lists (no archiving for pause)
-        await reloadAndUpdateLists(note, config, false)
+        await reloadAndUpdateLists(note, config, false, scrollPos)
         logInfo('togglePauseProject', 'Project pause now toggled, review list updated, and window updated.')
       } else {
         logError('togglePauseProject', 'Error getting review settings.')

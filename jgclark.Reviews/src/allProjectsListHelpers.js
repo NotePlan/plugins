@@ -416,9 +416,11 @@ async function getAllMatchingProjects(
       if (projectNotesArr.length > 0) {
         // Get Project class representation of each note.
         // Save those which are ready for review in projectsReadyToReview array
-        if (!runInForeground) {
-          await CommandBar.onAsyncThread()
-        }
+        // Note: Running this on an async thread gives "You are running this on an async thread" errors about Editor. TEST: Trying without for now.
+        // if (!runInForeground) {
+        //   await CommandBar.onAsyncThread()
+        // }
+
         const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
         for (const n of projectNotesArr) {
           const currentMs = getNoteChangeTimeMsForCache(n, true)
@@ -431,7 +433,7 @@ async function getAllMatchingProjects(
             typeof cachedRow.noteChangedAtMs === 'number' &&
             cachedRow.noteChangedAtMs === currentMs
           ) {
-            logDebug('getAllMatchingProjects', `- Using cached details for ${tag} '${n.filename}'`)
+            // logDebug('getAllMatchingProjects', `- Cache hit for ${tag} '${n.filename}'`)
             const cloned = { ...cachedRow }
             cloned.note = n
             np = calcReviewFieldsForProject(cloned)
@@ -441,9 +443,9 @@ async function getAllMatchingProjects(
           }
           projectInstances.push(np)
         }
-        if (!runInForeground) {
-          await CommandBar.onMainThread()
-        }
+        // if (!runInForeground) {
+        //   await CommandBar.onMainThread()
+        // }
       }
     }
   }

@@ -14,7 +14,7 @@ beforeAll(() => {
 })
 
 describe('Project constructor: embedded combined mentions', () => {
-  test('extracts embedded @start/@due/@review from project frontmatter', () => {
+  test('does not migrate embedded @start/@due/@review when constructor migration is disabled', () => {
     preferenceValues['projectMetadataFrontmatterKey'] = 'project'
     preferenceValues['startMentionStr'] = '@start'
     preferenceValues['dueMentionStr'] = '@due'
@@ -40,8 +40,8 @@ describe('Project constructor: embedded combined mentions', () => {
 
     const project = new Project((note: any), '', false, [], '')
 
-    expect(project.startDate).toBe('2026-02-09')
-    expect(project.dueDate).toBe('2026-06-30')
+    expect(project.startDate).toBe(undefined)
+    expect(project.dueDate).toBe(undefined)
     expect(project.reviewInterval).toBe('1w')
   })
 
@@ -62,7 +62,7 @@ describe('Project constructor: embedded combined mentions', () => {
     })
 
     const project = new Project((note: any), '', false, [], '')
-    const normalizedCombinedTags = project.getCombinedProjectTagsFrontmatterValue('project')
+    const normalizedCombinedTags = project.getProjectTagsFrontmatterValue('project')
 
     expect(project.getLeadingProjectTag()).toBe('#project/large')
     expect(project.allProjectTags).toContain('#project/large')
@@ -88,7 +88,7 @@ describe('Project constructor: embedded combined mentions', () => {
     })
 
     const project = new Project((note: any), '', false, [], '')
-    const normalizedCombinedTags = project.getCombinedProjectTagsFrontmatterValue('metadata')
+    const normalizedCombinedTags = project.getProjectTagsFrontmatterValue('metadata')
 
     expect(project.getLeadingProjectTag()).toBe('#project-large')
     expect(project.allProjectTags).toContain('#project-large')
