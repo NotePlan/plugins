@@ -41,6 +41,7 @@ export const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})` // capturing date i
 export const RE_FILE_EXTENSIONS_GROUP = `\\.(md|txt)$` // and tie to end of string
 export const RE_NP_DAY_SPEC = RE_YYYYMMDD_DATE
 export const RE_DAILY_NOTE_FILENAME = `(^|\\/)${RE_YYYYMMDD_DATE}${RE_FILE_EXTENSIONS_GROUP}`
+export const DAILY_NOTE_LINK = `[\<\>]${RE_DATE}(?!<)` // don't match >YYYY-MM-DD< format
 export const RE_SCHEDULED_DAILY_NOTE_LINK: RegExp = />\d{4}-[01]\d-[0123]\d/ // Note: finds '>RE_DATE'
 
 // Week regex strings

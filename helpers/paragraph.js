@@ -18,7 +18,7 @@ import {
 } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
 import { getElementsFromTask } from '@helpers/sorting'
-import { stripLinksFromString } from '@helpers/stringTransforms'
+import { stripBlockIDsFromString, stripDateRefsFromString, stripAllTagssFromString, stripLinksFromString } from '@helpers/stringTransforms'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 
 //-----------------------------------------------------------------------------

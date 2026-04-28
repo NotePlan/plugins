@@ -1,6 +1,12 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.19.3] - 2026-04-28 @jgclark
+- fix to '/Generate @repeats in recent notes' command, which could cause crashes (Editor and onAsyncThread incompatibility)
+
+## [1.19.2] - 2026-04-22 @jgclark
+- fix to '/Generate @repeats in recent notes' command, which was failing on invalid lines from the API.
+
 ## [1.19.1] - 2026-04-14 @jgclark
 - fix to '/Remove empty lines' command (thanks, @grdn)
 

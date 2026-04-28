@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Repeat Extensions plugin.
 // Jonathan Clark
-// last updated 2026-03-18, for v1.0.2
+// last updated 2026-04-28, for v1.1.2
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
