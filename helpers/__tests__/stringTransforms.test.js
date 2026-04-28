@@ -519,6 +519,47 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     /*
+     * stripTaskMarkersFromString()
+     */
+    describe('stripTaskMarkersFromString()' /* function */, () => {
+      test('should not strip anything when no marker is present', () => {
+        const input = 'plain task text'
+        const result = st.stripTaskMarkersFromString(input)
+        expect(result).toEqual(input)
+      })
+      test('should strip bullet and open checkbox marker', () => {
+        const input = '* [ ] do the thing'
+        const result = st.stripTaskMarkersFromString(input)
+        expect(result).toEqual('do the thing')
+      })
+      test('should strip bullet and checked marker', () => {
+        const input = '* [x] done thing'
+        const result = st.stripTaskMarkersFromString(input)
+        expect(result).toEqual('done thing')
+      })
+      test('should strip bullet and cancelled marker', () => {
+        const input = '* [-] cancelled thing'
+        const result = st.stripTaskMarkersFromString(input)
+        expect(result).toEqual('cancelled thing')
+      })
+      test('should strip dash and done marker with indentation', () => {
+        const input = '   - [x] indented task'
+        const result = st.stripTaskMarkersFromString(input)
+        expect(result).toEqual('indented task')
+      })
+      test('should strip ordered list marker and open checkbox', () => {
+        const input = '12. [ ] numbered task'
+        const result = st.stripTaskMarkersFromString(input)
+        expect(result).toEqual('numbered task')
+      })
+      test('should leave text unchanged when marker appears mid-string', () => {
+        const input = 'prefix * [ ] task marker in middle'
+        const result = st.stripTaskMarkersFromString(input)
+        expect(result).toEqual(input)
+      })
+    })
+
+    /*
      * encodeRFC3986URIComponent()
      */
     describe('encodeRFC3986URIComponent()', () => {
@@ -606,6 +647,30 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
+  describe('removeDateTags', () => {
+    test('should remove nothing if no date tag ', () => {
+      expect(st.removeDateTags(`test no date`)).toEqual('test no date')
+    })
+    test('should remove >YYYY-MM-DD date at end', () => {
+      expect(st.removeDateTags('test >2021-11-09')).toEqual('test')
+    })
+    test('should remove >YYYY-MM-DD date in middle', () => {
+      expect(st.removeDateTags('this is >2021-11-09 test')).toEqual('this is test')
+    })
+    test('should remove <YYYY-MM-DD date', () => {
+      expect(st.removeDateTags('test <2021-11-09')).toEqual('test')
+    })
+    test('should preserve >YYYY-MM-DD< date links', () => {
+      expect(st.removeDateTags('test >2021-11-09<')).toEqual('test >2021-11-09<')
+    })
+    test('should remove mixed start/end date tags but keep date links', () => {
+      expect(st.removeDateTags('test >2021-11-09 >2022-03-14< <2023-04-01')).toEqual('test >2022-03-14<')
+    })
+    test('should trim trailing whitespace after removals', () => {
+      expect(st.removeDateTags('test >2021-11-09   ')).toEqual('test')
+    })
+  })
+
   describe('removeDateTagsAndToday', () => {
     test('should remove ">today at end" ', () => {
       expect(st.removeDateTagsAndToday(`test >today`)).toEqual('test')
@@ -622,11 +687,29 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should remove nothing if no date tag ', () => {
       expect(st.removeDateTagsAndToday(`test no date`)).toEqual('test no date')
     })
-    test('should work for single >week also ', () => {
+    test('should work for week reference ', () => {
       expect(st.removeDateTagsAndToday(`test >2000-W02`, true)).toEqual('test')
+    })
+    test('should work for quarter reference ', () => {
+      expect(st.removeDateTagsAndToday(`test >2020-Q2`, true)).toEqual('test')
+    })
+    test('should work for month reference ', () => {
+      expect(st.removeDateTagsAndToday(`test >2020-02`, true)).toEqual('test')
+    })
+    test('should work for year reference ', () => {
+      expect(st.removeDateTagsAndToday(`test >2020`, true)).toEqual('test')
+    })
+    test('should leave year on its own ', () => {
+      expect(st.removeDateTagsAndToday(`test for year 2020`, true)).toEqual('test for year 2020')
     })
     test('should work for many items in a line ', () => {
       expect(st.removeDateTagsAndToday(`test >2000-W02 >2020-01-01 <2020-02-02 >2020-09-28`, true)).toEqual('test')
+    })
+    test('should preserve >YYYY-MM-DD< date links', () => {
+      expect(st.removeDateTagsAndToday('test >2020-09-28<')).toEqual('test >2020-09-28<')
+    })
+    test('should keep special note links when removeAllCalendarPeriodNoteLinks is false', () => {
+      expect(st.removeDateTagsAndToday('test >2000-W02', false)).toEqual('test >2000-W02')
     })
   })
 
