@@ -798,18 +798,6 @@ export function isNoteFromAllowedFolder(note: TNote, allowedFolderList: Array<st
 
 /**
  * Return count of number of open tasks/checklists in the content.
- * @param {string} content
- * @returns {number}
- */
-export function numberOfOpenItemsInString(content: string): number {
-  const RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE = formRegExForUsersOpenTasks(true)
-  logDebug('numberOfOpenItems', String(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
-  const res = Array.from(content.matchAll(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
-  return res ? res.length : 0
-}
-
-/**
- * Return count of number of open tasks/checklists in the content.
  * @param {CoreNoteFields} note
  * @returns {number}
  */

@@ -146,6 +146,7 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
     // Make some necessary changes before conversion to HTML
     for (let i = 0; i < lines.length; i++) {
       // remove any sync link markers (blockIds)
+      // TODO: there's a helper function for this, I think.
       lines[i] = lines[i].replace(/\^[A-z0-9]{6}([^A-z0-9]|$)/g, '').trimRight()
 
       // change open tasks to GFM-flavoured task syntax

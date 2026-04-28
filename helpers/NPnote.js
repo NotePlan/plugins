@@ -15,6 +15,7 @@ import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes,
 import { getBlockUnderHeading } from '@helpers/NPParagraph'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import { caseInsensitiveArrayIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
@@ -1681,4 +1682,17 @@ export function archiveNoteUsingFolder(note: TNote, archiveRootFolder?: string):
     logError(pluginJson, error.message)
     return
   }
+}
+
+/**
+ * Return count of number of open tasks/checklists in the content.
+ * @param {string} content
+ * @returns {number}
+ */
+export function numberOfOpenItemsInString(content: string): number {
+  // Note: the following function calls DataStore under the hood, which is why it lives in this file.
+  const RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE = formRegExForUsersOpenTasks(true)
+  logDebug('numberOfOpenItems', String(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
+  const res = Array.from(content.matchAll(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
+  return res ? res.length : 0
 }

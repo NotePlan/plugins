@@ -201,7 +201,9 @@ export const RE_NP_MENTION_G: RegExp = /(?:^|[^A-Za-z0-9_])(@(?:[\w\d]+(?:[\/\-]
 
 // To which @jgclark has added:
 export const RE_NOTE_TITLE_CAPTURE: RegExp = /\[\[(.*?)(?:#(.*?))?\]*\]\]/ // to separately get [[title#...]] and [[...#heading]]
-export const NP_RE_checklist: RegExp = /^\h*\+\s(?:(?!\[[x\-\>]\] ))(?:\[\s\] )?/ // open checklist item
+
+export const NP_RE_checklist: RegExp = /^\h*\+\s(?:(?!\[[x\-\>]\] ))(?:\[\s\] )?/ // open checklist item (from EM)
+export const ANY_TYPE_OF_INITIAL_TASK_INDICATOR = `^\s*(\*|\-|\+|\d+\.])`
 export const RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*(\[[ \>]\]|[\*\-\+]\s[^\[])/
 export const RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE: RegExp = /[\n^]\s*(\[[ \>]\]|[\*\-\+]\s[^\[])/g
 export const RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*[\*\-\+]\s*(\[[x\-]\]|s[^\[])/
@@ -209,7 +211,8 @@ export const RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER_MULTI_LINE: RegExp =
 
 /**
  * Make regex to find open tasks or checklist items string, that takes account of the user's preference for what counts as a todo.
- * Parameter controls whether this searches all items in a multi-line string, or just the first natch in a single-line string.
+ * Parameter controls whether this searches all items in a multi-line string, or just the first match in a single-line string.
+ * Note: uses DataStore call
  * @param {boolean} multiLine?
  * @returns {RegExp}
  */
