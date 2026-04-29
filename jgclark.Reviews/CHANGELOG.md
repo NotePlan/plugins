@@ -1,6 +1,11 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b25] - 2026-04-29
+- change: Project metadata precedence now prefers YAML frontmatter (separate keys and embedded mentions in the combined `project`/`metadata` key) over legacy body metadata lines when constructing `Project` instances.
+- update "skip review" and "set new review interval" logic to use the newer FM-preferring updaters
+- fix to unpause not removing `#pause` tag from FM
+
 ## [2.0.0.b24] - 2026-04-29
 - fix race in `finishReview`: when migrating metadata in an open editor, frontmatter/body updates now use the same editor object so `Editor.save()` no longer wipes frontmatter
 - fix frontmatter migration side-effect: adding YAML `title:` no longer removes the note's body H1 heading

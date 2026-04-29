@@ -48,7 +48,7 @@ describe('Project constructor: default review interval in frontmatter', () => {
     expect(global.DataStore.updateCache).toHaveBeenCalledWith(note, true)
   })
 
-  test('writes default review key when constructor migration is disabled and no review key exists', () => {
+  test('uses embedded @review interval and writes default review key when constructor migration is disabled and no review key exists', () => {
     const note = new Note({
       title: 'Example',
       filename: 'example.md',
@@ -58,8 +58,8 @@ describe('Project constructor: default review interval in frontmatter', () => {
     const project = new Project((note: any), '', false, [], '')
 
     expect(project.reviewInterval).toBe('1w')
-    expect(project.startDate).toBe(undefined)
-    expect(project.dueDate).toBe(undefined)
+    expect(project.startDate).toBe('2026-02-09')
+    expect(project.dueDate).toBe('2026-06-30')
     expect(note.content).toMatch(/\breview:\s*1w\b/)
     expect(global.DataStore.updateCache).toHaveBeenCalledWith(note, true)
   })

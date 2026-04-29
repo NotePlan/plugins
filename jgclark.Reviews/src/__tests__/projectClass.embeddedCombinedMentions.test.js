@@ -14,7 +14,7 @@ beforeAll(() => {
 })
 
 describe('Project constructor: embedded combined mentions', () => {
-  test('does not migrate embedded @start/@due/@review when constructor migration is disabled', () => {
+  test('prefers embedded @start/@due/@review in combined frontmatter over body metadata when constructor migration is disabled', () => {
     preferenceValues['projectMetadataFrontmatterKey'] = 'project'
     preferenceValues['startMentionStr'] = '@start'
     preferenceValues['dueMentionStr'] = '@due'
@@ -40,9 +40,9 @@ describe('Project constructor: embedded combined mentions', () => {
 
     const project = new Project((note: any), '', false, [], '')
 
-    expect(project.startDate).toBe(undefined)
-    expect(project.dueDate).toBe(undefined)
     expect(project.reviewInterval).toBe('1w')
+    expect(project.startDate).toBe('2026-02-09')
+    expect(project.dueDate).toBe('2026-06-30')
   })
 
   test('keeps slash-style project tags in combined frontmatter', () => {

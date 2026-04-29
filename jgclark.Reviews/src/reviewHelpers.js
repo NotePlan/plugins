@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-04-28 for v2.0.0.b24, @jgclark
+// Last updated 2026-04-29 for v2.0.0.b25, @Cursor
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -452,10 +452,16 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
 }
 
 /**
- * Works out which body line (if any) of the current note is project-style metadata line, defined as
- * - line starting 'project:' or 'metadata:'
- * - first line containing a @review() or @reviewed() mention
- * - first line starting with a hashtag.
+ * Works out which body line (if any) of the current note is project-style metadata line.
+ * This scans the note body only (after any YAML frontmatter) and is used as a legacy/fallback
+ * signal for where project metadata used to live in plain text.
+ * Callers should treat YAML frontmatter as the canonical source of structured metadata
+ * (dates, intervals, tags) and use the returned body index mainly for migration or mutation.
+ *
+ * A body line is considered metadata-like when it is:
+ * - a line starting 'project:' or 'metadata:'
+ * - the first line containing an '@review()' or '@reviewed()' mention
+ * - the first line starting with a single leading hashtag (project tag line).
  * @author @jgclark
  *
  * @param {TNote} note to use
@@ -487,9 +493,15 @@ export function getMetadataLineIndexFromBody(note: CoreNoteFields | TEditor): nu
 }
 
 /**
- * Line index for the combined project metadata line: prefer a body line (legacy), else the `project:` / `metadata:` line inside YAML frontmatter.
- * Use this when mutating @mentions so frontmatter-only notes are updated.
- * TODO(later): remove the body part of this entirely (and getMetadataLineIndexFromBody())
+ * Line index for the combined project metadata line used for mutation.
+ * Prefers a legacy body metadata line when present (for migration/updates), otherwise falls back
+ * to the `project:` / `metadata:` line inside YAML frontmatter.
+ *
+ * Callers should treat YAML frontmatter as the canonical source of project metadata; this helper
+ * is primarily for finding the best paragraph location to update when synchronising metadata,
+ * not for deciding precedence between body and frontmatter values.
+ * TODO(later): remove the body part of this entirely (and getMetadataLineIndexFromBody()) once
+ * all callers have been migrated to frontmatter-only flows.
  * @param {CoreNoteFields | TEditor} note
  * @param {number | false | void} cachedBodyMetadataLineIndex - If `false`, skip `getMetadataLineIndexFromBody` (caller already knows there is no body metadata line). If a number, use as body line index without rescanning (only when note was not mutated since that scan). If omitted, scan the body as usual.
  * @returns {number | false}

@@ -1118,6 +1118,11 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
 
     const possibleThisEditor = getOpenEditorFromFilename(note.filename)
     if (possibleThisEditor) {
+      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+      // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
+      // body metadata are present, we first migrate/merge them and then update @nextReview() in the canonical place.
+      migrateProjectMetadataLineInEditor(possibleThisEditor)
+
       // Update metadata in the current open note
       logDebug('skipReviewCoreLogic', `Updating Editor ...`)
       updateBodyMetadataInEditor(possibleThisEditor, [nextReviewMetadataStr])
@@ -1127,6 +1132,10 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
       await saveEditorIfNecessary()
       logDebug('skipReviewCoreLogic', `- done`)
     } else {
+      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+      // before we recalculate the metadata line index and update mentions.
+      migrateProjectMetadataLineInNote(note)
+
       // add/update metadata on the note
       logDebug('skipReviewCoreLogic', `Updating note ...`)
       updateBodyMetadataInNote(note, [nextReviewMetadataStr])
@@ -1263,9 +1272,12 @@ export async function setNewReviewInterval(noteArg?: TNote, scrollPos: number = 
       logDebug('setNewReviewInterval', `Updating metadata in Editor`)
       const possibleThisEditor = getOpenEditorFromFilename(note.filename)
       if (possibleThisEditor) {
+        // Ensure any legacy body metadata is migrated into frontmatter before updating @review()
+        migrateProjectMetadataLineInEditor(possibleThisEditor)
         updateBodyMetadataInEditor(possibleThisEditor, [`@review(${newIntervalStr})`])
       } else {
         logDebug('setNewReviewInterval', `- Couldn't find open Editor for note '${note.filename}', so will update note directly.`)
+        migrateProjectMetadataLineInNote(note)
         updateBodyMetadataInNote(note, [`@review(${newIntervalStr})`])
       }
       // Save Editor, so the latest changes can be picked up elsewhere
@@ -1274,6 +1286,7 @@ export async function setNewReviewInterval(noteArg?: TNote, scrollPos: number = 
     } else {
       // update metadata on the note
       logDebug('setNewReviewInterval', `Updating metadata in note`)
+      migrateProjectMetadataLineInNote(note)
       updateBodyMetadataInNote(note, [`@review(${newIntervalStr})`])
     }
     logDebug('setNewReviewInterval', `- done`)

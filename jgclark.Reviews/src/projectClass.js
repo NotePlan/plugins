@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-04-26 for v2.0.0.b23, @jgclark
+// Last updated 2026-04-29 for v2.0.0.b25, @Cursor
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -371,7 +371,13 @@ export class Project {
    * - Used for UI tag chips in buildProjectTagLozengeSpans() in jgclark.Reviews/src/projectsHTMLGenerator.js
    * - Used for "matches any configured project type" logic and per-tag counts in jgclark.Reviews/src/reviews.js
    *
-   * Note: The constructor may need to be updated if these usages change.
+   * Project metadata precedence:
+   * - YAML frontmatter (separate keys for dates/intervals) is the canonical source.
+   * - Embedded @mentions inside the combined frontmatter key (e.g. `project:`) are preferred for in-memory values
+   *   over legacy body metadata when migration is disabled.
+   * - Legacy body metadata lines are treated as a fallback/migration source only.
+   *
+   * Note: The constructor may need to be updated if these usages or precedence rules change.
    */
 
   constructor(note: TNote, _projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = [], sequentialTag: string = '') {
@@ -458,7 +464,7 @@ export class Project {
           }
           DataStore.updateCache(this.note, true)
         } else {
-          logDebug('ProjectConstructor', `MIGRATE_IN_PROJECT_CONSTRUCTOR=false: skipping body->frontmatter cleanup for '${this.title}'`)
+          logDebug('ProjectConstructor', `MIGRATE...=false: skipping body->frontmatter cleanup for '${this.title}'`)
         }
       } else if (!hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
         if (MIGRATE_IN_PROJECT_CONSTRUCTOR) {
@@ -471,7 +477,7 @@ export class Project {
           }
           DataStore.updateCache(this.note, true)
         } else {
-          logDebug('ProjectConstructor', `MIGRATE_IN_PROJECT_CONSTRUCTOR=false: skipping body-only migration for '${this.title}'`)
+          logDebug('ProjectConstructor', `MIGRATE...=false: skipping body-only migration for '${this.title}'`)
         }
       }
 
@@ -516,7 +522,7 @@ export class Project {
         logWarn('ProjectConstructor', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
       }
 
-      // read in review interval (if present) -- see special handling below as well
+      // read in review interval (if present) from body metadata mentions
       const tempIntervalStr = getParamMentionFromList(mentions, reviewIntervalMentionName)
       if (tempIntervalStr !== '') {
         this.reviewInterval = getContentFromBrackets(tempIntervalStr) ?? ''
@@ -627,8 +633,62 @@ export class Project {
         } catch (e) {
           logWarn('ProjectConstructor', `- Failed tags-key embedded mention migration for '${this.title}': ${e.message}`)
         }
+      } else if (hasCombinedTagsMetadata) {
+        // Even when migration is disabled, prefer embedded mentions in the combined frontmatter key
+        // over legacy body metadata for in-memory values. Do not write any changes back to the note.
+        try {
+          const combinedStrRaw = combinedMetadataField.exists ? combinedMetadataField.value : getFrontmatterAttribute(this.note, singleKeyName)
+          const combinedStr = combinedStrRaw != null && typeof combinedStrRaw === 'string' ? combinedStrRaw : ''
+          if (combinedStr !== '') {
+            const reISODate = new RegExp(`^${RE_DATE}$`)
+            const reInterval = new RegExp(`^${RE_DATE_INTERVAL}$`)
+
+            const mentionRegex = /@[\w\-\.]+\([^)]*\)/g
+            const embeddedMentions: Array<string> = combinedStr.match(mentionRegex) ?? []
+            for (const embeddedMention of embeddedMentions) {
+              const mentionName = embeddedMention.split('(', 1)[0]
+              const parsed = parseProjectFrontmatterValue(embeddedMention)
+              if (parsed === '') continue
+
+              if (mentionName === startMentionName && (this.startDate == null || this.startDate === '')) {
+                if (reISODate.test(parsed)) {
+                  this.startDate = parsed
+                }
+              } else if (mentionName === dueMentionName && (this.dueDate == null || this.dueDate === '')) {
+                if (reISODate.test(parsed)) {
+                  this.dueDate = parsed
+                }
+              } else if (mentionName === reviewedMentionName && (this.reviewedDate == null || this.reviewedDate === '')) {
+                if (reISODate.test(parsed)) {
+                  this.reviewedDate = parsed
+                }
+              } else if (mentionName === completedMentionName && (this.completedDate == null || this.completedDate === '')) {
+                if (reISODate.test(parsed)) {
+                  this.completedDate = parsed
+                }
+              } else if (mentionName === cancelledMentionName && (this.cancelledDate == null || this.cancelledDate === '')) {
+                if (reISODate.test(parsed)) {
+                  this.cancelledDate = parsed
+                }
+              } else if (mentionName === nextReviewMentionName && (this.nextReviewDateStr == null || this.nextReviewDateStr === '')) {
+                if (reISODate.test(parsed)) {
+                  this.nextReviewDateStr = parsed
+                }
+              } else if (
+                mentionName === reviewIntervalMentionName &&
+                (this.reviewInterval == null || this.reviewInterval === '' || !this.reviewInterval.match(reInterval))
+              ) {
+                if (reInterval.test(parsed)) {
+                  this.reviewInterval = parsed
+                }
+              }
+            }
+          }
+        } catch (e) {
+          logWarn('ProjectConstructor', `- non-migrating embedded mention read failed for '${this.title}': ${e.message}`)
+        }
       } else {
-        logDebug('ProjectConstructor', `MIGRATE_IN_PROJECT_CONSTRUCTOR=false: skipping tags-key embedded mention migration for '${this.title}'`)
+        logDebug('ProjectConstructor', `MIGRATE...=false: skipping tags-key embedded mention migration for '${this.title}'`)
       }
 
       // Overlay metadata fields from separate frontmatter keys (if they exist)
@@ -1117,6 +1177,10 @@ getProjectTagsFrontmatterValue(combinedKey: string): string {
       const candidates = getHashtagsFromString(checkString(text))
       for (const tag of candidates) {
         if (!tag || !tag.startsWith('#') || tag.length <= 1) continue
+        // When unpausing, strip any legacy '#paused' entries from existing metadata so they
+        // don't linger in the combined frontmatter key. When pausing, we add '#paused'
+        // explicitly below based on this.isPaused.
+        if (tag === '#paused' && !this.isPaused) continue
         if (!seen.has(tag)) {
           seen.add(tag)
           ordered.push(tag)
@@ -1629,6 +1693,15 @@ clearNextReviewMetadata(): void {
       // Get progress field details (if wanted)
       logDebug('togglePauseProject', `Starting for '${this.title}' ...`)
       await this.addProgressLine(this.isPaused ? 'Comment (if wanted) as you resume' : 'Comment (if wanted) as you pause')
+      // Ensure any legacy body metadata block is migrated into frontmatter before we mutate pause state.
+      // This collapses multi-line body metadata into frontmatter + a migration marker, so subsequent writes
+      // don't leave a stale body metadata line behind.
+      const possibleThisEditorForMigration = getOpenEditorFromFilename(this.note.filename)
+      if(possibleThisEditorForMigration) {
+      migrateProjectMetadataLineInEditor(possibleThisEditorForMigration)
+    } else {
+      migrateProjectMetadataLineInNote(this.note)
+    }
       const metadataLineIndex = getProjectMetadataLineIndex(this.note)
       this.metadataParaLineIndex = metadataLineIndex === false ? NaN : metadataLineIndex
 
