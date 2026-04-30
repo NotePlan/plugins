@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-04-29 for v2.0.0.b25, @Cursor
+// Last updated 2026-04-30 for v2.0.0.b26, @Cursor
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -12,7 +12,7 @@ import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { WEBVIEW_WINDOW_ID as DASHBOARD_WINDOW_ID} from '../../jgclark.Dashboard/src/constants'
 import pluginJson from '../plugin.json'
 import { type Progress } from './projectClass'
-import { checkBoolean, checkString } from '@helpers/checkType'
+import { checkString } from '@helpers/checkType'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   calcOffsetDate,
@@ -1079,6 +1079,35 @@ export function deleteMetadataMentionInNote(noteToUse: CoreNoteFields, metadataL
     deleteMetadataMentionCore(noteToUse, metadataLineIndex, mentionsToDeleteArr, 'deleteMetadataMentionInNote')
   } catch (error) {
     logError('deleteMetadataMentionInNote', `${error.message}`)
+  }
+}
+
+/**
+ * Remove any frontmatter field that stores next-review date override.
+ * This clears both the configured localised key and the legacy `nextReview` key.
+ * @param {CoreNoteFields | TEditor} noteLike
+ */
+export function clearNextReviewFrontmatterField(noteLike: CoreNoteFields | TEditor): void {
+  try {
+    const noteForRemoval = getNoteFromNoteLike(noteLike)
+    const configuredKey = getFrontmatterFieldKeyFromMentionPreference('nextReviewMentionStr', 'nextReview')
+    removeFrontMatterField(noteForRemoval, configuredKey)
+    if (configuredKey !== 'nextReview') {
+      removeFrontMatterField(noteForRemoval, 'nextReview')
+    }
+
+    // For Editor paths, also clear the in-memory editor frontmatter bag so later editor writes
+    // don't accidentally re-introduce `nextReview` from stale attributes.
+    const maybeEditor: any = (noteLike: any)
+    if (maybeEditor.note != null) {
+      const currentFM = maybeEditor.frontmatterAttributes || maybeEditor.note.frontmatterAttributes || {}
+      const updatedFM = { ...currentFM }
+      delete updatedFM[configuredKey]
+      delete updatedFM.nextReview
+      maybeEditor.frontmatterAttributes = updatedFM
+    }
+  } catch (error) {
+    logError('clearNextReviewFrontmatterField', error.message)
   }
 }
 

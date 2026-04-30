@@ -1,7 +1,12 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
-## [2.0.0.b25] - 2026-04-29
+## [2.0.0.b26] - 2026-04-30
+- fix finish review flow to always remove the `nextReview` frontmatter field when a review is completed
+- fix complete/cancel project flow to remove legacy body metadata line from the writable note instance after frontmatter update, avoiding stale duplicate metadata and runtime errors
+- allow complete/cancel project form to be dismissed without stopping the rest of the processing.
+
+## [2.0.0.b25] - 2026-04-29 (released)
 - change: Project metadata precedence now prefers YAML frontmatter (separate keys and embedded mentions in the combined `project`/`metadata` key) over legacy body metadata lines when constructing `Project` instances.
 - update "skip review" and "set new review interval" logic to use the newer FM-preferring updaters
 - fix to unpause not removing `#pause` tag from FM

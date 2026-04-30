@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-04-29 for v2.0.0.b25, @Cursor
+// Last updated 2026-04-30 for v2.0.0.b26, @Cursor
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -290,8 +290,8 @@ async function promptAddProgressLineInputs(
           { type: 'number', key: 'percentComplete', title: `Percent Complete (optional %${lastPercentMessage})`, description: `Enter your estimate of project completion (as %${lastPercentMessage}) if wanted`, placeholder: '%', min: 0, max: 100, optional: true, required: false },
         ],
       })
-      if (raw == null || raw === false) {
-        logDebug('promptAddProgressLineInputs', `User cancelled CommandBar.showForm`)
+      if (raw == null || raw.submitted !== true) {
+        logDebug('promptAddProgressLineInputs', `User cancelled the form input`)
         return null
       }
       const parsed = parseRawProgressFormValues(raw)
@@ -1223,18 +1223,28 @@ getProjectTagsFrontmatterValue(combinedKey: string): string {
    */
   updateMetadataAndSave(): void {
     const newMetadataLine = this.generateMarkdownOutputLine()
-    const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
+    const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
+    const noteForWrites: TNote = (possibleThisEditor && possibleThisEditor.note != null) ? possibleThisEditor.note : this.note
+
+    const metadataPara = noteForWrites.paragraphs[this.metadataParaLineIndex]
     const currentContent = metadataPara != null ? metadataPara.content : ''
     const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
     const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
     const isFrontmatterStyleLine = currentContent.match(/^metadata:\s*/i) != null || frontmatterPrefixRe.test(currentContent)
 
     this.updateProjectMetadata(newMetadataLine, { skipPlainBodyParagraphUpdate: true })
-    if (!isFrontmatterStyleLine && metadataPara != null) {
-      // Metadata was in body; now in frontmatter, so remove the body line
-      this.note.removeParagraph(metadataPara)
-      DataStore.updateCache(this.note, true)
-  const metadataLineIndexAfterUpdate = getProjectMetadataLineIndex(this.note)
+    if(!isFrontmatterStyleLine) {
+      // Metadata was in body; now in frontmatter, so remove the body line from the writable note.
+      // Re-find after frontmatter update because line indices can shift.
+      const bodyMetadataLineIndex = getMetadataLineIndexFromBody(noteForWrites)
+      if (bodyMetadataLineIndex !== false) {
+        const bodyMetadataPara = noteForWrites.paragraphs[bodyMetadataLineIndex]
+        if (bodyMetadataPara != null) {
+          noteForWrites.removeParagraph(bodyMetadataPara)
+          DataStore.updateCache(noteForWrites, true)
+        }
+      }
+      const metadataLineIndexAfterUpdate = getProjectMetadataLineIndex(noteForWrites)
       this.metadataParaLineIndex = metadataLineIndexAfterUpdate === false ? NaN : metadataLineIndexAfterUpdate
   logDebug('updateMetadataAndSave', `Wrote metadata to frontmatter and removed body line for '${this.title}'`)
     }
@@ -1632,6 +1642,17 @@ clearNextReviewMetadata(): void {
    */
   completeProject(): boolean {
     try {
+      // Ensure any legacy body metadata block is migrated into frontmatter first.
+      // This avoids split metadata state.
+      const possibleThisEditorForMigration = getOpenEditorFromFilename(this.note.filename)
+      if (possibleThisEditorForMigration) {
+        migrateProjectMetadataLineInEditor(possibleThisEditorForMigration)
+      } else {
+        migrateProjectMetadataLineInNote(this.note)
+      }
+      const metadataLineIndex = getProjectMetadataLineIndex(this.note)
+      this.metadataParaLineIndex = metadataLineIndex === false ? NaN : metadataLineIndex
+
       // update the metadata fields
       this.isCompleted = true
       this.isCancelled = false
@@ -1661,6 +1682,17 @@ clearNextReviewMetadata(): void {
    */
   cancelProject(): boolean {
     try {
+      // Ensure any legacy body metadata block is migrated into frontmatter first.
+      // This avoids split metadata state.
+      const possibleThisEditorForMigration = getOpenEditorFromFilename(this.note.filename)
+      if (possibleThisEditorForMigration) {
+        migrateProjectMetadataLineInEditor(possibleThisEditorForMigration)
+      } else {
+        migrateProjectMetadataLineInNote(this.note)
+      }
+      const metadataLineIndex = getProjectMetadataLineIndex(this.note)
+      this.metadataParaLineIndex = metadataLineIndex === false ? NaN : metadataLineIndex
+
       // update the metadata fields
       this.isCompleted = false
       this.isCancelled = true

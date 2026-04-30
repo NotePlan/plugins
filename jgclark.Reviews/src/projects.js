@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 2026-03-16 for v1.4.0.b8, @jgclark
+// Last updated 2026-04-30 for v2.0.0.b26, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment'
@@ -196,23 +196,33 @@ function parseProjectCloseoutFormValues(formResult: CommandBarFormResult): ?Proj
  */
 async function promptProjectCloseoutInputs(actionType: 'completed' | 'cancelled', projectTitle: string): Promise<?ProjectCloseoutInputs> {
   const actionWord = actionType === 'completed' ? 'Complete' : 'Cancel'
+  const defaultCloseoutInputs: ProjectCloseoutInputs = {
+    willArchive: true,
+    summaryDestination: 'yearly',
+    finalProgressComment: '',
+  }
   const commandBarWithForm: any = CommandBar
   if (usersVersionHas('commandBarForms') && typeof commandBarWithForm.showForm === 'function') {
     try {
       const raw = await commandBarWithForm.showForm({
         title: `${actionWord} Project '${projectTitle}'`,
-        submitText: actionWord,
+        submitText: `${actionWord} Project`,
         fields: [
           { type: 'bool', key: 'archiveProject', title: 'Archive project note?', default: true, required: true },
           { type: 'string', key: 'summaryDestination', title: 'Add summary line to a calendar note?', choices: ['Quarterly', 'Yearly', 'none'], default: 'yearly', required: true },
-          { type: 'string', key: 'finalProgressComment', title: 'Final progress comment (optional)', description: "Optional final comments to add as a 'Progress' line", required: false },
+          { type: 'string', key: 'finalProgressComment', title: 'Final progress comment (optional)', description: "Optional final comments to add as a 'Progress' line", required: false, placeholder: 'Optional final comments' },
         ],
       })
-      if (raw == null || raw === false) {
-        logDebug('promptProjectCloseoutInputs', `User cancelled CommandBar.showForm`)
-        return null
+      if (raw == null || raw.submiited !== true) {
+        logDebug('promptProjectCloseoutInputs', `User cancelled the form input; continuing closeout with defaults and no final progress comment`)
+        return defaultCloseoutInputs
       }
-      return parseProjectCloseoutFormValues(raw)
+      const parsed = parseProjectCloseoutFormValues(raw)
+      if (parsed) {
+        return parsed
+      }
+      logWarn('promptProjectCloseoutInputs', `Could not parse showForm result; continuing closeout with defaults and no final progress comment`)
+      return defaultCloseoutInputs
     } catch (error) {
       logWarn('promptProjectCloseoutInputs', `CommandBar.showForm failed (${error.message}); using separate prompts`)
     }

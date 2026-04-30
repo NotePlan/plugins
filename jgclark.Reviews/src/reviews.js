@@ -18,6 +18,7 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import {
+  clearNextReviewFrontmatterField,
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
   getProjectMetadataLineIndex,
@@ -792,6 +793,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0
         } else {
           deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
         }
+        clearNextReviewFrontmatterField(note)
         updateBodyMetadataInNote(note, [reviewedTodayString])
         // $FlowIgnore[prop-missing]
         DataStore.updateCache(note, true)
@@ -810,6 +812,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0
         // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
         deleteMetadataMentionInEditor(possibleThisEditor, metadataLineIndex, [config.nextReviewMentionStr])
       }
+      clearNextReviewFrontmatterField(possibleThisEditor)
       // Update @review(date) on current open note
       updateBodyMetadataInEditor(possibleThisEditor, [reviewedTodayString])
       await possibleThisEditor.save()
@@ -827,6 +830,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0
         // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
         deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
       }
+      clearNextReviewFrontmatterField(note)
       // Update @review(date) on the note
       updateBodyMetadataInNote(note, [reviewedTodayString])
       // $FlowIgnore[prop-missing]

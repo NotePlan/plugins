@@ -270,7 +270,7 @@ If the 'Next action tag(s)' setting is set, then it will warn if it finds no exa
 This updates this project's `@reviewed(date)`, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
 
 ### "/skip project review" command
-This overrides (or skips) the normal review interval for a project, by adding a `@nextReview(...)` date of your choosing to the current project note. It also jumps to the next project to review.  The next time "finish review" command is used on the project note, the `@nextReview(date)` is removed.
+This overrides (or skips) the normal review interval for a project, by adding a `@nextReview(...)` date of your choosing to the current project note. (Why? This avoids changing the `@review()` interval, or giving a misleading impression by setting the `@reviewed()` date to today.)  It also jumps to the next project to review.  The next time "finish review" command is used on the project note, the `@nextReview(date)` is removed.
 
 ### "/complete project" command
 This adds a `@completed(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder (or alternative folder you set in the settings).
