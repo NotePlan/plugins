@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // HTMLView generation helpers for single-window review mode
 // Jonathan Clark + Cursor
-// last update 2026-04-15 for v2.0.0.b10 by @jgclark + @Cursor
+// last update 2026-04-26 for v2.0.0.b13 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import moment from 'moment'
@@ -467,7 +467,7 @@ function formatCompletedTasksSummaryHeading(lineCount: number, variant: 'plain' 
 }
 
 /**
- * Summary card: optional carry-over plan tasks, then one completed-task list (wins first: #win / #bigwin / `>>`, then other dones; each line once) and (daily only) calendar events.
+ * Summary card: optional carry-over plan tasks, then one completed-task list (wins first: #win / #bigwin / configured big-task marker, then other dones; each line once) and (daily only) calendar events.
  * @param {string} periodType
  * @param {Array<{ content: string, isDone: boolean }>} carryOverPlanItems
  * @param {Array<string>} winTasks
@@ -659,7 +659,7 @@ function makeReviewQuestionRowDiv(
  * @param {JournalConfigType} config
  * @param {Array<ParsedQuestionType>} parsedQuestions same order as parseQuestions(rawQuestionLines) (field names q_0 …)
  * @param {Array<string>} rawQuestionLines lines from getQuestionsForPeriod()
- * @param {Array<string>} summaryWinTasks done tasks tagged as wins (#win / #bigwin / `>>`); listed first in the single summary list
+ * @param {Array<string>} summaryWinTasks done tasks tagged as wins (#win / #bigwin / configured big-task marker); listed first in the single summary list
  * @param {Array<string>} summaryCompletedTasks other done tasks (daily only; excludes win lines)
  * @param {string} periodString the calendar note title string for the review period
  * @param {string} periodType

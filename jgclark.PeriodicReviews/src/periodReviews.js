@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-04-26 for v2.0.0.b12 by @jgclark + @Cursor
+// last update 2026-04-26 for v2.0.0.b13 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import strftime from 'strftime'
@@ -10,6 +10,8 @@ import pluginJson from '../plugin.json'
 import {
   buildNextPeriodNotePlanSectionHeadingTitle,
   formatPlannedItemLineForNextNote,
+  getBigTaskMarkerFromConfig,
+  getBigTaskPriorityFromConfig,
   getEffectivePlannedItemAffixes,
   getJournalSettings,
   getPeriodAdjectiveFromType,
@@ -60,7 +62,7 @@ import { getInput, showMessage } from '@helpers/userInput'
 const REVIEW_WINDOW_CUSTOM_ID = 'jgclark.PeriodicReviews.period-review'
 const REVIEW_WINDOW_CALLBACK_COMMAND = 'onReviewWindowAction'
 
-/** Paragraph types treated as tasks under a plan H2 (carry-over + rewrite). Includes cancelled so >> plan lines stay in the summary as not done. */
+/** Paragraph types treated as tasks under a plan H2 (carry-over + rewrite). Includes cancelled so big-task plan lines stay in the summary as not done. */
 const PLAN_SECTION_PARA_TYPES: Set<string> = new Set([
   'open',
   'done',
@@ -171,7 +173,7 @@ function getCalendarNoteByTitle(title: string): TNote | null {
 /**
  * Return task lines for the review summary from:
  * - the configured 'planName' section (if given)
- * - any with priority '>>' (if 'planName' is empty, or can't find the 'planName' section)
+ * - any with the configured "big task marker" priority (if 'planName' is empty, or can't find the 'planName' section)
  * Note: The heading match is partial + case insensitive.
  * @tests in jest file
  * @param {TNote} note
@@ -180,7 +182,8 @@ function getCalendarNoteByTitle(title: string): TNote | null {
  */
 export function extractPlanSectionItems(
   note: TNote,
-  planName: string = ''
+  planName: string = '',
+  config?: any,
 ): Array<{ content: string, isDone: boolean }> {
   const paras = note.paragraphs ?? []
   let start = findStartOfActivePartOfNote(note)
@@ -209,18 +212,18 @@ export function extractPlanSectionItems(
       }
       return out
     } else {
-      logDebug('extractPlanSectionItems', `Can't find a heading including '${planName}', so will now look for any other >> items`)
+      logDebug('extractPlanSectionItems', `Can't find a heading including '${planName}', so will now look for any other big-task items (${getBigTaskMarkerFromConfig(config)})`)
     }
   }
 
-  logDebug('extractPlanSectionItems', `Will look for >> tasks in lines ${String(start+1)}-${String(end)}`)
+  const bigTaskPriority = getBigTaskPriorityFromConfig(config ?? {})
+  logDebug('extractPlanSectionItems', `Will look for priority ${String(bigTaskPriority)} tasks in lines ${String(start + 1)}-${String(end)}`)
   for (let i = start + 1; i <= end; i++) {
     const p = paras[i]
     if (!PLAN_SECTION_PARA_TYPES.has(String(p.type))) {
       continue
     }
-    if (getNumericPriorityFromPara(p) !== 4) {
-      // i.e. if not '>>' priority
+    if (getNumericPriorityFromPara(p) !== bigTaskPriority) {
       continue
     }
     const isDone = p.type === 'done' || p.type === 'checklistDone'
@@ -264,8 +267,9 @@ export async function writePlanningTasksToNextPeriodNote(
     }
 
     logDebug('writePlanningTasksToNextPeriodNote', `Note '${nextTitle}' opened; will now write (or replace) plan section heading '${headingTitle}'`)
-    const normalizedLines = normalizePlanningTaskLinesFromForm(planningFormText)
-    const { prefix: plannedPrefix, suffix: plannedSuffix } = getEffectivePlannedItemAffixes(config)
+    const plannedPrefix = getBigTaskMarkerFromConfig(config)
+    const normalizedLines = normalizePlanningTaskLinesFromForm(planningFormText, plannedPrefix)
+    const { suffix: plannedSuffix } = getEffectivePlannedItemAffixes(config)
     const formattedLines = normalizedLines.map((body) => formatPlannedItemLineForNextNote(body, plannedPrefix, plannedSuffix))
     removePlanSectionFromNoteIfPresent(nextNote, headingTitle)
     if (formattedLines.length > 0) {
@@ -429,7 +433,7 @@ function getParagraphLineContentsForReviewScan(note: TNote): Array<string> {
 }
 
 /**
- * Collect done task lines for the review summary: wins (#win / #bigwin / `>>`) vs other completed tasks.
+ * Collect done task lines for the review summary: wins (#win / #bigwin / configured big-task marker ('>>', '!!!', or '!!')) vs other completed tasks.
  * The HTML view merges them into one list (wins first; each line once).
  * - day: wins and completed are split (completed excludes win lines).
  * - week: only wins are returned; `completed` is empty.
@@ -438,7 +442,7 @@ function getParagraphLineContentsForReviewScan(note: TNote): Array<string> {
  * @param {string} periodString
  * @returns {{ wins: Array<string>, completed: Array<string> }}
  */
-function getDoneTasksForSummary(periodType: string, periodString: string): {| wins: Array < string >, completed: Array < string > |} {
+function getDoneTasksForSummary(periodType: string, periodString: string, config: PeriodicReviewConfigType): {| wins: Array < string >, completed: Array < string > |} {
   try {
     const supportsDoneTaskSummary = periodType === 'day' || periodType === 'week'
     if (!supportsDoneTaskSummary) {
@@ -479,7 +483,7 @@ function getDoneTasksForSummary(periodType: string, periodString: string): {| wi
           continue
         }
         seenKeys.add(dedupeKey)
-        const isWin = taskContentIsSummaryWin(para.content)
+        const isWin = taskContentIsSummaryWin(para.content, config)
         if (!isDailyPeriod) {
           if (isWin) {
             wins.push(para.content)
@@ -522,14 +526,14 @@ async function displayQuestionsWindow(
 ): Promise<void> {
   const periodAdjective = getPeriodAdjectiveFromType(periodType)
   // Get the data sources we need for the review window
-  const { wins: summaryWinTasks, completed: summaryCompletedTasks } = getDoneTasksForSummary(periodType, periodString)
+  const { wins: summaryWinTasks, completed: summaryCompletedTasks } = getDoneTasksForSummary(periodType, periodString, config)
   const calendarSet: Array<string> = config.calendarSet ?? []
   // logDebug(pluginJson, `calendarSet: [${String(calendarSet)}]`)
   const eventsForPeriod: Array<TCalendarItem> = (periodType === 'day') ? await getEventsForDay(periodString, calendarSet) ?? [] : []
   const scanLines = getParagraphLineContentsForReviewScan(calendarNote)
   const initialAnswers = buildInitialReviewAnswersByFieldName(parsedQuestions, scanLines)
   const planName = getPlanItemsNameForPeriodType(config, periodType)
-  const carryOverPlanItems = extractPlanSectionItems(calendarNote) // TEST: trying without sending planName parameter
+  const carryOverPlanItems = extractPlanSectionItems(calendarNote, '', config) // TEST: trying without sending planName parameter
 
   // Build the HTML body for the review window from this data
   const htmlBody = buildReviewHTML(
@@ -881,7 +885,8 @@ export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed =
     const planningRaw =
       answers.planning_tasks ?? (typeof safePayload === 'object' && safePayload != null ? (safePayload: any).planning_tasks : undefined)
     const planningText = typeof planningRaw === 'string' ? planningRaw : String(planningRaw ?? '')
-    const hasPlanningContent = normalizePlanningTaskLinesFromForm(planningText).length > 0
+    const currentBigTaskMarker = getBigTaskMarkerFromConfig(config)
+    const hasPlanningContent = normalizePlanningTaskLinesFromForm(planningText, currentBigTaskMarker).length > 0
     const questionLines = await getQuestionsForPeriod(config, periodType)
     const parsedQuestions = parseQuestions(questionLines)
     const output = buildOutputFromReviewWindowAnswers(parsedQuestions, questionLines, periodString, periodType, answers)

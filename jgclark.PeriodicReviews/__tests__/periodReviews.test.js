@@ -6,6 +6,8 @@ import {
   buildNextPeriodNotePlanSectionHeadingTitle,
   buildNextPlanSectionHeadingTitle,
   formatPlannedItemLineForNextNote,
+  getBigTaskMarkerFromConfig,
+  getBigTaskPriorityFromConfig,
   getEffectivePlannedItemAffixes,
   getPeriodAdjectiveFromType,
   getPlanItemsNameForPeriodType,
@@ -420,6 +422,12 @@ Mood: <mood>`
     it('should treat #win / #bigwin as wins regardless of >>', () => {
       expect(taskContentIsSummaryWin('Launched #win @done(2026-04-08)')).toBe(true)
       expect(taskContentIsSummaryWin('Big thing #bigwin @done(2026-04-08)')).toBe(true)
+    })
+
+    it('should respect configured big-task marker style for exclamation priorities', () => {
+      expect(taskContentIsSummaryWin('!!! Ship it @done(2026-04-08)', { bigTaskMarkerStyle: '!!! (priority 3)' })).toBe(true)
+      expect(taskContentIsSummaryWin('!! Ship it @done(2026-04-08)', { bigTaskMarkerStyle: '!! (priority 2)' })).toBe(true)
+      expect(taskContentIsSummaryWin('>> Ship it @done(2026-04-08)', { bigTaskMarkerStyle: '!! (priority 2)' })).toBe(false)
     })
   })
 
@@ -848,40 +856,47 @@ Ship: <tasks>`,
       expect(getPlanItemsNameForPeriodType(custom, 'week')).toBe('Wins')
     })
 
-    it('normalizePlanningTaskLinesFromForm should strip task markers and >>', () => {
-      expect(normalizePlanningTaskLinesFromForm('')).toEqual([])
-      expect(normalizePlanningTaskLinesFromForm('  a  \n\n* >> b')).toEqual(['a', 'b'])
-      expect(normalizePlanningTaskLinesFromForm('>> solo')).toEqual(['solo'])
+    it('normalizePlanningTaskLinesFromForm should strip only the configured marker', () => {
+      expect(normalizePlanningTaskLinesFromForm('', '>>')).toEqual([])
+      expect(normalizePlanningTaskLinesFromForm('  a  \n\n* >> b', '>>')).toEqual(['a', 'b'])
+      expect(normalizePlanningTaskLinesFromForm('>> solo', '>>')).toEqual(['solo'])
+      expect(normalizePlanningTaskLinesFromForm('!!! p3', '>>')).toEqual(['!!! p3'])
+      expect(normalizePlanningTaskLinesFromForm('!! p2', '>>')).toEqual(['!! p2'])
+      expect(normalizePlanningTaskLinesFromForm('!!! p3', '!!!')).toEqual(['p3'])
+      expect(normalizePlanningTaskLinesFromForm('!! p2', '!!')).toEqual(['p2'])
     })
 
-    it('formatPlannedItemLineForNextNote should apply prefix/suffix with sensible spacing', () => {
+    it('should resolve marker and numeric priority from bigTaskMarkerStyle setting', () => {
+      expect(getBigTaskMarkerFromConfig({})).toBe('>>')
+      expect(getBigTaskPriorityFromConfig({})).toBe(4)
+      expect(getBigTaskMarkerFromConfig({ bigTaskMarkerStyle: '!!! (priority 3)' })).toBe('!!!')
+      expect(getBigTaskPriorityFromConfig({ bigTaskMarkerStyle: '!!! (priority 3)' })).toBe(3)
+      expect(getBigTaskMarkerFromConfig({ bigTaskMarkerStyle: '!! (priority 2)' })).toBe('!!')
+      expect(getBigTaskPriorityFromConfig({ bigTaskMarkerStyle: '!! (priority 2)' })).toBe(2)
+    })
+
+    it('formatPlannedItemLineForNextNote should apply required marker prefix + optional suffix with sensible spacing', () => {
       expect(formatPlannedItemLineForNextNote('foo', '>> ', '#win')).toBe('>> foo #win')
-      expect(formatPlannedItemLineForNextNote('foo', null, '#win')).toBe('foo #win')
       expect(formatPlannedItemLineForNextNote('foo', '>> ', null)).toBe('>> foo')
-      expect(formatPlannedItemLineForNextNote('foo', null, null)).toBe('foo')
-      expect(formatPlannedItemLineForNextNote('foo', '', '')).toBe('foo')
       expect(formatPlannedItemLineForNextNote('foo', '>>', '#win')).toBe('>> foo #win')
+      expect(formatPlannedItemLineForNextNote('foo', '!!', '')).toBe('!! foo')
     })
 
-    it('getEffectivePlannedItemAffixes should default missing keys to empty affixes and treat blank strings as disabled', () => {
-      expect(getEffectivePlannedItemAffixes({})).toEqual({ prefix: '', suffix: '' })
+    it('getEffectivePlannedItemAffixes should default missing suffix to empty and treat blank suffix as disabled', () => {
+      expect(getEffectivePlannedItemAffixes({})).toEqual({ suffix: '' })
       expect(
         getEffectivePlannedItemAffixes({
-          plannedItemsPrefix: '',
           plannedItemsSuffix: '',
         }),
       ).toEqual({
-        prefix: null,
         suffix: null,
       })
       expect(
         getEffectivePlannedItemAffixes({
-          plannedItemsPrefix: '!! ',
-          plannedItemsSuffix: '',
+          plannedItemsSuffix: '#win',
         }),
       ).toEqual({
-        prefix: '!! ',
-        suffix: null,
+        suffix: '#win',
       })
     })
 
@@ -913,6 +928,20 @@ Ship: <tasks>`,
       expect(items.length).toBe(1)
       expect(items[0].isDone).toBe(false)
       expect(items[0].content).toContain('Sort new Santander')
+    })
+
+    it('extractPlanSectionItems should use configured priority for fallback marker matching', () => {
+      const note = {
+        paragraphs: [
+          { type: 'title', headingLevel: 2, content: 'Home', lineIndex: 0 },
+          { type: 'cancelled', content: '!!! Priority 3 goal', lineIndex: 1 },
+          { type: 'done', content: 'Update milk order again @done(2026-04-12 00:05)', lineIndex: 2 },
+        ],
+      }
+      const items = extractPlanSectionItems(note, '', { bigTaskMarkerStyle: '!!! (priority 3)' })
+      expect(items.length).toBe(1)
+      expect(items[0].isDone).toBe(false)
+      expect(items[0].content).toContain('Priority 3 goal')
     })
   })
 })

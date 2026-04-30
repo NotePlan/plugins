@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 2026-04-13 for v2.0.0.b10 by @jgclark
+// last update 2026-04-26 for v2.0.0.b13 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,6 +14,17 @@ import { showMessage } from '@helpers/userInput'
 // Constants & Types
 
 const pluginID = 'jgclark.PeriodicReviews'
+const BIG_TASK_MARKER_STYLE_DEFAULT = '>> (priority 4)'
+const BIG_TASK_MARKER_STYLE_TO_MARKER: { [string]: string } = {
+  '>> (priority 4)': '>>',
+  '!!! (priority 3)': '!!!',
+  '!! (priority 2)': '!!',
+}
+const BIG_TASK_MARKER_TO_PRIORITY: { [string]: number } = {
+  '>>': 4,
+  '!!!': 3,
+  '!!': 2,
+}
 
 export type PeriodicReviewConfigType = {
   dailyJournalSectionHeading: string,
@@ -38,7 +49,7 @@ export type PeriodicReviewConfigType = {
   yearlyReviewQuestions: string,
   moods: string,
   calendarSet: Array<string>,
-  plannedItemsPrefix?: string,
+  bigTaskMarkerStyle?: string,
   plannedItemsSuffix?: string,
 }
 
@@ -131,53 +142,74 @@ export function getSectionHeadingForPeriod(config: PeriodicReviewConfigType, per
 }
 
 /**
- * Normalize non-empty lines from the planning textarea for storage (strip task markers and any leading `>>').
+ * Normalize non-empty lines from the planning textarea for storage (strip task markers and leading configured big-task marker only).
  * @tests in jest file
  * @param {string} planningFormText
+ * @param {string} bigTaskMarker marker currently configured by `bigTaskMarkerStyle`
  * @returns {Array<string>}
  */
-export function normalizePlanningTaskLinesFromForm(planningFormText: string): Array<string> {
+export function normalizePlanningTaskLinesFromForm(planningFormText: string, bigTaskMarker: string = '>>'): Array<string> {
   const raw = typeof planningFormText === 'string' ? planningFormText : String(planningFormText ?? '')
+  const escapedMarker = bigTaskMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const markerPrefixRE = new RegExp(`^${escapedMarker}\\s*`)
   return raw
     .split(/\r?\n/)
     .map((l) => {
       let t = l.trim()
       t = t.replace(/^\*\s*/, '')
-      if (t.startsWith('>>')) {
-        t = t.slice(2).trim()
-      }
+      t = t.replace(markerPrefixRE, '')
       return t
     })
     .filter((t) => t !== '')
 }
 
 /**
- * Effective prefix/suffix for lines written to the next period note (after `normalizePlanningTaskLinesFromForm`).
- * Defaults are empty string, if not set.
+ * Marker string used for "big" tasks/goals in this plugin (defaults to `>>` / priority 4).
+ * @param {PeriodicReviewConfigType} config
+ * @returns {string}
+ */
+export function getBigTaskMarkerFromConfig(config?: any): string {
+  const styleRaw = config?.bigTaskMarkerStyle
+  const style = typeof styleRaw === 'string' ? styleRaw.trim() : ''
+  return BIG_TASK_MARKER_STYLE_TO_MARKER[style] ?? BIG_TASK_MARKER_STYLE_TO_MARKER[BIG_TASK_MARKER_STYLE_DEFAULT]
+}
+
+/**
+ * Numeric NotePlan task priority corresponding to the configured big-task marker.
+ * @param {PeriodicReviewConfigType} config
+ * @returns {number}
+ */
+export function getBigTaskPriorityFromConfig(config?: any): number {
+  const marker = getBigTaskMarkerFromConfig(config)
+  return BIG_TASK_MARKER_TO_PRIORITY[marker] ?? 4
+}
+
+/**
+ * Effective suffix for lines written to the next period note (after `normalizePlanningTaskLinesFromForm`).
+ * Defaults to empty string when not set; blank string disables suffix.
  * @tests in jest file
  * @param {PeriodicReviewConfigType} config
- * @returns {{ prefix: string, suffix: string }}
+ * @returns {{ suffix: ?string }}
  */
-export function getEffectivePlannedItemAffixes(config: PeriodicReviewConfigType): { prefix: string, suffix: string } {
+export function getEffectivePlannedItemAffixes(config: PeriodicReviewConfigType): { suffix: ?string } {
   const affix = (raw: mixed, defaultValue: string): ?string => {
     if (raw === undefined || raw === null || typeof raw !== 'string') return defaultValue
     return raw.trim() === '' ? null : raw
   }
   return {
-    prefix: affix(config.plannedItemsPrefix, ''),
     suffix: affix(config.plannedItemsSuffix, ''),
   }
 }
 
 /**
- * Build one task line body for the next period note: optional suffix on `body`, then optional prefix.
+ * Build one task line body for the next period note: optional suffix on `body`, then mandatory big-task prefix.
  * @tests in jest file
  * @param {string} body normalized plain text (no task marker)
- * @param {?string} prefix
+ * @param {string} prefix
  * @param {?string} suffix
  * @returns {string}
  */
-export function formatPlannedItemLineForNextNote(body: string, prefix: ?string, suffix: ?string): string {
+export function formatPlannedItemLineForNextNote(body: string, prefix: string, suffix: ?string): string {
   const join = (left: string, right: string): string => {
     if (left === '') return right
     if (right === '') return left
@@ -185,7 +217,7 @@ export function formatPlannedItemLineForNextNote(body: string, prefix: ?string, 
   }
   let line = body
   if (suffix != null) line = join(line, suffix)
-  if (prefix != null) line = join(prefix, line)
+  line = join(prefix, line)
   return line
 }
 
@@ -262,7 +294,7 @@ export function getPlanItemsNameForPeriodType(config: PeriodicReviewConfigType, 
   }
   // $FlowFixM
   // e[invalid-computed-prop]
-  const raw = config[key]
+  const raw = (config: any)[key]
   const s = typeof raw === 'string' ? raw.trim() : ''
   return s !== '' ? s : fallback
 }
@@ -326,7 +358,7 @@ export function summaryTaskLineDedupeKey(content: string): string {
   return content.trim()
 }
 
-/** Global @done stripper for probing task body for `>>` win marker (same pattern as review HTML summary). */
+/** Global @done stripper for probing task body for configured big-task win marker (same pattern as review HTML summary). */
 const RE_STRIP_DONE_FOR_SUMMARY_PROBE: RegExp = new RegExp(RE_DONE_DATE_OPT_TIME.source, 'gi')
 
 /**
@@ -339,14 +371,16 @@ function hasWinHashtag(content: string): boolean {
 }
 
 /**
- * True when the task body uses the `>>` win / planning marker after optional list marker and `!` priorities.
+ * True when the task body uses the configured win / planning marker after optional list marker and `!` priorities.
  * @param {string} content
  * @returns {boolean}
  */
-function taskLineHasDoubleChevronWinPrefix(content: string): boolean {
+function taskLineHasConfiguredBigTaskWinPrefix(content: string, config?: any): boolean {
+  const bigMarker = getBigTaskMarkerFromConfig(config ?? {})
+  const markerRE = new RegExp(`^${bigMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s?`)
   let probe = content.replace(RE_STRIP_DONE_FOR_SUMMARY_PROBE, '').trim()
   probe = probe.replace(/^\*+\s+/, '').replace(/^[-+]\s+\[[ x]\]\s*/i, '').replace(/^-\s+/, '').trim()
-  while (!/^>>\s?/.test(probe)) {
+  while (!markerRE.test(probe)) {
     const next = probe.replace(/^!{1,3}\s+/, '').trim()
     if (next === probe) {
       return false
@@ -357,13 +391,13 @@ function taskLineHasDoubleChevronWinPrefix(content: string): boolean {
 }
 
 /**
- * A done task counts as a "win" for the review summary when tagged #win / #bigwin or prefixed with `>>` on the task body.
+ * A done task counts as a "win" for the review summary when tagged #win / #bigwin or prefixed with the configured marker on the task body.
  * @tests in jest file
  * @param {string} content
  * @returns {boolean}
  */
-export function taskContentIsSummaryWin(content: string): boolean {
-  return hasWinHashtag(content) || taskLineHasDoubleChevronWinPrefix(content)
+export function taskContentIsSummaryWin(content: string, config?: any): boolean {
+  return hasWinHashtag(content) || taskLineHasConfiguredBigTaskWinPrefix(content, config)
 }
 
 /**

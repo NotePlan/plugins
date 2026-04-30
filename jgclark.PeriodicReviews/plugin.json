@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.co/plugins/jgclark.PeriodicReviews/",
   "plugin.changelog": "https://noteplan.co/plugins/jgclark.PeriodicReviews/CHANGELOG.md",
-  "plugin.version": "2.0.0.b12",
+  "plugin.version": "2.0.0.b13",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "v2.0.0: First release of the new Periodic Reviews plugin, building on earlier 'Journalling Helpers' plugin (v1).",
   "plugin.requiredFiles": [
@@ -321,12 +321,17 @@
       "required": false
     },
     {
-      "key": "plannedItemsPrefix",
-      "title": "Planned items prefix (for next period note)",
-      "description": "String added to the start of each planned item when writing them into the next period's calendar note. Default is '>>' but other priority or strings can be used. Optional.",
+      "key": "bigTaskMarkerStyle",
+      "title": "Big task marker style",
+      "description": "Choose which marker indicates major planned tasks/goals in notes and review summaries.",
       "type": "string",
-      "default": ">>",
-      "required": false
+      "choices": [
+        ">> (priority 4)",
+        "!!! (priority 3)",
+        "!! (priority 2)"
+      ],
+      "default": ">> (priority 4)",
+      "required": true
     },
     {
       "key": "plannedItemsSuffix",

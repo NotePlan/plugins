@@ -10,7 +10,7 @@ First you need to configure the questions you want to use for each time period (
 
 The plugin then opens a window that shows **all** these questions in a window form (with colours and fonts follow your current NotePlan theme). When you submit the form, your answers are written under the correct section heading in the calendar note.
 
-Further, it will then ask you to decide your top few tasks/goals/priority work for the next period. There can only be a very few of these. If you give any, they will be written into the next period's note, prefixed with a `>>` marker (customisable), to indicate these most important things to focus on.
+Further, it will then ask you to decide your top few tasks/goals/priority work for the next period. There can only be a very few of these. If you give any, they will be written into the next period's note with your selected big-task marker (`>>`, `!!!`, or `!!`) to indicate these most important things to focus on.
 
 ### Example (Daily Review)
 Here's an example of the Daily Review Window:
@@ -97,7 +97,8 @@ Notes:
 - **Window placement:** **Review Window type** — 'New Window' (the default), 'Main Window', or a 'Split View' within the main window.
 - **Open the calendar note when reviewing it?** (default: on). 
 - **Calendars to include in review summaries:** optional filter list; leave empty to include all calendars.
-- **Planning vs reviewing:** For each period you can set a **planned items** name (defaults such as *Big Wins*, *Big Rocks*, *Key Outcomes*, *Goals*, *Theme*). After the main form, a **planning** area can write an **H2** and `>> …` tasks at the **start** of the **next** period’s calendar note, replacing any existing section with that title. Empty planning clears that section on the next note. The heading uses `{planName} for {next period title}` (e.g. `Big Rocks for 2026-W15`), separate from the on-screen “Planned:” / “Planning: …” labels.
+- **Big task marker style:** choose whether major tasks/goals are indicated by `>>` (priority 4, the default), `!!!` (priority 3), or `!!` (priority 2). This is used when scanning summary/carry-over "big task" lines.
+- **Planning vs reviewing:** For each period you can set a **planned items** name (defaults such as *Big Wins*, *Big Rocks*, *Key Outcomes*, *Goals*, *Theme*). After the main form, a **planning** area can write an **H2** and big-task lines (for example `>> …` or `!!! …`) at the **start** of the **next** period’s calendar note, replacing any existing section with that title. Empty planning clears that section on the next note. The heading uses `{planName} for {next period title}` (e.g. `Big Rocks for 2026-W15`), separate from the on-screen “Planned:” / “Planning: …” labels. The priority marker is always taken from **Big task marker style**.
 
 ### Section headings
 
