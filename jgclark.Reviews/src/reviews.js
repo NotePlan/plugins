@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-04-28 for v2.0.0.b24, @jgclark
+// Last updated 2026-04-30 for v2.0.0.b27, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -39,7 +39,8 @@ import {
   generateAllProjectsList,
   updateProjectInAllProjectsList,
 } from './allProjectsListHelpers.js'
-import { calcReviewFieldsForProject, clearNextReviewMetadataFields, Project } from './projectClass'
+import { clearNextReviewMetadataFields, Project } from './projectClass'
+import { calcReviewFieldsForProject } from './projectClassCalculations.js'
 import {
   buildProjectLineForStyle,
   buildProjectListTopBarHtml,
@@ -130,6 +131,90 @@ async function clearProjectReviewingInHTML(): Promise<void> {
   } catch (error) {
     logError('clearProjectReviewingInHTML', error.message)
   }
+}
+
+/**
+ * Return a grouped folder display label, optionally hiding top-level path parts.
+ * Handles both teamspace and standard folder names.
+ * @param {string} folder
+ * @param {boolean} isRichStyle
+ * @param {boolean} hideTopLevelFolder
+ * @returns {string}
+ * @private
+ */
+function getGroupedFolderDisplayLabel(folder: string, isRichStyle: boolean, hideTopLevelFolder: boolean): string {
+  const folderDisplayName = isRichStyle
+    ? getFolderDisplayNameForHTML(folder)
+    : getFolderDisplayName(folder, true)
+
+  let folderPart = folderDisplayName
+  if (hideTopLevelFolder) {
+    if (folderDisplayName.includes(']')) {
+      const match = folderDisplayName.match(/^(\[.*?\])\s*(.+)$/)
+      if (match) {
+        const pathPart = match[2]
+        const pathParts = pathPart.split('/').filter(p => p !== '')
+        const lastPathPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : pathPart
+        folderPart = `${match[1]} ${lastPathPart}`
+      } else {
+        folderPart = folderDisplayName.split('/').slice(-1)[0] || folderDisplayName
+      }
+    } else {
+      const pathParts = folderDisplayName.split('/').filter(p => p !== '')
+      folderPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : folderDisplayName
+    }
+  }
+
+  if (folder === '/') {
+    folderPart = '(root folder)'
+  }
+  return folderPart
+}
+
+/**
+ * Render markdown and/or rich project list outputs from config.outputStyle.
+ * @param {ReviewConfig} config
+ * @param {boolean} shouldOpen
+ * @param {number} scrollPos
+ * @returns {Promise<void>}
+ * @private
+ */
+async function runProjectListRenderers(config: ReviewConfig, shouldOpen: boolean, scrollPos: number = 0): Promise<void> {
+  if (config.outputStyle.match(/markdown/i)) {
+    // eslint-disable-next-line no-floating-promise/no-floating-promise -- no need to wait here
+    renderProjectListsMarkdown(config, shouldOpen)
+  }
+  if (config.outputStyle.match(/rich/i)) {
+    await renderProjectListsHTML(config, shouldOpen, scrollPos)
+  }
+}
+
+type DisplayToggleKey = 'displayFinished' | 'displayOnlyDue' | 'displayNextActions'
+
+/**
+ * Toggle a display filter flag and re-render open project list windows.
+ * @param {DisplayToggleKey} key
+ * @param {boolean} defaultValueWhenUnset
+ * @param {string} logContext
+ * @param {number} scrollPos
+ * @returns {Promise<void>}
+ * @private
+ */
+async function toggleDisplayFilterKey(
+  key: DisplayToggleKey,
+  defaultValueWhenUnset: boolean,
+  logContext: string,
+  scrollPos: number = 0,
+): Promise<void> {
+  const config: ?ReviewConfig = await getReviewSettings()
+  if (!config) throw new Error('No config found. Stopping.')
+
+  const savedValue = config[key] ?? defaultValueWhenUnset
+  const newValue = !savedValue
+  logDebug(logContext, `${key}? now '${String(newValue)}' (was '${String(savedValue)}')`)
+  const updatedConfig = { ...config, [key]: newValue }
+  await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+  await renderProjectListsIfOpen(updatedConfig, scrollPos)
 }
 
 //-----------------------------------------------------------------------------
@@ -252,14 +337,7 @@ export async function renderProjectLists(
       throw new Error('No config found. Stopping.')
     }
 
-    // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
-    if (config.outputStyle.match(/markdown/i)) {
-      // eslint-disable-next-line no-floating-promise/no-floating-promise -- no need to wait here
-      renderProjectListsMarkdown(config, shouldOpen)
-    }
-    if (config.outputStyle.match(/rich/i)) {
-      await renderProjectListsHTML(config, shouldOpen, scrollPos)
-    }
+    await runProjectListRenderers(config, shouldOpen, scrollPos)
   } catch (error) {
     logError('renderProjectLists', `Error: ${error.message}.\nconfigIn: ${JSP(configIn, 2)}`)
   }
@@ -280,14 +358,8 @@ export async function renderProjectListsIfOpen(
     logDebug(pluginJson, `renderProjectListsIfOpen starting...`)
     const config = configIn ? configIn : await getReviewSettings()
 
-    // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
-    if (config?.outputStyle.match(/markdown/i)) {
-      // eslint-disable-next-line no-floating-promise/no-floating-promise -- no need to wait here
-      renderProjectListsMarkdown(config, false)
-    }
-    if (config?.outputStyle.match(/rich/i)) {
-      await renderProjectListsHTML(config, false, scrollPos)
-    }
+    if (!config) throw new Error('No config found. Stopping.')
+    await runProjectListRenderers(config, false, scrollPos)
     // return true to avoid possibility of NP silently failing when called by invokePluginCommandByName
     return true
   } catch (error) {
@@ -360,6 +432,7 @@ export async function renderProjectListsHTML(
     const outputArray = []
 
     // Generate top bar HTML (uses config.tagActiveCounts for dropdown tag counts)
+    config.projectsShownCount = projectsToReview.length
     outputArray.push(buildProjectListTopBarHtml(config))
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
@@ -381,24 +454,7 @@ export async function renderProjectListsHTML(
           }
         }
         if (config.displayGroupedByFolder && lastFolder !== thisProject.folder) {
-          const folderDisplayName = getFolderDisplayNameForHTML(thisProject.folder)
-          let folderPart = folderDisplayName
-          if (config.hideTopLevelFolder) {
-            if (folderDisplayName.includes(']')) {
-              const match = folderDisplayName.match(/^(\[.*?\])\s*(.+)$/)
-              if (match) {
-                const pathPart = match[2]
-                const pathParts = pathPart.split('/').filter(p => p !== '')
-                folderPart = `${match[1]} ${pathParts.length > 0 ? pathParts[pathParts.length - 1] : pathPart}`
-              } else {
-                folderPart = folderDisplayName.split('/').slice(-1)[0] || folderDisplayName
-              }
-            } else {
-              const pathParts = folderDisplayName.split('/').filter(p => p !== '')
-              folderPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : folderDisplayName
-            }
-          }
-          if (thisProject.folder === '/') folderPart = '(root folder)'
+          const folderPart = getGroupedFolderDisplayLabel(thisProject.folder, true, config.hideTopLevelFolder)
           outputArray.push(buildFolderGroupHeaderHtml(folderPart))
         }
         const wantedTagsForRow = (thisProject.allProjectTags != null && wantedTags.length > 0)
@@ -692,37 +748,8 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
       // Write new folder header (if change of folder)
       const folder = thisProject.folder
       if (config.displayGroupedByFolder && lastFolder !== folder) {
-        // Get display name with teamspace name if applicable
-        const folderDisplayName = ((style.match(/rich/i))
-          ? getFolderDisplayNameForHTML(folder)
-          : getFolderDisplayName(folder, true))
-        let folderPart: string
-        if (config.hideTopLevelFolder) {
-          // Extract just the last part of the folder path
-          // Handle teamspace format: [👥 TeamspaceName] /folder/path -> [👥 TeamspaceName] path
-          // Handle regular format: folder/path -> path
-          if (folderDisplayName.includes(']')) {
-            // Teamspace folder: extract prefix and last part of path
-            const match = folderDisplayName.match(/^(\[.*?\])\s*(.+)$/)
-            if (match) {
-              const teamspacePrefix = match[1]
-              const pathPart = match[2]
-              const pathParts = pathPart.split('/').filter(p => p !== '')
-              const lastPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : pathPart
-              folderPart = `${teamspacePrefix} ${lastPart}`
-            } else {
-              folderPart = folderDisplayName.split('/').slice(-1)[0] || folderDisplayName
-            }
-          } else {
-            // Regular folder: just get last part
-            const pathParts = folderDisplayName.split('/').filter(p => p !== '')
-            folderPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : folderDisplayName
-          }
-        } else {
-          folderPart = folderDisplayName
-        }
-        // Handle root folder display - check if original folder was root, not the display name
-        if (folder === '/') folderPart = '(root folder)'
+        const isRichStyle = style.match(/rich/i) != null
+        const folderPart = getGroupedFolderDisplayLabel(folder, isRichStyle, config.hideTopLevelFolder)
         if (style.match(/rich/i)) {
           outputArray.push(buildFolderGroupHeaderHtml(folderPart))
         } else if (style.match(/markdown/i)) {
@@ -861,7 +888,6 @@ async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0
       // Save changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (if window is already open)
-      // TODO: How can we keep the scrollPos?
       await renderProjectListsIfOpen(config, scrollPos)
     } else {
       // Regenerate whole list (and display if window is already open)
@@ -907,7 +933,7 @@ async function startReviewCoreLogic(
 
   // Show that this project is now being reviewed, if the 'Rich' Project List is open
   logInfo(logContext, `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
-  await setReviewingProjectInHTML(noteToReview, true)
+  await setReviewingProjectInHTML(noteToReview)
 
   // Check if note is already open in one of the Editor windows:
   // - If so, just focus it.
@@ -975,7 +1001,7 @@ export async function startReviewForNote(noteToReview: TNote): Promise<void> {
     logInfo('startReviewForNote', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
     await Editor.openNoteByFilename(noteToReview.filename)
     // Highlight this project in the Project List window (if open)
-    await setReviewingProjectInHTML(noteToReview, true)
+    await setReviewingProjectInHTML(noteToReview)
   
   } catch (error) {
     logError('startReviewForNote', error.message)
@@ -1327,19 +1353,7 @@ export async function toggleDisplayFinished(scrollPos: number = 0): Promise<void
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
     // v2 directly update settings.json instead
-    const config: ?ReviewConfig = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
-
-    const savedValue = config.displayFinished ?? true
-    const newValue = !savedValue
-    logDebug('toggleDisplayFinished', `displayFinished? now '${String(newValue)}' (was '${String(savedValue)}')`)
-
-    const updatedConfig = config
-    updatedConfig.displayFinished = newValue
-    // logDebug('toggleDisplayFinished', `updatedConfig.displayFinished? now is '${String(updatedConfig.displayFinished)}'`)
-    const _res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
-    // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    await renderProjectListsIfOpen(updatedConfig, scrollPos)
+    await toggleDisplayFilterKey('displayFinished', true, 'toggleDisplayFinished', scrollPos)
   }
   catch (error) {
     logError('toggleDisplayFinished', error.message)
@@ -1353,18 +1367,7 @@ export async function toggleDisplayOnlyDue(scrollPos: number = 0): Promise<void>
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
     // v2 directly update settings.json instead
-    const config: ?ReviewConfig = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
-
-    const savedValue = config.displayOnlyDue ?? true
-    const newValue = !savedValue
-    logDebug('toggleDisplayOnlyDue', `displayOnlyDue? now '${String(newValue)}' (was '${String(savedValue)}')`)
-    const updatedConfig = config
-    updatedConfig.displayOnlyDue = newValue
-    // logDebug('toggleDisplayOnlyDue', `updatedConfig.displayOnlyDue? now is '${String(updatedConfig.displayOnlyDue)}'`)
-    const _res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
-    // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    await renderProjectListsIfOpen(updatedConfig, scrollPos)
+    await toggleDisplayFilterKey('displayOnlyDue', true, 'toggleDisplayOnlyDue', scrollPos)
   }
   catch (error) {
     logError('toggleDisplayOnlyDue', error.message)
@@ -1377,18 +1380,7 @@ export async function toggleDisplayOnlyDue(scrollPos: number = 0): Promise<void>
 export async function toggleDisplayNextActions(scrollPos: number = 0): Promise<void> {
   try {
     // v2 directly update settings.json
-    const config: ?ReviewConfig = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
-
-    const savedValue = config.displayNextActions ?? false
-    const newValue = !savedValue
-    logDebug('toggleDisplayNextActions', `displayNextActions? now '${String(newValue)}' (was '${String(savedValue)}')`)
-    const updatedConfig = config
-    updatedConfig.displayNextActions = newValue
-    // logDebug('toggleDisplayNextActions', `updatedConfig.displayNextActions? now is '${String(updatedConfig.displayNextActions)}'`)
-    const _res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
-    // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    await renderProjectListsIfOpen(updatedConfig, scrollPos)
+    await toggleDisplayFilterKey('displayNextActions', false, 'toggleDisplayNextActions', scrollPos)
   }
   catch (error) {
     logError('toggleDisplayNextActions', error.message)

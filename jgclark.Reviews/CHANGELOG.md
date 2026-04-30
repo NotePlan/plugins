@@ -1,6 +1,12 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [2.0.0.b27] - 2026-04-30
+- added 'N projects' count to the top bar
+- dev: simplify `projectClass` by extracting reusable helpers to `projectClassHelpers.js` and immutable calculation logic to `projectClassCalculations.js`
+- dev: simplify `projects.js` complete/cancel closeout flow by extracting shared action logic, normalizing closeout defaults/parsing, and fixing a `submitted` form-result typo
+- dev: simplify `reviews.js` by extracting shared folder-heading formatting, centralizing output-style render dispatch, and consolidating display-filter toggle handlers
+
 ## [2.0.0.b26] - 2026-04-30
 - fix finish review flow to always remove the `nextReview` frontmatter field when a review is completed
 - fix complete/cancel project flow to remove legacy body metadata line from the writable note instance after frontmatter update, avoiding stale duplicate metadata and runtime errors

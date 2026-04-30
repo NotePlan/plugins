@@ -9,7 +9,8 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { Project, calcReviewFieldsForProject, getNoteChangeTimeMsForCache } from './projectClass.js'
+import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
+import { calcReviewFieldsForProject } from './projectClassCalculations.js'
 import { getReviewSettings, updateDashboardIfOpen } from './reviewHelpers.js'
 import type { ReviewConfig } from './reviewHelpers.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -587,7 +588,7 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
 
     // Demo mode: never regenerate from live notes; ensure JSON exists (from demo default), then read it
     const config = await getReviewSettings()
-    if (config.useDemoData ?? false) {
+    if (config?.useDemoData === true) {
       const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
       projectInstances = JSON.parse(content)
     } else {

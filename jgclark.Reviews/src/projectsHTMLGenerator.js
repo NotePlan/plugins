@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-03-29 for v1.4.0.b16, @jgclark
+// Last updated 2026-04-30 for v2.0.0.b27, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -502,6 +502,7 @@ export function buildProjectListTopBarHtml(config: any): string {
   const topbarClasses = config.usePerspectives ? 'topbar' : 'topbar topbar-no-perspective'
   const parts: Array<string> = []
   const displayOrder = (typeof config.displayOrder === 'string' && config.displayOrder !== '') ? config.displayOrder : 'review'
+  const projectsShownCount = Number.isFinite(config.projectsShownCount) ? config.projectsShownCount : 0
   
   // Add buttons for various commands
   const refreshPCButton = makePluginCommandButton(
@@ -552,7 +553,7 @@ export function buildProjectListTopBarHtml(config: any): string {
     parts.push(perspectiveSection)
   }
 
-  const refreshSection = `<div id="refresh">${refreshPCButton}\n<span class="topbar-item"><span class="hideable-label">Updated: </span><span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+  const refreshSection = `<div id="refresh"><span class="topbar-item pad-right-larger">${projectsShownCount} ${pluralise('project', projectsShownCount)}</span>${refreshPCButton}\n<span class="topbar-item"><span class="hideable-label">Updated: </span><span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
   parts.push(refreshSection)
 
   parts.push(`<div class="topbar-center-cluster">`)

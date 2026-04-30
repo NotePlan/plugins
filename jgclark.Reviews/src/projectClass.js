@@ -19,6 +19,19 @@ import {
   migrateProjectMetadataLineInNote,
   processMostRecentProgressParagraph,
 } from './reviewHelpers'
+// import { calcDurationsForProject, calcReviewFieldsForProject } from './projectClassCalculations'
+import {
+  formatDurationString,
+  getMetadataPresenceState,
+  getNoteChangedDateMs,
+  getNoteChangeTimeMsForCache,
+  normalizeProgressDateFromForm,
+  parseDateMentionFromMentions,
+  parseProjectFrontmatterValue,
+  promptAddProgressLineInputs,
+  readRawFrontmatterField,
+  separateFmKeyFromMentionPref,
+} from './projectClassHelpers'
 import { checkBoolean, checkNumber, checkString } from '@helpers/checkType'
 import {
   daysBetween,
@@ -31,17 +44,12 @@ import {
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderFromFilename } from '@helpers/folders'
 import { getOpenEditorFromFilename, saveEditorIfNecessary } from '@helpers/NPEditor'
-import { getContentFromBrackets, getStringFromList } from '@helpers/general'
-import { endOfFrontmatterLineIndex, getFrontmatterAttribute, getFrontmatterParagraphs, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { getStringFromList } from '@helpers/general'
+import { endOfFrontmatterLineIndex, getFrontmatterAttribute, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
-import { usersVersionHas } from '@helpers/NPVersions'
 import { createSectionsAndParaAfterPreamble, endOfPreambleSection, findHeading, getFieldParagraphsFromNote, simplifyRawContent } from '@helpers/paragraph'
 import { getHashtagsFromString } from '@helpers/stringTransforms'
-import {
-  getInputTrimmed,
-  inputIntegerBounded,
-  isInt,
-} from '@helpers/userInput'
+import { isInt } from '@helpers/userInput'
 import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
 
 //-----------------------------------------------------------------------------
@@ -58,265 +66,6 @@ export type Progress = {
   percentComplete: number,
   date: Date,
   comment: string
-}
-
-type FrontmatterFieldRead = {
-  exists: boolean,
-  value: ?string,
-}
-
-//-----------------------------------------------------------------------------
-// Helpers
-
-/**
- * Milliseconds since epoch for a note's `changedDate` (Date or number in some contexts).
- * @param {TNote} note
- * @returns {?number}
- */
-export function getNoteChangedDateMs(note: TNote): ?number {
-  const cd = note.changedDate
-  if (cd == null) {
-    return null
-  }
-  if (cd instanceof Date) {
-    return cd.getTime()
-  }
-  // $FlowFixMe[prop-missing] runtime may expose numeric timestamps
-  if (typeof cd === 'number') {
-    return cd
-  }
-  return null
-}
-
-/**
- * Modification time for comparing against `allProjectsList` cache rows.
- * Returns null when `checkEditor` is true and this note is the focused editor note (unsaved edits must not use the fast path).
- * @param {TNote} note
- * @param {boolean} checkEditor
- * @returns {?number}
- */
-export function getNoteChangeTimeMsForCache(note: TNote, checkEditor: boolean): ?number {
-  if (checkEditor && typeof Editor !== 'undefined' && Editor && Editor.note && Editor.note.filename === note.filename) {
-    return null
-  }
-  return getNoteChangedDateMs(note)
-}
-
-/**
- * Extract ISO date string (YYYY-MM-DD) from a mention string (e.g. @start(2022-03-31)).
- * @param {string} mentionStr - Full mention string
- * @returns {?string} YYYY-MM-DD or undefined if no valid match
- * @private
- */
-function getISODateStringFromMention(mentionStr: string): ?string {
-  const RE_DATE_CAPTURE = new RegExp(`(${RE_DATE})`)
-  const match = mentionStr.match(RE_DATE_CAPTURE)
-  return match && match[1] ? match[1] : undefined
-}
-
-/**
- * Parse a frontmatter value that may be plain content (e.g. '1w' / '2026-03-26')
- * or a wrapped mention value (e.g. '@review(1w)' / '@due(2026-03-26)'),
- * or a quoted value (e.g. '"1w"' / '"2026-03-26"'),
- * or empty ('').
- * Returns value trimmed and unquoted, and may be empty.
- * @param {string} rawValue
- * @returns {string}
- * @private
- */
-export function parseProjectFrontmatterValue(rawValue: string): string {
-  let trimmed = rawValue.trim()
-
-  // Remove double quotes that might surround the value
-  trimmed = trimmed.replace(/^"|"$/g, '')
-
-  // Remove any mention brackets and return the content
-  const mentionMatch = trimmed.match(/^@([A-Za-z0-9_-]+)\((.*)\)$/)
-  if (!mentionMatch) {
-    return trimmed
-  }
-
-  const mentionParam = mentionMatch[2] != null ? mentionMatch[2].trim() : ''
-  return mentionParam
-}
-
-/**
- * Read a frontmatter key directly from raw frontmatter lines.
- * This distinguishes between:
- * - key missing
- * - key present but empty/invalid
- * @param {CoreNoteFields} note
- * @param {string} fieldName
- * @returns {FrontmatterFieldRead}
- * @private
- */
-export function readRawFrontmatterField(note: CoreNoteFields, fieldName: string): FrontmatterFieldRead {
-  const fmParas = getFrontmatterParagraphs(note, false)
-  if (!fmParas || fmParas.length === 0) {
-    return { exists: false, value: undefined }
-  }
-  const escapedFieldName = fieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const re = new RegExp(`^${escapedFieldName}:\\s*(.*)$`, 'i')
-  for (const para of fmParas) {
-    const match = para.content.match(re)
-    if (match) {
-      return { exists: true, value: match[1] != null ? match[1] : '' }
-    }
-  }
-  return { exists: false, value: undefined }
-}
-
-/**
- * Calculate duration string for a date, optionally relative to a start date.
- * If startDate is provided, returns "after X" format. Otherwise returns relative time (e.g., "2 days ago").
- * If duration is less than 1 day then return "today".
- * @param {string|Date} date - The date to calculate duration for (ISO string or Date)
- * @param {?string|Date} startDate - Optional start date for calculating duration between dates
- * @param {boolean} roundShortDurationToToday - Whether to use round to 'today' if duration is measured in hours or less
- * @returns {string} Duration string
- * @private
- */
-function formatDurationString(date: string | Date, startDate?: string | Date, roundShortDurationToToday: boolean = false): string {
-  if (startDate != null) {
-    return `after ${moment(startDate).to(moment(date), true)}`
-  } else {
-    let duration = moment(date).fromNow()
-    if (roundShortDurationToToday && ['seconds', 'minutes', 'hours'].includes(duration)) {
-      duration = 'today'
-    }
-    return duration
-  }
-}
-
-/** Full-line match for ISO YYYY-MM-DD (same rule as RE_DATE). */
-const RE_ISO_DATE_LINE = new RegExp(`^${RE_DATE}$`)
-
-/**
- * Normalize a date value from CommandBar.showForm (string or Date) to YYYY-MM-DD, or today's date if invalid.
- * @param {mixed} value
- * @returns {string}
- * @private
- */
-function normalizeProgressDateFromForm(value: mixed): string {
-  const today = todaysDateISOString
-  if (value == null || value === '') {
-    return today
-  }
-  if (value instanceof Date) {
-    const iso = toISODateString(value)
-    return iso !== '' && RE_ISO_DATE_LINE.test(iso) ? iso : today
-  }
-  const s = String(value).trim()
-  if (RE_ISO_DATE_LINE.test(s)) {
-    return s
-  }
-  logWarn('Project / normalizeProgressDateFromForm', `Bad date value '${String(value)}', using ${today}`)
-  return today
-}
-
-/**
- * Interpret CommandBar.showForm() result for add-progress: comment (required), progress date, optional integer %.
- * @param {CommandBarFormResult} formResult
- * @returns {?{ comment: string, progressDateStr: string, percentStr: string }}
- * @private
- */
-function parseRawProgressFormValues(formResult: CommandBarFormResult): ?{ comment: string, progressDateStr: string, percentStr: string } {
-  try {
-    if (formResult == null || typeof formResult !== 'object') {
-      throw new Error(`formResult is null or not an object`)
-    }
-    if (formResult.submitted === false) {
-      logWarn('parseRawProgressFormValues', `user didn't submit form: stopping.`)
-      return null
-    }
-    const fieldMap: { [string]: mixed } = formResult.values ?? {}
-    const commentRaw = fieldMap.comment
-    const comment = typeof commentRaw === 'string' ? commentRaw.trim() : String(commentRaw ?? '').trim()
-    if (comment === '') {
-      logDebug('parseRawProgressFormValues', `Empty comment; treating as invalid`)
-      return null
-    }
-    const dateRaw = fieldMap.progressDate ?? fieldMap.date
-    const progressDateStr = normalizeProgressDateFromForm(dateRaw)
-    let percentStr = ''
-    const pr = fieldMap.percentComplete ?? fieldMap.percent
-    if (pr != null && pr !== '') {
-      const ps = String(pr).trim()
-      if (ps !== '' && isInt(ps)) {
-        const v = parseFloat(ps)
-        if (v >= 0 && v <= 100) {
-          percentStr = String(v)
-        }
-      }
-    }
-    return { comment, progressDateStr, percentStr }
-  } catch (error) {
-    logError('parseRawProgressFormValues', `Error parsing form result: ${error.message}`)
-    return null
-  }
-}
-
-/**
- * Ask for progress comment, optional % complete, and progress date.
- * Uses CommandBar.showForm when NotePlan supports commandBarForms (v3.21+); otherwise two separate prompts (date = today).
- * @param {string} projectTitle
- * @param {string} prompt - leading phrase before quoted title
- * @param {number} lastPercentComplete - for hint text (may be NaN)
- * @returns {Promise<?{ comment: string, progressDateStr: string, percentStr: string }>}
- * @private
- */
-async function promptAddProgressLineInputs(
-  projectTitle: string,
-  prompt: string,
-  lastPercentComplete: number,
-): Promise<?{ comment: string, progressDateStr: string, percentStr: string }> {
-  const message1 = `${prompt} '${projectTitle}'`
-  const lastPercentMessage = !isNaN(lastPercentComplete)
-    ? `; last was ${String(lastPercentComplete)}`
-    : ``
-
-  // $FlowFixMe[prop-missing] CommandBar.showForm (NP 3.21+) - see flow-typed/Noteplan.js
-  const commandBarWithForm: any = CommandBar
-  if (usersVersionHas('commandBarForms') && typeof commandBarWithForm.showForm === 'function') {
-    try {
-      // NotePlan 3.21+: single form with text, date (default today), and optional %.
-      // Field shape matches CommandBar.showForm (commandBarForms); adjust if NotePlan's schema differs.
-      const raw = await commandBarWithForm.showForm({
-        title: `Add Progress for '${projectTitle}'`,
-        submitText: 'Add',
-        fields: [
-          { type: 'string', key: 'comment', title: 'Comment', required: true },
-          { type: 'date', key: 'progressDate', title: 'Date', description: 'Date of comment', default: todaysDateISOString, required: false },
-          { type: 'number', key: 'percentComplete', title: `Percent Complete (optional %${lastPercentMessage})`, description: `Enter your estimate of project completion (as %${lastPercentMessage}) if wanted`, placeholder: '%', min: 0, max: 100, optional: true, required: false },
-        ],
-      })
-      if (raw == null || raw.submitted !== true) {
-        logDebug('promptAddProgressLineInputs', `User cancelled the form input`)
-        return null
-      }
-      const parsed = parseRawProgressFormValues(raw)
-      if (parsed) {
-        return parsed
-      }
-      logDebug('promptAddProgressLineInputs', `Invalid showForm submission`)
-      return null
-    } catch (error) {
-      logWarn('promptAddProgressLineInputs', `CommandBar.showForm failed (${error.message}); using separate prompts`)
-    }
-  }
-
-  const resText = await getInputTrimmed(message1, 'OK', `Add Progress comment`)
-  if (!resText) {
-    logDebug('promptAddProgressLineInputs', `No valid progress comment`)
-    return null
-  }
-  const comment = String(resText)
-  const resNum = await inputIntegerBounded('Add Progress % completion', 'Percent Complete (optional %${lastPercentMessage})', 100, 0)
-  let percentStr = ''
-  if (!isNaN(resNum)) {
-    percentStr = String(resNum)
-  }
-  return { comment, progressDateStr: todaysDateISOString, percentStr }
 }
 
 /**
@@ -425,10 +174,6 @@ export class Project {
       const reviewIntervalMentionName = mentionFromPref('reviewIntervalMentionStr')
       const nextReviewMentionName = mentionFromPref('nextReviewMentionStr')
 
-      const separateFmKeyFromMentionPref = (raw: string, defaultKey: string): string => {
-        const s = checkString(raw || '').replace(/^[@#]/, '')
-        return s !== '' ? s : defaultKey
-      }
       const fmKey = {
         start: separateFmKeyFromMentionPref(startMentionName, 'start'),
         due: separateFmKeyFromMentionPref(dueMentionName, 'due'),
@@ -442,13 +187,7 @@ export class Project {
       const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
       const numberDaysForFutureToIgnore = checkNumber(DataStore.preference('numberDaysForFutureToIgnore')) || 0
 
-      const hasCombinedTagsMetadata = combinedMetadataField.exists && String(combinedMetadataField.value ?? '').trim() !== ''
-      const hasSeparateFrontmatterMetadata =
-        ['start', 'due', 'reviewed', 'completed', 'cancelled', 'review', 'nextReview']
-          .map((k) => readRawFrontmatterField(this.note, k))
-          .some((field) => field.exists && String(field.value ?? '').trim() !== '')
-      const hasFrontmatterMetadata = hasCombinedTagsMetadata || hasSeparateFrontmatterMetadata
-      const metadataBodyLineIndex = getMetadataLineIndexFromBody(this.note)
+      const { hasCombinedTagsMetadata, hasSeparateFrontmatterMetadata, hasFrontmatterMetadata, metadataBodyLineIndex } = getMetadataPresenceState(this.note, singleKeyName)
       logDebug(
         'ProjectConstructor',
         `- metadata presence for '${this.title}': combined=${String(hasCombinedTagsMetadata)} separate=${String(hasSeparateFrontmatterMetadata)} bodyIndex=${String(metadataBodyLineIndex)}`,
@@ -522,10 +261,10 @@ export class Project {
         logWarn('ProjectConstructor', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
       }
 
-      // read in review interval (if present) from body metadata mentions
-      const tempIntervalStr = getParamMentionFromList(mentions, reviewIntervalMentionName)
-      if (tempIntervalStr !== '') {
-        this.reviewInterval = getContentFromBrackets(tempIntervalStr) ?? ''
+      // Read in review interval (if present) from metadata mentions (e.g. @review(1w))
+      const intervalMentionStr = getParamMentionFromList(mentions, reviewIntervalMentionName)
+      if (intervalMentionStr !== '') {
+        this.reviewInterval = parseProjectFrontmatterValue(intervalMentionStr)
       }
       // read in various metadata fields from body of note (if present)
       this.startDate = this.parseDateMention(mentions, 'startMentionStr', startMentionName)
@@ -909,17 +648,7 @@ export class Project {
   parseDateMention(mentions: $ReadOnlyArray<string>, mentionKey: string, resolvedMentionName?: string): ?string {
     const mentionName =
       resolvedMentionName != null && resolvedMentionName !== '' ? checkString(resolvedMentionName) : checkString(DataStore.preference(mentionKey))
-    const tempStr = getParamMentionFromList(mentions, mentionName)
-    if (tempStr === '') {
-      return undefined
-    }
-
-    const bracketContent = getContentFromBrackets(tempStr)
-    if (bracketContent == null || bracketContent.trim() === '') {
-      logWarn('ProjectConstructor', `Found empty ${mentionName}() in '${this.title}' (${this.filename}). Ignoring this value.`)
-      return undefined
-    }
-    return getISODateStringFromMention(tempStr)
+    return parseDateMentionFromMentions(mentions, mentionName, this.title, this.filename)
   }
 
   /**
@@ -1828,216 +1557,4 @@ export function clearNextReviewMetadataFields(project: Project): void {
   project.nextReviewDays = NaN
 }
 
-//-----------------------------------------------------------------
-// Non-Class versions of the same functions
-//-----------------------------------------------------------------
-
-/**
- * Type for updatable Project fields in helper functions
- */
-type ProjectUpdates = {
-  dueDays?: number,
-  nextReviewDateStr?: ?string,
-  nextReviewDays?: number,
-  completedDuration?: ?string,
-  cancelledDuration?: ?string,
-}
-
-/**
- * Create an immutable copy of a Project with updated properties.
- * Returns a new object with all properties from the original plus any updates.
- * @param {Project} project - The original Project instance
- * @param {ProjectUpdates} updates - Object with properties to update
- * @returns {Project} - New immutable Project-like object
- */
-function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = {}): Project {
-  // $FlowIgnore[incompatible-return] - Object literal has all Project properties, compatible for our use case
-  return {
-    note: project.note,
-    filename: project.filename,
-    folder: project.folder,
-    metadataParaLineIndex: project.metadataParaLineIndex,
-    title: project.title,
-    startDate: project.startDate,
-    dueDate: project.dueDate,
-    dueDays: updates.dueDays !== undefined ? updates.dueDays : project.dueDays,
-    reviewedDate: project.reviewedDate,
-    reviewInterval: project.reviewInterval,
-    nextReviewDateStr: updates.nextReviewDateStr !== undefined ? updates.nextReviewDateStr : project.nextReviewDateStr,
-    nextReviewDays: updates.nextReviewDays !== undefined ? updates.nextReviewDays : project.nextReviewDays,
-    completedDate: project.completedDate,
-    completedDuration: updates.completedDuration !== undefined ? updates.completedDuration : project.completedDuration,
-    cancelledDate: project.cancelledDate,
-    cancelledDuration: updates.cancelledDuration !== undefined ? updates.cancelledDuration : project.cancelledDuration,
-    numOpenItems: project.numOpenItems,
-    numCompletedItems: project.numCompletedItems,
-    numTotalItems: project.numTotalItems,
-    numWaitingItems: project.numWaitingItems,
-    numFutureItems: project.numFutureItems,
-    isCompleted: project.isCompleted,
-    isCancelled: project.isCancelled,
-    isPaused: project.isPaused,
-    percentComplete: project.percentComplete,
-    lastProgressComment: project.lastProgressComment,
-    mostRecentProgressLineIndex: project.mostRecentProgressLineIndex,
-    nextActionsRawContent: project.nextActionsRawContent,
-    ID: project.ID,
-    icon: project.icon,
-    iconColor: project.iconColor,
-    allProjectTags: project.allProjectTags ?? [],
-    noteChangedAtMs: project.noteChangedAtMs,
-  }
-}
-
-/**
- * Normalise a possibly non-ISO date string to strict ISO format (YYYY-MM-DD), or null if invalid.
- * Handles legacy full ISO datetime strings (e.g. 'YYYY-MM-DDTHH:mm:ss.sssZ') by truncating to the date part.
- * @param {?string} dateStrIn
- * @param {string} context - description for logging
- * @returns {?string} normalised ISO date string or null
- * @private
- */
-function normaliseISODateString(dateStrIn: ?string, context: string): ?string {
-  if (typeof dateStrIn !== 'string' || dateStrIn === '') {
-    return null
-  }
-
-  const reISODate = new RegExp(`^${RE_DATE}$`)
-  if (reISODate.test(dateStrIn)) {
-    return dateStrIn
-  }
-
-  // Handle full ISO datetime 'YYYY-MM-DDTHH:mm:ss.sssZ' by truncating to the date part
-  const isoDateTimeMatch = dateStrIn.match(/^(\d{4}-\d{2}-\d{2})T/)
-  if (isoDateTimeMatch && isoDateTimeMatch[1]) {
-    const truncated = isoDateTimeMatch[1]
-    if (reISODate.test(truncated)) {
-      logWarn('normaliseISODateString', `Truncating full ISO datetime '${dateStrIn}' to '${truncated}' for ${context}`)
-      return truncated
-    }
-  }
-
-  logWarn('normaliseISODateString', `Invalid date string '${dateStrIn}' for ${context}; treating as null`)
-  return null
-}
-
-/**
- * From a Project metadata object read in, calculate updated due/finished durations, and return an immutable updated Project object.
- * On error, returns the original Project object.
- * @author @jgclark
- * @param {Project} thisProjectIn
- * @returns {Project}
-*/
-export function calcDurationsForProject(thisProjectIn: Project): Project {
-  try {
-    const now = moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-    
-    // Calculate # days until due
-    const dueDays = thisProjectIn.dueDate != null
-      ? daysBetween(now, thisProjectIn.dueDate)
-      : NaN
-
-    // Calculate durations or time since cancel/complete
-    // logDebug('calcDurationsForProject', String(thisProjectIn.startDate ?? 'no startDate'))
-    
-    let completedDuration = thisProjectIn.completedDuration
-    let cancelledDuration = thisProjectIn.cancelledDuration
-
-    if (thisProjectIn.completedDate != null) {
-      completedDuration = formatDurationString(thisProjectIn.completedDate, thisProjectIn.startDate ?? undefined, true)
-      // logDebug('calcDurationsForProject', `-> completedDuration = ${completedDuration}`)
-    } else if (thisProjectIn.cancelledDate != null) {
-      cancelledDuration = formatDurationString(thisProjectIn.cancelledDate, thisProjectIn.startDate ?? undefined, true)
-      // logDebug('calcDurationsForProject', `-> cancelledDuration = ${cancelledDuration}`)
-    } else {
-      // logDebug('calcDurationsForProject', `No completed or cancelled dates.`)
-    }
-    
-    return createImmutableProjectCopy(thisProjectIn, {
-      dueDays,
-      completedDuration,
-      cancelledDuration,
-    })
-  } catch (error) {
-    logError('calcDurationsForProject', error.message)
-    return thisProjectIn
-  }
-}
-
-/**
- * From a Project metadata object read in, calculate updated next review date, and return an immutable updated Project object.
- * On error, returns the original Project object.
- * @author @jgclark
- * @param {Project} thisProjectIn
- * @returns {Project}
- */
-export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
-  try {
-    // logDebug('calcReviewFieldsForProject', `Starting for '${thisProjectIn.title}' ...`)
-    const now = moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-
-    // Calculate next review due date, if there isn't already a nextReviewDateStr, and there's a review interval.
-    let nextReviewDateStr: ?string = thisProjectIn.nextReviewDateStr
-    let nextReviewDays: number = thisProjectIn.nextReviewDays
-
-    // First check to see if project start is in future: if so set nextReviewDateStr to project start
-    const rawStartDateIn = thisProjectIn.startDate
-    const startDateIn = normaliseISODateString(rawStartDateIn, 'startDate')
-    if (startDateIn != null) {
-      const momTSD = moment(startDateIn)
-      if (momTSD.isAfter(now)) {
-        nextReviewDateStr = startDateIn
-        nextReviewDays = daysBetween(now, startDateIn)
-        logDebug('calcReviewFieldsForProject', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(nextReviewDays)} interval`)
-      }
-    }
-
-    // Now check to see if we have a specific nextReviewDateStr
-    const rawNextReviewDateStrIn = thisProjectIn.nextReviewDateStr
-    const normalisedNextReviewDateStr = normaliseISODateString(rawNextReviewDateStrIn, 'nextReviewDateStr')
-
-    if (normalisedNextReviewDateStr != null) {
-      nextReviewDateStr = normalisedNextReviewDateStr
-      nextReviewDays = daysBetween(now, normalisedNextReviewDateStr)
-      // logDebug('calcReviewFieldsForProject', `- already had a nextReviewDateStr ${normalisedNextReviewDateStr ?? '?'} -> ${String(nextReviewDays)} interval`)
-    } else if (thisProjectIn.reviewInterval != null) {
-      const reviewedDateIn = thisProjectIn.reviewedDate
-      if (typeof reviewedDateIn === 'string' && reviewedDateIn !== '') {
-        const calculatedNextReviewDateStr = calcNextReviewDate(reviewedDateIn, thisProjectIn.reviewInterval)
-        const hasValidCalculated = calculatedNextReviewDateStr != null && calculatedNextReviewDateStr !== ''
-        if (hasValidCalculated) {
-          const safeCalculatedNextReviewDateStr = normaliseISODateString(calculatedNextReviewDateStr, 'calculatedNextReviewDateStr')
-          if (safeCalculatedNextReviewDateStr != null) {
-            nextReviewDateStr = safeCalculatedNextReviewDateStr
-            // this now uses moment and truncated (not rounded) date diffs in number of days
-            nextReviewDays = daysBetween(now, safeCalculatedNextReviewDateStr)
-            // logDebug('calcReviewFieldsForProject', `${String(thisProjectIn.reviewedDate)} + ${thisProjectIn.reviewInterval ?? ''} -> nextReviewDateStr: ${nextReviewDateStr ?? ''} = ${String(nextReviewDays) ?? '-'}`)
-          } else {
-            // Fall back to today rather than throwing (e.g. if calcNextReviewDate returned an unexpected format)
-            nextReviewDateStr = moment().format('YYYY-MM-DD')
-            nextReviewDays = 0
-            logWarn('calcReviewFieldsForProject', `Could not normalise calculated nextReviewDate '${String(calculatedNextReviewDateStr)}' for project '${thisProjectIn.title}'; using today`)
-          }
-        } else {
-          // No valid calculated date (null or empty): treat next review as today
-          nextReviewDateStr = moment().format('YYYY-MM-DD')
-          nextReviewDays = 0
-          logDebug('calcReviewFieldsForProject', `calcNextReviewDate returned no date for reviewedDate=${String(reviewedDateIn)}; using today`)
-        }
-      } else {
-        // no next review date, so set at today
-        nextReviewDateStr = moment().format('YYYY-MM-DD')
-        nextReviewDays = 0
-      }
-    }
-    // logDebug('calcReviewFieldsForProject', `-> reviewedDate = ${String(thisProjectIn.reviewedDate)} / nextReviewDateStr = ${String(nextReviewDateStr)} / nextReviewDays = ${String(nextReviewDays)}`)
-    
-    return createImmutableProjectCopy(thisProjectIn, {
-      nextReviewDateStr,
-      nextReviewDays,
-    })
-  } catch (error) {
-    logError('calcReviewFieldsForProject', `${error.message} in project '${thisProjectIn.title}'`)
-    return thisProjectIn
-  }
-}
+export { getNoteChangeTimeMsForCache, getNoteChangedDateMs, parseProjectFrontmatterValue, readRawFrontmatterField }

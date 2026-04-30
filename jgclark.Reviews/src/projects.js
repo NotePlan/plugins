@@ -18,7 +18,7 @@ import { usersVersionHas } from '@helpers/NPVersions'
 import { getInputTrimmed, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
-// Constants
+// Types & Constants
 
 const thisYearStr = moment().format('YYYY')
 const thisQuarterStr = moment().format('YYYY-[Q]Q')
@@ -33,6 +33,11 @@ type ProjectCloseoutInputs = {
   willArchive: boolean,
   summaryDestination: SummaryDestination,
   finalProgressComment: string,
+}
+const DEFAULT_PROJECT_CLOSEOUT_INPUTS: ProjectCloseoutInputs = {
+  willArchive: true,
+  summaryDestination: 'yearly',
+  finalProgressComment: '',
 }
 
 //-----------------------------------------------------------------------------
@@ -134,10 +139,10 @@ function addToSummaryNote(thisProject: Project, config: ReviewConfig, summaryDes
  */
 function parseSummaryDestination(value: mixed): SummaryDestination {
   const raw = String(value ?? '').trim().toLowerCase()
-  if (['quarterly', 'Quarterly', 'quarter', 'q', 'current quarter'].includes(raw)) {
+  if (['quarterly', 'quarter', 'q', 'current quarter'].includes(raw)) {
     return 'quarterly'
   }
-  if (['yearly', 'Yearly', 'year', 'y', 'current year'].includes(raw)) {
+  if (['yearly', 'year', 'y', 'current year'].includes(raw)) {
     return 'yearly'
   }
   if (['none', 'no', 'n', 'skip', 'off'].includes(raw)) {
@@ -196,15 +201,10 @@ function parseProjectCloseoutFormValues(formResult: CommandBarFormResult): ?Proj
  */
 async function promptProjectCloseoutInputs(actionType: 'completed' | 'cancelled', projectTitle: string): Promise<?ProjectCloseoutInputs> {
   const actionWord = actionType === 'completed' ? 'Complete' : 'Cancel'
-  const defaultCloseoutInputs: ProjectCloseoutInputs = {
-    willArchive: true,
-    summaryDestination: 'yearly',
-    finalProgressComment: '',
-  }
   const commandBarWithForm: any = CommandBar
   if (usersVersionHas('commandBarForms') && typeof commandBarWithForm.showForm === 'function') {
     try {
-      const raw = await commandBarWithForm.showForm({
+      const formResult = await commandBarWithForm.showForm({
         title: `${actionWord} Project '${projectTitle}'`,
         submitText: `${actionWord} Project`,
         fields: [
@@ -213,16 +213,16 @@ async function promptProjectCloseoutInputs(actionType: 'completed' | 'cancelled'
           { type: 'string', key: 'finalProgressComment', title: 'Final progress comment (optional)', description: "Optional final comments to add as a 'Progress' line", required: false, placeholder: 'Optional final comments' },
         ],
       })
-      if (raw == null || raw.submiited !== true) {
+      if (formResult == null || formResult.submitted !== true) {
         logDebug('promptProjectCloseoutInputs', `User cancelled the form input; continuing closeout with defaults and no final progress comment`)
-        return defaultCloseoutInputs
+        return DEFAULT_PROJECT_CLOSEOUT_INPUTS
       }
-      const parsed = parseProjectCloseoutFormValues(raw)
+      const parsed = parseProjectCloseoutFormValues(formResult)
       if (parsed) {
         return parsed
       }
       logWarn('promptProjectCloseoutInputs', `Could not parse showForm result; continuing closeout with defaults and no final progress comment`)
-      return defaultCloseoutInputs
+      return DEFAULT_PROJECT_CLOSEOUT_INPUTS
     } catch (error) {
       logWarn('promptProjectCloseoutInputs', `CommandBar.showForm failed (${error.message}); using separate prompts`)
     }
@@ -230,9 +230,7 @@ async function promptProjectCloseoutInputs(actionType: 'completed' | 'cancelled'
 
   const archivePrompt = actionType === 'completed'
     ? 'Archive this completed project note?'
-    : actionType === 'completed'
-      ? 'Archive this cancelled project note?'
-      : '(invalid action type)'
+    : 'Archive this cancelled project note?'
   const willArchive = await showMessageYesNo(archivePrompt, [ARCHIVE_PROMPT_YES, ARCHIVE_PROMPT_NO]) === ARCHIVE_PROMPT_YES
 
   const summaryRaw = await getInputTrimmed(
@@ -313,6 +311,54 @@ async function handleProjectCompletionOrCancellation(
   }
 }
 
+/**
+ * Run complete/cancel project closeout flow with shared logic.
+ * @param {'completed' | 'cancelled'} actionType
+ * @param {TNote?} noteArg
+ * @param {number} scrollPos
+ * @returns {Promise<void>}
+ * @private
+ */
+async function runProjectCloseoutAction(
+  actionType: 'completed' | 'cancelled',
+  noteArg?: TNote,
+  scrollPos: number = 0,
+): Promise<void> {
+  const actionVerb = actionType === 'completed' ? 'completeProject' : 'cancelProject'
+  const actionNoun = actionType === 'completed' ? 'completing' : 'cancelling'
+  const note = validateAndGetNote(noteArg, actionVerb)
+  const thisProject = new Project(note)
+  const closeoutInputs = await promptProjectCloseoutInputs(actionType, thisProject.title)
+  if (!closeoutInputs) {
+    logDebug(`project/${actionVerb}`, `User cancelled ${actionVerb} closeout prompt`)
+    return
+  }
+
+  if (closeoutInputs.finalProgressComment !== '') {
+    await thisProject.addProgressLine('Final progress comment for', {
+      comment: closeoutInputs.finalProgressComment,
+      progressDateStr: thisDayStr,
+      percentStr: '',
+    })
+  }
+
+  const success = actionType === 'completed'
+    ? thisProject.completeProject()
+    : thisProject.cancelProject()
+
+  if (!success) {
+    logError(`project/${actionVerb}`, `Error ${actionNoun} project.`)
+    return
+  }
+
+  const config: ?ReviewConfig = await getReviewSettings()
+  if (!config) {
+    logError(`project/${actionVerb}`, 'Error getting review settings.')
+    return
+  }
+  await handleProjectCompletionOrCancellation(thisProject, note, config, actionType, closeoutInputs, scrollPos)
+}
+
 //-----------------------------------------------------------------------------
 /**
  * Add progress to a Project note in the Editor (or passed by noteArg)
@@ -355,37 +401,7 @@ export async function addProgressUpdate(noteArg?: TNote, scrollPos: number = 0):
 export async function completeProject(noteArg?: TNote, scrollPos: number = 0): Promise<void> {
   try {
     logDebug('project/completeProject', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
-
-    const note = validateAndGetNote(noteArg, 'completeProject')
-    const thisProject = new Project(note)
-    const closeoutInputs = await promptProjectCloseoutInputs('completed', thisProject.title)
-    if (!closeoutInputs) {
-      logDebug('project/completeProject', `User cancelled complete-project closeout prompt`)
-      return
-    }
-
-    if (closeoutInputs.finalProgressComment !== '') {
-      await thisProject.addProgressLine('Final progress comment for', {
-        comment: closeoutInputs.finalProgressComment,
-        progressDateStr: thisDayStr,
-        percentStr: '',
-      })
-    }
-
-    // Call the class' method to update its metadata
-    const success = thisProject.completeProject()
-
-    // If this has worked, then handle post-processing
-    if (success) {
-      const config: ?ReviewConfig = await getReviewSettings()
-      if (config) {
-        await handleProjectCompletionOrCancellation(thisProject, note, config, 'completed', closeoutInputs, scrollPos)
-      } else {
-        logError('project/completeProject', 'Error getting review settings.')
-      }
-    } else {
-      logError('project/completeProject', 'Error completing project.')
-    }
+    await runProjectCloseoutAction('completed', noteArg, scrollPos)
   } catch (error) {
     logError('project/completeProject', error.message)
   }
@@ -422,37 +438,7 @@ export async function completeProjectByFilename(filename: string): Promise<void>
 export async function cancelProject(noteArg?: TNote, scrollPos: number = 0): Promise<void> {
   try {
     logDebug('project/cancelProject', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
-
-    const note = validateAndGetNote(noteArg, 'cancelProject')
-    const thisProject = new Project(note)
-    const closeoutInputs = await promptProjectCloseoutInputs('cancelled', thisProject.title)
-    if (!closeoutInputs) {
-      logDebug('project/cancelProject', `User cancelled cancel-project closeout prompt`)
-      return
-    }
-
-    if (closeoutInputs.finalProgressComment !== '') {
-      await thisProject.addProgressLine('Final progress comment for', {
-        comment: closeoutInputs.finalProgressComment,
-        progressDateStr: thisDayStr,
-        percentStr: '',
-      })
-    }
-
-    // Call the class' method to update its metadata
-    const success = thisProject.cancelProject()
-
-    // If this has worked, then handle post-processing
-    if (success) {
-      const config: ?ReviewConfig = await getReviewSettings()
-      if (config) {
-        await handleProjectCompletionOrCancellation(thisProject, note, config, 'cancelled', closeoutInputs, scrollPos)
-      } else {
-        logError('cancelProject', 'Error getting review settings.')
-      }
-    } else {
-      logError('cancelProject', 'Error cancelling project.')
-    }
+    await runProjectCloseoutAction('cancelled', noteArg, scrollPos)
   } catch (error) {
     logError('cancelProject', error.message)
   }

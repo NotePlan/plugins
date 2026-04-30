@@ -192,6 +192,7 @@ input, label {
     display: none;
   }
 }
+
 .topbar-no-perspective {
   grid-template-columns: auto auto auto;
 }
