@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // Main functions for Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 2026-03-18, for v1.0.2
+// last updated 2026-04-28, for v1.1.2
 //-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -11,6 +11,7 @@ import {  getRepeatSettings, RE_EXTENDED_REPEAT } from './repeatHelpers'
 import type { RepeatConfig} from './repeatHelpers'
 import { generateRepeatForPara } from './repeatPara'
 import { stringListOrArrayToArray } from "@helpers/dataManipulation"
+import { RE_DONE_DATE_TIME } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logInfo, logWarn, logError } from "@helpers/dev"
 import { logAllEnvironmentSettings } from "@helpers/NPdev"
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
@@ -21,35 +22,34 @@ import { showMessage } from '@helpers/userInput'
 /**
  * Main Command entry point for Repeat Extensions plugin.
  * Process any completed (or cancelled) tasks with my extended @repeat(..) tags, and also remove the HH:MM portion of any @done(...) tasks.
- * Runs on the currently open note (using Editor.* funcs),
- * or (since v0.7.1) on a passed TNote.
- * The actual repeat generation is done by generateRepeatForPara() -- see that function for more details of how it works.
+ * Runs on the currently open note (using Editor.* funcs), or passed TNote (if given).
+ * If using passed TNote it will *not* use Editor.* funcs, to avoid problems running onAsyncThread from Tidy Up plugin. 
+ * Note: The actual repeat generation is done by generateRepeatForPara() -- see that function for more details of how it works.
  * TEST: fails to appendTodo to note with same stem?
  * @author @jgclark
  * @param {boolean} runSilently? [default: false]
- * @param {TNote?} noteArg optional note to process
- * @returns {number} number of generated repeats
+ * @param {CoreNoteFields?} noteArg optional note to process
+ * @param {boolean} allowedToUseEditor? [default: true] If false, never use Editor.* funcs to edit the note. This is required for running onAsyncThread from Tidy Up plugin.
+ * @returns {number} number of generated repeats. Note: this is only relevant if the note is passed as an argument, not if the currently open note is used.
  */
 export async function generateRepeats(
   runSilently: boolean = false,
-  noteArg?: TNote
+  noteArg?: CoreNoteFields,
+  allowedToUseEditor: boolean = true
 ): Promise<number> {
   try {
     // Get passed note details, or fall back to Editor
-    let noteToUse: TNote
-    let noteIsOpenInEditor = false // when true we can use a faster-to-user function
+    let noteToUse: CoreNoteFields
     if (noteArg) {
       noteToUse = noteArg
-      logDebug(pluginJson, `generateRepeats() starting with noteArg -> ${noteToUse.filename}`)
+      logDebug(pluginJson, `generateRepeats starting: noteArg '${noteToUse.filename}'`)
     } else if (Editor && Editor.note) {
-      // $FlowIgnore[prop-missing]
       noteToUse = Editor
-      noteIsOpenInEditor = true
-      logDebug(pluginJson, `generateRepeats() starting with EDITOR -> ${noteToUse.filename}`)
+      logDebug(pluginJson, `generateRepeats starting: EDITOR (${noteToUse.filename})`)
     } else {
       throw new Error(`Couldn't get either passed Note argument or Editor.note: stopping`)
     }
-    const { paragraphs, filename } = noteToUse
+    const { paragraphs } = noteToUse
     if (paragraphs === null) {
       // No note open, or no paragraphs (perhaps empty note), so don't do anything.
       logInfo(pluginJson, 'No note open, or empty note.')
@@ -72,10 +72,8 @@ export async function generateRepeats(
       ? findEndOfActivePartOfNote(noteToUse) + 1
       : lineCount
     if (lastLineIndexToCheck === 0) {
-      logDebug(pluginJson, `generateRepeats() starting for '${filename}' but no active lines so won't process`)
+      // logDebug(pluginJson, `generateRepeats() starting for '${filename}' but no active lines so won't process`)
       return 0
-    } else {
-      // logDebug(pluginJson, `generateRepeats() starting for '${filename}' for ${config.dontLookForRepeatsInDoneOrArchive ? 'ACTIVE' : 'ALL'} ${lastLineIndexToCheck} lines`)
     }
 
     let repeatCount = 0
@@ -85,19 +83,23 @@ export async function generateRepeats(
     // Go through each line in the active part of the file
     for (let n = 0; n <= lastLineIndexToCheck - 1; n++) {
       const origPara = paragraphs[n]
+      if (!origPara || typeof origPara.content !== 'string') {
+        continue
+      }
+      // Test if this is a special extended repeat with a datetime to shorten
       const content = origPara.content
-      // Test if this is a special extended repeat
-      if (content.match(RE_EXTENDED_REPEAT)) {
-        // $FlowIgnore[prop-missing]
-        const newPara = await generateRepeatForPara(origPara, noteToUse, noteIsOpenInEditor, config)
-
+      if (RE_EXTENDED_REPEAT.test(content) && RE_DONE_DATE_TIME.test(content)) {
+        // Do the main generation work
+        const newPara = await generateRepeatForPara(origPara, noteToUse, config, allowedToUseEditor)
         if (newPara) {
           repeatCount++
-          // Add this para's heading to the list if it's not already there
-          if (origPara.heading !== lastHeading) {
-            headingList.push(origPara.heading)
+          // (For later sorting use) Add this para's heading to the list if it's not already there
+          if (config.runTaskSorter) {
+            if (origPara.heading !== lastHeading) {
+              headingList.push(origPara.heading)
+            }
+            lastHeading = origPara.heading
           }
-          lastHeading = origPara.heading
         }
       }
     }
@@ -112,10 +114,16 @@ export async function generateRepeats(
     }
     logInfo('generateRepeats', `${String(repeatCount)} new repeats were generated`)
 
-    // Run task sorter if its installed, and we want it, and we are working in the Editor
+    // Run task sorter if its installed, and we want it, and the same note is open in the Editor
+    // Note: This latter constraint is self-imposed, not because of the task sorter plugin.
     if (config.runTaskSorter) {
       if (DataStore.isPluginInstalledByID('dwertheimer.TaskSorting')) {
-        if (noteIsOpenInEditor) {
+        const editorIsActiveForThisNote =
+          typeof Editor !== 'undefined' &&
+          Editor != null &&
+          Editor.filename != null &&
+          noteToUse.filename === Editor.filename
+        if (editorIsActiveForThisNote) {
           // Attempt to update the cache, so that the task sorter can find the new repeats. Note: it doesn't seem to make a difference.
           // Note: using noteToUse instead of Editor.note generates an Objective-C error.
           // $FlowIgnore[incompatible-call] checked Editor.note is not null
@@ -127,18 +135,19 @@ export async function generateRepeats(
           logInfo('generateRepeats', `Will sort tasks according to user defaults from Task Sorting plugin`)
           // For each changed section, sort the tasks under that heading.
           for (const heading of headingList) {
-            logInfo('generateRepeats', `Sorting tasks under heading ${heading} ...`)
+            logInfo('generateRepeats', `- Sorting tasks under heading '${heading}'`)
+            // v1: indirect call via invokePluginCommandByName()
             // await DataStore.invokePluginCommandByName('Sort tasks under heading (choose)', 'dwertheimer.TaskSorting', [heading, sortFields, noteToUse])
+            // v2: direct call
+            // $FlowIgnore[incompatible-call] TNote vs CoreNoteFields
             await sortTasksUnderHeading(heading, sortFields, noteToUse)
           }
-
-      
-      } else {
-        logDebug('generateRepeats', `Task sorter plugin is installed, but we are not working in the Editor, so can't run it`)
-      }
-      } else {
-        logError('generateRepeats', `Task Sorting plugin is not installed, so can't run it`)
+        } else {
+          logDebug('generateRepeats', `Task sorter plugin is installed, but we are not working in the Editor, so can't run it.`)
         }
+      } else {
+        logWarn('generateRepeats', `Task Sorting plugin is not installed, so can't run it. Set "Run Task Sorter after changes?" to false to disable this message.`)
+      }
     }
     return repeatCount
   } catch (error) {

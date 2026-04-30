@@ -137,6 +137,7 @@ async function deleteParagraphsFromNote(note: CoreNoteFields, tasksToDelete: Arr
   logDebug(pluginJson, `${functionName}: Deleting ${sortedTasks.length} tasks from note`)
 
   // Set Editor flags to avoid UI updates during bulk deletion
+  // Note: @jgclark checked in April 2026 and can't find any evidence this exists in the API
   if (Editor.beginEdits) {
     Editor.beginEdits()
   }
@@ -144,12 +145,12 @@ async function deleteParagraphsFromNote(note: CoreNoteFields, tasksToDelete: Arr
   try {
     // Delete each task
     for (const task of sortedTasks) {
-      if (note.removeParagraph) {
-        note.removeParagraph(task)
-      }
+      // Note: next line added by @jgclark to avoid UI warnings about deleting lines with @repeat(...) tags
+      Editor.skipNextRepeatDeletionCheck = true
+      note.removeParagraph(task)
     }
   } finally {
-    // Always end edits, even if there was an error
+    // Always end edits, even if there was an error -- though see above.
     if (Editor.endEdits) {
       Editor.endEdits()
     }
@@ -908,6 +909,7 @@ export function removeEmptyHeadings(note: CoreNoteFields) {
   if (updates.length) {
     // updates.map((u) => logDebug(pluginJson, `removeEmptyHeadings deleting spinster lineIndex[${u.lineIndex}] ${u.rawContent}`))
     // note.updateParagraphs(updates)
+    Editor.skipNextRepeatDeletionCheck = true // Note: from NP 3.15 build 1284/1230 (added by @jgclark)
     note.removeParagraphs(updates)
   }
 }

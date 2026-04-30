@@ -1572,17 +1572,18 @@ export async function markComplete(para: TParagraph, useScheduledDateAsCompletio
           dontLookForRepeatsInDoneOrArchive: true,
           runTaskSorter: false,
           taskSortingOrder: '',
+          allowRepeatsInCancelledParas: false,
           _logLevel: 'INFO',
         }
       } else {
         repeatConfig = await getRepeatSettings()
       }
       const repeatDate = getFirstDateInPeriod(para.content)
-      logDebug('markComplete', `will call Repeat Extensions plugin to fire /rpt trigger for date ${repeatDate}`)
+      logInfo('markComplete', `will call Repeat Extensions plugin to fire /rpt trigger for date ${repeatDate}`)
       // Call the Repeat Extensions plugin's generateRepeat function for just this para
-      clo(repeatConfig, 'repeatConfig')
+      // clo(repeatConfig, 'repeatConfig')
       // $FlowIgnore[incompatible-call]
-      const res = await generateRepeatForPara(para, para.note, false, repeatConfig)
+      const res = await generateRepeatForPara(para, para.note, repeatConfig)
       if (!res) {
         logWarn('markComplete', `Call to generate repeat for para {${para.content}} failed.`)
       }

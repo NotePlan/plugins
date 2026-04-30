@@ -4,7 +4,7 @@
 // Create new note from currently selected text
 // and (optionally) leave backlink to it where selection was
 // Note: this was originally in Filer plugin
-// Last updated 2025-04-08 for 1.1.0+, @jgclark (originally @dwertheimer)
+// Last updated 2026-04-25 for 1.1.0+, @jgclark (originally @dwertheimer)
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,6 +13,44 @@ import { logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getUniqueNoteTitle, getNote } from '@helpers/note'
 import { chooseFolder, getInput, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+
+//-----------------------------------------------------------------------------
+// helper functions
+
+/**
+ * Return a suggested note title from text content.
+ * Looks for frontmatter `title:`, then first-line `title:`, otherwise strips heading markup from first line.
+ * @param {string} content
+ * @returns {string}
+ */
+export function getSuggestedTitleFromContent(content: string): string {
+  if (!content || content.trim() === '') {
+    return ''
+  }
+
+  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n?/)
+  if (frontmatterMatch?.[1]) {
+    const frontmatterTitleMatch = frontmatterMatch[1].match(/^title:\s*(.+)$/m)
+    if (frontmatterTitleMatch?.[1]) {
+      return frontmatterTitleMatch[1].trim()
+    }
+  }
+
+  let firstLine = content.split('\n')[0] ?? ''
+  if (!firstLine) {
+    firstLine = ''
+  }
+
+  const titleLineMatch = firstLine.match(/^title:\s*(.+)$/i)
+  if (titleLineMatch?.[1]) {
+    return titleLineMatch[1]
+  }
+
+  return firstLine.replace(/^[#\s]*/, '').trim()
+}
+
+//-----------------------------------------------------------------------------
+// Main function
 
 /**
  * Create new (regular) note.
@@ -67,9 +105,7 @@ export async function newNoteFromClipboard(): Promise<void> {
 
     // Get title for this note
     // Offer the first line to use, shorn of any leading # marks, from either frontmatter's 'title:' or the first line of the text
-    // FIXME: 
-    const firstLineMatches: Array<string> = string.match(/^(?:---\n(?:title:\s*)?|^title:\s+(.*)\n|^[#\s]*)?(.*)\n/) ?? []
-    const titleToOffer = firstLineMatches[1] ?? ''
+    const titleToOffer = getSuggestedTitleFromContent(string)
     let title = await getInput('Title of new note', 'OK', 'New Note from Clipboard', titleToOffer)
     if (typeof title === 'string') {
       const uniqueTitle = getUniqueNoteTitle(title)
@@ -109,69 +145,62 @@ export async function newNoteFromSelection(): Promise<void> {
 
   if (note != null && selectedLinesText.length && selectedText !== '') {
     logDebug(pluginJson, `newNoteFromSelection() starting with ${selectedParagraphs.length} selected:`)
-    const selectedLinesTextToMutate = selectedLinesText.slice() // copy that we can change
-
+    
     // Get title for the new note
     // First get frontmatter's 'title:' (if present) or the first line of the text (shorn of any leading # or spaces)
     const isTextContent = ['title', 'text', 'separator'].indexOf(selectedParagraphs[0].type) >= 0
-    const firstLineMatches: Array<string> = selectedText?.match(/^(?:---\n(?:title:\s*)?|^title:\s+(.*)\n|^[#\s]*)?(.*)\n/) ?? []
-    const titleToOffer = isTextContent && firstLineMatches[1] ? firstLineMatches[1] : ''
+    const titleToOffer = isTextContent ? getSuggestedTitleFromContent(selectedText ?? '') : ''
     // const strippedFirstLine = selectedParagraphs[0].content
     let title = await getInput('Title of new note', 'OK', 'New Note from Selection', titleToOffer)
     if (typeof title === 'string') {
-      // If user selected the first line, then remove it from the body content
-      if (title === titleToOffer && selectedParagraphs[0].type === 'title') {
-        selectedLinesTextToMutate.shift()
-      }
-      const movedText = selectedLinesTextToMutate.join('\n')
+      const movedText = selectedLinesText.slice().join('\n')
       const uniqueTitle = getUniqueNoteTitle(title)
       if (title !== uniqueTitle) {
         await showMessage(`Title exists. Using "${uniqueTitle}" instead`, `OK`, `New Note from Selection`)
         title = uniqueTitle
       }
       const currentFolder = await chooseFolder('Select folder to add note in:', false, true)  // don't include @Archive as an option, but do allow creation of a new folder
+      if (title.trim() === '') {
+        title = '(title placeholder)'
+      }
+      
+      // Create new note in the specific folder
+      const origFile = displayTitle(note) // Calendar notes have no title, so need to make one
+      logDebug(pluginJson, `- origFile: ${origFile}`)
+      const filename = (await DataStore.newNote(title, currentFolder)) ?? ''
+      logDebug(pluginJson, `- newNote() -> filename: ${filename}`)
 
-      if (title) {
-        // Create new note in the specific folder
-        const origFile = displayTitle(note) // Calendar notes have no title, so need to make one
-        logDebug(pluginJson, `- origFile: ${origFile}`)
-        const filename = (await DataStore.newNote(title, currentFolder)) ?? ''
-        logDebug(pluginJson, `- newNote() -> filename: ${filename}`)
+      // This question needs to be here after newNote and before getNote to force a cache refresh after newNote.
+      // Note: This API bug has probably now been fixed.
+      const res = await CommandBar.showOptions(['Yes', 'No'], 'Insert link to new file where selection was?')
 
-        // This question needs to be here after newNote and before getNote to force a cache refresh after newNote.
-        // Note: This API bug has probably now been fixed.
-        const res = await CommandBar.showOptions(['Yes', 'No'], 'Insert link to new file where selection was?')
+      const newNote = await getNote(filename, true)
 
-        const newNote = await getNote(filename, true)
-
-        if (newNote) {
-          logDebug(pluginJson, `- newNote's title: ${String(newNote.title)}`)
-          logDebug(pluginJson, `- newNote's content: ${String(newNote.content)} ...`)
-          const insertBackLink = res.index === 0
-          // $FlowFixMe[method-unbinding] - Flow thinks the function is being removed from the object, but it's not
-          if (Editor.replaceSelectionWithText) {
-            // for compatibility, make sure the function exists
-            if (insertBackLink) {
-              Editor.replaceSelectionWithText(`[[${title}]]`)
-            } else {
-              Editor.replaceSelectionWithText(``)
-            }
-          }
-
-          newNote.appendParagraph(movedText, 'empty')
+      if (newNote) {
+        logDebug(pluginJson, `- newNote's title: ${String(newNote.title)}`)
+        logDebug(pluginJson, `- newNote's content: ${String(newNote.content)} ...`)
+        const insertBackLink = res.index === 0
+        // $FlowFixMe[method-unbinding] - Flow thinks the function is being removed from the object, but it's not
+        if (Editor.replaceSelectionWithText) {
+          // for compatibility, make sure the function exists
           if (insertBackLink) {
-            newNote.appendParagraph(`^ Moved from [[${origFile}]]:`, 'text')
+            Editor.replaceSelectionWithText(`[[${title}]]`)
+          } else {
+            Editor.replaceSelectionWithText(``)
           }
-          const res2 = await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Selection`)
-          if (res2 === 'Yes') {
-            await Editor.openNoteByFilename(filename)
-          }
-        } else {
-          logWarn(pluginJson, `Couldn't open new note: ${filename}`)
-          showMessage(`Could not open new note ${filename}`, `OK`, `New Note from Selection`)
+        }
+
+        newNote.appendParagraph(movedText, 'empty')
+        if (insertBackLink) {
+          newNote.appendParagraph(`^ Moved from [[${origFile}]]:`, 'text')
+        }
+        const res2 = await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Selection`)
+        if (res2 === 'Yes') {
+          await Editor.openNoteByFilename(filename)
         }
       } else {
-        logError(pluginJson, 'Undefined or empty title')
+        logWarn(pluginJson, `Couldn't open new note: ${filename}`)
+        showMessage(`Could not open new note ${filename}`, `OK`, `New Note from Selection`)
       }
     } else {
       logWarn(pluginJson, 'The user cancelled the operation.')

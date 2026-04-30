@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 2026-04-14 for v1.19.1 by @jgclark
+// Last updated 2026-04-28 for v1.19.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -17,7 +17,7 @@ const pluginID = 'np.Tidy'
 export {
   removeSectionFromAllNotes,
   removeSectionFromRecentNotes,
-} from './removeSections'
+} from './tidyRemoveSections'
 export {
   logNotesChangedInInterval,
   removeBlankNotes,
@@ -39,9 +39,8 @@ export {
 } from './emptyElements'
 export { fileRootNotes } from './fileRoot'
 export { listMissingDailyNotes } from './missingDailyNotes'
-export { generateRepeatsFromRecentNotes } from './repeats'
-export { cleanUpNoteFilenames } from './cleanFilenames'
-export { listStubs } from './stubs'
+export { generateRepeatsFromRecentNotes } from './tidyRepeats'
+export { listStubs } from './tidyStubs'
 export { moveTopLevelTasksInEditor } from './topLevelTasks'
 
 /**

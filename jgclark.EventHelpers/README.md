@@ -34,7 +34,7 @@ Settings:
 - **Calendars to include**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
 - **Calendar name mappings**: optional - add mappings for your calendar names to appear as in the output - e.g. from "Jonathan (iCloud)" to "Me" (and from "Us (iCloud)" to "Us") with `Jonathan (iCloud);Me, Us (iCloud);Us`. Note: separate mapping from main name by `;` a character, and separate mapping pairs with the `,` character.
 - **Meeting Note Template title**: use to set which template to pick if you have several; if it isn't set then a list of meeting note templates will be offered.
-- **Matching Events heading**: in `/insert matching events` command (or `listMatchingEvents()` template call), the heading to put before the list of matching events
+- **Matching Events heading**: in `/insert matching events` command (or `matchingEvents()` template call; details below), the heading to put before the list of matching events
 - **Events match list**: for `/add matching events` is an array of pairs of strings. The first string is what is matched for in an event's title. If it does match, the second string is used as the format for how to insert the event details at the cursor.  This uses the same placeholders as above. For example:
   ```jsonc
   {
@@ -60,7 +60,7 @@ Settings:
 
 ### Using Event Lists from a Template
 You can use these commands from Templates, when they are applied to a note, or are used to create one:
-- **`<%- events(...) %>`** produces a list of all events for the period wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time for today, though this can all be customised.
+- **`<%- events(...) %>`** produces a list of all events for the period wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time for the open daily note’s day (usually “today” when that note is today’s), though this can all be customised.
 - **`<%- matchingEvents(...) %>`** produces a list of all matching events. This is more powerful, with each configured match able to have a different format of output. The matches and format strings are entered in a JSON-formatted array, which can only be specified in the Plugin's settings.
 
 These work particularly well in **Daily Note templates** (or in **Weekly Note templates** with `daysToCover: 7` -- see below).
@@ -79,6 +79,7 @@ The following **Parameters** are available:
 | `calendarSet` | string | limit which calendars are included | `calendarSet:"list,of,calendar,names"` |
 | `calendarNameMappings` | string | customize the name of the calendars |`calendarNameMappings:"Jonathan (iCloud);Me, Us (iCloud);Us"` |
 | `daysToCover` | number | include more than the current day | `daysToCover: 3` includes today + the 2 following days |
+| `startDay` | string | optional first calendar day for the range, `YYYY-MM-DD`; if omitted, the start is the first day of the open calendar note’s period | `startDay:"2026-04-15"` |
 | `format` | string | customize the format | `'format:"..."'` |
 | `allday_format` | string | customize format for all day events | `'allday_format:"..."` |
 
@@ -88,7 +89,7 @@ You can include other text (including line breaks indicated by `\n`) within the 
 NB: the `Sort order` setting above also controls how the output of this list is sorted.
 
 ### Using Event Lists from Callbacks
-As well as following x-callback calls are available:
+The following x-callback calls are available:
 
 | equivalent command | callback | parameters | result |
 | ---- | ------ | ---- | --- |
@@ -98,6 +99,8 @@ As well as following x-callback calls are available:
 | List day's events as list | noteplan://x-callback-url/runPlugin?pluginID=jgclark.EventHelpers&command=listDaysEvents | JSON string (as above for Templates) | returns list of events as a markdown string |
 | List matching day's events as list | noteplan://x-callback-url/runPlugin?pluginID=jgclark.EventHelpers&command=listMatchingDaysEvents | JSON string (as above for Templates) | returns list of events as a markdown string |
 | List week's events as list | noteplan://x-callback-url/runPlugin?pluginID=jgclark.EventHelpers&command=listWeeksEvents | JSON string (as above for Templates) | returns list of events as a markdown string |
+
+The same JSON parameters apply as in the table above.
 
 ## /shift dates
 This command takes plain or scheduled day or week dates (i.e. `YYYY-MM-DD`, `>YYYY-MM-DD`, `YYYY-Wnn` or ``>YYYY-Wnn`) in the selected lines and shifts them forwards or backwards by a given date interval. This allows you to copy a set of tasks to use again, and have the dates moved forward by a month or year etc.

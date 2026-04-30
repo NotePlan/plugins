@@ -13,6 +13,7 @@ import {
   RE_NP_QUARTER_SPEC,
   RE_NP_YEAR_SPEC,
   todaysDateISOString,
+  DAILY_NOTE_LINK,
   WEEK_NOTE_LINK,
   MONTH_NOTE_LINK,
   QUARTER_NOTE_LINK,
@@ -440,7 +441,9 @@ export function stripAllTagssFromString(original: string): string {
 }
 
 /**
- * Convenience function to strip all internal references (date, blockID, wikilink) from a string
+ * Strip all internal references (date, blockID) from a string. Optionally also strip hashtags and mentions, and links.
+ * TODO: (@jgclark says) ideally remove this, as ...
+ * Note: copy available below as stripAllInternalReferencesFromString()
  * @param {string} original
  * @param {boolean} stripTags - also strip hashtags and mentions
  * @param {boolean} stripLinks - also strip links
@@ -453,6 +456,43 @@ export function stripAllMarkersFromString(original: string, stripTags: false, st
   output = stripDateRefsFromString(output)
   if (stripTags) output = stripAllTagssFromString(output)
   if (stripLinks) output = stripLinksFromString(output)
+  return output
+}
+
+/**
+ * Strip all internal references (date, blockID) from a string. Optionally also strip hashtags and mentions, and links.
+ * Note: copy with a better name of  stripAllMarkersFromString() above
+ * @param {string} original
+ * @param {boolean} stripTags - also strip hashtags and mentions
+ * @param {boolean} stripLinks - also strip links
+ * @returns {string}
+ */
+export function stripAllInternalReferencesFromString(original: string, stripTags: false, stripLinks: false): string {
+  /* cleanse clean the string */
+  let output = original
+  output = stripBlockIDsFromString(output)
+  output = stripDateRefsFromString(output)
+  if (stripTags) output = stripAllTagssFromString(output)
+  if (stripLinks) output = stripLinksFromString(output)
+  return output
+}
+
+/**
+ * Strip all task markers from the start of a string. (e.g. remove '* [ ]' or '* [x]' or '* [>]' or '* [-]' or '- [ ]' or '- [x]' or '- [-]' and indented versions).
+ * @author @jgclark
+ * @tests in jest file
+ * @param {string} original
+ * @returns {string}
+ */
+export function stripTaskMarkersFromString(original: string): string {
+  let output = original
+  output = output
+  .replace(/^\s*\*\s\[[\s\>x\-]\]\s/, '')
+  .replace(/^\s*\-\s\[[\s\>x\-]\]\s/, '')
+  .replace(/^\s*\d+\.\s\[[\s\>x\-]\]\s/, '')
+  .replace(/^\s*\*\s/, '')
+  .replace(/^\s*\-\s/, '')
+  .replace(/^\s*\d+\.\s/, '')
   return output
 }
 
@@ -514,37 +554,38 @@ export function decodeRFC3986URIComponent(input: string): string {
 }
 
 /**
- * Remove `>date` and `<date` from a string, except for the ones that are in the format `>date<` which are kept
- * Note: this was originally in dateTime.js
- * @author @nmn updated by @jgclark
+ * Remove `>YYYY-MM-DD` and `<YYYY-MM-DD` from a string, except for the ones that are in the format `>YYYY-MM-DD<` which are kept.
+ * Note: See removeDateTagsAndToday() for a version that removes other calendar period strings and also '>today'.
+ * @author @nmn & @jgclark
+ * @tests in jest file
  * @param {string} input
  * @returns {string} output
  */
 export function removeDateTags(content: string): string {
   return content
-    .replace(/>\d{4}-\d{2}-\d{2}(?!<)/g, '')
-    .replace(/<\d{4}-\d{2}-\d{2}/g, '')
+    .replace(new RegExp(DAILY_NOTE_LINK, 'g'), '')
+    .replace(/\s{2,}/g, ' ')
     .trimEnd()
 }
 
 /**
- * Remove all >date -related things from a line (and optionally >week, >month, >quarter etc. ones also)
- * Note: this was originally in dateTime.js
+ * Remove all >YYYY-MM-DD -related things from a line (and optionally week, month, quarter etc. ones also)
  * @author @dwertheimer
+ * @tests in jest file
  * @param {string} tag - the incoming text
  * @param {boolean} removeAllSpecialNoteLinks - if true remove >week, >month, >quarter, >year references too
  * @returns
  */
-export function removeDateTagsAndToday(tag: string, removeAllSpecialNoteLinks: boolean = false): string {
+export function removeDateTagsAndToday(tag: string, removeAllCalendarPeriodNoteLinks: boolean = false): string {
   let newString = tag,
     lastPass = tag
   do {
     lastPass = newString
     newString = removeDateTags(tag)
-      .replace(removeAllSpecialNoteLinks ? new RegExp(WEEK_NOTE_LINK, 'g') : '', '')
-      .replace(removeAllSpecialNoteLinks ? new RegExp(MONTH_NOTE_LINK, 'g') : '', '')
-      .replace(removeAllSpecialNoteLinks ? new RegExp(QUARTER_NOTE_LINK, 'g') : '', '')
-      .replace(removeAllSpecialNoteLinks ? new RegExp(YEAR_NOTE_LINK, 'g') : '', '')
+      .replace(removeAllCalendarPeriodNoteLinks ? new RegExp(WEEK_NOTE_LINK, 'g') : '', '')
+      .replace(removeAllCalendarPeriodNoteLinks ? new RegExp(MONTH_NOTE_LINK, 'g') : '', '')
+      .replace(removeAllCalendarPeriodNoteLinks ? new RegExp(QUARTER_NOTE_LINK, 'g') : '', '')
+      .replace(removeAllCalendarPeriodNoteLinks ? new RegExp(YEAR_NOTE_LINK, 'g') : '', '')
       .replace(/>today/, '')
       .replace(/\s{2,}/g, ' ')
       .trimEnd()
@@ -555,7 +596,7 @@ export function removeDateTagsAndToday(tag: string, removeAllSpecialNoteLinks: b
 /**
  * Remove repeats from a string (e.g. @repeat(1/3) or @repeat(2/3) or @repeat(3/3) or @repeat(1/1) or @repeat(2/2) etc.)
  * because NP complains when you try to rewrite them (delete them).
- * Note: this was originally in dateTime.js
+ * Note: you might want to know about the API introduced in NP 3.15 build 1284/1230: Editor.skipNextRepeatDeletionCheck = true
  * @author @dwertheimer
  * @param {string} content
  * @returns {string} content with repeats removed

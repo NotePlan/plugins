@@ -1,6 +1,7 @@
 // @flow
-/* global describe, expect, test, beforeAll */
+/* global describe, expect, test, beforeAll, beforeEach, afterEach, jest */
 import * as e from '../src/eventsToNotes'
+import * as NPdateTime from '@helpers/NPdateTime'
 // import { clo } from '../../helpers/dev'
 import { type EventsConfig } from '@helpers/NPCalendar'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
@@ -147,6 +148,42 @@ describe('eventsToNotes.js tests', () => {
     test('event 1 format 5 date test', () => {
       const result = e.replaceFormatPlaceholderStringWithActualValues(format5, replacements1)
       expect(result).toEqual('- 2021-01-23')
+    })
+  })
+
+  describe('getEventListStartDayYYYYMMDD()', () => {
+    const baseFromNote = '20250401'
+    let spy
+
+    beforeEach(() => {
+      spy = jest.spyOn(NPdateTime, 'getDateStrForStartofPeriodFromCalendarFilename').mockReturnValue(baseFromNote)
+    })
+
+    afterEach(() => {
+      spy.mockRestore()
+    })
+
+    test('returns base from calendar note when startDay omitted', async () => {
+      const result = await e.getEventListStartDayYYYYMMDD('', '20250401.md')
+      expect(result).toEqual(baseFromNote)
+    })
+
+    test('overrides base with valid YYYY-MM-DD', async () => {
+      const param = '{ "startDay": "2026-06-15" }'
+      const result = await e.getEventListStartDayYYYYMMDD(param, '20250401.md')
+      expect(result).toEqual('20260615')
+    })
+
+    test('falls back to base when calendar date is invalid', async () => {
+      const param = '{ "startDay": "2023-02-30" }'
+      const result = await e.getEventListStartDayYYYYMMDD(param, '20250401.md')
+      expect(result).toEqual(baseFromNote)
+    })
+
+    test('falls back to base when format is not YYYY-MM-DD', async () => {
+      const param = '{ "startDay": "20260615" }'
+      const result = await e.getEventListStartDayYYYYMMDD(param, '20250401.md')
+      expect(result).toEqual(baseFromNote)
     })
   })
 })

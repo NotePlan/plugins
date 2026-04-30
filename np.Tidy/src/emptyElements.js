@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Remove empty blocks functionality for Tidy plugin
-// Last updated 2025-11-22 for v1.17.0, @jgclark
+// Last updated 2026-04-22 for v1.17.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -318,10 +318,10 @@ export async function removeEmptyElements(
   preserveHeadingStructure: ?boolean = null,
 ): Promise<void> {
   try {
-    logDebug(
-      pluginJson,
-      `Starting removeEmptyElements() with args filenameIn: "${filenameIn}", stripAllEmptyLinesArg: ${String(stripAllEmptyLinesArg)}, preserveHeadingStructure: ${String(preserveHeadingStructure)}`,
-    )
+    // logDebug(
+    //   pluginJson,
+    //   `Starting removeEmptyElements() with args filenameIn: "${filenameIn}", stripAllEmptyLinesArg: ${String(stripAllEmptyLinesArg)}, preserveHeadingStructure: ${String(preserveHeadingStructure)}`,
+    // )
 
     let note: TNote | null
     let workingInEditor = false
@@ -337,11 +337,11 @@ export async function removeEmptyElements(
       note = await getNoteFromFilename(filenameIn)
       if (!note) throw new Error(`Cannot open note with filename '${filenameIn}'`)
     }
-    logInfo(pluginJson, `Starting removeEmptyElements() for note '${displayTitle(note)}' ${workingInEditor ? ' (open in Editor)' : ''}`)
+    logDebug(pluginJson, `Starting removeEmptyElements() for note '${displayTitle(note)}' ${workingInEditor ? ' (open in Editor)' : ''}`)
 
     const paragraphs = note.paragraphs
     if (!paragraphs || paragraphs.length === 0) {
-      logInfo(pluginJson, `No paragraphs found in note '${displayTitle(note)}', so stopping.`)
+      // logDebug(pluginJson, `No paragraphs found in note '${displayTitle(note)}', so stopping.`)
       return
     }
 
@@ -365,7 +365,7 @@ export async function removeEmptyElements(
         await Editor.save()
       }
     } else {
-      logInfo('removeEmptyElements', `No empty elements found to remove in note '${displayTitle(note)}' `)
+      logDebug('removeEmptyElements', `No empty elements found to remove in note '${displayTitle(note)}' `)
     }
   } catch (error) {
     logError('tidy/removeEmptyElements', JSP(error))

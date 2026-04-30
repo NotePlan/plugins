@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-11-03 for v1.16.0, @jgclark
+// Last updated 2026-04-28 for v1.19.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -10,7 +10,7 @@ import pluginJson from '../plugin.json'
 import { listConflicts } from './conflicts'
 import { listDuplicates } from './duplicates'
 import { removeEmptyElementsFromRecentNotes } from './emptyElements'
-import { generateRepeatsFromRecentNotes } from './repeats.js'
+import { generateRepeatsFromRecentNotes } from './tidyRepeats'
 import { moveTopLevelTasksInNote } from './topLevelTasks'
 import { getSettings, type TidyConfig } from './tidyHelpers'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'

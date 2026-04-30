@@ -67,16 +67,16 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
 
     logDebug('generateRepeatsFromRecentNotes', `- found  ${String(recentNotes.length)} 'recent' notes to process`)
 
-    // Now run generateRepeats() on each and count how many were changed
+    // Now run generateRepeats() on each and count how many were changed. Tell the underlying functions it can't use Editor.* funcs, to avoid crashes from running on the onAsyncThread.
     let numGenerated = 0
     for (const thisNote of recentNotes) {
-      const num = await generateRepeats(true, thisNote)
+      const num = await generateRepeats(true, thisNote, false)
       numGenerated += num
     }
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 
-    logInfo('generateRepeatsFromRecentNotes', `Generated ${String(numGenerated)} new @repeat(...)s from ${String(recentNotes.length)} recent notes, in ${timer(startTime)}`)
+    logInfo('generateRepeatsFromRecentNotes', `Generated ${String(numGenerated)} new @repeats from ${String(recentNotes.length)} recent notes, in ${timer(startTime)}`)
     if (!runSilently) {
       await showMessage(`Generated ${String(numGenerated)} new @repeats from ${String(recentNotes.length)} recent notes`, 'OK', 'Tidy: Generate Repeats')
     }

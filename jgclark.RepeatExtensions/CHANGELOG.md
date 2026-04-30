@@ -1,8 +1,18 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
+## [1.1.2] - 2026-04-28
+- under the hood changes [dev: update to fix a possible crash Tidy's **Generate @repeats in recent notes** command, caused by Editor/onAsyncThread. Also code quality improvements.]
+
+## [1.1.1] - 2026-04-22
+- Fix crash in `generateRepeats()` when processing notes whose paragraphs array contains null/undefined entries (e.g. via Tidy's **Generate @repeats in recent notes** command).
+- dev: `generateRepeatForPara()` no longer takes a `noteIsOpenInEditor` flag; it uses `Editor` APIs when `Editor.filename` matches the target note, so @done time-stripping and related edits stay in sync with the open editor (e.g. when completing from the Dashboard).
+
 ## [1.1.0] - 2026-03-18
-- This can nan now generate repeats on cancelled tasks -- in notes with the special repeat trigger in the frontmatter. To turn this on, set new option "Allow repeats in cancelled paragraphs?" to true. (Note: Because of API limitations, this will only work in notes with the repeat trigger set.)
+- This can nan now generate repeats on cancelled tasks -- in notes with the 
+special repeat trigger in the frontmatter. To turn this on, set new option 
+"Allow repeats in cancelled paragraphs?" to true. (Note: Because of API 
+limitations, this will only work in notes with the repeat trigger set.)
 - Fix to possible bug identified by @Cursor.
 
 ## [1.0.1] - 2025-09-17
