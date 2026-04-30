@@ -36,6 +36,8 @@ There's also the **/Tidy Up** (alias "tua"), which runs as many of the other com
 
 (If these commands are useful to you, you'll probably find the [Note Helpers plugin](https://noteplan.co/plugins/jgclark.NoteHelpers) helpful too. It's rather arbitrary which commands live in which plugin.)
 
+Note: don't run the **Remove ...** commands by typing `/Remove ...` in the editor. The plugin command will work, but the app tends to over-write the changes with the previous version again. Instead, use them from the menu bar or the command bar.
+
 [<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 ### Details on /Generate @repeats in recent notes
