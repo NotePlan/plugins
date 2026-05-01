@@ -1,7 +1,12 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
-## [2.0.0.b27] - 2026-04-30
+
+## [2.0.0.b28] - 2026-05-01
+- new command **migrate all projects**: batch-runs `Project` constructor migration on every note that matches current list settings; appends rows to `migration_log.tsv` in the plugin data directory.
+- New **convert to project** command which converts any regular note into a project. It shows user a form to fill in, asking for project tag, start date, due date, last reviewed date, review interval, aim, etc. It updates the note adding the answers into the frontmatter. (Requires NotePlan v3.21+.)
+
+## [2.0.0.b27] - 2026-04-30 (released)
 - added 'N projects' count to the top bar
 - dev: simplify `projectClass` by extracting reusable helpers to `projectClassHelpers.js` and immutable calculation logic to `projectClassCalculations.js`
 - dev: simplify `projects.js` complete/cancel closeout flow by extracting shared action logic, normalizing closeout defaults/parsing, and fixing a `submitted` form-result typo

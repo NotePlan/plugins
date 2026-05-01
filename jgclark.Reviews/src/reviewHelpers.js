@@ -11,6 +11,7 @@ import { getActivePerspectiveDef, getPerspectiveSettings } from '../../jgclark.D
 import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { WEBVIEW_WINDOW_ID as DASHBOARD_WINDOW_ID} from '../../jgclark.Dashboard/src/constants'
 import pluginJson from '../plugin.json'
+import { appendMigrationLogRow } from './migration.js'
 import { type Progress } from './projectClass'
 import { checkString } from '@helpers/checkType'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -734,6 +735,7 @@ function migrateProjectMetadataLineCore(
       // $FlowFixMe[incompatible-call]
       const mergedOK = updateFrontMatterVars((note: any), fmAttrs)
       if (!mergedOK) {
+        appendMigrationLogRow(note, `frontmatter merge failed (${logContext})`)
         logError(logContext, `Failed to merge body metadata line into frontmatter key '${primaryKey}' for '${displayTitle(note)}'`)
       } else {
         logDebug(logContext, `- Merged body metadata into frontmatter key '${primaryKey}' for '${displayTitle(note)}'`)
@@ -755,7 +757,9 @@ function migrateProjectMetadataLineCore(
       continuationPara.content = ''
       updateParagraph(continuationPara)
     }
+    appendMigrationLogRow(note, 'ok')
   } catch (error) {
+    appendMigrationLogRow(note, `exception (${logContext}): ${error.message}`)
     logError(logContext, error.message)
   }
 }

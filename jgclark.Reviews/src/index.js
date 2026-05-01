@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-04-20 for v2.0.0.b22, @jgclark
+// Last updated 2026-05-01 for v2.0.0.b28 by @Cursor
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -38,6 +38,7 @@ export {
   getNextProjectsToReview,
   logAllProjectsList
 } from './allProjectsListHelpers'
+export { migrateAllProjects } from './migration'
 // export { NOP } from './reviewHelpers'
 export { removeAllDueDates } from '@helpers/NPParagraph'
 export {
@@ -46,6 +47,7 @@ export {
   cancelProject,
   togglePauseProject
 } from './projects'
+export { convertToProject } from './convertNote.js'
 export {
   generateCSSFromTheme
 } from '@helpers/NPThemeToCSS'
@@ -103,6 +105,9 @@ export async function onUpdateOrInstall(): Promise<void> {
     // Backup the settings on all new installs (quietly)
     // TODO: remove once issues around v2.0 settings have stopped
     await backupSettings('jgclark.Reviews', `before_onUpdateOrInstall_v${pluginJson["plugin.version"]}`, true)
+
+    // TODO(later): this will be where we migrate all projects if wanted by the user.
+    // e.g. await migrateAllProjects()
 
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })

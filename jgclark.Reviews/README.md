@@ -291,6 +291,18 @@ Progress: <num>@YYYY-MM-DD <short description>
 ```
 It will also update the project's `@reviewed(date)`.
 
+<a id="convert-to-project-command"></a>
+
+### "/convert to project" command
+(New in v2, and requires NotePlan v3.21+.) This takes an **existing** regular note and turns it into a project note by showing you a form to gather the metadata to and to the note's frontmatter. (This is designed to supplement [Creating a new Project/Area note](#creating-a-new-projectarea-note) below.)
+
+The fields on the form are:
+- **Project type tag** — a choice from your **Hashtags to review** setting (e.g. `#project`, `#area`). This becomes the value of your configured **Frontmatter metadata key** (default `project:`), which must contain **only hashtags** (and optional markers such as `#sequential` — see below).
+- **Start date**, **Due date** (optional), **Last reviewed date** — written to the separate frontmatter fields derived from your `@mention` settings (e.g. `start`, `due`, `reviewed`), same naming rules as elsewhere in this plugin.
+- **Review interval** — e.g. `1w`, `2m`; stored in the separate field derived from your review-interval mention setting (e.g. `review`).
+- **Aim** (optional) — if you enter text, it is written to an `aim:` frontmatter field.
+- **Treat project as sequential?** (optional checkbox) — only shown if your **Sequential project marker** setting is non-empty. If you turn it on, that marker (default `#sequential`) is **appended** to the combined `project:` (or configured) line so the first open task/checklist is treated as the next action, as described [above](#using-frontmatter-for-project-metadata).
+
 ### "/heatmaps for weekly Projects Progress" command
 The **/weeklyProjectsProgress heatmaps** command scans your Area/Project folders by week, and shows a pair of heatmaps in new windows:
 
@@ -299,10 +311,20 @@ The **/weeklyProjectsProgress heatmaps** command scans your Area/Project folders
 
 For those with lots of different projects or project groups, this is a handy way of seeing over time which of them are getting more or less attention.
 
-<!-- The **/weeklyProjectsProgress** command scans your Area/Project folders and writes two CSV files into the plugin’s hidden data folder:
+### "/migrate all projects" command
+(New for v2.) This runs a **batch metadata migration** on every project note that matches your current Folders to include/exclude, Hashtags to review, and (if enabled) Perspectives. 
+
+<!-- Happens automatically on installation of v2 ??? -->
+
+When the command finishes, a dialog reports how many notes migrated successfully and how many failed. It also writes an entry to a special log file (`Plugins/data/jgclark.Reviews/migration_log.tsv`) that gives details of the migration of each note.
+
+<!-- 
+### **/weeklyProjectsProgress** command
+This scans your Area/Project folders and writes two CSV files into the plugin’s hidden data folder:
 
 - one with the number of distinct notes progressed per folder per week
-- one with the total number of completed tasks per folder per week -->
+- one with the total number of completed tasks per folder per week
+-->
 
 ## Capturing and Displaying 'Next Actions'
 Part of the "Getting Things Done" methodology is to be clear what your 'next action' is. If you put a standard tag on such actionable tasks/checklists (e.g. `#next` or `#na`) and set that in the plugin settings, the project list shows that next action after the progress summary. Only the first matching item is shown; if there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist is shown instead. You can set several next-action tags (e.g. `#na` for things you can do, `#waiting` for things you're waiting on others).
@@ -318,10 +340,10 @@ Another approach comes from user George C:
 - I also will copy over any tasks I didn't do from the previous day.
 
 ## Creating a new Project/Area note
-There are a variety of tools to help you create a new Project or Area note. 
+There are a variety of tools to help you create a new Project or Area note ...
 
-### Templating system
-Use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the built-in Templating system. Here is what I use as my New Project Template:
+### Templates
+Use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the built-in Templating system, to apply a pre-set Template. For example here's a basic Template that will prompt you with 6 questions:
 
 ```markdown
 ---
@@ -335,8 +357,13 @@ Aim: <%- prompt('aim') %>
 Context: <%- prompt('context') %>
 ```
 
+For more details, see [Templating including frontmatter](https://noteplan.co/templates/docs/advanced-features/templating-examples-frontmatter).
+
 ### Template Forms
 [Template Forms](https://noteplan.co/plugins/dwertheimer.Forms) is a separate powerful plugin which provides a visual form builder, that works with a 'processing template'. It ships with an example New Project form; you can customise your own form(s) from this.
+
+### Converting an existing note
+To add project metadata to a note you _already have_, use the ["convert to project" command](#convert-to-project-command) above.
 
 ## Using with Dashboard plugin
 My separate [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) shows a simpler version of the data from the Projects Review List in its 2 'Projects' sections. It has the same type of edit dialog to complete/cancel/finish review/skip review, and also shows progress indicators. From v1.3, when the Project Lists window is open it automatically refreshes when you change data (requires Dashboard v2.4.0 or later).

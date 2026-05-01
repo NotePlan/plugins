@@ -2,12 +2,13 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-04-30 for v2.0.0.b26, @Cursor
+// Last updated 2026-05-01 for v2.0.0.b28 by @Cursor
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
+import { appendMigrationLogRow } from './migration.js'
 import {
   calcNextReviewDate,
   getMetadataLineIndexFromBody,
@@ -56,7 +57,6 @@ import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
 // Constants
 
 const DEFAULT_REVIEW_INTERVAL = '1w'
-const MIGRATE_IN_PROJECT_CONSTRUCTOR = false
 
 //-----------------------------------------------------------------------------
 // Types
@@ -73,7 +73,8 @@ export type Progress = {
  * Holds title, last reviewed date, due date, review interval, completion date, progress information that is read from the note,
  * and other derived data.
  * @example To create a project instance for a note call 'const x = new Project(note, ...)'
- * Note: with my projects this is taking on average 1ms/line/note. 
+ * @param {boolean} migrateMetadataNowIfNeeded - When true, runs body/frontmatter and embedded-mention migrations inside the constructor (batch migrate-all command).
+ * Note: with my projects this is taking on average 1ms/line/note.
  * @author @jgclark
  */
 export class Project {
@@ -129,7 +130,14 @@ export class Project {
    * Note: The constructor may need to be updated if these usages or precedence rules change.
    */
 
-  constructor(note: TNote, _projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = [], sequentialTag: string = '') {
+  constructor(
+    note: TNote,
+    _projectTypeTag: string = '',
+    checkEditor: boolean = true,
+    nextActionTags: Array<string> = [],
+    sequentialTag: string = '',
+    migrateMetadataNowIfNeeded: boolean = false, // don't do this by default.
+  ) {
     try {
       const startTime = new Date()
       if (note == null || note.title == null) {
@@ -193,7 +201,7 @@ export class Project {
         `- metadata presence for '${this.title}': combined=${String(hasCombinedTagsMetadata)} separate=${String(hasSeparateFrontmatterMetadata)} bodyIndex=${String(metadataBodyLineIndex)}`,
       )
       if (hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
-        if (MIGRATE_IN_PROJECT_CONSTRUCTOR) {
+        if (migrateMetadataNowIfNeeded) {
           logInfo('ProjectConstructor', `Both frontmatter and body metadata exist for '${this.title}'. Keeping frontmatter values and migrating/cleaning body metadata block.`)
           if (usingEditor) {
             // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
@@ -206,7 +214,7 @@ export class Project {
           logDebug('ProjectConstructor', `MIGRATE...=false: skipping body->frontmatter cleanup for '${this.title}'`)
         }
       } else if (!hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
-        if (MIGRATE_IN_PROJECT_CONSTRUCTOR) {
+        if (migrateMetadataNowIfNeeded) {
           logInfo('ProjectConstructor', `Only body metadata exists for '${this.title}'. Migrating metadata block to frontmatter.`)
           if (usingEditor) {
             // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
@@ -286,7 +294,7 @@ export class Project {
         }
       }
 
-      if (MIGRATE_IN_PROJECT_CONSTRUCTOR) {
+      if (migrateMetadataNowIfNeeded) {
         // One-time migration path: if the tags key still contains embedded date/interval mentions
         // (e.g. `project: #project @start(YYYY-MM-DD) @due(...) @review(1w) ...`), extract them into separate
         // frontmatter-backed fields and normalize the tags key to hashtags-only.
@@ -363,6 +371,7 @@ export class Project {
               migrationAttrs[singleKeyName] = this.getProjectTagsFrontmatterValue(singleKeyName)
               updateFrontMatterVars(this.note, migrationAttrs)
               DataStore.updateCache(this.note, true)
+              appendMigrationLogRow(this.note, 'ok')
               logDebug(
                 'ProjectConstructor',
                 `- Migrated tags-key mentions for '${this.title}': wrote keys [${migratedKeys.join(', ')}], normalized '${singleKeyName}' to tags-only`,
@@ -370,6 +379,7 @@ export class Project {
             }
           }
         } catch (e) {
+          appendMigrationLogRow(this.note, `embedded tags-key migration failed: ${e.message}`)
           logWarn('ProjectConstructor', `- Failed tags-key embedded mention migration for '${this.title}': ${e.message}`)
         }
       } else if (hasCombinedTagsMetadata) {

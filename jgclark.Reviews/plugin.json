@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.com/plugins/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "2.0.0.b27",
+  "plugin.version": "2.0.0.b28",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "2.0.0: Significantly modernised layout for Rich project list.\nFrontmatter metadata support, including configurable combined key and migration from body.\n1.3.1: Fixed edge case with adding progress updates and frontmatter.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
   "plugin.script": "script.js",
@@ -170,6 +170,19 @@
       "jsFunction": "addProgressUpdate"
     },
     {
+      "name": "convert to project",
+      "alias": [
+        "ctp",
+        "convert",
+        "project"
+      ],
+      "description": "Convert the current (or supplied) note into a Project by adding standard project metadata to its frontmatter, including an optional Aim. Requires NotePlan v3.21+ for the form.",
+      "jsFunction": "convertToProject",
+      "parameters": [
+        "optional note to convert (type: CoreNoteFields; falls back to the current Editor)"
+      ]
+    },
+    {
       "hidden": false,
       "name": "weeklyProjectsProgress",
       "alias": [],
@@ -182,6 +195,13 @@
       "alias": [],
       "description": "Show per-folder Area/Project progress as two weekly heatmaps (notes progressed and tasks completed) in HTML windows",
       "jsFunction": "showProjectsWeeklyProgressHeatmaps"
+    },
+    {
+      "hidden": false,
+      "name": "migrate all projects",
+      "alias": [],
+      "description": "Run metadata migration (same project notes as the project list) on each matching note; appends results to migration_log.tsv in the plugin data folder",
+      "jsFunction": "migrateAllProjects"
     },
     {
       "hidden": true,
@@ -514,7 +534,7 @@
     {
       "key": "progressHeading",
       "title": "Progress Heading",
-      "description": "Optional heading name to organize Progress lines under. If set, all Progress lines will be added under this heading. If the heading doesn't exist, it will be created automatically.",
+      "description": "Optional heading name to organize Progress lines under. If set, all Progress lines will be added under this heading. If the heading doesn't exist, it will be created automatically.\nTip: if this ends with '…' then the section will start folded.",
       "type": "string",
       "default": "",
       "required": false

@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-04-20 for v2.0.0.b21, @jgclark
+// Last updated 2026-05-01 for v2.0.0.b28 by @Cursor
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -333,25 +333,27 @@ export async function logAllProjectsList(): Promise<void> {
   console.log(stringifyProjectObjects(allProjects))
 }
 
-/**
- * Return as Project instances all projects that match config items 'foldersToInclude', 'foldersToIgnore', and 'projectTypeTags'.
- * Note: These may be taken from the Perspective settings before being passed to this function.
- * @author @jgclark
- * @param {ReviewConfig} configIn
- * @param {boolean} runInForeground? (default: false)
- * @returns {Array<Project>}
- */
-async function getAllMatchingProjects(
-  configIn: ReviewConfig,
-  runInForeground: boolean = false,
-): Promise<Array<Project>> {
-  // get config from passed config if possible
-  const config = configIn ? configIn : await getReviewSettings()
-  if (!config) throw new Error('No config found. Stopping.')
+export type ProjectNoteTagPair = {|
+  note: TNote,
+  projectTypeTag: string,
+|}
 
-  logInfo('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
-  // logDebug('getAllMatchingProjects', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
-  // logDebug('getAllMatchingProjects', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
+/**
+ * Enumerate project notes that match the same folder, tag, and teamspace rules as `allProjectsList.json` / `getAllMatchingProjects`.
+ * Does not instantiate `Project` or read the projects-list cache.
+ * @author @jgclark
+ * @param {ReviewConfig} config - Validated review config (caller must not pass null)
+ * @param {boolean} runInForeground - When true, shows CommandBar loading per folder (same as list generation)
+ * @returns {Promise<Array<ProjectNoteTagPair>>}
+ */
+export async function enumerateMatchingProjectNoteTagPairs(
+  config: ReviewConfig,
+  runInForeground: boolean = false,
+): Promise<Array<ProjectNoteTagPair>> {
+  logInfo(
+    'enumerateMatchingProjectNoteTagPairs',
+    `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`,
+  )
 
   const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
 
@@ -370,7 +372,10 @@ async function getAllMatchingProjects(
     if (!exists) acc.push(f)
     return acc
   }, [])
-  logInfo('getAllMatchingProjects', `-> ${String(filteredFolderListWithoutSubdirs.length)} filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
+  logInfo(
+    'enumerateMatchingProjectNoteTagPairs',
+    `-> ${String(filteredFolderListWithoutSubdirs.length)} filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`,
+  )
 
   // Filter the list of project notes from the DataStore.
   let filteredProjectNotes = filterProjectNotesByFolders(
@@ -385,22 +390,16 @@ async function getAllMatchingProjects(
       filteredProjectNotes,
       config.includedTeamspaces,
     )
-    logDebug('getAllMatchingProjects', `- after teamspace filter: ${filteredProjectNotes.length} project notes`)
+    logDebug('enumerateMatchingProjectNoteTagPairs', `- after teamspace filter: ${filteredProjectNotes.length} project notes`)
   }
 
-  logTimer(`getAllMatchingProjects`, startTime, `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`)
+  logTimer(
+    'enumerateMatchingProjectNoteTagPairs',
+    startTime,
+    `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`,
+  )
 
-  const snapshotRows = loadRawAllProjectsListSnapshot()
-  const projectListRowByKey: Map<string, any> = new Map()
-  for (const row of snapshotRows) {
-    if (row != null && typeof row.filename === 'string' && row.filename !== '') {
-      const tagForKey = getLeadingProjectTag(row)
-      projectListRowByKey.set(makeProjectListCacheKey(row.filename, tagForKey), row)
-    }
-  }
-
-  // Iterate over the folders, looking for notes that match the projectTypeTags
-  const projectInstances = []
+  const pairs: Array<ProjectNoteTagPair> = []
   for (const folder of filteredFolderList) {
     // Either we have defined tag(s) to filter and group by, or just use []
     const tags = config.projectTypeTags != null && config.projectTypeTags.length > 0 ? config.projectTypeTags : []
@@ -411,48 +410,76 @@ async function getAllMatchingProjects(
 
     // Get notes that include projectTag in this folder, ignoring subfolders
     for (const tag of tags) {
-      // logDebug('getAllMatchingProjects', `looking for tag '${tag}' in project notes in folder '${folder}'...`)
-      // Note: this is very quick <1ms
       const projectNotesArr = findNotesMatchingHashtagOrMentionFromList(tag, filteredProjectNotes, true, false, folder, false, [])
-      if (projectNotesArr.length > 0) {
-        // Get Project class representation of each note.
-        // Save those which are ready for review in projectsReadyToReview array
-        // Note: Running this on an async thread gives "You are running this on an async thread" errors about Editor. TEST: Trying without for now.
-        // if (!runInForeground) {
-        //   await CommandBar.onAsyncThread()
-        // }
-
-        const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
-        for (const n of projectNotesArr) {
-          const currentMs = getNoteChangeTimeMsForCache(n, true)
-          const cacheKey = makeProjectListCacheKey(n.filename, tag)
-          const cachedRow = projectListRowByKey.get(cacheKey)
-          let np: Project
-          if (
-            currentMs != null &&
-            cachedRow != null &&
-            typeof cachedRow.noteChangedAtMs === 'number' &&
-            cachedRow.noteChangedAtMs === currentMs
-          ) {
-            // logDebug('getAllMatchingProjects', `- Cache hit for ${tag} '${n.filename}'`)
-            const cloned = { ...cachedRow }
-            cloned.note = n
-            np = calcReviewFieldsForProject(cloned)
-          } else {
-            logDebug('getAllMatchingProjects', `- Cache MISS, so calling Project constructor for ${tag} '${n.filename}'`)
-            np = new Project(n, tag, true, config.nextActionTags, sequentialTagResolved)
-          }
-          projectInstances.push(np)
-        }
-        // if (!runInForeground) {
-        //   await CommandBar.onMainThread()
-        // }
+      for (const n of projectNotesArr) {
+        pairs.push({ note: n, projectTypeTag: tag })
       }
     }
   }
   if (runInForeground) {
     CommandBar.showLoading(false)
   }
+  logTimer('enumerateMatchingProjectNoteTagPairs', startTime, `- found ${pairs.length} note/tag pairs`)
+  return pairs
+}
+
+/**
+ * Return as Project instances all projects that match config items 'foldersToInclude', 'foldersToIgnore', and 'projectTypeTags'.
+ * Note: These may be taken from the Perspective settings before being passed to this function.
+ * @author @jgclark
+ * @param {ReviewConfig} configIn
+ * @param {boolean} runInForeground? (default: false)
+ * @returns {Array<Project>}
+ */
+async function getAllMatchingProjects(
+  configIn: ReviewConfig,
+  runInForeground: boolean = false,
+): Promise<Array<Project>> {
+  // get config from passed config if possible
+  const config = configIn ? configIn : await getReviewSettings()
+  if (!config) throw new Error('No config found. Stopping.')
+
+  logDebug('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
+  // logDebug('getAllMatchingProjects', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
+  // logDebug('getAllMatchingProjects', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
+
+  const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
+
+  const pairs = await enumerateMatchingProjectNoteTagPairs(config, runInForeground)
+
+  const snapshotRows = loadRawAllProjectsListSnapshot()
+  const projectListRowByKey: Map<string, any> = new Map()
+  for (const row of snapshotRows) {
+    if (row != null && typeof row.filename === 'string' && row.filename !== '') {
+      const tagForKey = getLeadingProjectTag(row)
+      projectListRowByKey.set(makeProjectListCacheKey(row.filename, tagForKey), row)
+    }
+  }
+
+  const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
+  const projectInstances = []
+  for (const { note: n, projectTypeTag: tag } of pairs) {
+    const currentMs = getNoteChangeTimeMsForCache(n, true)
+    const cacheKey = makeProjectListCacheKey(n.filename, tag)
+    const cachedRow = projectListRowByKey.get(cacheKey)
+    let np: Project
+    if (
+      currentMs != null &&
+      cachedRow != null &&
+      typeof cachedRow.noteChangedAtMs === 'number' &&
+      cachedRow.noteChangedAtMs === currentMs
+    ) {
+      // logDebug('getAllMatchingProjects', `- Cache hit for ${tag} '${n.filename}'`)
+      const cloned = { ...cachedRow }
+      cloned.note = n
+      np = calcReviewFieldsForProject(cloned)
+    } else {
+      logDebug('getAllMatchingProjects', `- Cache MISS, so calling Project constructor for ${tag} '${n.filename}'`)
+      np = new Project(n, tag, true, config.nextActionTags, sequentialTagResolved, false)
+    }
+    projectInstances.push(np)
+  }
+
   logTimer('getAllMatchingProjects', startTime, `- found ${projectInstances.length} available matching project notes`)
   return projectInstances
 }
@@ -856,7 +883,14 @@ export async function updateAllProjectsListAfterChange(
         return
       }
       // Note: there had been issue of stale data here in the past. Leaving comment in case it's needed again.
-      const updatedProject = new Project(reviewedNote, getLeadingProjectTag(reviewedProject), true, config.nextActionTags, config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT)
+      const updatedProject = new Project(
+        reviewedNote,
+        getLeadingProjectTag(reviewedProject),
+        true,
+        config.nextActionTags,
+        config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT,
+        false,
+      )
       // clo(updatedProject, 'in updateAllProjectsListAfterChange() 🟡 updatedProject:')
       allProjects.push(updatedProject)
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
