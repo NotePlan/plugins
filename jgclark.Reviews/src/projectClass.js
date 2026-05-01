@@ -8,7 +8,6 @@
 // Import Helper functions
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { appendMigrationLogRow } from './migration.js'
 import {
   calcNextReviewDate,
   getMetadataLineIndexFromBody,
@@ -57,6 +56,20 @@ import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
 // Constants
 
 const DEFAULT_REVIEW_INTERVAL = '1w'
+
+/**
+ * Merge migration log details from body migration and embedded-tags migration in the constructor.
+ * @param {?string} existing
+ * @param {?string} next
+ * @returns {?string}
+ */
+function mergeConstructorMigrationLogDetail(existing: ?string, next: ?string): ?string {
+  if (next == null) return existing
+  if (existing == null) return next
+  if (existing !== 'ok') return existing
+  if (next !== 'ok') return next
+  return 'ok'
+}
 
 //-----------------------------------------------------------------------------
 // Types
@@ -114,6 +127,11 @@ export class Project {
   allProjectTags: Array<string> = [] // projectTag(s), #sequential if applicable, and all hashtags from metadata line and frontmatter 'project' (for column 3) **See below**
   /** Epoch ms of `note.changedDate` after a full parse; used to skip re-parsing when regenerating allProjectsList */
   noteChangedAtMs: ?number
+  /**
+   * When `migrateMetadataNowIfNeeded` is true (batch migrate-all), set to a non-null detail if body or tags-key migration ran or failed.
+   * Used so `migration_log.tsv` only gets a row when something actually migrated (or errored), not for every constructed project.
+   */
+  migrationLogDetailFromConstructor: ?string = null
 
   /**
    * allProjectTags = set/list of all relevant tags (primary tag + metadata/frontmatter tags + optional #sequential, de-duped in constructor order).
@@ -145,7 +163,7 @@ export class Project {
       }
       this.title = note.title
       this.filename = note.filename
-      // logDebug('ProjectConstructor', `Starting for type ${projectTypeTag}, ${this.filename}`)
+      logDebug('ProjectConstructor', `Starting for '${this.title}' (${this.filename})`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
@@ -173,14 +191,16 @@ export class Project {
       const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
       const combinedMetadataField = readRawFrontmatterField(this.note, singleKeyName)
 
-      const mentionFromPref = (prefKey: string): string => checkString(DataStore.preference(prefKey) || '')
-      const startMentionName = mentionFromPref('startMentionStr')
-      const dueMentionName = mentionFromPref('dueMentionStr')
-      const reviewedMentionName = mentionFromPref('reviewedMentionStr')
-      const completedMentionName = mentionFromPref('completedMentionStr')
-      const cancelledMentionName = mentionFromPref('cancelledMentionStr')
-      const reviewIntervalMentionName = mentionFromPref('reviewIntervalMentionStr')
-      const nextReviewMentionName = mentionFromPref('nextReviewMentionStr')
+      // Same defaults as reviewHelpers so embedded mentions match when prefs are unset.
+      const mentionFromPrefWithDefault = (prefKey: string, defaultMention: string): string =>
+        checkString(DataStore.preference(prefKey) || defaultMention)
+      const startMentionName = mentionFromPrefWithDefault('startMentionStr', '@start')
+      const dueMentionName = mentionFromPrefWithDefault('dueMentionStr', '@due')
+      const reviewedMentionName = mentionFromPrefWithDefault('reviewedMentionStr', '@reviewed')
+      const completedMentionName = mentionFromPrefWithDefault('completedMentionStr', '@completed')
+      const cancelledMentionName = mentionFromPrefWithDefault('cancelledMentionStr', '@cancelled')
+      const reviewIntervalMentionName = mentionFromPrefWithDefault('reviewIntervalMentionStr', '@review')
+      const nextReviewMentionName = mentionFromPrefWithDefault('nextReviewMentionStr', '@nextReview')
 
       const fmKey = {
         start: separateFmKeyFromMentionPref(startMentionName, 'start'),
@@ -196,19 +216,16 @@ export class Project {
       const numberDaysForFutureToIgnore = checkNumber(DataStore.preference('numberDaysForFutureToIgnore')) || 0
 
       const { hasCombinedTagsMetadata, hasSeparateFrontmatterMetadata, hasFrontmatterMetadata, metadataBodyLineIndex } = getMetadataPresenceState(this.note, singleKeyName)
-      logDebug(
-        'ProjectConstructor',
-        `- metadata presence for '${this.title}': combined=${String(hasCombinedTagsMetadata)} separate=${String(hasSeparateFrontmatterMetadata)} bodyIndex=${String(metadataBodyLineIndex)}`,
-      )
+      logDebug('ProjectConstructor', `- metadata: combined=${String(hasCombinedTagsMetadata)} separate=${String(hasSeparateFrontmatterMetadata)} bodyIndex=${String(metadataBodyLineIndex)}`)
+
       if (hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
         if (migrateMetadataNowIfNeeded) {
           logInfo('ProjectConstructor', `Both frontmatter and body metadata exist for '${this.title}'. Keeping frontmatter values and migrating/cleaning body metadata block.`)
-          if (usingEditor) {
-            // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
-            migrateProjectMetadataLineInEditor(Editor)
-          } else {
-            migrateProjectMetadataLineInNote(this.note)
-          }
+          const bodyMigrationDetail = usingEditor
+            ? // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
+              migrateProjectMetadataLineInEditor(Editor)
+            : migrateProjectMetadataLineInNote(this.note)
+          this.migrationLogDetailFromConstructor = mergeConstructorMigrationLogDetail(this.migrationLogDetailFromConstructor, bodyMigrationDetail)
           DataStore.updateCache(this.note, true)
         } else {
           logDebug('ProjectConstructor', `MIGRATE...=false: skipping body->frontmatter cleanup for '${this.title}'`)
@@ -216,12 +233,11 @@ export class Project {
       } else if (!hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
         if (migrateMetadataNowIfNeeded) {
           logInfo('ProjectConstructor', `Only body metadata exists for '${this.title}'. Migrating metadata block to frontmatter.`)
-          if (usingEditor) {
-            // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
-            migrateProjectMetadataLineInEditor(Editor)
-          } else {
-            migrateProjectMetadataLineInNote(this.note)
-          }
+          const bodyMigrationDetail = usingEditor
+            ? // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
+              migrateProjectMetadataLineInEditor(Editor)
+            : migrateProjectMetadataLineInNote(this.note)
+          this.migrationLogDetailFromConstructor = mergeConstructorMigrationLogDetail(this.migrationLogDetailFromConstructor, bodyMigrationDetail)
           DataStore.updateCache(this.note, true)
         } else {
           logDebug('ProjectConstructor', `MIGRATE...=false: skipping body-only migration for '${this.title}'`)
@@ -307,79 +323,65 @@ export class Project {
             const migrationAttrs: { [string]: any } = {}
             const migratedKeys: Array<string> = []
 
+            // YAML wins: skip extracting an embedded mention when that separate key already exists on disk.
+            const persistedSeparateFieldNonEmpty = (key: string): boolean => {
+              const field = readRawFrontmatterField(this.note, key)
+              return field.exists && String(field.value ?? '').trim() !== ''
+            }
+
             const mentionRegex = /@[\w\-\.]+\([^)]*\)/g
             const embeddedMentions: Array<string> = combinedStr.match(mentionRegex) ?? []
             if (embeddedMentions.length > 0) {
-              logDebug(
-                'ProjectConstructor',
-                `- Found ${String(embeddedMentions.length)} embedded mention(s) in '${singleKeyName}' for '${this.title}': ${combinedStr}`,
-              )
+              logDebug('ProjectConstructor', `- Found ${String(embeddedMentions.length)} embedded mention(s) in '${singleKeyName}' key: <${combinedStr}>`)
             }
             for (const embeddedMention of embeddedMentions) {
               const mentionName = embeddedMention.split('(', 1)[0]
               const parsed = parseProjectFrontmatterValue(embeddedMention)
               if (parsed === '') continue
 
-              if (mentionName === startMentionName && (this.startDate == null || this.startDate === '')) {
-                if (reISODate.test(parsed)) {
-                  this.startDate = parsed
-                  migrationAttrs[fmKey.start] = parsed
-                  migratedKeys.push(fmKey.start)
-                }
-              } else if (mentionName === dueMentionName && (this.dueDate == null || this.dueDate === '')) {
-                if (reISODate.test(parsed)) {
-                  this.dueDate = parsed
-                  migrationAttrs[fmKey.due] = parsed
-                  migratedKeys.push(fmKey.due)
-                }
-              } else if (mentionName === reviewedMentionName && (this.reviewedDate == null || this.reviewedDate === '')) {
-                if (reISODate.test(parsed)) {
-                  this.reviewedDate = parsed
-                  migrationAttrs[fmKey.reviewed] = parsed
-                  migratedKeys.push(fmKey.reviewed)
-                }
-              } else if (mentionName === completedMentionName && (this.completedDate == null || this.completedDate === '')) {
-                if (reISODate.test(parsed)) {
-                  this.completedDate = parsed
-                  migrationAttrs[fmKey.completed] = parsed
-                  migratedKeys.push(fmKey.completed)
-                }
-              } else if (mentionName === cancelledMentionName && (this.cancelledDate == null || this.cancelledDate === '')) {
-                if (reISODate.test(parsed)) {
-                  this.cancelledDate = parsed
-                  migrationAttrs[fmKey.cancelled] = parsed
-                  migratedKeys.push(fmKey.cancelled)
-                }
-              } else if (mentionName === nextReviewMentionName && (this.nextReviewDateStr == null || this.nextReviewDateStr === '')) {
-                if (reISODate.test(parsed)) {
-                  this.nextReviewDateStr = parsed
-                  migrationAttrs[fmKey.nextReview] = parsed
-                  migratedKeys.push(fmKey.nextReview)
-                }
-              } else if (
-                mentionName === reviewIntervalMentionName &&
-                (this.reviewInterval == null || this.reviewInterval === '' || !this.reviewInterval.match(reInterval))
-              ) {
-                if (reInterval.test(parsed)) {
-                  this.reviewInterval = parsed
-                  migrationAttrs[fmKey.reviewInterval] = parsed
-                  migratedKeys.push(fmKey.reviewInterval)
-                }
+              if (mentionName === startMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.start)) {
+                this.startDate = parsed
+                migrationAttrs[fmKey.start] = parsed
+                migratedKeys.push(fmKey.start)
+              } else if (mentionName === dueMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.due)) {
+                this.dueDate = parsed
+                migrationAttrs[fmKey.due] = parsed
+                migratedKeys.push(fmKey.due)
+              } else if (mentionName === reviewedMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.reviewed)) {
+                this.reviewedDate = parsed
+                migrationAttrs[fmKey.reviewed] = parsed
+                migratedKeys.push(fmKey.reviewed)
+              } else if (mentionName === completedMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.completed)) {
+                this.completedDate = parsed
+                migrationAttrs[fmKey.completed] = parsed
+                migratedKeys.push(fmKey.completed)
+              } else if (mentionName === cancelledMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.cancelled)) {
+                this.cancelledDate = parsed
+                migrationAttrs[fmKey.cancelled] = parsed
+                migratedKeys.push(fmKey.cancelled)
+              } else if (mentionName === nextReviewMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.nextReview)) {
+                this.nextReviewDateStr = parsed
+                migrationAttrs[fmKey.nextReview] = parsed
+                migratedKeys.push(fmKey.nextReview)
+              } else if (mentionName === reviewIntervalMentionName && reInterval.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.reviewInterval)) {
+                this.reviewInterval = parsed
+                migrationAttrs[fmKey.reviewInterval] = parsed
+                migratedKeys.push(fmKey.reviewInterval)
               }
             }
             if (embeddedMentions.length > 0) {
               migrationAttrs[singleKeyName] = this.getProjectTagsFrontmatterValue(singleKeyName)
               updateFrontMatterVars(this.note, migrationAttrs)
               DataStore.updateCache(this.note, true)
-              appendMigrationLogRow(this.note, 'ok')
-              logDebug(
-                'ProjectConstructor',
-                `- Migrated tags-key mentions for '${this.title}': wrote keys [${migratedKeys.join(', ')}], normalized '${singleKeyName}' to tags-only`,
-              )
+              this.migrationLogDetailFromConstructor = mergeConstructorMigrationLogDetail(this.migrationLogDetailFromConstructor, 'ok')
+              logDebug('ProjectConstructor', `- Migrated tags-key mentions for '${this.title}': wrote keys [${migratedKeys.join(', ')}], normalized '${singleKeyName}' to tags-only`)
             }
           }
         } catch (e) {
-          appendMigrationLogRow(this.note, `embedded tags-key migration failed: ${e.message}`)
+          this.migrationLogDetailFromConstructor = mergeConstructorMigrationLogDetail(
+            this.migrationLogDetailFromConstructor,
+            `embedded tags-key migration failed: ${e.message}`,
+          )
           logWarn('ProjectConstructor', `- Failed tags-key embedded mention migration for '${this.title}': ${e.message}`)
         }
       } else if (hasCombinedTagsMetadata) {

@@ -453,13 +453,67 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
 }
 
 /**
+ * One paragraph's source line for metadata scans: prefer NotePlan `rawContent`, else `content`.
+ * @param {{ rawContent?: ?string, content?: string, ... }} p
+ * @returns {string}
+ */
+function paragraphRawLineForMetadataScan(p: { +rawContent?: ?string, +content?: string, ... }): string {
+  const raw = p?.rawContent
+  if (raw != null && String(raw) !== '') {
+    return String(raw)
+  }
+  return String(p?.content ?? '')
+}
+
+/**
+ * Raw body lines for metadata scanning (paragraphs when present; else `note.rawContent` split for notes not yet split into paragraphs).
+ * @param {CoreNoteFields | TEditor} note
+ * @returns {Array<string>}
+ */
+function getParagraphRawLinesForMetadataScan(note: CoreNoteFields | TEditor): Array<string> {
+  const paras = note.paragraphs ?? []
+  if (paras.length > 0) {
+    return paras.map((p) => paragraphRawLineForMetadataScan((p: any)))
+  }
+  const noteAny: any = note
+  if (typeof noteAny.rawContent === 'string' && noteAny.rawContent.length > 0) {
+    const parts = noteAny.rawContent.split('\n')
+    if (parts.length > 0 && parts[parts.length - 1] === '') {
+      parts.pop()
+    }
+    return parts
+  }
+  return []
+}
+
+/**
+ * Find closing YAML `---` line index from plain strings when separator paragraph types are unavailable.
+ * @param {Array<string>} lines
+ * @returns {number} index of closing `---`, or -1
+ */
+function endOfFrontmatterLineIndexFromRawLines(lines: Array<string>): number {
+  if (lines.length < 3) {
+    return -1
+  }
+  if (String(lines[0]).trim() !== '---') {
+    return -1
+  }
+  for (let i = 1; i < lines.length; i += 1) {
+    if (String(lines[i]).trim() === '---') {
+      return i
+    }
+  }
+  return -1
+}
+
+/**
  * Works out which body line (if any) of the current note is project-style metadata line.
  * This scans the note body only (after any YAML frontmatter) and is used as a legacy/fallback
  * signal for where project metadata used to live in plain text.
  * Callers should treat YAML frontmatter as the canonical source of structured metadata
  * (dates, intervals, tags) and use the returned body index mainly for migration or mutation.
  *
- * A body line is considered metadata-like when it is:
+ * A body line (using `rawContent` not `content`) is considered metadata-like when it is:
  * - a line starting 'project:' or 'metadata:'
  * - the first line containing an '@review()' or '@reviewed()' mention
  * - the first line starting with a single leading hashtag (project tag line).
@@ -470,10 +524,17 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
  */
 export function getMetadataLineIndexFromBody(note: CoreNoteFields | TEditor): number | false {
   try {
-    const lines = note.paragraphs?.map((s) => s.content) ?? []
-    logDebug('getMetadataLineIndexFromBody', `Starting with ${lines.length} lines for ${displayTitle(note)}`)
+    const lines = getParagraphRawLinesForMetadataScan(note)
+    logDebug('getMetadataLineIndexFromBody', `Starting with ${String(lines.length)} lines for ${displayTitle(note)}`)
     let lineNumber: number | false = false
-    const endFMIndex = noteHasFrontMatter(note) ? (endOfFrontmatterLineIndex(note) ?? -1) : -1
+    let endFMIndex = -1
+    if (noteHasFrontMatter(note)) {
+      const e = endOfFrontmatterLineIndex(note)
+      endFMIndex = e == null || isNaN(e) ? -1 : e
+    } else {
+      const fromRaw = endOfFrontmatterLineIndexFromRawLines(lines)
+      endFMIndex = fromRaw >= 0 ? fromRaw : -1
+    }
     for (let i = endFMIndex + 1; i < lines.length; i++) {
       const thisLine = lines[i] ?? ''
       if (
@@ -523,8 +584,8 @@ export function getProjectMetadataLineIndex(
     const metadataAliasRe = /^metadata:\s*/i
     const paras = note.paragraphs ?? []
     for (let i = 1; i < endFMIndex; i++) {
-      const content = paras[i]?.content ?? ''
-      if (primaryRe.test(content) || metadataAliasRe.test(content)) {
+      const lineText = paragraphRawLineForMetadataScan((paras[i]: any))
+      if (primaryRe.test(lineText) || metadataAliasRe.test(lineText)) {
         return i
       }
     }
@@ -631,6 +692,7 @@ function findMetadataBodyBlock(paras: Array<TParagraph>, startIndex: number): ?M
  * @param {(p: TParagraph) => void} updateParagraph - persist paragraph edits (Editor.updateParagraph / note.updateParagraph)
  * @param {string} logContext - log tag (migrateProjectMetadataLineInEditor | migrateProjectMetadataLineInNote)
  * @param {boolean} ensureFrontmatterFirst - if true, create empty frontmatter when missing (Note path)
+ * @returns {?string} detail string for migration_log when work ran or failed; null when nothing to migrate
  * @private
  */
 function migrateProjectMetadataLineCore(
@@ -639,7 +701,7 @@ function migrateProjectMetadataLineCore(
   updateParagraph: (p: TParagraph) => void,
   logContext: string,
   ensureFrontmatterFirst: boolean,
-): void {
+): ?string {
   try {
     if (ensureFrontmatterFirst && !noteHasFrontMatter(note)) {
       ensureFrontmatter(note, false) // don't migrate title to frontmatter
@@ -660,13 +722,13 @@ function migrateProjectMetadataLineCore(
         logDebug(logContext, `- Found existing migration message at line ${String(i)}; clearing line.`)
         p.content = ''
         updateParagraph(p)
-        return
+        return 'ok'
       }
     }
 
     const metadataBlock = findMetadataBodyBlock(paras, endFMIndex + 1)
     if (metadataBlock == null) {
-      return
+      return null
     }
     logDebug(
       logContext,
@@ -675,6 +737,7 @@ function migrateProjectMetadataLineCore(
 
     const existingFMValue = metadataStrSavedFromBodyOfNote
     const bodyValue = metadataBlock.mergedContent
+    let mergeFailedDetail: ?string = null
 
     if (bodyValue !== '') {
       logDebug(logContext, `- Merging body metadata into frontmatter key '${primaryKey}' with bodyValue '${bodyValue}'`)
@@ -735,7 +798,7 @@ function migrateProjectMetadataLineCore(
       // $FlowFixMe[incompatible-call]
       const mergedOK = updateFrontMatterVars((note: any), fmAttrs)
       if (!mergedOK) {
-        appendMigrationLogRow(note, `frontmatter merge failed (${logContext})`)
+        mergeFailedDetail = `frontmatter merge failed (${logContext})`
         logError(logContext, `Failed to merge body metadata line into frontmatter key '${primaryKey}' for '${displayTitle(note)}'`)
       } else {
         logDebug(logContext, `- Merged body metadata into frontmatter key '${primaryKey}' for '${displayTitle(note)}'`)
@@ -757,10 +820,14 @@ function migrateProjectMetadataLineCore(
       continuationPara.content = ''
       updateParagraph(continuationPara)
     }
-    appendMigrationLogRow(note, 'ok')
+    const finalDetail = mergeFailedDetail != null ? mergeFailedDetail : 'ok'
+    appendMigrationLogRow(note.filename ?? '(unknown)', note.title ?? '(unknown)', finalDetail)
+    return finalDetail
   } catch (error) {
-    appendMigrationLogRow(note, `exception (${logContext}): ${error.message}`)
+    const errDetail = `exception (${logContext}): ${error.message}`
+    appendMigrationLogRow(note.filename ?? '(unknown)', note.title ?? '(unknown)', errDetail)
     logError(logContext, error.message)
+    return errDetail
   }
 }
 
@@ -771,15 +838,16 @@ function migrateProjectMetadataLineCore(
  * NOTE: This helper does not save/update the Editor; callers must handle persistence.
  * @author @jgclark
  * @param {TEditor} thisEditor - the Editor window to update
+ * @returns {?string} migration log detail when migration ran or failed; null when skipped or nothing to do
  */
-export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
+export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): ?string {
   try {
     if (thisEditor.note == null || thisEditor.note.type === 'Calendar' || thisEditor.paragraphs.length < 2) {
       logWarn('migrateProjectMetadataLineInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
-      return
+      return null
     }
     logDebug('migrateProjectMetadataLineInEditor', `Starting for '${displayTitle(thisEditor)}'`)
-    migrateProjectMetadataLineCore(
+    return migrateProjectMetadataLineCore(
       thisEditor,
       thisEditor.paragraphs,
       (p) => {
@@ -790,6 +858,7 @@ export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
     )
   } catch (error) {
     logError('migrateProjectMetadataLineInEditor', error.message)
+    return null
   }
 }
 
@@ -800,15 +869,16 @@ export function migrateProjectMetadataLineInEditor(thisEditor: TEditor): void {
  * NOTE: This helper does not update the cache.
  * @author @jgclark
  * @param {CoreNoteFields} noteToUse - the note to update
+ * @returns {?string} migration log detail when migration ran or failed; null when skipped or nothing to do
  */
-export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): void {
+export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): ?string {
   try {
     if (noteToUse == null || noteToUse.type === 'Calendar' || noteToUse.paragraphs.length < 2) {
       logWarn('migrateProjectMetadataLineInNote', `- We've not been passed a valid Project note (and with at least 2 lines). Stopping.`)
-      return
+      return null
     }
     logDebug('migrateProjectMetadataLineInNote', `Starting for '${displayTitle(noteToUse)}'`)
-    migrateProjectMetadataLineCore(
+    return migrateProjectMetadataLineCore(
       noteToUse,
       noteToUse.paragraphs,
       (p) => {
@@ -819,6 +889,7 @@ export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): voi
     )
   } catch (error) {
     logError('migrateProjectMetadataLineInNote', error.message)
+    return null
   }
 }
 

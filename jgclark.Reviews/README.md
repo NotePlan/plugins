@@ -170,7 +170,7 @@ Other notes:
 - If there are multiple copies of a metadata field, only the first one is used.
 - I'm sometimes asked why I use `@reviewed(2021-06-25)` rather than `@reviewed/2021-06-25`. The answer is that while the latter form is displayed in a neater way in the sidebar, the date part isn't available in the NotePlan API as the part after the slash is not a valid @tag as it doesn't contain an alphabetic character.
 
-_From v1.4.0.b5 the plugin migrates this metadata into the Frontmatter block (if present) and removes the body metadata line, leaving the note body cleaner._
+_From v2.0 the plugin migrates this metadata into the Frontmatter block and removes the body metadata line, leaving the note body cleaner._
 
 ## Selecting notes to include
 There are 2 parts of this:
@@ -201,8 +201,8 @@ You can set the '**Output style to use**'. This is either the 'Rich' style or or
 - the button 'Start reviews' / 'Start reviewing notes ready for review' is a shortcut to the '/start reviews' command (described below).
 - each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
-### Progress Comments
-In a project/area note you can, if you wish, include a **one-line comment** of your view on its current **overall progress**. If given, the latest one is shown in the project lists. To continue the example above, here's the start of the note a few weeks later, showing I think it's only 10% complete:
+### Progress Summaries
+In a project/area note you can, if you wish, include a **one-line summary** of your view on its current **overall progress**. If given, the latest one is shown in the project lists. To continue the example above, here's the start of the note a few weeks later, showing I think it's only 10% complete:
 
 ```markdown
 # Secret Undertaking
@@ -232,7 +232,7 @@ The settings relating to Progress calculations and comments are:
 
 ## Other Plugin settings
 - Open Project Lists in what sort of macOS window?: (from v1.3) Choose whether the Rich project list opens in NotePlan's main window or in a separate window.
-- **Automatic Update interval**: (from v1.4.0.b4) If set to any number > 0, the Rich Project Lists window will automatically refresh when it has been idle for that many minutes. Set to 0 to disable. When the list refreshes (manually or automatically), the current scroll position is preserved as closely as possible.
+- Automatic Update interval: If set to any number > 0, the Rich Project Lists window will automatically refresh when it has been idle for that many minutes. Set to 0 to disable. When the list refreshes (manually or automatically), the current scroll position is preserved as closely as possible.
 - Next action tag(s): optional list of #hashtags to include in a task or checklist to indicate its the next action in this project (comma-separated; default '#next'). If there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist is shown as the next action. Only the first matching item is shown.
 - Display next actions in output? This requires the previous setting to be set (or use #sequential). Toggle is in the Filter… menu as "Show next actions?".
 - Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`. Note also: 
@@ -316,7 +316,12 @@ For those with lots of different projects or project groups, this is a handy way
 
 <!-- Happens automatically on installation of v2 ??? -->
 
-When the command finishes, a dialog reports how many notes migrated successfully and how many failed. It also writes an entry to a special log file (`Plugins/data/jgclark.Reviews/migration_log.tsv`) that gives details of the migration of each note.
+When the command finishes, a dialog reports how many notes **actually** had a successful metadata migration (`ok` in the log), how many had migration issues logged, how many needed no migration, and how many failed in the constructor.
+
+**Migration log (`migration_log.tsv`):** Rows are appended to `NotePlan/Plugins/Data/jgclark.Reviews/migration_log.tsv` (same folder as `allProjectsList.json`). Columns are **`filename`**, **`title`**, **`date`** (ISO timestamp when the row was written), and **`detail`** (`ok` or an error message). The file is append-only.
+
+- **During `/migrate all projects`:** you get **at most one row per project note/tag pair** in that run. A row is written only when a migration step actually changed the note (or reported an error), or when the `Project` constructor throws — **notes that needed no migration do not get a log row.** Nested migration steps still do not add extra or duplicate rows.
+- **During normal plugin use** (e.g. opening a project or finishing a review when body metadata is merged into frontmatter), a row is written when that migration runs, independently of the batch command.
 
 <!-- 
 ### **/weeklyProjectsProgress** command

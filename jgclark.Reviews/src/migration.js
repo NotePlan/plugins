@@ -1,6 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Batch migration: run Project constructor with migrateInProjectConstructor on all notes that match list settings.
+// Project metadata migration: shared TSV logging (`appendMigrationLogRow`) plus batch command `migrateAllProjects`.
+// Other modules (`reviewHelpers`, `projectClass`) import `appendMigrationLogRow` from here so all migration events use one log implementation.
 // Last updated 2026-05-01 for v2.0.0.b28 by @Cursor
 //-----------------------------------------------------------------------------
 
@@ -16,6 +17,25 @@ const migrationLogFilename = `../${pluginID}/migration_log.tsv`
 const MIGRATION_TSV_HEADER = 'filename\ttitle\tdate\tdetail'
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
 
+/** When > 0, `appendMigrationLogRow` is a no-op unless `force` is true (used during `/migrate all projects` so only one row is written per note). */
+let migrationLogSuppressDepth = 0
+
+/**
+ * Begin suppressing TSV writes from nested migration helpers while a batch `Project` construction runs.
+ * @returns {void}
+ */
+export function beginSuppressMigrationLogForBatchConstruction(): void {
+  migrationLogSuppressDepth += 1
+}
+
+/**
+ * End suppression started by `beginSuppressMigrationLogForBatchConstruction`.
+ * @returns {void}
+ */
+export function endSuppressMigrationLogForBatchConstruction(): void {
+  migrationLogSuppressDepth = Math.max(0, migrationLogSuppressDepth - 1)
+}
+
 /**
  * Replace characters that would break a TSV row.
  * @param {string} value
@@ -28,16 +48,23 @@ function sanitizeTsvCell(value: string): string {
 /**
  * Append a single migration event row to migration_log.tsv.
  * The `date` column is always the current datetime in full ISO format.
- * @param {{ filename?: string, title?: string }} noteLike
- * @param {string} detail
+ * @param { string } filename noteLike
+ * @param { string } title noteLike
+ * @param { string } detail
+ * @param {{ force?: boolean }?} options - If `force` is true, write even while batch construction suppression is active (not used by default).
  * @returns {void}
  */
 export function appendMigrationLogRow(
-  noteLike: { filename?: string, title?: string },
+  filenameIn: string,
+  titleIn: string,
   detail: string,
+  options?: { force?: boolean },
 ): void {
-  const filename = sanitizeTsvCell(noteLike?.filename ?? '')
-  const title = sanitizeTsvCell(noteLike?.title ?? '')
+  if (migrationLogSuppressDepth > 0 && options?.force !== true) {
+    return
+  }
+  const filename = sanitizeTsvCell(filenameIn ?? '')
+  const title = sanitizeTsvCell(titleIn ?? '')
   const dateIso = new Date().toISOString()
   const detailSafe = sanitizeTsvCell(detail)
   const newLine = `${filename}\t${title}\t${dateIso}\t${detailSafe}`
@@ -62,7 +89,7 @@ export function appendMigrationLogRow(
 
 /**
  * Run constructor-driven metadata migration on every project note that matches current Reviews settings (same set as `allProjectsList.json`).
- * Appends rows to `migration_log.tsv`, shows CommandBar progress, then `showMessage` with counts.
+ * Appends rows to `migration_log.tsv`, shows CommandBar progress, then `showMessage` with migrated-ok / issues / no-op / constructor-fail counts.
  * @returns {Promise<void>}
  */
 export async function migrateAllProjects(): Promise<void> {
@@ -95,6 +122,12 @@ export async function migrateAllProjects(): Promise<void> {
     const migratedProjects: Array<Project> = []
     let successCount = 0
     let failCount = 0
+    /** Constructor ran migration helpers and wrote a successful `ok` detail (matches typical “actually migrated” notes). */
+    let migrationOkCount = 0
+    /** Constructor set a non-ok migration detail (e.g. merge failure); see `migration_log.tsv`. */
+    let migrationIssueCount = 0
+    /** Constructor succeeded but no metadata migration ran (no TSV row for this pair). */
+    let noMigrationNeededCount = 0
 
     try {
       CommandBar.showLoading(true, `Migrating project notes\n0/${String(total)}`, 0)
@@ -103,16 +136,34 @@ export async function migrateAllProjects(): Promise<void> {
       for (const { note, projectTypeTag: tag } of pairs) {
         index += 1
         CommandBar.showLoading(true, `Migrating project notes\n${String(index)}/${String(total)}`, index / total)
+        let constructionError: ?string = null
+        let migratedProject: ?Project = null
+        beginSuppressMigrationLogForBatchConstruction()
         try {
           // Constructor performs migrations when migrateInProjectConstructor is true
-          const migratedProject = new Project(note, tag, false, nextActionTags, sequentialTagResolved, true)
+          migratedProject = new Project(note, tag, false, nextActionTags, sequentialTagResolved, true)
           migratedProjects.push(migratedProject)
           successCount += 1
         } catch (error) {
           failCount += 1
-          const msg = error != null && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : String(error)
-          appendMigrationLogRow(note, msg)
-          logInfo('migrateAllProjects', `FAIL ${note.filename ?? ''}: ${msg}`)
+          constructionError =
+            error != null && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : String(error)
+          logInfo('migrateAllProjects', `FAIL ${note.filename ?? ''}: ${constructionError}`)
+        } finally {
+          endSuppressMigrationLogForBatchConstruction()
+        }
+        const batchMigrationDetail = migratedProject?.migrationLogDetailFromConstructor ?? null
+        if (constructionError != null) {
+          appendMigrationLogRow(note.filename ?? '', note.title ?? '', constructionError)
+        } else if (batchMigrationDetail != null) {
+          appendMigrationLogRow(note.filename ?? '', note.title ?? '', batchMigrationDetail)
+          if (batchMigrationDetail === 'ok') {
+            migrationOkCount += 1
+          } else {
+            migrationIssueCount += 1
+          }
+        } else {
+          noMigrationNeededCount += 1
         }
       }
     } finally {
@@ -122,17 +173,33 @@ export async function migrateAllProjects(): Promise<void> {
       }
     }
 
-    logInfo('migrateAllProjects', `Finished. Migrated successfully: ${String(successCount)} notes, failed: ${String(failCount)} notes.`)
-    logTimer('migrateAllProjects', startTime, `success=${String(successCount)} fail=${String(failCount)}`)
+    logInfo(
+      'migrateAllProjects',
+      `Finished. migratedOk=${String(migrationOkCount)} migrationIssues=${String(migrationIssueCount)} noMigrationNeeded=${String(
+        noMigrationNeededCount,
+      )} constructorFail=${String(failCount)} (pairs processed=${String(successCount + failCount)})`,
+    )
+    logTimer(
+      'migrateAllProjects',
+      startTime,
+      `ok=${String(migrationOkCount)} issues=${String(migrationIssueCount)} noop=${String(noMigrationNeededCount)} fail=${String(failCount)}`,
+    )
 
     await writeAllProjectsList(migratedProjects)
     logDebug('migrateAllProjects', `And also re-wrote ${String(migratedProjects.length)} projects to the allProjectsList.json file`)
 
-    await showMessage(
-      `Migration finished.\n\nMigrated successfully: ${String(successCount)} notes\nFailed: ${String(failCount)} notes.\n\nDetails were appended to migration_log.tsv where migrations/errors occurred.`,
-      'OK',
-      'Migrated Project notes',
-    )
+    const summaryLines: Array<string> = ['Migration finished.', '']
+    summaryLines.push(`Successfully migrated: ${String(migrationOkCount)} note(s)`)
+    if (migrationIssueCount > 0) {
+      summaryLines.push(`Migration issues (see migration_log.tsv): ${String(migrationIssueCount)} note(s)`)
+    }
+    summaryLines.push(`No migration needed: ${String(noMigrationNeededCount)} note(s)`)
+    if (failCount > 0) {
+      summaryLines.push(`Failed (could not build project): ${String(failCount)} note(s)`)
+    }
+    summaryLines.push('', 'Details of each migration were appended to migration_log.tsv.')
+
+    await showMessage(summaryLines.join('\n'), 'OK', 'Migrated Project notes')
   } catch (error) {
     const msg = error != null && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : String(error)
     logWarn('migrateAllProjects', `Stopped with error: ${msg}`)

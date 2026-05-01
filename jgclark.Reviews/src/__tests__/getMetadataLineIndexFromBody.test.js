@@ -19,14 +19,14 @@ describe('getMetadataLineIndexFromBody', () => {
     const note = new Note({
       title: 'Example',
       filename: 'example.md',
-      content:
+      rawContent:
         '# Example\n' +
         'project: #project @review(1w)\n' +
         '\n' +
         'Body line 1\n',
     })
 
-    const expectedIndex = note.paragraphs.findIndex((p: any) => String(p.content).startsWith('project:'))
+    const expectedIndex = note.paragraphs.findIndex((p: any) => String(p.rawContent).startsWith('project:'))
     const actualIndex = getMetadataLineIndexFromBody((note: any))
     expect(actualIndex).toBe(expectedIndex)
   })
@@ -35,7 +35,7 @@ describe('getMetadataLineIndexFromBody', () => {
     const note = new Note({
       title: 'Example',
       filename: 'example.md',
-      content:
+      rawContent:
         '# Example\n' +
         '\n' +
         'Body line 1\n',
@@ -51,7 +51,7 @@ describe('getMetadataLineIndexFromBody', () => {
     const note = new Note({
       title: 'Example',
       filename: 'example.md',
-      content:
+      rawContent:
         '---\n' +
         'project: #project\n' +
         'reviewed: 2026-03-26\n' +
@@ -59,6 +59,42 @@ describe('getMetadataLineIndexFromBody', () => {
         'review: 1w\n' +
         '---\n' +
         '# Example\n' +
+        '\n' +
+        'Body line 1\n',
+    })
+
+    const actualIndex = getMetadataLineIndexFromBody((note: any))
+    expect(actualIndex).toBe(false)
+  })
+
+  test('ignores tasks including #project tag', () => {
+    preferenceValues['projectMetadataFrontmatterKey'] = 'project'
+
+    const note = new Note({
+      title: 'Example',
+      filename: 'example.md',
+      rawContent:
+        '# Example\n' +
+        '* [ ] #project Task 1\n' +
+        '* [x] #project Task 2\n' +
+        '\n' +
+        'Body line 1\n',
+    })
+
+    const actualIndex = getMetadataLineIndexFromBody((note: any))
+    expect(actualIndex).toBe(false)
+  })
+
+  test('ignores tasks including "project:" phrase', () => {
+    preferenceValues['projectMetadataFrontmatterKey'] = 'project'
+
+    const note = new Note({
+      title: 'Example',
+      filename: 'example.md',
+      rawContent:
+        '# Example\n' +
+        '* [ ] see project: 1\n' +
+        '* [x] work on project: 2\n' +
         '\n' +
         'Body line 1\n',
     })
@@ -75,7 +111,7 @@ describe('getProjectMetadataLineIndex', () => {
     const note = new Note({
       title: 'Example',
       filename: 'example.md',
-      content:
+      rawContent:
         '---\n' +
         'project: #project @review(1m)\n' +
         '---\n' +
@@ -84,7 +120,7 @@ describe('getProjectMetadataLineIndex', () => {
         'Body line 1\n',
     })
 
-    const projectLineIndex = note.paragraphs.findIndex((p: any) => String(p.content).startsWith('project:'))
+    const projectLineIndex = note.paragraphs.findIndex((p: any) => String(p.rawContent).startsWith('project:'))
     expect(projectLineIndex).toBeGreaterThan(0)
     const actualIndex = getProjectMetadataLineIndex((note: any))
     expect(actualIndex).toBe(projectLineIndex)
@@ -96,7 +132,7 @@ describe('getProjectMetadataLineIndex', () => {
     const note = new Note({
       title: 'Example',
       filename: 'example.md',
-      content:
+      rawContent:
         '---\n' +
         'project: #project @review(1m)\n' +
         '---\n' +
@@ -108,7 +144,7 @@ describe('getProjectMetadataLineIndex', () => {
     const fullScan = getProjectMetadataLineIndex((note: any))
     const withCachedFalse = getProjectMetadataLineIndex((note: any), false)
     expect(withCachedFalse).toBe(fullScan)
-    const projectLineIndex = note.paragraphs.findIndex((p: any) => String(p.content).startsWith('project:'))
+    const projectLineIndex = note.paragraphs.findIndex((p: any) => String(p.rawContent).startsWith('project:'))
     expect(fullScan).toBe(projectLineIndex)
   })
 
@@ -116,7 +152,7 @@ describe('getProjectMetadataLineIndex', () => {
     const note = new Note({
       title: 'Example',
       filename: 'example.md',
-      content:
+      rawContent:
         '# Example\n' +
         'project: #project @review(1w)\n' +
         '\n' +

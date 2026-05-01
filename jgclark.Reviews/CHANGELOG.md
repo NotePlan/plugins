@@ -1,8 +1,8 @@
 # What's changed in 🔬 Projects + Reviews plugin?
-See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
-
+See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
 ## [2.0.0.b28] - 2026-05-01
+- fix embedded-metadata migration: combined `project`/`metadata` lines with `@start` / `@review` / `@reviewed` etc. now write separate YAML keys even when mention prefs are unset or values were already read from `note.mentions` (previously the combined line could become hashtags-only and drop dates).
 - new command **migrate all projects**: batch-runs `Project` constructor migration on every note that matches current list settings; appends rows to `migration_log.tsv` in the plugin data directory.
 - New **convert to project** command which converts any regular note into a project. It shows user a form to fill in, asking for project tag, start date, due date, last reviewed date, review interval, aim, etc. It updates the note adding the answers into the frontmatter. (Requires NotePlan v3.21+.)
 
@@ -168,7 +168,6 @@ The "Group by folder" now defaults to off.
 ## [1.3.1] - 2026-02-26
 - New setting "Theme to use for Project Lists": if set to a valid installed Theme name, the Rich project list window uses that theme instead of your current NotePlan theme. Leave blank to use your current theme.
 - Fixed edge case with adding progress updates and frontmatter.
-- Fixed malformed frontmatter mentions (e.g. `@review()` or `@due()`) causing repeated runtime processing; now logs at WARN level and safely ignores empty bracket values.
 
 ## [1.3.0] - 2026-02-20
 ### Display Improvements

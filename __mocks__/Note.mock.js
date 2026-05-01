@@ -13,6 +13,8 @@ import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 export class Note {
   // Explicitly define properties that are dynamically assigned
   content: string
+  /** Full note markdown when tests construct notes with `{ rawContent }` only */
+  rawContent: string = ''
   paragraphs: any[]
   // Properties
   backlinks: any[] = [] /* sample:  [ SOMETHING ], */
@@ -234,6 +236,12 @@ export class Note {
       const value = data[key]
       if (key === 'content') {
         if (value !== '') {
+          this._content = value
+          this.paragraphs = makeParagraphsFromContent(this._content)
+        }
+      } else if (key === 'rawContent') {
+        this.rawContent = value
+        if (typeof value === 'string' && value !== '' && (data.content === undefined || data.content === '')) {
           this._content = value
           this.paragraphs = makeParagraphsFromContent(this._content)
         }
