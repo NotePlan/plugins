@@ -1,6 +1,9 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.6.0] - 2026-05-01
+- new **/unarchive note keeping folder structure** command that reverses **/archive note keeping folder structure** by moving a note from `@Archive` back to its original folder path.
+
 ## [1.5.3] - 2025-03-16
 - fix: improvements to the **/move completed items to done section** command
 - dev: added tests for its helper functions

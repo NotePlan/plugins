@@ -5,6 +5,14 @@ It has some settings, which you review and change by clicking on the '⚙️ Set
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
+## /archive note keeping folder structure
+This command moves the current project note into NotePlan's special `@Archive` folder while keeping the same folder path under `@Archive`.
+
+For example, `Projects/ClientA/Plan.md` becomes `@Archive/Projects/ClientA/Plan.md`.
+
+## /unarchive note keeping folder structure
+This command is the inverse of the above. For example the filename changes from `@Archive/Projects/ClientA/Plan.md` to `Projects/ClientA/Plan.md`.
+
 ## /move paragraph or selection
 The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files** (moves) lines to different notes in NotePlan, without having to lose your flow by switching to the other note. It works on any sort of lines, not just tasks.
 

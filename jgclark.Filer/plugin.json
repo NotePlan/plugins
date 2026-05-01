@@ -8,9 +8,9 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://noteplan.co/plugins/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "1.5.3",
+  "plugin.version": "1.6.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "1.5.3: Improvements to the 'move completed items to done section' command.\n1.5.2: Allow customising the name of the 'Done' section heading used by the 'move completed items to done section' command. Improvements to the 'move completed items to done section' command.\n1.5.1: Fix 'Add date reference?' option so that when moving from calendar note the added date now correctly points to the source note's date, not always to today.\n1.5.0: New '/move completed items to done section' command that is more powerful than NP's built-in 'Move Completed to Bottom' menu action. It has two settings, which reveal its additional powers: Recreate existing section structure in Done section? (default: true). Only move completed items when whole section is complete? (default: false).\n1.4.1: Fix for /move paras command when moving to a note with a heading with trailing whitespace.\n1.4.0: \"/add sync'd copy to note\" now can work on a block of lines. Further bug fixes for some commands on notes with frontmatter.",
+  "plugin.lastUpdateInfo": "1.6.0: New '/unarchive note keeping folder structure' command to move a note from @Archive back to its original folder path.\n1.5.3: Improvements to the 'move completed items to done section' command.\n1.5.2: Allow customising the name of the 'Done' section heading used by the 'move completed items to done section' command. Improvements to the 'move completed items to done section' command.\n1.5.1: Fix 'Add date reference?' option so that when moving from calendar note the added date now correctly points to the source note's date, not always to today.\n1.5.0: New '/move completed items to done section' command that is more powerful than NP's built-in 'Move Completed to Bottom' menu action. It has two settings, which reveal its additional powers: Recreate existing section structure in Done section? (default: true). Only move completed items when whole section is complete? (default: false).",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -33,6 +33,15 @@
       ],
       "description": "Move the current note to NotePlan's Archive, but keep the same folder structure for it inside the special @Archive folder",
       "jsFunction": "archiveNote"
+    },
+    {
+      "name": "unarchive note keeping folder structure",
+      "alias": [
+        "uan",
+        "unarchive"
+      ],
+      "description": "Move the current note from NotePlan's Archive back to its original folder structure",
+      "jsFunction": "unarchiveNote"
     },
     {
       "name": "copy note links",
