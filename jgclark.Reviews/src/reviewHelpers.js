@@ -11,7 +11,7 @@ import { getActivePerspectiveDef, getPerspectiveSettings } from '../../jgclark.D
 import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { WEBVIEW_WINDOW_ID as DASHBOARD_WINDOW_ID} from '../../jgclark.Dashboard/src/constants'
 import pluginJson from '../plugin.json'
-import { appendMigrationLogRow } from './migration.js'
+import { appendMigrationLogRow } from './migrationLog.js'
 import { type Progress } from './projectClass'
 import { checkString } from '@helpers/checkType'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'

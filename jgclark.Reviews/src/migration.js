@@ -1,91 +1,23 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Project metadata migration: shared TSV logging (`appendMigrationLogRow`) plus batch command `migrateAllProjects`.
-// Other modules (`reviewHelpers`, `projectClass`) import `appendMigrationLogRow` from here so all migration events use one log implementation.
-// Last updated 2026-05-01 for v2.0.0.b28 by @Cursor
+// Project metadata migration: batch command `migrateAllProjects`.
+// TSV logging lives in `migrationLog.js` (used by `reviewHelpers` and this file) to avoid a require cycle.
+// Last updated 2026-05-02 for v2.0.0.b29 by @Cursor
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import { enumerateMatchingProjectNoteTagPairs, writeAllProjectsList } from './allProjectsListHelpers.js'
+import {
+  appendMigrationLogRow,
+  beginSuppressMigrationLogForBatchConstruction,
+  endSuppressMigrationLogForBatchConstruction,
+} from './migrationLog.js'
 import { Project } from './projectClass.js'
 import { getReviewSettings } from './reviewHelpers.js'
 import { logDebug, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 
-const pluginID = 'jgclark.Reviews'
-const migrationLogFilename = `../${pluginID}/migration_log.tsv`
-const MIGRATION_TSV_HEADER = 'filename\ttitle\tdate\tdetail'
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
-
-/** When > 0, `appendMigrationLogRow` is a no-op unless `force` is true (used during `/migrate all projects` so only one row is written per note). */
-let migrationLogSuppressDepth = 0
-
-/**
- * Begin suppressing TSV writes from nested migration helpers while a batch `Project` construction runs.
- * @returns {void}
- */
-export function beginSuppressMigrationLogForBatchConstruction(): void {
-  migrationLogSuppressDepth += 1
-}
-
-/**
- * End suppression started by `beginSuppressMigrationLogForBatchConstruction`.
- * @returns {void}
- */
-export function endSuppressMigrationLogForBatchConstruction(): void {
-  migrationLogSuppressDepth = Math.max(0, migrationLogSuppressDepth - 1)
-}
-
-/**
- * Replace characters that would break a TSV row.
- * @param {string} value
- * @returns {string}
- */
-function sanitizeTsvCell(value: string): string {
-  return String(value).replace(/[\t\n\r]/g, ' ')
-}
-
-/**
- * Append a single migration event row to migration_log.tsv.
- * The `date` column is always the current datetime in full ISO format.
- * @param { string } filename noteLike
- * @param { string } title noteLike
- * @param { string } detail
- * @param {{ force?: boolean }?} options - If `force` is true, write even while batch construction suppression is active (not used by default).
- * @returns {void}
- */
-export function appendMigrationLogRow(
-  filenameIn: string,
-  titleIn: string,
-  detail: string,
-  options?: { force?: boolean },
-): void {
-  if (migrationLogSuppressDepth > 0 && options?.force !== true) {
-    return
-  }
-  const filename = sanitizeTsvCell(filenameIn ?? '')
-  const title = sanitizeTsvCell(titleIn ?? '')
-  const dateIso = new Date().toISOString()
-  const detailSafe = sanitizeTsvCell(detail)
-  const newLine = `${filename}\t${title}\t${dateIso}\t${detailSafe}`
-
-  let existing: ?string = null
-  if (DataStore.fileExists(migrationLogFilename)) {
-    existing = DataStore.loadData(migrationLogFilename, true)
-  }
-
-  let out: string
-  if (existing == null || existing === '') {
-    out = `${MIGRATION_TSV_HEADER}\n${newLine}`
-  } else {
-    const trimmed = String(existing).replace(/\s+$/, '')
-    out = `${trimmed}\n${newLine}`
-  }
-  const ok = DataStore.saveData(out, migrationLogFilename, true)
-  if (!ok) {
-    logWarn('appendMigrationLogRow', `Could not write ${migrationLogFilename}`)
-  }
-}
 
 /**
  * Run constructor-driven metadata migration on every project note that matches current Reviews settings (same set as `allProjectsList.json`).
