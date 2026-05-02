@@ -6,7 +6,11 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
-## [2.3.3] 2026-04-16 @dwertheimer
+## [2.4.0] 2026-04-16 @dwertheimer
+
+### Added
+
+- **TemplateRunner calendar targets:** `getNoteTitled` now treats rendered calendar dates (`YYYY-MM-DD`, `YYYY-MM`, `YYYY-Qn`, `YYYY`, including values rendered from tags like `<%- date.tomorrow('YYYY-MM-DD') %>`) as calendar notes, and supports `<tomorrow>` / `<yesterday>` / `<thismonth>` / `<nextmonth>` / `<thisquarter>` / `<nextquarter>` / `<thisyear>` / `<nextyear>` tokens alongside `<today>`.
 
 ### Fixed
 
@@ -14,8 +18,9 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 
 ### Edited in this release
 
+- `np.Templating/src/NPTemplateRunner.js`, `np.Templating/__tests__/NPTemplateRunner.test.js`
 - `np.Templating/lib/support/modules/FrontmatterModule.js`, `np.Templating/__tests__/frontmatter-module.test.js`
-- `np.Templating/plugin.json` — version **2.3.3**
+- `np.Templating/plugin.json` — version **2.4.0**
 
 ## [2.3.2] 2026-04-14 @dwertheimer
 

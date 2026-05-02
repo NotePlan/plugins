@@ -31,6 +31,8 @@ import { render } from '../lib/rendering'
 import { getNoteByFilename } from '../../helpers/note'
 import { findHeading } from '../../helpers/NPParagraph'
 
+type CalendarNoteTimeframe = 'day' | 'month' | 'quarter' | 'year'
+
 /**
  * Handle empty template case
  * @param {string} renderedTemplate - rendered template content
@@ -627,16 +629,108 @@ export function createTemplateWriteOptions(frontmatterAttributes: Object, should
 }
 
 /**
+ * Resolve an explicit calendar note title or relative day/month/quarter/year token.
+ * @param {string} noteTitle - the note title or special token
+ * @param {Date | string | Object} baseDate - optional base date used for relative tokens
+ * @returns {Object} calendar date string and timeframe, or empty values for non-calendar targets
+ */
+export function resolveCalendarNoteTarget(noteTitle: string, baseDate?: Date | string | Object): { calendarDateString: string, calendarTimeframe: CalendarNoteTimeframe | '' } {
+  const trimmedNoteTitle = noteTitle.trim()
+  const baseMoment = baseDate ? moment(baseDate) : moment()
+
+  if (/<today>/i.test(trimmedNoteTitle)) {
+    return { calendarDateString: baseMoment.format('YYYY-MM-DD'), calendarTimeframe: 'day' }
+  }
+  if (/<tomorrow>/i.test(trimmedNoteTitle)) {
+    return { calendarDateString: baseMoment.clone().add(1, 'days').format('YYYY-MM-DD'), calendarTimeframe: 'day' }
+  }
+  if (/<yesterday>/i.test(trimmedNoteTitle)) {
+    return { calendarDateString: baseMoment.clone().subtract(1, 'days').format('YYYY-MM-DD'), calendarTimeframe: 'day' }
+  }
+  if (/<thismonth>/i.test(trimmedNoteTitle)) {
+    return { calendarDateString: baseMoment.format('YYYY-MM'), calendarTimeframe: 'month' }
+  }
+  if (/<nextmonth>/i.test(trimmedNoteTitle)) {
+    return { calendarDateString: baseMoment.clone().add(1, 'months').format('YYYY-MM'), calendarTimeframe: 'month' }
+  }
+  if (/<thisquarter>/i.test(trimmedNoteTitle)) {
+    return { calendarDateString: baseMoment.format('YYYY-[Q]Q'), calendarTimeframe: 'quarter' }
+  }
+  if (/<nextquarter>/i.test(trimmedNoteTitle)) {
+    return { calendarDateString: baseMoment.clone().add(1, 'quarters').format('YYYY-[Q]Q'), calendarTimeframe: 'quarter' }
+  }
+  if (/<thisyear>/i.test(trimmedNoteTitle)) {
+    return { calendarDateString: baseMoment.format('YYYY'), calendarTimeframe: 'year' }
+  }
+  if (/<nextyear>/i.test(trimmedNoteTitle)) {
+    return { calendarDateString: baseMoment.clone().add(1, 'years').format('YYYY'), calendarTimeframe: 'year' }
+  }
+  if (moment(trimmedNoteTitle, 'YYYY-MM-DD', true).isValid()) {
+    return { calendarDateString: trimmedNoteTitle, calendarTimeframe: 'day' }
+  }
+  if (moment(trimmedNoteTitle, 'YYYY-MM', true).isValid()) {
+    return { calendarDateString: trimmedNoteTitle, calendarTimeframe: 'month' }
+  }
+  if (moment(trimmedNoteTitle, 'YYYY-[Q]Q', true).isValid()) {
+    return { calendarDateString: trimmedNoteTitle, calendarTimeframe: 'quarter' }
+  }
+  if (moment(trimmedNoteTitle, 'YYYY', true).isValid()) {
+    return { calendarDateString: trimmedNoteTitle, calendarTimeframe: 'year' }
+  }
+
+  return { calendarDateString: '', calendarTimeframe: '' }
+}
+
+/**
  * Determine note type from note title
  * @param {string} noteTitle - the note title
  * @returns {Object} note type info
  */
-export function determineNoteType(noteTitle: string): { isTodayNote: boolean, isThisWeek: boolean, isNextWeek: boolean } {
+export function determineNoteType(noteTitle: string): {
+  isTodayNote: boolean,
+  isTomorrowNote: boolean,
+  isYesterdayNote: boolean,
+  isThisMonth: boolean,
+  isNextMonth: boolean,
+  isThisQuarter: boolean,
+  isNextQuarter: boolean,
+  isThisYear: boolean,
+  isNextYear: boolean,
+  isThisWeek: boolean,
+  isNextWeek: boolean,
+  isCalendarDateNote: boolean,
+  calendarDateString: string,
+  calendarTimeframe: CalendarNoteTimeframe | '',
+} {
   const isTodayNote = /<today>/i.test(noteTitle)
+  const isTomorrowNote = /<tomorrow>/i.test(noteTitle)
+  const isYesterdayNote = /<yesterday>/i.test(noteTitle)
+  const isThisMonth = /<thismonth>/i.test(noteTitle)
+  const isNextMonth = /<nextmonth>/i.test(noteTitle)
+  const isThisQuarter = /<thisquarter>/i.test(noteTitle)
+  const isNextQuarter = /<nextquarter>/i.test(noteTitle)
+  const isThisYear = /<thisyear>/i.test(noteTitle)
+  const isNextYear = /<nextyear>/i.test(noteTitle)
   const isThisWeek = /<thisweek>/i.test(noteTitle)
   const isNextWeek = /<nextweek>/i.test(noteTitle)
+  const { calendarDateString, calendarTimeframe } = resolveCalendarNoteTarget(noteTitle)
 
-  return { isTodayNote, isThisWeek, isNextWeek }
+  return {
+    isTodayNote,
+    isTomorrowNote,
+    isYesterdayNote,
+    isThisMonth,
+    isNextMonth,
+    isThisQuarter,
+    isNextQuarter,
+    isThisYear,
+    isNextYear,
+    isThisWeek,
+    isNextWeek,
+    isCalendarDateNote: Boolean(calendarDateString),
+    calendarDateString,
+    calendarTimeframe,
+  }
 }
 
 /**
@@ -672,6 +766,49 @@ export async function handleTodayNote(renderedTemplate: string, writeOptions: Ob
       await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, options)
     } else {
       logError(pluginJson, `templateRunnerExecute note NOT found.`)
+      clo(note, `templateRunnerExecute note variable is`)
+    }
+  }
+}
+
+/**
+ * Handle writing to a calendar note by date string.
+ * @param {string} dateString - calendar note date string (YYYY-MM-DD, YYYY-MM, YYYY-Qn, or YYYY)
+ * @param {CalendarNoteTimeframe} calendarTimeframe - calendar note timeframe
+ * @param {string} renderedTemplate - rendered template content
+ * @param {Object} writeOptions - write options containing all necessary parameters
+ * @returns {Promise<string | void>}
+ */
+export async function handleCalendarDateNote(
+  dateString: string,
+  calendarTimeframe: CalendarNoteTimeframe = 'day',
+  renderedTemplate: string,
+  writeOptions: Object,
+): Promise<string | void> {
+  // Check if rendered template contains AI analysis error before processing
+  if (hasAiAnalysisError(renderedTemplate)) {
+    logDebug(pluginJson, `handleCalendarDateNote: Returning rendered template with AI analysis error`)
+    return renderedTemplate
+  }
+
+  const { shouldOpenInEditor, writeUnderHeading, location, ...options } = writeOptions
+
+  if (shouldOpenInEditor) {
+    const dateFormat = calendarTimeframe === 'month' ? 'YYYY-MM' : calendarTimeframe === 'quarter' ? 'YYYY-[Q]Q' : calendarTimeframe === 'year' ? 'YYYY' : 'YYYY-MM-DD'
+    const dateValue = moment(dateString, dateFormat, true).toDate()
+    await Editor.openNoteByDate(dateValue, false, undefined, undefined, undefined, calendarTimeframe)
+    if (Editor.note) {
+      await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, options)
+    }
+  } else {
+    logDebug(pluginJson, `templateRunnerExecute About to open calendarNoteByDateString for ${dateString}`)
+    const note = DataStore.calendarNoteByDateString(dateString)
+    logDebug(pluginJson, `templateRunnerExecute got note:${note?.title || ''}`)
+    if (note) {
+      logDebug(pluginJson, `templateRunnerExecute note found. filename=${note.filename} calling writeNoteContents`)
+      await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, options)
+    } else {
+      logError(pluginJson, `templateRunnerExecute note NOT found for date string ${dateString}.`)
       clo(note, `templateRunnerExecute note variable is`)
     }
   }
@@ -943,7 +1080,22 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
         logDebug(pluginJson, `TR Total Running Time -  after Step 4.0: ${timer(start)}`)
 
         // STEP 4.5: Figure out what note we are writing to
-        const { isTodayNote, isThisWeek, isNextWeek } = determineNoteType(finalNoteTitle)
+        const {
+          isTodayNote,
+          isTomorrowNote,
+          isYesterdayNote,
+          isThisMonth,
+          isNextMonth,
+          isThisQuarter,
+          isNextQuarter,
+          isThisYear,
+          isNextYear,
+          isThisWeek,
+          isNextWeek,
+          isCalendarDateNote,
+          calendarDateString,
+          calendarTimeframe,
+        } = determineNoteType(finalNoteTitle)
 
         clo(data, `templateRunnerExecute before createTemplateWriteOptions, data=`)
         clo(frontmatterAttributes, `templateRunnerExecute before createTemplateWriteOptions, frontmatterAttributes=`)
@@ -979,14 +1131,28 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
 
         const writeOptions = createTemplateWriteOptions(frontmatterAttributes, shouldOpenInEditor)
 
-        logDebug(pluginJson, `templateRunnerExecute isTodayNote:${String(isTodayNote)} isThisWeek:${String(isThisWeek)} isNextWeek:${String(isNextWeek)}`)
+        logDebug(
+          pluginJson,
+          `templateRunnerExecute isTodayNote:${String(isTodayNote)} isTomorrowNote:${String(isTomorrowNote)} isYesterdayNote:${String(
+            isYesterdayNote,
+          )} isThisMonth:${String(isThisMonth)} isNextMonth:${String(isNextMonth)} isThisQuarter:${String(isThisQuarter)} isNextQuarter:${String(
+            isNextQuarter,
+          )} isThisYear:${String(isThisYear)} isNextYear:${String(isNextYear)} isThisWeek:${String(isThisWeek)} isNextWeek:${String(
+            isNextWeek,
+          )} isCalendarDateNote:${String(isCalendarDateNote)} calendarDateString:${calendarDateString} calendarTimeframe:${calendarTimeframe}`,
+        )
         clo(writeOptions, `templateRunnerExecute writeOptions`)
 
         // STEP 4.6: Write to the target Note
-        if (isTodayNote) {
+        if (isTodayNote && calendarTimeframe === 'day') {
           const todayResult = await handleTodayNote(renderedTemplate, writeOptions)
           if (typeof todayResult === 'string' && hasAiAnalysisError(todayResult)) {
             return todayResult
+          }
+        } else if (isCalendarDateNote) {
+          const calendarDateResult = await handleCalendarDateNote(calendarDateString, calendarTimeframe || 'day', renderedTemplate, writeOptions)
+          if (typeof calendarDateResult === 'string' && hasAiAnalysisError(calendarDateResult)) {
+            return calendarDateResult
           }
         } else if (isThisWeek || isNextWeek) {
           const weeklyResult = await handleWeeklyNote(isThisWeek, isNextWeek, renderedTemplate, writeOptions)

@@ -444,32 +444,205 @@ describe('NPTemplateRunner', () => {
       const result = NPTemplateRunner.determineNoteType('<today>')
 
       expect(result.isTodayNote).toBe(true)
+      expect(result.isTomorrowNote).toBe(false)
+      expect(result.isYesterdayNote).toBe(false)
+      expect(result.isThisMonth).toBe(false)
+      expect(result.isNextMonth).toBe(false)
+      expect(result.isThisQuarter).toBe(false)
+      expect(result.isNextQuarter).toBe(false)
+      expect(result.isThisYear).toBe(false)
+      expect(result.isNextYear).toBe(false)
       expect(result.isThisWeek).toBe(false)
       expect(result.isNextWeek).toBe(false)
+      expect(result.isCalendarDateNote).toBe(true)
+      expect(result.calendarTimeframe).toBe('day')
+    })
+
+    test('should identify tomorrow note', () => {
+      const result = NPTemplateRunner.determineNoteType('<tomorrow>')
+
+      expect(result.isTodayNote).toBe(false)
+      expect(result.isTomorrowNote).toBe(true)
+      expect(result.isYesterdayNote).toBe(false)
+      expect(result.isThisMonth).toBe(false)
+      expect(result.isNextMonth).toBe(false)
+      expect(result.isThisQuarter).toBe(false)
+      expect(result.isNextQuarter).toBe(false)
+      expect(result.isThisYear).toBe(false)
+      expect(result.isNextYear).toBe(false)
+      expect(result.isThisWeek).toBe(false)
+      expect(result.isNextWeek).toBe(false)
+      expect(result.isCalendarDateNote).toBe(true)
+      expect(result.calendarTimeframe).toBe('day')
+    })
+
+    test('should identify yesterday note', () => {
+      const result = NPTemplateRunner.determineNoteType('<yesterday>')
+
+      expect(result.isTodayNote).toBe(false)
+      expect(result.isTomorrowNote).toBe(false)
+      expect(result.isYesterdayNote).toBe(true)
+      expect(result.isThisMonth).toBe(false)
+      expect(result.isNextMonth).toBe(false)
+      expect(result.isThisQuarter).toBe(false)
+      expect(result.isNextQuarter).toBe(false)
+      expect(result.isThisYear).toBe(false)
+      expect(result.isNextYear).toBe(false)
+      expect(result.isThisWeek).toBe(false)
+      expect(result.isNextWeek).toBe(false)
+      expect(result.isCalendarDateNote).toBe(true)
+      expect(result.calendarTimeframe).toBe('day')
+    })
+
+    test('should identify ISO 8601 daily calendar note title', () => {
+      const result = NPTemplateRunner.determineNoteType('2024-01-16')
+
+      expect(result.isTodayNote).toBe(false)
+      expect(result.isTomorrowNote).toBe(false)
+      expect(result.isYesterdayNote).toBe(false)
+      expect(result.isThisMonth).toBe(false)
+      expect(result.isNextMonth).toBe(false)
+      expect(result.isThisQuarter).toBe(false)
+      expect(result.isNextQuarter).toBe(false)
+      expect(result.isThisYear).toBe(false)
+      expect(result.isNextYear).toBe(false)
+      expect(result.isThisWeek).toBe(false)
+      expect(result.isNextWeek).toBe(false)
+      expect(result.isCalendarDateNote).toBe(true)
+      expect(result.calendarDateString).toBe('2024-01-16')
+      expect(result.calendarTimeframe).toBe('day')
+    })
+
+    test('should identify monthly calendar note title', () => {
+      const result = NPTemplateRunner.determineNoteType('2024-01')
+
+      expect(result.isCalendarDateNote).toBe(true)
+      expect(result.calendarDateString).toBe('2024-01')
+      expect(result.calendarTimeframe).toBe('month')
+    })
+
+    test('should identify quarterly calendar note title', () => {
+      const result = NPTemplateRunner.determineNoteType('2024-Q3')
+
+      expect(result.isCalendarDateNote).toBe(true)
+      expect(result.calendarDateString).toBe('2024-Q3')
+      expect(result.calendarTimeframe).toBe('quarter')
+    })
+
+    test('should identify yearly calendar note title', () => {
+      const result = NPTemplateRunner.determineNoteType('2024')
+
+      expect(result.isCalendarDateNote).toBe(true)
+      expect(result.calendarDateString).toBe('2024')
+      expect(result.calendarTimeframe).toBe('year')
+    })
+
+    test('should identify month quarter and year tokens', () => {
+      expect(NPTemplateRunner.determineNoteType('<thismonth>').isThisMonth).toBe(true)
+      expect(NPTemplateRunner.determineNoteType('<nextmonth>').isNextMonth).toBe(true)
+      expect(NPTemplateRunner.determineNoteType('<thisquarter>').isThisQuarter).toBe(true)
+      expect(NPTemplateRunner.determineNoteType('<nextquarter>').isNextQuarter).toBe(true)
+      expect(NPTemplateRunner.determineNoteType('<thisyear>').isThisYear).toBe(true)
+      expect(NPTemplateRunner.determineNoteType('<nextyear>').isNextYear).toBe(true)
+    })
+
+    test('should not identify invalid ISO-shaped date as calendar note title', () => {
+      const result = NPTemplateRunner.determineNoteType('2024-99-99')
+
+      expect(result.isTodayNote).toBe(false)
+      expect(result.isTomorrowNote).toBe(false)
+      expect(result.isYesterdayNote).toBe(false)
+      expect(result.isThisMonth).toBe(false)
+      expect(result.isNextMonth).toBe(false)
+      expect(result.isThisQuarter).toBe(false)
+      expect(result.isNextQuarter).toBe(false)
+      expect(result.isThisYear).toBe(false)
+      expect(result.isNextYear).toBe(false)
+      expect(result.isThisWeek).toBe(false)
+      expect(result.isNextWeek).toBe(false)
+      expect(result.isCalendarDateNote).toBe(false)
+      expect(result.calendarDateString).toBe('')
+      expect(result.calendarTimeframe).toBe('')
     })
 
     test('should identify this week note', () => {
       const result = NPTemplateRunner.determineNoteType('<thisweek>')
 
       expect(result.isTodayNote).toBe(false)
+      expect(result.isTomorrowNote).toBe(false)
+      expect(result.isYesterdayNote).toBe(false)
+      expect(result.isThisMonth).toBe(false)
+      expect(result.isNextMonth).toBe(false)
+      expect(result.isThisQuarter).toBe(false)
+      expect(result.isNextQuarter).toBe(false)
+      expect(result.isThisYear).toBe(false)
+      expect(result.isNextYear).toBe(false)
       expect(result.isThisWeek).toBe(true)
       expect(result.isNextWeek).toBe(false)
+      expect(result.isCalendarDateNote).toBe(false)
+      expect(result.calendarDateString).toBe('')
+      expect(result.calendarTimeframe).toBe('')
     })
 
     test('should identify next week note', () => {
       const result = NPTemplateRunner.determineNoteType('<nextweek>')
 
       expect(result.isTodayNote).toBe(false)
+      expect(result.isTomorrowNote).toBe(false)
+      expect(result.isYesterdayNote).toBe(false)
+      expect(result.isThisMonth).toBe(false)
+      expect(result.isNextMonth).toBe(false)
+      expect(result.isThisQuarter).toBe(false)
+      expect(result.isNextQuarter).toBe(false)
+      expect(result.isThisYear).toBe(false)
+      expect(result.isNextYear).toBe(false)
       expect(result.isThisWeek).toBe(false)
       expect(result.isNextWeek).toBe(true)
+      expect(result.isCalendarDateNote).toBe(false)
+      expect(result.calendarDateString).toBe('')
+      expect(result.calendarTimeframe).toBe('')
     })
 
     test('should identify regular note', () => {
       const result = NPTemplateRunner.determineNoteType('Regular Note Title')
 
       expect(result.isTodayNote).toBe(false)
+      expect(result.isTomorrowNote).toBe(false)
+      expect(result.isYesterdayNote).toBe(false)
+      expect(result.isThisMonth).toBe(false)
+      expect(result.isNextMonth).toBe(false)
+      expect(result.isThisQuarter).toBe(false)
+      expect(result.isNextQuarter).toBe(false)
+      expect(result.isThisYear).toBe(false)
+      expect(result.isNextYear).toBe(false)
       expect(result.isThisWeek).toBe(false)
       expect(result.isNextWeek).toBe(false)
+      expect(result.isCalendarDateNote).toBe(false)
+      expect(result.calendarDateString).toBe('')
+      expect(result.calendarTimeframe).toBe('')
+    })
+  })
+
+  describe('resolveCalendarNoteTarget', () => {
+    test('should resolve month and year boundary tokens', () => {
+      expect(NPTemplateRunner.resolveCalendarNoteTarget('<thismonth>', '2024-12-31')).toEqual({ calendarDateString: '2024-12', calendarTimeframe: 'month' })
+      expect(NPTemplateRunner.resolveCalendarNoteTarget('<nextmonth>', '2024-12-31')).toEqual({ calendarDateString: '2025-01', calendarTimeframe: 'month' })
+    })
+
+    test('should resolve quarter boundary tokens', () => {
+      expect(NPTemplateRunner.resolveCalendarNoteTarget('<thisquarter>', '2024-12-31')).toEqual({ calendarDateString: '2024-Q4', calendarTimeframe: 'quarter' })
+      expect(NPTemplateRunner.resolveCalendarNoteTarget('<nextquarter>', '2024-12-31')).toEqual({ calendarDateString: '2025-Q1', calendarTimeframe: 'quarter' })
+    })
+
+    test('should resolve year boundary tokens', () => {
+      expect(NPTemplateRunner.resolveCalendarNoteTarget('<thisyear>', '2024-12-31')).toEqual({ calendarDateString: '2024', calendarTimeframe: 'year' })
+      expect(NPTemplateRunner.resolveCalendarNoteTarget('<nextyear>', '2024-12-31')).toEqual({ calendarDateString: '2025', calendarTimeframe: 'year' })
+    })
+
+    test('should reject invalid larger-period calendar titles', () => {
+      expect(NPTemplateRunner.resolveCalendarNoteTarget('2024-13')).toEqual({ calendarDateString: '', calendarTimeframe: '' })
+      expect(NPTemplateRunner.resolveCalendarNoteTarget('2024-Q5')).toEqual({ calendarDateString: '', calendarTimeframe: '' })
+      expect(NPTemplateRunner.resolveCalendarNoteTarget('20')).toEqual({ calendarDateString: '', calendarTimeframe: '' })
     })
   })
 
@@ -498,6 +671,47 @@ describe('NPTemplateRunner', () => {
       await NPTemplateRunner.handleTodayNote('rendered content', writeOptions)
 
       expect(DataStore.calendarNoteByDate).toHaveBeenCalled()
+    })
+  })
+
+  describe('handleCalendarDateNote', () => {
+    test('should open date note in editor when requested', async () => {
+      const writeOptions = {
+        shouldOpenInEditor: true,
+        writeUnderHeading: 'Test Heading',
+        location: 'append',
+        createMissingHeading: true,
+      }
+
+      await NPTemplateRunner.handleCalendarDateNote('2024-01-16', 'day', 'rendered content', writeOptions)
+
+      expect(Editor.openNoteByDate).toHaveBeenCalled()
+    })
+
+    test('should write to calendar note by date string when not opening in editor', async () => {
+      const writeOptions = {
+        shouldOpenInEditor: false,
+        writeUnderHeading: 'Test Heading',
+        location: 'append',
+        createMissingHeading: true,
+      }
+
+      await NPTemplateRunner.handleCalendarDateNote('2024-01-16', 'day', 'rendered content', writeOptions)
+
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2024-01-16')
+    })
+
+    test('should open larger timeframe calendar notes in editor', async () => {
+      const writeOptions = {
+        shouldOpenInEditor: true,
+        writeUnderHeading: 'Test Heading',
+        location: 'append',
+        createMissingHeading: true,
+      }
+
+      await NPTemplateRunner.handleCalendarDateNote('2024-Q3', 'quarter', 'rendered content', writeOptions)
+
+      expect(Editor.openNoteByDate).toHaveBeenCalledWith(expect.any(Date), false, undefined, undefined, undefined, 'quarter')
     })
   })
 
@@ -633,6 +847,72 @@ describe('NPTemplateRunner', () => {
       await NPTemplateRunner.handleRegularNote('Note Title', 'template1', {}, 'rendered content', writeOptions)
 
       expect(Editor.openNoteByTitle).toHaveBeenCalledWith('Note Title')
+    })
+  })
+
+  describe('templateRunnerExecute calendar note routing', () => {
+    test('should treat rendered ISO 8601 getNoteTitled value as a calendar note', async () => {
+      const NPTemplating = require('../lib/NPTemplating')
+      // $FlowFixMe - Mock functions
+      NPTemplating.renderFrontmatter.mockResolvedValue({
+        frontmatterBody: 'template body',
+        frontmatterAttributes: { getNoteTitled: "<%- date.tomorrow('YYYY-MM-DD') %>" },
+      })
+      // $FlowFixMe - Mock functions
+      NPTemplating.render.mockResolvedValueOnce('rendered content').mockResolvedValueOnce('2024-01-16')
+
+      await NPTemplateRunner.templateRunnerExecute('template1', false, '')
+
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2024-01-16')
+      expect(DataStore.projectNoteByTitle).not.toHaveBeenCalled()
+    })
+
+    test('should treat rendered quarter getNoteTitled value as a calendar note', async () => {
+      const NPTemplating = require('../lib/NPTemplating')
+      // $FlowFixMe - Mock functions
+      NPTemplating.renderFrontmatter.mockResolvedValue({
+        frontmatterBody: 'template body',
+        frontmatterAttributes: { getNoteTitled: '<%- periodTitle %>' },
+      })
+      // $FlowFixMe - Mock functions
+      NPTemplating.render.mockResolvedValueOnce('rendered content').mockResolvedValueOnce('2024-Q3')
+
+      await NPTemplateRunner.templateRunnerExecute('template1', false, '')
+
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2024-Q3')
+      expect(DataStore.projectNoteByTitle).not.toHaveBeenCalled()
+    })
+
+    test('should treat tomorrow token as a calendar note', async () => {
+      const NPTemplating = require('../lib/NPTemplating')
+      // $FlowFixMe - Mock functions
+      NPTemplating.renderFrontmatter.mockResolvedValue({
+        frontmatterBody: 'template body',
+        frontmatterAttributes: { getNoteTitled: '<tomorrow>' },
+      })
+      // $FlowFixMe - Mock functions
+      NPTemplating.render.mockResolvedValue('rendered content')
+
+      await NPTemplateRunner.templateRunnerExecute('template1', false, '')
+
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalled()
+      expect(DataStore.projectNoteByTitle).not.toHaveBeenCalled()
+    })
+
+    test('should treat larger calendar tokens as calendar notes', async () => {
+      const NPTemplating = require('../lib/NPTemplating')
+      // $FlowFixMe - Mock functions
+      NPTemplating.renderFrontmatter.mockResolvedValue({
+        frontmatterBody: 'template body',
+        frontmatterAttributes: { getNoteTitled: '<nextquarter>' },
+      })
+      // $FlowFixMe - Mock functions
+      NPTemplating.render.mockResolvedValue('rendered content')
+
+      await NPTemplateRunner.templateRunnerExecute('template1', false, '')
+
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith(expect.stringMatching(/^\d{4}-Q[1-4]$/))
+      expect(DataStore.projectNoteByTitle).not.toHaveBeenCalled()
     })
   })
 
