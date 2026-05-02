@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-04-30 for v2.0.0.b27, @jgclark
+// Last updated 2026-05-02 for v2.0.0.b29, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -13,7 +13,6 @@ import type { ReviewConfig } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
 import { logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
-import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 import { makePluginCommandButton, redToGreenInterpolation } from '@helpers/HTMLView'
 import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getLineMainContentPos } from '@helpers/search'
@@ -345,12 +344,15 @@ function formatProjectTitleForStyle(thisProject: Project, style: string, config:
   const titlePart = thisProject.title ?? '(error, not available)'
   switch (style) {
     case 'Rich': {
-      // Method 1: make [[notelinks]] via x-callbacks
-      // Method 2: x-callback using note title
-      // Method 3: x-callback using filename
+      // v1: make [[notelinks]] via x-callbacks
+      // v2: x-callback using note title
+      // v3: x-callback using filename
       // Note: using an "onclick="window.location.href='${noteOpenActionURL}'" handler instead of an anchor tag doesn't work in the NP constrained environment.
       // Note: now using splitView if running in the main window on macOS
-      const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
+      // const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
+      // v4: Open via HTML bridge: showNoteInEditorFromFilename then call to smarter openNoteInSplitViewIfNotOpenAlready (projectListEvents.js delegated click). 
+      const encodedFilenameAttr = encodeRFC3986URIComponent(thisProject.filename)
+
       const extraClasses = (thisProject.isCompleted) ? 'checked' : (thisProject.isCancelled) ? 'cancelled' : (thisProject.isPaused) ? 'paused' : ''
 
       const folderNamePart = config.showFolderName ? getFolderDisplayNameForHTML(thisProject.folder) : ''
@@ -362,7 +364,10 @@ function formatProjectTitleForStyle(thisProject: Project, style: string, config:
       const iconColorStyle = '' // tailwindColor !== '' ? ` style="color: ${tailwindToHsl(tailwindColor)};"` : ''
       const iconHTML = `<i class="fa-regular fa-${iconClass}"${iconColorStyle}></i>`
       
-      return `<a class="noteTitle" href="${noteOpenActionURL}"><span class="noteTitleIcon">${iconHTML}</span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a>`
+      // v3:
+      // return `<a class="noteTitle" href="${noteOpenActionURL}"><span class="noteTitleIcon">${iconHTML}</span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a> `
+      // v4:
+      return `<a class="noteTitle" href="#" data-encoded-filename="${encodedFilenameAttr}" ><span class="noteTitleIcon">${iconHTML}</span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a >`
     }
 
     case 'Markdown': {

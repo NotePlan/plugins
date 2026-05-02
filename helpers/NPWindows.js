@@ -303,7 +303,7 @@ export function setEditorWindowId(openNoteFilename: string, customId: string): v
  * @returns {Editor} the Editor window
  */
 export function findEditorWindowByFilename(filenameToFind: string): TEditor | false {
-  logWindowsList()
+  // logWindowsList()
 
   const allEditorWindows = NotePlan.editors
   for (const thisEditorWindow of allEditorWindows) {
@@ -312,7 +312,7 @@ export function findEditorWindowByFilename(filenameToFind: string): TEditor | fa
       return thisEditorWindow
     }
   }
-  logWarn('findEditorWindowByFilename', `Couldn't match '${filenameToFind}' to an Editor window`)
+  logDebug('findEditorWindowByFilename', `Couldn't match '${filenameToFind}' to an Editor window. All Editor windows: [${allEditorWindows.map(ew => ew.filename).join(', ')}]`)
   return false
 }
 

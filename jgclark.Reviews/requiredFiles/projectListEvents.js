@@ -3,11 +3,43 @@
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
 // Note: this file is run as a script in the Project List window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
-// Last updated: 2026-04-26 for v2.0.0.b23 by @jgclark
+// Last updated: 2026-05-02 for v2.0.0.b29 by @CursorAI & @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handler
 addCommandButtonEventListeners()
+
+  /**
+   * Rich list project titles use <a class="noteTitle" href="#"> + data-encoded-filename; open via plugin smart split (same bridge type as dialog/review/content).
+   * One listener per document lifecycle (HTML refresh may reload this script).
+   */
+  ; (function registerNoteTitleOpenDelegation() {
+    if (typeof window !== 'undefined' && window.__reviewsNoteTitleDelegationAdded) {
+      console.log('registerNoteTitleOpenDelegation: already added')
+      return
+    }
+    if (typeof window !== 'undefined') {
+      window.__reviewsNoteTitleDelegationAdded = true
+    }
+    document.addEventListener(
+      'click',
+      function (event) {
+        const noteTitleLink = event.target.closest('a.noteTitle')
+        if (!noteTitleLink || !noteTitleLink.dataset.encodedFilename) {
+          return
+        }
+        event.preventDefault()
+        onClickProjectListItem({
+          itemID: '-',
+          type: 'showNoteInEditorFromFilename',
+          encodedFilename: noteTitleLink.dataset.encodedFilename,
+          encodedContent: '',
+        })
+      },
+      false,
+    )
+    console.log('registerNoteTitleOpenDelegation: added')
+  })()
 
 //--------------------------------------------------------------------------------------
 // Show Modal Dialog

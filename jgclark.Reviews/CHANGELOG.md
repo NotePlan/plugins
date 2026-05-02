@@ -1,8 +1,15 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
-## [2.0.0.b28] - 2026-05-01
+## [2.0.0.b29] - 2026-05-02
+<!-- - fix "The current Editor note doesn't contain a project note to finish reviewing." message on Finish+Start. -->
+<!-- fix circular dependency in build by moving some code to migrationLog.js -->
+- Clicking on a note title in the Rich Project List now re-uses an existing split view wherever possible. [dev: opening a project from the title link, dialog note name, review icon, or content link now goes through `openNoteInSplitViewIfNotOpenAlready` (focus if already open; version-aware `reuseSplitView` / `splitView` when opening a new split).]
+
+## [2.0.0.b28a] - 2026-05-02
 - fix embedded-metadata migration: combined `project`/`metadata` lines with `@start` / `@review` / `@reviewed` etc. now write separate YAML keys even when mention prefs are unset or values were already read from `note.mentions` (previously the combined line could become hashtags-only and drop dates).
+
+## [2.0.0.b28] - 2026-05-01
 - new command **migrate all projects**: batch-runs `Project` constructor migration on every note that matches current list settings; appends rows to `migration_log.tsv` in the plugin data directory.
 - New **convert to project** command which converts any regular note into a project. It shows user a form to fill in, asking for project tag, start date, due date, last reviewed date, review interval, aim, etc. It updates the note adding the answers into the frontmatter. (Requires NotePlan v3.21+.)
 

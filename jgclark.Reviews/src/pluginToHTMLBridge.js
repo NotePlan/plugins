@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin (to/from HTML window)
-// Last updated 2026-04-26 for v1.4.0.b23, @jgclark
+// Last updated 2026-05-02 for v2.0.0.b29, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -26,6 +26,7 @@ import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import {
   getLiveWindowRectFromWin, getWindowFromCustomId,
   logWindowsList,
+  openNoteInSplitViewIfNotOpenAlready,
   storeWindowRect,
 } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
@@ -336,12 +337,16 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         break
       }
       case 'showNoteInEditorFromFilename': {
-        // Handle a show note call simply by opening the note in the main Editor.
-        const note = await Editor.openNoteByFilename(filename)
-        if (note) {
-          logDebug('bridgeClickProjectListItem', `-> successful call to open filename ${filename} in Editor`)
+        // Smart split / focus-if-already-open (same as startReview when Main Window); matches Rich title, dialog note name, review icon, content links.
+        if (!filename) {
+          logWarn('bridgeClickProjectListItem', `-> showNoteInEditorFromFilename: empty filename after decode`)
+          break
+        }
+        const openedNewSplit = openNoteInSplitViewIfNotOpenAlready(filename, 'bridgeClickProjectListItem')
+        if (openedNewSplit) {
+          logDebug('bridgeClickProjectListItem', `-> opened or triggered split for filename ${filename}`)
         } else {
-          logWarn('bridgeClickProjectListItem', `-> unsuccessful call to open filename ${filename} in Editor`)
+          logDebug('bridgeClickProjectListItem', `-> focused existing editor or no-op for filename ${filename}`)
         }
         break
       }
