@@ -287,6 +287,35 @@ export function getOpenEditorFromFilename(openNoteFilename: string, getLastOpenE
 }
 
 /**
+ * Find a regular (folder) note that is open in some Editor pane — not only the focused one.
+ * Prefers the globally focused `Editor` when its note is already type 'Notes'; otherwise scans
+ * `NotePlan.editors` so split views with a calendar note focused still expose an open project note.
+ * @author @jgclark
+ * @returns {?TNote} the note, or null if no Editor pane shows a regular note
+ */
+export function getFirstRegularNoteAmongOpenEditors(): ?TNote {
+  try {
+    const focusedNote = Editor?.note
+    if (focusedNote && focusedNote.type === 'Notes') {
+      return focusedNote
+    }
+    const allEditorWindows = NotePlan.editors ?? []
+    for (const thisEditorWindow of allEditorWindows) {
+      const candidate = thisEditorWindow?.note
+      if (candidate && candidate.type === 'Notes') {
+        logDebug('getFirstRegularNoteAmongOpenEditors', `Using open editor pane for '${candidate.filename || candidate.title || '?'}' (focused pane was not a regular note)`)
+        return candidate
+      }
+    }
+    logDebug('getFirstRegularNoteAmongOpenEditors', `No open Editor pane contains a regular (Notes) note`)
+    return null
+  } catch (error) {
+    logError('getFirstRegularNoteAmongOpenEditors', error.message)
+    return null
+  }
+}
+
+/**
  * Show an existing note in an Editor window, identified by its filename.
  * Uses smart features to determine which window or split view to open the note in:
  * - If already open in another window or split, simply focuses it.

@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-04-30 for v2.0.0.b27, @jgclark
+// Last updated 2026-05-02 for v2.0.0.b29, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -70,7 +70,7 @@ import { showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
 import { numberOfOpenItemsInNote } from '@helpers/note'
 import { saveSettings } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { getOrOpenEditorFromFilename, getOpenEditorFromFilename, isNoteOpenInEditor, saveEditorIfNecessary } from '@helpers/NPEditor'
+import { getFirstRegularNoteAmongOpenEditors, getOrOpenEditorFromFilename, getOpenEditorFromFilename, isNoteOpenInEditor, saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import {
@@ -1029,18 +1029,15 @@ export async function nextReview(): Promise<void> {
  */
 export async function finishReview(): Promise<void> {
   try {
-    // Use the focused Editor (global `Editor`), not NotePlan.editors[0] - the first array entry is not always the active window.
-    const currentNote = Editor?.note
+    // Prefer focused Editor when it is a project note; otherwise any open split with a regular note (calendar may have focus).
+    const currentNote = getFirstRegularNoteAmongOpenEditors()
     if (!currentNote) {
-      logWarn('finishReview', `- There's no proper Editor window to finish reviewing.`)
+      logWarn('finishReview', `- There's no project note in any open Editor pane to finish reviewing.`)
+      await showMessage(`No open editor pane has a project note to finish reviewing. Open the project note (or focus it) and try again.`, 'OK, thanks', 'Reviews')
+      return
     }
-    if (currentNote && currentNote.type === 'Notes') {
-      logInfo('finishReview', `Starting with Editor note '${displayTitle(currentNote)}'`)
-      await finishReviewCoreLogic(currentNote)
-    } else {
-      logWarn('finishReview', `- There's no project note in the Editor to finish reviewing.`)
-      await showMessage(`The current Editor note doesn't contain a project note to finish reviewing.`, 'OK, thanks', 'Reviews')
-    }
+    logInfo('finishReview', `Starting with Editor note '${displayTitle(currentNote)}'`)
+    await finishReviewCoreLogic(currentNote)
   } catch (error) {
     logError('finishReview', error.message)
   }

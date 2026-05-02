@@ -2,7 +2,7 @@
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
 ## [2.0.0.b29] - 2026-05-02
-<!-- - fix "The current Editor note doesn't contain a project note to finish reviewing." message on Finish+Start. -->
+- fix "finish review" operations failing to find the project note open in a split window. [dev: `finishReview` now resolves the note via `getFirstRegularNoteAmongOpenEditors` (scans `NotePlan.editors`).]
 - dev: fixed Rollup circular dependency: moved TSV migration logging to `migrationLog.js` so `reviewHelpers` no longer imports `migration.js`.
 - Clicking on a note title in the Rich Project List now re-uses an existing split view wherever possible. [dev: opening a project from the title link, dialog note name, review icon, or content link now goes through `openNoteInSplitViewIfNotOpenAlready` (focus if already open; version-aware `reuseSplitView` / `splitView` when opening a new split).]
 
