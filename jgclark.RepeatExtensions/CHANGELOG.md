@@ -1,6 +1,9 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
+## [1.1.3] - 2026-05-02 (unreleased)
+- **Dev:** Moved extended `@repeat` implementation into `/helpers/extendedRepeat.js` (plus `NPEditorBasics.js` for editor save / open-window helpers only). Plugin `repeatHelpers.js` / `repeatPara.js` re-export from `@helpers/NPExtendedRepeat`. This removes Rollup circular dependency warnings when bundling plugins that use `NPParagraph` (e.g. **Filer**) without changing command behavior.
+
 ## [1.1.2] - 2026-04-28
 - under the hood changes [dev: update to fix a possible crash Tidy's **Generate @repeats in recent notes** command, caused by Editor/onAsyncThread. Also code quality improvements.]
 

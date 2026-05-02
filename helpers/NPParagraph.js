@@ -5,10 +5,9 @@
 // -----------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import { getRepeatSettings, RE_EXTENDED_REPEAT, type RepeatConfig } from '../jgclark.RepeatExtensions/src/repeatHelpers'
-import { generateRepeatForPara } from '../jgclark.RepeatExtensions/src/repeatPara'
+import { invokeExtendedRepeatIfNeededAfterMarkComplete } from './NPExtendedRepeat'
 import { getParagraphBlock } from '@helpers/blocks'
-import { trimString } from '@helpers/dataManipulation'
+// import { trimString } from '@helpers/dataManipulation'
 import * as dt from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle, rangeToString } from '@helpers/general'
@@ -1560,34 +1559,7 @@ export async function markComplete(para: TParagraph, useScheduledDateAsCompletio
       result = false
     }
 
-    // Call the Repeat Extensions plugin to fire the /rpt trigger if this has a @repeat(date) and the plugin is installed.
-    if (RE_EXTENDED_REPEAT.test(para.content)) {
-      let repeatConfig: RepeatConfig
-      const installedPlugins = DataStore.installedPlugins()
-      const repeatsIsInstalled = Boolean(Array.isArray(installedPlugins) ? installedPlugins.find((p) => p.id === 'jgclark.RepeatExtensions') : null)
-      if (!repeatsIsInstalled) {
-        logWarn('markComplete', `Repeat Extensions plugin is not installed and configured, so will use safe defaults`)
-        repeatConfig = {
-          deleteCompletedRepeat: false,
-          dontLookForRepeatsInDoneOrArchive: true,
-          runTaskSorter: false,
-          taskSortingOrder: '',
-          allowRepeatsInCancelledParas: false,
-          _logLevel: 'INFO',
-        }
-      } else {
-        repeatConfig = await getRepeatSettings()
-      }
-      const repeatDate = getFirstDateInPeriod(para.content)
-      logInfo('markComplete', `will call Repeat Extensions plugin to fire /rpt trigger for date ${repeatDate}`)
-      // Call the Repeat Extensions plugin's generateRepeat function for just this para
-      // clo(repeatConfig, 'repeatConfig')
-      // $FlowIgnore[incompatible-call]
-      const res = await generateRepeatForPara(para, para.note, repeatConfig)
-      if (!res) {
-        logWarn('markComplete', `Call to generate repeat for para {${para.content}} failed.`)
-      }
-    }
+    await invokeExtendedRepeatIfNeededAfterMarkComplete(para)
     return result
   } else {
     logError(pluginJson, `markComplete: para is null`)

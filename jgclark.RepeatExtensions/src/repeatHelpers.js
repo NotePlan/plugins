@@ -1,136 +1,16 @@
 // @flow
 // ----------------------------------------------------------------------------
-// Helper functions for Repeat Extensions plugin.
-// Jonathan Clark
-// last updated 2026-04-28, for v1.1.2
+// Repeat Extensions plugin — re-exports shared implementation from /helpers
+// so other plugins’ Rollup bundles do not pull plugin-relative paths.
 // ----------------------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
-import {
-  isDailyNote,
-  isWeeklyNote,
-  isMonthlyNote,
-  isQuarterlyNote,
-  isYearlyNote,
-  RE_DATE_INTERVAL,
-  RE_SCHEDULED_DAILY_NOTE_LINK,
-  RE_SCHEDULED_WEEK_NOTE_LINK,
-  RE_SCHEDULED_MONTH_NOTE_LINK,
-  RE_SCHEDULED_QUARTERLY_NOTE_LINK,
-  RE_SCHEDULED_YEARLY_NOTE_LINK,
-  hyphenatedDateString,
-} from '@helpers/dateTime'
-import { calcOffsetDateStr } from '@helpers/NPdateTime'
-import { clo, JSP, logDebug, logError } from '@helpers/dev'
+export {
+  REPEAT_EXTENSIONS_PLUGIN_ID,
+  RE_EXTENDED_REPEAT,
+  RE_EXTENDED_REPEAT_CAPTURE,
+  RE_CANCELLED_TASK,
+  generateNewRepeatDate,
+  getRepeatSettings,
+} from '@helpers/NPExtendedRepeat'
 
-//------------------------------------------------------------------
-// Constants + Types
-
-const EXTENDED_REPEAT_STR: string = `@repeat\\(${RE_DATE_INTERVAL}\\)` // find @repeat()
-export const RE_EXTENDED_REPEAT: RegExp = new RegExp(EXTENDED_REPEAT_STR) // find @repeat()
-const EXTENDED_REPEAT_CAPTURE_STR: string = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
-export const RE_EXTENDED_REPEAT_CAPTURE: RegExp = new RegExp(EXTENDED_REPEAT_CAPTURE_STR) // find @repeat() and return part inside brackets
-export const RE_CANCELLED_TASK: RegExp = new RegExp(`[\\^\\n]\\s*?[\\*\\+\\-]\\s+\\[\\-\\]\\s`) // matches a task that has been cancelled, for use on rawContent, _which may be part of a multi-line string_
-
-const pluginID = pluginJson['plugin.id'] // was 'jgclark.Filer'
-
-export type RepeatConfig = {
-  deleteCompletedRepeat: boolean,
-  dontLookForRepeatsInDoneOrArchive: boolean,
-  allowRepeatsInCancelledParas: boolean,
-  runTaskSorter: boolean,
-  taskSortingOrder: string,
-  _logLevel: string,
-}
-
-//-----------------------------------------------------------------------------
-
-export async function getRepeatSettings(): Promise<any> {
-  try {
-    // Get settings using Config system
-    const config: RepeatConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-
-    if (config == null || Object.keys(config).length === 0) {
-      logError(pluginJson, `getRepeatSettings() cannot find '${pluginID}' plugin settings. Stopping.`)
-      await CommandBar.prompt(`Repeat Error`, `Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`, ['OK'])
-      return
-    } else {
-      // clo(config, `${pluginID} settings:`)
-      return config
-    }
-  } catch (err) {
-    logError(pluginJson, `GetRepeatSettings(): ${err.name}: ${err.message}`)
-    await CommandBar.prompt(`Repeat Error`, `Error: ${err.message}`, ['OK'])
-  }
-}
-
-/**
- * Generate the new repeat date from the completed date or due date in 'currentContent' and 'completedDate' from 'noteToUse'.
- *
- * @param {CoreNoteFields} noteToUse - The note object containing core fields, used to determine the note's date.
- * @param {string} currentContent - The current content of the note line, which may contain repeat information.
- * @param {string} completedDate - The date when the task was completed, in the format 'YYYY-MM-DD'.
- * @returns {string} - The new repeat date string calculated based on the interval and timeframe. Without '>'.
- * @tests in jest file
- */
-export function generateNewRepeatDate(noteToUse: CoreNoteFields, currentContent: string, completedDate: string): string {
-  // get repeat to apply
-  const reRepeatArray = currentContent.match(RE_EXTENDED_REPEAT_CAPTURE) ?? []
-  let dateIntervalString: string = reRepeatArray.length > 0 ? reRepeatArray[1] : ''
-
-  // decide style of new date: daily / weekly / monthly / etc.
-  let outputTimeframe = 'day'
-  if (currentContent.match(RE_SCHEDULED_DAILY_NOTE_LINK) || isDailyNote(noteToUse)) {
-    outputTimeframe = 'day'
-  } else if (currentContent.match(RE_SCHEDULED_WEEK_NOTE_LINK) || isWeeklyNote(noteToUse)) {
-    outputTimeframe = 'week'
-  } else if (currentContent.match(RE_SCHEDULED_MONTH_NOTE_LINK) || isMonthlyNote(noteToUse)) {
-    outputTimeframe = 'month'
-  } else if (currentContent.match(RE_SCHEDULED_QUARTERLY_NOTE_LINK) || isQuarterlyNote(noteToUse)) {
-    outputTimeframe = 'quarter'
-  } else if (currentContent.match(RE_SCHEDULED_YEARLY_NOTE_LINK) || isYearlyNote(noteToUse)) {
-    outputTimeframe = 'year'
-  }
-  logDebug('generateNewRepeatDate', `- date interval: '${dateIntervalString}', completedDate: ${completedDate}, outputTimeframe: ${outputTimeframe}`)
-
-  let newRepeatDateStr = ''
-  const output = currentContent
-
-  if (dateIntervalString.length === 0) {
-    logError('generateNewRepeatDate', 'No @repeat(interval) found in content; cannot compute new date')
-    return completedDate
-  }
-
-  if (dateIntervalString.startsWith('+')) {
-    // New repeat date = completed date (of form YYYY-MM-DD) + interval
-    dateIntervalString = dateIntervalString.substring(1, dateIntervalString.length)
-    newRepeatDateStr = calcOffsetDateStr(completedDate, dateIntervalString, outputTimeframe)
-    logDebug('generateNewRepeatDate', `- adding from completed date -> ${newRepeatDateStr}`)
-  } else {
-    // New repeat date = due date + interval
-    // look for the due date (>YYYY-MM-DD) or other calendar types
-    let dueDate = ''
-    const dueDateArray = RE_SCHEDULED_DAILY_NOTE_LINK.test(output)
-      ? output.match(RE_SCHEDULED_DAILY_NOTE_LINK)
-      : RE_SCHEDULED_WEEK_NOTE_LINK.test(output)
-      ? output.match(RE_SCHEDULED_WEEK_NOTE_LINK)
-      : RE_SCHEDULED_MONTH_NOTE_LINK.test(output)
-      ? output.match(RE_SCHEDULED_MONTH_NOTE_LINK)
-      : RE_SCHEDULED_QUARTERLY_NOTE_LINK.test(output)
-      ? output.match(RE_SCHEDULED_QUARTERLY_NOTE_LINK)
-      : RE_SCHEDULED_YEARLY_NOTE_LINK.test(output)
-      ? output.match(RE_SCHEDULED_YEARLY_NOTE_LINK)
-      : []
-    if (dueDateArray && dueDateArray[0] != null) {
-      dueDate = dueDateArray[0].split('>')[1]
-      logDebug('generateNewRepeatDate', `  due date match = ${dueDate}`)
-    } else {
-      // there is no due date, so try the note date, otherwise use completed date
-      dueDate = noteToUse.date ? hyphenatedDateString(noteToUse.date) : completedDate
-      logDebug('generateNewRepeatDate', `- no due date match, so will use note/completed date ${dueDate}`)
-    }
-    newRepeatDateStr = calcOffsetDateStr(dueDate, dateIntervalString, outputTimeframe)
-    logDebug('generateNewRepeatDate', `- adding from due date -> ${newRepeatDateStr}`)
-  }
-  return newRepeatDateStr
-}
+export type { RepeatConfig } from '@helpers/NPExtendedRepeat'
