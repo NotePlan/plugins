@@ -414,17 +414,23 @@ export async function renderProjectListsHTML(
     if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
 
     // Fetch project list first so we can compute per-tag active counts for the Filters dropdown
-    const [projectsToReview, _numberProjectsUnfiltered] = await filterAndSortProjectsList(config, '', [], true, useDemoData)
+    const [projectsToReview, _countAfterTagFilterOnly] = await filterAndSortProjectsList(config, '', [], true, useDemoData)
+
+    // Omit stale JSON entries whose note no longer exists so the top-bar count matches rendered rows
+    const projectsForDisplay: Array<Project> = useDemoData
+      ? projectsToReview
+      : projectsToReview.filter((p) => {
+          const note = DataStore.projectNoteByFilename(p.filename)
+          if (!note) {
+            logWarn('renderProjectListsHTML', `Can't find note for filename ${p.filename}; omitting from Rich list`)
+          }
+          return !!note
+        })
+
     const wantedTags = config.projectTypeTags ?? []
+    // Counts must match rows in this list (same perspective as the grid); do not strip paused/finished here - those may still be shown.
     const tagActiveCounts = wantedTags.map((tag) =>
-      projectsToReview.filter(
-        (p) =>
-          !p.isPaused &&
-          !p.isCancelled &&
-          !p.isCompleted &&
-          p.allProjectTags != null &&
-          p.allProjectTags.includes(tag)
-      ).length
+      projectsForDisplay.filter((p) => p.allProjectTags != null && p.allProjectTags.includes(tag)).length
     )
     config.tagActiveCounts = tagActiveCounts
 
@@ -432,11 +438,11 @@ export async function renderProjectListsHTML(
     const outputArray = []
 
     // Generate top bar HTML (uses config.tagActiveCounts for dropdown tag counts)
-    config.projectsShownCount = projectsToReview.length
+    config.projectsShownCount = projectsForDisplay.length
     outputArray.push(buildProjectListTopBarHtml(config))
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
-    const noteCount = projectsToReview.length
+    const noteCount = projectsForDisplay.length
     if (useDemoData && noteCount === 0) {
       outputArray.push('<p class="project-grid-row demo-file-message">Demo file (allProjectsDemoList.json) not found or empty.</p>')
     }
@@ -445,14 +451,7 @@ export async function renderProjectListsHTML(
       outputArray.push(`<div class="multi-cols">`)
 
       let lastFolder = ''
-      for (const thisProject of projectsToReview) {
-        if (!useDemoData) {
-          const thisNote = DataStore.projectNoteByFilename(thisProject.filename)
-          if (!thisNote) {
-            logWarn('renderProjectListsHTML', `Can't find note for filename ${thisProject.filename}`)
-            continue
-          }
-        }
+      for (const thisProject of projectsForDisplay) {
         if (config.displayGroupedByFolder && lastFolder !== thisProject.folder) {
           const folderPart = getGroupedFolderDisplayLabel(thisProject.folder, true, config.hideTopLevelFolder)
           outputArray.push(buildFolderGroupHeaderHtml(folderPart))
@@ -712,7 +711,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
  * @param {string} projectTag - the current hashtag of interest
  * @param {string} style - 'Markdown' or 'Rich'
  * @param {ReviewConfig} config - from settings (and any passed args)
- * @returns {[Array<string>, number, number]} [output summary lines, number of notes, number of due notes (ready to review)]
+ * @returns {[Array<string>, number, number]} [output summary lines, number of lines emitted (excludes missing notes), number of due notes (ready to review)]
  */
 export async function generateReviewOutputLines(projectTag: string, style: string, config: ReviewConfig): Promise<[Array<string>, number, number]> {
   try {
@@ -720,15 +719,11 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
     logDebug('generateReviewOutputLines', `Starting for tag(s) '${projectTag}' in ${style} style`)
 
     // Get all wanted projects (in useful order and filtered)
-    const [projectsToReview, numberProjectsUnfiltered] = await filterAndSortProjectsList(config, projectTag)
+    const [projectsToReview, countAfterTagFilterOnly] = await filterAndSortProjectsList(config, projectTag)
     let lastFolder = ''
     let noteCount = 0
     let due = 0
     const outputArray: Array<string> = []
-
-    // TODO: @Cursor noticed this:
-    // "Callers destructure it as noteCount (e.g. renderProjectListsMarkdown around 504, 548), but the value is numberProjectsUnfiltered from filterAndSortProjectsList, not the per-loop noteCount (lines 647–710). Headers like “Total X active projects” can disagree with the number of lines actually listed if those differ. Worth aligning the JSDoc, return value, and UI strings with either unfiltered total or rows emitted."
-    // This is true, but not dealing with this at the moment.
 
     // Process each project
     for (const thisProject of projectsToReview) {
@@ -762,8 +757,12 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
 
       lastFolder = folder
     }
-    logTimer('generateReviewOutputLines', startTime, `Generated for ${String(noteCount)} notes (and ${numberProjectsUnfiltered} unfiltered) for tag(s) '${projectTag}' in ${style} style`)
-    return [outputArray, numberProjectsUnfiltered, due]
+    logTimer(
+      'generateReviewOutputLines',
+      startTime,
+      `Generated ${String(noteCount)} lines for tag(s) '${projectTag}' in ${style} style (${String(countAfterTagFilterOnly)} after tag filter, before missing-note skips)`,
+    )
+    return [outputArray, noteCount, due]
   } catch (error) {
     logError('generateReviewOutputLines', `${error.message}`)
     return [[], NaN, NaN] // for completeness

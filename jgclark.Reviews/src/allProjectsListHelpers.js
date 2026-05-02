@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-05-01 for v2.0.0.b28 by @Cursor
+// Last updated 2026-05-02 for v2.0.0.b30 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -800,7 +800,7 @@ export function sortProjectsList(
  * @param {Array<string>?} sortingOrder array of field names to sort by; if given overrides the default sorting order from the Reviews plugin. (Optional)
  * @param {boolean?} dedupeList if true, deduplicate the list by removing projects with multiple 'tags'. (Optional, default is false)
  * @param {boolean?} useDemoList if true, read from allProjectsDemoList.json instead of live list (optional, default is false)
- * @returns {Promise<[Array<Project>, number]>} [sorted projects, number projects unfiltered]
+ * @returns {Promise<[Array<Project>, number]>} [sorted projects, count after tag filter only — i.e. length before folder/due/paused/dedupe filters; use tuple[0].length for rows in the sorted list]
  */
 export async function filterAndSortProjectsList(
   config: ReviewConfig,
@@ -825,7 +825,7 @@ export async function filterAndSortProjectsList(
   const filteredProjectList = (useDemoList) ? projectInstancesForTag : await filterProjectsList(projectInstancesForTag, config, dedupeList)
 
   const sortedProjectList = sortProjectsList(filteredProjectList, config, sortingOrder) 
-  logInfo('filterAndSortProjectsList', `- filtered ${filteredProjectList.length} projects, sorted ${sortedProjectList.length} projects`)
+  logInfo('filterAndSortProjectsList', `- filtered ${filteredProjectList.length} projects, sorted ${sortedProjectList.length} projects (before perspective filters: ${String(projectInstancesForTag.length)})`)
   return [sortedProjectList, projectInstancesForTag.length]
 }
 

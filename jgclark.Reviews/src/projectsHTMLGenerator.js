@@ -558,7 +558,7 @@ export function buildProjectListTopBarHtml(config: any): string {
     parts.push(perspectiveSection)
   }
 
-  const refreshSection = `<div id="refresh"><span class="topbar-item pad-right-larger">${projectsShownCount} ${pluralise('project', projectsShownCount)}</span>${refreshPCButton}\n<span class="topbar-item"><span class="hideable-label">Updated: </span><span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+  const refreshSection = `<div id="refresh"><span class="topbar-item pad-right-larger"><span id="richProjectListVisibleCount" class="topbar-project-visible-count">${projectsShownCount} ${pluralise('project', projectsShownCount)}</span></span>${refreshPCButton}\n<span class="topbar-item"><span class="hideable-label">Updated: </span><span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
   parts.push(refreshSection)
 
   parts.push(`<div class="topbar-center-cluster">`)
@@ -571,7 +571,7 @@ export function buildProjectListTopBarHtml(config: any): string {
   parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false" title="Open dropdown to change Filtering and Ordering of the list"><i class="fa-solid fa-filter pad-right"></i><span class="hideable-label">Filter +</span><i class="fa-regular fa-arrow-down-short-wide pad-left"></i><span class="hideable-label">Order…</span></button>`)
   parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Filter and order">`)
   parts.push(`    <div class="display-filters-dropdown-content">`)
-  // Tag toggles: one per wanted tag; when off, hide projects that only have that tag (client-side). Count = active (not paused/cancelled/completed).
+  // Tag toggles: one per wanted tag; when off, hide projects that only have that tag (client-side). (n) = rows currently listed with that tag (matches main list).
   const projectTypeTags = config.projectTypeTags != null && typeof config.projectTypeTags === 'string' ? [config.projectTypeTags] : (config.projectTypeTags ?? [])
   const tagActiveCounts = config.tagActiveCounts ?? []
   if (projectTypeTags.length > 0) {

@@ -1,6 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.0.0.b30] - 2026-05-02
+- fix Filter + Order dropdown: per-tag counts (e.g. `#project (19)`) now match listed rows, including when paused or finished projects are shown.
+- fix Rich project list top-bar count disagreeing with the number of rows shown.
+
 ## [2.0.0.b29] - 2026-05-02
 - fix "finish review" operations failing to find the project note open in a split window. [dev: `finishReview` now resolves the note via `getFirstRegularNoteAmongOpenEditors` (scans `NotePlan.editors`).]
 - dev: fixed Rollup circular dependency: moved TSV migration logging to `migrationLog.js` so `reviewHelpers` no longer imports `migration.js`.

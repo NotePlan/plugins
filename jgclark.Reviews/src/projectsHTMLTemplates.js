@@ -321,6 +321,17 @@ export const displayFiltersDropdownScript: string = `
 export const tagTogglesVisibilityScript: string = `
 <script>
   (function() {
+    function updateRichListVisibleProjectCount() {
+      var allRows = document.querySelectorAll('.projectRow');
+      var visible = 0;
+      for (var i = 0; i < allRows.length; i++) {
+        if (allRows[i].style.display !== 'none') visible++;
+      }
+      var label = document.getElementById('richProjectListVisibleCount');
+      if (label) {
+        label.textContent = visible + ' ' + (visible === 1 ? 'project' : 'projects');
+      }
+    }
     function applyTagToggleVisibility() {
       var toggles = document.querySelectorAll('input[data-tag-toggle]');
       var offTags = [];
@@ -341,6 +352,7 @@ export const tagTogglesVisibilityScript: string = `
         }
         row.style.display = hide ? 'none' : '';
       }
+      updateRichListVisibleProjectCount();
     }
     document.addEventListener('DOMContentLoaded', function() {
       applyTagToggleVisibility();
