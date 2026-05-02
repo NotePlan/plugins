@@ -50,7 +50,7 @@ For this reason I've added the **/Generate @repeats in recent notes** command to
 ## Running it Manually
 On the _currently open note_, open the command bar and type the **/generate repeats** command.
 - When run on a _Project note_, it creates the new repeated task straight before the completed task.
-- When run on a _Calendar note_, it creates the new repeated task on the date of the new repeat. This uses the same calendar note type: so a repeat in a weekly note will go to the appropriate weekly note, etc.
+- When run on a _Calendar note_, it creates the new repeated task on the date of the new repeat. This uses the same calendar note type: so a repeat in a weekly note will go to the appropriate weekly note, etc. The new task is appended to the note.
 
 ## Specifying the Intervals
 The time intervals have two parts: number and then a character. The **character** is one of:
@@ -64,7 +64,7 @@ The time intervals have two parts: number and then a character. The **character*
 When the **number** starts with a **+** (e.g. `+1m`) it will duplicate the task for 1 month after the date the _task was completed_.
 When the number doesn't start with a + (e.g. `1m`) it will duplicate the task for 1 month after the date the _task was last due_. This is found from a `>yyyy-mm-dd` scheduled date. When there is no scheduled date, then for _Calendar notes_ it will duplicate the task for 1 month after the note date, and for _Project notes_ it will duplicate the task for 1 month after the _task was completed_.
 
-From v0.6 you can specify scheduled dates to all the other calendar note types supported by NotePlan:
+You can specify scheduled dates to all the other calendar note types supported by NotePlan:
 - weekly (e.g. `>2023-W28`)
 - monthly (e.g. `>2023-07`)
 - quarterly (e.g. `>2023-Q3`)
