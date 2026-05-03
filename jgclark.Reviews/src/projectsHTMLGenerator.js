@@ -126,8 +126,10 @@ function buildProjectListRowDiv(thisProject: Project, config: ReviewConfig, want
   const wantedTagsAttr = (wantedTagsForRow != null && wantedTagsForRow.length > 0)
     ? ` data-wanted-tags="${wantedTagsForRow.join(' ').replace(/"/g, '&quot;')}"`
     : ''
-  const extraStyle = `style="border-left: 5px solid ${getProjectIndicatorColor(thisProject)};"`
-  
+  // Set the left border colour to the project progress indicator colour
+  // And if this is a paused project, reduce opacity 
+  const extraStyle = `style="border-left: 5px solid ${getProjectIndicatorColor(thisProject)}; ${thisProject.isPaused ? 'opacity: 0.6;' : ''}"`
+
   // Start the row with the outer <div>, and inject the colour style for its left border
   parts.push(`\t<div class="project-grid-row projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}"${wantedTagsAttr}${extraStyle}>\n\t\t`)
 
