@@ -185,12 +185,15 @@ export async function generateRepeatForPara(
     const syncCopiesInRegularNotes = origParaIsSynced ? syncCopyParas.filter((p) => p?.note?.type === 'Notes') : []
     logDebug('generateRepeatForPara', `- found ${syncCopiesInRegularNotes.length} syncCopiesInRegularNotes`)
 
-    const reReturnArray = line.match(RE_DONE_DATE_TIME_CAPTURES) ?? []
-    completedDate = reReturnArray[1]
-    const completedTime = reReturnArray[2]
+    const doneMatch = line.match(RE_DONE_DATE_TIME_CAPTURES)
+    if (!doneMatch || doneMatch[1] == null) {
+      throw new Error(`generateRepeatForPara: could not parse @done(date time) in line '${line}'`)
+    }
+    completedDate = doneMatch[1]
     logDebug('generateRepeatForPara', `- found newly completed task: "${line}"`)
 
-    lineWithoutDoneTime = line.replace(completedTime, '')
+    // Replace only the @done(...) mention. Do not use line.replace(completedTime): the same " HH:mm" text could appear earlier in the line (e.g. "at 09:45 AM") and would be stripped first, leaving @done(...) unchanged.
+    lineWithoutDoneTime = line.replace(RE_DONE_DATE_TIME_CAPTURES, `@done(${completedDate})`)
     logDebug('generateRepeatForPara', `- lineWithoutDoneTime: "${lineWithoutDoneTime}"`)
     origPara.content = lineWithoutDoneTime
     if (noteIsOpenInEditor) {

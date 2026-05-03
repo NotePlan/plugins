@@ -8,6 +8,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+
+## [2.4.0.b31] 2026-05-03
+- fix: completing tasks in daily notes with a `@repeat(interval)` was failing to remove the time from the `@done(date time)` marker, causing issues later
+
 ## [2.4.0.b30] 2026-04-17
 - fix: **Add Task → Note**: choosing **All spaces** now loads notes from every space via np.Shared `getNotes` (`space: '__all__'`). Previously the UI could send no space filter and the handler only returned Private notes, so the chooser looked “stuck” at ~25 items and search could not find teamspace notes.
 
