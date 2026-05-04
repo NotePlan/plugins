@@ -1,5 +1,5 @@
 /* globals describe, expect, test, jest, beforeEach */
-// Tests written by Cursor, directed by JGC. Last updated 2026-04-13 for v2.4.0.b23
+// Tests written by Cursor, directed by JGC. Last updated 2026-05-04 for v2.4.0.b31
 
 import { CustomConsole } from '@jest/console'
 import { filterToOpenParagraphs, filterBySchedulingRules, filterParasByIgnoreTerms, filterParasByIncludedCalendarSections, filterParasByExcludedCalendarSections, getStartTimeFromPara } from '../dashboardHelpers.js'
@@ -238,6 +238,22 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toContain(otherPara)
       })
 
+      // JGC has not verified the logic of this one
+      test('should keep >today and >YYYY-MM-DD when NPCalendarFilenameStr is unhyphenated YYYYMMDD for today', () => {
+        const today = '2025-01-25'
+        const todayPara = new Paragraph({ type: 'open', content: 'Task scheduled >today' })
+        const isoPara = new Paragraph({ type: 'open', content: 'Task scheduled >2025-01-25' })
+        const paras = [todayPara, isoPara]
+
+        jest.spyOn(dateTime, 'getTodaysDateHyphenated').mockReturnValue(today)
+        jest.spyOn(dateTime, 'includesScheduledFutureDate').mockReturnValue(false)
+
+        const result = filterBySchedulingRules(paras, '20250125', today)
+        expect(result).toHaveLength(2)
+        expect(result).toContain(todayPara)
+        expect(result).toContain(isoPara)
+      })
+
       test('should not keep paragraphs with >today when note date is not today', () => {
         // Setup
         const today = '2025-01-25'
@@ -250,6 +266,22 @@ describe(`${PLUGIN_NAME}`, () => {
         jest.spyOn(dateTime, 'includesScheduledFutureDate').mockReturnValue(false)
 
         const result = filterBySchedulingRules(paras, noteDate, today)
+        expect(result).toHaveLength(1)
+        expect(result).toContain(unscheduledPara)
+        expect(result).not.toContain(todayPara)
+      })
+
+      // JGC has not verified the logic of this one
+      test('should not keep >today when NPCalendarFilenameStr is unhyphenated YYYYMMDD for a non-today note', () => {
+        const today = '2025-01-25'
+        const todayPara = new Paragraph({ type: 'open', content: 'Task scheduled >today' })
+        const unscheduledPara = new Paragraph({ type: 'open', content: 'Task without date' })
+        const paras = [todayPara, unscheduledPara]
+
+        jest.spyOn(dateTime, 'getTodaysDateHyphenated').mockReturnValue(today)
+        jest.spyOn(dateTime, 'includesScheduledFutureDate').mockReturnValue(false)
+
+        const result = filterBySchedulingRules(paras, '20250124', today)
         expect(result).toHaveLength(1)
         expect(result).toContain(unscheduledPara)
         expect(result).not.toContain(todayPara)

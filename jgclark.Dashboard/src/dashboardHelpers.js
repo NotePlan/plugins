@@ -23,7 +23,14 @@ import type {
   TSettingItem,
 } from './types'
 import { getNestedValue, setNestedValue, stringListOrArrayToArray } from '@helpers/dataManipulation'
-import { getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
+import {
+  getISODateStringFromYYYYMMDD,
+  getTimeStringFromHM,
+  getTodaysDateHyphenated,
+  includesScheduledFutureDate,
+  RE_ISO_DATE,
+  RE_YYYYMMDD_DATE,
+} from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
@@ -300,7 +307,7 @@ function getPriorityDeltaFromNote(note: TNote): number {
 
 /**
  * Get matching calendar notes for a given date string, including teamspace notes.
- * @param {string} NPCalendarFilenameStr - Calendar note filename (date string)
+ * @param {string} NPCalendarFilenameStr - Calendar note filename (date string). Note: for daily notes this can be either YYYYMMDD or YYYY-MM-DD.
  * @returns {{matchingNotes: Array<TNote>, possTimePeriodNote: TNote | null}} Object with matching notes array and private calendar note
  */
 function getMatchingCalendarNotes(NPCalendarFilenameStr: string): { matchingNotes: Array<TNote>, possTimePeriodNote: ?TNote } {
@@ -419,6 +426,24 @@ function filterByChecklistSettings(
 }
 
 /**
+ * Normalize calendar date input (YYYYMMDD, filename/path containing YYYYMMDD, or YYYY-MM-DD) to YYYY-MM-DD for daily notes.
+ * Week/month/quarter/year keys are returned unchanged.
+ * @param {string} npcStr - from getOpenItemParasForTimePeriod / DataStore APIs
+ * @returns {string}
+ */
+function hyphenatedCalendarDayKeyFromNPDateInput(npcStr: string): string {
+  const ymd = new RegExp(RE_YYYYMMDD_DATE).exec(npcStr)
+  if (ymd) {
+    return getISODateStringFromYYYYMMDD(ymd[0])
+  }
+  const iso = new RegExp(RE_ISO_DATE).exec(npcStr)
+  if (iso) {
+    return iso[0]
+  }
+  return npcStr
+}
+
+/**
  * Filter paragraphs by scheduling rules (not scheduled except for current date/today).
  * @tests in jest file
  * @param {Array<TParagraph>} paras - Paragraphs to filter
@@ -432,7 +457,7 @@ export function filterBySchedulingRules(
   latestDate: string
 ): Array<TParagraph> {
   const todayHyphenated = getTodaysDateHyphenated()
-  const theNoteDateHyphenated = NPCalendarFilenameStr
+  const theNoteDateHyphenated = hyphenatedCalendarDayKeyFromNPDateInput(NPCalendarFilenameStr)
   const isToday = theNoteDateHyphenated === todayHyphenated
   const thisNoteDateSched = `>${theNoteDateHyphenated}`
 
@@ -465,7 +490,7 @@ function filterOpenParagraphs(
   startTime: Date
 ): Array<TParagraph> {
   const todayHyphenated = getTodaysDateHyphenated()
-  const theNoteDateHyphenated = NPCalendarFilenameStr
+  const theNoteDateHyphenated = hyphenatedCalendarDayKeyFromNPDateInput(NPCalendarFilenameStr)
   const latestDate = todayHyphenated > theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
   // logDebug('filterOpenParagraphs', `timeframe:${calendarPeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
 
@@ -619,7 +644,7 @@ function combineOrSeparateResults(
 
 /**
  * Get open item paragraphs for a time period from calendar notes and referenced notes.
- * @param {string} NPCalendarFilenameStr - Calendar note filename (date string)
+ * @param {string} NPCalendarFilenameStr - Calendar note filename (date string). Note: for daily notes this can be either YYYYMMDD or YYYY-MM-DD.
  * @param {string} calendarPeriodName - Name of calendar period for logging
  * @param {TDashboardSettings} dashboardSettings - Dashboard settings
  * @param {boolean} useEditorWherePossible - Whether to use editor paragraphs if note is open

@@ -11,6 +11,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.4.0.b31] 2026-05-03
 - fix: completing tasks in daily notes with a `@repeat(interval)` was failing to remove the time from the `@done(date time)` marker, causing issues later.
+- fix: tasks in calendar notes with `>today` weren't being shown in the Today section.
 - remove Search section from view when the last of its items has been completed.
 
 ## [2.4.0.b30] 2026-04-17
