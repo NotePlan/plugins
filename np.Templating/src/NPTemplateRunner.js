@@ -119,6 +119,47 @@ export async function replaceHeading(note: CoreNoteFields, writeUnderHeading: st
 }
 
 /**
+ * Replace a heading and its section with rendered template content.
+ * @param {CoreNoteFields} note - the note/editor object to modify
+ * @param {string} renderedTemplate - rendered template content
+ * @param {Object} headingParagraph - the heading paragraph object
+ * @returns {Promise<void>}
+ */
+export async function replaceHeadingSectionWithContent(note: CoreNoteFields, renderedTemplate: string, headingParagraph: any): Promise<void> {
+  const headingIndex = headingParagraph ? headingParagraph.lineIndex : -1
+  if (headingIndex < 0) {
+    return
+  }
+
+  const headingLevel = headingParagraph.headingLevel || (headingParagraph.rawContent || headingParagraph.content || '').match(/^#+/)?.[0]?.length || 2
+  let endIndex = note.paragraphs.length
+
+  for (let i = headingIndex + 1; i < note.paragraphs.length; i++) {
+    const para = note.paragraphs[i]
+    const paraHeadingLevel = para.headingLevel || (para.rawContent || para.content || '').match(/^#+/)?.[0]?.length || 0
+    if (para.type === 'title' && paraHeadingLevel > 0 && paraHeadingLevel <= headingLevel) {
+      endIndex = i
+      break
+    }
+  }
+
+  for (let i = endIndex - 1; i >= headingIndex; i--) {
+    if (note.paragraphs[i]) {
+      note.removeParagraph(note.paragraphs[i])
+    }
+  }
+  note.insertParagraph(renderedTemplate, headingIndex, 'text')
+  // $FlowIgnore[prop-missing] -- note.note only exists when the target is Editor
+  if (note.note && typeof Editor !== 'undefined' && typeof Editor.save === 'function') {
+    try {
+      await Editor.save()
+    } catch (error) {
+      logError(pluginJson, `replaceHeadingSectionWithContent Editor.save failed: ${error.message || String(error)}`)
+    }
+  }
+}
+
+/**
  * Creates a block of text with the heading and content
  * @param {CoreNoteFields} note - the note to modify
  * @param {string} writeUnderHeading - the heading to add
@@ -182,18 +223,19 @@ export async function writeUnderExistingHeading(note: CoreNoteFields, writeUnder
  */
 export async function writeWithoutHeading(note: CoreNoteFields, renderedTemplate: string, location: string, isEditor: boolean): Promise<void> {
   const startIndex = findStartOfActivePartOfNote(note)
+  const renderedTemplateSummary = `${renderedTemplate.length} chars, ${renderedTemplate.split('\n').length} lines`
   if (location === 'append') {
-    logDebug(pluginJson, `writeNoteContents appending "${renderedTemplate}"`)
+    logDebug(pluginJson, `writeNoteContents appending renderedTemplate (${renderedTemplateSummary})`)
     note.appendParagraph(renderedTemplate, 'text')
   } else if (location === 'cursor' && isEditor) {
     // we are in the Editor
     const selection = Editor.selectedParagraphs
     const indents = selection?.length > 0 ? selection[0].indents : 0
-    logDebug(pluginJson, `writeNoteContents inserting "${renderedTemplate}" at cursor with indents ${indents}`)
+    logDebug(pluginJson, `writeNoteContents inserting renderedTemplate (${renderedTemplateSummary}) at cursor with indents ${indents}`)
     clo(selection, `writeNoteContents selection`)
     Editor.insertParagraphAtCursor(renderedTemplate, 'text', indents)
   } else {
-    logDebug(pluginJson, `writeNoteContents prepending "${renderedTemplate}" at start of noteindex ${startIndex}`)
+    logDebug(pluginJson, `writeNoteContents prepending renderedTemplate (${renderedTemplateSummary}) at start of noteindex ${startIndex}`)
     note.insertParagraph(renderedTemplate, startIndex, 'text')
   }
 }
@@ -224,11 +266,12 @@ export async function writeNoteContents(
   let note: CoreNoteFields | null | void = _note
   // $FlowIgnore
   const isEditor = note.note
+  const renderedTemplateSummary = `${renderedTemplate.length} chars, ${renderedTemplate.split('\n').length} lines`
   logDebug(
     pluginJson,
     `NPTemplateRunner::writeNoteContents note:${note?.title || ''} headingName:${headingName} location:${location} note=${note?.title || ''}${
       isEditor ? ' (Editor)' : ''
-    } options:${JSP(options)} renderedTemplate:\n---\n${renderedTemplate}\n---`,
+    } options:${JSP(options)} renderedTemplate: ${renderedTemplateSummary}`,
   )
   let writeUnderHeading = headingName
   const { headingLevel = 2, addHeadingLocation = 'append', replaceHeading = false } = options
@@ -236,7 +279,7 @@ export async function writeNoteContents(
   if (note) {
     logDebug(
       pluginJson,
-      `writeNoteContents title:"${note.title || ''}" writeUnderHeading:${writeUnderHeading} location:${location} options:${JSP(options)} renderedTemplate:"${renderedTemplate}"`,
+      `writeNoteContents title:"${note.title || ''}" writeUnderHeading:${writeUnderHeading} location:${location} options:${JSP(options)} renderedTemplate: ${renderedTemplateSummary}`,
     )
 
     // Handle empty template case
@@ -261,24 +304,22 @@ export async function writeNoteContents(
       if (headingParagraph) {
         // paragraph with heading exists
         if (location === 'replace') {
-          await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate, false, options.headingLevel || 2)
           if (replaceHeadingAlso) {
-            logDebug(pluginJson, `writeNoteContents replacing heading and contents -- removing heading paragraph: ${writeUnderHeading}`)
-            const note = headingParagraph.note
-            if (note) {
-              note.removeParagraph(headingParagraph)
-              DataStore.updateCache(note, true)
-              const headingExists = findHeading(note, writeUnderHeading, true)
-              if (headingExists) {
-                logError(pluginJson, `writeNoteContents replaceHeading: heading paragraph still exists according to findHeading: ${writeUnderHeading}`)
-                logError(
-                  pluginJson,
-                  `writeNoteContents replaceHeading: note.content.includes(headingParagraph.content): ${String(note.content?.includes(`# ${headingParagraph.content}`))}`,
-                )
-              } else {
-                logDebug(pluginJson, `writeNoteContents replaceHeading: heading paragraph seems to have been removed: ${writeUnderHeading}`)
-              }
+            logDebug(pluginJson, `writeNoteContents replacing heading and contents -- replacing heading section: ${writeUnderHeading}`)
+            await replaceHeadingSectionWithContent(note, renderedTemplate, headingParagraph)
+            DataStore.updateCache(headingParagraph.note || note, true)
+            const headingExists = findHeading(note, writeUnderHeading, true)
+            if (headingExists) {
+              logError(pluginJson, `writeNoteContents replaceHeading: heading paragraph still exists according to findHeading: ${writeUnderHeading}`)
+              logError(
+                pluginJson,
+                `writeNoteContents replaceHeading: note.content.includes(headingParagraph.content): ${String(note.content?.includes(`# ${headingParagraph.content}`))}`,
+              )
+            } else {
+              logDebug(pluginJson, `writeNoteContents replaceHeading: heading paragraph seems to have been removed: ${writeUnderHeading}`)
             }
+          } else {
+            await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate, false, options.headingLevel || 2)
           }
         } else if (!location || location === 'prepend' || location === 'append') {
           note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, location === 'append' || !location, false)
@@ -299,7 +340,7 @@ export async function writeNoteContents(
         } else {
           logDebug(
             pluginJson,
-            `writeNoteContents -- heading "${writeUnderHeading}" does not exist in note and createMissingHeading is false so skipping; content was: "${renderedTemplate}"`,
+            `writeNoteContents -- heading "${writeUnderHeading}" does not exist in note and createMissingHeading is false so skipping renderedTemplate (${renderedTemplateSummary})`,
           )
         }
       }
@@ -347,7 +388,7 @@ export function processTemplateArguments(selectedTemplate: string, args: string 
   }
   logDebug(
     pluginJson,
-    `processTemplateArguments: isRunFromCode:${String(isRunFromCode)} passedTemplateBody:${passedTemplateBody || ''}\nargObj:${JSON.stringify(argObj, null, 2)} `,
+    `processTemplateArguments: isRunFromCode:${String(isRunFromCode)} passedTemplateBody length:${passedTemplateBody?.length || 0} arg keys:${Object.keys(argObj || {}).join(', ') || '(none)'}`,
   )
 
   return { argObj, isRunFromCode, passedTemplateBody }
@@ -613,7 +654,6 @@ export async function handleNoteSelection(noteTitle: string): Promise<string> {
  * @returns {Object} template write options
  */
 export function createTemplateWriteOptions(frontmatterAttributes: Object, shouldOpenInEditor: boolean): Object {
-  clo(frontmatterAttributes, `createTemplateWriteOptions frontmatterAttributes before destructuring`)
   const { location, writeUnderHeading, replaceNoteContents, headingLevel, addHeadingLocation, replaceHeading, createMissingHeading } = frontmatterAttributes
   logDebug(`createTemplateWriteOptions frontmatterAttributes after destructuring replaceHeading=${replaceHeading} (typeof replaceHeading=${typeof replaceHeading}  )`)
   return {
@@ -966,22 +1006,15 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
   try {
     const selectedTemplate = _selectedTemplate.trim()
     const start = new Date()
-    logDebug(
-      pluginJson,
-      `templateRunnerExecute Starting STARTING Self-Running Template Execution: selectedTemplate:"${selectedTemplate}" openInEditor:${String(
-        openInEditor,
-      )} args (${typeof args}): "${typeof args === 'object' ? JSP(args) : args || ''}"`,
-    )
+    const argSummary = typeof args === 'object' && args !== null ? `keys:${Object.keys(args).join(', ') || '(none)'}` : `value length:${String(args || '').length}`
+    logDebug(pluginJson, `templateRunnerExecute Starting STARTING Self-Running Template Execution: selectedTemplate:"${selectedTemplate}" openInEditor:${String(openInEditor)} args (${typeof args}) ${argSummary}`)
 
     // STEP 1: Process Arguments Passed through Callback or Code
     const { argObj, isRunFromCode, passedTemplateBody } = processTemplateArguments(selectedTemplate, args)
     logDebug(pluginJson, `templateRunnerExecute after processTemplateArguments: isRunFromCode:${String(isRunFromCode)}`)
-    clo(argObj, `templateRunnerExecute argObj`)
-    clo(passedTemplateBody, `templateRunnerExecute passedTemplateBody`)
+    logDebug(pluginJson, `templateRunnerExecute arg keys: ${Object.keys(argObj || {}).join(', ') || '(none)'} passedTemplateBody length:${passedTemplateBody?.length || 0}`)
 
     if (selectedTemplate.length !== 0 || isRunFromCode || passedTemplateBody) {
-      clo(argObj, `templateRunnerExecute argObj`)
-
       if (!isRunFromCode && (!selectedTemplate || selectedTemplate.length === 0)) {
         await CommandBar.prompt('You must supply a template title as the first argument', helpInfo('Self-Running Templates'))
         return null
@@ -1024,7 +1057,7 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
 
         // STEP 4: Render the Template Body (with any passed arguments)
         const renderedTemplate = await renderTemplate(frontmatterBody, data)
-        logDebug(pluginJson, `templateRunnerExecute Template Render Complete renderedTemplate= "${renderedTemplate}"`)
+        logDebug(pluginJson, `templateRunnerExecute Template Render Complete renderedTemplate length:${renderedTemplate.length}`)
 
         // Check if rendered template contains AI analysis error - if so, return it immediately
         if (hasAiAnalysisError(renderedTemplate)) {
@@ -1097,8 +1130,7 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
           calendarTimeframe,
         } = determineNoteType(finalNoteTitle)
 
-        clo(data, `templateRunnerExecute before createTemplateWriteOptions, data=`)
-        clo(frontmatterAttributes, `templateRunnerExecute before createTemplateWriteOptions, frontmatterAttributes=`)
+        logDebug(pluginJson, `templateRunnerExecute frontmatter keys before write options: ${Object.keys(frontmatterAttributes || {}).join(', ') || '(none)'}`)
 
         // Render writeUnderHeading with form values if it contains template tags
         // Special values like <choose>, <select> will be preserved and handled by handleHeadingSelection after rendering
@@ -1141,7 +1173,7 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
             isNextWeek,
           )} isCalendarDateNote:${String(isCalendarDateNote)} calendarDateString:${calendarDateString} calendarTimeframe:${calendarTimeframe}`,
         )
-        clo(writeOptions, `templateRunnerExecute writeOptions`)
+        logDebug(pluginJson, `templateRunnerExecute writeOptions summary: location:${writeOptions.location || ''} writeUnderHeading:${writeOptions.writeUnderHeading || ''} replaceHeading:${String(writeOptions.replaceHeading || false)} replaceNoteContents:${String(writeOptions.replaceNoteContents || false)}`)
 
         // STEP 4.6: Write to the target Note
         if (isTodayNote && calendarTimeframe === 'day') {

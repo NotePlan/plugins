@@ -78,16 +78,18 @@ export function logProgress(stepDescription: string, templateData: string, sessi
       const sessionKeys = Object.keys(sessionData)
       logDebug(`📊 ${msg}Session Data Keys: [${sessionKeys.length} keys]`)
     }
-  } else if (verbose || isKeyStep) {
+  } else if (verbose) {
     logDebug(
       `📄 ${msg}Template Text (${safeTemplateData.length} chars): ${safeTemplateData ? safeTemplateData.substring(0, 200) : ''}${
         safeTemplateData ? (safeTemplateData.length > 200 ? '...' : '') : ''
       }`,
     )
+  } else if (isKeyStep) {
+    logDebug(`📄 ${msg}Template Text (${safeTemplateData.length} chars)`)
 
     if (sessionData && (verbose || isKeyStep)) {
       const sessionKeys = Object.keys(sessionData)
-      logDebug(`📊 ${msg}Session Data Keys: [${sessionKeys.join(', ')}]`)
+      logDebug(`📊 ${msg}Session Data Keys: [${sessionKeys.length} keys]`)
 
       // Only log full session data details in verbose mode
       if (verbose && sessionKeys.length > 0) {
@@ -1679,7 +1681,7 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     if (errorMentioned) {
       logDebug(pluginJson, `_renderWithConfig: Error mentioned in final result:\n*****\n\t${errorMentioned}`)
     }
-    logDebug(`returning finalResult: "${finalResult}"`)
+    logDebug(`returning finalResult (${finalResult.length} chars)`)
     return finalResult
   } catch (error) {
     clo(error, `render found error`)
@@ -1703,9 +1705,9 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
  * @returns {Promise<string>} A promise that resolves to the rendered template content
  */
 export async function render(inputTemplateData: string, userData: any = {}, userOptions: any = {}, templateConfig: any = {}): Promise<string> {
-  logDebug(pluginJson, `templateProcessor.render: Starting with inputTemplateData: "${inputTemplateData.substring(0, 100)}..."`)
+  logDebug(pluginJson, `templateProcessor.render: Starting with inputTemplateData (${inputTemplateData.length} chars)`)
   const result = await _renderWithConfig(inputTemplateData, userData, userOptions, templateConfig)
-  logDebug(pluginJson, `templateProcessor.render: Returning result: "${result.substring(0, 100)}..."`)
+  logDebug(pluginJson, `templateProcessor.render: Returning result (${result.length} chars)`)
   return result
 }
 
