@@ -1165,6 +1165,7 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<{ rel
       return [{}]
     }
     // DataStore exists but calendarNoteByDateString can be undefined in WebView or when invoked across plugins
+    // console.log('typeof DataStore.calendarNoteByDateString', typeof DataStore.calendarNoteByDateString)
     if (typeof DataStore.calendarNoteByDateString !== 'function') {
       logWarn('NPdateTime::getRelativeDates', `NP DataStore.calendarNoteByDateString function is not available, so returning an empty set. Look at using helpers/react/dateStrings.js instead?`)
       return []

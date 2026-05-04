@@ -183,7 +183,7 @@ function removeLineSuccessActionsForSection(sectionCode: TSectionCode, ...extras
  */
 export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, item, sectionCode } = validateAndFlattenMessageObject(data)
-  clo(item, `doCompleteTask -> item`)
+  // clo(item, `doCompleteTask -> item`)
   const completedParagraph = await completeItem(filename, content)
   // clo(completedParagraph, `doCompleteTask -> completedParagraph`)
 
@@ -266,7 +266,7 @@ export async function doCompleteChecklist(data: MessageDataObject): Promise<TBri
  */
 export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
-  logDebug('doDeleteItem', `Starting with "${String(content)}" and will ideally update section ${String(sectionCode)}`)
+  // logDebug('doDeleteItem', `Starting with "${String(content)}" and will ideally update section ${String(sectionCode)}`)
   // Grab a copy of the paragraph before deleting it, so React can remove the right line. (It's not aware the paragraph has disappeared on the back end.)
   const updatedParagraph = findParaFromStringAndFilename(filename, content)
   const res = await deleteItem(filename, content)

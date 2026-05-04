@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2026-04-13 for v2.4.0.b23 by @jgclark
+// Last updated 2026-05-04 for v2.4.0.b31 by @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -313,19 +313,28 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // handle a click to start interactive processing
   const handleInteractiveProcessingClick = useCallback(
     (e: MouseEvent): void => {
+      const processableItems = itemsToShow.filter((row) => row.itemType === 'open' || row.itemType === 'checklist')
+      if (processableItems.length === 0) return
+
       const clickPosition = { clientY: e.clientY, clientX: e.clientX + 200 }
-      const itemDetails = { actionType: '', item: itemsToShow[0], sectionCodes: [section.sectionCode] }
+      const itemDetails = { actionType: '', item: processableItems[0], sectionCodes: [section.sectionCode] }
       setReactSettings((prevSettings) => {
         const newReactSettings = {
           ...prevSettings,
           lastChange: `_InteractiveProcessing Click`,
-          interactiveProcessing: { sectionName: section.name, currentIPIndex: 0, totalTasks: itemsToShow.length, visibleItems: [...itemsToShow], clickPosition }, // called when interactive processing on an item is complete
+          interactiveProcessing: {
+            sectionName: section.name,
+            currentIPIndex: 0,
+            totalTasks: processableItems.length,
+            visibleItems: [...processableItems],
+            clickPosition,
+          },
           dialogData: { isOpen: true, isTask: true, details: itemDetails, clickPosition },
         }
         return newReactSettings
       })
     },
-    [section, itemsToShow, reactSettings, setReactSettings],
+    [section, itemsToShow, setReactSettings],
   )
 
   const handleCommandButtonClick = (button: TActionButton): void => {

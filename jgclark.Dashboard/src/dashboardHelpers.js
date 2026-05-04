@@ -1187,7 +1187,7 @@ export async function setPluginData(changeObject: TAnyObject, changeMessage: str
   
   reactWindowData.pluginData = { ...reactWindowData.pluginData, ...changeObject }
   
-  logInfo('setPluginData', `Sending changeMessage: "${changeMessage}"`)
+  logDebug('setPluginData', `Sending changeMessage: "${changeMessage}"`)
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, changeMessage)
 }
 

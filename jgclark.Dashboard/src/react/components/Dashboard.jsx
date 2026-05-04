@@ -291,7 +291,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     logDebug('Dashboard', `handleDialogClose() called with xWasClicked=${String(xWasClicked)}`)
     setReactSettings((prevSettings) => ({
       ...prevSettings,
-      dialogData: { isOpen: false, isTask: true },
+      dialogData: {
+        ...prevSettings.dialogData,
+        isOpen: false,
+        isTask: true,
+      },
     }))
   }
 

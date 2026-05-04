@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-02-20 for v1.3.0.b12, @jgclark
+// Last updated 2026-05-04 for v1.3.0.b13+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -631,7 +631,7 @@ export async function filterAndSortProjectsList(
   dedupeList?: boolean = false,
 ): Promise<[Array<Project>, number]> {
   const allProjectInstances = await getAllProjectsFromList()
-  logInfo('filterAndSortProjectsList', `Starting with tag '${projectTag}' for ${allProjectInstances.length} projects`)
+  logDebug('filterAndSortProjectsList', `Starting with tag '${projectTag}' for ${allProjectInstances.length} projects`)
   
   // Filter out projects that are not tagged with the projectTag
   const projectInstancesForTag = (projectTag !== '')
@@ -640,7 +640,7 @@ export async function filterAndSortProjectsList(
 
   const filteredProjectList = await filterProjectsList(projectInstancesForTag, config, dedupeList)
   const sortedProjectList = sortProjectsList(filteredProjectList, config, sortingOrder) 
-  logInfo('filterAndSortProjectsList', `- filtered ${filteredProjectList.length} projects, sorted ${sortedProjectList.length} projects`)
+  logDebug('filterAndSortProjectsList', `- filtered ${filteredProjectList.length} projects, sorted ${sortedProjectList.length} projects`)
   return [sortedProjectList, projectInstancesForTag.length]
 }
 

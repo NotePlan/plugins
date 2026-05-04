@@ -9,10 +9,14 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b31] 2026-05-03
+## [2.4.0.b31] 2026-05-04
+- fix: interactive processing no longer includes section footer rows (`offerToFilter`, `filterIndicator`, etc.) in `visibleItems`, so the task dialog does not advance onto non-task rows or crash on `para.hasChild`.
 - fix: completing tasks in daily notes with a `@repeat(interval)` was failing to remove the time from the `@done(date time)` marker, causing issues later.
-- fix: tasks in calendar notes with `>today` weren't being shown in the Today section.
+- fix: tasks in calendar notes with `>today` weren't being shown in the Today section (thanks, @Stacey and others).
 - remove Search section from view when the last of its items has been completed.
+- fix: Task dialog could crash with `undefined is not an object (evaluating 'sectionCodes[0]')` when closing after moving the last item (or other transient empty/error details). `DialogForTaskItems` now uses optional chaining, bails out cleanly when details fail validation, copies `sectionCodesToRefresh` before mutating, runs hooks before that early return, and preserves existing `dialogData` (e.g. `details`, `clickPosition`) when setting `isOpen: false` from interactive processing, force-close, scheduled close, and `Dashboard` `handleDialogClose`.
+- dev: `CalendarPicker` `positionFunction` prop type corrected from `() => {}` to `() => void` so callers like `positionDialog(dialogRef)` type-check.
+- dev: turn down more logging
 
 ## [2.4.0.b30] 2026-04-17
 - fix: **Add Task → Note**: choosing **All spaces** now loads notes from every space via np.Shared `getNotes` (`space: '__all__'`). Previously the UI could send no space filter and the handler only returned Private notes, so the chooser looked “stuck” at ~25 items and search could not find teamspace notes.

@@ -2,7 +2,7 @@
 //----------------------------------------------------------
 // Calendar Picker component.
 // Used in DialogFor*Items components.
-// Last updated 2025-04-05 for v2.2.0.a11
+// Last updated 2026-05-04 for v2.4.0.b31 by @CursorAI
 //----------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import { DayPicker } from 'react-day-picker'
@@ -15,13 +15,13 @@ type Props = {
   onSelectDate: (date: Date) => void, // Callback function when date is selected
   numberOfMonths?: number, // Number of months to show in the calendar
   startingSelectedDate?: Date, // Date to start with selected
-  positionFunction?: () => {}, // Function to call to reposition the dialog because it will be taller when calendar is open
+  positionFunction?: () => void, // Function to call to reposition the dialog because it will be taller when calendar is open
   resetDateToDefault?: boolean,
   shouldStartOpen?: boolean, // Default is false, so the calendar is closed when it is first rendered
 }
 
 const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction, resetDateToDefault, shouldStartOpen = false }: Props): React$Node => {
-  const [selectedDate, setSelectedDate] = useState(startingSelectedDate)
+  const [selectedDate, setSelectedDate] = useState <? Date > (startingSelectedDate)
   const [isOpen, setIsOpen] = useState(shouldStartOpen)
 
   const handleDateChange = (date: Date) => {
@@ -39,7 +39,7 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
   // Reset selectedDate when resetDateToDefault prop changes
   useEffect(() => {
     if (resetDateToDefault) {
-      setSelectedDate(null) // or any default value
+      setSelectedDate(undefined) // clear selection when parent resets picker
     }
   }, [resetDateToDefault])
 

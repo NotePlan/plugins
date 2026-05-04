@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2026-02-05 for v2.4.0.b20 by @jgclark
+// Last updated 2026-05-04 for v2.4.0.b31 by @CursorAI
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -25,7 +25,7 @@ import '../css/animation.css'
 type Props = {
   onClose: (xWasClicked: boolean) => void,
   details: MessageDataObject,
-  positionDialog: (dialogRef: { current: HTMLDivElement | null }) => void,
+  positionDialog: (dialogRef: { current: ?HTMLDivElement }) => void,
 }
 
 type DialogButtonProps = {
@@ -54,20 +54,60 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const [contentHasChanged, setContentHasChanged] = useState(false) // used to track if the content has changed
 
   //----------------------------------------------------------------------
-  // Constants
+  // Context (before validate / early return - Rules of Hooks)
+  //----------------------------------------------------------------------
+
+  const { sendActionToPlugin, reactSettings, setReactSettings, dashboardSettings, pluginData } = useAppContext()
+  const { interactiveProcessing } = reactSettings ?? {}
+  const { currentIPIndex, totalTasks } = interactiveProcessing || {}
+  const { enableInteractiveProcessing, enableInteractiveProcessingTransitions } = dashboardSettings || {}
+  const showAnimations = interactiveProcessing && enableInteractiveProcessing && enableInteractiveProcessingTransitions
+
+  //----------------------------------------------------------------------
+  // Effects (before validate / early return - Rules of Hooks)
+  //----------------------------------------------------------------------
+
+  useLayoutEffect(() => {
+    // logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
+    // $FlowIgnore[incompatible-call]
+    positionDialog(dialogRef)
+    // logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
+  }, [])
+
+  // Trigger the 'zoom-in/out' effects when the component mounts and unmounts
+  useLayoutEffect(() => {
+    if (showAnimations) {
+      setAnimationClass('zoom-in')
+    }
+
+    // run before the component unmounts
+    return () => {
+      if (showAnimations) {
+        setAnimationClass('zoom-out')
+      }
+    }
+  }, [showAnimations])
+
+  //----------------------------------------------------------------------
+  // Constants (validated message / derived UI)
   //----------------------------------------------------------------------
 
   // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
   const { ID, item, itemType, para, filename, title, content, noteType, sectionCodes, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
+  // TEST: this hardening
+  if (filename === '(error)' || !detailsMessageObject?.item || !item) {
+    logWarn('DialogForTaskItems', 'No valid details to render; bailing.')
+    return null
+  }
+
   logDebug('DialogForTaskItems', `ID=${String(ID)} / itemType=${String(itemType)} / filename=${String(filename)} / sectionCodes=${String(sectionCodes)} / para.content={${String(para?.content ?? 'n/a')}}`)
   if (!filename || filename === '') { logWarn('DialogForTaskItems', `filename is undefined or empty`) }
 
   // sectionCodes in this case will be just the sectionCode of the current item
-  const thisSectionCode = sectionCodes[0] ?? ''
+  const thisSectionCode = sectionCodes?.[0] ?? ''
   if (!thisSectionCode) { logWarn('DialogForTaskItems', `thisSectionCode is undefined or empty`) }
   logDebug('DialogForTaskItems', `thisSectionCode=${String(thisSectionCode)}`)
 
-  const { sendActionToPlugin, reactSettings, setReactSettings, dashboardSettings, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
   const monthsToShow = (pluginData.platform === 'iOS') ? 1 : 2
 
@@ -83,11 +123,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // - All 3 other cases: use rescheduleItem()
   const dateChangeFunctionToUse = noteType === 'Calendar' && !resched ? 'moveFromCalToCal' : 'rescheduleItem'
   // logDebug('DialogForTaskItems', `- dateChangeFunctionToUse = ${dateChangeFunctionToUse} from resched?:${String(resched)}`)
-
-  const { interactiveProcessing } = reactSettings ?? {}
-  const { currentIPIndex, totalTasks } = interactiveProcessing || {}
-  const { enableInteractiveProcessing, enableInteractiveProcessingTransitions } = dashboardSettings || {}
-  const showAnimations = interactiveProcessing && enableInteractiveProcessing && enableInteractiveProcessingTransitions
 
   // Set standard list of buttons to render.
   const buttons: Array<DialogButtonProps> = [
@@ -200,7 +235,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // dbw note 2024-10-08: Trying to keep an eye out for an edge case where changing priority then skipping an item
   // might cause hasChild to be set to true, which seems to make no sense. no idea where it's coming from.
   // but might be the intermittent cache update issue returning children with the para when there are none
-  para.hasChild ? clo(para, `DialogForTaskItems hasChild ${para.hasChild} para=`) : null
+  para?.hasChild ? clo(para, `DialogForTaskItems hasChild ${para.hasChild} para=`) : null
 
   //----------------------------------------------------------------------
   // Variables & Helpers
@@ -220,31 +255,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
     return -1
   }
-
-  //----------------------------------------------------------------------
-  // Effects
-  //----------------------------------------------------------------------
-
-  useLayoutEffect(() => {
-    // logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
-    // $FlowIgnore[incompatible-call]
-    positionDialog(dialogRef)
-    // logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
-  }, [])
-
-  // Trigger the 'zoom-in/out' effects when the component mounts and unmounts
-  useLayoutEffect(() => {
-    if (showAnimations) {
-      setAnimationClass('zoom-in')
-    }
-
-    // run before the component unmounts
-    return () => {
-      if (showAnimations) {
-        setAnimationClass('zoom-out')
-      }
-    }
-  }, [showAnimations])
 
   //----------------------------------------------------------------------
   // Handlers
@@ -288,7 +298,11 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       setReactSettings((prevSettings) => ({
         ...prevSettings,
         interactiveProcessing: null,
-        dialogData: { isOpen: false, isTask: true },
+        dialogData: {
+          ...prevSettings.dialogData,
+          isOpen: false,
+          isTask: true,
+        },
         lastChange: `_Dashboard-handleIPItemProcessed no more IP items to process`,
       }))
     }
@@ -312,8 +326,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     const currentContent = para.content
     logDebug(`DialogForTaskItems/handleButtonClick`, `- button clicked on ID: ${ID} for controlStr: ${controlStr}, handlingFunction: ${handlingFunction}, itemType: ${itemType}, filename: ${filename}, contentHasChanged: ${String(contentHasChanged)}`)
 
-    // prepend the current sectionCode to the section codes to refresh
-    const sectionCodesToSend = sectionCodesToRefresh
+    // prepend the current sectionCode to the section codes to refresh (copy so we never mutate button default arrays)
+    const sectionCodesToSend = [...sectionCodesToRefresh]
     if (thisSectionCode) { sectionCodesToSend.unshift(thisSectionCode) }
     logDebug('DialogForTaskItems/handleButtonClick', `sectionCodesToSend=${String(sectionCodesToSend)}`)
 
@@ -385,7 +399,11 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         setReactSettings((prevSettings) => ({
           ...prevSettings,
           interactiveProcessing: null,
-          dialogData: { isOpen: false, isTask: true },
+          dialogData: {
+            ...prevSettings.dialogData,
+            isOpen: false,
+            isTask: true,
+          },
         }))
       } else {
         handleIPItemProcessed(false)
@@ -405,7 +423,11 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       logDebug('DialogForTaskItems', `scheduleClose() after timeout reactSettings; looking for interactiveProcessing`)
       setReactSettings((prevSettings) => ({
         ...prevSettings,
-        dialogData: { isOpen: false, isTask: true },
+        dialogData: {
+          ...prevSettings.dialogData,
+          isOpen: false,
+          isTask: true,
+        },
       }))
       onClose(forceClose)
     }, delay)
@@ -449,6 +471,12 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     setResetCalendar(true)
     setTimeout(() => setResetCalendar(false), 0)
     closeDialog()
+  }
+
+  /** Reposition the task dialog when the embedded calendar opens (taller layout). */
+  const repositionCalendarForPicker = (): void => {
+    // $FlowIgnore[incompatible-call] ref current may be optional in Flow; matches Dialog.positionDialog at runtime
+    positionDialog(dialogRef)
   }
 
   //----------------------------------------------------------------------
@@ -534,7 +562,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             </div>
 
             {/* Child indicator line */}
-            {para.hasChild ? (
+            {para?.hasChild ? (
               <>
                 <div></div>
                 <div className="childDetails">(Has children)</div>
@@ -551,7 +579,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
               ))}
               <CalendarPicker
                 onSelectDate={handleDateSelect}
-                positionFunction={() => positionDialog(dialogRef)}
+                positionFunction={repositionCalendarForPicker}
                 numberOfMonths={monthsToShow}
                 resetDateToDefault={resetCalendar}
                 startingSelectedDate={new Date()}
