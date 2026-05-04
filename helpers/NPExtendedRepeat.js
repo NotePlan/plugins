@@ -25,11 +25,11 @@ import {
   RE_ANY_DUE_DATE_TYPE,
   RE_DONE_DATE_TIME,
   RE_DONE_DATE_TIME_CAPTURES,
+  RE_DONE_DATE_OPT_TIME,
   RE_ISO_DATE,
 } from '@helpers/dateTime'
 import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { calcOffsetDateStr, getFirstDateInPeriod } from '@helpers/NPdateTime'
-import { stripDoneDateTimeMentions } from '@helpers/paragraph'
 import { removeDateTagsAndToday, stripTaskMarkersFromString } from '@helpers/stringTransforms'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 
@@ -213,7 +213,8 @@ export async function generateRepeatForPara(
     }
 
     let newRepeatContent = removeDateTagsAndToday(lineWithoutDoneTime, true)
-    newRepeatContent = stripDoneDateTimeMentions(newRepeatContent)
+    // stripDoneDateTimeMentions only matches @done(YYYY-MM-DD HH:MM...); after shortening, orig line has @done(YYYY-MM-DD) which must not be copied to the new open task
+    newRepeatContent = newRepeatContent.replace(new RegExp(RE_DONE_DATE_OPT_TIME.source, 'gi'), '')
     newRepeatContent = stripTaskMarkersFromString(newRepeatContent)
     newRepeatContent = textWithoutSyncedCopyTag(newRepeatContent).trim()
     logDebug('generateRepeatForPara', `- newRepeatContent: "${newRepeatContent}"`)
