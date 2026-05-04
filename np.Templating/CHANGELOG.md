@@ -6,6 +6,18 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.4.1] 2026-05-03 @dwertheimer
+
+### Fixed
+
+- **TemplateRunner `replaceHeading` with `<current>`:** Replaced the heading section in one operation on the same note/editor object instead of inserting under the heading and then removing a paragraph from the attached note object. This fixes templates with `location: replace` and `replaceHeading: true` leaving the original heading in place.
+- **TemplateRunner debug logging:** Summarized large template bodies, rendered results, and passed variable objects in debug logs so real-world self-test runs are easier to inspect.
+
+### Edited in this release
+
+- `np.Templating/src/NPTemplateRunner.js`, `np.Templating/src/Templating.js`, `np.Templating/lib/rendering/templateProcessor.js`, `np.Templating/__tests__/NPTemplateRunner.test.js`
+- `np.Templating/CHANGELOG.md`, `np.Templating/plugin.json` — version **2.4.1**
+
 ## [2.4.0] 2026-04-16 @dwertheimer
 
 ### Added

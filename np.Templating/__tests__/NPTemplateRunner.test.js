@@ -935,11 +935,19 @@ describe('NPTemplateRunner', () => {
       const NPParagraph = require('@helpers/NPParagraph')
       // $FlowFixMe - Mock function
       NPParagraph.findHeading.mockReturnValue({
-        lineIndex: 0,
+        lineIndex: 1,
         type: 'title',
-        content: '## Test Heading',
+        content: 'Test Heading',
+        rawContent: '## Test Heading',
+        headingLevel: 2,
         note: mockNote, // Add the note property so removeParagraph can be called
       })
+      mockNote.paragraphs = [
+        { lineIndex: 0, type: 'title', content: '# Test Note', rawContent: '# Test Note', headingLevel: 1 },
+        { lineIndex: 1, type: 'title', content: 'Test Heading', rawContent: '## Test Heading', headingLevel: 2 },
+        { lineIndex: 2, type: 'text', content: 'Old heading content', rawContent: 'Old heading content' },
+        { lineIndex: 3, type: 'title', content: 'Next Heading', rawContent: '## Next Heading', headingLevel: 2 },
+      ]
 
       // Ensure the mock function exists
       if (!NPParagraph.replaceContentUnderHeading) {
@@ -948,12 +956,13 @@ describe('NPTemplateRunner', () => {
       // $FlowFixMe - Mock function
       NPParagraph.replaceContentUnderHeading.mockResolvedValue(undefined)
 
-      await NPTemplateRunner.writeNoteContents(mockNote, 'New heading content', '## Test Heading', 'replace', { replaceHeading: true })
+      await NPTemplateRunner.writeNoteContents(mockNote, 'New heading content', 'Test Heading', 'replace', { replaceHeading: true })
 
-      expect(NPParagraph.replaceContentUnderHeading).toHaveBeenCalled()
-      expect(mockNote.removeParagraph).toHaveBeenCalled()
-      // Note: insertParagraph is not called in the current implementation when replaceHeading is true
-      // The content is replaced by replaceContentUnderHeading, then the heading is removed
+      expect(NPParagraph.replaceContentUnderHeading).not.toHaveBeenCalled()
+      expect(mockNote.removeParagraph).toHaveBeenCalledTimes(2)
+      expect(mockNote.removeParagraph).toHaveBeenNthCalledWith(1, mockNote.paragraphs[2])
+      expect(mockNote.removeParagraph).toHaveBeenNthCalledWith(2, mockNote.paragraphs[1])
+      expect(mockNote.insertParagraph).toHaveBeenCalledWith('New heading content', 1, 'text')
     })
 
     // Tests for the new helper functions

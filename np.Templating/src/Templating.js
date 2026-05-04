@@ -823,14 +823,16 @@ export async function templateQuote(): Promise<string> {
 export async function templateRunner(...args: Array<string>): Promise<string | void> {
   try {
     const argsType = typeof args === 'object' && Array.isArray(args) ? 'array' : typeof args === 'object' ? 'object' : 'string'
-    clo(args, `templateRunner starting with args (${argsType}), length: ${args.length}`)
+    logDebug(pluginJson, `templateRunner starting with args (${argsType}), length: ${args.length}`)
     const startTime = new Date()
     if (args.length > 0) {
+      const passedVariables = args[2]
+      const passedVariableSummary = typeof passedVariables === 'object' && passedVariables !== null ? `keys: ${Object.keys(passedVariables).join(', ') || '(none)'}` : `length: ${String(passedVariables || '').length}`
       logInfo(
         pluginJson,
         `\n+++++++\ntemplateRunner calling templateFileByTitle with args:\n\targs[0] (templateName): ${args[0]}\n\targs[1] (openInEditor): ${
           args[1]
-        }\n\targs[2] (passed variables): ${JSON.stringify(args[2], null, 2)}\n+++++++`,
+        }\n\targs[2] (passed variables): ${passedVariableSummary}\n+++++++`,
       )
       if (!args[0])
         logInfo(
