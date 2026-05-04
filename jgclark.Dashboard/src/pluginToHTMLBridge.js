@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-02-08 for v2.4.0.b20 by @jgclark
+// Last updated 2026-05-03 for v2.4.0.b31 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -28,7 +28,7 @@ import {
   doUnscheduleItem,
   doWindowResized,
 } from './clickHandlers'
-import { allCalendarSectionCodes, allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
+import { allCalendarSectionCodes, allSectionCodes, SEARCH_AND_SAVED_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
 import {
   doAddNewPerspective,
   doCopyPerspective,
@@ -54,7 +54,6 @@ import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickH
 import { scheduleAllOverdueOpenToToday, scheduleTodayToTomorrow, scheduleYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
 import { findSectionItems, getDashboardSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
-// import { showDashboardReact } from './reactMain' // Note: fixed circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified, TSectionCode } from './types'
@@ -64,6 +63,27 @@ import { getNoteByFilename } from '@helpers/note'
 import { formatReactError } from '@helpers/react/reactDev'
 
 //-----------------------------------------------------------------
+
+/**
+ * Splice out SEARCH/SAVEDSEARCH sections that have no items (used after REMOVE_LINE_FROM_JSON).
+ * Always checks both section types: one completion can remove the same line from SEARCH and SAVEDSEARCH in one pass.
+ * @returns section codes removed from plugin JSON
+ */
+function removeEmptySearchOrSavedSections(sections: Array<any>, _handlerResult: TBridgeClickHandlerResult): Array<string> {
+  const codesToMatch: Set<TSectionCode> = new Set(SEARCH_AND_SAVED_SECTION_CODES)
+  const removed: Array<string> = []
+  for (let i = sections.length - 1; i >= 0; i--) {
+    const sec = sections[i]
+    if (!codesToMatch.has(sec.sectionCode)) continue
+    if (!SEARCH_AND_SAVED_SECTION_CODES.includes(sec.sectionCode)) continue
+    const len = sec.sectionItems?.length ?? 0
+    if (len === 0) {
+      sections.splice(i, 1)
+      removed.push(String(sec.sectionCode))
+    }
+  }
+  return removed
+}
 
 /**
  * HTML View requests running a plugin command
@@ -123,7 +143,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         logInfo('bCDI / refreshEnabledSections', `sectionCodesToUse: ${String(sectionCodesToUse)}`)
 
         result = await incrementallyRefreshSomeSections({ ...data, sectionCodes: sectionCodesToUse }, false, true)
-        // result = { success: true } // TODO: TEST: remove this
         break
       }
       case 'refreshSomeSections': {
@@ -506,10 +525,26 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
           logWarn('processActionOnReturn', `-> no items found to remove for content="${oldContent}" filename="${oldFilename}"`)
         }
       }
-      logDebug('processActionOnReturn', `-> NOT asking for any further refresh: hopefully React will do its stuff!`)
+      let updateMsg = `Removed item ${data.item?.ID || '?'}`
+      if (actionsOnSuccess.includes('REMOVE_SECTION_IF_EMPTY')) {
+        const removedEmpty = removeEmptySearchOrSavedSections(sections, handlerResult)
+        if (removedEmpty.length) {
+          logDebug('processActionOnReturn', `REMOVE_SECTION_IF_EMPTY: removed empty sections [${removedEmpty.join(',')}]`)
+          updateMsg += `; removed empty [${removedEmpty.join(',')}]`
+        }
+      }
+      logDebug('processActionOnReturn', `-> sending UPDATE_DATA after REMOVE_LINE_FROM_JSON`)
 
       // Send the updated data to React window
-      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Removed item ${data.item?.ID || '?'}`)
+      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, updateMsg)
+    } else if (actionsOnSuccess.includes('REMOVE_SECTION_IF_EMPTY')) {
+      const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      const sections = reactWindowData.pluginData.sections
+      const removedEmpty = removeEmptySearchOrSavedSections(sections, handlerResult)
+      if (removedEmpty.length) {
+        logDebug('processActionOnReturn', `REMOVE_SECTION_IF_EMPTY (no REMOVE_LINE): removed [${removedEmpty.join(',')}]`)
+        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `REMOVE_SECTION_IF_EMPTY: [${removedEmpty.join(',')}]`)
+      }
     }
 
     if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
@@ -532,11 +567,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         if (indexes.length) {
           const itemsToUpdateStr = indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', ')
           logInfo('processActionOnReturn', `-> found ${indexes.length} items to update: ${itemsToUpdateStr}`)
-          indexes.reverse().forEach((index) => {
-            // const { sectionIndex, itemIndex } = index
-            // logDebug('processActionOnReturn', `-> updating item sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-            // logDebug('processActionOnReturn', `before: ${JSP(sections[sectionIndex].sectionItems[itemIndex])}`)
-            // logDebug('processActionOnReturn', `updatedParagraph: ${JSP(updatedParagraph)}`)
+          indexes.reverse().forEach(() => {
             // Note: simpler methods don't work here; need to use copyUpdatedSectionItemData()
             const fieldPathsToUpdate = ['itemType', 'para.content', 'para.rawContent', 'para.type', 'para.priority']
             sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { para: updatedParagraph }, sections)

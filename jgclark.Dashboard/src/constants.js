@@ -64,3 +64,5 @@ export const SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS
 /** Font Awesome classes for the Item and Wins congrats messages (`section.FAIconClass`); use the same for `winsCongrats` message rows. */
 export const winsSectionHeaderFAIconClass = 'fa-regular fa-trophy'
 export const itemCongratsFAIconClass = 'fa-light fa-champagne-glasses'
+
+export const SEARCH_AND_SAVED_SECTION_CODES: Array<TSectionCode> = ['SEARCH', 'SAVEDSEARCH']

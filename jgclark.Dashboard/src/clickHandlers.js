@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-04-15 for v2.4.0.b25, @jgclark
+// Last updated 2026-05-03 for v2.4.0.b31, @jgclark
 //-----------------------------------------------------------------------------
 
 import {
@@ -166,6 +166,16 @@ export async function doAddTaskAnywhere(): Promise<TBridgeClickHandlerResult> {
 //   }
 // }
 
+/** After REMOVE_LINE_FROM_JSON, optionally ask the bridge to drop empty SEARCH/SAVEDSEARCH section objects. */
+function removeLineSuccessActionsForSection(sectionCode: TSectionCode, ...extras: Array<TActionOnReturn>): Array<TActionOnReturn> {
+  const actions: Array<TActionOnReturn> = ['REMOVE_LINE_FROM_JSON']
+  if (sectionCode === 'SEARCH' || sectionCode === 'SAVEDSEARCH') {
+    actions.push('REMOVE_SECTION_IF_EMPTY')
+  }
+  actions.push(...extras)
+  return actions
+}
+
 /**
  * Complete the task in the actual Note.
  * @param {MessageDataObject} data - The data object containing information for content update.
@@ -186,7 +196,7 @@ export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeCl
 
     // Send instructions to update the window
     logDebug('doCompleteTask', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'INCREMENT_DONE_COUNT'], { updatedParagraph: completedParagraph, sectionCodes: [sectionCode] })
+    return handlerResult(true, removeLineSuccessActionsForSection(sectionCode, 'INCREMENT_DONE_COUNT'), { updatedParagraph: completedParagraph, sectionCodes: [sectionCode] })
   }
 }
 
@@ -204,7 +214,7 @@ export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBrid
   } else {
     logDebug('doCompleteTaskThen', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
     // Send instructions to update the window
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph: completedParagraph, sectionCodes: [sectionCode] })
+    return handlerResult(true, removeLineSuccessActionsForSection(sectionCode), { updatedParagraph: completedParagraph, sectionCodes: [sectionCode] })
   }
 }
 
@@ -244,7 +254,7 @@ export async function doCompleteChecklist(data: MessageDataObject): Promise<TBri
   } else {
     logDebug('doCompleteChecklist', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
     // Send instructions to update the window
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph: updatedParagraph || {} })
+    return handlerResult(true, removeLineSuccessActionsForSection(sectionCode), { updatedParagraph: updatedParagraph || {}, sectionCodes: [sectionCode] })
   }
 }
 

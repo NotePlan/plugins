@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-02-08 for v2.4.0.b20 by @jgclark
+// Last updated 2026-05-03 for v2.4.0.b31 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -367,6 +367,7 @@ export type TActionOnReturn =
   | 'CLOSE_SEARCH_SECTION'
   | 'INCREMENT_DONE_COUNT'
   | 'PERSPECTIVE_CHANGED'
+  | 'REMOVE_SECTION_IF_EMPTY'
   | 'REMOVE_LINE_FROM_JSON'
   | 'REFRESH_SECTION_IN_JSON'
   | 'REFRESH_ALL_SECTIONS'
