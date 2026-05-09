@@ -42,6 +42,13 @@
     "repo": "asktru/noteplan-donote"
   },
   {
+    "id": "asktru.Clarity",
+    "name": "Clarity",
+    "author": "asktru",
+    "description": "Things 3-inspired task clarity layer. Smart views for Inbox, Today, Upcoming, Anytime, Someday with inline task editing.",
+    "repo": "asktru/noteplan-clarity"
+  },
+  {
     "id": "MarcoBarna.CRMDashboard",
     "name": "CRM Dashboard",
     "author": "MarcoBarna",
