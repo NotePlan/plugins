@@ -212,7 +212,14 @@ async function toggleDisplayFilterKey(
   const savedValue = config[key] ?? defaultValueWhenUnset
   const newValue = !savedValue
   logDebug(logContext, `${key}? now '${String(newValue)}' (was '${String(savedValue)}')`)
-  const updatedConfig = { ...config, [key]: newValue }
+  const updatedConfig = { ...config }
+  if (key === 'displayFinished') {
+    updatedConfig.displayFinished = newValue
+  } else if (key === 'displayOnlyDue') {
+    updatedConfig.displayOnlyDue = newValue
+  } else {
+    updatedConfig.displayNextActions = newValue
+  }
   await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
   await renderProjectListsIfOpen(updatedConfig, scrollPos)
 }

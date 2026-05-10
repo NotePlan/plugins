@@ -240,33 +240,6 @@ export function isNoteOpenInEditor(filename: string): boolean {
 }
 
 /**
- * Returns the first open Editor window that matches a given filename (if any).
- * If 'getLastOpenEditor' is true, then return the last matching open Editor window (which is the most recently opened one) instead.
- * TEST: Changes 30.3.2026
- * @author @jgclark
- * @param {string} openNoteFilename to find in list of open Editor windows
- * @param {boolean} getLastOpenEditor - whether to return the last open Editor window (which is the most recently opened one) instead of the first one that matches the filename (the default)
- * @returns {TEditor | false} the matching open Editor window or false if not found
- */
-export function getOpenEditorFromFilename(openNoteFilename: string, getLastOpenEditor: boolean = false): TEditor | false {
-  try {
-    const allEditorWindows = NotePlan.editors
-    const matchingEditorWindows = allEditorWindows?.filter(ew => ew.filename === openNoteFilename) ?? []
-    if (matchingEditorWindows.length === 0) {
-      logDebug('getOpenEditorFromFilename', `No open Editor window found for filename '${openNoteFilename}'`)
-      return false
-    }
-    if (getLastOpenEditor) {
-      return matchingEditorWindows[matchingEditorWindows.length - 1]
-    }
-    return matchingEditorWindows[0]
-  } catch (error) {
-    logError('getOpenEditorFromFilename', error.message)
-    return false
-  }
-}
-
-/**
  * Find a regular (folder) note that is open in some Editor pane — not only the focused one.
  * Prefers the globally focused `Editor` when its note is already type 'Notes'; otherwise scans
  * `NotePlan.editors` so split views with a calendar note focused still expose an open project note.
