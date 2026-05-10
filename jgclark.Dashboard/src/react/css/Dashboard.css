@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2026-02-07 for v2.4.0.b20 by @jgclark */
+/* Last updated 2026-05-06 for v2.4.0.b32 by @jgclark */
 
 /* ------------------------------------------------------------------ */
 html {
@@ -376,8 +376,9 @@ button,
 
 	/* Project items */
 	.projectProgress {
-		color: var(--fg-placeholder-color);
-		font-size: 0.9rem;
+		color: rgb(from var(--fg-main-color) r g b/.65);
+		padding-top: 3px;
+		line-height: 1rem;
 		overflow: hidden;
 		white-space: nowrap;
 		text-overflow: ellipsis; /* FIXME: This is not working as expected, so doing truncation in generation instead */
@@ -385,10 +386,15 @@ button,
 	/* .projectProgress i {
 		color: var(--fg-placeholder-color);
 	} */
+	.projectProgressHtml {
+		font-style: italic;
+		/* font-size: 0.9rem; */
+		padding-left: 0.8rem;
+	}
 
 	.projectNextAction {
 		color: var(--fg-alt-color);
-		font-size: 0.9rem;
+		/* font-size: 0.9rem; */
 	}
 	.projectNextAction i {
 		color: var(--item-icon-color);

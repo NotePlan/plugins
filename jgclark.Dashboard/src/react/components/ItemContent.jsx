@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2026-04-13 for v2.4.0.b24 by @jgclark/@Cursor
+// Last updated 2026-05-04 for v2.4.0.b31 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -51,7 +51,13 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-solid fa-ellipsis parentMarkerIcon"></i> : ''
   const possChildMarker = ''
 
-  const showItemNoteLink = dashboardSettings?.showTaskContext && item.para?.filename !== '<no filename found>' && item.para?.filename !== thisSection.sectionFilename
+  // Show the folder and note name after the item content, if wanted (and not a project next action child)
+  const isProjectNextActionChild = (effectiveSectionCode === 'PROJACT' || effectiveSectionCode === 'PROJREVIEW') && Boolean(item.parentID)
+  const showItemNoteLink =
+    dashboardSettings?.showTaskContext &&
+    !isProjectNextActionChild &&
+    item.para?.filename !== '<no filename found>' &&
+    item.para?.filename !== thisSection.sectionFilename
 
   //------ HANDLERS ---------------------------------------
 

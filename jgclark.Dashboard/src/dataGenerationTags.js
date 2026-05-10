@@ -44,7 +44,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
     const sectionID = `TAG_${String(index)}`
     const thisSectionCode = 'TAG'
     const thisTag = sectionDetail.sectionName
-    logInfo('getTaggedSectionData', `------- Gathering Tag items for section ${sectionID}: ${thisTag} --------`)
+    logDebug('getTaggedSectionData', `------- Gathering Tag items for section ${sectionID}: ${thisTag} --------`)
     let itemCount = 0
     let totalCount = 0
     const items: Array<TSectionItem> = []

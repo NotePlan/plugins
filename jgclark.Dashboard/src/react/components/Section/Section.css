@@ -1,5 +1,5 @@
 /* CSS specific to Section components and their children.
-/* Last updated 2026-01-16 for v2.4.0.b16 by @jgclark */
+/* Last updated 2026-05-06 for v2.4.0.b33 by @jgclark */
 
 /* Animation keyframes for section appearance and removal */
 @keyframes sectionFadeIn {
@@ -197,8 +197,4 @@
 	.buttonsWithoutBordersOrBackground {
 		justify-self: start;
 	}
-}
-
-.projectProgress {
-	font-size: 0.9rem;
 }

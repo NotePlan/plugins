@@ -4,9 +4,15 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-05-03 for v2.4.0.b31, @jgclark
+// Last updated 2026-05-06 for v2.4.0.b32, @jgclark
 //-----------------------------------------------------------------------------
 
+import {
+  updateAllProjectsListAfterChange,
+} from '../../jgclark.Reviews/src/allProjectsListHelpers'
+import {
+  getReviewSettings,
+} from '../../jgclark.Reviews/src/reviewHelpers'
 import {
   WEBVIEW_WINDOW_ID,
   allCalendarSectionCodes,
@@ -177,6 +183,23 @@ function removeLineSuccessActionsForSection(sectionCode: TSectionCode, ...extras
 }
 
 /**
+ * Keep Reviews plugin's allProjectsList.json in sync when a project task line changes.
+ * TEST: this addition from Cursor ...
+ * @param {string} filename
+ * @param {TSectionCode} sectionCode
+ */
+async function updateProjectsListIfProjectSection(filename: string, sectionCode: TSectionCode): Promise<void> {
+  logInfo('updateProjectsListIfProjectSection', `Starting from ${filename} in section ${sectionCode}`)
+  if (sectionCode !== 'PROJACT' && sectionCode !== 'PROJREVIEW') return
+  const reviewsConfig = await getReviewSettings(true)
+  if (!reviewsConfig) {
+    logWarn('updateProjectsListIfProjectSection', `No Reviews config returned, so skipping allProjects list sync for ${filename}`)
+    return
+  }
+  await updateAllProjectsListAfterChange(filename, false, reviewsConfig)
+}
+
+/**
  * Complete the task in the actual Note.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
@@ -191,6 +214,8 @@ export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeCl
     logWarn('doCompleteTask', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
     return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't complete task. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
   } else {
+    await updateProjectsListIfProjectSection(filename, sectionCode)
+
     // Update the done count for the section
     await updateDoneCountsFromChangedNotes(`In doCompleteTask() for item ${item?.ID || 'unknown'}`)
 
@@ -234,6 +259,7 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
     return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't cancel task. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
   } else {
     updatedParagraph = possiblePara || {}
+    const _promise = updateProjectsListIfProjectSection(filename, sectionCode)
     logDebug('doCompleteTaskThen', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
     // Send instructions to update the window
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph, sectionCodes: [sectionCode] })
@@ -252,6 +278,8 @@ export async function doCompleteChecklist(data: MessageDataObject): Promise<TBri
     logWarn('doCompleteChecklist', `-> failed. Perhaps the checklist was modified in NotePlan since the last time the Dashboard was refreshed?`)
     return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't complete checklist. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
   } else {
+    await updateProjectsListIfProjectSection(filename, sectionCode)
+
     logDebug('doCompleteChecklist', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
     // Send instructions to update the window
     return handlerResult(true, removeLineSuccessActionsForSection(sectionCode), { updatedParagraph: updatedParagraph || {}, sectionCodes: [sectionCode] })
@@ -295,6 +323,7 @@ export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerR
     return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't cancel checklist. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
   } else {
     updatedParagraph = possiblePara || {}
+    const _promise = updateProjectsListIfProjectSection(filename, sectionCode)
     logDebug('doCancelChecklist', `-> success`)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
   }

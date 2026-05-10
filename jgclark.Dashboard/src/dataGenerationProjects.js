@@ -6,17 +6,82 @@
 
 import { getNextProjectsToReview, getAllActiveProjects } from '../../jgclark.Reviews/src/allProjectsListHelpers'
 import { Project } from '../../jgclark.Reviews/src/projectClass'
-import { getDashboardSettings } from './dashboardHelpers'
+import { getDashboardSettings, makeDashboardParas } from './dashboardHelpers'
 import { nextProjectNoteItems } from './demoData'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
-import type { TDashboardSettings, TSection, TSectionItem } from './types'
+import type { TDashboardSettings, TSection, TSectionCode, TSectionItem } from './types'
 import { logDebug, logInfo, logTimer, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
+import { findParaFromRawContentAndFilename, findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { getTeamspaceTitleFromID } from '@helpers/NPTeamspace'
 import { smartPrependPara } from '@helpers/paragraph'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
+
+function makeProjectRowItem(sectionCode: TSectionCode, project: any, itemCount: number): TSectionItem {
+  const thisID = `${sectionCode}-${itemCount}`
+  const thisFilename = project.filename ?? '<filename not found>'
+  const parsedPossibleTeamspace = parseTeamspaceFilename(thisFilename)
+
+  return {
+    ID: thisID,
+    sectionCode: sectionCode,
+    itemType: 'project',
+    // $FlowIgnore[prop-missing]
+    project: {
+      filename: thisFilename,
+      isTeamspace: parsedPossibleTeamspace?.isTeamspace ?? false,
+      title: project.title ?? '(error)',
+      reviewInterval: project.reviewInterval ?? '',
+      percentComplete: project.percentComplete ?? NaN,
+      lastProgressComment: project.lastProgressComment ?? '',
+      icon: project.icon ?? undefined,
+      iconColor: project.iconColor ?? undefined,
+      nextActions: project.nextActionsRawContent ?? [],
+      nextReviewDays: project.nextReviewDays ?? 0,
+    },
+    teamspaceTitle: parsedPossibleTeamspace?.isTeamspace ? getTeamspaceTitleFromID(parsedPossibleTeamspace.teamspaceID ?? '') : undefined,
+  }
+}
+
+/**
+ * Build clickable child task rows from project next-action text.
+ * @param {string} sectionCode
+ * @param {string} parentID
+ * @param {string} projectFilename
+ * @param {Array<string>} nextActionsRawContent
+ * @param {number} projectIndex
+ * @returns {Array<TSectionItem>}
+ */
+function makeNextActionTaskItems(
+  sectionCode: TSectionCode,
+  parentID: string,
+  projectFilename: string,
+  nextActionsRawContent: Array<string> = [],
+  projectIndex: number,
+): Array<TSectionItem> {
+  const outputItems: Array<TSectionItem> = []
+  nextActionsRawContent.forEach((nextActionRawContent, actionIndex) => {
+    const matchedPara =
+      findParaFromStringAndFilename(projectFilename, nextActionRawContent) || findParaFromRawContentAndFilename(projectFilename, nextActionRawContent)
+    if (!matchedPara || typeof matchedPara === 'boolean') return
+
+    const dashboardPara = makeDashboardParas([matchedPara], false)[0]
+    if (!dashboardPara || (dashboardPara.type !== 'open' && dashboardPara.type !== 'checklist')) return
+    dashboardPara.isAChild = true
+    dashboardPara.indents = 1
+
+    outputItems.push({
+      ID: `${sectionCode}-${projectIndex}-na-${actionIndex}`,
+      sectionCode: sectionCode,
+      itemType: dashboardPara.type === 'checklist' ? 'checklist' : 'open',
+      para: dashboardPara,
+      parentID,
+    })
+  })
+  return outputItems
+}
 
 /**
  * Make a Section for all projects ready for review, using data written by the Projects + Reviews plugin: getNextProjectsToReview().
@@ -32,7 +97,7 @@ export async function getProjectReviewSectionData(config: TDashboardSettings, us
   // const maxProjectsToShow = _config.maxItemsToShowInSection
   let nextProjectsToReview: Array<Project> = []
   const items: Array<TSectionItem> = []
-  logInfo('getProjectReviewSectionData', `------- Gathering Project items for section ${thisSectionCode} --------`)
+  logDebug('getProjectReviewSectionData', `------- Gathering Project items for section ${thisSectionCode} --------`)
   const thisStartTime = new Date()
   const dashboardSettings = await getDashboardSettings()
   const allowedFolders = getCurrentlyAllowedFolders(dashboardSettings)
@@ -45,27 +110,9 @@ export async function getProjectReviewSectionData(config: TDashboardSettings, us
     })
 
     filteredProjects.map((proj) => {
-      const thisID = `${thisSectionCode}-${itemCount}`
-      const thisFilename = proj.filename ?? '<filename not found>'
-      const parsedPossibleTeamspace = parseTeamspaceFilename(thisFilename)
-      items.push({
-        ID: thisID,
-        sectionCode: thisSectionCode,
-        itemType: 'project',
-        project: {
-          filename: thisFilename,
-          isTeamspace: parsedPossibleTeamspace?.isTeamspace ?? false, // TODO: is this really needed if we have teamspaceTitle in the item?
-          title: proj.title ?? '(error)',
-          reviewInterval: proj.reviewInterval ?? '',
-          percentComplete: proj.percentComplete ?? NaN,
-          lastProgressComment: proj.lastProgressComment ?? '',
-          icon: proj.icon ?? undefined,
-          iconColor: proj.iconColor ?? undefined,
-          nextActions: proj.nextActionsRawContent ?? [],
-          nextReviewDays: proj.nextReviewDays ?? 0,
-        },
-        teamspaceTitle: parsedPossibleTeamspace?.isTeamspace ? getTeamspaceTitleFromID(parsedPossibleTeamspace.teamspaceID ?? '') : undefined,
-      })
+      const projectRow = makeProjectRowItem(thisSectionCode, proj, itemCount)
+      items.push(projectRow)
+      // Skip child task rows for demo data to keep browser fixture lightweight.
       itemCount++
     })
   } else {
@@ -79,23 +126,13 @@ export async function getProjectReviewSectionData(config: TDashboardSettings, us
       nextProjectsToReview = await getNextProjectsToReview()
       if (nextProjectsToReview && nextProjectsToReview.length > 0) {
         nextProjectsToReview.map((p) => {
-          const thisID = `${thisSectionCode}-${itemCount}`
-          items.push({
-            ID: thisID,
-            sectionCode: thisSectionCode,
-            itemType: 'project',
-            // $FlowIgnore[prop-missing]
-            project: {
-              title: p.title,
-              filename: p.filename,
-              reviewInterval: p.reviewInterval,
-              percentComplete: p.percentComplete,
-              lastProgressComment: p.lastProgressComment,
-              icon: p.icon ?? undefined,
-              iconColor: p.iconColor ?? undefined,
-              nextActions: p.nextActionsRawContent ?? [],
-            },
-          })
+          const projectRow = makeProjectRowItem(thisSectionCode, p, itemCount)
+          items.push(projectRow)
+          const projectFilename = p.filename ?? ''
+          if (projectFilename !== '') {
+            const nextActionTaskItems = makeNextActionTaskItems(thisSectionCode, projectRow.ID, projectFilename, p.nextActionsRawContent ?? [], itemCount)
+            items.push(...nextActionTaskItems)
+          }
           itemCount++
         })
       } else {
@@ -115,7 +152,7 @@ export async function getProjectReviewSectionData(config: TDashboardSettings, us
     sectionCode: thisSectionCode,
     description: sectionDescription,
     sectionItems: items,
-    totalCount: items.length,
+    totalCount: itemCount,
     FAIconClass: 'fa-regular fa-fw fa-chart-gantt',
     // FAIconClass: 'fa-light fa-square-kanban',
     // NP has no sectionTitleColorPart, so will use default
@@ -158,8 +195,9 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
   const thisSectionCode = 'PROJACT'
   let itemCount = 0
   let allActiveProjects: Array<Project> = []
+  let totalProjectsBeforeFilter = 0
   const items: Array<TSectionItem> = []
-  logInfo('getProjectActiveSectionData', `------- Gathering Active Project items for section ${thisSectionCode} --------`)
+  logDebug('getProjectActiveSectionData', `------- Gathering Active Project items for section ${thisSectionCode} --------`)
   const thisStartTime = new Date()
   const dashboardSettings = await getDashboardSettings()
   const allowedFolders = getCurrentlyAllowedFolders(dashboardSettings)
@@ -172,24 +210,9 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
     })
 
     filteredProjects.map((p) => {
-      const thisID = `${thisSectionCode}-${itemCount}`
-      const thisFilename = p.filename ?? '<filename not found>'
-      items.push({
-        ID: thisID,
-        sectionCode: thisSectionCode,
-        itemType: 'project',
-        // $FlowIgnore[prop-missing]
-        project: {
-          title: p.title ?? '(error)',
-          filename: thisFilename,
-          reviewInterval: p.reviewInterval ?? '',
-          percentComplete: p.percentComplete ?? NaN,
-          lastProgressComment: p.lastProgressComment ?? '',
-          icon: p.icon ?? undefined,
-          iconColor: p.iconColor ?? undefined,
-          nextActions: p.nextActionsRawContent ?? [],
-        },
-      })
+      const projectRow = makeProjectRowItem(thisSectionCode, p, itemCount)
+      items.push(projectRow)
+      // Skip child task rows for demo data to keep browser fixture lightweight.
       itemCount++
     })
   } else {
@@ -201,26 +224,24 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
       // Get all active projects (and apply maxProjectsToShow limit later), ordered in the simpler way for Dashboard, which still uses the main sort order setting from the Reviews plugin.
       // Note: Perspective filtering is done in P+R (since it was added in v1.1)
       allActiveProjects = await getAllActiveProjects(['nextReviewDays', 'title'], true) // true = dedupeList
+      totalProjectsBeforeFilter = allActiveProjects.length
+
+      // Filter by this setting before creating rows so section totalCount remains project-based.
+      if (dashboardSettings.showProjectActiveOnlyWithNextActions) {
+        allActiveProjects = allActiveProjects.filter((project) => (project.nextActionsRawContent ?? []).length > 0)
+        logDebug('getProjectActiveSectionData', `Filtered ${totalProjectsBeforeFilter} projects to ${allActiveProjects.length} projects with next actions`)
+      }
+      itemCount = allActiveProjects.length
+
       if (allActiveProjects && allActiveProjects.length > 0) {
-        allActiveProjects.map((p) => {
-          const thisID = `${thisSectionCode}-${itemCount}`
-          items.push({
-            ID: thisID,
-            sectionCode: thisSectionCode,
-            itemType: 'project',
-            // $FlowIgnore[prop-missing]
-            project: {
-              title: p.title,
-              filename: p.filename,
-              reviewInterval: p.reviewInterval,
-              percentComplete: p.percentComplete,
-              lastProgressComment: p.lastProgressComment,
-              icon: p.icon ?? undefined,
-              iconColor: p.iconColor ?? undefined,
-              nextActions: p.nextActionsRawContent ?? [],
-            },
-          })
-          itemCount++
+        allActiveProjects.map((p, projectIndex) => {
+          const projectRow = makeProjectRowItem(thisSectionCode, p, projectIndex)
+          items.push(projectRow)
+          const projectFilename = p.filename ?? ''
+          if (projectFilename !== '') {
+            const nextActionTaskItems = makeNextActionTaskItems(thisSectionCode, projectRow.ID, projectFilename, p.nextActionsRawContent ?? [], projectIndex)
+            items.push(...nextActionTaskItems)
+          }
         })
       } else {
         logDebug('getProjectActiveSectionData', `looked but found no active projects`)
@@ -230,21 +251,8 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
   }
 
   let sectionDescription = `{countWithLimit} active projects`
-
-  // Filter out projects without next actions if setting is enabled
-  if (dashboardSettings.showProjectActiveOnlyWithNextActions) {
-    const originalCount = items.length
-    const filteredItems = items.filter((item) => {
-      if (item.project && item.project.nextActions) {
-        return item.project.nextActions.length > 0
-      }
-      return false
-    })
-    items.length = 0 // Clear the array
-    items.push(...filteredItems) // Replace with filtered items
-    itemCount = items.length
-    logDebug('getProjectActiveSectionData', `Filtered ${originalCount} projects to ${itemCount} projects with next actions`)
-    if (originalCount > itemCount) sectionDescription += ` with next actions (from ${originalCount})`
+  if (dashboardSettings.showProjectActiveOnlyWithNextActions && totalProjectsBeforeFilter > itemCount) {
+    sectionDescription += ` with next actions (from ${totalProjectsBeforeFilter})`
   }
 
   sectionDescription += ` sorted by next review date`
@@ -258,7 +266,7 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
     sectionCode: thisSectionCode,
     description: sectionDescription,
     sectionItems: items,
-    totalCount: items.length,
+    totalCount: itemCount,
     FAIconClass: 'fa-regular fa-fw fa-chart-gantt',
     // FAIconClass: 'fa-light fa-square-kanban',
     // NP has no sectionTitleColorPart, so will use default
