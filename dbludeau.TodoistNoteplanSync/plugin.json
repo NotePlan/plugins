@@ -47,11 +47,36 @@
       "alias": [
         "tosp"
       ],
-      "description": "Sync Todoist project (list) linked to the current Noteplan note using frontmatter",
+      "description": "Sync Todoist project (uses date filter from settings)",
       "jsFunction": "syncProject",
-      "arguments": [
-        ""
-      ]
+      "arguments": []
+    },
+    {
+      "name": "todoist sync project today",
+      "alias": [
+        "tospt"
+      ],
+      "description": "Sync Todoist project - only tasks due today",
+      "jsFunction": "syncProjectToday",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync project overdue",
+      "alias": [
+        "tospo"
+      ],
+      "description": "Sync Todoist project - only overdue tasks",
+      "jsFunction": "syncProjectOverdue",
+      "arguments": []
+    },
+    {
+      "name": "todoist sync project current",
+      "alias": [
+        "tospc"
+      ],
+      "description": "Sync Todoist project - overdue + today tasks",
+      "jsFunction": "syncProjectCurrent",
+      "arguments": []
     },
     {
       "name": "todoist sync all linked projects",
@@ -204,6 +229,25 @@
       "title": "Sync unassigned tasks",
       "description": "By default the sync will pull only tasks assigned to you.  If you want to sync all unassigned tasks as well, check this box.",
       "default": false
+    },
+    {
+      "note": "================== PROJECT SYNC SETTINGS ========================"
+    },
+    {
+      "type": "heading",
+      "title": "Project Sync Settings"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "string",
+      "key": "projectDateFilter",
+      "title": "Date filter for project syncs",
+      "description": "Filter which tasks are synced based on due date. Choose 'all' to sync everything.",
+      "choices": ["all", "today", "overdue | today", "3 days", "7 days"],
+      "default": "overdue | today",
+      "required": false
     },
     {
       "note": "================== DEBUGGING SETTINGS ========================"
