@@ -42,7 +42,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     let items: Array<TSectionItem> = []
     let itemCount = 0
     const todayDateLocale = toNPLocaleDateString(new Date(), 'short') // uses moment's locale info from NP
-    logInfo('getTodaySectionData', `--------- Gathering Today's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} --------`)
+    logDebug('getTodaySectionData', `--------- Gathering Today's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} --------`)
     const startTime = new Date() // for timing only
 
     const NPSettings = getNotePlanSettings()
@@ -273,7 +273,7 @@ export function getTimeBlockSectionData(
     const TBsectionCode = 'TB'
     const sections: Array<TSection> = []
     const NPSettings = getNotePlanSettings()
-    logInfo('getTimeBlockSectionData', `--------- Gathering Timeblock ${useDemoData ? 'DEMO ' : ''}items for section ${TBsectionCode} --------`)
+    logDebug('getTimeBlockSectionData', `--------- Gathering Timeblock ${useDemoData ? 'DEMO ' : ''}items for section ${TBsectionCode} --------`)
     const startTime = new Date() // for timing only
 
     const thisFilename = `${getTodaysDateUnhyphenated()}.${NPSettings.defaultFileExtension}`
@@ -367,7 +367,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
     const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getYesterdaySectionData', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} from ${filenameDateStr} ----------`)
+    logDebug('getYesterdaySectionData', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} from ${filenameDateStr} ----------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -505,7 +505,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     // const thisFilename = tomorrowsNote?.filename ?? '(error)'
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getTomorrowSectionData', `---------- Gathering Tomorrow's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} ------------`)
+    logDebug('getTomorrowSectionData', `---------- Gathering Tomorrow's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {

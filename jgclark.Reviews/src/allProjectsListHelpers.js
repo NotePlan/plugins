@@ -404,7 +404,7 @@ export async function generateAllProjectsList(configIn: any, runInForeground: bo
 export async function writeAllProjectsList(projectInstances: Array<Project>): Promise<void> {
   try {
     // write summary to allProjects JSON file, using a replacer to suppress .note
-    logInfo('writeAllProjectsList', `Writing ${projectInstances.length} projects to ${allProjectsListFilename} ...`)
+    logDebug('writeAllProjectsList', `Writing ${projectInstances.length} projects to ${allProjectsListFilename} ...`)
     const res = DataStore.saveData(stringifyProjectObjects(projectInstances), allProjectsListFilename, true)
 
     // If this appears to have worked:
@@ -413,7 +413,7 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
     if (res) {
       const reviewListDate = Date.now()
       DataStore.setPreference(generatedDatePrefName, reviewListDate)
-      logInfo('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
+      logDebug('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
       await updateDashboardIfOpen()
     } else {
       throw new Error(`Error writing JSON to '${allProjectsListFilename}'`)
@@ -649,7 +649,7 @@ export async function filterAndSortProjectsList(
 /**
  * Update the allProjects list after completing a review or completing/cancelling a whole project.
  * Will notify Dashboard to update itself.
- * Note: Called by nextReview, skipReview, skipReviewForNote, completeProject, cancelProject, pauseProject.
+ * Note: Called by nextReview, skipReview, skipReviewForNote, completeProject, cancelProject, pauseProject, plus Dashboard when completing/cancelling items in project next-action items.
  * @author @jgclark
  * @param {string} filename of note that has been reviewed
  * @param {boolean} simplyDelete the project line?

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-05-03 for v2.4.0.b31 by @jgclark
+// Last updated 2026-05-06 for v2.4.0.b32 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -522,7 +522,18 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
             sections[sectionIndex].sectionItems.splice(itemIndex, 1)
           })
         } else {
-          logWarn('processActionOnReturn', `-> no items found to remove for content="${oldContent}" filename="${oldFilename}"`)
+          // TEST: this addition from Cursor which I didn't understand.
+          // Fallback for cases where content matching misses due to fast section refresh/rebuild.
+          const fallbackIndexes = findSectionItems(sections, ['ID'], { ID: data.item?.ID ?? '' })
+          if (fallbackIndexes.length) {
+            logInfo('processActionOnReturn', `-> fallback match by ID found ${fallbackIndexes.length} item(s) to remove`)
+            fallbackIndexes.reverse().forEach((index) => {
+              const { sectionIndex, itemIndex } = index
+              sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+            })
+          } else {
+            logWarn('processActionOnReturn', `-> no items found to remove for content="${oldContent}" filename="${oldFilename}"`)
+          }
         }
       }
       let updateMsg = `Removed item ${data.item?.ID || '?'}`

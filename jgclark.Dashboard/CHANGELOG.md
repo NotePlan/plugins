@@ -9,6 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b32] 2026-05-08
+- The next-action items in "Projects to Review" and "Active Projects" can now be clicked on to be completed or cancelled like items in other sections.
+- dev: turn down more logging
+
 ## [2.4.0.b31] 2026-05-04
 - fix: interactive processing no longer includes section footer rows (`offerToFilter`, `filterIndicator`, etc.) in `visibleItems`, so the task dialog does not advance onto non-task rows or crash on `para.hasChild`.
 - fix: completing tasks in daily notes with a `@repeat(interval)` was failing to remove the time from the `@done(date time)` marker, causing issues later.

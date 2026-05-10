@@ -41,7 +41,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} (${thisFilename}) ------------`)
+    logDebug('getThisWeekSectionData', `---------- Gathering Week's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} (${thisFilename}) ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -253,7 +253,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
 
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getLastWeekSectionData', `---------- Gathering Last Week's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} from ${thisFilename} ------------`)
+    logDebug('getLastWeekSectionData', `---------- Gathering Last Week's ${useDemoData ? 'DEMO ' : ''}items for section ${thisSectionCode} from ${thisFilename} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {

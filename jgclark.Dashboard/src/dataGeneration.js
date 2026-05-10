@@ -230,7 +230,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getDataForDashboard', `---------- Gathering Month's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} ------------`)
+    logDebug('getThisMonthSectionData', `---------- Gathering Month's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -250,9 +250,9 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         items = createSectionItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
 
-        logTimer('getDataForDashboard', startTime, `- finished finding monthly items from ${dateStr}`)
+        logTimer('getThisMonthSectionData', startTime, `- finished finding monthly items from ${dateStr}`)
       } else {
-        logDebug('getDataForDashboard', `No monthly note found for filename '${thisFilename}'`)
+        logDebug('getThisMonthSectionData', `No monthly note found for filename '${thisFilename}'`)
       }
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'month').toDate(), 'month')
@@ -402,10 +402,10 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
       sections.push(section)
     }
 
-    logTimer('getDataForDashboard', startTime, `- found ${itemCount} monthly items from ${thisFilename}`)
+    logTimer('getThisMonthSectionData', startTime, `- found ${itemCount} monthly items from ${thisFilename}`)
     return sections
   } catch (error) {
-    logError('getDataForDashboard/month', `ERROR: ${error.message}`)
+    logError('getThisMonthSectionData', `ERROR: ${error.message}`)
     return []
   }
 }

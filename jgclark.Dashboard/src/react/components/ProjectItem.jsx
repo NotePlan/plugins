@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by ItemRow component
-// Last updated 2026-04-13 for v2.4.0.b24 by @jgclark/@Cursor
+// Last updated 2026-05-06 for v2.4.0.b32 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
@@ -39,11 +39,11 @@ function ProjectItem({ item, thisSection }: Props): Node {
   const suppressTeamspaceName = dashboardSettings.includedTeamspaces.length === 1 /* && dashboardSettings.includedTeamspaces[0] !== 'private' */
 
   // Show Teamspace indicator and name, if this is a Teamspace note
-  let teamspaceName = null
+  let _teamspaceName = null
   if (isFromTeamspace) {
     const teamspaceTitle = item.teamspaceTitle && item.teamspaceTitle !== 'Unknown Teamspace' ? item.teamspaceTitle : ''
     // TODO: Review why the use of this is now commented out
-    teamspaceName = (
+    _teamspaceName = (
       <span className="pad-left teamspaceName pad-right">
         <i className={`${TEAMSPACE_FA_ICON} pad-right`}></i>
         {teamspaceTitle}
@@ -66,30 +66,9 @@ function ProjectItem({ item, thisSection }: Props): Node {
     <>
       <br></br>
       <div className="projectProgress">
-        <i className="fa-regular fa-circle-info pad-right"></i>
+        <i className="fa-regular fa-circle-info"></i>
         <span className="projectProgressHtml" dangerouslySetInnerHTML={{ __html: progressHtml }} />
       </div>
-    </>
-  ) : null
-
-  // Format and display nextActions if present
-  const nextActions = item.project?.nextActions
-  const nextActionsContent = nextActions && nextActions.length > 0 ? (
-    <>
-      {nextActions.map((nextAction, index) => {
-        const nextActionHtml = applyDashboardSettingsToDisplayedItemHtml(
-          makeStringContentToLookLikeNPDisplayInReact(nextAction, { truncateLength: 100, taskPriority: 0 }),
-          dashboardSettings,
-        )
-        return (
-          <React.Fragment key={index}>
-            <div className="projectNextAction">
-              <i className="fa-regular fa-circle pad-right"></i>
-              <span className="projectNextActionHtml" dangerouslySetInnerHTML={{ __html: nextActionHtml }} />
-            </div>
-          </React.Fragment>
-        )
-      })}
     </>
   ) : null
 
@@ -145,7 +124,6 @@ function ProjectItem({ item, thisSection }: Props): Node {
         </a>
 
         {progressContent}
-        {nextActionsContent}
       </div>
     </div>
   )

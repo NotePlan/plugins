@@ -6,7 +6,7 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-04-15 for v2.4.0.b25, @jgclark/@Cursor
+// Last updated 2026-05-06 for v2.4.0.b32, @jgclark/@Cursor
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -138,10 +138,21 @@ const useSectionSortAndFilter = (
     }
     // Handle PROJECT sections differently: no priorities
     else if (section.sectionCode === 'PROJREVIEW' || section.sectionCode === 'PROJACT') {
-      // Only apply the limit to the number of items to show
-      const needToApplyLimit = limitToApply > 0 && memoizedItems.length > limitToApply
-      const itemsToShow = needToApplyLimit ? memoizedItems.slice(0, limitToApply) : memoizedItems
-      setItemsToShow(itemsToShow)
+      const orderedProjectItems = reorderChildrenAfterParents(memoizedItems)
+      const projectRows = orderedProjectItems.filter((item) => item.itemType === 'project')
+      const needToApplyLimit = limitToApply > 0 && projectRows.length > limitToApply
+      const allowedProjectIDs = new Set(projectRows.slice(0, limitToApply).map((item) => item.ID))
+      const limitedItemsToShow = needToApplyLimit
+        ? orderedProjectItems.filter((item) => {
+          if (item.itemType === 'project') {
+            return allowedProjectIDs.has(item.ID)
+          }
+          return Boolean(item.parentID) && allowedProjectIDs.has(item.parentID)
+        })
+        : orderedProjectItems
+      setFilteredItems(limitedItemsToShow)
+      setNumFilteredOutThisSection(0)
+      setItemsToShow(limitedItemsToShow)
       setLimitApplied(needToApplyLimit)
     }
     // Handle all other sections
@@ -200,18 +211,17 @@ const useSectionSortAndFilter = (
             filteredItems = filteredItems.filter((f) => (f.para?.priority ?? 0) >= priorityToUse)
             // logDebug('useSectionSortAndFilter', `  filtered to ${filteredItems.length} items using priority ${priorityToUse}`)
           } else {
-            logDebug('useSectionSortAndFilter', `${section.sectionCode}: no priority filtering`)
+            // logDebug('useSectionSortAndFilter', `${section.sectionCode}: no priority filtering`)
           }
         }
 
         // Compare regularTaskItems.length to filteredItems.length to accurately detect priority filtering
         priorityFilteringHappening = regularTaskItems.length > filteredItems.length
-        logDebug(
-          'useSectionSortAndFilter',
-          `=> ${filteredItems.length} items from ${memoizedItems.length} (all  ${String(
-            currentMaxPriorityFromAllVisibleSections,
-          )} / this ${String(thisSectionCalculatedMaxPriority)})`,
-        )
+        // logDebug('useSectionSortAndFilter',
+        //   `=> ${filteredItems.length} items from ${memoizedItems.length} (all  ${String(
+        //     currentMaxPriorityFromAllVisibleSections,
+        //   )} / this ${String(thisSectionCalculatedMaxPriority)})`,
+        // )
       }
       filteredItems.sort(itemSort)
       // logDebug('useSectionSortAndFilter', `sorted: ${String(filteredItems.map(fi => fi.ID).join(','))}`)
@@ -236,7 +246,7 @@ const useSectionSortAndFilter = (
             sectionCode: section.sectionCode,
             message: `Showing all ${typeWantedItems.length} items (click to filter by priority)`
           }
-          logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
+          // logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
           specialMessageItems.unshift(messageItem)
         }
       } else {
@@ -248,7 +258,7 @@ const useSectionSortAndFilter = (
             message: `There ${numFilteredOutThisSection >= 2 ? 'are' : 'is'} also ${String(numFilteredOutThisSection)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${numFilteredOutThisSection >= 2 ? 'items' : 'item'
               } currently hidden (click to show all)`,
           }
-          logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
+          // logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
           specialMessageItems.unshift(messageItem)
         }
       }
