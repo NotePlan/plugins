@@ -1,7 +1,11 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.0.0.b32] - 2026-05-10
+- Rich project list: **Refresh** toolbar button now keeps your scroll position (same as ⌘R / auto-refresh).
+
 ## [2.0.0.b31] - 2026-05-10
+- dev: merge into main
 - add offer to migrate all metadata when updating to v2.0.0, with details of how to run it later if needed.
 - update Documentation ready for v2.0.0
 - change defaults for the *MentionStr settings to not mention leading `@` characters.

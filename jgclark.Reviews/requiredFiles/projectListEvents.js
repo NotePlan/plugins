@@ -389,8 +389,17 @@ function addCommandButtonEventListeners() {
     button.addEventListener('click', function (event) {
       event.preventDefault()
       // console.log(`Attempting to send plugin command '${button.dataset.command}' ...`)
+      const scrollPos = typeof window.__reviewsGetScrollPos === 'function'
+        ? window.__reviewsGetScrollPos()
+        : (typeof window.pageYOffset !== 'undefined'
+          ? window.pageYOffset
+          : (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined'
+            ? document.documentElement.scrollTop
+            : (document.body && typeof document.body.scrollTop !== 'undefined'
+              ? document.body.scrollTop
+              : 0)))
       const theseCommandArgs = (button.dataset.commandArgs).split(',')
-      sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
+      sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs, scrollPos: scrollPos })
     }, false)
     added++
   }

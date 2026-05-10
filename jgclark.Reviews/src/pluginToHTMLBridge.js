@@ -111,6 +111,19 @@ export async function runPluginCommand(data: any) {
       case 'toggleDisplayNextActions':
         await toggleDisplayNextActions(scrollPos)
         break
+      case 'project lists':
+        // Rich list Refresh uses PCButton → runPluginCommand; must pass scrollPos like the 'refresh' bridge path.
+        if (data.pluginID === pluginJson['plugin.id']) {
+          const ca = data.commandArgs ?? []
+          const argsIn =
+            ca.length === 0 || (ca.length === 1 && (ca[0] === '' || ca[0] == null))
+              ? null
+              : ca[0]
+          await displayProjectLists(argsIn, scrollPos)
+        } else {
+          await DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs ?? [])
+        }
+        break
       default:
         // clo(data, 'runPluginCommand received data object')
         await DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs ?? [])

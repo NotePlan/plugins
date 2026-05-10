@@ -481,9 +481,9 @@ export async function renderProjectListsHTML(
 
     const setScrollPosJS: string = `
 <script type="text/javascript">
-  console.log('Reviews render refresh: applying scrollPos = ${scrollPos}');
+  // console.log('Reviews render refresh: applying scrollPos = ${scrollPos}');
   setScrollPos(${scrollPos});
-  console.log('Reviews render refresh: post-set current scrollPos = ' + String((typeof window.pageYOffset !== 'undefined')
+  // console.log('Reviews render refresh: post-set current scrollPos = ' + String((typeof window.pageYOffset !== 'undefined')
     ? window.pageYOffset
     : (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined')
       ? document.documentElement.scrollTop
