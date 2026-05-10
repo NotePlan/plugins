@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-05-02 for v2.0.0.b29, @jgclark + @CursorAI
+// Last updated 2026-05-10 for v2.0.0.b32, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -85,11 +85,10 @@ import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInp
 // Constants
 
 const pluginID = 'jgclark.Reviews'
+export const RICH_PROJECT_LIST_WIN_ID = `${pluginID}.rich-review-list`
 const windowTitle = `Projects List`
 const windowTitleDemo = 'Projects List (Demo)'
 const filenameHTMLCopy = 'projects_list.html'
-const customRichWinId = `${pluginID}.rich-review-list`
-const customRichWinIdDemo = `${pluginID}.rich-review-list-demo`
 const customMarkdownWinId = `markdown-review-list`
 
 //-----------------------------------------------------------------------------
@@ -104,15 +103,15 @@ const customMarkdownWinId = `markdown-review-list`
  */
 async function setReviewingProjectInHTML(note: any): Promise<void> {
   try {
-    logDebug('setReviewingProjectInHTML', `Setting 'reviewing' state for note '${displayTitle(note)}' for window ${customRichWinId}`)
+    logDebug('setReviewingProjectInHTML', `Setting 'reviewing' state for note '${displayTitle(note)}' for window ${RICH_PROJECT_LIST_WIN_ID}`)
     if (!note || note.type !== 'Notes') {
       return
     }
-    if (!isHTMLWindowOpen(customRichWinId)) {
+    if (!isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) {
       return
     }
     const encodedFilename = encodeRFC3986URIComponent(note.filename)
-    await sendToHTMLWindow(customRichWinId, 'SET_REVIEWING_PROJECT', { encodedFilename })
+    await sendToHTMLWindow(RICH_PROJECT_LIST_WIN_ID, 'SET_REVIEWING_PROJECT', { encodedFilename })
   } catch (error) {
     logError('setReviewingProjectInHTML', error.message)
   }
@@ -124,10 +123,10 @@ async function setReviewingProjectInHTML(note: any): Promise<void> {
  */
 async function clearProjectReviewingInHTML(): Promise<void> {
   try {
-    if (!isHTMLWindowOpen(customRichWinId)) {
+    if (!isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) {
       return
     }
-    await sendToHTMLWindow(customRichWinId, 'CLEAR_REVIEWING_PROJECT')
+    await sendToHTMLWindow(RICH_PROJECT_LIST_WIN_ID, 'CLEAR_REVIEWING_PROJECT')
   } catch (error) {
     logError('clearProjectReviewingInHTML', error.message)
   }
@@ -305,6 +304,9 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
     const config = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
     logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting with scrollPos ${String(scrollPos)}`)
+    const richWindowOpen = isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)
+    const htmlWindowSummary = NotePlan.htmlWindows.map((w) => `${w.customId ?? '-'}:${w.isVisible ? 'visible' : 'hidden'}`).join(', ')
+    logInfo('generateProjectListsAndRenderIfOpen', `pre-render visibility: ${RICH_PROJECT_LIST_WIN_ID} open=${String(richWindowOpen)}; htmlWindows=[${htmlWindowSummary}]`)
 
     if (config.useDemoData ?? false) {
       const copied = await copyDemoDefaultToAllProjectsList()
@@ -319,6 +321,7 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
 
     // Call the relevant rendering function, but only continue if relevant window is open
     await renderProjectListsIfOpen(config, scrollPos)
+    logInfo('generateProjectListsAndRenderIfOpen', `after renderProjectListsIfOpen()`)
     return {} // just to avoid NP silently failing when called by invokePluginCommandByName
   } catch (error) {
     logError('generateProjectListsAndRenderIfOpen', JSP(error))
@@ -397,7 +400,7 @@ export async function renderProjectListsHTML(
       throw new Error('No projectTypeTags configured to display')
     }
 
-    const richWinId = useDemoData ? customRichWinIdDemo : customRichWinId
+    const richWinId = RICH_PROJECT_LIST_WIN_ID
     if (!shouldOpen && !isHTMLWindowOpen(richWinId)) {
       logDebug('renderProjectListsHTML', `not continuing, as HTML window isn't open and 'shouldOpen' is false.`)
       return
@@ -481,15 +484,7 @@ export async function renderProjectListsHTML(
 
     const setScrollPosJS: string = `
 <script type="text/javascript">
-  // console.log('Reviews render refresh: applying scrollPos = ${scrollPos}');
   setScrollPos(${scrollPos});
-  // console.log('Reviews render refresh: post-set current scrollPos = ' + String((typeof window.pageYOffset !== 'undefined')
-    ? window.pageYOffset
-    : (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined')
-      ? document.documentElement.scrollTop
-      : (document.body && typeof document.body.scrollTop !== 'undefined')
-        ? document.body.scrollTop
-        : 0));
 </script>`
 
     const headerTags = `${faLinksInHeader}${stylesheetinksInHeader}
@@ -692,7 +687,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
         reuseUsersWindowRect: true,
         width: 800,
         height: 1200,
-        customId: customRichWinId,
+        customId: RICH_PROJECT_LIST_WIN_ID,
         shouldFocus: true,
       }
       const _thisWindow = await showHTMLV2(savedHTML, winOptions)
