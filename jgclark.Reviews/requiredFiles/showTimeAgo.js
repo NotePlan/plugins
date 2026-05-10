@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------
 // Show time ago
 // Note: requires a meta tag 'startTime'
-// Last updated: 17.3.2024 for v1.0.0 by @jgclark
+// Last updated: 2026-05-10 for v2.0.0.b31 by @CursorAI & @jgclark
 //--------------------------------------------------------------------------------------
 
 // Show relative time
@@ -35,4 +35,11 @@ function showTimeAgo() {
   }
   document.getElementById('timer').innerHTML = output
   setTimeout(showTimeAgo, 30000) // call again in 30s
+}
+
+// Start after DOM is ready (body onload can run before post-body scripts that define showTimeAgo) -- added by @CursorAI
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', showTimeAgo)
+} else {
+  showTimeAgo()
 }

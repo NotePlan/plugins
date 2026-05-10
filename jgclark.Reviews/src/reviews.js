@@ -498,7 +498,7 @@ export async function renderProjectListsHTML(
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // now in requiredFiles/projectList.css instead
       makeModal: false, // = not modal window
-      bodyOptions: 'onload="showTimeAgo()"',
+      bodyOptions: '',
       preBodyScript: /* setPercentRingJSFunc + */ scrollPreLoadJSFuncs,
       postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + tagTogglesVisibilityScript + autoRefreshScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>

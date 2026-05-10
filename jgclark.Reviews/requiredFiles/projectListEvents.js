@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
 // Note: this file is run as a script in the Project List window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
-// Last updated: 2026-05-02 for v2.0.0.b29 by @CursorAI & @jgclark
+// Last updated: 2026-05-10 for v2.0.0.b31 by @CursorAI & @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handler
@@ -71,7 +71,7 @@ function showProjectControlDialog(dataObject) {
   const dialogNoteFolderElem = document.getElementById('dialogProjectFolder')
   dialogNoteFolderElem.innerHTML = thisFolderName !== '' ? `${thisFolderName}/` : ''
   const dialogItemNoteElem = document.getElementById('dialogProjectNote')
-  dialogItemNoteElem.innerHTML = thisTitle ?? thisFilename
+  dialogItemNoteElem.innerHTML = thisTitle == null ? thisFilename : thisTitle
 
   // One-time: add click handler to note name to open in  the Editor
   dialogItemNoteElem.dataset.encodedFilename = thisEncodedFilename
@@ -87,12 +87,12 @@ function showProjectControlDialog(dataObject) {
   }
 
   // Set the dialog interval from the note
-  const thisReviewInterval = dataObject.reviewInterval ?? ''
+  const thisReviewInterval = dataObject.reviewInterval == null ? '' : dataObject.reviewInterval
   const dialogItemIntervalElem = document.getElementById('dialogProjectInterval')
   dialogItemIntervalElem.innerHTML = ` <i class="fa-regular fa-repeat pad-left"></i> ${thisReviewInterval}`
 
   // Set latest progress summary (encoded for safe passing in onclick)
-  const encodedLastProgress = dataObject.encodedLastProgressComment ?? ''
+  const encodedLastProgress = dataObject.encodedLastProgressComment == null ? '' : dataObject.encodedLastProgressComment
   const lastProgressComment = encodedLastProgress ? decodeRFC3986URIComponent(encodedLastProgress) : ''
   const dialogLatestProgressLabelElem = document.getElementById('dialogLatestProgressLabel')
   dialogLatestProgressLabelElem.textContent = lastProgressComment ? 'Latest: ' : ''
@@ -140,8 +140,9 @@ function showProjectControlDialog(dataObject) {
       continue
     }
     const thisControlStr = button.dataset.controlStr
-    const functionToInvoke = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].handlingFunction ?? '?'
-    const buttonDisplayString = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].displayString ?? '?'
+    const matchedControl = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0]
+    const functionToInvoke = matchedControl.handlingFunction == null ? '?' : matchedControl.handlingFunction
+    const buttonDisplayString = matchedControl.displayString == null ? '?' : matchedControl.displayString
     // console.log(`- adding button for ${thisControlStr} / ${functionToInvoke}`)
 
     // add event handler and make visible

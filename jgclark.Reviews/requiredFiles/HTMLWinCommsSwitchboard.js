@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------
 //  HTMLWinCommsSwitchboard.js - in the HTMLWindow process data and logic to/from the plugin
-// Last updated: 2026-04-20 for v2.0.0.b21 by @jgclark
+// Last updated: 2026-05-10 for v2.0.0.b31 by @CursorAI & @jgclark
 //--------------------------------------------------------------------------------------
 /** 
  * This file is loaded by the browser via <script> tag in the HTML file
@@ -44,7 +44,7 @@ function getScrollPos() {
  * @param {any} data
  */
 function onMessageFromPlugin(type, data) {
-  console.log(`onMessageFromPlugin: starting with type ${type} and data.itemID ${data.itemID ?? 'n/a'}`)
+  console.log(`onMessageFromPlugin: starting with type ${type} and data.itemID ${data.itemID == null ? 'n/a' : data.itemID}`)
   switch (type) {
     case 'removeItem':
       deleteItemRow(data)
@@ -321,7 +321,7 @@ function toggleTypeInDisplay(data) {
  */
 function updateItemFilename(data) {
   const itemID = data.itemID
-  const newFilename = data.filename ?? ''
+  const newFilename = data.filename == null ? '' : data.filename
 
   console.log(`updateItemFilename: for ID: ${itemID} to '${newFilename}'`)
   // Find child with class="content"
@@ -345,7 +345,7 @@ function updateItemFilename(data) {
  */
 function updateItemContent(data) {
   const itemID = data.itemID
-  const updatedContent = data.updatedContent ?? ''
+  const updatedContent = data.updatedContent == null ? '' : data.updatedContent
   if (!itemID || !updatedContent) {
     console.log(`updateItemContent: Warning empty itemID and/or updatedContent passed`)
     return
