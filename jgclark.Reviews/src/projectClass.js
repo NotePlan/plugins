@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-05-01 for v2.0.0.b28 by @Cursor
+// Last updated 2026-05-10 for v2.0.0.b31 by @Cursor
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -19,7 +19,6 @@ import {
   migrateProjectMetadataLineInNote,
   processMostRecentProgressParagraph,
 } from './reviewHelpers'
-// import { calcDurationsForProject, calcReviewFieldsForProject } from './projectClassCalculations'
 import {
   formatDurationString,
   getMetadataPresenceState,
@@ -69,6 +68,18 @@ function mergeConstructorMigrationLogDetail(existing: ?string, next: ?string): ?
   if (existing !== 'ok') return existing
   if (next !== 'ok') return next
   return 'ok'
+}
+
+/**
+ * Resolve a *MentionStr preference for markdown summary lines: same defaults as constructor parsing, and a leading @ when missing.
+ * @param {string} prefKey
+ * @param {string} defaultMention
+ * @returns {string}
+ */
+function mentionStrForMarkdownOutput(prefKey: string, defaultMention: string): string {
+  const raw = checkString(DataStore.preference(prefKey) || defaultMention)
+  if (raw.length === 0) return defaultMention
+  return raw.startsWith('@') ? raw : `@${raw}`
 }
 
 //-----------------------------------------------------------------------------
@@ -1529,30 +1540,30 @@ generateMarkdownOutputLine(writeDateMentions: boolean = false): string {
     const parts: Array<string> = [... this.allProjectTags]
     if (this.isPaused) parts.push('#paused')
     if (this.reviewInterval != null) {
-      parts.push(`${checkString(DataStore.preference('reviewIntervalMentionStr'))}(${checkString(this.reviewInterval)})`)
+      parts.push(`${mentionStrForMarkdownOutput('reviewIntervalMentionStr', '@review')}(${checkString(this.reviewInterval)})`)
     }
 
     // Only include date mentions if we're writing them to the combined metadata key
     if (writeDateMentions) {
       const startDate = this.startDate
       if (startDate != null) {
-        parts.push(`${checkString(DataStore.preference('startMentionStr'))}(${startDate})`)
+        parts.push(`${mentionStrForMarkdownOutput('startMentionStr', '@start')}(${startDate})`)
       }
       const dueDate = this.dueDate
       if (dueDate != null) {
-        parts.push(`${checkString(DataStore.preference('dueMentionStr'))}(${dueDate})`)
+        parts.push(`${mentionStrForMarkdownOutput('dueMentionStr', '@due')}(${dueDate})`)
       }
       const reviewedDate = this.reviewedDate
       if (reviewedDate != null) {
-        parts.push(`${checkString(DataStore.preference('reviewedMentionStr'))}(${reviewedDate})`)
+        parts.push(`${mentionStrForMarkdownOutput('reviewedMentionStr', '@reviewed')}(${reviewedDate})`)
       }
       const completedDate = this.completedDate
       if (completedDate != null) {
-        parts.push(`${checkString(DataStore.preference('completedMentionStr'))}(${completedDate})`)
+        parts.push(`${mentionStrForMarkdownOutput('completedMentionStr', '@completed')}(${completedDate})`)
       }
       const cancelledDate = this.cancelledDate
       if (cancelledDate != null) {
-        parts.push(`${checkString(DataStore.preference('cancelledMentionStr'))}(${cancelledDate})`)
+        parts.push(`${mentionStrForMarkdownOutput('cancelledMentionStr', '@cancelled')}(${cancelledDate})`)
       }
     }
     return parts.join(' ')

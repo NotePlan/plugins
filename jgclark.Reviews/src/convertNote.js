@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Convert a regular note into a project note (frontmatter metadata).
 // by @jgclark
-// Last updated 2026-05-01 for v2.0.0.b28 by @Cursor
+// Last updated 2026-05-06 for v2.0.0.b30 by @Cursor+@jgclark
 //-----------------------------------------------------------------------------
 
 import { updateAllProjectsListAfterChange } from './allProjectsListHelpers'
@@ -17,8 +17,6 @@ import { getOpenEditorFromFilename } from '@helpers/NPEditor'
 import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { showMessage } from '@helpers/userInput'
-
-const LOG_PREFIX = 'convertToProject'
 
 /** Matches review interval strings such as 1w, +2m (same rule as reviewHelpers populateSeparateDateKeysFromCombinedValue). */
 const RE_REVIEW_INTERVAL = /^[+\-]?\d+[BbDdWwMmQqYy]$/
@@ -58,14 +56,14 @@ function parseConvertToProjectFormValues(formResult: CommandBarFormResult, seque
       throw new Error('formResult is null or not an object')
     }
     if (formResult.submitted === false) {
-      logWarn(LOG_PREFIX, `User did not submit form`)
+      logWarn('parseConvertToProjectFormValues', `User did not submit form`)
       return null
     }
     const fieldMap: { [string]: mixed } = formResult.values ?? {}
     const projectTagRaw = fieldMap.projectTag
     const projectTag = typeof projectTagRaw === 'string' ? projectTagRaw.trim() : String(projectTagRaw ?? '').trim()
     if (projectTag === '') {
-      logWarn(LOG_PREFIX, `Empty project tag`)
+      logWarn('parseConvertToProjectFormValues', `Empty project tag`)
       return null
     }
     const startDate = normalizeProgressDateFromForm(fieldMap.startDate)
@@ -81,7 +79,7 @@ function parseConvertToProjectFormValues(formResult: CommandBarFormResult, seque
     }
     const reviewInterval = String(fieldMap.reviewInterval ?? '').trim()
     if (!RE_REVIEW_INTERVAL.test(reviewInterval)) {
-      logWarn(LOG_PREFIX, `Invalid review interval '${reviewInterval}'`)
+      logWarn('parseConvertToProjectFormValues', `Invalid review interval '${reviewInterval}'`)
       return null
     }
     const aimRaw = fieldMap.aim
@@ -90,7 +88,7 @@ function parseConvertToProjectFormValues(formResult: CommandBarFormResult, seque
     const isSequential = sequentialFieldOffered ? parseBoolFromForm(fieldMap.isSequential) : false
     return { projectTag, startDate, dueDate, reviewedDate, reviewInterval, aim, isSequential }
   } catch (error) {
-    logError(LOG_PREFIX, `Error parsing form result: ${error.message}`)
+    logError('parseConvertToProjectFormValues', `Error parsing form result: ${error.message}`)
     return null
   }
 }
@@ -149,26 +147,26 @@ function isValidNoteForConvert(note: CoreNoteFields): boolean {
 export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> {
   let resolvedNote: ?CoreNoteFields = null
   try {
+    // Initial checks
     const noteMaybe: ?CoreNoteFields = noteArg ?? Editor?.note
     if (!noteMaybe) {
-      logWarn(LOG_PREFIX, `No note passed and not in an Editor.`)
-      logInfo(LOG_PREFIX, `Convert to project failed: no note (pass a note or open one in the editor).`)
+      logWarn('convertToProject', `No note passed and not in an Editor.`)
+      logInfo('convertToProject', `Convert to project failed: no note (pass a note or open one in the editor).`)
+      return
+    }
+    if (noteMaybe.type === 'Calendar') {
+      logWarn('convertToProject', `Calendar notes can't be converted to be a project note.`)
+      await showMessage(`Couldn't convert note '${displayTitle(noteMaybe)}' as it is a calendar note.`, 'OK', 'Convert to Project')
+      return
+    }
+    if ((noteMaybe.paragraphs?.length ?? 0) === 0) {
+      logWarn('convertToProject', `Note is empty, so it can't be converted to be a project note.`)
+      await showMessage(`Couldn't convert note '${displayTitle(noteMaybe)}' as it is empty.`, 'OK', 'Convert to Project')
       return
     }
     resolvedNote = noteMaybe
-    if (!isValidNoteForConvert(resolvedNote)) {
-      logWarn(LOG_PREFIX, `Invalid note for convert (calendar or too short): '${displayTitle(resolvedNote)}'`)
-      logInfo(
-        LOG_PREFIX,
-        `Convert to project failed: '${displayTitle(resolvedNote)}' is not a valid project note (needs a regular note with at least 2 lines).`,
-      )
-      return
-    }
 
-    logInfo(
-      LOG_PREFIX,
-      `Starting for note '${displayTitle(resolvedNote)}' (${resolvedNote.filename ?? 'no filename'})`,
-    )
+    logInfo('convertToProject', `Starting for note '${displayTitle(resolvedNote)}' (${resolvedNote.filename ?? 'no filename'})`)
 
     if (!usersVersionHas('commandBarForms')) {
       await showMessage(
@@ -176,14 +174,14 @@ export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> 
         'OK',
         'Convert to project',
       )
-      logInfo(LOG_PREFIX, `Convert to project failed: NotePlan version does not support Command Bar forms.`)
+      logInfo('convertToProject', `Convert to project failed: NotePlan version does not support Command Bar forms.`)
       return
     }
 
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) {
-      logError(LOG_PREFIX, `Could not load Review plugin settings.`)
-      logInfo(LOG_PREFIX, `Convert to project failed: could not load plugin settings.`)
+      logError('convertToProject', `Could not load Review plugin settings.`)
+      logInfo('convertToProject', `Convert to project failed: could not load plugin settings.`)
       return
     }
 
@@ -235,13 +233,13 @@ export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> 
     })
 
     if (formResult == null || formResult.submitted !== true) {
-      logInfo(LOG_PREFIX, `Convert to project cancelled or not submitted for '${displayTitle(resolvedNote)}'.`)
+      logInfo('convertToProject', `Convert to project cancelled or not submitted for '${displayTitle(resolvedNote)}'.`)
       return
     }
 
     const inputs = parseConvertToProjectFormValues(formResult, sequentialFieldOffered)
     if (!inputs) {
-      logInfo(LOG_PREFIX, `Convert to project failed: invalid or incomplete form data for '${displayTitle(resolvedNote)}'.`)
+      logInfo('convertToProject', `Convert to project failed: invalid or incomplete form data for '${displayTitle(resolvedNote)}'.`)
       await showMessage(`Couldn't convert '${displayTitle(resolvedNote)}'. The form data was invalid or incomplete.`, 'OK', 'Convert to Project')
       return
     }
@@ -253,8 +251,8 @@ export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> 
 
     const ok = updateFrontMatterVars(targetForFm, attrs)
     if (!ok) {
-      logError(LOG_PREFIX, `updateFrontMatterVars returned false for '${displayTitle(resolvedNote)}'`)
-      logInfo(LOG_PREFIX, `Convert to project failed: could not write frontmatter for '${displayTitle(resolvedNote)}'.`)
+      logError('convertToProject', `updateFrontMatterVars returned false for '${displayTitle(resolvedNote)}'`)
+      logInfo('convertToProject', `Convert to project failed: could not write frontmatter for '${displayTitle(resolvedNote)}'.`)
       await showMessage(`Couldn't convert '${displayTitle(resolvedNote)}'. I couldn't write frontmatter to this note.`, 'OK', 'Convert to Project')
       return
     }
@@ -264,14 +262,14 @@ export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> 
     await renderProjectListsIfOpen(config)
 
     logInfo(
-      LOG_PREFIX,
+      'convertToProject',
       `Convert to project succeeded for '${displayTitle(resolvedNote)}' (${resolvedNote.filename ?? ''}); wrote project metadata to frontmatter.`,
     )
     await showMessage(`Converted '${displayTitle(resolvedNote)}' to a project and updated frontmatter metadata.`, 'OK', 'Convert to Project')
   } catch (error) {
-    logError(LOG_PREFIX, JSP(error))
+    logError('convertToProject', JSP(error))
     const title = resolvedNote != null ? displayTitle(resolvedNote) : '(unknown note)'
-    logInfo(LOG_PREFIX, `Convert to project failed for '${title}': ${error.message}`)
+    logInfo('convertToProject', `Convert to project failed for '${title}': ${error.message}`)
     await showMessage(`Couldn't convert '${title}' to a project: ${error.message}`, 'OK', 'Convert to project')
   }
 }

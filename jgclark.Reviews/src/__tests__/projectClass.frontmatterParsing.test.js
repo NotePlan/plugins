@@ -97,5 +97,27 @@ describe('projectClass frontmatter parsing helpers', () => {
 
       expect(project.generateMarkdownOutputLine(true)).toBe('#project @review(1w) @start(2026-03-01) @due(2026-03-22) @reviewed(2026-03-20)')
     })
+
+    test('prepends @ to mention prefs that omit it', () => {
+      preferenceValues['startMentionStr'] = 'start'
+      preferenceValues['dueMentionStr'] = 'due'
+      preferenceValues['reviewedMentionStr'] = 'reviewed'
+      preferenceValues['completedMentionStr'] = 'completed'
+      preferenceValues['cancelledMentionStr'] = 'cancelled'
+      preferenceValues['reviewIntervalMentionStr'] = 'review'
+
+      const project: any = Object.create(Project.prototype)
+      project.allProjectTags = ['#project']
+      project.isPaused = false
+      project.startDate = '2026-03-01'
+      project.dueDate = '2026-03-22'
+      project.reviewInterval = '1w'
+      project.reviewedDate = '2026-03-20'
+      project.completedDate = undefined
+      project.cancelledDate = undefined
+
+      expect(project.generateMarkdownOutputLine(false)).toBe('#project @review(1w)')
+      expect(project.generateMarkdownOutputLine(true)).toBe('#project @review(1w) @start(2026-03-01) @due(2026-03-22) @reviewed(2026-03-20)')
+    })
   })
 })

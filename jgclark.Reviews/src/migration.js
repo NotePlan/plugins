@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project metadata migration: batch command `migrateAllProjects`.
 // TSV logging lives in `migrationLog.js` (used by `reviewHelpers` and this file) to avoid a require cycle.
-// Last updated 2026-05-02 for v2.0.0.b29 by @Cursor
+// Last updated 2026-05-10 for v2.0.0.b31 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -15,7 +15,7 @@ import {
 import { Project } from './projectClass.js'
 import { getReviewSettings } from './reviewHelpers.js'
 import { logDebug, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { showMessage } from '@helpers/userInput'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
 
@@ -46,6 +46,12 @@ export async function migrateAllProjects(): Promise<void> {
     if (total === 0) {
       logTimer('migrateAllProjects', startTime, '- no pairs')
       await showMessage('No project notes matched current settings. Nothing to migrate.', 'OK', 'Reviews')
+      return
+    }
+    const decision: string = await showMessageYesNo(`I have found ${String(total)} project notes to check for metadata migration.\nDetails of each migration will be appended to migration_log.tsv.\n\nWould you like me to start the migration now?`, ['Yes','No'], 'Reviews')
+    if (decision !== 'Yes') {
+      logInfo('migrateAllProjects', `- user chose not to migrate all projects now.`)
+      await showMessage('You can migrate all projects manually by running the "/Migrate all projects" command. In the meantime, each note will be migrated individually when you finish reviewing it.', 'OK', 'Reviews')
       return
     }
 
@@ -129,7 +135,9 @@ export async function migrateAllProjects(): Promise<void> {
     if (failCount > 0) {
       summaryLines.push(`Failed (could not build project): ${String(failCount)} note(s)`)
     }
-    summaryLines.push('', 'Details of each migration were appended to migration_log.tsv.')
+    if (migrationOkCount > 0 || migrationIssueCount > 0 || failCount > 0) {
+      summaryLines.push('', 'Details of each migration were appended to migration_log.tsv.')
+    }
 
     await showMessage(summaryLines.join('\n'), 'OK', 'Migrated Project notes')
   } catch (error) {

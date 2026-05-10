@@ -1,8 +1,13 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.0.0.b31] - 2026-05-10
+- add offer to migrate all metadata when updating to v2.0.0, with details of how to run it later if needed.
+- update Documentation ready for v2.0.0
+- change defaults for the *MentionStr settings to not mention leading `@` characters.
+
 ## [2.0.0.b30] - 2026-05-03
-- fix Filter + Order dropdown: per-tag counts (e.g. `#project (19)`) now match listed rows, including when paused or finished projects are shown.
+- fix the per-tag counts in the Filter + Order dropdown
 - fix Rich project list top-bar count disagreeing with the number of rows shown.
 - reduce opacity of paused projects
 

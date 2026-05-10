@@ -3,16 +3,18 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-05-01 for v2.0.0.b28 by @Cursor
+// Last updated 2026-05-10 for v2.0.0.b31 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 import { generateAllProjectsList } from './allProjectsListHelpers'
+import { migrateAllProjects } from './migration'
 import { renderProjectListsIfOpen } from './reviews'
 import { getReviewSettings } from './reviewHelpers'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { backupSettings, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 export { getReviewSettings } from './reviewHelpers' // TODO(later): remove this export when we can stop testing settings issues
 export {
@@ -57,7 +59,7 @@ export {
 } from './projectsWeeklyProgress'
 
 // Note: There are other possible exports, including:
-export { testFonts } from '../experiments/fontTests.js'
+// export { testFonts } from '../experiments/fontTests.js'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge' 
 
 const pluginID = 'jgclark.Reviews'
@@ -98,21 +100,27 @@ export async function onSettingsUpdated(): Promise<void> {
 
 export async function onUpdateOrInstall(): Promise<void> {
   try {
-    logInfo(pluginID, `onUpdateOrInstall ...`)
+    logInfo(pluginID, `onUpdateOrInstall: starting ...`)
     const updateSettingsResult = updateSettingData(pluginJson)
-    logInfo(pluginID, `- updateSettingData code: ${updateSettingsResult}`)
+    logInfo(pluginID, `- updateSettingData returned code: ${updateSettingsResult}`)
 
     // Backup the settings on all new installs (quietly)
     // TODO: remove once issues around v2.0 settings have stopped
     await backupSettings('jgclark.Reviews', `before_onUpdateOrInstall_v${pluginJson["plugin.version"]}`, true)
 
-    // TODO(later): this will be where we migrate all projects if wanted by the user.
-    // e.g. await migrateAllProjects()
-
     // Tell user the plugin has been updated
-    await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
+    await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'Plugin Installed or Updated.' })
+
+    // Ask user if they want to migrate all projects now, or tell them how to do it manually.
+    const decision: string = await showMessageYesNo('v2 of this plugin now stores project metadata in the notes\' frontmatter. Each time you finish a review of a project note, the metadata will be migrated to the frontmatter, and you will get a confirmatory line in the note where the metadata used to be.\nHowever, I can also migrate the metadata for all your projects in one go.\nWould you like me to do this now?\nNote: you can do this later by running the "Migrate all projects" command.', ['Yes', 'No'], 'Reviews v2: metadata migration')
+    if (decision === 'Yes') {
+      await migrateAllProjects()
+    } else {
+      logInfo(pluginID, `- user chose not to migrate all projects now.`)
+      await showMessage('You can migrate all projects manually by running the "/Migrate all projects" command. In the meantime, each note will be migrated individually when you finish reviewing it.', 'OK', 'Reviews v2: metadata migration')
+    }
   } catch (error) {
     logError(pluginID, error.message)
   }
-  logInfo(pluginID, `- finished`)
+  logInfo(pluginID, `- finished.`)
 }
