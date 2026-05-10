@@ -1,5 +1,186 @@
 # What's changed in 🔬 Projects + Reviews plugin?
-See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
+See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
+
+## [2.0.0.b31] - 2026-05-10
+- add offer to migrate all metadata when updating to v2.0.0, with details of how to run it later if needed.
+- update Documentation ready for v2.0.0
+- change defaults for the *MentionStr settings to not mention leading `@` characters.
+
+## [2.0.0.b30] - 2026-05-03
+- fix the per-tag counts in the Filter + Order dropdown
+- fix Rich project list top-bar count disagreeing with the number of rows shown.
+- reduce opacity of paused projects
+
+## [2.0.0.b29] - 2026-05-02
+- fix "finish review" operations failing to find the project note open in a split window. [dev: `finishReview` now resolves the note via `getFirstRegularNoteAmongOpenEditors` (scans `NotePlan.editors`).]
+- dev: fixed Rollup circular dependency: moved TSV migration logging to `migrationLog.js` so `reviewHelpers` no longer imports `migration.js`.
+- Clicking on a note title in the Rich Project List now re-uses an existing split view wherever possible. [dev: opening a project from the title link, dialog note name, review icon, or content link now goes through `openNoteInSplitViewIfNotOpenAlready` (focus if already open; version-aware `reuseSplitView` / `splitView` when opening a new split).]
+
+## [2.0.0.b28a] - 2026-05-02
+- fix embedded-metadata migration: combined `project`/`metadata` lines with `@start` / `@review` / `@reviewed` etc. now write separate YAML keys even when mention prefs are unset or values were already read from `note.mentions` (previously the combined line could become hashtags-only and drop dates).
+
+## [2.0.0.b28] - 2026-05-01
+- new command **migrate all projects**: batch-runs `Project` constructor migration on every note that matches current list settings; appends rows to `migration_log.tsv` in the plugin data directory.
+- New **convert to project** command which converts any regular note into a project. It shows user a form to fill in, asking for project tag, start date, due date, last reviewed date, review interval, aim, etc. It updates the note adding the answers into the frontmatter. (Requires NotePlan v3.21+.)
+
+## [2.0.0.b27] - 2026-04-30 (released)
+- added 'N projects' count to the top bar
+- dev: simplify `projectClass` by extracting reusable helpers to `projectClassHelpers.js` and immutable calculation logic to `projectClassCalculations.js`
+- dev: simplify `projects.js` complete/cancel closeout flow by extracting shared action logic, normalizing closeout defaults/parsing, and fixing a `submitted` form-result typo
+- dev: simplify `reviews.js` by extracting shared folder-heading formatting, centralizing output-style render dispatch, and consolidating display-filter toggle handlers
+
+## [2.0.0.b26] - 2026-04-30
+- fix finish review flow to always remove the `nextReview` frontmatter field when a review is completed
+- fix complete/cancel project flow to remove legacy body metadata line from the writable note instance after frontmatter update, avoiding stale duplicate metadata and runtime errors
+- allow complete/cancel project form to be dismissed without stopping the rest of the processing.
+
+## [2.0.0.b25] - 2026-04-29 (released)
+- change: Project metadata precedence now prefers YAML frontmatter (separate keys and embedded mentions in the combined `project`/`metadata` key) over legacy body metadata lines when constructing `Project` instances.
+- update "skip review" and "set new review interval" logic to use the newer FM-preferring updaters
+- fix to unpause not removing `#pause` tag from FM
+
+## [2.0.0.b24] - 2026-04-29
+- fix race in `finishReview`: when migrating metadata in an open editor, frontmatter/body updates now use the same editor object so `Editor.save()` no longer wipes frontmatter
+- fix frontmatter migration side-effect: adding YAML `title:` no longer removes the note's body H1 heading
+- address cause of "can't update dashboard for some reason" log error
+- remove hidden setting `writeDateMentionsInCombinedMetadata`; date/interval metadata now persists via separate YAML keys, while `projectMetadataFrontmatterKey` remains tags-only
+- add stronger one-time migration logging and behavior for legacy metadata:
+  - migrate embedded `@mentions` from combined tags key into separate YAML keys, then normalize combined key to hashtags-only
+  - support multi-line body metadata blocks during migration
+  - when metadata is duplicated in both body and frontmatter, frontmatter wins and body mention lines are cleared
+
+## [2.0.0.b23] - 2026-04-26
+- When **completing** or **cancelling**  a project a new form is shown that asks:
+  - whether to archive the project note?
+  - should a note of the completion/cancellation be made in the current Quarterly or Yearly note?
+  - is there any final 'progress' comment to make?
+- When the displayed Rich project list is updated, it now keeps as close to its current scroll position as possible.
+- Fixed race conditions when pausing/completing/cancelling a project that meant the update to the frontmatter was undone.
+
+## [2.0.0.b22] - 2026-04-20 (released)
+- fix: setting the 'currently reviewing' state in the Project List stopped the review from starting (thanks, @Garba)
+- dev: failed attempt to delete settings.json file if found to be invalid. Discovered there's no need to write a default copy, as the app does this anyway if the file is missing.
+- dev: turn down some logging
+- dev: revert change to HTMLView::sendToHTMLWindow which Cursor made, and broke things.
+
+## [2.0.0.b21] - 2026-04-19 (released)
+- New cache to significantly speed up display of the Project List when a project note hasn't changed since the last run. 
+  - dev: regenerating `allProjectsList` reuses cached JSON rows when `note.changedDate` matches stored `noteChangedAtMs` (skips `Project` constructor; still runs `calcReviewFieldsForProject`).
+- dev: Attempted to speed up the Project constructor:
+  - `Project` constructor batches `DataStore.preference` reads for mention strings and separate frontmatter key names; `parseDateMention` accepts optional resolved mention names to avoid duplicate lookups
+  - reuse first `readRawFrontmatterField` result for primary project tag resolution (same combined key)
+- dev: confirmed that note's title is not migrated from H1 to frontmatter.
+
+## [2.0.0.b20] - 2026-04-18
+- dev: fix small issues found by Cursor
+- dev: avoid two calls to getMetadataLineIndexFromBody() in Project constructors
+- dev: removed editSettings for iOS (no longer needed)
+- add more info to user if settings.json cannot be found
+- tighten detection of body metadata to exclude lines starting `#`
+- ??? think about a better time to do the migration of files
+
+## [2.0.0.b19] - 2026-04-16
+- **Finish review** uses the focused editor (`Editor.note`), not the first window in `NotePlan.editors`, so the correct note is updated when multiple editors are open.
+- Fix error clearing next-review fields
+- Stop saving plugin settings from opening the Project List window if it wasn't already open.
+- Fix **Finish review** (and other metadata updates) when project metadata lives only in YAML frontmatter: `@reviewed(...)` and related edits now target the frontmatter `project:` line, not only a body metadata line.
+- dev: `isProjectNoteIsMarkedSequential()` now uses `getProjectMetadataLineIndex()` when scanning the metadata line so `#sequential` is detected on the YAML `project:` line when there is no body metadata line.
+
+## [2.0.0.b18] - 2026-04-15
+- dev: In `Project` construction, when metadata exists in both frontmatter and note body, the body metadata line is now logged at INFO level and removed so frontmatter remains authoritative.
+- dev: When metadata exists only in the note body, this is now logged at INFO level and migrated using the standard note/editor migration helpers.
+- dev: Rename helper `getOrMakeMetadataLineIndex()` to `getMetadataLineIndexFromBody()`: it now only searches the note body and returns `false` when not found; callers now log DEBUG when body metadata is absent.
+
+## [2.0.0.b17] - 2026-03-14
+- **Add progress update** now uses the new Command Bar Form capability to ask for details in one step; older NotePlan versions keep the two separate prompts and always uses today's date in the progress line.
+
+## [2.0.0.b16] - 2026-03-13
+- dev: now pauses/unpauses the auto refresh timers when the rich window is hidden by NP
+- further layout improvements to top bar and edit dialog when project list displayed in a very narrow window
+- remove `nextReview` frontmatter when pausing, completing, or cancelling a project
+- change the sorting order for "(first) project tag" to come in the order that they're defined in setting "Project Display order", rather than simple alphabetical order (for @Doug)
+- dev: extract `migrateProjectMetadataLineCore` in reviewHelpers.js for Editor vs Note migration paths
+- dev: extract `startReviewCoreLogic` in reviews.js for `startReviews`, `startReviewForNote`, and `finishReviewAndStartNextReview`
+- dev: when pausing, update reviewed date and remove `nextReview` only; leave other separate frontmatter keys unchanged (full sync still used for complete/cancel/migration). Always apply frontmatter key removals after `updateFrontMatterVars` so `nextReview` is removed even if that helper returns false.
+- dev: consolidate `updateProjectMetadata` and `updateFrontmatterMetadataFromFields` into a single method (structured frontmatter + optional plain body paragraph update)
+
+## [2.0.0.b15] - 2026-03-29 (released)
+- add "(first) Project tag" as a sort order
+- dev: remove .projectTag and instead always use .allProjectTags.
+- fix `null% done` when no completed or open tasks.
+
+## [2.0.0.b14] - 2026-03-26
+- change default metadata write behavior: project date fields now write to separate frontmatter keys (`start`, `due`, `reviewed`, `completed`, `cancelled`, `nextReview`) instead of being embedded in the combined `project`/`metadata` value.
+- nudge base font size down 1pt, to be closer to the NP interface
+- tweak the timing on "due soon" and "review soon" indicators
+- dev: removed remaining TSV logic
+
+## [2.0.0.b13] - 2026-03-26 (released)
+- when invalid frontmatter metadata values are detected (like `review: @review()` or `due: @due()`), automatically remove the affected frontmatter key.
+- normalize mention-style date frontmatter values (e.g. `due: @due(2026-03-09)`) to plain date values (`due: 2026-03-09`) during Project constructor processing.
+- Handle frontmatter fields in a case-insensitive manner.
+- Fix gap at start of topbar if not showing Perspective.
+
+## [2.0.0.b12] - 2026-03-22
+- improve multi-column layout
+- remove two config settings that should have been removed earlier.
+- dev: streamline CSS definitions
+
+## [2.0.0.b11] - 2026-03-20
+### Project Metadata & Frontmatter
+Project metadata can now be fully stored in frontmatter, either as a single configurable key (project:) or as separate keys for individual fields (start, due, reviewed, etc.). Migration is automatic — when any command updates a note with body-based metadata, it moves it to frontmatter and cleans up the body line. After a review is finished, any leftover body metadata line is replaced with a migration notice, then removed on the next finish.
+### Modernised Project List Design
+The Rich project list has been significantly modernised with a more compact, calmer layout showing more metadata at a glance.
+### New Controls
+An "Order by" control has been added to the top bar (completed/cancelled/paused projects sort last unless ordering by title). Automatic refresh for the Rich project list is available via a new "Automatic Update interval" setting (in minutes; 0 to disable).
+### Progress Reporting
+Weekly per-folder progress CSVs now use full folder paths consistently and include a totals row. This data can also be visualised as two heatmaps — notes progressed per week and tasks completed per week.
+### Other
+The "Group by folder" now defaults to off.
+<!--
+## [1.4.0.b10] - 2026-03-20
+- Add 'Order by' control to the Filter dropdown menu. Note: completed/cancelled/paused projects are shown last, unless you request ordering by title.
+
+## [1.4.0.b9] - 2026-03-20
+- Modernised layout significantly for Rich project list, including add more metadata in a compact and calmer look
+- Default for "Group by folder" is now off, for the best look.
+
+## [1.4.0.b8] - 2026-03-16
+- When finishing a review, if project metadata is in frontmatter, any existing body metadata line is replaced with the message "Project metadata has been migrated to frontmatter". On the next finish, that message line is removed.
+
+## [1.4.0.b7] - 2026-03-13
+- Status lozenge changes
+  - Shorten text and add icons
+  - Drop lozenges when not further out than 2 weeks
+  - Improved colouring, re-using earlier error/warn/info colours
+  - Move to column 2 (via hidden setting 'statusLozengesInColumn2')
+- Improved alignment of text and icons in column 2
+- Fixed bug where a specifically-set theme could pick up the wrong light/dark mode.
+
+## [1.4.0.b6] - 2026-03-12
+- New: Weekly per-folder Area/Project progress CSVs now use full folder paths consistently and include a totals row at the bottom of each table.
+- New: Weekly per-folder Area/Project progress can now be viewed as two heatmaps (notes progressed per week and tasks completed per week), using data from the CSVs.
+
+## [1.4.0.b5] - 2026-02-27
+- Project metadata can now be fully stored in frontmatter as well as in the note body. You have two options:
+  - You can now use a configurable frontmatter key name (default `project:`), to store it all in a single value.
+  - Or you can use separate frontmatter keys (`start`, `due`, `reviewed`, `completed`, `cancelled`, `review`, `nextReview`).  when they already exist, and keeps them in sync when they are present, without creating new keys for notes that don’t use them.
+    - Note: if you have configured different phrases for these strings, they are used instead (without the leading `@` character)
+- New: When any command updates a project note that had metadata in the body, it now writes to frontmatter and removes that body line. Migration includes all tags in the metadata line (e.g. `#project` or `#area`) as well as the dates in mentions (e.g. `@due(2026-08-22)`.
+
+## [1.4.0.b4] - 2026-02-26
+- New: Automatic refresh for the Project List display (Rich window only). To use this, set the new setting "Automatic Update interval" to the number of minutes. Leave at 0 to turn off.
+
+## [1.4.0.b3] - 2026-02-24
+- Dev: Refactor reviews.js significantly to better separate logic from display concerns. Adds new file `reviewsHTMLTemplates.js`.
+
+## [1.4.0.b2] - 2026-02-24
+- New: Added a 'Demo' mode, which swaps in a separate `allProjectsDemoListDefault.json` to display details of real (or potentially fictitious) projects for demo.
+
+## [1.4.0.b1] - 2026-02-22
+- Change: Rich project list: column 3 (metadata column) now shows review and due status as coloured lozenges, plus project tag(s), #sequential when applicable, and all hashtags from the note's metadata line and frontmatter `project` value. New Project field `allProjectTags` holds this combined list.
+- Dev: Project class now uses ISO date strings (YYYY-MM-DD) for startDate, dueDate, reviewedDate, completedDate, and cancelledDate instead of JavaScript Date objects; removes Date/string conversion in constructor, allProjectsListHelpers, and reviewHelpers.
+-->
 
 ## [1.3.1] - 2026-02-26
 - New setting "Theme to use for Project Lists": if set to a valid installed Theme name, the Rich project list window uses that theme instead of your current NotePlan theme. Leave blank to use your current theme.

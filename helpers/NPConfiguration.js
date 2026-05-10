@@ -56,45 +56,69 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
 }
 
 /**
+ * Return the Default for a setting from plugin.json.
+ * Only return empty string when default is null/undefined, so false and 0 are preserved.
+ * @param {any} setting - single entry from plugin.settings
+ * @returns {any}
+ */
+function getDefaultValueForNewSetting(setting: any): any {
+  const d = setting?.default
+  return d === undefined || d === null ? '' : d
+}
+
+/**
  * Add new top-level keys to setting.json's data in the event plugin.settings object has been updated in a Plugin's plugin.json file.
  * @author @codedungeon
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
- * @return {number} update result (1 settings updated, 0 no update necessary, -1 update failed)
+ * @return {number} update result (1 settings updated, 0 no update necessary, -1 update failed or invalid pluginJsonData)
  */
 export function updateSettingData(pluginJsonData: any): number {
   let updateResult = 0
+
+  if (pluginJsonData == null || typeof pluginJsonData !== 'object' || Array.isArray(pluginJsonData)) {
+    logWarn(
+      'NPConfiguration/updateSettingData',
+      'Invalid pluginJsonData: expected a non-null object (not an array). Skipping settings migration.',
+    )
+    return -1
+  }
 
   const newSettings = {}
   const currentSettingData = DataStore.settings
 
   const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
+  // clo(pluginSettings, `pluginSettings`)
   pluginSettings.forEach((setting) => {
-    const key: any = setting?.key || null
-    if (key) {
+    const key: any = setting?.key
+    const hasValidKey = key != null && key !== ''
+    // For each setting with a key (i.e. ignoring headings) check if it is in the current settings, and if not, add it with the default value.
+    if (hasValidKey) {
       if (!currentSettingData.hasOwnProperty(key)) {
-        newSettings[key] = setting?.default || ''
+        newSettings[key] = getDefaultValueForNewSetting(setting)
+        logInfo('updateSettingData', `- Added new setting: ${key} = ${newSettings[key]}`)
         updateResult = 1 // we have made at least one update, change result code accordingly
       } else {
         newSettings[key] = currentSettingData[key]
       }
     }
   })
+
   // logDebug(`NPConfiguration/updateSettingData: Object.keys(DataStore): ${Object.keys(DataStore).join(',')}`)
   // logDebug('currentSettingData:', JSP(currentSettingData, 2))
   // logDebug('newSettings:', JSP(newSettings, 2))
   // logDebug('DataStore.settings:', JSP(DataStore.settings, 2))
   try {
-    if (DataStore && typeof DataStore.settings === 'object' && updateResult > 0) {
+    if (updateResult > 0 && DataStore && typeof DataStore.settings === 'object') {
       // WARNING: @jgclark at least once saw an 'undefined is not an object' error, which appeared to be for this line.
       // dbw added the following logging to try to track it down but it looks like, JS thinks that DataStore is not an object at times.
       // And yet, somehow the migration actually does work and migrates new settings. So, I'm not sure what's going on here.
       // We are going to leave this alone for the time being, but if you see this error again, please uncomment the following to keep hunting.
-      logDebug(
-        `NPConfiguration/updateSettingData for ${pluginJsonData['plugin.id']} updateResult: ${updateResult}`,
-        `typeof DataStore: ${typeof DataStore} isArray:${String(
-          Array.isArray(DataStore),
-        )} typeof DataStore.settings: ${typeof DataStore?.settings} typeof newSettings: ${typeof newSettings}`,
-      )
+      // logDebug(
+      //   `NPConfiguration/updateSettingData for ${pluginJsonData['plugin.id']} updateResult: ${updateResult}`,
+      //   `typeof DataStore: ${typeof DataStore} isArray:${String(
+      //     Array.isArray(DataStore),
+      //   )} typeof DataStore.settings: ${typeof DataStore?.settings} typeof newSettings: ${typeof newSettings}`,
+      // )
       logDebug(
         'NPConfiguration/updateSettingData',
         `About to update DataStore.settings to newSettings after an update. If you see a TypeError right after this, please ignore it. It's a known NP bug that doesn't seem to matter.`,
@@ -102,8 +126,8 @@ export function updateSettingData(pluginJsonData: any): number {
       DataStore.settings = newSettings
     }
   } catch (error) {
-    console.log(
-      'NPConfiguration/updateSettingData/Plugin Settings Migration Failed. Was not able to automatically migrate your plugin settings to the new version. Please open the plugin settings and save in order to update your settings.',
+    logError('updateSettingData', 
+      'Plugin Settings Migration Failed. Was not able to automatically migrate your plugin settings to the new version. Please open the plugin settings, check them, and then save in order to update your settings.',
     )
     updateResult = -1
   }
@@ -568,6 +592,7 @@ export async function getSettingFromAnotherPlugin(pluginID: string, settingName:
 
 /**
  * Backup the settings.json file for 'pluginID' to a dated version in the plugin data folder.
+ * Note: this fails if the file is not valid JSON, unfortunately. @jgclark can't find a way around this.
  * @author @jgclark
  * @param {string} pluginID
  * @param {string} reason
@@ -579,12 +604,15 @@ export async function backupSettings(pluginID: string, reason: string = 'backup'
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     const backupFilename = `settings_${reason}_${moment().format('YYYYMMDDHHmmss')}.json`
     const backupPath = `../${pluginID}/${backupFilename}`
-    await DataStore.saveJSON(pluginSettings, backupPath)
+    const res = await DataStore.saveJSON(pluginSettings, backupPath)
+    if (!res) {
+      throw new Error(`Error saving backup to ${backupPath}`)
+    }
     if (!suppressMessage) {
       await showMessage(`Backup of ${pluginID} settings saved to ${backupPath}`, 'OK', `${pluginID} Settings Backup`)
     }
     logInfo('backupSettings', `Backup of ${pluginID} settings saved to ${backupPath}`)
-    return true
+    return res
   } catch (error) {
     if (!suppressMessage) {
       await showMessage(`Error trying to Backup ${pluginID} settings. Please see Plugin Console log for details.`, 'OK', `${pluginID} Settings Backup`)

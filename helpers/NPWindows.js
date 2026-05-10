@@ -47,12 +47,12 @@ export function logWindowsList(): void {
 
   let c = 0
   for (const win of NotePlan.editors) {
-    outputLines.push(`- ${String(c)}: ${win.windowType}: customId:'${win.customId ?? '-'}' filename:${win.filename ?? '-'} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
+    outputLines.push(`- E ${String(c)}: ${win.windowType}: customId:'${win.customId ?? '-'}' filename:${win.filename ?? '-'} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
     c++
   }
   c = 0
   for (const win of NotePlan.htmlWindows) {
-    outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? '-'}' ${win.isVisible ? '' : '❌ INVISIBLE'} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
+    outputLines.push(`- H ${String(c)}: ${win.type}: customId:'${win.customId ?? '-'}' ${win.isVisible ? '' : '❌ INVISIBLE'} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
     c++
   }
   logInfo('logWindowsList', outputLines.join('\n'))
@@ -200,7 +200,7 @@ export function getNonMainWindowIds(windowType: TWindowType = 'Editor'): Array<s
  * Note: From v3.20.2, this also checks the HTMLView.isVisible property to see if the window is actually visible, as it may be cached in memory. (Unless checkIsVisible is false, when no check is made.)
  * @param {string} customId - to look for
  * @param {boolean} checkIsVisible - whether to check the HTMLView.isVisible property to see if the window is actually visible, as it may be cached in memory. (Default: true)
- * @returns {string} the matching open HTML window's ID or false if not found
+ * @returns {string | false} the matching open HTML window's ID or false if not found
  */
 export function getWindowIdFromCustomId(
   customId: string,
@@ -236,6 +236,7 @@ export function getWindowIdFromCustomId(
 
   if (foundWin) {
     if (doCheckIsVisible && (foundWin.isVisible ?? false)) {
+      // logDebug('getWindowIdFromCustomId', `Window '${customId}' is available and visible, so will return its ID '${foundWin.id}'.`)
       return foundWin.id
     } else {
       logInfo('getWindowIdFromCustomId', `Window '${foundWin.customId}' is available, but not visible, so will not return it.`)
@@ -302,7 +303,7 @@ export function setEditorWindowId(openNoteFilename: string, customId: string): v
  * @returns {Editor} the Editor window
  */
 export function findEditorWindowByFilename(filenameToFind: string): TEditor | false {
-  logWindowsList()
+  // logWindowsList()
 
   const allEditorWindows = NotePlan.editors
   for (const thisEditorWindow of allEditorWindows) {
@@ -311,7 +312,7 @@ export function findEditorWindowByFilename(filenameToFind: string): TEditor | fa
       return thisEditorWindow
     }
   }
-  logWarn('findEditorWindowByFilename', `Couldn't match '${filenameToFind}' to an Editor window`)
+  logDebug('findEditorWindowByFilename', `Couldn't match '${filenameToFind}' to an Editor window. All Editor windows: [${allEditorWindows.map(ew => ew.filename).join(', ')}]`)
   return false
 }
 
@@ -615,17 +616,24 @@ export async function openNoteInNewSplitIfNeeded(filename: string): Promise<bool
 /**
  * Open a note in a split view using x-callback-url, but only if it is not already open in any Editor window.
  * Uses the 'reuseSplitView' openType so that a single split view is reused where possible.
- * Note: This is in place of `await   Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)` which doesn't have reuseSplitView option. (Yet.)
+ * Note: This is in place of `await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)` which doesn't have reuseSplitView option. (Yet.)
  * @author @jgclark
  * @param {string} filename - filename of the note to open
  * @returns {boolean} true if a new split view was opened, false if the note was already open
  */
 export function openNoteInSplitViewIfNotOpenAlready(filename: string, callingFunctionName?: string): boolean {
   try {
-    if (noteOpenInEditor(filename)) {
-      logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) Note '${filename}' is already open in an Editor window. Skipping.`)
+    const possibleEditor: TEditor | false = findEditorWindowByFilename(filename)
+    if (possibleEditor !== false) {
+      logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) Note '${filename}' is already open in Editor window '${possibleEditor.id}'. Focusing it.`)
+      possibleEditor.focus()
       return false
     }
+
+    // if (noteOpenInEditor(filename)) {
+    //   logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) Note '${filename}' is already open in an Editor window. Skipping.`)
+    //   return false
+    // }
 
     const splitOpenType = usersVersionHas('reuseSplitView') ? 'reuseSplitView' : 'splitView'
     const callbackUrl = createOpenOrDeleteNoteCallbackUrl(filename, 'filename', null, splitOpenType, false)

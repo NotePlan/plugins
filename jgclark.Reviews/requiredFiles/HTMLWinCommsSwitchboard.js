@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------
 //  HTMLWinCommsSwitchboard.js - in the HTMLWindow process data and logic to/from the plugin
-// Last updated: 2026-02-07 for v1.3.0.b8 by @jgclark
+// Last updated: 2026-04-20 for v2.0.0.b21 by @jgclark
 //--------------------------------------------------------------------------------------
 /** 
  * This file is loaded by the browser via <script> tag in the HTML file
@@ -19,6 +19,21 @@
 // eslint-disable-next-line require-await
 async function delay(time) {
   return new Promise(resolve => setTimeout(resolve, time))
+}
+
+/**
+ * Get current vertical scroll position in the window
+ * @returns {number}
+ */
+function getScrollPos() {
+  if (typeof window.pageYOffset !== 'undefined') {
+    return window.pageYOffset
+  } else if (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined') {
+    return document.documentElement.scrollTop
+  } else if (document.body && typeof document.body.scrollTop !== 'undefined') {
+    return document.body.scrollTop
+  }
+  return 0
 }
 
 /**
@@ -82,24 +97,25 @@ function setReviewingProject(data) {
     console.log(`setReviewingProject: no encodedFilename provided`)
     return
   }
-
   console.log(`setReviewingProject: for encodedFilename: ${encodedFilename}`)
 
   // First clear any existing 'reviewing' state on all project rows
-  const allRows = document.querySelectorAll('.project-grid-row.projectRow.reviewing')
-  for (const row of allRows) {
-    row.classList.remove('reviewing')
-  }
+  clearReviewingProject(data)
 
   // Then set 'reviewing' on the matching row
   const matchingRows = document.querySelectorAll('.project-grid-row.projectRow')
   for (const row of matchingRows) {
     if (row.dataset.encodedFilename === encodedFilename) {
+      console.log(`setReviewingProject: found match`)
       row.classList.add('reviewing')
-      // And replace the third child (metadata cell) with content 'Under Review'
-      // Note: This is a hack, and should be dealt with in the generator, but this will do for now.
-      const thirdChild = row.children[2]
-      if (thirdChild) thirdChild.innerHTML = '<p class="underReviewText">Under Review</p>'
+      // And add another child of span "projectTagsInline" as `<span class="metadata=lozenge lozenge-reviewing">Under Review</span>`
+      const projectTagsInline = row.querySelector('.projectTagsInline')
+      if (projectTagsInline) {
+        const newSpan = document.createElement('span')
+        newSpan.className = 'metadata-lozenge lozenge-reviewing'
+        newSpan.innerHTML = 'Under Review'
+        projectTagsInline.appendChild(newSpan)
+      }
     }
   }
 }
@@ -116,13 +132,17 @@ function clearReviewingProject(data) {
   //   return
   // }
   // console.log(`clearReviewingProject: for encodedFilename: ${encodedFilename}`)
-
   console.log(`clearReviewingProject: clearing all reviewing states`)
 
   // Clear any existing 'reviewing' state on all project rows
   const allRows = document.querySelectorAll('.project-grid-row.projectRow.reviewing')
   for (const row of allRows) {
     row.classList.remove('reviewing')
+  }
+  // Clear any existing 'reviewing' lozenges on all project rows
+  const allLozenges = document.querySelectorAll('.metadata-lozenge.lozenge-reviewing')
+  for (const lozenge of allLozenges) {
+    lozenge.remove()
   }
 }
 
@@ -155,7 +175,7 @@ async function completeTaskInDisplay(data) {
     if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
       // We need to un-hide the lower-priority items: do full refresh
       console.log(`We need to un-hide the lower-priority items: doing full refresh`)
-      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // = actionName, data
+      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '', scrollPos: getScrollPos() }) // = actionName, data
     }
 
     // See if we now have no remaining items at all
@@ -200,7 +220,7 @@ async function completeChecklistInDisplay(data) {
     if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
       // We need to un-hide the lower-priority items: do full refresh
       console.log(`We need to un-hide the lower-priority items: doing full refresh`)
-      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // = actionName, data
+      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '', scrollPos: getScrollPos() }) // = actionName, data
     }
 
     // See if we now have no remaining items at all
@@ -243,7 +263,7 @@ async function cancelTaskInDisplay(data) {
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
     console.log(`We need to un-hide the lower-priority items: doing full refresh`)
-    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '', scrollPos: getScrollPos() }) // actionName, data
   }
 }
 
@@ -272,7 +292,7 @@ async function cancelChecklistInDisplay(data) {
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
     console.log(`We need to un-hide the lower-priority items: doing full refresh`)
-    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '', scrollPos: getScrollPos() }) // actionName, data
   }
 }
 

@@ -3,20 +3,20 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-02-13 for v1.3.0.b9, @jgclark
+// Last updated 2026-05-10 for v2.0.0.b31 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
-// import { generateCSSFromTheme } from '@helpers/HTMLView'
 import pluginJson from '../plugin.json'
-import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
-import { renderProjectLists } from './reviews'
 import { generateAllProjectsList } from './allProjectsListHelpers'
-import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { migrateAllProjects } from './migration'
+import { renderProjectListsIfOpen } from './reviews'
+import { getReviewSettings } from './reviewHelpers'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
-import { editSettings } from '@helpers/NPSettings'
-import { isHTMLWindowOpen } from '@helpers/NPWindows'
+import { backupSettings, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
+export { getReviewSettings } from './reviewHelpers' // TODO(later): remove this export when we can stop testing settings issues
 export {
   finishReview,
   finishReviewAndStartNextReview,
@@ -26,6 +26,7 @@ export {
   redisplayProjectListHTML,
   renderProjectLists,
   renderProjectListsIfOpen,
+  toggleDemoModeForProjectLists,
   setNewReviewInterval,
   skipReview,
   startReviews,
@@ -35,10 +36,11 @@ export {
 } from './reviews'
 export {
   generateAllProjectsList,
-  getNextNoteToReview, //  TODO: remove in time. But why?
-  getNextProjectsToReview, //  TODO: remove in time. But why?
+  getNextNoteToReview,
+  getNextProjectsToReview,
   logAllProjectsList
 } from './allProjectsListHelpers'
+export { migrateAllProjects } from './migration'
 // export { NOP } from './reviewHelpers'
 export { removeAllDueDates } from '@helpers/NPParagraph'
 export {
@@ -47,20 +49,23 @@ export {
   cancelProject,
   togglePauseProject
 } from './projects'
+export { convertToProject } from './convertNote.js'
 export {
   generateCSSFromTheme
 } from '@helpers/NPThemeToCSS'
-export { writeProjectsWeeklyProgressToCSV } from './projectsWeeklyProgress'
+export {
+  writeProjectsWeeklyProgressToCSV,
+  showProjectsWeeklyProgressHeatmaps
+} from './projectsWeeklyProgress'
 
 // Note: There are other possible exports, including:
-export { testFonts } from '../experiments/fontTests.js'
+// export { testFonts } from '../experiments/fontTests.js'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge' 
 
 const pluginID = 'jgclark.Reviews'
 
 export function init(): void {
   try {
-
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message. Do this in the background.
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
       pluginUpdated(pluginJson, r),
@@ -78,52 +83,44 @@ export async function testSettingsUpdated(): Promise<void> {
 }
 
 export async function onSettingsUpdated(): Promise<void> {
-  // Re-generate the allProjects list in case there's a change in a relevant setting
-  logDebug(pluginJson, 'Have updated Review settings, so will recalc the review list and display...')
-  const config: ReviewConfig = await getReviewSettings()
-
-  // await makeFullReviewList(config, true)
-  await generateAllProjectsList(config, true)
-
-  // If v3.11+, can now refresh Dashboard
-  if (NotePlan.environment.buildVersion >= 1181) {
-    if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-      logDebug(pluginJson, `will refresh Project List as it is open`)
-      await renderProjectLists(config)
+  // Re-generate the allProjects list in case there's a change in a relevant setting (same as displayProjectLists).
+  // Only refresh the project list window if it is already open; do not open it from saving settings alone.
+  try {
+    const config = await getReviewSettings()
+    if (!config) throw new Error(`Can't get Review settings. Stopping.`)
+    logDebug(pluginJson, 'Have updated Review settings; recalculating review list and refreshing project list UI if already open...')
+    if (!(config.useDemoData ?? false)) {
+      await generateAllProjectsList(config, true)
     }
+    await renderProjectListsIfOpen(config)
+  } catch (error) {
+    logError(pluginJson, error.message)
   }
 }
 
-export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {
+export async function onUpdateOrInstall(): Promise<void> {
   try {
-    logInfo(pluginID, `onUpdateOrInstall ...`)
-    let updateSettingsResult = updateSettingData(pluginJson)
-    logInfo(pluginID, `- updateSettingData code: ${updateSettingsResult}`)
+    logInfo(pluginID, `onUpdateOrInstall: starting ...`)
+    const updateSettingsResult = updateSettingData(pluginJson)
+    logInfo(pluginID, `- updateSettingData returned code: ${updateSettingsResult}`)
 
-    if (forceUpdated) {
-      logInfo('', `- Forcing pluginUpdated() ...`)
-      updateSettingsResult = 1
-    }
+    // Backup the settings on all new installs (quietly)
+    // TODO: remove once issues around v2.0 settings have stopped
+    await backupSettings('jgclark.Reviews', `before_onUpdateOrInstall_v${pluginJson["plugin.version"]}`, true)
+
     // Tell user the plugin has been updated
-    await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
+    await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'Plugin Installed or Updated.' })
 
+    // Ask user if they want to migrate all projects now, or tell them how to do it manually.
+    const decision: string = await showMessageYesNo('v2 of this plugin now stores project metadata in the notes\' frontmatter. Each time you finish a review of a project note, the metadata will be migrated to the frontmatter, and you will get a confirmatory line in the note where the metadata used to be.\nHowever, I can also migrate the metadata for all your projects in one go.\nWould you like me to do this now?\nNote: you can do this later by running the "Migrate all projects" command.', ['Yes', 'No'], 'Reviews v2: metadata migration')
+    if (decision === 'Yes') {
+      await migrateAllProjects()
+    } else {
+      logInfo(pluginID, `- user chose not to migrate all projects now.`)
+      await showMessage('You can migrate all projects manually by running the "/Migrate all projects" command. In the meantime, each note will be migrated individually when you finish reviewing it.', 'OK', 'Reviews v2: metadata migration')
+    }
   } catch (error) {
     logError(pluginID, error.message)
   }
-  logInfo(pluginID, `- finished`)
-}
-
-
-/**
- * Update Settings/Preferences (for iOS etc)
- * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
- * @author @dwertheimer
- */
-export async function updateSettings() {
-  try {
-    logDebug(pluginJson, `updateSettings running`)
-    await editSettings(pluginJson)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
+  logInfo(pluginID, `- finished.`)
 }

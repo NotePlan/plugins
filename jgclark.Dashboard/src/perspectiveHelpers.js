@@ -68,6 +68,8 @@ Named perspectives
 
 const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
 
+const PROJECT_LIST_WINDOW_ID = `jgclark.Reviews.rich-review-list` // not imported, as that would create a circular dependency
+
 const standardSettings = cleanDashboardSettingsInAPerspective(
   // $FlowIgnore[incompatible-call]
   [...dashboardSettingDefs, ...dashboardFilterDefs, ...showSectionSettingItems].reduce((acc, s) => {
@@ -513,26 +515,23 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
       throw new Error(`saveSettings failed for perspective ${name}`)
     }
     logDebug('switchToPerspective', `Saved new perspectiveSettings for ${name}`)
-    // clo(
-    //   newPerspectiveSettings.map((p) => ({ name: p.name, isModified: p.isModified })),
-    //   'switchToPerspective: newPerspectiveSettings saved to DataStore.settings',
-    // )
 
     // Send message to Reviews (if that window is open) to re-generate the Projects list and render it
     // TEST: Now not await-ing this, because it can take a long time and we don't want to block the main thread.
     // FIXME: Even so, is still taking a long time, and appears to be blocking the main thread.
+    // V2
     // logTimer('switchToPerspective', startTime, `Sending message to Reviews to regenerate the Projects List and render it.`)
-    // const _promise = DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])
-    // const _promise = generateProjectListsAndRenderIfOpen()
+    const _promise = DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])
     // logTimer('switchToPerspective', startTime, `Sending message to Reviews to regenerate the Projects List and render it.`)
 
     // v3: Work out whether Project list window is open, and if so, re-render it
-    if (isHTMLWindowOpen('jgclark.Reviews.rich-review-list')) {
+    if (isHTMLWindowOpen(PROJECT_LIST_WINDOW_ID)) {
       // TEST: still not convinced that this is firing and forgetting. At least we're not doing anything if the Project List window is not open.
+      // FIXME(Eduard): invalid window list problem reported at https://discord.com/channels/763107030223290449/1477085092915708050/1477085095717376213 - 
       logTimer('switchToPerspective', startTime, `Sending message to Reviews to render project list as it is open.`)
       const _promise = DataStore.invokePluginCommandByName('renderProjectListsIfOpen', 'jgclark.Reviews', [])
-      logTimer('switchToPerspective', startTime, `Sent message to Reviews`) // Note: never seems to get here
     }
+    logTimer('switchToPerspective', startTime, `End of switchToPerspective`) // Note: never seems to get here
 
     return newPerspectiveSettings
   } catch (error) {

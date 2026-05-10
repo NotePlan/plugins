@@ -3,16 +3,17 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-02-16 for v1.3.0.b12 by @jgclark
+// Last updated 2026-05-02 for v2.0.0.b29, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
+import moment from 'moment/min/moment-with-locales'
 import { Project } from './projectClass'
-import { addFAIcon, getIntervalDueStatus, getIntervalReviewStatus, type ReviewConfig } from './reviewHelpers'
+import { addFAIcon, pluralise } from './reviewHelpers'
+import type { ReviewConfig } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
-import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
-import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
-import { makePluginCommandButton, makeSVGPercentRing, redToGreenInterpolation } from '@helpers/HTMLView'
+import { makePluginCommandButton, redToGreenInterpolation } from '@helpers/HTMLView'
 import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getLineMainContentPos } from '@helpers/search'
 import { encodeRFC3986URIComponent, prepAndTruncateMarkdownForDisplay } from '@helpers/stringTransforms'
@@ -22,20 +23,67 @@ import { encodeRFC3986URIComponent, prepAndTruncateMarkdownForDisplay } from '@h
 //-----------------------------------------------------------------------------
 
 /**
- * Returns line showing more detailed summary of the project, for output in Rich (HTML) or Markdown formats or simple list format.
- * Now uses fontawesome icons for some indicators.
- * Note: this is V2, now *not* part of the Project class, so can take config etc.
+ * Folder label for a per-project row, matching folder header display (hideTopLevelFolder, root).
  * @param {Project} thisProject
  * @param {ReviewConfig} config
- * @param {string} style: 'Rich' (-> HTML), or 'Markdown'
+ * @returns {string}
+ */
+function projectFolderDisplayLabel(thisProject: Project, config: ReviewConfig): string {
+  const folderDisplayName = getFolderDisplayNameForHTML(thisProject.folder)
+  let folderPart = folderDisplayName
+  if (config.hideTopLevelFolder) {
+    if (folderDisplayName.includes(']')) {
+      const match = folderDisplayName.match(/^(\[.*?\])\s*(.+)$/)
+      if (match) {
+        const pathPart = match[2]
+        const pathParts = pathPart.split('/').filter((p) => p !== '')
+        folderPart = `${match[1]} ${pathParts.length > 0 ? pathParts[pathParts.length - 1] : pathPart}`
+      } else {
+        folderPart = folderDisplayName.split('/').slice(-1)[0] || folderDisplayName
+      }
+    } else {
+      const pathParts = folderDisplayName.split('/').filter((p) => p !== '')
+      folderPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : folderDisplayName
+    }
+  }
+  if (thisProject.folder === '/') folderPart = '(root folder)'
+  return folderPart
+}
+
+/**
+ * One HTML row '<div class="projectFolderRow">', with folder path, optional review interval, and review/due status <span>s.
+ * Shown under the title when 'displayGroupedByFolder' is false.
+ * @param {Project} thisProject
+ * @param {ReviewConfig} config
+ * @returns {string}
+ */
+function buildProjectFolderMetadataRowDiv(thisProject: Project, config: ReviewConfig): string {
+  const folderPart = projectFolderDisplayLabel(thisProject, config)
+
+  // Show review interval (for active projects only)
+  const isActiveProject = !thisProject.isCompleted && !thisProject.isCancelled && !thisProject.isPaused
+  const reviewIntervalStr = isActiveProject ? `・ <i class="fa-light fa-repeat pad-right"></i>${thisProject.reviewInterval}` : ''
+
+  const statusLozenges = buildReviewAndDueStatusSpans(thisProject).join('\n')
+
+  const rowString = `\n\t\t\t<div class="projectFolderRow project-metadata-row projectFolderText"><span class="projectFolderIcon"><i class="fa-regular fa-folder"></i></span><span class="pad-left pad-right-larger projectFolderText">${folderPart}${reviewIntervalStr} ${statusLozenges}</span></div>`
+  return rowString
+}
+
+/**
+ * Format one project for export: HTML list row (style === 'Rich'), Markdown line, or simple list line.
+ * @param {Project} thisProject
+ * @param {ReviewConfig} config
+ * @param {string} style 'Rich' (HTML grid row), 'Markdown', or 'list'
+ * @param {Array<string>?} wantedTagsForRow - when provided (single-section view), added as data-wanted-tags on the row for tag toggles
  * @returns {string} HTML or Markdown string for the project output line (or empty string if error)
  */
-export function generateProjectOutputLine(
+export function buildProjectLineForStyle(
   thisProject: Project,
   config: ReviewConfig,
   style: string,
+  wantedTagsForRow?: Array<string>,
 ): string {
-  // logInfo('generateProjectOutputLine', `- ${thisProject.title}: nRD ${thisProject.nextReviewDays} / due ${thisProject.dueDays}`)
   const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
   let output = ''
   let statsProgress = ''
@@ -43,213 +91,270 @@ export function generateProjectOutputLine(
   if (thisProject.percentComplete != null) {
     thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
     const totalItemsStr = (isNaN(thisProject.numTotalItems)) ? '0' : thisProject.numTotalItems.toLocaleString()
+    const numberToShow = thisProject.numCompletedItems + thisProject.numOpenItems
     if (ignoreChecklistsInProgress) {
-      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${(thisProject.numCompletedItems + thisProject.numOpenItems !== 1) ? 'tasks' : 'task'})`
+      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${pluralise('task', numberToShow)})`
     } else {
-      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${(thisProject.numCompletedItems + thisProject.numOpenItems !== 1) ? 'items' : 'item'})`
+      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${pluralise('item', numberToShow)})`
     }
   } else {
     statsProgress = '(0 tasks)'
   }
 
   if (style === 'Rich') {
-    output = generateRichHTMLRow(thisProject, config)
+    output = buildProjectListRowDiv(thisProject, config, wantedTagsForRow)
   } else if (style === 'Markdown' || style === 'list') {
-    output = generateMarkdownLine(thisProject, config, style, statsProgress, thisPercent)
+    output = formatMarkdownProjectLine(thisProject, config, style, statsProgress, thisPercent)
   } else {
-    logWarn('htmlGenerators::generateProjectOutputLine', `Unknown style '${style}'; nothing returned.`)
+    logWarn('projectsHTMLGenerator::buildProjectLineForStyle', `Unknown style '${style}'; nothing returned.`)
     output = ''
   }
   return output
 }
 
 /**
- * Generate Rich HTML row for project
+ * Return HTML list row '<div class="project-grid-row projectRow">': title block, optional folder row, progress row, next-action rows.
  * @param {Project} thisProject
  * @param {ReviewConfig} config
+ * @param {Array<string>?} wantedTagsForRow - when provided, output as data-wanted-tags for tag-toggle filtering
  * @returns {string}
  * @private
  */
-function generateRichHTMLRow(thisProject: Project, config: ReviewConfig): string {
+function buildProjectListRowDiv(thisProject: Project, config: ReviewConfig, wantedTagsForRow?: Array<string>): string {
+  // Build the various HTML parts of the row, and store in 'parts'
   const parts: Array<string> = []
-  parts.push(`\t<div class="project-grid-row projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}">\n\t\t`)
-  parts.push(generateCircleIndicator(thisProject))
+  const wantedTagsAttr = (wantedTagsForRow != null && wantedTagsForRow.length > 0)
+    ? ` data-wanted-tags="${wantedTagsForRow.join(' ').replace(/"/g, '&quot;')}"`
+    : ''
+  // Set the left border colour to the project progress indicator colour
+  // And if this is a paused project, reduce opacity 
+  const extraStyle = `style="border-left: 5px solid ${getProjectIndicatorColor(thisProject)}; ${thisProject.isPaused ? 'opacity: 0.6;' : ''}"`
 
-  // Column 2a: Project name + link / item count badge / edit dialog trigger button
-  const editButton = `          <span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}', encodedLastProgressComment:'${encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')}'})"><i class="fa-light fa-edit"></i></span>\n`
-  const openItemCount = generateItemCountsBadge(thisProject)
-  parts.push(`\n\t\t\t<div class="project-grid-cell project-grid-cell--content"><span class="projectTitle">${decoratedProjectTitle(thisProject, 'Rich', config)}${editButton}${openItemCount}</span>`)
+  // Start the row with the outer <div>, and inject the colour style for its left border
+  parts.push(`\t<div class="project-grid-row projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}"${wantedTagsAttr}${extraStyle}>\n\t\t`)
 
-  if (!thisProject.isCompleted && !thisProject.isCancelled) {
-    const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
-      ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
-      : []
+  // Edit button
+  const editButtonSpan = `\t\t\t\t\t<span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}', encodedLastProgressComment:'${encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')}'})"><i class="fa-light fa-edit"></i></span>\n`
 
-    // Write column 2b/2c under title: progress line row (if any) then stats then next actions
-    parts.push(generateProgressSection(thisProject, config, false))
-    parts.push(generateNextActionsSection(config, nextActionsContent))
+  const projectTags = buildProjectTagLozengeSpans(thisProject).join('\n')
+
+  // Project title block
+  if (!config.displayGroupedByFolder) {
+    parts.push(`\n\t\t\t\t<span class="projectMainDetailsRow">${formatProjectTitleForStyle(thisProject, 'Rich', config)}
+      ${editButtonSpan}
+      <span class="projectTagsInline">${projectTags}</span>
+      </span>`)
+  } else {
+    const statusLozenges = buildReviewAndDueStatusSpans(thisProject).join('\n')
+    parts.push(`\n\t\t\t\t<span class="projectMainDetailsRow">${formatProjectTitleForStyle(thisProject, 'Rich', config)}
+      ${editButtonSpan}
+      <span class="projectTagsInline">${projectTags}${statusLozenges}</span>
+      </span>`)
   }
-  parts.push(`</div>`)
+  // Write possible row 2 under project title: folder path (if any)
+  if (!config.displayGroupedByFolder) {
+    parts.push(buildProjectFolderMetadataRowDiv(thisProject, config))
+  }
 
-  // Column 3: metadata (dates + project tags/hashtags)
-  parts.push(generateDateSection(thisProject, config))
+  // Write possible rows 3 + 4 under project title: progress line row (if any) then stats then next actions (if any)
+  const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
+    ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
+    : []
+  parts.push(buildProjectProgressRowDiv(thisProject, config))
+  parts.push(buildNextActionRowDivs(config, nextActionsContent))
+
+  // End the row with the outer </div>
   parts.push('\n\t</div>')
 
   return parts.join('')
 }
 
 /**
- * Generate circle indicator HTML for project status
+ * Get the color for the project indicator
  * @param {Project} thisProject
  * @returns {string}
  * @private
  */
-function generateCircleIndicator(thisProject: Project): string {
+function getProjectIndicatorColor(thisProject: Project): string {
   if (thisProject.isCompleted) {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check circle-icon')}</div>`
+    return 'var(--project-completed-color)'
   } else if (thisProject.isCancelled) {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</div>`
+    return 'var(--project-cancelled-color)'
   } else if (thisProject.isPaused) {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "var(--project-pause-color)")}</div>`
+    return 'var(--project-paused-color)'
   } else if (thisProject.percentComplete == null || isNaN(thisProject.percentComplete)) {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', 'var(--project-no-percent-color)')}</div>`
+    return 'var(--project-no-percent-color)'
   } else if (thisProject.percentComplete === 0) {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addSVGPercentRing(thisProject, 100, '#FF000088', '0')}</div>`
+    return 'var(--project-zero-progress-color)'
   } else {
-    return `<div class="project-grid-cell project-grid-cell--indicator first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</div>`
+    return redToGreenInterpolation(thisProject.percentComplete)
   }
 }
 
 /**
- * Generate item count badge HTML
+ * Label for the progress line: localized open-task count as a numeric string, '' if inactive project.
+ * When there are no open (non-future) tasks, returns '0'.
  * @param {Project} thisProject
  * @returns {string}
  * @private
  */
-function generateItemCountsBadge(thisProject: Project): string {
-  const parts: Array<string> = []
-  
+function formatOpenItemCountForProgressLine(thisProject: Project): string {
   // Only show counts for active projects
-  if (thisProject.isCompleted || thisProject.isCancelled) {
+  if (thisProject.isCompleted || thisProject.isCancelled || thisProject.isPaused) {
     return ''
   }
-  
-  // Task count badge (circle)
+
+  // Task count badge (circle): non-future open tasks
   const badgeNumber = (thisProject.numOpenItems - thisProject.numFutureItems > 0) ? thisProject.numOpenItems - thisProject.numFutureItems : 0
-  if (badgeNumber > 0) {
-    parts.push(`<span class="openItemCount">${badgeNumber}</span>`)
-  }
-  
-  return parts.join('')
+  return badgeNumber.toLocaleString()
 }
 
 /**
- * Generate progress section HTML (stats: percent done / item count; comment shown in progress line row when present)
+ * Project tag chips: each entry is one HTML <span class="metadata-lozenge"> string.
  * @param {Project} thisProject
- * @param {ReviewConfig} config
- * @param {boolean} useDiv - Whether to use div instead of span
+ * @returns {Array<string>}
+ * @private
+ */
+function buildProjectTagLozengeSpans(thisProject: Project): Array<string> {
+  if (thisProject.allProjectTags == null || thisProject.allProjectTags.length === 0) return []
+  const tagsToUse = thisProject.allProjectTags.filter((hashtag) => hashtag !== '#sequential')
+  const parts = tagsToUse.map((hashtag) => `<span class="metadata-lozenge lozenge-general">${hashtag}</span>`)
+  return parts
+}
+
+/**
+ * Review and due chips: each entry is one HTML <span> string.
+ * @param {Project} thisProject
+ * @returns {Array<string>}
+ * @private
+ */
+function buildReviewAndDueStatusSpans(thisProject: Project): Array<string> {
+  const lozenges: Array<string> = []
+  // return empty array if project is completed, cancelled or paused
+  if (thisProject.isCompleted || thisProject.isCancelled || thisProject.isPaused) {
+    return []
+  }
+
+  // Make Review status lozenge (from mapReviewDaysToStatus)
+  if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
+    const reviewStatus = mapReviewDaysToStatus(thisProject.nextReviewDays)
+    if (reviewStatus.text !== '') {
+      lozenges.push(
+        `<span class="pad-left ${reviewStatus.colorClass}">${addFAIcon(reviewStatus.icon ?? '')} ${reviewStatus.text}</span>`,
+      )
+    }
+  }
+
+  // Make Due status lozenge (from mapDueDaysToStatus), follows review in same container
+  if (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) {
+    const dueStatus = mapDueDaysToStatus(thisProject.dueDays)
+    if (dueStatus.text !== '') {
+      lozenges.push(
+        `<span class="pad-left ${dueStatus.colorClass}">${addFAIcon(dueStatus.icon ?? '')} ${dueStatus.text}</span>`,
+      )
+    }
+  }
+
+  return lozenges
+}
+
+/**
+ * One '<div class="projectProgressRow">' completion/cancel/pause line, percent and open count copy, optional progress comment.
+ * Open task vs open item labels follow {@code DataStore.preference('ignoreChecklistsInProgress')} (same as {@link buildProjectLineForStyle}).
+ * @param {Project} thisProject
+ * @param {ReviewConfig} _config unused; kept so callers pass config unchanged
  * @returns {string}
  * @private
  */
-function generateProgressSection(thisProject: Project, config: ReviewConfig, useDiv: boolean = false): string {
-  if (!config.displayProgress) return ''
-  const tag = useDiv ? 'div' : 'span'
-  const indent = useDiv ? '\t\t\t\t' : '\n\t\t\t\t'
+function buildProjectProgressRowDiv(thisProject: Project, _config: ReviewConfig): string {
+  // V2 with added info at start of line
+  // if (!_config.displayProgress) return ''
+  // Start with stat progress % and number of open tasks/items
+  const timeAgoStr = (thisProject.isCompleted)
+    ? moment(thisProject.completedDate).fromNow()
+    : (thisProject.isCancelled)
+      ? moment(thisProject.cancelledDate).fromNow()
+      : (thisProject.isPaused)
+        ? 'paused'
+        : ''
+  const extraClass = (thisProject.isCompleted)
+    ? 'checked'
+    : (thisProject.isCancelled)
+      ? 'cancelled'
+      : (thisProject.isPaused)
+        ? 'paused'
+        : ''
+  const statsStr = (thisProject.isCompleted)
+    ? `<i class="fa-solid fa-circle-check pad-right"></i> ${timeAgoStr}`
+    : (thisProject.isCancelled)
+      ? `<i class="fa-solid fa-circle-xmark pad-right"></i> ${timeAgoStr}`
+      : (thisProject.isPaused)
+        ? `<i class="fa-solid fa-circle-pause pad-right"></i> ${timeAgoStr}`
+        : (typeof thisProject.percentComplete === 'number' && !isNaN(thisProject.percentComplete))
+          ? `${thisProject.percentComplete}% done ・ `
+          : ''
+  let statsString = `<span class="progressText ${extraClass}">${statsStr}</span>`
 
-  // logDebug('generateProgressSection', `for ${thisProject.title}: lastProgressComment: ${thisProject.lastProgressComment}`)
-  // If there is a progress comment, show it in the progress line row, otherwise show only stats
-  if (thisProject.lastProgressComment !== '') {
-    return `${indent}<${tag} class="projectProgress"><i class="fa-regular fa-circle-info pad-right"></i>${thisProject.lastProgressComment}</${tag}>`
-  } else {
-  //   return `${indent}<${tag} class="progress"><span class="progressText">${statsProgress}</span></${tag}>`
-    return ''
+  // Match buildProjectLineForStyle / Project counts: use NotePlan preference, not ReviewConfig (they can differ).
+  const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
+  if (!thisProject.isCompleted && !thisProject.isCancelled && !thisProject.isPaused) {
+    const itemCountsStr = formatOpenItemCountForProgressLine(thisProject)
+    const openCountLabel = ignoreChecklistsInProgress ? pluralise('task', itemCountsStr) : pluralise('item', itemCountsStr)
+    statsString += `<span class="pad-left">${itemCountsStr} open ${openCountLabel}</span>`
   }
+
+  // If there is a progress comment, show it in the progress line row, otherwise show only stats
+  // logDebug('buildProjectProgressRowDiv', `for ${thisProject.title}: lastProgressComment: ${thisProject.lastProgressComment}`)
+  if (thisProject.lastProgressComment !== '') {
+    statsString += `<span 
+    class="progressIcon pad-left-larger"><i class="fa-regular fa-circle-info"></i></span><span class="pad-left">${thisProject.lastProgressComment}</span>`
+  // } else {
+  //   //   return `${indent}<${tag} class="progress"><span class="progressText">${statsProgress}</span></${tag}>`
+  //   return ''
+  }
+  const outputString = `\n\t\t\t\t<div class="projectProgressRow project-metadata-row">${statsString}</div>`
+  return outputString
 }
 
 /**
- * Generate next actions text lines as HTML <divs>.
- * Prepares and truncates long next actions to 80 characters, with ellipsis if truncated. Also simplifies Markdown links to just the [title].
+ * Zero or more '<div class="nextActionRow">' rows (plain text body), joined into one string. Truncates to 80 chars per line.
  * @param {ReviewConfig} config
  * @param {Array<string>} nextActionsContent
  * @returns {string}
  * @private
  */
-function generateNextActionsSection(config: ReviewConfig, nextActionsContent: Array<string>): string {
+function buildNextActionRowDivs(config: ReviewConfig, nextActionsContent: Array<string>): string {
   if (!config.displayNextActions || nextActionsContent.length === 0) return ''
 
   const parts: Array<string> = []
   for (const NAContent of nextActionsContent) {
     // const truncatedNAContent = trimString(NAContent, 80)
     const truncatedNAContent = prepAndTruncateMarkdownForDisplay(NAContent, 80)
-    parts.push(`\n\t\t\t<div class="nextAction"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="nextActionText pad-left">${truncatedNAContent}</span></div>`)
+    parts.push(`\n\t\t\t<div class="nextActionRow project-metadata-row project-metadata-row"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="pad-left-larger nextActionText">${truncatedNAContent}</span></div>`)
   }
   return parts.join('')
 }
 
 /**
- * Generate column 3 (metadata column) HTML for Rich format.
- * Shows up to two coloured lozenges (review status then due status from getIntervalReviewStatus / getIntervalDueStatus),
- * and when present a line of project hashtags from from metadata line and/or frontmatter `project` value.
+ * Title fragment for one project: Rich HTML link + icon, Markdown wikilinks, or list-style wikilinks (not necessarily a single root element).
  * @param {Project} thisProject
- * @param {ReviewConfig} config
- * @returns {string}
- * @private
- */
-function generateDateSection(thisProject: Project, config: ReviewConfig): string {
-  if (!config.displayDates) return ''
-
-  if (thisProject.isPaused) return '<div class="project-grid-cell project-grid-cell--metadata"></div>'
-
-  if (thisProject.isCompleted) {
-    const completionRef = thisProject.completedDuration || "completed"
-    return `<div class="project-grid-cell project-grid-cell--metadata checked">Completed ${completionRef}</div>`
-  } else if (thisProject.isCancelled) {
-    const cancellationRef = thisProject.cancelledDuration || "cancelled"
-    return `<div class="project-grid-cell project-grid-cell--metadata cancelled">Cancelled ${cancellationRef}</div>`
-  }
-
-  const lozenges: Array<string> = []
-
-  // Add all lozenges, each in their own span within one div
-  // Start with project tags
-  if (thisProject.allProjectTags != null && thisProject.allProjectTags.length > 0) {
-    for (const hashtag of thisProject.allProjectTags) {
-      lozenges.push(`<span class="metadata-lozenge metadata-lozenge--tag">${hashtag}</span>`)
-    }
-  }
-
-  // Review status lozenge (from getIntervalReviewStatus)
-  if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
-    const reviewStatus = getIntervalReviewStatus(thisProject.nextReviewDays)
-    lozenges.push(`<span class="metadata-lozenge metadata-lozenge--${reviewStatus.color}">${reviewStatus.text}</span>`)
-  }
-  // Due status lozenge (from getIntervalDueStatus), follows review in same column
-  if (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) {
-    const dueStatus = getIntervalDueStatus(thisProject.dueDays)
-    lozenges.push(`<span class="metadata-lozenge metadata-lozenge--${dueStatus.color}">${dueStatus.text}</span>`)
-  }
-
-  return `<div class="project-grid-cell project-grid-cell--metadata project-metadata-cell">${lozenges.join('\n')}</div>`
-}
-
-/**
- * Returns title of note as folder name + link, also showing complete or cancelled where relevant.
- * Supports 'Markdown' or 'HTML' styling or simpler 'list' styling
- * @param {Project} thisProject 'Markdown' or 'HTML' or 'list'
- * @param {string} style 'Markdown' or 'HTML' or 'list'
+ * @param {string} style 'Rich' | 'Markdown' | 'list'
  * @param {any} config
- * @return {string} - title as wikilink
+ * @return {string}
  */
-function decoratedProjectTitle(thisProject: Project, style: string, config: any): string {
+function formatProjectTitleForStyle(thisProject: Project, style: string, config: any): string {
   const titlePart = thisProject.title ?? '(error, not available)'
   switch (style) {
     case 'Rich': {
-      // Method 1: make [[notelinks]] via x-callbacks
-      // Method 2: x-callback using note title
-      // Method 3: x-callback using filename
+      // v1: make [[notelinks]] via x-callbacks
+      // v2: x-callback using note title
+      // v3: x-callback using filename
       // Note: using an "onclick="window.location.href='${noteOpenActionURL}'" handler instead of an anchor tag doesn't work in the NP constrained environment.
       // Note: now using splitView if running in the main window on macOS
-      const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
+      // const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", "splitView", false)
+      // v4: Open via HTML bridge: showNoteInEditorFromFilename then call to smarter openNoteInSplitViewIfNotOpenAlready (projectListEvents.js delegated click). 
+      const encodedFilenameAttr = encodeRFC3986URIComponent(thisProject.filename)
+
       const extraClasses = (thisProject.isCompleted) ? 'checked' : (thisProject.isCancelled) ? 'cancelled' : (thisProject.isPaused) ? 'paused' : ''
 
       const folderNamePart = config.showFolderName ? getFolderDisplayNameForHTML(thisProject.folder) : ''
@@ -260,10 +365,11 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
       // const tailwindColor = thisProject.iconColor != null && thisProject.iconColor !== '' ? thisProject.iconColor : ''
       const iconColorStyle = '' // tailwindColor !== '' ? ` style="color: ${tailwindToHsl(tailwindColor)};"` : ''
       const iconHTML = `<i class="fa-regular fa-${iconClass}"${iconColorStyle}></i>`
-      // logDebug('decoratedProjectTitle', `${thisProject.filename}: icon: ${thisProject.icon ?? '-'}, color: ${thisProject.iconColor ?? '-'}`)
-      // logDebug('decoratedProjectTitle', `${thisProject.filename}:iconClass: ${iconClass}, tailwindColor: ${tailwindColor}, iconColorStyle: ${iconColorStyle}`)
       
-      return `<a class="noteTitle" href="${noteOpenActionURL}"><span class="noteTitleIcon">${iconHTML}</span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a>`
+      // v3:
+      // return `<a class="noteTitle" href="${noteOpenActionURL}"><span class="noteTitleIcon">${iconHTML}</span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a> `
+      // v4:
+      return `<a class="noteTitle" href="#" data-encoded-filename="${encodedFilenameAttr}" ><span class="noteTitleIcon">${iconHTML}</span><span class="noteTitleText ${extraClasses}">${folderNamePart}${titlePart}</span></a >`
     }
 
     case 'Markdown': {
@@ -295,44 +401,25 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
     }
 
     default:
-      logWarn('htmlGenerators::decoratedProjectTitle', `Unknown style '${style}'; nothing returned.`)
+      logWarn('projectsHTMLGenerator::formatProjectTitleForStyle', `Unknown style '${style}'; nothing returned.`)
       return ''
   }
 }
 
 /**
- * Add SVG ready for percent ring with the number in the middle.
- * Note: this is kept in this file as it is specific to Review functionality. But it relies on the more generic 'makeSVGPercentRing' helper function.
- * Note: It needs to be followed by call to JS function setPercentRing() to set the ring's state.
- * Note: This is a non-Class version of the function.
- * @param {Project} thisProject
- * @param {number} percent 0-100
- * @param {string?} color for ring and text (as colour name or #RGB), or 'multicol' to mean shading between red and green
- * @param {string?} textToShow inside ring, which can be different from just the percent, which is used by default
- * @returns {string} SVG code to insert in HTML
- */
-function addSVGPercentRing(thisProject: Project, percent: number, colorIn: string = 'multicol', text: string = ''): string {
-  const textToShow = (text !== '') ? text : String(percent)
-  const colorToUse = (colorIn === 'multicol')
-    ? redToGreenInterpolation(percent)
-    : colorIn
-  return makeSVGPercentRing(percent, colorToUse, textToShow, thisProject.ID)
-}
-
-/**
- * Generate Markdown/list format line for project
+ * One Markdown or list-format line for a project (plain text / markdown, not HTML row markup).
  * @param {Project} thisProject
  * @param {any} config
- * @param {string} style
+ * @param {string} style {@code 'Markdown'} | {@code 'list'}
  * @param {string} statsProgress
  * @param {string} thisPercent
  * @returns {string}
  * @private
  */
-function generateMarkdownLine(thisProject: Project, config: any, style: string, statsProgress: string, thisPercent: string): string {
+function formatMarkdownProjectLine(thisProject: Project, config: any, style: string, statsProgress: string, thisPercent: string): string {
   const parts: Array<string> = []
   parts.push('- ')
-  parts.push(decoratedProjectTitle(thisProject, style, config))
+  parts.push(formatProjectTitleForStyle(thisProject, style, config))
 
   if (config.displayDates && !thisProject.isPaused) {
     if (thisProject.isCompleted) {
@@ -377,21 +464,56 @@ function generateMarkdownLine(thisProject: Project, config: any, style: string, 
   return parts.join('')
 }
 
+type IntervalStatus = {
+  colorClass: string,
+  icon: string,
+  text: string,
+}
+
+/**
+ * Map a review interval (days until/since due) to a display color and label.
+ * @param {number} interval - days until due (negative = overdue, positive = due in future)
+ * @returns {{ color: string, text: string }}
+ */
+function mapDueDaysToStatus(interval: number): IntervalStatus {
+  // if (interval < -90) return { color: 'red', icon: 'fa-solid fa-flag-checkered', text: 'very overdue' }
+  if (interval < -7) return { colorClass: 'overdue', icon: 'fa-light fa-flag-checkered', text: 'overdue' }
+  if (interval < 7) return { colorClass: 'due', icon: 'fa-light fa-flag-checkered', text: 'due now' }
+  if (interval < 21) return { colorClass: 'soon', icon: 'fa-light fa-flag-checkered', text: 'due soon' }
+  return { text: '', colorClass: '', icon: '' }
+}
+
+/**
+ * Map days-until-next-review to icon/text/css class for a status <span>.
+ * @param {number} interval - days until next review (negative = overdue, positive = due in future)
+ * @returns {IntervalStatus}
+ */
+function mapReviewDaysToStatus(interval: number): IntervalStatus {
+  // if (interval < -90) return { color: 'red', icon: 'fa-solid fa-user-clock', text: 'very overdue' }
+  if (interval < -7) return { colorClass: 'overdue', icon: 'fa-light fa-user-clock', text: 'overdue' }
+  if (interval < 2) return { colorClass: 'due', icon: 'fa-light fa-user-clock', text: 'review now' }
+  if (interval < 14) return { colorClass: 'soon', icon: 'fa-light fa-user-clock', text: 'review soon' }
+  return { text: '', colorClass: '', icon: '' }
+}
+
 //-----------------------------------------------------------------------------
 // HTML Structure Generation
 //-----------------------------------------------------------------------------
 
 /**
- * Generate top bar HTML with controls and toggles
+ * Sticky top bar <div>: refresh, filters dropdown, review command buttons.
  * @param {any} config
  * @returns {string}
  */
-export function generateTopBarHTML(config: any): string {
+export function buildProjectListTopBarHtml(config: any): string {
+  const topbarClasses = config.usePerspectives ? 'topbar' : 'topbar topbar-no-perspective'
   const parts: Array<string> = []
+  const displayOrder = (typeof config.displayOrder === 'string' && config.displayOrder !== '') ? config.displayOrder : 'review'
+  const projectsShownCount = Number.isFinite(config.projectsShownCount) ? config.projectsShownCount : 0
   
   // Add buttons for various commands
   const refreshPCButton = makePluginCommandButton(
-    `<i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh`,
+    `<i class="fa-solid fa-arrow-rotate-right"></i><span class="hideable-label"> Refresh</span>`,
     'jgclark.Reviews',
     'project lists',
     '',
@@ -399,7 +521,7 @@ export function generateTopBarHTML(config: any): string {
     true
   )
   const startReviewPCButton = makePluginCommandButton(
-    `<i class="fa-solid fa-play"></i>\u00A0Start`,
+    `<i class="fa-solid fa-play"></i><span class="hideable-label"> Start</span>`,
     'jgclark.Reviews',
     'start reviews',
     '',
@@ -407,7 +529,7 @@ export function generateTopBarHTML(config: any): string {
     true
   )
   const reviewedPCButton = makePluginCommandButton(
-    `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish`,
+    `<i class="fa-regular fa-calendar-check"></i><span class="hideable-label"> Finish</span>`,
     'jgclark.Reviews',
     'finish project review',
     '',
@@ -415,7 +537,7 @@ export function generateTopBarHTML(config: any): string {
     true
   )
   const finishAndNextReviewPCButton = makePluginCommandButton(
-    `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
+    `<i class="fa-regular fa-calendar-check"></i><span class="hideable-label"> Finish +</span><i class="fa-solid fa-calendar-arrow-down pad-left"></i><span class="hideable-label"> Next</span>`,
     'jgclark.Reviews',
     'finish project review and start next',
     '',
@@ -423,7 +545,7 @@ export function generateTopBarHTML(config: any): string {
     true
   )
   const nextReviewPCButton = makePluginCommandButton(
-    `<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
+    `<i class="fa-solid fa-calendar-arrow-down"></i><span class="hideable-label"> Next</span>`,
     'jgclark.Reviews',
     'next project review',
     '',
@@ -431,35 +553,71 @@ export function generateTopBarHTML(config: any): string {
     true
   )
 
-  // Start with a sticky top bar
-  parts.push(`<div class="topbar">`)
-  
+  // Start with a sticky top bar (grid with 4 elements spaced out, or 3 if not using perspectives)
+  parts.push(`<div class="${topbarClasses}">`)
   if (config.usePerspectives) {
     const perspectiveSection = `<div id="persp" class="topbar-item">Persp: <span class="perspective-name">${config.perspectiveName}</span></div>`
     parts.push(perspectiveSection)
   }
 
-  const refreshSection = `<div id="refresh" class="topbar-item">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+  const refreshSection = `<div id="refresh"><span class="topbar-item pad-right-larger"><span id="richProjectListVisibleCount" class="topbar-project-visible-count">${projectsShownCount} ${pluralise('project', projectsShownCount)}</span></span>${refreshPCButton}\n<span class="topbar-item"><span class="hideable-label">Updated: </span><span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
   parts.push(refreshSection)
 
-  // Display filters: button (same style as Refresh) after Refresh + time, opens dropdown; click outside saves, Escape cancels
+  parts.push(`<div class="topbar-center-cluster">`)
+  // Display filters: centred button opens dropdown; click outside saves, Escape cancels
   const displayOnlyDue = config.displayOnlyDue ?? false
   const displayFinished = config.displayFinished ?? false
   const displayPaused = config.displayPaused ?? true
   const displayNextActions = config.displayNextActions ?? false
-  parts.push(`<div id="toggles" class="topbar-item display-filters-wrapper">`)
-  parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-filter pad-right"></i>Filters…</button>`)
-  parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Display filters">`)
+  parts.push(`<span id="toggles" class="display-filters-wrapper">`)
+  parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false" title="Open dropdown to change Filtering and Ordering of the list"><i class="fa-solid fa-filter pad-right"></i><span class="hideable-label">Filter +</span><i class="fa-regular fa-arrow-down-short-wide pad-left"></i><span class="hideable-label">Order…</span></button>`)
+  parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Filter and order">`)
   parts.push(`    <div class="display-filters-dropdown-content">`)
+  // Tag toggles: one per wanted tag; when off, hide projects that only have that tag (client-side). (n) = rows currently listed with that tag (matches main list).
+  const projectTypeTags = config.projectTypeTags != null && typeof config.projectTypeTags === 'string' ? [config.projectTypeTags] : (config.projectTypeTags ?? [])
+  const tagActiveCounts = config.tagActiveCounts ?? []
+  if (projectTypeTags.length > 0) {
+    parts.push(`      <div id="tagToggles" class="display-filters-tag-toggles">`)
+    for (let i = 0; i < projectTypeTags.length; i++) {
+      const tag = projectTypeTags[i]
+      const count = tagActiveCounts[i] != null ? tagActiveCounts[i] : 0
+      const safeId = `tagToggle-${tag.replace(/[^a-zA-Z0-9-_]/g, '_')}`
+      parts.push(`        <label class="display-filters-option display-filters-option--tag-row">`)
+      parts.push(`          <span class="display-filters-option-text">${tag}</span> <span class="display-filters-option-count">(${count})</span>`)
+      parts.push(`          <input type="checkbox" class="apple-switch" data-tag-toggle="${tag.replace(/"/g, '&quot;')}" id="${safeId}" checked>`)
+      parts.push(`        </label>`)
+    }
+    parts.push(`      </div>`)
+    parts.push(`      <hr class="display-filters-divider">`)
+  }
   parts.push(`      <label class="display-filters-option">Show only projects ready for review?<input class="apple-switch pad-left" type="checkbox" ${displayOnlyDue ? 'checked' : ''} name="displayOnlyDue" data-display-filter="true"></label>`)
   parts.push(`      <label class="display-filters-option">Show finished projects?<input class="apple-switch pad-left" type="checkbox" ${displayFinished ? 'checked' : ''} name="displayFinished" data-display-filter="true"></label>`)
   parts.push(`      <label class="display-filters-option">Show paused projects?<input class="apple-switch pad-left" type="checkbox" ${displayPaused ? 'checked' : ''} name="displayPaused" data-display-filter="true"></label>`)
   parts.push(`      <label class="display-filters-option">Show next actions?<input class="apple-switch pad-left" type="checkbox" ${displayNextActions ? 'checked' : ''} name="displayNextActions" data-display-filter="true"></label>`)
+  parts.push(`      <hr class="display-filters-divider">`)
+  parts.push(`      <div class="display-filters-order-row">`)
+  parts.push(`        <label for="displayOrderSelect" class="display-filters-order-label">Order by</label>`)
+  parts.push(`        <select id="displayOrderSelect" class="topbar-select display-filters-order-select" name="displayOrder" aria-label="Sort projects by">`)
+  parts.push(`          <option value="review" ${displayOrder === 'review' ? 'selected' : ''}>Review date</option>`)
+  parts.push(`          <option value="due" ${displayOrder === 'due' ? 'selected' : ''}>Due date</option>`)
+  parts.push(`          <option value="firstTag" ${displayOrder === 'firstTag' ? 'selected' : ''}>(first) Project tag</option>`)
+  parts.push(`          <option value="title" ${displayOrder === 'title' ? 'selected' : ''}>Title</option>`)
+  parts.push(`        </select>`)
+  parts.push(`      </div>`)
   parts.push(`    </div>`)
   parts.push(`  </div>`)
+  parts.push(`</span>`)
+
   parts.push(`</div>`)
 
-  const controlButtons = `<div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${finishAndNextReviewPCButton}\n${nextReviewPCButton}\n</div>`
+  const controlButtons = `
+<div class="topbar-right-cluster">
+  <div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}
+  ${reviewedPCButton}
+  ${finishAndNextReviewPCButton}
+  ${nextReviewPCButton}
+  </div>
+</div>`
   parts.push(controlButtons)
 
   // Finish the sticky top bar
@@ -469,84 +627,23 @@ export function generateTopBarHTML(config: any): string {
 }
 
 /**
- * Generate folder header HTML for Rich format.
+ * Folder group heading row ({@code <div class="folder-header-row">}).
  * @param {string} folderPart - Display name for folder
- * @param {any} config
  * @returns {string}
  */
-export function generateFolderHeaderHTML(folderPart: string, config: any): string {
+export function buildFolderGroupHeaderHtml(folderPart: string): string {
   const parts: Array<string> = []
-  parts.push(` <div class="project-grid-row folder-header-row">`)
+  parts.push(` <div class="folder-header-row">`)
   parts.push(`  <div class="project-grid-cell project-grid-cell--span-2 folder-header h3">${folderPart}</div>`)
-  if (config.displayDates) {
-    parts.push(`  <div class="project-grid-cell folder-header"></div>`) // deliberately no header text
-  }
   parts.push(` </div>`)
   return parts.join('')
 }
 
 /**
- * Generate table structure HTML with colgroup
- * @param {any} config
- * @param {number} noteCount
+ * {@code <dialog id="projectControlDialog">} markup for per-project actions.
  * @returns {string}
  */
-export function generateTableStructureHTML(_config: any, _noteCount: number): string {
-  // Grid column layout is defined in CSS via .project-list-grid--with-dates / .project-list-grid--no-dates
-  return ''
-}
-
-/**
- * Generate HTML for project tag section header
- * @param {string} thisTag
- * @param {number} noteCount
- * @param {number} due
- * @param {any} config
- * @param {boolean} isMultipleTags
- * @returns {string}
- */
-export function generateHTMLForProjectTagSectionHeader(
-  thisTag: string,
-  noteCount: number,
-  due: number,
-  config: any,
-  isMultipleTags: boolean
-): string {
-  const parts: Array<string> = []
-  // TODO: figure out what to do about paused/caompleted being filtered out, when displaying the count here.
-  let numberItemsStr = (config.displayOnlyDue)
-    ? `${due} of ${noteCount} notes ready for review`
-    : `${noteCount} notes`
-  if (config.numberDaysForFutureToIgnore > 0) {
-    numberItemsStr += ` (with future tasks ignored)`
-  }
-  const headingContent = `<span class="h2">${thisTag}</span><span class="folder-header-text">${numberItemsStr}</span>`
-  
-  if (isMultipleTags) {
-    parts.push(`  <details open>`) // start it open
-    parts.push(`   <summary class="folder-header">${headingContent}</summary>`)
-  } else {
-    parts.push(`  <div class="folder-header">${headingContent}</div>`)
-  }
-  parts.push('\n<div class="details-content">')
-  
-  // Add folder name, but only if we're only looking at 1 folder, and we're not grouping by folder
-  if (!config.displayGroupedByFolder && config.foldersToInclude.length === 1) {
-    const folderDisplayName = getFolderDisplayNameForHTML(config.foldersToInclude[0])
-    parts.push(`<h4>${folderDisplayName} folder</h4>`)
-  }
-  
-  const gridClass = config.displayDates ? 'project-list-grid project-list-grid--with-dates' : 'project-list-grid project-list-grid--no-dates'
-  parts.push(`\n<div class="${gridClass}">`)
-
-  return parts.join('\n')
-}
-
-/**
- * Generate project control dialog HTML
- * @returns {string}
- */
-export function generateProjectControlDialogHTML(): string {
+export function buildProjectControlDialogHtml(): string {
   return `
   <!----------- Dialog to show on Project items ----------->
   <dialog id="projectControlDialog" class="projectControlDialog" aria-labelledby="Actions Dialog"
@@ -555,7 +652,7 @@ export function generateProjectControlDialogHTML(): string {
       <div><i class="pad-left pad-right fa-regular fa-file-lines"></i>
         <span id="dialogProjectFolder" class="dialogProjectFolder"></span>
         <b><span id="dialogProjectNote" class="dialogProjectNoteLink">?</span></b>
-        <span id="dialogProjectInterval" class="pad-left">?</span>
+        <span id="dialogProjectInterval" class="pad-left dialogProjectFolder">?</span>
       </div>
       <div class="dialog-top-right">
         <form><button id="closeButton" class="closeButton">
@@ -578,7 +675,7 @@ export function generateProjectControlDialogHTML(): string {
           <button data-control-str="pause">Toggle <i class="fa-solid fa-circle-pause"></i> Pause</button>
           <button data-control-str="complete"><i class="fa-solid fa-circle-check"></i> Complete</button>
           <button data-control-str="cancel"><i class="fa-solid fa-circle-xmark"></i> Cancel</button>
-          <button data-control-str="newrevint"><i class="fa-solid fa-arrows-left-right"></i> New Interval</button>
+          <button data-control-str="newrevint"><i class="fa-regular fa-repeat"></i> New Interval</button>
           <button data-control-str="addtask"><i class="fa-solid fa-circle-plus"></i> Add Task</button>
         </div>
         <div>Progress:</div>

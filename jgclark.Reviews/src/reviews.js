@@ -11,38 +11,56 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-02-26 for v1.3.1, @jgclark
+// Last updated 2026-05-02 for v2.0.0.b29, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import {
+  clearNextReviewFrontmatterField,
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
+  getProjectMetadataLineIndex,
   getNextActionLineIndex,
   getReviewSettings,
   isProjectNoteIsMarkedSequential,
+  migrateProjectMetadataLineInEditor,
+  migrateProjectMetadataLineInNote,
   type ReviewConfig,
-  updateMetadataInEditor,
-  updateMetadataInNote,
+  updateBodyMetadataInEditor,
+  updateBodyMetadataInNote,
 } from './reviewHelpers'
 import {
+  copyDemoDefaultToAllProjectsList,
   filterAndSortProjectsList,
   getNextNoteToReview,
   getSpecificProjectFromList,
   generateAllProjectsList,
   updateProjectInAllProjectsList,
 } from './allProjectsListHelpers.js'
-import { calcReviewFieldsForProject, Project } from './projectClass'
+import { clearNextReviewMetadataFields, Project } from './projectClass'
+import { calcReviewFieldsForProject } from './projectClassCalculations.js'
 import {
-  generateProjectOutputLine,
-  generateTopBarHTML,
-  generateHTMLForProjectTagSectionHeader,
-  generateTableStructureHTML,
-  generateProjectControlDialogHTML,
-  generateFolderHeaderHTML,
+  buildProjectLineForStyle,
+  buildProjectListTopBarHtml,
+  buildProjectControlDialogHtml,
+  buildFolderGroupHeaderHtml,
 } from './projectsHTMLGenerator.js'
+import {
+  stylesheetinksInHeader,
+  faLinksInHeader,
+  checkboxHandlerJSFunc,
+  scrollPreLoadJSFuncs,
+  commsBridgeScripts,
+  shortcutsScript,
+  autoRefreshScript,
+  // setPercentRingJSFunc,
+  addToggleEvents,
+  displayFiltersDropdownScript,
+  tagTogglesVisibilityScript,
+  windowCloseAndReopenScripts,
+} from './projectsHTMLTemplates.js'
 import { checkString } from '@helpers/checkType'
 import { getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
@@ -50,11 +68,16 @@ import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/fold
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
 import { numberOfOpenItemsInNote } from '@helpers/note'
+import { saveSettings } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { getOrOpenEditorFromFilename, getOpenEditorFromFilename, isNoteOpenInEditor, saveEditorIfNecessary } from '@helpers/NPEditor'
+import { getFirstRegularNoteAmongOpenEditors, getOrOpenEditorFromFilename, getOpenEditorFromFilename, isNoteOpenInEditor, saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { isHTMLWindowOpen, logWindowsList, setEditorWindowId } from '@helpers/NPWindows'
+import {
+  isHTMLWindowOpen, logWindowsList,
+  openNoteInSplitViewIfNotOpenAlready,
+  setEditorWindowId
+} from '@helpers/NPWindows'
 import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -62,9 +85,11 @@ import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInp
 // Constants
 
 const pluginID = 'jgclark.Reviews'
-const windowTitle = `Project Review List`
-const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
-const PROJECT_LIST_WINDOW_ID = `${pluginID}.rich-review-list`
+const windowTitle = `Projects List`
+const windowTitleDemo = 'Projects List (Demo)'
+const filenameHTMLCopy = 'projects_list.html'
+const customRichWinId = `${pluginID}.rich-review-list`
+const customRichWinIdDemo = `${pluginID}.rich-review-list-demo`
 const customMarkdownWinId = `markdown-review-list`
 
 //-----------------------------------------------------------------------------
@@ -72,283 +97,125 @@ const customMarkdownWinId = `markdown-review-list`
 //-----------------------------------------------------------------------------
 
 /**
- * Tell the Project List HTML window which project is currently being reviewed.
- * Adds or removes the 'reviewing' class on the matching projectRow, if the window is open.
+ * Tell the Project List HTML window which project is currently being reviewed (if the window is open).
+ * Adds or removes the 'reviewing' class on the matching projectRow.
+ * TODO: this is OK on 'start review' but not on 'next review'. Is it the wrong windowID?
  * @param {CoreNoteFields | TNote | any} note - note being reviewed
- * @param {boolean} isReviewing - whether this note is now being reviewed
  */
-async function setReviewingProjectInHTML(note: any, isReviewing: boolean): Promise<void> {
+async function setReviewingProjectInHTML(note: any): Promise<void> {
   try {
+    logDebug('setReviewingProjectInHTML', `Setting 'reviewing' state for note '${displayTitle(note)}' for window ${customRichWinId}`)
     if (!note || note.type !== 'Notes') {
       return
     }
-    if (!isHTMLWindowOpen(PROJECT_LIST_WINDOW_ID)) {
+    if (!isHTMLWindowOpen(customRichWinId)) {
       return
     }
     const encodedFilename = encodeRFC3986URIComponent(note.filename)
-    await sendToHTMLWindow(PROJECT_LIST_WINDOW_ID, 'SET_REVIEWING_PROJECT', { encodedFilename, isReviewing })
+    await sendToHTMLWindow(customRichWinId, 'SET_REVIEWING_PROJECT', { encodedFilename })
   } catch (error) {
     logError('setReviewingProjectInHTML', error.message)
   }
 }
 
+/**
+ * Clear the 'reviewing' state from all project rows in the Project List HTML window.
+ * @author @jgclark
+ */
 async function clearProjectReviewingInHTML(): Promise<void> {
   try {
-    await sendToHTMLWindow(PROJECT_LIST_WINDOW_ID, 'CLEAR_REVIEWING_PROJECT')
-    if (!isHTMLWindowOpen(PROJECT_LIST_WINDOW_ID)) {
+    if (!isHTMLWindowOpen(customRichWinId)) {
       return
     }
+    await sendToHTMLWindow(customRichWinId, 'CLEAR_REVIEWING_PROJECT')
   } catch (error) {
     logError('clearProjectReviewingInHTML', error.message)
   }
 }
 
-//-------------------------------------------------------------------------------
-// JS scripts
-
-const stylesheetinksInHeader = `
-<!-- Load in Project List-specific CSS -->
-<link href="projectList.css" rel="stylesheet">
-<link href="projectListDialog.css" rel="stylesheet">
-`
-const faLinksInHeader = `
-<!-- Load in fontawesome assets (licensed for NotePlan) -->
-<link href="../np.Shared/fontawesome.css" rel="stylesheet">
-<link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
-<link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
-<link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
-`
-
-export const checkboxHandlerJSFunc: string = `
-<script type="text/javascript">
-async function handleCheckboxClick(cb) {
-  try {
-  console.log("Checkbox for " + cb.name + " clicked, new value = " + cb.checked);
-  const callbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggle"+cb.name;
-  console.log("Calling URL " + callbackURL + " ...");
-  // v1: use fetch() - doesn't work in plugin
-  // const res = await fetch(callbackURL);
-  // console.log("Result: " + res.status);
-  // v2: use window.open() - doesn't work in plugin
-  // window.open(callbackURL);
-  // v3: use window.location ... - doesn't work in plugin
-  // window.location.href = callbackURL;
-  // v4:
-  const options = {
-    method: 'GET',
-  }
-  fetch(callbackURL, options)
-  .then(response => {
-    console.log("Result: " + response.status);
-  })
-  .catch(error => {
-    console.log("Error Result: " + response.status);
-  });
-
-  // onChangeCheckbox(cb.name, cb.checked); // this uses handler func in commsSwitchboard.js
-  }
-  catch (err) {
-    console.error(err.message);
-  }
-}
-</script>
-`
-
 /**
- * Functions to get/set scroll position of the project list content.
- * Helped by https://stackoverflow.com/questions/9377951/how-to-remember-scroll-position-and-scroll-back
- * But need to find a different approach to store the position, as cookies not available.
+ * Return a grouped folder display label, optionally hiding top-level path parts.
+ * Handles both teamspace and standard folder names.
+ * @param {string} folder
+ * @param {boolean} isRichStyle
+ * @param {boolean} hideTopLevelFolder
+ * @returns {string}
+ * @private
  */
-export const scrollPreLoadJSFuncs: string = `
-<script type="text/javascript">
-function getCurrentScrollHeight() {
-  let scrollPos;
-  if (typeof window.pageYOffset !== 'undefined') {
-    scrollPos = window.pageYOffset;
-  }
-  else if (typeof document.compatMode !== 'undefined' && document.compatMode !== 'BackCompat') {
-    scrollPos = document.documentElement.scrollTop;
-  }
-  else if (typeof document.body !== 'undefined') {
-    scrollPos = document.body.scrollTop;
-  }
-  let label = document.getElementById("scrollDisplay");
-  label.innerHTML = String(scrollPos);
-  console.log("getCurrentScrollHeight = " + String(scrollPos));
-}
+function getGroupedFolderDisplayLabel(folder: string, isRichStyle: boolean, hideTopLevelFolder: boolean): string {
+  const folderDisplayName = isRichStyle
+    ? getFolderDisplayNameForHTML(folder)
+    : getFolderDisplayName(folder, true)
 
-// Note: saving scroll position to cookie does not work in Safari, but not in NP.
-function setScrollPos(h) {
-  document.documentElement.scrollTop = h;
-  document.body.scrollTop = h;
-  console.log('setScrollPos = ' + String(h));
-}
-</script>
-`
-
-const commsBridgeScripts = `
-<!-- commsBridge scripts -->
-<script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
-<script>
-/* you must set this before you import the CommsBridge file */
-const receivingPluginID = "jgclark.Reviews"; // the plugin ID of the plugin which will receive the comms from HTML
-// That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
-// this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
-
-/* The onMessageFromPlugin function is called when data is received from your plugin and needs to be processed.
- * This function should not do the work itself, it should just send the data payload to a function for processing.
- * The onMessageFromPlugin function below and your processing functions can be in your html document or could be imported in an external file.
- * The only requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the 
-   pluginToHTMLCommsBridge in your html document or could be imported in an external file. */
-</script>
-<script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
-<script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
-`
-/**
- * Script to add some keyboard shortcuts to control the dashboard. (Meta=Cmd here.)
- */
-const shortcutsScript = `
-<!-- shortcuts script -->
-<script type="text/javascript" src="./shortcut.js"></script>
-<script>
-// send 'refresh' command
-shortcut.add("meta+r", function() {
-  console.log("Shortcut '⌘r' triggered: will call refresh");
-  sendMessageToPlugin('refresh', {});
-});
-// send 'toggleDisplayOnlyDue' command
-shortcut.add("meta+d", function() {
-  console.log("Shortcut '⌘d' triggered: will call toggleDisplayOnlyDue");
-  sendMessageToPlugin('runPluginCommand', {pluginID: 'jgclark.Reviews', commandName:'toggleDisplayOnlyDue', commandArgs: []});
-});
-// send 'toggleDisplayFinished' command
-shortcut.add("meta+f", function() {
-  console.log("Shortcut '⌘f' triggered: will call toggleDisplayFinished");
-  sendMessageToPlugin('runPluginCommand', {pluginID: 'jgclark.Reviews', commandName: 'toggleDisplayFinished', commandArgs: []});
-});
-</script>
-`
-
-export const setPercentRingJSFunc: string = `
-<script>
-/**
- * Sets the value of a SVG percent ring.
- * @param {number} percent The percent value to set.
- */
-function setPercentRing(percent, ID) {
-  let svg = document.getElementById(ID);
-  let circle = svg.querySelector('circle');
-  const radius = circle.r.baseVal.value;
-  const circumference = radius * 2 * Math.PI;
-  circle.style.strokeDasharray = String(circumference) + ' ' + String(circumference);
-  circle.style.strokeDashoffset = String(circumference);
-
-  const offset = circumference - percent / 100 * circumference;
-  circle.style.strokeDashoffset = offset;  // Set to negative for anti-clockwise.
-
-  // let text = svg.querySelector('text');
-  // text.textContent = String(percent); // + '%';
-}
-</script>
-`
-
-const addToggleEvents: string = `
-<script>
-  /**
-   * Register click handlers for each checkbox/toggle in the window with details of the items.
-   * Skip checkboxes inside the Display filters dropdown (those use Save instead).
-   */
-  allInputs = document.getElementsByTagName("INPUT");
-  let added = 0;
-  for (const input of allInputs) {
-    if (input.type !== 'checkbox') continue;
-    if (input.getAttribute('data-display-filter') === 'true') continue;
-    const thisSettingName = input.name;
-    console.log("- adding event for checkbox '"+thisSettingName+"' currently set to state "+input.checked);
-    input.addEventListener('change', function (event) {
-      event.preventDefault();
-      sendMessageToPlugin('onChangeCheckbox', { settingName: thisSettingName, state: event.target.checked });
-    }, false);
-    added++;
-  }
-  console.log('- '+ String(added) + ' input ELs added');
-</script>
-`
-
-const displayFiltersDropdownScript: string = `
-<script>
-  (function() {
-    var btn = document.getElementById('displayFiltersButton');
-    var dropdown = document.getElementById('displayFiltersDropdown');
-    if (!btn || !dropdown) return;
-
-    var savedState = null;
-
-    function getCheckboxState() {
-      var onlyDue = dropdown.querySelector('input[name="displayOnlyDue"]');
-      var finished = dropdown.querySelector('input[name="displayFinished"]');
-      var paused = dropdown.querySelector('input[name="displayPaused"]');
-      var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
-      return onlyDue && finished && paused && nextActions
-        ? { displayOnlyDue: onlyDue.checked, displayFinished: finished.checked, displayPaused: paused.checked, displayNextActions: nextActions.checked }
-        : null;
+  let folderPart = folderDisplayName
+  if (hideTopLevelFolder) {
+    if (folderDisplayName.includes(']')) {
+      const match = folderDisplayName.match(/^(\[.*?\])\s*(.+)$/)
+      if (match) {
+        const pathPart = match[2]
+        const pathParts = pathPart.split('/').filter(p => p !== '')
+        const lastPathPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : pathPart
+        folderPart = `${match[1]} ${lastPathPart}`
+      } else {
+        folderPart = folderDisplayName.split('/').slice(-1)[0] || folderDisplayName
+      }
+    } else {
+      const pathParts = folderDisplayName.split('/').filter(p => p !== '')
+      folderPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : folderDisplayName
     }
+  }
 
-    function closeDropdown(apply) {
-      dropdown.classList.remove('is-open');
-      btn.setAttribute('aria-expanded', 'false');
-      if (apply) {
-        var state = getCheckboxState();
-        if (state) {
-          // Only save + refresh if something actually changed while the dropdown was open
-          var hasChanges =
-            !savedState ||
-            state.displayOnlyDue !== savedState.displayOnlyDue ||
-            state.displayFinished !== savedState.displayFinished ||
-            state.displayPaused !== savedState.displayPaused ||
-            state.displayNextActions !== savedState.displayNextActions;
-          if (hasChanges) {
-            sendMessageToPlugin('saveDisplayFilters', state);
-          }
-        }
-      } else if (savedState) {
-        var onlyDue = dropdown.querySelector('input[name="displayOnlyDue"]');
-        var finished = dropdown.querySelector('input[name="displayFinished"]');
-        var paused = dropdown.querySelector('input[name="displayPaused"]');
-        var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
-        if (onlyDue && finished && paused && nextActions) {
-          onlyDue.checked = savedState.displayOnlyDue;
-          finished.checked = savedState.displayFinished;
-          paused.checked = savedState.displayPaused;
-          nextActions.checked = savedState.displayNextActions;
-        }
-      }
-    }
+  if (folder === '/') {
+    folderPart = '(root folder)'
+  }
+  return folderPart
+}
 
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var isOpen = dropdown.classList.toggle('is-open');
-      btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      if (isOpen) savedState = getCheckboxState();
-    });
+/**
+ * Render markdown and/or rich project list outputs from config.outputStyle.
+ * @param {ReviewConfig} config
+ * @param {boolean} shouldOpen
+ * @param {number} scrollPos
+ * @returns {Promise<void>}
+ * @private
+ */
+async function runProjectListRenderers(config: ReviewConfig, shouldOpen: boolean, scrollPos: number = 0): Promise<void> {
+  if (config.outputStyle.match(/markdown/i)) {
+    // eslint-disable-next-line no-floating-promise/no-floating-promise -- no need to wait here
+    renderProjectListsMarkdown(config, shouldOpen)
+  }
+  if (config.outputStyle.match(/rich/i)) {
+    await renderProjectListsHTML(config, shouldOpen, scrollPos)
+  }
+}
 
-    document.addEventListener('click', function(e) {
-      if (dropdown.classList.contains('is-open') && !dropdown.contains(e.target) && e.target !== btn) {
-        closeDropdown(true);
-      }
-    });
+type DisplayToggleKey = 'displayFinished' | 'displayOnlyDue' | 'displayNextActions'
 
-    document.addEventListener('keydown', function(e) {
-      if (!dropdown.classList.contains('is-open')) return;
-      if (e.key === 'Escape') {
-        closeDropdown(false);
-      } else if (e.key === 'Enter') {
-        closeDropdown(true);
-      }
-    });
-  })();
-</script>
-`
+/**
+ * Toggle a display filter flag and re-render open project list windows.
+ * @param {DisplayToggleKey} key
+ * @param {boolean} defaultValueWhenUnset
+ * @param {string} logContext
+ * @param {number} scrollPos
+ * @returns {Promise<void>}
+ * @private
+ */
+async function toggleDisplayFilterKey(
+  key: DisplayToggleKey,
+  defaultValueWhenUnset: boolean,
+  logContext: string,
+  scrollPos: number = 0,
+): Promise<void> {
+  const config: ?ReviewConfig = await getReviewSettings()
+  if (!config) throw new Error('No config found. Stopping.')
+
+  const savedValue = config[key] ?? defaultValueWhenUnset
+  const newValue = !savedValue
+  logDebug(logContext, `${key}? now '${String(newValue)}' (was '${String(savedValue)}')`)
+  const updatedConfig = { ...config, [key]: newValue }
+  await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+  await renderProjectListsIfOpen(updatedConfig, scrollPos)
+}
 
 //-----------------------------------------------------------------------------
 // Main functions
@@ -373,9 +240,10 @@ export async function displayProjectLists(argsIn?: string | null = null, scrollP
       // clo(config, 'Review settings with no args:')
     }
 
-    // Re-calculate the allProjects list (in foreground)
-    await generateAllProjectsList(config, true)
-
+    if (!(config.useDemoData ?? false)) {
+      // Re-calculate the allProjects list (in foreground)
+      await generateAllProjectsList(config, true)
+    }
     // Call the relevant rendering function with the updated config
     await renderProjectLists(config, true, scrollPos)
   } catch (error) {
@@ -384,7 +252,45 @@ export async function displayProjectLists(argsIn?: string | null = null, scrollP
 }
 
 /**
- * Internal version of above that doesn't open window if not already open.
+ * Demo variant of project lists.
+ * Reads from fixed demo JSON (copied into allProjectsList.json) without regenerating from live notes.
+ * @param {string? | null} argsIn as JSON (optional)
+ * @param {number?} scrollPos in pixels (optional, for HTML only)
+ */
+export async function toggleDemoModeForProjectLists(): Promise<void> {
+  try {
+    const config = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+    const isCurrentlyDemoMode = config.useDemoData ?? false
+    logInfo('toggleDemoModeForProjectLists', `Demo mode is currently ${isCurrentlyDemoMode ? 'ON' : 'off'}.`)
+    const willBeDemoMode = !isCurrentlyDemoMode
+    // Save a plain object so the value persists (loaded config may be frozen or a proxy)
+    const toSave = { ...config, useDemoData: willBeDemoMode }
+    const saved = await saveSettings(pluginJson['plugin.id'], toSave, false)
+    if (!saved) throw new Error('Failed to save demo mode setting.')
+
+    if (willBeDemoMode) {
+      // Copy the fixed demo list into allProjectsList.json (first time after switching to demo)
+      const copied = await copyDemoDefaultToAllProjectsList()
+      if (!copied) {
+        throw new Error('Failed to copy demo list. Please check that allProjectsDemoListDefault.json exists in data/jgclark.Reviews, and try again.')
+      }
+      logInfo('toggleDemoModeForProjectLists', 'Demo mode is now ON; project list copied from demo default.')
+    } else {
+      // First time after switching away from demo: re-generate list from live notes
+      logInfo('toggleDemoModeForProjectLists', 'Demo mode now off; regenerating project list from notes.')
+      await generateAllProjectsList(toSave, true)
+    }
+
+    // Now run the project lists display
+    await renderProjectLists(toSave, true)
+  } catch (error) {
+    logError('toggleDemoModeForProjectLists', JSP(error))
+  }
+}
+
+/**
+ * Internal version of earlier function that doesn't open window if not already open.
  * @param {number?} scrollPos 
  */
 export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<any> {
@@ -393,15 +299,22 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
     if (!config) throw new Error('No config found. Stopping.')
     logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting with scrollPos ${String(scrollPos)}`)
 
-    // Re-calculate the allProjects list (in foreground)
-    await generateAllProjectsList(config, true)
-    logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectLists() if open`)
+    if (config.useDemoData ?? false) {
+      const copied = await copyDemoDefaultToAllProjectsList()
+      if (!copied) {
+        logWarn('generateProjectListsAndRenderIfOpen', 'Demo mode on but copy of demo list failed.')
+      }
+    } else {
+      // Re-calculate the allProjects list (in foreground)
+      await generateAllProjectsList(config, true)
+      logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectListsIfOpen()`)
+    }
 
     // Call the relevant rendering function, but only continue if relevant window is open
-    await renderProjectLists(config, false, scrollPos)
+    await renderProjectListsIfOpen(config, scrollPos)
     return {} // just to avoid NP silently failing when called by invokePluginCommandByName
   } catch (error) {
-    logError('displayProjectLists', JSP(error))
+    logError('generateProjectListsAndRenderIfOpen', JSP(error))
   }
 }
 
@@ -419,42 +332,39 @@ export async function renderProjectLists(
 ): Promise<void> {
   try {
     const config = (configIn) ? configIn : await getReviewSettings()
+    if (config == null) {
+      await showMessage('No Projects & Reviews settings found. Stopping. Please try deleting and re-installing the plugin.')
+      throw new Error('No config found. Stopping.')
+    }
 
-    // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
-    if (config.outputStyle.match(/markdown/i)) {
-      // eslint-disable-next-line no-floating-promise/no-floating-promise -- no need to wait here
-      renderProjectListsMarkdown(config, shouldOpen)
-    }
-    if (config.outputStyle.match(/rich/i)) {
-      await renderProjectListsHTML(config, shouldOpen, scrollPos)
-    }
+    await runProjectListRenderers(config, shouldOpen, scrollPos)
   } catch (error) {
-    logError('renderProjectLists', `Error: ${error.message}. configIn: ${JSP(configIn, 2)}`)
+    logError('renderProjectLists', `Error: ${error.message}.\nconfigIn: ${JSP(configIn, 2)}`)
   }
 }
 
 /**
- * Render the project list, according to the chosen output style. Note: this does *not* re-calculate the project list.
+ * Render the project list, according to the chosen output style. This does *not* re-calculate the project list.
+ * Note: Called by Dashboard, as well as internally.
+ * @param {any} configIn (optional; will look up if not given)
+ * @param {number} scrollPos for HTML view (optional; defaults to 0)
  * @author @jgclark
  */
 export async function renderProjectListsIfOpen(
-): Promise<any> {
+  configIn?: any,
+  scrollPos?: number = 0
+): Promise<boolean> {
   try {
-    logInfo(pluginJson, `renderProjectListsIfOpen ----------------------------------------`)
-    const config = await getReviewSettings()
+    logDebug(pluginJson, `renderProjectListsIfOpen starting...`)
+    const config = configIn ? configIn : await getReviewSettings()
 
-    // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
-    if (config.outputStyle.match(/markdown/i)) {
-      // eslint-disable-next-line no-floating-promise/no-floating-promise -- no need to wait here
-      renderProjectListsMarkdown(config, false)
-    }
-    if (config.outputStyle.match(/rich/i)) {
-      await renderProjectListsHTML(config, false)
-    }
-    // return {} just to avoid possibility of NP silently failing when called by invokePluginCommandByName
-    return {}
+    if (!config) throw new Error('No config found. Stopping.')
+    await runProjectListRenderers(config, false, scrollPos)
+    // return true to avoid possibility of NP silently failing when called by invokePluginCommandByName
+    return true
   } catch (error) {
     logError('renderProjectListsIfOpen', error.message)
+    return false
   }
 }
 
@@ -472,21 +382,23 @@ export async function renderProjectListsIfOpen(
 export async function renderProjectListsHTML(
   config: any,
   shouldOpen: boolean = true,
-  scrollPos: number = 0
+  scrollPos: number = 0,
 ): Promise<void> {
   try {
+    const useDemoData = config.useDemoData ?? false
     if (config.projectTypeTags.length === 0) {
       throw new Error('No projectTypeTags configured to display')
     }
 
-    if (!shouldOpen && !isHTMLWindowOpen(PROJECT_LIST_WINDOW_ID)) {
+    const richWinId = useDemoData ? customRichWinIdDemo : customRichWinId
+    if (!shouldOpen && !isHTMLWindowOpen(richWinId)) {
       logDebug('renderProjectListsHTML', `not continuing, as HTML window isn't open and 'shouldOpen' is false.`)
       return
     }
 
     const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-    logInfo(pluginJson, `renderProjectLists ----------------------------------------`)
-    logDebug('renderProjectListsHTML', `Starting for ${String(config.projectTypeTags)} tags`)
+    logInfo(pluginJson, `renderProjectLists ------------------------------------`)
+    logDebug('renderProjectListsHTML', `Starting for ${String(config.projectTypeTags)} tags${useDemoData ? ' (demo)' : ''}`)
 
     // Test to see if we have the font resources we want
     const res = await checkForWantedResources(pluginID)
@@ -501,67 +413,100 @@ export async function renderProjectListsHTML(
     // Ensure projectTypeTags is an array before proceeding
     if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
 
+    // Fetch project list first so we can compute per-tag active counts for the Filters dropdown
+    const [projectsToReview, _countAfterTagFilterOnly] = await filterAndSortProjectsList(config, '', [], true, useDemoData)
+
+    // Omit stale JSON entries whose note no longer exists so the top-bar count matches rendered rows
+    const projectsForDisplay: Array<Project> = useDemoData
+      ? projectsToReview
+      : projectsToReview.filter((p) => {
+          const note = DataStore.projectNoteByFilename(p.filename)
+          if (!note) {
+            logWarn('renderProjectListsHTML', `Can't find note for filename ${p.filename}; omitting from Rich list`)
+          }
+          return !!note
+        })
+
+    const wantedTags = config.projectTypeTags ?? []
+    // Counts must match rows in this list (same perspective as the grid); do not strip paused/finished here - those may still be shown.
+    const tagActiveCounts = wantedTags.map((tag) =>
+      projectsForDisplay.filter((p) => p.allProjectTags != null && p.allProjectTags.includes(tag)).length
+    )
+    config.tagActiveCounts = tagActiveCounts
+
     // String array to save all output
     const outputArray = []
 
-    // Generate top bar HTML
-    outputArray.push(generateTopBarHTML(config))
-
-    // Start multi-col working (if space)
-    outputArray.push(`<div class="multi-cols">`)
+    // Generate top bar HTML (uses config.tagActiveCounts for dropdown tag counts)
+    config.projectsShownCount = projectsForDisplay.length
+    outputArray.push(buildProjectListTopBarHtml(config))
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
-
-    // Make the Summary list, for each projectTag in turn
-    for (const thisTag of config.projectTypeTags) {
-      // Get the summary line for each revelant project
-      const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
-
-      // Generate project tag section header
-      outputArray.push(generateHTMLForProjectTagSectionHeader(thisTag, noteCount, due, config, config.projectTypeTags.length > 1))
-      
-      if (noteCount > 0) {
-        outputArray.push(generateTableStructureHTML(config, noteCount))
-        outputArray.push(thisSummaryLines.join('\n'))
-        outputArray.push('  </div>')
-        outputArray.push(' </div>') // details-content div
-        if (config.projectTypeTags.length > 1) {
-          outputArray.push(`</details>`)
-        }
-      }
-      logTimer('renderProjectListsHTML', funcTimer, `end of loop for ${thisTag}`)
+    const noteCount = projectsForDisplay.length
+    if (useDemoData && noteCount === 0) {
+      outputArray.push('<p class="project-grid-row demo-file-message">Demo file (allProjectsDemoList.json) not found or empty.</p>')
     }
+    if (noteCount > 0) {
+      // Start multi-col working (if space)
+      outputArray.push(`<div class="multi-cols">`)
+
+      let lastFolder = ''
+      for (const thisProject of projectsForDisplay) {
+        if (config.displayGroupedByFolder && lastFolder !== thisProject.folder) {
+          const folderPart = getGroupedFolderDisplayLabel(thisProject.folder, true, config.hideTopLevelFolder)
+          outputArray.push(buildFolderGroupHeaderHtml(folderPart))
+        }
+        const wantedTagsForRow = (thisProject.allProjectTags != null && wantedTags.length > 0)
+          ? thisProject.allProjectTags.filter(t => wantedTags.includes(t))
+          : []
+        outputArray.push(buildProjectLineForStyle(thisProject, config, 'Rich', wantedTagsForRow))
+        lastFolder = thisProject.folder
+      }
+      outputArray.push('  </div>')
+    }
+    logTimer('renderProjectListsHTML', funcTimer, `end single section (${noteCount} projects)`)
 
     // Generate project control dialog HTML
-    outputArray.push(generateProjectControlDialogHTML())
+    outputArray.push(buildProjectControlDialogHtml())
 
     const body = outputArray.join('\n')
     logTimer('renderProjectListsHTML', funcTimer, `end of main loop`)
 
     const setScrollPosJS: string = `
 <script type="text/javascript">
-  console.log('Attemping to set scroll pos to ${scrollPos}');
+  console.log('Reviews render refresh: applying scrollPos = ${scrollPos}');
   setScrollPos(${scrollPos});
+  console.log('Reviews render refresh: post-set current scrollPos = ' + String((typeof window.pageYOffset !== 'undefined')
+    ? window.pageYOffset
+    : (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined')
+      ? document.documentElement.scrollTop
+      : (document.body && typeof document.body.scrollTop !== 'undefined')
+        ? document.body.scrollTop
+        : 0));
 </script>`
 
+    const headerTags = `${faLinksInHeader}${stylesheetinksInHeader}
+  <meta name="startTime" content="${String(Date.now())}">
+  <meta name="autoUpdateAfterIdleTime" content="${String(config.autoUpdateAfterIdleTime ?? 0)}">`
+
     const winOptions = {
-      windowTitle: windowTitle,
-      customId: PROJECT_LIST_WINDOW_ID,
-      headerTags: `${faLinksInHeader}${stylesheetinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
+      windowTitle: useDemoData ? windowTitleDemo : windowTitle,
+      customId: richWinId,
+      headerTags: headerTags,
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
-      specificCSS: '', // now in requiredFiles/reviewListCSS instead
+      specificCSS: '', // now in requiredFiles/projectList.css instead
       makeModal: false, // = not modal window
       bodyOptions: 'onload="showTimeAgo()"',
-      preBodyScript: setPercentRingJSFunc + scrollPreLoadJSFuncs,
-      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
+      preBodyScript: /* setPercentRingJSFunc + */ scrollPreLoadJSFuncs,
+      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + tagTogglesVisibilityScript + autoRefreshScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>
       <script type="text/javascript" src="./projectListEvents.js"></script>
-      ` + commsBridgeScripts + shortcutsScript + addToggleEvents, // + collapseSection +  resizeListenerScript + unloadListenerScript,
+      ` + commsBridgeScripts + shortcutsScript + addToggleEvents + windowCloseAndReopenScripts, // + collapseSection +  resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
-      width: 800, // = default width of window (px)
+      width: 660, // = default width of window (px)
       height: 1200, // = default height of window (px)
-      shouldFocus: false, // shouuld not focus, if Window already exists
+      shouldFocus: false, // should not focus, if Window already exists
       // If we should open in main/split view, or the default new window
       showInMainWindow: config.preferredWindowType !== 'New Window',
       splitView: config.preferredWindowType === 'Split View',
@@ -570,7 +515,7 @@ export async function renderProjectListsHTML(
       iconColor: pluginJson['plugin.iconColor'],
       autoTopPadding: true,
       showReloadButton: true,
-      reloadCommandName: 'displayProjectLists',
+      reloadCommandName: useDemoData ? 'displayProjectListsDemo' : 'displayProjectLists',
       reloadPluginID: 'jgclark.Reviews',
     }
     const thisWindow = await showHTMLV2(body, winOptions)
@@ -631,10 +576,10 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         if (note != null) {
           const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`{"projectTypeTags":["${tag}"]}`))
 
-          // Get the summary line for each revelant project
+          // Get the summary line for each relevant project
           const [outputArray, noteCount, due] = await generateReviewOutputLines(tag, 'Markdown', config)
-          logTimer('renderProjectListsHTML', funcTimer, `after generateReviewOutputLines(${tag}) for ${String(due)} projects`)
-          if (isNaN(noteCount)) logWarn('renderProjectListsHTML', `Warning: noteCount is NaN`)
+          logTimer('renderProjectListsMarkdown', funcTimer, `after generateReviewOutputLines(${tag}) for ${String(due)} projects`)
+          if (isNaN(noteCount)) logWarn('renderProjectListsMarkdown', `Warning: noteCount is NaN`)
 
           // print header info just the once (if any notes)
           const startReviewButton = `[Start reviewing ${due} ready for review](${startReviewXCallbackURL})`
@@ -678,7 +623,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         // Calculate the Summary list(s)
         const [outputArray, noteCount, due] = await generateReviewOutputLines('', 'Markdown', config)
         const startReviewButton = `[Start reviewing ${due} ready for review](${startReviewXCallbackURL})`
-        logTimer('renderProjectListsHTML', funcTimer, `after generateReviewOutputLines`)
+        logTimer('renderProjectListsMarkdown', funcTimer, `after generateReviewOutputLines`)
 
         const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', '') //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=`
         const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
@@ -713,7 +658,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
 }
 
 /**
- * Re-display the project list from saved HTML file, if available, or if not then render the current all projects list.
+ * Re-display the project list from saved HTML file, if available.
  * Note: this is a test function that does not re-calculate the data.
  * @author @jgclark
  */
@@ -729,19 +674,19 @@ export async function redisplayProjectListHTML(): Promise<void> {
     if (savedHTML !== '') {
       const winOptions = {
         windowTitle: windowTitle,
-        headerTags: '', // don't set as it is already in the saved file
-        generalCSSIn: '', // don't set as it is already in the saved file
-        specificCSS: '', // now provided by separate projectList.css
-        makeModal: false, // = not modal window
-        bodyOptions: '', // don't set as it is already in the saved file
-        preBodyScript: '', // don't set as it is already in the saved file
-        postBodyScript: '', // don't set as it is already in the saved file
-        savedFilename: '', // don't re-save it
-        reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
-        width: 800, // = default width of window (px)
-        height: 1200, // = default height of window (px)
-        customId: PROJECT_LIST_WINDOW_ID,
-        shouldFocus: true, // shouuld focus
+        headerTags: '',
+        generalCSSIn: '',
+        specificCSS: '',
+        makeModal: false,
+        bodyOptions: '',
+        preBodyScript: '',
+        postBodyScript: '',
+        savedFilename: '',
+        reuseUsersWindowRect: true,
+        width: 800,
+        height: 1200,
+        customId: customRichWinId,
+        shouldFocus: true,
       }
       const _thisWindow = await showHTMLV2(savedHTML, winOptions)
       // clo(_thisWindow, 'created window')
@@ -749,6 +694,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
       return
     } else {
       logWarn('redisplayProjectListHTML', `Couldn't read from saved HTML file ${filenameHTMLCopy}.`)
+      await showMessage('Sorry, I can\'t find the saved HTML file for Project Lists.')
     }
   } catch (error) {
     logError('redisplayProjectListHTML', error.message)
@@ -765,7 +711,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
  * @param {string} projectTag - the current hashtag of interest
  * @param {string} style - 'Markdown' or 'Rich'
  * @param {ReviewConfig} config - from settings (and any passed args)
- * @returns {[Array<string>, number, number]} [output summary lines, number of notes, number of due notes (ready to review)]
+ * @returns {[Array<string>, number, number]} [output summary lines, number of lines emitted (excludes missing notes), number of due notes (ready to review)]
  */
 export async function generateReviewOutputLines(projectTag: string, style: string, config: ReviewConfig): Promise<[Array<string>, number, number]> {
   try {
@@ -773,13 +719,11 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
     logDebug('generateReviewOutputLines', `Starting for tag(s) '${projectTag}' in ${style} style`)
 
     // Get all wanted projects (in useful order and filtered)
-    const [projectsToReview, numberProjectsUnfiltered] = await filterAndSortProjectsList(config, projectTag)
+    const [projectsToReview, countAfterTagFilterOnly] = await filterAndSortProjectsList(config, projectTag)
     let lastFolder = ''
     let noteCount = 0
     let due = 0
     const outputArray: Array<string> = []
-
-    // TEST: Now use numberProjectsUnfiltered by passing it up to the display.
 
     // Process each project
     for (const thisProject of projectsToReview) {
@@ -789,7 +733,7 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
         continue
       }
       // Make the output line for this project
-      const out = generateProjectOutputLine(thisProject, config, style)
+      const out = buildProjectLineForStyle(thisProject, config, style)
 
       // Add to number of notes to review (if appropriate)
       if (!thisProject.isPaused && thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays) && thisProject.nextReviewDays <= 0) {
@@ -799,39 +743,10 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
       // Write new folder header (if change of folder)
       const folder = thisProject.folder
       if (config.displayGroupedByFolder && lastFolder !== folder) {
-        // Get display name with teamspace name if applicable
-        const folderDisplayName = ((style.match(/rich/i))
-          ? getFolderDisplayNameForHTML(folder)
-          : getFolderDisplayName(folder, true))
-        let folderPart: string
-        if (config.hideTopLevelFolder) {
-          // Extract just the last part of the folder path
-          // Handle teamspace format: [👥 TeamspaceName] /folder/path -> [👥 TeamspaceName] path
-          // Handle regular format: folder/path -> path
-          if (folderDisplayName.includes(']')) {
-            // Teamspace folder: extract prefix and last part of path
-            const match = folderDisplayName.match(/^(\[.*?\])\s*(.+)$/)
-            if (match) {
-              const teamspacePrefix = match[1]
-              const pathPart = match[2]
-              const pathParts = pathPart.split('/').filter(p => p !== '')
-              const lastPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : pathPart
-              folderPart = `${teamspacePrefix} ${lastPart}`
-            } else {
-              folderPart = folderDisplayName.split('/').slice(-1)[0] || folderDisplayName
-            }
-          } else {
-            // Regular folder: just get last part
-            const pathParts = folderDisplayName.split('/').filter(p => p !== '')
-            folderPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : folderDisplayName
-          }
-        } else {
-          folderPart = folderDisplayName
-        }
-        // Handle root folder display - check if original folder was root, not the display name
-        if (folder === '/') folderPart = '(root folder)'
+        const isRichStyle = style.match(/rich/i) != null
+        const folderPart = getGroupedFolderDisplayLabel(folder, isRichStyle, config.hideTopLevelFolder)
         if (style.match(/rich/i)) {
-          outputArray.push(generateFolderHeaderHTML(folderPart, config))
+          outputArray.push(buildFolderGroupHeaderHtml(folderPart))
         } else if (style.match(/markdown/i)) {
           outputArray.push(`### ${folderPart}`)
         }
@@ -842,8 +757,12 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
 
       lastFolder = folder
     }
-    logTimer('generateReviewOutputLines', startTime, `Generated for ${String(noteCount)} notes (and ${numberProjectsUnfiltered} unfiltered) for tag(s) '${projectTag}' in ${style} style`)
-    return [outputArray, numberProjectsUnfiltered, due]
+    logTimer(
+      'generateReviewOutputLines',
+      startTime,
+      `Generated ${String(noteCount)} lines for tag(s) '${projectTag}' in ${style} style (${String(countAfterTagFilterOnly)} after tag filter, before missing-note skips)`,
+    )
+    return [outputArray, noteCount, due]
   } catch (error) {
     logError('generateReviewOutputLines', `${error.message}`)
     return [[], NaN, NaN] // for completeness
@@ -856,9 +775,9 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
  * Finish a project review -- private core logic used by 2 functions.
  * @param (CoreNoteFields) note - The note to finish
  */
-async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
+async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
@@ -882,32 +801,70 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         }
       }
     }
+
     // For sequential projects, just make a log note if there are no open tasks
     if (isSequential && numOpenItems === 0) {
       logDebug('finishReviewCoreLogic', `Note: no open tasks found for sequential project '${displayTitle(note)}'.`)
     }
 
     const possibleThisEditor = getOpenEditorFromFilename(note.filename)
-    if (possibleThisEditor) {
-      logDebug('finishReviewCoreLogic', `Updating Editor '${displayTitle(possibleThisEditor)}' ...`)
-      // First update @review(date) on current open note
-      updateMetadataInEditor(possibleThisEditor, [reviewedTodayString])
-      // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      deleteMetadataMentionInEditor(possibleThisEditor, [config.nextReviewMentionStr])
+    if (possibleThisEditor && possibleThisEditor !== false) {
+      const thisEditorNote: ?CoreNoteFields = possibleThisEditor.note
+      if (!thisEditorNote) {
+        logDebug('finishReviewCoreLogic', `No editor note found for '${displayTitle(note)}'; falling back to datastore note update path.`)
+        migrateProjectMetadataLineInNote(note)
+        const metadataLineIndex = getProjectMetadataLineIndex(note)
+        if (metadataLineIndex === false) {
+          logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
+        } else {
+          deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
+        }
+        clearNextReviewFrontmatterField(note)
+        updateBodyMetadataInNote(note, [reviewedTodayString])
+        // $FlowIgnore[prop-missing]
+        DataStore.updateCache(note, true)
+        return
+      }
+      logDebug('finishReviewCoreLogic', `Updating EDITOR note '${displayTitle(thisEditorNote)}' ...`)
+      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+      // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
+      // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
+      // FIXME: The following 3 calls get "Warning: The editor is not open! 'Editor' values will be undefined and functions not working. Open a note to fix this." errors
+      migrateProjectMetadataLineInEditor(possibleThisEditor)
+      const metadataLineIndex = getProjectMetadataLineIndex(possibleThisEditor)
+      if (metadataLineIndex === false) {
+        logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(thisEditorNote)}'`)
+      } else {
+        // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
+        deleteMetadataMentionInEditor(possibleThisEditor, metadataLineIndex, [config.nextReviewMentionStr])
+      }
+      clearNextReviewFrontmatterField(possibleThisEditor)
+      // Update @review(date) on current open note
+      updateBodyMetadataInEditor(possibleThisEditor, [reviewedTodayString])
       await possibleThisEditor.save()
       // Note: no longer seem to need to update cache
     } else {
       logDebug('finishReviewCoreLogic', `Updating note '${displayTitle(note)}' ...`)
-      // First update @review(date) on the note
-      updateMetadataInNote(note, [reviewedTodayString])
-      // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      deleteMetadataMentionInNote(note, [config.nextReviewMentionStr])
+      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+      // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
+      // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
+      migrateProjectMetadataLineInNote(note)
+      const metadataLineIndex = getProjectMetadataLineIndex(note)
+      if (metadataLineIndex === false) {
+        logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
+      } else {
+        // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
+        deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
+      }
+      clearNextReviewFrontmatterField(note)
+      // Update @review(date) on the note
+      updateBodyMetadataInNote(note, [reviewedTodayString])
       // $FlowIgnore[prop-missing]
       DataStore.updateCache(note, true)
     }
-    logDebug('finishReviewCoreLogic', `- done`)
 
     // Then update the Project instance
+    logDebug('finishReviewCoreLogic', `- updating Project instance`)
     // v1:
     // const thisNoteAsProject = new Project(noteToUse)
     // v2: Try to find this project in allProjects, and update that as well
@@ -924,20 +881,24 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         logDebug('finishReviewCoreLogic', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDateStr)})`)
       }
 
+      // Clear next-review fields on the project list entry TEST:
+      clearNextReviewMetadataFields(thisNoteAsProject)
+
       // Save changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
-      // Update display for user (but don't open if it isn't already)
-      await renderProjectLists(config, false)
+      // Update display for user (if window is already open)
+      await renderProjectListsIfOpen(config, scrollPos)
     } else {
       // Regenerate whole list (and display if window is already open)
       logInfo('finishReviewCoreLogic', `- In allProjects list couldn't find project '${note.filename}'. So regenerating whole list and will display if list is open.`)
-      await generateProjectListsAndRenderIfOpen()
+      // TODO: Split the following into just generate...(), and then move the renderProjectListsIfOpen() above to serve both if/else clauses
+      await generateProjectListsAndRenderIfOpen(scrollPos)
     }
 
     // Ensure the Project List window (if open) no longer shows this project as being actively reviewed
     await clearProjectReviewingInHTML()
 
-    logDebug('finishReviewCoreLogic', `- finished successfully`)
+    logDebug('finishReviewCoreLogic', `- done`)
   }
   catch (error) {
     logError('finishReviewCoreLogic', error.message)
@@ -947,6 +908,60 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
 // --------------------------------------------------------------------
 
 /**
+ * Core of the logic for starting a project review: optionally confirm with user, open note in Editor, highlight as active review in Project List HTML.
+ * @param {TNote} noteToReview
+ * @param {ReviewConfig} config
+ * @param {boolean} offerConfirm - If true and config.confirmNextReview, prompt before opening (startReviews / finish-and-next). If false, open immediately (startReviewForNote).
+ * @param {string} logContext - Log tag (e.g. startReviews, startReviewForNote, finishReviewAndStartNextReview)
+ * @returns {Promise<boolean>} true if the note was opened, false if user cancelled confirmation
+ * @private
+ */
+async function startReviewCoreLogic(
+  noteToReview: TNote,
+  config: ReviewConfig,
+  offerConfirm: boolean,
+  logContext: string,
+): Promise<boolean> {
+  if (offerConfirm && config.confirmNextReview) {
+    const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
+    if (res !== 'OK') {
+      logDebug(logContext, `- User didn't want to continue.`)
+      return false
+    }
+  }
+
+  // Show that this project is now being reviewed, if the 'Rich' Project List is open
+  logInfo(logContext, `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
+  await setReviewingProjectInHTML(noteToReview)
+
+  // Check if note is already open in one of the Editor windows:
+  // - If so, just focus it.
+  // - Otherwise open it in the Editor (if running from 'New Window' or 'Split View' mode), or a new split view if not.
+  // V1
+  // const possibleEditor: TEditor | false = findEditorWindowByFilename(noteToReview.filename)
+  // etc.
+  // V2
+  if (config.preferredWindowType === 'Main Window') {
+    // Open in split view
+    const res = openNoteInSplitViewIfNotOpenAlready(noteToReview.filename)
+    if (res) {
+      logInfo(logContext, `- Note '${displayTitle(noteToReview)}' was opened in a new split view.`)
+    } else {
+      logInfo(logContext, `- Note '${displayTitle(noteToReview)}' was already open in an Editor window. Focusing it.`)
+    }
+  } else {
+    // Open in main Editor window
+    const openedNote = await Editor.openNoteByFilename(noteToReview.filename)
+    if (openedNote) {
+      logInfo(logContext, `- Note '${displayTitle(noteToReview)}' was opened in the main Editor.`)
+    } else {
+      logWarn(logContext, `- Note '${displayTitle(noteToReview)}' couldn't be opened in the main Editor window.`)
+    }
+  }
+  return true
+}
+
+/**
  * Start a series of project reviews..
  * Then offers to load the first note to review, based on allProjectsList, ordered by most overdue for review.
  * Note: Used by Project List dialog, and Dashboard.
@@ -954,29 +969,18 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
  */
 export async function startReviews(): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     // Get the next note to review, based on allProjectsList, ordered by most overdue for review.
-    const noteToReview = await getNextNoteToReview()
-    // Open that note in an Editor, confirming with the user if necessary.
+    const noteToReview: ?TNote = await getNextNoteToReview()
     if (!noteToReview) {
       logInfo('startReviews', '🎉 No notes to review!')
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
       return
+    } else {
+      await startReviewCoreLogic(noteToReview, config, true, 'startReviews')
     }
-
-    if (config.confirmNextReview) {
-      const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
-      if (res !== 'OK') {
-        logDebug('startReviews', `- User didn't want to continue.`)
-        return
-      }
-    }
-    logInfo('startReviews', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
-    await Editor.openNoteByFilename(noteToReview.filename)
-    // Highlight this project in the Project List window (if open)
-    await setReviewingProjectInHTML(noteToReview, true)
   } catch (error) {
     logError('startReviews', error.message)
   }
@@ -984,22 +988,22 @@ export async function startReviews(): Promise<void> {
 
 /**
  * Start a single project review.
- * Note: Used by Project List dialog (and Dashboard in future?)
+ * Note: Used by Project List dialog (and Dashboard in future?). So bypasses startReviewCoreLogic() but should remain very similar.
  * @param {TNote} noteToReview - the note to start reviewing
  * @author @jgclark
  */
 export async function startReviewForNote(noteToReview: TNote): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
-    logInfo('startReviews', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
+    logInfo('startReviewForNote', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
     await Editor.openNoteByFilename(noteToReview.filename)
     // Highlight this project in the Project List window (if open)
-    await setReviewingProjectInHTML(noteToReview, true)
+    await setReviewingProjectInHTML(noteToReview)
   
   } catch (error) {
-    logError('startReviews', error.message)
+    logError('startReviewForNote', error.message)
   }
 }
 
@@ -1024,14 +1028,15 @@ export async function nextReview(): Promise<void> {
  */
 export async function finishReview(): Promise<void> {
   try {
-    const currentNote = Editor // note: not Editor.note
-    if (currentNote && currentNote.type === 'Notes') {
-      logInfo('finishReview', `Starting with Editor '${displayTitle(currentNote)}'`)
-      await finishReviewCoreLogic(currentNote)
-    } else {
-      logWarn('finishReview', `- There's no project note in the Editor to finish reviewing.`)
-      await showMessage(`The current Editor note doesn't contain a project note to finish reviewing.`, 'OK, thanks', 'Reviews')
+    // Prefer focused Editor when it is a project note; otherwise any open split with a regular note (calendar may have focus).
+    const currentNote = getFirstRegularNoteAmongOpenEditors()
+    if (!currentNote) {
+      logWarn('finishReview', `- There's no project note in any open Editor pane to finish reviewing.`)
+      await showMessage(`No open editor pane has a project note to finish reviewing. Open the project note (or focus it) and try again.`, 'OK, thanks', 'Reviews')
+      return
     }
+    logInfo('finishReview', `Starting with Editor note '${displayTitle(currentNote)}'`)
+    await finishReviewCoreLogic(currentNote)
   } catch (error) {
     logError('finishReview', error.message)
   }
@@ -1043,7 +1048,7 @@ export async function finishReview(): Promise<void> {
  * @author @jgclark
  * @param {TNote} noteIn
  */
-export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
+export async function finishReviewForNote(noteToUse: TNote, scrollPos: number = 0): Promise<void> {
   try {
     if (!noteToUse || noteToUse.type !== 'Notes') {
       logWarn('finishReviewForNote', `- Not passed a valid project note to finish reviewing. Stopping.`)
@@ -1051,7 +1056,7 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
     }
 
     logInfo('finishReviewForNote', `Starting for passed note '${displayTitle(noteToUse)}'`)
-    await finishReviewCoreLogic(noteToUse)
+    await finishReviewCoreLogic(noteToUse, scrollPos)
   }
   catch (error) {
     logError('finishReviewForNote', error.message)
@@ -1066,7 +1071,7 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
 export async function finishReviewAndStartNextReview(): Promise<void> {
   try {
     logDebug('finishReviewAndStartNextReview', `Starting`)
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     // Finish review of the current project
@@ -1075,22 +1080,12 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
 
     // Read review list to work out what's the next one to review
     const noteToReview: ?TNote = await getNextNoteToReview()
-    if (noteToReview != null) {
-      logDebug('finishReviewAndStartNextReview', `- Opening '${displayTitle(noteToReview)}' as nextReview note ...`)
-      if (config.confirmNextReview) {
-        // Check whether to open that note in editor
-        const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
-        if (res !== 'OK') {
-          return
-        }
-      }
-      await Editor.openNoteByFilename(noteToReview.filename)
-
-      // Highlight this as the newly active review in the Project List window (if open)
-      await setReviewingProjectInHTML(noteToReview, true)
-    } else {
+    if (!noteToReview) {
       logInfo('finishReviewAndStartNextReview', `- 🎉 No more notes to review!`)
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
+    } else {
+      logDebug('finishReviewAndStartNextReview', `- Opening '${displayTitle(noteToReview)}' as nextReview note ...`)
+      await startReviewCoreLogic(noteToReview, config, true, 'finishReviewAndStartNextReview')
     }
   } catch (error) {
     logError('finishReviewAndStartNextReview', error.message)
@@ -1105,11 +1100,11 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
  * @param (CoreNoteFields) note
  * @param (string?) skipIntervalOrDate (optional)
  */
-async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: string = ''): Promise<void> {
+async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: string = '', scrollPos: number = 0): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
-    logDebug('skipReviewForNote', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (config == null) throw new Error('No config found. Stopping.')
+    logDebug('skipReviewCoreLogic', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
     let newDateStr: string = ''
 
     // Calculate new date from param 'skipIntervalOrDate' (if given) or ask user
@@ -1121,7 +1116,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
           ? skipIntervalOrDate
           : ''
       if (newDateStr === '') {
-        logWarn('skipReviewForNote', `${skipIntervalOrDate} is not a valid interval, so will stop.`)
+        logWarn('skipReviewCoreLogic', `${skipIntervalOrDate} is not a valid interval, so will stop.`)
         return
       }
     }
@@ -1149,18 +1144,27 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
 
     const possibleThisEditor = getOpenEditorFromFilename(note.filename)
     if (possibleThisEditor) {
+      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+      // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
+      // body metadata are present, we first migrate/merge them and then update @nextReview() in the canonical place.
+      migrateProjectMetadataLineInEditor(possibleThisEditor)
+
       // Update metadata in the current open note
       logDebug('skipReviewCoreLogic', `Updating Editor ...`)
-      updateMetadataInEditor(possibleThisEditor, [nextReviewMetadataStr])
+      updateBodyMetadataInEditor(possibleThisEditor, [nextReviewMetadataStr])
 
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
       await saveEditorIfNecessary()
       logDebug('skipReviewCoreLogic', `- done`)
     } else {
+      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+      // before we recalculate the metadata line index and update mentions.
+      migrateProjectMetadataLineInNote(note)
+
       // add/update metadata on the note
       logDebug('skipReviewCoreLogic', `Updating note ...`)
-      updateMetadataInNote(note, [nextReviewMetadataStr])
+      updateBodyMetadataInNote(note, [nextReviewMetadataStr])
     }
     logDebug('skipReviewCoreLogic', `- done`)
 
@@ -1179,11 +1183,11 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
       // Write changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't open window if not open already)
-      await renderProjectLists(config, false)
+      await renderProjectListsIfOpen(config, scrollPos)
     } else {
-      // Regenerate whole list (and display if window is already open)      
+      // Regenerate whole list (and display if window is already open)
       logWarn('skipReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
-      await generateProjectListsAndRenderIfOpen()
+      await generateProjectListsAndRenderIfOpen(scrollPos)
     }
   }
   catch (error) {
@@ -1198,7 +1202,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
  */
 export async function skipReview(): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
     const currentNote = Editor
     if (!currentNote || currentNote.type !== 'Notes') {
@@ -1212,7 +1216,12 @@ export async function skipReview(): Promise<void> {
     // Then move to nextReview
     // Read review list to work out what's the next one to review
     const noteToReview: ?TNote = await getNextNoteToReview()
-    if (noteToReview != null) {
+    if (!noteToReview) {
+      logInfo('skipReview', `- 🎉 No more notes to review!`)
+      await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
+      return
+    }
+    else {
       if (config.confirmNextReview) {
         // Check whether to open that note in editor
         const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
@@ -1222,9 +1231,6 @@ export async function skipReview(): Promise<void> {
       }
       logDebug('skipReview', `- opening '${displayTitle(noteToReview)}' as next note ...`)
       await Editor.openNoteByFilename(noteToReview.filename)
-    } else {
-      logInfo('skipReview', `- 🎉 No more notes to review!`)
-      await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
     }
   } catch (error) {
     logError('skipReview', error.message)
@@ -1236,16 +1242,17 @@ export async function skipReview(): Promise<void> {
  * Note: skipReview() is an interactive version of this for Editor.note
  * @author @jgclark
  */
-export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string): Promise<void> {
+export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string, scrollPos: number = 0): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     if (!note || note.type !== 'Notes') {
       logWarn('skipReviewForNote', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
+      return
     }
     logDebug('skipReviewForNote', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
-    await skipReviewCoreLogic(note, skipIntervalOrDate)
+    await skipReviewCoreLogic(note, skipIntervalOrDate, scrollPos)
   }
   catch (error) {
     logError('skipReviewForNote', error.message)
@@ -1260,10 +1267,10 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
  * @author @jgclark
  * @param {TNote?} noteArg 
  */
-export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
+export async function setNewReviewInterval(noteArg?: TNote, scrollPos: number = 0): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (config == null) throw new Error('No config found. Stopping.')
     logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
     const note: CoreNoteFields = noteArg ? noteArg : Editor
     if (!note || note.type !== 'Notes') {
@@ -1291,10 +1298,13 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
       logDebug('setNewReviewInterval', `Updating metadata in Editor`)
       const possibleThisEditor = getOpenEditorFromFilename(note.filename)
       if (possibleThisEditor) {
-        updateMetadataInEditor(possibleThisEditor, [`@review(${newIntervalStr})`])
+        // Ensure any legacy body metadata is migrated into frontmatter before updating @review()
+        migrateProjectMetadataLineInEditor(possibleThisEditor)
+        updateBodyMetadataInEditor(possibleThisEditor, [`@review(${newIntervalStr})`])
       } else {
         logDebug('setNewReviewInterval', `- Couldn't find open Editor for note '${note.filename}', so will update note directly.`)
-        updateMetadataInNote(note, [`@review(${newIntervalStr})`])
+        migrateProjectMetadataLineInNote(note)
+        updateBodyMetadataInNote(note, [`@review(${newIntervalStr})`])
       }
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
@@ -1302,7 +1312,8 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     } else {
       // update metadata on the note
       logDebug('setNewReviewInterval', `Updating metadata in note`)
-      updateMetadataInNote(note, [`@review(${newIntervalStr})`])
+      migrateProjectMetadataLineInNote(note)
+      updateBodyMetadataInNote(note, [`@review(${newIntervalStr})`])
     }
     logDebug('setNewReviewInterval', `- done`)
 
@@ -1322,7 +1333,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
       // Write changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't focus)
-      await renderProjectLists(config, false)
+      await renderProjectListsIfOpen(config, scrollPos)
     }
   } catch (error) {
     logError('setNewReviewInterval', error.message)
@@ -1332,28 +1343,13 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
 //-------------------------------------------------------------------------------
 
 /** 
- * Toggle displayFinished setting, held as a NP preference, as it is shared between frontend and backend
+ * Toggle displayFinished setting, held as a setting in the `settings.json` file.
 */
-export async function toggleDisplayFinished(): Promise<void> {
+export async function toggleDisplayFinished(scrollPos: number = 0): Promise<void> {
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
     // v2 directly update settings.json instead
-    const config: ReviewConfig = await getReviewSettings()
-    const savedValue = config.displayFinished ?? 'hide'
-    // const newValue = (savedValue === 'display')
-    //   ? 'display at end'
-    //   : (savedValue === 'display at end')
-    //     ? 'hide'
-    //     : 'display'
-    const newValue = !savedValue
-    logDebug('toggleDisplayOnlyDue', `displayOnlyDue? now '${String(newValue)}' (was '${String(savedValue)}')`)
-
-    const updatedConfig = config
-    updatedConfig.displayFinished = newValue
-    // logDebug('toggleDisplayFinished', `updatedConfig.displayFinished? now is '${String(updatedConfig.displayFinished)}'`)
-    const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
-    // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    await renderProjectLists(updatedConfig, false)
+    await toggleDisplayFilterKey('displayFinished', true, 'toggleDisplayFinished', scrollPos)
   }
   catch (error) {
     logError('toggleDisplayFinished', error.message)
@@ -1361,22 +1357,13 @@ export async function toggleDisplayFinished(): Promise<void> {
 }
 
 /** 
- * Toggle displayFinished setting, held as a NP preference, as it is shared between frontend and backend
+ * Toggle displayOnlyDue setting, held as a setting in the `settings.json` file.
 */
-export async function toggleDisplayOnlyDue(): Promise<void> {
+export async function toggleDisplayOnlyDue(scrollPos: number = 0): Promise<void> {
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
     // v2 directly update settings.json instead
-    const config: ReviewConfig = await getReviewSettings()
-    const savedValue = config.displayOnlyDue ?? true
-    const newValue = !savedValue
-    logDebug('toggleDisplayOnlyDue', `displayOnlyDue? now '${String(newValue)}' (was '${String(savedValue)}')`)
-    const updatedConfig = config
-    updatedConfig.displayOnlyDue = newValue
-    // logDebug('toggleDisplayOnlyDue', `updatedConfig.displayOnlyDue? now is '${String(updatedConfig.displayOnlyDue)}'`)
-    const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
-    // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    await renderProjectLists(updatedConfig, false)
+    await toggleDisplayFilterKey('displayOnlyDue', true, 'toggleDisplayOnlyDue', scrollPos)
   }
   catch (error) {
     logError('toggleDisplayOnlyDue', error.message)
@@ -1384,21 +1371,12 @@ export async function toggleDisplayOnlyDue(): Promise<void> {
 }
 
 /** 
- * Toggle displayNextActions setting, held as a NP preference, as it is shared between frontend and backend
+ * Toggle displayNextActions setting, held as a setting in the `settings.json` file.
 */
-export async function toggleDisplayNextActions(): Promise<void> {
+export async function toggleDisplayNextActions(scrollPos: number = 0): Promise<void> {
   try {
     // v2 directly update settings.json
-    const config: ReviewConfig = await getReviewSettings()
-    const savedValue = config.displayNextActions ?? false
-    const newValue = !savedValue
-    logDebug('toggleDisplayNextActions', `displayNextActions? now '${String(newValue)}' (was '${String(savedValue)}')`)
-    const updatedConfig = config
-    updatedConfig.displayNextActions = newValue
-    // logDebug('toggleDisplayNextActions', `updatedConfig.displayNextActions? now is '${String(updatedConfig.displayNextActions)}'`)
-    const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
-    // clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    await renderProjectLists(updatedConfig, false)
+    await toggleDisplayFilterKey('displayNextActions', false, 'toggleDisplayNextActions', scrollPos)
   }
   catch (error) {
     logError('toggleDisplayNextActions', error.message)
@@ -1407,22 +1385,28 @@ export async function toggleDisplayNextActions(): Promise<void> {
 
 /**
  * Save all display filter settings at once (used by Display filters dropdown).
- * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean }} data
+ * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean, displayOrder?: string }} data
  */
 export async function saveDisplayFilters(data: {
   displayOnlyDue: boolean,
   displayFinished: boolean,
   displayPaused: boolean,
   displayNextActions: boolean,
-}): Promise<void> {
+  displayOrder?: string,
+}, scrollPos: number = 0): Promise<void> {
   try {
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
     config.displayOnlyDue = data.displayOnlyDue
     config.displayFinished = data.displayFinished
     config.displayPaused = data.displayPaused
     config.displayNextActions = data.displayNextActions
+    if (typeof data.displayOrder === 'string' && data.displayOrder !== '') {
+      config.displayOrder = data.displayOrder
+    }
     await DataStore.saveJSON(config, '../jgclark.Reviews/settings.json', true)
-    await renderProjectLists(config, false)
+    await renderProjectListsIfOpen(config, scrollPos)
   } catch (error) {
     logError('saveDisplayFilters', error.message)
   }

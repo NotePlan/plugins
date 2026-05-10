@@ -3,11 +3,43 @@
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
 // Note: this file is run as a script in the Project List window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
-// Last updated: 2026-02-08 for v1.3.0.b8 by @jgclark
+// Last updated: 2026-05-02 for v2.0.0.b29 by @CursorAI & @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handler
 addCommandButtonEventListeners()
+
+  /**
+   * Rich list project titles use <a class="noteTitle" href="#"> + data-encoded-filename; open via plugin smart split (same bridge type as dialog/review/content).
+   * One listener per document lifecycle (HTML refresh may reload this script).
+   */
+  ; (function registerNoteTitleOpenDelegation() {
+    if (typeof window !== 'undefined' && window.__reviewsNoteTitleDelegationAdded) {
+      console.log('registerNoteTitleOpenDelegation: already added')
+      return
+    }
+    if (typeof window !== 'undefined') {
+      window.__reviewsNoteTitleDelegationAdded = true
+    }
+    document.addEventListener(
+      'click',
+      function (event) {
+        const noteTitleLink = event.target.closest('a.noteTitle')
+        if (!noteTitleLink || !noteTitleLink.dataset.encodedFilename) {
+          return
+        }
+        event.preventDefault()
+        onClickProjectListItem({
+          itemID: '-',
+          type: 'showNoteInEditorFromFilename',
+          encodedFilename: noteTitleLink.dataset.encodedFilename,
+          encodedContent: '',
+        })
+      },
+      false,
+    )
+    console.log('registerNoteTitleOpenDelegation: added')
+  })()
 
 //--------------------------------------------------------------------------------------
 // Show Modal Dialog
@@ -57,7 +89,7 @@ function showProjectControlDialog(dataObject) {
   // Set the dialog interval from the note
   const thisReviewInterval = dataObject.reviewInterval ?? ''
   const dialogItemIntervalElem = document.getElementById('dialogProjectInterval')
-  dialogItemIntervalElem.innerHTML = ` (review every ${thisReviewInterval})`
+  dialogItemIntervalElem.innerHTML = ` <i class="fa-regular fa-repeat pad-left"></i> ${thisReviewInterval}`
 
   // Set latest progress summary (encoded for safe passing in onclick)
   const encodedLastProgress = dataObject.encodedLastProgressComment ?? ''
@@ -154,7 +186,17 @@ function showProjectControlDialog(dataObject) {
   // For clicking on dialog buttons
   function handleButtonClick(functionToInvoke, controlStr, encodedFilename, metaModifier) {
     console.log(`Button clicked on encodedFilename: ${encodedFilename} with controlStr: ${controlStr}, metaModifier: ${metaModifier}`)
-    sendMessageToPlugin('onClickProjectListItem', { itemID: '-', type: functionToInvoke, controlStr: controlStr, encodedFilename: encodedFilename, metaModifier: metaModifier })
+    const scrollPos = typeof window.__reviewsGetScrollPos === 'function'
+      ? window.__reviewsGetScrollPos()
+      : (typeof window.pageYOffset !== 'undefined'
+        ? window.pageYOffset
+        : (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined'
+          ? document.documentElement.scrollTop
+          : (document.body && typeof document.body.scrollTop !== 'undefined'
+            ? document.body.scrollTop
+            : 0)))
+    // console.log(`Sending to backend: onClickProjectListItem(${functionToInvoke}) scrollPos=${String(scrollPos)}`)
+    sendMessageToPlugin('onClickProjectListItem', { itemID: '-', type: functionToInvoke, controlStr: controlStr, encodedFilename: encodedFilename, metaModifier: metaModifier, scrollPos: scrollPos })
     // Dismiss dialog
     closeDialog()
   }

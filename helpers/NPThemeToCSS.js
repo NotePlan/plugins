@@ -37,7 +37,8 @@ function loadThemeData(themeNameIn: string = ''): { themeName: string, themeJSON
       themeName = themeNameIn
       logDebug('loadThemeData', `Reading theme '${themeName}'`)
       themeJSON = matchingThemeObjs[0].values
-      currentThemeMode = Editor.currentTheme.mode
+      currentThemeMode = themeJSON?.mode ?? 'light'
+      logDebug('loadThemeData', `-> mode '${currentThemeMode}'`)
     } else {
       logWarn('loadThemeData', `Theme '${themeNameIn}' is not in list of available themes. Will try to use current theme instead.`)
     }
@@ -51,6 +52,7 @@ function loadThemeData(themeNameIn: string = ''): { themeName: string, themeJSON
     if (themeName !== '') {
       themeJSON = Editor.currentTheme.values
       currentThemeMode = Editor.currentTheme.mode
+      logDebug('loadThemeData', `-> mode '${currentThemeMode}'`)
     } else {
       logWarn('loadThemeData', `Cannot get settings for your current theme '${themeName}'`)
     }
@@ -65,6 +67,7 @@ function loadThemeData(themeNameIn: string = ''): { themeName: string, themeJSON
       logDebug('loadThemeData', `Reading your dark theme '${themeName}'`)
       themeJSON = matchingThemeObjs[0].values
       currentThemeMode = 'dark'
+      logDebug('loadThemeData', `-> mode '${currentThemeMode}'`)
     } else {
       logWarn('loadThemeData', `Cannot get settings for your dark theme '${themeName}'`)
     }
@@ -158,10 +161,10 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       rootSel.push(`--fg-warn-color: color-mix(in oklch, var(--fg-main-color), orange 20%)`)
       rootSel.push(`--fg-error-color: color-mix(in oklch, var(--fg-main-color), red 20%)`)
       rootSel.push(`--fg-ok-color: color-mix(in oklch, var(--fg-main-color), green 20%)`)
-      rootSel.push(`--bg-info-color: color-mix(in oklch, var(--bg-main-color), blue 20%)`)
+      rootSel.push(`--bg-info-color: color-mix(in oklch, var(--bg-main-color), blue 10%)`)
       rootSel.push(`--bg-warn-color: color-mix(in oklch, var(--bg-main-color), orange 20%)`)
-      rootSel.push(`--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%)`)
-      rootSel.push(`--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%)`)
+      rootSel.push(`--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 15%)`)
+      rootSel.push(`--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 15%)`)
       rootSel.push(`--bg-disabled-color: color-mix(in oklch, var(--bg-main-color), gray 20%)`)
       rootSel.push(`--fg-disabled-color: color-mix(in oklch, var(--fg-main-color), gray 20%)`)
     }

@@ -4,12 +4,13 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-05-04 for v1.3.0.b13+, @jgclark
+// Last updated 2026-05-02 for v2.0.0.b30 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { Project, calcReviewFieldsForProject } from './projectClass.js'
+import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
+import { calcReviewFieldsForProject } from './projectClassCalculations.js'
 import { getReviewSettings, updateDashboardIfOpen } from './reviewHelpers.js'
 import type { ReviewConfig } from './reviewHelpers.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -25,12 +26,46 @@ import { smartPrependPara } from '@helpers/paragraph'
 // Settings
 const pluginID = 'jgclark.Reviews'
 const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // fully specified to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
+const allProjectsDemoListDefaultFilename = `../${pluginID}/allProjectsDemoListDefault.json`
+// Backwards-compatible alias for existing demo-list helper
+const allProjectsDemoListFilename = allProjectsDemoListDefaultFilename
 const maxAgeAllProjectsListInHours = 1
 const generatedDatePrefName = 'Reviews-lastAllProjectsGenerationTime'
 const MS_PER_HOUR = 1000 * 60 * 60
 const ERROR_FILENAME_PLACEHOLDER = 'error'
 const ERROR_READING_PLACEHOLDER = '<error reading'
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
+
+/**
+ * Stable key for matching a cached allProjectsList row to `new Project(note, tag, ...)`.
+ * @param {string} filename
+ * @param {string} tag - Same tag as passed to Project constructor (project type tag)
+ * @returns {string}
+ */
+function makeProjectListCacheKey(filename: string, tag: string): string {
+  return `${filename}\u0000${tag}`
+}
+
+/**
+ * Read the on-disk allProjects list for constructor cache hints only (no age-based regeneration).
+ * @returns {Array<any>}
+ */
+function loadRawAllProjectsListSnapshot(): Array<any> {
+  try {
+    if (!DataStore.fileExists(allProjectsListFilename)) {
+      return []
+    }
+    const content = DataStore.loadData(allProjectsListFilename, true)
+    if (content == null || content === '') {
+      return []
+    }
+    const parsed = JSON.parse(content)
+    return Array.isArray(parsed) ? parsed : []
+  } catch (error) {
+    logWarn('loadRawAllProjectsListSnapshot', error.message)
+    return []
+  }
+}
 
 //-------------------------------------------------------------------------------
 // Helper functions
@@ -101,33 +136,55 @@ function findReadyProjects(projects: Array<Project>, maxCount: number = 0): Arra
 }
 
 /**
- * Build sorting specification array based on config
- * @param {ReviewConfig} config - Review configuration
- * @returns {Array<string>} Array of field names to sort by
+ * Get the primary project tag from a Project instance or project-like JSON object.
+ * @param {Project | any} project
+ * @returns {string}
  * @private
  */
-function buildSortingSpecification(
+function getLeadingProjectTag(project: Project | any): string {
+  // $FlowIgnore[method-unbinding]
+  if (project != null && typeof project.getLeadingProjectTag === 'function') {
+    return project.getLeadingProjectTag()
+  }
+  const tags = Array.isArray(project?.allProjectTags) ? project.allProjectTags : []
+  if (tags.length > 0 && typeof tags[0] === 'string' && tags[0].trim() !== '') {
+    return tags[0].trim()
+  }
+  return '#project'
+}
+
+/**
+ * Build sorting specification array based on config.
+ * - firstTag mode: primary tag order per config.projectTypeTags > nextReviewDays > Title
+ * - review mode: nextReviewDays > Title
+ * - due mode: dueDays > Title
+ * - title mode: Title
+ * Where .displayGroupedByFolder is true, then add folder as first sort key.
+ * @param {ReviewConfig} config - Review configuration
+ * @returns {Array<string>} Array of field names to sort by
+ */
+export function buildSortingSpecification(
   config: ReviewConfig,
 ): Array<string> {
   const sortingSpec: Array<string> = []
-  sortingSpec.push('projectTagOrder')
   if (config.displayGroupedByFolder) {
     sortingSpec.push('folder')
   }
-  sortingSpec.push('isCancelled', 'isCompleted', 'isPaused') // i.e. 'active' before 'finished'
-
   switch (config.displayOrder) {
+    case 'firstTag':
+      sortingSpec.push('projectTagOrder', 'nextReviewDays', 'title')
+      break
     case 'review':
-      sortingSpec.push('nextReviewDays')
+      sortingSpec.push('nextReviewDays', 'title')
       break
     case 'due':
-      sortingSpec.push('dueDays')
+      sortingSpec.push('dueDays', 'title')
       break
-    case 'title':
+    default:
+    // For title and Unknown displayOrder: treat like title-only sort
       sortingSpec.push('title')
       break
   }
-
   return sortingSpec
 }
 
@@ -140,7 +197,7 @@ function stringifyProjectObjects(objArray: Array<any>): string {
    * Also normalizes any existing date strings to YYYY-MM-DD format
    * @returns {any}
    */
-  const dateFieldNames = ['startDate', 'dueDate', 'reviewedDate', 'completedDate', 'cancelledDate']
+  const dateFieldNames = ['startDate', 'dueDate', 'reviewedDate', 'completedDate', 'cancelledDate', 'nextReviewDateStr']
   const RE_ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/
   
   function stringifyReplacer(key: string, value: any) {
@@ -276,22 +333,32 @@ export async function logAllProjectsList(): Promise<void> {
   console.log(stringifyProjectObjects(allProjects))
 }
 
-/**
- * Return as Project instances all projects that match config items 'foldersToInclude', 'foldersToIgnore', and 'projectTypeTags'.
- * @author @jgclark
- * @param {any} configIn
- * @param {boolean} runInForeground?
- * @returns {Array<Project>}
- */
-async function getAllMatchingProjects(configIn: any, runInForeground: boolean = false): Promise<Array<Project>> {
-  const config = configIn ? configIn : await getReviewSettings() // get config from passed config if possible
-  if (!config) throw new Error('No config found. Stopping.')
+export type ProjectNoteTagPair = {|
+  note: TNote,
+  projectTypeTag: string,
+|}
 
-  logInfo('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
-  const startTime = moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+/**
+ * Enumerate project notes that match the same folder, tag, and teamspace rules as `allProjectsList.json` / `getAllMatchingProjects`.
+ * Does not instantiate `Project` or read the projects-list cache.
+ * @author @jgclark
+ * @param {ReviewConfig} config - Validated review config (caller must not pass null)
+ * @param {boolean} runInForeground - When true, shows CommandBar loading per folder (same as list generation)
+ * @returns {Promise<Array<ProjectNoteTagPair>>}
+ */
+export async function enumerateMatchingProjectNoteTagPairs(
+  config: ReviewConfig,
+  runInForeground: boolean = false,
+): Promise<Array<ProjectNoteTagPair>> {
+  logInfo(
+    'enumerateMatchingProjectNoteTagPairs',
+    `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`,
+  )
+
+  const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
 
   // Get list of folders, excluding @specials and our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore.
-  const filteredFolderList = (config.foldersToInclude.length > 0)
+  const filteredFolderList = (config.foldersToInclude?.length ?? 0 > 0)
     ? getFoldersMatching(config.foldersToInclude, true).sort()
     : getFolderListMinusExclusions(config.foldersToIgnore, true, false).sort()
 
@@ -305,7 +372,10 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
     if (!exists) acc.push(f)
     return acc
   }, [])
-  // logDebug('getAllMatchingProjects', `- filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
+  logInfo(
+    'enumerateMatchingProjectNoteTagPairs',
+    `-> ${String(filteredFolderListWithoutSubdirs.length)} filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`,
+  )
 
   // Filter the list of project notes from the DataStore.
   let filteredProjectNotes = filterProjectNotesByFolders(
@@ -320,13 +390,16 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
       filteredProjectNotes,
       config.includedTeamspaces,
     )
-    logDebug('getAllMatchingProjects', `- after teamspace filter: ${filteredProjectNotes.length} project notes`)
+    logDebug('enumerateMatchingProjectNoteTagPairs', `- after teamspace filter: ${filteredProjectNotes.length} project notes`)
   }
 
-  logTimer(`getAllMatchingProjects`, startTime, `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`)
+  logTimer(
+    'enumerateMatchingProjectNoteTagPairs',
+    startTime,
+    `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`,
+  )
 
-  // Iterate over the folders, looking for notes that match the projectTypeTags
-  const projectInstances = []
+  const pairs: Array<ProjectNoteTagPair> = []
   for (const folder of filteredFolderList) {
     // Either we have defined tag(s) to filter and group by, or just use []
     const tags = config.projectTypeTags != null && config.projectTypeTags.length > 0 ? config.projectTypeTags : []
@@ -337,28 +410,76 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
 
     // Get notes that include projectTag in this folder, ignoring subfolders
     for (const tag of tags) {
-      // logDebug('getAllMatchingProjects', `looking for tag '${tag}' in project notes in folder '${folder}'...`)
-      // Note: this is very quick <1ms
       const projectNotesArr = findNotesMatchingHashtagOrMentionFromList(tag, filteredProjectNotes, true, false, folder, false, [])
-      if (projectNotesArr.length > 0) {
-        // Get Project class representation of each note.
-        // Save those which are ready for review in projectsReadyToReview array
-        if (!runInForeground) {
-          await CommandBar.onAsyncThread()
-        }
-        for (const n of projectNotesArr) {
-          const np = new Project(n, tag, true, config.nextActionTags, config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT)
-          projectInstances.push(np)
-        }
-        if (!runInForeground) {
-          await CommandBar.onMainThread()
-        }
+      for (const n of projectNotesArr) {
+        pairs.push({ note: n, projectTypeTag: tag })
       }
     }
   }
   if (runInForeground) {
     CommandBar.showLoading(false)
   }
+  logTimer('enumerateMatchingProjectNoteTagPairs', startTime, `- found ${pairs.length} note/tag pairs`)
+  return pairs
+}
+
+/**
+ * Return as Project instances all projects that match config items 'foldersToInclude', 'foldersToIgnore', and 'projectTypeTags'.
+ * Note: These may be taken from the Perspective settings before being passed to this function.
+ * @author @jgclark
+ * @param {ReviewConfig} configIn
+ * @param {boolean} runInForeground? (default: false)
+ * @returns {Array<Project>}
+ */
+async function getAllMatchingProjects(
+  configIn: ReviewConfig,
+  runInForeground: boolean = false,
+): Promise<Array<Project>> {
+  // get config from passed config if possible
+  const config = configIn ? configIn : await getReviewSettings()
+  if (!config) throw new Error('No config found. Stopping.')
+
+  logDebug('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
+  // logDebug('getAllMatchingProjects', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
+  // logDebug('getAllMatchingProjects', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
+
+  const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
+
+  const pairs = await enumerateMatchingProjectNoteTagPairs(config, runInForeground)
+
+  const snapshotRows = loadRawAllProjectsListSnapshot()
+  const projectListRowByKey: Map<string, any> = new Map()
+  for (const row of snapshotRows) {
+    if (row != null && typeof row.filename === 'string' && row.filename !== '') {
+      const tagForKey = getLeadingProjectTag(row)
+      projectListRowByKey.set(makeProjectListCacheKey(row.filename, tagForKey), row)
+    }
+  }
+
+  const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
+  const projectInstances = []
+  for (const { note: n, projectTypeTag: tag } of pairs) {
+    const currentMs = getNoteChangeTimeMsForCache(n, true)
+    const cacheKey = makeProjectListCacheKey(n.filename, tag)
+    const cachedRow = projectListRowByKey.get(cacheKey)
+    let np: Project
+    if (
+      currentMs != null &&
+      cachedRow != null &&
+      typeof cachedRow.noteChangedAtMs === 'number' &&
+      cachedRow.noteChangedAtMs === currentMs
+    ) {
+      // logDebug('getAllMatchingProjects', `- Cache hit for ${tag} '${n.filename}'`)
+      const cloned = { ...cachedRow }
+      cloned.note = n
+      np = calcReviewFieldsForProject(cloned)
+    } else {
+      logDebug('getAllMatchingProjects', `- Cache MISS, so calling Project constructor for ${tag} '${n.filename}'`)
+      np = new Project(n, tag, true, config.nextActionTags, sequentialTagResolved, false)
+    }
+    projectInstances.push(np)
+  }
+
   logTimer('getAllMatchingProjects', startTime, `- found ${projectInstances.length} available matching project notes`)
   return projectInstances
 }
@@ -413,13 +534,42 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
     if (res) {
       const reviewListDate = Date.now()
       DataStore.setPreference(generatedDatePrefName, reviewListDate)
-      logInfo('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
+      logDebug('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
       await updateDashboardIfOpen()
     } else {
       throw new Error(`Error writing JSON to '${allProjectsListFilename}'`)
     }
   } catch (error) {
     logError('writeAllProjectsList', JSP(error))
+  }
+}
+
+/**
+ * Copy the fixed demo default list JSON into the live allProjects list file.
+ * Does not touch any live project notes.
+ * @returns {Promise<boolean>} true if copy succeeded, false otherwise
+ */
+export async function copyDemoDefaultToAllProjectsList(): Promise<boolean> {
+  try {
+    if (!DataStore.fileExists(allProjectsDemoListDefaultFilename)) {
+      throw new Error(`Demo default file not found: ${allProjectsDemoListDefaultFilename}`)
+    }
+    const content = DataStore.loadData(allProjectsDemoListDefaultFilename, true)
+    if (content == null) {
+      throw new Error(`Couldn't read demo default file: ${allProjectsDemoListDefaultFilename}`)
+    }
+    const res = DataStore.saveData(String(content), allProjectsListFilename, true)
+    if (!res) {
+      throw new Error(`Couldn't write to ${allProjectsListFilename}`)
+    }
+    const now = Date.now()
+    DataStore.setPreference(generatedDatePrefName, now)
+    logInfo('copyDemoDefaultToAllProjectsList', `Copied demo list to ${allProjectsListFilename} at ${String(now)}`)
+    await updateDashboardIfOpen()
+    return true
+  } catch (error) {
+    logError('copyDemoDefaultToAllProjectsList', error.message)
+    return false
   }
 }
 
@@ -452,7 +602,8 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
 
 /**
  * Get all Project object instances from JSON list of all available project notes. Doesn't come ordered.
- * First checks to see how old the list is, and re-generates more than 'maxAgeAllProjectsListInHours' hours old.
+ * If in demo mode, just load from the allProjectsList, which should be the demo list. Don't worry about its age.
+ * If not demo mode, then first check to see how old the list is, and re-generates more than 'maxAgeAllProjectsListInHours' hours old.
  * @author @jgclark
  * @returns {Promise<Array<Project>>} allProjects Object, the same as what is written to disk
  */
@@ -462,31 +613,38 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
     const startTime = moment().toDate()
     let projectInstances: Array<Project>
 
-    // Check if file exists and is fresh enough
-    if (shouldRegenerateAllProjectsList()) {
-      if (DataStore.fileExists(allProjectsListFilename)) {
+    // Demo mode: never regenerate from live notes; ensure JSON exists (from demo default), then read it
+    const config = await getReviewSettings()
+    if (config?.useDemoData === true) {
+      const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
+      projectInstances = JSON.parse(content)
+    } else {
+      // Check if file exists and is fresh enough
+      if (shouldRegenerateAllProjectsList()) {
+        if (DataStore.fileExists(allProjectsListFilename)) {
+          const fileAgeMs = getFileAgeMs(generatedDatePrefName)
+          const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
+          logDebug('getAllProjectsFromList', `- Regenerating allProjects list as more than ${String(maxAgeAllProjectsListInHours)} hours old (currently ${fileAgeHours} hours)`)
+        } else {
+          logDebug('getAllProjectsFromList', `- Generating allProjects list as can't find it`)
+        }
+        projectInstances = await generateAllProjectsList()
+      } else {
+        // Read from the list
         const fileAgeMs = getFileAgeMs(generatedDatePrefName)
         const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
-        logDebug('getAllProjectsFromList', `- Regenerating allProjects list as more than ${String(maxAgeAllProjectsListInHours)} hours old (currently ${fileAgeHours} hours)`)
-      } else {
-        logDebug('getAllProjectsFromList', `- Generating allProjects list as can't find it`)
+        logDebug('getAllProjectsFromList', `- Reading from current allProjectsList (as only ${fileAgeHours} hours old)`)
+        const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
+        // Make objects from this (except .note)
+        // Date fields (startDate, dueDate, etc.) are stored as ISO strings (YYYY-MM-DD) and left as strings
+        projectInstances = JSON.parse(content)
+
+        // Recalculate review fields for all projects since nextReviewDays may be stale
+        // This is necessary because the JSON was written at a previous time, and nextReviewDays
+        // needs to be recalculated based on the current date
+        logDebug('getAllProjectsFromList', `- Recalculating review fields for ${projectInstances.length} projects loaded from JSON`)
+        projectInstances = projectInstances.map((project) => calcReviewFieldsForProject(project))
       }
-      projectInstances = await generateAllProjectsList()
-    } else {
-      // Read from the list
-      const fileAgeMs = getFileAgeMs(generatedDatePrefName)
-      const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
-      logDebug('getAllProjectsFromList', `- Reading from current allProjectsList (as only ${fileAgeHours} hours old)`)
-      const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
-      // Make objects from this (except .note)
-      // Date fields (startDate, dueDate, etc.) are stored as ISO strings (YYYY-MM-DD) and left as strings
-      projectInstances = JSON.parse(content)
-      
-      // Recalculate review fields for all projects since nextReviewDays may be stale
-      // This is necessary because the JSON was written at a previous time, and nextReviewDays
-      // needs to be recalculated based on the current date
-      logDebug('getAllProjectsFromList', `- Recalculating review fields for ${projectInstances.length} projects loaded from JSON`)
-      projectInstances = projectInstances.map((project) => calcReviewFieldsForProject(project))
     }
     logTimer(`getAllProjectsFromList`, startTime, `- read ${projectInstances.length} Projects from allProjects list`)
 
@@ -494,6 +652,28 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
   }
   catch (error) {
     logError('getAllProjectsFromList', error.message)
+    return []
+  }
+}
+
+/**
+ * Get all project objects from the fixed demo JSON list. No generation or recalculation; data is used as-is.
+ * @author @jgclark
+ * @returns {Promise<Array<Project|any>>} array of project-like objects from allProjectsDemoList.json, or [] if file missing
+ */
+export async function getAllProjectsFromDemoList(): Promise<Array<Project | any>> {
+  try {
+    logDebug('getAllProjectsFromDemoList', `Starting ...`)
+    if (!DataStore.fileExists(allProjectsDemoListFilename)) {
+      logWarn('getAllProjectsFromDemoList', `Demo file not found: ${allProjectsDemoListFilename}`)
+      return []
+    }
+    const content = DataStore.loadData(allProjectsDemoListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsDemoListFilename}>`
+    const projectInstances = JSON.parse(content)
+    logDebug('getAllProjectsFromDemoList', `- read ${projectInstances.length} projects from demo list (no recalculation)`)
+    return Array.isArray(projectInstances) ? projectInstances : []
+  } catch (error) {
+    logError('getAllProjectsFromDemoList', error.message)
     return []
   }
 }
@@ -527,7 +707,7 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
  * Used by filterAndSortProjectsList(); can be used when only filtering is needed.
  * @param {Array<Project>} projectInstancesIn projects to filter (e.g. from getAllProjectsFromList)
  * @param {ReviewConfig} config
- * @param {boolean?} dedupeList?
+ * @param {boolean?} dedupeList? (Optional, default is false)
  * @returns {Promise<Array<Project>>} filtered projects (unsorted)
  */
 export async function filterProjectsList(
@@ -560,12 +740,6 @@ export async function filterProjectsList(
       logDebug('filterProjectsList', `- after filtering out non-due, ${projectInstances.length} projects`)
     }
 
-    // Need to extend projectInstances with a proxy for the 'projectTag' field, so that we can sort by it according to the order it was given in config.projectTypeTags
-    projectInstances.forEach((pi) => {
-      // $FlowIgnore[prop-missing] deliberate temporary extension to Project class
-      pi.projectTagOrder = config.projectTypeTags.indexOf(pi.projectTag)
-    })
-
     // Dedupe the list if required
     if (dedupeList) {
       // Remove repeated projects with the same filename (keeping the first occurrence)
@@ -589,9 +763,8 @@ export async function filterProjectsList(
 }
 
 /**
- * Sort a list of Projects by projectTagOrder > folder > [nextReviewDays | dueDays | title],
- * unless overriden by parameter 'sortingOrder'.
- * Mutates each project to add projectTagOrder; returns a new sorted array.
+ * Sort a list of Projects by config-driven keys (see buildSortingSpecification), unless overridden by parameter 'sortingOrder'.
+ * Mutates each project to add projectTagOrder (index in config.projectTypeTags for firstTag sort; for debug logging otherwise).
  * @param {Array<Project>} projectInstances projects to sort (e.g. from filterProjectsList)
  * @param {ReviewConfig} config
  * @param {Array<string>?} sortingOrder array of field names to sort by; if given overrides the default sorting order from the Reviews plugin. (Optional)
@@ -602,45 +775,57 @@ export function sortProjectsList(
   config: ReviewConfig,
   sortingOrder: Array<string> = [],
 ): Array<Project> {
-  // Need to extend projectInstances with a proxy for the 'projectTag' field, so that we can sort by it according to the order it was given in config.projectTypeTags
+  // logDebug('sortProjectsList', `Starting with input sortingOrder: [${String(sortingOrder)}]`)
+  const projectTypeTagsForOrder =
+    config.projectTypeTags != null && typeof config.projectTypeTags === 'string' ? [config.projectTypeTags] : (config.projectTypeTags ?? [])
+  // Extend Project with projectTagOrder (sort key for firstTag mode: order matches config.projectTypeTags)
   projectInstances.forEach((pi) => {
     // $FlowIgnore[prop-missing] deliberate temporary extension to Project class
-    pi.projectTagOrder = config.projectTypeTags.indexOf(pi.projectTag)
+    pi.projectTagOrder = projectTypeTagsForOrder.indexOf(getLeadingProjectTag(pi))
   })
 
-  // Sort projects by projectTagOrder > folder > [nextReviewDays | dueDays | title],
-  // unless reviewDateSortOrder is true, in which case sort by [nextReviewDays | dueDays | title].
+  // TODO: Finish reviewing how allProjectTags is really being used, and remove this logging.
   const sortingSpecification = (sortingOrder.length > 0) ? sortingOrder : buildSortingSpecification(config)
-  logDebug('sortProjectsList', `- sorting by ${String(sortingSpecification)}`)
-  return sortListBy(projectInstances, sortingSpecification)
-  // sortedProjectInstances.forEach(pi => logDebug('', `${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
+  // logDebug('sortProjectsList', `- sorting by ${String(sortingSpecification)}`)
+  const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)
+  // $FlowIgnore[prop-missing] deliberate temporary extension to Project class
+  // sortedProjectInstances.forEach(pi => console.log(`${pi.projectTagOrder}\t[${String(pi.allProjectTags)}]\t${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
+  return sortedProjectInstances
 }
 
 /**
  * Filter and sort the list of Projects. Used by renderProjectLists().
  * @param {ReviewConfig} config
- * @param {string?} projectTag to filter by (optional)
+ * @param {string?} tag to filter by (optional)
  * @param {Array<string>?} sortingOrder array of field names to sort by; if given overrides the default sorting order from the Reviews plugin. (Optional)
- * @param {boolean?} dedupeList if true, deduplicate the list by removing projects with multiple 'projectTags'. (Optional, default is false)
- * @returns {Promise<[Array<Project>, number]>} [sorted projects, number projects unfiltered]
+ * @param {boolean?} dedupeList if true, deduplicate the list by removing projects with multiple 'tags'. (Optional, default is false)
+ * @param {boolean?} useDemoList if true, read from allProjectsDemoList.json instead of live list (optional, default is false)
+ * @returns {Promise<[Array<Project>, number]>} [sorted projects, count after tag filter only — i.e. length before folder/due/paused/dedupe filters; use tuple[0].length for rows in the sorted list]
  */
 export async function filterAndSortProjectsList(
   config: ReviewConfig,
-  projectTag: string = '',
+  tag: string = '',
   sortingOrder: Array<string> = [],
   dedupeList?: boolean = false,
+  useDemoList?: boolean = false,
 ): Promise<[Array<Project>, number]> {
-  const allProjectInstances = await getAllProjectsFromList()
-  logDebug('filterAndSortProjectsList', `Starting with tag '${projectTag}' for ${allProjectInstances.length} projects`)
+  let allProjectInstances: Array<Project>
+  if (useDemoList) {
+    allProjectInstances = await getAllProjectsFromDemoList()
+  } else {
+    allProjectInstances = await getAllProjectsFromList()
+  }
+  logInfo('filterAndSortProjectsList', `Starting with tag '${tag}' for ${allProjectInstances.length} projects${useDemoList ? ' (demo)' : ''}`)
   
-  // Filter out projects that are not tagged with the projectTag
-  const projectInstancesForTag = (projectTag !== '')
-    ? allProjectInstances.filter((pi) => pi.projectTag === projectTag)
+  // Filter out projects that are not tagged with the tag
+  const projectInstancesForTag = (tag !== '')
+    ? allProjectInstances.filter((pi) => pi.allProjectTags.includes(tag))
     : allProjectInstances
 
-  const filteredProjectList = await filterProjectsList(projectInstancesForTag, config, dedupeList)
+  const filteredProjectList = (useDemoList) ? projectInstancesForTag : await filterProjectsList(projectInstancesForTag, config, dedupeList)
+
   const sortedProjectList = sortProjectsList(filteredProjectList, config, sortingOrder) 
-  logDebug('filterAndSortProjectsList', `- filtered ${filteredProjectList.length} projects, sorted ${sortedProjectList.length} projects`)
+  logInfo('filterAndSortProjectsList', `- filtered ${filteredProjectList.length} projects, sorted ${sortedProjectList.length} projects (before perspective filters: ${String(projectInstancesForTag.length)})`)
   return [sortedProjectList, projectInstancesForTag.length]
 }
 
@@ -656,12 +841,17 @@ export async function filterAndSortProjectsList(
  * @param {ReviewConfig} config
  */
 export async function updateAllProjectsListAfterChange(
-  // reviewedTitle: string,
   reviewedFilename: string,
   simplyDelete: boolean,
   config: ReviewConfig,
 ): Promise<void> {
   try {
+    if (config.useDemoData ?? false) {
+      logInfo('updateAllProjectsListAfterChange', `Demo mode is on; not updating live notes, but will adjust JSON list if possible for '${reviewedFilename}'`)
+      // In demo mode we deliberately do not touch live notes or regenerate from them.
+      // We leave the JSON list unchanged here; any in-UI changes should go via updateProjectInAllProjectsList.
+      return
+    }
     if (reviewedFilename === '') {
       throw new Error('Empty filename passed')
     }
@@ -685,7 +875,7 @@ export async function updateAllProjectsListAfterChange(
     allProjects = allProjects.filter((project) => project.filename !== reviewedFilename)
     logInfo('updateAllProjectsListAfterChange', `- Deleted Project '${reviewedTitle}'`)
 
-    // unless we simply need to delete, add updated item back into the list
+    // add updated item back into the list (unless we simply need to delete)
     if (!simplyDelete) {
       const reviewedNote = await DataStore.noteByFilename(reviewedFilename, "Notes")
       if (!reviewedNote) {
@@ -693,7 +883,14 @@ export async function updateAllProjectsListAfterChange(
         return
       }
       // Note: there had been issue of stale data here in the past. Leaving comment in case it's needed again.
-      const updatedProject = new Project(reviewedNote, reviewedProject.projectTag, true, config.nextActionTags, config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT)
+      const updatedProject = new Project(
+        reviewedNote,
+        getLeadingProjectTag(reviewedProject),
+        true,
+        config.nextActionTags,
+        config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT,
+        false,
+      )
       // clo(updatedProject, 'in updateAllProjectsListAfterChange() 🟡 updatedProject:')
       allProjects.push(updatedProject)
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
@@ -719,7 +916,8 @@ export async function updateAllProjectsListAfterChange(
 export async function getNextNoteToReview(): Promise<?TNote> {
   try {
     logDebug(pluginJson, `getNextNoteToReview() starting ...`)
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) { throw new Error('Stopping as I can\'t get the Review settings.') }
 
     // Get all available Projects -- not filtering by projectTag here
     const [allProjectsSorted, _numberProjectsUnfiltered] = await filterAndSortProjectsList(config)
@@ -738,7 +936,7 @@ export async function getNextNoteToReview(): Promise<?TNote> {
       logDebug('getNextNoteToReview', `- Next to review -> '${thisNoteFilename}'`)
       const nextNote = DataStore.projectNoteByFilename(thisNoteFilename)
       if (!nextNote) {
-        logWarn('getNextNoteToReview', `Couldn't find note '${thisNoteFilename}' -- suggest you should re-run Project Lists to ensure this is up to date`)
+        logWarn('getNextNoteToReview', `Couldn't find note '${thisNoteFilename}' -- please re-run Project Lists to ensure this is up to date`)
         return null
       } else {
         logDebug('getNextNoteToReview', `-> ${displayTitle(nextNote)}`)
@@ -799,7 +997,7 @@ export async function getNextProjectsToReview(numToReturn: number = 0): Promise<
 
 /**
  * Get list of all active Project(s). This is filtered according to the plugin settings, which may come from the Perspective set by the Dashboard.
- * It is sorted by projectTagOrder > folder > [nextReviewDays | dueDays | title], unless sortingOrder is given instead.
+ * It is sorted per buildSortingSpecification (folder when grouped, then first-tag / dates / title per displayOrder), unless sortingOrder is given instead.
  * If a project has multiple 'projectTags' it can appear multiple times in the list. If you don't want this (e.g. for Dashboard), then send flag 'dedupeList' to true.
  * @author @jgclark
  * @param { Array<string> } sortingOrder - array of field names to sort by; if given overrides the default sorting order from the Reviews plugin. (Optional)

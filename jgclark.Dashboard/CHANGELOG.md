@@ -8,7 +8,6 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
-
 ## [2.4.0.b31] 2026-05-04
 - fix: interactive processing no longer includes section footer rows (`offerToFilter`, `filterIndicator`, etc.) in `visibleItems`, so the task dialog does not advance onto non-task rows or crash on `para.hasChild`.
 - fix: completing tasks in daily notes with a `@repeat(interval)` was failing to remove the time from the `@done(date time)` marker, causing issues later.
@@ -48,10 +47,14 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - new **Wins** Section which shows any top-priority tasks (with the `>>` prefix) from as many of the current Calendar sections are turned on. You need to turn this on through the new setting **Show '>>' priority marker as a separate section**.  It has a subtly different background color.
 - "Calendar note Sections to Include" now matches headings by case-insensitive prefix (e.g. `Wins` matches `Wins for 2026-04-13`), not exact full-heading text
 - change icons in the note title links to be 'light' not 'regular'
+- add check for window visibility before running any of the refreshes. (Caused by Dashboard timers still operating even when the Dashboard window is closed by NP.)
 
 ## [2.4.0.b22] 2026-02-27
+- fix: avoid runtime error when opening Dashboard if Reviews plugin triggers a refresh before React has sent pluginData — guard in refreshSomeSections and setPluginData when shared data is not ready yet
+- fix: when switching perspective, only refresh the Projects List (Reviews plugin) if that window is actually open; use exact window ID match so we don't trigger when another Reviews window is open
+- UX: reduce multi-step redraw when switching perspective via dropdown — no optimistic UI for sections; sections refresh in one batch instead of per-section updates
 - fix (hopefully): work around indents API bug that stopped indented tasks being moved to different calendar notes
-- fix: ensure numeric dashboard settings (for example `maxItemsToShowInSection` and `newTaskSectionHeadingLevel`) are always stored and loaded as numbers, not strings
+- dev: ensure numeric dashboard settings (for example `maxItemsToShowInSection` and `newTaskSectionHeadingLevel`) are always stored and loaded as numbers, not strings
 - dev: normalise number-type settings in both the React settings dialog and `setSetting`/`setSettings` x-callback paths to avoid subtle type mismatches in future
 
 ## [2.4.0.b21] 2026-02-19 
