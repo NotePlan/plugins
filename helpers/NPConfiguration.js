@@ -88,7 +88,11 @@ export function updateSettingData(pluginJsonData: any): number {
 
   const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
   // clo(pluginSettings, `pluginSettings`)
-  pluginSettings.forEach((setting) => {
+  pluginSettings.forEach((setting, index) => {
+    // Skip null/undefined or non-object entries silently (e.g. stray nulls in plugin.json)
+    if (setting == null || typeof setting !== 'object' || Array.isArray(setting)) {
+      return
+    }
     const key: any = setting?.key
     const hasValidKey = key != null && key !== ''
     // For each setting with a key (i.e. ignoring headings) check if it is in the current settings, and if not, add it with the default value.
@@ -99,6 +103,15 @@ export function updateSettingData(pluginJsonData: any): number {
         updateResult = 1 // we have made at least one update, change result code accordingly
       } else {
         newSettings[key] = currentSettingData[key]
+      }
+    } else {
+      // Object without a valid key. Headings/separators legitimately have no key, so don't warn for those.
+      const settingType = setting?.type
+      if (settingType !== 'heading' && settingType !== 'separator') {
+        logWarn(
+          'NPConfiguration/updateSettingData',
+          `plugin.settings[${index}] has no valid key; skipping. plugin.id=${pluginJsonData['plugin.id'] ?? ''}`,
+        )
       }
     }
   })
