@@ -235,27 +235,27 @@ export function getWindowIdFromCustomId(
   }
 
   if (foundWin) {
-    if (doCheckIsVisible && (foundWin.isVisible ?? false)) {
-      // logDebug('getWindowIdFromCustomId', `Window '${customId}' is available and visible, so will return its ID '${foundWin.id}'.`)
+    if (!doCheckIsVisible || (foundWin.isVisible ?? false)) {
+      // logDebug('getWindowIdFromCustomId', `Window '${customId}' is available, so will return its ID '${foundWin.id}'.`)
       return foundWin.id
-    } else {
-      logInfo('getWindowIdFromCustomId', `Window '${foundWin.customId}' is available, but not visible, so will not return it.`)
-      return false
     }
+    logInfo('getWindowIdFromCustomId', `Window '${foundWin.customId}' is available, but not visible, so will not return it.`)
+    return false
   }
-  logDebug('getWindowIdFromCustomId', `Did not find ${checkIsVisible ? 'open' : 'visible or invisible'} window with ID:"${customId}" on platform ${NotePlan.environment.platform}.`)
+  logDebug('getWindowIdFromCustomId', `Did not find window with customId:"${customId}" on platform ${NotePlan.environment.platform}.`)
   return false
 }
 
 /**
- * Is a given HTML window open, based on its customId? 
+ * Is a given HTML window open and visible, based on its customId?
  * Matches are case-insensitive, and either an exact match or a starts-with-match on the supplied customId.
+ * Always uses getWindowIdFromCustomId(..., true) so hidden/cached panes do not count as open.
  * @author @jgclark
  * @param {string} customId to look for
  * @returns {boolean}
  */
 export function isHTMLWindowOpen(customId: string): boolean {
-  return !!getWindowIdFromCustomId(customId)
+  return !!getWindowIdFromCustomId(customId, true)
 }
 
 /**
