@@ -9,6 +9,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 - add offer to migrate all metadata when updating to v2.0.0, with details of how to run it later if needed.
 - update Documentation ready for v2.0.0
 - change defaults for the *MentionStr settings to not mention leading `@` characters.
+- fix to some WebView console errors, apparently to do with older JS syntax not being supported.
 
 ## [2.0.0.b30] - 2026-05-03
 - fix the per-tag counts in the Filter + Order dropdown

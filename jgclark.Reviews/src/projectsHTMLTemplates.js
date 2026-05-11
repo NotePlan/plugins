@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // HTML and JS template strings for Reviews plugin HTML view
 // Extracted from reviews.js to keep command logic separate from templates.
-// Last updated 2026-04-26 for v2.0.0.b23, @jgclark
+// Last updated 2026-05-10 for v2.0.0.b31, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 export const stylesheetinksInHeader: string = `
@@ -258,7 +258,15 @@ export const displayFiltersDropdownScript: string = `
           if (hasChanges) {
             var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0
             // console.log("Sending to backend: saveDisplayFilters scrollPos=" + String(scrollPos))
-            sendMessageToPlugin('saveDisplayFilters', { ...state, scrollPos: scrollPos });
+            // TEST: change from spread to explicit list of properties, to see if this fixes runtime issue with @CursorAI thinking WebView doesn't support ES2020 syntax.
+            sendMessageToPlugin('saveDisplayFilters', {
+              displayOnlyDue: state.displayOnlyDue,
+              displayFinished: state.displayFinished,
+              displayPaused: state.displayPaused,
+              displayNextActions: state.displayNextActions,
+              displayOrder: state.displayOrder,
+              scrollPos: scrollPos
+            });
           }
         }
       } else if (savedState) {
@@ -309,7 +317,15 @@ export const displayFiltersDropdownScript: string = `
         if (state) {
           var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0
           // console.log("Sending to backend: saveDisplayFilters(displayOrderChange) scrollPos=" + String(scrollPos))
-          sendMessageToPlugin('saveDisplayFilters', { ...state, scrollPos: scrollPos });
+          // TEST: change from spread to explicit list of properties, to see if this fixes runtime issue with @CursorAI thinking WebView doesn't support ES2020 syntax.
+          sendMessageToPlugin('saveDisplayFilters', {
+            displayOnlyDue: state.displayOnlyDue,
+            displayFinished: state.displayFinished,
+            displayPaused: state.displayPaused,
+            displayNextActions: state.displayNextActions,
+            displayOrder: state.displayOrder,
+            scrollPos: scrollPos
+          });
           savedState = state;
         }
       });
