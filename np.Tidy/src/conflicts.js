@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2025-11-01 for v1.15.2 by @jgclark
+// Last updated 2025-11-01 for v1.15.2+ by @jgclark
 // Minimum NP version: 3.9.3
 //-----------------------------------------------------------------------------
 
@@ -118,7 +118,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
     const runSilently: boolean = await getTagParamsFromString(params, 'runSilently', false)
     logDebug('listConflicts', `runSilently = ${String(runSilently)}`)
 
-    CommandBar.showLoading(true, `Finding notes with conflicts`)
+    CommandBar.showLoading(true, `Looking for notes with conflicts on ${machineName}`)
     await CommandBar.onAsyncThread()
     const startTime = new Date()
     const conflictedNotes: Array<conflictDetails> = await getConflictedNotes(config.listFoldersToExclude)
