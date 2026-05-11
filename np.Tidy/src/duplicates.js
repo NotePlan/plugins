@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2026-03-20 for v1.18.1 by @jgclark
+// Last updated 2026-03-20 for v1.18.1+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -102,7 +102,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
     logDebug('listDuplicates', `runSilently = ${String(runSilently)}`)
 
-    CommandBar.showLoading(true, `Finding duplicates`)
+    CommandBar.showLoading(true, `Looking for duplicated notes`)
     await CommandBar.onAsyncThread()
     const startTime = new Date()
     const dupes: Array<dupeDetails> = findDuplicateNotes(config.listFoldersToExclude)
