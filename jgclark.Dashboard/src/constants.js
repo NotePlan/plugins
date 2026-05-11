@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code.
 // Check each of them when adding a new Section.
-// Last updated 2026-04-15 for v2.4.0.b25, @jgclark
+// Last updated 2026-05-11 for v2.4.0.b32, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -38,6 +38,9 @@ export const allSectionDetails: Array<TSectionDetails> = [
 ]
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map((s) => s.sectionCode)
+
+/** Sections backed by Reviews `allProjectsList.json`. Exclude from editor-trigger "refresh all" so we do not double-refresh (and race) right after `updateDashboardIfOpen` from list writes. */
+export const sectionCodesFromAllProjectsJson: Array<TSectionCode> = ['PROJACT', 'PROJREVIEW']
 
 export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y']
 

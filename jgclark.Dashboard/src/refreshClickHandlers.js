@@ -229,8 +229,11 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
     logDebug('refreshSomeSections', `Starting for ${String(sectionCodesToRefresh)}`)
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     if (!reactWindowData?.pluginData) {
-      logDebug('refreshSomeSections', 'Dashboard shared data not ready yet (no pluginData); skipping refresh')
-      return handlerResult(true)
+      logDebug('refreshSomeSections', 'Dashboard shared data not ready yet (no pluginData); cannot refresh')
+      return handlerResult(false, [], {
+        errorMsg: 'Dashboard shared data not ready yet (no pluginData); refresh skipped',
+        errorMessageLevel: 'INFO',
+      })
     }
     const pluginData: TPluginData = reactWindowData.pluginData
     if (pluginData.dashboardSettings?.showTimeBlockSection === false && sectionCodesToRefresh.includes('TB')) {

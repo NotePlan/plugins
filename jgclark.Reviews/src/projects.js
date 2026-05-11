@@ -9,7 +9,7 @@
 import moment from 'moment'
 import { buildProjectLineForStyle } from './projectsHTMLGenerator'
 import { Project } from './projectClass'
-import { finishReviewForNote, renderProjectListsIfOpen } from './reviews'
+import { finishReviewForNote } from './reviews'
 import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
 import { updateAllProjectsListAfterChange } from './allProjectsListHelpers'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
@@ -76,11 +76,8 @@ async function reloadAndUpdateLists(note: TNote, config: ReviewConfig, shouldArc
   // Reload the note according to @Eduard
   await Editor.openNoteByFilename(note.filename)
 
-  // Update the allProjects list
-  await updateAllProjectsListAfterChange(note.filename ?? ERROR_FILENAME_PLACEHOLDER, shouldArchive, config)
-
-  // Re-render the outputs if window open (but don't focus)
-  await renderProjectListsIfOpen(config, scrollPos)
+  // Update the allProjects list (writeAllProjectsList refreshes Rich list + Dashboard when open; scrollPos preserved)
+  await updateAllProjectsListAfterChange(note.filename ?? ERROR_FILENAME_PLACEHOLDER, shouldArchive, config, scrollPos)
 }
 
 type SummaryCalendarPeriod = 'quarter' | 'year'

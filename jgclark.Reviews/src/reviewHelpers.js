@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-04-30 for v2.0.0.b26, @Cursor
+// Last updated 2026-05-12 for v2.0.0.b32, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -27,7 +27,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { backupSettings } from '@helpers/NPConfiguration'
+import { backupSettings, pluginIsInstalled } from '@helpers/NPConfiguration'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttribute, noteHasFrontMatter, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { getFieldParagraphsFromNote } from '@helpers/paragraph'
@@ -36,7 +36,12 @@ import { getHashtagsFromString } from '@helpers/stringTransforms'
 import { showMessage } from '@helpers/userInput'
 
 //------------------------------
-// Config setup
+// Constants
+const reviewsPluginId = pluginJson['plugin.id']
+const richProjectListWinId = `${reviewsPluginId}.rich-review-list`
+
+//------------------------------
+// Type definitions
 
 export type ReviewConfig = {
   usePerspectives: boolean,
@@ -211,9 +216,10 @@ function getNoteFromNoteLike(noteLike: CoreNoteFields | TEditor): CoreNoteFields
 /**
  * Get config settings
  * @author @jgclark
+ * @param {boolean} externalCall - true if called from an external plugin
  * @return {?ReviewConfig} object with configuration, or null if no settings found
  */
-export async function getReviewSettings(externalCall: boolean = false): ?Promise<ReviewConfig> {
+export async function getReviewSettings(externalCall: boolean = false): Promise<ReviewConfig | null> {
   try {
     if (externalCall) {
       logInfo(pluginJson, `getReviewSettings() Starting from a different plugin ...`)
@@ -224,10 +230,12 @@ export async function getReviewSettings(externalCall: boolean = false): ?Promise
     // If an external call allow silent return of null if no settings found.
     // Otherwise complain, as there should be settings.
     if (config == null || Object.keys(config).length === 0) {
-      if (!externalCall) {
-        // Throw an error to trigger the backupSettings call in the catch block
-        throw new Error
+      if (externalCall) {
+        // Fail silently
+        return null
       }
+      // Throw an error to trigger the backupSettings call in the catch block
+      throw new Error('No Reviews settings found')
     }
     // clo(config, `Review settings for '${pluginJson['plugin.version']}' version:`)
 
@@ -264,14 +272,19 @@ export async function getReviewSettings(externalCall: boolean = false): ?Promise
       const perspectiveSettings: Array<TPerspectiveDef> = await getPerspectiveSettings(false)
       // Get the current Perspective
       const currentPerspective: any = getActivePerspectiveDef(perspectiveSettings)
-      config.perspectiveName = currentPerspective.name
-      logInfo('getReviewSettings', `Will use Perspective '${config.perspectiveName}', and its folder & teamspace settings`)
-      config.foldersToInclude = stringListOrArrayToArray(currentPerspective.dashboardSettings?.includedFolders ?? '', ',')
-      // logDebug('getReviewSettings', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
-      config.foldersToIgnore = stringListOrArrayToArray(currentPerspective.dashboardSettings?.excludedFolders ?? '', ',')
-      // logDebug('getReviewSettings', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
-      config.includedTeamspaces = currentPerspective.dashboardSettings?.includedTeamspaces ?? ['private']
-      // logDebug('getReviewSettings', `- includedTeamspaces: [${String(config.includedTeamspaces)}]`)
+      if (!currentPerspective) {
+        logWarn('getReviewSettings', `usePerspectives is true but no active Dashboard perspective found (Dashboard perspective list may be empty or corrupt). Using folder/teamspace values from Reviews settings only, same as when usePerspectives is off.`)
+        config.includedTeamspaces = ['private']
+      } else {
+        config.perspectiveName = currentPerspective.name
+        logInfo('getReviewSettings', `Will use Perspective '${config.perspectiveName}', and its folder & teamspace settings`)
+        config.foldersToInclude = stringListOrArrayToArray(currentPerspective.dashboardSettings?.includedFolders ?? '', ',')
+        // logDebug('getReviewSettings', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
+        config.foldersToIgnore = stringListOrArrayToArray(currentPerspective.dashboardSettings?.excludedFolders ?? '', ',')
+        // logDebug('getReviewSettings', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
+        config.includedTeamspaces = currentPerspective.dashboardSettings?.includedTeamspaces ?? ['private']
+        // logDebug('getReviewSettings', `- includedTeamspaces: [${String(config.includedTeamspaces)}]`)
+      }
     }
 
     // Ensure following have sensible defaults if missing from settings
@@ -292,7 +305,6 @@ export async function getReviewSettings(externalCall: boolean = false): ?Promise
     logError(pluginJson, `getReviewSettings() error: ${err.name}: ${err.message}`)
     await backupSettings('jgclark.Reviews', 'error_in_file')
     await showMessage(`Sorry, there's been an error getting the settings for this plugin.\nI have tried to make a copy of the settings file to send to the plugin author on Discord if you wish.\n\nnNow please delete your NotePlan/Plugins/data/jgclark.Reviews/settings.json file. Then re-run the command, which should create a new settings file from the plugin defaults. If the issue persists, please raise an issue on Discord.`, 'OK, thanks', 'Settings Error')
-    // FlowFixMe[incompatible-return] as we're returning null if no settings found
     return null
   }
 }
@@ -1189,26 +1201,59 @@ export function clearNextReviewFrontmatterField(noteLike: CoreNoteFields | TEdit
 /**
  * Update Dashboard if it is open.
  * It is called automatically whenever the allProjectsList is updated, regardless of which function triggers it:
- * - generateAllProjectsList → writeAllProjectsList → updateDashboardIfOpen
- * - updateProjectInAllProjectsList → writeAllProjectsList → updateDashboardIfOpen
- * - updateAllProjectsListAfterChange → writeAllProjectsList → updateDashboardIfOpen
+ * - generateAllProjectsList -> writeAllProjectsList -> updateRichProjectListIfOpen (then updateDashboardIfOpen)
+ * - updateProjectInAllProjectsList -> writeAllProjectsList -> updateRichProjectListIfOpen (then updateDashboardIfOpen)
+ * - updateAllProjectsListAfterChange -> writeAllProjectsList -> updateRichProjectListIfOpen (then updateDashboardIfOpen)
+ *
+ * **Invoke vs in-process refresh:** This uses `invokePluginCommandByName` to run Dashboard's `refreshSectionsByCode`. That is appropriate when this runs from the **Reviews** plugin (cross-plugin). When `writeAllProjectsList` is called from the **Dashboard** bundle after a PROJ* HTML action, the caller should pass `skipUpdateDashboardIfOpen` and run `refreshSectionsByCode` in-process instead, because same-plugin invoke can return before the webview refresh and lose the new next-action row (see `writeAllProjectsList` in `allProjectsListHelpers.js` and Dashboard `projectsListSync.js`).
+ *
  * Note: Designed to fail silently if it isn't installed, or open.
  * WARNING: Be careful of causing race conditions with Perspective changes in Dashboard.
  * @author @jgclark
  */
 export async function updateDashboardIfOpen(): Promise<void> {
   try {
+    if (!pluginIsInstalled('jgclark.Dashboard')) {
+      logDebug('updateDashboardIfOpen', `Dashboard plugin not installed; skipping invoke`)
+      return
+    }
     if (!isHTMLWindowOpen(DASHBOARD_WINDOW_ID)) {
       logDebug('updateDashboardIfOpen', `Dashboard not open, so won't proceed ...`)
       return
     }
     // v2 (internal invoke plugin command)
-    logInfo('updateDashboardIfOpen', `About to run Dashboard:refreshSectionByCode(...)`)
+    logInfo('updateDashboardIfOpen', `About to invoke ✳️ Dashboard:refreshSectionByCode(...)`)
     // Note: This covers codes from before and after Dashboard v2.4.0.b18. TODO(Later): remove the 'PROJ' code when v2.5.0 is released
     // Note: Wrap array in another array because invokePluginCommandByName spreads the array as individual arguments. This avoids only the first array item being used.
     const _res = await DataStore.invokePluginCommandByName("refreshSectionsByCode", "jgclark.Dashboard", [['PROJACT', 'PROJREVIEW', 'PROJ']])
   } catch (error) {
     logError('updateDashboardIfOpen', `${error.message}`)
+  }
+}
+
+/**
+ * Refresh the Rich Project List HTML window if it is open (mirrors {@link updateDashboardIfOpen}).
+ * Invoked from `writeAllProjectsList` **before** {@link updateDashboardIfOpen} so Dashboard PROJ* sections refresh after Reviews has re-rendered.
+ * When Dashboard completes a PROJ* task, this path may run from the Dashboard bundle; `invokePluginCommandByName` runs P+R in the Reviews runtime.
+ * Designed to fail silently if Reviews is not installed or the Rich window is closed.
+ * @param {number} scrollPosForRichList - passed to `renderProjectListsIfOpen` (HTML scroll, pixels; default 0)
+ * @author @jgclark
+ */
+export async function updateRichProjectListIfOpen(scrollPosForRichList: number = 0): Promise<void> {
+  try {
+    if (!pluginIsInstalled(reviewsPluginId)) {
+      logDebug('updateRichProjectListIfOpen', `${reviewsPluginId} not installed; skipping invoke`)
+      return
+    }
+    if (!isHTMLWindowOpen(richProjectListWinId)) {
+      logDebug('updateRichProjectListIfOpen', `Rich project list not open (${richProjectListWinId}); skipping invoke`)
+      return
+    }
+    logInfo('updateRichProjectListIfOpen', `About to run Reviews:renderProjectListsIfOpen(...)`)
+    // First arg null so callee uses getReviewSettings(); second is scroll (invoke spreads this array as arguments)
+    await DataStore.invokePluginCommandByName('renderProjectListsIfOpen', reviewsPluginId, [null, scrollPosForRichList])
+  } catch (error) {
+    logError('updateRichProjectListIfOpen', error.message)
   }
 }
 

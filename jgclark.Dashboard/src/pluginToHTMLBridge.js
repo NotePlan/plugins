@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-05-06 for v2.4.0.b32 by @jgclark
+// Last updated 2026-05-10 for v2.4.0.b32 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,6 +29,7 @@ import {
   doWindowResized,
 } from './clickHandlers'
 import { allCalendarSectionCodes, allSectionCodes, SEARCH_AND_SAVED_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
+import { updateProjectsListIfProjectSection } from './projectsListSync'
 import {
   doAddNewPerspective,
   doCopyPerspective,
@@ -434,6 +435,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
 /**
  * One function to handle all actions on return from the various handlers.
+ * For `REMOVE_LINE_FROM_JSON` after PROJ* list sync: do not send `UPDATE_DATA` using the `reactWindowData` captured at the start of that block;
+ * always re-fetch via `getGlobalSharedData` after `updateProjectsListIfProjectSection` so the payload includes in-process `refreshSectionsByCode` merges (see `projectsListSync.js` / `writeAllProjectsList` skip flag).
  * @param {TBridgeClickHandlerResult} handlerResult
  * @param {MessageDataObject} data
  */
@@ -460,6 +463,8 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 
     // Handle the different success cases
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
+    /** Used in TB follow-up: `sectionCodes` on the result often means metadata (e.g. PROJACT for list sync), not "refresh these sections again". */
+    const hadExplicitRefreshSectionRequestAtStart = actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')
     if (actionsOnSuccess.length === 0) {
       logDebug('processActionOnReturn', `note: no post process actions to perform`)
       return
@@ -483,6 +488,8 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     }
 
     if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
+      // reactWindowData is used for in-place splices below; after await updateProjectsListIfProjectSection, shared pluginData may be replaced
+      // by setPluginData from refreshSomeSections - do not use this reference for the final UPDATE_DATA without re-fetching (see end of block).
       const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
       const sections = reactWindowData.pluginData.sections
       logDebug('processActionOnReturn', `Starting REMOVE_LINE_FROM_JSON from active sections: ${String(sections.map((s) => s.sectionCode).join(','))}`)
@@ -544,10 +551,27 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
           updateMsg += `; removed empty [${removedEmpty.join(',')}]`
         }
       }
+      // If this changes a note in the Projects List, advise the P+R plugin to update the Projects List
+      const codesFromHandler: Array<TSectionCode> = Array.isArray(handlerResult.sectionCodes) ? handlerResult.sectionCodes : []
+      const codesFromData: Array<TSectionCode> = Array.isArray(data.sectionCodes) ? data.sectionCodes : []
+      const mergedForProjSync: Array<TSectionCode> = [...codesFromHandler, ...codesFromData]
+      const projSectionForSync: ?TSectionCode =
+        mergedForProjSync.find((c) => c === 'PROJACT' || c === 'PROJREVIEW') ??
+        (data.item?.sectionCode === 'PROJACT' || data.item?.sectionCode === 'PROJREVIEW' ? data.item.sectionCode : null)
+      if (filename !== '' && projSectionForSync != null) {
+        try {
+          logDebug('processActionOnReturn', `- calling updateProjectsListIfProjectSection(filename: ${filename}, projSectionForSync: ${projSectionForSync})`)
+          await updateProjectsListIfProjectSection(filename, projSectionForSync)
+        } catch (syncErr) {
+          logError('processActionOnReturn', `updateProjectsListIfProjectSection after REMOVE_LINE_FROM_JSON: ${syncErr.message}`)
+        }
+      }
       logDebug('processActionOnReturn', `-> sending UPDATE_DATA after REMOVE_LINE_FROM_JSON`)
 
-      // Send the updated data to React window
-      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, updateMsg)
+      // Re-fetch: reactWindowData was read before splices and before updateProjectsListIfProjectSection (which runs refreshSectionsByCode in-process).
+      // Sending that stale object would overwrite merged PROJ* rows; fresh payload matches shared state after list sync + refresh.
+      const freshPluginPayload = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', freshPluginPayload ?? reactWindowData, updateMsg)
     } else if (actionsOnSuccess.includes('REMOVE_SECTION_IF_EMPTY')) {
       const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
       const sections = reactWindowData.pluginData.sections
@@ -690,11 +714,17 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         if (!actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
           actionsOnSuccess.push('REFRESH_SECTION_IN_JSON')
         }
-        if (!handlerResult.sectionCodes) {
-          handlerResult.sectionCodes = []
-        }
-        if (!handlerResult.sectionCodes.includes('TB')) {
-          handlerResult.sectionCodes = [...(handlerResult.sectionCodes ?? []), 'TB']
+        if (hadExplicitRefreshSectionRequestAtStart) {
+          if (!handlerResult.sectionCodes) {
+            handlerResult.sectionCodes = []
+          }
+          const codesForTb: Array<TSectionCode> = handlerResult.sectionCodes ?? []
+          if (!codesForTb.includes('TB')) {
+            handlerResult.sectionCodes = [...codesForTb, 'TB']
+          }
+        } else {
+          // Do not re-use handlerResult.sectionCodes (e.g. ['PROJACT'] from completeTask for P+R sync): a second PROJACT refresh races updateDashboardIfOpen() from writeAllProjectsList and can remove next-action rows again.
+          handlerResult.sectionCodes = ['TB']
         }
         logDebug('processActionOnReturn', `... -> ${String(handlerResult.sectionCodes)}`)
       }

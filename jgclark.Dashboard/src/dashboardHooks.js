@@ -2,13 +2,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggers and other hooks
-// Last updated 2026-04-28 for v2.4.0.31, @jgclark
+// Last updated 2026-05-11 for v2.4.0.32, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { incrementallyRefreshSomeSections, refreshSomeSections } from './refreshClickHandlers'
-import { allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
+import { allSectionCodes, sectionCodesFromAllProjectsJson, WEBVIEW_WINDOW_ID } from './constants'
 // import { getSomeSectionsData } from './dataGeneration'
 import type { MessageDataObject, TBridgeClickHandlerResult, TSectionCode } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -106,7 +106,7 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
 
 /**
  * Decides whether the number of open items in the Editor has changed, or if open item contents have changed. Ignore open items have just moved around.
- * If open items have changed, then update the dashboard for this calendar period (if it is one), or all sections if not.
+ * If open items have changed, then update the dashboard for this calendar period (if it is one), or for non-calendar notes refresh all enabled sections **except** PROJACT/PROJREVIEW (see `sectionCodesFromAllProjectsJson`): those sections follow `allProjectsList.json` and Reviews already refreshes the Dashboard after list writes; re-including them here duplicated work and could race with the next-action row display.
  */
 export async function onEditorWillSave(): Promise<void> {
   try {
@@ -161,7 +161,11 @@ export async function onEditorWillSave(): Promise<void> {
         const filename = note.filename
         // find element in FTSCList matching filename and return the sectionCode
         const thisObject = FTSCList.find((obj) => obj.filename === filename)
-        const theseSectionCodes: Array<TSectionCode> = thisObject?.sectionCode ? [thisObject.sectionCode] : allSectionCodes
+        // Non-calendar notes used to fall back to allSectionCodes, which re-refreshed PROJACT/PROJREVIEW; those sections come from
+        // allProjectsList.json and Reviews already calls updateDashboardIfOpen after writes - a second refresh here races and can flicker next-action rows.
+        const theseSectionCodes: Array<TSectionCode> = thisObject?.sectionCode
+          ? [thisObject.sectionCode]
+          : allSectionCodes.filter((code) => !sectionCodesFromAllProjectsJson.includes(code))
         const data: MessageDataObject = { actionType: 'refreshSomeSections', sectionCodes: theseSectionCodes }
         // ask to update section(s), noting this is called by a trigger (which changes whether we use Editor.note.content or note.content)
         logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard section(s) ${theseSectionCodes.toString()}`)
@@ -197,17 +201,33 @@ export async function refreshSectionByCode(sectionCode: TSectionCode): Promise<b
 }
 
 /**
- * Refresh a section given by its code -- if the Dashboard is open already.
- * Note: as called by DataStore.invokePluginCommandByName (from jgclark.Reviews) there needs to be a return value.
+ * Refresh one or more sections, if the Dashboard webview is already open.
+ * When called via `DataStore.invokePluginCommandByName('refreshSectionsByCode', 'jgclark.Dashboard', args)` from Reviews,
+ * pass **`[['PROJACT', 'PROJREVIEW', 'PROJ']]`** (nested array): NotePlan spreads `args`, so the inner array becomes this parameter.
+ *
+ * **Prefer direct `await` from Dashboard code** (e.g. after `updateAllProjectsListAfterChange` with `skipUpdateDashboardIfOpen`) when you are already running inside the Dashboard plugin and need PROJ* rows to match a just-written `allProjectsList.json` before sending webview `UPDATE_DATA`. Cross-plugin invoke from the same bundle can settle too early relative to the HTML bridge.
+ *
+ * @param {Array<TSectionCode>} sectionCodes flat list of section codes (e.g. PROJACT, PROJREVIEW)
+ * @returns {boolean} true if successful, false if not
  */
 export async function refreshSectionsByCode(sectionCodes: Array<TSectionCode>): Promise<boolean> {
   if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
     logDebug('refreshSectionsByCode', `Dashboard not open, so won't proceed ...`)
     return true
   }
-  logDebug('refreshSectionsByCode', `Dashboard is open, so will refreshSomeSections for ${String(sectionCodes)} ...`)
+  let codes: Array<TSectionCode> = sectionCodes
+  if (Array.isArray(sectionCodes) && sectionCodes.length > 0 && Array.isArray(sectionCodes[0])) {
+    logWarn('refreshSectionsByCode', `sectionCodes was nested array-of-arrays; flattening one level. Callers from invokePluginCommandByName should pass one spread level only after Reviews' outer wrapper.`)
+    // $FlowFixMe[prop-missing] flatten one level of mistaken nesting
+    codes = ([]: any).concat(...sectionCodes)
+  }
+  if (!Array.isArray(codes) || codes.length === 0) {
+    logWarn('refreshSectionsByCode', `Invalid or empty sectionCodes; not refreshing`)
+    return false
+  }
+  logDebug('refreshSectionsByCode', `Dashboard is open, so will refreshSomeSections for ${String(codes)} ...`)
   const data: MessageDataObject = {
-    sectionCodes: sectionCodes,
+    sectionCodes: codes,
     actionType: 'refreshSomeSections',
   }
   const res: TBridgeClickHandlerResult = await refreshSomeSections(data, true)
