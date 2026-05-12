@@ -92,6 +92,11 @@ const filenameHTMLCopy = 'projects_list.html'
 const customMarkdownWinId = `markdown-review-list`
 
 //-----------------------------------------------------------------------------
+// Types
+
+type DisplayToggleKey = 'displayFinished' | 'displayOnlyDue' | 'displayNextActions'
+
+//-----------------------------------------------------------------------------
 // Helpers
 //-----------------------------------------------------------------------------
 
@@ -187,8 +192,6 @@ async function runProjectListRenderers(config: ReviewConfig, shouldOpen: boolean
     await renderProjectListsHTML(config, shouldOpen, scrollPos)
   }
 }
-
-type DisplayToggleKey = 'displayFinished' | 'displayOnlyDue' | 'displayNextActions'
 
 /**
  * Toggle a display filter flag and re-render open project list windows.
@@ -300,6 +303,8 @@ export async function toggleDemoModeForProjectLists(): Promise<void> {
  * @param {number?} scrollPos 
  */
 export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<any> {
+  // Note: Errors are caught and logged below (not rethrown) so NotePlan's invokePluginCommandByName from Dashboard
+  // does not surface a rejection in a fragile way; the invoke may still appear successful when work failed — check console logs.
   try {
     const config = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -315,7 +320,7 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
       }
     } else {
       // Re-calculate the allProjects list (in foreground)
-      await generateAllProjectsList(config, true)
+      await generateAllProjectsList(config, true, scrollPos)
       logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectListsIfOpen()`)
     }
 
@@ -324,6 +329,7 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
     logInfo('generateProjectListsAndRenderIfOpen', `after renderProjectListsIfOpen()`)
     return {} // just to avoid NP silently failing when called by invokePluginCommandByName
   } catch (error) {
+    // Deliberately no rethrow: same rationale as the function-level note above.
     logError('generateProjectListsAndRenderIfOpen', JSP(error))
   }
 }
@@ -367,10 +373,11 @@ export async function renderProjectListsIfOpen(
   try {
     logDebug(pluginJson, `renderProjectListsIfOpen starting...`)
     const config = configIn ? configIn : await getReviewSettings()
-
     if (!config) throw new Error('No config found. Stopping.')
+
     await runProjectListRenderers(config, false, scrollPos)
-    // return true to avoid possibility of NP silently failing when called by invokePluginCommandByName
+
+    // Note: return true to avoid possibility of NP silently failing when called by invokePluginCommandByName
     return true
   } catch (error) {
     logError('renderProjectListsIfOpen', error.message)
@@ -532,14 +539,18 @@ export async function renderProjectListsHTML(
 }
 
 /**
- * Generate human-readable lists of project notes in markdown for each tag of interest
- * and write out to note(s) in the config.folderToStore folder.
+ * Generate human-readable lists of project notes in markdown for each tag of interest and write out to note(s) in the config.folderToStore folder.
+ * 
  * @author @jgclark
  * @param {any} config - from the main entry function, which can include overrides from passed args
  * @param {boolean} shouldOpen note if not already open?
  */
 export async function renderProjectListsMarkdown(config: any, shouldOpen: boolean = true): Promise<void> {
   try {
+    if (!shouldOpen) {
+      logDebug('renderProjectListsMarkdown', `shouldOpen is false: skipping markdown generation (e.g. renderProjectListsIfOpen)`)
+      return
+    }
     logDebug('renderProjectListsMarkdown', `Starting for ${String(config.projectTypeTags)} tags`)
     const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
 

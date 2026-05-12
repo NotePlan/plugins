@@ -4,20 +4,20 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-05-02 for v2.0.0.b30 by @CursorAI
+// Last updated 2026-05-11 for v2.0.0.b32 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
 import { calcReviewFieldsForProject } from './projectClassCalculations.js'
-import { getReviewSettings, updateDashboardIfOpen } from './reviewHelpers.js'
+import { getReviewSettings, updateDashboardIfOpen, updateRichProjectListIfOpen } from './reviewHelpers.js'
 import type { ReviewConfig } from './reviewHelpers.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toISODateString } from '@helpers/dateTime'
 import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-import { findNotesMatchingHashtagOrMentionFromList, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
+import { findNotesMatchingHashtagOrMentionFromList, getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { smartPrependPara } from '@helpers/paragraph'
 
@@ -495,9 +495,14 @@ async function getAllMatchingProjects(
  * @author @jgclark
  * @param {any} configIn
  * @param {boolean} runInForeground? (default: false)
+ * @param {number} scrollPosForRichList - passed through to `writeAllProjectsList` for Rich list HTML scroll (pixels)
  * @returns {Promise<Array<Project>>} Object containing array of all Projects, the same as what was written to disk
  */
-export async function generateAllProjectsList(configIn: any, runInForeground: boolean = false): Promise<Array<Project>> {
+export async function generateAllProjectsList(
+  configIn: any,
+  runInForeground: boolean = false,
+  scrollPosForRichList: number = 0,
+): Promise<Array<Project>> {
   try {
     logDebug('generateAllProjectsList', `starting`)
     const startTime = moment().toDate()
@@ -514,7 +519,7 @@ export async function generateAllProjectsList(configIn: any, runInForeground: bo
       }
     }
 
-    await writeAllProjectsList(projectInstances)
+    await writeAllProjectsList(projectInstances, scrollPosForRichList)
     return projectInstances
   } catch (error) {
     logError('generateAllProjectsList', JSP(error))
@@ -522,7 +527,24 @@ export async function generateAllProjectsList(configIn: any, runInForeground: bo
   }
 }
 
-export async function writeAllProjectsList(projectInstances: Array<Project>): Promise<void> {
+/**
+ * Write the list of project instances to the allProjects list file.
+ * After a successful save: updates the Reviews timestamp preference, refreshes the Rich project list (if open), then by default invokes Dashboard PROJ* refresh via {@link updateDashboardIfOpen}.
+ *
+ * **Same-plugin invoke race (Dashboard bundle):** When this code runs inside the Dashboard plugin (e.g. HTML bridge completing a PROJ* task), `updateDashboardIfOpen` uses `DataStore.invokePluginCommandByName('refreshSectionsByCode', 'jgclark.Dashboard', ...)`.
+ * That can return before the webview refresh finishes. The bridge may then send `UPDATE_DATA` using a snapshot taken *before* the refresh, overwriting merged PROJ* data so the new next-action never appears even though `allProjectsList.json` is correct.
+ * Callers in that situation pass `skipUpdateDashboardIfOpen: true` and run `refreshSectionsByCode` **in-process** after this function returns (see Dashboard `projectsListSync.js`).
+ *
+ * @author @jgclark
+ * @param {Array<Project>} projectInstances - List of project instances to write
+ * @param {number} scrollPosForRichList - Rich Project List HTML scroll (pixels) when `updateRichProjectListIfOpen` runs
+ * @param {boolean} skipUpdateDashboardIfOpen - when true, skip `updateDashboardIfOpen` so the caller can refresh Dashboard synchronously (avoids the race above). Default false for normal Reviews-driven writes.
+ */
+export async function writeAllProjectsList(
+  projectInstances: Array<Project>,
+  scrollPosForRichList: number = 0,
+  skipUpdateDashboardIfOpen: boolean = false,
+): Promise<void> {
   try {
     // write summary to allProjects JSON file, using a replacer to suppress .note
     logDebug('writeAllProjectsList', `Writing ${projectInstances.length} projects to ${allProjectsListFilename} ...`)
@@ -530,12 +552,18 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
 
     // If this appears to have worked:
     // - update the datestamp of the Reviews preference
-    // - update Dashboard window if open
+    // - refresh Rich Project List if open first (Reviews re-render completes before next step)
+    // - then update Dashboard PROJ* sections if open (so Dashboard reflects the same JSON after P+R UI)
     if (res) {
       const reviewListDate = Date.now()
       DataStore.setPreference(generatedDatePrefName, reviewListDate)
       logDebug('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
-      await updateDashboardIfOpen()
+
+      // Order matters: Rich list first, then Dashboard - avoids stale PROJ*; refreshSomeSections does not write JSON (no loop).
+      await updateRichProjectListIfOpen(scrollPosForRichList)
+      if (!skipUpdateDashboardIfOpen) {
+        await updateDashboardIfOpen()
+      }
     } else {
       throw new Error(`Error writing JSON to '${allProjectsListFilename}'`)
     }
@@ -800,7 +828,7 @@ export function sortProjectsList(
  * @param {Array<string>?} sortingOrder array of field names to sort by; if given overrides the default sorting order from the Reviews plugin. (Optional)
  * @param {boolean?} dedupeList if true, deduplicate the list by removing projects with multiple 'tags'. (Optional, default is false)
  * @param {boolean?} useDemoList if true, read from allProjectsDemoList.json instead of live list (optional, default is false)
- * @returns {Promise<[Array<Project>, number]>} [sorted projects, count after tag filter only — i.e. length before folder/due/paused/dedupe filters; use tuple[0].length for rows in the sorted list]
+ * @returns {Promise<[Array<Project>, number]>} [sorted projects, count after tag filter only - i.e. length before folder/due/paused/dedupe filters; use tuple[0].length for rows in the sorted list]
  */
 export async function filterAndSortProjectsList(
   config: ReviewConfig,
@@ -833,57 +861,64 @@ export async function filterAndSortProjectsList(
 
 /**
  * Update the allProjects list after completing a review or completing/cancelling a whole project.
- * Will notify Dashboard to update itself.
+ * Persists via {@link writeAllProjectsList}, which normally notifies Dashboard. Will notify Dashboard to update itself unless skipped (see below).
  * Note: Called by nextReview, skipReview, skipReviewForNote, completeProject, cancelProject, pauseProject, plus Dashboard when completing/cancelling items in project next-action items.
+ *
+ * **`options.skipUpdateDashboardIfOpen`:** When the Dashboard HTML bridge calls this after `REMOVE_LINE_FROM_JSON`, pass `{ skipUpdateDashboardIfOpen: true }` so `writeAllProjectsList` does not call `updateDashboardIfOpen`.
+ * The bridge then calls `refreshSectionsByCode` in-process so PROJ* merges complete before `processActionOnReturn` re-fetches shared data and sends `UPDATE_DATA` (avoids same-plugin invoke ordering; see `writeAllProjectsList` JSDoc).
+ *
  * @author @jgclark
- * @param {string} filename of note that has been reviewed
+ * @param {string} filename of note that has been updated
  * @param {boolean} simplyDelete the project line?
  * @param {ReviewConfig} config
+ * @param {number} scrollPosForRichList - Rich list HTML scroll when list is refreshed after write (default 0)
+ * @param {{ skipUpdateDashboardIfOpen?: boolean }} options - optional; use `skipUpdateDashboardIfOpen: true` only from Dashboard list-sync path after PROJ* line changes
  */
 export async function updateAllProjectsListAfterChange(
-  reviewedFilename: string,
+  filename: string,
   simplyDelete: boolean,
   config: ReviewConfig,
+  scrollPosForRichList: number = 0,
+  options?: { skipUpdateDashboardIfOpen?: boolean },
 ): Promise<void> {
   try {
     if (config.useDemoData ?? false) {
-      logInfo('updateAllProjectsListAfterChange', `Demo mode is on; not updating live notes, but will adjust JSON list if possible for '${reviewedFilename}'`)
+      logInfo('updateAllProjectsListAfterChange', `Demo mode is on; not updating live notes, but will adjust JSON list if possible for '${filename}'`)
       // In demo mode we deliberately do not touch live notes or regenerate from them.
       // We leave the JSON list unchanged here; any in-UI changes should go via updateProjectInAllProjectsList.
       return
     }
-    if (reviewedFilename === '') {
+    if (filename === '') {
       throw new Error('Empty filename passed')
     }
-    logInfo('updateAllProjectsListAfterChange', `--------- ${simplyDelete ? 'simplyDelete' : 'update'} for '${reviewedFilename}'`)
+    logInfo('updateAllProjectsListAfterChange', `--------- ${simplyDelete ? 'simplyDelete' : 'update'} for '${filename}'`)
 
     // Get contents of full-review-list
     let allProjects = await getAllProjectsFromList()
 
     // Find right project to update
-    const reviewedProject = allProjects.find((project) => project.filename === reviewedFilename)
+    const reviewedProject = allProjects.find((project) => project.filename === filename)
     if (!reviewedProject) {
-      logWarn('updateAllProjectsListAfterChange', `Couldn't find '${reviewedFilename}' to update in allProjects list, so will regenerate whole list.`)
-      await generateAllProjectsList(config, false)
+      logWarn('updateAllProjectsListAfterChange', `Couldn't find '${filename}' to update in allProjects list, so will regenerate whole list.`)
+      await generateAllProjectsList(config, false, scrollPosForRichList)
       return
     }
 
     const reviewedTitle = reviewedProject.title ?? ERROR_FILENAME_PLACEHOLDER
     logInfo('updateAllProjectsListAfterChange', `- Found '${reviewedTitle}' to update in allProjects list`)
 
-    // delete this item from the list
-    allProjects = allProjects.filter((project) => project.filename !== reviewedFilename)
-    logInfo('updateAllProjectsListAfterChange', `- Deleted Project '${reviewedTitle}'`)
-
+    let updatedProject: ?Project = null
     // add updated item back into the list (unless we simply need to delete)
     if (!simplyDelete) {
-      const reviewedNote = await DataStore.noteByFilename(reviewedFilename, "Notes")
+      // Use teamspace-aware resolution (same idea as @helpers/NPParagraph completeItem). DataStore.noteByFilename(filename, 'Notes')
+      // without teamspaceID returns null for teamspace paths, so we used to return early without writeAllProjectsList - leaving allProjectsList.json stale and PROJACT without the new next action.
+      const reviewedNote = getNoteFromFilename(filename)
       if (!reviewedNote) {
-        logWarn('updateAllProjectsListAfterChange', `Couldn't find '${reviewedFilename}' to update in allProjects list`)
+        logWarn('updateAllProjectsListAfterChange', `Couldn't load note '${filename}' via getNoteFromFilename; not changing allProjects list`)
         return
       }
       // Note: there had been issue of stale data here in the past. Leaving comment in case it's needed again.
-      const updatedProject = new Project(
+      updatedProject = new Project(
         reviewedNote,
         getLeadingProjectTag(reviewedProject),
         true,
@@ -891,12 +926,19 @@ export async function updateAllProjectsListAfterChange(
         config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT,
         false,
       )
-      // clo(updatedProject, 'in updateAllProjectsListAfterChange() 🟡 updatedProject:')
+      logInfo('updateAllProjectsListAfterChange', `- Built updated Project '${reviewedTitle}' for list`)
+    }
+
+    // Remove old row, then append rebuilt Project (if any), then persist - only after we know we can load the note for updates.
+    allProjects = allProjects.filter((project) => project.filename !== filename)
+    logInfo('updateAllProjectsListAfterChange', `- Removed '${reviewedTitle}' from in-memory list before re-add`)
+
+    if (updatedProject) {
       allProjects.push(updatedProject)
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
     }
     // re-form the file
-    await writeAllProjectsList(allProjects)
+    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true)
     logInfo('updateAllProjectsListAfterChange', `- done writing ${allProjects.length} items to updated list 🔸`)
   }
   catch (error) {

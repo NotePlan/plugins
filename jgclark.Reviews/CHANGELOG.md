@@ -2,7 +2,14 @@
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
 ## [2.0.0.b32] - 2026-05-10
+- dev: `writeAllProjectsList` supports `skipUpdateDashboardIfOpen`; `updateAllProjectsListAfterChange` accepts options to pass it when **Dashboard** refreshes PROJ* in-process after the JSON write (avoids same-plugin `invokePluginCommandByName` ordering with a stale bridge `UPDATE_DATA`).
+- dev: `updateAllProjectsListAfterChange` now loads the project note with `getNoteFromFilename` (teamspace-aware, same pattern as task completion in `@helpers/NPParagraph`).
+- dev: After `allProjectsList.json` is saved, `writeAllProjectsList` runs `updateRichProjectListIfOpen` (Rich HTML, when open) before `updateDashboardIfOpen` (PROJ* sections), so Dashboard refreshes after P+R re-render; completing a next-action from **Dashboard** updates the Rich list without a manual refresh. No loop: `refreshSomeSections` does not write the list.
 - Rich project list: **Refresh** toolbar button now keeps your scroll position (same as ⌘R / auto-refresh).
+- dev: Cross-plugin Dashboard: if `usePerspectives` but no active Dashboard perspective, `getReviewSettings` now `logWarn`s and continues with Reviews-only folder/teamspace settings (no throw).
+- dev: `updateDashboardIfOpen` skips invoke when Dashboard plugin is not installed; `generateProjectListsAndRenderIfOpen` documents catch-without-rethrow for `invokePluginCommandByName` callers.
+- dev: `renderProjectListsMarkdown`: when `shouldOpen` is false (e.g. `renderProjectListsIfOpen`), skip markdown generation entirely (no note rewrites).
+- dev: written `ARCHITECTURE-Comms_with_Dashboard.md`
 
 ## [2.0.0.b31] - 2026-05-10
 - dev: merge into main
