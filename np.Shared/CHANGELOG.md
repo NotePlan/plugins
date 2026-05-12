@@ -5,7 +5,11 @@ See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Sh
 ## [1.0.9] 2026-04-17
 
 ### Fixed
+
+- **getNotes**: Space-specific note requests now filter raw notes by space before converting and decorating them for React. This avoids scanning/decorating every note in the database when a chooser asks for one small teamspace, and avoids a duplicate full project-note pass when calendar notes are included.
+- **getNotes**: Callers can opt out of backend note decoration with `includeDecoration: false`, which is useful for React NoteChooser flows that derive display decoration client-side.
 - **getNotes**: `space: '__all__'` now returns notes from Private and all teamspaces (still respects `includeTeamspaceNotes`). Previously the sentinel was not implemented; callers that omitted `space` after selecting “all spaces” only received Private notes.
+- **Diagnostics**: Added temporary `[DIAG]` logging and a hidden `shared:debugGetNotesDirect` command to compare direct `np.Shared` `getTeamspaces`/`getNotes` calls against WebView REQUEST calls while investigating chooser freezes.
 
 ## [1.0.8] 2026-04-17
 

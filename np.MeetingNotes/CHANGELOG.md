@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [2.1.2] - 2026-05-10 @dwertheimer
+
+- Bump version after recent np.Templating changes
+
 ## [2.1.1] - 2026-01-05 @dwertheimer
 
 - Bump minimum app version to 3.20 after multiple changes to np.Templating for Forms
@@ -19,6 +23,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNote
 - Fix using button on empty template, especially with teamspace notes
 
 ### b3
+
 - fix chooseFolder() that was forcing new folder creation when it was not needed
 
 ## [2.0.5] - 2025-08-11 @dwertheimer
@@ -44,7 +49,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNote
 
 ## [2.0.0] - 2025-05-13 @dwertheimer
 
-- Add <current> to append/prepend frontmatter tag
+- Add `<current>` to append/prepend frontmatter tag
 - prepending a recurring meeting note will now accept a folder argument
 - Use Templating 2.0, but...
 - call Templating 2.0 commands via DataStore.invokePluginCommandByName() instead of directly calling them and importing all of np.Templating
@@ -76,7 +81,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNote
 
 ## [1.1.7] - 2023-02-24 (@dwertheimer)
 
-- add ability to output meeting note at cursor in <current> note
+- add ability to output meeting note at cursor in `<current>` note
 
 ## [1.1.6] - 2022-12-14 (@dwertheimer)
 

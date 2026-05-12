@@ -38,7 +38,14 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
     const [fieldLoadingStates, setFieldLoadingStates] = useState<{ [fieldKey: string]: boolean }>({}) // Track loading state for note-chooser field
     const currentSpaceRef = useRef<?string>(null) // Track current space for note chooser lazy loading
     const buttonRef = useRef<?HTMLButtonElement>(null) // Ref to the button that opens the dialog
-    const pendingRequestsRef = useRef<Map<string, { resolve: (value: any) => void, reject: (error: Error) => void, timeoutId: TimeoutID }>>(new Map())
+    const pendingRequestsRef = useRef<
+      Map<string, { resolve: (value: any) => void, reject: (error: Error) => void, timeoutId: TimeoutID, command: string, startedAt: number, requestNumber: number }>,
+    >(new Map())
+    const requestSequenceRef = useRef<number>(0)
+    const loadNotesSequenceRef = useRef<number>(0)
+    const activeLoadNotesCountRef = useRef<number>(0)
+    const reloadNotesSequenceRef = useRef<number>(0)
+    const spaceFieldChangeSequenceRef = useRef<number>(0)
 
     // ----------------------------------------------------------------------
     // Request/Response handling
@@ -54,19 +61,33 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
         if (!command) throw new Error('requestFromPlugin: command must be called with a string')
 
         const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        logDebug('AddToAnyNote', `requestFromPlugin: command="${command}", correlationId="${correlationId}"`)
+        const requestNumber = requestSequenceRef.current + 1
+        requestSequenceRef.current = requestNumber
+        const startedAt = performance.now()
+        logDebug(
+          'AddToAnyNote',
+          `[DIAG][REQUEST#${requestNumber}] START command="${command}", correlationId="${correlationId}", pendingBefore=${pendingRequestsRef.current.size}, timeout=${timeout}ms, data=${JSON.stringify(dataToSend)}`,
+        )
 
         return new Promise((resolve, reject) => {
           const timeoutId = setTimeout(() => {
             const pending = pendingRequestsRef.current.get(correlationId)
             if (pending) {
               pendingRequestsRef.current.delete(correlationId)
-              logDebug('AddToAnyNote', `requestFromPlugin TIMEOUT: command="${command}", correlationId="${correlationId}"`)
+              const pendingSummary = Array.from(pendingRequestsRef.current.values())
+                .map((entry) => `#${entry.requestNumber}:${entry.command}:${Math.round(performance.now() - entry.startedAt)}ms`)
+                .join(', ')
+              logDebug(
+                'AddToAnyNote',
+                `[DIAG][REQUEST#${requestNumber}] TIMEOUT command="${command}", correlationId="${correlationId}", elapsed=${(performance.now() - startedAt).toFixed(
+                  2,
+                )}ms, pendingAfterDelete=${pendingRequestsRef.current.size}, remainingPending=[${pendingSummary}]`,
+              )
               reject(new Error(`Request timeout: ${command}`))
             }
           }, timeout)
 
-          pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
+          pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId, command, startedAt, requestNumber })
 
           const requestData = {
             ...dataToSend,
@@ -74,8 +95,9 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
             __requestType: 'REQUEST',
           }
 
-          // Use sendActionToPlugin to send the request
-          sendActionToPlugin(command, requestData, `AddToAnyNote: requestFromPlugin: ${String(command)}`, true)
+          // REQUEST calls should not update Dashboard global data before the response returns.
+          sendActionToPlugin(command, requestData, `AddToAnyNote: requestFromPlugin: ${String(command)}`, false)
+          logDebug('AddToAnyNote', `[DIAG][REQUEST#${requestNumber}] SENT command="${command}", correlationId="${correlationId}", pendingAfter=${pendingRequestsRef.current.size}`)
         })
           .then((result) => {
             return result
@@ -104,7 +126,15 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
             if (pending) {
               pendingRequestsRef.current.delete(correlationId)
               clearTimeout(pending.timeoutId)
+              logDebug(
+                'AddToAnyNote',
+                `[DIAG][REQUEST#${pending.requestNumber}] RESPONSE command="${pending.command}", correlationId="${correlationId}", elapsed=${(performance.now() - pending.startedAt).toFixed(
+                  2,
+                )}ms, success=${String(eventData.payload.success)}, pendingAfter=${pendingRequestsRef.current.size}`,
+              )
               pending.resolve(pluginEnvelopeFromResponsePayload(eventData.payload))
+            } else {
+              logDebug('AddToAnyNote', `[DIAG][REQUEST] RESPONSE with no pending request: correlationId="${correlationId}", pending=${pendingRequestsRef.current.size}`)
             }
           }
         }
@@ -132,17 +162,29 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
      */
     const loadNotes = useCallback(
       async (forceReload: boolean = false, space: ?string = null) => {
-        if ((notesLoaded && !forceReload) || loadingNotes) return
+        const loadId = loadNotesSequenceRef.current + 1
+        loadNotesSequenceRef.current = loadId
+        logDebug(
+          'AddToAnyNote',
+          `[DIAG][LOAD#${loadId}] ENTER forceReload=${String(forceReload)}, space="${String(space || 'all')}", notesLoaded=${String(notesLoaded)}, loadingNotes=${String(
+            loadingNotes,
+          )}, activeLoads=${activeLoadNotesCountRef.current}`,
+        )
+        if ((notesLoaded && !forceReload) || loadingNotes) {
+          logDebug('AddToAnyNote', `[DIAG][LOAD#${loadId}] SKIP notesLoaded=${String(notesLoaded)}, forceReload=${String(forceReload)}, loadingNotes=${String(loadingNotes)}`)
+          return
+        }
 
         const loadStartTime = performance.now()
         try {
+          activeLoadNotesCountRef.current += 1
           setLoadingNotes(true)
-          logDebug('AddToAnyNote', `[PERF] Loading notes for add task dialog - START (forceReload=${String(forceReload)}, space="${String(space || 'all')}")`)
+          logDebug('AddToAnyNote', `[PERF][DIAG][LOAD#${loadId}] Loading notes for add task dialog - START (forceReload=${String(forceReload)}, space="${String(space || 'all')}")`)
 
           // Yield to UI before making the request
           await new Promise((resolve) => setTimeout(resolve, 0))
           const yieldElapsed = performance.now() - loadStartTime
-          logDebug('AddToAnyNote', `[PERF] Yielded to UI: elapsed=${yieldElapsed.toFixed(2)}ms`)
+          logDebug('AddToAnyNote', `[PERF][DIAG][LOAD#${loadId}] Yielded to UI: elapsed=${yieldElapsed.toFixed(2)}ms`)
 
           const requestStartTime = performance.now()
           // Build request parameters
@@ -151,6 +193,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
             includePersonalNotes: true,
             includeRelativeNotes: true,
             includeTeamspaceNotes: true,
+            includeDecoration: false, // NoteChooser derives display decoration client-side; backend decoration is too slow for calendar-note lists.
           }
 
           // Add space filter if provided
@@ -171,9 +214,10 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
           }
 
           // Load all note types
+          logDebug('AddToAnyNote', `[DIAG][LOAD#${loadId}] REQUEST getNotes params=${JSON.stringify(requestParams)}`)
           const notesData = unwrapPluginRequestData(await requestFromPlugin('getNotes', requestParams))
           const requestElapsed = performance.now() - requestStartTime
-          logDebug('AddToAnyNote', `[PERF] Request completed: elapsed=${requestElapsed.toFixed(2)}ms`)
+          logDebug('AddToAnyNote', `[PERF][DIAG][LOAD#${loadId}] Request completed: elapsed=${requestElapsed.toFixed(2)}ms`)
 
           const processStartTime = performance.now()
           if (Array.isArray(notesData)) {
@@ -181,16 +225,18 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
             setNotesLoaded(true)
             const processElapsed = performance.now() - processStartTime
             const totalElapsed = performance.now() - loadStartTime
-            logDebug('AddToAnyNote', `[PERF] Loaded ${notesData.length} notes - PROCESS: ${processElapsed.toFixed(2)}ms, TOTAL: ${totalElapsed.toFixed(2)}ms`)
+            logDebug('AddToAnyNote', `[PERF][DIAG][LOAD#${loadId}] Loaded ${notesData.length} notes - PROCESS: ${processElapsed.toFixed(2)}ms, TOTAL: ${totalElapsed.toFixed(2)}ms`)
           } else {
             logError('AddToAnyNote', `Failed to load notes: Invalid response format`)
             setNotesLoaded(true)
           }
         } catch (error) {
           const totalElapsed = performance.now() - loadStartTime
-          logError('AddToAnyNote', `[PERF] Error loading notes: elapsed=${totalElapsed.toFixed(2)}ms, error="${error.message}"`)
+          logError('AddToAnyNote', `[PERF][DIAG][LOAD#${loadId}] Error loading notes: elapsed=${totalElapsed.toFixed(2)}ms, error="${error.message}"`)
           setNotesLoaded(true)
         } finally {
+          activeLoadNotesCountRef.current = Math.max(0, activeLoadNotesCountRef.current - 1)
+          logDebug('AddToAnyNote', `[DIAG][LOAD#${loadId}] EXIT activeLoads=${activeLoadNotesCountRef.current}, pendingRequests=${pendingRequestsRef.current.size}`)
           setLoadingNotes(false)
         }
       },
@@ -223,7 +269,9 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
      */
     const reloadNotes = useCallback(
       (space: ?string = null): Promise<void> => {
-        logDebug('AddToAnyNote', `Reloading notes (triggered by dependency change or note creation, space="${String(space || 'all')}")`)
+        const reloadId = reloadNotesSequenceRef.current + 1
+        reloadNotesSequenceRef.current = reloadId
+        logDebug('AddToAnyNote', `[DIAG][RELOAD#${reloadId}] Scheduling notes reload (space="${String(space || 'all')}", currentSpaceBefore="${String(currentSpaceRef.current || 'all')}")`)
         // Store current space for lazy loading
         if (space !== null && space !== undefined) {
           currentSpaceRef.current = space
@@ -237,12 +285,14 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
         return new Promise<void>((resolve) => {
           setTimeout(async () => {
             try {
+              logDebug('AddToAnyNote', `[DIAG][RELOAD#${reloadId}] Timer fired; calling loadNotes(forceReload=true, space="${String(space || 'all')}")`)
               await loadNotes(true, space)
               // Clear loading state when done
               setFieldLoadingStates((prev) => ({ ...prev, note: false }))
+              logDebug('AddToAnyNote', `[DIAG][RELOAD#${reloadId}] COMPLETE`)
               resolve()
             } catch (error) {
-              logError('AddToAnyNote', `Error reloading notes: ${error.message}`)
+              logError('AddToAnyNote', `[DIAG][RELOAD#${reloadId}] Error reloading notes: ${error.message}`)
               // Clear loading state on error
               setFieldLoadingStates((prev) => ({ ...prev, note: false }))
               resolve() // Resolve anyway to clear loading state
@@ -260,9 +310,16 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
       (key: string, value: any, _allValues: { [key: string]: any }) => {
         // If space field changed, reload notes
         if (key === 'space') {
-          logDebug('AddToAnyNote', `Space field changed to "${String(value || 'Private')}" - reloading notes`)
+          const changeId = spaceFieldChangeSequenceRef.current + 1
+          spaceFieldChangeSequenceRef.current = changeId
+          logDebug(
+            'AddToAnyNote',
+            `[DIAG][SPACE_CHANGE#${changeId}] Space field changed to "${String(value || 'Private')}" - reloading notes; allValues.note="${String(
+              _allValues.note || '',
+            )}", allValues.heading="${String(_allValues.heading || '')}"`,
+          )
           reloadNotes(value || null).catch((error) => {
-            logError('AddToAnyNote', `Error reloading notes after space change: ${error.message}`)
+            logError('AddToAnyNote', `[DIAG][SPACE_CHANGE#${changeId}] Error reloading notes after space change: ${error.message}`)
           })
         }
       },
@@ -477,11 +534,6 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
         const setStateStartTime = performance.now()
         setIsDialogOpen(true)
 
-        // Load notes automatically when dialog opens (after rendering)
-        setTimeout(async () => {
-          await reloadNotes(null) // Load notes for default space (Private)
-        }, 150)
-
         // Note: setIsDialogOpen is async - React will batch updates
         // We yield immediately to allow React to start rendering
         setTimeout(() => {
@@ -496,7 +548,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
 
         logDebug('AddToAnyNote', `[PERF] Opening add task dialog - state set, yielding to React`)
       },
-      [reloadNotes, calculateDialogPosition],
+      [calculateDialogPosition],
     )
 
     /**
@@ -749,9 +801,10 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
         // Debounce resize events to avoid excessive recalculations
         clearTimeout(resizeTimeout)
         resizeTimeout = setTimeout(() => {
-          if (buttonRef.current) {
+          const button = buttonRef.current
+          if (button) {
             logDebug('AddToAnyNote', '[RESIZE] Window resized, recalculating dialog position')
-            const positionStyle = calculateDialogPosition(buttonRef.current)
+            const positionStyle = calculateDialogPosition(button)
             setDialogStyle(positionStyle)
             // CSS variables will be synced by the useEffect above
           }

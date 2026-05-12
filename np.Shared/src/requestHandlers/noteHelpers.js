@@ -86,19 +86,41 @@ export function convertNoteToOption(note: TNote, overrideType?: ?string, include
  * @param {$ReadOnlyArray<TNote>} notes - Array of NotePlan notes to convert
  * @param {string} overrideType - Optional type override for all notes
  * @param {boolean} includeDecoration - Whether to include decoration info from native helpers (default: true)
+ * @param {string} debugContext - Optional diagnostic context for progress logging
  * @returns {Array<NoteOption>} Array of converted note options, sorted by changedDate
  */
-export function convertNotesToOptions(notes: $ReadOnlyArray<TNote>, overrideType?: ?string, includeDecoration: boolean = true): Array<NoteOption> {
+export function convertNotesToOptions(notes: $ReadOnlyArray<TNote>, overrideType?: ?string, includeDecoration: boolean = true, debugContext: string = ''): Array<NoteOption> {
   if (!Array.isArray(notes) || notes.length === 0) {
     return []
   }
 
+  const startTime = Date.now()
+  if (debugContext) {
+    logDebug('noteHelpers', `[DIAG][${debugContext}] convertNotesToOptions START count=${notes.length}, overrideType=${String(overrideType || '')}, includeDecoration=${String(includeDecoration)}`)
+  }
+
   const converted: Array<NoteOption> = []
-  for (const note of notes) {
+  for (let index = 0; index < notes.length; index++) {
+    const note = notes[index]
+    const noteStartTime = Date.now()
     const option = convertNoteToOption(note, overrideType, includeDecoration)
+    const noteElapsed = Date.now() - noteStartTime
+    if (debugContext && (noteElapsed > 100 || index % 25 === 0)) {
+      logDebug(
+        'noteHelpers',
+        `[DIAG][${debugContext}] convertNotesToOptions progress index=${index + 1}/${notes.length}, elapsed=${Date.now() - startTime}ms, noteElapsed=${noteElapsed}ms, filename="${String(
+          note?.filename || '',
+        )}"`,
+      )
+    }
     if (option != null) {
       converted.push(option)
     }
+  }
+
+  const sortStartTime = Date.now()
+  if (debugContext) {
+    logDebug('noteHelpers', `[DIAG][${debugContext}] convertNotesToOptions SORT START converted=${converted.length}, elapsedBeforeSort=${sortStartTime - startTime}ms`)
   }
 
   // Sort by changedDate (most recent first)
@@ -107,6 +129,10 @@ export function convertNotesToOptions(notes: $ReadOnlyArray<TNote>, overrideType
     const bDate = typeof b.changedDate === 'number' ? b.changedDate : 0
     return bDate - aDate
   })
+
+  if (debugContext) {
+    logDebug('noteHelpers', `[DIAG][${debugContext}] convertNotesToOptions COMPLETE converted=${converted.length}, sortElapsed=${Date.now() - sortStartTime}ms, totalElapsed=${Date.now() - startTime}ms`)
+  }
 
   return converted
 }

@@ -397,10 +397,25 @@ const DynamicDialog = ({
   const previousItemsRef = useRef<Array<TSettingItem>>([]) // Track previous items to prevent unnecessary dependency map rebuilds
   const [fieldLoadingStates, setFieldLoadingStates] = useState<{ [fieldKey: string]: boolean }>({}) // Track loading state for dependent fields (can be set by parent component)
   const userHasInteractedRef = useRef<boolean>(false) // Track if user has manually interacted with the form (clicked on a field)
+  const renderSequenceRef = useRef<number>(0)
+  const fieldChangeSequenceRef = useRef<number>(0)
+  const dependencyEffectSequenceRef = useRef<number>(0)
 
   useEffect(() => {
     updatedSettingsRef.current = updatedSettings
   }, [updatedSettings])
+
+  useEffect(() => {
+    renderSequenceRef.current += 1
+    if (renderSequenceRef.current <= 10 || renderSequenceRef.current % 25 === 0) {
+      logDebug(
+        'DynamicDialog',
+        `[DIAG][RENDER#${renderSequenceRef.current}] isOpen=${String(isOpen)}, itemCount=${items.length}, settingsKeys=${Object.keys(updatedSettings).join(
+          ',',
+        )}, fieldLoadingKeys=${Object.keys(fieldLoadingStates).join(',')}`,
+      )
+    }
+  })
 
   // Ensure all fields from items are included in updatedSettings, even if empty
   // Conditional-values are resolved only at submit on the backend; do not add them here
@@ -695,7 +710,8 @@ const DynamicDialog = ({
     // This handles the case where the first field finishes loading after focus was set to a later field
     let checkCount = 0
     const maxChecks = 20 // 20 * 300ms = 6 seconds (should be enough for most loading scenarios)
-    const intervalId = setInterval(() => {
+    let intervalId: IntervalID = (0: any)
+    intervalId = setInterval(() => {
       checkCount++
       checkAndRefocus()
       if (checkCount >= maxChecks) {
@@ -718,9 +734,15 @@ const DynamicDialog = ({
     if (!isOpen) return // Don't clear values when dialog is closed
     if (isClearingValuesRef.current) return // Skip if we're currently clearing values (prevent infinite loops)
 
+    const effectId = dependencyEffectSequenceRef.current + 1
+    dependencyEffectSequenceRef.current = effectId
     const dependencyMap = dependencyMapRef.current
     const previousSettings = previousSettingsRef.current
     const currentSettings = updatedSettings
+    const changedKeys = Object.keys(currentSettings).filter((key) => previousSettings[key] !== currentSettings[key])
+    if (changedKeys.length > 0) {
+      logDebug('DynamicDialog', `[DIAG][DEPENDENCY#${effectId}] START changedKeys=${changedKeys.join(',')}, dependencySources=${Object.keys(dependencyMap).join(',')}`)
+    }
 
     // Track if we need to update settings (for clearing values)
     let needsUpdate = false
@@ -784,6 +806,7 @@ const DynamicDialog = ({
     // Update settings if we cleared any values
     if (needsUpdate) {
       isClearingValuesRef.current = true
+      logDebug('DynamicDialog', `[DIAG][DEPENDENCY#${effectId}] Clearing fields=[${Array.from(fieldsToClear).join(',')}], updating settings`)
       // Update previous settings BEFORE updating state to prevent re-triggering
       // This ensures the next run won't see the cleared values as a change
       previousSettingsRef.current = { ...newSettings }
@@ -797,6 +820,9 @@ const DynamicDialog = ({
       // Only update previous settings if we didn't make changes (to track future changes)
       // But only if dialog is open (don't track when closed)
       if (isOpen) {
+        if (changedKeys.length > 0) {
+          logDebug('DynamicDialog', `[DIAG][DEPENDENCY#${effectId}] No fields cleared; tracking current settings`)
+        }
         previousSettingsRef.current = { ...currentSettings }
       }
     }
@@ -928,12 +954,18 @@ const DynamicDialog = ({
 
   const handleFieldChange = useCallback(
     (key: string, value: any) => {
+      const changeId = fieldChangeSequenceRef.current + 1
+      fieldChangeSequenceRef.current = changeId
+      logDebug('DynamicDialog', `[DIAG][FIELD_CHANGE#${changeId}] EVENT key="${key}", value="${String(value)}"`)
       setChangesMade(true)
       setUpdatedSettings((prevSettings) => {
+        const previousValue = prevSettings[key]
         const newSettings = { ...prevSettings, [key]: value }
         updatedSettingsRef.current = newSettings
+        logDebug('DynamicDialog', `[DIAG][FIELD_CHANGE#${changeId}] STATE key="${key}", previous="${String(previousValue)}", next="${String(value)}"`)
         // Call onFieldChange callback if provided (for parent to react to changes)
         if (onFieldChange) {
+          logDebug('DynamicDialog', `[DIAG][FIELD_CHANGE#${changeId}] Calling parent onFieldChange for key="${key}"`)
           onFieldChange(key, value, newSettings)
         }
         return newSettings
@@ -1116,7 +1148,7 @@ const DynamicDialog = ({
             renderItemProps.inputRef = dropdownRef
           }
           return (
-            <div key={`ddc-${index}`} data-compact-display={item.compactDisplay ? 'true' : 'false'}>
+            <div className="dynamic-dialog-field-row" key={`ddc-${index}`} data-compact-display={item.compactDisplay ? 'true' : 'false'}>
               {(!item.key || shouldRenderItem(item)) && renderItem(renderItemProps)}
               {/* Don't render description for heading type since renderItem already renders it */}
               {item.description && item.type !== 'heading' && <div className="item-description">{item.description}</div>}

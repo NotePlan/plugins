@@ -65,6 +65,11 @@
       "description": "Handle shared chooser requests (getTeamspaces, etc.) for DynamicDialog",
       "jsFunction": "handleSharedRequest",
       "hidden": true
+    },
+    {
+      "name": "shared:debugGetNotesDirect",
+      "description": "TEMP DIAGNOSTIC: call getTeamspaces and getNotes directly inside np.Shared",
+      "jsFunction": "debugGetNotesDirect"
     }
   ],
   "plugin.settings": [
