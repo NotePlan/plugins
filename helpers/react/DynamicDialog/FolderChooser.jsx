@@ -80,17 +80,11 @@ export function FolderChooser({
   const loadTeamspaces = async () => {
     if (teamspacesLoaded || !requestFromPlugin) return
 
-    const loadStartTime = performance.now()
     try {
-      logDebug('FolderChooser', `[DIAG] loadTeamspaces START: folders.length=${folders.length}`)
-      // Note: requestFromPlugin resolves with just the data when success=true, or rejects with error when success=false
       const teamspacesData = unwrapPluginRequestData(await requestFromPlugin('getTeamspaces', {}))
-      const loadElapsed = performance.now() - loadStartTime
-      logDebug('FolderChooser', `[DIAG] loadTeamspaces COMPLETE: elapsed=${loadElapsed.toFixed(2)}ms`)
 
       // CRITICAL: Check if component is still mounted before setting state
       if (!isMountedRef.current) {
-        logDebug('FolderChooser', `[DIAG] loadTeamspaces SKIP - component unmounted`)
         return
       }
 
@@ -106,12 +100,11 @@ export function FolderChooser({
           )
         }
       } else {
-        logError('FolderChooser', `[DIAG] loadTeamspaces: Invalid response format, got:`, typeof teamspacesData, teamspacesData)
+        logError('FolderChooser', `loadTeamspaces: Invalid response format, got:`, typeof teamspacesData, teamspacesData)
         setTeamspacesLoaded(true) // Set to true to prevent infinite retries
       }
     } catch (error) {
-      const loadElapsed = performance.now() - loadStartTime
-      logError('FolderChooser', `[DIAG] loadTeamspaces ERROR: elapsed=${loadElapsed.toFixed(2)}ms, error="${error.message}"`)
+      logError('FolderChooser', `loadTeamspaces ERROR: ${error.message}`)
       // CRITICAL: Check if component is still mounted before setting state
       if (isMountedRef.current) {
         setTeamspacesLoaded(true) // Set to true to prevent infinite retries on error
@@ -129,22 +122,10 @@ export function FolderChooser({
 
   // Load teamspaces on mount if we have folders that might be teamspaces
   React.useEffect(() => {
-    const effectStartTime = performance.now()
-    logDebug(
-      'FolderChooser',
-      `[DIAG] useEffect START: folders.length=${folders.length}, teamspacesLoaded=${String(teamspacesLoaded)}, requestFromPlugin=${String(!!requestFromPlugin)}`,
-    )
-
     if (folders.length > 0 && !teamspacesLoaded && requestFromPlugin) {
-      // Use requestAnimationFrame + setTimeout to yield before making the request
-      // This allows TOC and other critical UI elements to render first
       let timeoutId: ReturnType<typeof setTimeout> | null = null
       requestAnimationFrame(() => {
-        const effectElapsed = performance.now() - effectStartTime
-        logDebug('FolderChooser', `[DIAG] useEffect AFTER RAF: elapsed=${effectElapsed.toFixed(2)}ms, scheduling loadTeamspaces`)
-        // Add additional delay after RAF to ensure TOC has time to render
         timeoutId = setTimeout(() => {
-          // CRITICAL: Check if component is still mounted before calling loadTeamspaces
           if (isMountedRef.current) {
             loadTeamspaces()
           }
@@ -152,14 +133,10 @@ export function FolderChooser({
       })
 
       return () => {
-        // Cleanup: clear timeout if component unmounts
         if (timeoutId != null) {
           clearTimeout(timeoutId)
         }
       }
-    } else {
-      const effectElapsed = performance.now() - effectStartTime
-      logDebug('FolderChooser', `[DIAG] useEffect SKIP: elapsed=${effectElapsed.toFixed(2)}ms, condition not met`)
     }
   }, [folders.length, teamspacesLoaded, requestFromPlugin])
 
@@ -492,7 +469,7 @@ export function FolderChooser({
     classNamePrefix: 'folder-chooser',
     iconClass: 'fa-solid fa-folder',
     fieldType: 'folder-chooser',
-    debugLogging: true,
+    debugLogging: false,
     maxResults: 0, // 0 = show all folders (unlimited, scroll)
     inputMaxLength: 100,
     dropdownMaxLength: 80,
@@ -511,9 +488,6 @@ export function FolderChooser({
       if (item === '__NEW_FOLDER__') return 'folder-plus'
       if (isStaticOption(item)) return 'fa-solid fa-circle-question' // Default icon for static options
       const decoration = getFolderDecorationFromPath(item, includeFolderPath, teamspaces)
-      if (item.startsWith('%%NotePlanCloud%%') && teamspaces.length > 0) {
-        logDebug('FolderChooser', `getOptionIcon for teamspace folder "${item}": icon=${decoration.icon}, teamspaces.length=${teamspaces.length}`)
-      }
       return decoration.icon
     },
     getOptionColor: (item: string) => {

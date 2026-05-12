@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.8.1",
   "plugin.id": "np.Shared",
   "plugin.name": "🤝 Shared Resources",
-  "plugin.version": "1.0.9",
+  "plugin.version": "1.0.10",
   "plugin.releaseStatus": "full",
   "plugin.description": "Shared resources for NotePlan plugins. (There are no commands for users to run directly.)",
   "plugin.author": "@jgclark + @dwertheimer",
@@ -65,11 +65,6 @@
       "description": "Handle shared chooser requests (getTeamspaces, etc.) for DynamicDialog",
       "jsFunction": "handleSharedRequest",
       "hidden": true
-    },
-    {
-      "name": "shared:debugGetNotesDirect",
-      "description": "TEMP DIAGNOSTIC: call getTeamspaces and getNotes directly inside np.Shared",
-      "jsFunction": "debugGetNotesDirect"
     }
   ],
   "plugin.settings": [

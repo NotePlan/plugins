@@ -8,13 +8,12 @@
 
 const sharedPluginID = 'np.Shared'
 import pluginJson from '../plugin.json'
-import { handleSharedRequest } from './sharedRequestRouter'
 import { getPluginJson, updateSettingData } from '@helpers/NPConfiguration'
-import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 
 export { openReactWindow, showInMainWindow, onMessageFromHTMLView } from './NPReactLocal'
-export { handleSharedRequest }
+export { handleSharedRequest } from './sharedRequestRouter'
 
 /**
  * Log the list of resource files that should currently be available by this plugin (i.e. at run-time, not compile-time).
@@ -43,105 +42,6 @@ export async function logAvailableSharedResources(_pluginID: string): Promise<vo
     }
   } catch (error) {
     logError(sharedPluginID, JSP(error))
-  }
-}
-
-/**
- * Temporary diagnostic command to call shared chooser handlers directly inside np.Shared.
- * This bypasses Dashboard, the WebView bridge, and REQUEST/RESPONSE correlation handling.
- * @param {string} space - Optional space filter: empty string for Private, teamspace UUID for one teamspace, or '__all__' for all spaces
- * @param {string} debugStopAfter - Optional getNotes checkpoint to stop after (e.g. after-project-raw, after-calendar-convert)
- * @param {string} debugOption - Optional diagnostic option: 'no-decoration', '<limit>', or '<start>:<limit>' for calendar conversion slicing
- * @returns {Promise<void>}
- */
-export async function debugGetNotesDirect(space: string = '', debugStopAfter: string = '', debugOption: string = ''): Promise<void> {
-  const startedAt = Date.now()
-  const normalizedSpace = typeof space === 'string' ? space : ''
-  const normalizedDebugStopAfter = typeof debugStopAfter === 'string' ? debugStopAfter : ''
-  const normalizedDebugOption = typeof debugOption === 'string' ? debugOption : ''
-  const includeDecorationForCheckpoint = normalizedDebugOption !== 'no-decoration'
-  const calendarSliceParts = normalizedDebugOption.match(/^(\d+)(?::(\d+))?$/)
-  const debugCalendarConvertStart = calendarSliceParts && calendarSliceParts[2] ? Number(calendarSliceParts[1]) : 0
-  const debugCalendarConvertLimit = calendarSliceParts ? Number(calendarSliceParts[2] || calendarSliceParts[1]) : null
-  const dashboardParams = {
-    includeCalendarNotes: true,
-    includePersonalNotes: true,
-    includeRelativeNotes: true,
-    includeTeamspaceNotes: true,
-    space: normalizedSpace,
-  }
-  const probes = normalizedDebugStopAfter
-    ? [
-        {
-          label: `checkpoint-${normalizedDebugStopAfter}`,
-          params: {
-            ...dashboardParams,
-            includeDecoration: includeDecorationForCheckpoint,
-            debugStopAfter: normalizedDebugStopAfter,
-            ...(debugCalendarConvertLimit != null ? { debugCalendarConvertStart, debugCalendarConvertLimit } : {}),
-          },
-        },
-      ]
-    : [
-        {
-          label: 'project-only-no-decoration',
-          params: { ...dashboardParams, includeCalendarNotes: false, includeRelativeNotes: false, includeDecoration: false },
-        },
-        {
-          label: 'dashboard-shape-no-decoration',
-          params: { ...dashboardParams, includeDecoration: false },
-        },
-        {
-          label: 'dashboard-shape-with-decoration',
-          params: { ...dashboardParams, includeDecoration: true },
-        },
-      ]
-
-  try {
-    logInfo(
-      sharedPluginID,
-      `[DIAG][debugGetNotesDirect] START space="${normalizedSpace || 'Private'}", debugStopAfter="${normalizedDebugStopAfter}", debugOption="${normalizedDebugOption}", dashboardParams=${JSP(
-        dashboardParams,
-      )}`,
-    )
-    const teamspacesStartedAt = Date.now()
-    const teamspacesResult = await handleSharedRequest('getTeamspaces', {}, pluginJson)
-    const teamspacesElapsed = Date.now() - teamspacesStartedAt
-    const teamspaceCount = Array.isArray(teamspacesResult?.data) ? teamspacesResult.data.length : 0
-    logInfo(
-      sharedPluginID,
-      `[DIAG][debugGetNotesDirect] getTeamspaces COMPLETE elapsed=${teamspacesElapsed}ms, success=${String(teamspacesResult?.success)}, count=${teamspaceCount}`,
-    )
-
-    let finalNoteCount = 0
-    for (const probe of probes) {
-      const notesStartedAt = Date.now()
-      logInfo(sharedPluginID, `[DIAG][debugGetNotesDirect] getNotes PROBE START label="${probe.label}", params=${JSP(probe.params)}`)
-      const notesResult = await handleSharedRequest('getNotes', probe.params, pluginJson)
-      const notesElapsed = Date.now() - notesStartedAt
-      const noteCount = Array.isArray(notesResult?.data) ? notesResult.data.length : 0
-      const debugStopped = notesResult?.data?.debugStopped === true
-      const checkpoint = notesResult?.data?.checkpoint || ''
-      finalNoteCount = noteCount
-      logInfo(
-        sharedPluginID,
-        `[DIAG][debugGetNotesDirect] getNotes PROBE COMPLETE label="${probe.label}", elapsed=${notesElapsed}ms, success=${String(notesResult?.success)}, count=${noteCount}, debugStopped=${String(
-          debugStopped,
-        )}, checkpoint="${checkpoint}", message="${String(notesResult?.message || '')}"`,
-      )
-    }
-
-    const totalElapsed = Date.now() - startedAt
-    logInfo(sharedPluginID, `[DIAG][debugGetNotesDirect] COMPLETE totalElapsed=${totalElapsed}ms`)
-    await showMessage(
-      normalizedDebugStopAfter
-        ? `np.Shared debugGetNotesDirect reached checkpoint "${normalizedDebugStopAfter}" (${normalizedDebugOption || 'full'}) in ${totalElapsed}ms`
-        : `np.Shared debugGetNotesDirect complete: final probe returned ${finalNoteCount} notes in ${totalElapsed}ms`,
-    )
-  } catch (error) {
-    const totalElapsed = Date.now() - startedAt
-    logError(sharedPluginID, `[DIAG][debugGetNotesDirect] ERROR elapsed=${totalElapsed}ms, error=${JSP(error)}`)
-    await showMessage(`np.Shared debugGetNotesDirect failed after ${totalElapsed}ms: ${error.message}`)
   }
 }
 

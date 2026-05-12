@@ -27,6 +27,23 @@ const REL_NAME_TO_NOTE_CHOOSER_TOKEN: { [string]: string } = {
   'last quarter': '<lastquarter>',
 }
 
+type RelativeTokenFilenameEntry = {
+  token: string,
+  tokenLower: string,
+  filenames: Array<string>,
+}
+
+const RELATIVE_TOKEN_CACHE_TTL_MS = 60 * 1000
+let relativeTokenFilenameCache: { createdAt: number, entries: Array<RelativeTokenFilenameEntry> } = { createdAt: 0, entries: [] }
+
+/**
+ * Clear the relative-token cache. Used by real-runtime benchmarks and tests.
+ * @returns {void}
+ */
+export function clearNoteChooserFilenameResolveCache(): void {
+  relativeTokenFilenameCache = { createdAt: 0, entries: [] }
+}
+
 /**
  * Map getRelativeDates() relName values to NoteChooser / TemplateRunner-style tokens (e.g. `<today>`).
  * @param {string} relName
@@ -73,6 +90,62 @@ function canonicalBracketCalendarToken(bracket: string): ?string {
 }
 
 /**
+ * Resolve a getRelativeDates() entry to the concrete calendar filename candidates it may represent.
+ * @param {any} rd - getRelativeDates() result entry
+ * @returns {Array<string>} Calendar filename candidates
+ */
+function filenamesFromRelativeDateEntry(rd: any): Array<string> {
+  const filenames: Array<string> = []
+  const noteFromRd = rd?.note
+  if (noteFromRd != null && typeof noteFromRd.filename === 'string' && noteFromRd.filename !== '') {
+    filenames.push(noteFromRd.filename)
+  }
+
+  const ds = rd?.dateStr
+  if (typeof ds === 'string' && ds.length > 0 && typeof DataStore !== 'undefined' && typeof DataStore.defaultFileExtension === 'string') {
+    if (new RegExp(dt.RE_ISO_DATE).test(ds)) {
+      filenames.push(`${dt.convertISODateFilenameToNPDayFilename(ds)}${DataStore.defaultFileExtension}`)
+    } else if (dt.isValidCalendarNoteFilenameWithoutExtension(ds)) {
+      filenames.push(`${ds}${DataStore.defaultFileExtension}`)
+    }
+  }
+
+  return filenames
+}
+
+/**
+ * Build and cache relative token to calendar filename mappings.
+ * This avoids recomputing getRelativeDates() for every calendar note during chooser decoration.
+ * @returns {Array<RelativeTokenFilenameEntry>} Relative token mappings
+ */
+function getRelativeTokenFilenameEntries(): Array<RelativeTokenFilenameEntry> {
+  const now = Date.now()
+  if (relativeTokenFilenameCache.entries.length > 0 && now - relativeTokenFilenameCache.createdAt < RELATIVE_TOKEN_CACHE_TTL_MS) {
+    return relativeTokenFilenameCache.entries
+  }
+
+  const entries: Array<RelativeTokenFilenameEntry> = []
+  const relativeDates = getRelativeDates(true)
+  for (const rd of relativeDates) {
+    if (!rd || !rd.relName) {
+      continue
+    }
+    const token = relNameToNoteChooserTemplateToken(rd.relName)
+    if (!token) {
+      continue
+    }
+    entries.push({
+      token,
+      tokenLower: token.toLowerCase(),
+      filenames: filenamesFromRelativeDateEntry(rd),
+    })
+  }
+
+  relativeTokenFilenameCache = { createdAt: now, entries }
+  return entries
+}
+
+/**
  * Resolve NoteChooser "relative" filenames such as `<today>` or `<thisweek>` to a real storage filename
  * that `getNoteFromFilename` / `getNoteByFilename` can open.
  *
@@ -96,33 +169,12 @@ export function resolveNoteChooserFilenameForLookup(filenameIn: string): string 
       return filenameIn
     }
     const wantToken = trimmed.toLowerCase()
-    const relativeDates = getRelativeDates(true)
-    for (const rd of relativeDates) {
-      if (!rd || !rd.relName) {
-        continue
-      }
-      const token = relNameToNoteChooserTemplateToken(rd.relName)
-      if (!token || token.toLowerCase() !== wantToken) {
-        continue
-      }
-      const noteFromRd = rd.note
-      if (noteFromRd != null && typeof noteFromRd.filename === 'string' && noteFromRd.filename !== '') {
-        logDebug('noteChooserFilenameResolve', `resolved "${trimmed}" -> "${noteFromRd.filename}"`)
-        return noteFromRd.filename
-      }
-      const ds = rd.dateStr
-      if (typeof ds === 'string' && ds.length > 0) {
-        if (new RegExp(dt.RE_ISO_DATE).test(ds)) {
-          const npDay = dt.convertISODateFilenameToNPDayFilename(ds)
-          const out = `${npDay}${DataStore.defaultFileExtension}`
-          logDebug('noteChooserFilenameResolve', `resolved "${trimmed}" -> "${out}" (from ISO dateStr)`)
-          return out
-        }
-        if (dt.isValidCalendarNoteFilenameWithoutExtension(ds)) {
-          const out = `${ds}${DataStore.defaultFileExtension}`
-          logDebug('noteChooserFilenameResolve', `resolved "${trimmed}" -> "${out}" (calendar key)`)
-          return out
-        }
+    const entry = getRelativeTokenFilenameEntries().find((candidate) => candidate.tokenLower === wantToken)
+    if (entry) {
+      const out = entry.filenames[0]
+      if (out) {
+        logDebug('noteChooserFilenameResolve', `resolved "${trimmed}" -> "${out}"`)
+        return out
       }
       logWarn('noteChooserFilenameResolve', `could not resolve "${trimmed}" to a filename (no note, bad dateStr)`)
       return filenameIn
@@ -160,37 +212,10 @@ export function getNoteChooserTemplateTokenForDisplay(note: any): ?string {
   }
 
   try {
-    const relativeDates = getRelativeDates(true)
-    for (const rd of relativeDates) {
-      if (!rd || !rd.relName) {
-        continue
-      }
-      const token = relNameToNoteChooserTemplateToken(rd.relName)
-      if (!token) {
-        continue
-      }
-      const n = rd.note
-      if (n != null && typeof n.filename === 'string' && n.filename !== '') {
-        if (calendarNoteFilenamesEquivalent(trimmed, n.filename)) {
-          return token
-        }
-      }
-    }
-    if (typeof DataStore !== 'undefined' && typeof DataStore.defaultFileExtension === 'string') {
-      for (const rd of relativeDates) {
-        if (!rd || !rd.relName) {
-          continue
-        }
-        const token = relNameToNoteChooserTemplateToken(rd.relName)
-        if (!token) {
-          continue
-        }
-        const resolved = resolveNoteChooserFilenameForLookup(token)
-        if (resolved === token) {
-          continue
-        }
-        if (calendarNoteFilenamesEquivalent(trimmed, resolved)) {
-          return token
+    for (const entry of getRelativeTokenFilenameEntries()) {
+      for (const filename of entry.filenames) {
+        if (calendarNoteFilenamesEquivalent(trimmed, filename)) {
+          return entry.token
         }
       }
     }

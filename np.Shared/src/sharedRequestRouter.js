@@ -24,9 +24,6 @@ export type RequestResponse = {
   data?: any,
 }
 
-let sharedRequestSequence: number = 0
-let activeSharedRequests: number = 0
-
 /**
  * Route request to appropriate shared handler
  * This is called by the fallback mechanism in newCommsRouter when a plugin doesn't have its own handler
@@ -36,72 +33,45 @@ let activeSharedRequests: number = 0
  * @returns {Promise<RequestResponse>}
  */
 export async function handleSharedRequest(requestType: string, params: Object = {}, pluginJson: any): Promise<RequestResponse> {
-  const requestId = sharedRequestSequence + 1
-  sharedRequestSequence = requestId
-  activeSharedRequests += 1
-  const startedAt = Date.now()
   try {
-    logDebug(pluginJson, `[DIAG][np.Shared/sharedRequestRouter][REQUEST#${requestId}] START requestType="${requestType}", active=${activeSharedRequests}, params=${JSON.stringify(params)}`)
+    logDebug(pluginJson, `[np.Shared/sharedRequestRouter] handleSharedRequest: requestType="${requestType}"`)
 
-    let result: RequestResponse
     switch (requestType) {
       case 'getTeamspaces':
-        result = getTeamspaces(params, pluginJson)
-        break
+        return getTeamspaces(params, pluginJson)
       case 'getFolders':
-        result = getFolders(params, pluginJson)
-        break
+        return getFolders(params, pluginJson)
       case 'getNotes':
-        result = getNotes(params, pluginJson)
-        break
+        return getNotes(params, pluginJson)
       case 'getHashtags':
-        result = getHashtags(params, pluginJson)
-        break
+        return getHashtags(params, pluginJson)
       case 'getMentions':
-        result = getMentions(params, pluginJson)
-        break
+        return getMentions(params, pluginJson)
       case 'getFrontmatterKeyValues':
-        result = await getFrontmatterKeyValues(params, pluginJson)
-        break
+        return await getFrontmatterKeyValues(params, pluginJson)
       case 'getHeadings':
-        result = getHeadings(params, pluginJson)
-        break
+        return getHeadings(params, pluginJson)
       case 'getEvents':
-        result = await getEvents(params, pluginJson)
-        break
+        return await getEvents(params, pluginJson)
       case 'getAvailableCalendars':
-        result = getAvailableCalendars(params, pluginJson)
-        break
+        return getAvailableCalendars(params, pluginJson)
       case 'getAvailableReminderLists':
-        result = getAvailableReminderLists(params, pluginJson)
-        break
+        return getAvailableReminderLists(params, pluginJson)
       default:
-        logDebug(pluginJson, `[DIAG][np.Shared/sharedRequestRouter][REQUEST#${requestId}] Unknown request type "${requestType}", returning error`)
-        result = {
+        logDebug(pluginJson, `[np.Shared/sharedRequestRouter] handleSharedRequest: Unknown request type "${requestType}", returning error`)
+        return {
           success: false,
           message: `Unknown shared request type: "${requestType}"`,
           data: null,
         }
     }
-
-    const count = Array.isArray(result?.data) ? result.data.length : result?.data == null ? 0 : 1
-    logDebug(
-      pluginJson,
-      `[DIAG][np.Shared/sharedRequestRouter][REQUEST#${requestId}] COMPLETE requestType="${requestType}", elapsed=${Date.now() - startedAt}ms, success=${String(
-        result?.success,
-      )}, dataCount=${count}, active=${activeSharedRequests}`,
-    )
-    return result
   } catch (error) {
-    logError(pluginJson, `[DIAG][np.Shared/sharedRequestRouter][REQUEST#${requestId}] ERROR requestType="${requestType}", elapsed=${Date.now() - startedAt}ms, error="${error.message}"`)
+    logError(pluginJson, `[np.Shared/sharedRequestRouter] handleSharedRequest ERROR: requestType="${requestType}", error="${error.message}"`)
     return {
       success: false,
       message: `Error handling shared request "${requestType}": ${error.message}`,
       data: null,
     }
-  } finally {
-    activeSharedRequests = Math.max(0, activeSharedRequests - 1)
-    logDebug(pluginJson, `[DIAG][np.Shared/sharedRequestRouter][REQUEST#${requestId}] EXIT requestType="${requestType}", active=${activeSharedRequests}`)
   }
 }
 

@@ -14,7 +14,6 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fix: Add Task's note/space REQUEST calls no longer update Dashboard global data before responses return, avoiding render cascades while loading notes and spaces.
 - fix: Add Task no longer eagerly scans notes when the dialog opens; notes are loaded only when the Note chooser is opened so Space loading is not blocked.
 - fix: Add Task note loading now opts out of expensive backend note decoration, avoiding long calendar-note conversion stalls when changing spaces.
-- dev: Add temporary Add Task diagnostics around space changes, note reloads, pending REQUESTs, and DynamicDialog dependency clearing to isolate the remaining freeze.
 - dev: turn down more logging
 
 ## [2.4.0.b31] 2026-05-04

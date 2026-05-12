@@ -5,9 +5,6 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useAppContext } from '../AppContext.jsx'
-import { logTimer } from '@helpers/dev'
-import DynamicDialog, { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
-import type { NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { pluginEnvelopeFromResponsePayload, unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { getElementCoordinates } from '@helpers/react/reactUtils.js'
@@ -38,14 +35,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
     const [fieldLoadingStates, setFieldLoadingStates] = useState<{ [fieldKey: string]: boolean }>({}) // Track loading state for note-chooser field
     const currentSpaceRef = useRef<?string>(null) // Track current space for note chooser lazy loading
     const buttonRef = useRef<?HTMLButtonElement>(null) // Ref to the button that opens the dialog
-    const pendingRequestsRef = useRef<
-      Map<string, { resolve: (value: any) => void, reject: (error: Error) => void, timeoutId: TimeoutID, command: string, startedAt: number, requestNumber: number }>,
-    >(new Map())
-    const requestSequenceRef = useRef<number>(0)
-    const loadNotesSequenceRef = useRef<number>(0)
-    const activeLoadNotesCountRef = useRef<number>(0)
-    const reloadNotesSequenceRef = useRef<number>(0)
-    const spaceFieldChangeSequenceRef = useRef<number>(0)
+    const pendingRequestsRef = useRef<Map<string, { resolve: (value: any) => void, reject: (error: Error) => void, timeoutId: TimeoutID }>>(new Map())
 
     // ----------------------------------------------------------------------
     // Request/Response handling
@@ -61,33 +51,19 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
         if (!command) throw new Error('requestFromPlugin: command must be called with a string')
 
         const correlationId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        const requestNumber = requestSequenceRef.current + 1
-        requestSequenceRef.current = requestNumber
-        const startedAt = performance.now()
-        logDebug(
-          'AddToAnyNote',
-          `[DIAG][REQUEST#${requestNumber}] START command="${command}", correlationId="${correlationId}", pendingBefore=${pendingRequestsRef.current.size}, timeout=${timeout}ms, data=${JSON.stringify(dataToSend)}`,
-        )
+        logDebug('AddToAnyNote', `requestFromPlugin: command="${command}", correlationId="${correlationId}"`)
 
         return new Promise((resolve, reject) => {
           const timeoutId = setTimeout(() => {
             const pending = pendingRequestsRef.current.get(correlationId)
             if (pending) {
               pendingRequestsRef.current.delete(correlationId)
-              const pendingSummary = Array.from(pendingRequestsRef.current.values())
-                .map((entry) => `#${entry.requestNumber}:${entry.command}:${Math.round(performance.now() - entry.startedAt)}ms`)
-                .join(', ')
-              logDebug(
-                'AddToAnyNote',
-                `[DIAG][REQUEST#${requestNumber}] TIMEOUT command="${command}", correlationId="${correlationId}", elapsed=${(performance.now() - startedAt).toFixed(
-                  2,
-                )}ms, pendingAfterDelete=${pendingRequestsRef.current.size}, remainingPending=[${pendingSummary}]`,
-              )
+              logDebug('AddToAnyNote', `requestFromPlugin TIMEOUT: command="${command}", correlationId="${correlationId}"`)
               reject(new Error(`Request timeout: ${command}`))
             }
           }, timeout)
 
-          pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId, command, startedAt, requestNumber })
+          pendingRequestsRef.current.set(correlationId, { resolve, reject, timeoutId })
 
           const requestData = {
             ...dataToSend,
@@ -97,7 +73,6 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
 
           // REQUEST calls should not update Dashboard global data before the response returns.
           sendActionToPlugin(command, requestData, `AddToAnyNote: requestFromPlugin: ${String(command)}`, false)
-          logDebug('AddToAnyNote', `[DIAG][REQUEST#${requestNumber}] SENT command="${command}", correlationId="${correlationId}", pendingAfter=${pendingRequestsRef.current.size}`)
         })
           .then((result) => {
             return result
@@ -126,15 +101,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
             if (pending) {
               pendingRequestsRef.current.delete(correlationId)
               clearTimeout(pending.timeoutId)
-              logDebug(
-                'AddToAnyNote',
-                `[DIAG][REQUEST#${pending.requestNumber}] RESPONSE command="${pending.command}", correlationId="${correlationId}", elapsed=${(performance.now() - pending.startedAt).toFixed(
-                  2,
-                )}ms, success=${String(eventData.payload.success)}, pendingAfter=${pendingRequestsRef.current.size}`,
-              )
               pending.resolve(pluginEnvelopeFromResponsePayload(eventData.payload))
-            } else {
-              logDebug('AddToAnyNote', `[DIAG][REQUEST] RESPONSE with no pending request: correlationId="${correlationId}", pending=${pendingRequestsRef.current.size}`)
             }
           }
         }
@@ -162,32 +129,13 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
      */
     const loadNotes = useCallback(
       async (forceReload: boolean = false, space: ?string = null) => {
-        const loadId = loadNotesSequenceRef.current + 1
-        loadNotesSequenceRef.current = loadId
-        logDebug(
-          'AddToAnyNote',
-          `[DIAG][LOAD#${loadId}] ENTER forceReload=${String(forceReload)}, space="${String(space || 'all')}", notesLoaded=${String(notesLoaded)}, loadingNotes=${String(
-            loadingNotes,
-          )}, activeLoads=${activeLoadNotesCountRef.current}`,
-        )
-        if ((notesLoaded && !forceReload) || loadingNotes) {
-          logDebug('AddToAnyNote', `[DIAG][LOAD#${loadId}] SKIP notesLoaded=${String(notesLoaded)}, forceReload=${String(forceReload)}, loadingNotes=${String(loadingNotes)}`)
-          return
-        }
+        if ((notesLoaded && !forceReload) || loadingNotes) return
 
-        const loadStartTime = performance.now()
         try {
-          activeLoadNotesCountRef.current += 1
           setLoadingNotes(true)
-          logDebug('AddToAnyNote', `[PERF][DIAG][LOAD#${loadId}] Loading notes for add task dialog - START (forceReload=${String(forceReload)}, space="${String(space || 'all')}")`)
 
-          // Yield to UI before making the request
           await new Promise((resolve) => setTimeout(resolve, 0))
-          const yieldElapsed = performance.now() - loadStartTime
-          logDebug('AddToAnyNote', `[PERF][DIAG][LOAD#${loadId}] Yielded to UI: elapsed=${yieldElapsed.toFixed(2)}ms`)
 
-          const requestStartTime = performance.now()
-          // Build request parameters
           const requestParams: any = {
             includeCalendarNotes: true,
             includePersonalNotes: true,
@@ -196,7 +144,6 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
             includeDecoration: false, // NoteChooser derives display decoration client-side; backend decoration is too slow for calendar-note lists.
           }
 
-          // Add space filter if provided
           // Note: np.Shared getNotes expects:
           // - empty string ('') for Private space only
           // - teamspace ID (UUID string) for a specific teamspace
@@ -213,30 +160,19 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
             requestParams.space = ''
           }
 
-          // Load all note types
-          logDebug('AddToAnyNote', `[DIAG][LOAD#${loadId}] REQUEST getNotes params=${JSON.stringify(requestParams)}`)
           const notesData = unwrapPluginRequestData(await requestFromPlugin('getNotes', requestParams))
-          const requestElapsed = performance.now() - requestStartTime
-          logDebug('AddToAnyNote', `[PERF][DIAG][LOAD#${loadId}] Request completed: elapsed=${requestElapsed.toFixed(2)}ms`)
 
-          const processStartTime = performance.now()
           if (Array.isArray(notesData)) {
             setNotes(notesData)
             setNotesLoaded(true)
-            const processElapsed = performance.now() - processStartTime
-            const totalElapsed = performance.now() - loadStartTime
-            logDebug('AddToAnyNote', `[PERF][DIAG][LOAD#${loadId}] Loaded ${notesData.length} notes - PROCESS: ${processElapsed.toFixed(2)}ms, TOTAL: ${totalElapsed.toFixed(2)}ms`)
           } else {
             logError('AddToAnyNote', `Failed to load notes: Invalid response format`)
             setNotesLoaded(true)
           }
         } catch (error) {
-          const totalElapsed = performance.now() - loadStartTime
-          logError('AddToAnyNote', `[PERF][DIAG][LOAD#${loadId}] Error loading notes: elapsed=${totalElapsed.toFixed(2)}ms, error="${error.message}"`)
+          logError('AddToAnyNote', `Error loading notes: ${error.message}`)
           setNotesLoaded(true)
         } finally {
-          activeLoadNotesCountRef.current = Math.max(0, activeLoadNotesCountRef.current - 1)
-          logDebug('AddToAnyNote', `[DIAG][LOAD#${loadId}] EXIT activeLoads=${activeLoadNotesCountRef.current}, pendingRequests=${pendingRequestsRef.current.size}`)
           setLoadingNotes(false)
         }
       },
@@ -247,20 +183,12 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
      * Lazy load notes when note-chooser dropdown opens
      */
     const handleNoteChooserOpen = useCallback(async () => {
-      const openStartTime = performance.now()
-      // Use current space from ref (set when space changes) or default to null (Private)
       const space = currentSpaceRef.current
-      logDebug('AddToAnyNote', `[PERF] Note chooser opened - lazy loading notes - START (space="${String(space || 'all')}")`)
 
       if (!notesLoaded && !loadingNotes) {
-        // Yield to UI before loading
         await new Promise((resolve) => setTimeout(resolve, 0))
-        // Pass the current space to loadNotes
         await loadNotes(false, space)
       }
-
-      const openElapsed = performance.now() - openStartTime
-      logDebug('AddToAnyNote', `[PERF] Note chooser opened - lazy loading notes - COMPLETE: elapsed=${openElapsed.toFixed(2)}ms`)
     }, [notesLoaded, loadingNotes, loadNotes])
 
     /**
@@ -269,9 +197,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
      */
     const reloadNotes = useCallback(
       (space: ?string = null): Promise<void> => {
-        const reloadId = reloadNotesSequenceRef.current + 1
-        reloadNotesSequenceRef.current = reloadId
-        logDebug('AddToAnyNote', `[DIAG][RELOAD#${reloadId}] Scheduling notes reload (space="${String(space || 'all')}", currentSpaceBefore="${String(currentSpaceRef.current || 'all')}")`)
+        logDebug('AddToAnyNote', `Reloading notes (triggered by dependency change or note creation, space="${String(space || 'all')}")`)
         // Store current space for lazy loading
         if (space !== null && space !== undefined) {
           currentSpaceRef.current = space
@@ -285,14 +211,12 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
         return new Promise<void>((resolve) => {
           setTimeout(async () => {
             try {
-              logDebug('AddToAnyNote', `[DIAG][RELOAD#${reloadId}] Timer fired; calling loadNotes(forceReload=true, space="${String(space || 'all')}")`)
               await loadNotes(true, space)
               // Clear loading state when done
               setFieldLoadingStates((prev) => ({ ...prev, note: false }))
-              logDebug('AddToAnyNote', `[DIAG][RELOAD#${reloadId}] COMPLETE`)
               resolve()
             } catch (error) {
-              logError('AddToAnyNote', `[DIAG][RELOAD#${reloadId}] Error reloading notes: ${error.message}`)
+              logError('AddToAnyNote', `Error reloading notes: ${error.message}`)
               // Clear loading state on error
               setFieldLoadingStates((prev) => ({ ...prev, note: false }))
               resolve() // Resolve anyway to clear loading state
@@ -310,16 +234,9 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
       (key: string, value: any, _allValues: { [key: string]: any }) => {
         // If space field changed, reload notes
         if (key === 'space') {
-          const changeId = spaceFieldChangeSequenceRef.current + 1
-          spaceFieldChangeSequenceRef.current = changeId
-          logDebug(
-            'AddToAnyNote',
-            `[DIAG][SPACE_CHANGE#${changeId}] Space field changed to "${String(value || 'Private')}" - reloading notes; allValues.note="${String(
-              _allValues.note || '',
-            )}", allValues.heading="${String(_allValues.heading || '')}"`,
-          )
+          logDebug('AddToAnyNote', `Space field changed to "${String(value || 'Private')}" - reloading notes`)
           reloadNotes(value || null).catch((error) => {
-            logError('AddToAnyNote', `[DIAG][SPACE_CHANGE#${changeId}] Error reloading notes after space change: ${error.message}`)
+            logError('AddToAnyNote', `Error reloading notes after space change: ${error.message}`)
           })
         }
       },
@@ -345,7 +262,6 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
 
       // Check if button is visible (not off-screen)
       if (coords.right < 0 || coords.left > window.innerWidth || coords.bottom < 0 || coords.top > window.innerHeight) {
-        logDebug('AddToAnyNote', `[POSITION] Button is off-screen, using fallback centered position`)
         // Fallback: center the dialog horizontally with some right padding
         const dialogMaxWidth = 700
         const dialogMinWidth = 380
@@ -363,16 +279,10 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
       const dialogMinWidth = 380
       const dialogPercentWidth = window.innerWidth * 0.86
       const estimatedDialogWidth = Math.min(dialogMaxWidth, Math.max(dialogMinWidth, dialogPercentWidth))
-      logDebug(
-        'AddToAnyNote',
-        `[POSITION] Dialog width calculation: viewportWidth=${window.innerWidth}px, 86%=${dialogPercentWidth.toFixed(2)}px, clamped=${estimatedDialogWidth.toFixed(2)}px (min=${dialogMinWidth}px, max=${dialogMaxWidth}px)`,
-      )
 
       // Position dialog so its CENTER aligns with the button's centerX
       // This provides better balance and prevents left-alignment issues
-      const buttonRightEdge = coords.right
       const buttonCenterX = coords.centerX
-      const buttonLeftEdge = coords.left
 
       // Calculate where dialog center should be (button's centerX)
       const dialogCenterX = buttonCenterX
@@ -383,79 +293,25 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
       
       // Calculate distanceFromRight for centered position
       let distanceFromRight = window.innerWidth - dialogRightEdgeIfCentered
-      logDebug(
-        'AddToAnyNote',
-        `[POSITION] Button coordinates: left=${buttonLeftEdge.toFixed(2)}px, centerX=${buttonCenterX.toFixed(2)}px, right=${buttonRightEdge.toFixed(2)}px, distanceFromRight=${coords.distanceFromRight.toFixed(2)}px`,
-      )
-      logDebug(
-        'AddToAnyNote',
-        `[POSITION] Centered calculation: dialogCenterX=${dialogCenterX.toFixed(2)}px, dialogLeftIfCentered=${dialogLeftEdgeIfCentered.toFixed(2)}px, dialogRightIfCentered=${dialogRightEdgeIfCentered.toFixed(2)}px, distanceFromRight=${distanceFromRight.toFixed(2)}px`,
-      )
 
       // Calculate where dialog's left edge would be with centered positioning
       let dialogLeftEdge = dialogLeftEdgeIfCentered
       let dialogRightEdge = dialogRightEdgeIfCentered
       
-      logDebug(
-        'AddToAnyNote',
-        `[POSITION] Dialog position BEFORE adjustments (centered on button): leftEdge=${dialogLeftEdge.toFixed(2)}px, rightEdge=${dialogRightEdge.toFixed(2)}px, width=${estimatedDialogWidth.toFixed(2)}px, centerX=${dialogCenterX.toFixed(2)}px (should match button centerX=${buttonCenterX.toFixed(2)}px)`,
-      )
-      logDebug(
-        'AddToAnyNote',
-        `[POSITION] Space distribution: leftSpace=${dialogLeftEdge.toFixed(2)}px, dialogWidth=${estimatedDialogWidth.toFixed(2)}px, rightSpace=${distanceFromRight.toFixed(2)}px, total=${(dialogLeftEdge + estimatedDialogWidth + distanceFromRight).toFixed(2)}px (should equal viewport=${window.innerWidth}px)`,
-      )
-
       // Ensure dialog doesn't go off the left or right edge of screen
       // If dialog would extend past either edge, shift it to fit while trying to maintain centering
       const minLeftPadding = 10 // Minimum padding from left edge
       const minRightPadding = 10 // Minimum padding from right edge
       
       if (dialogLeftEdge < minLeftPadding) {
-        // Dialog would go off left edge - shift it right just enough to fit
-        const shiftAmount = minLeftPadding - dialogLeftEdge
-        const oldDialogLeftEdge = dialogLeftEdge
-        const oldDialogRightEdge = dialogRightEdge
         dialogLeftEdge = minLeftPadding
         dialogRightEdge = dialogLeftEdge + estimatedDialogWidth
         distanceFromRight = window.innerWidth - dialogRightEdge
-        logDebug(
-          'AddToAnyNote',
-          `[POSITION] LEFT EDGE ADJUSTMENT: Dialog would go off left edge (leftEdge=${oldDialogLeftEdge.toFixed(2)}px < minPadding=${minLeftPadding}px), shifting right by ${shiftAmount.toFixed(2)}px`,
-        )
-        logDebug(
-          'AddToAnyNote',
-          `[POSITION] LEFT EDGE ADJUSTMENT: leftEdge ${oldDialogLeftEdge.toFixed(2)}px -> ${dialogLeftEdge.toFixed(2)}px, rightEdge ${oldDialogRightEdge.toFixed(2)}px -> ${dialogRightEdge.toFixed(2)}px, distanceFromRight -> ${distanceFromRight.toFixed(2)}px`,
-        )
       } else if (dialogRightEdge > window.innerWidth - minRightPadding) {
-        // Dialog would go off right edge - shift it left just enough to fit
-        const shiftAmount = dialogRightEdge - (window.innerWidth - minRightPadding)
-        const oldDialogLeftEdge = dialogLeftEdge
-        const oldDialogRightEdge = dialogRightEdge
         dialogRightEdge = window.innerWidth - minRightPadding
         dialogLeftEdge = dialogRightEdge - estimatedDialogWidth
         distanceFromRight = minRightPadding
-        logDebug(
-          'AddToAnyNote',
-          `[POSITION] RIGHT EDGE ADJUSTMENT: Dialog would go off right edge (rightEdge=${oldDialogRightEdge.toFixed(2)}px > viewport-${minRightPadding}px=${(window.innerWidth - minRightPadding).toFixed(2)}px), shifting left by ${shiftAmount.toFixed(2)}px`,
-        )
-        logDebug(
-          'AddToAnyNote',
-          `[POSITION] RIGHT EDGE ADJUSTMENT: leftEdge ${oldDialogLeftEdge.toFixed(2)}px -> ${dialogLeftEdge.toFixed(2)}px, rightEdge ${oldDialogRightEdge.toFixed(2)}px -> ${dialogRightEdge.toFixed(2)}px, distanceFromRight -> ${distanceFromRight.toFixed(2)}px`,
-        )
-      } else {
-        logDebug('AddToAnyNote', `[POSITION] No edge adjustment needed (leftEdge=${dialogLeftEdge.toFixed(2)}px >= minLeftPadding=${minLeftPadding}px, rightEdge=${dialogRightEdge.toFixed(2)}px <= viewport-minRightPadding=${(window.innerWidth - minRightPadding).toFixed(2)}px)`)
       }
-
-      // Final position after edge adjustments
-      const finalDialogLeftEdge = dialogLeftEdge
-      const finalDialogRightEdge = dialogRightEdge
-      const finalSpaceOnRight = distanceFromRight
-      const finalSpaceOnLeft = dialogLeftEdge
-      
-      logDebug(
-        'AddToAnyNote',
-        `[POSITION] After edge adjustments: finalLeftEdge=${finalDialogLeftEdge.toFixed(2)}px, finalRightEdge=${finalDialogRightEdge.toFixed(2)}px, spaceOnLeft=${finalSpaceOnLeft.toFixed(2)}px, spaceOnRight=${finalSpaceOnRight.toFixed(2)}px`,
-      )
 
       // Ensure dialog doesn't go off the bottom of screen
       // Estimate dialog height (header ~80px + content ~300px + padding ~40px = ~420px max)
@@ -473,10 +329,6 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
         if (finalTop < coords.top) {
           finalTop = coords.top
         }
-        logDebug(
-          'AddToAnyNote',
-          `[POSITION] Dialog would go off bottom (bottom=${dialogBottom}px > viewport=${window.innerHeight}px - padding=${minBottomPadding}px), adjusting top: ${dialogTop}px -> ${finalTop}px`,
-        )
       }
 
       // Return CSS variables for positioning (CSS will use these to position the dialog)
@@ -484,22 +336,6 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
         '--add-dialog-top': `${finalTop}px`,
         '--add-dialog-right': `${distanceFromRight}px`,
       }
-      logDebug(
-        'AddToAnyNote',
-        `[POSITION] FINAL RESULT: Button coords: top=${coords.top.toFixed(2)}px, bottom=${coords.bottom.toFixed(2)}px, left=${coords.left.toFixed(2)}px, right=${coords.right.toFixed(2)}px, width=${coords.width.toFixed(2)}px, height=${coords.height.toFixed(2)}px, centerX=${coords.centerX.toFixed(2)}px, centerY=${coords.centerY.toFixed(2)}px, distanceFromRight=${coords.distanceFromRight.toFixed(2)}px`,
-      )
-      logDebug(
-        'AddToAnyNote',
-        `[POSITION] FINAL RESULT: Dialog: width=${estimatedDialogWidth.toFixed(2)}px, height=${estimatedDialogHeight}px, top=${finalTop.toFixed(2)}px, leftEdge=${finalDialogLeftEdge.toFixed(2)}px, rightEdge=${finalDialogRightEdge.toFixed(2)}px, distanceFromRight=${distanceFromRight.toFixed(2)}px`,
-      )
-      logDebug(
-        'AddToAnyNote',
-        `[POSITION] FINAL RESULT: Viewport: width=${window.innerWidth}px, height=${window.innerHeight}px, Space distribution: left=${finalSpaceOnLeft.toFixed(2)}px, dialog=${estimatedDialogWidth.toFixed(2)}px, right=${finalSpaceOnRight.toFixed(2)}px, total=${(finalSpaceOnLeft + estimatedDialogWidth + finalSpaceOnRight).toFixed(2)}px (should equal ${window.innerWidth}px)`,
-      )
-      logDebug(
-        'AddToAnyNote',
-        `[POSITION] FINAL RESULT: CSS variables: --add-dialog-top=${finalTop.toFixed(2)}px, --add-dialog-right=${distanceFromRight.toFixed(2)}px`,
-      )
       return positionStyle
     }, [])
 
@@ -511,11 +347,6 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
      */
     const handleOpenDialog = useCallback(
       (event: ?SyntheticEvent<HTMLButtonElement>) => {
-        const dialogOpenStartTime = new Date()
-        logDebug('AddToAnyNote', `[PERF] Opening add task dialog - START`)
-
-        // Calculate CSS variables for dialog positioning
-        // Align top-right of dialog with bottom-middle of button
         if (event && event.currentTarget) {
           const positionStyle = calculateDialogPosition(event.currentTarget)
           setDialogStyle(positionStyle)
@@ -523,30 +354,9 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
           setDialogStyle({})
         }
 
-        // Reset space ref and error message when dialog opens
-        const resetStartTime = performance.now()
         currentSpaceRef.current = null
         setErrorMessage(null)
-        const resetElapsed = performance.now() - resetStartTime
-        logDebug('AddToAnyNote', `[PERF] Reset state: elapsed=${resetElapsed.toFixed(2)}ms`)
-
-        // Set dialog open - this triggers React rendering
-        const setStateStartTime = performance.now()
         setIsDialogOpen(true)
-
-        // Note: setIsDialogOpen is async - React will batch updates
-        // We yield immediately to allow React to start rendering
-        setTimeout(() => {
-          const setStateElapsed = performance.now() - setStateStartTime
-          logTimer(
-            'AddToAnyNote/handleOpenDialog',
-            dialogOpenStartTime,
-            `Dialog state set, React rendering should start (setState took ${setStateElapsed.toFixed(2)}ms)`,
-            100, // Warn if dialog opening takes > 100ms
-          )
-        }, 0)
-
-        logDebug('AddToAnyNote', `[PERF] Opening add task dialog - state set, yielding to React`)
       },
       [calculateDialogPosition],
     )
@@ -733,42 +543,6 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
     // ----------------------------------------------------------------------
     // Render
     // ----------------------------------------------------------------------
-    // Track when dialog rendering starts and verify actual positioning
-    useEffect(() => {
-      if (isDialogOpen) {
-        const renderStartTime = new Date()
-        logDebug('AddToAnyNote', `[PERF] Dialog render START - isDialogOpen=${String(isDialogOpen)}`)
-        // Log after React has rendered (on next tick)
-        setTimeout(() => {
-          logTimer(
-            'AddToAnyNote/render',
-            renderStartTime,
-            `Dialog rendered in DOM (isDialogOpen=${String(isDialogOpen)}, notes.length=${notes.length}, notesLoaded=${String(notesLoaded)})`,
-            200, // Warn if rendering takes > 200ms
-          )
-
-          // Verify actual dialog position after render
-          const dialogElement = document.querySelector('.add-to-any-note-dialog.dynamic-dialog')
-          if (dialogElement) {
-            const dialogRect = dialogElement.getBoundingClientRect()
-            const computedStyle = window.getComputedStyle(dialogElement)
-            const cssTop = computedStyle.getPropertyValue('top')
-            const cssRight = computedStyle.getPropertyValue('right')
-            const cssVarTop = computedStyle.getPropertyValue('--add-dialog-top')
-            const cssVarRight = computedStyle.getPropertyValue('--add-dialog-right')
-
-            logDebug(
-              'AddToAnyNote',
-              `[POSITION-VERIFY] Actual dialog position after render: top=${dialogRect.top}px, left=${dialogRect.left}px, right=${dialogRect.right}px, bottom=${dialogRect.bottom}px, width=${dialogRect.width}px, height=${dialogRect.height}px`,
-            )
-            logDebug('AddToAnyNote', `[POSITION-VERIFY] CSS computed: top="${cssTop}", right="${cssRight}", --add-dialog-top="${cssVarTop}", --add-dialog-right="${cssVarRight}"`)
-          } else {
-            logDebug('AddToAnyNote', `[POSITION-VERIFY] Dialog element not found in DOM`)
-          }
-        }, 100) // Wait 100ms for CSS to be applied
-      }
-    }, [isDialogOpen, notes.length, notesLoaded])
-
     // Sync CSS variables directly to DOM element whenever dialogStyle changes
     // This ensures CSS variables update immediately, even if React hasn't re-rendered
     useEffect(() => {
@@ -781,7 +555,6 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
           Object.keys(dialogStyle).forEach((key) => {
             dialogElement.style.setProperty(key, dialogStyle[key])
           })
-          logDebug('AddToAnyNote', `[SYNC] Updated CSS variables on dialog element: ${JSON.stringify(dialogStyle)}`)
         }
       }
 
@@ -803,7 +576,6 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
         resizeTimeout = setTimeout(() => {
           const button = buttonRef.current
           if (button) {
-            logDebug('AddToAnyNote', '[RESIZE] Window resized, recalculating dialog position')
             const positionStyle = calculateDialogPosition(button)
             setDialogStyle(positionStyle)
             // CSS variables will be synced by the useEffect above

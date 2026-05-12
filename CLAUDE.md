@@ -42,7 +42,7 @@ The most frequently used functions in the codebase are:
 
 - Do not rely only on `logDebug`/`logInfo` when NotePlan freezes. The plugin console can buffer logs, and if the JSContext hangs the last useful line may never flush.
 - First isolate whether the loop is React/WebView-side or plugin-side. Add sequence IDs and active counters around field changes, React effects, REQUEST creation, router entry/exit, and backend handlers.
-- For plugin-side freezes, add temporary hidden diagnostic commands in `plugin.json` and call them with x-callback URLs, e.g. `noteplan://x-callback-url/runPlugin?pluginID=np.Shared&command=shared%3AdebugGetNotesDirect&arg0=...&arg1=...`.
+- For plugin-side freezes, add temporary hidden diagnostic commands in `plugin.json` and call them with x-callback URLs, e.g. `noteplan://x-callback-url/runPlugin?pluginID=np.Shared&command=shared%3AtemporaryProbe&arg0=...&arg1=...`.
 - Prefer early-return checkpoints over logs for suspected freeze points. Return a `showMessage()` or structured success response after each checkpoint (`after-start`, `after-filter`, `after-convert`, etc.) so each run proves the next section completed.
 - Binary-search expensive loops with diagnostic params such as `start` and `limit`. If a full conversion freezes but `limit=10` returns slowly, treat it as a performance stall rather than a request-loop bug.
 - Keep diagnostics temporary and clearly marked (`[DIAG]`, hidden command, debug-only params). Once the root cause is fixed, remove or gate noisy logging and hidden commands unless the user wants to keep them for follow-up testing.

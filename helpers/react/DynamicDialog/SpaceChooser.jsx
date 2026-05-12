@@ -125,24 +125,13 @@ export function SpaceChooser({
   const loadSpaces = async () => {
     const requestFn = requestFromPluginRef.current
     if (spacesLoaded || !requestFn || isLoadingRef.current || hasInitialSpaces) {
-      logDebug(
-        'SpaceChooser',
-        `[DIAG] loadSpaces: skipping (spacesLoaded=${String(spacesLoaded)}, hasRequestFn=${String(!!requestFn)}, isLoading=${String(
-          isLoadingRef.current,
-        )}, hasInitialSpaces=${String(hasInitialSpaces)})`,
-      )
       return
     }
 
-    const loadStartTime = performance.now()
     try {
       isLoadingRef.current = true
       setIsLoading(true)
-      logDebug('SpaceChooser', `[DIAG] loadSpaces START`)
-      // requestFromPlugin resolves with PluginRequestEnvelope { success, data, message }; unwrap to teamspace array
       const teamspacesData = unwrapPluginRequestData(await requestFn('getTeamspaces', {}))
-      const loadElapsed = performance.now() - loadStartTime
-      logDebug('SpaceChooser', `[DIAG] loadSpaces COMPLETE: elapsed=${loadElapsed.toFixed(2)}ms`)
 
       // Always include Private as an option
       const privateOption: SpaceOption = {
@@ -180,7 +169,7 @@ export function SpaceChooser({
             )
           }
         } else {
-          logError('SpaceChooser', `[DIAG] loadSpaces: Invalid response format, got:`, typeof teamspacesData, teamspacesData)
+          logError('SpaceChooser', `loadSpaces: Invalid response format, got:`, typeof teamspacesData, teamspacesData)
           // Still set Private option even on error (and All if enabled)
           const allOptions = includeAllOptionRef.current ? [allOption, privateOption] : [privateOption]
           setSpaces(allOptions)
@@ -188,8 +177,7 @@ export function SpaceChooser({
         }
       }
     } catch (error) {
-      const loadElapsed = performance.now() - loadStartTime
-      logError('SpaceChooser', `[DIAG] loadSpaces ERROR: elapsed=${loadElapsed.toFixed(2)}ms, error="${error.message}"`)
+      logError('SpaceChooser', `loadSpaces ERROR: ${error.message}`)
       // Still set Private option even on error (and All if enabled)
       if (isMountedRef.current) {
         const privateOption: SpaceOption = {
@@ -275,7 +263,7 @@ export function SpaceChooser({
     classNamePrefix: 'space-chooser',
     iconClass: TEAMSPACE_FA_ICON, // Use full icon class: 'fa-regular fa-cube' (SearchableChooser will handle it)
     fieldType: 'space-chooser',
-    debugLogging: true,
+    debugLogging: false,
     maxResults: 25,
     inputMaxLength: 100,
     dropdownMaxLength: 80,

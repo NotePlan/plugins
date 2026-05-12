@@ -5,7 +5,7 @@
 //--------------------------------------------------------------------------
 
 import { sendToHTMLWindow } from '../HTMLView'
-import { logDebug, logError, clo, JSP, logTimer, timer } from '@helpers/dev'
+import { logDebug, logError, JSP } from '@helpers/dev'
 
 /**
  * NotePlan's invokePluginCommandByName may wrap the callee's return value as
@@ -243,12 +243,8 @@ export function newCommsRouter({
   useSharedHandlersFallback?: boolean,
 }): (actionType: string, data: any) => Promise<any> {
   return async function router(actionType: string, data: any = null): Promise<any> {
-    const requestStartTime = new Date() // Start timing when request is received
     try {
-      // Add immediate logging to catch hangs early
-      console.log(`[${routerName}] Router called with actionType="${actionType}"`)
       logDebug(pluginJson, `${routerName} received actionType="${actionType}"`)
-      clo(data, `${routerName} data=`)
 
       // Check if this is a request that needs a response
       if (data?.__requestType === 'REQUEST' && data?.__correlationId) {
@@ -302,45 +298,19 @@ export function newCommsRouter({
           getWindowId,
           pluginJson,
         })
-        logDebug(pluginJson, `[PERF] ${routerName} request/response completed for actionType="${actionType}" in ${timer(requestStartTime)}`)
-        // Log timing when request/response is complete
-        logTimer(
-          `${routerName}/router`,
-          requestStartTime,
-          `REQUEST/RESPONSE completed for actionType="${actionType}", correlationId="${data?.__correlationId || 'none'}"`,
-          1000, // Warn if takes longer than 1 second
-        )
         return result
       }
 
       // For non-REQUEST actions, call the optional handler
       if (handleNonRequestAction) {
         const result = await handleNonRequestAction(actionType, data)
-        logTimer(
-          `${routerName}/router`,
-          requestStartTime,
-          `Non-REQUEST action completed for actionType="${actionType}"`,
-          1000, // Warn if takes longer than 1 second
-        )
         return result
       }
 
       // Default: return empty object
-      logTimer(
-        `${routerName}/router`,
-        requestStartTime,
-        `Default (empty) response for actionType="${actionType}"`,
-        100, // Quick operation, warn if > 100ms
-      )
       return {}
     } catch (error) {
       logError(pluginJson, `${routerName} error: ${JSP(error)}`)
-      logTimer(
-        `${routerName}/router`,
-        requestStartTime,
-        `ERROR occurred for actionType="${actionType}": ${error.message}`,
-        100, // Log errors immediately
-      )
       return {}
     }
   }
