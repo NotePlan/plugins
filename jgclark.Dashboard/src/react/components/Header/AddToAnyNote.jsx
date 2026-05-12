@@ -4,11 +4,14 @@
 // --------------------------------------------------------------------------
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { useAppContext } from '../AppContext.jsx'
+import './AddToAnyNote.css' // Import CSS for dialog positioning
+import { useAppContext } from '../AppContext'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { pluginEnvelopeFromResponsePayload, unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { getElementCoordinates } from '@helpers/react/reactUtils.js'
-import './AddToAnyNote.css' // Import CSS for dialog positioning
+import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
+import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
+import type { NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 
 type Props = {
   sendActionToPlugin: (actionType: string, dataToSend?: any, message?: string, isUrgent?: boolean) => void,
