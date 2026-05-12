@@ -8,9 +8,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b33] 2026-05-12?
 
-## [2.4.0.b32] 2026-05-08
-- ??? fix: completing a next-action in **Active Projects** now round-trips to Projects plugin and will update with a new next-action if available.
+- fix: completing the last **Wins** (`>>`) task now updates the section heading count and shows the empty-state / congrats message.
+- dev: `REMOVE_LINE_FROM_JSON` now removes the row again on the **post-`getGlobalSharedData` payload** before **`UPDATE_DATA`**. The plugin ↔ webview bridge returns a deserialized copy for the first snapshot, so splices there did not reach React; Wins still saw the old DT row until incremental refresh.
+
+## [2.4.0.b32] 2026-05-11
+- fix: completing a next-action in **Active Projects** now round-trips to Projects plugin and will update with a new next-action if available.
 - dev: PROJACT and PROJREVIEW are no longer included in the non-calendar "refresh all sections" pass, as their data is only updated by the Projects plugin.
 - The next-action items in "Projects to Review" and "Active Projects" can now be clicked on to be completed or cancelled like items in other sections.
 - Cross-plugin Reviews: after **`REMOVE_LINE_FROM_JSON`**, the bridge calls **`updateProjectsListIfProjectSection`** so **`allProjectsList.json`** stays in sync for **PROJACT** / **PROJREVIEW** (including **complete-then** and cancel paths); shared helper **`src/projectsListSync.js`**. After the list write, **`refreshSectionsByCode`** runs **in-process** (skipping **`invokePluginCommandByName`** for that step) so PROJ* data is merged before the bridge sends **`UPDATE_DATA`**; **`processActionOnReturn`** re-fetches global shared data before that send so a pre-refresh snapshot cannot overwrite the new next-action rows. (Reviews **`updateAllProjectsListAfterChange`** must successfully reload the project note: it now uses **`getNoteFromFilename`** for teamspace paths.)

@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2026-04-15 by @jgclark for v2.4.0.b25
+// Last updated 2026-05-12 for v2.4.0.b33 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
@@ -402,6 +402,5 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
     sectionTitleColorPart: 'sidebarWins',
     actionButtons: [],
   }
-
   return sections.concat(winsSection)
 }

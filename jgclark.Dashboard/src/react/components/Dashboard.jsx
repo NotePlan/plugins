@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2026-04-16 for v2.4.0.b25, @jgclark
+// Last updated for 2026-05-12 for v2.4.0.b33, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -70,6 +70,9 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, updatePluginData } = context
 
   const { sections: origSections, lastFullRefresh } = pluginData
+  // When the plugin splices rows in-place (e.g. REMOVE_LINE_FROM_JSON), `pluginData.sections` often keeps the same array reference;
+  // synthetic WINS and dedupe would stay stale unless we also depend on row counts.
+  const pluginSectionsShapeKey = origSections.map((s) => `${s.sectionCode}:${s.sectionItems?.length ?? 0}`).join('|')
   // const enabledSectionCodes: Array<TSectionCode> = getListOfEnabledSections(dashboardSettings)
 
   const logSettings = pluginData.logSettings
@@ -119,6 +122,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [
     origSections,
+    pluginSectionsShapeKey,
     dashboardSettings,
     dashboardSettings?.customSectionDisplayOrder,
     dashboardSettings?.hideDuplicates,

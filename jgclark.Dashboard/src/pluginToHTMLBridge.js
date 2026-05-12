@@ -87,6 +87,85 @@ function removeEmptySearchOrSavedSections(sections: Array<any>, _handlerResult: 
 }
 
 /**
+ * Splice matching task/project rows out of in-memory `pluginData.sections` for `REMOVE_LINE_FROM_JSON`.
+ * Idempotent on the same `sections` reference. Call again on a **fresh** `getGlobalSharedData()` snapshot before `sendToHTMLWindow(UPDATE_DATA, ...)`:
+ * the plugin<->webview bridge often returns a **deserialized copy**, so the first
+ * pass may not mutate the object that gets posted to React (e.g. Wins rollup still seeing the removed `>>` row in DT).
+ * @author @CursorAI
+ * @param {Array<any>} sections - `pluginData.sections`
+ * @param {MessageDataObject} data - bridge message (item para / project)
+ * @param {boolean} isProject - project row vs task/checklist
+ * @param {'initial' | 'payload'} pass - which pass (for logs)
+ * @returns {number} number of rows removed
+ */
+function removeLineItemsFromPluginSections(
+  sections: Array<any>,
+  data: MessageDataObject,
+  isProject: boolean,
+  pass: 'initial' | 'payload',
+): number {
+  if (!Array.isArray(sections)) return 0
+  let removed = 0
+
+  // First handle project items
+  if (isProject) {
+    const projFilename = data.item?.project?.filename
+    if (!projFilename) {
+      logWarn('processActionOnReturn', `removeLineItemsFromPluginSections(${pass}): missing project.filename`)
+      return 0
+    }
+    logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON (${pass}): for ID:${data?.item?.ID || ''} project filename:"${projFilename}"`)
+    const indexes = findSectionItems(sections, ['itemType', 'project.filename'], { itemType: 'project', 'project.filename': projFilename })
+    if (indexes.length) {
+      logInfo(
+        'processActionOnReturn',
+        `(${pass}) -> found ${indexes.length} project item(s) to remove: ${String(
+          indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', '),
+        )}`,
+      )
+    }
+    indexes.reverse().forEach((index) => {
+      const { sectionIndex, itemIndex } = index
+      sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+      removed += 1
+    })
+    return removed
+  }
+
+  // Or handle task or checklist items
+  const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
+  const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
+    itemType: /open|checklist/,
+    'para.filename': oldFilename,
+    'para.content': oldContent,
+  })
+  if (indexes.length) {
+    logInfo('processActionOnReturn', `(${pass}) -> found ${indexes.length} items to remove: ${String(indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', '))}`)
+    indexes.reverse().forEach((index) => {
+      const { sectionIndex, itemIndex } = index
+      logDebug('processActionOnReturn', `(${pass}) -> removing item ${data.item?.ID || '?'} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+      sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+      removed += 1
+    })
+    return removed
+  }
+
+  // Or Handle fallback for cases where content matching misses due to fast section refresh/rebuild.
+  const fallbackIndexes = findSectionItems(sections, ['ID'], { ID: data.item?.ID ?? '' })
+  if (fallbackIndexes.length) {
+    logInfo('processActionOnReturn', `(${pass}) -> fallback match by ID found ${fallbackIndexes.length} item(s) to remove`)
+    fallbackIndexes.reverse().forEach((index) => {
+      const { sectionIndex, itemIndex } = index
+      sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+      removed += 1
+    })
+    return removed
+  }
+  logWarn('processActionOnReturn', `(${pass}) -> no items found to remove for content="${oldContent}" filename="${oldFilename}"`)
+  return 0
+}
+
+/**
  * HTML View requests running a plugin command
  * TODO(@dbw): can this be removed -- there's something with the same name in np.Shared/Root.jsx
  * @param {TPluginCommandSimplified} data object with plugin details
@@ -494,63 +573,13 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       const sections = reactWindowData.pluginData.sections
       logDebug('processActionOnReturn', `Starting REMOVE_LINE_FROM_JSON from active sections: ${String(sections.map((s) => s.sectionCode).join(','))}`)
 
-      if (isProject) {
-        const thisProject = data.item?.project
-        const projFilename = data.item?.project?.filename
-        if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
-        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: for ID:${data?.item?.ID || ''} project:"${thisProject?.title || '?'}"`)
-        // Find the item(s) from its filename.
-        // Note: currently this will only update 1 project item. But leaving this multi-item code here for now.
-        const indexes = findSectionItems(sections,
-          ['itemType', 'project.filename'],
-          { itemType: 'project', 'project.filename': projFilename })
-        logDebug('processActionOnReturn', `-> found ${indexes.length} items to remove: ${String(indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', '))}`)
-        indexes.reverse().forEach((index) => {
-          const { sectionIndex, itemIndex } = index
-          sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-          // clo(sections[sectionIndex],`processActionOnReturn After splicing sections[${sectionIndex}]`)
-        })
-      } else {
-        // Handle Task or Message types
-        const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
-
-        // Find all references to this content (could be in multiple sections)
-        const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
-          itemType: /open|checklist/,
-          'para.filename': oldFilename,
-          'para.content': oldContent,
-        })
-
-        if (indexes.length) {
-          logInfo('processActionOnReturn', `-> found ${indexes.length} items to remove: ${String(indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', '))}`)
-          indexes.reverse().forEach((index) => {
-            const { sectionIndex, itemIndex } = index
-            logDebug('processActionOnReturn', `-> removing item ${data.item?.ID || '?'} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-            sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-          })
-        } else {
-          // TEST: this addition from Cursor which I didn't understand.
-          // Fallback for cases where content matching misses due to fast section refresh/rebuild.
-          const fallbackIndexes = findSectionItems(sections, ['ID'], { ID: data.item?.ID ?? '' })
-          if (fallbackIndexes.length) {
-            logInfo('processActionOnReturn', `-> fallback match by ID found ${fallbackIndexes.length} item(s) to remove`)
-            fallbackIndexes.reverse().forEach((index) => {
-              const { sectionIndex, itemIndex } = index
-              sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-            })
-          } else {
-            logWarn('processActionOnReturn', `-> no items found to remove for content="${oldContent}" filename="${oldFilename}"`)
-          }
-        }
+      if (isProject && !data.item?.project?.filename) {
+        throw new Error(`unable to find data.item.project.filename`)
       }
+      removeLineItemsFromPluginSections(sections, data, isProject, 'initial')
+
       let updateMsg = `Removed item ${data.item?.ID || '?'}`
-      if (actionsOnSuccess.includes('REMOVE_SECTION_IF_EMPTY')) {
-        const removedEmpty = removeEmptySearchOrSavedSections(sections, handlerResult)
-        if (removedEmpty.length) {
-          logDebug('processActionOnReturn', `REMOVE_SECTION_IF_EMPTY: removed empty sections [${removedEmpty.join(',')}]`)
-          updateMsg += `; removed empty [${removedEmpty.join(',')}]`
-        }
-      }
+
       // If this changes a note in the Projects List, advise the P+R plugin to update the Projects List
       const codesFromHandler: Array<TSectionCode> = Array.isArray(handlerResult.sectionCodes) ? handlerResult.sectionCodes : []
       const codesFromData: Array<TSectionCode> = Array.isArray(data.sectionCodes) ? data.sectionCodes : []
@@ -570,7 +599,22 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 
       // Re-fetch: reactWindowData was read before splices and before updateProjectsListIfProjectSection (which runs refreshSectionsByCode in-process).
       // Sending that stale object would overwrite merged PROJ* rows; fresh payload matches shared state after list sync + refresh.
+      // Re-apply the same row removal on `freshPluginPayload`: getGlobalSharedData often returns a JSON **copy**, so splices on the first
+      // snapshot do not affect the object that postMessage serializes; without this, React/Wins still see the completed line in DT.
       const freshPluginPayload = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      const payloadSections = freshPluginPayload?.pluginData?.sections
+      if (Array.isArray(payloadSections)) {
+        removeLineItemsFromPluginSections(payloadSections, data, isProject, 'payload')
+        if (actionsOnSuccess.includes('REMOVE_SECTION_IF_EMPTY')) {
+          const removedEmpty = removeEmptySearchOrSavedSections(payloadSections, handlerResult)
+          if (removedEmpty.length) {
+            logDebug('processActionOnReturn', `REMOVE_SECTION_IF_EMPTY: removed empty sections [${removedEmpty.join(',')}]`)
+            updateMsg += `; removed empty [${removedEmpty.join(',')}]`
+          }
+        }
+      } else {
+        logWarn('processActionOnReturn', `REMOVE_LINE_FROM_JSON: fresh pluginData.sections missing; sending reactWindowData fallback`)
+      }
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', freshPluginPayload ?? reactWindowData, updateMsg)
     } else if (actionsOnSuccess.includes('REMOVE_SECTION_IF_EMPTY')) {
       const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
