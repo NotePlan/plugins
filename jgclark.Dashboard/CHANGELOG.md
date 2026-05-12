@@ -10,7 +10,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 -->
 
 ## [2.4.0.b32] 2026-05-08
+- ??? fix: completing a next-action in **Active Projects** now round-trips to Projects plugin and will update with a new next-action if available.
+- dev: PROJACT and PROJREVIEW are no longer included in the non-calendar "refresh all sections" pass, as their data is only updated by the Projects plugin.
 - The next-action items in "Projects to Review" and "Active Projects" can now be clicked on to be completed or cancelled like items in other sections.
+- Cross-plugin Reviews: after **`REMOVE_LINE_FROM_JSON`**, the bridge calls **`updateProjectsListIfProjectSection`** so **`allProjectsList.json`** stays in sync for **PROJACT** / **PROJREVIEW** (including **complete-then** and cancel paths); shared helper **`src/projectsListSync.js`**. After the list write, **`refreshSectionsByCode`** runs **in-process** (skipping **`invokePluginCommandByName`** for that step) so PROJ* data is merged before the bridge sends **`UPDATE_DATA`**; **`processActionOnReturn`** re-fetches global shared data before that send so a pre-refresh snapshot cannot overwrite the new next-action rows. (Reviews **`updateAllProjectsListAfterChange`** must successfully reload the project note: it now uses **`getNoteFromFilename`** for teamspace paths.)
+- **`refreshSomeSections`** returns failure (not success) when Dashboard **`pluginData`** is not ready yet; **`refreshSectionsByCode`** documents **`invokePluginCommandByName`** argument shape and flattens mistaken nested **`sectionCodes`**.
+- Perspective switch: single fire-and-forget **`generateProjectListsAndRenderIfOpen`** with **`.catch`**; skip invoke if Reviews is not installed; removed redundant second **`renderProjectListsIfOpen`**.
 - fix: Add Task's note/space REQUEST calls no longer update Dashboard global data before responses return, avoiding render cascades while loading notes and spaces.
 - fix: Add Task no longer eagerly scans notes when the dialog opens; notes are loaded only when the Note chooser is opened so Space loading is not blocked.
 - fix: Add Task note loading now opts out of expensive backend note decoration, avoiding long calendar-note conversion stalls when changing spaces.
