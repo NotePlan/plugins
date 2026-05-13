@@ -7,6 +7,8 @@ import isObject from 'lodash-es/isObject'
 import isArray from 'lodash-es/isArray'
 import moment from 'moment/min/moment-with-locales'
 
+import { awaitTopLevelApiProp } from './npBridgeResolve'
+
 /**
  * NotePlan API properties which should not be traversed when stringifying an object
  */
@@ -646,8 +648,7 @@ function primePluginSettingsCacheViaAwait(): void {
       if (typeof DataStore === 'undefined') {
         return
       }
-      // $FlowIgnore[not-a-promise] NP WebView exposes settings as awaitable; may be object or Thenable.
-      const resolved = await DataStore.settings
+      const resolved = await awaitTopLevelApiProp(DataStore, 'settings')
       if (resolved != null && typeof resolved === 'object') {
         cachedPluginSettingsForLog = resolved
       }
