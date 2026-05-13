@@ -2,17 +2,17 @@
 //--------------------------------------------------------------------------
 // shared.js
 // shared functions between plugin and React
-// Last updated 2026-01-04 for v2.4.0.b8 by @jgclark
+// Last updated 2026-01-04 for v2.4.0.b8+ by @jgclark
 //--------------------------------------------------------------------------
 
 import type { MessageDataObject, TSectionItem } from './types'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 
 export type ValidatedData = {
-    filename: string,
-    content: any,
-    item?: TSectionItem,
-    [string]: any,
+	filename: string,
+	content: any,
+	item?: TSectionItem,
+	[string]: any,
 }
 
 /**
@@ -21,18 +21,18 @@ export type ValidatedData = {
  * @return {any} The parsed JavaScript object, or undefined if an error occurs
  */
 export function parseSettings(settingsStr: string): any {
-    try {
-        if (!settingsStr) {
-            throw new Error('Undefined settingsStr passed')
-        }
-        if (typeof settingsStr === 'object') {
-            logDebug(`shared / parseSettings()`, `settingsStr is already an object, so returning it as is`)
-            return settingsStr
-        }
-        return JSON.parse(settingsStr)
-    } catch (error) {
-        logError(`shared / parseSettings()`, `Error parsing settingsStr: ${error.message}: Settings string: ${(JSP(settingsStr))}`)
-    }
+	try {
+		if (!settingsStr) {
+			throw new Error('Undefined settingsStr passed')
+		}
+		if (typeof settingsStr === 'object') {
+			// logDebug(`shared / parseSettings()`, `settingsStr is already an object, so returning it as is`)
+			return settingsStr
+		}
+		return JSON.parse(settingsStr)
+	} catch (error) {
+		logError(`shared / parseSettings()`, `Error parsing settingsStr: ${error.message}: Settings string: ${(JSP(settingsStr))}`)
+	}
 }
 
 /**
@@ -128,16 +128,16 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
  * @returns {TAnyObject} The redacted settings object
  */
 export function getSettingsRedacted(settings: TAnyObject): TAnyObject {
-    // FIXME(@jgclark): you asked why is timeblockMustContainString a special case? Or at least why are defaultFileExtension and doneDatesAvailable not eliminated as well?
-    // it probably doesn't matter anymore but the reason was that i didn't want it to get recursive. 
-    // the np settings had a shared settings object and i didn't want that sharedSettings to be saved inside sharedSettings when all other fields were migrated
-    const keysToEliminate = ['sharedSettings', 'reactSettings', "timeblockMustContainString"]
-    const settingsRedacted = JSON.parse(JSON.stringify(settings))
-    const keys = Object.keys(settingsRedacted)
-    for (const key of keys) {
-        if (keysToEliminate.includes(key)) {
-            delete settingsRedacted[key]
-        }
-    }
-    return settingsRedacted
+	// Note: (to @jgc from @dbw): you asked why is timeblockMustContainString a special case? Or at least why are defaultFileExtension and doneDatesAvailable not eliminated as well?
+	// it probably doesn't matter anymore but the reason was that i didn't want it to get recursive. 
+	// the np settings had a shared settings object and i didn't want that sharedSettings to be saved inside sharedSettings when all other fields were migrated
+	const keysToEliminate = ['sharedSettings', 'reactSettings', "timeblockMustContainString"]
+	const settingsRedacted = JSON.parse(JSON.stringify(settings))
+	const keys = Object.keys(settingsRedacted)
+	for (const key of keys) {
+		if (keysToEliminate.includes(key)) {
+			delete settingsRedacted[key]
+		}
+	}
+	return settingsRedacted
 }

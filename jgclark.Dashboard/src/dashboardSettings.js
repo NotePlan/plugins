@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-04-13 for v2.4.0.b23, @jgclark
+// Last updated 2026-05-12 for v2.4.0.b33, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { defaultSectionDisplayOrder } from './constants.js'
@@ -241,12 +241,23 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
       'Settings that control how the Dashboard displays information. There are also toggles that control filtering of which Sections to show in the Filters dropdown menu.',
   },
   {
-    label: "Show '>>' priority marker as a separate section",
+    label: "Show chosen 'Wins' priority marker as a separate section?",
     key: 'treatTopPriorityAsWins',
     type: 'switch',
     default: false,
     description:
-      "Treat the '>>' priority as indicating a particular priority item ('big win', 'big rock'), and if present, show any incomplete ones from the day and week (and month/quarter when those sections are on) as a separate **Wins** section. Lower-priority filtering (! / !! / !!!) still uses the highest among those tiers without being overridden by >>.",
+      "Treat the chosen 'Wins' priority marker (see next setting) as indicating a particular priority item ('big win', 'big rock'), and if present, show any incomplete ones from the day and week (and month/quarter when those sections are on) as a separate **Wins** section. Lower-priority filtering (! / !! / !!!) still uses the highest among those tiers without being overridden by the 'Wins' marker.",
+  },
+  {
+    label: '"Wins" priority marker',
+    key: 'winsPriorityMarker',
+    type: 'dropdown-select',
+    options: ['>>', '!!!', '!!'],
+    default: '>>',
+    dependsOnKey: 'treatTopPriorityAsWins',
+    compactDisplay: true,
+    description:
+      "The priority marker used to indicate a 'Win' / 'big rock' task. The marker is also excluded from the standard '! / !! / !!!' lower-priority filtering so that a Win is never demoted to a normal priority.",
   },
   {
     type: 'orderingPanel',

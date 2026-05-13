@@ -89,17 +89,27 @@ describe('useSectionSortAndFilter', () => {
       expect(sh.getMaxPriorityInItems(items, {})).toBe(4)
     })
 
-    test('ignores priority 4 when treatTopPriorityAsWins is on', () => {
+    test("ignores priority 4 '>>' wins when treatTopPriorityAsWins is on (default marker)", () => {
       const items = [
         { itemType: 'open', para: { priority: 4 } },
         { itemType: 'open', para: { priority: 2 } },
       ]
       expect(sh.getMaxPriorityInItems(items, { treatTopPriorityAsWins: true })).toBe(2)
     })
+
+    test("ignores priority 2 '!!' wins when winsPriorityMarker is '!!'", () => {
+      // With winsPriorityMarker '!!', priority-2 items should be excluded so max becomes priority 3 (!!!)
+      const items = [
+        { itemType: 'open', para: { priority: 2 } },
+        { itemType: 'open', para: { priority: 3 } },
+        { itemType: 'open', para: { priority: 1 } },
+      ]
+      expect(sh.getMaxPriorityInItems(items, { treatTopPriorityAsWins: true, winsPriorityMarker: '!!' })).toBe(3)
+    })
   })
 
   describe('calculateMaxPriorityAcrossAllSections', () => {
-    test('skips WINS section and ignores priority 4 when treatTopPriorityAsWins is true', () => {
+    test("skips WINS section and ignores '>>' wins when treatTopPriorityAsWins is true", () => {
       const sections = [
         {
           sectionCode: 'WINS',

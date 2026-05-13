@@ -6,12 +6,13 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-05-06 for v2.4.0.b32, @jgclark/@Cursor
+// Last updated 2026-05-13 for v2.4.0.b33, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
 import type { TSection, TSectionItem } from '../../../types.js'
 import { treatSingleItemTypesAsZeroItems } from '../../../constants.js'
+import { isWinItem } from './sectionHelpers'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev'
 
 //----------------------------------------------------------------------
@@ -175,7 +176,8 @@ const useSectionSortAndFilter = (
         memoizedDashboardSettings?.showWinsSection !== false &&
         calendarCodesForWinsSplit.includes(section.sectionCode)
       ) {
-        typeWantedItems = typeWantedItems.filter((si) => si.para?.priority !== 4)
+        const winsPriorityMarker = memoizedDashboardSettings?.winsPriorityMarker || '>>'
+        typeWantedItems = typeWantedItems.filter((si) => !isWinItem(si, winsPriorityMarker))
       }
 
       // If we want to filter by priority, find highest priority seen (globally), and then filter out lower-priority items.
@@ -289,16 +291,17 @@ const useSectionSortAndFilter = (
 
 /**
  * Calculate the maximum priority in a list of items. Returns -1 if there are no items. Returns the highest priority found, or 0 if no items have a priority.
- * When `dashboardSettings.treatTopPriorityAsWins`, priority 4 (>>) is ignored so filterPriorityItems uses the highest among ! / !! / !!! only.
+ * When `dashboardSettings.treatTopPriorityAsWins`, items matching the configured `winsPriorityMarker` (default `>>`) are ignored so filterPriorityItems uses the highest among the remaining ! / !! / !!! only.
  * @param {Array<TSectionItem>} items
  * @param {Object} [dashboardSettings]
  * @returns {number} The maximum priority found, or -1 if there are no items, or 0 if no items have a priority.
  */
-export function getMaxPriorityInItems(items: Array<TSectionItem>, dashboardSettings?: { treatTopPriorityAsWins?: boolean, ... }): number {
+export function getMaxPriorityInItems(items: Array<TSectionItem>, dashboardSettings?: { treatTopPriorityAsWins?: boolean, winsPriorityMarker?: string, ... }): number {
   if (items.length === 0) {
     return -1
   }
   const ignoreTopPriority = dashboardSettings?.treatTopPriorityAsWins === true
+  const winsPriorityMarker: string = dashboardSettings?.winsPriorityMarker || '>>'
   let maxPrioritySeen = 0
   for (const i of items) {
     // Skip special message types when calculating max priority
@@ -309,7 +312,9 @@ export function getMaxPriorityInItems(items: Array<TSectionItem>, dashboardSetti
     if (!p) {
       continue
     }
-    if (ignoreTopPriority && p === 4) {
+    // Ignore items that count as a Win (chosen marker) so the priority filter
+    // uses only the highest among ! / !! / !!! tiers (excluding the Win marker).
+    if (ignoreTopPriority && isWinItem(i, winsPriorityMarker)) {
       continue
     }
     if (p > maxPrioritySeen) {
@@ -323,10 +328,13 @@ export function getMaxPriorityInItems(items: Array<TSectionItem>, dashboardSetti
 /**
  * Calculate the maximum priority across all visible sections
  * @param {Array<TSection>} sections - All sections to check
- * @param {Object} [dashboardSettings] - When treatTopPriorityAsWins, skip synthetic WINS and ignore priority 4 in max
+ * @param {Object} [dashboardSettings] - When treatTopPriorityAsWins, skip synthetic WINS and ignore items matching `winsPriorityMarker` in max
  * @returns {number} The maximum priority found across all sections, or -1 if no items have priority
  */
-export function calculateMaxPriorityAcrossAllSections(sections: Array<TSection>, dashboardSettings?: { treatTopPriorityAsWins?: boolean, ... }): number {
+export function calculateMaxPriorityAcrossAllSections(
+  sections: Array<TSection>,
+  dashboardSettings?: { treatTopPriorityAsWins?: boolean, winsPriorityMarker?: string, ... },
+): number {
   let globalMaxPriority = -1
 
   sections.forEach((section) => {

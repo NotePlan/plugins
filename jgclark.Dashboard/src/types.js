@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-05-03 for v2.4.0.b31 by @jgclark
+// Last updated 2026-05-13 for v2.4.0.b33 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -123,6 +123,7 @@ export type TDashboardSettings = {
   showInfoSection: boolean,
   showWinsSection: boolean,
   treatTopPriorityAsWins: boolean,
+  winsPriorityMarker: string, // '>>', '!!!' or '!!' -- which priority marker to treat as a 'Win'/'big rock' when treatTopPriorityAsWins is true
   customSectionDisplayOrder: ?Array<TSectionCode>
 }
 
@@ -444,12 +445,6 @@ export type TPluginData = {
 
 // TODO: figure out how to make this superclass of TSettingItemType from DynamicDialog.jsx -- applies to teamspace-multiselect (and orderingPanel at the moment) which are Dashboard-specific items.
 export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' | 'orderingPanel' | 'teamspace-multiselect'
-
-export type TPluginCommandSimplified = {
-  commandName: string,
-  pluginID: string,
-  commandArgs: $ReadOnlyArray<mixed>,
-}
 
 export type TItemToProcess = {
   ...TSectionItem,

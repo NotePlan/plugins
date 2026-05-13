@@ -190,7 +190,7 @@ export async function updateDoneCountsFromChangedNotes(reason: string = '', keep
 
     // Read current list from todaysChangedNoteList.json, and get time of it.
     // Note: can't get a timestamp from plugin files, so need to use a separate preference
-    logDebug('updateDoneCountsFromChangedNotes', `Starting, reason: "${reason}"`)
+    // logDebug('updateDoneCountsFromChangedNotes', `Starting, reason: "${reason}"`)
     if (DataStore.fileExists(CHANGED_NOTE_FILE)) {
       const data = DataStore.loadData(CHANGED_NOTE_FILE, true) ?? '{}'
       const parsedData = JSON.parse(data)
@@ -201,7 +201,7 @@ export async function updateDoneCountsFromChangedNotes(reason: string = '', keep
             completedTasks: item.completedTasks,
           })
         })
-        logDebug('updateDoneCountsFromChangedNotes', `Loaded ${parsedData.length} items from ${CHANGED_NOTE_FILE}`)
+        // logDebug('updateDoneCountsFromChangedNotes', `Loaded ${parsedData.length} items from ${CHANGED_NOTE_FILE}`)
       }
 
       // Get last updated time from special preference
@@ -214,16 +214,18 @@ export async function updateDoneCountsFromChangedNotes(reason: string = '', keep
       momPrevious = momNow.startOf('day')
     }
     const fileAgeMins = momNow.diff(momPrevious, 'minutes')
-    logDebug('updateDoneCountsFromChangedNotes', `Last updated ${fileAgeMins} mins ago (previous time: ${momPrevious.format()} / now time: ${momNow.format()})`)
+    // logDebug('updateDoneCountsFromChangedNotes', `Last updated ${fileAgeMins} mins ago (previous time: ${momPrevious.format()} / now time: ${momNow.format()})`)
 
     // If we're now in a different day, empty the list
     if (momNow.format('DDMMYYYY') !== momPrevious.format('DDMMYYYY')) {
       // But first, let's save a copy of this to a special note, if requested. TODO: remove me later.
       if (keepPreviousData) {
         const logNote = await getOrMakeRegularNoteInFolder('Dashboard changed note data', '@Meta')
-        const noteChangesSummary = Array.from(changedNoteMap.entries()).map(([key, value]) => `- ${key} -> ${value.completedTasks}`).join('\n')
-        const newLogLine = `${new Date().toLocaleString()}:\n${noteChangesSummary}`
-        smartPrependPara(logNote, newLogLine, 'text')
+        if (logNote) {
+          const noteChangesSummary = Array.from(changedNoteMap.entries()).map(([key, value]) => `- ${key} -> ${value.completedTasks}`).join('\n')
+          const newLogLine = `${new Date().toLocaleString()}:\n${noteChangesSummary}`
+          smartPrependPara(logNote, newLogLine, 'text')
+        }
       }
       logInfo(`updateDoneCountsFromChangedNotes`, `Now in a different day (${momNow.format('DDMMYYYY')} after ${momPrevious.format('DDMMYYYY')}), so emptying changedNote list`)
       changedNoteMap.clear()
@@ -236,7 +238,7 @@ export async function updateDoneCountsFromChangedNotes(reason: string = '', keep
     // For each note, calculate done task count
     recentlychangedNotes.forEach((note) => {
       const doneTaskCount: TDoneCount = getNumCompletedTasksFromNote(note.filename, false, true)
-      logDebug(`updateDoneCountsFromChangedNotes`, `- ${note.filename} -> ${String(doneTaskCount.completedTasks)} done`)
+      // logDebug(`updateDoneCountsFromChangedNotes`, `- ${note.filename} -> ${String(doneTaskCount.completedTasks)} done`)
       // Update the map with the filename as key and an object with lastUpdated and doneCount as value
       changedNoteMap.set(note.filename, doneTaskCount)
     })

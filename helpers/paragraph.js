@@ -73,7 +73,7 @@ export function stripAllURIsAndNoteLinks(input: string): string {
  * @returns {string}
  */
 export function stripDoneDateTimeMentions(input: string): string {
-  logDebug('stripDoneMentions', `input: ${input} / ${String(RE_DONE_MENTION)}`)
+  // logDebug('stripDoneMentions', `input: ${input} / ${String(RE_DONE_MENTION)}`)
   return input.replace(RE_DONE_MENTION, '')
 }
 

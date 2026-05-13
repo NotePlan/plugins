@@ -18,7 +18,7 @@ import { getDashboardSettings, getDashboardSettingsDefaults, handlerResult, make
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettingsInAPerspective } from './perspectiveHelpers'
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
-import { validateAndFlattenMessageObject } from './shared'
+import { parseSettings, validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TSectionCode } from './types'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
@@ -650,6 +650,20 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     }
 
     const currentSettings = await getSettings('jgclark.Dashboard')
+    // Deep snapshot before save: `saveSettings` / shared caches may mutate `currentSettings.dashboardSettings` in place, which made `compareObjects(prevMerged, nextMerged)` falsely empty (e.g. `winsPriorityMarker` >> !!!)
+    const priorDashboardSettingsSnapshot: { [string]: any } = (() => {
+      const raw = currentSettings?.dashboardSettings
+      if (raw == null) return {}
+      try {
+        const parsed = typeof raw === 'string' ? parseSettings(raw) : raw
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          return JSON.parse(JSON.stringify(parsed))
+        }
+      } catch {
+        /* keep empty */
+      }
+      return {}
+    })()
     const settingsToSave = isDashboardSettings ? dashboardNewSettings : newSettings
     const combinedUpdatedSettings = { ...currentSettings, [settingName]: settingsToSave }
 
@@ -694,7 +708,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     if (settingName === 'dashboardSettings') {
       const defaults = getDashboardSettingsDefaults()
       // $FlowIgnore[prop-missing]
-      const prevMerged: { [string]: any } = { ...defaults, ...(currentSettings?.dashboardSettings || {}) }
+      const prevMerged: { [string]: any } = { ...defaults, ...priorDashboardSettingsSnapshot }
       // $FlowIgnore[prop-missing]
       const nextMerged: { [string]: any } = { ...defaults, ...(settingsToSave || {}) }
       const diff = compareObjects(prevMerged, nextMerged, ['lastModified', 'lastChange', 'usePerspectives'])

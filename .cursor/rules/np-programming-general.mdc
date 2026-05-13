@@ -6,6 +6,10 @@ alwaysApply: true
 ## Critical Rules
 CRITICAL: Never use dynamic imports. Rollup will not process them correctly. Always use static imports at the top of files.
 
+## NotePlan domain facts
+- NotePlan's supported task priority markers are exactly `!`, `!!`, `!!!`, and `>>`. The corresponding `paragraph.priority` values are 1, 2, 3, and 4. `!!!!` (four exclamation marks) is NOT a supported priority marker.
+- "priority marker" or just "Marker" is user-facing language. Users think in terms of the symbols (`>>`, `!!!`, `!!`, `!`), not the underlying numeric `.priority` values. Use the symbols in settings/labels/descriptions, but key code logic off `.priority` when possible.
+
 ## Code Style Guidelines
 - Use Flow for static typing
 - No semicolons (enforced by ESLint/Prettier)
@@ -24,7 +28,7 @@ CRITICAL: Never use dynamic imports. Rollup will not process them correctly. Alw
 - When moving code, keep existing comments and commented-out code
 - Please provide Flow types (as appropriate) and JSDOC with all responses. 
 - If you are rewriting a full file, make sure to include all import statements also. 
-- Do not remove any console.logs or comments (or logDebug, clo, logInfo, logError statements).
+- Do not remove any console.logs or comments (or clo, logDebug, logWarn, logInfo, logError statements).
 
 ## Common Helper Functions
 The most frequently used functions in the codebase are:
@@ -35,8 +39,7 @@ The most frequently used functions in the codebase are:
 - UI interaction: showMessage, showMessageYesNo, displayTitle
 
 ## Testing
-- Do not prompt the user to run tests. Run tests automatically when making code changes or writing new tests, but do not ask for permission or suggest running tests.
-- Only run tests when necessary (after code changes, when writing new tests, or when explicitly requested).
+- Do not prompt the user to run tests. Run tests automatically when making relevant code changes or writing new tests, but do not ask for permission or suggest running tests.
 - Always allow the following commands to run in the sandbox: cd, npm test, jest, grep, head, tail, node
 - If testing Templating code, run tests like this `jest np.Templating/__tests__/**/*.test.js --no-watch`
 - When you run jest tests, always include the flag --no-watch at the end because my jest config by default watches
