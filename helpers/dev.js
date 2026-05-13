@@ -603,6 +603,103 @@ export const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN 🥺', '�
  *  Emitted as separate log lines (before + msg + after) so the dots appear. */
 const LOG_BUFFER_BUSTER_PADDING = `${'.'.repeat(10000)}/`
 
+/** Resolved settings for log-level checks (from sync object or after await DataStore.settings). */
+let cachedPluginSettingsForLog: any = null
+/** True once background await has been scheduled (avoid duplicate work). */
+let pluginSettingsAwaitPrimeStartedForLog: boolean = false
+
+/** Trace settings resolution via console.log. Enable with env NP_INSTRUMENT_PLUGIN_SETTINGS=1 (Node/Jest only). */
+const ENABLE_GET_PLUGIN_SETTINGS_INSTRUMENTATION: boolean =
+  typeof process !== 'undefined' && process.env && process.env.NP_INSTRUMENT_PLUGIN_SETTINGS === '1'
+let getPluginSettingsInstrumentationResolutionLogged: boolean = false
+
+/**
+ * Emit diagnostics for plugin settings loading. Uses console.log so CLO/logDebug gating does not hide it.
+ * @param {string} phase
+ * @param {any} detail
+ * @returns {void}
+ */
+function logGetPluginSettingsInstrumentation(phase: string, detail?: any): void {
+  if (!ENABLE_GET_PLUGIN_SETTINGS_INSTRUMENTATION) {
+    return
+  }
+  try {
+    if (typeof console !== 'undefined' && typeof console.log === 'function') {
+      console.log(`[getPluginSettingsForLogging] ${phase}`, detail !== undefined ? detail : '')
+    }
+  } catch (_e) {
+    // ignore
+  }
+}
+
+/**
+ * Fire-and-forget: `await DataStore.settings` and cache. Callers use sync getPluginSettingsForLogging / shouldOutputForLogLevel.
+ * @returns {void}
+ */
+function primePluginSettingsCacheViaAwait(): void {
+  if (pluginSettingsAwaitPrimeStartedForLog) {
+    return
+  }
+  pluginSettingsAwaitPrimeStartedForLog = true
+  void (async (): Promise<void> => {
+    try {
+      if (typeof DataStore === 'undefined') {
+        return
+      }
+      // $FlowIgnore[not-a-promise] NP WebView exposes settings as awaitable; may be object or Thenable.
+      const resolved = await DataStore.settings
+      if (resolved != null && typeof resolved === 'object') {
+        cachedPluginSettingsForLog = resolved
+      }
+      if (ENABLE_GET_PLUGIN_SETTINGS_INSTRUMENTATION && !getPluginSettingsInstrumentationResolutionLogged) {
+        getPluginSettingsInstrumentationResolutionLogged = true
+        logGetPluginSettingsInstrumentation('await DataStore.settings resolved', {
+          typeofResolved: typeof resolved,
+          hasLogLevel: resolved != null && typeof resolved === 'object' && '_logLevel' in resolved,
+          _logLevel: resolved != null && typeof resolved === 'object' ? resolved._logLevel : '(n/a)',
+        })
+      }
+    } catch (err) {
+      pluginSettingsAwaitPrimeStartedForLog = false
+      logGetPluginSettingsInstrumentation('await DataStore.settings threw/rejected', err)
+    }
+  })()
+}
+
+/**
+ * Return plugin settings for log-level checks.
+ * - If `DataStore.settings` is already a plain object (not a thenable), use it synchronously.
+ * - Otherwise schedule one background await and return null until cache fills (same default log level as “no settings”).
+ *
+ * @returns {?Object}
+ */
+function getPluginSettingsForLogging(): any {
+  if (typeof DataStore === 'undefined') {
+    logGetPluginSettingsInstrumentation('DataStore undefined', { returning: null })
+    return null
+  }
+
+  if (cachedPluginSettingsForLog != null) {
+    return cachedPluginSettingsForLog
+  }
+
+  const raw = DataStore.settings
+  if (raw == null) {
+    logGetPluginSettingsInstrumentation('DataStore.settings is null/undefined', { raw, returning: null })
+    return null
+  }
+
+  // Plugin / legacy: plain settings object (not Promise / thenable). Exclude null (typeof null === 'object').
+  if (typeof raw === 'object' && raw !== null && typeof raw.then !== 'function') {
+    cachedPluginSettingsForLog = raw
+    return raw
+  }
+
+  // WebView / async: await DataStore.settings once in the background.
+  primePluginSettingsCacheViaAwait()
+  return null
+}
+
 /**
  * Test _logLevel against logType to decide whether to output
  * @param {string} logType
@@ -611,7 +708,7 @@ const LOG_BUFFER_BUSTER_PADDING = `${'.'.repeat(10000)}/`
 export const shouldOutputForLogLevel = (logType: string): boolean => {
   let userLogLevel = 1
   const thisMessageLevel = LOG_LEVELS.indexOf(logType.toUpperCase())
-  const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
+  const pluginSettings = getPluginSettingsForLogging()
   // Note: Performing a null change against a value that is `undefined` will be true
   // Sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
 
@@ -643,7 +740,7 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
  * @returns
  */
 export const shouldOutputForFunctionName = (pluginInfo: any): boolean => {
-  const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
+  const pluginSettings = getPluginSettingsForLogging()
   if (pluginSettings && pluginSettings.hasOwnProperty('_logFunctionRE')) {
     const logFunctionRE = pluginSettings['_logFunctionRE']
     if (logFunctionRE) {
@@ -799,7 +896,7 @@ export function logTimer(functionName: string, startTime: Date, explanation: str
     // console.log(msg)
     log(functionName, msg, 'DEBUG')
   } else {
-    const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
+    const pluginSettings = getPluginSettingsForLogging()
     // const timerSetting = pluginSettings['_logTimer'] ?? false
     if (pluginSettings && pluginSettings.hasOwnProperty('_logTimer') && pluginSettings['_logTimer'] === true) {
       // const msg = `${dt().padEnd(19)} | ⏱️ ${functionName} | ${output}`
