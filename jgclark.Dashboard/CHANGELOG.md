@@ -10,12 +10,16 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 -->
 
 ## [2.4.0.b33] 2026-05-13
-- fix: potential subtle issue in doDashboardSettingsChanged()  to make a deep copy of settings where it had been shallow.
 - Added new "Wins priority marker" setting so the Win indicator can be `>>`, `!!!`, or `!!`. Default remains `>>`.
 - added tooltip to Refresh button.
 - fix: completing the last "Wins" Section (`>>`) task now updates the section heading count and shows the empty-state / congrats message.
 - dev: `REMOVE_LINE_FROM_JSON` now removes the row again on the **post-`getGlobalSharedData` payload** before **`UPDATE_DATA`**. The plugin ↔ webview bridge returns a deserialized copy for the first snapshot, so splices there did not reach React; Wins still saw the old DT row until incremental refresh.
 - dev: removed unused `runPluginCommand` export from `pluginToHTMLBridge.js` and its now-orphaned `TPluginCommandSimplified` type from `types.js`
+- dev: `doDashboardSettingsChanged()`:
+  - fix: potential subtle issue in it to make a deep copy of settings where it had been shallow.
+  - refactor to make more maintainable
+  - rename it to `doSaveDashboardSettingsFromBridge()` to help understand what it does
+- dev: Rename `doPerspectiveSettingsChanged` to `doSavePerspectiveSettingsFromBridge`.
 
 ## [2.4.0.b32] 2026-05-11
 - fix: completing a next-action in **Active Projects** now round-trips to Projects plugin and will update with a new next-action if available.

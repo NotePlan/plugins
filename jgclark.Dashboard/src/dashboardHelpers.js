@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-04-13 for v2.4.0.b23, @jgclark
+// Last updated 2026-05-13 for v2.4.0.b33, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -278,6 +278,25 @@ export function getNotePlanSettings(): TNotePlanSettings {
 // Helper functions for these main functions
 // Note: some of these are exported, but only to allow jest testing
 //-----------------------------------------------------------------
+
+/**
+ * Deep-clone `dashboardSettings` before `saveSettings` when later diffs must reflect the pre-save state.
+ * `saveSettings` / shared caches may mutate the loaded object in place, which can make `compareObjects` falsely empty.
+ * @param {mixed} raw - value from `getSettings(...).dashboardSettings` (object, JSON string, or null/undefined)
+ * @returns {{ [string]: any }}
+ */
+export function cloneDashboardSettingsBeforeSave(raw: mixed): { [string]: any } {
+  if (raw == null) return {}
+  try {
+    const parsed = typeof raw === 'string' ? parseSettings(raw) : raw
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return JSON.parse(JSON.stringify(parsed))
+    }
+  } catch {
+    /* keep empty */
+  }
+  return {}
+}
 
 /**
  * Safely get a note from a paragraph, trying p.note first, then looking up by filename.
