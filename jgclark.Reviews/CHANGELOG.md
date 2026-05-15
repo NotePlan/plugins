@@ -1,6 +1,9 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.0.0.b33] - 2026-05-14
+- dev: Update shared theme conversion system to support "IBM Plex" font families
+
 ## [2.0.0.b32] - 2026-05-10
 - dev: `writeAllProjectsList` supports `skipUpdateDashboardIfOpen`; `updateAllProjectsListAfterChange` accepts options to pass it when **Dashboard** refreshes PROJ* in-process after the JSON write (avoids same-plugin `invokePluginCommandByName` ordering with a stale bridge `UPDATE_DATA`).
 - dev: `updateAllProjectsListAfterChange` now loads the project note with `getNoteFromFilename` (teamspace-aware, same pattern as task completion in `@helpers/NPParagraph`).
