@@ -11,7 +11,7 @@ import type { TSectionItem, TParagraphForDashboard, TProjectForDashboard } from 
 import { useAppContext } from './AppContext.jsx'
 import { tailwindToHsl } from '@helpers/colors'
 import { isDailyDateStr, isWeeklyDateStr, isMonthlyDateStr, isQuarterlyDateStr } from '@helpers/dateTime'
-import { logDebug, logInfo } from '@helpers/react/reactDev.js'
+import { logDebug, logInfo } from '@helpers/dev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 //-----------------------------------------------------------

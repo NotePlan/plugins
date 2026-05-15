@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-05-13 for v2.4.0.b33 by @jgclark + @CursorAI
+// Last updated 2026-05-15 for v2.4.0.b35 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -20,6 +20,7 @@ import {
   doCyclePriorityStateUp,
   doDeleteItem,
   doEvaluateString,
+  applyDashboardThemeToWebView,
   doSaveDashboardSettingsFromBridge,
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
@@ -36,6 +37,7 @@ import {
   doDeletePerspective,
   doRenamePerspective,
   doSavePerspective,
+  doSavePerspectiveAndSwitchToPerspective,
   doSwitchToPerspective,
   doSavePerspectiveSettingsFromBridge,
 } from './perspectiveClickHandlers'
@@ -182,7 +184,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     let result: TBridgeClickHandlerResult = { success: false }
 
     logInfo(`************* bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} *************`)
-    clo(data, 'bridgeClickDashboardItem received data object; data=')
+    // clo(data, 'bridgeClickDashboardItem received data object; data=')
     if (actionType !== 'refreshEnabledSections' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
     // Allow for a combination of button click and a content update
@@ -368,6 +370,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doSavePerspective(data)
         break
       }
+      case 'savePerspectiveAndSwitch': {
+        result = await doSavePerspectiveAndSwitchToPerspective(data)
+        break
+      }
       case 'savePerspectiveAs': {
         result = await doAddNewPerspective(data)
         break
@@ -507,16 +513,17 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult, data: MessageDataObject) {
   try {
     // check to see if the theme has changed and if so, update it
-    const config: any = await getDashboardSettings()
+    let config: any = await getDashboardSettings()
+    // dashboardSettingsChanged already applies CHANGE_THEME + updates pluginData.themeName; avoid redundant full reload.
     const themeChanged = await themeHasChanged(WEBVIEW_WINDOW_ID, config.dashboardTheme)
-    if (themeChanged) {
+    if (themeChanged && data.actionType !== 'dashboardSettingsChanged') {
       logDebug('processActionOnReturn', `Theme changed; forcing a refresh of the dashboard`)
       DataStore.invokePluginCommandByName('showDashboardReact', 'jgclark.Dashboard', ['full'])
     }
     if (!handlerResultIn) return
     const handlerResult = handlerResultIn
     const { success, updatedParagraph, errorMsg, errorMessageLevel } = handlerResult
-    const enabledSections = getListOfEnabledSections(config)
+    let enabledSections = getListOfEnabledSections(config)
 
     if (!success) {
       logDebug('processActionOnReturn', `-> failed (success false) ${errorMsg || ''}`)
@@ -645,7 +652,29 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       }
     }
 
-    // FIXME: Probably works, but it looks like enabledSections is not being updated before this is called.
+    if (actionsOnSuccess.includes('APPLY_THEME')) {
+      const themeName = String(handlerResult.dashboardThemeName ?? config.dashboardTheme ?? '')
+      logDebug('processActionOnReturn', `APPLY_THEME for '${themeName}'`)
+      const changeThemeDelivered = await applyDashboardThemeToWebView(themeName)
+      if (changeThemeDelivered) {
+        await setPluginData({ themeName }, `APPLY_THEME: updated pluginData.themeName`)
+      } else if (!actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
+        logInfo('processActionOnReturn', `APPLY_THEME failed; falling back to REFRESH_ALL_ENABLED_SECTIONS`)
+        await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
+      }
+    }
+
+    // Re-read settings after awaited work above (e.g. APPLY_THEME fallbacks, REMOVE_LINE / P+R sync) so enabled list + payload
+    // match the latest persisted dashboardSettings before CLOSE / full refresh / perspective batch.
+    if (
+      actionsOnSuccess.includes('CLOSE_UNNEEDED_SECTIONS') ||
+      actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS') ||
+      actionsOnSuccess.includes('PERSPECTIVE_CHANGED')
+    ) {
+      config = await getDashboardSettings()
+      enabledSections = getListOfEnabledSections(config)
+    }
+
     if (actionsOnSuccess.includes('CLOSE_UNNEEDED_SECTIONS')) {
       // Identify which sections to close (only rows present in plugin JSON; synthetic sections e.g. WINS are injected in React only)
       const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
@@ -654,15 +683,20 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       // WebView snapshot can lag behind settings just saved to disk; merge dashboard settings from source of truth
       // so client-only sections (e.g. WINS from `winsPriorityMarker`) update on the same `UPDATE_DATA` as section splices.
       reactWindowData.pluginData = { ...(reactWindowData.pluginData || {}), dashboardSettings: config }
-      const enabledSectionIDs = enabledSections.map((s) => sections.find((section) => section.sectionCode === s)?.ID ?? '')
-      logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: currently enabled sections: [${String(enabledSections)}]`)
+      // `getListOfEnabledSections` omits synthetic WINS (generated in React); include it here when Wins is on so logs / client-only notes stay accurate
+      const enabledForClose: Array<TSectionCode> = [...enabledSections]
+      if (config.showWinsSection !== false && !enabledForClose.includes('WINS')) {
+        enabledForClose.push('WINS')
+      }
+      const enabledSectionIDs = enabledForClose.map((s) => sections.find((section) => section.sectionCode === s)?.ID ?? '')
+      logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: currently enabled sections: [${String(enabledForClose)}]`)
       logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: currently enabled sectiond IDs: [${String(enabledSectionIDs)}]`)
 
       // Section codes present in plugin JSON before any splice (used to explain empty removals when UI hides client-only sections)
       const sectionCodesInPluginJson = new Set(sections.map((s) => s.sectionCode))
 
       // Handle sections that are not enabled
-      const sectionIDsToClose = sections.filter(section => !enabledSections.includes(section.sectionCode)).map(section => section.ID)
+      const sectionIDsToClose = sections.filter(section => !enabledForClose.includes(section.sectionCode)).map(section => section.ID)
       logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: will close sections: [${sectionIDsToClose.join(',')}]`)
       const actuallyClosedCodes: Array<string> = []
       for (const sectionID of sectionIDsToClose) {
@@ -677,7 +711,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       // Built only in React (`injectSyntheticWinsSection`), never in plugin `sections` JSON
       const syntheticSectionCodesNotInPluginJson: Array<TSectionCode> = ['WINS']
       const clientOnlyHiddenBySettings = syntheticSectionCodesNotInPluginJson.filter(
-        (code) => !enabledSections.includes(code) && !sectionCodesInPluginJson.has(code),
+        (code) => !enabledForClose.includes(code) && !sectionCodesInPluginJson.has(code),
       )
       const removedFromJson = actuallyClosedCodes.length ? actuallyClosedCodes.join(',') : 'none'
       const clientOnlyNote =
@@ -734,7 +768,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)
       await incrementallyRefreshSomeSections({ ...data, sectionCodes: allSectionCodes })
     } else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
-      // Note: only used by doMoveFromCalToCal(), as at 2.3.0.b15
+      // Note: not used by anything, as at 2.4.0.b18
       logDebug('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
       for (const sectionCode of allCalendarSectionCodes) {
         // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })

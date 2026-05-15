@@ -13,7 +13,7 @@ import React, { useEffect, useRef, useState, useCallback, type Node } from 'reac
 // import { renderItem } from '../support/uiElementRenderHelpers'
 import './SearchPanel.css' // Import the CSS file
 import { useAppContext } from '../AppContext.jsx'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug } from '@helpers/dev'
 //--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------

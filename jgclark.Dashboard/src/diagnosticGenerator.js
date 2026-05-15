@@ -11,7 +11,7 @@ import {
   getListOfEnabledSections,
   getNotePlanSettings,
 } from './dashboardHelpers'
-import { logPerspectives, logPerspectiveNames, getActivePerspectiveName, getPerspectiveSettings } from './perspectiveHelpers'
+import { logPerspectives, logPerspectiveNames, getActivePerspectiveName, loadPerspectiveDefsFromPluginSettings } from './perspectiveHelpers'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { getTagMentionCacheSummary } from './tagMentionCache'
 import type { TPerspectiveDef } from './types'
@@ -48,7 +48,7 @@ export async function generateDiagnosticsFile() {
     const npSettings = await getNotePlanSettings()
     const ds: any = await getDashboardSettings()
     const output: Array<string> = []
-    const perspectiveDefs: Array<TPerspectiveDef> = await getPerspectiveSettings(false)
+    const perspectiveDefs: Array<TPerspectiveDef> = await loadPerspectiveDefsFromPluginSettings(false)
 
     output.push('---')
     output.push(`title: ${diagnosticsNoteTitle}`)

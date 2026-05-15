@@ -10,7 +10,7 @@ import DialogForProjectItems from './DialogForProjectItems.jsx'
 import DialogForTaskItems from './DialogForTaskItems.jsx'
 import { useAppContext } from './AppContext.jsx'
 import Modal from './Modal'
-import { clo, JSP, logDebug } from '@helpers/react/reactDev.js'
+import { clo, JSP, logDebug } from '@helpers/dev'
 import '../css/DashboardDialog.css'
 
 type RefType<T> = {| current: null | T |}

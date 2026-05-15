@@ -8,7 +8,7 @@
 import React, { type Node } from 'react'
 import type { TSectionItem } from '../../types.js'
 import CircularProgressBar from './CircularProgressBar.jsx'
-import { logDebug, logInfo } from '@helpers/react/reactDev.js'
+import { logDebug, logInfo } from '@helpers/dev'
 import '../css/ProgressBar.css'
 
 type Props = {

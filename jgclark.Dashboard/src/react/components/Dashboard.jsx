@@ -29,7 +29,7 @@ import { getTestGroups } from './testing/tests'
 import PerspectivesTable from './PerspectivesTable.jsx'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import DebugPanel from '@helpers/react/DebugPanel'
-import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
+import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import NonModalSpinner from '@helpers/react/NonModalSpinner' // Note: also a ModalSpinner is available, but no longer used here.
 
 export const standardSections: Array<TSettingItem> = showSectionSettingItems

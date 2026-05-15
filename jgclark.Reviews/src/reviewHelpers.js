@@ -7,7 +7,7 @@
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
-import { getActivePerspectiveDef, getPerspectiveSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
+import { getActivePerspectiveDef, loadPerspectiveDefsFromPluginSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
 import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { WEBVIEW_WINDOW_ID as DASHBOARD_WINDOW_ID} from '../../jgclark.Dashboard/src/constants'
 import pluginJson from '../plugin.json'
@@ -269,7 +269,7 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
 
     // If we want to use Perspectives, get all perspective settings from Dashboard plugin.
     if (config.usePerspectives) {
-      const perspectiveSettings: Array<TPerspectiveDef> = await getPerspectiveSettings(false)
+      const perspectiveSettings: Array<TPerspectiveDef> = await loadPerspectiveDefsFromPluginSettings(false)
       // Get the current Perspective
       const currentPerspective: any = getActivePerspectiveDef(perspectiveSettings)
       if (!currentPerspective) {

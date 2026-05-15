@@ -11,7 +11,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, type ElementRef } from 'react'
-import { logDebug } from '@helpers/react/reactDev'
+import { logDebug } from '@helpers/dev'
 
 //--------------------------------------------------------------------------
 // Type Definitions

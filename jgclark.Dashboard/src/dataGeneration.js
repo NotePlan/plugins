@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-01-23 for v2.4.0.b18, @jgclark
+// Last updated 2026-05-15 for v2.4.0.b35 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -16,6 +16,7 @@ import {
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
 } from './dashboardHelpers'
+import { loadDashboardPluginSettings } from './dashboardPluginSettings'
 import { getTodaySectionData, getTimeBlockSectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
 import { getOverdueSectionData } from './dataGenerationOverdue'
 import { getPrioritySectionData } from './dataGenerationPriority'
@@ -30,7 +31,6 @@ import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
 import { getNPMonthStr, getNPQuarterStr, getNPYearStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getHeadingsFromNote } from '@helpers/NPnote'
-import { getSettings } from '@helpers/NPConfiguration'
 import { getLiveWindowRect, getStoredWindowRect, logWindowsList, rectToString } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------
@@ -153,7 +153,7 @@ export async function getInfoSectionData(_config: TDashboardSettings, _useDemoDa
   const sections: Array<TSection> = []
   const thisSectionCode = 'INFO'
   const outputLines = []
-  const settings = await getSettings(pluginJson['plugin.id'])
+  const settings = await loadDashboardPluginSettings()
   outputLines.push(`Device name '${NotePlan.environment.machineName}' (${NotePlan.environment.platform}) running NP v${NotePlan.environment.versionNumber} build ${NotePlan.environment.buildVersion}, and Dashboard v${pluginJson['plugin.version']}-${pluginJson['plugin.releaseStatus']}.`)
   outputLines.push(`Screen: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}. Window type requested: ${settings?.preferredWindowType ?? '?'}`)
   const storedWindowRect: Rect | false = getStoredWindowRect('jgclark.Dashboard.main')

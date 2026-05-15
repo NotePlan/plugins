@@ -6,7 +6,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import './AddToAnyNote.css' // Import CSS for dialog positioning
 import { useAppContext } from '../AppContext'
-import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { logDebug, logError } from '@helpers/dev'
 import { pluginEnvelopeFromResponsePayload, unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { getElementCoordinates } from '@helpers/react/reactUtils.js'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'

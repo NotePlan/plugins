@@ -7,7 +7,7 @@
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, type ElementRef } from 'react'
 import { ThemedSelect, type OptionType } from '@helpers/react/ThemedSelect'
-import { logDebug } from '@helpers/react/reactDev'
+import { logDebug } from '@helpers/dev'
 
 type ComboBoxProps = {
   label: string,

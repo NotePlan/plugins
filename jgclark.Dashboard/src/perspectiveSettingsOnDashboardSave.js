@@ -7,10 +7,10 @@
 
 import { getDashboardSettingsDefaults, handlerResult } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
-import { cleanDashboardSettingsInAPerspective, getActivePerspectiveDef, getPerspectiveSettings } from './perspectiveHelpers'
+import { cleanDashboardSettingsInAPerspective, getActivePerspectiveDef, loadPerspectiveDefsFromPluginSettings } from './perspectiveHelpers'
 import type { TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
 import { clo, compareObjects, JSP, logDebug, logError } from '@helpers/dev'
-import { getSettings, saveSettings } from '@helpers/NPConfiguration'
+import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 
 const pluginID = 'jgclark.Dashboard'
 const logFn = 'doSaveDashboardSettingsFromBridge'
@@ -32,7 +32,7 @@ export async function resolvePerspectivesWhenDashboardSettingsWithoutPerspective
 ): Promise<TPerspectiveResolveForDashboardSaveResult> {
   let perspectivesToSave: void | TPerspectiveSettings
   let needToSetDash = false
-  const perspectiveSettings = await getPerspectiveSettings()
+  const perspectiveSettings = await loadPerspectiveDefsFromPluginSettings()
   if (dashboardNewSettings.usePerspectives) {
     // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
     const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
@@ -64,13 +64,17 @@ export async function resolvePerspectivesWhenDashboardSettingsWithoutPerspective
       const diff = compareObjects(activePerspDefDashboardSettingsWithDefaultsAndTAGs, cleanedSettings, ['lastModified', 'lastChange', 'usePerspectives'])
       clo(diff, `${logFn}: diff`)
 
-      // if !diff or all the diff keys start with FFlag, then return
+      // No perspective-relevant diff: still save top-level dashboardSettings (e.g. usePerspectives), do not set isModified
       if (!diff || Object.keys(diff).length === 0) {
-        return { kind: 'done', result: handlerResult(true) }
+        logDebug(logFn, `No perspective-relevant diff vs saved def; continuing to save dashboardSettings only`)
+        return { kind: 'continue' }
       }
       if (Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
         logDebug(logFn, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
-        const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: newSettings })
+        const res = await saveDashboardPluginSettings({
+          ...(await loadDashboardPluginSettings()),
+          dashboardSettings: newSettings,
+        })
         return { kind: 'done', result: handlerResult(res) }
       }
 

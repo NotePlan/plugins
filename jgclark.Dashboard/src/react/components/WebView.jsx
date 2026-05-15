@@ -32,7 +32,7 @@ import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
 import { dashboardSettingsDefaults } from '../support/settingsHelpers.js'
-import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logError, logInfo } from '@helpers/dev'
 
 /**
  * Reduces an array of dashboard settings or filter items into an object with keys and values

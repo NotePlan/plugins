@@ -9,7 +9,7 @@ import React, { type Node } from 'react'
 import { DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logWarn } from '@helpers/dev'
 import './TasksFiltered.css'
 
 type Props = {

@@ -16,7 +16,7 @@ import TextComponent from '../components/TextComponent.jsx'
 import { getActivePerspectiveName } from '../../perspectiveHelpers.js'
 import InputBox from '../components/InputBox.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logError } from '@helpers/dev'
 import '../css/PerspectiveSettings.css'
 
 //----------------------------------------------------------

@@ -16,7 +16,7 @@ import { dashboardSettingsReducer } from '../reducers/dashboardSettingsReducer'
 import { perspectiveSettingsReducer } from '../reducers/perspectiveSettingsReducer'
 import { useSyncDashboardSettingsWithPlugin } from '../customHooks/useSyncDashboardSettingsWithPlugin'
 import { useSyncPerspectivesWithPlugin } from '../customHooks/useSyncPerspectivesWithPlugin'
-import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logError } from '@helpers/dev'
 import { compareObjects } from '@helpers/dev'
 
 /****************************************************************************************************************************

@@ -11,7 +11,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAppContext } from '../components/AppContext.jsx'
-import { logDebug, logError, logInfo, logWarn } from '@helpers/react/reactDev.js'
+import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 
 /**
  * Options for the refresh timer hook.

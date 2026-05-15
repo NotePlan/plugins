@@ -10,7 +10,7 @@ import type { TSection, TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import NoteTitleLink from './NoteTitleLink.jsx'
-import { logDebug, logInfo } from '@helpers/react/reactDev.js'
+import { logDebug, logInfo } from '@helpers/dev'
 import { parseTeamspaceFilename, TEAMSPACE_FA_ICON } from '@helpers/teamspace'
 
 //-----------------------------------------------------------
@@ -58,7 +58,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
   if (folderNamePart !== '' && !folderNamePart.endsWith('/')) {
     folderNamePart = `/ ${folderNamePart}`
   }
-  if (isFromTeamspace) logInfo('ItemNoteLink', `- trimmedFilePath=${trimmedFilePath} folderNamePart=${folderNamePart}`)
+  // if (isFromTeamspace) logDebug('ItemNoteLink', `- trimmedFilePath from Space=${trimmedFilePath} folderNamePart=${folderNamePart}`)
   const showNoteTitle = alwaysShowNoteTitle || item.para?.noteType === 'Notes' || filenameWithoutTeamspacePrefix !== thisSection.sectionFilename
 
   // ------ RENDER ----------------------------------------

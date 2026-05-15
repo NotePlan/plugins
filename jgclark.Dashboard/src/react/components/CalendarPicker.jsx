@@ -9,7 +9,7 @@ import { DayPicker } from 'react-day-picker'
 // Import styles directly into component
 import 'react-day-picker/dist/style.css' /* https://react-day-picker.js.org/basics/styling */
 import '../css/CalendarPicker.css'
-import { logDebug } from '@helpers/react/reactDev'
+import { logDebug } from '@helpers/dev'
 
 type Props = {
   onSelectDate: (date: Date) => void, // Callback function when date is selected

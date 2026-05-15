@@ -8,7 +8,7 @@
 import React from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 import ItemRow from './ItemRow.jsx'
-import { logDebug, logInfo } from '@helpers/react/reactDev.js'
+import { logDebug, logInfo } from '@helpers/dev'
 
 // Set to true to see some subtle shading of section backgrounds
 // const showColoredBackgrounds = true

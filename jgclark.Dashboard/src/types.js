@@ -303,6 +303,7 @@ export type TActionType =
   | 'deletePerspective'
   | 'renamePerspective'
   | 'savePerspective'
+  | 'savePerspectiveAndSwitch'
   | 'savePerspectiveAs'
   | 'switchToPerspective'
   | 'evaluateString'
@@ -364,6 +365,7 @@ export type MessageDataObject = {
  */
 
 export type TActionOnReturn =
+  | 'APPLY_THEME'
   | 'CLOSE_UNNEEDED_SECTIONS'
   | 'CLOSE_SEARCH_SECTION'
   | 'INCREMENT_DONE_COUNT'
@@ -382,6 +384,8 @@ export type TBridgeClickHandlerResult = {
   updatedParagraph?: TParagraphForDashboard, // TODO: TEST: this becoming TParagraphForDashboard not TParagraph
   actionsOnSuccess?: Array<TActionOnReturn>, // actions to perform after return
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
+  /** When APPLY_THEME is in actionsOnSuccess, the theme name to regenerate CSS for. */
+  dashboardThemeName?: string,
   errorMsg?: string,
   errorMessageLevel?: 'WARN' | 'ERROR' | 'INFO',
 }

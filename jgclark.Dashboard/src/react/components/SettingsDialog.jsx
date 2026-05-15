@@ -18,7 +18,7 @@ import { useAppContext } from './AppContext.jsx'
 import '../css/SettingsDialog.css' // Import the CSS file
 import Modal from './Modal'
 import OrderingPanel from '@helpers/react/DynamicDialog/OrderingPanel.jsx'
-import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logWarn } from '@helpers/dev'
 
 //--------------------------------------------------------------------------
 // Type Definitions

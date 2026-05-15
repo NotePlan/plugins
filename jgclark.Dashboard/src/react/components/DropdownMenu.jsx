@@ -15,7 +15,7 @@ import React, { useEffect, useRef, useState, useCallback, type Node } from 'reac
 import type { TSettingItem } from '../../types'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import '../css/DropdownMenu.css' // Import the CSS file
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug } from '@helpers/dev'
 
 //--------------------------------------------------------------------------
 // Type Definitions

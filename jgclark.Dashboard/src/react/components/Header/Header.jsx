@@ -26,7 +26,7 @@ import PerspectiveSelector from './PerspectiveSelector.jsx'
 import SearchBar from './SearchBar.jsx'
 import SearchPanel from './SearchPanel.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
-import { clo, logDebug, logInfo, logError } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logInfo, logError } from '@helpers/dev'
 
 // --------------------------------------------------------------------------
 // Type Definitions

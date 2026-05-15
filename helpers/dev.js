@@ -1,11 +1,26 @@
 // @flow
-// Development-related helper functions
-// Note: none of these rely on DataStore.* functions etc., _except_ for the logging functions. However, the DataStore.settings object _is_ available in React windows/components, through @DBW's wizardry.
+/**
+ * Development-related helper functions.
+ *
+ * Logging vs sync/async `DataStore.settings` (plugin JS vs HTML/React WebView):
+ * - In the main plugin context, `DataStore.settings` is typically a plain object, so reading `_logLevel` for
+ *   `shouldOutputForLogLevel` is synchronous and immediate.
+ * - In HTML/React windows, `DataStore.settings` may be thenable (Promise-like). Synchronous code cannot read
+ *   `_logLevel` until it resolves. This file uses an in-memory cache filled by a one-shot background `await`
+ *   (`getPluginSettingsForLogging`, `primePluginSettingsCacheViaAwait`). Until the cache is populated,
+ *   log gating uses the default threshold (DEBUG) so early lines are not silenced. After settings resolve,
+ *   `_logLevel` from the real object applies. If the first logs look noisier than afterward or the level
+ *   seems to "kick in" shortly after load, that is this bootstrap window - not necessarily a wrong user setting.
+ *
+ * Aside from logging helpers, most functions here intentionally avoid `DataStore.*`.
+ */
 
 import isEqual from 'lodash-es/isEqual'
 import isObject from 'lodash-es/isObject'
 import isArray from 'lodash-es/isArray'
 import moment from 'moment/min/moment-with-locales'
+
+import { awaitTopLevelApiProp } from './npBridgeResolve'
 
 /**
  * NotePlan API properties which should not be traversed when stringifying an object
@@ -609,8 +624,7 @@ let cachedPluginSettingsForLog: any = null
 let pluginSettingsAwaitPrimeStartedForLog: boolean = false
 
 /** Trace settings resolution via console.log. Enable with env NP_INSTRUMENT_PLUGIN_SETTINGS=1 (Node/Jest only). */
-const ENABLE_GET_PLUGIN_SETTINGS_INSTRUMENTATION: boolean =
-  typeof process !== 'undefined' && process.env && process.env.NP_INSTRUMENT_PLUGIN_SETTINGS === '1'
+const ENABLE_GET_PLUGIN_SETTINGS_INSTRUMENTATION: boolean = typeof process !== 'undefined' && process.env && process.env.NP_INSTRUMENT_PLUGIN_SETTINGS === '1'
 let getPluginSettingsInstrumentationResolutionLogged: boolean = false
 
 /**
@@ -646,8 +660,7 @@ function primePluginSettingsCacheViaAwait(): void {
       if (typeof DataStore === 'undefined') {
         return
       }
-      // $FlowIgnore[not-a-promise] NP WebView exposes settings as awaitable; may be object or Thenable.
-      const resolved = await DataStore.settings
+      const resolved = await awaitTopLevelApiProp(DataStore, 'settings')
       if (resolved != null && typeof resolved === 'object') {
         cachedPluginSettingsForLog = resolved
       }
@@ -669,7 +682,7 @@ function primePluginSettingsCacheViaAwait(): void {
 /**
  * Return plugin settings for log-level checks.
  * - If `DataStore.settings` is already a plain object (not a thenable), use it synchronously.
- * - Otherwise schedule one background await and return null until cache fills (same default log level as “no settings”).
+ * - Otherwise schedule one background await and return null until cache fills (shouldOutputForLogLevel then defaults to DEBUG until settings apply).
  *
  * @returns {?Object}
  */
@@ -706,7 +719,8 @@ function getPluginSettingsForLogging(): any {
  * @returns {boolean}
  */
 export const shouldOutputForLogLevel = (logType: string): boolean => {
-  let userLogLevel = 1
+  // Default DEBUG so early logs are not dropped while DataStore.settings is still unresolved or _logLevel is unset.
+  let userLogLevel = 0
   const thisMessageLevel = LOG_LEVELS.indexOf(logType.toUpperCase())
   const pluginSettings = getPluginSettingsForLogging()
   // Note: Performing a null change against a value that is `undefined` will be true

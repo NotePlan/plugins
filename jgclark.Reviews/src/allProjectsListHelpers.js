@@ -1017,7 +1017,7 @@ export async function getNextProjectsToReview(numToReturn: number = 0): Promise<
     const [allProjectsSorted, _numberProjectsUnfiltered] = await filterAndSortProjectsList(config)
 
     if (!allProjectsSorted || allProjectsSorted.length === 0) {
-      logWarn('getNextNoteToReview', `No active projects found, so stopping`)
+      logWarn('reviews/getNextProjectsToReview', `No active projects found, so stopping`)
       return []
     }
 

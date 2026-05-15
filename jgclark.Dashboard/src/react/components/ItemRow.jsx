@@ -13,7 +13,7 @@ import ProjectItem from './ProjectItem.jsx'
 import TaskItem from './TaskItem.jsx'
 import TasksFiltered from './TasksFiltered.jsx'
 import MessageOnlyItem from './MessageOnlyItem.jsx'
-import { logDebug, logInfo } from '@helpers/react/reactDev'
+import { logDebug, logInfo } from '@helpers/dev'
 import './ItemRow.css'
 
 type Props = {

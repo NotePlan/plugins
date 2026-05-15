@@ -13,7 +13,7 @@ import { useState, useEffect, useMemo } from 'react'
 import type { TSection, TSectionItem } from '../../../types.js'
 import { treatSingleItemTypesAsZeroItems } from '../../../constants.js'
 import { isWinItem } from './sectionHelpers'
-import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev'
+import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 
 //----------------------------------------------------------------------
 // Constants & Types

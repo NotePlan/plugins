@@ -12,7 +12,7 @@
 import React from 'react'
 import { useAppContext } from '../AppContext.jsx'
 // import type { TDoneCount } from '../../../types.js'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug } from '@helpers/dev'
 
 //--------------------------------------------------------------------------
 // Type Definitions

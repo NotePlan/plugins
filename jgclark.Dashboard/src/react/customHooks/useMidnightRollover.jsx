@@ -8,7 +8,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import moment from 'moment/min/moment-with-locales'
-import { logDebug } from '@helpers/react/reactDev'
+import { logDebug } from '@helpers/dev'
 
 type UseMidnightRolloverOptions = {
   enabled: boolean,

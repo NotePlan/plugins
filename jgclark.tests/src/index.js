@@ -11,8 +11,6 @@ import { printNote } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { chooseNote } from '@helpers/userInput'
 
-export { runDataStoreProbe } from './datastore.js'
-
 export function init(): void {
   // Placeholder only
 }

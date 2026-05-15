@@ -18,7 +18,7 @@ import { useAppContext } from './AppContext.jsx'
 import { renderItem } from '@helpers/react/DynamicDialog/dialogElementRenderer.js'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
-import { clo, logDebug } from '@helpers/react/reactDev.js'
+import { clo, logDebug } from '@helpers/dev'
 import { getDiff } from '@helpers/dev'
 
 type PerspectivesTableProps = {
