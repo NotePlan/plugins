@@ -5,7 +5,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useState, useEffect } from 'react'
-import { logDebug } from '@helpers/react/reactDev'
+import { logDebug } from '@helpers/dev'
 
 type InputBoxProps = {
   label: string,

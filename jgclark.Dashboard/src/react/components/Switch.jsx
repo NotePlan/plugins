@@ -5,7 +5,7 @@
 //--------------------------------------------------------------------------
 
 import React from 'react'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug } from '@helpers/dev'
 
 type SwitchProps = {
   label: string,

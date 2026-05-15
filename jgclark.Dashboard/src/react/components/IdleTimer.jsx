@@ -11,7 +11,7 @@
 // @flow
 import { useEffect, useState, useRef } from 'react'
 import moment from 'moment/min/moment-with-locales'
-import { logDebug, logInfo } from '@helpers/react/reactDev'
+import { logDebug, logInfo } from '@helpers/dev'
 import { getTimeAgoString } from '@helpers/dateTime.js'
 import { dt } from '@helpers/dev'
 

@@ -22,7 +22,7 @@ import {
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
 import DropdownSelect /*, { type Option } */ from '@helpers/react/DynamicDialog/DropdownSelect.jsx'
-import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
 import { compareObjects } from '@helpers/dev.js'
 import { showDialog, showConfirmationDialog, showMessageYesNoCancel } from '@helpers/react/userInput'
 // import { compareObjects, dt } from '@helpers/dev.js'

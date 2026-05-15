@@ -7,7 +7,7 @@
 import React from 'react'
 import type { TActionButton } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug, JSP, clo } from '@helpers/react/reactDev.js'
+import { logDebug, JSP, clo } from '@helpers/dev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import { showDialog } from '@helpers/react/userInput'
 

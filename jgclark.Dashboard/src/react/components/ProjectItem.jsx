@@ -13,7 +13,7 @@ import SmallCircularProgressIndicator from './SmallCircularProgressIndicator.jsx
 import ItemNoteLink from './ItemNoteLink.jsx'
 // import NoteTitleLink from './NoteTitleLink.jsx'
 // import { getFolderFromFilename } from '@helpers/folders'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug } from '@helpers/dev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import { parseTeamspaceFilename, TEAMSPACE_FA_ICON } from '@helpers/teamspace'
 type Props = {

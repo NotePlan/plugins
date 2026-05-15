@@ -14,7 +14,7 @@ import ItemNoteLink from './ItemNoteLink.jsx'
 import SmallCircularProgressIndicator from './SmallCircularProgressIndicator.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString, relativeDateFromNumber } from '@helpers/dateTime'
-import { clo, clof, JSP, logDebug, logInfo, logWarn } from '@helpers/react/reactDev'
+import { clo, clof, JSP, logDebug, logInfo, logWarn } from '@helpers/dev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
 

@@ -7,7 +7,7 @@
 import React from 'react'
 import { useAppContext } from './AppContext.jsx'
 import { PRIVATE_FA_ICON,TEAMSPACE_FA_ICON } from '@helpers/teamspace'
-import { logDebug, logError } from '@helpers/react/reactDev'
+import { logDebug, logError } from '@helpers/dev'
 import '../css/MultiSelectSpaces.css'
 
 //-----------------------------------------------------------

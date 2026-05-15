@@ -10,7 +10,7 @@ import type { TActionType, TSectionItem, MessageDataObject } from '../../types.j
 import { useAppContext } from './AppContext.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
-import { clo, JSP, logDebug, logInfo, logWarn } from '@helpers/react/reactDev'
+import { clo, JSP, logDebug, logInfo, logWarn } from '@helpers/dev'
 
 type Props = {
   item: TSectionItem,

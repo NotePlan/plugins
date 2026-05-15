@@ -321,6 +321,14 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     const platform = NotePlan.environment.platform
     logDebug('showDashboardReact', `preferredWindowType = ${preferredWindowType} / platform = ${platform}`)
 
+    // Add a pre-body script to set loggng details in DataStore.settings object, to pass to HTMLView, if we're running NP <3.21.
+    const preBodyScript = usersVersionHas('APIsAvailableInWebViews') ? '' : `
+<script type="text/javascript" >
+  // Set DataStore.settings so default logDebug etc. logging works in React
+  // This setting comes from ${pluginJson['plugin.id']}
+  let DataStore = { settings: {_logLevel: "${DataStore?.settings?._logLevel}" } };
+</script>`
+
     const windowOptions: HtmlWindowOptions = {
       windowTitle: data?.title || 'Dashboard',
       customId: WEBVIEW_WINDOW_ID,
@@ -331,12 +339,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       headerTags: `${RESOURCE_LINKS_FOR_HEADER}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // set in separate CSS file referenced in header
-      preBodyScript: `
-        <script type="text/javascript" >
-          // Set DataStore.settings so default logDebug etc. logging works in React
-          // This setting comes from ${pluginJson['plugin.id']}
-          let DataStore = { settings: {_logLevel: "${DataStore?.settings?._logLevel}" } };
-        </script>`,
+      preBodyScript: preBodyScript,
       postBodyScript: ``,
       paddingWidth: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,
       paddingHeight: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,

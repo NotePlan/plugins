@@ -1,7 +1,7 @@
 // @flow
 import { useEffect } from 'react'
 import type { MessageDataObject } from '../../types'
-import { logDebug } from '@helpers/react/reactDev'
+import { logDebug } from '@helpers/dev'
 
 /**
  * Custom hook to listen for window resize events and send them to the plugin

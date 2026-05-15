@@ -9,6 +9,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b34] 2026-05-14
+- dev: Deal with the DataStore-in-HTMLView challenge:
+  - Undo mocking of `DataStore` object for React.
+  - Replace all uses of "@helpers/react/reactDev" with "@helpers/dev".
+
 ## [2.4.0.b33] 2026-05-13
 - Added new "Wins priority marker" setting so the Win indicator can be `>>`, `!!!`, or `!!`. Default remains `>>`.
 - added tooltip to Refresh button.

@@ -5,7 +5,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useEffect, useRef, useState } from 'react'
-import { logDebug } from '@helpers/react/reactDev'
+import { logDebug } from '@helpers/dev'
 import './SearchBar.css'
 
 //----------------------------------------------------------------------
