@@ -42,7 +42,7 @@ export {
   addNewPerspective,
   deletePerspective,
   deleteAllNamedPerspectiveSettings,
-  getPerspectiveSettings, // TODO(later): remove
+  loadPerspectiveDefsFromPluginSettings, // TODO(later): remove
   logPerspectiveFiltering,
   updateCurrentPerspectiveDef,
 } from './perspectiveHelpers.js'

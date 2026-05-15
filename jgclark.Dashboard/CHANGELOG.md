@@ -9,6 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b35] 2026-05-15???
+- dev: rename "getPerspectiveSettings()` as `loadPerspectiveDefsFromPluginSettings` to make it a little clearer.
+- dev: @CursorAI updated the ARCHITECTURE... doc to align it with reality for perspectives and timers.
+
 ## [2.4.0.b34] 2026-05-14
 - dev: Deal with the DataStore-in-HTMLView challenge:
   - Undo mocking of `DataStore` object for React.

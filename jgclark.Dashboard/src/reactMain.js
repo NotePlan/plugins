@@ -11,7 +11,7 @@ import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getDashboardSettingsDefaults, getLogSettings, getNotePlanSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs, normaliseDashboardNumberSettings } from './dashboardSettings'
 import { getAllSectionsData } from './dataGeneration'
-import { getPerspectiveSettings, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
+import { loadPerspectiveDefsFromPluginSettings, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
 import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
 import { onMessageFromHTMLView } from './routeRequestsFromReact'
 import { generateTagMentionCache, isTagMentionCacheGenerationScheduled } from './tagMentionCache'
@@ -460,7 +460,7 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
   try {
     logDebug('getInitialDataForReactWindow', `>>>>> Starting`)
     const startTime = new Date()
-    let perspectiveSettings = await getPerspectiveSettings()
+    let perspectiveSettings = await loadPerspectiveDefsFromPluginSettings()
     // If a perspective is specified, then update the setting to point to it before opening the React Window
     let dashboardSettings: TDashboardSettings = await getDashboardSettings()
     if (perspectiveName) {

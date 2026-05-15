@@ -42,7 +42,7 @@ Named perspectives
     * [x] #jgcDR: remove isActive flag @done(2024-08-20)
   - Adding a new perspective is working saving-wise, but it doesn't show in the dropdown. Adding a new perspective should update the dropdown selector list and set the dropdown to the new perspective. savePerspectiveSettings() or somewhere else in the flow needs to update the data in the window using `await setPluginData()`  See other examples of where this is used to update the various objects. 
 
-- Read: through helper function getPerspectiveSettings()
+- Read: through helper function loadPerspectiveDefsFromPluginSettings()
 
 - Applied: through calling function switchToPerspective()
   > JGC new thought: Before changing to any other perspective, I think we should check whether current one isModified, and if it is offer to update/save it first. DBW agrees.
@@ -182,7 +182,7 @@ function ensureDefaultPerspectiveExists(perspectiveSettings: Array<TPerspectiveD
  * @param {boolean?} _logAllKeys? whether to log every setting key:value or just the key ones (default: false)
  * @returns {Array<TPerspectiveDef>} all perspective settings
  */
-export async function getPerspectiveSettings(_logAllKeys: boolean = false): Promise<Array<TPerspectiveDef>> {
+export async function loadPerspectiveDefsFromPluginSettings(_logAllKeys: boolean = false): Promise<Array<TPerspectiveDef>> {
   try {
     // Note: we think newer API call is unreliable. So use the older way:
     let perspectiveSettings: Array<TPerspectiveDef>
@@ -195,12 +195,12 @@ export async function getPerspectiveSettings(_logAllKeys: boolean = false): Prom
       // logPerspectives(perspectiveSettings, _logAllKeys)
     } else {
       // No perspective settings found, so will need to set from the defaults instead
-      logWarn('getPerspectiveSettings', `No perspective settings found, so will load in the defaults. But first, I will save a copy of the settings.json file for investigation.`)
+      logWarn('loadPerspectiveDefsFromPluginSettings', `No perspective settings found, so will load in the defaults. But first, I will save a copy of the settings.json file for investigation.`)
       await backupSettings('jgclark.Dashboard', 'when_no_perspective_settings_found', true)
       perspectiveSettings = await getPerspectiveSettingDefaults()
       const defaultPersp = getPerspectiveNamed('-', perspectiveSettings)
       if (!defaultPersp) {
-        logError('getPerspectiveSettings', `Couldn't get default perspective - from getPerspectiveSettingDefaults()`)
+        logError('loadPerspectiveDefsFromPluginSettings', `Couldn't get default perspective - from getPerspectiveSettingDefaults()`)
         return []
       }
       const dashboardSettings = await getDashboardSettings()
@@ -211,13 +211,13 @@ export async function getPerspectiveSettings(_logAllKeys: boolean = false): Prom
       await savePerspectiveSettings(perspectiveSettings)
       logPerspectives(perspectiveSettings)
     }
-    // clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
+    // clo(perspectiveSettings, `loadPerspectiveDefsFromPluginSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
     const perspSettings = ensureDefaultPerspectiveExists(perspectiveSettings)
-    // logDebug('getPerspectiveSettings', `After ensureDefaultPerspectiveExists():`)
+    // logDebug('loadPerspectiveDefsFromPluginSettings', `After ensureDefaultPerspectiveExists():`)
     // logPerspectives(perspectiveSettings, logAllKeys)
     return perspSettings
   } catch (error) {
-    logError('getPerspectiveSettings', `Error: ${error.message}`)
+    logError('loadPerspectiveDefsFromPluginSettings', `Error: ${error.message}`)
     return []
   }
 }
@@ -415,7 +415,7 @@ export function getAllowedFoldersInCurrentPerspective(perspectiveSettings: Array
 export async function logPerspectiveFiltering(filenameArg?: string): Promise<void> {
   try {
     // The following logs the most important fields for each perspective definition
-    const allPerspectiveDefs: Array<TPerspectiveDef> = await getPerspectiveSettings(false)
+    const allPerspectiveDefs: Array<TPerspectiveDef> = await loadPerspectiveDefsFromPluginSettings(false)
     const dashboardSettings: TDashboardSettings = await getDashboardSettings()
     const activePerspectiveName = getActivePerspectiveName(allPerspectiveDefs)
     // Get list of allowed folders
@@ -538,7 +538,7 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
  */
 export async function updateCurrentPerspectiveDef(): Promise<boolean> {
   try {
-    const allDefs = await getPerspectiveSettings()
+    const allDefs = await loadPerspectiveDefsFromPluginSettings()
     const activeDef: TPerspectiveDef | null = getActivePerspectiveDef(allDefs)
 
     if (!activeDef) {
@@ -661,7 +661,7 @@ export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashb
  * Add a new Perspective setting. User just gives it a name, and otherwise uses the currently active settings.
  */
 export async function addNewPerspective(nameArg?: string): Promise<void> {
-  let allDefs = await getPerspectiveSettings()
+  let allDefs = await loadPerspectiveDefsFromPluginSettings()
   logInfo('addPerspectiveSetting', `nameArg="${nameArg || ''}" Found ${allDefs.length} existing Perspectives ...`)
 
   // Get user input, if no arg passed
@@ -728,7 +728,7 @@ export async function addNewPerspective(nameArg?: string): Promise<void> {
  */
 export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   logDebug('deleteAllNamedPerspectiveSettings', `Attempting to delete all Perspective settings (other than default) ...`)
-  let allDefs = await getPerspectiveSettings()
+  let allDefs = await loadPerspectiveDefsFromPluginSettings()
   for (const p of allDefs) {
     if (p.name !== '-') {
       await deletePerspective(p.name)
@@ -736,7 +736,7 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   }
   logDebug('deleteAllNamedPerspectiveSettings', `Deleted all named perspectives, other than default.`)
 
-  const onlyDefaultPerspectiveDef: Array<TPerspectiveDef> = await getPerspectiveSettings()
+  const onlyDefaultPerspectiveDef: Array<TPerspectiveDef> = await loadPerspectiveDefsFromPluginSettings()
   const updatedListOfPerspectives = getDisplayListOfPerspectiveNames(onlyDefaultPerspectiveDef)
   logDebug('deleteAllNamedPerspectiveSettings', `New default list of available perspectives: [${String(updatedListOfPerspectives ?? [])}]`)
 
@@ -758,7 +758,7 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
   try {
     let nameToUse = nameIn || ''
     // const dashboardSettings = (await getDashboardSettings()) || {}
-    const existingDefs = (await getPerspectiveSettings()) || []
+    const existingDefs = (await loadPerspectiveDefsFromPluginSettings()) || []
     if (existingDefs.length === 0) {
       throw new Error(`No perspective settings found. Stopping.`)
     }

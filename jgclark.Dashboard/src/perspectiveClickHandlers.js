@@ -14,7 +14,7 @@ import {
   deletePerspective,
   getActivePerspectiveDef,
   getPerspectiveNamed,
-  getPerspectiveSettings,
+  loadPerspectiveDefsFromPluginSettings,
   logPerspectives,
   replacePerspectiveDef,
   switchToPerspective,
@@ -49,7 +49,7 @@ const pluginID = 'jgclark.Dashboard'
 export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   clo(_data, `doAddNewPerspective starting ...`)
   await addNewPerspective(_data?.perspectiveName || '')
-  const updatesToPluginData = { perspectiveSettings: await getPerspectiveSettings() }
+  const updatesToPluginData = { perspectiveSettings: await loadPerspectiveDefsFromPluginSettings() }
   await setPluginData(updatesToPluginData, `_Added perspective in DataStore.settings & reloaded perspectives`)
   return handlerResult(true, [])
 }
@@ -63,7 +63,7 @@ export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBr
 export async function doCopyPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   clo(data, `doCopyPerspective starting ... with mbo`)
   const newName = data.userInputObj?.newName ?? ''
-  const perspectiveSettings = await getPerspectiveSettings()
+  const perspectiveSettings = await loadPerspectiveDefsFromPluginSettings()
   const activeDef = getActivePerspectiveDef(perspectiveSettings)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
   const newDef = { ...activeDef, name: newName, isModified: false, isActive: false }
@@ -75,7 +75,7 @@ export async function doCopyPerspective(data: MessageDataObject): Promise<TBridg
 
 export async function doDeletePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   await deletePerspective(data.perspectiveName)
-  let perspectiveSettings = await getPerspectiveSettings()
+  let perspectiveSettings = await loadPerspectiveDefsFromPluginSettings()
   const activeDef = getActivePerspectiveDef(perspectiveSettings)
   if (!activeDef) {
     const newPerspSettings = await switchToPerspective('-', perspectiveSettings)
@@ -93,7 +93,7 @@ export async function doDeletePerspective(data: MessageDataObject): Promise<TBri
 
 export async function doSavePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   clo(data, `doSavePerspective starting ... with mbo`)
-  const perspectiveSettings = await getPerspectiveSettings()
+  const perspectiveSettings = await loadPerspectiveDefsFromPluginSettings()
   const activeDef = getActivePerspectiveDef(perspectiveSettings)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
   if (!activeDef.isModified) return handlerResult(false, [], { errorMsg: `Perspective ${activeDef.name} is not modified. Not saving.` })
@@ -116,7 +116,7 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
   if (newName === '') return handlerResult(false, [], { errorMsg: `doRenamePerspective: newName is empty` })
   if (origName === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" cannot be renamed` })
   if (newName === '-') return handlerResult(false, [], { errorMsg: `Perspectives cannot be renamed to "-".` })
-  const perspectiveSettings = await getPerspectiveSettings()
+  const perspectiveSettings = await loadPerspectiveDefsFromPluginSettings()
   const existingDef = getPerspectiveNamed(origName, perspectiveSettings)
   if (!existingDef) return handlerResult(false, [], { errorMsg: `Can't find the definition for perspective "${origName}"` })
   const revisedDefs = renamePerspective(origName, newName, perspectiveSettings)
@@ -144,7 +144,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
     logError('doSwitchToPerspective', `No perspective name provided.`)
     return handlerResult(false, [], { errorMsg: `No perspectiveName provided.` })
   }
-  const ps = await getPerspectiveSettings()
+  const ps = await loadPerspectiveDefsFromPluginSettings()
   // logPerspectiveNames(ps, 'doSwitchToPerspective: Persp settings before switch:')
   // TODO: JGC thinks the following function could be more clearly named.
   const revisedDefs = await switchToPerspective(switchToName, ps)
@@ -184,7 +184,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
     return handlerResult(false, [], { errorMsg: `saveSettings failed` })
   }
 
-  // const afterPerspSettings = await getPerspectiveSettings(true)
+  // const afterPerspSettings = await loadPerspectiveDefsFromPluginSettings(true)
   // logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Persp settings reading back from DataStore.settings:')
 
   // TODO: @jgclark resetting sections to [] on perspective switch forces a refresh of all enabled sections

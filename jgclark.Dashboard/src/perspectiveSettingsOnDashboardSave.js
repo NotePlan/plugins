@@ -7,7 +7,7 @@
 
 import { getDashboardSettingsDefaults, handlerResult } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
-import { cleanDashboardSettingsInAPerspective, getActivePerspectiveDef, getPerspectiveSettings } from './perspectiveHelpers'
+import { cleanDashboardSettingsInAPerspective, getActivePerspectiveDef, loadPerspectiveDefsFromPluginSettings } from './perspectiveHelpers'
 import type { TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
 import { clo, compareObjects, JSP, logDebug, logError } from '@helpers/dev'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
@@ -32,7 +32,7 @@ export async function resolvePerspectivesWhenDashboardSettingsWithoutPerspective
 ): Promise<TPerspectiveResolveForDashboardSaveResult> {
   let perspectivesToSave: void | TPerspectiveSettings
   let needToSetDash = false
-  const perspectiveSettings = await getPerspectiveSettings()
+  const perspectiveSettings = await loadPerspectiveDefsFromPluginSettings()
   if (dashboardNewSettings.usePerspectives) {
     // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
     const activePerspDef = getActivePerspectiveDef(perspectiveSettings)

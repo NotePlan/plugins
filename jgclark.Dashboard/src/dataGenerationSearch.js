@@ -19,7 +19,7 @@ import {
   mergeSections,
   setPluginData,
 } from './dashboardHelpers'
-import { getActivePerspectiveName, getPerspectiveSettings } from './perspectiveHelpers'
+import { getActivePerspectiveName, loadPerspectiveDefsFromPluginSettings } from './perspectiveHelpers'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { filenameIsInFuture, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { JSP, clo, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
@@ -179,7 +179,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
       let message = `No results found for search [${searchTermsStr}]`
       let settingsDialogAnchor = ''
       if (config.usePerspectives && config.applyCurrentFilteringToSearch) {
-        const perspectiveSettings = await getPerspectiveSettings()
+        const perspectiveSettings = await loadPerspectiveDefsFromPluginSettings()
         const perspectiveName = getActivePerspectiveName(perspectiveSettings)
         message += ` using '${perspectiveName}' Perspective filtering. You can turn off Perspective filtering in the Dashboard settings:`
         settingsDialogAnchor = 'searchSection'
@@ -338,7 +338,7 @@ export async function getSavedSearchResults(
       let message = `No results found for search [${searchTermsStr}]`
       let settingsDialogAnchor = ''
       if (config.usePerspectives && config.applyCurrentFilteringToSearch) {
-        const perspectiveSettings = await getPerspectiveSettings()
+        const perspectiveSettings = await loadPerspectiveDefsFromPluginSettings()
         const perspectiveName = getActivePerspectiveName(perspectiveSettings)
         const perspectiveDisplayName = (perspectiveName === '-') ? 'default' : `'${perspectiveName}'`
         message += ` using ${perspectiveDisplayName} Perspective filtering. You can turn off Perspective filtering in the Dashboard settings:`
