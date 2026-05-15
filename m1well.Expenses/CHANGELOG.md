@@ -1,5 +1,9 @@
 # m1well.Expenses Plugin Changelog
 
+## [1.7.4] - 2025-08-07 (@bono2007)
+### Changed
+- fix problem with /exp:agg
+  
 ## [1.7.3] - 2022-07-23 (@dwertheimer)
 ### Changed
 - add more descriptive text for text input
