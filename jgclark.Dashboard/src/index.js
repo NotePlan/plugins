@@ -2,13 +2,14 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2026-01-24 for v2.4.0.b18
+// last updated 2026-05-15 for v2.4.0.b35 by @CursorAI
 // ----------------------------------------------------------------------------
 
 /**
  * Imports
  */
 import pluginJson from '../plugin.json'
+import { loadDashboardPluginSettings } from './dashboardPluginSettings'
 import { parseSettings } from './shared'
 import { generateTagMentionCache } from './tagMentionCache'
 import {
@@ -77,6 +78,8 @@ export { externallyStartSearch } from './dataGenerationSearch.js'
 
 //-----------------------------------------------------------------------------
 
+export { repairDashboardSettings } from './dashboardPluginSettings'
+
 export async function backupSettings(): Promise<void> {
   const res = await npc.backupSettings(pluginID, 'backup')
   if (res) {
@@ -90,7 +93,7 @@ export async function backupSettings(): Promise<void> {
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logInfo(pluginJson, `onUpdateOrInstall() starting ...`)
-    const initialSettings = (await DataStore.loadJSON(`../${pluginID}/settings.json`)) || DataStore.settings
+    const initialSettings = (await loadDashboardPluginSettings()) || DataStore.settings
     // clo(initialSettings, `onUpdateOrInstall - initialSettings:`)
     // Note: this is deceptive because dashboardSettings is one single JSON stringified key inside initialSettings
 

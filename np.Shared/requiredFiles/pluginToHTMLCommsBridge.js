@@ -4,7 +4,7 @@
  * Generic Plugin<-->HTML communications bridge
  * @author @dwertheimer
  * @version 1.0.0
- * Last updated 2023-02-18 @dwertheimer
+ * Last updated 2026-05-15 by @jgclark + @CursorAI
  */
 
 // rewrite that import as a require
@@ -84,7 +84,8 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
     // This works around problems with $$ characters in commandArgs that could interfere
     // with template string processing. The function is called at replacement time.
     .replace('%%commandArgs%%', () => JSON.stringify(normalizedArgs))
-  console.log(`bridge::runPluginCommand JS file in np.Shared Sending command "${commandName}" to NotePlan: "${pluginID}" with args:`, truncatedArgs)
+  // console.log(`bridge::runPluginCommand JS file in np.Shared Sending command "${commandName}" to NotePlan: "${pluginID}" with args:`, truncatedArgs)
+  console.log(`bridge::runPluginCommand JS file in np.Shared Sending command "${commandName}" to NotePlan: "${pluginID}"`)
   if (window.webkit) {
     window.webkit.messageHandlers.jsBridge.postMessage({
       code: code,
@@ -92,7 +93,8 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
       id: '1',
     })
   } else {
-    console.log(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
+    // console.log(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args: `, truncatedArgs)
+    console.log(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called`)
   }
 }
 

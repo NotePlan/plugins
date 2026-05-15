@@ -7,6 +7,7 @@
 import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID, allSectionDetails } from './constants'
 import { dashboardSettingDefs, dashboardFilterDefs, normaliseDashboardNumberSettings } from './dashboardSettings'
+import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type {
@@ -35,9 +36,8 @@ import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } 
 import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
-import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
+import { sendToHTMLWindow, getGlobalSharedData, updateGlobalSharedData } from '@helpers/HTMLView'
 import { isNoteFromAllowedFolder } from '@helpers/note'
-import { saveSettings } from '@helpers/NPConfiguration'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
 import { getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 import { getNoteFromFilename, getReferencedParagraphs } from '@helpers/NPnote'
@@ -83,7 +83,7 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     //   )
 
     // Fall back to the older way:
-    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    const pluginSettings = await loadDashboardPluginSettings()
     // clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
     // }
     if (!pluginSettings.dashboardSettings) {
@@ -159,11 +159,11 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
 export async function saveDashboardSettings(settings: TDashboardSettings): Promise<boolean> {
   try {
     logDebug(`saveDashboardSettings saving settings in DataStore.settings`)
-    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    const pluginSettings = await loadDashboardPluginSettings()
     pluginSettings.dashboardSettings = settings
 
     // Save settings using the reliable helper ("the long way")
-    const res = await saveSettings(pluginID, pluginSettings)
+    const res = await saveDashboardPluginSettings(pluginSettings)
     logDebug('saveDashboardSettings', `Apparently saved with result ${String(res)}. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
     return res
   } catch (error) {
@@ -1208,6 +1208,10 @@ export async function setPluginData(changeObject: TAnyObject, changeMessage: str
     return
   }
   reactWindowData.pluginData = { ...(reactWindowData.pluginData || {}), ...changeObject }
+
+  // Write synchronously so plugin-side getGlobalSharedData() (e.g. processActionOnReturn right after save)
+  // sees perspectiveSettings / isModified before React finishes handling postMessage UPDATE_DATA.
+  await updateGlobalSharedData(WEBVIEW_WINDOW_ID, reactWindowData, false)
 
   logDebug('setPluginData', `Sending changeMessage: "${changeMessage}"`)
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, changeMessage)

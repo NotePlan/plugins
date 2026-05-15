@@ -2,13 +2,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2026-01-09 for v2.4.0.b14 by @jgclark
+// Last updated 2026-05-15 for v2.4.0.b35 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getDashboardSettingsDefaults, getLogSettings, getNotePlanSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
+import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { dashboardFilterDefs, dashboardSettingDefs, normaliseDashboardNumberSettings } from './dashboardSettings'
 import { getAllSectionsData } from './dataGeneration'
 import { loadPerspectiveDefsFromPluginSettings, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
@@ -19,7 +20,6 @@ import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSett
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import { getGlobalSharedData, type HtmlWindowOptions } from '@helpers/HTMLView'
-import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { chooseOption, showMessage } from '@helpers/userInput'
@@ -106,9 +106,11 @@ export async function setSetting(key: string, value: string): Promise<void> {
       // Ensure numeric settings are stored as numbers, not strings
       const normalisedDashboardSettings = normaliseDashboardNumberSettings(dashboardSettings)
 
-      // TEST: use helper to save settings from now on
-      // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
-      const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: normalisedDashboardSettings })
+      // use specialised helpers to save settings
+      const res = await saveDashboardPluginSettings({
+        ...(await loadDashboardPluginSettings()),
+        dashboardSettings: normalisedDashboardSettings,
+      })
       if (!res) {
         throw new Error(`saveSettings failed for setting '${key}:${value}'`)
       }
@@ -159,9 +161,11 @@ export async function setSettings(paramsIn: string): Promise<void> {
     // Ensure numeric settings are stored as numbers, not strings
     const normalisedDashboardSettings = normaliseDashboardNumberSettings(dashboardSettings)
 
-    // TEST: use helper to save settings from now on
-    // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
-    const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: JSON.stringify(normalisedDashboardSettings) })
+    // use specialised helpers to save settings from now on
+    const res = await saveDashboardPluginSettings({
+      ...(await loadDashboardPluginSettings()),
+      dashboardSettings: normalisedDashboardSettings,
+    })
     if (!res) {
       throw new Error(`saveSettings failed for params: '${paramsIn}'`)
     }
@@ -281,9 +285,11 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
       }
     })
 
-    // TEST: use helper to save settings from now on
-    // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
-    const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: JSON.stringify(dashboardSettings) })
+    // use specialised helpers to save settings
+    const res = await saveDashboardPluginSettings({
+      ...(await loadDashboardPluginSettings()),
+      dashboardSettings: dashboardSettings,
+    })
     if (!res) {
       throw new Error(`saveSettings failed for sections '${limitToSections}'`)
     }
@@ -312,7 +318,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     const config = await getDashboardSettings() // pulls the JSON stringified dashboardSettings and parses it into object
     // clo(config, `showDashboardReact: keys:${Object.keys(config).length} config=`)
     const logSettings = await getLogSettings()
-    const settings = await getSettings(pluginID)
+    const settings = await loadDashboardPluginSettings()
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindow(perspectiveName, useDemoData)
@@ -328,6 +334,10 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
   // This setting comes from ${pluginJson['plugin.id']}
   let DataStore = { settings: {_logLevel: "${DataStore?.settings?._logLevel}" } };
 </script>`
+
+    // Read the icon and .iconColor from plugin.json and pass them to the window options
+    const icon = pluginJson['plugin.icon']
+    const iconColor = pluginJson['plugin.iconColor']
 
     const windowOptions: HtmlWindowOptions = {
       windowTitle: data?.title || 'Dashboard',
@@ -347,11 +357,8 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       showInMainWindow: preferredWindowType !== 'New Window',
       splitView: preferredWindowType === 'Split View',
       // If we are opening in main/split view, then set the icon details
-      // TODO: later, move this to plugin.json file
-      icon: 'fa-gauge-high',
-      // icon: 'fa-duotone fa-gauge-high', // TODO(Eduard): support other icon sets
-      // icon: 'fa-duotone fa-grid-round-2', // TODO: this icon is not available in our old build
-      iconColor: 'red-600',
+      icon: icon, // TODO(later): ideally be able to use "fa-duotone fa-grid-round-2"
+      iconColor: iconColor,
       autoTopPadding: true,
       showReloadButton: true,
       reloadPluginID: pluginID,
@@ -437,8 +444,11 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
       ...(activeDef.dashboardSettings || {}),
     }
 
-    // use our more reliable helper to save settings
-    const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: newDashboardSettings })
+    // use specialised helpers to save settings
+    const res = await saveDashboardPluginSettings({
+      ...(await loadDashboardPluginSettings()),
+      dashboardSettings: newDashboardSettings,
+    })
     if (!res) {
       throw new Error(`saveSettings failed`)
     }

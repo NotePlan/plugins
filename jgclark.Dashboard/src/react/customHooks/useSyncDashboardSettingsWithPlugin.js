@@ -44,23 +44,25 @@ export const useSyncDashboardSettingsWithPlugin = (
   // Handle receiving changes from the plugin which need to update the dashboard settings in the front-end
   useEffect(() => {
     const pluginDataDSettingsChanged = pluginDataDSettings && compareFn(lastpluginDataDSettingsRef.current, pluginDataDSettings) !== null
-    logDebug(
-      `useSyncDashboardSettingsWithPlugin effect1 PLUGIN->REACT checking pluginData?.pushFromServer?.dashboardSettings=${
-        String(pluginData?.pushFromServer?.dashboardSettings) || ''
-      }`,
-    )
+    // logDebug(
+    //   `useSyncDashboardSettingsWithPlugin effect1 PLUGIN->REACT checking pluginData?.pushFromServer?.dashboardSettings=${
+    //     String(pluginData?.pushFromServer?.dashboardSettings) || ''
+    //   }`,
+    // )
+    logDebug(`useSyncDashboardSettingsWithPlugin effect1 PLUGIN->REACT checking pluginData?.pushFromServer?.dashboardSettings ...`)
     if (pluginDataDSettingsChanged) {
-      logDebug(
-        `useSyncDashboardSettingsWithPlugin PLUGIN->REACT plugin sent changes to front-end`,
-        `CC pluginDataDSettingsChanged=${String(pluginDataDSettingsChanged)} excluded=${pluginDataDSettings.excludedFolders}`,
-        { pluginDataDSettings },
-        { lastpluginDataDSettingsRef: lastpluginDataDSettingsRef.current },
-      )
+      // logDebug(
+      //   `useSyncDashboardSettingsWithPlugin PLUGIN->REACT plugin sent changes to front-end`,
+      //   `CC pluginDataDSettingsChanged=${String(pluginDataDSettingsChanged)} excluded=${pluginDataDSettings.excludedFolders}`,
+      //   { pluginDataDSettings },
+      //   { lastpluginDataDSettingsRef: lastpluginDataDSettingsRef.current },
+      // )
+      logDebug(`useSyncDashboardSettingsWithPlugin PLUGIN->REACT plugin sent changes to front-end ...`)
       const changes = compareFn(pluginDataDSettings, dashboardSettings)
       const realDiff = getDiff(pluginDataDSettings, dashboardSettings)
       lastpluginDataDSettingsRef.current = pluginDataDSettings
       if (changes && Object.keys(changes).length > 0) {
-        logDebug(`useSyncDashboardSettingsWithPlugin plugin sent changes to front-end`, `diff=`, realDiff)
+        logDebug(`useSyncDashboardSettingsWithPlugin plugin sent changes to front-end`, `realDiff=`, realDiff)
         logDebug('Dispatching to front-end to set values')
         lastDashboardSettingsRef.current = pluginDataDSettings
         dispatch({
@@ -99,7 +101,8 @@ export const useSyncDashboardSettingsWithPlugin = (
           if (dashboardSettings.lastChange && (dashboardSettings.lastChange[0] === '_' || dashboardSettings.lastChange.endsWith('changed from plugin'))) {
             logDebug(`useSyncDashboardSettingsWithPlugin`, `NOT SENDING BECAUSE OF UNDERSCORE: dashboardSettings.lastChange=${JSON.stringify(dashboardSettings.lastChange)}`, diff)
           } else {
-            logDebug(`useSyncDashboardSettingsWithPlugin SENDING: dashboardSettings.lastChange=${JSON.stringify(dashboardSettings.lastChange)}`, dashboardSettings)
+            // logDebug(`useSyncDashboardSettingsWithPlugin SENDING: dashboardSettings.lastChange=${JSON.stringify(dashboardSettings.lastChange)}`, dashboardSettings)
+            logDebug(`useSyncDashboardSettingsWithPlugin SENDING: dashboardSettings.lastChange=${JSON.stringify(dashboardSettings.lastChange)} ...`)
             sendActionToPlugin &&
               sendActionToPlugin(
                 'dashboardSettingsChanged',

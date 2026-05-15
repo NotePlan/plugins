@@ -864,6 +864,19 @@ const DynamicDialog = ({
         })
       }
 
+      // submitOnEnter can run before debounced InputBox onChange updates updatedSettingsRef — read live DOM values
+      items.forEach((item) => {
+        const key = item.key
+        if (!key) return
+        const itemType = (item: any).type
+        if (itemType === 'input' || itemType === 'number') {
+          const el = document.getElementById(`input-${key}`)
+          if (el instanceof HTMLInputElement) {
+            finalFormValues[key] = el.value
+          }
+        }
+      })
+
       if (onSave) {
         onSave(finalFormValues, windowId) // Pass windowId if available, otherwise use fallback pattern in plugin
       }

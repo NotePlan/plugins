@@ -215,12 +215,13 @@ const PerspectiveSelector = (): React$Node => {
 
       if (selectedOption.value === 'Add New Perspective') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `addNewPersp user selected "${selectedOption.value}".`)
-        const formFields = [{ type: 'input', label: 'Name:', key: 'newName', focus: true }]
+        const formFields = [{ type: 'input', label: 'Name:', key: 'newName', focus: true, debounceOnChange: false }]
         const userInputObj = await showDialog({ items: formFields, title: `Save as New Perspective`, submitOnEnter: true })
-        if (userInputObj) {
+        const newPerspectiveName = (userInputObj?.newName ?? '').trim()
+        if (newPerspectiveName) {
           sendActionToPlugin(
             'addNewPerspective',
-            { actionType: 'addNewPerspective', perspectiveName: userInputObj ? userInputObj.newName : '', logMessage: 'Add New Perspective selected from dropdown' },
+            { actionType: 'addNewPerspective', perspectiveName: newPerspectiveName, logMessage: 'Add New Perspective selected from dropdown' },
             'Add New Perspective selected from dropdown',
           )
         } else {
@@ -280,21 +281,26 @@ const PerspectiveSelector = (): React$Node => {
 
       if (selectedOption.value === 'Rename Perspective') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `renamePerspective "${selectedOption.value}".`)
-        const formFields = [{ type: 'input', label: 'New Name:', key: 'newName', focus: true }]
-        const userInputObj = await showDialog({ items: formFields, title: `Rename Perspective "${state.activePerspectiveName}"`, submitOnEnter: true })
-        if (userInputObj) {
-          userInputObj.oldName = state.activePerspectiveName
-          logDebug('PerspectiveSelector/handlePerspectiveChange renamePerspective', { userInputObj })
-          // set the activePerspectiveName optimistically  so the UI updates immediately, but the perspectiveSettings will be updated later in pluginData
+        const perspToRename = getActivePerspectiveDef(perspectiveSettings)
+        const origPerspectiveName = perspToRename?.name && perspToRename.name !== '-' ? perspToRename.name : activePerspectiveName
+        const formFields = [
+          { type: 'input', label: 'New Name:', key: 'newName', focus: true, value: origPerspectiveName, debounceOnChange: false },
+        ]
+        const userInputObj = await showDialog({ items: formFields, title: `Rename Perspective "${origPerspectiveName}"`, submitOnEnter: true })
+        const trimmedNewName = (userInputObj?.newName ?? '').trim()
+        if (trimmedNewName && trimmedNewName !== origPerspectiveName) {
+          const renamePayload = { oldName: origPerspectiveName, newName: trimmedNewName }
+          logDebug('PerspectiveSelector/handlePerspectiveChange renamePerspective', { renamePayload })
+          // set the activePerspectiveName optimistically so the UI updates immediately; pluginData confirms later
           dispatchPerspectiveSettings({
             type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
-            payload: perspectiveSettings.map((persp) => ({ ...persp, name: persp.name === state.activePerspectiveName ? userInputObj.newName : persp.name })),
+            payload: perspectiveSettings.map((persp) => ({ ...persp, name: persp.name === origPerspectiveName ? trimmedNewName : persp.name })),
           })
-          dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: userInputObj.newName })
+          dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: trimmedNewName })
           sendActionToPlugin(
             'renamePerspective',
-            { actionType: 'renamePerspective', userInputObj, logMessage: `Rename Perspective (${selectedOption.value}) selected from dropdown` },
-            `Rename Perspective (${selectedOption.value}) selected from dropdown`,
+            { actionType: 'renamePerspective', userInputObj: renamePayload, logMessage: `Rename Perspective (${origPerspectiveName} -> ${trimmedNewName})` },
+            `Rename Perspective (${origPerspectiveName} -> ${trimmedNewName})`,
           )
         } else {
           logDebug('PerspectiveSelector/handlePerspectiveChange', `No new name provided. Not renaming perspective.`)
@@ -370,13 +376,19 @@ const PerspectiveSelector = (): React$Node => {
             'PerspectiveSelector/handlePerspectiveChange',
             `Save+Switch selected. Saving perspective "${activePerspectiveName}" before switching to "${selectedOption.label}".`,
           )
-          const thisPersp = getActivePerspectiveDef(perspectiveSettings)
-          if (thisPersp && thisPersp.name !== '-') {
+          const perspToSave = getActivePerspectiveDef(perspectiveSettings)
+          if (perspToSave && perspToSave.name !== '-') {
             sendActionToPlugin(
-              'savePerspective',
-              { actionType: 'savePerspective', perspectiveName: thisPersp.name, logMessage: `Saving Perspective (${thisPersp.name}) before switching.` },
-              `Save Perspective (${thisPersp.name}) selected from dropdown`,
+              'savePerspectiveAndSwitch',
+              {
+                actionType: 'savePerspectiveAndSwitch',
+                perspectiveName: perspToSave.name,
+                switchToPerspectiveName: selectedOption.value,
+                logMessage: `Save+Switch: ${perspToSave.name} -> ${selectedOption.value}`,
+              },
+              `Save+Switch to ${selectedOption.value}`,
             )
+            return
           }
         } else if (confirmation === 'Switch') {
           logDebug('PerspectiveSelector/handlePerspectiveChange', `Switch selected`)

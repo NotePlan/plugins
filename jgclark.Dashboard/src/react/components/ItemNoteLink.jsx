@@ -58,7 +58,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
   if (folderNamePart !== '' && !folderNamePart.endsWith('/')) {
     folderNamePart = `/ ${folderNamePart}`
   }
-  if (isFromTeamspace) logInfo('ItemNoteLink', `- trimmedFilePath=${trimmedFilePath} folderNamePart=${folderNamePart}`)
+  // if (isFromTeamspace) logDebug('ItemNoteLink', `- trimmedFilePath from Space=${trimmedFilePath} folderNamePart=${folderNamePart}`)
   const showNoteTitle = alwaysShowNoteTitle || item.para?.noteType === 'Notes' || filenameWithoutTeamspacePrefix !== thisSection.sectionFilename
 
   // ------ RENDER ----------------------------------------

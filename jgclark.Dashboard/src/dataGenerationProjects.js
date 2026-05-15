@@ -143,7 +143,7 @@ export async function getProjectReviewSectionData(config: TDashboardSettings, us
   }
   // clo(nextProjectsToReview, "nextProjectsToReview")
   let sectionDescription = `{countWithLimit} projects ready to review`
-  if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
+  if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
 
   const section: TSection = {
     name: 'Projects to Review',
@@ -257,7 +257,7 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
 
   sectionDescription += ` sorted by next review date`
 
-  if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
+  if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
 
   const section: TSection = {
     name: 'Active Projects',

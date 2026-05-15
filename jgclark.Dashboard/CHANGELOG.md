@@ -9,9 +9,24 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b35] 2026-05-15???
+## [2.4.0.b35] 2026-05-15
+- fix: **Settings dialog save on a named perspective** — `setPluginData` now updates `globalSharedData` synchronously before `UPDATE_DATA`, so a follow-up `CLOSE_UNNEEDED_SECTIONS` pass cannot overwrite `perspectiveSettings.isModified` with a stale snapshot (perspective name shows `*` again). Restores `pushFromServer` when pushing settings to the WebView so React does not echo changes back to the plugin.
+- fix: **Settings dialog save** — folder/space/filter changes (e.g. included/excluded folders) now trigger `REFRESH_ALL_ENABLED_SECTIONS` after save, not only `CLOSE_UNNEEDED_SECTIONS`.
+- fix: **`dashboardTheme` change** — planned via `APPLY_THEME` in `actionsOnSuccess` (with `REFRESH_ALL_ENABLED_SECTIONS` when other content settings change); `processActionOnReturn` sends `CHANGE_THEME`, updates `pluginData.themeName`, and skips redundant `showDashboardReact('full')` on `dashboardSettingsChanged`.
+- fix: **settings.json sanitization** — load/refresh only repairs **structural** corruption (stray `"0"`/`"1"` keys, string blobs, mis-shaped arrays), caches settings for the session, and dedupes WARN logs; `cleanDashboardSettingsInAPerspective()` runs on **save** and **`repairDashboardSettings`** only (not once per section on every refresh).
+- dev: hidden **`repairDashboardSettings`** command (x-callback / Command Bar): backs up `settings.json`, runs sanitization, saves if needed, and shows a summary dialog. `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=repairDashboardSettings`
+- dev: `cleanDashboardSettingsInAPerspective` / `removeInvalidTagSections` moved to `dashboardSettingsClean.js` (also strips `settingsMigrated` from perspective blobs).
+- fix: x-callback `setSettings` / `updateSectionFlagsToShowOnly` no longer double-`JSON.stringify` `dashboardSettings`.
 - dev: rename "getPerspectiveSettings()` as `loadPerspectiveDefsFromPluginSettings` to make it a little clearer.
 - dev: @CursorAI updated the ARCHITECTURE... doc to align it with reality for perspectives and timers.
+- fix: **Copy settings to…** (`doCopyPerspective`) now calls `savePerspectiveSettings()` so copied perspective defs persist in `settings.json`, not only in the React window via `setPluginData`.
+- fix: **Edit All Perspectives / JSON bulk save** (`doSavePerspectiveSettingsFromBridge`) no longer builds live `dashboardSettings` by spreading the entire plugin `getSettings()` object (which incorrectly injected `perspectiveSettings` and other top-level keys). Uses new `mergeDashboardSettingsForPerspectiveDef()` with the same merge rules as perspective switch.
+- fix: **Save Perspective As / add new perspective** (`addNewPerspective`) now updates top-level `dashboardSettings` in `settings.json` and pushes both `dashboardSettings` and `perspectiveSettings` to the WebView with `pushFromServer`, so reopening the Dashboard matches the new active perspective.
+- fix: **Save+Switch** in the perspective dropdown uses a single bridge command `savePerspectiveAndSwitch` (`doSavePerspectiveAndSwitchToPerspective`) so save completes before switch; avoids race where `switchToPerspective` cleared `isModified` before save finished.
+- fix: **Dashboard settings save while a named perspective is active** — when `resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload` finds no perspective-relevant diff (e.g. only `usePerspectives` or other keys stripped before compare), it no longer returns early without saving; top-level `dashboardSettings` are still written via `doSaveDashboardSettingsFromBridge`.
+- fix: **`/update current perspective`** (`updateCurrentPerspectiveDef`) now stores `cleanDashboardSettingsInAPerspective()` in the def instead of raw `getDashboardSettings()` (avoids FFlags, `lastChange`, etc. in saved perspective blobs).
+- fix: **Delete active perspective** (`deletePerspective`) sends post-`switchToPerspective('-')` defs to React so `isActive` flags are correct; `deleteAllNamedPerspectiveSettings` skips `setPluginData` if switch fails.
+- fix: race condition in **DynamicDialog** when pressing enter, leaving empty return string.
 
 ## [2.4.0.b34] 2026-05-14
 - dev: Deal with the DataStore-in-HTMLView challenge:

@@ -830,9 +830,11 @@ export async function updateGlobalSharedData(windowId: string, data: any, mergeD
     newData = data
   }
   // logDebug(`updateGlobalSharedData`, `writing globalSharedData (merged=${String(mergeData)}) to ${JSON.stringify(newData)}`)
-  const code = `${varName} = JSON.parse(${JSON.stringify(newData)});`
+  // JSON.stringify output is valid JS literal syntax; do NOT use JSON.parse(${JSON.stringify(...)}) — that
+  // inlines an object literal so JSON.parse receives an Object and throws ("[object Object]" is not valid JSON).
+  const code = `${varName} = ${JSON.stringify(newData)};`
   logDebug(pluginJson, `updateGlobalSharedData code=\n${code}\n`)
-  logDebug(pluginJson, `updateGlobalSharedData FIXME: Is this still throwing an error? ^^^`)
+  logDebug(pluginJson, `updateGlobalSharedData: ${varName} assigned via JSON literal (not JSON.parse(interpolation))`)
   return await HTMLView.runJavaScript(code, windowId)
 }
 
