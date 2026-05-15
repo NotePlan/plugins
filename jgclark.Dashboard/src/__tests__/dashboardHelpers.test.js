@@ -2,7 +2,15 @@
 // Tests written by Cursor, directed by JGC. Last updated 2026-05-04 for v2.4.0.b31
 
 import { CustomConsole } from '@jest/console'
-import { filterToOpenParagraphs, filterBySchedulingRules, filterParasByIgnoreTerms, filterParasByIncludedCalendarSections, filterParasByExcludedCalendarSections, getStartTimeFromPara } from '../dashboardHelpers.js'
+import {
+  cloneDashboardSettingsBeforeSave,
+  filterToOpenParagraphs,
+  filterBySchedulingRules,
+  filterParasByIgnoreTerms,
+  filterParasByIncludedCalendarSections,
+  filterParasByExcludedCalendarSections,
+  getStartTimeFromPara,
+} from '../dashboardHelpers.js'
 import { DataStore, Editor, CommandBar, NotePlan, Paragraph, Note, simpleFormatter } from '@mocks/index'
 import * as timeblocks from '@helpers/timeblocks'
 import * as dateTime from '@helpers/dateTime'
@@ -1047,6 +1055,35 @@ describe(`${PLUGIN_NAME}`, () => {
         }
         const startTime = getStartTimeFromPara(para)
         expect(startTime).toBe('none')
+      })
+    })
+
+    describe('cloneDashboardSettingsBeforeSave()', () => {
+      test('returns empty object for null or undefined', () => {
+        expect(cloneDashboardSettingsBeforeSave(null)).toEqual({})
+        expect(cloneDashboardSettingsBeforeSave(undefined)).toEqual({})
+      })
+
+      test('returns empty object for non-object parsed value', () => {
+        expect(cloneDashboardSettingsBeforeSave('')).toEqual({})
+      })
+
+      test('deep-clones a plain settings object', () => {
+        const src = { winsPriorityMarker: '>>', nested: { a: 1 } }
+        const copy = cloneDashboardSettingsBeforeSave(src)
+        expect(copy).toEqual(src)
+        expect(copy).not.toBe(src)
+        copy.nested.a = 2
+        expect(src.nested.a).toBe(1)
+      })
+
+      test('parses JSON string and returns a deep clone', () => {
+        const inner = { x: 1 }
+        const src = JSON.stringify({ foo: inner })
+        const copy = cloneDashboardSettingsBeforeSave(src)
+        expect(copy.foo).toEqual(inner)
+        copy.foo.x = 99
+        expect(inner.x).toBe(1)
       })
     })
   })

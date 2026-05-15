@@ -2,7 +2,7 @@
 //----------------------------------------------------------------------
 // RefreshControl.jsx
 // renders a refresh button or a refreshing spinner depending on refreshing state
-// Last updated 2025-01-31 for v2.1.8 by @jgclark
+// Last updated 2026-05-12 for v2.4.0.b33 by @jgclark + @CursorAI
 //----------------------------------------------------------------------
 
 import React from 'react'
@@ -25,6 +25,7 @@ type Props = {
  */
 const RefreshControl = (props: Props): React$Node => {
   const { refreshing, firstRun, handleRefreshClick } = props
+  const refreshTitle = refreshing ? 'Refreshing…' : firstRun ? 'Generating dashboard…' : 'Refresh (rebuild data for all enabled sections)'
   return (
     <Button
       text={
@@ -37,6 +38,7 @@ const RefreshControl = (props: Props): React$Node => {
       clickHandler={handleRefreshClick}
       disabled={Boolean(refreshing || firstRun)}
       className="HAButton refreshButton"
+      title={refreshTitle}
     />
   )
 }

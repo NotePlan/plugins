@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-05-06 for v2.4.0.b32, @jgclark
+// Last updated 2026-05-13 for v2.4.0.b33, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -14,10 +14,16 @@ import {
   SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS,
 } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getDashboardSettings, getDashboardSettingsDefaults, handlerResult, makeDashboardParas, setPluginData } from './dashboardHelpers'
-import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
-import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettingsInAPerspective } from './perspectiveHelpers'
+import {
+  cloneDashboardSettingsBeforeSave,
+  getDashboardSettings,
+  getDashboardSettingsDefaults,
+  handlerResult,
+  makeDashboardParas,
+  setPluginData,
+} from './dashboardHelpers'
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
+import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
 import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TSectionCode } from './types'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
@@ -555,16 +561,99 @@ function getDiffTopLevelKeys(diff: any): Array<string> {
 }
 
 /**
+ * If the dashboard theme changed, regenerate CSS and push it to the HTML window.
+ * @param {string} settingName
+ * @param {any} newSettings
+ * @param {any} currentSettings
+ * @returns {Promise<void>}
+ */
+async function applyDashboardThemeChangeInWebViewIfNeeded(settingName: string, newSettings: any, currentSettings: any): Promise<void> {
+  if (settingName === 'dashboardSettings' && newSettings.dashboardTheme !== undefined) {
+    const oldTheme = currentSettings?.dashboardSettings?.dashboardTheme
+    const newTheme = newSettings.dashboardTheme
+
+    if (oldTheme !== newTheme) {
+      logDebug('doSaveDashboardSettingsFromBridge', `Dashboard theme changed from '${String(oldTheme)}' to '${String(newTheme)}'. Updating CSS dynamically.`)
+      try {
+        const newThemeCSS = generateCSSFromTheme(newTheme || '')
+        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'CHANGE_THEME', { themeCSS: newThemeCSS }, `Dashboard theme changed to '${String(newTheme)}'`)
+        logDebug('doSaveDashboardSettingsFromBridge', `Successfully sent CHANGE_THEME message to HTML window`)
+      } catch (error) {
+        logError('doSaveDashboardSettingsFromBridge', `Failed to update theme CSS: ${error.message}`)
+      }
+    }
+  }
+}
+
+/**
+ * Decide incremental section refresh actions after dashboard settings were merged (pre vs post snapshot).
+ * @param {{ [string]: any }} priorDashboardSettingsSnapshot
+ * @param {mixed} settingsToSave
+ * @returns {{ resultsToHandle: Array<TActionOnReturn>, resultExtra: { sectionCodes?: Array<TSectionCode> } }}
+ */
+function planSectionRefreshAfterDashboardSettingsChange(
+  priorDashboardSettingsSnapshot: { [string]: any },
+  settingsToSave: mixed,
+): { resultsToHandle: Array<TActionOnReturn>, resultExtra: { sectionCodes?: Array<TSectionCode> } } {
+  const resultsToHandle: Array<TActionOnReturn> = ['CLOSE_UNNEEDED_SECTIONS']
+  let resultExtra: { sectionCodes?: Array<TSectionCode> } = {}
+  const defaults = getDashboardSettingsDefaults()
+  // $FlowIgnore[prop-missing]
+  // $FlowIgnore[cannot-spread-indexer]
+  const prevMerged: { [string]: any } = { ...defaults, ...priorDashboardSettingsSnapshot }
+  // $FlowIgnore[prop-missing]
+  // $FlowIgnore[cannot-spread-indexer]
+  const nextMerged: { [string]: any } = { ...defaults, ...(settingsToSave || {}) }
+  const diff = compareObjects(prevMerged, nextMerged, ['lastModified', 'lastChange', 'usePerspectives'])
+  const diffKeys = getDiffTopLevelKeys(diff)
+  const calendarVisibilityKeys = getCalendarSectionVisibilitySettingNames()
+
+  if (diffKeys.length === 0) {
+    logInfo(
+      'doSaveDashboardSettingsFromBridge',
+      `Section refresh plan: no differing keys after merge (or non-object diff); incremental section refresh from settings: none (TB still refreshed if enabled, via processActionOnReturn)`,
+    )
+  } else {
+    const onlyCalendarVisibility = diffKeys.every((k) => calendarVisibilityKeys.has(k))
+
+    if (onlyCalendarVisibility) {
+      const eligible = getEnabledSectionCodesAmongCalendarVisibilityRefreshList(nextMerged)
+      if (eligible.length > 0) {
+        resultsToHandle.push('REFRESH_SECTION_IN_JSON')
+        resultExtra = { sectionCodes: eligible }
+        logInfo(
+          'doSaveDashboardSettingsFromBridge',
+          `Section refresh plan: only calendar section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh: [${eligible.join(
+            ', ',
+          )}] (enabled among ${SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS.join(', ')}); TB appended when enabled in processActionOnReturn`,
+        )
+      } else {
+        logInfo(
+          'doSaveDashboardSettingsFromBridge',
+          `Section refresh plan: only calendar section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh from Wins/Priority/Overdue list: none (all off); TB still refreshed if enabled`,
+        )
+      }
+    } else {
+      logInfo(
+        'doSaveDashboardSettingsFromBridge',
+        `Section refresh plan: non-calendar or mixed settings changed (diff keys: ${diffKeys.join(', ')}); incremental section refresh from settings: none; TB still refreshed if enabled`,
+      )
+    }
+  }
+  return { resultsToHandle, resultExtra }
+}
+
+/**
  * Update a single key in Dashboard part of DataStore.settings.
- * Note: See doPerspectiveSettingsChanged() for updating perspectiveSettings.
+ * Note: See () for updating perspectiveSettings.
  * @param {MessageDataObject} data - a MDO that should have a key "settings" with the items to be set to the settingName key
  * @param {string} settingName - the single key to set to the value of data.settings
  * @returns {TBridgeClickHandlerResult}
  * @author @dwertheimer + @Cursor
  */
-export async function doDashboardSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
+export async function doSaveDashboardSettingsFromBridge(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
   try {
-    // clo(data, `doDashboardSettingsChanged() starting with data = `)
+    // clo(data, `doSaveDashboardSettingsFromBridge() starting with data = `)
     // $FlowFixMe[incompatible-type]
     const newSettings: Partial<TDashboardSettings> = data.settings
     if (!DataStore.settings || !newSettings) {
@@ -579,77 +668,16 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     // If we are saving the dashboardSettings, and the perspectiveSettings are not being sent, then we need to save the active perspective settings
     let perspectivesToSave = settingName === 'dashboardSettings' ? data.perspectiveSettings : Array.isArray(newSettings) ? newSettings : []
     if (settingName === 'dashboardSettings' && !data.perspectiveSettings) {
-      let needToSetDash = false
-      const perspectiveSettings = await getPerspectiveSettings()
-      if (dashboardNewSettings.usePerspectives) {
-        // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
-        const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
-        logDebug(`doDashboardSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
-
-        if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(dashboardNewSettings)) {
-          // Clean up the settings before then comparing them with the active perspective settings
-          const dashboardSettingsDefaults = getDashboardSettingsDefaults()
-          const newSettingsWithDefaults = { ...dashboardSettingsDefaults, ...dashboardNewSettings }
-          const activePerspDefDashboardSettingsWithDefaults = { ...dashboardSettingsDefaults, ...activePerspDef.dashboardSettings }
-          // $FlowIgnore[prop-missing]
-          // $FlowIgnore[incompatible-call]
-          const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
-
-          // Now add all the TAG sections, which otherwise aren't included in the active perspective settings.
-          // Get any active perspective setting keys that start 'showTagSection_'
-          const activePerspDefShowTagSectionKeys = Object.keys(activePerspDef.dashboardSettings).filter((k) => k.startsWith('showTagSection_'))
-          clo(activePerspDefShowTagSectionKeys, `doDashboardSettingsChanged: activePerspDefShowTagSectionKeys`)
-          // Add all the TAG sections to the active perspective settings
-          // $FlowIgnore[prop-missing] - Dynamic property access for tag section keys
-          const activePerspDefShowTagSectionObject = activePerspDefShowTagSectionKeys.reduce((acc, k) => {
-            acc[k] = activePerspDef.dashboardSettings[k]
-            return acc
-          }, ({}: { [string]: any }))
-          // $FlowIgnore[cannot-spread-indexer] - Dynamic property spread for tag section keys
-          const activePerspDefDashboardSettingsWithDefaultsAndTAGs = { ...activePerspDefDashboardSettingsWithDefaults, ...activePerspDefShowTagSectionObject }
-
-          // Compare the cleaned settings with the active perspective settings
-          const diff = compareObjects(activePerspDefDashboardSettingsWithDefaultsAndTAGs, cleanedSettings, ['lastModified', 'lastChange', 'usePerspectives'])
-          clo(diff, `doDashboardSettingsChanged: diff`)
-
-          // if !diff or  all the diff keys start with FFlag, then return
-          if (!diff || Object.keys(diff).length === 0) return handlerResult(true)
-          if (Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
-            logDebug(`doDashboardSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
-            const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: newSettings })
-            return handlerResult(res)
-          }
-
-          clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings: ${Object.keys(diff).length} keys: ${Object.keys(diff).join(', ')}`)
-          Object.keys(diff).forEach((d) => {
-            logDebug(`doDashboardSettingsChanged`,
-              // $FlowIgnore[invalid-computed-prop]
-              `activePerspDefDashboardSettingsWithDefaults['${String(d)}']=${d ? activePerspDefDashboardSettingsWithDefaults[d] : ''} vs. sent to save: cleanedSettings['${String(d)}']=${d ? cleanedSettings[d] : ''
-              }`,
-            )
-          })
-
-          // ignore dashboard changes in the perspective definition until it is saved explicitly
-          // but we need to set the isModified flag on the perspective
-          logDebug(`doDashboardSettingsChanged`, `Setting isModified to true for perspective ${activePerspDef.name}`)
-          perspectivesToSave = perspectiveSettings.map((p) => (p.name === activePerspDef.name ? { ...p, isModified: true } : { ...p, isModified: false }))
-        } else {
-          needToSetDash = true
-        }
-      } else {
-        needToSetDash = true
+      const resolved = await resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload(dashboardNewSettings, newSettings)
+      if (resolved.kind === 'done') {
+        return resolved.result
       }
-      if (needToSetDash) {
-        if (dashboardNewSettings && typeof dashboardNewSettings === 'object' && !Array.isArray(dashboardNewSettings)) {
-          // $FlowFixMe[incompatible-call]
-          perspectivesToSave = setDashPerspectiveSettings(dashboardNewSettings, perspectiveSettings)
-        } else {
-          logError(`doDashboardSettingsChanged`, `newSettings is not an object: ${JSP(newSettings)}`)
-        }
-      }
+      perspectivesToSave = resolved.perspectivesToSave
     }
 
     const currentSettings = await getSettings('jgclark.Dashboard')
+    // Deep snapshot before save: `saveSettings` / shared caches may mutate `currentSettings.dashboardSettings` in place, which made `compareObjects(prevMerged, nextMerged)` falsely empty (e.g. `winsPriorityMarker` >> !!!)
+    const priorDashboardSettingsSnapshot: { [string]: any } = cloneDashboardSettingsBeforeSave(currentSettings?.dashboardSettings)
     const settingsToSave = isDashboardSettings ? dashboardNewSettings : newSettings
     const combinedUpdatedSettings = { ...currentSettings, [settingName]: settingsToSave }
 
@@ -657,27 +685,12 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
       const debugInfo = perspectivesToSave.map(
         (ps) => `${ps.name} excludedFolders=[${String(ps.dashboardSettings?.excludedFolders) ?? ''} ${ps.isModified ? 'modified' : ''} ${ps.isActive ? '<active>' : ''}`)
         .join(`\n\t`)
-      logDebug(`doDashboardSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
+      logDebug(`doSaveDashboardSettingsFromBridge`, `Saving perspectiveSettings also\n\t${debugInfo}`)
 
       combinedUpdatedSettings.perspectiveSettings = perspectivesToSave
     }
 
-    // Check if dashboardTheme changed and update CSS dynamically
-    if (settingName === 'dashboardSettings' && newSettings.dashboardTheme !== undefined) {
-      const oldTheme = currentSettings?.dashboardSettings?.dashboardTheme
-      const newTheme = newSettings.dashboardTheme
-
-      if (oldTheme !== newTheme) {
-        logDebug('doDashboardSettingsChanged', `Dashboard theme changed from '${String(oldTheme)}' to '${String(newTheme)}'. Updating CSS dynamically.`)
-        try {
-          const newThemeCSS = generateCSSFromTheme(newTheme || '')
-          await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'CHANGE_THEME', { themeCSS: newThemeCSS }, `Dashboard theme changed to '${String(newTheme)}'`)
-          logDebug('doDashboardSettingsChanged', `Successfully sent CHANGE_THEME message to HTML window`)
-        } catch (error) {
-          logError('doDashboardSettingsChanged', `Failed to update theme CSS: ${error.message}`)
-        }
-      }
-    }
+    await applyDashboardThemeChangeInWebViewIfNeeded(settingName, newSettings, currentSettings)
 
     const res = await saveSettings(pluginID, combinedUpdatedSettings)
     const updatedPluginData = { [settingName]: settingsToSave } // was also: pushFromServer: { [settingName]: true }
@@ -687,57 +700,18 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     }
     await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
 
-    // Always close any unused sections, as some sections may no longer be needed
-    const resultsToHandle: Array<TActionOnReturn> = ['CLOSE_UNNEEDED_SECTIONS']
+    // Close any unused sections, as some sections may no longer be needed
+    let resultsToHandle: Array<TActionOnReturn> = ['CLOSE_UNNEEDED_SECTIONS']
     let resultExtra: { sectionCodes?: Array<TSectionCode> } = {}
-
     if (settingName === 'dashboardSettings') {
-      const defaults = getDashboardSettingsDefaults()
-      // $FlowIgnore[prop-missing]
-      const prevMerged: { [string]: any } = { ...defaults, ...(currentSettings?.dashboardSettings || {}) }
-      // $FlowIgnore[prop-missing]
-      const nextMerged: { [string]: any } = { ...defaults, ...(settingsToSave || {}) }
-      const diff = compareObjects(prevMerged, nextMerged, ['lastModified', 'lastChange', 'usePerspectives'])
-      const diffKeys = getDiffTopLevelKeys(diff)
-      const calendarVisibilityKeys = getCalendarSectionVisibilitySettingNames()
-
-      if (diffKeys.length === 0) {
-        logInfo(
-          'doDashboardSettingsChanged',
-          `Section refresh plan: no differing keys after merge (or non-object diff); incremental section refresh from settings: none (TB still refreshed if enabled, via processActionOnReturn)`,
-        )
-      } else {
-        const onlyCalendarVisibility = diffKeys.every((k) => calendarVisibilityKeys.has(k))
-
-        if (onlyCalendarVisibility) {
-          const eligible = getEnabledSectionCodesAmongCalendarVisibilityRefreshList(nextMerged)
-          if (eligible.length > 0) {
-            resultsToHandle.push('REFRESH_SECTION_IN_JSON')
-            resultExtra = { sectionCodes: eligible }
-            logInfo(
-              'doDashboardSettingsChanged',
-              `Section refresh plan: only calendar section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh: [${eligible.join(
-                ', ',
-              )}] (enabled among ${SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS.join(', ')}); TB appended when enabled in processActionOnReturn`,
-            )
-          } else {
-            logInfo(
-              'doDashboardSettingsChanged',
-              `Section refresh plan: only calendar section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh from Wins/Priority/Overdue list: none (all off); TB still refreshed if enabled`,
-            )
-          }
-        } else {
-          logInfo(
-            'doDashboardSettingsChanged',
-            `Section refresh plan: non-calendar or mixed settings changed (diff keys: ${diffKeys.join(', ')}); incremental section refresh from settings: none; TB still refreshed if enabled`,
-          )
-        }
-      }
+      const plan = planSectionRefreshAfterDashboardSettingsChange(priorDashboardSettingsSnapshot, settingsToSave)
+      resultsToHandle = plan.resultsToHandle
+      resultExtra = plan.resultExtra
     }
 
     return handlerResult(res, resultsToHandle, resultExtra)
   } catch (error) {
-    logError('doDashboardSettingsChanged', error.message)
+    logError('doSaveDashboardSettingsFromBridge', error.message)
     return handlerResult(false, [], { errorMsg: `When trying to save settings, an error occurred: ${error.message}`, errorMessageLevel: 'ERROR' })
   }
 }

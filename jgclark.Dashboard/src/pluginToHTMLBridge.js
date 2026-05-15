@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-05-10 for v2.4.0.b32 by @jgclark
+// Last updated 2026-05-13 for v2.4.0.b33 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -20,7 +20,7 @@ import {
   doCyclePriorityStateUp,
   doDeleteItem,
   doEvaluateString,
-  doDashboardSettingsChanged,
+  doSaveDashboardSettingsFromBridge,
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
@@ -37,7 +37,7 @@ import {
   doRenamePerspective,
   doSavePerspective,
   doSwitchToPerspective,
-  doPerspectiveSettingsChanged,
+  doSavePerspectiveSettingsFromBridge,
 } from './perspectiveClickHandlers'
 import { incrementallyRefreshSomeSections, refreshSectionsBatch, refreshSomeSections } from './refreshClickHandlers'
 import {
@@ -57,7 +57,7 @@ import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './move
 import { findSectionItems, getDashboardSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
 import { copyUpdatedSectionItemData } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
-import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified, TSectionCode } from './types'
+import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TSectionCode } from './types'
 import { clo, clof, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
@@ -163,21 +163,6 @@ function removeLineItemsFromPluginSections(
   }
   logWarn('processActionOnReturn', `(${pass}) -> no items found to remove for content="${oldContent}" filename="${oldFilename}"`)
   return 0
-}
-
-/**
- * HTML View requests running a plugin command
- * TODO(@dbw): can this be removed -- there's something with the same name in np.Shared/Root.jsx
- * @param {TPluginCommandSimplified} data object with plugin details
- */
-export async function runPluginCommand(data: TPluginCommandSimplified) {
-  try {
-    // clo(data, 'runPluginCommand received data object')
-    logDebug('pluginToHTMLBridge/runPluginCommand', `running ${data.commandName} in ${data.pluginID}`)
-    await DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
 }
 
 /**
@@ -356,11 +341,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'dashboardSettingsChanged': {
-        result = await doDashboardSettingsChanged(data, 'dashboardSettings')
+        result = await doSaveDashboardSettingsFromBridge(data, 'dashboardSettings')
         break
       }
       case 'perspectiveSettingsChanged': {
-        result = await doPerspectiveSettingsChanged(data)
+        result = await doSavePerspectiveSettingsFromBridge(data)
         break
       }
       case 'addNewPerspective': {
@@ -665,6 +650,10 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       // Identify which sections to close (only rows present in plugin JSON; synthetic sections e.g. WINS are injected in React only)
       const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
       const sections = reactWindowData.pluginData.sections
+
+      // WebView snapshot can lag behind settings just saved to disk; merge dashboard settings from source of truth
+      // so client-only sections (e.g. WINS from `winsPriorityMarker`) update on the same `UPDATE_DATA` as section splices.
+      reactWindowData.pluginData = { ...(reactWindowData.pluginData || {}), dashboardSettings: config }
       const enabledSectionIDs = enabledSections.map((s) => sections.find((section) => section.sectionCode === s)?.ID ?? '')
       logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: currently enabled sections: [${String(enabledSections)}]`)
       logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: currently enabled sectiond IDs: [${String(enabledSectionIDs)}]`)
@@ -796,8 +785,8 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     }
 
     if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {
-      // TEST: turning this off for now
-      logDebug('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: 😳 NOT NOW setting startDelayedRefreshTimer in pluginData`)
+      // TEST: turning this off for now: make it INFO level so I see it
+      logInfo('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: 😳 NOT NOW setting startDelayedRefreshTimer in pluginData`)
       // const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
       // reactWindowData.pluginData.startDelayedRefreshTimer = true
       // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)

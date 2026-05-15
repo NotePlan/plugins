@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2026-05-12 for v2.4.0.b33, @jgclark + @CursorAI
+// Last updated for 2026-05-13 for v2.4.0.b33, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -128,6 +128,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     dashboardSettings?.hideDuplicates,
     dashboardSettings?.showWinsSection,
     dashboardSettings?.treatTopPriorityAsWins,
+    dashboardSettings?.winsPriorityMarker,
   ])
 
   // For PerspectivesTable
@@ -280,6 +281,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   useEffect(() => {
     const newMaxPriority = calculateMaxPriorityAcrossAllSections(sections, {
       treatTopPriorityAsWins: dashboardSettings?.treatTopPriorityAsWins === true,
+      winsPriorityMarker: dashboardSettings?.winsPriorityMarker || '>>',
     })
     if (newMaxPriority !== pluginData.currentMaxPriorityFromAllVisibleSections) {
       logDebug('Dashboard', `New max priority after sections/dashboardSettings change: ${newMaxPriority}`)

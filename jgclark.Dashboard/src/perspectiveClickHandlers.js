@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-01-22 for v2.4.0.b17
+// Last updated 2026-05-13 for v2.4.0.b33 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
@@ -23,7 +23,6 @@ import {
   removeInvalidTagSections,
   logPerspectiveNames,
 } from './perspectiveHelpers'
-// import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 
@@ -227,11 +226,11 @@ export function setDashPerspectiveSettings(newDashboardSettings: TDashboardSetti
  * @param {MessageDataObject} data - a MDO that should have a key "settings" with the items to be set to the settingName key
  * @returns {TBridgeClickHandlerResult}
  */
-export async function doPerspectiveSettingsChanged(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  clo(data, `doPerspectiveSettingsChanged() starting with data = `)
+export async function doSavePerspectiveSettingsFromBridge(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  clo(data, `doSavePerspectiveSettingsFromBridge() starting with data = `)
   const newSettings = data.settings
   if (!DataStore.settings || !newSettings || !Array.isArray(newSettings)) {
-    return handlerResult(false, [], { errorMsg: `doPerspectiveSettingsChanged: newSettings is null or undefined.` })
+    return handlerResult(false, [], { errorMsg: `doSavePerspectiveSettingsFromBridge: newSettings is null or undefined.` })
   }
 
   let dashboardSettings = await getDashboardSettings()

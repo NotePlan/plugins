@@ -8,18 +8,26 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
-## [2.4.0.b33] 2026-05-12?
 
-- fix: completing the last **Wins** (`>>`) task now updates the section heading count and shows the empty-state / congrats message.
+## [2.4.0.b33] 2026-05-13
+- Added new "Wins priority marker" setting so the Win indicator can be `>>`, `!!!`, or `!!`. Default remains `>>`.
+- added tooltip to Refresh button.
+- fix: completing the last "Wins" Section (`>>`) task now updates the section heading count and shows the empty-state / congrats message.
 - dev: `REMOVE_LINE_FROM_JSON` now removes the row again on the **post-`getGlobalSharedData` payload** before **`UPDATE_DATA`**. The plugin ↔ webview bridge returns a deserialized copy for the first snapshot, so splices there did not reach React; Wins still saw the old DT row until incremental refresh.
+- dev: removed unused `runPluginCommand` export from `pluginToHTMLBridge.js` and its now-orphaned `TPluginCommandSimplified` type from `types.js`
+- dev: `doDashboardSettingsChanged()`:
+  - fix: potential subtle issue in it to make a deep copy of settings where it had been shallow.
+  - refactor to make more maintainable
+  - rename it to `doSaveDashboardSettingsFromBridge()` to help understand what it does
+- dev: Rename `doPerspectiveSettingsChanged` to `doSavePerspectiveSettingsFromBridge`.
 
 ## [2.4.0.b32] 2026-05-11
 - fix: completing a next-action in **Active Projects** now round-trips to Projects plugin and will update with a new next-action if available.
 - dev: PROJACT and PROJREVIEW are no longer included in the non-calendar "refresh all sections" pass, as their data is only updated by the Projects plugin.
 - The next-action items in "Projects to Review" and "Active Projects" can now be clicked on to be completed or cancelled like items in other sections.
-- Cross-plugin Reviews: after **`REMOVE_LINE_FROM_JSON`**, the bridge calls **`updateProjectsListIfProjectSection`** so **`allProjectsList.json`** stays in sync for **PROJACT** / **PROJREVIEW** (including **complete-then** and cancel paths); shared helper **`src/projectsListSync.js`**. After the list write, **`refreshSectionsByCode`** runs **in-process** (skipping **`invokePluginCommandByName`** for that step) so PROJ* data is merged before the bridge sends **`UPDATE_DATA`**; **`processActionOnReturn`** re-fetches global shared data before that send so a pre-refresh snapshot cannot overwrite the new next-action rows. (Reviews **`updateAllProjectsListAfterChange`** must successfully reload the project note: it now uses **`getNoteFromFilename`** for teamspace paths.)
-- **`refreshSomeSections`** returns failure (not success) when Dashboard **`pluginData`** is not ready yet; **`refreshSectionsByCode`** documents **`invokePluginCommandByName`** argument shape and flattens mistaken nested **`sectionCodes`**.
-- Perspective switch: single fire-and-forget **`generateProjectListsAndRenderIfOpen`** with **`.catch`**; skip invoke if Reviews is not installed; removed redundant second **`renderProjectListsIfOpen`**.
+- Cross-plugin Reviews: after `REMOVE_LINE_FROM_JSON`, the bridge calls `updateProjectsListIfProjectSection` so `allProjectsList.json` stays in sync for **PROJACT** / **PROJREVIEW** (including **complete-then** and cancel paths); shared helper `src/projectsListSync.js`. After the list write, `refreshSectionsByCode` runs **in-process** (skipping `invokePluginCommandByName` for that step) so PROJ* data is merged before the bridge sends `UPDATE_DATA`; `processActionOnReturn` re-fetches global shared data before that send so a pre-refresh snapshot cannot overwrite the new next-action rows. (Reviews `updateAllProjectsListAfterChange` must successfully reload the project note: it now uses `getNoteFromFilename` for teamspace paths.)
+- `refreshSomeSections` returns failure (not success) when Dashboard `pluginData` is not ready yet; `refreshSectionsByCode` documents `invokePluginCommandByName` argument shape and flattens mistaken nested `sectionCodes`.
+- Perspective switch: single fire-and-forget `generateProjectListsAndRenderIfOpen` with `.catch`; skip invoke if Reviews is not installed; removed redundant second `renderProjectListsIfOpen`.
 - fix: Add Task's note/space REQUEST calls no longer update Dashboard global data before responses return, avoiding render cascades while loading notes and spaces.
 - fix: Add Task no longer eagerly scans notes when the dialog opens; notes are loaded only when the Note chooser is opened so Space loading is not blocked.
 - fix: Add Task note loading now opts out of expensive backend note decoration, avoiding long calendar-note conversion stalls when changing spaces.
@@ -35,7 +43,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dev: turn down more logging
 
 ## [2.4.0.b30] 2026-04-17
-- fix: **Add Task → Note**: choosing **All spaces** now loads notes from every space via np.Shared `getNotes` (`space: '__all__'`). Previously the UI could send no space filter and the handler only returned Private notes, so the chooser looked “stuck” at ~25 items and search could not find teamspace notes.
+- fix: "Add Task → Note": choosing **All spaces** now loads notes from every space via np.Shared `getNotes` (`space: '__all__'`). Previously the UI could send no space filter and the handler only returned Private notes, so the chooser looked “stuck” at ~25 items and search could not find teamspace notes.
 
 ## [2.4.0.b29] 2026-04-17
 - fix: **SpaceChooser / getTeamspaces**: `unwrapPluginRequestData` plus `@helpers/react/routerUtils` `normalizeSharedInvokeResult` (peel extra `invokePluginCommandByName` wrapper around np.Shared `RequestResponse`) so the WebView receives a teamspace **array**, not a nested `{ success, data }` — fixes `[DIAG] loadSpaces: Invalid response format`

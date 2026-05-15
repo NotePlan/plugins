@@ -94,7 +94,35 @@ describe(`${FILE}`, () => {
     })
     test("input 'Charter-Book'", () => {
       const res = t.fontPropertiesFromNP('Charter-Book')
-      expect(res).toEqual(['font-family: "Charter"', 'font-weight: 500', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Charter"', 'font-weight: 400', 'font-style: "normal"'])
+    })
+    test("input 'IBMPlexSans' keeps IBM Plex theme id (not spaced per-letter)", () => {
+      const res = t.fontPropertiesFromNP('IBMPlexSans')
+      expect(res).toEqual(['font-family: "IBM Plex Sans"', 'font-weight: 400', 'font-style: "normal"'])
+    })
+    test("input 'IBMPlexSans-SemiBold' keeps family id; weight from suffix", () => {
+      const res = t.fontPropertiesFromNP('IBMPlexSans-SemiBold')
+      expect(res).toEqual(['font-family: "IBM Plex Sans"', 'font-weight: 600', 'font-style: "normal"'])
+    })
+    test("input 'IBMPlexSerif-Medium' keeps family id; weight from suffix", () => {
+      const res = t.fontPropertiesFromNP('IBMPlexSerif-Medium')
+      expect(res).toEqual(['font-family: "IBM Plex Serif"', 'font-weight: 400', 'font-style: "normal"'])
+    })
+    test("input 'IBMPlexSans-Text'", () => {
+      const res = t.fontPropertiesFromNP('IBMPlexSans-Text')
+      expect(res).toEqual(['font-family: "IBM Plex Sans"', 'font-weight: 400', 'font-style: "normal"'])
+    })
+    test("input 'IBMPlexMono-BoldItalic'", () => {
+      const res = t.fontPropertiesFromNP('IBMPlexMono-BoldItalic')
+      expect(res).toEqual(['font-family: "IBM Plex Mono"', 'font-weight: 700', 'font-style: "italic"'])
+    })
+    test("input 'IBMPlexSansCond-Regular'", () => {
+      const res = t.fontPropertiesFromNP('IBMPlexSansCond-Regular')
+      expect(res).toEqual(['font-family: "IBM Plex Sans Condensed"', 'font-weight: 400', 'font-style: "normal"'])
+    })
+    test("input 'IBMPlexCondensed-SemiBoldItalic'", () => {
+      const res = t.fontPropertiesFromNP('IBMPlexSansCond-SemiBoldItalic')
+      expect(res).toEqual(['font-family: "IBM Plex Sans Condensed"', 'font-weight: 600', 'font-style: "italic"'])
     })
   })
 
