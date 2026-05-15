@@ -32,11 +32,6 @@
       "name": "test:show start active",
       "description": "show first active line in the editor",
       "jsFunction": "showStartActive"
-    },
-    {
-      "name": "test:data store probe",
-      "description": "runDataStoreProbe",
-      "jsFunction": "runDataStoreProbe"
     }
   ],
   "plugin.settings": []
