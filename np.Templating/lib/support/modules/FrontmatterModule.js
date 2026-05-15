@@ -30,20 +30,35 @@ export default class FrontmatterModule {
     }
   }
 
+  /**
+   * Whether the string begins with a `--` or `---` fence whose inner lines are YAML-like (see `isValidYamlContent`).
+   * If the inner region is not YAML (e.g. markdown / HRs only), returns false so the text is treated as body content.
+   * @param {string} templateData - Note or template fragment (often starts at the first line).
+   * @returns {boolean}
+   */
   isFrontmatterTemplate(templateData: string): boolean {
-    // First check if the template has the frontmatter structure (starts with --- and has another ---)
-    if (!templateData.startsWith('---')) return false
-    const lines = templateData.split('\n')
-    if (lines.length >= 2 && lines[0].trim() === '---') {
-      // Find the second --- separator
+    // Opening fence must be first line: `---` … `---` or `--` … `--` (output FM / template FM).
+    // Inner region must be YAML-like; otherwise the whole thing is plain content (e.g. HRs around markdown).
+    const lines = (templateData || '').split('\n')
+    if (lines.length < 2) return false
+    const head = lines[0]?.trim() || ''
+    if (head === '---') {
       for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim() === '---') {
-          // Now validate that the content between the --- markers is actually YAML-like
-          // Extract the content between the first and second ---
-          const frontmatterContent = lines.slice(1, i).join('\n')
-          return isValidYamlContent(frontmatterContent)
+          const inner = lines.slice(1, i).join('\n')
+          return isValidYamlContent(inner)
         }
       }
+      return false
+    }
+    if (head === '--') {
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim() === '--') {
+          const inner = lines.slice(1, i).join('\n')
+          return isValidYamlContent(inner)
+        }
+      }
+      return false
     }
     return false
   }

@@ -816,6 +816,9 @@ export type FrontMatterDocumentObject = { attributes: { [string]: string }, body
  * @returns {Object} - the frontmatter object (or empty object if none)
  */
 export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: boolean = false): FrontMatterDocumentObject {
+  const doubleDashFm = tryExtractLeadingDoubleDashFm(noteText || '')
+  if (doubleDashFm) return doubleDashFm
+
   let fmData = { attributes: {}, body: noteText, frontmatter: '' } //default
 
   // we need to pre-process the text to sanitize it instead of running fm because we need to
@@ -1468,6 +1471,12 @@ export async function getValuesForFrontmatterTag(
 
 /**
  * Analyze a template's structure to determine various characteristics
+ *
+ * **Output (new-note) frontmatter** may appear in `--` … `--` or `---` … `---` pairs only when the pair opens on
+ * the **first line of the template body** (the first line after the template’s own YAML frontmatter, if any).
+ * If the fenced region contains no valid YAML-like lines, it is **not** treated as frontmatter: the fences and
+ * everything between stay ordinary note content (e.g. horizontal rules and headings).
+ *
  * @param {string} templateData - The template content to analyze
  * @returns {Object} Analysis results with the following properties:
  *   - hasNewNoteTitle: boolean - Whether template has 'newNoteTitle' in frontmatter
@@ -1629,24 +1638,28 @@ export function analyzeTemplateStructure(templateData: string): {
 }
 
 /**
- * Helper function to find separator positions in an array of lines
- * Looks for both -- and --- separators
- * @param {Array<string>} lines - Array of lines to search
- * @param {number} startIndex - Index to start searching from (default: 0)
- * @returns {{startIndex: number, endIndex: number}} - Object with start and end indices, or {-1, -1} if not found
+ * Find the closing pair for an output-frontmatter fence starting at startIndex.
+ * Uses the **opening line’s** delimiter: `---` pairs with the next `---` only; `--` pairs with the next `--` only.
+ * (Searching for `--` first broke `---` bodies that contained a standalone `--` line.)
+ * @param {Array<string>} lines - Lines to search
+ * @param {number} startIndex - Line index of the opening `--` or `---`
+ * @returns {{startIndex: number, endIndex: number}}
  */
 function findSeparatorPositions(lines: Array<string>, startIndex: number = 0): { startIndex: number, endIndex: number } {
-  // First try to find -- separators
-  let startPos = lines.indexOf('--', startIndex)
-  let endPos = startPos >= 0 ? lines.indexOf('--', startPos + 1) : -1
-
-  // If no -- separators found, try to find --- separators
-  if (startPos === -1) {
-    startPos = lines.indexOf('---', startIndex)
-    endPos = startPos >= 0 ? lines.indexOf('---', startPos + 1) : -1
+  const first = (lines[startIndex] || '').trim()
+  if (first === '---') {
+    const startPos = startIndex
+    const rel = lines.slice(startPos + 1).findIndex((l) => l.trim() === '---')
+    if (rel < 0) return { startIndex: -1, endIndex: -1 }
+    return { startIndex: startPos, endIndex: startPos + 1 + rel }
   }
-
-  return { startIndex: startPos, endIndex: endPos }
+  if (first === '--') {
+    const startPos = startIndex
+    const rel = lines.slice(startPos + 1).findIndex((l) => l.trim() === '--')
+    if (rel < 0) return { startIndex: -1, endIndex: -1 }
+    return { startIndex: startPos, endIndex: startPos + 1 + rel }
+  }
+  return { startIndex: -1, endIndex: -1 }
 }
 
 /**
@@ -1692,6 +1705,27 @@ function extractAndParseFrontmatter(lines: Array<string>, startIndex: number, en
   }
 
   return { attributes: {}, isValid: false }
+}
+
+/**
+ * `front-matter` does not recognize `--` fences. When the document starts with `--` … `--` and the inner region is
+ * YAML-like output frontmatter, parse it here so render/new-note logic matches `---` behavior.
+ * If the inner region is not valid YAML-like content, return null so the whole string stays body text.
+ * @param {string} noteText - Full template or fragment
+ * @returns {FrontMatterDocumentObject | null}
+ */
+function tryExtractLeadingDoubleDashFm(noteText: string): FrontMatterDocumentObject | null {
+  const lines = (noteText || '').split('\n')
+  if (lines.length < 2 || lines[0].trim() !== '--') return null
+
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() !== '--') continue
+    const { attributes, isValid } = extractAndParseFrontmatter(lines, 0, i)
+    if (!isValid) return null
+    const body = lines.slice(i + 1).join('\n')
+    return { attributes, body, frontmatter: '' }
+  }
+  return null
 }
 
 /**
@@ -2006,6 +2040,8 @@ export function getNoteTitleFromRenderedContent(renderedContent: string): string
 
 /**
  * Check if content between --- markers is valid YAML-like content
+ * Headings like `## Event:**` contain a colon and used to match the `key:` heuristic; a note body
+ * wrapped in `---` / `---` (horizontal rules) was then mistaken for YAML, producing an empty body after parse.
  * @param {string} content - The content to validate
  * @returns {boolean} - Whether the content is valid YAML-like frontmatter
  */
@@ -2021,6 +2057,9 @@ export function isValidYamlContent(content: string): boolean {
   for (const line of lines) {
     const trimmedLine = line.trim()
     if (trimmedLine === '') continue // Skip empty lines
+
+    // Markdown ATX headings (# … ###### ) can include colons (e.g. "## Event:**"); do not treat as YAML.
+    if (/^#{1,6}\s/.test(trimmedLine)) continue
 
     // Check for valid YAML patterns:
     // 1. key: value (with optional spaces) - allows hyphens and spaces in key names

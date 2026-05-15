@@ -161,6 +161,34 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toBe(false)
       })
 
+      test('should return false when only YAML-looking lines are markdown headings with colons (e.g. ## Event:**)', () => {
+        const markdownBetweenDashes = `## Event:**  <%- calendarItemLink %>
+
+### Agenda
+-
+### Meeting Minutes
+-
+### Action Items
+*`
+        const result = f.isValidYamlContent(markdownBetweenDashes)
+        expect(result).toBe(false)
+      })
+
+      test('getSanitizedFmParts strips leading -- fence when inner is valid YAML', () => {
+        const doc = `--\ntitle: Double Dash FM\ntype: test\n--\nRest`
+        const result = f.getSanitizedFmParts(doc)
+        expect(result.attributes.title).toBe('Double Dash FM')
+        expect(result.attributes.type).toBe('test')
+        expect(result.body).toBe('Rest')
+      })
+
+      test('getSanitizedFmParts leaves full text as body when leading -- fence inner is not YAML', () => {
+        const doc = `--\n## Nope:**\n--\nTail`
+        const result = f.getSanitizedFmParts(doc)
+        expect(result.attributes).toEqual({})
+        expect(result.body).toBe(doc)
+      })
+
       test('should return true for complex real-world examples', () => {
         const yamlContent = `title: Meeting Note
 note-tag: #meeting

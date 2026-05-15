@@ -6,6 +6,22 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.4.2] 2026-05-14 @dwertheimer
+
+### Fixed
+
+- **`isValidYamlContent` vs markdown headings:** Headings such as `## Event:**` include a colon and were counted as YAML key lines. A template body framed with `---` horizontal rules (start and end) was then misclassified as a frontmatter block, `parse` returned an empty body, and Meeting Notes / renders produced no output. Markdown ATX heading lines (`#` … `######` followed by whitespace) are ignored for YAML detection so `---` around normal note text is not treated as frontmatter.
+
+### Changed
+
+- **New-note / output frontmatter rules:** Fences at the **first line of the template body** (after the template’s own YAML frontmatter) may use `--` or `---`. The enclosed region is treated as output frontmatter **only** if it is YAML-like (`isValidYamlContent`); otherwise the fences and text between stay normal content. Closing delimiter pairs match the opener (`---` with the next `---`, not an intervening `--` line). Leading `--` blocks are parsed in `getSanitizedFmParts` because `front-matter` ignores `--` fences. `FrontmatterModule.isFrontmatterTemplate` accepts both `--` and `---` openers with the same YAML gate.
+
+### Edited in this release
+
+- `helpers/NPFrontMatter.js`, `helpers/__tests__/NPFrontMatter/NPFrontMatterMisc.test.js`, `helpers/__tests__/NPFrontMatter/NPFrontMatter.analyzeTemplateStructure.test.js`
+- `np.Templating/lib/support/modules/FrontmatterModule.js`
+- `np.Templating/CHANGELOG.md`, `np.Templating/plugin.json` — version **2.4.2**
+
 ## [2.4.1] 2026-05-03 @dwertheimer
 
 ### Fixed

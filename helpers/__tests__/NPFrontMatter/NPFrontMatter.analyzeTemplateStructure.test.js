@@ -699,6 +699,66 @@ Some content here`
     })
   })
 
+  describe('output frontmatter: -- and --- only when first body line + valid YAML', () => {
+    test('treats --- … --- at body start as content when inner is not YAML (e.g. headings / HR)', () => {
+      const template = `---
+title: Template FM
+---
+---
+## Event:** note
+
+### Agenda
+-
+---
+After`
+      const result = analyzeTemplateStructure(template)
+
+      expect(result.hasOutputFrontmatter).toBe(false)
+      expect(result.outputFrontmatter).toEqual({})
+      expect(result.bodyContent).toContain('## Event:** note')
+      expect(result.bodyContent).toContain('After')
+    })
+
+    test('parses valid new-note frontmatter in -- … -- when first body line opens the fence', () => {
+      const template = `---
+title: Template FM
+---
+--
+noteTitle: From output FM
+type: project
+--
+# Hello`
+
+      const result = analyzeTemplateStructure(template)
+
+      expect(result.hasOutputFrontmatter).toBe(true)
+      expect(result.outputFrontmatter.noteTitle).toBe('From output FM')
+      expect(result.outputFrontmatter.type).toBe('project')
+      expect(result.bodyContent).toContain('noteTitle: From output FM')
+      expect(result.bodyContent).toContain('# Hello')
+    })
+
+    test('pairs closing --- with next --- even if body contains a standalone -- line', () => {
+      const template = `---
+t: 1
+---
+---
+middle: kept
+--
+not-closing-triple
+---
+end body`
+
+      const result = analyzeTemplateStructure(template)
+
+      expect(result.hasOutputFrontmatter).toBe(true)
+      expect(result.outputFrontmatter.middle).toBe('kept')
+      expect(result.bodyContent).toContain('--')
+      expect(result.bodyContent).toContain('not-closing-triple')
+      expect(result.bodyContent).toContain('end body')
+    })
+  })
+
   describe('template vs rendered content handling', () => {
     test('should detect inline title from template content with EJS tags (current behavior)', () => {
       const templateWithEJS = `---
