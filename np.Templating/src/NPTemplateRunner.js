@@ -1047,6 +1047,10 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
         // STEP 2.1 & 2.2: Process Frontmatter Variables
         const { frontmatterBody, frontmatterAttributes, data } = await processFrontmatter(templateData, argObj, isRunFromCode, passedTemplateBody, trTemplateNote)
         logDebug(pluginJson, `TR Total Running Time -  after Step 2.2: ${timer(start)}`)
+        if (frontmatterBody == null) {
+          logDebug(pluginJson, `templateRunnerExecute: renderFrontmatter cancelled (null body); stopping`)
+          return
+        }
 
         // STEP 3: Create a new note if needed
         const newNoteCreated = await handleNewNoteCreation(selectedTemplate, data, argObj, passedTemplateBody || '')
