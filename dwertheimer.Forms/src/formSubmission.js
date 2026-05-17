@@ -949,6 +949,13 @@ async function processCreateNew(data: any, formFields: Array<Object>): Promise<F
     try {
       // Use templating plugin to render the title (it contains template tags like <%- Contact_Name %>)
       const renderedTitleResult = await DataStore.invokePluginCommandByName('render', 'np.Templating', [newNoteTitleToUse, templatingContext])
+      if (renderedTitleResult == null) {
+        logDebug(pluginJson, 'processCreateNew: render returned null for newNoteTitle (user likely cancelled); aborting')
+        return {
+          success: false,
+          formSubmissionError: 'Template rendering was cancelled.',
+        }
+      }
       if (renderedTitleResult && typeof renderedTitleResult === 'string') {
         renderedNewNoteTitle = renderedTitleResult
         logDebug(`processCreateNew: Rendered newNoteTitle from "${newNoteTitleToUse}" to "${renderedNewNoteTitle}"`)
@@ -1098,6 +1105,13 @@ async function processCreateNew(data: any, formFields: Array<Object>): Promise<F
   if (folderPath && typeof folderPath === 'string' && (folderPath.includes('<%') || folderPath.includes('${'))) {
     try {
       const renderedFolderResult = await DataStore.invokePluginCommandByName('render', 'np.Templating', [folderPath, templatingContext])
+      if (renderedFolderResult == null) {
+        logDebug(pluginJson, 'processCreateNew: render returned null for folder (user likely cancelled); aborting')
+        return {
+          success: false,
+          formSubmissionError: 'Template rendering was cancelled.',
+        }
+      }
       if (renderedFolderResult && typeof renderedFolderResult === 'string') {
         folderPath = renderedFolderResult
         logDebug(`processCreateNew: Rendered folder to "${folderPath}"`)

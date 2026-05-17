@@ -473,6 +473,10 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
   if (newNoteTitle && typeof newNoteTitle === 'string' && newNoteTitle.includes('<%')) {
     try {
       newNoteTitle = await NPTemplating.render(newNoteTitle, data)
+      if (newNoteTitle == null) {
+        logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation user cancelled while rendering newNoteTitle`)
+        return false
+      }
       const isError = /Template Rendering Error/.test(newNoteTitle)
       if (isError) {
         logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation template rendering error for newNoteTitle`)
@@ -495,6 +499,10 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
   if (folder && typeof folder === 'string' && folder.includes('<%')) {
     try {
       folder = await NPTemplating.render(folder, data)
+      if (folder == null) {
+        logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation user cancelled while rendering folder`)
+        return false
+      }
       const isError = /Template Rendering Error/.test(folder)
       if (isError) {
         logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation template rendering error for folder`)
@@ -535,6 +543,10 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
           if (content && content.includes('<%')) {
             try {
               renderedContent = await NPTemplating.render(content, data)
+              if (renderedContent == null) {
+                logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation user cancelled while rendering content`)
+                return false
+              }
               const isError = /Template Rendering Error/.test(renderedContent)
               if (isError) {
                 logError(pluginJson, `NPTemplateRunner::handleNewNoteCreation template rendering error for content`)
@@ -597,8 +609,11 @@ function hasAiAnalysisError(renderedTemplate: string): boolean {
  * @param {Object} data - processed template data
  * @returns {string} rendered template
  */
-export async function renderTemplate(frontmatterBody: string, data: Object): Promise<string> {
+export async function renderTemplate(frontmatterBody: string, data: Object): Promise<string | null> {
   const renderedTemplate = await NPTemplating.render(frontmatterBody, data)
+  if (renderedTemplate == null) {
+    return null
+  }
   const isError = /Template Rendering Error/.test(renderedTemplate)
 
   if (isError) {
@@ -1057,6 +1072,10 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
 
         // STEP 4: Render the Template Body (with any passed arguments)
         const renderedTemplate = await renderTemplate(frontmatterBody, data)
+        if (renderedTemplate == null) {
+          logDebug(pluginJson, `templateRunnerExecute: render cancelled by user (null); stopping`)
+          return
+        }
         logDebug(pluginJson, `templateRunnerExecute Template Render Complete renderedTemplate length:${renderedTemplate.length}`)
 
         // Check if rendered template contains AI analysis error - if so, return it immediately
@@ -1074,6 +1093,10 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
         if (noteTitle && typeof noteTitle === 'string' && noteTitle.includes('<%')) {
           try {
             noteTitle = await NPTemplating.render(noteTitle, data)
+            if (noteTitle == null) {
+              logDebug(pluginJson, `templateRunnerExecute user cancelled while rendering noteTitle`)
+              return
+            }
             const isError = /Template Rendering Error/.test(noteTitle)
             if (isError) {
               logError(pluginJson, `templateRunnerExecute template rendering error for noteTitle`)
@@ -1137,6 +1160,10 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
         if (frontmatterAttributes.writeUnderHeading && typeof frontmatterAttributes.writeUnderHeading === 'string' && frontmatterAttributes.writeUnderHeading.includes('<%')) {
           try {
             frontmatterAttributes.writeUnderHeading = await NPTemplating.render(frontmatterAttributes.writeUnderHeading, data)
+            if (frontmatterAttributes.writeUnderHeading == null) {
+              logDebug(pluginJson, `templateRunnerExecute user cancelled while rendering writeUnderHeading`)
+              return
+            }
             const isError = /Template Rendering Error/.test(frontmatterAttributes.writeUnderHeading)
             if (isError) {
               logError(pluginJson, `templateRunnerExecute template rendering error for writeUnderHeading`)

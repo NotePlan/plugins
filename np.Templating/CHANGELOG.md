@@ -6,6 +6,38 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.4.5-notreleased] 2026-05-17 @dwertheimer
+
+### Fixed
+
+- **Prompt cancel aborts the whole template run:** When the user cancels a Command Bar prompt (including **batched** `showForm`), `render` / `renderFrontmatter` processing now returns **`null`** instead of an empty string. **`templateNew`** and related commands stop before `DataStore.newNote`; **`checkAndProcessFolderAndNewNoteTitle`** does not trash the empty starter note when **`templateNew`** returns no filename. **`insertNoteTemplate`** (Meeting Notes) and **Forms** `processCreateNew` bail out when **`render`** is cancelled.
+
+### Changed
+
+- **API:** `NPTemplating.render`, exported `render` / `renderTemplate`, and Template Runner `renderTemplate` may resolve to **`null`** on user cancel (callers should treat **`null`** as abort, distinct from **`''`**).
+
+### Edited in this release
+
+- `np.Templating/lib/rendering/templateProcessor.js`, `np.Templating/lib/NPTemplating.js`, `np.Templating/src/Templating.js`, `np.Templating/src/NPTemplateRunner.js`
+- `helpers/NPEditor.js`, `np.MeetingNotes/src/NPMeetingNotes.js`, `dwertheimer.Forms/src/formSubmission.js`
+- `np.Templating/__tests__/prompt-cancellation.test.js`
+- `np.Templating/CHANGELOG.md`, `np.Templating/plugin.json` — version **2.4.5-notreleased**
+
+## [2.4.4] 2026-05-17 @dwertheimer
+
+### Fixed
+
+- **Command Bar batched `prompt('Question?', […])` fields:** `parseParameters` treats the question as `varName` and the choice list as `promptMessage`, so `showForm` used **Answer** for `title`/`label`. Batch field labels now take the first quoted argument when `promptMessage` is an array or when it equals the comma-joined choice list (the same mis-parse as a string). The first-argument scanner reads quoted strings properly so labels include apostrophes inside double-quoted text (e.g. `"What's the priority?"`) and commas inside the question.
+
+### Added
+
+- **Tests (`promptFormBatch.test.js`):** Batched form labels for `prompt(varName, 'Message?', […])`, double-quoted questions, `<%` execution tags, **apostrophes inside `"…"`**, and **commas inside the question** string.
+
+### Edited in this release
+
+- `np.Templating/lib/support/modules/prompts/promptFormBatch.js`, `np.Templating/__tests__/promptFormBatch.test.js`
+- `np.Templating/CHANGELOG.md`, `np.Templating/plugin.json` — version **2.4.4**
+
 ## [2.4.3] 2026-05-14 @dwertheimer
 
 ### Fixed

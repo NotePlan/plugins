@@ -111,7 +111,13 @@ export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, 
       // Don't pass the unrendered title - let templateNew extract it from rendered content
       const argsArray = [templateTitle, folderToUse === '/' ? '' : folderToUse, '', frontmatterAttributes]
       logDebug(`checkAndProcessFolderAndNewNoteTitle: invoking templateNew because theFolder:"${theFolder}" hasTitle:${hasTitle} with argsArray:${JSON.stringify(argsArray)}`)
-      await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
+      const templateNewResult = await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
+      if (templateNewResult == null || (typeof templateNewResult === 'string' && templateNewResult.length === 0)) {
+        logDebug(
+          `checkAndProcessFolderAndNewNoteTitle: templateNew returned no filename (user likely cancelled a prompt); not trashing empty note "${emptyNoteFilename}"`,
+        )
+        return true
+      }
       // move the empty note to the trash
       // await DataStore.moveNote(emptyNoteFilename, '@Trash')
       await DataStore.trashNote(emptyNoteFilename)
