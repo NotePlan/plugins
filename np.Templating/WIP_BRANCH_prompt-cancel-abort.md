@@ -3,7 +3,7 @@
 ## Commits on this branch (in order)
 
 1. **`9698e1be`** — **np.Templating 2.4.5-notreleased** core: prompt cancel → **`null`** (not `''`); **`templateNew`** / NPEditor / Meeting Notes / Forms / runner integration; 2.4.4 batched form labels.
-2. **Latest (`HEAD`)** — **Cross-plugin null guards:** safe handling when **`render` / `renderTemplate` / `renderFrontmatter`** return **`null`** or **`frontmatterBody: null`**:
+2. **`eb026fca`** — **Cross-plugin null guards:** safe handling when **`render` / `renderTemplate` / `renderFrontmatter`** return **`null`** or **`frontmatterBody: null`**:
    - `jgclark.DailyJournal/src/templatesStartEnd.js`
    - `dwertheimer.Forms/src/NPTemplateForm.js` (`restoreFormFromAutosave`)
    - `np.ThemeChooser/src/NPThemeHooks.js` (`onOpenTheme`)
