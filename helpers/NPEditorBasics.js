@@ -51,3 +51,19 @@ export function getOpenEditorFromFilename(openNoteFilename: string, getLastOpenE
   }
   return matchingEditorWindows[0]
 }
+
+/**
+ * Returns the last-opened open Editor window that matches a given filename (if any).
+ * @author @jgclark
+ * @param {string} openNoteFilename to find in list of open Editor windows
+ * @returns {TEditor | false} the matching open Editor window or false if not found
+ */
+export function getLastOpenedOpenEditorFromFilename(openNoteFilename: string): TEditor | false {
+  const allEditorWindows = NotePlan.editors
+  const matchingEditorWindows = allEditorWindows.filter((ew) => ew.filename === openNoteFilename)
+  if (matchingEditorWindows.length === 0) {
+    logDebug('getLastOpenedOpenEditorFromFilename', `No open Editor window found for filename '${openNoteFilename}'`)
+    return false
+  }
+  return matchingEditorWindows[matchingEditorWindows.length - 1]
+}

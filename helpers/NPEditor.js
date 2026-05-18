@@ -5,7 +5,9 @@ import { getFolderFromFilename } from './folders'
 import { getOpenEditorFromFilename } from './NPEditorBasics'
 import { getNoteTitleFromTemplate } from './NPFrontMatter'
 import { getSelectedParagraphsWithCorrectLineIndex, highlightParagraphInEditor } from './NPParagraph'
+import { openNoteInSplitViewIfNotOpenAlready } from './NPWindows'
 import { usersVersionHas } from './NPVersions'
+import { waitForCondition } from './promisePolyfill'
 import { showMessageYesNo, showMessage, chooseFolder } from './userInput'
 
 export { getOpenEditorFromFilename, saveEditorIfNecessary } from './NPEditorBasics'
@@ -270,9 +272,7 @@ export function getFirstRegularNoteAmongOpenEditors(): ?TNote {
 
 /**
  * Show an existing note in an Editor window, identified by its filename.
- * Uses smart features to determine which window or split view to open the note in:
- * - If already open in another window or split, simply focuses it.
- * - If not open, opens it in a new split view.
+ * Uses {@link getOrOpenEditorFromFilename} (split: reuseSplitView; window: main editor).
  * Returns true if successful, false otherwise.
  * Note: only designed for macOS, but may work in a limited way on other platforms.
  * Note: Prefer the showLine... variant of this (below) where possible.
@@ -299,7 +299,7 @@ export async function smartOpenNoteInEditorFromFilename(filename: string, newWin
 
 /**
  * Handle a show line call by opening the note in an Editor, and then finding and moving the cursor to the start of that line.
- * If the note isn't already open, then open in a new split view.
+ * Uses {@link getOrOpenEditorFromFilename} (split → reuseSplitView; window → main editor).
  * Note: Handles Teamspace notes from b1375 (v3.17.0).
  * @param {string} filename - the filename of the note to open
  * @param {string} content - the content of the note to open
@@ -329,9 +329,10 @@ export async function smartShowLineInEditorFromFilename(filename: string, conten
 }
 
 /**
- * Get the open Editor that matches a given filename.  [Related: getOpenEditorFromFilename()]
- * If the original Editor is still open, then return it, otherwise open the note in a new window/split view and return the new Editor.
- * (This can be needed when you have an Editor reference, but then open other window(s), and you want to use the original Editor still.)
+ * Get the open Editor that matches a given filename.  [Related: getOpenEditorFromFilename(), getLastOpenedOpenEditorFromFilename()]
+ * If the original Editor is still open, then return it, otherwise open the note and return the new Editor.
+ * - `split`: uses {@link openNoteInSplitViewIfNotOpenAlready} (reuseSplitView / splitView x-callback) and waits for the editor when newly opened.
+ * - `window`: uses `Editor.openNoteByFilename` in the main editor (sync).
  * On failure, return false.
  * @param {string} filename - the filename of the note to find
  * @param {string} newWindowType - the type of window to open the note in ('window' or 'split')
@@ -340,15 +341,31 @@ export async function smartShowLineInEditorFromFilename(filename: string, conten
 export async function getOrOpenEditorFromFilename(filename: string, newWindowType: 'window' | 'split' = 'window'): Promise<TEditor | false> {
   try {
     if (!filename) throw new Error('No filename passed: stopping.')
-    // Find the open Editor window that matches the filename (if any)
     let thisEditor = getOpenEditorFromFilename(filename)
     if (thisEditor) {
       return thisEditor
     }
 
-    // If not found, then try to open the note in a new window/split view and return the new Editor
-    const res = await Editor.openNoteByFilename(filename, false, 0, 0, newWindowType === 'split', false)
-    if (!res) throw new Error('Failed to open note in a new window/split view: stopping.')
+    if (newWindowType === 'split') {
+      const openedNewSplit = openNoteInSplitViewIfNotOpenAlready(filename, 'getOrOpenEditorFromFilename')
+      if (!openedNewSplit) {
+        thisEditor = getOpenEditorFromFilename(filename)
+        return thisEditor || false
+      }
+      const editorReady = await waitForCondition(
+        () => !!getOpenEditorFromFilename(filename),
+        { maxWaitMs: 3000, checkIntervalMs: 50 },
+      )
+      if (!editorReady) {
+        logWarn('getOrOpenEditorFromFilename', `Timed out waiting for editor for '${filename}' after split open`)
+      }
+      thisEditor = getOpenEditorFromFilename(filename)
+      if (!thisEditor) throw new Error('Failed to get Editor window after split x-callback open.')
+      return thisEditor
+    }
+
+    const res = await Editor.openNoteByFilename(filename, false, 0, 0, false, false)
+    if (!res) throw new Error('Failed to open note in the main Editor: stopping.')
     thisEditor = getOpenEditorFromFilename(filename)
     if (!thisEditor) throw new Error('Failed to get Editor window after trying to open Editor for filename: stopping.')
     return thisEditor

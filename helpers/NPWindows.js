@@ -4,7 +4,7 @@
 // See also HTMLView for specifics of working in HTML
 // ----------------------------------------------------------------------------
 
-import { getOpenEditorFromFilename, noteOpenInEditor } from './NPEditor'
+import { getOpenEditorFromFilename } from './NPEditorBasics'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 import { usersVersionHas } from '@helpers/NPVersions'
