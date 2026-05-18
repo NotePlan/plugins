@@ -11,8 +11,10 @@ import {
   getEffectivePlannedItemAffixes,
   getPeriodAdjectiveFromType,
   getPlanItemsNameForPeriodType,
+  getReviewPeriodTitleStringFromCalendarNote,
   mergeUniqueSummaryDoneTaskLines,
   normalizePlanningTaskLinesFromForm,
+  shouldUseOpenEditorCalendarNote,
   splitMergedSummaryDoneLinesIntoWinsAndOthers,
   substituteReviewPeriodPlaceholders,
   summaryTaskLineDedupeKey,
@@ -209,6 +211,32 @@ Do: <tasks>`
     })
     it('should return Calendar for unknown period type', () => {
       expect(getPeriodAdjectiveFromType('unknown')).toBe('(error: unknown period type)')
+    })
+  })
+
+  describe('open editor calendar note for review', () => {
+    const yesterdayDaily = {
+      type: 'Calendar',
+      filename: '20260517.md',
+      title: 'Friday thoughts',
+    }
+
+    it('shouldUseOpenEditorCalendarNote should prefer open daily note over today when preferOpenSameKind', () => {
+      expect(shouldUseOpenEditorCalendarNote(yesterdayDaily, 'day', '2026-05-18', true)).toBe(true)
+    })
+
+    it('shouldUseOpenEditorCalendarNote should require title match when preferOpenSameKind is false', () => {
+      expect(shouldUseOpenEditorCalendarNote(yesterdayDaily, 'day', '2026-05-18', false)).toBe(false)
+      expect(shouldUseOpenEditorCalendarNote(yesterdayDaily, 'day', '2026-05-17', false)).toBe(true)
+    })
+
+    it('getReviewPeriodTitleStringFromCalendarNote should use filename when title is not a period string', () => {
+      expect(getReviewPeriodTitleStringFromCalendarNote(yesterdayDaily, 'day')).toBe('2026-05-17')
+    })
+
+    it('getReviewPeriodTitleStringFromCalendarNote should use parseable title when present', () => {
+      const note = { type: 'Calendar', filename: '20260517.md', title: '2026-05-17' }
+      expect(getReviewPeriodTitleStringFromCalendarNote(note, 'day')).toBe('2026-05-17')
     })
   })
 

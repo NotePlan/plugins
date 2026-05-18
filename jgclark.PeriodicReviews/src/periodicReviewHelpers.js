@@ -2,11 +2,17 @@
 //---------------------------------------------------------------
 // Helper functions for Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 2026-04-26 for v2.0.0.b13 by @jgclark
+// last update 2026-05-18 for v2.0.0.b14 by @jgclark / @CursorAI
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getNextNPPeriodString, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
+import {
+  getCalendarNoteTimeframe,
+  getDateStringFromCalendarFilename,
+  getNextNPPeriodString,
+  getPeriodOfNPDateStr,
+  RE_DONE_DATE_OPT_TIME,
+} from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 
@@ -258,6 +264,55 @@ export function getPeriodAdjectiveFromType(periodType: string): string {
     default:
       return '(error: unknown period type)'
   }
+}
+
+/**
+ * Calendar period title for reviews: prefer a parseable note title, else derive from filename.
+ * @tests in jest file
+ * @param {TNote} note
+ * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
+ * @returns {string}
+ */
+export function getReviewPeriodTitleStringFromCalendarNote(note: TNote, periodType: string): string {
+  const titleTrimmed = String(note.title ?? '').trim()
+  if (titleTrimmed !== '' && getPeriodOfNPDateStr(titleTrimmed) === periodType) {
+    return titleTrimmed
+  }
+  if (note.type === 'Calendar') {
+    const fromFilename = getDateStringFromCalendarFilename(note.filename ?? '', periodType === 'day')
+    if (fromFilename !== '' && fromFilename !== '(invalid date)') {
+      return fromFilename
+    }
+  }
+  return titleTrimmed
+}
+
+/**
+ * Whether the note open in the editor should be used for a review command.
+ * @tests in jest file
+ * @param {?TNote} openNote
+ * @param {string} periodType
+ * @param {string} periodStringIn intended period when not reusing the open note (e.g. today for Daily Review)
+ * @param {boolean} preferOpenSameKind when true, any open calendar note of this period kind is reused
+ * @returns {boolean}
+ */
+export function shouldUseOpenEditorCalendarNote(
+  openNote: ?TNote,
+  periodType: string,
+  periodStringIn: string,
+  preferOpenSameKind: boolean,
+): boolean {
+  if (openNote == null) {
+    return false
+  }
+  const openPeriodKind = getCalendarNoteTimeframe(openNote)
+  if (openPeriodKind === false || openPeriodKind !== periodType) {
+    return false
+  }
+  const wantTitle = String(periodStringIn).trim()
+  const openTitle = getReviewPeriodTitleStringFromCalendarNote(openNote, periodType)
+  const titlesMatch = openTitle !== '' && openTitle === wantTitle
+  return preferOpenSameKind || titlesMatch
 }
 
 /** Default plan-item labels when settings are missing or empty. */

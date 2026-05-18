@@ -1,7 +1,7 @@
 // @flow
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
-// by @jgclark
+// by @jgclark, last updated 2026-05-12
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -728,6 +728,26 @@ export function mixHexColors(color1: string, color2: string): string {
 }
 
 /**
+ * Convert a NotePlan theme font family segment (before the '-' weight/style suffix)
+ * to the string used in CSS `font-family`. Splits PascalCase / TitleCase into words
+ * (e.g. AvenirNext → Avenir Next) without inserting a space before every capital letter.
+ * IBM Plex theme ids (e.g. IBMPlexSans) map to spaced CSS names (e.g. IBM Plex Sans).
+ * IBMPlexSansCond maps to IBM Plex Sans Condensed (regex alone yields IBM Plex Sans Cond).
+ * @author @jgclark
+ * @param {string} namePartNoSpaces
+ * @returns {string}
+ */
+function notePlanFamilySegmentToCssFontFamily(namePartNoSpaces: string): string {
+  if (namePartNoSpaces === 'IBMPlexSansCond') {
+    return 'IBM Plex Sans Condensed'
+  }
+  return namePartNoSpaces
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/([a-z\d])([A-Z])/g, '$1 $2')
+    .trim()
+}
+
+/**
  * Translate from the font name, as used in the NP Theme file,
  * to the form CSS is expecting.
  * If no translation is defined, try to use the user's own default font.
@@ -771,23 +791,14 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
   }
 
   // Not a special. So now split input string into parts either side of '-'
-  // and then insert spaces before capital letters
+  // and map the family segment to CSS `font-family` wording
   let translatedFamily: string
   let translatedWeight: string = '400'
   let translatedStyle: string = 'normal'
   const splitParts = fontNameNP.split('-')
   const namePartNoSpaces = splitParts[0]
-  let namePartSpaced = ''
   const modifierLC = splitParts.length > 0 ? splitParts[1]?.toLowerCase() : ''
-  for (let i = 0; i < namePartNoSpaces.length; i++) {
-    const c = namePartNoSpaces[i]
-    if (c.match(/[A-Z]/)) {
-      namePartSpaced += ` ${c}`
-    } else {
-      namePartSpaced += c
-    }
-  }
-  translatedFamily = namePartSpaced.trim()
+  translatedFamily = notePlanFamilySegmentToCssFontFamily(namePartNoSpaces)
   // logDebug('fontPropertiesFromNP', `family -> ${translatedFamily}`)
 
   // Using the numeric font-weight system
@@ -801,8 +812,18 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
       translatedWeight = '300'
       break
     }
+    // No standard here; going for most popular non-bold weight: 400
     case 'book': {
-      translatedWeight = '500'
+      translatedWeight = '400'
+      break
+    }
+    // No standard here; some are 375, others 450; use 400 as closest widely-supported weight
+    case 'text': {
+      translatedWeight = '400'
+      break
+    }
+    case 'medium': {
+      translatedWeight = '400'
       break
     }
     case 'demi-bold': {
@@ -819,6 +840,11 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
     }
     case 'semibold': {
       translatedWeight = '600'
+      break
+    }
+    case 'semibolditalic': {
+      translatedWeight = '600'
+      translatedStyle = 'italic'
       break
     }
     case 'bold': {

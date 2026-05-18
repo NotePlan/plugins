@@ -17,8 +17,10 @@ import {
   getPeriodAdjectiveFromType,
   getPlanItemsNameForPeriodType,
   getQuestionsForPeriod,
+  getReviewPeriodTitleStringFromCalendarNote,
   getSectionHeadingForPeriod,
   normalizePlanningTaskLinesFromForm,
+  shouldUseOpenEditorCalendarNote,
   summaryTaskLineDedupeKey,
   taskContentIsSummaryWin,
 } from './periodicReviewHelpers'
@@ -363,20 +365,18 @@ async function processReviewQuestions(
 
     // Reuse the editor note when it is a calendar note of the requested period *kind* (day/week/…).
     // For refresh / navigatePeriod we require an exact title match so we actually move to the requested period.
-    const { note: openEditorNote } = Editor
-    const wantTitle = String(periodStringIn).trim()
-    const openTitle = String(openEditorNote?.title ?? '').trim()
-    const titlesMatch = openTitle === wantTitle
-    const openPeriodKind = openTitle !== '' ? getPeriodOfNPDateStr(openTitle) : '(error)'
-    const editorHasMatchingPeriodType = openEditorNote != null && openPeriodKind === periodType
-    const useOpenNote = editorHasMatchingPeriodType && (preferOpenSameKind || titlesMatch)
+    const openEditorNote = Editor.note
+    const useOpenNote = shouldUseOpenEditorCalendarNote(openEditorNote, periodType, periodStringIn, preferOpenSameKind)
     // TODO: Check for Teamspace stuff here
-    if (useOpenNote) {
+    if (useOpenNote && openEditorNote != null) {
       reviewNote = openEditorNote
+      const openPeriodTitle = getReviewPeriodTitleStringFromCalendarNote(openEditorNote, periodType)
+      const wantTitle = String(periodStringIn).trim()
+      const titlesMatch = openPeriodTitle !== '' && openPeriodTitle === wantTitle
       logDebug(
         'processReviewQuestions',
-        `Starting with open note '${String(reviewNote?.title ?? 'unknown')}' of period '${String(getPeriodOfNPDateStr(reviewNote?.title ?? ''))}'` +
-          (preferOpenSameKind && !titlesMatch ? ` (keeping editor instead of '${String(periodStringIn)}')` : ''),
+        `Starting with open note '${displayTitle(openEditorNote)}' (${openPeriodTitle})` +
+          (preferOpenSameKind && !titlesMatch ? ` — keeping editor instead of '${String(periodStringIn)}'` : ''),
       )
     } else {
       // use the passed periodStringIn to open the correct note
@@ -389,8 +389,8 @@ async function processReviewQuestions(
       throw new Error(`Cannot open ${periodStringIn} note, so cannot continue.`)
     }
     
-    const titleFromNote = reviewNote.title != null ? String(reviewNote.title).trim() : ''
-    const periodString = titleFromNote !== '' ? titleFromNote : periodStringIn !== '' ? periodStringIn : ''
+    const periodFromNote = getReviewPeriodTitleStringFromCalendarNote(reviewNote, periodType)
+    const periodString = periodFromNote !== '' ? periodFromNote : periodStringIn !== '' ? periodStringIn : ''
     logDebug('processReviewQuestions', `- Will use review note '${String(periodString)}' of period '${String(getPeriodOfNPDateStr(periodString))}'`)
 
     // Get questions and parse them

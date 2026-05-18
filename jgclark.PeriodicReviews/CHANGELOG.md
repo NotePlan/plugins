@@ -3,6 +3,10 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
+## [2.0.0.b14] - 2026-05-18
+- dev: cherry pick helper updates from main branch to allow for "IBM Plex Sans" fonts in displays
+- change: will now review the currently-open calendar note (if available), otherwise fall back to the current calendar note.
+
 ## [2.0.0.b13] - 2026-04-26
 - New setting: **Big task marker style** to switch big-task/win markers between `>>` (priority 4), `!!!` (priority 3), and `!!` (priority 2).
 - Big-task/win detection in review summaries now follows this setting (still counting `#win` / `#bigwin` as wins).
