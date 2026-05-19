@@ -34,7 +34,7 @@ Both directions use **NotePlan’s `DataStore.invokePluginCommandByName(commandN
 
 **Important:**
 
-- `generateProjectListsAndRenderIfOpen` (called when switching Dashboard perspective, if Reviews is installed) **always** regenerates `allProjectsList.json` when not in demo mode. That is file/data work and does **not** open the Projects Rich window. It then calls `renderProjectListsIfOpen`, which **does not** open the window (`shouldOpen: false`).
+- `generateProjectListsAndRenderIfOpen` (called when switching Dashboard perspective, if Reviews is installed) **always** regenerates `allProjectsList.json`. That is file/data work and does **not** open the Projects Rich window. It then calls `renderProjectListsIfOpen`, which **does not** open the window (`shouldOpen: false`).
 - `updateProjectsListIfProjectSection` (after `REMOVE_LINE_FROM_JSON` in the bridge when the line was in `PROJACT` / `PROJREVIEW`) updates the shared JSON via Reviews helpers; it does not open any window. It calls `updateAllProjectsListAfterChange` with `skipUpdateDashboardIfOpen: true`, so `writeAllProjectsList` still runs `updateRichProjectListIfOpen` (Rich HTML, if open) but **skips** `updateDashboardIfOpen`. Dashboard then runs `refreshSectionsByCode` in-process (`projectsListSync.js`), and `processActionOnReturn` re-fetches shared data before sending `UPDATE_DATA` so PROJ* rows match the new JSON (avoids same-plugin invoke ordering; see **Scenario 2** and **Races and ordering**).
 - Opening the Dashboard or the Rich Project List for the user is reserved for explicit commands / UI (e.g. `displayProjectLists` with `shouldOpen: true`), not for these cross-plugin hooks.
 
@@ -48,7 +48,7 @@ Each diagram uses **subgraphs** for plugin boundaries. `invokePluginCommandByNam
 
 **Trigger:** User switches perspective in Dashboard → `switchToPerspective()` in `jgclark.Dashboard/src/perspectiveHelpers.js`.
 
-**Mechanism:** Fire-and-forget `invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])` (guarded by `pluginIsInstalled`). Reviews regenerates `allProjectsList.json` when not in demo mode, then `renderProjectListsIfOpen` with `shouldOpen: false`.
+**Mechanism:** Fire-and-forget `invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])` (guarded by `pluginIsInstalled`). Reviews regenerates `allProjectsList.json`, then `renderProjectListsIfOpen` with `shouldOpen: false`.
 
 ```mermaid
 flowchart LR
@@ -98,7 +98,7 @@ flowchart LR
 
 **Mechanism:** Any successful `writeAllProjectsList` **without** `skipUpdateDashboardIfOpen` → `updateRichProjectListIfOpen` → `invokePluginCommandByName('renderProjectListsIfOpen', 'jgclark.Reviews', [null, scrollPos])` → then `updateDashboardIfOpen` → `invokePluginCommandByName('refreshSectionsByCode', 'jgclark.Dashboard', [['PROJACT','PROJREVIEW','PROJ']])` → `refreshSomeSections`. Order is intentional: Dashboard reads the same JSON after Reviews has finished re-rendering the Rich window. `refreshSomeSections` does not call `writeAllProjectsList`, so this chain cannot loop.
 
-**Typical callers:** `generateAllProjectsList`, `updateProjectInAllProjectsList`, `updateAllProjectsListAfterChange` **when not** passing `skipUpdateDashboardIfOpen`, demo list copy, etc.
+**Typical callers:** `generateAllProjectsList`, `updateProjectInAllProjectsList`, `updateAllProjectsListAfterChange` **when not** passing `skipUpdateDashboardIfOpen`, etc.
 
 ```mermaid
 flowchart LR
@@ -122,7 +122,7 @@ flowchart LR
 
 **Trigger:** NotePlan runs `onSettingsUpdated` for Reviews after settings change.
 
-**Mechanism:** `onSettingsUpdated` → `generateAllProjectsList` (unless demo) → `writeAllProjectsList` → same chain as **Scenario 3** (`updateRichProjectListIfOpen` → invoke Reviews render, then `updateDashboardIfOpen` → invoke Dashboard). Rich list is refreshed via `renderProjectListsIfOpen` only if that window is already open.
+**Mechanism:** `onSettingsUpdated` → `generateAllProjectsList` → `writeAllProjectsList` → same chain as **Scenario 3** (`updateRichProjectListIfOpen` → invoke Reviews render, then `updateDashboardIfOpen` → invoke Dashboard). Rich list is refreshed via `renderProjectListsIfOpen` only if that window is already open.
 
 When `usePerspectives` is true, folder/teamspace filters for list generation usually come from Dashboard perspectives; changing those is handled on the Dashboard side (**Scenario 1**), not by Reviews `onSettingsUpdated` alone.
 

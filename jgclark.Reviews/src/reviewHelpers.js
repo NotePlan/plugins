@@ -88,7 +88,6 @@ export type ReviewConfig = {
   progressHeadingLevel: number,
   writeMostRecentProgressToFrontmatter?: boolean,
   projectMetadataFrontmatterKey?: string,
-  useDemoData: boolean,
   _logLevel: string,
   _logTimer: boolean,
 }
@@ -363,7 +362,7 @@ export function getNextActionLineIndex(note: CoreNoteFields, naTag: string): num
 
 /**
  * Return true if the project note is marked sequential (sequential tag in frontmatter 'project' or in the metadata line).
- * Mirrors logic in Project.generateNextActionComments.
+ * Mirrors logic in Project.gatherAnyNextActionContent.
  * @param {TNote} note - Note to check
  * @param {string} sequentialTag - Tag to look for (e.g. '#sequential')
  * @returns {boolean}

@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-05-02 for v2.0.0.b29, @CursorAI & @jgclark
+// Last updated 2026-05-18 for v2.0.0.b35, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -11,7 +11,7 @@ import { Project } from './projectClass'
 import { addFAIcon, pluralise } from './reviewHelpers'
 import type { ReviewConfig } from './reviewHelpers'
 import { checkBoolean, checkString } from '@helpers/checkType'
-import { logWarn } from '@helpers/dev'
+import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
 import { makePluginCommandButton, redToGreenInterpolation } from '@helpers/HTMLView'
 import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
@@ -157,11 +157,8 @@ function buildProjectListRowDiv(thisProject: Project, config: ReviewConfig, want
   }
 
   // Write possible rows 3 + 4 under project title: progress line row (if any) then stats then next actions (if any)
-  const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
-    ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
-    : []
   parts.push(buildProjectProgressRowDiv(thisProject, config))
-  parts.push(buildNextActionRowDivs(config, nextActionsContent))
+  parts.push(buildNextActionRowDivs(config, encodeRFC3986URIComponent(thisProject.filename), thisProject.nextActionsRawContent ?? []))
 
   // End the row with the outer </div>
   parts.push('\n\t</div>')
@@ -317,20 +314,24 @@ function buildProjectProgressRowDiv(thisProject: Project, _config: ReviewConfig)
 }
 
 /**
- * Zero or more '<div class="nextActionRow">' rows (plain text body), joined into one string. Truncates to 80 chars per line.
+ * Zero or more clickable '<div class="nextActionRow">' rows (plain text body), joined into one string. Truncates to 80 chars per line for display.
  * @param {ReviewConfig} config
- * @param {Array<string>} nextActionsContent
+ * @param {string} encodedFilename - RFC3986-encoded project note filename (for bridge open/highlight)
+ * @param {Array<string>} nextActionsRawContent - raw line content from Project (for highlight matching)
  * @returns {string}
  * @private
  */
-function buildNextActionRowDivs(config: ReviewConfig, nextActionsContent: Array<string>): string {
-  if (!config.displayNextActions || nextActionsContent.length === 0) return ''
+function buildNextActionRowDivs(config: ReviewConfig, encodedFilename: string, nextActionsRawContent: Array<string>): string {
+  if (!config.displayNextActions || nextActionsRawContent.length === 0) return ''
 
   const parts: Array<string> = []
-  for (const NAContent of nextActionsContent) {
-    // const truncatedNAContent = trimString(NAContent, 80)
-    const truncatedNAContent = prepAndTruncateMarkdownForDisplay(NAContent, 80)
-    parts.push(`\n\t\t\t<div class="nextActionRow project-metadata-row project-metadata-row"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="pad-left-larger nextActionText">${truncatedNAContent}</span></div>`)
+  for (const rawAction of nextActionsRawContent) {
+    const encodedContent = encodeRFC3986URIComponent(rawAction)
+    const displayAction = rawAction.slice(getLineMainContentPos(rawAction))
+    const truncatedNAContent = prepAndTruncateMarkdownForDisplay(displayAction, 80)
+    parts.push(
+      `\n\t\t\t<div class="nextActionRow project-metadata-row" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><a class="nextActionLink" href="#"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="pad-left-larger nextActionText">${truncatedNAContent}</span></a></div>`,
+    )
   }
   return parts.join('')
 }

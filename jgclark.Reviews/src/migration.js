@@ -33,11 +33,6 @@ export async function migrateAllProjects(): Promise<void> {
       await showMessage('No Projects & Reviews settings found. Stopping.', 'OK', 'Reviews')
       return
     }
-    if (config.useDemoData === true) {
-      logWarn('migrateAllProjects', 'useDemoData is on; skipping migration of live project notes.')
-      return
-    }
-
     logInfo('migrateAllProjects', 'Starting batch migration (constructor migrate flag) …')
     const pairs = await enumerateMatchingProjectNoteTagPairs(config, false)
     const total = pairs.length

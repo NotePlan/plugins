@@ -25,6 +25,7 @@ import {
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
 import { validateAndFlattenMessageObject } from './shared'
+import { dashboardFolderFilterSettingsChanged } from './reviewsListSync'
 import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TSectionCode } from './types'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
@@ -636,7 +637,15 @@ function planSectionRefreshAfterDashboardSettingsChange(
       if (keysNeedingContentRefresh.length > 0) {
         resultsToHandle.push('REFRESH_ALL_ENABLED_SECTIONS')
         logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: content-affecting settings changed (keys: ${keysNeedingContentRefresh.join(', ')}); will REFRESH_ALL_ENABLED_SECTIONS`)
-      } else if (diffKeys.length > 0) {
+      }
+      if (dashboardFolderFilterSettingsChanged(diffKeys)) {
+        resultsToHandle.push('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')
+        logInfo(
+          'doSaveDashboardSettingsFromBridge',
+          `Section refresh plan: folder filter settings changed; will ACTIVE_PERSPECTIVE_DEFINITION_CHANGED when Rich list is open`,
+        )
+      }
+      if (diffKeys.length > 0 && keysNeedingContentRefresh.length === 0) {
         logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: settings changed but excluded from section refresh (keys: ${diffKeys.join(', ')}); incremental section refresh: none`)
       }
     }

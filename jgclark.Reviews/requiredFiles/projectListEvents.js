@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
 // Note: this file is run as a script in the Project List window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
-// Last updated: 2026-05-10 for v2.0.0.b31 by @CursorAI & @jgclark
+// Last updated: 2026-05-18 for v2.0.0.b35 by @CursorAI & @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handler
@@ -38,7 +38,46 @@ addCommandButtonEventListeners()
       },
       false,
     )
-    console.log('registerNoteTitleOpenDelegation: added')
+  // console.log('registerNoteTitleOpenDelegation: added')
+})()
+
+  /**
+   * Rich list next-action rows: open project note in the main Editor and highlight the line (showLineInEditorFromFilename). 
+   * Uses same pattern as Dashboard task clicks ('window' open, no split poll).
+   * Note: Highlight may occasionally fail if the editor is not ready; note open should still succeed.
+   */
+  ; (function registerNextActionOpenDelegation() {
+    if (typeof window !== 'undefined' && window.__reviewsNextActionDelegationAdded) {
+      console.log('registerNextActionOpenDelegation: already added')
+      return
+    }
+    if (typeof window !== 'undefined') {
+      window.__reviewsNextActionDelegationAdded = true
+    }
+    document.addEventListener(
+      'click',
+      function (event) {
+        const nextActionLink = event.target.closest('a.nextActionLink')
+        const nextActionRow = nextActionLink ? nextActionLink.closest('.nextActionRow') : event.target.closest('.nextActionRow')
+        if (!nextActionRow || !nextActionRow.dataset.encodedContent) {
+          return
+        }
+        event.preventDefault()
+        const encodedFilename = nextActionRow.dataset.encodedFilename
+          || (nextActionRow.closest('.projectRow') && nextActionRow.closest('.projectRow').dataset.encodedFilename)
+        if (!encodedFilename) {
+          return
+        }
+        onClickProjectListItem({
+          itemID: '-',
+          type: 'showLineInEditorFromFilename',
+          encodedFilename: encodedFilename,
+          encodedContent: nextActionRow.dataset.encodedContent,
+        })
+      },
+      false,
+    )
+// console.log('registerNextActionOpenDelegation: added')
   })()
 
 //--------------------------------------------------------------------------------------

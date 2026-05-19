@@ -44,12 +44,7 @@ export const useSyncDashboardSettingsWithPlugin = (
   // Handle receiving changes from the plugin which need to update the dashboard settings in the front-end
   useEffect(() => {
     const pluginDataDSettingsChanged = pluginDataDSettings && compareFn(lastpluginDataDSettingsRef.current, pluginDataDSettings) !== null
-    // logDebug(
-    //   `useSyncDashboardSettingsWithPlugin effect1 PLUGIN->REACT checking pluginData?.pushFromServer?.dashboardSettings=${
-    //     String(pluginData?.pushFromServer?.dashboardSettings) || ''
-    //   }`,
-    // )
-    logDebug(`useSyncDashboardSettingsWithPlugin effect1 PLUGIN->REACT checking pluginData?.pushFromServer?.dashboardSettings ...`)
+    // logDebug(`useSyncDashboardSettingsWithPlugin effect1 PLUGIN->REACT checking pluginData?.pushFromServer?.dashboardSettings=${  String(pluginData?.pushFromServer?.dashboardSettings) || ''}`)
     if (pluginDataDSettingsChanged) {
       // logDebug(
       //   `useSyncDashboardSettingsWithPlugin PLUGIN->REACT plugin sent changes to front-end`,
@@ -57,7 +52,6 @@ export const useSyncDashboardSettingsWithPlugin = (
       //   { pluginDataDSettings },
       //   { lastpluginDataDSettingsRef: lastpluginDataDSettingsRef.current },
       // )
-      logDebug(`useSyncDashboardSettingsWithPlugin PLUGIN->REACT plugin sent changes to front-end ...`)
       const changes = compareFn(pluginDataDSettings, dashboardSettings)
       const realDiff = getDiff(pluginDataDSettings, dashboardSettings)
       lastpluginDataDSettingsRef.current = pluginDataDSettings
@@ -68,6 +62,7 @@ export const useSyncDashboardSettingsWithPlugin = (
         dispatch({
           type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
           payload: pluginDataDSettings,
+          reason: pluginDataDSettings.lastChange,
         })
       }
     }
@@ -85,7 +80,12 @@ export const useSyncDashboardSettingsWithPlugin = (
         )} pluginData.perspectiveChanging:${String(pluginData.perspectiveChanging)}`,
         { dashboardSettings, realDiff, pushFromServer: pluginData?.pushFromServer?.dashboardSettings },
       )
-      if (pluginData?.pushFromServer?.dashboardSettings) {
+      if (pluginData?.perspectiveChanging) {
+        logDebug(
+          `useSyncDashboardSettingsWithPlugin`,
+          `NOT SENDING because perspectiveChanging=${String(pluginData.perspectiveChanging)}`,
+        )
+      } else if (pluginData?.pushFromServer?.dashboardSettings) {
         logDebug(
           `useSyncDashboardSettingsWithPlugin pluginData changed; pushFromServer=${JSON.stringify(
             pluginData.pushFromServer,
@@ -120,12 +120,4 @@ export const useSyncDashboardSettingsWithPlugin = (
       lastDashboardSettingsRef.current = dashboardSettings
     }
   }, [dashboardSettings, sendActionToPlugin, compareFn, pluginData])
-
-  useEffect(() => {
-    if (pluginData.pushFromServer.dashboardSettings) {
-      logDebug(`useSyncDashboardSettingsWithPlugin pluginData.pushFromServer.dashboardSettings is true; resetting it`)
-      const newPluginData = { ...pluginData, pushFromServer: { ...pluginData.pushFromServer, dashboardSettings: false } }
-      updatePluginData(newPluginData, `acknowledging server push`)
-    }
-  }, [pluginData.pushFromServer.dashboardSettings])
 }

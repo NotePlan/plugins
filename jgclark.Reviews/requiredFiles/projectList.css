@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-04-20 for v2.0.0.b21, @jgclark 
+ * Last updated 2026-05-18 for v2.0.0.b35, @jgclark + @CursorAI
  */
 
 /* ============================================================
@@ -408,25 +408,22 @@ input, label {
   gap: 0.5rem;
   line-height: 1.8rem;
 }
+.noteTitleIcon {
+  width: 2rem;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+}
 /* make noteTitle icon + text bold and coloured, and indicate its clickable */
 .noteTitle {
   cursor: pointer;
   display: flex;
   align-items: baseline;
-  /* gap: 0.5rem; */
   color: var(--tint-color);
   font-size: 1.05rem;
   font-weight: 500;
   text-decoration: none;
-}
-
-.noteTitleIcon {
-  width: 2rem;
-  flex-shrink: 0;
-  /* display: inline-flex; */
-  display: flex;
-  justify-content: center;
-  align-items: baseline;
 }
 /* make noteTitle links underlined on mouse hover */
 .noteTitleText:hover {
@@ -538,11 +535,23 @@ input, label {
   text-overflow: ellipsis; */
   color: var(--fg-alt-color);
 }
+.nextActionLink {
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
 .nextActionText {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.nextActionText:hover {
+  text-decoration: underline;
 }
 
 /* ============================================================

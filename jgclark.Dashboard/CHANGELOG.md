@@ -9,6 +9,16 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b38] 2026-05-18
+- fix: PROJ* next-action child rows look up paragraphs by `rawContent` first (not `content`), removing spurious `findParaFromStringAndFilename` warnings on startup when Reviews supplies list markers.
+- add: When Dashboard **included/excluded folder** settings change and Reviews **Rich project list** is open, invokes Reviews `onDashboardFolderFiltersChanged` to regenerate `allProjectsList.json` and re-render (before PROJ* section refresh). Shared helper `src/reviewsListSync.js`.
+
+## [2.4.0.b37] 2026-05-18
+- fix: **Perspective switch** — restore section refresh before Reviews list generation (b37 had awaited Reviews first, leaving sections empty while React could echo settings). Set `perspectiveChanging: true` on the initial `setPluginData` so the sync hook does not send `dashboardSettingsChanged` mid-switch. Fix reducer/sync hook so plugin `lastChange` (e.g. `_Switched to perspective…`) is preserved and `pushFromServer` is not cleared before the echo guard runs.
+
+## [2.4.0.b36] 2026-05-16
+- add link to otherwise hidden **`repairDashboardSettings`** command to the end of the Diagnostics file
+
 ## [2.4.0.b35] 2026-05-15
 - fix: **Settings dialog save on a named perspective** — `setPluginData` now updates `globalSharedData` synchronously before `UPDATE_DATA`, so a follow-up `CLOSE_UNNEEDED_SECTIONS` pass cannot overwrite `perspectiveSettings.isModified` with a stale snapshot (perspective name shows `*` again). Restores `pushFromServer` when pushing settings to the WebView so React does not echo changes back to the plugin.
 - fix: **Settings dialog save** — folder/space/filter changes (e.g. included/excluded folders) now trigger `REFRESH_ALL_ENABLED_SECTIONS` after save, not only `CLOSE_UNNEEDED_SECTIONS`.

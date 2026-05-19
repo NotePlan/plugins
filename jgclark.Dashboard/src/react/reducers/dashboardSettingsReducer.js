@@ -38,7 +38,7 @@ export function dashboardSettingsReducer(state: TDashboardSettings, action: TDas
       return {
         ...state,
         ...payload,
-        lastChange: reason || state.lastChange,
+        lastChange: reason || payload.lastChange || state.lastChange,
         lastModified: dtl(),
       }
     }

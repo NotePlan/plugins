@@ -1,269 +1,201 @@
 # Dashboard Helpers Code Review: Testability & Bugs
 
+**Last updated:** 2026-05-17 (Dashboard v2.4.0.b36)  
+**Primary file:** `src/dashboardHelpers.js` (~1440 lines)  
+**Related:** `RELATIVE_DATES_CALL_CHAIN.md` (relative-date helper boundaries — Dashboard does not import `getRelativeDates` directly)
+
+---
+
 ## Executive Summary
 
 This document reviews `dashboardHelpers.js` for testability improvements and potential bugs. The code has several areas that make unit testing difficult, primarily due to tight coupling with global NotePlan APIs and mixed concerns (I/O operations mixed with business logic).
+
+Since the original review, **two user-facing time-parsing bugs were fixed** (PM noon edge case, bounds-safe colon padding), **settings persistence I/O was partially extracted** to `dashboardPluginSettings.js`, and **`getOpenItemParasForTimePeriod()` was decomposed** into smaller helpers (`getMatchingCalendarNotes`, `getParagraphsFromCalendarNotes`, `filterOpenParagraphs`, `getReferencedOpenParagraphs`, `combineOrSeparateResults`, plus `getNoteFromPara()`).
+
+---
+
+## Status at a glance
+
+| Item | Status |
+|------|--------|
+| PM time conversion (`12:00 PM` → `24:00`) | **Fixed** (~lines 1096–1100, 1145–1149) |
+| `startTimeStr[1]` without length check | **Fixed** (~lines 1090, 1139) |
+| Inconsistent error handling (`undefined` vs `[]`) | **Open** |
+| `p.children` null-safety in `makeDashboardParas` | **Improved** (explicit check ~line 787) |
+| Teamspace note resolution on referenced paras | **Improved** (`getNoteFromPara` ~lines 306–308) |
+| Hard-coded `pluginID` | **Intentional** (see below) |
+| Dependency injection for `DataStore` / `Editor` | **Open** |
+| Jest coverage for filter/time helpers | **Partial** (see Testing strategy) |
 
 ---
 
 ## 🐛 BUGS FOUND
 
-### 1. **PM Time Conversion Bug (Line 780)**
-**Location:** `extendParasToAddStartTimes()` function
-**Issue:** When converting PM times, the code adds 12 to the hour, but doesn't handle 12:00 PM correctly.
+### 1. **PM Time Conversion Bug** — ✅ FIXED
 
-```javascript
-if (startTimeStr.endsWith('PM')) {
-  startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
-}
-```
+**Location:** `extendParasToAddStartTimes()` (~lines 1096–1100), `getStartTimeFromPara()` (~lines 1145–1149)
 
-**Problem:** 
-- `12:00 PM` becomes `24:00` (should be `12:00`)
-- `12:30 PM` becomes `24:30` (should be `12:30`)
+**Was:** `12:00 PM` became `24:00`; `12:30 PM` became `24:30`.
 
-**Fix:**
+**Fix in place:**
+
 ```javascript
 if (startTimeStr.endsWith('PM')) {
   const hour = Number(startTimeStr.slice(0, 2))
   const adjustedHour = hour === 12 ? 12 : hour + 12
-  startTimeStr = String(adjustedHour) + startTimeStr.slice(2, 5)
+  startTimeStr = String(adjustedHour).padStart(2, '0') + startTimeStr.slice(2, 5)
 }
 ```
 
-**Same bug exists in:** `getStartTimeFromPara()` function (line 823)
+**Test gap:** `src/__tests__/dashboardHelpers.test.js` covers `11:00 PM` → `23:00` but not **`12:00 PM` → `12:00`** or **`12:30 PM` → `12:30`**. Worth adding.
+
+**Note:** `extendParasToAddStartTimes()` is marked *not currently used* in source; `getStartTimeFromPara()` is the active path (also duplicated in `@helpers/timeblocks.js` per JSDoc).
 
 ---
 
-### 2. **Array Index Out of Bounds (Line 816)**
-**Location:** `getStartTimeFromPara()` function
-**Issue:** Checking `startTimeStr[1]` without verifying the string length.
+### 2. **Array Index Out of Bounds** — ✅ FIXED
+
+**Location:** same two functions (~lines 1090, 1139)
+
+**Was:** `startTimeStr[1] === ':'` without verifying length.
+
+**Fix in place:**
 
 ```javascript
-if (startTimeStr[1] === ':') {
+} else if (startTimeStr.length > 1 && startTimeStr[1] === ':') {
   startTimeStr = `0${startTimeStr}`
 }
 ```
 
-**Problem:** If `startTimeStr` is empty or has length < 2, this will access an undefined index.
-
-**Fix:**
-```javascript
-if (startTimeStr.length > 0 && startTimeStr[1] === ':') {
-  startTimeStr = `0${startTimeStr}`
-}
-```
-
-**Same issue exists in:** `extendParasToAddStartTimes()` function (line 773)
-
 ---
 
-### 3. **Inconsistent Error Handling**
+### 3. **Inconsistent Error Handling** — OPEN
+
 **Location:** Multiple functions
+
 **Issue:** Some functions return `undefined` on error, others return empty arrays/objects, making error handling inconsistent.
 
-**Examples:**
-- `getDashboardSettings()` returns `undefined` on error (line 126)
-- `getLogSettings()` returns `undefined` on error (line 169)
-- `getNotePlanSettings()` returns `undefined` on error (line 191)
-- `makeDashboardParas()` returns `[]` on error (line 329)
+**Examples (current line refs):**
 
-**Recommendation:** Standardize error handling - either throw errors or return consistent error objects.
+- `getDashboardSettings()` returns `undefined` on error (~line 150)
+- `getLogSettings()` returns `undefined` on error (~line 249)
+- `getNotePlanSettings()` returns `undefined` on error (~line 258 area)
+- `makeDashboardParas()` returns `[]` on error (~line 860)
+- `getOpenItemParasForTimePeriod()` returns `[[], []]` on error (~line 723)
+- `getStartTimeFromPara()` returns `'(error)'` on error (~line 1156)
 
----
-
-### 4. **Potential Null Reference (Line 249)**
-**Location:** `makeDashboardParas()` function
-**Issue:** Type checking `p.children` but then calling it as a function without re-checking.
-
-```javascript
-const anyChildren = (typeof p.children === 'function') ? (p.children() ?? []) : []
-```
-
-**Problem:** If `p.children` is `null` or `undefined`, the type check passes but the function call could still fail in edge cases.
-
-**Fix:** Already handled correctly, but could be more explicit:
-```javascript
-const anyChildren = (typeof p.children === 'function' && p.children) ? (p.children() ?? []) : []
-```
+**Recommendation:** Standardize error handling — either throw errors or return consistent error objects / Result types.
 
 ---
 
-### 5. **Missing Null Check (Line 508)**
-**Location:** `getOpenItemParasForTimePeriod()` function
-**Issue:** Accessing `p.note` without null check in filter.
+### 4. **Potential Null Reference in `makeDashboardParas`** — IMPROVED
+
+**Location:** ~line 787
+
+**Current code:**
 
 ```javascript
-refOpenParas = refOpenParas.filter((p) => {
-  const note = p.note ?? getNoteFromFilename(p.filename ?? '') ?? null
-  if (!note) return false
-  return isNoteFromAllowedTeamspace(note, allowedTeamspaceIDs)
-})
+const anyChildren = (typeof p.children === 'function' && p.children != null) ? (p.children() ?? []) : []
 ```
 
-**Status:** Actually handled correctly with null coalescing, but the pattern is repeated multiple times and could be extracted to a helper function.
+**Status:** More explicit than the original review; low risk. Optional: extract `safeChildren(p)` if reused elsewhere.
+
+---
+
+### 5. **Note lookup on referenced paragraphs** — IMPROVED
+
+**Location:** `getReferencedOpenParagraphs()` (~lines 589–593), via `getNoteFromPara()` (~lines 306–308)
+
+**Was:** Repeated `p.note ?? getNoteFromFilename(...)` pattern.
+
+**Status:** Centralized in `getNoteFromPara()` with null guard before `isNoteFromAllowedTeamspace()`. No further action required unless more call sites appear.
+
+---
+
+## Related modules (not in `dashboardHelpers.js`)
+
+| Module | Role |
+|--------|------|
+| `src/dashboardPluginSettings.js` | `loadDashboardPluginSettings` / `saveDashboardPluginSettings` — settings.json I/O used by `getDashboardSettings` / `saveDashboardSettings` |
+| `src/dashboardSettingsClean.js` | Structural sanitization on save / `repairDashboardSettings` (v2.4.0.b35+) |
+| `@helpers/noteChooserFilenameResolve` | Resolves `<today>`, `<thisweek>`, etc. for Add Task / `getHeadings` (uses **sync** `@helpers/NPdateTime`) |
+| `@helpers/NPDateStrings` | **Async** relative-date listing for NoteChooser (via np.Shared — see `RELATIVE_DATES_CALL_CHAIN.md`) |
+
+`dashboardHelpers.js` imports `getDueDateOrStartOfCalendarDate` from `@helpers/NPdateTime` only; it does **not** call either `getRelativeDates` implementation.
 
 ---
 
 ## 🧪 TESTABILITY ISSUES
 
-### 1. **Direct Global Dependencies**
+### 1. **Direct Global Dependencies** — OPEN
+
 **Issue:** Functions directly use global `DataStore`, `Editor`, `NotePlan` objects, making them hard to mock.
 
-**Affected Functions:**
-- `getDashboardSettings()` - uses `DataStore.loadJSON()`
-- `saveDashboardSettings()` - uses `DataStore.loadJSON()`, `saveSettings()`
-- `getLogSettings()` - uses `DataStore.loadJSON()`
-- `getNotePlanSettings()` - uses `DataStore.preference()`, `DataStore.defaultFileExtension`
-- `getOpenItemParasForTimePeriod()` - uses `DataStore.calendarNoteByDateString()`, `DataStore.teamspaces`, `Editor`
-- `setPluginData()` - uses `getGlobalSharedData()`, `sendToHTMLWindow()`
+**Affected functions (representative):**
 
-**Solution:** Use dependency injection pattern:
-```javascript
-// Instead of:
-export async function getDashboardSettings(): Promise<TDashboardSettings> {
-  const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-  // ...
-}
+- `getDashboardSettings()` — via `loadDashboardPluginSettings()` → `DataStore`
+- `saveDashboardSettings()` — same
+- `getLogSettings()` — `DataStore.loadJSON()`
+- `getNotePlanSettings()` — `DataStore.preference()`, `DataStore.defaultFileExtension`
+- `getOpenItemParasForTimePeriod()` — `DataStore`, `Editor`, nested helpers
+- `setPluginData()` — `getGlobalSharedData()`, `sendToHTMLWindow()`
 
-// Use:
-export async function getDashboardSettings(
-  dataStore: typeof DataStore = DataStore
-): Promise<TDashboardSettings> {
-  const pluginSettings = await dataStore.loadJSON(`../${pluginID}/settings.json`)
-  // ...
-}
-```
+**Partial mitigation:** Settings load/save paths now go through `dashboardPluginSettings.js`, which is easier to mock in isolation than the full `getDashboardSettings()` pipeline.
+
+**Solution (unchanged):** Dependency injection for `DataStore` / `Editor` on key entry points, or extract pure processors + thin I/O wrappers.
 
 ---
 
-### 2. **Hard-coded Plugin ID**
-**Location:** Line 48
-**Issue:** Plugin ID is hard-coded as a constant, but should come from `pluginJson`.
+### 2. **Hard-coded Plugin ID** — INTENTIONAL
+
+**Location:** ~line 58
 
 ```javascript
-const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
+const pluginID = 'jgclark.Dashboard' // normally this could come from pluginJson, but not doing so in case it causes issues with Projects plugin that calls Dashboard.
 ```
 
-**Problem:** The comment suggests it should use `pluginJson['plugin.id']`, but it doesn't. This makes testing harder if you need to test with different plugin IDs.
-
-**Fix:**
-```javascript
-const pluginID = pluginJson['plugin.id'] ?? 'jgclark.Dashboard'
-```
+**Status:** Deliberate for cross-plugin stability (Projects plugin invokes Dashboard). Do **not** switch to `pluginJson['plugin.id']` without validating Projects integration.
 
 ---
 
-### 3. **Mixed Concerns (I/O + Business Logic)**
-**Issue:** Functions combine I/O operations with business logic, making them hard to test in isolation.
+### 3. **Mixed Concerns (I/O + Business Logic)** — PARTIALLY ADDRESSED
 
-**Examples:**
-- `getDashboardSettings()` - loads from DataStore AND processes/validates settings
-- `getOpenItemParasForTimePeriod()` - fetches notes AND filters/processes paragraphs
-- `makeDashboardParas()` - processes paragraphs AND accesses note properties
+**Progress:**
 
-**Solution:** Split into pure functions and I/O functions:
-```javascript
-// Pure function (easy to test)
-export function processDashboardSettings(rawSettings: any): TDashboardSettings {
-  // All the processing logic here
-}
+- Settings I/O → `dashboardPluginSettings.js`
+- `getOpenItemParasForTimePeriod()` split into focused helpers (see Executive Summary)
+- `cloneDashboardSettingsBeforeSave()` is a pure-ish utility (~lines 288–298) with tests
 
-// I/O function (can be mocked)
-export async function getDashboardSettings(): Promise<TDashboardSettings> {
-  const rawSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-  return processDashboardSettings(rawSettings)
-}
-```
+**Still mixed:**
+
+- `getDashboardSettings()` — load + defaults merge + migration + normalisation
+- `makeDashboardParas()` — paragraph shaping + note/frontmatter access
+
+**Solution (unchanged):** e.g. `processDashboardSettings(rawSettings)` as a pure function called after load.
 
 ---
 
-### 4. **Side Effects in Pure Functions**
-**Issue:** Functions that should be pure have logging side effects.
+### 4. **Side Effects in Pure Functions** — OPEN
 
-**Affected Functions:**
-- `isLineDisallowedByIgnoreTerms()` - has `logDebug()` calls
-- `filterParasByIgnoreTerms()` - has `logTimer()` calls
-- Most filter functions have logging
-
-**Solution:** Extract logging to a separate layer or make it optional:
-```javascript
-export function isLineDisallowedByIgnoreTerms(
-  lineContent: string,
-  ignoreItemsWithTerms: string,
-  logger?: { debug: (msg: string) => void }
-): boolean {
-  // ... logic
-  if (logger) {
-    logger.debug(`- DID find excluding term(s)...`)
-  }
-  return matchFound
-}
-```
+Filter helpers (`isLineDisallowedByIgnoreTerms`, `filterParasByIgnoreTerms`, etc.) still call `logDebug` / `logTimer`. Optional logger parameter remains a reasonable refactor.
 
 ---
 
-### 5. **Complex Function with Many Dependencies**
-**Issue:** `getOpenItemParasForTimePeriod()` is a large function (186 lines) with many dependencies and responsibilities.
+### 5. **Complex `getOpenItemParasForTimePeriod()`** — IMPROVED
 
-**Dependencies:**
-- `DataStore.calendarNoteByDateString()`
-- `DataStore.teamspaces`
-- `Editor`
-- `getNotePlanSettings()`
-- Multiple filter functions
-- `makeDashboardParas()`
-- `getReferencedParagraphs()`
-- `eliminateDuplicateParagraphs()`
-
-**Solution:** Break into smaller, testable functions:
-```javascript
-// Extract calendar note fetching
-function getCalendarNotesForDate(dateStr: string, teamspaces: Array<any>): Array<TNote> {
-  // ...
-}
-
-// Extract filtering logic
-function filterOpenParas(paras: Array<TParagraph>, settings: TDashboardSettings): Array<TParagraph> {
-  // ...
-}
-
-// Main function composes smaller functions
-export function getOpenItemParasForTimePeriod(...) {
-  const notes = getCalendarNotesForDate(NPCalendarFilenameStr, DataStore.teamspaces)
-  const paras = getParasFromNotes(notes, useEditorWherePossible)
-  const filteredParas = filterOpenParas(paras, dashboardSettings)
-  // ...
-}
-```
+The main export (~lines 673–725) now orchestrates smaller functions rather than holding ~186 lines of inline logic. Further extraction of `getNotePlanSettings()` / calendar note fetching would still help unit tests.
 
 ---
 
-### 6. **Async Functions Without Proper Error Propagation**
-**Issue:** Some async functions catch errors but don't propagate them properly.
+### 6. **Async Functions Without Proper Error Propagation** — OPEN
 
-**Example:** `getDashboardSettings()` catches errors and returns `undefined`, but callers might not expect this.
-
-**Solution:** Either throw errors or return a Result type:
-```javascript
-type Result<T> = { success: true, data: T } | { success: false, error: Error }
-
-export async function getDashboardSettings(): Promise<Result<TDashboardSettings>> {
-  try {
-    // ... logic
-    return { success: true, data: parsedDashboardSettings }
-  } catch (err) {
-    return { success: false, error: err }
-  }
-}
-```
+`getDashboardSettings()` still catches and returns `undefined`; callers must defensively handle missing settings.
 
 ---
 
-### 7. **Functions That Are Hard to Test Due to Internal State**
-**Issue:** `createSectionOpenItemsFromParas()` uses mutable state (`lastIndent0ParentID`, etc.) making it harder to test edge cases.
+### 7. **Mutable State in Section Builders** — OPEN
 
-**Solution:** Consider making the state explicit or breaking into smaller functions.
+`createSectionOpenItemsFromParas()` still uses mutable indent/parent tracking (`lastIndent0ParentID`, etc.). Consider explicit state objects for easier edge-case tests.
 
 ---
 
@@ -271,69 +203,72 @@ export async function getDashboardSettings(): Promise<Result<TDashboardSettings>
 
 ### High Priority
 
-1. **Fix PM time conversion bug** (affects user-facing functionality)
-2. **Fix array index bounds check** (prevents potential crashes)
-3. **Extract pure functions** from I/O functions for `getDashboardSettings()`, `makeDashboardParas()`
-4. **Add dependency injection** for `DataStore`, `Editor` in key functions
+1. **Add Jest cases for noon PM** (`12:00 PM`, `12:30 PM`) in `getStartTimeFromPara` tests
+2. **Extract pure `processDashboardSettings()`** from `getDashboardSettings()` for unit tests without mocks
+3. **Standardize error returns** on settings loaders (document or use Result type)
 
 ### Medium Priority
 
-5. **Standardize error handling** across all functions
-6. **Break down `getOpenItemParasForTimePeriod()`** into smaller functions
-7. **Use pluginJson for plugin ID** instead of hard-coded string
-8. **Extract logging** to optional parameter or separate layer
+4. **Dependency injection** for `DataStore` / `Editor` on `getOpenItemParasForTimePeriod` and settings loaders
+5. **Optional logger** on filter helpers to silence logs in tests without `jest.spyOn`
+6. **Further split** `makeDashboardParas()` — pure paragraph mapping vs note/frontmatter I/O
 
 ### Low Priority
 
-9. **Add JSDoc examples** for complex functions
-10. **Consider Result types** for better error handling
-11. **Add input validation** at function boundaries
+7. **JSDoc examples** on complex exports
+8. **Input validation** at public function boundaries
+9. **Tests for `extendParasToAddStartTimes()`** if that export is ever re-enabled
 
 ---
 
 ## 🧪 TESTING STRATEGY
 
-### Unit Tests (Pure Functions)
-These can be tested easily with Jest:
+### Existing unit tests (`src/__tests__/dashboardHelpers.test.js`)
+
+Last updated in file header: 2026-05-04 (v2.4.0.b31). Covered:
+
+| Function | Tested? |
+|----------|---------|
+| `filterToOpenParagraphs` | ✅ |
+| `filterBySchedulingRules` | ✅ |
+| `filterParasByIgnoreTerms` | ✅ |
+| `filterParasByIncludedCalendarSections` | ✅ |
+| `filterParasByExcludedCalendarSections` | ✅ |
+| `getStartTimeFromPara` | ✅ (missing noon-PM cases) |
+| `cloneDashboardSettingsBeforeSave` | ✅ |
+| `extendParasToAddStartTimes` | ❌ |
+| `isLineDisallowedByIgnoreTerms` | ❌ |
+| `isNoteFromAllowedTeamspace` | ❌ |
+| `getDashboardSettings` | ❌ |
+| `getOpenItemParasForTimePeriod` | ❌ |
+| `makeDashboardParas` | ❌ |
+
+Mocks: `@mocks/index` for `DataStore`, `Editor`, etc.; `jest.spyOn` on `@helpers/dev` log functions in `beforeEach`.
+
+### Good candidates for new pure-function tests
+
 - `isLineDisallowedByIgnoreTerms()`
 - `isNoteFromAllowedTeamspace()`
-- `getStartTimeFromPara()` (after fixing bugs)
-- `extendParasToAddStartTimes()` (after fixing bugs)
-- `mergeSections()`
-- `createSectionItemObject()` (with mocked `getNoteFromFilename()`)
-- `findSectionItems()`
-- `copyUpdatedSectionItemData()`
+- `getNoteFromPara()` (if exported or tested via `getReferencedOpenParagraphs` with mocked `getNoteFromFilename`)
+- `mergeSections()`, `createSectionItemObject()`, `findSectionItems()`, `copyUpdatedSectionItemData()`
 
-### Integration Tests (With Mocks)
-These require mocking NotePlan APIs:
-- `getDashboardSettings()` - mock `DataStore.loadJSON()`
-- `saveDashboardSettings()` - mock `DataStore.loadJSON()`, `saveSettings()`
-- `getOpenItemParasForTimePeriod()` - mock `DataStore`, `Editor`, helper functions
-- `makeDashboardParas()` - mock note objects and helper functions
+### Integration tests (with mocks)
 
-### Test Examples
+- `getDashboardSettings()` — mock `loadDashboardPluginSettings`
+- `getOpenItemParasForTimePeriod()` — mock `DataStore`, `Editor`, sub-helpers
+- `makeDashboardParas()` — mock note / frontmatter helpers
+
+### Example: noon PM regression test
 
 ```javascript
-// Example: Testing pure function
-describe('isLineDisallowedByIgnoreTerms', () => {
-  test('should return true when line contains ignore term', () => {
-    const result = isLineDisallowedByIgnoreTerms('Task with @ignore', '@ignore')
-    expect(result).toBe(true)
-  })
-  
-  test('should return false when line does not contain ignore term', () => {
-    const result = isLineDisallowedByIgnoreTerms('Normal task', '@ignore')
-    expect(result).toBe(false)
-  })
+test('should return 12:00 from 12:00 PM', () => {
+  const para = { content: 'Lunch 12:00 PM' }
+  expect(getStartTimeFromPara(para)).toBe('12:00')
 })
 
-// Example: Testing with mocked DataStore
-describe('getDashboardSettings', () => {
-  test('should return defaults when settings are empty', async () => {
-    DataStore.loadJSON = jest.fn().mockResolvedValue({ dashboardSettings: {} })
-    const settings = await getDashboardSettings()
-    expect(settings.showTodaySection).toBe(true) // default value
-  })
+test('should return 12:30 from 12:30 PM', () => {
+  const para = { content: 'Lunch 12:30 PM' }
+  expect(getStartTimeFromPara(para)).toBe('12:30')
 })
 ```
 
@@ -341,7 +276,7 @@ describe('getDashboardSettings', () => {
 
 ## 📝 NOTES
 
-- The codebase already has some test infrastructure in place (`__mocks__/` directory)
-- Some functions like `getStartTimeFromPara()` already have tests
-- Consider using a testing library that supports dependency injection (like `inversify` or manual DI)
-- The React components have their own testing setup, which is separate from these helper functions
+- `__mocks__/` and `src/__tests__/dashboardHelpers.test.js` provide the main automated coverage for this file.
+- React/WebView tests live under `src/react/components/testing/` and are separate from plugin-side helpers.
+- For **relative date** behaviour (Add Task NoteChooser, move handlers, perspective note picker), see **`RELATIVE_DATES_CALL_CHAIN.md`** — two different `getRelativeDates` implementations (`NPDateStrings` vs `NPdateTime`) must not be conflated.
+- `getStartTimeFromPara` duplicates logic noted in `@helpers/timeblocks.js`; long-term consolidation would reduce drift risk.

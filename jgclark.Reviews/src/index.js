@@ -21,12 +21,12 @@ export {
   finishReview,
   finishReviewAndStartNextReview,
   generateProjectListsAndRenderIfOpen,
+  onDashboardFolderFiltersChanged,
   displayProjectLists,
   nextReview,
   redisplayProjectListHTML,
   renderProjectLists,
   renderProjectListsIfOpen,
-  toggleDemoModeForProjectLists,
   setNewReviewInterval,
   skipReview,
   startReviews,
@@ -89,9 +89,7 @@ export async function onSettingsUpdated(): Promise<void> {
     const config = await getReviewSettings()
     if (!config) throw new Error(`Can't get Review settings. Stopping.`)
     logDebug(pluginJson, 'Have updated Review settings; recalculating review list and refreshing project list UI if already open...')
-    if (!(config.useDemoData ?? false)) {
-      await generateAllProjectsList(config, true)
-    }
+    await generateAllProjectsList(config, true)
     await renderProjectListsIfOpen(config)
   } catch (error) {
     logError(pluginJson, error.message)

@@ -64,7 +64,7 @@ function makeNextActionTaskItems(
   const outputItems: Array<TSectionItem> = []
   nextActionsRawContent.forEach((nextActionRawContent, actionIndex) => {
     const matchedPara =
-      findParaFromStringAndFilename(projectFilename, nextActionRawContent) || findParaFromRawContentAndFilename(projectFilename, nextActionRawContent)
+      findParaFromRawContentAndFilename(projectFilename, nextActionRawContent) || findParaFromStringAndFilename(projectFilename, nextActionRawContent)
     if (!matchedPara || typeof matchedPara === 'boolean') return
 
     const dashboardPara = makeDashboardParas([matchedPara], false)[0]

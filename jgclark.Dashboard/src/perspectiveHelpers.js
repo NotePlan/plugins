@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2026-02-07 for v2.4.0.b20, @jgclark
+// Last updated 2026-05-18 for v2.4.0.b37, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -22,7 +22,7 @@ import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import { chooseNoteV2 } from '@helpers/NPnote'
-import { backupSettings, pluginIsInstalled } from '@helpers/NPConfiguration'
+import { backupSettings } from '@helpers/NPConfiguration'
 import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
@@ -535,12 +535,7 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
       logError('switchToPerspective', `Couldn't find definition for perspective "${name}"`)
       return false
     }
-    logDebug(
-      'switchToPerspective',
-      `Found "${name}" Will save new perspectiveSettings: ${newPerspectiveDef.name} isModified=${String(newPerspectiveDef.isModified)} isActive=${String(
-        newPerspectiveDef.isActive,
-      )}`,
-    )
+    logDebug('switchToPerspective', `Found '${name}'. Will save new perspectiveSettings: ${newPerspectiveDef.name} isModified=${String(newPerspectiveDef.isModified)} isActive=${String(newPerspectiveDef.isActive)}`)
 
     // SAVE IT!
     const res = await saveDashboardPluginSettings({
@@ -552,15 +547,9 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
     }
     logDebug('switchToPerspective', `Saved new perspectiveSettings for ${name}`)
 
-    // Fire-and-forget: do not await (no return value needed here; avoids blocking the main thread during long list generation).
-    if (pluginIsInstalled('jgclark.Reviews')) {
-      DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', []).catch((err) => {
-        logWarn('switchToPerspective', `generateProjectListsAndRenderIfOpen (fire-and-forget): ${err.message}`)
-      })
-    } else {
-      logDebug('switchToPerspective', `jgclark.Reviews not installed; skipping Projects list refresh invoke`)
-    }
-    logTimer('switchToPerspective', startTime, `End of switchToPerspective`) // Note: never seems to get here
+    // Note: Reviews list refresh is now invoked from doSwitchToPerspective after merged dashboardSettings are saved, not here.
+
+    logTimer('switchToPerspective', startTime, `End of switchToPerspective`) // Note: never seems to get here?
 
     return newPerspectiveSettings
   } catch (error) {

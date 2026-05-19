@@ -1,6 +1,24 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.0.0.b35] - 2026-05-18
+- dev: added `onDashboardFolderFiltersChanged` — hidden command invoked from Dashboard when folder include/exclude filters change; regenerates `allProjectsList.json` and re-renders Rich list when open (`skipUpdateDashboardIfOpen` default true).
+- fix: `shouldRegenerateAllProjectsList` also compares a folder-filter fingerprint so PROJ* section refresh rebuilds the list when filters change but the Rich window is closed.
+- Rich project list: "next action" task lines are now clickable, opening the project note in the main Editor and tries to highlight the task line. (It won't always manage to highlight, given an API limitation.)
+- fix: loosen a filter so that folders starting with a `@` can be included.
+- fix: `nextActionsRawContent` to keep full paragraph `rawContent` , but display text still strips markers.
+- fix: improve `highlightParagraphInEditorByContent` (shared `@helpers/NPEditor.js`) opens/focuses the note via `getOrOpenEditorFromFilename`, then highlights by `rawContent`/`content` in that Editor pane (`highlightParagraphInEditorPane`).
+
+## [2.0.0.b34] - 2026-05-18
+- fix: `allProjectsList.json` — valid empty `[]` is accepted but perspective switches force a fresh build when `usePerspectives` is on.
+- fix: When using Dashboard perspectives, regenerating the project list invalidates Dashboard settings cache first so folder/teamspace scope matches the active perspective; perspective name is stored on every full list write to avoid regen loops.
+- fix: `generateProjectListsAndRenderIfOpen(scrollPos, skipUpdateDashboardIfOpen)` — Dashboard perspective switch passes `skipUpdateDashboardIfOpen: true` so list generation does not invoke Dashboard PROJ* refresh before `PERSPECTIVE_CHANGED` (avoids Dashboard ↔ Reviews invoke loops when the window is open).
+- fix: Rich list no longer re-renders many times on perspective switch — `writeAllProjectsList` can skip Rich invoke (`skipRichProjectListIfOpen`); `getAllProjectsFromList` silent regen skips Rich/Dashboard side effects; `renderProjectListsIfOpen` re-entrancy guard coalesces stacked calls.
+- dev: `generateProjectListsAndRenderIfOpen` logs folder scope when `usePerspectives` is enabled; clearer enumeration logging.
+
+## [2.0.0.b33] - 2026-05-18
+- Removed project-list demo mode (`useDemoData` setting, toggle command, and `allProjectsDemoListDefault.json` tooling). Project lists always use live notes / `allProjectsList.json`.
+
 ## [2.0.0.b32] - 2026-05-10
 - dev: `writeAllProjectsList` supports `skipUpdateDashboardIfOpen`; `updateAllProjectsListAfterChange` accepts options to pass it when **Dashboard** refreshes PROJ* in-process after the JSON write (avoids same-plugin `invokePluginCommandByName` ordering with a stale bridge `UPDATE_DATA`).
 - dev: `updateAllProjectsListAfterChange` now loads the project note with `getNoteFromFilename` (teamspace-aware, same pattern as task completion in `@helpers/NPParagraph`).

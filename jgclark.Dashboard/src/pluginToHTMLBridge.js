@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-05-15 for v2.4.0.b35 by @jgclark + @CursorAI
+// Last updated 2026-05-18 for v2.4.0.b35 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -31,6 +31,7 @@ import {
 } from './clickHandlers'
 import { allCalendarSectionCodes, allSectionCodes, SEARCH_AND_SAVED_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
 import { updateProjectsListIfProjectSection } from './projectsListSync'
+import { syncReviewsAfterDashboardFolderFilterChange } from './reviewsListSync'
 import {
   doAddNewPerspective,
   doCopyPerspective,
@@ -62,6 +63,7 @@ import { externallyStartSearch } from './dataGenerationSearch'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TSectionCode } from './types'
 import { clo, clof, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
+import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { getNoteByFilename } from '@helpers/note'
 import { formatReactError } from '@helpers/react/reactDev'
 
@@ -669,7 +671,8 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     if (
       actionsOnSuccess.includes('CLOSE_UNNEEDED_SECTIONS') ||
       actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS') ||
-      actionsOnSuccess.includes('PERSPECTIVE_CHANGED')
+      actionsOnSuccess.includes('PERSPECTIVE_CHANGED') ||
+      actionsOnSuccess.includes('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')
     ) {
       config = await getDashboardSettings()
       enabledSections = getListOfEnabledSections(config)
@@ -755,15 +758,34 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Incrementing done counts (ahead of proper background refresh)`)
     }
 
-    if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
-      logDebug('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
-      await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
-    } else if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
+    if (actionsOnSuccess.includes('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')) {
+      logDebug('processActionOnReturn', `ACTIVE_PERSPECTIVE_DEFINITION_CHANGED: syncing Reviews allProjectsList before section refresh`)
+      await syncReviewsAfterDashboardFolderFilterChange()
+    }
+
+    if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
       logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling refreshSectionsBatch (for ${String(enabledSections)}) ...`)
       await setPluginData({ perspectiveChanging: true }, `Starting perspective change`)
       await refreshSectionsBatch({ ...data, sectionCodes: enabledSections })
       logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (should hide modal spinner)`)
       await setPluginData({ perspectiveChanging: false }, `Ending perspective change`)
+
+      // Regenerate Reviews project list after sections refresh.
+      // Note: need skipUpdateDashboardIfOpen=true to avoid a Dashboard ↔ Reviews loop.
+      if (pluginIsInstalled('jgclark.Reviews')) {
+        const switchToName = data?.perspectiveName || ''
+        logInfo('processActionOnReturn', `PERSPECTIVE_CHANGED: invoking generateProjectListsAndRenderIfOpen (skip Dashboard invoke) for '${switchToName}'`)
+        try {
+          await DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [0, true])
+        } catch (err) {
+          logWarn('processActionOnReturn', `generateProjectListsAndRenderIfOpen for '${switchToName}' failed: ${err.message}`)
+        }
+      }
+    }
+
+    if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
+      logDebug('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
+      await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
     } else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
       logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)
       await incrementallyRefreshSomeSections({ ...data, sectionCodes: allSectionCodes })

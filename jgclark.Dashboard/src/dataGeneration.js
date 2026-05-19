@@ -77,7 +77,7 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean,
 ): Promise<Array<TSection>> {
   try {
-    logInfo('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
+    logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
     const config: TDashboardSettings = await getDashboardSettings()
 
     // TODO: change generation order to suit the new custom section display order.  Note: Cursor's attempt on 24.1.2026 to do this broke generation of Project sections.

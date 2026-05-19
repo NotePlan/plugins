@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-05-10 for v2.0.0.b31 by @Cursor
+// Last updated 2026-05-18 for v2.0.0.b35 by @Cursor
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -46,7 +46,7 @@ import { getOpenEditorFromFilename, saveEditorIfNecessary } from '@helpers/NPEdi
 import { getStringFromList } from '@helpers/general'
 import { endOfFrontmatterLineIndex, getFrontmatterAttribute, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
-import { createSectionsAndParaAfterPreamble, endOfPreambleSection, findHeading, getFieldParagraphsFromNote, simplifyRawContent } from '@helpers/paragraph'
+import { createSectionsAndParaAfterPreamble, endOfPreambleSection, findHeading, getFieldParagraphsFromNote } from '@helpers/paragraph'
 import { getHashtagsFromString } from '@helpers/stringTransforms'
 import { isInt } from '@helpers/userInput'
 import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
@@ -609,14 +609,14 @@ export class Project {
 
       // If we want to track next actions, find any tagged next actions or sequential first open task/checklist
       if (nextActionTags.length > 0 || sequentialTag !== '') {
-        this.generateNextActionComments(nextActionTags, paras, sequentialTag, Array.from(hashtags ?? []), metadataLine)
+        this.gatherAnyNextActionContent(nextActionTags, paras, sequentialTag, Array.from(hashtags ?? []), metadataLine)
       }
 
       // Build allProjectTags: all hashtags from metadata line and combined frontmatter metadata field, then de-duped
       this.allProjectTags = this.buildAllProjectTags(primaryProjectTag)
       // logDebug('ProjectConstructor', `  - allProjectTags = [${String(this.allProjectTags)}]`)
 
-      if (this.title.includes('TEST')) {
+      if (this.title.toLowerCase().includes('test')) {
         logDebug('ProjectConstructor', `Constructed ${this.getLeadingProjectTag()} ${this.filename}:`)
         logDebug('ProjectConstructor', `  - folder = ${this.folder}`)
         logDebug('ProjectConstructor', `  - folder (for display) = ${getFolderDisplayName(this.folder)}`)
@@ -634,7 +634,7 @@ export class Project {
         logDebug('ProjectConstructor', `  - progressLineIndex: #${String(this.mostRecentProgressLineIndex ?? '-')}`)
         logDebug('ProjectConstructor', `  - progress: <${String(this.lastProgressComment)}>`)
         logDebug('ProjectConstructor', `  - % complete = ${String(this.percentComplete)}`)
-        logDebug('ProjectConstructor', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
+        logDebug('ProjectConstructor', `  - nextActionRawContent = <${String(this.nextActionsRawContent)}>`)
         logDebug('ProjectConstructor', `  - allProjectTags = <${String(this.allProjectTags)}>`)
       } else {
         logTimer('ProjectConstructor', startTime, `Constructed ${this.getLeadingProjectTag()} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
@@ -1096,7 +1096,7 @@ getProjectTagsFrontmatterValue(combinedKey: string): string {
   }
 
   /**
-   * Generate next action comments from tagged next actions and/or sequential first open task/checklist.
+   * Gather any next action rawContent from tagged next actions and/or sequential first open task/checklist.
    * @param {Array<string>} nextActionTags - Array of hashtags to search for in tasks/checklists
    * @param {Array<Paragraph>} paras - Array of paragraphs from the note
    * @param {string?} sequentialTag - (optional) Hashtag to identify sequential projects (e.g., '#sequential')
@@ -1104,7 +1104,7 @@ getProjectTagsFrontmatterValue(combinedKey: string): string {
    * @param {string?} metadataLine - (optional) Content of the metadata line
    * @author @jgclark
    */
-  generateNextActionComments(nextActionTags: Array<string>, paras: Array<Paragraph>, sequentialTag?: string, hashtags?: Array<string>, metadataLine?: string): void {
+gatherAnyNextActionContent(nextActionTags: Array < string >, paras: Array < Paragraph >, sequentialTag ?: string, hashtags ?: Array < string >, metadataLine ?: string): void {
     // Set defaults for optional parameters
     const sequentialTagValue = sequentialTag ?? ''
     const hashtagsValue = hashtags ?? []
@@ -1117,19 +1117,19 @@ getProjectTagsFrontmatterValue(combinedKey: string): string {
       const projectAttribute = getFrontmatterAttribute(this.note, combinedKey)
       if (projectAttribute && typeof projectAttribute === 'string' && projectAttribute.includes(sequentialTagValue)) {
         hasSequentialTag = true
-        logDebug('Project', `  - found sequential tag '${sequentialTagValue}' in frontmatter '${combinedKey}' attribute`)
+        logDebug('gatherAnyNextActionContent', `  - found sequential tag '${sequentialTagValue}' in frontmatter '${combinedKey}' attribute`)
       }
       // Check metadata line hashtags
       if (!hasSequentialTag && hashtagsValue.length > 0) {
         hasSequentialTag = hashtagsValue.some((tag) => tag === sequentialTagValue)
         if (hasSequentialTag) {
-          logDebug('Project', `  - found sequential tag '${sequentialTagValue}' in metadata line hashtags`)
+          logDebug('gatherAnyNextActionContent', `  - found sequential tag '${sequentialTagValue}' in metadata line hashtags`)
         }
       }
       // Check metadata line content directly (as fallback)
       if (!hasSequentialTag && metadataLineValue.includes(sequentialTagValue)) {
         hasSequentialTag = true
-        logDebug('Project', `  - found sequential tag '${sequentialTagValue}' in metadata line content`)
+        logDebug('gatherAnyNextActionContent', `  - found sequential tag '${sequentialTagValue}' in metadata line content`)
       }
     }
 
@@ -1139,8 +1139,8 @@ getProjectTagsFrontmatterValue(combinedKey: string): string {
 
       if (nextActionParas.length > 0) {
         const thisNextAction = nextActionParas[0].rawContent
-        this.nextActionsRawContent.push(simplifyRawContent(thisNextAction))
-        logDebug('Project', `  - found nextActionRawContent = ${thisNextAction}`)
+        this.nextActionsRawContent.push(thisNextAction)
+        logDebug('gatherAnyNextActionContent', `  - found nextActionRawContent <${thisNextAction}>`)
         return // Found a tagged action, so we're done (at most 1 next action)
       }
     }
@@ -1150,8 +1150,8 @@ getProjectTagsFrontmatterValue(combinedKey: string): string {
       const firstOpenParas = paras.filter(isOpen)
       if (firstOpenParas.length > 0) {
         const firstOpenAction = firstOpenParas[0].rawContent
-        this.nextActionsRawContent.push(simplifyRawContent(firstOpenAction))
-        logDebug('Project', `  - found sequential nextActionRawContent = ${firstOpenAction}`)
+        this.nextActionsRawContent.push(firstOpenAction)
+        logDebug('gatherAnyNextActionContent', `  - found sequential nextActionRawContent <${firstOpenAction}>`)
       }
     }
   }

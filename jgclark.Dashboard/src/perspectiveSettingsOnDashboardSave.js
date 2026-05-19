@@ -2,17 +2,16 @@
 //-----------------------------------------------------------------------------
 // Resolve perspectiveSettings when saving dashboardSettings without a full
 // perspective payload from the client (bridge). Extracted from clickHandlers.
-// Last updated 2026-05-13, @Cursor
+// Last updated 2026-05-13 for v2.4.0.b33, @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettingsDefaults, handlerResult } from './dashboardHelpers'
+import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { cleanDashboardSettingsInAPerspective, getActivePerspectiveDef, loadPerspectiveDefsFromPluginSettings } from './perspectiveHelpers'
 import type { TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
 import { clo, compareObjects, JSP, logDebug, logError } from '@helpers/dev'
-import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 
-const pluginID = 'jgclark.Dashboard'
 const logFn = 'doSaveDashboardSettingsFromBridge'
 
 export type TPerspectiveResolveForDashboardSaveResult =

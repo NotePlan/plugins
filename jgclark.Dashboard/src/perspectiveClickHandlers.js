@@ -3,10 +3,11 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-05-13 for v2.4.0.b33 by @jgclark + @CursorAI
+// Last updated 2026-05-18 for v2.4.0.b37 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
+import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
 import {
   addNewPerspective,
@@ -24,7 +25,6 @@ import {
   logPerspectiveNames,
 } from './perspectiveHelpers'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 
 /**
  * -----------------------------------------------------------------------------
@@ -208,20 +208,17 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   // and only refresh the sections that are new
   // But for now, the brute force way seems the most reliable :)
   const updatesToPluginData = {
+    perspectiveChanging: true,
     perspectiveSettings: revisedDefs,
     dashboardSettings: newDashboardSettings,
     pushFromServer: { dashboardSettings: true, perspectiveSettings: true },
     sections: [],
     lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
   }
-  logDebug(
-    `doSwitchToPerspective`,
-    `sending revised perspectiveSettings and dashboardSettings to react window after switching to ${data?.perspectiveName || ''} current excludedFolders=${
-      newDashboardSettings.excludedFolders ? newDashboardSettings.excludedFolders : 'not set'
-    }`,
-  )
+  logDebug(`doSwitchToPerspective`, `sending revised perspectiveSettings and dashboardSettings to react window after switching to '${data?.perspectiveName || ''}'. Current excludedFolders=${newDashboardSettings.excludedFolders ? newDashboardSettings.excludedFolders : 'not set'}`)
   // logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Sending these perspectiveSettings to react window in pluginData')
   await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
+
   return handlerResult(true, ['PERSPECTIVE_CHANGED'])
 }
 

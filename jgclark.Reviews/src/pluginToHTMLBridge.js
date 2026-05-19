@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin (to/from HTML window)
-// Last updated 2026-05-02 for v2.0.0.b29, @CursorAI & @jgclark
+// Last updated 2026-05-18 for v2.0.0.b35, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -23,6 +23,7 @@ import {
   togglePauseProject,
 } from './projects'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
+import { smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
 import {
   getLiveWindowRectFromWin, getWindowFromCustomId,
   logWindowsList,
@@ -39,6 +40,7 @@ type MessageDataObject = {
   type: string,
   controlStr: string,
   encodedFilename: string,
+  encodedContent?: string,
   scrollPos?: number,
 }
 type SettingDataObject = {
@@ -50,6 +52,31 @@ type SettingDataObject = {
 const windowCustomId = `${pluginJson['plugin.id']}.main`
 
 //-----------------------------------------------------------------
+
+/**
+ * Normalize click payload from HTML: unwrap single-element arrays and resolve type from type or actionType.
+ * @param {any} data - payload from sendMessageToPlugin (object or occasional array wrapper)
+ * @param {string} [typeOverride] - when actionType is the handler name (e.g. showLineInEditorFromFilename)
+ * @returns {MessageDataObject}
+ */
+function normalizeProjectListClickPayload(data: any, typeOverride?: string): MessageDataObject {
+  let payload = data
+  if (Array.isArray(data)) {
+    payload = data.length === 1 ? data[0] : data.find((d) => d && (d.type || d.actionType)) ?? data[0]
+  }
+  if (payload == null || typeof payload !== 'object') {
+    payload = {}
+  }
+  const resolvedType = typeOverride ?? payload.type ?? payload.actionType ?? ''
+  return {
+    itemID: payload.itemID ?? '-',
+    type: resolvedType,
+    controlStr: payload.controlStr ?? '',
+    encodedFilename: payload.encodedFilename ?? '',
+    encodedContent: payload.encodedContent,
+    scrollPos: payload.scrollPos,
+  }
+}
 
 /**
  * Callback function to receive async messages from HTML view
@@ -65,7 +92,12 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
     logDebug(`onMessageFromHTMLView`, `dispatching actionType '${actionType}'`)
     switch (actionType) {
       case 'onClickProjectListItem':
-        await bridgeClickProjectListItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
+        await bridgeClickProjectListItem(data)
+        break
+      case 'showNoteInEditorFromFilename':
+      case 'showLineInEditorFromFilename':
+        // Fallback if HTML sends handler name as actionType instead of onClickProjectListItem wrapper
+        await bridgeClickProjectListItem(normalizeProjectListClickPayload(data, actionType))
         break
       case 'onChangeCheckbox':
         await bridgeChangeCheckbox(data)
@@ -198,19 +230,20 @@ export async function bridgeSaveDisplayFilters(data: {
  * Somebody clicked on something in the HTML view; find out what, and action it.
  * @param {MessageDataObject} data - details of the item clicked
  */
-export async function bridgeClickProjectListItem(data: MessageDataObject) {
+export async function bridgeClickProjectListItem(data: MessageDataObject | any) {
   try {
+    const clickData = normalizeProjectListClickPayload(data)
     // const windowId = getWindowIdFromCustomId(windowCustomId);
     const windowId = windowCustomId
     if (!windowId) {
       logError('bridgeClickProjectListItem', `Can't find windowId for ${windowCustomId}`)
       return
     }
-    const ID = data.itemID
-    const type = data.type
-    const controlStr = data.controlStr ?? ''
-    const filename = decodeRFC3986URIComponent(data.encodedFilename ?? '')
-    const scrollPos = data && typeof data.scrollPos === 'number' ? data.scrollPos : 0
+    const ID = clickData.itemID
+    const type = clickData.type
+    const controlStr = clickData.controlStr ?? ''
+    const filename = decodeRFC3986URIComponent(clickData.encodedFilename ?? '')
+    const scrollPos = clickData && typeof clickData.scrollPos === 'number' ? clickData.scrollPos : 0
     logDebug('', 'bridgeClickProjectListItem: --------------------')
     logInfo('bridgeClickProjectListItem', `itemID: ${ID}, type: ${type}, filename: ${filename}`)
     // logDebug('bridgeClickProjectListItem', `received scrollPos from frontend = ${String(scrollPos)} for type '${String(type)}'`)
@@ -360,6 +393,26 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
           logDebug('bridgeClickProjectListItem', `-> opened or triggered split for filename ${filename}`)
         } else {
           logDebug('bridgeClickProjectListItem', `-> focused existing editor or no-op for filename ${filename}`)
+        }
+        break
+      }
+      case 'showLineInEditorFromFilename': {
+        // Same approach as Dashboard doShowLineInEditorFromFilename: smartShowLineInEditorFromFilename -> highlightParagraphInEditorByContent.
+        // Note: Highlight can fail if the note was not already open or the editor paragraphs are not ready yet; that is accepted.
+        const content = decodeRFC3986URIComponent(clickData.encodedContent ?? '')
+        if (!filename) {
+          logWarn('bridgeClickProjectListItem', `-> showLineInEditorFromFilename: empty filename after decode`)
+          break
+        }
+        if (!content) {
+          logWarn('bridgeClickProjectListItem', `-> showLineInEditorFromFilename: empty content after decode for filename ${filename}`)
+          break
+        }
+        const result = await smartShowLineInEditorFromFilename(filename, content, 'split')
+        if (result) {
+          logDebug('bridgeClickProjectListItem', `-> showLineInEditorFromFilename for filename ${filename}: opened and highlighted`)
+        } else {
+          logInfo('bridgeClickProjectListItem', `-> showLineInEditorFromFilename for filename ${filename}: note may have opened but line highlight failed`)
         }
         break
       }

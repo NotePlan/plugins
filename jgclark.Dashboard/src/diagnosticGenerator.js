@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate diagnostics file for Dashboard plugin to help with debugging
-// Last updated 2025-08-13 for v2.3.0
+// Last updated 2026-05-16 for v2.4.0
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -16,6 +16,7 @@ import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { getTagMentionCacheSummary } from './tagMentionCache'
 import type { TPerspectiveDef } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
+import { createPrettyRunPluginLink } from '@helpers/general'
 import { getFolderDisplayName } from '@helpers/folders'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { showMessageYesNo } from '@helpers/userInput'
@@ -61,11 +62,6 @@ export async function generateDiagnosticsFile() {
     output.push(`- Screen dimensions: ${String(NotePlan.environment.screenWidth)}w x ${String(NotePlan.environment.screenHeight)}h`)
     output.push(`- Plugin '${pluginJson['plugin.name']}' v${pluginJson['plugin.version']}`)
     output.push('')
-    output.push('## Current Dashboard settings')
-    output.push('```json')
-    output.push(JSON.stringify(ds, null, 2))
-    output.push('```')
-    output.push('')
     output.push('## Database Structure')
     output.push(`- 🔢 ${total.toLocaleString()} Total notes`)
     output.push(`- 📅 ${calNotesCount.toLocaleString()} Calendar notes (~${Math.round(calNotesCount / 36.5) / 10.0} years)`)
@@ -83,19 +79,28 @@ export async function generateDiagnosticsFile() {
     output.push(JSON.stringify(npSettings, null, 2))
     output.push('```')
     output.push('')
-    output.push(`## Current Perspective = ${getActivePerspectiveName(perspectiveDefs)}`)
+    output.push('## Current Dashboard settings')
+    output.push('```json')
+    output.push(JSON.stringify(ds, null, 2))
+    output.push('```')
+    output.push('')
+    output.push(`### Current Perspective = ${getActivePerspectiveName(perspectiveDefs)}`)
     output.push(`- Enabled sections: ${String(getListOfEnabledSections(ds)) || 'none?'}`)
     output.push(`- Allowed folders: [${String(getCurrentlyAllowedFolders(ds))}]`)
     output.push('')
-    output.push('## Perspectives: short list')
+    output.push('### Perspectives: short list')
     for (const thisP of perspectiveDefs) {
       output.push(` - ${thisP.name}${thisP.isModified ? ' (modified)' : ''}${thisP.isActive ? ' <isActive>' : ''}`)
     }
     output.push('')
-    output.push('## Perspectives: full settings')
+    output.push('### Perspectives: full settings')
     output.push('```json')
     output.push(JSON.stringify(perspectiveDefs, null, 2))
     output.push('```')
+    output.push('')
+    output.push(
+      `(If settings.json looks corrupt: ${createPrettyRunPluginLink('Repair Dashboard settings file', 'jgclark.Dashboard', 'repairDashboardSettings')})`,
+    )
 
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
     const outputNote = await getOrMakeRegularNoteInFolder(diagnosticsNoteTitle, '')

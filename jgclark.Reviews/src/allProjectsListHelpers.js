@@ -26,11 +26,10 @@ import { smartPrependPara } from '@helpers/paragraph'
 // Settings
 const pluginID = 'jgclark.Reviews'
 const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // fully specified to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
-const allProjectsDemoListDefaultFilename = `../${pluginID}/allProjectsDemoListDefault.json`
-// Backwards-compatible alias for existing demo-list helper
-const allProjectsDemoListFilename = allProjectsDemoListDefaultFilename
 const maxAgeAllProjectsListInHours = 1
 const generatedDatePrefName = 'Reviews-lastAllProjectsGenerationTime'
+const lastPerspectivePrefName = 'Reviews-lastAllProjectsPerspective'
+const lastFolderFiltersPrefName = 'Reviews-lastAllProjectsFolderFilters'
 const MS_PER_HOUR = 1000 * 60 * 60
 const ERROR_FILENAME_PLACEHOLDER = 'error'
 const ERROR_READING_PLACEHOLDER = '<error reading'
@@ -47,6 +46,24 @@ function makeProjectListCacheKey(filename: string, tag: string): string {
 }
 
 /**
+ * Parse allProjectsList.json file content. Returns null if missing, empty, or not a JSON array (e.g. `{}`).
+ * @param {?string} content - Raw file content
+ * @returns {?Array<any>} Parsed project rows, or null if unusable
+ */
+export function parseAllProjectsListFileContent(content: ?string): ?Array<any> {
+  if (content == null || content === '') {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(content)
+    return Array.isArray(parsed) ? parsed : null
+  } catch (error) {
+    logWarn('parseAllProjectsListFileContent', error.message)
+    return null
+  }
+}
+
+/**
  * Read the on-disk allProjects list for constructor cache hints only (no age-based regeneration).
  * @returns {Array<any>}
  */
@@ -56,11 +73,7 @@ function loadRawAllProjectsListSnapshot(): Array<any> {
       return []
     }
     const content = DataStore.loadData(allProjectsListFilename, true)
-    if (content == null || content === '') {
-      return []
-    }
-    const parsed = JSON.parse(content)
-    return Array.isArray(parsed) ? parsed : []
+    return parseAllProjectsListFileContent(content) ?? []
   } catch (error) {
     logWarn('loadRawAllProjectsListSnapshot', error.message)
     return []
@@ -242,6 +255,17 @@ function stringifyProjectObjects(objArray: Array<any>): string {
  * @returns {number} File age in milliseconds, or Infinity if preference doesn't exist
  * @private
  */
+/**
+ * Stable fingerprint for folder include/exclude filters (Dashboard perspectives or Reviews settings).
+ * @param {ReviewConfig} config
+ * @returns {string}
+ */
+function getFolderFilterFingerprint(config: ReviewConfig): string {
+  const include = Array.isArray(config.foldersToInclude) ? config.foldersToInclude.join('\u0001') : String(config.foldersToInclude ?? '')
+  const ignore = Array.isArray(config.foldersToIgnore) ? config.foldersToIgnore.join('\u0001') : String(config.foldersToIgnore ?? '')
+  return `${include}\u0002${ignore}`
+}
+
 function getFileAgeMs(prefName: string): number {
   // $FlowFixMe[incompatible-call] - DataStore.preference returns mixed, but we handle it
   const prefValue: mixed = DataStore.preference(prefName)
@@ -251,17 +275,47 @@ function getFileAgeMs(prefName: string): number {
 }
 
 /**
- * Check if allProjects list file is too old and needs regeneration
+ * Check if allProjects list file is too old, corrupt, or (when using Dashboard perspectives) out of date for the active perspective.
+ * @param {ReviewConfig} config - Current review config
  * @returns {boolean} True if file needs regeneration
  * @private
  */
-function shouldRegenerateAllProjectsList(): boolean {
+function shouldRegenerateAllProjectsList(config: ReviewConfig): boolean {
   if (!DataStore.fileExists(allProjectsListFilename)) {
+    return true
+  }
+  const content = DataStore.loadData(allProjectsListFilename, true)
+  if (parseAllProjectsListFileContent(content) === null) {
+    logWarn('shouldRegenerateAllProjectsList', `allProjectsList.json is missing, empty, or not a JSON array; will regenerate`)
     return true
   }
   const fileAgeMs = getFileAgeMs(generatedDatePrefName)
   const maxAgeMs = MS_PER_HOUR * maxAgeAllProjectsListInHours
-  return fileAgeMs > maxAgeMs
+  if (fileAgeMs > maxAgeMs) {
+    return true
+  }
+  if (config.usePerspectives && config.perspectiveName) {
+    const lastPref: mixed = DataStore.preference(lastPerspectivePrefName)
+    const lastPerspective = typeof lastPref === 'string' ? lastPref : ''
+    if (lastPerspective !== config.perspectiveName) {
+      logInfo(
+        'shouldRegenerateAllProjectsList',
+        `Dashboard perspective changed ('${lastPerspective}' -> '${config.perspectiveName}'); will regenerate allProjects list`,
+      )
+      return true
+    }
+  }
+  const fingerprint = getFolderFilterFingerprint(config)
+  const lastFingerprintPref: mixed = DataStore.preference(lastFolderFiltersPrefName)
+  const lastFingerprint = typeof lastFingerprintPref === 'string' ? lastFingerprintPref : ''
+  if (fingerprint !== lastFingerprint) {
+    logInfo(
+      'shouldRegenerateAllProjectsList',
+      `Folder filters changed (foldersToInclude/foldersToIgnore); will regenerate allProjects list`,
+    )
+    return true
+  }
+  return false
 }
 
 //-------------------------------------------------------------------------------
@@ -328,9 +382,9 @@ export function filterProjectNotesByTeamspaces(
  */
 export async function logAllProjectsList(): Promise<void> {
   const content = DataStore.loadData(allProjectsListFilename, true) ?? `<error reading ${allProjectsListFilename}>`
-  const allProjects = JSON.parse(content)
+  const allProjects = parseAllProjectsListFileContent(content)
   console.log(`Contents of Projects List (JSON):`)
-  console.log(stringifyProjectObjects(allProjects))
+  console.log(allProjects != null ? stringifyProjectObjects(allProjects) : String(content))
 }
 
 export type ProjectNoteTagPair = {|
@@ -350,17 +404,18 @@ export async function enumerateMatchingProjectNoteTagPairs(
   config: ReviewConfig,
   runInForeground: boolean = false,
 ): Promise<Array<ProjectNoteTagPair>> {
-  logInfo(
-    'enumerateMatchingProjectNoteTagPairs',
-    `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`,
-  )
+  logDebug('enumerateMatchingProjectNoteTagPairs', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
 
   const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
 
-  // Get list of folders, excluding @specials and our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore.
-  const filteredFolderList = (config.foldersToInclude?.length ?? 0 > 0)
-    ? getFoldersMatching(config.foldersToInclude, true).sort()
-    : getFolderListMinusExclusions(config.foldersToIgnore, true, false).sort()
+  // Get list of folders, excluding our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore. Doesn't ignore @special folders.
+  const useIncludeBranch = (config.foldersToInclude?.length ?? 0) > 0
+  const filteredFolderList = useIncludeBranch
+    ? getFoldersMatching(config.foldersToInclude, false).sort()
+    : getFolderListMinusExclusions(config.foldersToIgnore, false, false).sort()
+
+  logDebug('enumerateMatchingProjectNoteTagPairs', `${config.usePerspectives ? `using Perspective '${config.perspectiveName ?? '?'}': ` : ''}foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}]`)
+  // logDebug('enumerateMatchingProjectNoteTagPairs', `- filteredFolderList: ${filteredFolderList.length} folders [${String(filteredFolderList)}]`)
 
   // Filter out subdirectories from the list of folders.
   // It iterates over each folder in the filteredFolderList and checks if it is already represented in the accumulator array (acc).
@@ -372,10 +427,7 @@ export async function enumerateMatchingProjectNoteTagPairs(
     if (!exists) acc.push(f)
     return acc
   }, [])
-  logInfo(
-    'enumerateMatchingProjectNoteTagPairs',
-    `-> ${String(filteredFolderListWithoutSubdirs.length)} filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`,
-  )
+  logDebug('enumerateMatchingProjectNoteTagPairs', `-> ${String(filteredFolderListWithoutSubdirs.length)} filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
 
   // Filter the list of project notes from the DataStore.
   let filteredProjectNotes = filterProjectNotesByFolders(
@@ -393,11 +445,7 @@ export async function enumerateMatchingProjectNoteTagPairs(
     logDebug('enumerateMatchingProjectNoteTagPairs', `- after teamspace filter: ${filteredProjectNotes.length} project notes`)
   }
 
-  logTimer(
-    'enumerateMatchingProjectNoteTagPairs',
-    startTime,
-    `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`,
-  )
+  logTimer('enumerateMatchingProjectNoteTagPairs', startTime, `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`)
 
   const pairs: Array<ProjectNoteTagPair> = []
   for (const folder of filteredFolderList) {
@@ -502,12 +550,19 @@ export async function generateAllProjectsList(
   configIn: any,
   runInForeground: boolean = false,
   scrollPosForRichList: number = 0,
+  skipUpdateDashboardIfOpen: boolean = false,
+  skipRichProjectListIfOpen: boolean = false,
 ): Promise<Array<Project>> {
   try {
     logDebug('generateAllProjectsList', `starting`)
+    logInfo(
+      'generateAllProjectsList',
+      `usePerspectives=${String(configIn?.usePerspectives)} perspective='${configIn?.perspectiveName ?? '-'}' foldersToInclude=[${String(configIn?.foldersToInclude)}] foldersToIgnore=[${String(configIn?.foldersToIgnore)}]`,
+    )
     const startTime = moment().toDate()
     // Get all project notes as Project instances
     const projectInstances = await getAllMatchingProjects(configIn, runInForeground)
+    logInfo('generateAllProjectsList', `enumerated ${projectInstances.length} project instance(s) to write`)
 
     // Log the start this full generation to a special log note
     // TODO: Remove when v1.3.0 or v1.4.0 is released
@@ -519,7 +574,7 @@ export async function generateAllProjectsList(
       }
     }
 
-    await writeAllProjectsList(projectInstances, scrollPosForRichList)
+    await writeAllProjectsList(projectInstances, scrollPosForRichList, skipUpdateDashboardIfOpen, configIn, skipRichProjectListIfOpen)
     return projectInstances
   } catch (error) {
     logError('generateAllProjectsList', JSP(error))
@@ -539,13 +594,21 @@ export async function generateAllProjectsList(
  * @param {Array<Project>} projectInstances - List of project instances to write
  * @param {number} scrollPosForRichList - Rich Project List HTML scroll (pixels) when `updateRichProjectListIfOpen` runs
  * @param {boolean} skipUpdateDashboardIfOpen - when true, skip `updateDashboardIfOpen` so the caller can refresh Dashboard synchronously (avoids the race above). Default false for normal Reviews-driven writes.
+ * @param {ReviewConfig | null} configForMetadata - when set and `usePerspectives`, stores active Dashboard perspective name on successful write
+ * @param {boolean} skipRichProjectListIfOpen - when true, skip `updateRichProjectListIfOpen` (caller will render once in-process, e.g. `generateProjectListsAndRenderIfOpen`)
  */
 export async function writeAllProjectsList(
   projectInstances: Array<Project>,
   scrollPosForRichList: number = 0,
   skipUpdateDashboardIfOpen: boolean = false,
+  configForMetadata: ?ReviewConfig = null,
+  skipRichProjectListIfOpen: boolean = false,
 ): Promise<void> {
   try {
+    if (!Array.isArray(projectInstances)) {
+      logError('writeAllProjectsList', `Refusing to write: expected array of projects, got ${typeof projectInstances}`)
+      return
+    }
     // write summary to allProjects JSON file, using a replacer to suppress .note
     logDebug('writeAllProjectsList', `Writing ${projectInstances.length} projects to ${allProjectsListFilename} ...`)
     const res = DataStore.saveData(stringifyProjectObjects(projectInstances), allProjectsListFilename, true)
@@ -557,10 +620,19 @@ export async function writeAllProjectsList(
     if (res) {
       const reviewListDate = Date.now()
       DataStore.setPreference(generatedDatePrefName, reviewListDate)
+      // Stamp perspective after every full generate so PROJ* refresh does not re-enter generate via perspective mismatch (see Dashboard perspective-switch path).
+      if (configForMetadata?.usePerspectives && configForMetadata.perspectiveName) {
+        DataStore.setPreference(lastPerspectivePrefName, configForMetadata.perspectiveName)
+      }
+      if (configForMetadata) {
+        DataStore.setPreference(lastFolderFiltersPrefName, getFolderFilterFingerprint(configForMetadata))
+      }
       logDebug('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
 
       // Order matters: Rich list first, then Dashboard - avoids stale PROJ*; refreshSomeSections does not write JSON (no loop).
-      await updateRichProjectListIfOpen(scrollPosForRichList)
+      if (!skipRichProjectListIfOpen) {
+        await updateRichProjectListIfOpen(scrollPosForRichList)
+      }
       if (!skipUpdateDashboardIfOpen) {
         await updateDashboardIfOpen()
       }
@@ -569,35 +641,6 @@ export async function writeAllProjectsList(
     }
   } catch (error) {
     logError('writeAllProjectsList', JSP(error))
-  }
-}
-
-/**
- * Copy the fixed demo default list JSON into the live allProjects list file.
- * Does not touch any live project notes.
- * @returns {Promise<boolean>} true if copy succeeded, false otherwise
- */
-export async function copyDemoDefaultToAllProjectsList(): Promise<boolean> {
-  try {
-    if (!DataStore.fileExists(allProjectsDemoListDefaultFilename)) {
-      throw new Error(`Demo default file not found: ${allProjectsDemoListDefaultFilename}`)
-    }
-    const content = DataStore.loadData(allProjectsDemoListDefaultFilename, true)
-    if (content == null) {
-      throw new Error(`Couldn't read demo default file: ${allProjectsDemoListDefaultFilename}`)
-    }
-    const res = DataStore.saveData(String(content), allProjectsListFilename, true)
-    if (!res) {
-      throw new Error(`Couldn't write to ${allProjectsListFilename}`)
-    }
-    const now = Date.now()
-    DataStore.setPreference(generatedDatePrefName, now)
-    logInfo('copyDemoDefaultToAllProjectsList', `Copied demo list to ${allProjectsListFilename} at ${String(now)}`)
-    await updateDashboardIfOpen()
-    return true
-  } catch (error) {
-    logError('copyDemoDefaultToAllProjectsList', error.message)
-    return false
   }
 }
 
@@ -630,46 +673,47 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
 
 /**
  * Get all Project object instances from JSON list of all available project notes. Doesn't come ordered.
- * If in demo mode, just load from the allProjectsList, which should be the demo list. Don't worry about its age.
- * If not demo mode, then first check to see how old the list is, and re-generates more than 'maxAgeAllProjectsListInHours' hours old.
+ * First checks how old the list is, and re-generates if more than 'maxAgeAllProjectsListInHours' hours old.
  * @author @jgclark
  * @returns {Promise<Array<Project>>} allProjects Object, the same as what is written to disk
  */
 export async function getAllProjectsFromList(): Promise<Array<Project>> {
   try {
     logDebug('getAllProjectsFromList', `Starting ...`)
+    const config = await getReviewSettings()
+    if (!config) {
+      logError('getAllProjectsFromList', 'No Reviews config found')
+      return []
+    }
     const startTime = moment().toDate()
     let projectInstances: Array<Project>
 
-    // Demo mode: never regenerate from live notes; ensure JSON exists (from demo default), then read it
-    const config = await getReviewSettings()
-    if (config?.useDemoData === true) {
-      const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
-      projectInstances = JSON.parse(content)
-    } else {
-      // Check if file exists and is fresh enough
-      if (shouldRegenerateAllProjectsList()) {
-        if (DataStore.fileExists(allProjectsListFilename)) {
-          const fileAgeMs = getFileAgeMs(generatedDatePrefName)
-          const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
-          logDebug('getAllProjectsFromList', `- Regenerating allProjects list as more than ${String(maxAgeAllProjectsListInHours)} hours old (currently ${fileAgeHours} hours)`)
-        } else {
-          logDebug('getAllProjectsFromList', `- Generating allProjects list as can't find it`)
-        }
-        projectInstances = await generateAllProjectsList()
-      } else {
-        // Read from the list
+    // Check if file exists and is fresh enough
+    if (shouldRegenerateAllProjectsList(config)) {
+      if (DataStore.fileExists(allProjectsListFilename)) {
         const fileAgeMs = getFileAgeMs(generatedDatePrefName)
         const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
-        logDebug('getAllProjectsFromList', `- Reading from current allProjectsList (as only ${fileAgeHours} hours old)`)
-        const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
+        logDebug('getAllProjectsFromList', `- Regenerating allProjects list (age ${fileAgeHours}h, corrupt file, and/or perspective change)`)
+      } else {
+        logDebug('getAllProjectsFromList', `- Generating allProjects list as can't find it`)
+      }
+      // Silent regen: no Rich/Dashboard side effects (callers refresh UI themselves).
+      projectInstances = await generateAllProjectsList(config, false, 0, true, true)
+    } else {
+      // Read from the list
+      const fileAgeMs = getFileAgeMs(generatedDatePrefName)
+      const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
+      logDebug('getAllProjectsFromList', `- Reading from current allProjectsList (as only ${fileAgeHours} hours old)`)
+      const content = DataStore.loadData(allProjectsListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsListFilename}>`
+      const parsed = parseAllProjectsListFileContent(content)
+      if (parsed === null) {
+        logWarn('getAllProjectsFromList', `allProjectsList.json is not a valid array; regenerating`)
+        projectInstances = await generateAllProjectsList(config, false, 0, true, true)
+      } else {
         // Make objects from this (except .note)
         // Date fields (startDate, dueDate, etc.) are stored as ISO strings (YYYY-MM-DD) and left as strings
-        projectInstances = JSON.parse(content)
-
+        projectInstances = parsed
         // Recalculate review fields for all projects since nextReviewDays may be stale
-        // This is necessary because the JSON was written at a previous time, and nextReviewDays
-        // needs to be recalculated based on the current date
         logDebug('getAllProjectsFromList', `- Recalculating review fields for ${projectInstances.length} projects loaded from JSON`)
         projectInstances = projectInstances.map((project) => calcReviewFieldsForProject(project))
       }
@@ -680,28 +724,6 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
   }
   catch (error) {
     logError('getAllProjectsFromList', error.message)
-    return []
-  }
-}
-
-/**
- * Get all project objects from the fixed demo JSON list. No generation or recalculation; data is used as-is.
- * @author @jgclark
- * @returns {Promise<Array<Project|any>>} array of project-like objects from allProjectsDemoList.json, or [] if file missing
- */
-export async function getAllProjectsFromDemoList(): Promise<Array<Project | any>> {
-  try {
-    logDebug('getAllProjectsFromDemoList', `Starting ...`)
-    if (!DataStore.fileExists(allProjectsDemoListFilename)) {
-      logWarn('getAllProjectsFromDemoList', `Demo file not found: ${allProjectsDemoListFilename}`)
-      return []
-    }
-    const content = DataStore.loadData(allProjectsDemoListFilename, true) ?? `${ERROR_READING_PLACEHOLDER} ${allProjectsDemoListFilename}>`
-    const projectInstances = JSON.parse(content)
-    logDebug('getAllProjectsFromDemoList', `- read ${projectInstances.length} projects from demo list (no recalculation)`)
-    return Array.isArray(projectInstances) ? projectInstances : []
-  } catch (error) {
-    logError('getAllProjectsFromDemoList', error.message)
     return []
   }
 }
@@ -827,7 +849,6 @@ export function sortProjectsList(
  * @param {string?} tag to filter by (optional)
  * @param {Array<string>?} sortingOrder array of field names to sort by; if given overrides the default sorting order from the Reviews plugin. (Optional)
  * @param {boolean?} dedupeList if true, deduplicate the list by removing projects with multiple 'tags'. (Optional, default is false)
- * @param {boolean?} useDemoList if true, read from allProjectsDemoList.json instead of live list (optional, default is false)
  * @returns {Promise<[Array<Project>, number]>} [sorted projects, count after tag filter only - i.e. length before folder/due/paused/dedupe filters; use tuple[0].length for rows in the sorted list]
  */
 export async function filterAndSortProjectsList(
@@ -835,22 +856,16 @@ export async function filterAndSortProjectsList(
   tag: string = '',
   sortingOrder: Array<string> = [],
   dedupeList?: boolean = false,
-  useDemoList?: boolean = false,
 ): Promise<[Array<Project>, number]> {
-  let allProjectInstances: Array<Project>
-  if (useDemoList) {
-    allProjectInstances = await getAllProjectsFromDemoList()
-  } else {
-    allProjectInstances = await getAllProjectsFromList()
-  }
-  logInfo('filterAndSortProjectsList', `Starting with tag '${tag}' for ${allProjectInstances.length} projects${useDemoList ? ' (demo)' : ''}`)
+  const allProjectInstances = await getAllProjectsFromList()
+  logInfo('filterAndSortProjectsList', `Starting with tag '${tag}' for ${allProjectInstances.length} projects`)
   
   // Filter out projects that are not tagged with the tag
   const projectInstancesForTag = (tag !== '')
     ? allProjectInstances.filter((pi) => pi.allProjectTags.includes(tag))
     : allProjectInstances
 
-  const filteredProjectList = (useDemoList) ? projectInstancesForTag : await filterProjectsList(projectInstancesForTag, config, dedupeList)
+  const filteredProjectList = await filterProjectsList(projectInstancesForTag, config, dedupeList)
 
   const sortedProjectList = sortProjectsList(filteredProjectList, config, sortingOrder) 
   logInfo('filterAndSortProjectsList', `- filtered ${filteredProjectList.length} projects, sorted ${sortedProjectList.length} projects (before perspective filters: ${String(projectInstancesForTag.length)})`)
@@ -882,12 +897,6 @@ export async function updateAllProjectsListAfterChange(
   options?: { skipUpdateDashboardIfOpen?: boolean },
 ): Promise<void> {
   try {
-    if (config.useDemoData ?? false) {
-      logInfo('updateAllProjectsListAfterChange', `Demo mode is on; not updating live notes, but will adjust JSON list if possible for '${filename}'`)
-      // In demo mode we deliberately do not touch live notes or regenerate from them.
-      // We leave the JSON list unchanged here; any in-UI changes should go via updateProjectInAllProjectsList.
-      return
-    }
     if (filename === '') {
       throw new Error('Empty filename passed')
     }
@@ -938,7 +947,7 @@ export async function updateAllProjectsListAfterChange(
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
     }
     // re-form the file
-    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true)
+    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, config)
     logInfo('updateAllProjectsListAfterChange', `- done writing ${allProjects.length} items to updated list 🔸`)
   }
   catch (error) {

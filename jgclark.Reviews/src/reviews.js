@@ -11,10 +11,11 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-05-10 for v2.0.0.b32, @jgclark + @CursorAI
+// Last updated 2026-05-18 for v2.0.0.b37, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
+import { invalidateDashboardPluginSettingsCache } from '../../jgclark.Dashboard/src/dashboardPluginSettings.js'
 import pluginJson from '../plugin.json'
 import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import {
@@ -32,7 +33,6 @@ import {
   updateBodyMetadataInNote,
 } from './reviewHelpers'
 import {
-  copyDemoDefaultToAllProjectsList,
   filterAndSortProjectsList,
   getNextNoteToReview,
   getSpecificProjectFromList,
@@ -68,7 +68,6 @@ import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/fold
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
 import { numberOfOpenItemsInNote } from '@helpers/note'
-import { saveSettings } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getFirstRegularNoteAmongOpenEditors, getOrOpenEditorFromFilename, getOpenEditorFromFilename, isNoteOpenInEditor, saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
@@ -87,7 +86,6 @@ import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInp
 const pluginID = 'jgclark.Reviews'
 export const RICH_PROJECT_LIST_WIN_ID = `${pluginID}.rich-review-list`
 const windowTitle = `Projects List`
-const windowTitleDemo = 'Projects List (Demo)'
 const filenameHTMLCopy = 'projects_list.html'
 const customMarkdownWinId = `markdown-review-list`
 
@@ -229,6 +227,9 @@ async function toggleDisplayFilterKey(
 //-----------------------------------------------------------------------------
 // Main functions
 
+/** Prevents stacked Rich-list re-renders when many callers refresh during a Dashboard perspective switch. */
+let renderProjectListsIfOpenInFlight: boolean = false
+
 /**
  * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
  * Now includes support for calling from x-callback, using full JSON '{"a":"b", "x":"y"}' version of settings and values that will override ones in the user's settings.
@@ -249,10 +250,8 @@ export async function displayProjectLists(argsIn?: string | null = null, scrollP
       // clo(config, 'Review settings with no args:')
     }
 
-    if (!(config.useDemoData ?? false)) {
-      // Re-calculate the allProjects list (in foreground)
-      await generateAllProjectsList(config, true)
-    }
+    // Re-calculate the allProjects list (in foreground)
+    await generateAllProjectsList(config, true)
     // Call the relevant rendering function with the updated config
     await renderProjectLists(config, true, scrollPos)
   } catch (error) {
@@ -261,70 +260,56 @@ export async function displayProjectLists(argsIn?: string | null = null, scrollP
 }
 
 /**
- * Demo variant of project lists.
- * Reads from fixed demo JSON (copied into allProjectsList.json) without regenerating from live notes.
- * @param {string? | null} argsIn as JSON (optional)
- * @param {number?} scrollPos in pixels (optional, for HTML only)
+ * Regenerate `allProjectsList.json` and re-render the Rich project list when open.
+ * Invoked from Dashboard when folder include/exclude filters change (`includedFolders` / `excludedFolders`).
+ * @param {number?} scrollPos - Rich list scroll position (pixels)
+ * @param {boolean?} skipUpdateDashboardIfOpen - when true, skip Dashboard PROJ* invoke (Dashboard refreshes sections itself)
+ * @returns {Promise<any>}
  */
-export async function toggleDemoModeForProjectLists(): Promise<void> {
-  try {
-    const config = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
-    const isCurrentlyDemoMode = config.useDemoData ?? false
-    logInfo('toggleDemoModeForProjectLists', `Demo mode is currently ${isCurrentlyDemoMode ? 'ON' : 'off'}.`)
-    const willBeDemoMode = !isCurrentlyDemoMode
-    // Save a plain object so the value persists (loaded config may be frozen or a proxy)
-    const toSave = { ...config, useDemoData: willBeDemoMode }
-    const saved = await saveSettings(pluginJson['plugin.id'], toSave, false)
-    if (!saved) throw new Error('Failed to save demo mode setting.')
-
-    if (willBeDemoMode) {
-      // Copy the fixed demo list into allProjectsList.json (first time after switching to demo)
-      const copied = await copyDemoDefaultToAllProjectsList()
-      if (!copied) {
-        throw new Error('Failed to copy demo list. Please check that allProjectsDemoListDefault.json exists in data/jgclark.Reviews, and try again.')
-      }
-      logInfo('toggleDemoModeForProjectLists', 'Demo mode is now ON; project list copied from demo default.')
-    } else {
-      // First time after switching away from demo: re-generate list from live notes
-      logInfo('toggleDemoModeForProjectLists', 'Demo mode now off; regenerating project list from notes.')
-      await generateAllProjectsList(toSave, true)
-    }
-
-    // Now run the project lists display
-    await renderProjectLists(toSave, true)
-  } catch (error) {
-    logError('toggleDemoModeForProjectLists', JSP(error))
-  }
+export async function onDashboardFolderFiltersChanged(
+  scrollPos: number = 0,
+  skipUpdateDashboardIfOpen: boolean = true,
+): Promise<any> {
+  logInfo(
+    'onDashboardFolderFiltersChanged',
+    `Dashboard folder filters changed; regenerating allProjectsList (skipUpdateDashboardIfOpen=${String(skipUpdateDashboardIfOpen)})`,
+  )
+  return generateProjectListsAndRenderIfOpen(scrollPos, skipUpdateDashboardIfOpen)
 }
 
 /**
  * Internal version of earlier function that doesn't open window if not already open.
- * @param {number?} scrollPos 
+ * @param {number?} scrollPos
+ * @param {boolean?} skipUpdateDashboardIfOpen - when true, skip Dashboard PROJ* invoke (Dashboard perspective switch sets this; `PERSPECTIVE_CHANGED` refreshes sections instead).
  */
-export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<any> {
+export async function generateProjectListsAndRenderIfOpen(
+  scrollPos: number = 0,
+  skipUpdateDashboardIfOpen: boolean = false,
+): Promise<any> {
   // Note: Errors are caught and logged below (not rethrown) so NotePlan's invokePluginCommandByName from Dashboard
   // does not surface a rejection in a fragile way; the invoke may still appear successful when work failed — check console logs.
   try {
-    const config = await getReviewSettings()
+    let config = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
+    if (config.usePerspectives) {
+      invalidateDashboardPluginSettingsCache()
+      const reloaded = await getReviewSettings()
+      if (reloaded) config = reloaded
+      logInfo(
+        'generateProjectListsAndRenderIfOpen',
+        `usePerspectives: perspective '${config.perspectiveName ?? '?'}' foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}]`,
+      )
+    }
     logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting with scrollPos ${String(scrollPos)}`)
     const richWindowOpen = isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)
     const htmlWindowSummary = NotePlan.htmlWindows.map((w) => `${w.customId ?? '-'}:${w.isVisible ? 'visible' : 'hidden'}`).join(', ')
     logInfo('generateProjectListsAndRenderIfOpen', `pre-render visibility: ${RICH_PROJECT_LIST_WIN_ID} open=${String(richWindowOpen)}; htmlWindows=[${htmlWindowSummary}]`)
 
-    if (config.useDemoData ?? false) {
-      const copied = await copyDemoDefaultToAllProjectsList()
-      if (!copied) {
-        logWarn('generateProjectListsAndRenderIfOpen', 'Demo mode on but copy of demo list failed.')
-      }
-    } else {
-      // Re-calculate the allProjects list (in foreground)
-      await generateAllProjectsList(config, true, scrollPos)
-      logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectListsIfOpen()`)
-    }
+    // Re-calculate the allProjects list (in foreground). Skip Rich invoke from write — render once below (avoids double render per generate).
+    await generateAllProjectsList(config, true, scrollPos, skipUpdateDashboardIfOpen, true)
+    logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectListsIfOpen()`)
 
-    // Call the relevant rendering function, but only continue if relevant window is open
+    // Single in-process Rich/markdown refresh if the list window is already open
     await renderProjectListsIfOpen(config, scrollPos)
     logInfo('generateProjectListsAndRenderIfOpen', `after renderProjectListsIfOpen()`)
     return {} // just to avoid NP silently failing when called by invokePluginCommandByName
@@ -370,6 +355,11 @@ export async function renderProjectListsIfOpen(
   configIn?: any,
   scrollPos?: number = 0
 ): Promise<boolean> {
+  if (renderProjectListsIfOpenInFlight) {
+    logDebug('renderProjectListsIfOpen', `skipped: render already in flight`)
+    return true
+  }
+  renderProjectListsIfOpenInFlight = true
   try {
     logDebug(pluginJson, `renderProjectListsIfOpen starting...`)
     const config = configIn ? configIn : await getReviewSettings()
@@ -382,6 +372,8 @@ export async function renderProjectListsIfOpen(
   } catch (error) {
     logError('renderProjectListsIfOpen', error.message)
     return false
+  } finally {
+    renderProjectListsIfOpenInFlight = false
   }
 }
 
@@ -402,7 +394,6 @@ export async function renderProjectListsHTML(
   scrollPos: number = 0,
 ): Promise<void> {
   try {
-    const useDemoData = config.useDemoData ?? false
     if (config.projectTypeTags.length === 0) {
       throw new Error('No projectTypeTags configured to display')
     }
@@ -415,7 +406,7 @@ export async function renderProjectListsHTML(
 
     const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
     logInfo(pluginJson, `renderProjectLists ------------------------------------`)
-    logDebug('renderProjectListsHTML', `Starting for ${String(config.projectTypeTags)} tags${useDemoData ? ' (demo)' : ''}`)
+    logDebug('renderProjectListsHTML', `Starting for ${String(config.projectTypeTags)} tags`)
 
     // Test to see if we have the font resources we want
     const res = await checkForWantedResources(pluginID)
@@ -431,18 +422,16 @@ export async function renderProjectListsHTML(
     if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
 
     // Fetch project list first so we can compute per-tag active counts for the Filters dropdown
-    const [projectsToReview, _countAfterTagFilterOnly] = await filterAndSortProjectsList(config, '', [], true, useDemoData)
+    const [projectsToReview, _countAfterTagFilterOnly] = await filterAndSortProjectsList(config, '', [], true)
 
     // Omit stale JSON entries whose note no longer exists so the top-bar count matches rendered rows
-    const projectsForDisplay: Array<Project> = useDemoData
-      ? projectsToReview
-      : projectsToReview.filter((p) => {
-          const note = DataStore.projectNoteByFilename(p.filename)
-          if (!note) {
-            logWarn('renderProjectListsHTML', `Can't find note for filename ${p.filename}; omitting from Rich list`)
-          }
-          return !!note
-        })
+    const projectsForDisplay: Array<Project> = projectsToReview.filter((p) => {
+      const note = DataStore.projectNoteByFilename(p.filename)
+      if (!note) {
+        logWarn('renderProjectListsHTML', `Can't find note for filename ${p.filename}; omitting from Rich list`)
+      }
+      return !!note
+    })
 
     const wantedTags = config.projectTypeTags ?? []
     // Counts must match rows in this list (same perspective as the grid); do not strip paused/finished here - those may still be shown.
@@ -460,9 +449,6 @@ export async function renderProjectListsHTML(
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
     const noteCount = projectsForDisplay.length
-    if (useDemoData && noteCount === 0) {
-      outputArray.push('<p class="project-grid-row demo-file-message">Demo file (allProjectsDemoList.json) not found or empty.</p>')
-    }
     if (noteCount > 0) {
       // Start multi-col working (if space)
       outputArray.push(`<div class="multi-cols">`)
@@ -499,7 +485,7 @@ export async function renderProjectListsHTML(
   <meta name="autoUpdateAfterIdleTime" content="${String(config.autoUpdateAfterIdleTime ?? 0)}">`
 
     const winOptions = {
-      windowTitle: useDemoData ? windowTitleDemo : windowTitle,
+      windowTitle: windowTitle,
       customId: richWinId,
       headerTags: headerTags,
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
@@ -524,7 +510,7 @@ export async function renderProjectListsHTML(
       iconColor: pluginJson['plugin.iconColor'],
       autoTopPadding: true,
       showReloadButton: true,
-      reloadCommandName: useDemoData ? 'displayProjectListsDemo' : 'displayProjectLists',
+      reloadCommandName: 'displayProjectLists',
       reloadPluginID: 'jgclark.Reviews',
     }
     const thisWindow = await showHTMLV2(body, winOptions)
