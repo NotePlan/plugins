@@ -608,8 +608,8 @@ export class Project {
         this.calculatePercentComplete(numberDaysForFutureToIgnore)
       }
 
-      // If we want to track next actions, find any tagged next actions or sequential first open task/checklist
-      if (nextActionTags.length > 0 || sequentialTag !== '') {
+      // If we want to track next actions, find any tagged next actions or sequential first open task/checklist (not for completed/cancelled projects)
+      if ((nextActionTags.length > 0 || sequentialTag !== '') && !this.isCompleted && !this.isCancelled) {
         this.gatherAnyNextActionContent(nextActionTags, paras, sequentialTag, Array.from(hashtags ?? []), metadataLine)
       }
 

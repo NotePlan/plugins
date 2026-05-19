@@ -1,4 +1,4 @@
-/* globals describe, expect, test, beforeAll */
+/* globals describe, expect, test, beforeAll, beforeEach */
 // @flow
 
 import { Project } from '../projectClass'
@@ -12,6 +12,19 @@ beforeAll(() => {
     updateCache: jest.fn(),
   }
   preferenceValues['projectMetadataFrontmatterKey'] = 'project'
+  preferenceValues['startMentionStr'] = '@start'
+  preferenceValues['dueMentionStr'] = '@due'
+  preferenceValues['reviewedMentionStr'] = '@reviewed'
+  preferenceValues['completedMentionStr'] = '@completed'
+  preferenceValues['cancelledMentionStr'] = '@cancelled'
+  preferenceValues['reviewIntervalMentionStr'] = '@review'
+  preferenceValues['nextReviewMentionStr'] = '@nextReview'
+  preferenceValues['ignoreChecklistsInProgress'] = true
+  preferenceValues['numberDaysForFutureToIgnore'] = 0
+})
+
+beforeEach(() => {
+  global.DataStore.updateCache.mockClear()
 })
 
 /**
@@ -88,5 +101,66 @@ describe('Project.gatherAnyNextActionContent', () => {
     const paras = [makeOpenPara(`Only future ${farFutureSchedule}`, `- Only future ${farFutureSchedule}`)]
     const result = gatherNextActions(note, paras, [], '#sequential', ['#sequential'], '#project #sequential')
     expect(result).toHaveLength(0)
+  })
+})
+
+describe('Project constructor: next actions on completed/cancelled projects', () => {
+  test('does not gather next actions when project is completed', () => {
+    const note = new Note({
+      title: 'Done project',
+      filename: 'done-project.md',
+      content:
+        '---\n' +
+        'project: #project @completed(2026-01-15)\n' +
+        '---\n' +
+        '# Done project\n' +
+        '#project\n' +
+        '- [ ] Open task #na\n',
+    })
+
+    const project = new Project((note: any), '', false, ['#na'], '')
+
+    expect(project.isCompleted).toBe(true)
+    expect(project.nextActionsRawContent).toHaveLength(0)
+  })
+
+  test('does not gather next actions when project is cancelled', () => {
+    const note = new Note({
+      title: 'Cancelled project',
+      filename: 'cancelled-project.md',
+      content:
+        '---\n' +
+        'project: #project @cancelled(2026-01-15)\n' +
+        '---\n' +
+        '# Cancelled project\n' +
+        '#project\n' +
+        '- [ ] Open task #na\n',
+    })
+
+    const project = new Project((note: any), '', false, ['#na'], '')
+
+    expect(project.isCancelled).toBe(true)
+    expect(project.nextActionsRawContent).toHaveLength(0)
+  })
+
+  test('gathers next actions for active projects', () => {
+    const note = new Note({
+      title: 'Active project',
+      filename: 'active-project.md',
+      content:
+        '---\n' +
+        'project: #project\n' +
+        '---\n' +
+        '# Active project\n' +
+        '#project\n' +
+        '- [ ] Do now #na\n',
+    })
+
+    const project = new Project((note: any), '', false, ['#na'], '')
+
+    expect(project.isCompleted).toBe(false)
+    expect(project.isCancelled).toBe(false)
+    expect(project.nextActionsRawContent).toHaveLength(1)
+    expect(project.nextActionsRawContent[0]).toContain('Do now #na')
   })
 })

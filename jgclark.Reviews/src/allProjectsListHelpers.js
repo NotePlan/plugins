@@ -10,7 +10,7 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
-import { calcReviewFieldsForProject } from './projectClassCalculations.js'
+import { calcReviewFieldsForProject, isProjectFinished } from './projectClassCalculations.js'
 import { getReviewSettings, updateDashboardIfOpen, updateRichProjectListIfOpen } from './reviewHelpers.js'
 import type { ReviewConfig } from './reviewHelpers.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -772,7 +772,7 @@ export async function filterProjectsList(
     const displayFinished = config.displayFinished ?? false
     // if (displayFinished === 'hide') {
     if (!displayFinished) {
-      projectInstances = projectInstances.filter((pi) => !pi.isCompleted).filter((pi) => !pi.isCancelled)
+      projectInstances = projectInstances.filter((pi) => !isProjectFinished(pi))
       logDebug('filterProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
     }
 

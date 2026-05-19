@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-05-18 for v2.0.0.b37, @jgclark + @CursorAI
+// Last updated 2026-05-19 for v2.0.0.b39, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -552,7 +552,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
 
     // style the x-callback URLs into markdown 'button' links
     const reviewedXCallbackButton = `[Finish](${reviewedXCallbackURL})`
-    const nextReviewXCallbackButton = `[Finish + Next](${nextReviewXCallbackURL})`
+    const nextReviewXCallbackButton = `[Finish+Next](${nextReviewXCallbackURL})`
     const newIntervalXCallbackButton = `[New Review Interval](${newIntervalXCallbackURL})`
     const addProgressXCallbackButton = `[Add progress](${addProgressXCallbackURL})`
     const pauseXCallbackButton = `[toggle Pause](${pauseXCallbackURL})`

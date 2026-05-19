@@ -367,15 +367,7 @@
     },
     {
       "type": "heading",
-      "title": "Calculating Completion"
-    },
-    {
-      "key": "numberDaysForFutureToIgnore",
-      "title": "Ignore tasks set more than these days in the future",
-      "description": "If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 1 day: all items with future scheduled dates are ignored.)",
-      "type": "number",
-      "default": 1,
-      "required": true
+      "title": "Calculating Progress"
     },
     {
       "key": "ignoreChecklistsInProgress",
@@ -383,6 +375,14 @@
       "description": "If set, then checklists in progress will not be counted as part of the project's completion percentage.",
       "type": "bool",
       "default": true,
+      "required": true
+    },
+    {
+      "key": "numberDaysForFutureToIgnore",
+      "title": "Ignore tasks set more than these days in the future",
+      "description": "If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 1 day: all items with future scheduled dates are ignored.)",
+      "type": "number",
+      "default": 1,
       "required": true
     },
     {

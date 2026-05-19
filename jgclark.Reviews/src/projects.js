@@ -206,7 +206,7 @@ async function promptProjectCloseoutInputs(actionType: 'completed' | 'cancelled'
         submitText: `${actionWord} Project`,
         fields: [
           { type: 'bool', key: 'archiveProject', title: 'Archive project note?', default: true, required: true },
-          { type: 'string', key: 'summaryDestination', title: 'Add summary line to a calendar note?', choices: ['Quarterly', 'Yearly', 'none'], default: 'yearly', required: true },
+          { type: 'string', key: 'summaryDestination', title: 'Add summary line to a calendar note?', choices: ['none', 'Quarterly', 'Yearly'], default: 'yearly', required: true },
           { type: 'string', key: 'finalProgressComment', title: 'Final progress comment (optional)', description: "Optional final comments to add as a 'Progress' line", required: false, placeholder: 'Optional final comments' },
         ],
       })

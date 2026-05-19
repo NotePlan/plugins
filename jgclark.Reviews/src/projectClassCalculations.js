@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class calculations for Project & Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-04-30 for v2.0.0.b27, @Cursor
+// Last updated 2026-05-19 for v2.0.0.b36, @Cursor
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -21,6 +21,8 @@ type ProjectUpdates = {
   nextReviewDays?: number,
   completedDuration?: ?string,
   cancelledDuration?: ?string,
+  isCompleted?: boolean,
+  isCancelled?: boolean,
 }
 
 /**
@@ -54,8 +56,8 @@ function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = 
     numTotalItems: project.numTotalItems,
     numWaitingItems: project.numWaitingItems,
     numFutureItems: project.numFutureItems,
-    isCompleted: project.isCompleted,
-    isCancelled: project.isCancelled,
+    isCompleted: updates.isCompleted !== undefined ? updates.isCompleted : project.isCompleted,
+    isCancelled: updates.isCancelled !== undefined ? updates.isCancelled : project.isCancelled,
     isPaused: project.isPaused,
     percentComplete: project.percentComplete,
     lastProgressComment: project.lastProgressComment,
@@ -98,6 +100,42 @@ function normaliseISODateString(dateStrIn: ?string, context: string): ?string {
 
   logWarn('normaliseISODateString', `Invalid date string '${dateStrIn}' for ${context}; treating as null`)
   return null
+}
+
+/**
+ * Whether a project is completed or cancelled (flags and/or separate frontmatter dates).
+ * @param {Project | any} project
+ * @returns {boolean}
+ */
+export function isProjectFinished(project: Project | any): boolean {
+  if (project.isCancelled || project.isCompleted) {
+    return true
+  }
+  const cancelledDate = project.cancelledDate
+  const completedDate = project.completedDate
+  return (cancelledDate != null && cancelledDate !== '') || (completedDate != null && completedDate !== '')
+}
+
+/**
+ * Align isCompleted / isCancelled / nextReviewDays with completedDate and cancelledDate (matches Project constructor).
+ * Cancelled takes precedence when both dates are present.
+ * @param {Project} thisProjectIn
+ * @returns {Project}
+ */
+export function syncProjectFinishedFlagsFromDates(thisProjectIn: Project): Project {
+  const hasCancelledDate = thisProjectIn.cancelledDate != null && thisProjectIn.cancelledDate !== ''
+  const hasCompletedDate = thisProjectIn.completedDate != null && thisProjectIn.completedDate !== ''
+  let isCancelled = Boolean(thisProjectIn.isCancelled)
+  let isCompleted = Boolean(thisProjectIn.isCompleted)
+  if (hasCancelledDate) {
+    isCancelled = true
+    isCompleted = false
+  } else if (hasCompletedDate) {
+    isCompleted = true
+    isCancelled = false
+  }
+  const nextReviewDays = (isCancelled || isCompleted) ? NaN : thisProjectIn.nextReviewDays
+  return createImmutableProjectCopy(thisProjectIn, { isCancelled, isCompleted, nextReviewDays })
 }
 
 /**
@@ -144,12 +182,17 @@ export function calcDurationsForProject(thisProjectIn: Project): Project {
  */
 export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
   try {
+    const synced = syncProjectFinishedFlagsFromDates(thisProjectIn)
+    if (synced.isCancelled || synced.isCompleted) {
+      return calcDurationsForProject(synced)
+    }
+
     const now = moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
 
-    let nextReviewDateStr: ?string = thisProjectIn.nextReviewDateStr
-    let nextReviewDays: number = thisProjectIn.nextReviewDays
+    let nextReviewDateStr: ?string = synced.nextReviewDateStr
+    let nextReviewDays: number = synced.nextReviewDays
 
-    const rawStartDateIn = thisProjectIn.startDate
+    const rawStartDateIn = synced.startDate
     const startDateIn = normaliseISODateString(rawStartDateIn, 'startDate')
     if (startDateIn != null) {
       const momTSD = moment(startDateIn)
@@ -160,16 +203,16 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
       }
     }
 
-    const rawNextReviewDateStrIn = thisProjectIn.nextReviewDateStr
+    const rawNextReviewDateStrIn = synced.nextReviewDateStr
     const normalisedNextReviewDateStr = normaliseISODateString(rawNextReviewDateStrIn, 'nextReviewDateStr')
 
     if (normalisedNextReviewDateStr != null) {
       nextReviewDateStr = normalisedNextReviewDateStr
       nextReviewDays = daysBetween(now, normalisedNextReviewDateStr)
-    } else if (thisProjectIn.reviewInterval != null) {
-      const reviewedDateIn = thisProjectIn.reviewedDate
+    } else if (synced.reviewInterval != null) {
+      const reviewedDateIn = synced.reviewedDate
       if (typeof reviewedDateIn === 'string' && reviewedDateIn !== '') {
-        const calculatedNextReviewDateStr = calcNextReviewDate(reviewedDateIn, thisProjectIn.reviewInterval)
+        const calculatedNextReviewDateStr = calcNextReviewDate(reviewedDateIn, synced.reviewInterval)
         const hasValidCalculated = calculatedNextReviewDateStr != null && calculatedNextReviewDateStr !== ''
         if (hasValidCalculated) {
           const safeCalculatedNextReviewDateStr = normaliseISODateString(calculatedNextReviewDateStr, 'calculatedNextReviewDateStr')
@@ -179,7 +222,7 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
           } else {
             nextReviewDateStr = moment().format('YYYY-MM-DD')
             nextReviewDays = 0
-            logWarn('calcReviewFieldsForProject', `Could not normalise calculated nextReviewDate '${String(calculatedNextReviewDateStr)}' for project '${thisProjectIn.title}'; using today`)
+            logWarn('calcReviewFieldsForProject', `Could not normalise calculated nextReviewDate '${String(calculatedNextReviewDateStr)}' for project '${synced.title}'; using today`)
           }
         } else {
           nextReviewDateStr = moment().format('YYYY-MM-DD')
@@ -192,10 +235,10 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
       }
     }
 
-    return createImmutableProjectCopy(thisProjectIn, {
+    return calcDurationsForProject(createImmutableProjectCopy(synced, {
       nextReviewDateStr,
       nextReviewDays,
-    })
+    }))
   } catch (error) {
     logError('calcReviewFieldsForProject', `${error.message} in project '${thisProjectIn.title}'`)
     return thisProjectIn

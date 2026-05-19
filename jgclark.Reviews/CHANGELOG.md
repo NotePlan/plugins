@@ -2,7 +2,10 @@
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
 ## [2.0.0.b36] - 2026-05-19
+- fix: Markdown project lists now include cancelled projects (with `[-]` title prefix and cancelled date line) when **Show completed/cancelled projects?** is on — cached list rows with a `cancelled` frontmatter date but a stale `isCancelled` flag are recognised again
+- tweaks to Markdown style output
 - change: when it is looking for "next action" tasks to show, when using "sequential" logic it now skips future-dated tasks. However, if marking a task explicitly as a next action (using your specific `#na`) tag, it will still use it if future-dated.
+- change: project lists (Rich and Markdown) no longer show next actions for completed or cancelled projects (`Project` constructor skips gathering them).
 
 ## [2.0.0.b35] - 2026-05-18
 - dev: added `onDashboardFolderFiltersChanged` — hidden command invoked from Dashboard when folder include/exclude filters change; regenerates `allProjectsList.json` and re-renders Rich list when open (`skipUpdateDashboardIfOpen` default true).

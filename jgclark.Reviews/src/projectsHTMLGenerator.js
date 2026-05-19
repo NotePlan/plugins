@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-05-18 for v2.0.0.b35, @CursorAI & @jgclark
+// Last updated 2026-05-19 for v2.0.0.b39, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -376,10 +376,10 @@ function formatProjectTitleForStyle(thisProject: Project, style: string, config:
     case 'Markdown': {
       const folderNamePart = config.showFolderName ? getFolderDisplayName(thisProject.folder, true) : ''
       
-      if (thisProject.isCompleted) {
-        return `[x] ${folderNamePart}[[${titlePart}]]`
-      } else if (thisProject.isCancelled) {
+      if (thisProject.isCancelled) {
         return `[-] ${folderNamePart}[[${titlePart}]]`
+      } else if (thisProject.isCompleted) {
+        return `[x] ${folderNamePart}[[${titlePart}]]`
       } else if (thisProject.isPaused) {
         return `⏸ **Paused**: ${folderNamePart}[[${titlePart}]]`
       } else {
@@ -390,10 +390,10 @@ function formatProjectTitleForStyle(thisProject: Project, style: string, config:
     case 'list': {
       const folderNamePart = config.showFolderName ? getFolderDisplayName(thisProject.folder, true) : ''
       const folderPrefix = folderNamePart!=='' ? `${folderNamePart} / ` : ''
-      if (thisProject.isCompleted) {
-        return `${folderPrefix}[[${titlePart}]]`
-      } else if (thisProject.isCancelled) {
+      if (thisProject.isCancelled) {
         return `~~${folderPrefix}[[${titlePart}]]~~`
+      } else if (thisProject.isCompleted) {
+        return `${folderPrefix}[[${titlePart}]]`
       } else if (thisProject.isPaused) {
         return `⏸ **Paused**: ${folderPrefix}[[${titlePart}]]`
       } else {
@@ -423,42 +423,46 @@ function formatMarkdownProjectLine(thisProject: Project, config: any, style: str
   parts.push(formatProjectTitleForStyle(thisProject, style, config))
 
   if (config.displayDates && !thisProject.isPaused) {
-    if (thisProject.isCompleted) {
-      const completionRef = thisProject.completedDuration || "completed"
-      parts.push(`\t(Completed ${completionRef})`)
-    } else if (thisProject.isCancelled) {
+    if (thisProject.isCancelled) {
       const cancellationRef = thisProject.cancelledDuration || "cancelled"
       parts.push(`\t(Cancelled ${cancellationRef})`)
+    } else if (thisProject.isCompleted) {
+      const completionRef = thisProject.completedDuration || "completed"
+      parts.push(`\t(Completed ${completionRef})`)
     }
   }
 
+  let metadataLine = ''
   if (config.displayProgress && !thisProject.isCompleted && !thisProject.isCancelled) {
     if (thisProject.lastProgressComment !== '') {
-      parts.push(`\t${thisPercent} done: ${thisProject.lastProgressComment}`)
+      metadataLine += `${thisPercent} done: ${thisProject.lastProgressComment}`
     } else {
-      parts.push(`\t${statsProgress}`)
+      metadataLine += `${statsProgress}`
     }
   }
 
   if (config.displayDates && !thisProject.isPaused && !thisProject.isCompleted && !thisProject.isCancelled) {
     if (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) {
-      parts.push(`\tdue ${localeRelativeDateFromNumber(thisProject.dueDays)}`)
+      metadataLine += `. Due ${localeRelativeDateFromNumber(thisProject.dueDays)}`
     }
     if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
       const reviewDate = localeRelativeDateFromNumber(thisProject.nextReviewDays)
       if (thisProject.nextReviewDays > 0) {
-        parts.push(`\tReview ${reviewDate}`)
+        metadataLine += `. Review ${reviewDate}`
       } else {
-        parts.push(`\tReview due **${reviewDate}**`)
+        metadataLine += `. Review due **${reviewDate}**`
       }
     }
+  }
+  if (metadataLine !== '') {
+    parts.push(`\n\t${metadataLine}`)
   }
 
   // Add nextAction output if wanted and it exists
   if (config.displayNextActions && thisProject.nextActionsRawContent.length > 0 && !thisProject.isCompleted && !thisProject.isCancelled) {
     const nextActionsContent: Array<string> = thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
     for (const nextActionContent of nextActionsContent) {
-      parts.push(`\n\t- Next action: ${nextActionContent}`)
+      parts.push(`\n\tNext action: ${nextActionContent}`)
     }
   }
 
