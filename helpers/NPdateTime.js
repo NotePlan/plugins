@@ -820,11 +820,6 @@ export function pad(n: number): string {
  */
 export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
   try {
-    // if (NotePlan?.environment?.buildVersion < 876 ?? true) {
-    //   // to allow NPDateTime.test.js to run
-    //   throw new Error('Sorry; week API calls requires NotePlan v3.7 or newer.')
-    // }
-
     let dateStrFormat = 'YYYY-MM-DD',
       newMom
     if (typeof dateIn === 'string') {
@@ -847,8 +842,8 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
     let endDate: Date
     // This might be run from React side, where Calendar.* is not available.
     // If this happens, then instead offer the ISO week number.
-    if (!Calendar || typeof Calendar !== 'object') {
-      logInfo('NPdateTime::getNPWeekData', `NP's Calendar API functions are not available, so I will use moment instead. This doesn't know what your chosen first day of week is.`)
+    if (!Calendar || typeof Calendar !== 'object' || typeof Calendar.weekNumber !== 'function') {
+      logDebug('NPdateTime::getNPWeekData', `NP's Calendar API functions are not available, so I will use moment instead. This doesn't know what your chosen first day of week is.`)
       weekNumber = newMom.week() // uses moment locale
       startDate = newMom.startOf('week').toDate()
       endDate = newMom.endOf('week').toDate()
@@ -1142,18 +1137,30 @@ export function localeRelativeDateFromNumber(diffIn: number, useShortStyle: bool
   return output
 }
 
+/** 
+ * Local Copy of the type RelativeDate from helpers/react/dateStrings.js
+ * WARNING: Deprecated, along with its associated function. Use helpers/dateStrings.js instead.
+ */
+type RelativeDateWithNote = {
+  relName: string,
+  dateStr: string,
+  note: ?TNote,
+}
+
 /**
+ * WARNING: DEPRECATED: This function is deprecated from NP v3.21. Use helpers/NPDateStrings.js instead, as that now uses the NotePlan API if available, or falls back to a simpler implementation if not available.
+ * Note: This should really now be called getRelativeDatesWithNotes(), as it returns the note objects; the type name is now correct at least, to flag this.
+ * 
  * Get array of dates relative to today for day, week and month. Returns a list of objects with the following properties:
  * - relName: string - the relative date name (e.g. 'today', 'yesterday', 'in 2 days', 'this week', 'last week', 'next week', 'this month', 'last month', 'next month', 'this quarter', 'last quarter', 'next quarter')
  * - dateStr: string - the date string in the format of the note title (e.g. '2025-01-01', '2025-01-02', '2025-01-03', '2025-01-04', '2025-01-05', '2025-01-06', '2025-01-07', '2025-01-08', '2025-01-09', '2025-01-10')
  * - note: TNote - the note object for the relative date (if available)
- * WARNING: This requires DataStore.calendarNoteByDateString to be available; if not it returns an empty array.
- * Note: See React/HTML-safe version in dateString.js 
+ *
  * @author @jgclark
  * @param {boolean?} useISODailyDates? - if true, use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
- * @returns {Array<{relName:string, dateStr:string, note:?TNote}>} relative date name, relative date string, TNote for that relative date
+ * @returns {Array<RelativeDate>} relative date name, relative date string, TNote for that relative date
  */
-export function getRelativeDates(useISODailyDates: boolean = false): Array<{ relName: string, dateStr: string, note: ?TNote }> {
+export function getRelativeDates(useISODailyDates: boolean = false): Array<RelativeDateWithNote> {
   try {
     const relativeDates = []
     const todayMom = moment()
@@ -1166,7 +1173,7 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<{ rel
     // DataStore exists but calendarNoteByDateString can be undefined in WebView or when invoked across plugins
     // console.log(`typeof DataStore.calendarNoteByDateString = '${(typeof DataStore.calendarNoteByDateString)}'`)
     if (typeof DataStore.calendarNoteByDateString !== 'function') {
-      logWarn('NPdateTime::getRelativeDates', `NP DataStore.calendarNoteByDateString function is not available, so returning an empty set. Look at using helpers/react/dateStrings.js instead?`)
+      logWarn('NPdateTime::getRelativeDates', `NP DataStore.calendarNoteByDateString function is not available, so returning an empty set. Look at using helpers/NPDateStrings.js instead?`)
       return []
     }
 
@@ -1257,8 +1264,58 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<{ rel
     return relativeDates
   } catch (err) {
     logError('getRelativeDates', `${err.name}: ${err.message}`)
-    // $FlowIgnore[prop-missing]
-    return [{}] // for completeness
+    return [] // for completeness
+  }
+}
+
+// Pre-compute relative dates for use in various functions below.
+// Note: use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
+const relativeDatesISO = getRelativeDates(true)
+// const relativeDatesNP = getRelativeDates(false) // wasn't being used
+
+/**
+ * Get the date string (YYYY-MM-DD etc.) from a relative date string (e.g. 'today', 'tomorrow', 'yesterday', 'this week', 'next week', 'last week', 'this month', 'next month', 'last month', 'this year', 'next year', 'last year').
+ * If there's no match, returns an empty string.
+ * @param {string} relDateStr
+ * @returns {string}
+ */
+export function getDateStrFromRelativeDateString(relDateStr: string): string {
+  for (const rd of relativeDatesISO) {
+    if (relDateStr === rd.relName) {
+      return rd.dateStr
+    }
+  }
+  return ''
+}
+
+/**
+ * V2 of displayTitle that optionally adds the relative date string after relevant calendar note titles, to make it easier to spot last/this/next D/W/M/Q
+ * Note: that this returns ISO title for daily notes (YYYY-MM-DD) not the one from the filename. This is different from the original displayTitle.
+ * Note: Developed from simpler version in helpers/general.js, but needed here anyway to avoid a circular dependency
+ * @param {CoreNoteFields} noteIn
+ * @param {boolean} showRelativeDates? (default: true)
+ * @param {boolean} showFolderPath? (default: false)
+ * @returns {string}
+ */
+export function displayTitleWithRelDate(
+  noteIn: CoreNoteFields,
+  showRelativeDates: boolean = true,
+  showFolderPath: boolean = false,
+): string {
+  if (noteIn.type === 'Calendar') {
+    let calNoteTitle = dt.getDateStringFromCalendarFilename(noteIn.filename, true) ?? '(error)'
+    if (showRelativeDates) {
+      for (const rd of relativeDatesISO) {
+        if (calNoteTitle === rd.dateStr) {
+          // logDebug('displayTitleWithRelDate',`Found match with ${rd.dateStr} => ${rd.relName}`)
+          calNoteTitle = `${rd.dateStr}\t(${rd.relName})`
+          break
+        }
+      }
+    }
+    return calNoteTitle
+  } else {
+    return showFolderPath ? getDisplayTitleAndPathForRegularNote(noteIn) : noteIn.title ?? '(error)'
   }
 }
 
@@ -1351,53 +1408,6 @@ export function getShortOffsetDateFromDateString(dateStrA: string, dateStrBIn: s
   } catch (e) {
     logError('dateTime / getShortOffsetDateFromDateString', e.message)
     return ['(error)', '(error)']
-  }
-}
-
-// Pre-compute relative dates for use in various functions below.
-// Note: use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
-const relativeDatesISO = getRelativeDates(true)
-const relativeDatesNP = getRelativeDates(false)
-
-/**
- * Get the date string (YYYY-MM-DD etc.) from a relative date string (e.g. 'today', 'tomorrow', 'yesterday', 'this week', 'next week', 'last week', 'this month', 'next month', 'last month', 'this year', 'next year', 'last year').
- * If there's no match, returns an empty string.
- * @param {string} relDateStr
- * @returns {string}
- */
-export function getDateStrFromRelativeDateString(relDateStr: string): string {
-  for (const rd of relativeDatesISO) {
-    if (relDateStr === rd.relName) {
-      return rd.dateStr
-    }
-  }
-  return ''
-}
-
-/**
- * V2 of displayTitle that optionally adds the relative date string after relevant calendar note titles, to make it easier to spot last/this/next D/W/M/Q
- * Note: that this returns ISO title for daily notes (YYYY-MM-DD) not the one from the filename. This is different from the original displayTitle.
- * Note: Developed from simpler version inhelpers/general.js, but needed here anyway to avoid a circular dependency
- * @param {CoreNoteFields} noteIn
- * @param {boolean} showRelativeDates? (default: false)
- * @param {boolean} showFolderPath? (default: false)
- * @returns {string}
- */
-export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDates: boolean = true, showFolderPath: boolean = false): string {
-  if (noteIn.type === 'Calendar') {
-    let calNoteTitle = dt.getDateStringFromCalendarFilename(noteIn.filename, true) ?? '(error)'
-    if (showRelativeDates) {
-      for (const rd of relativeDatesISO) {
-        if (calNoteTitle === rd.dateStr) {
-          // logDebug('displayTitleWithRelDate',`Found match with ${rd.dateStr} => ${rd.relName}`)
-          calNoteTitle = `${rd.dateStr}\t(${rd.relName})`
-          break
-        }
-      }
-    }
-    return calNoteTitle
-  } else {
-    return showFolderPath ? getDisplayTitleAndPathForRegularNote(noteIn) : noteIn.title ?? '(error)'
   }
 }
 
