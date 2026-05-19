@@ -6,8 +6,8 @@
 
 import { getNoteDecorationForReact } from '@helpers/NPnote'
 import { logDebug, logInfo } from '@helpers/dev'
-import { getRelativeDates } from '@helpers/NPdateTime'
-import { getRelativeDates as getRelativeDatesReact } from '@helpers/react/dateStrings'
+// import { getRelativeDates } from '@helpers/NPdateTime'
+import { getRelativeDates, type RelativeDate } from '@helpers/NPDateStrings'
 
 /**
  * Type definition for note options used in React components
@@ -167,16 +167,21 @@ function relNameToTemplateRunnerFormat(relName: string): ?string {
  * Get relative notes as NoteOption format for React components
  * Uses getRelativeDates() and converts to NoteOption format with TemplateRunner-compatible values
  * @param {boolean} includeDecoration - Whether to include decoration info (default: false)
- * @returns {Array<NoteOption>} Array of relative note options
+ * @returns {Promise<Array<NoteOption>>} Array of relative note options
  */
-export function getRelativeNotesAsOptions(includeDecoration: boolean = false): Array<NoteOption> {
+export async function getRelativeNotesAsOptions(includeDecoration: boolean = false): Promise<Array<NoteOption>> {
   try {
     logInfo('getRelativeNotesAsOptions', `Starting, with DataStore: ${typeof DataStore}`)
     // Use React-safe version when NotePlan API is not available (e.g. WebView or cross-plugin context)
-    const hasCalendarNoteByDateString =
-      typeof DataStore !== 'undefined' && typeof DataStore?.calendarNoteByDateString === 'function'
-    const relativeDates = hasCalendarNoteByDateString ? getRelativeDates(true) : getRelativeDatesReact(true) // Use ISO daily dates
-    const relativeNotes: Array<NoteOption> = []
+    // const hasCalendarNoteByDateString = DataStore && typeof DataStore === 'object' && typeof DataStore.calendarNoteByDateString === 'function'
+    // Note: Now uses updated helpers/react/dateStrings.js to get relative dates, which uses the NotePlan API if available, or falls back to a simpler implementation if not available.
+    const relativeDates: Array<RelativeDate> = await getRelativeDates(true) // Use ISO daily dates
+
+    if (relativeDates.length === 0) {
+      throw new Error('No relative dates found')
+    }
+
+    const relativeNoteOptions: Array<NoteOption> = []
 
     for (const rd of relativeDates) {
       if (!rd.relName || !rd.dateStr) {
@@ -213,7 +218,7 @@ export function getRelativeNotesAsOptions(includeDecoration: boolean = false): A
         }
       }
 
-      relativeNotes.push(option)
+      relativeNoteOptions.push(option)
     }
 
     // Also add special options that TemplateRunner supports
@@ -242,10 +247,10 @@ export function getRelativeNotesAsOptions(includeDecoration: boolean = false): A
         }
       }
 
-      relativeNotes.push(option)
+      relativeNoteOptions.push(option)
     }
 
-    return relativeNotes
+    return relativeNoteOptions
   } catch (error) {
     logDebug('noteHelpers', `Failed to get relative notes: ${error.message}`)
     return []
