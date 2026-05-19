@@ -66,9 +66,9 @@ function noteMatchesSpace(note: TNote, includeAllSpaces: boolean, spaceId: strin
  * @param {boolean} params.includeDecoration - Include note decoration metadata (default: true)
  * @param {string} params.space - Space ID to filter by: empty string / omitted = Private only; teamspace UUID = that space; `'__all__'` = all accessible spaces (private + teamspaces per flags below)
  * @param {Object} pluginJson - Plugin JSON object for logging
- * @returns {RequestResponse}
+ * @returns {Promise<RequestResponse>}
  */
-export function getNotes(
+export async function getNotes(
   params: {
     includeCalendarNotes?: boolean,
     includePersonalNotes?: boolean,
@@ -78,7 +78,7 @@ export function getNotes(
     space?: string, // Space ID ('' = Private, UUID = teamspace, '__all__' = all spaces)
   } = {},
   pluginJson: any,
-): RequestResponse {
+): Promise<RequestResponse> {
   try {
     const includeCalendarNotes = params.includeCalendarNotes ?? false
     const includePersonalNotes = params.includePersonalNotes ?? true
@@ -105,7 +105,7 @@ export function getNotes(
     }
 
     if (includeRelativeNotes) {
-      const relativeNotes = getRelativeNotesAsOptions(includeDecoration)
+      const relativeNotes = await getRelativeNotesAsOptions(includeDecoration)
       allNotes.push(...relativeNotes)
     }
 

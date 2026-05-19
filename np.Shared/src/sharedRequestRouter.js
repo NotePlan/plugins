@@ -42,7 +42,7 @@ export async function handleSharedRequest(requestType: string, params: Object = 
       case 'getFolders':
         return getFolders(params, pluginJson)
       case 'getNotes':
-        return getNotes(params, pluginJson)
+        return await getNotes(params, pluginJson)
       case 'getHashtags':
         return getHashtags(params, pluginJson)
       case 'getMentions':
