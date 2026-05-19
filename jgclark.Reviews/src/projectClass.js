@@ -37,6 +37,7 @@ import {
   RE_DATE,
   RE_DATE_INTERVAL,
   includesScheduledFurtherFutureDate,
+  includesScheduledFutureDate,
   todaysDateISOString,
   toISODateString,
 } from '@helpers/dateTime'
@@ -1133,23 +1134,25 @@ gatherAnyNextActionContent(nextActionTags: Array < string >, paras: Array < Para
       }
     }
 
-    // First, look for tagged next actions - use the first one found
+    // First, look for tagged next actions - use the first non-future-scheduled one found
     for (const nextActionTag of nextActionTags) {
       const nextActionParas = paras.filter(isOpen).filter((p) => p.content.match(nextActionTag))
+      const eligibleNextAction = nextActionParas.find((p) => !includesScheduledFutureDate(p.content))
 
-      if (nextActionParas.length > 0) {
-        const thisNextAction = nextActionParas[0].rawContent
+      if (eligibleNextAction) {
+        const thisNextAction = eligibleNextAction.rawContent
         this.nextActionsRawContent.push(thisNextAction)
         logDebug('gatherAnyNextActionContent', `  - found nextActionRawContent <${thisNextAction}>`)
         return // Found a tagged action, so we're done (at most 1 next action)
       }
     }
 
-    // If no tagged next actions found, and hasSequentialTag is true, use first open item
+    // If no tagged next actions found, and hasSequentialTag is true, use first open non-future item
     if (hasSequentialTag) {
       const firstOpenParas = paras.filter(isOpen)
-      if (firstOpenParas.length > 0) {
-        const firstOpenAction = firstOpenParas[0].rawContent
+      const eligibleOpenAction = firstOpenParas.find((p) => !includesScheduledFutureDate(p.content))
+      if (eligibleOpenAction) {
+        const firstOpenAction = eligibleOpenAction.rawContent
         this.nextActionsRawContent.push(firstOpenAction)
         logDebug('gatherAnyNextActionContent', `  - found sequential nextActionRawContent <${firstOpenAction}>`)
       }

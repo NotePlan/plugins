@@ -324,6 +324,8 @@ When the command finishes, a dialog reports how many notes **actually** had a su
 ## Capturing and Displaying 'Next Actions'
 Part of the "Getting Things Done" methodology is to be clear what your **next action** is. If you put a standard tag on such actionable tasks/checklists (e.g. `#na` or `#next` — default is `#na`) and set that in the plugin settings, the project list shows that next action after the progress summary. Only the first matching item is shown; if there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist in the note is shown instead. You can set several next-action tags (e.g. `#na` for things you can do, `#waiting` for things you're waiting on others).
 
+Note: **Future-scheduled tasks are ignored** when choosing a next action using the 'sequential' method.
+
 The **Dashboard Plugin** has 2 possible Project Sections, and these can also show the 'next actions' for a project.
 
 Another approach comes from user George C:

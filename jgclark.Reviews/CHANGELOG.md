@@ -1,6 +1,9 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.0.0.b36] - 2026-05-19
+- change: when it is looking for "next action" tasks to show, when using "sequential" logic it now skips future-dated tasks. However, if marking a task explicitly as a next action (using your specific `#na`) tag, it will still use it if future-dated.
+
 ## [2.0.0.b35] - 2026-05-18
 - dev: added `onDashboardFolderFiltersChanged` — hidden command invoked from Dashboard when folder include/exclude filters change; regenerates `allProjectsList.json` and re-renders Rich list when open (`skipUpdateDashboardIfOpen` default true).
 - fix: `shouldRegenerateAllProjectsList` also compares a folder-filter fingerprint so PROJ* section refresh rebuilds the list when filters change but the Rich window is closed.
