@@ -104,6 +104,7 @@ export function getFolders(params: { excludeTrash?: boolean, space?: ?string } =
 
 /**
  * Get list of notes with filtering options
+ * TODO: @jgclark notes that this appears to be a dupe of getNotes in np.Shared/src/requestHandlers/getNotes.js
  * @param {Object} params - Request parameters
  * @param {boolean} params.includeCalendarNotes - Include calendar notes (default: false)
  * @param {boolean} params.includePersonalNotes - Include personal/project notes (default: true)

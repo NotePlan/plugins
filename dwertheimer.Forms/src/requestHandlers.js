@@ -14,7 +14,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { getAllNotesAsOptions, getRelativeNotesAsOptions } from './noteHelpers'
+import { getAllNotesAsOptions } from './noteHelpers'
 import { loadTemplateBodyFromTemplate, loadTemplateRunnerArgsFromTemplate, formatFormFieldsAsCodeBlock, getFormTemplateList } from './templateIO'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
@@ -559,7 +559,8 @@ export async function saveAutosave(params: { filename: string, content: string, 
 }
 
 /**
- * Get headings from a note
+ * Get headings from a specified note
+ * TODO: @jgclark notes that this is a slightly simpler version of getHeadings in np.Shared/src/requestHandlers/getHeadings.js. The latter looks to be hardened.
  * @param {Object} params - Request parameters
  * @param {string} params.noteFilename - Filename of the note to get headings from
  * @param {boolean} params.optionAddTopAndBottom - Whether to add "top of note" and "bottom of note" options (default: true)
